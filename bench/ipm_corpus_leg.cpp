@@ -274,13 +274,13 @@ const char *warm_tag(InteriorVariant::Warm warm) {
     return "<none>";
 }
 
-const char *restoration_tag(RestorationModes mode) {
+const char *restoration_tag(RestorationMode mode) {
     switch (mode) {
-    case RestorationModes::off:
+    case RestorationMode::kOff:
         return "off";
-    case RestorationModes::proximal_switch:
+    case RestorationMode::kProximalSwitch:
         return "proximal_switch";
-    case RestorationModes::l1_nested:
+    case RestorationMode::kL1Nested:
         return "l1_nested";
     }
     throw std::invalid_argument(
@@ -320,23 +320,23 @@ hven::solvers::IterationPayload leg_callback_payload() {
 
 } // namespace
 
-const char *interior_treatment_tag(FixedVariableTreatments treatment) {
+const char *interior_treatment_tag(FixedVariableTreatment treatment) {
     switch (treatment) {
-    case FixedVariableTreatments::MakeParameter:
+    case FixedVariableTreatment::kMakeParameter:
         return "MakeParameter";
-    case FixedVariableTreatments::MakeConstraint:
+    case FixedVariableTreatment::kMakeConstraint:
         return "MakeConstraint";
-    case FixedVariableTreatments::RelaxBounds:
+    case FixedVariableTreatment::kRelaxBounds:
         return "RelaxBounds";
     }
     throw std::invalid_argument(fmt::format("interior_treatment_tag: unrecognized treatment ({})",
                                             static_cast<int>(treatment)));
 }
 
-const std::vector<FixedVariableTreatments> &interior_treatments() {
-    static const std::vector<FixedVariableTreatments> kAll{FixedVariableTreatments::MakeParameter,
-                                                           FixedVariableTreatments::MakeConstraint,
-                                                           FixedVariableTreatments::RelaxBounds};
+const std::vector<FixedVariableTreatment> &interior_treatments() {
+    static const std::vector<FixedVariableTreatment> kAll{FixedVariableTreatment::kMakeParameter,
+                                                          FixedVariableTreatment::kMakeConstraint,
+                                                          FixedVariableTreatment::kRelaxBounds};
     return kAll;
 }
 
@@ -361,7 +361,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         stalled.name = "stalled";
         stalled.entry = InteriorVariant::Entry::kSolve;
         stalled.max_iters = 600;
-        stalled.restoration_mode = RestorationModes::l1_nested;
+        stalled.restoration_mode = RestorationMode::kL1Nested;
         stalled.max_feas_rest = 1;
         stalled.con_tol = 2.0e-2;
         stalled.acc_kkt_tol = 1.0e-6;
@@ -374,7 +374,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         resto.name = "resto_infeasible";
         resto.entry = InteriorVariant::Entry::kOptimize;
         resto.max_iters = 200;
-        resto.restoration_mode = RestorationModes::l1_nested;
+        resto.restoration_mode = RestorationMode::kL1Nested;
         resto.max_feas_rest = 1;
         v.push_back(resto);
 
@@ -479,7 +479,7 @@ std::string interior_variant_stamp(const InteriorVariant &variant) {
         warm_tag(variant.warm),
         variant.max_iters > 0 ? std::to_string(variant.max_iters) : std::string("<levers>"),
         restoration_tag(variant.restoration_mode),
-        variant.restoration_mode == RestorationModes::off ? std::string("<unused>")
+        variant.restoration_mode == RestorationMode::kOff ? std::string("<unused>")
                                                           : std::to_string(variant.max_feas_rest),
         variant.con_tol > 0.0 ? fmt::format("{:.9e}", variant.con_tol) : std::string("<levers>"),
         variant.acc_con_tol > 0.0 ? fmt::format("{:.9e}", variant.acc_kkt_tol)
@@ -511,7 +511,7 @@ std::vector<IpmPhase> phases_for(InteriorVariant::Entry entry) {
 // rows' second solver is configured identically to the first). Does not
 // transcribe: the caller does that, because it is the step after which the
 // program exists.
-void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment,
+void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
@@ -543,45 +543,45 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
     // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
     // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
     if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
-        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.max_iters = 500;
+        o.advanced.acceptance_strategy = AcceptanceKind::kClassicMerit;
+        o.advanced.barrier_governor = BarrierGovernorKind::kClassicAdaptive;
+        o.common.max_iterations = 500;
     }
 
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
-    o.common.print_level = levers.print_level;
-    o.max_iters = levers.max_iters;
-    o.kkt_tol = levers.kkt_tol;
-    o.econ_tol = levers.econ_tol;
-    o.icon_tol = levers.icon_tol;
-    o.bar_tol = levers.barr_tol;
+    o.common.verbosity = levers.verbosity;
+    o.common.max_iterations = levers.max_iters;
+    o.common.optimality_tol = levers.kkt_tol;
+    o.common.feasibility_tol = levers.econ_tol;
+    o.common.feasibility_tol = levers.icon_tol;
+    o.termination.complementarity_tol = levers.barr_tol;
     o.fixed_variable_treatment = treatment;
     o.bound_relax_factor = levers.bound_relax_factor;
     // The variant's overrides, applied on top of the levers above. Every field
     // is inert at its default, so a base row runs exactly what T8.1 captured.
     if (variant.max_iters > 0) {
-        o.max_iters = variant.max_iters;
+        o.common.max_iterations = variant.max_iters;
     }
     if (variant.con_tol > 0.0) {
-        o.econ_tol = variant.con_tol;
-        o.icon_tol = variant.con_tol;
+        o.common.feasibility_tol = variant.con_tol;
+        o.common.feasibility_tol = variant.con_tol;
     }
     if (variant.acc_con_tol > 0.0) {
-        o.acc_kkt_tol = variant.acc_kkt_tol;
-        o.acc_econ_tol = variant.acc_con_tol;
-        o.acc_icon_tol = variant.acc_con_tol;
-        o.acc_bar_tol = variant.acc_barr_tol;
+        o.termination.acceptable_kkt_tol = variant.acc_kkt_tol;
+        o.termination.acceptable_equality_tol = variant.acc_con_tol;
+        o.termination.acceptable_inequality_tol = variant.acc_con_tol;
+        o.termination.acceptable_barrier_tol = variant.acc_barr_tol;
     }
     if (variant.div_tol > 0.0) {
-        o.div_kkt_tol = variant.div_tol;
-        o.div_econ_tol = variant.div_tol;
-        o.div_icon_tol = variant.div_tol;
-        o.div_bar_tol = variant.div_tol;
+        o.termination.divergence_kkt_tol = variant.div_tol;
+        o.termination.divergence_equality_tol = variant.div_tol;
+        o.termination.divergence_inequality_tol = variant.div_tol;
+        o.termination.divergence_barrier_tol = variant.div_tol;
     }
-    if (variant.restoration_mode != RestorationModes::off) {
-        o.restoration_mode = variant.restoration_mode;
-        o.max_feas_rest = variant.max_feas_rest;
+    if (variant.restoration_mode != RestorationMode::kOff) {
+        o.advanced.restoration_mode = variant.restoration_mode;
+        o.advanced.restoration_max_entries = variant.max_feas_rest;
     }
     ipm.set_options(std::move(o));
 }
@@ -592,7 +592,7 @@ std::string interior_row_key(const InteriorRow &row);
 
 InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
+                                 FixedVariableTreatment treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant) {
     if (problem == nullptr) {
         throw std::invalid_argument(
@@ -902,7 +902,7 @@ InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requ
     return stamp;
 }
 
-InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments treatment,
+InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatment treatment,
                               const InteriorLevers &levers, const InteriorVariant &variant) {
     if (!crossover::cell_dual_binds(cell)) {
         throw std::invalid_argument(
@@ -922,13 +922,13 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments tr
     return run_interior_problem(declared, id, x0, treatment, levers, variant);
 }
 
-InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers,
+InteriorRow run_interior_hs071(FixedVariableTreatment treatment, const InteriorLevers &levers,
                                const InteriorVariant &variant) {
     return run_interior_problem(std::make_shared<Hs071FixedProblem>(), hs071_fixed_identity(),
                                 hs071_fixed_start(), treatment, levers, variant);
 }
 
-InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatment treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant) {
     std::shared_ptr<Nlp> problem;
     if (cell_id == kSpikeCellId) {
@@ -948,8 +948,8 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
                                 variant);
 }
 
-FixedVariableTreatments interior_treatment_from_tag(std::string_view tag) {
-    for (const FixedVariableTreatments treatment : interior_treatments()) {
+FixedVariableTreatment interior_treatment_from_tag(std::string_view tag) {
+    for (const FixedVariableTreatment treatment : interior_treatments()) {
         if (tag == interior_treatment_tag(treatment)) {
             return treatment;
         }
@@ -959,7 +959,7 @@ FixedVariableTreatments interior_treatment_from_tag(std::string_view tag) {
                                             tag));
 }
 
-InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatment treatment,
                                     const InteriorLevers &levers) {
     // The fixed-variable cell is not a corpus cell -- the leg runs it
     // unconditionally from its own id, and find_cell would not know it.
@@ -992,9 +992,9 @@ std::string interior_globalization_stamp() {
     const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
     IpmOptions o;
     if (pinned) {
-        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.max_iters = 500;
+        o.advanced.acceptance_strategy = AcceptanceKind::kClassicMerit;
+        o.advanced.barrier_governor = BarrierGovernorKind::kClassicAdaptive;
+        o.common.max_iterations = 500;
     }
 
     // Read the two enumerator spellings off dump_options() rather than

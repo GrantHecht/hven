@@ -50,10 +50,10 @@ constexpr double kInfBound = 1e20;
 SqpOptions qn_options() {
     SqpOptions o;
     o.hessian_mode = SqpHessianMode::kLbfgsDamped;
-    o.max_iter = 300;
+    o.common.max_iterations = 300;
     // The L-BFGS window and its lift, which these stage-3 tests pin; the shipped full-memory
     // default is the `shipped` row of the variant battery below.
-    o.qn_full_memory_max = 0;
+    o.advanced.qn_full_memory_max = 0;
     return o;
 }
 
@@ -203,15 +203,15 @@ TEST(SqpQnOptions, DefaultsAreTheExactMode) {
     const SqpOptions o;
     EXPECT_EQ(o.hessian_mode, SqpHessianMode::kExact);
     EXPECT_EQ(o.qn_memory, 10);
-    EXPECT_FALSE(o.qn_update_on_reject);
-    EXPECT_FALSE(o.qn_nonlinear_only);
-    EXPECT_EQ(o.qn_full_memory_max, 400);
+    EXPECT_FALSE(o.advanced.qn_update_on_reject);
+    EXPECT_FALSE(o.advanced.qn_nonlinear_only);
+    EXPECT_EQ(o.advanced.qn_full_memory_max, 400);
 }
 
 TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
     SqpOptions o = qn_options();
     EXPECT_NO_THROW(validate(o));
-    o.hessian_mode = SqpHessianMode::kSqpHessianModeCount;
+    o.hessian_mode = static_cast<SqpHessianMode>(2);
     EXPECT_THROW(validate(o), std::invalid_argument);
     o = qn_options();
     o.qn_memory = 0;
@@ -219,12 +219,12 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
     o.qn_memory = -3;
     EXPECT_THROW(validate(o), std::invalid_argument);
     o = qn_options();
-    o.qn_full_memory_max = -1;
+    o.advanced.qn_full_memory_max = -1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.qn_full_memory_max = 0; // never
+    o.advanced.qn_full_memory_max = 0; // never
     EXPECT_NO_THROW(validate(o));
     o = qn_options();
-    o.restoration_proximity = 1e-3; // the exact zeta D^2 split is not shipped under QN
+    o.advanced.restoration_proximity = 1e-3; // the exact zeta D^2 split is not shipped under QN
     EXPECT_THROW(validate(o), std::invalid_argument);
     o.hessian_mode = SqpHessianMode::kExact; // ... and is fine under the exact mode
     EXPECT_NO_THROW(validate(o));
@@ -239,9 +239,9 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
 TEST(SqpQnOptions, DumpNamesTheFiveFields) {
     SqpOptions o = qn_options();
     o.qn_memory = 7;
-    o.qn_update_on_reject = true;
-    o.qn_nonlinear_only = true;
-    o.qn_full_memory_max = 250;
+    o.advanced.qn_update_on_reject = true;
+    o.advanced.qn_nonlinear_only = true;
+    o.advanced.qn_full_memory_max = 250;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
@@ -321,8 +321,8 @@ TEST_P(SqpQnVariantHs, ConvergesWithoutAHessianCall) {
     test_support::HsProblem p = make_hs(hc.number);
     HessCountingModel model(p.model.get());
     SqpOptions o = qn_options();
-    o.qn_nonlinear_only = v.nonlinear_only;
-    o.qn_full_memory_max = v.full_memory_max;
+    o.advanced.qn_nonlinear_only = v.nonlinear_only;
+    o.advanced.qn_full_memory_max = v.full_memory_max;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -371,8 +371,8 @@ TEST(SqpQnVariants, TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpect
         test_support::HsProblem p = make_hs(6);
         Hs6LinearX2Model model(p.model.get());
         SqpOptions o = qn_options();
-        o.qn_nonlinear_only = nonlinear_only;
-        o.qn_full_memory_max = full_memory_max;
+        o.advanced.qn_nonlinear_only = nonlinear_only;
+        o.advanced.qn_full_memory_max = full_memory_max;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -532,8 +532,8 @@ TEST(SqpQnModes, BothWorkingSetAlgebrasAndTheScaledSolveConverge) {
 TEST(SqpQnPairs, TheSocPromotedStepIsTheOfferedPair) {
     MaratosModel model;
     SqpOptions o = qn_options();
-    o.kkt_tol = 1e-8;
-    o.feas_tol = 1e-8;
+    o.common.optimality_tol = 1e-8;
+    o.common.feasibility_tol = 1e-8;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -548,12 +548,12 @@ TEST(SqpQnPairs, TheSocPromotedStepIsTheOfferedPair) {
 TEST(SqpQnPairs, UpdateOnRejectOffersTheRejectedTrials) {
     MaratosModel model;
     SqpOptions o = qn_options();
-    o.kkt_tol = 1e-8;
-    o.feas_tol = 1e-8;
-    o.enable_soc = false; // rejections stay rejections
+    o.common.optimality_tol = 1e-8;
+    o.common.feasibility_tol = 1e-8;
+    o.advanced.enable_soc = false; // rejections stay rejections
     const SqpResult base =
         SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
-    o.qn_update_on_reject = true;
+    o.advanced.qn_update_on_reject = true;
     const SqpResult abl =
         SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(base.status, SolveStatus::kOptimal);
@@ -611,7 +611,7 @@ TEST(SqpQnRestoration, TheSubSolveRunsItsOwnInstanceWithoutAHessianCall) {
         o.qp.ws_algebra = algebra;
         // The phase on the solve's OWN curvature source (M7 W2 RST's kModel); the
         // regularized curvature is the next test's.
-        o.restoration_curvature = SqpRestorationCurvature::kModel;
+        o.advanced.restoration_curvature = SqpRestorationCurvature::kModel;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -633,8 +633,8 @@ TEST(SqpQnRestoration, TheExactModeFoldsTheSubSolvesHessianCalls) {
     InfeasibleCircleLineModel inner;
     HessCountingModel model(&inner);
     SqpOptions o;
-    o.max_iter = 200;
-    o.restoration_curvature = SqpRestorationCurvature::kModel;
+    o.common.max_iterations = 200;
+    o.advanced.restoration_curvature = SqpRestorationCurvature::kModel;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -652,9 +652,9 @@ TEST(SqpQnRestoration, TheRegularizedCurvatureNeverCallsTheCallersHessianInThePh
         InfeasibleCircleLineModel inner;
         HessCountingModel model(&inner);
         SqpOptions o = qn ? qn_options() : SqpOptions{};
-        o.max_iter = 300;
-        o.restoration_curvature = SqpRestorationCurvature::kRegularized;
-        o.restoration_max_entries = 1;
+        o.common.max_iterations = 300;
+        o.advanced.restoration_curvature = SqpRestorationCurvature::kRegularized;
+        o.advanced.restoration_max_entries = 1;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());

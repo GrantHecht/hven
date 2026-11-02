@@ -239,14 +239,15 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     const hven::solvers::SqpOptions s = detail::options_for_cell(cell, ssn_cfg);
     EXPECT_EQ(w.qp_mode, hven::solvers::QpMode::kWalk);
     EXPECT_EQ(s.qp_mode, hven::solvers::QpMode::kSsn);
-    EXPECT_EQ(w.kkt_tol, s.kkt_tol);
-    EXPECT_EQ(w.feas_tol, s.feas_tol);
-    EXPECT_EQ(w.max_iter, s.max_iter);
+    EXPECT_EQ(w.common.optimality_tol, s.common.optimality_tol);
+    EXPECT_EQ(w.common.feasibility_tol, s.common.feasibility_tol);
+    EXPECT_EQ(w.common.max_iterations, s.common.max_iterations);
     EXPECT_EQ(w.qp.max_iter, s.qp.max_iter);
-    EXPECT_EQ(w.adaptive_mu, s.adaptive_mu);
-    EXPECT_EQ(w.warm_full_step, s.warm_full_step);
-    EXPECT_EQ(w.ssn_prox_carry, s.ssn_prox_carry) << "the prox carry is a LEVER, not part of the "
-                                                     "engine selection -- it ships off in both";
+    EXPECT_EQ(w.advanced.adaptive_mu, s.advanced.adaptive_mu);
+    EXPECT_EQ(w.advanced.warm_full_step, s.advanced.warm_full_step);
+    EXPECT_EQ(w.advanced.ssn_prox_carry, s.advanced.ssn_prox_carry)
+        << "the prox carry is a LEVER, not part of the "
+           "engine selection -- it ships off in both";
 
     // And the engine actually runs: the kernel's own counters move under ssn
     // and are structurally zero under walk.
@@ -818,14 +819,14 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
 
     hven::solvers::SqpSolver driver_a(opts);
-    const auto direct =
-        driver_a.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                       hven::solvers::SqpWarmStart{},
-                       hven::solvers::SolveBudget{hven::solvers::corpus::detail::kMinorBudget});
+    const auto direct = driver_a.solve(
+        hven::solvers::detail::problem_ref(model), model.start_point(),
+        hven::solvers::SqpWarmStart{},
+        hven::solvers::SolveBudget{.minor_budget = hven::solvers::corpus::detail::kMinorBudget});
     hven::solvers::SqpSolver driver_b(opts);
     const auto via_helper =
         hven::solvers::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
@@ -838,21 +839,22 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
 
 TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // A tiny EXPLICIT budget (1 minor) on a fixture that genuinely needs more
-    // must stop at SolveStatus::kMaxIter with probe_budget_stops == 1 --
+    // must stop at SolveStatus::kWorkLimit (kMaxIter before M8 AP-2 B3's declared
+    // relabel) with probe_budget_stops == 1 --
     // sqp_solver_types.h's own documented contract -- rather than run to completion
     // or hang.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
     hven::solvers::SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 10;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 10;
     hven::solvers::SqpSolver driver(opts);
 
     const auto sol = hven::solvers::corpus::detail::budgeted_solve(
         driver, model, model.start_point(), hven::solvers::SqpWarmStart{}, /*budget=*/1);
 
-    EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kWorkLimit);
     EXPECT_EQ(sol.counters.probe_budget_stops, 1);
     EXPECT_GE(sol.counters.qp_minor_iters, 1)
         << "the budget was crossed, not skipped -- some real work was still done";
@@ -1158,7 +1160,7 @@ TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
     ASSERT_NE(cell, nullptr);
     F7CollocationChain model = detail::make_model(*cell);
     hven::solvers::SqpOptions opts = detail::options_for_cell(*cell);
-    opts.equality_basis = true;
+    opts.advanced.equality_basis = true;
     hven::solvers::SqpSolver driver(opts);
     const hven::solvers::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
     ASSERT_EQ(sol.status, hven::solvers::SolveStatus::kOptimal);
@@ -3268,13 +3270,13 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
 // is informational (CLAUDE.md §7) and the leg's own comparator excludes it too.
 TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
     namespace corpus = hven::solvers::corpus;
-    using hven::solvers::FixedVariableTreatments;
+    using hven::solvers::FixedVariableTreatment;
 
     const corpus::InteriorLevers levers;
     const corpus::InteriorRow routed = corpus::run_interior_single_row(
-        corpus::kHs071FixedCellId, FixedVariableTreatments::MakeParameter, levers);
+        corpus::kHs071FixedCellId, FixedVariableTreatment::kMakeParameter, levers);
     const corpus::InteriorRow leg = corpus::run_interior_hs071(
-        FixedVariableTreatments::MakeParameter, levers, corpus::interior_base_variant());
+        FixedVariableTreatment::kMakeParameter, levers, corpus::interior_base_variant());
 
     const std::vector<std::string> a = runner_test::split_all(corpus::interior_csv_row(routed));
     const std::vector<std::string> b = runner_test::split_all(corpus::interior_csv_row(leg));
@@ -3305,10 +3307,10 @@ TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
     // leg cannot state as an Nlp. Neither costs a solve, which is why
     // they ride along here rather than in a test of their own.
     EXPECT_THROW((void)corpus::run_interior_single_row(
-                     "not_a_cell_id", FixedVariableTreatments::MakeParameter, levers),
+                     "not_a_cell_id", FixedVariableTreatment::kMakeParameter, levers),
                  std::invalid_argument);
     EXPECT_THROW((void)corpus::run_interior_single_row(
-                     "f7_n1000_bound_warm", FixedVariableTreatments::MakeParameter, levers),
+                     "f7_n1000_bound_warm", FixedVariableTreatment::kMakeParameter, levers),
                  std::invalid_argument);
 }
 

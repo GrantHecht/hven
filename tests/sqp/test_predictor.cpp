@@ -134,9 +134,9 @@ constexpr double kTightReg = 1e-12;
 // 1e-13) would be measuring the solver's stopping tolerance instead.
 SqpOptions tight_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-11;
-    opts.feas_tol = 1e-11;
-    opts.max_iter = 80;
+    opts.common.optimality_tol = 1e-11;
+    opts.common.feasibility_tol = 1e-11;
+    opts.common.max_iterations = 80;
     return opts;
 }
 
@@ -1023,10 +1023,10 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     ASSERT_DOUBLE_EQ(model.p_activation(), 0.5);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     const SqpWarmStart warm = converged_warm(model, kP, opts);
     ASSERT_EQ(warm.bound_active, model.active_set(kP).bound_active)
         << "fixture premise: nothing is on the ceiling at p = 0.35";
@@ -1258,10 +1258,10 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kP, /*radius=*/1.0);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     const SqpWarmStart warm = converged_warm(model, kP, opts);
 
     model.set_parameters(p_vec(kP));
@@ -1418,9 +1418,9 @@ class W1ScaledPriceLine : public ParametricNlpModel {
 // the SIGN of a multiplier, not eleven digits of it.
 SqpOptions scaled_price_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = 40;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = 40;
     return opts;
 }
 

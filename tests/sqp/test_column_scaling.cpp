@@ -481,7 +481,7 @@ TEST(ColumnScalingOption, TheShippedDefaultIsAutoAtTheHalfPrecisionGate) {
 
 TEST(ColumnScalingOption, ValidationRefusesTheSentinelAndABadThreshold) {
     SqpOptions o;
-    o.column_scaling = SqpColumnScaling::kSqpColumnScalingCount;
+    o.column_scaling = static_cast<SqpColumnScaling>(3);
     EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     for (const double t : {0.5, 0.0, -1.0, std::numeric_limits<double>::quiet_NaN(),
                            std::numeric_limits<double>::infinity()}) {
@@ -521,9 +521,9 @@ TEST(ColumnScalingOption, TheDumpCarriesBothFields) {
 void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     // AN INDEPENDENT MEASUREMENT of the caller's own problem at the returned point
     // and prices: the model-taking evaluate_kkt knows nothing about any factor.
-    const SqpKkt k =
-        evaluate_kkt(model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.feas_tol);
+    const SqpKkt k = evaluate_kkt(model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+                                  hven::solvers::detail::engine_rows(sol).lambda_i,
+                                  SqpOptions{}.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(k.stationarity, sol.sqp_stationarity);
     EXPECT_DOUBLE_EQ(k.feasibility, sol.sqp_feasibility);
     EXPECT_DOUBLE_EQ(k.complementarity, sol.sqp_complementarity);
@@ -532,7 +532,8 @@ void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     for (Index i = 0; i < sol.z.size(); ++i) {
         EXPECT_DOUBLE_EQ(k.z(i), sol.z(i)) << "bound price " << i;
     }
-    EXPECT_LE(k.feasibility, SqpOptions{}.feas_tol) << "feasible in the caller's units";
+    EXPECT_LE(k.feasibility, SqpOptions{}.common.feasibility_tol)
+        << "feasible in the caller's units";
     EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.f);
     // THE SHARED FOUR, by their one definition, on the caller's own evaluations.
     Vec g, ce, ci;
@@ -840,7 +841,7 @@ template <class Model> Equivalence expect_scaled_equivalence(const Model &model,
     e.d = cs.active ? cs.cols : Vec::Ones(model.n());
 
     SqpOptions opts = off_options();
-    opts.max_iter = max_iter;
+    opts.common.max_iterations = max_iter;
     SqpSolver plain{opts};
     const ColumnScaledModel scaled_model(model, e.d);
     e.ref =
@@ -1129,7 +1130,7 @@ TEST(ColumnScalingDriver, TheRuleReadsTheStartAsTheSolveDoes) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
-    opts.max_iter = 5;
+    opts.common.max_iterations = 5;
     SqpSolver projecting{opts};
     const SqpResult p = projecting.solve(hven::solvers::detail::problem_ref(model), x0);
     EXPECT_FALSE(p.scaling.columns_active);
@@ -1256,7 +1257,7 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
         };
     };
     SqpOptions opts = off_options();
-    opts.max_iter = max_iter;
+    opts.common.max_iterations = max_iter;
     std::vector<Seen> ref_events, events;
     SqpSolver plain{opts};
     plain.set_iteration_callback(record(ref_events));
@@ -1349,7 +1350,7 @@ TEST(ColumnScalingDriver, TheSsnProxBlockIsNotExportedFromAScaledSolve) {
     auto problem = test_support::make_hs(27);
     const NlpModel &model = *problem.model;
     SqpOptions opts = off_options();
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     opts.qp_mode = QpMode::kSsn;
     SqpSolver plain{opts};
     const SqpResult ref =
@@ -1408,7 +1409,7 @@ TEST(ColumnScalingDriver, AnInequalityRowSolvesInTheCallersUnits) {
         for (Index i = 0; i < 6; ++i) {
             EXPECT_NEAR(ref.x(i), sol.x(i), 1e-6 * std::max(1e-4, std::abs(ref.x(i)))) << i;
         }
-        EXPECT_LE(model.eval_ci(sol.x)(0), opts.feas_tol);
+        EXPECT_LE(model.eval_ci(sol.x)(0), opts.common.feasibility_tol);
         expect_caller_certified(model, sol);
     }
 }
@@ -1462,7 +1463,7 @@ TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) 
     SteepRowModel model;
     SqpOptions opts = off_options(); // the row layer alone
     opts.enable_scaling = true;
-    opts.feas_tol = 1e-3;
+    opts.common.feasibility_tol = 1e-3;
     SqpSolver driver{opts};
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
@@ -1472,12 +1473,13 @@ TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) 
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "a scaled-feasible, caller-infeasible iterate was met and refused";
     const double c = model.eval_ce(sol.x)(0);
-    EXPECT_LE(std::abs(c), opts.feas_tol) << "the caller's own residual at the returned point";
-    EXPECT_LE(sol.sqp_feasibility, opts.feas_tol);
+    EXPECT_LE(std::abs(c), opts.common.feasibility_tol)
+        << "the caller's own residual at the returned point";
+    EXPECT_LE(sol.sqp_feasibility, opts.common.feasibility_tol);
 
     // UNSCALED, the guard is never entered.
     SqpOptions plain_opts = off_options();
-    plain_opts.feas_tol = opts.feas_tol;
+    plain_opts.common.feasibility_tol = opts.common.feasibility_tol;
     SqpSolver plain{plain_opts};
     const SqpResult ref =
         plain.solve(hven::solvers::detail::problem_ref(model), model.start_point());
@@ -1498,8 +1500,9 @@ TEST(ScaledConvergenceGuard, ABoxViolationAColumnFactorHidIsRefused) {
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "the start passes the scaled test and is infeasible in the caller's units";
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
-    EXPECT_LE(sol.x(1), model.upper()(1) + opts.feas_tol) << "the returned point is in the box";
-    EXPECT_LE(sol.sqp_feasibility, opts.feas_tol);
+    EXPECT_LE(sol.x(1), model.upper()(1) + opts.common.feasibility_tol)
+        << "the returned point is in the box";
+    EXPECT_LE(sol.sqp_feasibility, opts.common.feasibility_tol);
 }
 
 // ===========================================================================

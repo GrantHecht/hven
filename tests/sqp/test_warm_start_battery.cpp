@@ -470,12 +470,12 @@ CellStats collect(const Ledger &ledger, const ContinuationResult &res) {
 // one thing (the start), which is the only way the ratios mean anything.
 SqpOptions battery_options(StartLevel level, bool full_step) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = level;
-    opts.warm_full_step = full_step;
+    opts.advanced.warm_full_step = full_step;
     return opts;
 }
 

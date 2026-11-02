@@ -540,7 +540,7 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
     ScaledDualModel model(1e12, 5e-7);
 
     SqpOptions off;
-    off.max_iter = 60;
+    off.common.max_iterations = 60;
     SqpSolver cold_off{off};
     const SqpResult before =
         cold_off.solve(hven::solvers::detail::problem_ref(model), model.start_point());
@@ -583,7 +583,7 @@ TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell)
     // say so.
     ScaledDualModel model(1e12, 5e-7);
     SqpOptions on;
-    on.max_iter = 60;
+    on.common.max_iterations = 60;
     on.enable_scaling = true;
     SqpSolver driver{on};
     const SqpResult sol =
@@ -678,9 +678,9 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     // THE FOUR RESIDUALS, against an INDEPENDENT measurement of the caller's own
     // problem at the returned multipliers -- the model-taking evaluate_kkt,
     // which knows nothing about the seam or its factors.
-    const SqpKkt independent =
-        evaluate_kkt(model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.feas_tol);
+    const SqpKkt independent = evaluate_kkt(
+        model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+        hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(independent.stationarity, sol.sqp_stationarity);
     EXPECT_DOUBLE_EQ(independent.feasibility, sol.sqp_feasibility);
     EXPECT_DOUBLE_EQ(independent.complementarity, sol.sqp_complementarity);
@@ -697,7 +697,7 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     // AND THE DISCLOSED GAP IS REPORTED, not hidden: the gate read the scaled
     // residual, and it is carried beside the caller-scale one.
     EXPECT_TRUE(std::isfinite(sol.scaling.scaled_kkt_residual));
-    EXPECT_LE(sol.scaling.scaled_kkt_residual, SqpOptions{}.kkt_tol)
+    EXPECT_LE(sol.scaling.scaled_kkt_residual, SqpOptions{}.common.optimality_tol)
         << "the number the convergence test actually gated on";
 }
 
@@ -836,7 +836,7 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     // O(1) and the solve would be poisoned by its own warm start.
     ScaledDualModel model(1e12, 5e-7);
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     opts.enable_scaling = true;
     opts.common.start_level = StartLevel::kWarm;
 
@@ -993,7 +993,7 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     InfeasibleCircleLineModel model;
 
     SqpOptions off_opts;
-    off_opts.max_iter = 200;
+    off_opts.common.max_iterations = 200;
     SqpSolver off{off_opts};
     const SqpResult a = off.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(SolveStatus::kInfeasible, a.status);
@@ -1031,9 +1031,9 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     // multipliers, so an independent measurement must reproduce them.
     EXPECT_NEAR(t, b.x(0), 1e-5);
     EXPECT_NEAR(t, b.x(1), 1e-5);
-    const SqpKkt independent =
-        evaluate_kkt(model, b.x, hven::solvers::detail::engine_rows(b).lambda_e,
-                     hven::solvers::detail::engine_rows(b).lambda_i, off_opts.feas_tol);
+    const SqpKkt independent = evaluate_kkt(
+        model, b.x, hven::solvers::detail::engine_rows(b).lambda_e,
+        hven::solvers::detail::engine_rows(b).lambda_i, off_opts.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(independent.stationarity, b.sqp_stationarity);
     EXPECT_DOUBLE_EQ(independent.feasibility, b.sqp_feasibility);
     EXPECT_DOUBLE_EQ(independent.residual(), b.kkt_residual);
@@ -1135,9 +1135,9 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     ASSERT_EQ(2, sol.z.size());
     EXPECT_NEAR(-1.16e6, sol.z(1), 1e-3) << "the hand-derived bound price, on the CALLER's scale";
 
-    const SqpKkt independent =
-        evaluate_kkt(model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.feas_tol);
+    const SqpKkt independent = evaluate_kkt(
+        model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+        hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
     // EXACT: the same fold, on the same model, at the same point and the same
     // multipliers. A divide-back of the engine's own vector is a DIFFERENT
     // computation -- sf*grad and (s_j*Ji)^T*lambda~ summed and then divided --

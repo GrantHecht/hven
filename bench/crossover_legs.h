@@ -470,7 +470,7 @@ struct LegOptions {
     /// Interior-point iteration cap per phase.
     int ipm_max_iters = 200;
     /// Interior-point console verbosity; 3 and above is silent.
-    int ipm_print_level = 10;
+    hven::solvers::Verbosity ipm_verbosity = hven::solvers::Verbosity::kSilent;
 };
 
 namespace detail {
@@ -608,12 +608,12 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         const auto ipm_program = hven::solvers::make_nlp_program(declared);
         hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions ipm_opts = ipm.options();
-        ipm_opts.common.print_level = opts.ipm_print_level;
-        ipm_opts.max_iters = opts.ipm_max_iters;
-        ipm_opts.kkt_tol = corpus::detail::kKktTol;
-        ipm_opts.econ_tol = corpus::detail::kFeasTol;
-        ipm_opts.icon_tol = corpus::detail::kFeasTol;
-        ipm_opts.bar_tol = corpus::detail::kKktTol;
+        ipm_opts.common.verbosity = opts.ipm_verbosity;
+        ipm_opts.common.max_iterations = opts.ipm_max_iters;
+        ipm_opts.common.optimality_tol = corpus::detail::kKktTol;
+        ipm_opts.common.feasibility_tol = corpus::detail::kFeasTol;
+        ipm_opts.common.feasibility_tol = corpus::detail::kFeasTol;
+        ipm_opts.termination.complementarity_tol = corpus::detail::kKktTol;
         ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
         const hven::solvers::IpmResult result =
@@ -820,7 +820,7 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
     }
     const auto solve = [&](SqpSolver &driver, const Vec &x0,
                            const SqpWarmStart &warm = SqpWarmStart{}) {
-        const SolveBudget budget{/*minor_budget=*/kMinorBudget};
+        const SolveBudget budget{.minor_budget = kMinorBudget};
         if (route == NlpRoute::kNlpPublic) {
             return driver.solve(*problem, x0, warm, budget);
         }

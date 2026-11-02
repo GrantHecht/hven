@@ -637,6 +637,10 @@ const char *spec_spelling(hven::solvers::SolveStatus v) {
         return "\"acceptable\"";
     case hven::solvers::SolveStatus::kMaxIter:
         return "\"max_iter\"";
+    case hven::solvers::SolveStatus::kWorkLimit:
+        return "\"work_limit\"";
+    case hven::solvers::SolveStatus::kTimeLimit:
+        return "\"time_limit\"";
     case hven::solvers::SolveStatus::kInfeasible:
         return "\"infeasible\"";
     case hven::solvers::SolveStatus::kStalled:
@@ -668,6 +672,10 @@ const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
         return "\"acceptable\"";
     case hven::solvers::RestorationSubStatus::kMaxIter:
         return "\"max_iter\"";
+    case hven::solvers::RestorationSubStatus::kWorkLimit:
+        return "\"work_limit\"";
+    case hven::solvers::RestorationSubStatus::kTimeLimit:
+        return "\"time_limit\"";
     case hven::solvers::RestorationSubStatus::kInfeasible:
         return "\"infeasible\"";
     case hven::solvers::RestorationSubStatus::kStalled:
@@ -684,11 +692,11 @@ const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(InertiaModes v) {
+const char *spec_spelling(InertiaMode v) {
     switch (v) {
-    case InertiaModes::classic:
+    case InertiaMode::kClassic:
         return "\"classic\"";
-    case InertiaModes::proximal_regularization:
+    case InertiaMode::kProximalRegularization:
         return "\"proximal_regularization\"";
     }
     return kUnspelled;
@@ -719,6 +727,10 @@ const char *spec_spelling(IpmStopReason v) {
         return "\"stage_stalled\"";
     case IpmStopReason::kInterrupted:
         return "\"interrupted\"";
+    case IpmStopReason::kWorkLimit:
+        return "\"work_limit\"";
+    case IpmStopReason::kTimeLimit:
+        return "\"time_limit\"";
     }
     return kUnspelled;
 }
@@ -761,13 +773,13 @@ const char *spec_spelling(IpmMessageKind v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(RestorationModes v) {
+const char *spec_spelling(RestorationMode v) {
     switch (v) {
-    case RestorationModes::off:
+    case RestorationMode::kOff:
         return "\"off\"";
-    case RestorationModes::proximal_switch:
+    case RestorationMode::kProximalSwitch:
         return "\"proximal_switch\"";
-    case RestorationModes::l1_nested:
+    case RestorationMode::kL1Nested:
         return "\"l1_nested\"";
     }
     return kUnspelled;
@@ -803,9 +815,9 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
-    static_assert(static_cast<int>(InertiaModes::proximal_regularization) == 2 - 1,
+    static_assert(static_cast<int>(InertiaMode::kProximalRegularization) == 2 - 1,
                   "2 inertia modes");
-    static_assert(static_cast<int>(RestorationModes::l1_nested) == 3 - 1, "3 restoration modes");
+    static_assert(static_cast<int>(RestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
     static_assert(static_cast<int>(IpmStopReason::kInterrupted) == 5 - 1, "5 stop reasons");
@@ -1106,7 +1118,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     ipm_status(hven::solvers::SolveStatus::kDiverging);
     ipm_status(hven::solvers::SolveStatus::kNumericalError);
 
-    const auto inertia_mode = [](InertiaModes m) {
+    const auto inertia_mode = [](InertiaMode m) {
         IpmSolveBeginTraceEvent e;
         e.inertia_mode = m;
         std::ostringstream os;
@@ -1114,10 +1126,10 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_begin(e);
         EXPECT_EQ(raw_field(os.str(), "inertia_mode"), spec_spelling(m));
     };
-    inertia_mode(InertiaModes::classic);
-    inertia_mode(InertiaModes::proximal_regularization);
+    inertia_mode(InertiaMode::kClassic);
+    inertia_mode(InertiaMode::kProximalRegularization);
 
-    const auto restoration_mode = [](RestorationModes m) {
+    const auto restoration_mode = [](RestorationMode m) {
         IpmSolveBeginTraceEvent e;
         e.restoration_mode = m;
         std::ostringstream os;
@@ -1125,9 +1137,9 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_begin(e);
         EXPECT_EQ(raw_field(os.str(), "restoration_mode"), spec_spelling(m));
     };
-    restoration_mode(RestorationModes::off);
-    restoration_mode(RestorationModes::proximal_switch);
-    restoration_mode(RestorationModes::l1_nested);
+    restoration_mode(RestorationMode::kOff);
+    restoration_mode(RestorationMode::kProximalSwitch);
+    restoration_mode(RestorationMode::kL1Nested);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
@@ -1399,7 +1411,7 @@ TEST(JsonLinesTraceSink, WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKI
     for (const Leg leg : {Leg{11, 0, 2}, Leg{38, 1, 0}}) {
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         const HsProblem p = make_hs(leg.hs);
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -1486,7 +1498,7 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
     // census beside the unchanged counters.
     SqpOptions opts;
     opts.qp_mode = QpMode::kWalk;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(24);
 
     SqpSolver bare(opts);
@@ -1718,7 +1730,7 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
     // artifact is short and `failed()` says so.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
 
     SqpSolver bare(opts);
@@ -1750,7 +1762,7 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     // moved inside its try, and THIS PIN is the only thing that would notice.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     FailAfterBuf buf(4096);
     std::ostream out(&buf);
@@ -1872,7 +1884,7 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
     // formats every event moves no counter either.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
 
     SqpSolver bare(opts);
@@ -1905,7 +1917,7 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     // so the stream carries ZERO entries against a positive `ipqp_to_walk`.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     PinnedVariableModel model(true);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2328,7 +2340,7 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpm
     for (const Leg leg : {Leg{24, QpMode::kWalk}, Leg{38, QpMode::kIpm}}) {
         SqpOptions opts;
         opts.qp_mode = leg.mode;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         const HsProblem p = make_hs(leg.hs);
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -2357,7 +2369,7 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
     // `history` field for field even where the two spaces differ.
     SqpOptions opts;
     opts.enable_scaling = true;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(25);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2408,7 +2420,7 @@ Index rows_with_a_qp(const SqpResult &sol) {
 TEST(JsonLinesTraceSink, QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk) {
     SqpOptions opts;
     opts.qp_mode = QpMode::kWalk;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(24);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2432,7 +2444,7 @@ TEST(JsonLinesTraceSink, QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk) {
 TEST(JsonLinesTraceSink, QpModeOnAnSsnCellCountsTheArmAndItsHandOffs) {
     SqpOptions opts;
     opts.qp_mode = QpMode::kSsn;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(33);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2483,7 +2495,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
     {
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         const HsProblem p = make_hs(38);
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -2519,7 +2531,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         PinnedVariableModel model(true);
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
@@ -2700,7 +2712,7 @@ std::string only_line(const std::string &stream, const char *ev, const char *dep
 TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2738,7 +2750,7 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
     // 1..N across both, and every line of solve k lies inside solve k's own
     // pair -- which is what makes the pair a partition rather than a marker.
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p24 = make_hs(24);
     const HsProblem p11 = make_hs(11);
     std::ostringstream os;
@@ -2804,7 +2816,7 @@ TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
     // the same stream at depth 1, and they belong to its own brackets.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -2920,7 +2932,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
     };
     {
         SqpOptions opts;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         const HsProblem p = make_hs(24);
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -2934,7 +2946,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
     }
     {
         SqpOptions opts;
-        opts.max_iter = 1;
+        opts.common.max_iterations = 1;
         const HsProblem p = make_hs(38);
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -2949,7 +2961,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
     {
         CircleAndFarLineModel model;
         SqpOptions opts;
-        opts.max_iter = 200;
+        opts.common.max_iterations = 200;
         SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
@@ -2972,7 +2984,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet) {
     // the claim, read off the sub-solve's own first depth-1 row.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -3011,7 +3023,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals) {
     // deltas of its own, and none of them reached the outer counter.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -3042,7 +3054,7 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     // any event, no stack in the reader.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -3484,7 +3496,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLoca
     // being trivially copyable -- the failure the old shape could not pin.
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -3511,7 +3523,7 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
     // The budget is measured, not guessed: solve once to learn the stream, then
     // re-solve with room for everything except the final line.
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(24);
     std::ostringstream measure;
     {
@@ -3548,7 +3560,7 @@ TEST(JsonLinesTraceSink, ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDep
     // ASSERTED ON THE STREAM, not on `depth()`: the leak is invisible to the
     // accessor, which reads 0 between solves either way.
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(24);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -3628,7 +3640,7 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     // that keeps using it says so. `seq` is deliberately NOT reset: the lines
     // already written are part of the artifact.
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     std::ostringstream os;
     JsonLinesTraceSink json(os);
 
@@ -3707,7 +3719,7 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoratio
     // No row-by-row pin reached one, because HS24/HS38/HS25 never restore.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -3747,7 +3759,7 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
     // test_ipqp_trace.cpp uses for the `to_ssn` row).
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(3);
     SqpSolver driver(opts);
     std::ostringstream os;
@@ -3792,7 +3804,7 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
     // `seq` must know that a depth-0 bracket can contain a depth-1 solve.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -4034,8 +4046,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     e.bar_tol = 4e-6;
     e.init_mu = 0.001;
     e.obj_scale = 2.5;
-    e.inertia_mode = InertiaModes::proximal_regularization;
-    e.restoration_mode = RestorationModes::l1_nested;
+    e.inertia_mode = InertiaMode::kProximalRegularization;
+    e.restoration_mode = RestorationMode::kL1Nested;
     // RE-DERIVED AT M6 W5 T8.7, which appended EIGHT fields in one step so this
     // line moves once: the four ACCEPTABLE tolerances and `wide_console` (what
     // a sink needs to render the interior-point iteration table) and the three
@@ -4444,11 +4456,11 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
     // hardest: this model ENTERS RESTORATION, so the stream carries depth-1
     // lines from the sub-driver. Handing the sub-driver the caller's half
     // instead of the fan-out -- or handing it the console -- moves those lines.
-    auto run = [](int print_level) {
+    auto run = [](hven::solvers::Verbosity print_level) {
         CircleAndFarLineModel model;
         SqpOptions opts;
-        opts.max_iter = 200;
-        opts.common.print_level = print_level;
+        opts.common.max_iterations = 200;
+        opts.common.verbosity = print_level;
         SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
@@ -4459,8 +4471,8 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         return std::pair<std::string, Index>{os.str(), sol.counters.restoration_iters};
     };
-    const auto silent = run(3);
-    const auto printing = run(0);
+    const auto silent = run(hven::solvers::Verbosity::kSilent);
+    const auto printing = run(hven::solvers::Verbosity::kIterations);
     ASSERT_GE(silent.second, 1) << "fixture premise: this cell enters restoration";
     EXPECT_EQ(silent.first, printing.first)
         << "the console displaced or perturbed the caller's stream";
@@ -4477,8 +4489,8 @@ TEST(SqpConsole, TheLiveConsoleEqualsFormatIterationTable) {
     // against the function it is pinned to, on the returned solution.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
-    opts.common.print_level = 0;
+    opts.common.max_iterations = 200;
+    opts.common.verbosity = hven::solvers::Verbosity::kIterations;
     SqpSolver driver(opts);
     std::string written;
     SqpResult sol;
@@ -4499,7 +4511,7 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
     // wrote before this task: nothing.
     HsProblem p = make_hs(38);
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     SqpSolver driver(opts);
     std::string written;
     {
@@ -4514,12 +4526,12 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
 }
 
 TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
-    auto run = [](int print_level, bool attach_first) {
+    auto run = [](hven::solvers::Verbosity print_level, bool attach_first) {
         HsProblem p = make_hs(38);
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
-        opts.max_iter = 60;
-        opts.common.print_level = print_level;
+        opts.common.max_iterations = 60;
+        opts.common.verbosity = print_level;
         EventTally tally;
         // ATTACH ORDER IS FREE, and this is where that is proved: the sink is
         // attached before or after `set_options` and the composition happens at
@@ -4536,9 +4548,9 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
         driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
         return tally.seen;
     };
-    const std::vector<std::string> off = run(3, true);
-    const std::vector<std::string> on = run(0, true);
-    const std::vector<std::string> on_late = run(0, false);
+    const std::vector<std::string> off = run(hven::solvers::Verbosity::kSilent, true);
+    const std::vector<std::string> on = run(hven::solvers::Verbosity::kIterations, true);
+    const std::vector<std::string> on_late = run(hven::solvers::Verbosity::kIterations, false);
     EXPECT_FALSE(off.empty());
     EXPECT_EQ(off, on);
     EXPECT_EQ(off, on_late);
@@ -4559,8 +4571,8 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     // second header and its own rows into the same `stdout`.
     CircleAndFarLineModel model;
     SqpOptions opts;
-    opts.max_iter = 200;
-    opts.common.print_level = 0;
+    opts.common.max_iterations = 200;
+    opts.common.verbosity = hven::solvers::Verbosity::kIterations;
     SqpSolver driver(opts);
     std::string written;
     SqpResult sol;
@@ -4593,7 +4605,7 @@ TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {
     // not take effect in it. The refusal says so.
     HsProblem p = make_hs(38);
     SqpOptions opts;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);

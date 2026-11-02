@@ -223,7 +223,7 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
     // trailing solve is conditional on the phase BEFORE it, so on a problem the
     // optimize phase converges it never runs at all.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.phases = {hven::solvers::IpmPhase::kOptimize, hven::solvers::IpmPhase::kSolve};
     hven::solvers::IpmSolver solver(o);
 
@@ -248,7 +248,7 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
     // The same sequence with the optimize phase capped so it cannot converge:
     // now the trailing solve DOES run, off exactly the same rule.
     hven::solvers::IpmOptions capped = o;
-    capped.max_iters = 1;
+    capped.common.max_iterations = 1;
     hven::solvers::IpmSolver tight(capped);
     const hven::solvers::IpmResult exhausted =
         tight.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -267,7 +267,7 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
 // phase start now, so the two cannot disagree.
 TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     // {kSolve, kOptimize} -- the old solve_optimize(). The second phase is
     // UNCONDITIONAL, so both always run, and a cap tight enough to stop the
     // optimize phase leaves the feasibility phase's own verdict standing beside
@@ -282,7 +282,7 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     // optimality phase ran past 10, which is what made 10 the right cap then
     // and the wrong one now. 7 is the only value that stops the second phase
     // (it needs 8) while leaving the first (it needs 6) short of the cap.
-    o.max_iters = 7;
+    o.common.max_iterations = 7;
     hven::solvers::IpmSolver solver(o);
 
     const auto model =
@@ -300,7 +300,7 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     EXPECT_EQ(r.phases[1].status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(r.phases[1].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
     // The feasibility phase ended on its own verdict, not on the cap.
-    EXPECT_LT(r.phases[0].iterations, o.max_iters);
+    EXPECT_LT(r.phases[0].iterations, o.common.max_iterations);
     EXPECT_EQ(r.phases[0].stop_reason, hven::solvers::IpmStopReason::kNone);
     // Both phases are timed separately, and neither timing is the call's.
     EXPECT_GE(r.phases[0].phase_seconds, 0.0);
@@ -318,8 +318,8 @@ TEST(IpmPhases, EmptySequenceIsRefused) {
 
 TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
-    o.max_iters = 200;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
+    o.common.max_iterations = 200;
     hven::solvers::IpmSolver solver(o);
 
     const auto model =
@@ -327,7 +327,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
 
     const hven::solvers::IpmResult capped =
         solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                     hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+                     hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(capped.iterations, 2);
     ASSERT_EQ(capped.phases.size(), 1u);
@@ -335,11 +335,11 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
 
     // TIGHTEN ONLY: a budget ABOVE the engine's own limit does not raise it.
     hven::solvers::IpmOptions tight = o;
-    tight.max_iters = 2;
+    tight.common.max_iterations = 2;
     hven::solvers::IpmSolver small(tight);
     const hven::solvers::IpmResult still_capped =
         small.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                    hven::solvers::SolveBudget{0, 10000});
+                    hven::solvers::SolveBudget{.max_iterations = 10000});
     EXPECT_EQ(still_capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(still_capped.iterations, 2);
 
@@ -353,7 +353,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
 
 TEST(IpmIntrospection, PatternQueryTakesTheModel) {
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
 
     const auto first =
@@ -396,7 +396,7 @@ TEST(IpmIntrospection, PatternQueryTakesTheModel) {
 
 TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
@@ -434,7 +434,7 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
 // ties §(1)'s definition to what the engine actually reports.
 TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
@@ -524,7 +524,7 @@ class NonFiniteModel final : public hven::solvers::NlpModel {
 
 hven::solvers::SqpOptions quiet_sqp() {
     hven::solvers::SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 
@@ -673,7 +673,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // everything below is vacuous without it.
     BoxBlockedEqualityModel model;
     hven::solvers::SqpOptions o = quiet_sqp();
-    o.max_iter = 200;
+    o.common.max_iterations = 200;
     hven::solvers::SqpSolver driver(o);
 
     const hven::solvers::SqpResult free_run =
@@ -690,7 +690,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // what the outer loop has already spent, so the two together stay inside it.
     const hven::solvers::SqpResult capped =
         driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                     hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+                     hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
         << "the cap bounds the majors AND the restoration majors together";
 
@@ -699,7 +699,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // sub-budgeted -- no restoration major is spent at all.
     const hven::solvers::SqpResult refused =
         driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                     hven::solvers::SolveBudget{0, 1});
+                     hven::solvers::SolveBudget{.max_iterations = 1});
     EXPECT_LE(refused.counters.major_iters, 1);
     EXPECT_EQ(refused.counters.restoration_iters, 0)
         << "a spent budget refuses the phase rather than entering it";
@@ -707,11 +707,11 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // TIGHTEN ONLY: a budget above the engine's own limit does not raise it,
     // and the ENGINE's own max_iter reaches the same three reads.
     hven::solvers::SqpOptions tight = quiet_sqp();
-    tight.max_iter = 2;
+    tight.common.max_iterations = 2;
     hven::solvers::SqpSolver small(tight);
     const hven::solvers::SqpResult still =
         small.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                    hven::solvers::SolveBudget{0, 100000});
+                    hven::solvers::SolveBudget{.max_iterations = 100000});
     EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
 
     // THE DEFAULT BUDGET IS THE IDENTITY, which is what makes this
@@ -807,7 +807,7 @@ TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
     // returned point exists, and manufacturing one would move evals_full on
     // every solve.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.phases = {hven::solvers::IpmPhase::kSolve};
     hven::solvers::IpmSolver solver(o);
     const auto model =
@@ -843,7 +843,7 @@ TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
     // having run FIRST does not taint them -- the provenance is a fact about
     // the LAST evaluation, not about the sequence.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
     hven::solvers::IpmSolver solver(o);
     const auto model =
@@ -874,11 +874,11 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
     // anyway. Empty is the contract's word for unmeasured; a zero-length
     // vector cannot be misread the way a copied one can.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.common.threads = 1;
-    o.max_iters = 200;
-    o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
-    o.max_feas_rest = 1;
+    o.common.max_iterations = 200;
+    o.advanced.restoration_mode = hven::solvers::RestorationMode::kL1Nested;
+    o.advanced.restoration_max_entries = 1;
     hven::solvers::IpmSolver solver(o);
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
@@ -925,9 +925,9 @@ TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
     int chosen_cap = -1;
     for (int cap = 2; cap <= 30 && chosen_cap < 0; ++cap) {
         hven::solvers::IpmOptions probe;
-        probe.common.print_level = 10;
+        probe.common.verbosity = hven::solvers::Verbosity::kSilent;
         probe.common.threads = 1;
-        probe.max_iters = cap;
+        probe.common.max_iterations = cap;
         hven::solvers::IpmOptions with_best = probe;
         with_best.return_best = true;
 
@@ -969,7 +969,7 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
     // constructed afterwards and may well take A's storage. An address-based
     // token can coincide; a never-reused owner id cannot.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
 
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
@@ -1008,15 +1008,14 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
     // narrowed to `int` BEFORE taking the minimum, so 2^32 became 0, the loop
     // was skipped entirely and the exit reached an empty iterate history.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::solvers::IpmResult huge =
         solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                     hven::solvers::SolveBudget{/*minor_budget=*/0,
-                                                /*max_iterations=*/Index{1} << 32});
+                     hven::solvers::SolveBudget{.max_iterations = Index{1} << 32});
     EXPECT_EQ(huge.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(huge.iterations, 0);
 
@@ -1034,7 +1033,7 @@ TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
     // any solve that did work and is never smaller than the engine's own older
     // measurement, which stops before the final reporting.
     hven::solvers::IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     hven::solvers::IpmSolver solver(o);
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
@@ -1060,12 +1059,12 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     // refuse to run beside a staged value.
     const auto p = hven::solvers::test_support::make_hs(7);
     hven::solvers::SqpOptions o = quiet_sqp();
-    o.max_iter = 200;
+    o.common.max_iterations = 200;
 
     hven::solvers::SqpSolver model_driver(o);
     const hven::solvers::SqpResult capped =
         model_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(),
-                           hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+                           hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_LE(capped.counters.major_iters, 2);
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
 
@@ -1085,7 +1084,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     ASSERT_TRUE(currency.has_value());
     const hven::solvers::SqpResult payload_and_capped =
         bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), p.model->start_point(),
-                            *currency, hven::solvers::SolveBudget{0, 1});
+                            *currency, hven::solvers::SolveBudget{.max_iterations = 1});
     EXPECT_LE(payload_and_capped.counters.major_iters, 1);
 
     // AND THE DEFAULT IS THE IDENTITY on both new doors.

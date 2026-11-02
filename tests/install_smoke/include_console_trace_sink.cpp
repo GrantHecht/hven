@@ -30,7 +30,8 @@ int standalone_include_console_trace_sink() {
     // this TU is the header's include closure, not the sink's behaviour (which
     // tests/drivers/test_console_sink.cpp pins byte for byte).
     hven::solvers::ConsoleTraceSink console(
-        hven::solvers::ConsoleTraceSink::Format{/*wide=*/true, /*print_level=*/3}, stdout);
+        hven::solvers::ConsoleTraceSink::Format{/*wide=*/true, hven::solvers::Verbosity::kSilent},
+        stdout);
     hven::solvers::FanOutTraceSink fan(nullptr, &console);
     const bool composed = fan.second() == &console && fan.first() == nullptr &&
                           console.format().wide && console.sqp_depth() == 0;

@@ -205,9 +205,9 @@ const std::vector<double> &path_samples() {
 // was and none of them moved under M6.
 SqpOptions tight_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     opts.qp.max_iter = 5000;
     return opts;
 }
@@ -431,7 +431,7 @@ void check_path_at(F7CollocationChain &model, double p) {
     // The returned quadruple is a KKT point OF THE MODEL, recomputed from the
     // model rather than from the driver's own residual.
     const test_support::NlpKktResidual chk =
-        test_support::self_check_kkt(model, sol, opts.feas_tol);
+        test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
     EXPECT_LT(chk.stationarity, 1e-7);
     EXPECT_LT(chk.primal, 1e-8);
     EXPECT_LT(chk.dual_sign, 1e-9);
@@ -1277,9 +1277,9 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
     const double p = 0.90;
     const auto make_options = [] {
         SqpOptions opts;
-        opts.kkt_tol = 1e-9;
-        opts.feas_tol = 1e-9;
-        opts.max_iter = 60;
+        opts.common.optimality_tol = 1e-9;
+        opts.common.feasibility_tol = 1e-9;
+        opts.common.max_iterations = 60;
         return opts; // qp.max_iter at the library default (M6's sentinel)
     };
 
@@ -1289,7 +1289,7 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
         driver_off.solve(hven::solvers::detail::problem_ref(model_off), model_off.start_point());
 
     SqpOptions on_opts = make_options();
-    on_opts.crash_basis = true;
+    on_opts.advanced.crash_basis = true;
     F7CollocationChain model_on(100, 3, 2, p, 1.0);
     SqpSolver driver_on(on_opts);
     const SqpResult on =
@@ -1346,9 +1346,9 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     F7CollocationChain model(50, 3, 2, p, 1.0);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     // qp.max_iter deliberately LEFT AT THE LIBRARY DEFAULT -- the sentinel.
     ASSERT_LE(opts.qp.max_iter, 0) << "the shipped default must BE the sentinel";
 

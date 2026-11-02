@@ -124,7 +124,7 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
     //     back. Print level 10 is silent under the convention both engines now
     //     share.
     auto opts = solver.options();
-    opts.common.print_level = 10;
+    opts.common.verbosity = hven::solvers::Verbosity::kSilent;
     solver.set_options(std::move(opts));
 
     // (2) the per-iteration callback, on both engines, with the same event type
@@ -191,7 +191,8 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
 // ipm_solver_types at T8.3, console_trace_sink at T8.7; at T8.9 nlp_solver went
 // with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18;
 // make_nlp_program at M7 W0 T5(a), 18 -> 19; at M8 AP-2 B2 the three model-layer
-// TUs became nlp, problem and fixed_variable_treatment, 19 -> 19).
+// TUs became nlp, problem and fixed_variable_treatment, 19 -> 19; at M8 AP-2 B3
+// fixed_variable_treatment left and the six options-break headers joined, 19 -> 24).
 // Each proves COMPILE-TIME self-containment only: none odr-uses anything its
 // header declares, so the link proves the objects link, nothing about exports.
 namespace hven_install_smoke {
@@ -202,7 +203,12 @@ int standalone_include_nlp_problem();
 int standalone_include_problem();
 int standalone_include_nlp_aggregate();
 int standalone_include_aggregate_declaration();
-int standalone_include_fixed_variable_treatment();
+int standalone_include_ipm_options();
+int standalone_include_sqp_options();
+int standalone_include_ipm_enums();
+int standalone_include_ipm_phase_report();
+int standalone_include_step_verdict();
+int standalone_include_dense_policy();
 int standalone_include_interior_point_solver();
 int standalone_include_sqp_driver();
 int standalone_include_solve_status();
@@ -224,7 +230,12 @@ int main() {
                                hven_install_smoke::standalone_include_problem() +
                                hven_install_smoke::standalone_include_nlp_aggregate() +
                                hven_install_smoke::standalone_include_aggregate_declaration() +
-                               hven_install_smoke::standalone_include_fixed_variable_treatment() +
+                               hven_install_smoke::standalone_include_ipm_options() +
+                               hven_install_smoke::standalone_include_sqp_options() +
+                               hven_install_smoke::standalone_include_ipm_enums() +
+                               hven_install_smoke::standalone_include_ipm_phase_report() +
+                               hven_install_smoke::standalone_include_step_verdict() +
+                               hven_install_smoke::standalone_include_dense_policy() +
                                hven_install_smoke::standalone_include_interior_point_solver() +
                                hven_install_smoke::standalone_include_sqp_driver() +
                                hven_install_smoke::standalone_include_solve_status() +
@@ -236,8 +247,8 @@ int main() {
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 19) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 19\n",
+    if (standalone_tus != 24) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 24\n",
                      standalone_tus);
         return 1;
     }
@@ -253,7 +264,7 @@ int main() {
         return 1;
     }
 
-    hven::solvers::SqpSolver sqp{hven::solvers::SqpOptions{}};
+    hven::solvers::SqpSolver sqp;
     if (!run_once(sqp, problem, x0, "SqpSolver")) {
         return 1;
     }

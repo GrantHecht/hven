@@ -67,14 +67,14 @@ void expect_same_solve(const hven::solvers::SolveResult &a, const hven::solvers:
 hven::solvers::IpmOptions ipm_options() {
     hven::solvers::IpmOptions o;
     o.common.threads = 1;
-    o.common.print_level = 3;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 
 hven::solvers::SqpOptions sqp_options() {
     hven::solvers::SqpOptions o;
     o.common.threads = 1;
-    o.common.print_level = 3;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 

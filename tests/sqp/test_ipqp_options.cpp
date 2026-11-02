@@ -35,14 +35,14 @@ TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
     EXPECT_NO_THROW(validate(defaulted));
 
     SqpOptions bad_at_kwalk;
-    bad_at_kwalk.ipqp.ipqp_hard_iter_cap = 0;
+    bad_at_kwalk.advanced.ipqp.hard_iteration_cap = 0;
     EXPECT_THROW(validate(bad_at_kwalk), std::invalid_argument);
 
     // AND THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3): a legal `QpMode` value that
     // names no kernel, existing so a fourth mode cannot be added without a dispatch arm. It is
     // refused here at construction, not at a dispatch it can then never reach.
     SqpOptions sentinel;
-    sentinel.qp_mode = QpMode::kQpModeCount;
+    sentinel.qp_mode = static_cast<QpMode>(3);
     EXPECT_THROW(validate(sentinel), std::invalid_argument);
     EXPECT_THROW(SqpSolver{sentinel}, std::invalid_argument)
         << "and the constructor validates, so no solve can carry it";
@@ -64,14 +64,14 @@ TEST(IpqpOptions, TheFieldsAreValidatedAtEveryModeIncludingTheDefault) {
 // would move all of them at once.
 TEST(IpqpOptions, TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentinel) {
     SqpOptions defaulted;
-    EXPECT_EQ(defaulted.elastic_rung_engine, ElasticRungEngine::kWalk)
+    EXPECT_EQ(defaulted.advanced.elastic_rung_engine, ElasticRungEngine::kWalk)
         << "M7 W0 T3 shipped the tier-solved rung behind a toggle that is OFF: the measured win "
            "is on a CONSTRUCTED family, not on the suite's TRAIN split, which is what the M7 "
            "exit criterion asks for";
     EXPECT_NO_THROW(validate(defaulted));
 
     SqpOptions sentinel;
-    sentinel.elastic_rung_engine = ElasticRungEngine::kElasticRungEngineCount;
+    sentinel.advanced.elastic_rung_engine = static_cast<ElasticRungEngine>(2);
     EXPECT_THROW(validate(sentinel), std::invalid_argument);
     EXPECT_THROW(SqpSolver{sentinel}, std::invalid_argument)
         << "and the constructor validates, so no solve can carry it to the rung dispatch";
@@ -82,7 +82,7 @@ TEST(IpqpOptions, TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentine
     for (ElasticRungEngine rung : {ElasticRungEngine::kWalk, ElasticRungEngine::kTier}) {
         for (QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
             SqpOptions real;
-            real.elastic_rung_engine = rung;
+            real.advanced.elastic_rung_engine = rung;
             real.qp_mode = mode;
             EXPECT_NO_THROW(validate(real)) << "rung engine " << static_cast<int>(rung)
                                             << " in mode " << static_cast<int>(mode);
@@ -92,11 +92,11 @@ TEST(IpqpOptions, TheElasticRungEngineDefaultsToTheWalkAndRefusesTheCountSentine
 
 TEST(IpqpOptions, HardIterCapMustBePositive) {
     SqpOptions o;
-    o.ipqp.ipqp_hard_iter_cap = 0;
+    o.advanced.ipqp.hard_iteration_cap = 0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_hard_iter_cap = -1;
+    o.advanced.ipqp.hard_iteration_cap = -1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_hard_iter_cap = 1;
+    o.advanced.ipqp.hard_iteration_cap = 1;
     EXPECT_NO_THROW(validate(o));
 }
 
@@ -104,33 +104,33 @@ TEST(IpqpOptions, MuBandMustBeWellFormed) {
     // ipqp_min_mu: finite, > 0.
     {
         SqpOptions o;
-        o.ipqp.ipqp_min_mu = 0.0;
+        o.advanced.ipqp.min_mu = 0.0;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_min_mu = -1.0;
+        o.advanced.ipqp.min_mu = -1.0;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_min_mu = kNan;
+        o.advanced.ipqp.min_mu = kNan;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_min_mu = kInf;
+        o.advanced.ipqp.min_mu = kInf;
         EXPECT_THROW(validate(o), std::invalid_argument);
     }
     // ipqp_init_mu: finite, > 0.
     {
         SqpOptions o;
-        o.ipqp.ipqp_init_mu = 0.0;
+        o.advanced.ipqp.init_mu = 0.0;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_init_mu = kNan;
+        o.advanced.ipqp.init_mu = kNan;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_init_mu = kInf;
+        o.advanced.ipqp.init_mu = kInf;
         EXPECT_THROW(validate(o), std::invalid_argument);
     }
     // The pair: min_mu must not exceed init_mu (the clamp band would invert).
     {
         SqpOptions o;
-        o.ipqp.ipqp_min_mu = 1.0;
-        o.ipqp.ipqp_init_mu = 0.5;
+        o.advanced.ipqp.min_mu = 1.0;
+        o.advanced.ipqp.init_mu = 0.5;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_min_mu = 0.5;
-        o.ipqp.ipqp_init_mu = 0.5; // equality is the identity band, legal
+        o.advanced.ipqp.min_mu = 0.5;
+        o.advanced.ipqp.init_mu = 0.5; // equality is the identity band, legal
         EXPECT_NO_THROW(validate(o));
     }
 }
@@ -139,22 +139,22 @@ TEST(IpqpOptions, RegularizationFloorAndCeilingMustBeWellFormed) {
     // ipqp_reg_floor: finite, > 0.
     {
         SqpOptions o;
-        o.ipqp.ipqp_reg_floor = 0.0;
+        o.advanced.ipqp.reg_floor = 0.0;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_reg_floor = kNan;
+        o.advanced.ipqp.reg_floor = kNan;
         EXPECT_THROW(validate(o), std::invalid_argument);
     }
     // ipqp_reg_max: finite, >= ipqp_reg_floor.
     {
         SqpOptions o;
-        o.ipqp.ipqp_reg_floor = 1.0;
-        o.ipqp.ipqp_reg_max = 0.5;
+        o.advanced.ipqp.reg_floor = 1.0;
+        o.advanced.ipqp.reg_max = 0.5;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_reg_max = kInf;
+        o.advanced.ipqp.reg_max = kInf;
         EXPECT_THROW(validate(o), std::invalid_argument);
-        o.ipqp.ipqp_reg_max = 1.0; // equality legal: "never grow"
-        o.ipqp.ipqp_rho_init = 1.0;
-        o.ipqp.ipqp_delta_init = 1.0; // keep both inits inside the now-narrow band
+        o.advanced.ipqp.reg_max = 1.0; // equality legal: "never grow"
+        o.advanced.ipqp.rho_init = 1.0;
+        o.advanced.ipqp.delta_init = 1.0; // keep both inits inside the now-narrow band
         EXPECT_NO_THROW(validate(o));
     }
 }
@@ -164,13 +164,13 @@ TEST(IpqpOptions, RhoInitMustStartInsideTheRegularizationBand) {
     // monotone floor was
     // stated for rho.
     SqpOptions o;
-    o.ipqp.ipqp_reg_floor = 1e-6;
-    o.ipqp.ipqp_reg_max = 1e3;
-    o.ipqp.ipqp_rho_init = 1e-7; // below the floor
+    o.advanced.ipqp.reg_floor = 1e-6;
+    o.advanced.ipqp.reg_max = 1e3;
+    o.advanced.ipqp.rho_init = 1e-7; // below the floor
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_rho_init = 1e4; // above the ceiling
+    o.advanced.ipqp.rho_init = 1e4; // above the ceiling
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_rho_init = 1.0;
+    o.advanced.ipqp.rho_init = 1.0;
     EXPECT_NO_THROW(validate(o));
 }
 
@@ -179,45 +179,45 @@ TEST(IpqpOptions, DeltaInitMustBePositiveAndNoLargerThanTheCeilingButIsNotTiedTo
     // carries the monotone-floor invariant (spec 2.2) -- so a value below the deliberately high
     // floor set here must still be ACCEPTED.
     SqpOptions o;
-    o.ipqp.ipqp_reg_floor = 1e-6;
-    o.ipqp.ipqp_reg_max = 1e3;
-    o.ipqp.ipqp_delta_init = 1e-7; // below the floor, but the floor does not bind delta
+    o.advanced.ipqp.reg_floor = 1e-6;
+    o.advanced.ipqp.reg_max = 1e3;
+    o.advanced.ipqp.delta_init = 1e-7; // below the floor, but the floor does not bind delta
     EXPECT_NO_THROW(validate(o));
-    o.ipqp.ipqp_delta_init = 0.0; // non-positive is still rejected
+    o.advanced.ipqp.delta_init = 0.0; // non-positive is still rejected
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = -1.0;
+    o.advanced.ipqp.delta_init = -1.0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = kNan;
+    o.advanced.ipqp.delta_init = kNan;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = 1e4; // above the ceiling is still rejected
+    o.advanced.ipqp.delta_init = 1e4; // above the ceiling is still rejected
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_delta_init = 1e3; // exactly the ceiling is legal
+    o.advanced.ipqp.delta_init = 1e3; // exactly the ceiling is legal
     EXPECT_NO_THROW(validate(o));
 }
 
 TEST(IpqpOptions, RegDecreaseMustBeAStrictFraction) {
     SqpOptions o;
-    o.ipqp.ipqp_reg_decrease = 0.0;
+    o.advanced.ipqp.reg_decrease = 0.0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_reg_decrease = 1.0;
+    o.advanced.ipqp.reg_decrease = 1.0;
     EXPECT_THROW(validate(o), std::invalid_argument) << "1 would never decrease";
-    o.ipqp.ipqp_reg_decrease = -0.1;
+    o.advanced.ipqp.reg_decrease = -0.1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_reg_decrease = kNan;
+    o.advanced.ipqp.reg_decrease = kNan;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_reg_decrease = 0.5;
+    o.advanced.ipqp.reg_decrease = 0.5;
     EXPECT_NO_THROW(validate(o));
 }
 
 TEST(IpqpOptions, TauMustBeAStrictFractionToBoundaryParameter) {
     SqpOptions o;
-    o.ipqp.ipqp_tau = 0.0;
+    o.advanced.ipqp.tau = 0.0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_tau = 1.0;
+    o.advanced.ipqp.tau = 1.0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_tau = kNan;
+    o.advanced.ipqp.tau = kNan;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_tau = 0.995;
+    o.advanced.ipqp.tau = 0.995;
     EXPECT_NO_THROW(validate(o));
 }
 
@@ -226,71 +226,71 @@ TEST(IpqpOptions, FaceKappaMustLieStrictlyBetweenZeroAndOne) {
     // ratio rule's active test (s_j < kappa*z_j) and inactive test (z_j < kappa*s_j) stop being
     // mutually exclusive, so equal slack and dual values would satisfy both.
     SqpOptions o;
-    o.ipqp.ipqp_face_kappa = 0.0;
+    o.advanced.ipqp.face_kappa = 0.0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_face_kappa = -1e-2;
+    o.advanced.ipqp.face_kappa = -1e-2;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_face_kappa = 1.0;
+    o.advanced.ipqp.face_kappa = 1.0;
     EXPECT_THROW(validate(o), std::invalid_argument)
         << "at kappa == 1 the two ratio tests coincide at equality";
-    o.ipqp.ipqp_face_kappa = 2.0;
+    o.advanced.ipqp.face_kappa = 2.0;
     EXPECT_THROW(validate(o), std::invalid_argument)
         << "above 1 the active and inactive tests overlap";
-    o.ipqp.ipqp_face_kappa = kInf;
+    o.advanced.ipqp.face_kappa = kInf;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_face_kappa = kNan;
+    o.advanced.ipqp.face_kappa = kNan;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_face_kappa = 1e-2;
+    o.advanced.ipqp.face_kappa = 1e-2;
     EXPECT_NO_THROW(validate(o));
 }
 
 TEST(IpqpOptions, ConvergeSlackMustBeAtLeastOne) {
     SqpOptions o;
-    o.ipqp.ipqp_converge_slack = 0.5;
+    o.advanced.ipqp.converge_slack = 0.5;
     EXPECT_THROW(validate(o), std::invalid_argument) << "below 1 would out-ask tier 3's own finish";
-    o.ipqp.ipqp_converge_slack = kInf;
+    o.advanced.ipqp.converge_slack = kInf;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_converge_slack = 1.0;
+    o.advanced.ipqp.converge_slack = 1.0;
     EXPECT_NO_THROW(validate(o)) << "exactly 1 is the identity slack, and is legal";
 }
 
 TEST(IpqpOptions, WarmIterBudgetMustBeNonNegative) {
     SqpOptions o;
-    o.ipqp.ipqp_warm_iter_budget = -1;
+    o.advanced.ipqp.warm_iter_budget = -1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_warm_iter_budget = 0;
+    o.advanced.ipqp.warm_iter_budget = 0;
     EXPECT_NO_THROW(validate(o)) << "0 is legal: every warm restart killed on iter 1";
 }
 
 TEST(IpqpOptions, MuAdoptFactorMustBeFiniteAndNonNegative) {
     SqpOptions o;
-    o.ipqp.ipqp_mu_adopt_factor = -0.1;
+    o.advanced.ipqp.mu_adopt_factor = -0.1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_mu_adopt_factor = kInf;
+    o.advanced.ipqp.mu_adopt_factor = kInf;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_mu_adopt_factor = kNan;
+    o.advanced.ipqp.mu_adopt_factor = kNan;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_mu_adopt_factor = 0.0;
+    o.advanced.ipqp.mu_adopt_factor = 0.0;
     EXPECT_NO_THROW(validate(o)) << "0 legally disables adoption";
 }
 
 TEST(IpqpOptions, StallWindowMustBePositive) {
     SqpOptions o;
-    o.ipqp.ipqp_stall_window = 0;
+    o.advanced.ipqp.stall_window = 0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_stall_window = -3;
+    o.advanced.ipqp.stall_window = -3;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_stall_window = 5;
+    o.advanced.ipqp.stall_window = 5;
     EXPECT_NO_THROW(validate(o));
 }
 
 TEST(IpqpOptions, RetireAfterMustBePositive) {
     SqpOptions o;
-    o.ipqp.ipqp_retire_after = 0;
+    o.advanced.ipqp.retire_after = 0;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_retire_after = -1;
+    o.advanced.ipqp.retire_after = -1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.ipqp.ipqp_retire_after = 3;
+    o.advanced.ipqp.retire_after = 3;
     EXPECT_NO_THROW(validate(o));
 }
 

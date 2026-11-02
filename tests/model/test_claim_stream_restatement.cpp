@@ -37,7 +37,7 @@ using hven::model_tests::expand_partition_offsets;
 using hven::model_tests::reference_restatement;
 using hven::model_tests::ReferenceStream;
 using hven::solvers::ClaimBlock;
-using hven::solvers::FixedVariableTreatments;
+using hven::solvers::FixedVariableTreatment;
 using hven::solvers::NonLinearProgram;
 
 namespace {
@@ -279,7 +279,7 @@ TEST(ClaimStreamRestatement, AnEliminationOnlyRelayLeavesTheDeclarationSpaceStre
     expect_stream_matches_reference(*nlp, before);
 
     const int *rows_data = nlp->kkt_claim_rows().data();
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
     ASSERT_TRUE(nlp->is_reduced());
 
     // The layout now names coordinates in the reduced space and carries the
@@ -302,8 +302,8 @@ TEST(ClaimStreamRestatement, AnEliminationOnlyRelayLeavesTheDeclarationSpaceStre
 
 TEST(ClaimStreamRestatement, AMakeConstraintSwitchRestatesAgainstTheNewRowSpace) {
     auto nlp = build_corpus(elimination_case());
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 0.0));
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_FALSE(nlp->is_reduced());
 
     // The treatment appended one internal equality row per fixed variable, so

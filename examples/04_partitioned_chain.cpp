@@ -385,9 +385,7 @@ ChainSolution solve_chain(int steps, int requested_partitions) {
 
     Problem problem(std::move(declaration));
 
-    IpmOptions options;
-    options.common.print_level = 3;
-    IpmSolver solver(options);
+    IpmSolver solver;
 
     Vx x0 = Vx::Zero(n);
     for (int i = 0; i <= steps; i++) {

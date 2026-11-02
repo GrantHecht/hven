@@ -75,7 +75,7 @@ QpOptions tight_opts() {
 SqpOptions ipm_options(Index max_iter = 60) {
     SqpOptions o;
     o.qp_mode = QpMode::kIpm;
-    o.max_iter = max_iter;
+    o.common.max_iterations = max_iter;
     return o;
 }
 
@@ -98,7 +98,7 @@ RealizedFace solve_and_read_face(Index nodes, double p) {
     F7CollocationChain model(nodes, /*states=*/3, /*controls=*/2, p, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, p));
     SqpOptions o;
-    o.max_iter = 60;
+    o.common.max_iterations = 60;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -363,7 +363,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWideP, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpOptions truncated;
-    truncated.max_iter = kCompletedMajors;
+    truncated.common.max_iterations = kCompletedMajors;
     SqpSolver driver(truncated);
     const SqpResult mid =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());

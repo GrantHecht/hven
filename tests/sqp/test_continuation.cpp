@@ -144,9 +144,9 @@ using test_support::F7CollocationChain;
 // must be converged far tighter than the agreement being asserted.
 SqpOptions sweep_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-10;
-    opts.feas_tol = 1e-10;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-10;
+    opts.common.feasibility_tol = 1e-10;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
@@ -593,7 +593,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
     // proposal fails, dp shrinks, and the retry -- from the LAST GOOD warm, at
     // the last good p, not from the failed point -- gets through.
     SqpOptions tight = sweep_options();
-    tight.max_iter = 2;
+    tight.common.max_iterations = 2;
 
     F2CircleNlp model(0.0);
     SqpSolver driver(tight);
@@ -684,7 +684,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions budgeted = sweep_options();
-    budgeted.max_iter = 2;
+    budgeted.common.max_iterations = 2;
     budgeted.budget_mode = true;
 
     F2CircleNlp model(0.0);
@@ -766,7 +766,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
 // ---------------------------------------------------------------------
 TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0; // every warm step fails at zero majors; see SolvedStartF2
+    starved.common.max_iterations = 0; // every warm step fails at zero majors; see SolvedStartF2
 
     SolvedStartF2 model(0.0);
     SqpSolver driver(starved);
@@ -850,7 +850,7 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
+    starved.common.max_iterations = 0;
     starved.budget_mode = true;
 
     SolvedStartF2 model(0.0);
@@ -991,7 +991,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     // kMaxIter at p0, so the sweep records one step and returns.
     {
         SqpOptions starved = sweep_options();
-        starved.max_iter = 0;
+        starved.common.max_iterations = 0;
         F1BoxQp model(0.0);
         SqpSolver driver(starved);
 
@@ -1014,7 +1014,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     // counter; only the attempt the cap demotes counts, ONCE.
     {
         SqpOptions starved = sweep_options();
-        starved.max_iter = 0;
+        starved.common.max_iterations = 0;
         starved.budget_mode = true;
         F2CircleNlp model(0.6);
         SqpSolver driver(starved);
@@ -1045,7 +1045,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
 // parameter value -- an exhaustion at p0 is a continue, not a fatal.
 TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
+    starved.common.max_iterations = 0;
     starved.budget_mode = true;
 
     // start_point() is NOT the solution here (F2's own (0.5, 0.5) at p = 0.6),
@@ -1124,12 +1124,12 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // this fixture and the measured sweeps it stands in for are solved by
         // the same driver configuration.
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_mu = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). This line is NEW and it
         // restores, EXPLICITLY, the QP minor cap that was the library default
         // when this fixture was built. It is not a workaround -- it is the
@@ -1157,7 +1157,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // "cap-pinned" number below and the M6-vs-OFF minor comparisons with
         // them. This fixture is about the PROBE BUDGET, not about the routing
         // gate, so it writes the gate out at the value it was pinned against.
-        opts.qp_failure_budget = 1;
+        opts.advanced.qp_failure_budget = 1;
         return opts;
     };
     const auto make_continuation_options = [](int probe_budget) {
@@ -1430,12 +1430,12 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
     const auto run = [](int probe_budget) {
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_mu = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
         copts.dp_init = 0.2;
@@ -1492,12 +1492,12 @@ TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
 TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
     const auto run = [](bool suspend) {
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_mu = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
         copts.dp_init = 0.4;
@@ -1563,7 +1563,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     // (cold) one fails. The contract is a RETURN with reached_p1 == false and
     // the failure recorded, never a throw.
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
+    starved.common.max_iterations = 0;
 
     F1BoxQp model(0.0);
     SqpSolver driver(starved);
@@ -1581,7 +1581,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     // floor without a step ever getting through. dp_min is set just below
     // dp_init so exactly one shrink exhausts it.
     SqpOptions one_major = sweep_options();
-    one_major.max_iter = 1;
+    one_major.common.max_iterations = 1;
     F2CircleNlp model2(0.0);
     SqpSolver driver2(one_major);
     ContinuationOptions floored;

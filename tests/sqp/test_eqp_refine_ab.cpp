@@ -177,10 +177,10 @@ struct Regime {
 Outcome run_one(const Row &r, const Cell &c, const Regime &g) {
     const HsProblem p = make_hs(r.number);
     SqpOptions opts;
-    opts.max_iter = r.max_iter;
-    opts.kkt_tol = g.tol;
-    opts.feas_tol = g.tol;
-    opts.adaptive_mu = c.adaptive_mu;
+    opts.common.max_iterations = r.max_iter;
+    opts.common.optimality_tol = g.tol;
+    opts.common.feasibility_tol = g.tol;
+    opts.advanced.adaptive_mu = c.adaptive_mu;
     opts.qp.ws_algebra = c.algebra;
     SqpSolver driver(opts);
     const SqpResult sol =
@@ -470,11 +470,11 @@ void f7_ceiling_sweep(Index nodes, double p, double scale, double tol) {
         ObjectiveInflatedF7 model(nodes, p, scale);
         const Vec x_star = model.x_star();
         SqpOptions opts;
-        opts.kkt_tol = tol;
-        opts.feas_tol = tol;
-        opts.max_iter = 60;
+        opts.common.optimality_tol = tol;
+        opts.common.feasibility_tol = tol;
+        opts.common.max_iterations = 60;
         opts.qp.max_iter = 5000; // the wide window needs it (scale-study note S5)
-        opts.adaptive_mu = c.adaptive_mu;
+        opts.advanced.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol =
@@ -505,9 +505,9 @@ void scaled_row_sweep(double a, double lo, double tol) {
     for (const Cell &c : cells()) {
         ScaledRowModel model(a, lo, x0);
         SqpOptions opts;
-        opts.kkt_tol = tol;
-        opts.feas_tol = tol;
-        opts.adaptive_mu = c.adaptive_mu;
+        opts.common.optimality_tol = tol;
+        opts.common.feasibility_tol = tol;
+        opts.advanced.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), x0);
@@ -743,11 +743,11 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         ASSERT_GT(model.active_rows(), 0) << "p must sit in F7's wide window";
 
         SqpOptions opts;
-        opts.kkt_tol = kTol;
-        opts.feas_tol = kTol;
-        opts.max_iter = 60;
+        opts.common.optimality_tol = kTol;
+        opts.common.feasibility_tol = kTol;
+        opts.common.max_iterations = 60;
         opts.qp.max_iter = 5000;
-        opts.adaptive_mu = c.adaptive_mu;
+        opts.advanced.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol =

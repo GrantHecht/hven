@@ -464,9 +464,9 @@ using hven::solvers::test_support::F7CollocationChain;
 // the cap it would have been measured against never binds either way.
 SqpOptions f7_smoke_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
@@ -504,7 +504,7 @@ void check_against_manufactured_optimum(const F7CollocationChain &model, const S
     EXPECT_LE(std::abs(sol.f - f_star), 1e-7 * std::max(1.0, std::abs(f_star))) << label;
     EXPECT_LE((sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), x_tol) << label;
     const hven::solvers::test_support::NlpKktResidual chk =
-        hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
+        hven::solvers::test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
     EXPECT_LT(chk.stationarity, 1e-7) << label;
     EXPECT_LT(chk.primal, 1e-8) << label;
     EXPECT_LT(chk.complementarity, 1e-8) << label;
@@ -560,7 +560,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
     SqpOptions opts = f7_smoke_options();
-    opts.equality_basis = true; // the pre-check assertion below; the rows are full rank
+    opts.advanced.equality_basis = true; // the pre-check assertion below; the rows are full rank
     SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e4_empty");
@@ -865,11 +865,11 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         ASSERT_GT(kP, model.p_activation()) << "the WIDE-window regime, by construction";
 
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 10;
-        opts.adaptive_mu = false;
-        opts.warm_full_step = true;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 10;
+        opts.advanced.adaptive_mu = false;
+        opts.advanced.warm_full_step = true;
         opts.qp.max_iter = 20000;
         opts.qp_mode = QpMode::kSsn;
         SqpSolver driver(opts);
@@ -926,7 +926,8 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         // wrong parameter.
         if (hop.counters.ssn.ssn_sign_swept > 0) {
             const hven::solvers::test_support::NlpKktResidual rescored =
-                hven::solvers::test_support::self_check_kkt(model, hop, opts.feas_tol);
+                hven::solvers::test_support::self_check_kkt(model, hop,
+                                                            opts.common.feasibility_tol);
             EXPECT_GT(rescored.stationarity, hop.sqp_stationarity)
                 << "the returned point's own stationarity must exceed the reported one whenever "
                    "prices were swept -- see SqpResult's terminal-KKT note";
@@ -996,11 +997,11 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
         F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
 
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 10;
-        opts.adaptive_mu = false;
-        opts.warm_full_step = true;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 10;
+        opts.advanced.adaptive_mu = false;
+        opts.advanced.warm_full_step = true;
         opts.qp.max_iter = 20000;
         opts.qp_mode = QpMode::kIpm;
         SqpSolver driver(opts);

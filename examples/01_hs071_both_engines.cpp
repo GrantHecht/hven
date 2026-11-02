@@ -94,12 +94,14 @@ int main() {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
-    IpmOptions ipm_options;
-    ipm_options.common.print_level = 3; // the IPM default (0) prints a banner and a table
-    IpmSolver ipm(ipm_options);
+    // Both engines are silent by default. One line turns the console on:
+    //     IpmOptions options;
+    //     options.common.verbosity = Verbosity::kIterations;
+    //     IpmSolver ipm(options);
+    IpmSolver ipm;
     const IpmResult ipm_result = ipm.solve(problem, x0);
 
-    SqpSolver sqp{SqpOptions{}};
+    SqpSolver sqp;
     const SqpResult sqp_result = sqp.solve(problem, x0);
 
     const bool ok_ipm = report("IpmSolver", ipm_result);

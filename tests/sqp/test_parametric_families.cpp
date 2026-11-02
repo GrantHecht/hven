@@ -81,9 +81,9 @@ constexpr double kActivityTol = 1e-8; // geometric activity tolerance
 // about the FAMILY rather than about the default stopping tolerance.
 SqpOptions tight_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
@@ -213,7 +213,7 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     // model, not from the driver's own residual) -- so a family whose x_star
     // agreed with a mis-solved point would still have to explain itself here.
     const test_support::NlpKktResidual chk =
-        test_support::self_check_kkt(model, sol, opts.feas_tol);
+        test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
     EXPECT_LT(chk.stationarity, 1e-7);
     EXPECT_LT(chk.primal, 1e-8);
     EXPECT_LT(chk.dual_sign, 1e-9);

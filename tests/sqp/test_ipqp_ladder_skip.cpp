@@ -31,7 +31,7 @@ QpOptions tight_opts() {
 
 IpqpOptions with_skip(Index k) {
     IpqpOptions o;
-    o.ipqp_ladder_skip_after = k;
+    o.ladder_skip_after = k;
     return o;
 }
 
@@ -69,16 +69,16 @@ QpProblem convex_box_qp() {
 // The A0 surface: default, validation, dump
 // ---------------------------------------------------------------------------
 
-TEST(IpqpLadderSkipOptions, DefaultIsThree) { EXPECT_EQ(IpqpOptions{}.ipqp_ladder_skip_after, 3); }
+TEST(IpqpLadderSkipOptions, DefaultIsThree) { EXPECT_EQ(IpqpOptions{}.ladder_skip_after, 3); }
 
 TEST(IpqpLadderSkipOptions, ValidateRefusesANegativeCountByName) {
     SqpOptions o;
     for (const Index ok : {Index{0}, Index{1}, Index{3}, kNever}) {
-        o.ipqp.ipqp_ladder_skip_after = ok;
+        o.advanced.ipqp.ladder_skip_after = ok;
         EXPECT_NO_THROW(validate(o)) << ok;
     }
     for (const Index bad : {Index{-1}, std::numeric_limits<Index>::min()}) {
-        o.ipqp.ipqp_ladder_skip_after = bad;
+        o.advanced.ipqp.ladder_skip_after = bad;
         try {
             validate(o);
             ADD_FAILURE() << "validate accepted ipqp_ladder_skip_after " << bad;
@@ -96,7 +96,7 @@ TEST(IpqpLadderSkipOptions, TheDumpCarriesTheLine) {
     std::ostringstream def;
     dump_options(o, def);
     EXPECT_NE(def.str().find("ipqp.ipqp_ladder_skip_after = 3\n"), std::string::npos);
-    o.ipqp.ipqp_ladder_skip_after = 1;
+    o.advanced.ipqp.ladder_skip_after = 1;
     std::ostringstream one;
     dump_options(o, one);
     EXPECT_NE(one.str().find("ipqp.ipqp_ladder_skip_after = 1\n"), std::string::npos);

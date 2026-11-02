@@ -359,7 +359,7 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
@@ -388,7 +388,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.qp_ref_steps = 2;
+        o.linear.refinement_steps = 2;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
@@ -406,7 +406,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.accel_pivot_tolerance = 0.05;
+        o.linear.accelerate_pivot_tolerance = 0.05;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
@@ -426,7 +426,7 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.qp_print = true;
+        o.linear.backend_output = true;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
@@ -446,7 +446,7 @@ TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.qp_pivot_strategy = hven::solvers::IpmSolver::QPPivotModes::kE13;
+        o.linear.pivoting = static_cast<hven::solvers::KktPivoting>(13);
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not

@@ -84,10 +84,10 @@ inline std::vector<std::string> off_fingerprint(QpMode mode) {
     const test_support::QpAsNlpModel model(dependent_networks_qp(), Vec::Zero(11));
     SqpOptions o;
     o.qp_mode = mode;
-    o.max_iter = 100;
+    o.common.max_iterations = 100;
     o.common.threads = 1;
 #ifndef HVEN_E1B_GOLDEN_AT_BASE
-    o.equality_basis = false;
+    o.advanced.equality_basis = false;
     // The base predates E2's independent working set: the pin is the old walk's.
     o.qp.independent_working_set = false;
 #endif

@@ -111,7 +111,7 @@ QpProblem convex_qp() {
 /// early-stall detector to fire on `convex_qp()` (a genuine `kStall`).
 IpqpOptions crawling_opts(double tau) {
     IpqpOptions io;
-    io.ipqp_tau = tau;
+    io.tau = tau;
     return io;
 }
 
@@ -298,7 +298,7 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     // Cold-start duals make res_c bit-exact against ipqp_init_mu here (x0 ==
     // box centre, unit distances); a res_d/res_c swap breaks this. See
     // .superpowers/w1-t8-report.md FIX ROUND 3.
-    EXPECT_DOUBLE_EQ(sink.iters.front().res_c, IpqpOptions{}.ipqp_init_mu)
+    EXPECT_DOUBLE_EQ(sink.iters.front().res_c, IpqpOptions{}.init_mu)
         << "cold-start complementarity is exactly mu_0 by construction on this fixture";
     // `it` is a dense 1..N sequence, one entry per completed iteration.
     for (std::size_t i = 0; i < sink.iters.size(); ++i) {
@@ -358,19 +358,19 @@ TEST(IpqpTrace, RegEventsPartitionIntoTheLadderClimbAndTheScheduleDecrease) {
     Index down_count = 0;
     for (const IpqpTraceRegEvent &ev : sink.regs) {
         EXPECT_GT(ev.delta, 0.0);
-        EXPECT_LE(ev.delta, defaults.ipqp_reg_max);
+        EXPECT_LE(ev.delta, defaults.reg_max);
         if (ev.dir == IpqpTraceRegDir::kUp) {
             ++up_count;
             // A real MKL run never reports evidence failure on this legal
             // fixture (docs/testing.md: that path is a seam-only injection).
             EXPECT_EQ(ev.reason, IpqpTraceRegReason::kInertia);
             EXPECT_GT(ev.rho, 0.0);
-            EXPECT_LE(ev.rho, 2.0 * defaults.ipqp_reg_max);
+            EXPECT_LE(ev.rho, 2.0 * defaults.reg_max);
         } else {
             ++down_count;
             EXPECT_EQ(ev.reason, IpqpTraceRegReason::kAccept);
-            EXPECT_GE(ev.rho, defaults.ipqp_reg_floor);
-            EXPECT_LE(ev.rho, defaults.ipqp_reg_max);
+            EXPECT_GE(ev.rho, defaults.reg_floor);
+            EXPECT_LE(ev.rho, defaults.reg_max);
         }
     }
     EXPECT_EQ(up_count, r.counters.ipqp_reg_increases)
@@ -393,7 +393,7 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     EXPECT_FALSE(sink.restarts[0].abandoned);
     // Cold-start determinism (ipqp_engine.cpp's own `cold_start` comment):
     // mu0 == ipqp_init_mu exactly, and no seed means no payload.
-    EXPECT_EQ(sink.restarts[0].mu0, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(sink.restarts[0].mu0, IpqpOptions{}.init_mu);
     EXPECT_EQ(sink.restarts[0].mu_payload, 0.0);
 
     // ALIASING: `warm_carry()` points INTO the engine, and solve() commits
@@ -410,8 +410,8 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     EXPECT_NE(rev.grade, IpqpTraceRestartGrade::kCold) << "a real seed was offered";
     EXPECT_EQ(rev.repaired, warm.counters.ipqp_restart_repairs != 0);
     EXPECT_DOUBLE_EQ(rev.mu_payload, carry_mu_before);
-    EXPECT_GE(rev.mu0, IpqpOptions{}.ipqp_min_mu);
-    EXPECT_LE(rev.mu0, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_GE(rev.mu0, IpqpOptions{}.min_mu);
+    EXPECT_LE(rev.mu0, IpqpOptions{}.init_mu);
     // R3/R4: shift_p/shift_d recomputed from the SAY formula, not merely
     // bounded -- npd=4 and sum_d=upper-lower are dimension-derived; sum_z
     // uses the seed's raw prices. See w1-t8-report.md FIX ROUND 2's derivation.
@@ -449,7 +449,7 @@ TEST(IpqpTrace, CertifyEventReportsTheFinalReadAndFiresOnlyWhenOneWasTaken) {
     RecordingTraceSink sink2;
     tier2.attach_trace(&sink2);
     IpqpOptions io2;
-    io2.ipqp_require_final_inertia = false;
+    io2.require_final_inertia = false;
     const IpqpResult r2 = tier2.solve(qp, nullptr, io2, SolveOverrides{});
     ASSERT_EQ(r2.counters.ipqp_final_inertia_read, 3);
     EXPECT_TRUE(sink2.certifies.empty());
@@ -532,7 +532,7 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
         auto p = test_support::make_hs(number);
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
+        o.common.max_iterations = 60;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         const SqpResult s =
@@ -769,7 +769,7 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
         auto p = test_support::make_hs(number);
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
+        o.common.max_iterations = 60;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         const SqpResult s =

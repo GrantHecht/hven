@@ -266,8 +266,8 @@ hven_interior_tests::IpmCase nonconvex_solver() {
         hven::solvers::make_nlp_program(std::make_shared<NonconvexProblem>()),
         std::make_unique<hven::solvers::IpmSolver>()};
     auto o = c.engine->options();
-    o.common.print_level = 10;
-    o.max_refac = 0;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
+    o.advanced.inertia_correction_max_attempts = 0;
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -518,7 +518,7 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -544,7 +544,7 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -605,7 +605,7 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -633,7 +633,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     hven::solvers::IpmResult classic_result;
     {
         auto o = classic.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         classic.set_options(std::move(o));
     }
     std::ostringstream os_classic;
@@ -652,12 +652,12 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     hven::solvers::IpmResult prox_result;
     {
         auto o = prox.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         prox.set_options(std::move(o));
     }
     {
         auto o = prox.options();
-        o.inertia_mode = InertiaModes::proximal_regularization;
+        o.advanced.inertia_mode = InertiaMode::kProximalRegularization;
         prox.set_options(std::move(o));
     }
     std::ostringstream os_prox;
@@ -708,7 +708,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     hven::solvers::IpmResult converged_result;
     {
         auto o = converged.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         converged.set_options(std::move(o));
     }
     std::ostringstream os_c;
@@ -737,8 +737,8 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     hven::solvers::IpmResult truncated_result;
     {
         auto o = truncated.options();
-        o.common.print_level = 10;
-        o.max_iters = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = 3;
         truncated.set_options(std::move(o));
     }
     std::ostringstream os_t;
@@ -769,7 +769,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -815,7 +815,7 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -841,8 +841,8 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.max_iters = 40;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = 40;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -878,7 +878,7 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -927,7 +927,7 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     hven::solvers::IpmResult converged_result;
     {
         auto o = converged.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         converged.set_options(std::move(o));
     }
     std::ostringstream os_c;
@@ -951,8 +951,8 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     hven::solvers::IpmResult truncated_result;
     {
         auto o = truncated.options();
-        o.common.print_level = 10;
-        o.max_iters = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = 3;
         truncated.set_options(std::move(o));
     }
     std::ostringstream os_t;
@@ -975,7 +975,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1000,7 +1000,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     hven::solvers::IpmResult bare_result;
     {
         auto o = bare.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         bare.set_options(std::move(o));
     }
     bare_result = bare.solve(hven::solvers::detail::problem_ref(*bare_program), hs071_start());
@@ -1019,7 +1019,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     hven::solvers::IpmResult traced_result;
     {
         auto o = traced.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         traced.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1048,7 +1048,7 @@ TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1074,7 +1074,7 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     JsonLinesTraceSink sink(os);
 
     SqpOptions opts;
-    opts.max_iter = 20;
+    opts.common.max_iterations = 20;
     SqpSolver driver(opts);
     driver.attach_trace(&sink);
     TinySqpModel model;
@@ -1089,7 +1089,7 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     solver.attach_trace(&sink);
@@ -1197,7 +1197,7 @@ hven_interior_tests::IpmCase silent_hs071() {
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>()),
         std::make_unique<hven::solvers::IpmSolver>()};
     auto o = c.engine->options();
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -1520,7 +1520,7 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.wide_console = true;
         solver.set_options(std::move(o));
     }
@@ -1632,7 +1632,7 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         std::ostringstream os;
@@ -1720,7 +1720,7 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1785,7 +1785,7 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -2242,7 +2242,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Index sink_calls = 0;
@@ -2295,7 +2295,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
         hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         solver.set_options(std::move(o));
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
@@ -2341,12 +2341,12 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
             (void)c.engine->solve(hven::solvers::detail::problem_ref(*c.program), hs071_start());
         }
     }
-    auto run = [](int print_level) {
+    auto run = [](hven::solvers::Verbosity print_level) {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
-        o.common.print_level = print_level;
+        o.common.verbosity = print_level;
         solver.set_options(std::move(o));
         std::ostringstream os;
         JsonLinesTraceSink sink(os);
@@ -2356,8 +2356,8 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
         solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
         return std::pair<std::string, std::string>{os.str(), capture.text()};
     };
-    const auto silent = run(10);
-    const auto printing = run(0);
+    const auto silent = run(hven::solvers::Verbosity::kSilent);
+    const auto printing = run(hven::solvers::Verbosity::kIterations);
     EXPECT_FALSE(silent.first.empty());
 
     // EVERY WALL-CLOCK VALUE IS MASKED AND EVERYTHING ELSE IS COMPARED BYTE FOR
@@ -2426,7 +2426,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
         hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         solver.set_options(std::move(o));
         std::ostringstream os;
         JsonLinesTraceSink usurper(os);
@@ -2505,7 +2505,7 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     SelfDetachingSink sink;
@@ -2523,7 +2523,7 @@ TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
         hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         o.wide_console = true;
         solver.set_options(std::move(o));
         StdoutCapture capture;
@@ -2576,7 +2576,7 @@ struct RetryCase {
 
     RetryCase() {
         auto o = engine->options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.common.threads = 1;
         engine->set_options(std::move(o));
     }

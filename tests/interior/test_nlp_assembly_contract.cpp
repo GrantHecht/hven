@@ -43,7 +43,7 @@ using hven::solvers::CandidateFirstOrder;
 using hven::solvers::CandidatePoint;
 using hven::solvers::CandidateValues;
 using hven::solvers::EvalRequest;
-using hven::solvers::FixedVariableTreatments;
+using hven::solvers::FixedVariableTreatment;
 using hven::solvers::has_capability;
 using hven::solvers::KktScatterView;
 using hven::solvers::Nlp;
@@ -613,13 +613,13 @@ TEST(NlpAggregateEngineEpoch, ARejectedReconfigurationThatRelaidBumpsToo) {
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
 
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8));
     ASSERT_TRUE(nlp->is_reduced());
     const auto before = nlp->structure_epoch();
 
     // Rejected: the relax treatment needs a positive factor to separate a pair
     // of equal bounds, and this one has none.
-    EXPECT_THROW(nlp->configure_variable_treatment(FixedVariableTreatments::RelaxBounds, 0.0),
+    EXPECT_THROW(nlp->configure_variable_treatment(FixedVariableTreatment::kRelaxBounds, 0.0),
                  std::invalid_argument);
 
     EXPECT_NE(nlp->structure_epoch(), before);
@@ -639,7 +639,7 @@ TEST(NlpAggregateEngineEpoch, ARejectionThatTouchedNoLayoutDoesNotBump) {
     auto nlp = agg_pin_build(problem);
 
     const auto before = nlp->structure_epoch();
-    EXPECT_THROW(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 1.0e-8),
+    EXPECT_THROW(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8),
                  std::invalid_argument);
     EXPECT_EQ(nlp->structure_epoch(), before);
 }
@@ -841,7 +841,7 @@ TEST(NlpAggregateEngineLayout, AFailedRelayAfterTheMasterListsMovedIsRefusedNotS
     problem->fix_ = 2;
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 1.0e-8));
     ASSERT_EQ(nlp->internal_fixed_constraints(), 1);
     const std::size_t equalities_as_laid = nlp->equality_constraints_.size();
 
@@ -1141,7 +1141,7 @@ TEST(NlpAggregateEngineCandidate, TheSurfaceIsInDeclarationSpaceWhateverTheTreat
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
 
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8));
     ASSERT_TRUE(nlp->is_reduced());
     ASSERT_LT(nlp->reduced_primal_vars(), nlp->primal_vars_);
 
@@ -1546,7 +1546,7 @@ TEST(NlpAggregateEngineKey, StagingABoundThenConfiguringATreatmentDoesNotMoveThe
     const auto laid = nlp->model_structure_key();
 
     nlp->set_variable_bound(0, -3.0, 3.0); // staged; nothing has materialized it
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8));
 
     EXPECT_EQ(nlp->model_structure_key().bound_digest_, laid.bound_digest_)
         << "a staged record reached the key without a re-materialization";
@@ -1828,7 +1828,7 @@ TEST(NlpAggregateEngineDeclaration, DeclaredRowIdentitiesSurviveATreatmentReconf
         rows_before.push_back(econ.location(slot));
     }
 
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 1.0e-8));
 
     // Visible as a structural mutation.
     EXPECT_NE(nlp->structure_epoch(), epoch_before);
@@ -1880,11 +1880,11 @@ TEST(NlpAggregateEngineCandidate, TheScorerExclusionSetIsComputableFromTheDeclar
 
     // The same answer under every treatment: the declaration is what decides
     // it, and the treatment decides only what the provider does about it.
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeParameter, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8));
     EXPECT_EQ(exclusion_set(nlp->declaration()), expected);
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::RelaxBounds, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kRelaxBounds, 1.0e-8));
     EXPECT_EQ(exclusion_set(nlp->declaration()), expected);
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 1.0e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 1.0e-8));
     EXPECT_EQ(exclusion_set(nlp->declaration()), expected);
 }
 

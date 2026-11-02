@@ -67,8 +67,8 @@ QpProblem make_qp(const Eigen::MatrixXd &A, const Vec &b, const Vec &h, const Ve
 SqpOptions opts_for(QpMode mode) {
     SqpOptions o;
     o.qp_mode = mode;
-    o.equality_basis = true;
-    o.max_iter = 100;
+    o.advanced.equality_basis = true;
+    o.common.max_iterations = 100;
     return o;
 }
 
@@ -99,7 +99,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(on.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(on.equality_basis.handed_off);
-        EXPECT_LT(on.counters.major_iters, o.max_iter);
+        EXPECT_LT(on.counters.major_iters, o.common.max_iterations);
 #else
         // WX-R3: the ladder after the hand-off is not known to finish kInfeasible off the
         // reference build; record it, assert the hand-off, never bless kMaxIter.
@@ -117,7 +117,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
         const SqpResult off =
             without.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         EXPECT_FALSE(off.equality_basis.handed_off);
-        EXPECT_EQ(off.counters.major_iters, o.max_iter);
+        EXPECT_EQ(off.counters.major_iters, o.common.max_iterations);
         EXPECT_EQ(off.status, SolveStatus::kMaxIter);
         EXPECT_EQ(off.equality_basis.inconsistent_row, -1);
     }
@@ -184,8 +184,8 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     const DoubledHs7 model;
     SqpOptions o;
     o.qp_mode = QpMode::kSsn;
-    o.max_iter = 60;
-    o.equality_basis = true;
+    o.common.max_iterations = 60;
+    o.advanced.equality_basis = true;
 
     // The control arm: no seam tolerance; the basis holds and the centre is lifted.
     SqpSolver control(o);

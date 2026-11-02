@@ -302,7 +302,7 @@ TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
     // as the clean one rather than the proximally biased point a level-proportional floor gives.
     // Decision 1 and the `rho * 100` measurement behind it: `.superpowers/w1-t5-report.md`.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
-    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap);
     EXPECT_NEAR(r.x(0), c.x(0), 1e-6);
     EXPECT_NEAR(r.x(1), c.x(1), 1e-6);
     // The extra factorizations the policy bought are BOUNDED and small: the
@@ -411,7 +411,7 @@ TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPri
     Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
     Injector::on_iteration_reads = true;
     IpqpOptions capped;
-    capped.ipqp_max_factorizations = 3; // the two real reads plus one
+    capped.max_factorizations = 3; // the two real reads plus one
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(armed_saddle_qp(), nullptr, capped, SolveOverrides{});
     EXPECT_EQ(r2.counters.ipqp_factorizations, 3);
@@ -456,7 +456,7 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
     // THE SCHEDULE'S OWN DUAL VALUE IS WHAT LEAVES THE SOLVE, never the
     // escalated one.
-    EXPECT_LE(r.delta, IpqpOptions{}.ipqp_delta_init);
+    EXPECT_LE(r.delta, IpqpOptions{}.delta_init);
 
     // THE PIN IS THE INJECTED SOLVE'S EXACT TRAJECTORY, not the clean solve's -- `delta`
     // legitimately changes the recovering factorization's matrix. The round-1 wiring moves it;
@@ -746,7 +746,7 @@ TEST_F(IpqpSeamTest, AnUnrepairedSeedReachesTheFirstIterateWithItsBoundDualsUNTO
     // MID-PATH seed, because at convergence the repair legitimately fires.
     const QpProblem qp = convex_qp();
     IpqpOptions short_run;
-    short_run.ipqp_hard_iter_cap = 3;
+    short_run.hard_iteration_cap = 3;
     IpqpEngine cold(tight_opts());
     const IpqpResult base = cold.solve(qp, nullptr, short_run, SolveOverrides{});
     ASSERT_GT(base.counters.ipqp_iters, 0);
@@ -755,7 +755,7 @@ TEST_F(IpqpSeamTest, AnUnrepairedSeedReachesTheFirstIterateWithItsBoundDualsUNTO
     FirstIterate::reset();
     FirstIterate::active = true;
     IpqpOptions no_repair;
-    no_repair.ipqp_warm_repair = false;
+    no_repair.warm_repair = false;
     IpqpEngine warm(tight_opts());
     const IpqpResult r = warm.solve(qp, &seed, no_repair, SolveOverrides{});
     ASSERT_EQ(FirstIterate::captures, 1);
@@ -831,7 +831,7 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     qp.lower = vec({-1.0});
     qp.upper = vec({1.0});
     IpqpOptions io;
-    io.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
+    io.mu0_rule = IpqpMu0Rule::kComplementarity;
 
     IpqpEngine clean(tight_opts());
     const IpqpResult c = clean.solve(qp, nullptr, io, SolveOverrides{});

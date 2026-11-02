@@ -369,7 +369,7 @@ TEST(IpqpLadderTest, AnIndefiniteSubproblemArmsTheLadderAndWalksToTheBound) {
            "the re-route exists to remove";
     EXPECT_EQ(r.counters.ipqp_pivot_reroute_dual_fallback, 0)
         << "whatever the primal route did here, it was never exhausted";
-    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap)
         << "the budget is no longer what stops it -- mechanism 4's freeze is gone";
     EXPECT_NE(r.escape_reason, IpqpEscape::kBudget);
 
@@ -438,14 +438,14 @@ TEST(IpqpLadderTest, TheABSOLUTEFloorIsNeitherADecreaseNorAnythingElse) {
     // on the absolute `ipqp_reg_floor` is a class (c) advance -- the prox centre
     // moves, nothing else does, and no counter fires. The fixture starts near it.
     IpqpOptions io;
-    io.ipqp_rho_init = 1.0e-9;   // reg_floor * 10
-    io.ipqp_delta_init = 1.0e-9; // ... and the dual side with it
+    io.rho_init = 1.0e-9;   // reg_floor * 10
+    io.delta_init = 1.0e-9; // ... and the dual side with it
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
 
     ASSERT_EQ(r.status, QpStatus::kOptimal);
-    EXPECT_DOUBLE_EQ(r.rho, io.ipqp_reg_floor);
-    EXPECT_DOUBLE_EQ(r.delta, io.ipqp_reg_floor);
+    EXPECT_DOUBLE_EQ(r.rho, io.reg_floor);
+    EXPECT_DOUBLE_EQ(r.delta, io.reg_floor);
     // A CONVEX subproblem never arms the ladder at all, so there is no IC
     // memory and nothing to reclimb however many advances hit the absolute
     // floor.
@@ -475,9 +475,9 @@ TEST(IpqpLadderTest, TheIdentityHoldsOnALongConvexSolveThatNeverArmsTheLadder) {
     // the section 3.2 gate gets more chances to fire. It is NOT the "past the 11th
     // advance" fixture: the gate is a CONTRACTION test, so advances stay rare.
     IpqpOptions io;
-    io.ipqp_converge_slack = 1.0; // the tightest the band allows
-    io.ipqp_hard_iter_cap = 400;
-    io.ipqp_min_mu = 1e-16;
+    io.converge_slack = 1.0; // the tightest the band allows
+    io.hard_iteration_cap = 400;
+    io.min_mu = 1e-16;
 
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
@@ -505,7 +505,7 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // the target, so this is a CERTIFYING exit that was then downgraded, not a
     // solve that fell over.
     EXPECT_LE(r.counters.ipqp_iters, 10);
-    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
     EXPECT_NEAR(r.x(0), 0.0, 1e-9);
     EXPECT_NEAR(r.x(1), 0.0, 1e-9);
 
@@ -581,7 +581,7 @@ TEST(IpqpLadderTest, TheFinalReadDropsToTheSCHEDULEFLOORNotToWhereverTheSchedule
     // immediately, so the schedule never moved.
     EXPECT_EQ(r.counters.ipqp_iters, 0);
     EXPECT_EQ(r.counters.ipqp_reg_decreases, 0);
-    EXPECT_DOUBLE_EQ(r.rho, IpqpOptions{}.ipqp_rho_init);
+    EXPECT_DOUBLE_EQ(r.rho, IpqpOptions{}.rho_init);
 
     // ... and the certificate did not stand.
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
@@ -611,7 +611,7 @@ TEST(IpqpBudgetTest, TheFactorizationCapIsCheckedBeforeEVERYFactorizationLadderR
     QpProblem qp = box_qp(-10.0, 10.0);
     qp.H = dense_upper({{2.0, 0.0}, {0.0, -1.0e12}});
     IpqpOptions io;
-    io.ipqp_max_factorizations = 1;
+    io.max_factorizations = 1;
 
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
@@ -655,7 +655,7 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
     // shift of the RUIZ-SCALED system, so with equilibration ON the ladder never comes
     // near its ceiling and this test would be asserting nothing.
     IpqpOptions io;
-    io.ipqp_ruiz = false;
+    io.ruiz = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
@@ -664,8 +664,8 @@ TEST(IpqpLadderTest, AnExhaustedLadderStopsAtTheCeilingExactlyAndReportsIndefini
     // THE CAP-SLACK LESSON (spec 3.2, Amendment G): repeated multiplication by 100
     // lands on 999999.9999999998 rather than on 1e6, so an exact `>=` ceiling test
     // grants one more rung. The relative guard closes it and the top rung is exact.
-    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max);
-    EXPECT_GE(r.counters.ipqp_rho_demanded_max, io.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack));
+    EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, io.reg_max);
+    EXPECT_GE(r.counters.ipqp_rho_demanded_max, io.reg_max * (1.0 - detail::kSsnProxCapSlack));
 
     // THE REFUSED CEILING RUNG DOES NOT ENTER IC'S MEMORY (fix round 1, CX3).
     // `ipqp_rho_demanded_last` is the shift the last SUCCESSFUL modified
@@ -718,7 +718,7 @@ TEST(IpqpFactorizationTest, EachTierEntryPaysExactlyOneSymbolicPassOrOnePatternV
 
     // MUTATION NON-VACUITY: the kill switch really kills it.
     IpqpOptions io;
-    io.ipqp_hoist_symbolic = false;
+    io.hoist_symbolic = false;
     const IpqpResult third = tier.solve(qp, nullptr, io, SolveOverrides{});
     ASSERT_EQ(third.status, QpStatus::kOptimal);
     EXPECT_EQ(third.counters.ipqp_symbolic_analyses, 1);
@@ -744,7 +744,7 @@ TEST(IpqpFactorizationTest,
      DisablingTheFinalReadDowngradesUnconditionallyAndSavesTheFactorization) {
     const QpProblem qp = general_qp(true, true);
     IpqpOptions io;
-    io.ipqp_require_final_inertia = false;
+    io.require_final_inertia = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
@@ -775,7 +775,7 @@ TEST(IpqpFactorizationTest,
 
 TEST(IpqpBudgetTest, TheHardCapIsTheBudgetOfLastResortAndReportsMaxIter) {
     IpqpOptions io;
-    io.ipqp_hard_iter_cap = 1;
+    io.hard_iteration_cap = 1;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
@@ -785,11 +785,11 @@ TEST(IpqpBudgetTest, TheHardCapIsTheBudgetOfLastResortAndReportsMaxIter) {
 
 TEST(IpqpBudgetTest, TheFactorizationCapBindsIndependentlyOfTheIterationCap) {
     IpqpOptions io;
-    io.ipqp_max_factorizations = 2;
+    io.max_factorizations = 2;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
-    EXPECT_LT(r.counters.ipqp_iters, io.ipqp_hard_iter_cap);
+    EXPECT_LT(r.counters.ipqp_iters, io.hard_iteration_cap);
 }
 
 TEST(IpqpBudgetTest, AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadable) {
@@ -803,13 +803,13 @@ TEST(IpqpBudgetTest, AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadabl
     ASSERT_EQ(base.counters.ipqp_factorizations, base.counters.ipqp_iters + 1);
 
     IpqpOptions io;
-    io.ipqp_max_factorizations = base.counters.ipqp_iters;
+    io.max_factorizations = base.counters.ipqp_iters;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
 
     // Every iteration ran; only the certification read was refused.
     EXPECT_EQ(r.counters.ipqp_iters, base.counters.ipqp_iters);
-    EXPECT_EQ(r.counters.ipqp_factorizations, io.ipqp_max_factorizations);
+    EXPECT_EQ(r.counters.ipqp_factorizations, io.max_factorizations);
     // A READ THAT NEVER HAPPENED IS 3 -- kept apart from `2`, which the census
     // routes to `ipqp_escape_numerical` and which would misattribute a budget
     // stop as a numerical failure.
@@ -822,7 +822,7 @@ TEST(IpqpBudgetTest, AFinalReadTheBudgetREFUSEDIsNotPerformedRatherThanUnreadabl
 
     // MUTATION NON-VACUITY: one more factorization and the same solve pays the
     // read, gets 0, and certifies.
-    io.ipqp_max_factorizations = base.counters.ipqp_iters + 1;
+    io.max_factorizations = base.counters.ipqp_iters + 1;
     IpqpEngine tier2(tight_opts());
     const IpqpResult ok = tier2.solve(qp, nullptr, io, SolveOverrides{});
     EXPECT_EQ(ok.counters.ipqp_final_inertia_read, 0);
@@ -853,7 +853,7 @@ TEST(IpqpRuizTest, EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint) {
 
     IpqpOptions on;
     IpqpOptions off;
-    off.ipqp_ruiz = false;
+    off.ruiz = false;
 
     IpqpEngine ta(o);
     IpqpEngine tb(o);
@@ -916,8 +916,8 @@ TEST(IpqpRuizTest, TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPri
     EXPECT_GT(std::abs(got.x(1) - ref.x(1)), 1e-2);
     // ... and the certificate is honest about WHY: every relative residual is
     // inside the target the tier was asked for.
-    EXPECT_LE(got.residuals.stationarity, o.opt_tol * IpqpOptions{}.ipqp_converge_slack);
-    EXPECT_LE(got.residuals.primal_iq, o.feas_tol * IpqpOptions{}.ipqp_converge_slack);
+    EXPECT_LE(got.residuals.stationarity, o.opt_tol * IpqpOptions{}.converge_slack);
+    EXPECT_LE(got.residuals.primal_iq, o.feas_tol * IpqpOptions{}.converge_slack);
 }
 
 // ---------------------------------------------------------------------------
@@ -1040,15 +1040,15 @@ TEST(IpqpBoundaryTest, MalformedOptionsAndOverridesAreRefused) {
     IpqpEngine tier(tight_opts());
 
     IpqpOptions bad;
-    bad.ipqp_tau = 1.5;
+    bad.tau = 1.5;
     EXPECT_THROW(tier.solve(qp, nullptr, bad, SolveOverrides{}), std::invalid_argument);
 
     IpqpOptions bad2;
-    bad2.ipqp_converge_slack = 0.5; // below 1: the carried T1 band.
+    bad2.converge_slack = 0.5; // below 1: the carried T1 band.
     EXPECT_THROW(tier.solve(qp, nullptr, bad2, SolveOverrides{}), std::invalid_argument);
 
     IpqpOptions bad3;
-    bad3.ipqp_rho_init = 1e-20; // below ipqp_reg_floor: the carried T1 band.
+    bad3.rho_init = 1e-20; // below ipqp_reg_floor: the carried T1 band.
     EXPECT_THROW(tier.solve(qp, nullptr, bad3, SolveOverrides{}), std::invalid_argument);
 
     SolveOverrides ov;
@@ -1075,7 +1075,7 @@ TEST(IpqpBoundaryTest, TheLedgerRecordsOneRowPerSolveAndNoneForAThrow) {
     EXPECT_EQ(ledger.records()[0].counters.factorizations, r.counters.ipqp_factorizations);
 
     IpqpOptions bad;
-    bad.ipqp_tau = 2.0;
+    bad.tau = 2.0;
     EXPECT_THROW(tier.solve(qp, nullptr, bad, SolveOverrides{}), std::invalid_argument);
     EXPECT_EQ(ledger.records().size(), 1u);
 
@@ -1141,7 +1141,7 @@ TEST(IpqpCounterTest, TheEscapeCensusCountsABudgetEscapeExactlyOnce) {
     // replaced (not deleted) now that task 5 owns the census. The invariant is
     // unchanged; it now holds at 1 == 1 instead of trivially at 0 == 0.
     IpqpOptions io;
-    io.ipqp_hard_iter_cap = 1;
+    io.hard_iteration_cap = 1;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(general_qp(true, true), nullptr, io, SolveOverrides{});
     ASSERT_EQ(r.escape_reason, IpqpEscape::kBudget);
@@ -1185,8 +1185,8 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     // it must fire on a solve that converges, or the gate is unreachable.
     EXPECT_GT(r.counters.ipqp_reg_decreases, 0);
     EXPECT_EQ(r.counters.ipqp_prox_center_updates, r.counters.ipqp_reg_decreases);
-    EXPECT_LT(r.rho, IpqpOptions{}.ipqp_rho_init);
-    EXPECT_GE(r.rho, IpqpOptions{}.ipqp_reg_floor);
+    EXPECT_LT(r.rho, IpqpOptions{}.rho_init);
+    EXPECT_GE(r.rho, IpqpOptions{}.reg_floor);
 }
 
 } // namespace hven::solvers

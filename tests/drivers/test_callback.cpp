@@ -145,13 +145,13 @@ Vec hs071_start() {
 
 SqpOptions quiet_sqp() {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 
 hven::solvers::IpmOptions quiet_ipm(const hven::solvers::IpmSolver &solver) {
     hven::solvers::IpmOptions o = solver.options();
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 
@@ -402,7 +402,7 @@ bool bit_equal(const Vec &a, const Vec &b) {
 
 // A PROBLEM WHOSE OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under BestCriteriaModes::kObj the best-scoring iterate is an
+// f(x*) = 1.125, so under BestIterateCriterion::kObjective the best-scoring iterate is an
 // EARLY one -- which is what a `return_best` substitution needs in order to
 // substitute anything at all.
 //
@@ -679,7 +679,7 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     StalledValleyModel model;
     SqpOptions opts = quiet_sqp();
     opts.tr_init = 8.0; // the fixture's own radius schedule
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
 
     // The reference solve: restoration runs, the solve resumes and converges.
     SqpSolver reference_driver(opts);
@@ -847,7 +847,7 @@ TEST(Callback, SqpEventXIsTheRowsOwnPointAcrossRestoration) {
         StalledValleyModel model;
         SqpOptions opts = quiet_sqp();
         opts.tr_init = 8.0;
-        opts.max_iter = 60;
+        opts.common.max_iterations = 60;
         expect_every_depth0_event_is_its_own_point(model, opts);
     }
     {
@@ -868,7 +868,7 @@ TEST(Callback, ASolveWithNoCallbackSnapshotsNothing) {
     StalledValleyModel model;
     SqpOptions opts = quiet_sqp();
     opts.tr_init = 8.0;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     SqpSolver driver(opts);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -887,30 +887,32 @@ TEST(Callback, ASolveWithNoCallbackSnapshotsNothing) {
 TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
     Hs071View view;
     SqpOptions opts = quiet_sqp();
-    opts.max_iter = 3; // well short of this fixture's convergence
+    opts.common.max_iterations = 3; // well short of this fixture's convergence
     SqpSolver driver(opts);
     std::vector<Seen> seen;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         seen.push_back(copy_of(e));
         // Stop on the LAST row this capped solve will push -- the one the cap
         // itself makes terminal.
-        return e.iteration == opts.max_iter ? CallbackAction::kStop : CallbackAction::kContinue;
+        return e.iteration == opts.common.max_iterations ? CallbackAction::kStop
+                                                         : CallbackAction::kContinue;
     });
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start());
 
-    ASSERT_EQ(static_cast<Index>(seen.size()), static_cast<Index>(opts.max_iter) + 1)
+    ASSERT_EQ(static_cast<Index>(seen.size()), static_cast<Index>(opts.common.max_iterations) + 1)
         << "fixture premise: the cap really is what ends this solve, and the stop was aimed "
            "at its terminal row";
     EXPECT_EQ(sol.status, SolveStatus::kMaxIter);
     EXPECT_NE(sol.status, SolveStatus::kInterrupted);
-    EXPECT_EQ(sol.counters.major_iters, opts.max_iter);
+    EXPECT_EQ(sol.counters.major_iters, opts.common.max_iterations);
 
     // NON-VACUOUS: the same stop aimed one row EARLIER does interrupt, so the
     // no-op above is about WHICH row, not about the stop being ignored.
     SqpSolver earlier(opts);
     earlier.set_iteration_callback([&](const IterationEvent &e) {
-        return e.iteration == opts.max_iter - 1 ? CallbackAction::kStop : CallbackAction::kContinue;
+        return e.iteration == opts.common.max_iterations - 1 ? CallbackAction::kStop
+                                                             : CallbackAction::kContinue;
     });
     const SqpResult interrupted =
         earlier.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start());
@@ -1476,7 +1478,7 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
         hven::solvers::IpmSolver solver;
         {
             hven::solvers::IpmOptions o = quiet_ipm(solver);
-            o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+            o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
             solver.set_options(std::move(o));
         }
         Vec x0(2);
@@ -1486,7 +1488,7 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
         // FIXTURE PREMISE: the treatment really installed its internal fixing
         // row, so the -lambda_fix fold and the excluded set were exercised.
         EXPECT_EQ(r.fixed_variable_treatment,
-                  hven::solvers::FixedVariableTreatments::MakeConstraint);
+                  hven::solvers::FixedVariableTreatment::kMakeConstraint);
         EXPECT_EQ(r.internal_fixed_lambda_e.size(), 1);
     }
 }
@@ -1585,7 +1587,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
 
     // THE SEARCH. `acc_*` loosened (with `max_acc_iters` at 1) is what makes
     // converge_check answer kAcceptable at the TOP of an iteration, which is
-    // the convergence-check early exit; `BestCriteriaModes::kObj` on a fixture
+    // the convergence-check early exit; `BestIterateCriterion::kObjective` on a fixture
     // whose objective RISES is what makes the best iterate an early one, so the
     // substitution has something to substitute.
     bool ran = false;
@@ -1601,17 +1603,17 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         hven::solvers::IpmSolver without;
         for (hven::solvers::IpmSolver *s : {&with, &without}) {
             hven::solvers::IpmOptions o = quiet_ipm(*s);
-            o.max_acc_iters = 1;
-            o.acc_kkt_tol = acc;
-            o.acc_econ_tol = acc;
-            o.acc_icon_tol = acc;
-            o.acc_bar_tol = acc;
+            o.termination.acceptable_iterations = 1;
+            o.termination.acceptable_kkt_tol = acc;
+            o.termination.acceptable_equality_tol = acc;
+            o.termination.acceptable_inequality_tol = acc;
+            o.termination.acceptable_barrier_tol = acc;
             s->set_options(std::move(o));
         }
         {
             hven::solvers::IpmOptions o = with.options();
             o.return_best = true;
-            o.best_criteria = hven::solvers::IpmSolver::BestCriteriaModes::kObj;
+            o.best_criterion = hven::solvers::BestIterateCriterion::kObjective;
             with.set_options(std::move(o));
         }
 

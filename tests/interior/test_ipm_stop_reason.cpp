@@ -33,10 +33,10 @@
 namespace stop_reason_test {
 namespace {
 
-using hven::solvers::AcceptanceStrategies;
-using hven::solvers::BarrierGovernors;
+using hven::solvers::AcceptanceKind;
+using hven::solvers::BarrierGovernorKind;
 using hven::solvers::IpmSolver;
-using hven::solvers::RestorationModes;
+using hven::solvers::RestorationMode;
 
 constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
 
@@ -166,7 +166,7 @@ hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols
     {
         auto o = c.engine->options();
         o.phases = {hven::solvers::IpmPhase::kSolve}; // what solve() ran
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.common.threads = 1;
         // M7 W2 D1 (2026-09-18): THE PRE-EVENT GLOBALIZATION, PINNED, because
         // this fixture is a tuned instrument for one door and the tuning is
@@ -189,35 +189,35 @@ hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols
         // flip is a datum about restoration's near-feasible test under the
         // monitored governor, recorded in
         // docs/notes/data/2026-09-m7-w2-d1-ipm-default/.)
-        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.max_iters = max_iters;
-        o.kkt_tol = 1.0e-8;
-        o.econ_tol = 0.02;
-        o.icon_tol = 0.02;
-        o.bar_tol = 1.0e-8;
-        o.acc_kkt_tol = 1.0e-6;
-        o.acc_econ_tol = 0.2;
-        o.acc_icon_tol = 0.2;
-        o.acc_bar_tol = 1.0e-6;
+        o.advanced.acceptance_strategy = AcceptanceKind::kClassicMerit;
+        o.advanced.barrier_governor = BarrierGovernorKind::kClassicAdaptive;
+        o.common.max_iterations = max_iters;
+        o.common.optimality_tol = 1.0e-8;
+        o.common.feasibility_tol = 0.02;
+        o.common.feasibility_tol = 0.02;
+        o.termination.complementarity_tol = 1.0e-8;
+        o.termination.acceptable_kkt_tol = 1.0e-6;
+        o.termination.acceptable_equality_tol = 0.2;
+        o.termination.acceptable_inequality_tol = 0.2;
+        o.termination.acceptable_barrier_tol = 1.0e-6;
         c.engine->set_options(std::move(o));
     }
     if (lift_div_tols) {
         auto o = c.engine->options();
-        o.div_kkt_tol = 1.0e300;
-        o.div_econ_tol = 1.0e300;
-        o.div_icon_tol = 1.0e300;
-        o.div_bar_tol = 1.0e300;
+        o.termination.divergence_kkt_tol = 1.0e300;
+        o.termination.divergence_equality_tol = 1.0e300;
+        o.termination.divergence_inequality_tol = 1.0e300;
+        o.termination.divergence_barrier_tol = 1.0e300;
         c.engine->set_options(std::move(o));
     }
     {
         auto o = c.engine->options();
-        o.restoration_mode = RestorationModes::l1_nested;
+        o.advanced.restoration_mode = RestorationMode::kL1Nested;
         c.engine->set_options(std::move(o));
     }
     {
         auto o = c.engine->options();
-        o.max_feas_rest = 1;
+        o.advanced.restoration_max_entries = 1;
         c.engine->set_options(std::move(o));
     }
     return c;
@@ -255,19 +255,19 @@ hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
     {
         auto o = c.engine->options();
         o.phases = {hven::solvers::IpmPhase::kOptimize}; // what optimize() ran
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.common.threads = 1;
-        o.max_iters = max_iters;
+        o.common.max_iterations = max_iters;
         c.engine->set_options(std::move(o));
     }
     {
         auto o = c.engine->options();
-        o.restoration_mode = RestorationModes::l1_nested;
+        o.advanced.restoration_mode = RestorationMode::kL1Nested;
         c.engine->set_options(std::move(o));
     }
     {
         auto o = c.engine->options();
-        o.max_feas_rest = 1;
+        o.advanced.restoration_max_entries = 1;
         c.engine->set_options(std::move(o));
     }
     return c;
@@ -284,7 +284,7 @@ hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
 hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_iters) {
     hven_interior_tests::IpmCase c = make_locally_infeasible_solver(max_iters);
     auto o = c.engine->options();
-    o.restoration_mode = RestorationModes::proximal_switch;
+    o.advanced.restoration_mode = RestorationMode::kProximalSwitch;
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -368,18 +368,18 @@ struct AnchorOnlyProblem : Nlp {
 /// bypass's middle branch cannot be taken; `restoration_on` turns it back on so
 /// that middle branch can be reached, and `ls` selects which classic merit
 /// variant absorbs the refused trials on the way there.
-hven_interior_tests::IpmCase make_anchor_only_solver(
-    bool acceptable_tier_contains_the_iterate, bool restoration_on = false,
-    hven::solvers::LineSearchModes ls = hven::solvers::LineSearchModes::kAugLang,
-    int max_iters = 20) {
+hven_interior_tests::IpmCase
+make_anchor_only_solver(bool acceptable_tier_contains_the_iterate, bool restoration_on = false,
+                        hven::solvers::LineSearchMode ls = hven::solvers::LineSearchMode::kAugLang,
+                        int max_iters = 20) {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<AnchorOnlyProblem>()),
         std::make_unique<IpmSolver>()};
     auto o = c.engine->options();
     o.phases = {hven::solvers::IpmPhase::kOptimize};
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.common.threads = 1;
-    o.max_iters = max_iters;
+    o.common.max_iterations = max_iters;
     // The acceptable tier is validated to sit between the convergence and the
     // divergence tolerances (kkt_tol <= acc_kkt_tol <= div_kkt_tol, and so per
     // family), so the two arms are the two ENDS of that legal range rather than
@@ -387,13 +387,13 @@ hven_interior_tests::IpmCase make_anchor_only_solver(
     // thresholds; and pinched shut onto the convergence tolerances themselves,
     // where the fixture's ~5 constraint violation cannot fit.
     const double acc = acceptable_tier_contains_the_iterate ? 1.0e10 : 1.0e-6;
-    o.acc_kkt_tol = acc;
-    o.acc_econ_tol = acc;
-    o.acc_icon_tol = acc;
-    o.acc_bar_tol = acc;
-    o.opt_ls_mode = ls;
+    o.termination.acceptable_kkt_tol = acc;
+    o.termination.acceptable_equality_tol = acc;
+    o.termination.acceptable_inequality_tol = acc;
+    o.termination.acceptable_barrier_tol = acc;
+    o.advanced.optimize_line_search_mode = ls;
     if (restoration_on) {
-        o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
+        o.advanced.restoration_mode = hven::solvers::RestorationMode::kL1Nested;
     }
     c.engine->set_options(std::move(o));
     return c;
@@ -716,7 +716,7 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
     auto solver = stop_reason_test::make_stall_solver(200);
     {
         auto o = solver.engine->options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
@@ -774,7 +774,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     {
         auto o = solver.engine->options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
@@ -827,7 +827,7 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     {
         auto o = solver.engine->options();
-        o.common.print_level = 0;
+        o.common.verbosity = hven::solvers::Verbosity::kIterations;
         solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
@@ -972,8 +972,8 @@ TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
     auto solver = stop_reason_test::make_stall_solver(600);
     {
         auto o = solver.engine->options();
-        o.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
-        o.max_feas_rest = 5;
+        o.advanced.restoration_mode = hven::solvers::RestorationMode::kProximalSwitch;
+        o.advanced.restoration_max_entries = 5;
         solver.engine->set_options(std::move(o));
     }
 
@@ -1090,7 +1090,7 @@ TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheR
     // failure.
     auto solver = stop_reason_test::make_anchor_only_solver(
         /*acceptable_tier_contains_the_iterate=*/false, /*restoration_on=*/true,
-        hven::solvers::LineSearchModes::kAugLang, /*max_iters=*/2);
+        hven::solvers::LineSearchMode::kAugLang, /*max_iters=*/2);
     Eigen::VectorXd x0(2);
     x0 << 0.0, 0.0;
 
@@ -1116,8 +1116,7 @@ TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheR
 // on a model that refuses every trial reaches those arms, and the acceptable
 // tier is left WIDE so what is observed is the absorb-and-continue, not an
 // abort.
-void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes ls,
-                                               const char *what) {
+void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchMode ls, const char *what) {
     auto solver = stop_reason_test::make_anchor_only_solver(
         /*acceptable_tier_contains_the_iterate=*/true, /*restoration_on=*/false, ls);
     Eigen::VectorXd x0(2);
@@ -1132,9 +1131,9 @@ void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes ls
 }
 
 TEST(IpmStopReason, TheLagrangianMeritVariantAbsorbsUnevaluableTrials) {
-    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes::kLang, "kLang");
+    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchMode::kLang, "kLang");
 }
 
 TEST(IpmStopReason, TheL1MeritVariantAbsorbsUnevaluableTrials) {
-    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes::kL1, "kL1");
+    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchMode::kL1, "kL1");
 }

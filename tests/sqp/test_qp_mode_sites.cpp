@@ -105,7 +105,7 @@ struct SiteRun {
 SiteRun run_cell(int hs, QpMode mode) {
     SqpOptions opts;
     opts.qp_mode = mode;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(hs);
     SqpSolver driver(opts);
     std::ostringstream os;

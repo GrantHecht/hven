@@ -202,8 +202,9 @@ CellReading run_sqp_cell(int hs_number) {
     const auto p = hven::solvers::test_support::make_hs(hs_number);
 
     hven::solvers::SqpOptions o;
-    o.common.threads = 1;      // THE PIN: one backend thread per instance.
-    o.common.print_level = 10; // Silent: a console table is process-wide output.
+    o.common.threads = 1; // THE PIN: one backend thread per instance.
+    o.common.verbosity =
+        hven::solvers::Verbosity::kSilent; // Silent: a console table is process-wide output.
     hven::solvers::SqpSolver driver(o);
 
     const hven::solvers::SqpResult r =
@@ -255,8 +256,9 @@ void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
 
 CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
     hven::solvers::IpmOptions o;
-    o.common.threads = 1;      // THE PIN.
-    o.common.print_level = 10; // Silent -- this engine's default is 0, i.e. loud.
+    o.common.threads = 1; // THE PIN.
+    o.common.verbosity =
+        hven::solvers::Verbosity::kSilent; // Silent -- this engine's default is 0, i.e. loud.
     hven::solvers::IpmSolver solver(o);
 
     // ONE PARTITION, the default: THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE
@@ -647,8 +649,9 @@ const std::vector<FanOutCell> &fanout_cells() {
 
 CellReading run_fanout_cell(const FanOutCell &cell) {
     hven::solvers::IpmOptions o;
-    o.common.threads = 1;      // THE PIN, unchanged: one backend thread per instance.
-    o.common.print_level = 10; // Silent: a console table is process-wide output.
+    o.common.threads = 1; // THE PIN, unchanged: one backend thread per instance.
+    o.common.verbosity =
+        hven::solvers::Verbosity::kSilent; // Silent: a console table is process-wide output.
     hven::solvers::IpmSolver solver(o);
 
     // THROUGH THE PUBLIC ENTRY, with a count above 1 that the layout ACTUALLY

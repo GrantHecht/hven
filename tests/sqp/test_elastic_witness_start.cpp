@@ -76,7 +76,7 @@ Pair load_pair(const char *cell) {
     Pair p{dump(std::string("C11_") + cell + "_qp0.txt"),
            dump(std::string("C11_") + cell + "_qp1.txt"), ElasticQp{}};
     p.e = build_elastic_subproblem(p.d0.qp, p.d0.overrides.tr_radius, kElasticRhoInit,
-                                   SqpOptions{}.feas_tol);
+                                   SqpOptions{}.common.feasibility_tol);
     return p;
 }
 
@@ -263,16 +263,16 @@ LadderArms run_ladder_arms(const char *cell) {
     const QpSolution failed = engine0.solve(p.d0.qp, p.d0.overrides);
     EXPECT_EQ(failed.status, QpStatus::kInfeasible) << "qp0's replay at this head";
     for (int arm = 0; arm < 3; ++arm) {
-        opts.elastic_witness_start = arm >= 1;
-        opts.elastic_last_optimal_rung = arm == 2;
+        opts.advanced.elastic_witness_start = arm >= 1;
+        opts.advanced.elastic_last_optimal_rung = arm == 2;
         QpEngine engine(p.d0.opts, p.d0.threads);
         a.rep[arm] = run_elastic_ladder(engine, p.d0.qp, ElasticSeedSource{&failed, nullptr},
                                         p.d0.overrides.tr_radius, opts, a.out[arm]);
         std::printf("[ p1e ] %s ladder arm=%d (witness %d, last %d): usable=%d closed=%d "
                     "reduced=%d status=%d slack_l1=%.6g (witness %.6g) rungs=%ld minors=%ld "
                     "facts=%ld fallbacks=%ld\n",
-                    cell, arm, static_cast<int>(opts.elastic_witness_start),
-                    static_cast<int>(opts.elastic_last_optimal_rung),
+                    cell, arm, static_cast<int>(opts.advanced.elastic_witness_start),
+                    static_cast<int>(opts.advanced.elastic_last_optimal_rung),
                     static_cast<int>(a.rep[arm].usable), static_cast<int>(a.rep[arm].closed),
                     static_cast<int>(a.rep[arm].reduced), static_cast<int>(a.rep[arm].qp_status),
                     a.rep[arm].slack_l1, a.rep[arm].elastic.violation_l1,

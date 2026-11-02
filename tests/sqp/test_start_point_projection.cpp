@@ -102,7 +102,7 @@ OutOfBoxSqrtModel unit_box_model() { return OutOfBoxSqrtModel(vec2(1.0, 1.0), ve
 
 SqpOptions quiet_options(bool project) {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.project_start_point = project;
     return o;
 }
@@ -252,7 +252,7 @@ TEST(StartPointProjection, OnMovesNothingWhereTheBoundIsInfinite) {
     // The objective is unbounded below on this box, so the solve is capped:
     // this pin is about the START POINT, not about where the iteration goes.
     SqpOptions opts = quiet_options(/*project=*/true);
-    opts.max_iter = 2;
+    opts.common.max_iterations = 2;
     SqpSolver driver(opts);
     Vec first;
     driver.set_iteration_callback([&first](const IterationEvent &e) {
@@ -312,7 +312,7 @@ TEST(StartPointProjection, TheDefaultProjectsAndSolvesTheNanStartShape) {
     EXPECT_TRUE(SqpOptions{}.project_start_point);
     OutOfBoxSqrtModel model = unit_box_model();
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     SqpSolver driver(o);
     const SqpResult out = driver.solve(hven::solvers::detail::problem_ref(model), vec2(-1.0, -1.0));
 

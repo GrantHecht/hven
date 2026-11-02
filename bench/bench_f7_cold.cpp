@@ -226,9 +226,9 @@ int main(int argc, char **argv) {
         const double p = parse_double("p", argv[2]);
 
         SqpOptions opts; // library defaults everywhere except the four below
-        opts.kkt_tol = 1e-9;
-        opts.feas_tol = 1e-9;
-        opts.max_iter = 60;
+        opts.common.optimality_tol = 1e-9;
+        opts.common.feasibility_tol = 1e-9;
+        opts.common.max_iterations = 60;
         if (argc > 3) {
             // M6: 0 is now MEANINGFUL, not an error -- it is QpOptions::
             // max_iter's own sentinel for "derive the cap from the
@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
             if (v != 0 && v != 1) {
                 throw_usage(fmt::format("crash_basis: '{}' must be 0 or 1", argv[7]));
             }
-            opts.crash_basis = v != 0;
+            opts.advanced.crash_basis = v != 0;
         }
 
         // F7CollocationChain's ctor validates nodes/states/controls/radius, and
@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
                    "xerr={:.6e} ferr_rel={:.6e} wall={:.3f} rss={:.1f}\n",
                    nodes, model.n(), p, active_rows, to_string(sol.status),
                    sol.counters.major_iters, sol.counters.qp_minor_iters, qp_max_minors, cap_base,
-                   cap_eff, opts.crash_basis ? 1 : 0, sol.counters.crash_seeded_rows,
+                   cap_eff, opts.advanced.crash_basis ? 1 : 0, sol.counters.crash_seeded_rows,
                    sol.counters.crash_seeded_bounds, sol.counters.factorizations, schur_updates,
                    sol.counters.symbolic_analyses, sol.counters.border_refine_steps, ws_adds,
                    ws_drops, shift_adds, degenerate_steps, degenerate_run_max, ws_adds_bound,

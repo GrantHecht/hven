@@ -135,7 +135,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
     hven::solvers::IpmResult unseeded_result;
     {
         auto o = unseeded.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         unseeded.set_options(std::move(o));
     }
     unseeded_result = hven_interior_tests::solve_declared(unseeded, unseeded_route, x0);
@@ -147,7 +147,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
     hven::solvers::IpmResult seeded_result;
     {
         auto o = seeded.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         seeded.set_options(std::move(o));
     }
     seeded_result = hven_interior_tests::solve_declared(seeded, seeded_route, x0);
@@ -232,7 +232,7 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -332,7 +332,7 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
@@ -353,7 +353,7 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -412,7 +412,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
@@ -443,7 +443,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
@@ -540,8 +540,8 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -567,7 +567,7 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -589,7 +589,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -635,7 +635,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -678,7 +678,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -714,8 +714,8 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);

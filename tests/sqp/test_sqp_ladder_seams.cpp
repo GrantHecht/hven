@@ -127,11 +127,11 @@ Vec vec2(double a, double b) {
 
 SqpOptions quiet() {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     // THE SEAM'S FORCED FAILURE KEEPS THE OPTIMAL STEP in `qs.x` -- a failure no
     // real walk hands back -- so the M7 W2 R2 failed-subproblem step would simply
     // take it. These fixtures pin the ladder's ROUTING of a failure: it is off here.
-    o.qp_failure_step = false;
+    o.advanced.qp_failure_step = false;
     // These fixtures pin every row read against a counted query; the column rule's
     // start-point Jacobian probe (default kAuto since M7 W2 SCW) is a counted query
     // that reads no row value, and is pinned in test_column_scaling.cpp.
@@ -157,8 +157,8 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     RunawayValleyModel model;
     SqpOptions o = quiet();
     o.tr_init = 8.0; // SecondRequestIsCappedAndReported's options
-    o.max_iter = 200;
-    o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    o.common.max_iterations = 200;
+    o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -166,14 +166,15 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     // The premise: one restoration, serviced, resumed inside feas_tol; then failures.
     ASSERT_EQ(sol.counters.restoration_entries, 1);
     ASSERT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
-    ASSERT_LE(sol.counters.restoration_h_out, o.feas_tol);
-    ASSERT_LE(sol.counters.restoration_feas_out, o.feas_tol) << "the resume decision's reading";
+    ASSERT_LE(sol.counters.restoration_h_out, o.common.feasibility_tol);
+    ASSERT_LE(sol.counters.restoration_feas_out, o.common.feasibility_tol)
+        << "the resume decision's reading";
     ASSERT_GE(Seam::forced, 1);
     // The refused second request: an honest failure, no claim about the model.
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     EXPECT_FALSE(sol.infeasibility_certified);
     // ...at a point inside feas_tol, which is what made kInfeasible false.
-    EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.feas_tol);
+    EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.common.feasibility_tol);
     // The F4 guard held: at the feasible iterate the failures took the shrink ladder.
     EXPECT_GE(sol.counters.qp_failures_routed, 1);
 }
@@ -349,7 +350,7 @@ TEST(SqpLadderSeam, Sdl4ABoundRefusalIsNotOfferedAsAFailureStep) {
     Seam::as_bound_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 2.0));
     SqpOptions o = quiet();
-    o.qp_failure_step = true;
+    o.advanced.qp_failure_step = true;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -389,7 +390,7 @@ TEST(SqpLadderSeam, Sdl6ARowRefusalIsNotOfferedAsAFailureStep) {
     Seam::as_row_refusal = true;
     QpAsNlpModel model = line_model(vec2(0.0, 2.0));
     SqpOptions o = quiet();
-    o.qp_failure_step = true;
+    o.advanced.qp_failure_step = true;
     SqpSolver driver(o);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -473,11 +474,11 @@ class CubicRiseModel : public NlpModel {
 
 SqpOptions failure_step_options() {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.enable_scaling = false; // the seam's forced point is in the engine's variables
     o.tr_init = 1.0;
-    o.max_iter = 50;
-    EXPECT_TRUE(o.qp_failure_step) << "the shipped default these fixtures exercise";
+    o.common.max_iterations = 50;
+    EXPECT_TRUE(o.advanced.qp_failure_step) << "the shipped default these fixtures exercise";
     return o;
 }
 
@@ -520,7 +521,7 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
     ASSERT_EQ(hven::solvers::detail::engine_rows(sol).lambda_i.size(), 1);
     EXPECT_LE(
         std::abs(hven::solvers::detail::engine_rows(sol).lambda_i(0) * model.eval_ci(sol.x)(0)),
-        o.kkt_tol);
+        o.common.optimality_tol);
 }
 
 // A JUDGED, REJECTED FAILURE STEP IS NOT CHARGED TO THE BUDGET (R2 review, RIDER-5).
@@ -535,7 +536,7 @@ TEST(SqpLadderSeam, R2AJudgedRejectedStepIsNotChargedToTheBudget) {
         Seam::as_e2_termination = false;
         CubicRiseModel model;
         SqpOptions o = failure_step_options();
-        o.qp_failure_step = on;
+        o.advanced.qp_failure_step = on;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -624,8 +625,8 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     Seam::as_e2_termination = false;
     SpreadMissModel model;
     SqpOptions o = quiet();
-    o.max_iter = 200;
-    o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    o.common.max_iterations = 200;
+    o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
     // The nesting depth of every row event, in order: the sub-solve's rows arrive at depth 1.
     std::vector<Index> depths;
@@ -640,11 +641,11 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     // each inside feas_tol (inf) while their l1 sum is not.
     ASSERT_EQ(sol.counters.restoration_entries, 1);
     ASSERT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
-    ASSERT_GT(sol.counters.restoration_h_out, o.feas_tol);
-    ASSERT_LE(sol.counters.restoration_feas_out, o.feas_tol);
+    ASSERT_GT(sol.counters.restoration_h_out, o.common.feasibility_tol);
+    ASSERT_LE(sol.counters.restoration_feas_out, o.common.feasibility_tol);
     const Vec ce = model.eval_ce(sol.x);
-    ASSERT_LE(ce.lpNorm<Eigen::Infinity>(), o.feas_tol);
-    ASSERT_GT(ce.lpNorm<1>(), o.feas_tol);
+    ASSERT_LE(ce.lpNorm<Eigen::Infinity>(), o.common.feasibility_tol);
+    ASSERT_GT(ce.lpNorm<1>(), o.common.feasibility_tol);
     std::printf("[ snr ] cert-one: status=%d majors=%ld resto_iters=%ld h_out=%.6g "
                 "feas_out=%.6g\n",
                 static_cast<int>(sol.status), static_cast<long>(sol.counters.major_iters),
@@ -696,17 +697,17 @@ SqpResult reduction_resume_solve(double k) {
     Seam::forced_point = {1.0, 1.0};
     SpreadMissModel model(kNoClaimMiss);
     SqpOptions o = quiet();
-    o.max_iter = 200;
+    o.common.max_iterations = 200;
     o.tr_init = 1.0;
     o.tr_min = 0.75;
-    o.restoration_resume_reduction = k;
+    o.advanced.restoration_resume_reduction = k;
     SqpSolver driver(o);
     return driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 }
 } // namespace
 
 TEST(SqpLadderSeam, TheReductionResumeTakesTheNoClaimPointAndCountsIt) {
-    const double feas_tol = SqpOptions{}.feas_tol;
+    const double feas_tol = SqpOptions{}.common.feasibility_tol;
     const SqpResult off = reduction_resume_solve(0.0);
     const SqpResult on = reduction_resume_solve(0.5);
     for (const SqpResult *r : {&off, &on}) {
@@ -781,7 +782,7 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         o.hessian_mode = mode;
         o.tr_init = 1.0;
         o.tr_min = 0.01;
-        o.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+        o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -791,16 +792,18 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         ASSERT_EQ(Seam::forced, kFails);
         ASSERT_EQ(sol.counters.restoration_entries, 1);
         ASSERT_NEAR(sol.counters.restoration_h_in, kSigma * kOff, 1e-12);
-        ASSERT_GT(sol.counters.restoration_h_in, o.feas_tol);
-        ASSERT_LT(sol.counters.restoration_h_in / kSigma, o.feas_tol);
+        ASSERT_GT(sol.counters.restoration_h_in, o.common.feasibility_tol);
+        ASSERT_LT(sol.counters.restoration_h_in / kSigma, o.common.feasibility_tol);
 
         // THE CLAIM IS NEVER MADE, and the phase did real work: a slack whose row is violated
         // beyond feas_tol is not at its bound, so the sub-solve cannot stop at its major 0.
         EXPECT_FALSE(sol.infeasibility_certified);
         EXPECT_NE(sol.status, SolveStatus::kInfeasible);
         EXPECT_GE(sol.counters.restoration_iters, 1);
-        EXPECT_LE(sol.counters.restoration_h_out, o.feas_tol) << "the phase restores and resumes";
-        EXPECT_LE(sol.counters.restoration_feas_out, o.feas_tol) << "the resume decision's reading";
+        EXPECT_LE(sol.counters.restoration_h_out, o.common.feasibility_tol)
+            << "the phase restores and resumes";
+        EXPECT_LE(sol.counters.restoration_feas_out, o.common.feasibility_tol)
+            << "the resume decision's reading";
         // AND THE SOLVE GOES ON TO THE OPTIMUM of the feasible problem.
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 2.5, 1e-6);
@@ -822,9 +825,9 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         RunawayValleyModel model;
         SqpOptions o = quiet();
         o.tr_init = 8.0;
-        o.max_iter = 200;
-        o.qp_failure_budget = 1000;
-        o.restoration_max_entries = cap;
+        o.common.max_iterations = 200;
+        o.advanced.qp_failure_budget = 1000;
+        o.advanced.restoration_max_entries = cap;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -832,7 +835,7 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         EXPECT_EQ(sol.counters.restoration_entries, 1);
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
         EXPECT_FALSE(sol.infeasibility_certified);
-        EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.feas_tol);
+        EXPECT_LE(std::abs(model.eval_ce(sol.x)(0)), o.common.feasibility_tol);
     }
 }
 
@@ -851,9 +854,9 @@ TEST(SqpLadderSeam, ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap) {
         RunawayValleyModel model;
         SqpOptions o = quiet();
         o.tr_init = 8.0;
-        o.max_iter = 200;
-        o.qp_failure_budget = 1000;
-        o.restoration_max_entries = cap;
+        o.common.max_iterations = 200;
+        o.advanced.qp_failure_budget = 1000;
+        o.advanced.restoration_max_entries = cap;
         SqpSolver driver(o);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -934,8 +937,8 @@ TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel)
             const SeamReset guard;
             CountingCircleLineModel model;
             SqpOptions o = quiet();
-            o.max_iter = 200;
-            o.restoration_curvature = arm.curvature;
+            o.common.max_iterations = 200;
+            o.advanced.restoration_curvature = arm.curvature;
             const SqpResult sol = SqpSolver(o).solve(hven::solvers::detail::problem_ref(model),
                                                      (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
@@ -946,8 +949,8 @@ TEST(SqpLadderSeam, AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel)
         Seam::fail_restoration_walk_qps = 1;
         CountingCircleLineModel model;
         SqpOptions o = quiet();
-        o.max_iter = 200;
-        o.restoration_curvature = arm.curvature;
+        o.common.max_iterations = 200;
+        o.advanced.restoration_curvature = arm.curvature;
         const SqpResult sol =
             SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, 1);
@@ -980,8 +983,8 @@ TEST(SqpLadderSeam, AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart)
     Seam::fail_restoration_walk_qps = 1;
     CountingCircleLineModel model;
     SqpOptions o = quiet();
-    o.max_iter = 200;
-    ASSERT_EQ(o.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
+    o.common.max_iterations = 200;
+    ASSERT_EQ(o.advanced.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
     SqpSolver solver(o);
     int depth1_rows = 0;
     solver.set_iteration_callback([&](const IterationEvent &e) {
@@ -1010,8 +1013,8 @@ TEST(SqpLadderSeam, UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch) 
     CountingCircleLineModel model;
     SqpOptions o = quiet();
     o.hessian_mode = SqpHessianMode::kLbfgsDamped;
-    o.max_iter = 300;
-    ASSERT_EQ(o.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
+    o.common.max_iterations = 300;
+    ASSERT_EQ(o.advanced.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
     const SqpResult sol =
         SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(Seam::forced_restoration, 1);
@@ -1036,8 +1039,8 @@ TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedResta
         Seam::exhaust_restoration_elastic = 1;
         CountingCircleLineModel model;
         SqpOptions o = quiet();
-        o.max_iter = 200;
-        o.restoration_curvature = curvature;
+        o.common.max_iterations = 200;
+        o.advanced.restoration_curvature = curvature;
         const SqpResult sol =
             SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, 1);
@@ -1126,7 +1129,7 @@ TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
         Seam::fail_restoration_walk_qps = forced;
         CountingCircleHalfPlaneModel model;
         SqpOptions o = quiet();
-        o.max_iter = 200;
+        o.common.max_iterations = 200;
         const SqpResult sol =
             SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(Seam::forced_restoration, forced);

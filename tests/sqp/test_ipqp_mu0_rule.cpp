@@ -127,13 +127,13 @@ QpOptions untrusted_region() {
 
 IpqpOptions with_rule(IpqpMu0Rule rule) {
     IpqpOptions o;
-    o.ipqp_mu0_rule = rule;
+    o.mu0_rule = rule;
     return o;
 }
 
 IpqpOptions with_floor(bool on) {
     IpqpOptions o;
-    o.ipqp_mu_residual_floor = on;
+    o.mu_residual_floor = on;
     return o;
 }
 
@@ -180,18 +180,18 @@ void expect_same_trajectory(const IpqpResult &a, const IpqpResult &b) {
 
 TEST(IpqpMu0RuleOptions, BothTogglesDefaultOff) {
     const IpqpOptions o;
-    EXPECT_EQ(o.ipqp_mu0_rule, IpqpMu0Rule::kFixed);
-    EXPECT_FALSE(o.ipqp_mu_residual_floor);
+    EXPECT_EQ(o.mu0_rule, IpqpMu0Rule::kFixed);
+    EXPECT_FALSE(o.mu_residual_floor);
 }
 
 TEST(IpqpMu0RuleOptions, ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName) {
     SqpOptions o;
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kFixed;
+    o.advanced.ipqp.mu0_rule = IpqpMu0Rule::kFixed;
     EXPECT_NO_THROW(validate(o));
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
+    o.advanced.ipqp.mu0_rule = IpqpMu0Rule::kComplementarity;
     EXPECT_NO_THROW(validate(o));
-    for (const IpqpMu0Rule bad : {IpqpMu0Rule::kIpqpMu0RuleCount, static_cast<IpqpMu0Rule>(7)}) {
-        o.ipqp.ipqp_mu0_rule = bad;
+    for (const IpqpMu0Rule bad : {static_cast<IpqpMu0Rule>(2), static_cast<IpqpMu0Rule>(7)}) {
+        o.advanced.ipqp.mu0_rule = bad;
         try {
             validate(o);
             ADD_FAILURE() << "validate accepted ipqp_mu0_rule " << static_cast<int>(bad);
@@ -207,7 +207,7 @@ TEST(IpqpMu0RuleOptions, ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName) 
 TEST(IpqpMu0RuleOptions, TheResidualFloorBoolHasNoRefusableValue) {
     SqpOptions o;
     for (const bool v : {false, true}) {
-        o.ipqp.ipqp_mu_residual_floor = v;
+        o.advanced.ipqp.mu_residual_floor = v;
         EXPECT_NO_THROW(validate(o));
         EXPECT_NO_THROW(solve_traced(scalar_box_qp(2.0, 1e-3), with_floor(v)));
     }
@@ -219,8 +219,8 @@ TEST(IpqpMu0RuleOptions, TheDumpCarriesBothLinesInEitherState) {
     dump_options(o, off);
     EXPECT_NE(off.str().find("ipqp.ipqp_mu0_rule = kFixed\n"), std::string::npos);
     EXPECT_NE(off.str().find("ipqp.ipqp_mu_residual_floor = false\n"), std::string::npos);
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
-    o.ipqp.ipqp_mu_residual_floor = true;
+    o.advanced.ipqp.mu0_rule = IpqpMu0Rule::kComplementarity;
+    o.advanced.ipqp.mu_residual_floor = true;
     std::ostringstream on;
     dump_options(o, on);
     EXPECT_NE(on.str().find("ipqp.ipqp_mu0_rule = kComplementarity\n"), std::string::npos);
@@ -249,7 +249,7 @@ TEST(IpqpMu0Rule, TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp) {
 TEST(IpqpMu0Rule, KFixedStartsAtTheSettingAndReadsNoCounter) {
     const Traced t = solve_traced(scalar_box_qp(2.0, 1e-3), IpqpOptions{});
     ASSERT_FALSE(t.iters.empty());
-    EXPECT_EQ(t.iters.front().mu, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(t.iters.front().mu, IpqpOptions{}.init_mu);
     EXPECT_EQ(t.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(t.r.counters.ipqp_mu0_fallbacks, 0);
     EXPECT_EQ(t.r.counters.ipqp_mu_floor_binds, 0);
@@ -262,7 +262,7 @@ TEST(IpqpMu0Rule, ADerivedValueAboveTheCeilingFallsBackToTheFixedStart) {
     const Traced off = solve_traced(qp, IpqpOptions{});
     const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity));
     ASSERT_FALSE(on.iters.empty());
-    EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.init_mu);
     EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1);
     EXPECT_EQ(on.r.counters.ipqp_factorizations, off.r.counters.ipqp_factorizations + 1);
@@ -275,7 +275,7 @@ TEST(IpqpMu0Rule, ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack) {
         const Traced on =
             solve_traced(scalar_box_qp(2.0, g), with_rule(IpqpMu0Rule::kComplementarity));
         ASSERT_FALSE(on.iters.empty()) << g;
-        EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.ipqp_init_mu) << g;
+        EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.init_mu) << g;
         EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1) << g;
         EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0) << g;
     }
@@ -284,7 +284,7 @@ TEST(IpqpMu0Rule, ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack) {
 // Raising the ceiling admits the g = 10 value: the band test reads `ipqp_init_mu`, not a constant.
 TEST(IpqpMu0Rule, TheBandIsTheOptionsOwnCeiling) {
     IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_init_mu = 10.0;
+    o.init_mu = 10.0;
     const Traced on = solve_traced(scalar_box_qp(2.0, 10.0), o);
     ASSERT_FALSE(on.iters.empty());
     EXPECT_NEAR(on.iters.front().mu, 1.875, 1e-12);
@@ -299,9 +299,9 @@ TEST(IpqpMu0Rule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
         QpEngine walk(untrusted_region());
         const QpSolution ref = walk.solve(qp);
         ASSERT_EQ(ref.status, QpStatus::kOptimal);
-        for (const double ceiling : {IpqpOptions{}.ipqp_init_mu, 1e6}) {
+        for (const double ceiling : {IpqpOptions{}.init_mu, 1e6}) {
             IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-            o.ipqp_init_mu = ceiling;
+            o.init_mu = ceiling;
             const Traced on = solve_traced(qp, o);
             EXPECT_EQ(on.r.status, QpStatus::kOptimal) << ceiling;
             EXPECT_EQ(on.r.counters.ipqp_mu0_derived, ceiling > 1.0 ? 1 : 0) << ceiling;
@@ -316,7 +316,7 @@ TEST(IpqpMu0Rule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
 // catches a change to the row and equality halves of the estimate, which no closed form here does.
 TEST(IpqpMu0Rule, TheDerivedMuZeroOfTheRowQpsIsPinned) {
     IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_init_mu = 1e6;
+    o.init_mu = 1e6;
     const std::vector<std::pair<QpProblem, double>> cases = {{general_qp(), 5.9569897959183518},
                                                              {many_rows_qp(), 13.594305475000516}};
     for (const auto &[qp, want] : cases) {
@@ -382,7 +382,7 @@ TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
 // code does).
 TEST(IpqpMu0Rule, TheEstimateIsChargedToTheFactorizationBudget) {
     IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_max_factorizations = 1;
+    o.max_factorizations = 1;
     IpqpEngine tier(untrusted_region());
     const IpqpResult r = tier.solve(general_qp(), nullptr, o, SolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_factorizations, 1);
@@ -419,7 +419,7 @@ TEST(IpqpMuResidualFloor, TheCounterIsTheNeighbourhoodRuleReadOffTheTrace) {
          {general_qp(), many_rows_qp(), scalar_box_qp(2.0, 10.0), scalar_box_qp(2.0, 1e-3)}) {
         const Traced on = solve_traced(qp, with_floor(true));
         EXPECT_EQ(on.r.counters.ipqp_mu_floor_binds,
-                  binds_from_trace(on.iters, IpqpOptions{}.ipqp_min_mu));
+                  binds_from_trace(on.iters, IpqpOptions{}.min_mu));
         EXPECT_EQ(on.r.counters.ipqp_mu0_derived + on.r.counters.ipqp_mu0_fallbacks, 0);
     }
 }
@@ -463,7 +463,7 @@ TEST(IpqpMuResidualFloor, AWarmKillReAnchorsAtTheColdRestart) {
               QpStatus::kOptimal);
     IpqpSeed seed = *solved.warm_carry();
     seed.x.array() += 0.3;
-    o.ipqp_warm_iter_budget = 0;
+    o.warm_iter_budget = 0;
     const Traced killed = solve_traced(qp, o, &seed);
     ASSERT_EQ(killed.r.counters.ipqp_warm_restart_abandoned, 1);
     EXPECT_EQ(killed.r.counters.ipqp_mu_floor_binds, cold.r.counters.ipqp_mu_floor_binds);

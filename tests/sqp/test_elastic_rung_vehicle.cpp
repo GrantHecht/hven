@@ -112,11 +112,11 @@ constexpr int kMaxIter = 1;
 SqpOptions vehicle_options(ElasticRungEngine rung = ElasticRungEngine::kWalk) {
     SqpOptions o;
     o.qp_mode = QpMode::kIpm;
-    o.elastic_rung_engine = rung;
-    o.max_iter = kMaxIter;
+    o.advanced.elastic_rung_engine = rung;
+    o.common.max_iterations = kMaxIter;
     o.common.threads = 1;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
-    o.equality_basis = false;
+    o.advanced.equality_basis = false;
     return o;
 }
 

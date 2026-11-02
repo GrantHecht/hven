@@ -103,13 +103,13 @@ namespace {
 
 SqpOptions cold_options(Index max_iter) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kCold;
-    opts.warm_full_step = false;
-    opts.enable_soc = false;
+    opts.advanced.warm_full_step = false;
+    opts.advanced.enable_soc = false;
     return opts;
 }
 

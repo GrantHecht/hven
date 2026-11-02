@@ -439,13 +439,13 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter,
                          bool failure_step = false) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = level;
-    opts.warm_full_step = full_step;
-    opts.enable_soc = enable_soc;
+    opts.advanced.warm_full_step = full_step;
+    opts.advanced.enable_soc = enable_soc;
     // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
     // the full-step mode by design -- the full-step funnel accepts every trial
     // unjudged -- so with it on the KD lever would differ in TWO things, not one.
@@ -454,7 +454,7 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
     // same status counts. Every other cell, and every KD-on cell, is unchanged.
     // That reading is pinned by HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep.
-    opts.qp_failure_step = failure_step;
+    opts.advanced.qp_failure_step = failure_step;
     return opts;
 }
 
@@ -1448,7 +1448,7 @@ void check_soc_trigger_ratios() {
             model->set_parameters(Vec::Constant(1, p));
             JudgeLog log;
             SqpOptions opts = sweep_options(StartLevel::kCold, true, true, spec.max_iter);
-            opts.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
+            opts.advanced.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
                 return std::make_unique<RecordingFunnel>(&log);
             };
             SqpSolver decorated(opts);
@@ -1523,7 +1523,7 @@ TEST(HsSweepCorpus, Corpus) {
 // failed subproblems' own steps cost majors here and change neither the answers nor
 // the status count.
 TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
-    ASSERT_TRUE(SqpOptions{}.qp_failure_step) << "the shipped default this row pins";
+    ASSERT_TRUE(SqpOptions{}.advanced.qp_failure_step) << "the shipped default this row pins";
     const HsSweepSpec *spec = nullptr;
     for (const HsSweepSpec &sp : hs_sweep_specs()) {
         if (sp.name == std::string("HS15")) {
@@ -1591,10 +1591,10 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
 TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     auto model = make_hs_sweep(10);
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kWarm;
 
     // --- solve at p = 0: the published HS10, solved from its own start point.

@@ -333,7 +333,7 @@ class SocScriptedMechanism : public GlobalizationMechanism {
     explicit SocScriptedMechanism(std::vector<SocScriptedVerdict> verdicts)
         : verdicts_(std::move(verdicts)) {}
 
-    double compute_step(IpmSolver::LineSearchModes, double, double, double, double,
+    double compute_step(hven::solvers::LineSearchMode, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
@@ -348,7 +348,7 @@ class SocScriptedMechanism : public GlobalizationMechanism {
         alphad = kScaledAlphaD;
     }
 
-    double run_acceptance_backtrack(IpmSolver::LineSearchModes, double, double, double, double,
+    double run_acceptance_backtrack(hven::solvers::LineSearchMode, double, double, double, double,
                                     Eigen::VectorXd &, Eigen::VectorXd &DXSL, Eigen::VectorXd &,
                                     Eigen::VectorXd &, Eigen::VectorXd &, AcceptanceStrategy &,
                                     IterateInfo &Citer, const std::vector<IterateInfo> &,
@@ -433,7 +433,7 @@ struct SocDrive {
         inert_.inequal_cons_ = program_->inequal_cons_;
         inert_.kkt_dim_ = program_->kkt_dim_;
         inert_.eval_errors_ = &errors_;
-        inert_.opts_.max_soc = max_soc;
+        inert_.opts_.advanced.max_second_order_corrections = max_soc;
 
         // The correction's own factor: the identity at the KKT dimension, so
         // solve() is exact and the corrected direction is -rhs_soc.
@@ -476,7 +476,7 @@ struct SocDrive {
                GlobalizationMechanism &mechanism) {
         SolverContext ctx = inert_.ctx();
         return soc.on_step_rejected(citer_, iters_, ctx, acceptance, mechanism,
-                                    IpmSolver::LineSearchModes::kAugLang, /*obj_scale=*/1.0,
+                                    hven::solvers::LineSearchMode::kAugLang, /*obj_scale=*/1.0,
                                     /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, xsl_, dxsl_,
                                     xsl2_, rhs_, rhs2_, alpha_, alphap_, alphad_, soc_steps_,
                                     resolved_depth_, watchdog_activations_);
@@ -600,7 +600,7 @@ TEST(SocRecovery, TheCorrectedDirectionSolvesTheCorrectedRightHandSide) {
 
     // The trial constraint block, hand-computed at the trial point.
     const double trial_slack = trial(drive.inert_.primal_vars_);
-    ASSERT_GT(trial_slack, drive.inert_.opts_.neg_slack_reset)
+    ASSERT_GT(trial_slack, drive.inert_.opts_.advanced.negative_slack_reset)
         << "premise: the trial slack is above the reset floor, so it is added as it stands";
     const double c_eq = (trial(0) + trial(1)) - 1.0;
     const double c_iq_raw = -((trial(0) - trial(1)) - 0.0);

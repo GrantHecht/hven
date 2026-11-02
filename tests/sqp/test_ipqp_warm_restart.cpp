@@ -253,7 +253,7 @@ TEST(IpqpWarmRestart, ThePayloadMuIsAdoptedOnlyWhenItRaisesTheMeasuredFloor) {
     // The same payload with adoption DISABLED (`kappa = 0`, a documented
     // reading of the field): the clamp reads the measured floor only.
     IpqpOptions off;
-    off.ipqp_mu_adopt_factor = 0.0;
+    off.mu_adopt_factor = 0.0;
     const IpqpResult r_off = tier.solve(qp, &raises, off, SolveOverrides{});
     EXPECT_EQ(r_off.counters.ipqp_mu_adopted, 0);
 
@@ -272,12 +272,12 @@ TEST(IpqpWarmRestart, ThePayloadMuCanNeverRaiseMuAboveTheColdDefault) {
     huge.mu = 1.0e6;
 
     IpqpOptions o;
-    o.ipqp_init_mu = 1.0e-3;
+    o.init_mu = 1.0e-3;
     const IpqpResult r = tier.solve(qp, &huge, o, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     // The clamp's ceiling is the cold default, so an absurd payload cannot
     // make this solve start looser than a cold one would have.
-    EXPECT_LE(r.mu, o.ipqp_init_mu);
+    EXPECT_LE(r.mu, o.init_mu);
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +303,7 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     stale.mu = 1.0e-9;
 
     IpqpOptions killed;
-    killed.ipqp_warm_iter_budget = 1;
+    killed.warm_iter_budget = 1;
     IpqpEngine killed_tier(tight_opts());
     const IpqpResult r = killed_tier.solve(qp, &stale, killed, SolveOverrides{});
 
@@ -336,15 +336,15 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     stale.mu = 1.0e-9;
 
     IpqpOptions clamped;
-    clamped.ipqp_warm_iter_budget = 1000; // far above the cap below
-    clamped.ipqp_hard_iter_cap = 2;
+    clamped.warm_iter_budget = 1000; // far above the cap below
+    clamped.hard_iteration_cap = 2;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &stale, clamped, SolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1)
         << "the clamped warm budget equals the iteration budget, and the kill still fires";
     // AND THE COLD ATTEMPT RAN: its own budget re-based at the kill, so the
     // solve took more iterations than the single clamped budget allows.
-    EXPECT_GT(r.counters.ipqp_iters, clamped.ipqp_hard_iter_cap);
+    EXPECT_GT(r.counters.ipqp_iters, clamped.hard_iteration_cap);
 
     // NON-VACUITY: a COLD solve under the same cap escapes on budget, so the
     // extra iterations above are the restart's and not the cap's slack.
@@ -352,7 +352,7 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     const IpqpResult c = cold_tier.solve(qp, nullptr, clamped, SolveOverrides{});
     EXPECT_EQ(c.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(c.counters.ipqp_warm_restart_abandoned, 0);
-    EXPECT_LE(c.counters.ipqp_iters, clamped.ipqp_hard_iter_cap);
+    EXPECT_LE(c.counters.ipqp_iters, clamped.hard_iteration_cap);
 }
 
 // THE BUDGETS ARE PER ATTEMPT, not a shared pool: section 5.5 makes a SECOND overrun an ordinary
@@ -372,8 +372,8 @@ TEST(IpqpWarmRestart, TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder) {
     stale.mu = 1.0e-9;
 
     IpqpOptions o;
-    o.ipqp_warm_iter_budget = 1;
-    o.ipqp_hard_iter_cap = cold.counters.ipqp_iters; // exactly what cold needs
+    o.warm_iter_budget = 1;
+    o.hard_iteration_cap = cold.counters.ipqp_iters; // exactly what cold needs
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &stale, o, SolveOverrides{});
 
@@ -398,7 +398,7 @@ TEST(IpqpWarmRestart, AZeroWarmBudgetKillsBeforeTheFirstStepAndRunsTheColdTrajec
     stale.mu = 1.0e-9;
 
     IpqpOptions zero;
-    zero.ipqp_warm_iter_budget = 0;
+    zero.warm_iter_budget = 0;
     IpqpEngine warm_tier(tight_opts());
     const IpqpResult w = warm_tier.solve(qp, &stale, zero, SolveOverrides{});
 
@@ -478,7 +478,7 @@ TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
     absent_slack.mu = 1.0e-3;
 
     IpqpOptions off;
-    off.ipqp_warm_repair = false;
+    off.warm_repair = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &absent_slack, off, SolveOverrides{});
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kCold) << "the seed was degraded, not consumed";
@@ -528,7 +528,7 @@ TEST(IpqpWarmRestart, AdoptionIsCountedOnTheRepairOffBranchToo) {
     clean.mu = 1.0e-4; // binds the clamp from above
 
     IpqpOptions off;
-    off.ipqp_warm_repair = false;
+    off.warm_repair = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &clean, off, SolveOverrides{});
     ASSERT_EQ(r.restart_grade, IpqpRestartGrade::kFullWarm) << "the seed must be consumed";
@@ -664,7 +664,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
         test_support::F3SpringChain model(20, 0.5, 0.25);
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        o.ipqp.ipqp_warm_iter_budget = warm_budget;
+        o.advanced.ipqp.warm_iter_budget = warm_budget;
         SqpSolver driver(o);
 
         // The FREE-branch solve, and its currency.
@@ -687,7 +687,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
 
     // NON-VACUITY: at the shipped budget the same continuation is not
     // abandoned, so the row above is about the budget and not about the cell.
-    const SqpResult patient = solve_continuation(IpqpOptions{}.ipqp_warm_iter_budget);
+    const SqpResult patient = solve_continuation(IpqpOptions{}.warm_iter_budget);
     EXPECT_EQ(patient.status, SolveStatus::kOptimal);
     EXPECT_EQ(patient.counters.ipqp.ipqp_warm_restart_abandoned, 0);
 

@@ -105,7 +105,7 @@ TEST(IpmSolverEntry, Hs071ConvergesToKnownOptimum) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(4);
@@ -131,7 +131,7 @@ TEST(IpmSolverEntry, Hs071BoundDualsMatchActiveLowerBound) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(4);
@@ -198,7 +198,7 @@ TEST(IpmSolverEntry, RosenbrockConvergesToKnownOptimum) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(2);
@@ -266,7 +266,7 @@ TEST(IpmSolverEntry, EqualityMultiplierHasIpoptSign) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -325,7 +325,7 @@ TEST(IpmSolverEntry, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
@@ -389,7 +389,7 @@ TEST(IpmSolverEntry, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
@@ -454,7 +454,7 @@ TEST(IpmSolverEntry, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
@@ -515,7 +515,7 @@ TEST(IpmSolverEntry, FixedVariableSolvesExactlyAtItsFixedValue) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(2);
@@ -540,7 +540,7 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         Eigen::VectorXd x0(2);
@@ -548,7 +548,7 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(result.fixed_variable_treatment,
-                  hven::solvers::FixedVariableTreatments::MakeParameter);
+                  hven::solvers::FixedVariableTreatment::kMakeParameter);
         EXPECT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 0);
     }
     {
@@ -557,8 +557,8 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
-            o.common.print_level = 10;
-            o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
             solver.set_options(std::move(o));
         }
         Eigen::VectorXd x0(2);
@@ -566,7 +566,7 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
         result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(result.fixed_variable_treatment,
-                  hven::solvers::FixedVariableTreatments::MakeConstraint);
+                  hven::solvers::FixedVariableTreatment::kMakeConstraint);
         // THE DECLARED BLOCK IS STILL EMPTY (M6 W5 T8.4): the problem declares
         // no equality row, and the one row MakeConstraint adds is the
         // TREATMENT's -- reported beside the base, not inside it.
@@ -596,8 +596,8 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::RelaxBounds;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kRelaxBounds;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(2);
@@ -610,7 +610,7 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
 
     {
         auto o = solver.options();
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeParameter;
         solver.set_options(std::move(o));
     }
     result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
@@ -639,7 +639,7 @@ TEST(IpmSolverEntry, SeededSolveConverges) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -668,7 +668,7 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
     hven::solvers::IpmResult first_result;
     {
         auto o = first.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         first.set_options(std::move(o));
     }
     const hven::solvers::IpmResult a =
@@ -680,7 +680,7 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
     hven::solvers::IpmResult second_result;
     {
         auto o = second.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         second.set_options(std::move(o));
     }
     const hven::solvers::IpmResult b =
@@ -696,7 +696,7 @@ TEST(IpmSolverEntry, AStartPointOfTheWrongSizeIsRefused) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     EXPECT_THROW(
@@ -717,14 +717,14 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     //     field of the value handed in survives.
     hven::solvers::IpmOptions base;
     base.common.threads = 7;
-    base.common.print_level = 0;
-    base.max_iters = 123;
-    base.obj_scale = 2.5;
+    base.common.verbosity = hven::solvers::Verbosity::kIterations;
+    base.common.max_iterations = 123;
+    base.objective_scale = 2.5;
     const hven::solvers::IpmOptions worker = hven::solvers::ipm_worker_options(base);
     EXPECT_EQ(worker.common.threads, 1);
-    EXPECT_EQ(worker.common.print_level, 10);
-    EXPECT_EQ(worker.max_iters, 123);
-    EXPECT_EQ(worker.obj_scale, 2.5);
+    EXPECT_EQ(worker.common.verbosity, hven::solvers::Verbosity::kSilent);
+    EXPECT_EQ(worker.common.max_iterations, 123);
+    EXPECT_EQ(worker.objective_scale, 2.5);
     EXPECT_EQ(worker.common.start_level, base.common.start_level);
 
     // (2) THE SETTINGS IN FORCE, read off a CONFIGURED SOLVER rather than off
@@ -734,7 +734,7 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     hven::solvers::IpmSolver solver;
     solver.set_options(hven::solvers::ipm_worker_options(solver.options()));
     EXPECT_EQ(solver.options().common.threads, 1);
-    EXPECT_EQ(solver.options().common.print_level, 10);
+    EXPECT_EQ(solver.options().common.verbosity, hven::solvers::Verbosity::kSilent);
 
     // (3) THE THIRD SETTING IS THE PROGRAM'S, and its ADOPTED value is what
     //     negotiate_partition_count reports.
@@ -765,7 +765,7 @@ TEST(IpmSolverEntry, NonFiniteStartingMultipliersThrow) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -794,7 +794,7 @@ TEST(IpmSolverEntry, PartitionCountAndQpThreadCountAreSetIndependently) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -838,7 +838,7 @@ TEST(IpmSolverEntry, PartitionCountAndQpThreadCountAreSetIndependently) {
     solver.set_options(hven::solvers::ipm_worker_options(solver.options()));
     EXPECT_EQ(program->negotiate_partition_count(1), 1);
     EXPECT_EQ(solver.options().common.threads, 1);
-    EXPECT_EQ(solver.options().common.print_level, 10);
+    EXPECT_EQ(solver.options().common.verbosity, hven::solvers::Verbosity::kSilent);
 }
 
 // validate()'s checks for bound_push, alpha_red, delta_h, incr_h,
@@ -865,7 +865,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.alpha_red = nan;
+            o.advanced.backtrack_divisor = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -875,7 +875,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.delta_h = nan;
+            o.advanced.inertia_correction_initial = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -885,7 +885,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.incr_h = nan;
+            o.advanced.inertia_correction_increase = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -895,7 +895,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.bound_fraction = nan;
+            o.fraction_to_boundary = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -905,7 +905,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.decr_h = nan;
+            o.advanced.inertia_correction_decrease = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -939,9 +939,9 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.delta_h = nan;
-            o.incr_h = 8.0;
-            o.decr_h = 0.1;
+            o.advanced.inertia_correction_initial = nan;
+            o.advanced.inertia_correction_increase = 8.0;
+            o.advanced.inertia_correction_decrease = 0.1;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -951,9 +951,9 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.delta_h = 1e-4;
-            o.incr_h = nan;
-            o.decr_h = 0.1;
+            o.advanced.inertia_correction_initial = 1e-4;
+            o.advanced.inertia_correction_increase = nan;
+            o.advanced.inertia_correction_decrease = 0.1;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -963,9 +963,9 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     try {
         {
             auto o = solver.options();
-            o.delta_h = 1e-4;
-            o.incr_h = 8.0;
-            o.decr_h = nan;
+            o.advanced.inertia_correction_initial = 1e-4;
+            o.advanced.inertia_correction_increase = 8.0;
+            o.advanced.inertia_correction_decrease = nan;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -996,7 +996,7 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
     try {
         {
             auto o = solver.options();
-            o.alpha_red = inf;
+            o.advanced.backtrack_divisor = inf;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -1006,7 +1006,7 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
     try {
         {
             auto o = solver.options();
-            o.delta_h = inf;
+            o.advanced.inertia_correction_initial = inf;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -1016,7 +1016,7 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
     try {
         {
             auto o = solver.options();
-            o.incr_h = inf;
+            o.advanced.inertia_correction_increase = inf;
             solver.set_options(std::move(o));
         }
         FAIL() << "expected std::invalid_argument";
@@ -1037,7 +1037,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily)
 
     {
         hven::solvers::IpmOptions o; // pos_finite
-        o.kkt_tol = nan;
+        o.common.optimality_tol = nan;
         try {
             hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
@@ -1047,7 +1047,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily)
     }
     {
         hven::solvers::IpmOptions o; // in_open_unit
-        o.bound_fraction = nan;
+        o.fraction_to_boundary = nan;
         try {
             hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
@@ -1121,7 +1121,7 @@ TEST(IpmSolverEntry, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -1197,7 +1197,7 @@ TEST(IpmSolverEntry, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvalua
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -1247,7 +1247,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(4);
@@ -1263,10 +1263,10 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     EXPECT_TRUE(std::isfinite(result.econ_inf));
     EXPECT_TRUE(std::isfinite(result.icon_inf));
 
-    EXPECT_LT(result.kkt_inf, settings.kkt_tol);
-    EXPECT_LT(result.barr_inf, settings.bar_tol);
-    EXPECT_LT(result.econ_inf, settings.econ_tol);
-    EXPECT_LT(result.icon_inf, settings.icon_tol);
+    EXPECT_LT(result.kkt_inf, settings.common.optimality_tol);
+    EXPECT_LT(result.barr_inf, effective_complementarity_tol(settings));
+    EXPECT_LT(result.econ_inf, settings.common.feasibility_tol);
+    EXPECT_LT(result.icon_inf, settings.common.feasibility_tol);
 
     // A residual is a norm: never negative, whatever the exit.
     EXPECT_GE(result.kkt_inf, 0.0);
@@ -1285,15 +1285,15 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     // gates.
     result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_LT(result.kkt_inf, settings.kkt_tol);
-    EXPECT_LT(result.barr_inf, settings.bar_tol);
-    EXPECT_LT(result.econ_inf, settings.econ_tol);
-    EXPECT_LT(result.icon_inf, settings.icon_tol);
+    EXPECT_LT(result.kkt_inf, settings.common.optimality_tol);
+    EXPECT_LT(result.barr_inf, effective_complementarity_tol(settings));
+    EXPECT_LT(result.econ_inf, settings.common.feasibility_tol);
+    EXPECT_LT(result.icon_inf, settings.common.feasibility_tol);
 }
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under BestCriteriaModes::kObj the best-scoring iterate is an
+// f(x*) = 1.125, so under BestIterateCriterion::kObjective the best-scoring iterate is an
 // EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
 // last on a converged exit -- is what the pin below needs, and it is not
 // reachable with the default ECONS criterion.
@@ -1382,7 +1382,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     {
@@ -1392,7 +1392,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     }
     {
         auto o = solver.options();
-        o.best_criteria = hven::solvers::IpmSolver::BestCriteriaModes::kObj;
+        o.best_criterion = hven::solvers::BestIterateCriterion::kObjective;
         solver.set_options(std::move(o));
     }
 
@@ -1518,7 +1518,7 @@ TEST(IpmSolverEntry, TheProgramsPartitionCountIsWhatEvaluationsSee) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -1594,13 +1594,13 @@ IpmPhaseRecordingSink run_with_phase_sink(const std::vector<hven::solvers::IpmPh
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.phases = phases;
         solver.set_options(std::move(o));
     }
     if (max_iters > 0) {
         auto o = solver.options();
-        o.max_iters = max_iters;
+        o.common.max_iterations = max_iters;
         solver.set_options(std::move(o));
     }
     IpmPhaseRecordingSink sink;
@@ -1689,8 +1689,8 @@ TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.max_iters = 1;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = 1;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(4);
@@ -1711,14 +1711,14 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     {
         auto o = solver.options();
-        o.max_iters = 1;
+        o.common.max_iterations = 1;
         solver.set_options(std::move(o));
     }
     result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
@@ -1727,7 +1727,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
 
     {
         auto o = solver.options();
-        o.max_iters = 200;
+        o.common.max_iterations = 200;
         solver.set_options(std::move(o));
     }
     result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
@@ -1780,8 +1780,8 @@ TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.max_iters = kCap;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = kCap;
         o.phases = {IpmPhase::kSolve, IpmPhase::kOptimize}; // what solve_optimize() ran
         solver.set_options(std::move(o));
     }
@@ -1864,8 +1864,8 @@ int converging_loop_index() {
     hven::solvers::IpmResult pilot_result;
     {
         auto o = pilot.options();
-        o.common.print_level = 10;
-        o.max_iters = 200;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = 200;
         pilot.set_options(std::move(o));
     }
     int last = -1;
@@ -1894,8 +1894,8 @@ CappedRun run_capped(int cap) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.max_iters = cap;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.max_iterations = cap;
         solver.set_options(std::move(o));
     }
     CappedRun out;
@@ -1981,7 +1981,7 @@ template <class Configure> VariantRun run_hs071(Configure &&configure) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.common.threads = 1;
         configure(o);
         solver.set_options(std::move(o));
@@ -2033,22 +2033,22 @@ void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
 // BOTH arms deliberately: pinning only the variant would make the test compare
 // two different acceptance strategies and pass for the wrong reason.
 void pin_pre_d1_globalization(hven::solvers::IpmOptions &o) {
-    o.acceptance_strategy = hven::solvers::AcceptanceStrategies::classic_merit;
-    o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
+    o.advanced.acceptance_strategy = hven::solvers::AcceptanceKind::kClassicMerit;
+    o.advanced.barrier_governor = hven::solvers::BarrierGovernorKind::kClassicAdaptive;
 }
 
 } // namespace
 } // namespace ipm_option_variants
 
-// LineSearchModes::kLang -- the Lagrangian merit variant (ls_lang). Selected by
+// LineSearchMode::kLang -- the Lagrangian merit variant (ls_lang). Selected by
 // opt_ls_mode, never by a default: the shipped default is kAugLang.
 TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) {
-    using hven::solvers::LineSearchModes;
+    using hven::solvers::LineSearchMode;
     const auto base = ipm_option_variants::run_hs071(
         [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
     const auto lang = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
         ipm_option_variants::pin_pre_d1_globalization(o);
-        o.opt_ls_mode = LineSearchModes::kLang;
+        o.advanced.optimize_line_search_mode = LineSearchMode::kLang;
     });
 
     ipm_option_variants::expect_reaches_the_known_optimum(base, "the default (kAugLang) arm");
@@ -2058,15 +2058,15 @@ TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) 
            "selected nothing";
 }
 
-// LineSearchModes::kL1 -- the l1 merit variant (ls_l1), the other half of the
+// LineSearchMode::kL1 -- the l1 merit variant (ls_l1), the other half of the
 // same cold run.
 TEST(IpmSolverEntry, TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory) {
-    using hven::solvers::LineSearchModes;
+    using hven::solvers::LineSearchMode;
     const auto base = ipm_option_variants::run_hs071(
         [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
     const auto l1 = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
         ipm_option_variants::pin_pre_d1_globalization(o);
-        o.opt_ls_mode = LineSearchModes::kL1;
+        o.advanced.optimize_line_search_mode = LineSearchMode::kL1;
     });
 
     ipm_option_variants::expect_reaches_the_known_optimum(l1, "the kL1 arm");
@@ -2075,16 +2075,17 @@ TEST(IpmSolverEntry, TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory) {
            "selected nothing";
 }
 
-// BarrierModes::kProbe -- the Mehrotra predictor-corrector oracle. It is the
+// BarrierMode::kProbe -- the Mehrotra predictor-corrector oracle. It is the
 // ONLY caller of ClassicAdaptiveGovernor::mpc_mu, and mpc_mu is the only caller
 // of that governor's own complementarity(): a predictor KKT solve, the
 // fraction-to-boundary scaling of the predictor direction, and the ratio rule
 // over the predictor point's complementarity pairs.
 TEST(IpmSolverEntry, TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule) {
-    using hven::solvers::BarrierModes;
+    using hven::solvers::BarrierMode;
     const auto loqo = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
-    const auto probe = ipm_option_variants::run_hs071(
-        [](hven::solvers::IpmOptions &o) { o.opt_bar_mode = BarrierModes::kProbe; });
+    const auto probe = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
+        o.advanced.optimize_barrier_mode = BarrierMode::kProbe;
+    });
 
     ipm_option_variants::expect_reaches_the_known_optimum(loqo, "the default (kLoqo) arm");
     ipm_option_variants::expect_reaches_the_known_optimum(probe, "the kProbe arm");
@@ -2190,7 +2191,7 @@ TEST(IpmSolverEntry, AnOutOfBoxStartPointIsPushedInteriorBeforeTheFirstEvaluatio
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const hven::solvers::IpmResult result =
@@ -2215,7 +2216,7 @@ TEST(IpmSolverEntry, AnInBoxStartPointIsUnchangedByTheSameSolve) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(2);

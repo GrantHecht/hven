@@ -160,8 +160,8 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
         IpmSolver solver;
         {
             auto o = solver.options();
-            o.common.print_level = 3;
-            o.obj_scale = scale;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.objective_scale = scale;
             solver.set_options(std::move(o));
         }
 
@@ -188,8 +188,8 @@ TEST(ObjectiveScaleReporting, AnActiveBoundMultiplierDoesNotMoveWithTheScale) {
         IpmSolver solver;
         {
             auto o = solver.options();
-            o.common.print_level = 3;
-            o.obj_scale = scale;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.objective_scale = scale;
             solver.set_options(std::move(o));
         }
 
@@ -215,8 +215,8 @@ double obj_scale_installed_seed(double scale) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
-        o.obj_scale = scale;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.objective_scale = scale;
         solver.set_options(std::move(o));
     }
 
@@ -316,13 +316,13 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
     const auto with_scale = [&](double scale) {
         auto o = solver.options();
-        o.obj_scale = scale;
+        o.objective_scale = scale;
         return o;
     };
     EXPECT_THROW(hven::solvers::validate(with_scale(-1.0)), std::invalid_argument);
@@ -335,7 +335,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     try {
         {
             auto o = solver.options();
-            o.obj_scale = -3.5;
+            o.objective_scale = -3.5;
             solver.set_options(std::move(o));
         }
         FAIL() << "a negative scale must be refused";
@@ -347,7 +347,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
 
     // The refusal left the previous value standing, so the solver is still
     // usable and still running at the scale it accepted.
-    EXPECT_EQ(solver.options().obj_scale, 2.0);
+    EXPECT_EQ(solver.options().objective_scale, 2.0);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
     EXPECT_EQ(solve_declared(solver, route, x0).status, hven::solvers::SolveStatus::kOptimal);
 }
@@ -361,8 +361,8 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
-        o.obj_scale = 2.0;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.objective_scale = 2.0;
         solver.set_options(std::move(o));
     }
 
@@ -410,8 +410,8 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
-        o.obj_scale = 2.0;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.objective_scale = 2.0;
         solver.set_options(std::move(o));
     }
 
@@ -423,7 +423,7 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
                             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         if (iteration == 0 && !attempted) {
             auto o = solver.options();
-            o.obj_scale = 4.0;
+            o.objective_scale = 4.0;
             try {
                 solver.set_options(std::move(o));
             } catch (const std::logic_error &) {
@@ -445,7 +445,7 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
     ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 1);
     EXPECT_NEAR(hven::solvers::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol);
-    EXPECT_EQ(solver.options().obj_scale, 2.0);
+    EXPECT_EQ(solver.options().objective_scale, 2.0);
 
     // Between calls the replacement goes through, and the next call runs at 4
     // and reports the same caller-scale numbers because that is what the seam
@@ -453,7 +453,7 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     solver.clear_kkt_hook();
     {
         auto o = solver.options();
-        o.obj_scale = 4.0;
+        o.objective_scale = 4.0;
         solver.set_options(std::move(o));
     }
     result =

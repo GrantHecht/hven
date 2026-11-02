@@ -255,7 +255,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     hven::solvers::IpmSolver ipm;
     {
         auto o = ipm.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         ipm.set_options(std::move(o));
     }
     const hven::solvers::IpmResult ipm_result =
@@ -274,9 +274,9 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     EXPECT_NE(hven::solvers::find_ipm_polish(exported), nullptr);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.advanced.adaptive_mu = false;
 
     // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
     // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
@@ -554,7 +554,7 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
     const auto solve_it = [&](hven::solvers::NonLinearProgram &program) {
         hven::solvers::IpmSolver ipm;
         auto o = ipm.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         o.common.threads = 1;
         ipm.set_options(std::move(o));
         return ipm.solve(hven::solvers::detail::problem_ref(program), x0);

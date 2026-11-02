@@ -40,6 +40,11 @@ find_package(hven REQUIRED)
 # left the public surface (to detail/); their three TUs became the Nlp contract,
 # the Problem both engines solve, and the fixed-variable vocabulary split out of
 # the interior-point program's header, 19 -> 19.
+#
+# M8 AP-2 B3: the fixed-variable header left the public surface (its enum is in
+# the options header now) and the six new public headers of the options break
+# joined -- ipm_options, sqp_options, ipm_enums, ipm_phase_report, step_verdict
+# and linear/dense_policy -- 19 -> 24.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
@@ -48,7 +53,12 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_problem.cpp
     include_nlp_assembly.cpp
     include_assembly_declaration.cpp
-    include_fixed_variable_treatment.cpp
+    include_ipm_options.cpp
+    include_sqp_options.cpp
+    include_ipm_enums.cpp
+    include_ipm_phase_report.cpp
+    include_step_verdict.cpp
+    include_dense_policy.cpp
     include_ipm_solver.cpp
     include_sqp_solver.cpp
     include_solve_status.cpp

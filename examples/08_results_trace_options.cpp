@@ -123,7 +123,6 @@ int main() {
 
     // ---- Interior-point engine: callback + trace ----
     IpmOptions ipm_options;
-    ipm_options.common.print_level = 3;
     std::printf("=== IpmOptions (first lines of dump_options) ===\n");
     {
         std::ostringstream dump;

@@ -132,16 +132,16 @@ struct CellRun {
 /// `ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold` quietly
 /// passing at a threshold that is no longer shipped. The premise test asserts
 /// what the pins assume it to be.
-const Index kShippedRetireAfter = IpqpOptions{}.ipqp_retire_after;
+const Index kShippedRetireAfter = IpqpOptions{}.retire_after;
 
 /// One solve of the shipped cell. `max_iter`, `retire_after` and `reseed` are the
 /// only knobs any test below turns; everything else is the shipped default.
 CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = max_iter;
-    opts.ipqp.ipqp_retire_after = retire_after;
-    opts.ipqp_reseed_after_disproval = reseed;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.ipqp.retire_after = retire_after;
+    opts.advanced.ipqp_reseed_after_disproval = reseed;
     opts.common.threads = 1;
 
     const test_support::QpAsNlpModel model = disproved_entry_model(DisprovedEntryCell{});
@@ -290,7 +290,7 @@ TEST(SqpDriverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippe
 
 TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     // THE SHIPPED DEFAULT, stated where a change to it would be caught.
-    EXPECT_FALSE(SqpOptions{}.ipqp_reseed_after_disproval);
+    EXPECT_FALSE(SqpOptions{}.advanced.ipqp_reseed_after_disproval);
 
     // ... and an explicit `false` is the same run as the default: this is the
     // OFF arm of the pair below, written out so the ON arm's numbers have a
@@ -356,8 +356,8 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
         for (int arm = 0; arm < 2; ++arm) {
             SqpOptions opts;
             opts.qp_mode = QpMode::kIpm;
-            opts.max_iter = max_iter;
-            opts.ipqp_reseed_after_disproval = arm == 1;
+            opts.common.max_iterations = max_iter;
+            opts.advanced.ipqp_reseed_after_disproval = arm == 1;
             opts.common.threads = 1;
             SqpSolver driver(opts);
             const test_support::QpAsNlpModel model = disproved_entry_model(quiet);

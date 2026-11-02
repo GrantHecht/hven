@@ -41,8 +41,8 @@ static const char kBaseTranscriptNarrow[] =
     "+E+I) : \x1b[38;2;000;255;255m23        \n\x1b[0m KKT-Matrix NNZs          : \x1b[38;2;0"
     "00;255;255m101       \n\x1b[0m KKT-Matrix NNZ%          : \x1b[38;2;000;255;255m19.09262"
     "8%\n\x1b[0m\n\x1b[38;2;255;255;255m====================================================="
-    "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mInter"
-    "iorPointSolver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+    "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mIpmSol"
+    "ver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
     "0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mKKT-Matrix Analysis \x1b"
     "[0m\n LDLT Factor Size      : \x1b[38;2;000;255;255m31        \n\x1b[0m LDLT Factor FLOP"
     "s     : \x1b[38;2;000;255;255m7 MFLOPs\n\x1b[0m Analysis/Reorder Time : \x1b[38;2;000;25"
@@ -137,7 +137,7 @@ static const char kBaseTranscriptNarrow[] =
     "m    62.500 ms\n\x1b[0m Console Print Time           : \x1b[38;2;000;255;255m    31.250 "
     "ms\n\x1b[0m Misc Time                    : \x1b[38;2;000;255;255m  1015.625 ms\n\x1b[0m "
     "Total Solve Time             : \x1b[38;2;000;255;255m  1500.000 ms\n\x1b[0m\x1b[38;2;105"
-    ";105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mInteriorPointSolver \x1b[0m\n\x1b[38;2;"
+    ";105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mIpmSolver \x1b[0m\n\x1b[38;2;"
     "255;255;255m=================================================================\n\x1b[0m";
 
 static const char kBaseTranscriptWide[] =
@@ -152,8 +152,8 @@ static const char kBaseTranscriptWide[] =
     "+E+I) : \x1b[38;2;000;255;255m23        \n\x1b[0m KKT-Matrix NNZs          : \x1b[38;2;0"
     "00;255;255m101       \n\x1b[0m KKT-Matrix NNZ%          : \x1b[38;2;000;255;255m19.09262"
     "8%\n\x1b[0m\n\x1b[38;2;255;255;255m====================================================="
-    "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mInter"
-    "iorPointSolver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+    "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mIpmSol"
+    "ver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
     "0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mKKT-Matrix Analysis \x1b"
     "[0m\n LDLT Factor Size      : \x1b[38;2;000;255;255m31        \n\x1b[0m LDLT Factor FLOP"
     "s     : \x1b[38;2;000;255;255m7 MFLOPs\n\x1b[0m Analysis/Reorder Time : \x1b[38;2;000;25"
@@ -255,6 +255,6 @@ static const char kBaseTranscriptWide[] =
     "\x1b[38;2;000;255;255m    62.500 ms\n\x1b[0m Console Print Time           : \x1b[38;2;00"
     "0;255;255m    31.250 ms\n\x1b[0m Misc Time                    : \x1b[38;2;000;255;255m  "
     "1015.625 ms\n\x1b[0m Total Solve Time             : \x1b[38;2;000;255;255m  1500.000 ms"
-    "\n\x1b[0m\x1b[38;2;105;105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mInteriorPointSolv"
+    "\n\x1b[0m\x1b[38;2;105;105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mIpmSolv"
     "er \x1b[0m\n\x1b[38;2;255;255;255m======================================================"
     "===========\n\x1b[0m";

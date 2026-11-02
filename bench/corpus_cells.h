@@ -166,6 +166,10 @@ inline const char *legacy_status_string(SolveStatus status) {
         return "NumericalError";
     case SolveStatus::kBudgetExhausted:
         return "BudgetExhausted";
+    case SolveStatus::kWorkLimit:
+        return "WorkLimit";
+    case SolveStatus::kTimeLimit:
+        return "TimeLimit";
     case SolveStatus::kAcceptable:
     case SolveStatus::kStalled:
     case SolveStatus::kDiverging:
@@ -1349,11 +1353,11 @@ namespace detail {
 
 inline SqpOptions corpus_options() {
     SqpOptions opts;
-    opts.kkt_tol = kKktTol;
-    opts.feas_tol = kFeasTol;
-    opts.max_iter = kMajorMaxIter;
-    opts.adaptive_mu = false; // bench_scale.cpp's own choice, so kHot stays reachable
-    opts.warm_full_step = true;
+    opts.common.optimality_tol = kKktTol;
+    opts.common.feasibility_tol = kFeasTol;
+    opts.common.max_iterations = kMajorMaxIter;
+    opts.advanced.adaptive_mu = false; // bench_scale.cpp's own choice, so kHot stays reachable
+    opts.advanced.warm_full_step = true;
     return opts;
 }
 
@@ -1434,12 +1438,12 @@ inline SqpOptions options_for_cell(const CorpusCell &cell, const EngineConfig &c
         opts.qp.max_iter = kPathInterfaceQpMaxIter;
     }
     opts.qp_mode = cfg.qp_mode;
-    opts.ssn_prox_carry = cfg.ssn_prox_carry;
-    opts.ssn_certify_from_face = cfg.ssn_certify_from_face;
-    opts.ssn_sigma_rule = cfg.ssn_sigma_rule;
-    opts.ssn_hint_rule = cfg.ssn_hint_rule;
-    opts.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
-    opts.ipqp = cfg.ipqp;
+    opts.advanced.ssn_prox_carry = cfg.ssn_prox_carry;
+    opts.advanced.ssn_certify_from_face = cfg.ssn_certify_from_face;
+    opts.advanced.ssn_sigma_rule = cfg.ssn_sigma_rule;
+    opts.advanced.ssn_hint_rule = cfg.ssn_hint_rule;
+    opts.advanced.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
+    opts.advanced.ipqp = cfg.ipqp;
     return opts;
 }
 
@@ -1661,7 +1665,7 @@ inline SqpResult budgeted_solve(SqpSolver &driver, const hven::solvers::NlpModel
     // corpus cell budgets minors and none caps majors, so this stays a one-field
     // value and every corpus row is byte-unchanged.
     return driver.solve(hven::solvers::detail::problem_ref(model), x0, warm,
-                        SolveBudget{/*minor_budget=*/budget});
+                        SolveBudget{.minor_budget = budget});
 }
 
 // kPhysicsInformed's own rollout: the family's analytic optimum displaced by

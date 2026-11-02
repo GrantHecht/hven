@@ -1160,7 +1160,7 @@ namespace {
 using hven::solvers::ConstraintFunction;
 using hven::solvers::ConstraintInterface;
 using hven::solvers::FixedVariableRow;
-using hven::solvers::FixedVariableTreatments;
+using hven::solvers::FixedVariableTreatment;
 using hven::solvers::ModelStructureKey;
 using hven::solvers::NonLinearProgram;
 using hven::solvers::ObjectiveFunction;
@@ -1366,7 +1366,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     // carries objective, equality and inequality pieces with their own thread
     // modes -- not over the equality list alone.
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     const AssemblyDeclaration declaration = source->declaration();
@@ -1612,7 +1612,7 @@ TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
 
 TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried) {
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     NonLinearProgram adopted(1);
@@ -1626,7 +1626,7 @@ TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried)
     // The next configuration discards them and derives its own from the bounds
     // the adoption replayed -- landing on the same row space, with the user
     // pieces untouched.
-    EXPECT_TRUE(adopted.configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    EXPECT_TRUE(adopted.configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
     EXPECT_EQ(adopted.internal_fixed_constraints(), 1);
     ASSERT_EQ(adopted.fixed_variable_indices().size(), 1);
     EXPECT_EQ(adopted.fixed_variable_indices()[0], 7);

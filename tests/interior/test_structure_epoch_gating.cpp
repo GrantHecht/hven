@@ -128,7 +128,7 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
@@ -185,7 +185,7 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
@@ -228,7 +228,7 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -253,7 +253,7 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
@@ -287,7 +287,7 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
     hven::solvers::IpmResult with_callback_result;
     {
         auto o = with_callback.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         with_callback.set_options(std::move(o));
     }
     int callback_calls = 0;
@@ -319,7 +319,7 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
     hven::solvers::IpmResult without_callback_result;
     {
         auto o = without_callback.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         without_callback.set_options(std::move(o));
     }
     without_callback_result = without_callback.solve(
@@ -347,7 +347,7 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
@@ -388,7 +388,7 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -429,7 +429,7 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     hven::solvers::IpmResult late_only_result;
     {
         auto o = late_only.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         late_only.set_options(std::move(o));
     }
     late_only.set_iteration_callback([](const hven::solvers::IterationEvent &) {
@@ -468,7 +468,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     hven::solvers::IpmResult mutating_result;
     {
         auto o = mutating.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         mutating.set_options(std::move(o));
     }
     bool mutating_captured = false;
@@ -516,7 +516,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     hven::solvers::IpmResult control_result;
     {
         auto o = control.options();
-        o.common.print_level = 3;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         control.set_options(std::move(o));
     }
     bool control_captured = false;
@@ -689,8 +689,8 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.obj_scale = kObjScale;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.objective_scale = kObjScale;
         solver.set_options(std::move(o));
     }
 
@@ -751,7 +751,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -801,7 +801,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
         // number, and the comparison stays bit-for-bit.
         ASSERT_EQ(early_xsl[i].size(), CallbackOracleProblem::kN + 1)
             << "layout premise: [primals | (no slacks) | one equality multiplier]";
-        ASSERT_EQ(solver.options().obj_scale, 1.0)
+        ASSERT_EQ(solver.options().objective_scale, 1.0)
             << "mapping premise: the event divides the block by the objective scale";
         expect_block_eq(early_xsl[i].segment(CallbackOracleProblem::kN, 1), late_lambda_e[i],
                         "hook(i).XSL equality multipliers vs event(i).lambda_e -- the same "

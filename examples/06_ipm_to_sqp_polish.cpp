@@ -95,8 +95,8 @@ int main() {
     x0 << 1.0, 5.0, 5.0, 1.0;
 
     IpmOptions ipm_options;
-    ipm_options.common.print_level = 3;
-    ipm_options.kkt_tol = ipm_options.econ_tol = ipm_options.icon_tol = ipm_options.bar_tol = 1e-3;
+    ipm_options.common.optimality_tol = 1e-3;
+    ipm_options.common.feasibility_tol = 1e-3;
     IpmSolver ipm(ipm_options);
     const IpmResult rough = ipm.solve(problem, x0);
     const std::optional<WarmStartData> payload = rough.export_warm_start();
@@ -106,8 +106,8 @@ int main() {
     }
 
     SqpOptions sqp_options;
-    sqp_options.kkt_tol = 1e-10;
-    sqp_options.feas_tol = 1e-10;
+    sqp_options.common.optimality_tol = 1e-10;
+    sqp_options.common.feasibility_tol = 1e-10;
     SqpSolver sqp(sqp_options);
 
     // The staged crossover reads the variable bounds and stamps the problem's

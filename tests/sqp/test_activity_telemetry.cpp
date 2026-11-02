@@ -378,7 +378,7 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs45sVertex) {
     // sides, no lower side and no row.
     const HsProblem p = make_hs(45);
     SqpOptions opts = telemetry_opts();
-    opts.max_iter = 200;
+    opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -416,7 +416,7 @@ TEST(ActivityTelemetry, TheFourFoldsAreTheRowsOwnSumAndPeaks) {
     for (const int number : {24, 35, 45, 76}) {
         const HsProblem p = make_hs(number);
         SqpOptions opts = telemetry_opts();
-        opts.max_iter = 200;
+        opts.common.max_iterations = 200;
         SqpSolver driver(opts);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());

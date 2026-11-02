@@ -45,13 +45,13 @@ Index tier_entries(const IpqpCounters &c) {
 SqpOptions ipm_options() {
     SqpOptions o;
     o.qp_mode = QpMode::kIpm;
-    o.max_iter = 60;
+    o.common.max_iterations = 60;
     return o;
 }
 
 SqpOptions walk_options() {
     SqpOptions o;
-    o.max_iter = 60;
+    o.common.max_iterations = 60;
     return o;
 }
 
@@ -378,7 +378,7 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_tier_retired_after, 0) << "the fixture must retire, or nothing is tested";
-    EXPECT_EQ(c.ipqp_escapes, o.ipqp.ipqp_retire_after)
+    EXPECT_EQ(c.ipqp_escapes, o.advanced.ipqp.retire_after)
         << "exactly K escapes: the (K+1)-th major never entered the tier, so it could not escape";
     const Index entries = c.ipqp_symbolic_analyses + c.ipqp_pattern_verifies;
     EXPECT_EQ(entries, c.ipqp_tier_retired_after)
@@ -394,7 +394,7 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
 TEST(IpqpDispatch, ASuccessfulSubproblemResetsTheConsecutiveEscapeTally) {
     auto p = make_hs(15);
     SqpOptions o = ipm_options();
-    o.ipqp.ipqp_retire_after = 2;
+    o.advanced.ipqp.retire_after = 2;
     SqpSolver driver(o);
     const SqpResult s =
         driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -445,7 +445,7 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
     // two numbers swap places.
     auto q = make_hs(26);
     SqpOptions off = ipm_options();
-    off.ipqp.ipqp_hoist_symbolic = false;
+    off.advanced.ipqp.hoist_symbolic = false;
     SqpSolver off_driver(off);
     const SqpResult t =
         off_driver.solve(hven::solvers::detail::problem_ref(*q.model), (*q.model).start_point());
@@ -579,9 +579,9 @@ class SaddleBoxModel : public NlpModel {
 TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
     SaddleBoxModel model;
     SqpOptions o = ipm_options();
-    o.ipqp.ipqp_reg_max = 1.0e-2;
-    o.ipqp.ipqp_rho_init = 1.0e-4;
-    o.ipqp.ipqp_delta_init = 1.0e-4;
+    o.advanced.ipqp.reg_max = 1.0e-2;
+    o.advanced.ipqp.rho_init = 1.0e-4;
+    o.advanced.ipqp.delta_init = 1.0e-4;
     SqpSolver driver(o);
     const SqpResult s =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -618,7 +618,7 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
 
     auto cold_p = make_hs(77);
     SqpOptions cold_opts = ipm_options();
-    cold_opts.ipqp.ipqp_warm_iter_budget = 0;
+    cold_opts.advanced.ipqp.warm_iter_budget = 0;
     SqpSolver cold_driver(cold_opts);
     const SqpResult cold = cold_driver.solve(hven::solvers::detail::problem_ref(*cold_p.model),
                                              (*cold_p.model).start_point());
@@ -648,10 +648,10 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
 TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     SaddleBoxModel model;
     SqpOptions o = ipm_options();
-    o.ipqp.ipqp_reg_max = 1.0e-2;
-    o.ipqp.ipqp_rho_init = 1.0e-4;
-    o.ipqp.ipqp_delta_init = 1.0e-4;
-    o.ipqp.ipqp_warm_iter_budget = 0;
+    o.advanced.ipqp.reg_max = 1.0e-2;
+    o.advanced.ipqp.rho_init = 1.0e-4;
+    o.advanced.ipqp.delta_init = 1.0e-4;
+    o.advanced.ipqp.warm_iter_budget = 0;
     SqpSolver driver(o);
     const SqpResult s =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
@@ -668,7 +668,7 @@ TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     // the carry survive and the kill fire.
     auto p = make_hs(77);
     SqpOptions k = ipm_options();
-    k.ipqp.ipqp_warm_iter_budget = 0;
+    k.advanced.ipqp.warm_iter_budget = 0;
     SqpSolver hs(k);
     const SqpResult t =
         hs.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -700,14 +700,14 @@ TEST(IpqpDispatch, TheCarryDoesNotLeakBetweenSolvesOnOneDriver) {
 TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     auto p = make_hs(77);
     SqpOptions o = ipm_options();
-    o.max_iter = 3;
+    o.common.max_iterations = 3;
     // Tight enough that the item 4 read is refused on a converged solve, loose
     // enough that the solve still converges -- the row's whole premise.
-    o.ipqp.ipqp_max_factorizations = 7;
+    o.advanced.ipqp.max_factorizations = 7;
     // T7: THE FIXTURE IS HELD COLD ON EVERY MAJOR, through the documented extreme of
     // the warm budget (0 = every warm restart is killed on its first iteration).
     // Left warm, the carry converges the later majors and the premise disappears.
-    o.ipqp.ipqp_warm_iter_budget = 0;
+    o.advanced.ipqp.warm_iter_budget = 0;
     SqpSolver driver(o);
     const SqpResult s =
         driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -735,7 +735,7 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // sharper reading of "no charge": not merely "fewer than three", but none.
     auto q = make_hs(77);
     SqpOptions k1 = o;
-    k1.ipqp.ipqp_retire_after = 1;
+    k1.advanced.ipqp.retire_after = 1;
     SqpSolver k1_driver(k1);
     const SqpResult t =
         k1_driver.solve(hven::solvers::detail::problem_ref(*q.model), (*q.model).start_point());
@@ -751,8 +751,8 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // are not 2c -- ARE charged and DO retire the tier at major 3.
     auto r = make_hs(77);
     SqpOptions genuine = ipm_options();
-    genuine.max_iter = 6;
-    genuine.ipqp.ipqp_hard_iter_cap = 2; // stops mid-descent, every major
+    genuine.common.max_iterations = 6;
+    genuine.advanced.ipqp.hard_iteration_cap = 2; // stops mid-descent, every major
     SqpSolver genuine_driver(genuine);
     const SqpResult g = genuine_driver.solve(hven::solvers::detail::problem_ref(*r.model),
                                              (*r.model).start_point());
@@ -801,7 +801,8 @@ TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
 // under kIpm and kWalk -- a mode selection may not disable a lever it never used.
 TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
     SqpOptions walk_opts = walk_options();
-    ASSERT_TRUE(walk_opts.adaptive_mu) << "the schedule is ON by default -- that is the premise";
+    ASSERT_TRUE(walk_opts.advanced.adaptive_mu)
+        << "the schedule is ON by default -- that is the premise";
 
     PinnedVariableModel walk_model(true);
     SqpSolver walk_driver(walk_opts);

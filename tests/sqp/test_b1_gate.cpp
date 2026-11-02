@@ -155,10 +155,10 @@ constexpr double kTol = 1e-6;
 // in more than the one thing under test.
 SqpOptions probe_options(StartLevel level = StartLevel::kWarm) {
     SqpOptions opts;
-    opts.kkt_tol = kTol;
-    opts.feas_tol = kTol;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = kTol;
+    opts.common.feasibility_tol = kTol;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = level;
     return opts;
 }
@@ -544,8 +544,8 @@ TEST(B1Gate, F6RelaxingStepsNoLongerFreezeTheObjective) {
         SCOPED_TRACE(fmt::format("F6 p {} -> {}", p_from, p_to));
         F6PathBoundQuadrature model(nodes, weights, p_from);
         SqpOptions opts = probe_options();
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
         SqpOptions cold_opts = opts;
         cold_opts.common.start_level = StartLevel::kCold;
 
@@ -580,8 +580,8 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
     const Vec weights = trapezoid_weights(nodes);
     F6PathBoundQuadrature model(nodes, weights, 0.50);
     SqpOptions opts = probe_options();
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
     SqpOptions cold_opts = opts;
     cold_opts.common.start_level = StartLevel::kCold;
 
@@ -1025,8 +1025,8 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
             SCOPED_TRACE(fmt::format("F6 seeded p {} -> {}", p_from, p_to));
             F6PathBoundQuadrature model(nodes, weights, p_from);
             SqpOptions opts = probe_options();
-            opts.kkt_tol = 1e-8;
-            opts.feas_tol = 1e-8;
+            opts.common.optimality_tol = 1e-8;
+            opts.common.feasibility_tol = 1e-8;
             SqpOptions cold_opts = opts;
             cold_opts.common.start_level = StartLevel::kCold;
 
@@ -1414,7 +1414,8 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // post-refusal solve outlast kWarmFullStepWindow deterministically.
     opts.tr_init = kTr;
     opts.tr_max = kTr;
-    ASSERT_TRUE(opts.warm_full_step) << "fixture premise: the KD window is armed by default";
+    ASSERT_TRUE(opts.advanced.warm_full_step)
+        << "fixture premise: the KD window is armed by default";
 
     // A hash-CARRYING object, so this ingests at kWarm -- the level at which
     // the full-step window is armed at all (a seeded object never arms it).
@@ -1459,7 +1460,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     EXPECT_NE(SolveStatus::kOptimal, sol.status)
         << "the triple the ingest gate refused must not be certified after the restore";
     EXPECT_EQ(SolveStatus::kMaxIter, sol.status);
-    EXPECT_GT(sol.sqp_complementarity, opts.kkt_tol);
+    EXPECT_GT(sol.sqp_complementarity, opts.common.optimality_tol);
 }
 
 // =====================================================================

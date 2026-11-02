@@ -231,7 +231,7 @@ std::vector<Expect> refactorize_table() {
 
 SqpOptions options_for(const Expect &e, WorkingSetLinearAlgebra alg) {
     SqpOptions opts;
-    opts.max_iter = e.max_iter;
+    opts.common.max_iterations = e.max_iter;
     opts.qp.ws_algebra = alg;
     return opts;
 }
@@ -285,7 +285,7 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
     SqpSolver driver(opts);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
-    const NlpKktResidual chk = self_check_kkt(*p.model, sol, opts.feas_tol);
+    const NlpKktResidual chk = self_check_kkt(*p.model, sol, opts.common.feasibility_tol);
     record_row(e, tag, sol, chk);
 
     ASSERT_EQ(sol.status, e.status)
@@ -751,7 +751,7 @@ TEST(HsBattery, AdaptiveMuNeverSharesAMajorWithSocOrElastic) {
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
         const SqpOptions opts = options_for(e, WorkingSetLinearAlgebra::kSchurBorder);
-        ASSERT_TRUE(opts.adaptive_mu) << "the lever under measurement must be ON";
+        ASSERT_TRUE(opts.advanced.adaptive_mu) << "the lever under measurement must be ON";
         SqpSolver driver(opts);
         const SqpResult sol =
             driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -971,7 +971,7 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
         const HsProblem p = make_hs(e.number);
         SqpOptions off_opts = options_for(e, WorkingSetLinearAlgebra::kSchurBorder);
         SqpOptions on_opts = off_opts;
-        on_opts.crash_basis = true;
+        on_opts.advanced.crash_basis = true;
 
         SqpSolver a(off_opts);
         const SqpResult off =

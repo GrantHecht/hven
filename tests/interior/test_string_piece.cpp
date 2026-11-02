@@ -166,7 +166,7 @@ TEST(StringPiece, DeclaredAndSolvedThroughTheAssemblyPath) {
     program.adopt_declaration(std::move(declaration));
 
     IpmOptions options;
-    options.common.print_level = 0;
+    options.common.verbosity = hven::solvers::Verbosity::kIterations;
     IpmSolver solver(options);
     const IpmResult result = solver.solve(hven::solvers::detail::problem_ref(program), Vx::Zero(n));
 
@@ -200,7 +200,7 @@ TEST(StringPiece, APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp) {
     EXPECT_EQ(problem.statistics().boxed_variables, 2);
 
     IpmOptions options;
-    options.common.print_level = 10;
+    options.common.verbosity = hven::solvers::Verbosity::kSilent;
     IpmSolver ipm(options);
     const IpmResult result = ipm.solve(problem, Vx::Zero(2));
     EXPECT_EQ(result.status, SolveStatus::kOptimal);

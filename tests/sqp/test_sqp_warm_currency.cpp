@@ -1018,7 +1018,7 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     hven::solvers::IpmSolver ipm;
     {
         auto o = ipm.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         ipm.set_options(std::move(o));
     }
     Eigen::VectorXd x0(3);
@@ -1598,7 +1598,7 @@ TEST(SqpWarmCurrency, ThePayloadPathDeliversThePolishSplitWithoutFlattening) {
         // (1e-2) sits BELOW this payload's `mu_`, so the section 5.3 clamp would
         // cap the adoption out of existence and the pin below would go vacuous.
         SqpOptions o = ipm_currency_options();
-        o.ipqp.ipqp_init_mu = polish.mu_;
+        o.advanced.ipqp.init_mu = polish.mu_;
         SqpSolver driver{o};
         return driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     };
@@ -1633,7 +1633,7 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
 
     IpmPolishData polish = fixture_polish(sol);
     polish.mu_ = 0.1;
-    ASSERT_GT(polish.mu_, SqpOptions{}.ipqp.ipqp_init_mu) << "the premise: ABOVE the ceiling";
+    ASSERT_GT(polish.mu_, SqpOptions{}.advanced.ipqp.init_mu) << "the premise: ABOVE the ceiling";
 
     const auto run = [&](double ceiling) {
         WarmStartData data = core_payload(sol, *bridge);
@@ -1641,12 +1641,12 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
         data.primal_(2) += 0.3;
         data.extensions_.push_back(polish_extension(polish));
         SqpOptions o = ipm_currency_options();
-        o.ipqp.ipqp_init_mu = ceiling;
+        o.advanced.ipqp.init_mu = ceiling;
         SqpSolver driver{o};
         return driver.solve(hven::solvers::detail::problem_ref(*bridge), data.primal_, data);
     };
 
-    const SqpResult shipped = run(SqpOptions{}.ipqp.ipqp_init_mu);
+    const SqpResult shipped = run(SqpOptions{}.advanced.ipqp.init_mu);
     const SqpResult raised = run(polish.mu_);
     ASSERT_EQ(shipped.status, SolveStatus::kOptimal);
     ASSERT_EQ(raised.status, SolveStatus::kOptimal);
@@ -1669,7 +1669,7 @@ TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
 
     IpmPolishData polish = fixture_polish(sol);
     polish.mu_ = 1e-4;
-    ASSERT_LT(polish.mu_, SqpOptions{}.ipqp.ipqp_init_mu) << "the premise: UNDER the ceiling";
+    ASSERT_LT(polish.mu_, SqpOptions{}.advanced.ipqp.init_mu) << "the premise: UNDER the ceiling";
 
     WarmStartData data = core_payload(sol, *bridge);
     data.primal_(0) -= 1e-6;

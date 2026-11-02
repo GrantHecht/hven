@@ -53,8 +53,8 @@
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/drivers/ipm_solver_types.h"
 
-using hven::solvers::AcceptanceStrategies;
-using hven::solvers::BarrierGovernors;
+using hven::solvers::AcceptanceKind;
+using hven::solvers::BarrierGovernorKind;
 using hven::solvers::InteriorPointSolverPresetFields;
 using hven::solvers::IpmOptions;
 
@@ -63,15 +63,15 @@ namespace {
 // The nine preset fields of an IpmOptions value, in the preset table's order.
 InteriorPointSolverPresetFields preset_fields_of(const IpmOptions &s) {
     return InteriorPointSolverPresetFields{
-        s.acceptance_strategy,
-        s.merit_penalty_rule,
-        s.barrier_governor,
-        s.never_monotone,
-        s.restoration_mode,
-        s.inertia_mode,
-        s.max_soc,
-        s.ls_extended_iters,
-        s.watchdog,
+        s.advanced.acceptance_strategy,
+        s.advanced.merit_penalty_rule,
+        s.advanced.barrier_governor,
+        s.advanced.never_monotone,
+        s.advanced.restoration_mode,
+        s.advanced.inertia_mode,
+        s.advanced.max_second_order_corrections,
+        s.advanced.line_search_extended_backtracks,
+        s.advanced.watchdog,
     };
 }
 
@@ -82,7 +82,7 @@ InteriorPointSolverPresetFields preset_fields_of(const IpmOptions &s) {
 // would have to make it and the dump diff below would say so.
 IpmOptions pre_d1_default() {
     IpmOptions o = hven::solvers::ipm_preset("classic");
-    o.max_iters = 500;
+    o.common.max_iterations = 500;
     return o;
 }
 
@@ -109,15 +109,15 @@ std::vector<std::string> lines_of(const std::string &text) {
 
 // Field-by-field comparison against an expected InteriorPointSolverPresetFields value.
 void PresetGateExpectFieldsMatch(const IpmOptions &s, const InteriorPointSolverPresetFields &f) {
-    EXPECT_EQ(s.acceptance_strategy, f.acceptance_strategy_);
-    EXPECT_EQ(s.merit_penalty_rule, f.merit_penalty_rule_);
-    EXPECT_EQ(s.barrier_governor, f.barrier_governor_);
-    EXPECT_EQ(s.never_monotone, f.never_monotone_);
-    EXPECT_EQ(s.restoration_mode, f.restoration_mode_);
-    EXPECT_EQ(s.inertia_mode, f.inertia_mode_);
-    EXPECT_EQ(s.max_soc, f.max_soc_);
-    EXPECT_EQ(s.ls_extended_iters, f.ls_extended_iters_);
-    EXPECT_EQ(s.watchdog, f.watchdog_);
+    EXPECT_EQ(s.advanced.acceptance_strategy, f.acceptance_strategy_);
+    EXPECT_EQ(s.advanced.merit_penalty_rule, f.merit_penalty_rule_);
+    EXPECT_EQ(s.advanced.barrier_governor, f.barrier_governor_);
+    EXPECT_EQ(s.advanced.never_monotone, f.never_monotone_);
+    EXPECT_EQ(s.advanced.restoration_mode, f.restoration_mode_);
+    EXPECT_EQ(s.advanced.inertia_mode, f.inertia_mode_);
+    EXPECT_EQ(s.advanced.max_second_order_corrections, f.max_soc_);
+    EXPECT_EQ(s.advanced.line_search_extended_backtracks, f.ls_extended_iters_);
+    EXPECT_EQ(s.advanced.watchdog, f.watchdog_);
 }
 
 } // namespace
@@ -133,17 +133,17 @@ TEST(InteriorPointSolverPresetsTest,
 
     // The two that moved, asserted in both directions so a future revert of
     // either side fails here rather than passing quietly.
-    EXPECT_EQ(classic.acceptance_strategy, AcceptanceStrategies::classic_merit);
-    EXPECT_EQ(fresh.acceptance_strategy, AcceptanceStrategies::filter);
-    EXPECT_EQ(classic.barrier_governor, BarrierGovernors::classic_adaptive);
-    EXPECT_EQ(fresh.barrier_governor, BarrierGovernors::monitored);
+    EXPECT_EQ(classic.advanced.acceptance_strategy, AcceptanceKind::kClassicMerit);
+    EXPECT_EQ(fresh.advanced.acceptance_strategy, AcceptanceKind::kFilter);
+    EXPECT_EQ(classic.advanced.barrier_governor, BarrierGovernorKind::kClassicAdaptive);
+    EXPECT_EQ(fresh.advanced.barrier_governor, BarrierGovernorKind::kMonitored);
 
     // The other seven preset fields are untouched by the event: take the
     // default's nine, put the two pre-event values back, and the whole preset
     // must match. If a tenth field ever drifts, this fails.
     InteriorPointSolverPresetFields fresh_as_fields = preset_fields_of(fresh);
-    fresh_as_fields.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    fresh_as_fields.barrier_governor_ = BarrierGovernors::classic_adaptive;
+    fresh_as_fields.acceptance_strategy_ = AcceptanceKind::kClassicMerit;
+    fresh_as_fields.barrier_governor_ = BarrierGovernorKind::kClassicAdaptive;
     PresetGateExpectFieldsMatch(classic, fresh_as_fields);
 }
 

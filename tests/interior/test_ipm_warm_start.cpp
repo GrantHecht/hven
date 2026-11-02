@@ -317,7 +317,7 @@ TEST(IpmWarmStart, AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -344,7 +344,7 @@ TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -369,7 +369,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -433,7 +433,7 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -469,7 +469,7 @@ TEST(IpmWarmStart, TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -498,7 +498,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANonFiniteBlock) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -526,7 +526,7 @@ TEST(IpmWarmStart, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -570,7 +570,7 @@ TEST(IpmWarmStart, ARelayBetweenExportAndSolvingRefusesAtSolveEntry) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -602,7 +602,7 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(solver, *solver_program, warm_eq_start()),
@@ -614,7 +614,7 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
     hven::solvers::IpmSolver wider;
     {
         auto o = wider.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         wider.set_options(std::move(o));
     }
 
@@ -634,7 +634,7 @@ TEST(IpmWarmStart, APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -673,7 +673,7 @@ TEST(IpmWarmStart, APayloadAppliesToItsOwnCallAndTheNextSolveIsCold) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -705,7 +705,7 @@ TEST(IpmWarmStart, PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
     hven::solvers::IpmSolver source;
     {
         auto o = source.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         source.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(source, *source_program, warm_eq_start()),
@@ -725,7 +725,7 @@ TEST(IpmWarmStart, PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
         hven::solvers::IpmSolver fresh;
         {
             auto o = fresh.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             fresh.set_options(std::move(o));
         }
         ASSERT_TRUE(declaration_key(fresh_program->declaration()) == warm.structure_key_)
@@ -756,7 +756,7 @@ TEST(IpmWarmStart, AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoi
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -784,7 +784,7 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -832,8 +832,8 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
 
@@ -923,7 +923,7 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     hven::solvers::IpmSolver source;
     {
         auto o = source.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         source.set_options(std::move(o));
     }
     const auto layout_key_before_any_solve = source_program->model_structure_key();
@@ -949,7 +949,7 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     ASSERT_TRUE(declaration_key(fresh_program->declaration()) == warm.structure_key_)
@@ -1012,12 +1012,12 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     hven::solvers::IpmSolver source;
     {
         auto o = source.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         source.set_options(std::move(o));
     }
     {
         auto o = source.options();
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeParameter;
         source.set_options(std::move(o));
     }
 
@@ -1033,12 +1033,12 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     hven::solvers::IpmSolver sink;
     {
         auto o = sink.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         sink.set_options(std::move(o));
     }
     {
         auto o = sink.options();
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
         sink.set_options(std::move(o));
     }
 
@@ -1067,7 +1067,7 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
 
     // And the solve really did run under the other treatment.
     EXPECT_EQ(warm_result().fixed_variable_treatment,
-              hven::solvers::FixedVariableTreatments::MakeConstraint);
+              hven::solvers::FixedVariableTreatment::kMakeConstraint);
 }
 
 // --- Precedence over a multiplier seed ---
@@ -1089,7 +1089,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     hven::solvers::IpmSolver source;
     {
         auto o = source.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         source.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(source, *source_program, warm_eq_start()),
@@ -1115,7 +1115,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     hven::solvers::IpmSolver a;
     {
         auto o = a.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         a.set_options(std::move(o));
     }
     FirstIterateProbe probe_full;
@@ -1131,7 +1131,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     hven::solvers::IpmSolver b;
     {
         auto o = b.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         b.set_options(std::move(o));
     }
     FirstIterateProbe probe_seed;
@@ -1155,7 +1155,7 @@ TEST(IpmWarmStart, AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(solver, *solver_program, warm_eq_start()),
@@ -1273,7 +1273,7 @@ struct WarmBoundedSolve {
     WarmBoundedSolve() {
         {
             auto o = this->solver_.options();
-            o.common.print_level = 10;
+            o.common.verbosity = hven::solvers::Verbosity::kSilent;
             this->solver_.set_options(std::move(o));
         }
         EXPECT_EQ(warm_optimize(this->solver_, *this->program_, warm_bounded_start()),
@@ -1341,7 +1341,7 @@ WarmRun run_warm(const WarmStartData &warm) {
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     FirstIterateDualProbe probe;
@@ -1405,7 +1405,7 @@ TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(solver, *solver_program, warm_eq_start()),
@@ -1487,7 +1487,7 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     // The widest relaxation the contract allows (1e-2), so x0's relaxed box is
@@ -1496,7 +1496,7 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     {
         auto o = solver.options();
         o.bound_relax_factor = hven::solvers::kMaxBoundRelaxFactor;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::RelaxBounds;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kRelaxBounds;
         solver.set_options(std::move(o));
     }
 
@@ -1517,7 +1517,7 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     // eliminates the only bound-carrying variable, so the bound set empties.
     {
         auto o = solver.options();
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeParameter;
         solver.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(solver, *solver_program, x0), hven::solvers::SolveStatus::kOptimal);
@@ -1678,11 +1678,11 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
         // preset is a full value now, so the fixture's own knobs are layered on
         // top of it rather than written before it.
         auto o = hven::solvers::ipm_preset("filter_l1");
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         // Two iterations exactly -- see the fixture's own note for why that is
         // the number: entry during the first, the condensed eval seam during
         // the second, and the break with restoration still active.
-        o.max_iters = 2;
+        o.common.max_iterations = 2;
         solver.set_options(std::move(o));
     }
 
@@ -1762,9 +1762,9 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     hven::solvers::IpmSolver solver;
     {
         auto o = hven::solvers::ipm_preset("filter_l1");
-        o.common.print_level = 10;
-        o.max_mu = kMuCeiling;
-        o.max_iters = 2;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.max_barrier = kMuCeiling;
+        o.common.max_iterations = 2;
         solver.set_options(std::move(o));
     }
 
@@ -1861,7 +1861,7 @@ TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
     hven::solvers::IpmSolver solver;
     {
         auto o = hven::solvers::ipm_preset("filter_l1");
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -1896,7 +1896,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt) 
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     try {
@@ -1928,7 +1928,7 @@ TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTh
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
 
@@ -1963,7 +1963,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     try {
@@ -2000,7 +2000,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheB
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     try {
@@ -2031,7 +2031,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheB
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     try {
@@ -2065,7 +2065,7 @@ TEST(IpmWarmStart, AZeroValuedPriceBlockIsStillAcceptedAndSolves) {
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     EXPECT_EQ(warm_optimize(fresh, *fresh_program, warm_bounded_start(), zeroed),
@@ -2086,7 +2086,7 @@ TEST(IpmWarmStart, TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry) {
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     try {
@@ -2115,7 +2115,7 @@ TEST(IpmWarmStart, AForeignExtensionTagIsIgnoredAtTheHandOverAndAtSolve) {
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     EXPECT_EQ(warm_optimize(fresh, *fresh_program, warm_bounded_start(), foreign),
@@ -2291,7 +2291,7 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
     hven::solvers::IpmSolver reused;
     {
         auto o = reused.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         reused.set_options(std::move(o));
     }
 
@@ -2323,7 +2323,7 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
     hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
         fresh.set_options(std::move(o));
     }
     ASSERT_EQ(warm_optimize(fresh, *fresh_program, warm_bounded_start()),

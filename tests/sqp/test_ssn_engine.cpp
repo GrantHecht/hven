@@ -1937,7 +1937,7 @@ TEST(SsnEngineLocal, FbTolDerivationAndItsBound) {
     EXPECT_DOUBLE_EQ(ssn_fb_tol_from_kkt_tol(1e-9), 1e-9);
     EXPECT_THROW(ssn_fb_tol_from_kkt_tol(0.0), std::invalid_argument);
     EXPECT_THROW(ssn_fb_tol_from_kkt_tol(-1.0), std::invalid_argument);
-    EXPECT_DOUBLE_EQ(SsnOptions{}.fb_tol, SqpOptions{}.kkt_tol);
+    EXPECT_DOUBLE_EQ(SsnOptions{}.fb_tol, SqpOptions{}.common.optimality_tol);
 
     // The two-sided bound ssn_engine.h section 5 derives, checked directly:
     // (2 - sqrt(2)) * min(a, b) <= phi(a, b) <= min(a, b) for a, b >= 0.

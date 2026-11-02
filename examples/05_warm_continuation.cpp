@@ -106,9 +106,7 @@ int main() {
     const auto disc = std::make_shared<Disc>();
     Problem problem(disc);
 
-    IpmOptions ipm_options;
-    ipm_options.common.print_level = 3;
-    IpmSolver ipm(ipm_options);
+    IpmSolver ipm;
     auto ipm_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
         disc->p = p;
         return w ? ipm.solve(problem, x0, *w) : ipm.solve(problem, x0);
@@ -116,7 +114,7 @@ int main() {
     ok &= sweep("IPM", false, ipm_at, cold);
     ok &= sweep("IPM", true, ipm_at, warm);
 
-    SqpSolver sqp{SqpOptions{}};
+    SqpSolver sqp;
     auto sqp_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
         disc->p = p;
         return w ? sqp.solve(problem, x0, *w) : sqp.solve(problem, x0);

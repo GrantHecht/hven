@@ -499,12 +499,12 @@ struct Tuning {
 
 SqpOptions bench_options(StartLevel level, const Tuning &tuning) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = tuning.max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = tuning.max_iter;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = level;
-    opts.warm_full_step = true;
+    opts.advanced.warm_full_step = true;
     opts.qp = tuning.qp;
     opts.qp_mode = tuning.qp_mode;
     return opts;
@@ -669,12 +669,12 @@ bool run_self_check() {
     const Vec p1 = Vec::Constant(1, 0.75);
 
     SqpOptions opts;
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kWarm;
-    opts.warm_full_step = true;
+    opts.advanced.warm_full_step = true;
 
     SqpSolver driver(opts);
     Ledger ledger;

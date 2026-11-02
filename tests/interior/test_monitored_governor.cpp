@@ -79,7 +79,7 @@ class MonGovFakeDelegate : public BarrierGovernor {
     double return_mu = 12345.0;
     double set_barr_obj = 678.0;
 
-    double update_barrier(IpmSolver::BarrierModes, double mu_in, double avgcomp, double mincomp,
+    double update_barrier(hven::solvers::BarrierMode, double mu_in, double avgcomp, double mincomp,
                           Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                           Eigen::VectorXd &, GlobalizationMechanism &, SolverContext &,
                           double &barr_obj, const IterateInfo &, bool &mu_event) override {
@@ -97,7 +97,7 @@ class MonGovFakeDelegate : public BarrierGovernor {
 // Inert mechanism — the fake delegate ignores it, so its body must never run.
 class MonGovUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(IpmSolver::LineSearchModes, double, double, double, double,
+    double compute_step(hven::solvers::LineSearchMode, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
@@ -365,7 +365,7 @@ TEST(MonGovDelegation, FreeModeForwardsToDelegateVerbatim) {
     const auto current = MonGovUniform(1.0);
     double barr_obj = -1.0;
     bool mu_event = false;
-    const double mu = g.update_barrier(IpmSolver::BarrierModes::kLoqo, /*mu_in=*/0.007,
+    const double mu = g.update_barrier(hven::solvers::BarrierMode::kLoqo, /*mu_in=*/0.007,
                                        /*avgcomp=*/0.55, /*mincomp=*/0.11, XSL, RHS, DXSL, Temp,
                                        mechanism, ctx, barr_obj, current, mu_event);
     EXPECT_EQ(fake->calls, 1);
@@ -412,7 +412,7 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IterateInfo current1 = MonGovIterate(0.0, 0.0, 0.9, 0.0);
     double barr_obj1 = 0.0;
     bool event1 = false;
-    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+    g.update_barrier(hven::solvers::BarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
                      mechanism, ctx, barr_obj1, current1, event1);
     EXPECT_FALSE(event1);
     EXPECT_FALSE(g.in_monotone_mode());
@@ -430,7 +430,7 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IterateInfo current2 = MonGovIterate(0.0, 0.0, 1.0, 0.0);
     double barr_obj2 = 0.0;
     bool event2 = false;
-    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+    g.update_barrier(hven::solvers::BarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
                      mechanism, ctx, barr_obj2, current2, event2);
     EXPECT_TRUE(event2);
     EXPECT_TRUE(g.in_monotone_mode());
@@ -460,8 +460,8 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // monotone_mu_ = handoff_mu(0.0125, ...) = 0.8*0.0125 = 0.01.
     double barr_obj = 0.0;
     bool event = false;
-    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, /*avgcomp=*/0.0125, 0.0, XSL, RHS, DXSL,
-                     Temp, mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
+    g.update_barrier(hven::solvers::BarrierMode::kLoqo, 0.01, /*avgcomp=*/0.0125, 0.0, XSL, RHS,
+                     DXSL, Temp, mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
     ASSERT_TRUE(g.in_monotone_mode());
     ASSERT_DOUBLE_EQ(g.monotone_mu(), 0.01);
     ASSERT_TRUE(event);
@@ -471,7 +471,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // > 0.1 -> gate blocks -> NO advance, NO mu_event.
     event = false;
     const double mu_after_hold = g.update_barrier(
-        IpmSolver::BarrierModes::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+        hven::solvers::BarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
         mechanism, ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.2), event);
     EXPECT_FALSE(event);
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.01);
@@ -487,7 +487,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // then clamped to [1e-12, 100] (inert).
     event = false;
     const double mu_after_advance = g.update_barrier(
-        IpmSolver::BarrierModes::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+        hven::solvers::BarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
         mechanism, ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.05), event);
     EXPECT_TRUE(event); // advance on exactly this call, not the previous hold.
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.001);
@@ -527,10 +527,10 @@ struct MonGovMonotoneDrive {
         inert_.equal_cons_ = 1;
         inert_.inequal_cons_ = 2;
         inert_.kkt_dim_ = 7;
-        inert_.opts_.bar_tol = 1e-6;
-        inert_.opts_.kkt_tol = 1e-6;
-        inert_.opts_.min_mu = 1e-12;
-        inert_.opts_.max_mu = 100.0;
+        inert_.opts_.termination.complementarity_tol = 1e-6;
+        inert_.opts_.common.optimality_tol = 1e-6;
+        inert_.opts_.min_barrier = 1e-12;
+        inert_.opts_.max_barrier = 100.0;
 
         xsl_.resize(7);
         //   primals    slacks     eq lmult  iq lmults

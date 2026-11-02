@@ -67,12 +67,10 @@ int main() {
     Eigen::VectorXd x0(2);
     x0 << -1.2, 1.0; // the classic starting point
 
-    IpmOptions ipm_options;
-    ipm_options.common.print_level = 3;
-    IpmSolver ipm(ipm_options);
+    IpmSolver ipm;
     const bool ok_ipm = check("IpmSolver", ipm.solve(problem, x0));
 
-    SqpSolver sqp{SqpOptions{}};
+    SqpSolver sqp;
     const bool ok_sqp = check("SqpSolver", sqp.solve(problem, x0));
 
     return (ok_ipm && ok_sqp) ? 0 : 1;

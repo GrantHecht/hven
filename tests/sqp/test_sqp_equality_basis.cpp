@@ -127,8 +127,8 @@ struct TwoNetworks {
 SqpOptions opts_for(QpMode mode, bool basis = true) {
     SqpOptions o;
     o.qp_mode = mode;
-    o.equality_basis = basis;
-    o.max_iter = 100;
+    o.advanced.equality_basis = basis;
+    o.common.max_iterations = 100;
     return o;
 }
 
@@ -197,7 +197,7 @@ TEST_P(EqualityBasisModes, F2SubToleranceInconsistencyIsSpreadAndConverges) {
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
     EXPECT_GT(res.equality_basis.max_gap, 1e-9);
-    EXPECT_LE(res.sqp_feasibility, o.feas_tol);
+    EXPECT_LE(res.sqp_feasibility, o.common.feasibility_tol);
 }
 
 void expect_bit_identical(const SqpResult &a, const SqpResult &b) {
@@ -647,7 +647,7 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
         EXPECT_TRUE(res.equality_basis.handed_off);
         EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
         EXPECT_GE(res.equality_basis.split_changes, 1);
-        EXPECT_LT(res.counters.major_iters, o.max_iter);
+        EXPECT_LT(res.counters.major_iters, o.common.max_iterations);
 #else
         // Off the reference build the ladder after the hand-off is not known to finish
         // kInfeasible (WX-R3: observed kMaxIter at the cap on Accelerate). The route is
@@ -689,7 +689,7 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
     Vec x_star, lambda_star;
     net.oracle(x_star, lambda_star);
     SqpOptions o = opts_for(QpMode::kWalk);
-    o.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
+    o.advanced.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
         return std::make_unique<RestoreOnce>();
     };
     SqpSolver solver(o);

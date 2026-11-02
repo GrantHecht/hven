@@ -117,13 +117,13 @@ TEST(IpqpCertificationTest, ADowngradedCertificateReportsNumericalErrorAndNotANe
                   "QpStatus must revisit ipqp_engine.h's STATUS VOCABULARY ruling.");
 
     IpqpOptions io;
-    io.ipqp_require_final_inertia = false;
+    io.require_final_inertia = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(convex_qp(), nullptr, io, SolveOverrides{});
 
     // It CONVERGED -- this is not a failure dressed up as one.
     EXPECT_GT(r.counters.ipqp_iters, 0);
-    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * io.ipqp_converge_slack);
+    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * io.converge_slack);
 
     // ... and reports a downgrade with NO escape.
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 3);
@@ -167,7 +167,7 @@ TEST(IpqpCensusTest, EveryEscapeIncrementsExactlyOneCensusFieldAndIpqpEscapes) {
     };
 
     IpqpOptions budget_io;
-    budget_io.ipqp_hard_iter_cap = 1;
+    budget_io.hard_iteration_cap = 1;
 
     std::vector<Case> cases;
     cases.push_back({"budget", convex_qp(), budget_io, IpqpEscape::kBudget});
@@ -245,7 +245,7 @@ TEST(IpqpA11Test, TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesH
         EXPECT_NEAR(r.x(0), c, 1e-5);
         EXPECT_NEAR(std::abs(r.x(1)), 1.0, 1e-6) << "landed at a bound, not in the interior";
         EXPECT_GT(std::abs(r.x(1) - 0.125), 0.5) << "and specifically NOT at the interior saddle";
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
 
         // (4) THE FINAL READ HAPPENED AND AGREED. `0` is also the structural value on a solve
         // that never reached the read, so the certifying exit above disambiguates and the
@@ -256,7 +256,7 @@ TEST(IpqpA11Test, TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesH
         // (5) THE MODIFICATION IS ABSENT FROM THE ANSWER: `rho` is the schedule's final value
         // and `rho_mod` the modification the last step ran at, while the read is taken at
         // `rho_dem = 0` by construction -- what makes `read == 0` a claim about the caller's QP.
-        EXPECT_LT(r.rho, IpqpOptions{}.ipqp_rho_init);
+        EXPECT_LT(r.rho, IpqpOptions{}.rho_init);
         EXPECT_GE(r.rho_mod, 0.0);
         EXPECT_LE(r.rho_mod, r.counters.ipqp_rho_demanded_max);
     }
@@ -270,7 +270,7 @@ TEST(IpqpA11Test, TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesH
     // reports `3` (NOT PERFORMED), a downgrade with no escape, and one factorization fewer.
     // Without this partner, `read == 0` would be compatible with never taking the read.
     IpqpOptions off;
-    off.ipqp_require_final_inertia = false;
+    off.require_final_inertia = false;
     IpqpEngine on_tier(tight_opts());
     IpqpEngine off_tier(tight_opts());
     const IpqpResult on =
@@ -360,7 +360,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
         EXPECT_EQ(r.counters.ipqp_escapes, 0);
         EXPECT_EQ(census_entries(r.counters), 0);
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
         ++reached_read_hs;
 
         // WHERE IT LANDED AND WHAT IT COST, matched as ONE WHOLE TRAJECTORY against the
@@ -387,7 +387,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
                               << ", factorizations = " << r.counters.ipqp_factorizations
                               << " matches no admissible trajectory";
 #endif
-        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap)
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap)
             << "and none of them is stopped by the budget any more";
     }
 
@@ -413,7 +413,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
     // row reports `3` (NOT PERFORMED) and a downgrade, and pays exactly one factorization
     // fewer. Without it a `read == 0` from a solve that never took the read looks the same.
     IpqpOptions off;
-    off.ipqp_require_final_inertia = false;
+    off.require_final_inertia = false;
     IpqpEngine off_tier(tight_opts());
     IpqpEngine on_tier(tight_opts());
     const IpqpResult offr =
@@ -632,7 +632,7 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
 
         // The comparison, both sides at `dsq == 1`.
         IpqpOptions unscaled;
-        unscaled.ipqp_ruiz = false;
+        unscaled.ruiz = false;
         IpqpEngine ref_tier(tight_opts());
         const IpqpResult ref = ref_tier.solve(qp, nullptr, unscaled, SolveOverrides{});
         ASSERT_GT(ref.counters.ipqp_rho_demanded_max, 0.0)
@@ -641,9 +641,9 @@ TEST(IpqpLadderBandTest, TheSettledModificationSitsInsideAlgorithmICsOwnBand) {
         double observed_threshold = std::numeric_limits<double>::infinity();
         for (double trial = 128.0; trial >= 1.0 / 1024.0; trial *= 0.5) {
             IpqpOptions probe;
-            probe.ipqp_ruiz = false;
-            probe.ipqp_rho_init = trial;
-            probe.ipqp_hard_iter_cap = 1;
+            probe.ruiz = false;
+            probe.rho_init = trial;
+            probe.hard_iteration_cap = 1;
             IpqpEngine probe_tier(tight_opts());
             const IpqpResult pr = probe_tier.solve(qp, nullptr, probe, SolveOverrides{});
             if (pr.counters.ipqp_inertia_retries == 0) {
@@ -875,12 +875,12 @@ TEST(IpqpLadderTest, AFixedPointOfTheExecutedMapIsAPointTheGateCanSee) {
         const IpqpResult r = tier.solve(c.qp, nullptr, IpqpOptions{}, SolveOverrides{});
         EXPECT_NE(r.escape_reason, IpqpEscape::kBudget)
             << "a budget stop on an indefinite fixture is the signature of the freeze T4b removed";
-        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap);
         // Every one of them reached a CERTIFYING exit -- the read was taken,
         // whatever it then said.
         EXPECT_TRUE(r.escape_reason == IpqpEscape::kNone ||
                     r.escape_reason == IpqpEscape::kIndefinite);
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.ipqp_converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
         // T4b GATE 5's COST TABLE, re-readable at any head (M6 W1 T9 item 10).
         RecordProperty(std::string(c.name) + "_cost",
                        fmt::format("it={} fac={} reclimbs={} retries={} armed_no_adv={} "
@@ -933,7 +933,7 @@ TEST(IpqpLadderTest, ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudge
 #ifndef USE_ACCELERATE_SPARSE
     EXPECT_EQ(r.counters.ipqp_iters, 31);
 #endif
-    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap);
     EXPECT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
@@ -954,7 +954,7 @@ TEST(IpqpLadderTest, ALongArmedWalkWithNoGateAdvanceStillConvergesInsideTheBudge
     Index prev_elev = 0;
     for (Index k = 1; k <= r.counters.ipqp_iters; ++k) {
         IpqpOptions capped;
-        capped.ipqp_hard_iter_cap = k;
+        capped.hard_iteration_cap = k;
         IpqpEngine step_tier(tight_opts());
         const IpqpResult sr =
             step_tier.solve(long_negative_curvature_walk_qp(), nullptr, capped, SolveOverrides{});
@@ -1011,7 +1011,7 @@ namespace {
 /// rather than through a contrived problem. `.superpowers/w1-t5-report.md` finding 4.
 IpqpOptions crawling_opts(double tau) {
     IpqpOptions io;
-    io.ipqp_tau = tau;
+    io.tau = tau;
     return io;
 }
 
@@ -1167,7 +1167,7 @@ TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBloc
     // than three numbers that happen to be present.
     const IpqpStallEvidence &ev = r.stall_evidence;
     ASSERT_TRUE(ev.fired);
-    EXPECT_EQ(ev.window, IpqpOptions{}.ipqp_stall_window);
+    EXPECT_EQ(ev.window, IpqpOptions{}.stall_window);
     EXPECT_LT(ev.mu_ratio, detail::kIpqpStallMuFactor); // conjunct (i)
     EXPECT_GT(ev.mu_ratio, 0.0);
     EXPECT_LT(ev.residual_improvement, 1.0 - detail::kSsnStallImproveFactor); // (ii)
@@ -1178,8 +1178,8 @@ TEST(IpqpStallTest, TheStallEscapeCarriesAllThreeConjunctValuesInOneEvidenceBloc
     // SECTION 6.1'S "BUDGET OF LAST RESORT", BOUNDED TIGHTLY. `< 60` is far too weak a form of
     // the claim, so the pin is the structural ceiling `2 * ipqp_stall_window`: the window can
     // close at most twice before firing (evaluated and re-armed, then fired).
-    EXPECT_LE(r.counters.ipqp_iters, 2 * IpqpOptions{}.ipqp_stall_window);
-    EXPECT_GE(r.counters.ipqp_iters, IpqpOptions{}.ipqp_stall_window);
+    EXPECT_LE(r.counters.ipqp_iters, 2 * IpqpOptions{}.stall_window);
+    EXPECT_GE(r.counters.ipqp_iters, IpqpOptions{}.stall_window);
     // ... and the exact measured value, so a trajectory move is VISIBLE rather
     // than silently absorbed by the bound above. 10 == two closed windows.
     EXPECT_EQ(r.counters.ipqp_iters, 10);
@@ -1237,7 +1237,7 @@ TEST(IpqpInfeasibleSuspectTest, TheSignatureEscapesAsASUSPICIONAndNeverAsACertif
         const IpqpInfeasibilityEvidence &ev = r.infeasibility_evidence;
         ASSERT_TRUE(ev.fired);
         EXPECT_FALSE(ev.exhaustion_route);
-        EXPECT_EQ(ev.window, IpqpOptions{}.ipqp_stall_window);
+        EXPECT_EQ(ev.window, IpqpOptions{}.stall_window);
         // (a) flat on a POSITIVE floor.
         EXPECT_GT(ev.primal_end, 0.0);
         EXPECT_LT(ev.primal_improvement, 1.0 - detail::kSsnStallImproveFactor);
@@ -1249,7 +1249,7 @@ TEST(IpqpInfeasibleSuspectTest, TheSignatureEscapesAsASUSPICIONAndNeverAsACertif
         EXPECT_LE(ev.least_infeasible_primal, ev.primal_end);
 
         // The tier stopped WELL short of the budget.
-        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+        EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_iteration_cap);
     }
 }
 
@@ -1266,7 +1266,7 @@ TEST(IpqpInfeasibleSuspectTest, TheFarkasGateArmsTheReportAndNeverWithdrawsIt) {
     EXPECT_LE(armed.infeasibility_evidence.farkas_gap, -detail::kSsnFarkasGapTol);
 
     IpqpOptions off;
-    off.ipqp_farkas_gate = false;
+    off.farkas_gate = false;
     IpqpEngine tier(tight_opts());
     const IpqpResult bare = tier.solve(infeasible_rows_qp(), nullptr, off, SolveOverrides{});
     EXPECT_EQ(bare.escape_reason, IpqpEscape::kInfeasibleSuspect);
@@ -1283,7 +1283,7 @@ TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTh
     // window closures. The cap (12) is TRAJECTORY-DEPENDENT and pinned as such, so a trajectory
     // move fails loudly instead of retesting the standing route. `.superpowers/w1-t5-report.md`.
     IpqpOptions io;
-    io.ipqp_hard_iter_cap = 11; // T10b re-derivation: 12 at the 0.1 placeholder.
+    io.hard_iteration_cap = 11; // T10b re-derivation: 12 at the 0.1 placeholder.
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(infeasible_rows_qp(), nullptr, io, SolveOverrides{});
 
@@ -1291,7 +1291,7 @@ TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTh
     const IpqpInfeasibilityEvidence &ev = r.infeasibility_evidence;
     ASSERT_TRUE(ev.fired);
     ASSERT_TRUE(ev.exhaustion_route);
-    EXPECT_LT(ev.window, IpqpOptions{}.ipqp_stall_window); // a PARTIAL window
+    EXPECT_LT(ev.window, IpqpOptions{}.stall_window); // a PARTIAL window
     EXPECT_GE(ev.window, 1);
     EXPECT_GE(ev.dual_growth, detail::kSsnDualGrowthFactor);
     EXPECT_GE(ev.dual_step_growth, detail::kSsnDualStepGrowth);
@@ -1302,7 +1302,7 @@ TEST(IpqpInfeasibleSuspectTest, TheExhaustionRouteMeasuresGrowthPerStepAgainstTh
     // so the same stop is a PLAIN BUDGET escape. Without this the pin above could pass on an
     // engine that relabelled every budget stop as a suspicion.
     IpqpOptions io2;
-    io2.ipqp_hard_iter_cap = 12;
+    io2.hard_iteration_cap = 12;
     IpqpEngine tier2(tight_opts());
     const IpqpResult r2 = tier2.solve(infeasible_rows_qp(), nullptr, io2, SolveOverrides{});
     EXPECT_EQ(r2.escape_reason, IpqpEscape::kBudget);
@@ -1397,7 +1397,7 @@ TEST(IpqpInfeasibleSuspectTest, TheEvidencesDualNormsAreRecordedAFTERTheRuizUnsc
     // preconditioner on a six-decade fixture changes which iterate the escape fires at, so their
     // norms differ -- but each record is still its OWN solve's exported multipliers, to the bit.
     IpqpOptions off;
-    off.ipqp_ruiz = false;
+    off.ruiz = false;
     IpqpEngine off_tier(tight_opts());
     const IpqpResult bad_off =
         off_tier.solve(badly_scaled_infeasible_qp(S), nullptr, off, SolveOverrides{});
@@ -1569,12 +1569,12 @@ TEST(IpqpEscapeLadderTest, ADeclineIsNeutralAndNeitherAdvancesNorResetsTheTally)
 
 TEST(IpqpEscapeLadderTest, TheThresholdIsTheOptionAndIsValidatedAtTheBoundary) {
     IpqpOptions io;
-    io.ipqp_retire_after = 1;
+    io.retire_after = 1;
     IpqpEscapeLadder eager{io};
     EXPECT_TRUE(eager.record(escaped(IpqpEscape::kStall), 7));
     EXPECT_EQ(eager.retired_after(), 7);
 
-    io.ipqp_retire_after = 5;
+    io.retire_after = 5;
     IpqpEscapeLadder patient{io};
     for (Index k = 1; k <= 4; ++k) {
         EXPECT_FALSE(patient.record(escaped(IpqpEscape::kStall), k));
@@ -1586,7 +1586,7 @@ TEST(IpqpEscapeLadderTest, TheThresholdIsTheOptionAndIsValidatedAtTheBoundary) {
     // without a driver, so it re-checks the band `validate` owns
     // rather than trusting a caller that may never have run one.
     IpqpOptions bad;
-    bad.ipqp_retire_after = 0;
+    bad.retire_after = 0;
     EXPECT_THROW(IpqpEscapeLadder{bad}, std::invalid_argument);
     IpqpEscapeLadder ok{IpqpOptions{}};
     EXPECT_THROW(ok.record(escaped(IpqpEscape::kBudget), 0), std::invalid_argument);
@@ -1597,7 +1597,7 @@ TEST(IpqpEscapeLadderTest, TheLadderIsDrivenByRealTierOutcomesAndNotOnlyByHandBu
     // hand-built results could be reading fields the engine never sets. This drives it from REAL
     // solves: two escapes and one certifying solve, which must NOT retire, then three, which must.
     IpqpOptions budget_io;
-    budget_io.ipqp_hard_iter_cap = 1;
+    budget_io.hard_iteration_cap = 1;
 
     IpqpEscapeLadder ladder{IpqpOptions{}};
     Index major = 0;
@@ -1766,7 +1766,7 @@ TEST(IpqpCertificationTest, AKilledWarmAttemptsHistoryNeverReachesTheColdRestart
     stale.grade = IpqpRestartGrade::kFullWarm;
 
     IpqpOptions killed;
-    killed.ipqp_warm_iter_budget = 1; // forces the kill after at most one warm step
+    killed.warm_iter_budget = 1; // forces the kill after at most one warm step
     IpqpEngine tier(tight_opts());
     const IpqpResult r = tier.solve(qp, &stale, killed, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);

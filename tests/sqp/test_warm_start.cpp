@@ -135,8 +135,8 @@ TEST(WarmStart, MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate) {
     const auto p = make_hs(5);
     SqpOptions opts;
     opts.tr_init = 2.0;
-    opts.max_iter = 20;
-    opts.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
+    opts.common.max_iterations = 20;
+    opts.advanced.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
         return std::make_unique<AcceptEverything>();
     };
     SqpSolver driver(opts);
@@ -643,7 +643,7 @@ TEST(WarmStart, HotReusesFactorization) {
     // identical across both solves by construction, rather than by luck:
     // with the schedule off, every solve on this driver runs at the engine's
     // own fixed defaults.
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     // kWarm is the CEILING's default (common_options.h's CommonOptions::start_level);
     // kHot must be explicitly raised to, exactly like enable_soc/adaptive_mu.
     opts.common.start_level = StartLevel::kHot;
@@ -697,7 +697,7 @@ TEST(WarmStart, HotReusesFactorization) {
 TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -742,7 +742,7 @@ TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
 TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -779,7 +779,7 @@ TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
 TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -819,7 +819,7 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
 TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -833,7 +833,7 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     SqpSolver driver2(opts);
     SqpOptions bad = driver2.options();
     bad.qp.schur_cap = opts.qp.schur_cap + 1; // would have refused the handle
-    bad.max_iter = -1;                        // but the value is rejected first
+    bad.common.max_iterations = -1;           // but the value is rejected first
     EXPECT_THROW(driver2.set_options(bad), std::invalid_argument);
     EXPECT_EQ(driver2.options().qp.schur_cap, opts.qp.schur_cap);
 
@@ -876,7 +876,7 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
 TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
@@ -944,7 +944,7 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
 TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
@@ -971,9 +971,9 @@ TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
 
     // The replacement that fails, on a driver that HAS solved.
     SqpOptions bad = driver.options();
-    bad.max_iter = -1;
+    bad.common.max_iterations = -1;
     EXPECT_THROW(driver.set_options(bad), std::invalid_argument);
-    EXPECT_EQ(driver.options().max_iter, opts.max_iter);
+    EXPECT_EQ(driver.options().common.max_iterations, opts.common.max_iterations);
     EXPECT_EQ(driver.options().qp.schur_cap, opts.qp.schur_cap);
 
     auto warm = s2.warm_start;    // this driver's own values and working set ...
@@ -1011,7 +1011,7 @@ void expect_same_bits(double a, double b, const std::string &what) {
 TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false; // condition (d), held by construction
+    opts.advanced.adaptive_mu = false; // condition (d), held by construction
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1119,7 +1119,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
 TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1157,7 +1157,7 @@ TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
 TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     Ledger ledger;
@@ -1276,7 +1276,7 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
 // qp_engine.h's condition (e) note calls the SYMMETRIC one.
 TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
     opts.tr_init = std::numeric_limits<double>::infinity();
     opts.qp.schur_cap = 1;
@@ -1353,7 +1353,7 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
 TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.adaptive_mu = false;
+    opts.advanced.adaptive_mu = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1516,7 +1516,7 @@ TEST(WarmStart, WarmFullStepConvergesInFewMajors) {
     // --- Task 3's behaviour: the funnel judges the first trial like any
     // other, and spends the solve shrinking the radius under it.
     SqpOptions funnel_opts = base;
-    funnel_opts.warm_full_step = false;
+    funnel_opts.advanced.warm_full_step = false;
     const auto p_funnel = make_hs(7);
     SqpSolver funnel_driver(funnel_opts);
     const SqpResult gated = funnel_driver.solve(hven::solvers::detail::problem_ref(*p_funnel.model),
@@ -1552,11 +1552,11 @@ TEST(WarmStart, WarmFullStepConvergesInFewMajors) {
     // solve certified must pass the STANDARD KKT check, re-derived here from
     // the model with the driver's own evaluate_kkt -- the same function the
     // globalized path exits through.
-    const SqpKkt certified =
-        evaluate_kkt(*p_full.model, full.x, hven::solvers::detail::engine_rows(full).lambda_e,
-                     hven::solvers::detail::engine_rows(full).lambda_i, base.feas_tol);
-    EXPECT_LE(certified.stationarity, base.kkt_tol);
-    EXPECT_LE(certified.feasibility, base.feas_tol);
+    const SqpKkt certified = evaluate_kkt(
+        *p_full.model, full.x, hven::solvers::detail::engine_rows(full).lambda_e,
+        hven::solvers::detail::engine_rows(full).lambda_i, base.common.feasibility_tol);
+    EXPECT_LE(certified.stationarity, base.common.optimality_tol);
+    EXPECT_LE(certified.feasibility, base.common.feasibility_tol);
     EXPECT_NEAR(full.f, gated.f, 1e-8) << "and it is the SAME solution the gated run found";
 }
 
@@ -1629,9 +1629,9 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
     // certified point must pass the standard check.
     const SqpKkt certified =
         evaluate_kkt(*p_wd.model, wd.x, hven::solvers::detail::engine_rows(wd).lambda_e,
-                     hven::solvers::detail::engine_rows(wd).lambda_i, opts.feas_tol);
-    EXPECT_LE(certified.stationarity, opts.kkt_tol);
-    EXPECT_LE(certified.feasibility, opts.feas_tol);
+                     hven::solvers::detail::engine_rows(wd).lambda_i, opts.common.feasibility_tol);
+    EXPECT_LE(certified.stationarity, opts.common.optimality_tol);
+    EXPECT_LE(certified.feasibility, opts.common.feasibility_tol);
 
     // PHASE-4 TASK 7 (closing Task 5's F5 carry): row 4 is the ONLY one the
     // watchdog rebased (SqpCounters::watchdog_restores == 1, the pin above),
@@ -1703,7 +1703,7 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
 TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
     SqpOptions opts;
     opts.tr_init = 2.0;
-    opts.max_iter = 40;
+    opts.common.max_iterations = 40;
 
     const auto p5 = make_hs(5);
     SqpSolver seed_driver(opts);
@@ -1753,7 +1753,7 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
 
     // And the solve is correct: HS5's own optimum, as the gated run finds it.
     SqpOptions gated_opts = opts;
-    gated_opts.warm_full_step = false;
+    gated_opts.advanced.warm_full_step = false;
     const auto p_gated = make_hs(5);
     SqpSolver gated_driver(gated_opts);
     const SqpResult gated = gated_driver.solve(hven::solvers::detail::problem_ref(*p_gated.model),
@@ -1765,9 +1765,9 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
     // The safety invariant, on the stall exit too.
     const SqpKkt certified =
         evaluate_kkt(*p_run.model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.feas_tol);
-    EXPECT_LE(certified.stationarity, opts.kkt_tol);
-    EXPECT_LE(certified.feasibility, opts.feas_tol);
+                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.common.feasibility_tol);
+    EXPECT_LE(certified.stationarity, opts.common.optimality_tol);
+    EXPECT_LE(certified.feasibility, opts.common.feasibility_tol);
 }
 
 // FIX ROUND 1 (F3): THE WATCHDOG'S Eq.-(13) RE-BASE IS CLAMPED, AND HERE IS A
@@ -1818,7 +1818,7 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
     // one the re-base just wrote.
     SqpOptions opts;
     opts.tr_init = 5.0;
-    opts.max_iter = 8;
+    opts.common.max_iterations = 8;
 
     const auto p_run = make_hs(7);
     SqpSolver driver(opts);
@@ -1933,9 +1933,9 @@ TEST(WarmStart, FullStepModeInheritsElasticAndRestoration) {
 
     const SqpKkt certified =
         evaluate_kkt(*p_run.model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.feas_tol);
-    EXPECT_LE(certified.stationarity, opts.kkt_tol);
-    EXPECT_LE(certified.feasibility, opts.feas_tol);
+                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.common.feasibility_tol);
+    EXPECT_LE(certified.stationarity, opts.common.optimality_tol);
+    EXPECT_LE(certified.feasibility, opts.common.feasibility_tol);
 }
 
 // (c) THE A/B LEVER OFF REPRODUCES TASK 3 EXACTLY. Both of Task 3's own warm
@@ -1948,7 +1948,7 @@ TEST(WarmStart, FullStepModeInheritsElasticAndRestoration) {
 // accepted anyway -- see this section's own fixture note.)
 TEST(WarmStart, FullStepDisabledMatchesTask3) {
     SqpOptions opts;
-    opts.warm_full_step = false;
+    opts.advanced.warm_full_step = false;
 
     const auto p7 = make_hs(7);
     SqpSolver driver7(opts);
@@ -2030,7 +2030,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     x0 << -2.0, 2.0, 2.0;
 
     SqpOptions opts;
-    opts.max_iter = 3;
+    opts.common.max_iterations = 3;
     opts.budget_mode = true;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(*p.model), x0);
@@ -2074,7 +2074,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     EXPECT_DOUBLE_EQ(constraint_violation_l1(ev_at_x), sol.history[best].violation_l1);
     const SqpKkt kkt_at_x =
         evaluate_kkt(*p.model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.feas_tol);
+                     hven::solvers::detail::engine_rows(sol).lambda_i, opts.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(kkt_at_x.residual(), sol.history[best].kkt_residual);
 
     // THE PIN this test would otherwise pass vacuously without: the returned
@@ -2107,7 +2107,7 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
 
     SqpOptions opts;
     opts.budget_mode = true;
-    opts.max_iter = 6;
+    opts.common.max_iterations = 6;
 
     SqpSolver d1(opts);
     const SqpResult s1 = d1.solve(hven::solvers::detail::problem_ref(*p.model), x0);
@@ -2154,9 +2154,9 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
 
     const SqpKkt certified =
         evaluate_kkt(*p.model, s3.x, hven::solvers::detail::engine_rows(s3).lambda_e,
-                     hven::solvers::detail::engine_rows(s3).lambda_i, opts.feas_tol);
-    EXPECT_LE(certified.stationarity, opts.kkt_tol);
-    EXPECT_LE(certified.feasibility, opts.feas_tol);
+                     hven::solvers::detail::engine_rows(s3).lambda_i, opts.common.feasibility_tol);
+    EXPECT_LE(certified.stationarity, opts.common.optimality_tol);
+    EXPECT_LE(certified.feasibility, opts.common.feasibility_tol);
     EXPECT_NEAR(s3.f, cold.f, 1e-8);
 }
 
@@ -2169,7 +2169,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     x0 << -2.0, 2.0, 2.0;
 
     SqpOptions opts;
-    opts.max_iter = 3;
+    opts.common.max_iterations = 3;
     ASSERT_FALSE(opts.budget_mode) << "default is off";
 
     SqpSolver driver(opts);
@@ -2856,7 +2856,8 @@ TEST(WarmStart, NonFiniteObjectResolvesColdEvenWithAMatchingHash) {
 // reports the KD window directly.
 TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     SqpOptions warm_opts;
-    ASSERT_TRUE(warm_opts.warm_full_step) << "the lever is on by default, or this test is vacuous";
+    ASSERT_TRUE(warm_opts.advanced.warm_full_step)
+        << "the lever is on by default, or this test is vacuous";
 
     const auto p7 = make_hs(7);
     SqpSolver seed_driver{SqpOptions{}};
@@ -3695,7 +3696,7 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     // this project emits today.
     auto walk_problem = make_hs(27);
     SqpOptions walk_opts;
-    walk_opts.max_iter = 60;
+    walk_opts.common.max_iterations = 60;
     SqpSolver walk_driver(walk_opts);
     const SqpResult walk =
         walk_driver.solve(hven::solvers::detail::problem_ref(*walk_problem.model),
@@ -3755,7 +3756,7 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     hashless.structure_hash = 0;
 
     SqpOptions carry_on = ssn_opts;
-    carry_on.ssn_prox_carry = true;
+    carry_on.advanced.ssn_prox_carry = true;
 
     SqpSolver hashed_driver(carry_on);
     const SqpResult from_hashed =

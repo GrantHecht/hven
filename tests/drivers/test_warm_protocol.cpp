@@ -140,14 +140,14 @@ Vec hs071_start() {
 
 SqpOptions quiet_sqp(hven::solvers::QpMode mode = hven::solvers::QpMode::kWalk) {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     o.qp_mode = mode;
     return o;
 }
 
 hven::solvers::IpmOptions quiet_ipm(const hven::solvers::IpmSolver &solver) {
     hven::solvers::IpmOptions o = solver.options();
-    o.common.print_level = 10;
+    o.common.verbosity = hven::solvers::Verbosity::kSilent;
     return o;
 }
 

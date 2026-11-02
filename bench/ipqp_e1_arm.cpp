@@ -88,13 +88,13 @@ double g_converge_slack = -1.0;
 Index g_skip_after = -1;
 
 void apply_a2_levers(IpqpOptions &o) {
-    o.ipqp_mu0_rule = g_mu0_rule;
-    o.ipqp_mu_residual_floor = g_mu_floor;
+    o.mu0_rule = g_mu0_rule;
+    o.mu_residual_floor = g_mu_floor;
     if (g_converge_slack > 0.0) {
-        o.ipqp_converge_slack = g_converge_slack;
+        o.converge_slack = g_converge_slack;
     }
     if (g_skip_after >= 0) {
-        o.ipqp_ladder_skip_after = g_skip_after;
+        o.ladder_skip_after = g_skip_after;
     }
 }
 
@@ -110,11 +110,10 @@ std::string option_stamp(const IpqpOptions &o) {
                        "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / "
                        "false / 3;\n"
                        "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
-                       fnum(o.ipqp_init_mu), fnum(o.ipqp_converge_slack), o.ipqp_hard_iter_cap,
-                       o.ipqp_max_iter, o.ipqp_max_factorizations,
-                       o.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity"
-                                                                        : "kFixed",
-                       o.ipqp_mu_residual_floor ? "true" : "false", o.ipqp_ladder_skip_after);
+                       fnum(o.init_mu), fnum(o.converge_slack), o.hard_iteration_cap,
+                       o.max_iterations.value_or(0), o.max_factorizations.value_or(0),
+                       o.mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity" : "kFixed",
+                       o.mu_residual_floor ? "true" : "false", o.ladder_skip_after);
 }
 
 const char *status_name(QpStatus s) {
@@ -226,15 +225,15 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
     IpqpOptions iopts;
     apply_a2_levers(iopts);
     if (mu > 0.0) {
-        iopts.ipqp_init_mu = mu;
+        iopts.init_mu = mu;
     }
     if (converge_slack > 0.0) {
-        iopts.ipqp_converge_slack = converge_slack;
+        iopts.converge_slack = converge_slack;
     }
     if (hard_cap > 0) {
-        iopts.ipqp_hard_iter_cap = hard_cap;
-        iopts.ipqp_max_iter = hard_cap;
-        iopts.ipqp_max_factorizations = 4 * hard_cap;
+        iopts.hard_iteration_cap = hard_cap;
+        iopts.max_iterations = hard_cap;
+        iopts.max_factorizations = 4 * hard_cap;
     }
     stamp(os, "sweep", option_stamp(iopts) + "# wall_s is INFORMATIONAL (CLAUDE.md section 7).\n");
     os << "id,layout,n,me,mi,active_fraction,margin_class,status,active_true,active_found,"
@@ -375,8 +374,8 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         const test_support::HsProblem p = test_support::make_hs(number);
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
-        o.ipqp = iopts;
+        o.common.max_iterations = 60;
+        o.advanced.ipqp = iopts;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
         const SqpResult sol =
@@ -430,11 +429,11 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     const auto opts_at = [&](double mu) {
         IpqpOptions o;
         apply_a2_levers(o);
-        o.ipqp_init_mu = mu;
+        o.init_mu = mu;
         if (hard_cap > 0) {
-            o.ipqp_hard_iter_cap = hard_cap;
-            o.ipqp_max_iter = hard_cap;
-            o.ipqp_max_factorizations = 4 * hard_cap;
+            o.hard_iteration_cap = hard_cap;
+            o.max_iterations = hard_cap;
+            o.max_factorizations = 4 * hard_cap;
         }
         return o;
     };
@@ -473,7 +472,7 @@ int run_families(std::ostream &os) {
     apply_a2_levers(iopts);
     stamp(os, "families", option_stamp(iopts));
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
-    emit_families(os, iopts.ipqp_init_mu, iopts);
+    emit_families(os, iopts.init_mu, iopts);
     return 0;
 }
 
@@ -533,7 +532,7 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
                                                e1arm::kRadius);
         model.set_parameters(Vec::Constant(1, p));
         SqpOptions o;
-        o.max_iter = 60;
+        o.common.max_iterations = 60;
         o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
