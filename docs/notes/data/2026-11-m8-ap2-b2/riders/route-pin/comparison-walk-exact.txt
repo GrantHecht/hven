@@ -1,0 +1,1 @@
+=== b2a-walk === cells compared: 10  columns compared: 75  differences: 0

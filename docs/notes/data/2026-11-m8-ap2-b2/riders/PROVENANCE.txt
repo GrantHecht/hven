@@ -1,0 +1,33 @@
+M8 AP-2 group B2 -- round 2 (settler ruling C213): riders and design fix A, re-proofs
+================================================================================
+Branch        m8-b2, cut from origin/m8 = 03d5d121; not pushed
+Code head     6f349b89 (library code last changed at d130ecc1; 6f349b89 adds tests only)
+              commits 9012f094 (F4, engine side), d130ecc1 (A, R2, F4 guard, F5, F7, F10),
+              6f349b89 (pins)
+Binary        build-b2/rel/bench/hven_sqp_corpus at 6f349b89, sha256 820a686c...29527dac
+Toolchain     clang 22.1.8 (Fedora 22.1.8-4.fc44); GCC 16.2.1 for the default install-smoke
+              arm; cmake 4.3.0; ninja; MKL; MKL_NUM_THREADS=1
+Hardware      AMD Ryzen 7 5800X3D (8 cores / 16 threads, SMT on), 31 GiB, Linux 7.2.12-200.fc44
+Date          2026-11-01/02
+Configure     as ../PROVENANCE.txt (legs/build.sh; build-b2/rel Release, build-b2/dbg Debug)
+Apple / Windows  UNOBSERVED.
+
+BOX PROTOCOL  as ../PROVENANCE.txt: every leg one script under flock /tmp/box-build.lock,
+pgrep -a hven_bench_cell empty before the lock and PGREP_EMPTY inside it,
+FOREGROUND_START/END, MKL_NUM_THREADS=1, no timeout wrapper, ctest -j4 under setsid;
+legs that left the tool's foreground window were waited on by pid (while kill -0).
+The legs are ../legs/ unchanged, pointed at this directory.
+
+RESULTS
+  suites/ctest-release.txt   3270/3270 passed (3265 + the 5 new Problem pins)
+  suites/ctest-debug.txt     3270/3270 passed
+  replay/                    27 cells x walk/ssn/ipm vs 2026-10-m7-wx2-gates/gates/replay/
+                             head-*.csv: 0 differences x3 (EXACT)
+  route-pin/                 B2-a as amended (AMENDMENT-B2a.txt): walk, ssn, ipm 10 cells
+                             0 differences; interior 41 rows 0 differences, unmatched only
+                             the two parts2 rows the amendment excludes by name
+  install-smoke/             default (GCC) and clang++ arms PASSED; export contract OK on
+                             both (align 32, 10 residual detail/ pairs, the allow-list)
+  examples.txt               all 8 examples exit 0
+  flags-diff.txt             pin vs 6f349b89: 0 TUs differ; the 2 added TUs carry the
+                             baseline flags; RESULT: IDENTICAL
