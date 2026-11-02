@@ -48,7 +48,12 @@ LEGS AND VERDICTS
  4  golden rig           the native-arm rig suite runs inside both ctest suites; the two OLD-SEAM
                          arms are not configured in this tree -- not claimed.
  5  27-cell replay x3    EXACT: 27 cells x 75 columns, 0 differences, walk / ssn / ipm (replay/).
- 6  census               see census/ (run last; result recorded in census/RESULT.txt).
+ 6  census               AS DECLARED (census/RESULT.txt): 57/57 rows; exactly the two X2 rows
+                         (f7_n2000_path_neutral, f7_n2000_path_corrupted) differ, in the status
+                         column only (MaxIter -> WorkLimit), both run solo (T2); 0 mismatches
+                         against the re-derived baseline. The census leg script (legs/census.sh)
+                         was committed after the leg started (e44d4443); its criterion is the
+                         declaration's.
  B3-a iparm              iparm-pin.txt and iparm-b3.txt BYTE-IDENTICAL (sha256 24d4b2c8...), 17
                          configurations, 21 pardiso calls each where accepted; parallel_solve=2,
                          algorithm=two_level and backend_print=on refused on BOTH arms (iparm/).
