@@ -1836,8 +1836,8 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     this->analyzed_kkt_matrix_ = &KKTmat;
 }
 
-bool hven::solvers::NonLinearProgram::configure_variable_treatment(
-    FixedVariableTreatments treatment, double bound_relax_factor) {
+bool hven::solvers::NonLinearProgram::configure_variable_treatment(FixedVariableTreatment treatment,
+                                                                   double bound_relax_factor) {
 
     // Written as a switch with no default label, like
     // fixed_variable_treatment_name, so that adding a treatment to the enum makes
@@ -1845,9 +1845,9 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
     // "unrecognized".
     bool treatment_known = false;
     switch (treatment) {
-    case FixedVariableTreatments::MakeParameter:
-    case FixedVariableTreatments::MakeConstraint:
-    case FixedVariableTreatments::RelaxBounds:
+    case FixedVariableTreatment::kMakeParameter:
+    case FixedVariableTreatment::kMakeConstraint:
+    case FixedVariableTreatment::kRelaxBounds:
         treatment_known = true;
         break;
     }
@@ -1856,9 +1856,9 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
             "configure_variable_treatment: unrecognized fixed-variable treatment ({0}); "
             "expected one of '{1}', '{2}', '{3}'",
             static_cast<int>(treatment),
-            fixed_variable_treatment_name(FixedVariableTreatments::MakeParameter),
-            fixed_variable_treatment_name(FixedVariableTreatments::MakeConstraint),
-            fixed_variable_treatment_name(FixedVariableTreatments::RelaxBounds)));
+            fixed_variable_treatment_name(FixedVariableTreatment::kMakeParameter),
+            fixed_variable_treatment_name(FixedVariableTreatment::kMakeConstraint),
+            fixed_variable_treatment_name(FixedVariableTreatment::kRelaxBounds)));
     }
     if (!std::isfinite(bound_relax_factor) || bound_relax_factor < 0.0) {
         throw std::invalid_argument(
@@ -1886,9 +1886,9 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
     // once here and read wherever the three paths differ: eliminate it from the
     // solver's variable space, hand it to an internal equality row, or keep it as
     // a two-sided bounded variable with its bounds pushed apart.
-    const bool eliminate_fixed = (treatment == FixedVariableTreatments::MakeParameter);
-    const bool constrain_fixed = (treatment == FixedVariableTreatments::MakeConstraint);
-    const bool relax_fixed = (treatment == FixedVariableTreatments::RelaxBounds);
+    const bool eliminate_fixed = (treatment == FixedVariableTreatment::kMakeParameter);
+    const bool constrain_fixed = (treatment == FixedVariableTreatment::kMakeConstraint);
+    const bool relax_fixed = (treatment == FixedVariableTreatment::kRelaxBounds);
 
     // Set immediately before either of the two statements below that re-lay the
     // KKT structures, and read by the restore alongside was_reduced.
@@ -1965,9 +1965,9 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
                 "bound_relax_factor * max(1, |bound|) widening to separate the bounds of the "
                 "{1} variable(s) whose bounds are equal, and a factor of {2} separates them "
                 "not at all. Pass a positive factor, or use the '{3}' treatment.",
-                fixed_variable_treatment_name(FixedVariableTreatments::RelaxBounds), num_fixed,
+                fixed_variable_treatment_name(FixedVariableTreatment::kRelaxBounds), num_fixed,
                 bound_relax_factor,
-                fixed_variable_treatment_name(FixedVariableTreatments::MakeParameter)));
+                fixed_variable_treatment_name(FixedVariableTreatment::kMakeParameter)));
         }
 
         // The fixed variables themselves are recorded whatever the treatment:
@@ -2095,8 +2095,8 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(
                 "configure_variable_treatment: all {0} primal variables are fixed by "
                 "their bounds, leaving no variable to solve for. The '{1}' and '{2}' "
                 "treatments keep every variable and can solve this problem.",
-                num_vars, fixed_variable_treatment_name(FixedVariableTreatments::MakeConstraint),
-                fixed_variable_treatment_name(FixedVariableTreatments::RelaxBounds)));
+                num_vars, fixed_variable_treatment_name(FixedVariableTreatment::kMakeConstraint),
+                fixed_variable_treatment_name(FixedVariableTreatment::kRelaxBounds)));
         }
 
         if (constrain_fixed && num_fixed > 0) {

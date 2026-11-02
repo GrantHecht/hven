@@ -262,7 +262,7 @@ class FilterAcceptance final : public SwitchingAcceptance {
     /// drift apart. The seam seeds it from the live setting every solve;
     /// standalone/unit-test construction bypassing that seam observes the
     /// default.
-    double restoration_constraint_tol_ = IpmOptions{}.econ_tol;
+    double restoration_constraint_tol_ = IpmOptions{}.common.feasibility_tol;
 };
 
 } // namespace hven::solvers

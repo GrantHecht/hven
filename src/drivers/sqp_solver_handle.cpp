@@ -40,7 +40,7 @@ const SqpSolverImpl &SqpSolver::impl() const {
     return *impl_;
 }
 
-SqpSolver::SqpSolver(const SqpOptions &opts) : impl_(std::make_unique<SqpSolverImpl>(opts)) {}
+SqpSolver::SqpSolver(SqpOptions opts) : impl_(std::make_unique<SqpSolverImpl>(opts)) {}
 
 SqpSolver::~SqpSolver() = default;
 SqpSolver::SqpSolver(SqpSolver &&) noexcept = default;

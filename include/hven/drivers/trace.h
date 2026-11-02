@@ -20,9 +20,9 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/detail/drivers/ipm_solver_fwd.h>
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/detail/qp/ipqp_evidence.h>
+#include <hven/drivers/ipm_phase_report.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
@@ -448,8 +448,8 @@ struct IpmSolveBeginTraceEvent {
     double bar_tol = 0.0;    ///< Settings::bar_tol_.
     double init_mu = 0.0;    ///< Settings::init_mu_, the barrier start.
     double obj_scale = 1.0;  ///< Settings::obj_scale_, captured for this call.
-    InertiaModes inertia_mode = InertiaModes::classic;
-    RestorationModes restoration_mode = RestorationModes::off;
+    InertiaMode inertia_mode = InertiaMode::kClassic;
+    RestorationMode restoration_mode = RestorationMode::kOff;
 
     // --- WHAT THE CONSOLE TABLE NEEDS AND NOTHING ELSE CARRIED (M6 W5 T8.7) ---
     //

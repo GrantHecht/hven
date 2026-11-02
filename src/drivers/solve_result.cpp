@@ -46,6 +46,17 @@ void check_core_shapes(const Vec &x, const Vec &lambda_i, const Vec &z, const Ve
 
 } // namespace
 
+void validate(const SolveBudget &budget) {
+    if (budget.max_iterations && *budget.max_iterations < 1) {
+        throw std::invalid_argument(fmt::format(
+            "SolveBudget::max_iterations must be empty or >= 1, got {}", *budget.max_iterations));
+    }
+    if (budget.minor_budget && *budget.minor_budget < 1) {
+        throw std::invalid_argument(fmt::format(
+            "SolveBudget::minor_budget must be empty or >= 1, got {}", *budget.minor_budget));
+    }
+}
+
 DeclaredDiagnostics compute_declared_diagnostics(const Vec &x, const Vec &lambda_e,
                                                  const Vec &lambda_i, const Vec &z, const Vec &grad,
                                                  const SpMatRM &Je, const SpMatRM &Ji,

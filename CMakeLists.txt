@@ -495,7 +495,7 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 # The engine's two build-supplied sizing knobs.
 #
 # HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
-# -- include/hven/drivers/ipm_solver.h, in the qp_threads_ default
+# -- include/hven/drivers/ipm_options.h, in the IpmOptions::common default
 # member initializer -- so a consumer that includes it without the definition
 # would fail on an undefined identifier inside a header it did not write.
 # (M6 W5 T1: it was two headers until the folded init_partitions moved out of

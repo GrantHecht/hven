@@ -26,7 +26,6 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
-#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
@@ -36,6 +35,7 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/common_options.h"
+#include "hven/drivers/ipm_options.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
@@ -120,27 +120,7 @@ class Ledger;
 /// feasibility-restoration mode switches.
 class IpmSolverImpl {
   public:
-    // --- Mode enums (declared at namespace scope in drivers/ipm_solver_types.h) ---
-    // These eight were NESTED here until M6 W5 T8.3 moved them out beside
-    // IpmOptions, so a caller can name an option's value without including the
-    // solver. The aliases keep every IpmSolver::<Enum> spelling in the
-    // tree naming the same type it always did. The four strto_*() parsers that
-    // sat here went with the string-taking setters: a caller builds an
-    // IpmOptions value and names the enumerator.
-    using BarrierModes = hven::solvers::BarrierModes;
-    using LineSearchModes = hven::solvers::LineSearchModes;
-    using AlgorithmModes = hven::solvers::AlgorithmModes;
-    using QPAlgModes = hven::solvers::QPAlgModes;
-    using QPOrderingModes = hven::solvers::QPOrderingModes;
-    using BestCriteriaModes = hven::solvers::BestCriteriaModes;
-    using QPPivotModes = hven::solvers::QPPivotModes;
-    using PDStepStrategies = hven::solvers::PDStepStrategies;
-
-    // The options struct that used to live here as IpmSolver::Settings
-    // is now hven::solvers::IpmOptions in drivers/ipm_solver_types.h: the same
-    // 65 knobs in the same order, trailing underscores gone, with qp_threads_
-    // and print_level_ moved into CommonOptions and reached as
-    // options().common.threads / options().common.print_level. Read it through
+    // The options are hven::solvers::IpmOptions (drivers/ipm_options.h). Read it through
     // options(), replace it through set_options().
 
     // The nested struct SolveResult that lived here is GONE (M6 W5 T8.4). Its
@@ -274,10 +254,9 @@ class IpmSolverImpl {
     /// EVERY FIELD TAKES EFFECT ON THE NEXT SOLVE, and T8.3's twelve-field
     /// refusal is GONE with the thing it protected against (M6 W5 T8.4).
     ///
-    /// The refusal existed because twelve fields -- qp_ord, qp_pivot_perturb,
-    /// qp_ref_steps, qp_matching, qp_scaling, qp_pivot_strategy, qp_alg,
-    /// qp_par_solve, qp_print, cnr_mode, and on Accelerate builds
-    /// accel_pivot_tolerance and accel_zero_tolerance -- were read exactly once,
+    /// The refusal existed because the `linear` fields that configure the
+    /// factorization (ordering through conditional_reproducibility, and the two
+    /// Accelerate tolerances) were read exactly once,
     /// inside set_qp_params(), which ran from set_nlp(). Changing one while a
     /// program was attached would have been SILENTLY INERT until the next
     /// set_nlp(), so this method refused it by name.
@@ -1147,7 +1126,7 @@ class IpmSolverImpl {
     // The treatment the analysis above was laid under: a treatment switch
     // changes the problem's dimensions, so the same key at the same epoch under
     // a different treatment is NOT the analysed program.
-    FixedVariableTreatments analyzed_treatment_ = FixedVariableTreatments::MakeParameter;
+    FixedVariableTreatment analyzed_treatment_ = FixedVariableTreatment::kMakeParameter;
     // Set by set_options() when one of the twelve transcription-time fields
     // moved: the next solve re-runs set_qp_params() and re-analyses even for
     // the program the token names. Cleared by that solve.
@@ -1458,6 +1437,14 @@ class IpmSolverImpl {
     /// unchanged and last_stop_reason_ stays last. sizeof() still moves (the
     /// std::function member above), which is named in this task's P-SYM set.
     bool interrupt_requested_ = false;
+    // THE WORK AND TIME LIMITS' STATE, reset at every solve entry: the
+    // factorization count and clock the limits are measured from, and whether a
+    // limit ended a phase (which then ends the sequence).
+    bool limit_stop_ = false;
+    Index limit_factorize_base_ = 0;
+    std::chrono::steady_clock::time_point limit_clock_start_{};
+    /// Which limit, if any, the solve has reached; kNone when neither.
+    IpmStopReason limit_reached() const;
 
     /// Which door the current phase left its loop by; see last_stop_reason().
     /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two
@@ -1491,9 +1478,9 @@ class IpmSolverImpl {
     // executes steps in order, skipping conditional steps when an earlier phase
     // already converged, and re-initializing the KKT system between phases.
     struct PhaseStep {
-        AlgorithmModes alg_mode_;
-        BarrierModes bar_mode_;
-        LineSearchModes ls_mode_;
+        AlgorithmMode alg_mode_;
+        BarrierMode bar_mode_;
+        LineSearchMode ls_mode_;
         const char *label_;
         bool conditional_ = false; // skip if the PRECEDING phase reported
                                    // kOptimal (still runs on kAcceptable /
@@ -1515,7 +1502,7 @@ class IpmSolverImpl {
                                  const WarmStartData *payload);
 
     // --- Core algorithm (defined in ipm_solver.cpp) ---
-    Eigen::VectorXd alg_impl(AlgorithmModes algmode, BarrierModes barmode, LineSearchModes lsmode,
+    Eigen::VectorXd alg_impl(AlgorithmMode algmode, BarrierMode barmode, LineSearchMode lsmode,
                              double obj_scale, double MuI, Eigen::Ref<Eigen::VectorXd> xsl);
 
     Eigen::VectorXd init_impl(const Eigen::VectorXd &x, double Mu, bool docompute);
@@ -1750,8 +1737,8 @@ class IpmSolverImpl {
     // weight, pivots, and condensed residuals from the live μ every evaluation);
     // every other mode ignores it, so the default and proximal-switch paths are
     // unaffected by its value.
-    void eval_nlp(AlgorithmModes algmode, double obj_scale, ConstEigenRef<VectorXd> XSL,
-                  double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+    void eval_nlp(AlgorithmMode algmode, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
+                  EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, double mu);
 
     // --- Feasibility-restoration exit measures (defined in ipm_solver.cpp) ---
@@ -1871,7 +1858,7 @@ class IpmSolverImpl {
     // error is at most kSoftRestoPdErrorReductionFactor times the current point's.
     // True means the soft step is accepted and alg_impl stays in the pre-stage;
     // false means it escalates to the full restoration switch.
-    bool try_soft_feasibility_step(AlgorithmModes algmode, double obj_scale, double mu,
+    bool try_soft_feasibility_step(AlgorithmMode algmode, double obj_scale, double mu,
                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                    Eigen::VectorXd &RHS2, Eigen::VectorXd &GX);

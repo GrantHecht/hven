@@ -32,11 +32,11 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     /// Fused fraction-to-boundary scaling + acceptance backtrack — see
     /// GlobalizationMechanism::compute_step for why the two halves are fused.
-    double compute_step(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                        double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                        Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                        Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
-                        double &alphad, IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    double compute_step(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+                        double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                        Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                        AcceptanceStrategy &acceptance, double &alphap, double &alphad,
+                        IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                         SolverContext &ctx) override;
 
     /// mu-event / phase-change hook — no-op: classic backtracking carries no
@@ -55,7 +55,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// so the dispatch lives in one place. On the classic path this forwards to
     /// acceptance.classic_line_search; on the generic path it runs
     /// generic_line_search.
-    double run_acceptance_backtrack(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+    double run_acceptance_backtrack(LineSearchMode lsmode, double obj_scale, double mu,
                                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
@@ -88,11 +88,11 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// built from the trial point. Stores the same accepted_ /
     /// first-rejection signals as the classic path so the recovery chain
     /// composes.
-    double generic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                               Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                               Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                               IterateInfo &Citer, SolverContext &ctx);
+    double generic_line_search(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+                               double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                               Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                               AcceptanceStrategy &acceptance, IterateInfo &Citer,
+                               SolverContext &ctx);
 
     /// Nested-restoration trial-path scratch (dead unless a nested restoration
     /// strategy is active): backs the elastic residual shift added to a

@@ -1647,14 +1647,14 @@ struct SqpCounters {
     /// WHAT IT COUNTS: the 4-argument solve() overload was given a positive budget,
     /// this solve reached the top of a major having already spent at least that
     /// many qp_minor_iters, and it was not converged there, so it returned
-    /// SolveStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
-    /// minors actually spent are >= the budget.
+    /// SolveStatus::kWorkLimit at that iterate (kMaxIter before M8 AP-2 B3). The test
+    /// runs BETWEEN majors, so the minors actually spent are >= the budget.
     ///
-    /// What it does NOT count: an ordinary max_iter exhaustion (also kMaxIter, this
-    /// field 0); a kBudgetExhausted exit under SqpOptions::budget_mode, a different
-    /// budget with a different contract; and a solve that spent more than the
-    /// budget and CONVERGED anyway, which is reported kOptimal with this field 0.
-    /// A solve given no budget leaves this identically 0.
+    /// What it does NOT count: an ordinary max_iter exhaustion (kMaxIter, this field
+    /// 0); a CommonOptions::max_factorizations stop (also kWorkLimit, this field 0); a
+    /// kBudgetExhausted exit under SqpOptions::budget_mode, a different budget with a different
+    /// contract; and a solve that spent more than the budget and CONVERGED anyway, which is
+    /// reported kOptimal with this field 0. A solve given no budget leaves this identically 0.
     Index probe_budget_stops = 0;
 
     /// How many inequality ROWS and variable BOUNDS SqpOptions::crash_basis seeded

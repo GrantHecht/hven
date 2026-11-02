@@ -282,8 +282,12 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // The probe budget is `SolveBudget::minor_budget` since M6 W5 T8.4;
         // the designated form so no reader takes the positional slot for the
         // major cap, which is the other member.
-        sol = driver.solve(detail::problem_ref(model), seed.x, seed,
-                           SolveBudget{/*minor_budget=*/probe_minors});
+        // 0 is "no probe budget": an EMPTY minor_budget.
+        SolveBudget budget;
+        if (probe_minors > 0) {
+            budget.minor_budget = probe_minors;
+        }
+        sol = driver.solve(detail::problem_ref(model), seed.x, seed, budget);
         majors_at_proposal += sol.counters.major_iters;
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p_next, step_dp, sol, reported, predictor_used);

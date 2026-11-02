@@ -60,26 +60,30 @@ struct ResultAccess;
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
-/// Both members default to 0, which means "no budget of the caller's own": the
-/// engine's own options decide, exactly as they did before this type existed.
+/// "No limit" is an empty optional. An engaged member must be >= 1; the solve
+/// refuses a smaller value with std::invalid_argument at entry. With both empty
+/// (the default) the engine's own options decide.
 struct SolveBudget {
-    /// The MINOR-iteration budget. SQP: today's probe budget with its
-    /// accounting unchanged -- it charges SSN and IPQP work, not only walk
-    /// minors -- and a solve that exhausts it reports kMaxIter at the current
-    /// point (kBudgetExhausted belongs to the separate budget-BEST exit under
-    /// SqpOptions::budget_mode). INTERIOR-POINT: IGNORED, and documented so;
-    /// that engine has no minor loop to budget.
-    Index minor_budget = 0;
+    /// The major-iteration ceiling: an effective cap of
+    /// min(max_iterations, `common.max_iterations`), so a budget can only tighten
+    /// the options' cap. SQP: the effective cap governs the exit test, the
+    /// restoration refusal and the restoration sub-solve's budget alike.
+    /// INTERIOR-POINT: it caps each phase.
+    std::optional<Index> max_iterations;
 
-    /// The MAJOR-iteration ceiling. When non-zero it gives an EFFECTIVE cap of
-    /// min(max_iterations, the engine option) -- so a caller can only tighten
-    /// the engine's own limit, never loosen it. SQP: the effective cap governs
-    /// the exit conjunction, the restoration refusal and the restoration
-    /// sub-driver's budget alike, so restoration cannot spend past the caller's
-    /// ceiling. INTERIOR-POINT: it caps EACH PHASE at min(max_iterations,
-    /// IpmOptions::max_iters).
-    Index max_iterations = 0;
+    /// The minor-iteration budget. SQP: the probe budget -- it charges walk
+    /// minors and the SSN and IPQP tiers' work -- checked between majors; a
+    /// solve that exhausts it without converging stops with
+    /// `SolveStatus::kWorkLimit` at the current point and counts the stop in
+    /// `SqpCounters::probe_budget_stops`. INTERIOR-POINT: ignored; that engine
+    /// has no minor loop.
+    std::optional<Index> minor_budget;
 };
+
+/// @brief Refuses an engaged SolveBudget member below 1. Both engines run it at
+///        solve entry.
+/// @throws std::invalid_argument naming the member and its value.
+void validate(const SolveBudget &budget);
 
 /// @brief The four SHARED diagnostics of a returned point, over the declared
 ///        problem, in the caller's units.

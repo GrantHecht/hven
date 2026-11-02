@@ -145,7 +145,7 @@ class SocRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,

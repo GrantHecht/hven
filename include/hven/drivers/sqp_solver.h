@@ -47,9 +47,9 @@ struct SqpSolverAccess;
 /// Any other member call on a moved-from solver throws std::logic_error.
 class SqpSolver {
   public:
-    /// Constructs a solver over `opts`.
+    /// Constructs a solver over `opts` (default: every option at its default).
     /// @throws std::invalid_argument if `opts` fails validation.
-    explicit SqpSolver(const SqpOptions &opts);
+    explicit SqpSolver(SqpOptions opts = {});
     ~SqpSolver();
 
     SqpSolver(const SqpSolver &) = delete;
@@ -101,15 +101,15 @@ class SqpSolver {
     SqpResult solve(Problem &problem, const Vec &x0);
 
     /// Solves from `x0` under a work ceiling.
-    /// @param budget `minor_budget` is the probe budget: 0 is no budget, and a
-    ///               positive value stops the solve at the top of the first
+    /// @param budget `minor_budget` is the probe budget: empty is no budget, and
+    ///               an engaged value stops the solve at the top of the first
     ///               major that finds `qp_minor_iters >= minor_budget` without
-    ///               having converged, reporting `kMaxIter` and counting the
+    ///               having converged, reporting `kWorkLimit` and counting the
     ///               stop in `counters.probe_budget_stops`. Convergence always
     ///               wins, and under `kSsn` the budget also charges the SSN and
-    ///               refinement factorizations. A non-zero `max_iterations`
+    ///               refinement factorizations. An engaged `max_iterations`
     ///               gives an effective major cap of
-    ///               `min(max_iterations, SqpOptions::max_iter)` that governs
+    ///               `min(max_iterations, common.max_iterations)` that governs
     ///               the exit conjunction, the restoration refusal and the
     ///               restoration sub-driver alike: a caller may tighten the
     ///               engine's limit, never loosen it.

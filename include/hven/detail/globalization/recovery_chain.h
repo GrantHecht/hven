@@ -11,7 +11,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// IpmSolver::LineSearchModes (forwarded to the acceptance re-test during a
+// LineSearchMode (forwarded to the acceptance re-test during a
 // second-order correction) requires the complete IpmSolver class; pulled in
 // transitively via the two globalization headers above. See solver_context.h's
 // one-directional include-discipline note.
@@ -92,13 +92,13 @@ class RecoveryChain {
     /// the depth constants above for who writes it).
     virtual Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                                     SolverContext &ctx, AcceptanceStrategy &acceptance,
-                                    GlobalizationMechanism &mechanism,
-                                    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                                    double &alphap, double &alphad, int &soc_steps,
-                                    int &resolved_depth, int &watchdog_activations) = 0;
+                                    GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                                    double obj_scale, double mu, double prim_obj, double barr_obj,
+                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                    Eigen::VectorXd &RHS2, double &alpha, double &alphap,
+                                    double &alphad, int &soc_steps, int &resolved_depth,
+                                    int &watchdog_activations) = 0;
 
     /// @brief Called once per genuinely ACCEPTED iteration — i.e. the rejection
     /// hook was skipped because should_dispatch_recovery was false.

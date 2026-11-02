@@ -365,23 +365,23 @@ const char *to_json(SolveStatus v) { return to_string(v); }
 // only drift the two apart.
 const char *to_json(RestorationSubStatus v) { return to_string(v); }
 
-const char *to_json(InertiaModes v) {
+const char *to_json(InertiaMode v) {
     switch (v) {
-    case InertiaModes::classic:
+    case InertiaMode::kClassic:
         return "classic";
-    case InertiaModes::proximal_regularization:
+    case InertiaMode::kProximalRegularization:
         return "proximal_regularization";
     }
     return "unknown";
 }
 
-const char *to_json(RestorationModes v) {
+const char *to_json(RestorationMode v) {
     switch (v) {
-    case RestorationModes::off:
+    case RestorationMode::kOff:
         return "off";
-    case RestorationModes::proximal_switch:
+    case RestorationMode::kProximalSwitch:
         return "proximal_switch";
-    case RestorationModes::l1_nested:
+    case RestorationMode::kL1Nested:
         return "l1_nested";
     }
     return "unknown";

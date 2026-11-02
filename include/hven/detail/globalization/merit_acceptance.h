@@ -53,11 +53,10 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     void reset() override {}
 
     /// Classic fused entry point: the dispatcher over the three merit variants.
-    double classic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                               Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                               Eigen::VectorXd &RHS2, IterateInfo &Citer,
-                               const std::vector<IterateInfo> &iters) override;
+    double classic_line_search(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+                               double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                               Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                               IterateInfo &Citer, const std::vector<IterateInfo> &iters) override;
 
   private:
     SolverContext ctx_;

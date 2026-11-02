@@ -81,7 +81,7 @@ class RestorationStrategy {
     /// endgame (constraints at their floor while the barrier residual still
     /// grinds down) from a genuine stall.
     bool near_feasible(double constraint_violation, const SolverContext &ctx) const {
-        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.econ_tol;
+        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.common.feasibility_tol;
     }
 
     /// @brief Entry-permission test: may the solver enter restoration right now?
@@ -94,7 +94,7 @@ class RestorationStrategy {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
         }
-        if (entries_ >= ctx.opts_.max_feas_rest) {
+        if (entries_ >= ctx.opts_.advanced.restoration_max_entries) {
             return false;
         }
         return true;

@@ -55,15 +55,6 @@ struct IpmSolverAccess;
 /// Any other member call on a moved-from solver throws std::logic_error.
 class IpmSolver {
   public:
-    using BarrierModes = hven::solvers::BarrierModes;
-    using LineSearchModes = hven::solvers::LineSearchModes;
-    using AlgorithmModes = hven::solvers::AlgorithmModes;
-    using QPAlgModes = hven::solvers::QPAlgModes;
-    using QPOrderingModes = hven::solvers::QPOrderingModes;
-    using BestCriteriaModes = hven::solvers::BestCriteriaModes;
-    using QPPivotModes = hven::solvers::QPPivotModes;
-    using PDStepStrategies = hven::solvers::PDStepStrategies;
-
     using VectorXd = Eigen::VectorXd;
 
     /// Per-iteration KKT hook. This is the one interior-point-only extension of

@@ -49,11 +49,11 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
     /// Free-mode only: current is ignored and mu_event is never written (no
     /// monotone mode), so the caller's mu-event reset branch stays dead on the
     /// classic path.
-    double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
-                          double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                          Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
-                          GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
-                          const IterateInfo &current, bool &mu_event) override;
+    double update_barrier(BarrierMode barmode, double mu_in, double avgcomp, double mincomp,
+                          Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
+                          Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
+                          SolverContext &ctx, double &barr_obj, const IterateInfo &current,
+                          bool &mu_event) override;
 
     /// mu-event / phase-change hook — no-op: the free-mode oracles carry no
     /// persistent state across iterations.

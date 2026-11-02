@@ -35,6 +35,10 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
     case IpmStopReason::kStageStalled:
     case IpmStopReason::kRestorationLocallyInfeasible:
         return SolveStatus::kStalled;
+    case IpmStopReason::kWorkLimit:
+        return SolveStatus::kWorkLimit;
+    case IpmStopReason::kTimeLimit:
+        return SolveStatus::kTimeLimit;
     case IpmStopReason::kIterationCap:
     case IpmStopReason::kNone:
         // kNone here is the defensive default: the engine labels every

@@ -37,8 +37,8 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/model/claim_restatement.h"
+#include "hven/detail/model/fixed_variable_treatment.h"
 #include "hven/model/claim_stream_source.h"
-#include "hven/model/fixed_variable_treatment.h"
 #include "hven/model/nlp_assembly.h"
 
 namespace hven::solvers {
@@ -396,7 +396,7 @@ struct NonLinearProgram : public NlpAssembly {
     ///         is fixed (the pair would be pushed nowhere and the barrier would
     ///         divide by zero), and, under MakeParameter only, for a problem all
     ///         of whose variables are fixed.
-    bool configure_variable_treatment(FixedVariableTreatments treatment, double bound_relax_factor);
+    bool configure_variable_treatment(FixedVariableTreatment treatment, double bound_relax_factor);
 
     /// Width of the primal block of the KKT system the solver factorizes:
     /// primal_vars_ minus the eliminated variables. This is the size of every
@@ -488,7 +488,7 @@ struct NonLinearProgram : public NlpAssembly {
     // IpmSolver::SolveResult::fixed_variable_treatment_.
 
     /// Selected treatment, as last configured.
-    FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
+    FixedVariableTreatment variable_treatment_ = FixedVariableTreatment::kMakeParameter;
     /// Relax factor, as last configured.
     double bound_relax_factor_ = 0.0;
 

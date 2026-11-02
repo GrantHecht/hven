@@ -33,21 +33,21 @@
 #include <array>
 #include <string_view>
 
-#include "hven/detail/drivers/ipm_solver_fwd.h"
+#include "hven/drivers/ipm_options.h"
 
 namespace hven::solvers {
 
 // The nine globalization fields a preset assigns, exactly mirroring the
 // IpmOptions members of the same names.
 struct InteriorPointSolverPresetFields {
-    AcceptanceStrategies acceptance_strategy_;
-    MeritPenaltyRules merit_penalty_rule_;
-    BarrierGovernors barrier_governor_;
+    AcceptanceKind acceptance_strategy_;
+    MeritPenaltyRule merit_penalty_rule_;
+    BarrierGovernorKind barrier_governor_;
     bool never_monotone_;
-    RestorationModes restoration_mode_;
-    InertiaModes inertia_mode_;
-    int max_soc_;
-    int ls_extended_iters_;
+    RestorationMode restoration_mode_;
+    InertiaMode inertia_mode_;
+    Index max_soc_;
+    Index ls_extended_iters_;
     bool watchdog_;
 };
 
@@ -64,12 +64,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // meaning, and with max_iters = 500 written on it, it reconstructs the old
     // default path bit-identically.
     {"classic", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
-        /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
-        /*barrier_governor_=*/BarrierGovernors::classic_adaptive,
+        /*acceptance_strategy_=*/AcceptanceKind::kClassicMerit,
+        /*merit_penalty_rule_=*/MeritPenaltyRule::kWmno,
+        /*barrier_governor_=*/BarrierGovernorKind::kClassicAdaptive,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationModes::off,
-        /*inertia_mode_=*/InertiaModes::classic,
+        /*restoration_mode_=*/RestorationMode::kOff,
+        /*inertia_mode_=*/InertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -78,12 +78,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // restoration. Solved 12 of 17, at +31% aggregate iterations with median
     // parity; worst tail +609% (DionysusLowThrust).
     {"filter_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceStrategies::filter,
-        /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
-        /*barrier_governor_=*/BarrierGovernors::monitored,
+        /*acceptance_strategy_=*/AcceptanceKind::kFilter,
+        /*merit_penalty_rule_=*/MeritPenaltyRule::kWmno,
+        /*barrier_governor_=*/BarrierGovernorKind::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationModes::l1_nested,
-        /*inertia_mode_=*/InertiaModes::classic,
+        /*restoration_mode_=*/RestorationMode::kL1Nested,
+        /*inertia_mode_=*/InertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -94,12 +94,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // the highest aggregate cost (+42%) and the flattest worst-case tail
     // (+100%, OptimalDocking).
     {"soc_recovery_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
-        /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
-        /*barrier_governor_=*/BarrierGovernors::monitored,
+        /*acceptance_strategy_=*/AcceptanceKind::kClassicMerit,
+        /*merit_penalty_rule_=*/MeritPenaltyRule::kWmno,
+        /*barrier_governor_=*/BarrierGovernorKind::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationModes::l1_nested,
-        /*inertia_mode_=*/InertiaModes::proximal_regularization,
+        /*restoration_mode_=*/RestorationMode::kL1Nested,
+        /*inertia_mode_=*/InertiaMode::kProximalRegularization,
         /*max_soc_=*/4,
         /*ls_extended_iters_=*/2,
         /*watchdog_=*/true,
@@ -109,12 +109,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // (no l1 machinery). Solved 12 of 17, at the lowest aggregate cost (+27%);
     // worst tail +219% (MinimumTimeToClimb).
     {"soc_proximal", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceStrategies::classic_merit,
-        /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
-        /*barrier_governor_=*/BarrierGovernors::monitored,
+        /*acceptance_strategy_=*/AcceptanceKind::kClassicMerit,
+        /*merit_penalty_rule_=*/MeritPenaltyRule::kWmno,
+        /*barrier_governor_=*/BarrierGovernorKind::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationModes::proximal_switch,
-        /*inertia_mode_=*/InertiaModes::proximal_regularization,
+        /*restoration_mode_=*/RestorationMode::kProximalSwitch,
+        /*inertia_mode_=*/InertiaMode::kProximalRegularization,
         /*max_soc_=*/4,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -125,12 +125,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // wrong-basin guess it is the call shape, not the acceptance mechanism,
     // that decides the outcome.
     {"merit_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceStrategies::merit,
-        /*merit_penalty_rule_=*/MeritPenaltyRules::wmno,
-        /*barrier_governor_=*/BarrierGovernors::classic_adaptive,
+        /*acceptance_strategy_=*/AcceptanceKind::kMerit,
+        /*merit_penalty_rule_=*/MeritPenaltyRule::kWmno,
+        /*barrier_governor_=*/BarrierGovernorKind::kClassicAdaptive,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationModes::l1_nested,
-        /*inertia_mode_=*/InertiaModes::classic,
+        /*restoration_mode_=*/RestorationMode::kL1Nested,
+        /*inertia_mode_=*/InertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,

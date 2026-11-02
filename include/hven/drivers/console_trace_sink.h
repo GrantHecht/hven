@@ -22,15 +22,14 @@
 // through `trace.h`, which refers to it by reference. The install smoke compiles
 // this header alone to prove it is self-contained.
 //
-// Print levels are the interior-point engine's three tiers, applied per line
-// kind (`CommonOptions::print_level`; 0 prints everything, 3+ is silent):
+// The Verbosity rungs, applied per line kind (`CommonOptions::verbosity`):
 //
-//   == 0   the iteration rows, and the interior-point Problem Statistics block
-//   <  2   headers, the Beginning/Finished lines, the timing summary, the SQP
+//   kIterations  the iteration rows, and the interior-point Problem Statistics block
+//   kSummary+    headers, the Beginning/Finished lines, the timing summary, the SQP
 //          table's header rule and its `Start Level` / `Scaling` trailer, the
 //          per-phase Beginning/Finished lines, the KKT-analysis block, the
 //          per-phase exit block and the `solver_initialized` notice
-//   <  3   the SQP table's `Status` line, the per-phase exit verdict line and
+//   kWarnings+   the SQP table's `Status` line, the per-phase exit verdict line and
 //          the eight interior-point warnings
 //
 // Colour: the interior-point renderings use fmt's styled `FILE *` overloads,
@@ -84,8 +83,9 @@ class ConsoleTraceSink final : public TraceSink {
         /// A DEFAULT, not the last word: `on_ipm_solve_begin` adopts the begin
         /// event's own `wide_console`, so a solve's layout is the solve's.
         bool wide = false;
-        /// `CommonOptions::print_level` -- the three tiers above.
-        int print_level = 0;
+        /// The rung: `kIterations` (the default here) prints everything, as the
+        /// tiers above describe; `kSilent` prints nothing.
+        Verbosity verbosity = Verbosity::kIterations;
     };
 
     /// @brief Constructs a console sink.

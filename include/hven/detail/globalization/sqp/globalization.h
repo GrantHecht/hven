@@ -41,6 +41,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/drivers/step_verdict.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -191,35 +192,8 @@ struct StepContext {
     Index rejections_at_iterate = 0;
 };
 
-/// @brief The four outcomes of KLV Algorithm 2's optimality branch.
-enum class StepVerdict {
-    /// f-type: Eq. (10) and (11) both hold. Width unchanged.
-    ///
-    /// DRIVER OBLIGATION: an ACCEPTANCE verdict, not a convergence verdict.
-    /// Algorithm 2 opens with the ||d||=0 KKT short-circuit AHEAD of the
-    /// acceptance test; the driver must keep testing KKT residuals at the top
-    /// of every major and must not infer convergence from a run of kAcceptF —
-    /// Eq. (11) with sigma = 1e-4 is satisfied by arbitrarily small decreases.
-    kAcceptF,
-    /// h-type: Eq. (10) fails, Eq. (12) holds. Width shrinks by Eq. (13).
-    kAcceptH,
-    /// "The step is rejected, and either the trust-region radius or the step
-    /// size is reduced" (KLV Sec. 2.4.2).
-    kReject,
-    /// Switch to the feasibility restoration phase (see FunnelStrategy).
-    ///
-    /// DRIVER OBLIGATION: ADDITIVE, NOT A REPLACEMENT. KLV's authoritative
-    /// restoration triggers are the driver's — Algorithm 5's "subproblem
-    /// infeasible" and Algorithm 4's "alpha < alpha_min" (here: a radius
-    /// floor). The driver must not skip them because the strategy also reports
-    /// kRestore: this signature is a heuristic early signal that can miss;
-    /// an infeasible subproblem is a fact leaving no step at all. Both
-    /// authoritative triggers ship in sqp_solver.h (ELASTIC TIER; RADIUS
-    /// FLOOR), firing independently of this verdict; all three enter the SAME
-    /// restoration phase. This one can fire EARLIEST and can also miss; the
-    /// other two are facts.
-    kRestore
-};
+// StepVerdict, the four outcomes of KLV Algorithm 2's optimality branch, is
+// public: drivers/step_verdict.h (a history row reports it).
 
 // Generalization note for h: KLV Sec. 2.4.1 defines h(x) = ||c(x)||_1 for an
 // NCO whose only inequalities are bounds ("always feasible throughout SQP

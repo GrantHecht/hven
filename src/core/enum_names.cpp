@@ -19,7 +19,7 @@ namespace hven::solvers {
 // to_string(SqpStatus) stood here until M6 W5 T8.4, returning the CAPITALISED
 // display names Optimal / MaxIter / Infeasible / NumericalError /
 // BudgetExhausted. SqpStatus is gone and to_string(SolveStatus)
-// (src/drivers/solve_status.cpp) spells its nine in lower snake, so the
+// (src/drivers/solve_status.cpp) spells its values in lower snake, so the
 // capitalised vocabulary has exactly one consumer left: the corpus and
 // crossover CSV writers, whose committed baselines and control pin those bytes.
 // It lives there now, as bench-local corpus::legacy_status_string(), and its
@@ -46,12 +46,16 @@ const char *to_string(SolveStatus status) {
         return "budget_exhausted";
     case SolveStatus::kInterrupted:
         return "interrupted";
+    case SolveStatus::kWorkLimit:
+        return "work_limit";
+    case SolveStatus::kTimeLimit:
+        return "time_limit";
     }
     throw std::invalid_argument(
         fmt::format("to_string(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
-// THE COUNTER'S OWN VOCABULARY (M7 W2 M3a fix1). Ten spellings: the nine above,
+// THE COUNTER'S OWN VOCABULARY (M7 W2 M3a fix1). Twelve spellings: the eleven above,
 // byte for byte -- a consumer must be able to compare this key against the end
 // line's `status` without a translation table -- plus the `not_run` the enum
 // exists for. The switch is exhaustive and has no default arm, so an enumerator
@@ -78,12 +82,16 @@ const char *to_string(RestorationSubStatus status) {
         return "budget_exhausted";
     case RestorationSubStatus::kInterrupted:
         return "interrupted";
+    case RestorationSubStatus::kWorkLimit:
+        return "work_limit";
+    case RestorationSubStatus::kTimeLimit:
+        return "time_limit";
     }
     throw std::invalid_argument(fmt::format(
         "to_string(RestorationSubStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
-// THE TOTAL MAP, and the reason the enum above carries all nine of SolveStatus's
+// THE TOTAL MAP, and the reason the enum above carries all eleven of SolveStatus's
 // values rather than the five a feasibility sub-solve can return: an exhaustive
 // switch with no default arm and no invented image. A sub-solve that returned a
 // status has, by construction, RUN -- so `kNotRun` is unreachable from here.
@@ -107,6 +115,10 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status) {
         return RestorationSubStatus::kBudgetExhausted;
     case SolveStatus::kInterrupted:
         return RestorationSubStatus::kInterrupted;
+    case SolveStatus::kWorkLimit:
+        return RestorationSubStatus::kWorkLimit;
+    case SolveStatus::kTimeLimit:
+        return RestorationSubStatus::kTimeLimit;
     }
     throw std::invalid_argument(fmt::format(
         "to_restoration_sub_status: unrecognized SolveStatus ({})", static_cast<int>(status)));
@@ -124,6 +136,10 @@ const char *to_string(IpmStopReason reason) {
         return "interrupted";
     case IpmStopReason::kStageStalled:
         return "stage_stalled";
+    case IpmStopReason::kWorkLimit:
+        return "work_limit";
+    case IpmStopReason::kTimeLimit:
+        return "time_limit";
     }
     throw std::invalid_argument(
         fmt::format("to_string(IpmStopReason): unrecognized value ({})", static_cast<int>(reason)));
@@ -185,16 +201,20 @@ int severity(SolveStatus status) {
         return 2;
     case SolveStatus::kMaxIter:
         return 3;
-    case SolveStatus::kBudgetExhausted:
+    case SolveStatus::kWorkLimit:
         return 4;
-    case SolveStatus::kStalled:
+    case SolveStatus::kTimeLimit:
         return 5;
-    case SolveStatus::kInfeasible:
+    case SolveStatus::kBudgetExhausted:
         return 6;
-    case SolveStatus::kDiverging:
+    case SolveStatus::kStalled:
         return 7;
-    case SolveStatus::kNumericalError:
+    case SolveStatus::kInfeasible:
         return 8;
+    case SolveStatus::kDiverging:
+        return 9;
+    case SolveStatus::kNumericalError:
+        return 10;
     }
     throw std::invalid_argument(
         fmt::format("severity(SolveStatus): unrecognized value ({})", static_cast<int>(status)));

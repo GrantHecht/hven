@@ -1090,10 +1090,10 @@ class SqpSolverImpl {
     /// @param budget      The caller's work ceiling (M6 W5 T8.4; this argument
     ///                     was `Index minor_budget` before).
     ///                     `budget.minor_budget` is that probe budget verbatim:
-    ///                     0 (the default) is no budget, and a positive value
+    ///                     empty (the default) is no budget, and an engaged value
     ///                     stops the solve at the top of the first major that
     ///                     finds qp_minor_iters >= it without having converged,
-    ///                     reporting kMaxIter and counting the stop in
+    ///                     reporting kWorkLimit and counting the stop in
     ///                     counters.probe_budget_stops. Convergence always wins,
     ///                     the test runs between majors only, and under kSsn the
     ///                     budget also charges the SSN and refinement

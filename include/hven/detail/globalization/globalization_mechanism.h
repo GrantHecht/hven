@@ -11,7 +11,7 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// IpmSolver::LineSearchModes (forwarded to AcceptanceStrategy::classic_line_search)
+// LineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
 // requires the complete IpmSolver class; see acceptance_strategy.h's include note.
 #include "hven/drivers/ipm_solver.h"
 
@@ -46,12 +46,12 @@ class GlobalizationMechanism {
     /// @param alphap Out: fraction-to-boundary primal step.
     /// @param alphad Out: fraction-to-boundary dual step.
     /// @return Final backtracked alpha.
-    virtual double compute_step(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                                double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                                double &alphap, double &alphad, IterateInfo &Citer,
-                                const std::vector<IterateInfo> &iters, SolverContext &ctx) = 0;
+    virtual double compute_step(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+                                double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                AcceptanceStrategy &acceptance, double &alphap, double &alphad,
+                                IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+                                SolverContext &ctx) = 0;
 
     /// @brief Fraction-to-boundary primal/dual step scaling alone — the first
     /// half of compute_step without the acceptance backtrack. MUTATES DXSL in
@@ -81,11 +81,13 @@ class GlobalizationMechanism {
     /// which owns the trial-point evaluation.
     /// @throws std::logic_error Always, in the default body: a mechanism that
     ///   hosts a generic driving path must override it.
-    virtual double run_acceptance_backtrack(
-        IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-        double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-        Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-        IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
+    virtual double run_acceptance_backtrack(LineSearchMode lsmode, double obj_scale, double mu,
+                                            double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                            AcceptanceStrategy &acceptance, IterateInfo &Citer,
+                                            const std::vector<IterateInfo> &iters,
+                                            SolverContext &ctx) {
         (void)lsmode;
         (void)obj_scale;
         (void)mu;

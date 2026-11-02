@@ -3,436 +3,25 @@
 
 #pragma once
 
-// The interior-point engine's options AS A VALUE (M6 W5 T8.3).
-//
-// This header carries what used to be IpmSolver::Settings -- the same
-// 65 knobs, in the same declaration order, with the trailing underscores gone --
-// plus the mode enums the struct is written in terms of, which used to be nested
-// inside the solver class and are now namespace-scope here so that a caller can
-// name an option without including the solver. IpmSolver keeps member
-// type aliases for all eight, so `IpmSolver::BarrierModes::kLoqo` still
-// names the same type it always did.
-//
-// Two fields LEFT the struct: qp_threads_ became CommonOptions::threads and
-// print_level_ became CommonOptions::print_level, both reached through
-// `common`. Their defaults are unchanged (HVEN_DEFAULT_QP_THREADS and 0), so
-// nothing behaves differently -- T8.3 moves the fields and stops there.
-//
-// `common` is the LAST member, not the first, deliberately: every field ahead
-// of the two that moved keeps the byte offset it had inside Settings, which is
-// what lets most of the engine's compiled bodies stay byte-identical across
-// this task.
-//
-// The ~50 validated set_*() methods, the four strto_*() parsers and the six
-// string-taking setter overloads that used to guard these fields are GONE. A
-// caller writes fields on a value and hands the whole value over:
-//
-//     IpmOptions o = ipm_preset("funnel");
-//     o.max_iters = 200;
-//     o.common.print_level = 3;
-//     solver.set_options(std::move(o));
-//
-// validate() below is the one place a field's invariant lives now, and it runs
-// at construction, at set_options() and again at run_phase_sequence() entry.
+/// @file
+/// @brief What an interior-point solve returns (`IpmResult`). The options are in
+///        drivers/ipm_options.h, which this header includes.
 
 #include <array>
-#include <iosfwd>
 #include <limits>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/drivers/common_options.h"
+#include "hven/drivers/ipm_options.h"
+#include "hven/drivers/ipm_phase_report.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/model/fixed_variable_treatment.h"
-
-#ifdef USE_ACCELERATE_SPARSE
-#include <limits>
-#endif
 
 namespace hven::solvers {
-
-/// Barrier-mode selector (IpmOptions::opt_bar_mode/soe_bar_mode).
-enum class BarrierModes { kProbe, kLoqo };
-/// Line-search-mode selector (IpmOptions::opt_ls_mode/soe_ls_mode).
-enum class LineSearchModes { kAugLang, kLang, kL1, kNoLs };
-/// @brief Algorithm mode of one solve phase.
-enum class AlgorithmModes { kOpt, kOptNo, kSoe, kInit };
-
-/// @brief QP factorization algorithm variant.
-enum class QPAlgModes {
-    kClassic = 0,
-    kTwoLevel = 1,
-};
-
-/// QP fill-reducing ordering.
-enum class QPOrderingModes { kMinDeg = 0, kMetis = 2, kParMetis = 3 };
-/// Criterion used to score iterates when return_best is on.
-enum class BestCriteriaModes { kEcons, kIcons, kKkt, kObj };
-
-/// @brief QP pivot strategy code passed through to the sparse backend.
-enum class QPPivotModes {
-    kOneByOne = 0,
-    kTwoByTwo = 1,
-    kE4 = 4,
-    kE6 = 6,
-    kE8 = 8,
-    kE13 = 13,
-};
-/// @brief Primal-dual step computation strategy for the QP subproblem.
-enum class PDStepStrategies { kPrimSlackEqSplitIq, kAllMinimum, kPrimSlackSplitEqIq, kMaxEq };
-
-// IpmPhase MOVED to detail/drivers/ipm_solver_fwd.h (M6 W5 T8.7b),
-// which this header already includes -- so nothing that named it here had to
-// move with it. The reason is the one every selector enum in that file was put
-// there for: `drivers/trace.h` embeds `IpmPhaseReport` on the phase events and
-// must be able to name both types WITHOUT including this header, which reaches
-// Eigen, the model contract and the KKT factorization.
-
-/// @brief Every user-configurable interior-point parameter, as one value.
-///
-/// An aggregate: write the fields you care about and hand the whole struct to
-/// the constructor or to set_options(), which validates it. There is no
-/// per-field setter and no partially-applied state -- either the whole value is
-/// accepted or the previous one stays in force.
-struct IpmOptions {
-    // --- Iteration limits ---
-    /// @brief Main iteration cap per phase. Default 1000.
-    ///
-    /// M7 W2 D1 (2026-09-18), the declared IPM-default event: 500 -> 1000. The
-    /// old value is not a value this cap was ever measured at in-tree -- every
-    /// bench leg pins its own -- and 500 against the reference solvers' 3000 was
-    /// not a like-for-like budget. At 1000 the CUTEst TRAIN set converts two
-    /// more cells and no cell's answer changes; see
-    /// docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
-    int max_iters = 1000;
-    /// @brief Classic backtracking ladder cap per rejected trial. Default 2.
-    int max_ls_iters = 2;
-    /// Number of consecutive trailing iterates that must ALL sit inside the
-    /// acceptable tolerances before converge_check() reports
-    /// SolveStatus::kAcceptable. Raising it makes kAcceptable harder to
-    /// reach, not easier. Default 50. Must be > 0.
-    int max_acc_iters = 50;
-    /// @brief Refactorization attempt cap. Default 15.
-    int max_refac = 15;
-    /// Maximum second-order corrections attempted after a first-trial
-    /// rejection (Wächter & Biegler 2006, §2.4). Default 0 = off: the
-    /// solver behaves exactly as it does without SOC. Set > 0 to opt in;
-    /// the recommended enable value is 4 (kSocRecommendedMaxCorrections
-    /// in globalization/soc.h).
-    int max_soc = 0;
-
-    /// Extended backtracking cap: further trials continuing the SAME
-    /// classic ladder (same direction, same alpha_red divisor, same merit
-    /// test) once the classic capped backtrack rejects and SOC (if
-    /// enabled) is exhausted or not triggered. Default 0 = off: the solver
-    /// behaves exactly as it does without extended backtracking. This cap
-    /// extends the classic cap (max_ls_iters) ONLY when the recovery
-    /// dispatch is active on a rejected step — max_ls_iters itself is
-    /// unaffected. See ExtendedBacktrackRecovery, globalization/watchdog.h.
-    int ls_extended_iters = 0;
-
-    /// Watchdog (Chamberlain, Powell, Lemaréchal & Pedersen 1982;
-    /// constants per Wächter & Biegler 2006's implementation — see
-    /// globalization/watchdog.h): arms after kWatchdogShortenedIterTrigger
-    /// consecutive fully-rejected iterations, then accepts up to
-    /// kWatchdogTrialIterMax trial iterations under relaxed acceptance
-    /// before reverting to the pre-watchdog snapshot. Default false =
-    /// off: the solver behaves exactly as it does without the watchdog.
-    bool watchdog = false;
-
-    /// Per-phase feasibility-restoration entry budget: the maximum number
-    /// of times restoration mode may be entered within a single phase. 0
-    /// refuses restoration entirely; ignored when restoration_mode == off.
-    /// validate() requires >= 0. Default 2.
-    int max_feas_rest = 2;
-
-    // --- Convergence tolerances ---
-    /// @brief KKT stationarity convergence tolerance. Default 1e-6.
-    double kkt_tol = 1.0e-6;
-    /// @brief Equality-constraint feasibility convergence tolerance. Default 1e-6.
-    double econ_tol = 1.0e-6;
-    /// @brief Inequality-constraint feasibility convergence tolerance. Default 1e-6.
-    double icon_tol = 1.0e-6;
-    /// @brief Barrier (complementarity) convergence tolerance. Default 1e-6.
-    double bar_tol = 1.0e-6;
-
-    // --- Acceptable tolerances ---
-    /// @brief Acceptable-level KKT tolerance. Default 1e-2.
-    double acc_kkt_tol = 1.0e-2;
-    /// @brief Acceptable-level equality-constraint tolerance. Default 1e-3.
-    double acc_econ_tol = 1.0e-3;
-    /// @brief Acceptable-level inequality-constraint tolerance. Default 1e-3.
-    double acc_icon_tol = 1.0e-3;
-    /// @brief Acceptable-level barrier tolerance. Default 1e-3.
-    double acc_bar_tol = 1.0e-3;
-
-    // --- Divergence tolerances ---
-    /// @brief Divergence threshold on the KKT measure. Default 1e15.
-    double div_kkt_tol = 1.0e15;
-    /// @brief Divergence threshold on equality feasibility. Default 1e15.
-    double div_econ_tol = 1.0e15;
-    /// @brief Divergence threshold on inequality feasibility. Default 1e15.
-    double div_icon_tol = 1.0e15;
-    /// @brief Divergence threshold on the barrier measure. Default 1e15.
-    double div_bar_tol = 1.0e15;
-
-    // --- Algorithm modes ---
-    /// @brief Phase algorithm mode. Default kSoe.
-    AlgorithmModes soe_mode = AlgorithmModes::kSoe;
-    /// @brief OPT-phase barrier mode. Default kLoqo.
-    BarrierModes opt_bar_mode = BarrierModes::kLoqo;
-    /// @brief SOE-phase barrier mode. Default kLoqo.
-    BarrierModes soe_bar_mode = BarrierModes::kLoqo;
-    /// @brief OPT-phase line-search mode. Default kAugLang.
-    LineSearchModes opt_ls_mode = LineSearchModes::kAugLang;
-    /// @brief SOE-phase line-search mode. Default kNoLs.
-    LineSearchModes soe_ls_mode = LineSearchModes::kNoLs;
-    /// Primal-dual step strategy for the QP subproblem.
-    /// Default kPrimSlackEqSplitIq.
-    PDStepStrategies pd_step_strategy = PDStepStrategies::kPrimSlackEqSplitIq;
-
-    // --- Step-acceptance strategy ---
-    /// filter (the default since M7 W2 D1, 2026-09-18) is the filter
-    /// acceptance test; classic_merit -- the default BEFORE that event -- is
-    /// the fused backtracking merit line search; merit selects the modernized
-    /// merit family, whose penalty rule is merit_penalty_rule (read only under
-    /// merit). All three enums live in ipm_solver_fwd.h.
-    ///
-    /// The default pairs with barrier_governor == monitored below, and the two
-    /// moved together as one declared re-derivation: filter is designed to
-    /// operate above a monotone safeguard, and validate() refuses it over the
-    /// free-only governor without an explicit opt-in. The pre-event pair is
-    /// still reachable, and bit-identically so, as ipm_preset("classic") with
-    /// max_iters = 500 -- pinned by
-    /// tests/interior/test_ipm_solver_presets.cpp.
-    AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::filter;
-    /// Merit penalty rule for the generic merit family; only read when
-    /// acceptance_strategy == merit. Default wmno.
-    MeritPenaltyRules merit_penalty_rule = MeritPenaltyRules::wmno;
-
-    // --- Barrier-parameter governor ---
-    /// monitored (the default since M7 W2 D1, 2026-09-18) is the
-    /// free<->monotone governor, which composes a classic_adaptive delegate and
-    /// so pairs with any acceptance_strategy; classic_adaptive -- the default
-    /// BEFORE that event -- is the PROBE/LOQO free-mode barrier update on its
-    /// own. validate() rejects funnel or filter over classic_adaptive unless
-    /// never_monotone is set. Enum in ipm_solver_fwd.h.
-    BarrierGovernors barrier_governor = BarrierGovernors::monitored;
-
-    /// Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
-    /// accepts running funnel/filter above the classic_adaptive (free-only)
-    /// barrier governor without its monotone safeguard. Default false.
-    /// Contradictory when combined with barrier_governor == monitored (the
-    /// monitored governor already provides the monotone fallback) —
-    /// validate() rejects that combination.
-    ///
-    /// SINCE M7 W2 D1 THAT REFUSAL BITES A VALUE THAT LEAVES THE GOVERNOR
-    /// ALONE: monitored is now the default, so never_monotone = true on an
-    /// otherwise default IpmOptions is rejected. Setting the hatch means
-    /// setting barrier_governor = classic_adaptive alongside it, which is what
-    /// the hatch was always for and is now written rather than inherited.
-    bool never_monotone = false;
-
-    /// off (the default) constructs no RestorationStrategy at all, and every
-    /// restoration branch in the solver is then dead. proximal_switch swaps
-    /// the true objective for a proximal term on a ladder-exhausted rejection
-    /// at a not-near-feasible point, until infeasibility is sufficiently
-    /// reduced. l1_nested instead runs an l1 elastic reformulation as a
-    /// condensed in-place phase reusing the outer KKT system. Both compose
-    /// with every acceptance_strategy and barrier_governor and share the
-    /// max_feas_rest entry budget. Enum in ipm_solver_fwd.h.
-    RestorationModes restoration_mode = RestorationModes::off;
-
-    // --- Barrier parameters ---
-    /// @brief Initial barrier parameter. Default 1e-3.
-    double init_mu = 0.001;
-    /// @brief Maximum barrier parameter. Default 100.
-    double max_mu = 100.0;
-    /// @brief Minimum barrier parameter. Default 1e-12.
-    double min_mu = 1.0e-12;
-
-    // --- Step parameters ---
-    /// @brief Fraction-to-boundary factor. Default 0.99.
-    double bound_fraction = 0.99;
-    /// Absolute component of the interior push applied to a bounded primal
-    /// variable at solve entry: the push away from a bound is
-    /// bound_push * max(1, |bound|), before the two-sided cap below
-    /// (Ipopt's bound_push). It is also the floor on the initial slack the
-    /// INIT multiplier pass hands an inequality row: that slack is
-    /// max(-c_i(x), bound_push). Must be > 0. Default 1e-3.
-    double bound_push = 1.0e-3;
-    /// Relative component of that same push, applied only to a TWO-SIDED
-    /// variable: the push is additionally capped at
-    /// bound_interval_push * (upper - lower), so a narrow interval is never
-    /// pushed past its own midpoint (Ipopt's bound_frac, same default).
-    /// Read only when the problem declares native variable bounds.
-    /// Must lie in the open interval (0, 0.5), so the lower and upper
-    /// projections of one variable cannot cross. Default 1e-2.
-    double bound_interval_push = 1.0e-2;
-    /// @brief Reset threshold for negative slack values. Default 1e-12.
-    double neg_slack_reset = 1.0e-12;
-    /// @brief Backtracking step reduction divisor. Default 2.0.
-    double alpha_red = 2.0;
-
-    /// How a primal variable whose declared lower and upper bounds are equal
-    /// is handed to the solver. MakeParameter (the default) eliminates it, so
-    /// the factorized system is one row and column narrower per fixed
-    /// variable; MakeConstraint keeps it and appends one internal equality row
-    /// per fixed variable after every declared row, so the system is wider;
-    /// RelaxBounds keeps it two-sided with its bounds pushed apart by
-    /// bound_relax_factor. All three reach the same solution on a well-posed
-    /// problem. Closed-set enum, declared in non_linear_program.h.
-    FixedVariableTreatments fixed_variable_treatment = FixedVariableTreatments::MakeParameter;
-
-    /// Widening applied to every finite variable bound before the
-    /// classifier records it: the bound is moved outward by this factor
-    /// times max(1, |bound|), so the box the barrier terms divide by is
-    /// never exactly the declared one (Ipopt's bound_relax_factor, same
-    /// default). Also what separates the bounds of a fixed variable under
-    /// the relax_bounds treatment, which therefore requires it positive.
-    /// Zero records every declared bound verbatim.
-    ///
-    /// Both this and fixed_variable_treatment are read once per solve, at
-    /// the NLP's classification pass; changing either between two solves on
-    /// one solver re-classifies.
-    double bound_relax_factor = kDefaultBoundRelaxFactor;
-
-    // --- Hessian perturbation ---
-    /// @brief Initial Hessian perturbation delta. Default 1e-5.
-    double delta_h = 1.0e-5;
-    /// @brief Perturbation growth multiplier. Default 8.0.
-    double incr_h = 8.0;
-    /// @brief Perturbation decay multiplier. Default 0.333333.
-    double decr_h = 0.333333;
-
-    /// KKT inertia-correction mode. classic (the default) runs the on-demand
-    /// inertia ladder under the full inertia condition and engages the dual
-    /// shift -delta_c at most once per phase (then latched); an exhausted
-    /// ladder fails the step. proximal_regularization bakes a decaying primal
-    /// base shift rho_k and an always-on barrier-scaled -delta_c into the base
-    /// matrix each iteration, with the same ladder escalating on top; delta_c
-    /// is suppressed while a nested l1 restoration phase is active. Closed-set
-    /// enum, declared in ipm_solver_fwd.h.
-    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
-    InertiaModes inertia_mode = InertiaModes::classic;
-
-    // --- QP solver ---
-    /// @brief QP factorization algorithm variant. Default kClassic.
-    QPAlgModes qp_alg = QPAlgModes::kClassic;
-    /// @brief QP fill-reducing ordering. Default kMetis.
-    QPOrderingModes qp_ord = QPOrderingModes::kMetis;
-    /// @brief QP pivot strategy. Default kTwoByTwo.
-    QPPivotModes qp_pivot_strategy = QPPivotModes::kTwoByTwo;
-    /// @brief MKL Pardiso weighted matching (iparm[12]) flag, 0/1. ON by default.
-    int qp_matching = 1;
-    /// MKL Pardiso MPS scaling (iparm[10]) flag, 0/1. OFF by default: it
-    /// helps on some problem classes and deterministically degrades
-    /// convergence on others.
-    /// @see docs/notes/2026-09-header-prose-archive.md §ipm_solver.h
-    int qp_scaling = 0;
-    /// @brief Pivot perturbation level handed to the backend. Default 8.
-    int qp_pivot_perturb = 8;
-    /// @brief Iterative-refinement steps handed to the backend. Default 0.
-    int qp_ref_steps = 0;
-    /// @brief Parallel-solve flag handed to the backend. Default 0.
-    int qp_par_solve = 0;
-    /// @brief Backend-side QP printout toggle. Default false.
-    bool qp_print = false;
-#ifdef USE_ACCELERATE_SPARSE
-    /// @brief Apple Accelerate sparse pivot tolerance. Default 0.01.
-    double accel_pivot_tolerance = 0.01;
-    /// Apple Accelerate sparse zero (drop) tolerance.
-    /// Default 1e-4 * epsilon.
-    double accel_zero_tolerance = 1e-4 * std::numeric_limits<double>::epsilon();
-#endif
-
-    // --- Objective ---
-    /// @brief Objective scale factor applied at evaluation. Default 1.0.
-    ///        Finite and strictly positive; validate() enforces it.
-    double obj_scale = 1.0;
-
-    // --- Output/behavior ---
-    /// @brief Wide console layout for tables. Default false.
-    bool wide_console = false;
-    /// Conditional Numerical Reproducibility mode. When true the sparse
-    /// backend is pinned to common.threads CNR threads (opts.cnr_threads),
-    /// which makes the factorization bit-reproducible across thread counts;
-    /// false leaves cnr_threads at 0 (off). Read once, at set_qp_params()
-    /// transcribe time -- a later common.threads change does not move it (see
-    /// the refresh-cadence note on KktFactorization::set_num_threads).
-    /// Default false.
-    bool cnr_mode = false;
-    /// Zero-perturbation-attempt cycling heuristic. When true, past
-    /// iteration 6 and on 3 of every 4 iterations, the unperturbed
-    /// factorization attempt is skipped if the last four iterations all
-    /// needed Hessian perturbation -- saving a factorization known to fail
-    /// on a persistently near-singular problem, while the remaining 1 in 4
-    /// iterations re-probes for recovered inertia. Default true.
-    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
-    bool fast_factor_alg = true;
-    /// Force a fresh symbolic sparsity analysis on every solve. The
-    /// analysis normally runs once per solver instance and is latched
-    /// (claim_kkt_analysis()); this defeats that latch. Numeric
-    /// refactorizations are unaffected -- they never consult this field.
-    /// Default false.
-    bool force_qp_analysis = false;
-    /// Return the best-scoring iterate seen instead of the last (scored
-    /// under best_criteria), EXCEPT on an interrupted exit, which returns the
-    /// point the callback was shown (M6 W5 T8.6). A stop is a caller's decision
-    /// about a point it has just been handed, and substituting a different
-    /// iterate for it would make the event a lie. Default false.
-    bool return_best = false;
-    /// @brief Scoring criterion for the return_best path. Default kEcons.
-    BestCriteriaModes best_criteria = BestCriteriaModes::kEcons;
-    /// The options both engines share, defaulted to the INTERIOR-POINT engine's
-    /// historical values: threads = HVEN_DEFAULT_QP_THREADS (what
-    /// Settings::qp_threads_ defaulted to) and print_level = 0 (full output,
-    /// what Settings::print_level_ defaulted to). start_level is CARRIED BUT
-    /// UNREAD by this engine in T8.3; T8.5 is where its warm-start entry starts
-    /// consulting it.
-    ///
-    /// LAST, not first: see this header's banner.
-    CommonOptions common{/*threads=*/HVEN_DEFAULT_QP_THREADS, /*print_level=*/0,
-                         /*start_level=*/StartLevel::kWarm};
-
-    /// THE PHASE SEQUENCE this solver runs, in order (M6 W5 T8.4).
-    ///
-    /// It REPLACES the five phase-named entry points. The five they were are
-    /// documented instances of one rule, not five behaviours:
-    ///
-    ///   optimize()             -> {kOptimize}                    (the default)
-    ///   solve()                -> {kSolve}
-    ///   solve_optimize()       -> {kSolve, kOptimize}
-    ///   optimize_solve()       -> {kOptimize, kSolve}
-    ///   solve_optimize_solve() -> {kSolve, kOptimize, kSolve}
-    ///
-    /// THE RULE, for ANY sequence: phases run in order; a kSolve that FOLLOWS a
-    /// kOptimize runs only if that optimize phase did not report kOptimal --
-    /// today's conditional trailing solve, generalised, with the condition read
-    /// off the IMMEDIATELY PRECEDING phase; a kOptimize is never conditional,
-    /// which is why solve_optimize's second phase always ran; the first
-    /// optimality phase installs a seeded multiplier value; every phase
-    /// re-initialises under the same inter-phase rules as before; and a phase
-    /// verdict of kDiverging or worse short-circuits the rest of the sequence.
-    ///
-    /// The EMPTY sequence is refused by validate(): a solve that runs no phase
-    /// has nothing to report and is far more likely a caller's mistake than an
-    /// intention.
-    std::vector<IpmPhase> phases{IpmPhase::kOptimize};
-};
-
-// IpmPhaseReport MOVED to detail/drivers/ipm_solver_fwd.h with
-// IpmPhase (M6 W5 T8.7b): `ipm.phase.exit` EMBEDS the report rather than
-// mirroring its fields, so `drivers/trace.h` needs the complete type and this
-// header is too heavy for it to include. Nothing that named it here moved.
 
 /// @brief What one interior-point solve produced.
 ///
@@ -485,7 +74,7 @@ struct IpmResult : SolveResult {
     /// configure_variable_treatment runs the requested treatment or throws,
     /// never substitutes. Overwritten unconditionally at the start of every
     /// call. Recorded here because it decides lambda_e's shape.
-    FixedVariableTreatments fixed_variable_treatment = FixedVariableTreatments::MakeParameter;
+    FixedVariableTreatment fixed_variable_treatment = FixedVariableTreatment::kMakeParameter;
 
     // --- The treatment's own rows, reported rather than dropped ---
     //
@@ -517,7 +106,7 @@ struct IpmResult : SolveResult {
     //
     // The four scalars converge_check() gates on, with IterateInfo's
     // definitions, so each is directly comparable against its matching
-    // IpmOptions tolerance. kkt_inf and barr_inf carry IpmOptions::obj_scale;
+    // IpmOptions tolerance. kkt_inf and barr_inf carry IpmOptions::objective_scale;
     // econ_inf and icon_inf carry no scale, and nothing here is unscaled on
     // the way out. On a restoration-active exit they describe the restoration
     // subproblem, not the NLP. Last phase wins; the per-call reset sets them
@@ -562,14 +151,14 @@ struct IpmResult : SolveResult {
     /// Number of second-order correction back-substitutions performed
     /// across the whole solve (one per correction attempt; each costs a
     /// single constraint evaluation + one back-substitution on the live
-    /// factorization). Always 0 when SOC is off (max_soc == 0). Reset per
-    /// solve alongside the other accumulators.
+    /// factorization). Always 0 when SOC is off (advanced.max_second_order_corrections == 0). Reset
+    /// per solve alongside the other accumulators.
     int soc_steps_taken = 0;
 
     /// Number of times the watchdog armed across the whole solve
     /// (Chamberlain, Powell, Lemaréchal & Pedersen 1982; constants per
     /// Wächter & Biegler 2006's implementation, globalization/watchdog.h).
-    /// Always 0 when the watchdog is off (watchdog == false). Reset per
+    /// Always 0 when the watchdog is off (advanced.watchdog == false). Reset per
     /// solve alongside the other accumulators.
     int watchdog_activations = 0;
 
@@ -577,7 +166,7 @@ struct IpmResult : SolveResult {
     /// kRecoveryDepth* constants in globalization/recovery_chain.h: [0] SOC,
     /// [1] extended backtracking, [2] watchdog, [3] unresolved (the only
     /// bucket that increments when all three are off), [4] restoration
-    /// (increments only when restoration_mode != off). Counts REJECTIONS,
+    /// (increments only when advanced.restoration_mode != kOff). Counts REJECTIONS,
     /// not interventions. Reset per solve.
     std::array<int, 5> recovery_depth_histogram{};
 
@@ -598,8 +187,8 @@ struct IpmResult : SolveResult {
 
     /// Total filter-reset-heuristic clears (FilterAcceptance::filter_resets())
     /// at the end of the most recent solve's LAST PHASE. Sentinel -1 when the
-    /// acceptance strategy is not filter. PER-PHASE, and under
-    /// barrier_governor == monitored per barrier SUBPROBLEM: each mu-event
+    /// acceptance strategy is not kFilter. PER-PHASE, and under
+    /// advanced.barrier_governor == kMonitored per barrier SUBPROBLEM: each mu-event
     /// also clears the counter, so this reports resets since the last mu-event
     /// of the last phase.
     int last_filter_resets = -1;
@@ -613,7 +202,7 @@ struct IpmResult : SolveResult {
     /// Number of iterations spent in monotone mode during the most recent
     /// solve's LAST PHASE, reported by MonitoredBarrierGovernor::
     /// append_diagnostics(). Sentinel -1 when the selected
-    /// barrier_governor is not monitored. Same per-phase semantics as
+    /// advanced.barrier_governor is not kMonitored. Same per-phase semantics as
     /// last_monotone_switches.
     int last_monotone_iters = -1;
 
@@ -639,7 +228,7 @@ struct IpmResult : SolveResult {
     /// to the Hessian diagonal there; last_prox_reg_dual is the
     /// barrier-scaled dual shift delta_c subtracted from the constraint-row
     /// diagonals (0.0 when suppressed inside a nested l1 phase). Sentinel -1.0
-    /// for BOTH when inertia_mode != proximal_regularization, and when a
+    /// for BOTH when advanced.inertia_mode != kProximalRegularization, and when a
     /// mode-on phase converged before its first factorization.
     double last_prox_reg_primal = -1.0;
     /// The dual half of the pair documented just above: the barrier-scaled
@@ -688,115 +277,5 @@ struct IpmResult : SolveResult {
     /// @brief The log of NLP evaluation errors absorbed during this call.
     EvalErrorLog eval_error_log;
 };
-
-/// @brief Validates a whole IpmOptions value, throwing std::invalid_argument on
-///        the first violation.
-///
-/// Checks every per-field condition the removed set_*() methods checked, the
-/// cross-field ordering invariants (min_mu <= init_mu <= max_mu, convergence
-/// tols <= their respective acceptable tols <= their respective divergence
-/// tols), the two combination guards (acceptance_strategy funnel or filter with
-/// barrier_governor == classic_adaptive and !never_monotone; never_monotone with
-/// barrier_governor == monitored -- and since M7 W2 D1 the SECOND of those two
-/// is the one an otherwise default value can trip, because monitored is now the
-/// default governor), and the two fields that moved into `common`
-/// (threads must be positive, print_level non-negative -- the same conditions
-/// qp_threads_ and print_level_ faced).
-///
-/// This is the body of what was IpmSolver::Settings::validate(), with
-/// the two `common` checks added and every message unchanged.
-///
-/// @throws std::invalid_argument naming the first violated setting or the
-///         rejected combination.
-void validate(const IpmOptions &o);
-
-/// @brief Returns a default IpmOptions with a named globalization preset
-///        applied.
-///
-/// Assigns exactly nine fields (acceptance_strategy, merit_penalty_rule,
-/// barrier_governor, never_monotone, restoration_mode, inertia_mode, max_soc,
-/// ls_extended_iters, watchdog) on top of a default-constructed value and
-/// leaves every other field at its default. The preset table lives in
-/// detail/drivers/ipm_solver_presets.h.
-///
-/// This replaces IpmSolver::apply_preset(), which mutated the
-/// solver's own settings in place; the free function returns a full value the
-/// caller can edit further before handing it over.
-///
-/// @param name A name from the preset table.
-/// @throws std::invalid_argument, listing every valid name, if `name` is not in
-///         the table.
-IpmOptions ipm_preset(std::string_view name);
-
-/// @brief Writes EVERY field of @p o to @p os, one `name = value` line each, in
-///        DECLARATION order.
-///
-/// What it is for: a run that records the options it used. hven has no options
-/// registry, no name->field map and no reflection (M7 W0 T5(b) is deliberately
-/// not the start of one) -- this is a hand-written printer pinned against the
-/// struct by tests/drivers/test_options_dump.cpp, which fails to compile if a
-/// field is added without a line here.
-///
-/// THE FORMAT, fixed so a diff of two dumps is a diff of two configurations:
-///  * one line per field, `name = value`, `\n`-terminated, no trailing space,
-///    no blank lines, no header and no footer;
-///  * DECLARATION order, which is the order the header reads in;
-///  * a nested struct is flattened with its member name as the prefix, so
-///    `common.threads`, and the nested block sits where the member is declared;
-///  * an enum prints its ENUMERATOR NAME (`kLoqo`, not `1`), so a renumbering
-///    cannot silently rewrite a recorded run;
-///  * a double prints at `{:.17g}` -- the trace schema's round-trip rule
-///    (docs/trace-schema-v0.md), so the text reads back as the same double;
-///  * a bool prints `true` / `false`;
-///  * `phases` -- the one sequence-valued field -- prints as `[kOptimize,
-///    kSolve]`, its enumerator names in order inside brackets, on ONE line.
-///
-/// DETERMINISTIC AND SIDE-EFFECT-FREE: the same value dumps the same bytes in
-/// any process, and nothing here reads or writes solver state. It does not
-/// validate; `validate(o)` is a separate call and a dump of a rejected value is
-/// still a faithful dump.
-///
-/// THE CALLER'S STREAM STATE REACHES NO BYTE OF THE OUTPUT (M7 W0 T5 fix round
-/// 1). Every line is rendered whole and written through an UNFORMATTED stream
-/// write, so `std::hex`, `showpos`, `uppercase`, `scientific`, a set
-/// `precision`, a non-zero `width` with its `fill`, and an imbued locale whose
-/// numpunct groups digits all leave the dump unchanged -- which is what makes
-/// the first sentence true for a caller that shares one stream between its
-/// report and its options record. The stream's own flags are not modified
-/// either: nothing here sets, saves or restores one, and an unformatted write
-/// does not even consume a pending `width()`.
-///
-/// @param o The options to write.
-/// @param os The stream, borrowed: this call neither flushes nor closes it.
-void dump_options(const IpmOptions &o, std::ostream &os);
-
-/// @brief Returns @p base prepared for a JET-WORKER context: one backend
-///        thread, silent printing.
-///
-/// The named replacement for NLPSolver::jet_initialize() (M6 W5 T8.9), which
-/// set exactly `common.threads = 1` and `common.print_level = 10` on the
-/// solver it was preparing. Those two fields are the whole of it, and this
-/// preset writes those two fields and nothing else -- every other field of
-/// @p base is carried through untouched.
-///
-/// THE PARTITION COUNT IS THE PROGRAM'S, NOT AN OPTION. jet_initialize()'s
-/// third act was a partition count of one, and no options value can reach a
-/// layout: the caller asks the program for it, either as
-/// `make_nlp_program(problem, 1)` or, on a program already laid, as
-/// `program.negotiate_partition_count(1)` (whose return is the ADOPTED count).
-///
-/// TWO THINGS THE WORKER CONTEXT HAD THAT THIS PRESET DOES NOT CARRY:
-///  * the old `MklLocalPinGuard` pinned the worker THREAD's MKL to one thread
-///    for the whole job. `common.threads = 1` pins only hven's own bracketed
-///    backend calls (a per-call scope), so any other MKL use on that thread --
-///    a caller's own calls, Eigen-dispatched BLAS -- is no longer pinned. The
-///    outcome for this engine's factorizations is the same; the promise about
-///    the thread is narrower.
-///  * the evaluation pool is process-global (`hven::utils::set_num_threads`)
-///    and was never touched by jet_initialize(); it is not touched here either.
-///
-/// @param base The options to start from, taken by value.
-/// @return @p base with the two worker settings applied.
-IpmOptions ipm_worker_options(IpmOptions base);
 
 } // namespace hven::solvers

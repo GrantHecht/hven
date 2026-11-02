@@ -29,8 +29,9 @@ namespace hven::solvers {
 ///   * A verdict the convergence check ALREADY HOLDS wins over the stop reason
 ///     -- a stall at an acceptable iterate reports kAcceptable.
 ///   * Otherwise kInterrupted reports kInterrupted, kStageStalled
-///     and kRestorationLocallyInfeasible both report kStalled, and the cap (or
-///     an unlabelled exit) reports kMaxIter.
+///     and kRestorationLocallyInfeasible both report kStalled, kWorkLimit and
+///     kTimeLimit report the status of the same name, and the cap (or an
+///     unlabelled exit) reports kMaxIter.
 ///
 /// A simultaneous stall and cap therefore reports kStalled: the engine records
 /// the stall first and both cap doors defer to a reason already in place.
@@ -42,7 +43,7 @@ namespace hven::solvers {
 /// @param raw_verdict The phase's own verdict as the iteration loop left it.
 /// @param reason      The stop reason recorded for the same phase.
 /// @return The resolved status.
-/// @throws std::invalid_argument if @p reason is not one of the five.
+/// @throws std::invalid_argument if @p reason is not one of the seven.
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason);
 
 } // namespace hven::solvers
