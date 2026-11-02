@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T00:09:41-05:00
+820a686c5432d889049ed0e3018850996fbd284eaeeee63b3d7b342c29527dac  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/rel/bench/hven_sqp_corpus
+perf_event_max_sample_rate=100000 perf_cpu_time_max_percent=25 perf_event_paranoid=2
+period=20000 rc=0 raw_instructions=107829988816 samples=1442288 samples*period/raw=0.267511 throttle_events=13893
+period=200000 rc=0 raw_instructions=109544993721 samples=547711 samples*period/raw=0.999974 throttle_events=0
+FOREGROUND_END 2026-11-02T00:10:12-05:00
