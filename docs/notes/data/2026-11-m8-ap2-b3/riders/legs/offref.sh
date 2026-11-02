@@ -13,7 +13,8 @@ echo "FOREGROUND_START $(date -Is)"
 export MKL_NUM_THREADS=1
 cd "$WT" || exit 1
 mkdir -p "$EV"
-DIR=$WT/build-b3/offref
+DIR=$WT/build-r/offref
+rm -rf "$DIR"
 cmake --preset linux-clang-release -B "$DIR" -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF \
   -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON > "$EV/configure.log" 2>&1 || { echo CONFIGURE_FAIL; tail -20 "$EV/configure.log"; exit 1; }
 ninja -C "$DIR" -j16 > "$EV/build.log" 2>&1
