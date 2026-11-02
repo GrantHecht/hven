@@ -1,0 +1,1 @@
+=== b2a-interior === cells compared: 41  columns compared: 30  differences: 0  UNMATCHED CELLS: ['f7_n1000_bound_neutral/MakeConstraint/parts2', 'f7_n1000_bound_neutral/MakeParameter/parts2']

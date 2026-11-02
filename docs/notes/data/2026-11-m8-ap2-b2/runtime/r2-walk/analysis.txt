@@ -1,0 +1,24 @@
+counter check: 10 (round,cell) pairs compared, 0 with a difference or missing
+
+cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
+f7_n10000_bound_neutral        1.06890                 1.00063                 1.00201                 1.00302                 1.00098               
+f7_n10000_bound_physics        0.99519                 1.00133                 1.00230                 1.00076                 1.00113               
+f7_n1000_bound_neutral         1.00663                 0.99681                 1.00210                 0.99814                 1.00103               
+f7_n1000_bound_physics         1.01048                 1.00012                 1.00241                 1.00259                 1.00119               
+f7_n20000_bound_neutral        0.98914                 0.99834                 1.00197                 1.00194                 1.00096               
+f7_n20000_bound_physics        0.99442                 1.00198                 1.00225                 1.00078                 1.00111               
+f7_n2000_bound_neutral         0.96815                 1.00136                 1.00204                 1.00153                 1.00100               
+f7_n2000_bound_physics         0.99831                 0.99939                 1.00234                 1.00243                 1.00116               
+f7_n5000_bound_neutral         1.01404                 1.00367                 1.00203                 1.00127                 1.00099               
+f7_n5000_bound_physics         0.98048                 0.99940                 1.00232                 1.00290                 1.00115               
+
+corpus L1-icache-load-misses:u            A=1.846144e+06 B=1.851399e+06  B/A=1.002846
+corpus branch-misses:u                    A=3.206021e+07 B=3.207594e+07  B/A=1.000491
+corpus branches:u                         A=7.138215e+09 B=7.153412e+09  B/A=1.002129
+corpus cycles:u                           A=1.438723e+10 B=1.441059e+10  B/A=1.001624
+corpus instructions:u                     A=4.871494e+10 B=4.876589e+10  B/A=1.001046
+
+worst per-cell instructions ratio: 1.00119 (f7_n1000_bound_physics)
+cells outside 0.99-1.01: none
+largest within-arm round-to-round instruction spread: 0.00000
+CORPUS instructions B/A = 1.001046 -> WITHIN +-0.5 %
