@@ -53,9 +53,9 @@ applies a **thread-local** MKL override at backend-call scope and undoes it on
 every exit, so an instance pinned to one backend thread does not reach out and
 re-point any other MKL user in the process — see "`MklThreadScope`" below. For
 the interior-point engine, `hven::solvers::ipm_worker_options(base)`
-(`include/hven/drivers/ipm_solver_types.h:701-728`) is the named preset that
-writes exactly `common.threads = 1` and `common.print_level = 10` and nothing
-else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
+(`include/hven/drivers/ipm_options.h`) is the named preset that
+writes exactly `common.threads = 1` and `common.verbosity = Verbosity::kSilent`
+and nothing else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
 
 **The evidence** is `Concurrency.NInstancesOnNThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`): four instances on four `std::thread`s —
