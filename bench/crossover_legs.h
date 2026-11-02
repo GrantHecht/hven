@@ -612,7 +612,6 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         ipm_opts.common.max_iterations = opts.ipm_max_iters;
         ipm_opts.common.optimality_tol = corpus::detail::kKktTol;
         ipm_opts.common.feasibility_tol = corpus::detail::kFeasTol;
-        ipm_opts.common.feasibility_tol = corpus::detail::kFeasTol;
         ipm_opts.termination.complementarity_tol = corpus::detail::kKktTol;
         ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();

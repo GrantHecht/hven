@@ -65,7 +65,6 @@ enum class KktPivoting {
 enum class KktFactorizationAlgorithm {
     /// The default.
     kClassic,
-    kTwoLevel,
 };
 
 /// @brief Parallelism of the forward and backward solves.

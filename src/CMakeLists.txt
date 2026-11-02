@@ -91,6 +91,7 @@ target_sources(hven PRIVATE
     drivers/ipm_solver.cpp
     drivers/ipm_solver_handle.cpp
     drivers/ipm_solver_globalization.cpp
+    drivers/common_options.cpp
     drivers/ipm_options.cpp
     drivers/solver_init.cpp
     model/non_linear_program.cpp
@@ -581,7 +582,10 @@ endif()
 # members and the Problem every solve takes. NOT PCH sources, on the same unmeasured-default
 # footing: nlp.cpp includes its own header and fmt; problem.cpp the model transcription
 # headers in its own order, a different set from src/hven_pch.h's prefix.
-set(_hven_expected_source_count 53)
+# 54 as of drivers/common_options.cpp (M8 AP-2 B3): the one CommonOptions validator. NOT a PCH
+# source, on the same unmeasured-default footing: it includes only its own header, fmt and
+# the standard library.
+set(_hven_expected_source_count 54)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

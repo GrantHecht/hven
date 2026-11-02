@@ -60,21 +60,10 @@ struct IpmLinearOptions {
     /// across thread counts. Read when the factorization is configured. Default
     /// false. Pardiso only.
     bool conditional_reproducibility = false;
-    /// Skip the unperturbed factorization attempt, past iteration 6 and on 3 of
-    /// every 4 iterations, while the last four iterations all needed Hessian
-    /// perturbation. Saves a factorization known to fail on a persistently
-    /// near-singular problem. Default true.
-    bool skip_unperturbed_attempts = true;
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-    /// Backend diagnostic output. Must be false: the factor layer calls the
-    /// backend silently, and `validate()` refuses true rather than ignore it.
-    bool backend_output = false;
 #ifdef USE_ACCELERATE_SPARSE
-    /// Accelerate's LDL^T pivot tolerance. Must be 0.01, the value the factor
-    /// layer fixes; any other value is refused at solve entry.
-    double accelerate_pivot_tolerance = 0.01;
     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
     /// finite and > 0.
     double accelerate_zero_tolerance = 1e-4 * std::numeric_limits<double>::epsilon();
@@ -180,6 +169,11 @@ struct IpmAdvancedOptions {
     /// Correction attempts per factorization. Default 15. Must be >= 0; 0
     /// disables the ladder.
     Index inertia_correction_max_attempts = 15;
+    /// Skip the unperturbed factorization attempt, past iteration 6 and on 3 of
+    /// every 4 iterations, while the last four iterations all needed Hessian
+    /// perturbation. Saves a factorization known to fail on a persistently
+    /// near-singular problem. Default true.
+    bool skip_unperturbed_attempts = true;
     /// Reset value for a negative slack. Default 1e-12. Must be finite and > 0.
     double negative_slack_reset = 1.0e-12;
 };

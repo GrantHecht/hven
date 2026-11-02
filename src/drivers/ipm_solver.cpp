@@ -146,8 +146,6 @@ linear_factorization_algorithm_of(hven::solvers::KktFactorizationAlgorithm mode)
     switch (mode) {
     case KktFactorizationAlgorithm::kClassic:
         return LinearOptions::FactorizationAlgorithm::kClassic;
-    case KktFactorizationAlgorithm::kTwoLevel:
-        return LinearOptions::FactorizationAlgorithm::kTwoLevel;
     }
     throw std::invalid_argument(fmt::format(
         "hven interior-point solver: unknown linear.algorithm ({})", static_cast<int>(mode)));
@@ -182,6 +180,17 @@ hven::solvers::IpmStopReason hven::solvers::IpmSolverImpl::limit_reached() const
     return IpmStopReason::kNone;
 }
 
+// The label for a phase that stopped on its iteration cap: a work or time limit
+// reached at the same boundary takes it instead, and ends the solve's phase
+// sequence.
+hven::solvers::IpmStopReason hven::solvers::IpmSolverImpl::cap_or_limit_reason() {
+    const IpmStopReason limit = this->limit_reached();
+    if (limit == IpmStopReason::kNone)
+        return IpmStopReason::kIterationCap;
+    this->limit_stop_ = true;
+    return limit;
+}
+
 void hven::solvers::IpmSolverImpl::set_qp_params() {
     LinearOptions opts;
     opts.kind = hven::linear::FactorKind::kLDLT;
@@ -197,17 +206,7 @@ void hven::solvers::IpmSolverImpl::set_qp_params() {
     // nothing-requested value here; requesting any of them throws.
     //
     // The zero-pivot threshold is the one Accelerate-specific knob the engine
-    // still names. The pivot tolerance is not: the linear layer fixes it at
-    // the value this engine has always requested, so a setting that agrees is
-    // simply the default and one that disagrees is rejected rather than
-    // silently dropped.
-    if (opts_.linear.accelerate_pivot_tolerance != 0.01) {
-        throw std::invalid_argument(fmt::format(
-            "hven interior-point solver: linear.accelerate_pivot_tolerance = {} cannot be applied "
-            "-- the sparse linear surface "
-            "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
-            opts_.linear.accelerate_pivot_tolerance));
-    }
+    // names; the linear layer fixes the LDLT pivot tolerance itself.
 
     // Iterative refinement, same rule. The linear surface stores the cap on
     // this backend but performs no refinement -- there is no native refinement
@@ -235,16 +234,6 @@ void hven::solvers::IpmSolverImpl::set_qp_params() {
     // numeric factorization and reported in the exit statistics, so the report
     // is requested unconditionally too.
     opts.collect_factor_mflops = true;
-
-    // Backend chatter has no route through the linear surface, which calls the
-    // backend silently. The shipped setting agrees; anything else is rejected
-    // rather than quietly ignored.
-    if (opts_.linear.backend_output) {
-        throw std::invalid_argument(
-            "hven interior-point solver: linear.backend_output = true cannot be applied "
-            "-- the sparse linear surface calls the "
-            "backend silently and exposes no message-level control");
-    }
 #endif
 
     // THE OUTGOING ENGINE'S FACTORIZATION COUNT IS RETIRED HERE, and this is
@@ -876,11 +865,9 @@ void hven::solvers::IpmSolverImpl::set_options(IpmOptions o) {
         o.linear.pivoting != opts_.linear.pivoting ||
         o.linear.algorithm != opts_.linear.algorithm ||
         o.linear.parallel_solve != opts_.linear.parallel_solve ||
-        o.linear.backend_output != opts_.linear.backend_output ||
         o.linear.conditional_reproducibility != opts_.linear.conditional_reproducibility
 #ifdef USE_ACCELERATE_SPARSE
-        || o.linear.accelerate_pivot_tolerance != opts_.linear.accelerate_pivot_tolerance ||
-        o.linear.accelerate_zero_tolerance != opts_.linear.accelerate_zero_tolerance
+        || o.linear.accelerate_zero_tolerance != opts_.linear.accelerate_zero_tolerance
 #endif
         ;
     if (transcription_field_moved) {
@@ -3498,7 +3485,7 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         // near-singular. The (i*3)%4 != 0 condition samples 3/4 of iterations,
         // periodically re-probing for recovered inertia.
         bool Zfac = true;
-        if (opts_.linear.skip_unperturbed_attempts && i > 6 && ((i * 3) % 4) != 0) {
+        if (opts_.advanced.skip_unperturbed_attempts && i > 6 && ((i * 3) % 4) != 0) {
             bool cycling = true;
             for (int j = 0; j < 4; j++) {
                 int ns = iters[iters.size() - 1 - j].h_facs_;
@@ -4136,9 +4123,13 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
             // its own label. The stall store above precedes this in program
             // order, so a stall on the cap iteration keeps kStageStalled. See
             // last_stop_reason() for what the label does and does not claim.
+            //
+            // A limit reached at this same boundary wins the tie, as on the SQP
+            // engine: the label is the limit's and the sequence ends. With both
+            // limits empty limit_reached() reads nothing.
             if (i == (this->effective_max_iters_ - 1) && ExitCode == SolveStatus::kMaxIter &&
                 this->last_stop_reason_ == IpmStopReason::kNone) {
-                this->last_stop_reason_ = IpmStopReason::kIterationCap;
+                this->last_stop_reason_ = this->cap_or_limit_reason();
             }
 
             if (ExitCode != SolveStatus::kOptimal && opts_.return_best) {
@@ -4226,7 +4217,7 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // result_.status is NOT read, for the reason door 1 gives -- its
     // lifetime is the CALL and this label's is the PHASE.
     if (this->last_stop_reason_ == IpmStopReason::kNone && i >= this->effective_max_iters_) {
-        this->last_stop_reason_ = IpmStopReason::kIterationCap;
+        this->last_stop_reason_ = this->cap_or_limit_reason();
     }
 
     // Teardown invariant (dead on the default path: restoration_ is null). Any

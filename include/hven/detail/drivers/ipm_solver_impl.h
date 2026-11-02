@@ -1445,6 +1445,10 @@ class IpmSolverImpl {
     std::chrono::steady_clock::time_point limit_clock_start_{};
     /// Which limit, if any, the solve has reached; kNone when neither.
     IpmStopReason limit_reached() const;
+    /// The label for a phase that stopped on its iteration cap: the limit
+    /// reached at the same boundary, if any (setting `limit_stop_`), else
+    /// kIterationCap.
+    IpmStopReason cap_or_limit_reason();
 
     /// Which door the current phase left its loop by; see last_stop_reason().
     /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two

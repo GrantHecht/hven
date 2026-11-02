@@ -230,17 +230,18 @@ int main(int argc, char **argv) {
         opts.common.feasibility_tol = 1e-9;
         opts.common.max_iterations = 60;
         if (argc > 3) {
-            // M6: 0 is now MEANINGFUL, not an error -- it is QpOptions::
-            // max_iter's own sentinel for "derive the cap from the
-            // subproblem's size", and therefore the way to invoke this probe
-            // at the shipped default explicitly. Negative is still rejected.
+            // On the command line 0 means "the library's size-derived default",
+            // the way to invoke this probe at the shipped default explicitly:
+            // it leaves QpOptions::max_iter empty. Negative is rejected.
             const long long v = parse_ll("qp_max_iter", argv[3]);
             if (v < 0) {
                 throw_usage(fmt::format("qp_max_iter: '{}' must be >= 0 (0 = the library's "
                                         "size-derived default)",
                                         argv[3]));
             }
-            opts.qp.max_iter = static_cast<Index>(v);
+            if (v > 0) {
+                opts.qp.max_iter = static_cast<Index>(v);
+            }
         }
         if (argc > 4) {
             const long long v = parse_ll("schur_cap", argv[4]);
@@ -353,8 +354,8 @@ int main(int argc, char **argv) {
             }
         }
         const Index cap_base = model.n() + model.mi() + bounded;
-        const Index cap_eff = opts.qp.max_iter > 0
-                                  ? opts.qp.max_iter
+        const Index cap_eff = opts.qp.max_iter
+                                  ? *opts.qp.max_iter
                                   : hven::solvers::detail::derived_qp_max_iter(cap_base);
 
         fmt::print("N={} n={} p={:.6f} active={} status={} majors={} minors={} qpmax={} "

@@ -22,6 +22,7 @@
 // =============================================================================
 
 #include "hven/drivers/ipm_options.h"
+#include "hven/detail/drivers/common_options_validate.h"
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/detail/model/fixed_variable_treatment.h"
 
@@ -167,26 +168,7 @@ void hven::solvers::validate(const IpmOptions &o) {
         enum_in_range(ph, IpmPhase::kSolve, "phases[i]");
 
     // --- The shared options ---
-    pos_finite(o.common.optimality_tol, "common.optimality_tol");
-    pos_finite(o.common.feasibility_tol, "common.feasibility_tol");
-    pos_int(o.common.max_iterations, "common.max_iterations");
-    if (o.common.max_factorizations && *o.common.max_factorizations < 0)
-        throw std::invalid_argument(
-            fmt::format("common.max_factorizations must be empty or >= 0, got {}",
-                        *o.common.max_factorizations));
-    if (o.common.time_limit_seconds) {
-        const double v = *o.common.time_limit_seconds;
-        if (!std::isfinite(v) || !(v > 0.0))
-            throw std::invalid_argument(fmt::format(
-                "common.time_limit_seconds must be empty or finite and positive, got {}", v));
-    }
-    enum_in_range(o.common.verbosity, Verbosity::kIterations, "common.verbosity");
-    pos_int(o.common.threads, "common.threads");
-    enum_in_range(o.common.start_level, StartLevel::kHot, "common.start_level");
-    if (!(o.common.infinite_bound > 0.0))
-        throw std::invalid_argument(
-            fmt::format("common.infinite_bound must be positive (kInfinity is legal), got {}",
-                        o.common.infinite_bound));
+    detail::validate_common_options(o.common, {.max_iterations = 1, .threads = 1});
 
     // --- Termination ---
     // complementarity_tol, when empty, is optimality_tol: that is the value the
@@ -255,6 +237,13 @@ void hven::solvers::validate(const IpmOptions &o) {
     // declared one (kMaxBoundRelaxFactor).
     in_closed_interval(o.bound_relax_factor, 0.0, kMaxBoundRelaxFactor, "bound_relax_factor");
     check_fixed_variable_treatment(o.fixed_variable_treatment);
+    // kRelaxBounds holds a fixed variable between bounds pushed apart by this
+    // factor; at 0 there is no interval to hold it in.
+    if (o.fixed_variable_treatment == FixedVariableTreatment::kRelaxBounds &&
+        !(o.bound_relax_factor > 0.0))
+        throw std::invalid_argument(fmt::format(
+            "bound_relax_factor must be > 0 under fixed_variable_treatment = kRelaxBounds, got {}",
+            o.bound_relax_factor));
 
     // --- Objective ---
     // POSITIVE, not merely nonzero: a negative factor reverses the problem
@@ -272,14 +261,8 @@ void hven::solvers::validate(const IpmOptions &o) {
     non_negative(lin.pivot_perturbation, "linear.pivot_perturbation");
     non_negative(lin.refinement_steps, "linear.refinement_steps");
     enum_in_range(lin.parallel_solve, KktSolveParallelism::kSequential, "linear.parallel_solve");
-    enum_in_range(lin.algorithm, KktFactorizationAlgorithm::kTwoLevel, "linear.algorithm");
-    // Backend chatter has no route through the factor layer, which calls the
-    // backend silently; a request for it is refused rather than ignored.
-    if (lin.backend_output)
-        throw std::invalid_argument("linear.backend_output = true cannot be applied: the factor "
-                                    "layer calls the backend silently");
+    enum_in_range(lin.algorithm, KktFactorizationAlgorithm::kClassic, "linear.algorithm");
 #ifdef USE_ACCELERATE_SPARSE
-    pos_finite(lin.accelerate_pivot_tolerance, "linear.accelerate_pivot_tolerance");
     pos_finite(lin.accelerate_zero_tolerance, "linear.accelerate_zero_tolerance");
 #endif
     // THE DENSE ARM IS NAMED, NOT WIRED. Accepting another value would be a
@@ -594,8 +577,6 @@ const char *enum_name(hven::solvers::KktFactorizationAlgorithm v) {
     switch (v) {
     case KktFactorizationAlgorithm::kClassic:
         return "kClassic";
-    case KktFactorizationAlgorithm::kTwoLevel:
-        return "kTwoLevel";
     }
     return "unknown";
 }
@@ -755,14 +736,11 @@ void hven::solvers::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_str(os, "linear.parallel_solve", enum_name(l.parallel_solve));
     kv_str(os, "linear.algorithm", enum_name(l.algorithm));
     kv_bool(os, "linear.conditional_reproducibility", l.conditional_reproducibility);
-    kv_bool(os, "linear.skip_unperturbed_attempts", l.skip_unperturbed_attempts);
     kv_bool(os, "linear.force_analysis", l.force_analysis);
-    kv_bool(os, "linear.backend_output", l.backend_output);
 #ifdef USE_ACCELERATE_SPARSE
-    // THE TWO APPLE-ONLY FIELDS, declared under the same guard: on Linux and
-    // Windows the dump is two lines shorter. The pin in
+    // THE APPLE-ONLY FIELD, declared under the same guard: on Linux and
+    // Windows the dump is one line shorter. The pin in
     // tests/drivers/test_options_dump.cpp carries both counts.
-    kv_dbl(os, "linear.accelerate_pivot_tolerance", l.accelerate_pivot_tolerance);
     kv_dbl(os, "linear.accelerate_zero_tolerance", l.accelerate_zero_tolerance);
 #endif
     kv_str(os, "linear.dense_factorization", enum_name(l.dense_factorization));
@@ -795,5 +773,6 @@ void hven::solvers::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_dbl(os, "advanced.inertia_correction_decrease", a.inertia_correction_decrease);
     kv_int(os, "advanced.inertia_correction_max_attempts",
            static_cast<long long>(a.inertia_correction_max_attempts));
+    kv_bool(os, "advanced.skip_unperturbed_attempts", a.skip_unperturbed_attempts);
     kv_dbl(os, "advanced.negative_slack_reset", a.negative_slack_reset);
 }

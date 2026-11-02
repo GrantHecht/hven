@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -47,9 +48,11 @@ void check_core_shapes(const Vec &x, const Vec &lambda_i, const Vec &z, const Ve
 } // namespace
 
 void validate(const SolveBudget &budget) {
-    if (budget.max_iterations && *budget.max_iterations < 1) {
-        throw std::invalid_argument(fmt::format(
-            "SolveBudget::max_iterations must be empty or >= 1, got {}", *budget.max_iterations));
+    if (budget.max_iterations &&
+        (*budget.max_iterations < 1 || *budget.max_iterations > std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("SolveBudget::max_iterations must be empty or in [1, {}], got {}",
+                        std::numeric_limits<int>::max(), *budget.max_iterations));
     }
     if (budget.minor_budget && *budget.minor_budget < 1) {
         throw std::invalid_argument(fmt::format(

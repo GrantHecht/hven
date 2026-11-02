@@ -71,6 +71,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/detail/drivers/common_options_validate.h>
 #include <hven/drivers/sqp_options.h>
 #include <hven/qp/qp_types.h>
 
@@ -88,50 +89,15 @@ template <typename E> void enum_in_range(E v, E last, const char *name) {
     }
 }
 
-// The shared options, on this engine's terms (threads may be 0: "leave the
-// backend alone"; max_iterations may be 0).
-void validate_common(const CommonOptions &c) {
-    if (!(c.optimality_tol > 0.0) || !(c.feasibility_tol > 0.0) || std::isinf(c.optimality_tol) ||
-        std::isinf(c.feasibility_tol)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: common.optimality_tol ({}) and common.feasibility_tol ({}) must both be "
-            "finite and > 0",
-            c.optimality_tol, c.feasibility_tol));
-    }
-    if (c.max_iterations < 0) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.max_iterations ({}) must be >= 0", c.max_iterations));
-    }
-    if (c.max_factorizations && *c.max_factorizations < 0) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.max_factorizations ({}) must be empty or >= 0",
-                        *c.max_factorizations));
-    }
-    if (c.time_limit_seconds &&
-        (!(*c.time_limit_seconds > 0.0) || std::isinf(*c.time_limit_seconds))) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.time_limit_seconds ({}) must be empty or finite and > 0",
-                        *c.time_limit_seconds));
-    }
-    enum_in_range(c.verbosity, Verbosity::kIterations, "common.verbosity");
-    if (c.threads < 0) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.threads ({}) must be >= 0 (0 = leave the backend's own "
-                        "default alone)",
-                        c.threads));
-    }
-    enum_in_range(c.start_level, StartLevel::kHot, "common.start_level");
-    if (!(c.infinite_bound > 0.0)) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.infinite_bound ({}) must be > 0 (kInfinity is legal)",
-                        c.infinite_bound));
-    }
-}
-
 } // namespace
 
 void validate(const SqpOptions &opts) {
-    validate_common(opts.common);
+    // This engine's floors: no iterations and the backend's own thread default are legal.
+    detail::validate_common_options(opts.common, {.max_iterations = 0, .threads = 0});
+    if (opts.qp.max_iter && *opts.qp.max_iter < 1) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: qp.max_iter ({}) must be empty or >= 1", *opts.qp.max_iter));
+    }
     if (!(opts.tr_init > 0.0)) { // catches NaN, negatives and exactly 0
         throw std::invalid_argument(fmt::format(
             "SqpSolver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
@@ -709,7 +675,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_dbl(os, "qp.dual_mu", o.qp.dual_mu);
     kv_dbl(os, "qp.feas_tol", o.qp.feas_tol);
     kv_dbl(os, "qp.opt_tol", o.qp.opt_tol);
-    kv_int(os, "qp.max_iter", static_cast<long long>(o.qp.max_iter));
+    kv_opt_int(os, "qp.max_iter", o.qp.max_iter);
     kv_int(os, "qp.schur_cap", static_cast<long long>(o.qp.schur_cap));
     kv_dbl(os, "qp.schur_cond_max", o.qp.schur_cond_max);
     kv_str(os, "qp.ws_algebra", enum_name(o.qp.ws_algebra));

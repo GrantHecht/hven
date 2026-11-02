@@ -841,7 +841,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     //
     // The FACTORIZATION cap's sentinel is three times the budget ABOVE, i.e. three times the
     // CLAMPED one: an iteration costs one factorization plus ladder rungs.
-    const Index derived = detail::effective_qp_max_iter(qp, iopts.max_iterations.value_or(0));
+    const Index derived = detail::effective_qp_max_iter(qp, iopts.max_iterations);
     const Index iter_budget = std::min(derived, iopts.hard_iteration_cap);
     const Index fact_budget = iopts.max_factorizations
                                   ? *iopts.max_factorizations

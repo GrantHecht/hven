@@ -7424,7 +7424,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // The cap THIS subproblem was solved under, from the engine's own
         // derivation rather than a second copy of it: the sentinel resolves to
         // max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)) and a
-        // caller's positive value wins outright, so doubling the resolved value
+        // caller's engaged value wins outright, so doubling the resolved value
         // means "twice what this solve was actually given" under either.
         // Under the lift the cap is the LIFTED problem's, which is what the walk was given.
         const Index cap = detail::effective_qp_max_iter(
@@ -8575,9 +8575,9 @@ QpEngine &SqpSolverImpl::cap_retry_engine(Index cap) {
         // Every field is `opts_.qp` verbatim but `max_iter`, so the retry reads
         // the same tolerance pair and the same regularization pair as the solve
         // it is retrying -- the elastic rung tier's own construction, with one
-        // field changed instead of that one's `tr_radius`. A POSITIVE value is
-        // an EXPLICIT ABSOLUTE cap by QpOptions::max_iter's own precedence rule,
-        // so it wins outright over the size-derived sentinel.
+        // field changed instead of that one's `tr_radius`. An ENGAGED value is
+        // an explicit absolute cap by QpOptions::max_iter's own rule, so it wins
+        // outright over the size-derived default.
         QpOptions retry_qp = engine_qp_options(opts_);
         retry_qp.max_iter = cap;
         cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads);

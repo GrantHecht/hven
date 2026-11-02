@@ -896,11 +896,10 @@ inline Index derived_qp_max_iter(Index base) {
     return std::max(kQpMaxIterFloor, kQpMaxIterCoeff * base);
 }
 
-// The cap this solve actually runs at: an explicitly set (positive)
-// QpOptions::max_iter wins outright; the sentinel (<= 0, the default) derives
-// from size.
-inline Index effective_qp_max_iter(const QpProblem &qp, Index requested) {
-    return requested > 0 ? requested : derived_qp_max_iter(qp_cap_base(qp));
+// The cap this solve actually runs at: an engaged QpOptions::max_iter wins
+// outright; an empty one derives from size.
+inline Index effective_qp_max_iter(const QpProblem &qp, std::optional<Index> requested) {
+    return requested ? *requested : derived_qp_max_iter(qp_cap_base(qp));
 }
 // Direction components below this are not considered to move a constraint.
 constexpr double kEngineDenomTol = 1e-12;

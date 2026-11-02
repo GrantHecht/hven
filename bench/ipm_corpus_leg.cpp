@@ -553,7 +553,8 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
     o.common.verbosity = levers.verbosity;
     o.common.max_iterations = levers.max_iters;
     o.common.optimality_tol = levers.kkt_tol;
-    o.common.feasibility_tol = levers.econ_tol;
+    // One feasibility tolerance covers the equality and the inequality residuals;
+    // the leg's two levers are equal (kFeasTol), so icon_tol maps to it.
     o.common.feasibility_tol = levers.icon_tol;
     o.termination.complementarity_tol = levers.barr_tol;
     o.fixed_variable_treatment = treatment;
@@ -564,7 +565,6 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
         o.common.max_iterations = variant.max_iters;
     }
     if (variant.con_tol > 0.0) {
-        o.common.feasibility_tol = variant.con_tol;
         o.common.feasibility_tol = variant.con_tol;
     }
     if (variant.acc_con_tol > 0.0) {

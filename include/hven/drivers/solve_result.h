@@ -60,8 +60,9 @@ struct ResultAccess;
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
-/// "No limit" is an empty optional. An engaged member must be >= 1; the solve
-/// refuses a smaller value with std::invalid_argument at entry. With both empty
+/// "No limit" is an empty optional. An engaged member must be >= 1 (and
+/// `max_iterations` at most INT_MAX); the solve refuses another value with
+/// std::invalid_argument at entry. With both empty
 /// (the default) the engine's own options decide.
 struct SolveBudget {
     /// The major-iteration ceiling: an effective cap of
@@ -80,8 +81,8 @@ struct SolveBudget {
     std::optional<Index> minor_budget;
 };
 
-/// @brief Refuses an engaged SolveBudget member below 1. Both engines run it at
-///        solve entry.
+/// @brief Refuses an engaged SolveBudget member below 1, and a `max_iterations`
+///        above INT_MAX. Both engines run it at solve entry.
 /// @throws std::invalid_argument naming the member and its value.
 void validate(const SolveBudget &budget);
 

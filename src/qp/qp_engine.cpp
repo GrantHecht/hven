@@ -91,7 +91,7 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
     fold_double(opts.dual_mu);
     fold_double(opts.feas_tol);
     fold_double(opts.opt_tol);
-    fold(static_cast<std::uint64_t>(opts.max_iter));
+    fold(static_cast<std::uint64_t>(opts.max_iter.value_or(0)));
     fold(static_cast<std::uint64_t>(opts.schur_cap));
     fold_double(opts.schur_cond_max);
     fold(static_cast<std::uint64_t>(opts.ws_algebra));
@@ -328,6 +328,10 @@ QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
             "regularization; negative is SolveOverrides' sentinel, never a stored value "
             "-- qp_types.h) -- got {}",
             opts.primal_delta));
+    }
+    if (opts.max_iter && *opts.max_iter < 1) {
+        throw std::invalid_argument(fmt::format(
+            "QpEngine::solve: QpOptions.max_iter must be empty or >= 1 -- got {}", *opts.max_iter));
     }
     if (!(overrides.dual_mu >= 0.0) && (std::isnan(opts.dual_mu) || opts.dual_mu < 0.0)) {
         throw std::invalid_argument(fmt::format(

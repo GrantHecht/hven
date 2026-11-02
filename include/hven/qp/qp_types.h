@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <type_traits>
 
 #include <Eigen/Dense>
@@ -126,28 +127,18 @@ struct QpOptions {
     double feas_tol = 1e-9;
     double opt_tol = 1e-9;
 
-    /// Minor-iteration cap for ONE QP solve. Two meanings, by sign:
+    /// Minor-iteration cap for ONE QP solve. Empty (the default) derives the cap
+    /// from the subproblem's own size,
+    ///     max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)),
+    /// see qp_engine.h's detail::effective_qp_max_iter; an engaged value is an
+    /// explicit, absolute cap that wins at any size and must be >= 1.
     ///
-    ///     > 0   an EXPLICIT, ABSOLUTE cap. Wins outright, at any size.
-    ///    <= 0   THE SENTINEL, AND THE SHIPPED DEFAULT: derive the cap from
-    ///           this subproblem's own size, as
-    ///               max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded))
-    ///           -- qp_engine.h's detail::effective_qp_max_iter, which carries
-    ///           the derivation and calibration in full.
-    ///
-    /// Why a size-derived default: the minors one subproblem needs grows with
-    /// the constraint count, so ANY fixed constant is eventually below demand
-    /// (recorded on the F7 collocation family well below n = 1000). This is a
-    /// lower-bound argument, not a tuning preference.
-    ///
-    /// The precedence rule above IS the escape hatch that makes the default
-    /// safe: only solves that both leave the sentinel AND actually reach the
-    /// cap can change; a healthy solve never touches it. A capped subproblem
-    /// remains an honest failure — QpStatus::kMaxIter with minor_iters == the
-    /// effective cap; raising the cap never converts a wrong answer into a
-    /// right one, it only stops refusing subproblems that were going to
-    /// finish.
-    Index max_iter = 0;
+    /// The derived default exists because the minors one subproblem needs grow
+    /// with its constraint count, so any fixed constant is eventually below
+    /// demand. A capped subproblem is an honest failure (QpStatus::kMaxIter with
+    /// minor_iters == the effective cap); raising the cap only stops refusing
+    /// subproblems that were going to finish.
+    std::optional<Index> max_iter;
     Index schur_cap = 128;
     double schur_cond_max = 1e9;
     WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
