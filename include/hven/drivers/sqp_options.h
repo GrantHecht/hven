@@ -99,9 +99,8 @@ enum class SsnInfeasibilityRule {
     kFarkasGated = 1,
 };
 
-/// @brief A2 (M7-37): how the IPQP tier's solve-entry cold start sets `mu_0`. Semantics at
-/// `IpqpOptions::mu0_rule`; design docs/notes/2026-10-m7-w2-a2-mu0-design.md section 3.
-///
+/// @brief How the IPQP tier's solve-entry cold start sets `mu_0`; see
+/// `IpqpOptions::mu0_rule`.
 enum class IpqpMu0Rule { kFixed, kComplementarity };
 
 /// @brief The kIpm tier's own settings.
@@ -146,10 +145,8 @@ struct IpqpOptions {
     double init_mu = 1e-2;
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
-    /// floor thereafter. Matches `Settings::min_mu_`'s own default
-    /// (`ipm_solver.h:366`) so the two barrier engines agree on
-    /// how low `mu` is ever allowed to go. Default 1e-12. Must be finite,
-    /// > 0, and <= `init_mu`.
+    /// floor thereafter. Default 1e-12, the interior-point engine's own
+    /// `min_barrier`. Must be finite, > 0, and <= `init_mu`.
     double min_mu = 1e-12;
 
     /// The (rho, delta) proximal regularization schedule's INITIAL values:
@@ -170,22 +167,17 @@ struct IpqpOptions {
     double delta_init = 8.0;
 
     /// The absolute floor the (rho, delta) ladder's GATED decrease may never
-    /// cross, matching `detail::kProxRegFloor`
-    /// (`inertia_regularization.h:46`, Cipolla-Gondzio eq. 19). Default
-    /// 1e-10. Must be finite and > 0.
+    /// cross (Cipolla-Gondzio eq. 19). Default 1e-10. Must be finite and > 0.
     double reg_floor = 1e-10;
 
     /// The ceiling the (rho, delta) ladder's inertia-demanded growth may
-    /// never cross, matching `detail::kSsnProxMax` (`ssn_engine.h:576`) --
-    /// the tier inherits SSN's relative cap-slack exhaustion guard
-    /// (`detail::kSsnProxCapSlack`, `ssn_engine.h:577`) along with the
-    /// constant, not just the number. Default 1e6. Must be finite and >=
-    /// `reg_floor`.
+    /// never cross; the tier inherits SSN's relative cap-slack exhaustion guard
+    /// with it. Default 1e6. Must be finite and >= `reg_floor`.
     double reg_max = 1e6;
 
     /// The (rho, delta) ladder's GATED decrease factor: applied only after
     /// the regularized residuals have contracted by the required amount
-    /// (spec 3.2), never unconditionally the way `prox_reg_decay`'s geometric
+    /// never unconditionally the way `prox_reg_decay`'s geometric
     /// decay is -- this is a fraction the schedule multiplies the current
     /// value by, so it must lie strictly inside (0, 1): 0 would collapse the
     /// regularization in one gated step and >= 1 would never decrease it.
@@ -193,7 +185,7 @@ struct IpqpOptions {
     double reg_decrease = 0.1;
 
     /// The fraction-to-boundary parameter (`tau`/`bfrac`) both the affine
-    /// and corrector steps are clipped by (spec 3.1). A standard IPM
+    /// and corrector steps are clipped by. A standard IPM
     /// literature constant, meaningful only strictly inside (0, 1): 0 would
     /// permit no step at all and >= 1 would permit stepping onto or past a
     /// bound. Default 0.995.
@@ -208,21 +200,19 @@ struct IpqpOptions {
     /// routing chain's UNCERTAIN class.
     double face_kappa = 1e-2;
 
-    /// The barrier-phase convergence target's SLACK factor (spec 2.3 step 1
-    /// / 3.4): the tier converges to `converge_slack x` the QP layer's
-    /// own relative tolerances, deliberately LOOSER than the 1e-10 tier-3
-    /// exact refinement owns the last two decades of. Default 100. Must be
-    /// finite and >= 1 -- a slack below 1 would ask the barrier phase for
-    /// MORE accuracy than tier 3's own finish, inverting the division of
-    /// labor the two-tier design rests on.
+    /// The barrier-phase convergence target's SLACK factor: the tier converges to `converge_slack
+    /// x` the QP layer's own relative tolerances, deliberately LOOSER than the 1e-10 tier-3 exact
+    /// refinement owns the last two decades of. Default 100. Must be finite and >= 1 -- a slack
+    /// below 1 would ask the barrier phase for MORE accuracy than tier 3's own finish, inverting
+    /// the division of labor the two-tier design rests on.
     double converge_slack = 1e2;
 
-    /// Ruiz equilibration (spec 4.3) inside the tier, unscaled on export.
+    /// Ruiz equilibration inside the tier, unscaled on export.
     /// Default true. A plain A/B lever; every asserted pin is on unscaled
     /// quantities either way.
     bool ruiz = true;
 
-    /// The warm-seed repair (spec 5.2): strict-positivity clamps plus the
+    /// The warm-seed repair: strict-positivity clamps plus the
     /// two-scalar `(delta_p, delta_d)` shift, applied before a warm restart
     /// is trusted. Default true. Off disables the repair, never the validation:
     /// a seed the repair would have had to fix degrades cold instead,
@@ -237,7 +227,7 @@ struct IpqpOptions {
     /// restart is killed on its first iteration).
     Index warm_iter_budget = 15;
 
-    /// `kappa_mu` in the section 5.3 `mu_0` clamp rule: `mu_0 =
+    /// `kappa_mu` in the `mu_0` clamp rule: `mu_0 =
     /// clamp(max(mu_meas, mu_adopt_factor * mu_payload), min_mu,
     /// init_mu)`. 0 DISABLES ADOPTION (the clamp then reads only
     /// `mu_meas`), which is a deliberate, documented reading of this field
@@ -245,15 +235,14 @@ struct IpqpOptions {
     /// finite and >= 0.
     double mu_adopt_factor = 1.0;
 
-    /// The early-stall detector's (spec 6.2) window width in ACCEPTED
-    /// iterations, matching `detail::kSsnStallWindow` (`ssn_engine.h:641`)
-    /// for the reason its own banner gives: an order of magnitude above the
-    /// local regime, so no healthy trajectory reaches it. Default 5. Must be
+    /// The early-stall detector's window width in ACCEPTED
+    /// iterations, an order of magnitude above the local regime so that no
+    /// healthy trajectory reaches it. Default 5. Must be
     /// > 0 -- a zero-width window can never accumulate the whole-window
     /// evidence the test is built on.
     Index stall_window = 5;
 
-    /// The escape ladder's retirement threshold (spec 6.1): after this many
+    /// The escape ladder's retirement threshold: after this many
     /// CONSECUTIVE escapes within one SQP solve the tier is retired for the
     /// remainder of that solve; any success resets the count. Default 3.
     /// Must be > 0 -- retiring "after zero consecutive escapes" is not a
@@ -261,18 +250,18 @@ struct IpqpOptions {
     /// exist to express.
     Index retire_after = 3;
 
-    /// Optional Farkas corroboration (spec 6.3) of an infeasible-suspect
+    /// Optional Farkas corroboration of an infeasible-suspect
     /// escape: one matvec plus O(m), no factorization. It may ARM the
     /// evidence block; it never certifies. Default true.
     bool farkas_gate = true;
 
-    /// Cross-major symbolic reuse (spec 4.1) kill switch: while true, the
+    /// Cross-major symbolic reuse kill switch: while true, the
     /// tier hoists its analysis/verify work across majors whose
     /// `AssemblyEvalSeam::epoch()` is unchanged.
     /// Default true; false forces a fresh symbolic pass every major.
     bool hoist_symbolic = true;
 
-    /// The required final unregularized inertia read (spec 2.2 item 4): when
+    /// The required final unregularized inertia read: when
     /// true, a certifying exit pays one extra
     /// unregularized factorization to confirm the inertia the regularized
     /// solve reported; a WRONG read downgrades the certificate rather than
@@ -283,50 +272,46 @@ struct IpqpOptions {
     /// SqpHessianMode::kLbfgsDamped the PD quasi-Newton B, so this certifies B, not the NLP.
     bool require_final_inertia = true;
 
-    /// How the solve-entry cold start sets `mu_0` (A2, M7-37). kFixed (default): every pair at
+    /// How the solve-entry cold start sets `mu_0`. kFixed (default): every pair at
     /// `init_mu`. kComplementarity: `mu_0` is derived from one affine-scaling solve; it
     /// fires only when the derived value lies in `[min_mu, init_mu]`, on a cold
     /// solve-entry only, otherwise kFixed. The estimate is charged to the factorization budget.
-    /// Counters: `ipqp_mu0_derived`, `ipqp_mu0_fallbacks`. Design:
-    /// docs/notes/2026-10-m7-w2-a2-mu0-design.md.
+    /// Counters: `ipqp_mu0_derived`, `ipqp_mu0_fallbacks`.
     IpqpMu0Rule mu0_rule = IpqpMu0Rule::kFixed;
 
-    /// The residual-proportional `mu` floor (A2, carrying A1-R1). Default false: the corrector
+    /// The residual-proportional `mu` floor. Default false: the corrector
     /// target is `clamp(sigma * mu, min_mu, init_mu)`. True: `sigma * mu` is first
     /// raised to `mu_s * r / max(1, r_s)`, `r` the unregularized relative residual and
-    /// `(mu_s, r_s)` the attempt's first iterate. Counter: `ipqp_mu_floor_binds`. A bool
-    /// refuses no value, so `validate` has no predicate for it. Design: the A2 page section 4.
+    /// `(mu_s, r_s)` the attempt's first iterate. Counter: `ipqp_mu_floor_binds`.
     bool mu_residual_floor = false;
 
-    /// Algorithm IC's zero trial (IC-1) is skipped once this many CONSECUTIVE iterations have
-    /// needed a modification (A3, M7-38; hven's adaptation (ii) of Wachter-Biegler 2006). Once
-    /// skipped it is not re-offered within the attempt. Default 3. 0 skips whenever the ladder
-    /// has a memory; a value above the attempt's iteration count never skips. Must be >= 0.
-    /// Counter: `ipqp_ladder_zero_trial_skips`. Design:
-    /// docs/notes/2026-10-m7-w2-a3-ipqp-levers-design.md. CURVATURE SOURCE: the subproblem Hessian
+    /// The inertia ladder's zero trial is skipped once this many CONSECUTIVE iterations have
+    /// needed a modification (after Wachter-Biegler 2006). Once skipped it is not re-offered
+    /// within the attempt. Default 3. 0 skips whenever the ladder has a memory; a value above
+    /// the attempt's iteration count never skips. Must be >= 0.
+    /// Counter: `ipqp_ladder_zero_trial_skips`. CURVATURE SOURCE: the subproblem Hessian
     /// -- the exact model Hessian under kExact; under SqpHessianMode::kLbfgsDamped the PD
     /// quasi-Newton B, so this reads B, not the NLP.
     Index ladder_skip_after = 3;
 };
 
-/// @brief Which QP kernel solves the elastic ladder's rungs (M7 W0 T3).
+/// @brief Which QP kernel solves the elastic ladder's rungs.
 ///
 /// `kWalk` is the shipped active-set ladder, hot-chained rung to rung; `kTier`
 /// solves each rung with the interior-point kernel on a DEDICATED engine
 /// instance.
 enum class ElasticRungEngine { kWalk, kTier };
 
-/// @brief The curvature source of the SQP subproblems (M7 QN stage 3).
+/// @brief The curvature source of the SQP subproblems.
 ///
 /// `kExact` evaluates the model's Lagrangian Hessian at every subproblem build.
 /// `kLbfgsDamped` never calls eval_hess: the subproblem curvature is a damped
 /// compact L-BFGS approximation B (detail/globalization/sqp/lbfgs_damped.h),
 /// positive definite by construction, carried into every QP engine call through
 /// the mixed lift (mixed_lift.h).
-/// @see .superpowers/m7-qn-design.md sections 2-3
 enum class SqpHessianMode { kExact, kLbfgsDamped };
 
-/// @brief The VARIABLE (column) half of problem scaling (M7 W2 SCL); see
+/// @brief The VARIABLE (column) half of problem scaling; see
 ///        SqpOptions::column_scaling and detail/drivers/column_scaling.h.
 ///
 /// `kOff` never scales a variable. `kAlways` installs the rule's column factors
@@ -339,7 +324,7 @@ enum class SqpHessianMode { kExact, kLbfgsDamped };
 /// threshold the solve is the `kOff` solve plus the rule's one Jacobian probe.
 enum class SqpColumnScaling { kOff, kAlways, kAuto };
 
-/// @brief The CURVATURE the restoration phase's QPs carry (M7 W2 RST); see
+/// @brief The CURVATURE the restoration phase's QPs carry; see
 ///        SqpOptions::restoration_curvature.
 ///
 /// `kModel` gives the restoration sub-solve the solve's own curvature source: the
@@ -419,7 +404,6 @@ struct SqpAdvancedOptions {
     /// many equally optimal ones, so turning it on there is a deliberate
     /// trajectory choice rather than a free cost cut. No cheap runtime test
     /// separates the two cases.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool elastic_ladder_early_exit = false;
 
     /// The crash basis, OPT-IN: when on, a COLD solve seeds its FIRST QP
@@ -445,59 +429,25 @@ struct SqpAdvancedOptions {
     /// solve whose resolved start level is kCold and only when no warm seed
     /// exists. No extra model evaluation: both predicates are read off the first
     /// subproblem itself, never from a fresh eval_ci call.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool crash_basis = false;
 
-    /// WHICH ENGINE SOLVES THE ELASTIC RUNG (M7 W0 T3).
-    ///
-    /// Rung A -- the elastic ladder -- runs on the WALK by default, which is
-    /// where M6 W2 left it and why (that plan's section 3: the walk hot-chains
-    /// rung to rung, and a tier-solved rung costs a second symbolic analysis).
-    /// `kTier` hands each rung to the interior-point kernel instead, on a
-    /// DEDICATED `IpqpEngine` instance, so the primary tier's
-    /// one-analysis-per-solve hoist (pin A9) is untouched.
-    ///
-    /// MODE-INDEPENDENT, deliberately: the ladder is reachable from the walk
-    /// route's own kInfeasible consumer in EVERY mode, not only from the kIpm
-    /// arm's certified fallback, so gating this on `qp_mode` would make one
-    /// field mean different things in different modes.
-    ///
-    /// DEFAULT kWalk, and that default is a measurement result rather than a
-    /// placeholder: M7 W0 T3 measured both states on a CONSTRUCTED family, and
-    /// a win there is not the win on the suite's TRAIN split that the M7 exit
-    /// criterion asks for. W2 re-reads the default on TRAIN.
-    /// @see docs/notes/2026-09-m7-w0-t3-design.md
+    /// Which engine solves the elastic ladder's rungs. Default `kWalk`: the
+    /// active-set walk hot-chains rung to rung, which a tier-solved rung cannot
+    /// (it costs a second symbolic analysis). `kTier` hands each rung to the
+    /// interior-point kernel on a dedicated `IpqpEngine`, leaving the primary
+    /// tier's one-analysis-per-solve hoist untouched. Independent of `qp_mode`:
+    /// the ladder is reachable in every mode.
     ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
 
-    /// ON A DISPROVAL, THE FALLBACK'S CERTIFIED SOLUTION SEEDS THE TIER'S NEXT
-    /// ENTRY (M7 W0 T4).
-    ///
-    /// The escape drops the tier's cross-major carry unconditionally (section
-    /// 6.1's rule: a point the tier could not certify does not seed the next
-    /// major). When rung A then DISPROVES the suspicion -- the relaxation shut,
-    /// so its answer IS the unrelaxed subproblem's -- the carry is already gone
-    /// and the next entry restarts cold, although a certified solution with
-    /// carried multipliers is sitting in the caller's hand. True offers that
-    /// solution's DUAL blocks to the next entry through the existing staged-seed
-    /// slot; false is today's cold restart.
-    ///
-    /// ONLY ON A DISPROVAL. A confirmed infeasibility (the exhaustion
-    /// certificate) and a relaxed answer both keep the cold path: neither is a
-    /// solution of the subproblem the tier was asked about.
-    ///
-    /// WHAT CARRIES IS THE DUAL BLOCKS ONLY -- `lambda_e`, `lambda_i` and the
-    /// signed bound price split into `zl`/`zu` -- exactly as the engine's own
-    /// cross-major carry does (spec 5.1 amendment D: across a major the duals
-    /// carry, the primal block does not). `x`, `s` and `zeta` are zeroed because
-    /// a new major is a new linearization in a new step space, and `IpqpBox`
-    /// re-centres the window at every entry. The grade is kBaseWarm, the grade a
-    /// signed bound price alone buys.
-    ///
-    /// DEFAULT FALSE: measured on a constructed cell only, which is not the
-    /// TRAIN win the M7 exit criterion asks for. The measurement, the reason the
-    /// cell had to be constructed, and the caveat that this MITIGATES a section
-    /// 6.3 false positive rather than fixing one are all in the artifact.
-    /// @see docs/notes/data/2026-09-m7-w0-t4-reseed/
+    /// On a disproval, the fallback's certified solution seeds the tier's next
+    /// entry. The escape drops the tier's cross-major carry; when the elastic
+    /// ladder then disproves the suspicion (the relaxation shut, so its answer is
+    /// the unrelaxed subproblem's), true offers that solution's dual blocks
+    /// (`lambda_e`, `lambda_i` and the bound price split into `zl`/`zu`) to the
+    /// next entry, graded kBaseWarm; the primal block is not carried, because a
+    /// new major is a new linearization. False restarts cold. Only a disproval
+    /// seeds: a confirmed infeasibility and a relaxed answer keep the cold path.
+    /// Default false.
     bool ipqp_reseed_after_disproval = false;
 
     /// The kIpm tier's own settings, forwarded verbatim onto the tier exactly
@@ -515,7 +465,6 @@ struct SqpAdvancedOptions {
     /// side is unconditional and this flag does not touch it, so a caller can
     /// read the carry without first turning it on. Inert in both directions under
     /// `qp_mode == QpMode::kWalk`. Default false.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool ssn_prox_carry = false;
 
     /// Read the certifying exit'S Second-order evidence off the face-EQP
@@ -556,190 +505,82 @@ struct SqpAdvancedOptions {
     /// SsnInfeasibilityRule. Same forwarding and same kWalk inertness.
     SsnInfeasibilityRule ssn_infeasibility_rule = SsnInfeasibilityRule::kSymptoms;
 
-    /// THE CONSECUTIVE-SUBPROBLEM-FAILURE BUDGET (M7 W2 M1).
+    /// How many subproblem failures IN A ROW the driver may route at one iterate
+    /// (shrink the radius, reseed from the failed solve's working set, continue)
+    /// before the next one ends the solve. 1 routes the first failure and ends
+    /// on the second. Default 3. Must be >= 1.
     ///
-    /// How many failures IN A ROW the driver may route -- shrink the radius,
-    /// reseed from the failed solve's own working set and continue -- at one
-    /// iterate before the next one ends the solve. A subproblem that fails but
-    /// hands back a usable iterate is a property of THAT SUBPROBLEM AT THAT
-    /// RADIUS, and the same subproblem at half the radius is a different
-    /// problem; this field says how many times the driver may make that
-    /// argument before it stops.
-    ///
-    /// DEFAULT 3, AND IT IS MEASURED RATHER THAN PRESUMED. The gate was
-    /// `qp_failures_in_a_row == 0` and is now
-    /// `qp_failures_in_a_row < qp_failure_budget`, so **1 IS THIS ENGINE'S
-    /// BEHAVIOUR BEFORE THE FIELD EXISTED** -- the first failure at an iterate
-    /// routed, the second ending the solve -- and setting it to 1 restores that
-    /// engine exactly, byte for byte. 3 is what the CUTEst TRAIN 23 reading
-    /// chose over 1 by the M7 rule, on its own arm, run twice:
-    /// `docs/notes/data/2026-09-m7-w2-m1-qp-cap/`. One more cell converges
-    /// (`READING6`, to the objective the IPM and SNOPT lanes reach), no new cell
-    /// errors, and the only cells whose counters move at all are the nine that
-    /// fail a subproblem.
-    ///
-    /// WHAT THE THIRD FAILURE COSTS WHEN IT DOES NOT HELP: two more majors on a
-    /// cell that was going to fail anyway, and their subproblems are the
-    /// expensive ones. On that TRAIN split `BRITGAS` went from 9 265 to 93 749
-    /// factorizations and, informationally, from 22 s to 275 s of a 300 s cell
-    /// ceiling. A caller who must bound the work per solve bounds it with
-    /// `common.max_iterations` and the QP's own cap, or sets this back to 1.
-    ///
-    /// Must be >= 1: a budget of 0 would refuse the first retry this engine has
-    /// always taken, which is a behaviour change nobody asked for spelled as a
-    /// validation value -- `validate()` refuses it.
-    ///
-    /// The counter is cleared by a `kOptimal` subproblem, so the budget is per
-    /// RUN of consecutive failures, not per solve; the run this solve reached is
-    /// `SqpCounters::qp_failures_in_a_row_peak` and the total routed is
-    /// `SqpCounters::qp_failures_routed`.
-    ///
-    /// WHAT IT DOES NOT CHANGE. The radius floor still applies to a routed
-    /// failure exactly as to a judged rejection: a shrink that would cross
-    /// `tr_min` raises a restoration request instead, at any budget, so raising
-    /// this does not let the radius walk below its floor. The retryability test
-    /// is unchanged (a failed solve that returned an unusable iterate ends the
-    /// solve at any budget), and `rejected_steps` still counts every routed
-    /// failure.
-    ///
-    /// NOT a curvature source (docs/counters.md): it selects how many times a
-    /// subproblem is re-posed, not whether or how a second-order reading is
-    /// taken.
-    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
+    /// The count is cleared by a `kOptimal` subproblem, so the budget is per run
+    /// of consecutive failures, not per solve; the run reached is
+    /// `SqpCounters::qp_failures_in_a_row_peak` and the total routed
+    /// `SqpCounters::qp_failures_routed`. The radius floor still applies to a
+    /// routed failure as to a rejection: a shrink below `tr_min` raises a
+    /// restoration request at any budget. A failed solve that returned an unusable
+    /// iterate ends the solve at any budget. Not a curvature source
+    /// (docs/counters.md). A caller who must bound the work per solve bounds it
+    /// with `common.max_iterations` and the QP's own cap.
     Index qp_failure_budget = 3;
 
-    /// THE CAP RETRY (M7 W2 M1): re-solve a subproblem that spent its whole
-    /// minor budget, ONCE, at twice the cap.
+    /// Re-solve a subproblem that spent its whole minor budget, once, at twice the
+    /// cap. Default false: the retry is never attempted and no second engine is
+    /// built.
     ///
-    /// `QpStatus::kMaxIter` means the subproblem ran out of MINORS, not that its
-    /// arithmetic failed -- and the driver reports both as
-    /// `SolveStatus::kNumericalError`. At true, a subproblem the WALK answered
-    /// with `kMaxIter`, whose returned iterate is usable
-    /// (`qp_failure_is_retryable`), is re-solved ONCE before it is treated as a
-    /// failure at all: the same subproblem, the same trust-region radius, warm
-    /// from the capped solve's own WORKING SET, with an explicit
-    /// `QpOptions::max_iter` of twice the cap that solve resolved. If the retry
-    /// converges the major proceeds as though the subproblem had simply taken
-    /// longer; if it hits the doubled cap too, the ordinary failure routing runs
-    /// on it, and a second capped subproblem is a failure exactly as today.
-    ///
-    /// DEFAULT FALSE, and off means the retry is never attempted and no second
-    /// engine is constructed -- the solve is byte-identical to the same solve
-    /// before this field existed.
-    ///
-    /// THE SEED IS THE WORKING SET, NOT THE POINT, and that is the engine's
-    /// contract rather than a choice: `QpEngine` centres the trust-region window
-    /// on the seed's primal, and every seeding site in this driver zeroes
-    /// `seed.x` for that reason -- carrying the capped solve's step would
-    /// re-centre the region on it and hand the retry a larger feasible set than
-    /// the major was given. What the retry inherits is the working set the
-    /// capped walk had to walk to, which is the information the cap denied it
-    /// the minors to use.
-    ///
-    /// SCOPED TO THE WALK. It fires only on a subproblem the walk itself
-    /// answered, so at the shipped `qp_mode == QpMode::kWalk` it covers every
-    /// subproblem, and under `kSsn`/`kIpm` a tier exit is left alone: the tiers
-    /// carry their own budgets (`IpqpOptions::max_iterations`,
-    /// `hard_iteration_cap`), and re-solving a tier's subproblem on the walk
-    /// would change the kernel that answered the major, not its budget.
-    ///
-    /// WHAT IT COSTS WHEN IT DOES NOT HELP: one more walk of at most the cap
-    /// again, folded into `qp_minor_iters` and `factorizations` like any other
-    /// subproblem's, plus the retry engine's own first factorization -- it has
-    /// no border-stack history of its own. `SqpCounters::qp_cap_retries` counts
-    /// the attempts and `qp_maxiter_exits` counts both exits, so the cost is
-    /// readable from the result.
-    ///
-    /// It is a BOOL with no refusable value, so `validate()` carries no
-    /// predicate for it: an exception that cannot be thrown is dead code
-    /// (CLAUDE.md section 4). Both states are accepted, and the dump carries the
-    /// line.
-    ///
-    /// NOT a curvature source (docs/counters.md): it selects how many minors a
-    /// subproblem may spend, not whether or how a second-order reading is taken.
-    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
+    /// `QpStatus::kMaxIter` means the subproblem ran out of minors, not that its
+    /// arithmetic failed. At true, a subproblem the walk answered with `kMaxIter`
+    /// and whose returned iterate is usable is re-solved before it counts as a
+    /// failure: the same subproblem and radius, warm from the capped solve's
+    /// working set (never its point), with an explicit `QpOptions::max_iter` of
+    /// twice the cap that solve resolved. If the retry converges the major
+    /// proceeds; if it hits the doubled cap too, the ordinary failure routing
+    /// runs. Scoped to the walk: a tier exit under `kSsn`/`kIpm` is left alone,
+    /// those tiers carry their own budgets. A retry that does not help costs one
+    /// more walk of at most the doubled cap plus its engine's first
+    /// factorization, folded into `qp_minor_iters` and `factorizations`;
+    /// `SqpCounters::qp_cap_retries` and `qp_maxiter_exits` report it. Not a
+    /// curvature source (docs/counters.md).
     bool qp_cap_retry = false;
 
-    /// THE FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2). At true, a failed WALK
-    /// subproblem's usable iterate p != 0 is judged by the unchanged strategy as a
-    /// trial step when it predicts a decrease or halves a violation above
-    /// `common.feasibility_tol`. Accepted: taken with the multipliers kept (the failed solve's
-    /// are not trusted), no radius growth, no SOC. Rejected: routed, not charged
-    /// to `qp_failure_budget`. Certifies nothing: a step taken here is never itself an
-    /// optimality claim; the KKT test (complementarity conjunct included) runs on
-    /// every major as usual. Not consulted in
-    /// the full-step mode; off routes every failure as before R2.
+    /// At true, a failed WALK subproblem's usable iterate p != 0 is judged by the
+    /// unchanged strategy as a trial step when it predicts a decrease or halves a
+    /// violation above `common.feasibility_tol`. Accepted: taken with the
+    /// multipliers kept (the failed solve's are not trusted), no radius growth, no
+    /// SOC. Rejected: routed, not charged to `qp_failure_budget`. Certifies
+    /// nothing: the KKT test runs on every major as usual. Not consulted in the
+    /// full-step mode. False routes every failure without taking its step.
+    /// Default true.
     /// @see docs/counters.md (the failed-subproblem step group)
     bool qp_failure_step = true;
 
-    /// THE RESTORATION PROXIMITY WEIGHT (M7 W2 M2b), `zeta` -- the coefficient
-    /// on the `1/2 zeta ||D (x - x_k)||^2` term the restoration phase's
-    /// feasibility wrapper carries in its OBJECTIVE, with `D = diag(d_i)`,
-    /// `d_i = min(1, 1/|x_{k,i}|)` and `x_k` the REQUESTING ITERATE.
+    /// The restoration proximity weight `zeta`: the coefficient on the
+    /// `1/2 zeta ||D (x - x_k)||^2` term in the restoration phase's feasibility
+    /// wrapper objective, `D = diag(d_i)`, `d_i = min(1, 1/|x_{k,i}|)`, `x_k` the
+    /// requesting iterate. It prices distance from the point that asked for the
+    /// phase, which the violation-only objective does not.
     ///
-    /// WHAT IT IS FOR. The feasibility wrapper's objective is the violation
-    /// alone, with NO x-block at all, so nothing in the sub-solve prices
-    /// distance from the point that asked for the phase: measured, the
-    /// restoration sub-solve walks `||x - x_k||_inf` from 0.13 to 9 999.9 while
-    /// its own trust radius doubles fourteen times, and returns a point inside
-    /// `common.feasibility_tol` at an objective of 1.8e14
-    /// (`docs/notes/data/2026-09-m7-w2-m2-restoration/ladder/STEENBRC.txt`).
-    /// This term is the price. It is transcribed from the interior-point lane's
-    /// NESTED l1 restoration -- `detail/globalization/l1_restoration.h`,
-    /// `rho*sum(n+p) + (eta(mu)/2)*|D_R (x - x_R)|^2` with
-    /// `rho = kRestoPenaltyParameter = 1e3` and `eta = sqrt(mu)` -- which is the
-    /// right analogue because the SQP wrapper IS an l1 elastic feasibility
-    /// problem. The IPM lane's reading of the same term is a WEAK regulariser,
-    /// three orders below the violation term.
+    /// Default 0 = off. At 0 the term is branched out of `eval_f`, `eval_grad`
+    /// and `eval_hess` (not added as zeros), so the objective, the gradient and
+    /// the Hessian's sparsity pattern are the violation-only ones.
     ///
-    /// DEFAULT 0.0 = OFF, AND OFF IS A CODE SHAPE RATHER THAN AN ARITHMETIC
-    /// IDENTITY. At 0 the wrapper BRANCHES the term out of `eval_f`,
-    /// `eval_grad` and `eval_hess` -- it does not add zeros -- so the objective,
-    /// the gradient AND the augmented Hessian's sparsity pattern are the ones
-    /// that shipped before this field existed, which is what keeps the
-    /// sub-solve's symbolic analysis where it was. `detail/globalization/sqp/
-    /// restoration.h` states the same thing where the branch is.
+    /// At `zeta > 0` the phase can no longer certify infeasibility for free:
+    /// `SqpResult::infeasibility_certified` is set only when the explicitly
+    /// computed `||J^T lambda - z_sub||_inf <= common.optimality_tol`, so a phase
+    /// that moved does not certify. EXPERIMENTAL and uncalibrated: no value is
+    /// recommended.
     ///
-    /// AT `zeta > 0` IT COSTS THE INFEASIBILITY CERTIFICATE, by design and not
-    /// as a side effect. `SqpResult::infeasibility_certified` is then set only
-    /// when the EXPLICITLY computed `||J^T lambda - z_sub||_inf <= common.optimality_tol` --
-    /// the gap between "stationary for h + P" and "stationary for h" -- so a
-    /// phase that MOVED does not certify. See that field's own note for why the
-    /// cheaper `zeta ||D^2 (x_r - x_k)||_inf` test is NOT used.
-    ///
-    /// EXPERIMENTAL, AND UNCALIBRATED. No calibrated value exists: the
-    /// pre-registered candidate set was `{h_k/(n*rho), h_k/rho, h_k/n, h_k}` and
-    /// EVERY member failed the TRAIN bar -- the term freezes the restoration
-    /// phase rather than steering it -- so the default stayed 0 and no default
-    /// event followed. The rule, the 35 legs and the ruling are
-    /// `docs/notes/data/2026-09-m7-w2-m2b-proximity/`; the design page is
-    /// `docs/notes/2026-09-m7-w2-m2-restoration-design.md` (section 3 for the
-    /// term, 3.4 for the certificate, 3.5 for the calibration, "Outcome (M2b)"
-    /// for what was measured). Whether this field stays public is decided at
-    /// M3's close, on M3's evidence. A caller that sets it is running an
-    /// uncalibrated, experimental lever.
-    ///
-    /// `validate()` refuses a negative value and a NaN (the `!(x >= 0)` form,
-    /// which catches both) and refuses a non-finite one: `+inf` would make the
-    /// wrapper's objective `+inf` at every point but the centre.
-    ///
-    /// NOT a curvature source (docs/counters.md): it adds a term to an
-    /// OBJECTIVE, and the `zeta D^2` block it puts on the wrapper's Hessian is
-    /// that term's own exact second derivative -- it selects neither whether nor
-    /// how any second-order reading is taken.
-    /// @see docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3
+    /// `validate()` refuses a negative, NaN or non-finite value. Not a curvature
+    /// source (docs/counters.md): the `zeta D^2` block is the term's own exact
+    /// second derivative.
     double restoration_proximity = 0.0;
 
     /// Split the equality rows into an independent set B and a set D dependent on
     /// it on the non-fixed columns (`detail/drivers/equality_basis.h`); every QP
     /// then carries only B with a projected rhs, and multipliers stay full-size.
     /// A split that drops nothing leaves every QP byte-identical to off.
-    /// `SqpResult::equality_basis` reports what happened. ON by default since M7 W2
-    /// E1b (the split's linear algebra is the hven::linear backend's).
-    /// @see docs/notes/2026-09-22-sqp-degeneracy-proposal.md
+    /// `SqpResult::equality_basis` reports what happened. Default true; the split's
+    /// linear algebra is the hven::linear backend's.
     bool equality_basis = true;
 
-    /// THE ELASTIC WALK'S FEASIBLE START (M7 W2 P1E). True starts each elastic walk
+    /// The elastic walk's feasible start. True starts each elastic walk
     /// ladder at the witness point (p_ref, |r| / sigma), feasible by construction
     /// (`place_elastic_seed_at_witness`, elastic.h), and keeps rung k's x as rung k+1's
     /// start (only g moves, so it stays feasible). False starts every rung at (0, 0),
@@ -747,7 +588,7 @@ struct SqpAdvancedOptions {
     /// @see docs/counters.md (elastic tier)
     bool elastic_witness_start = false;
 
-    /// THE LAST OPTIMAL RUNG (M7 W2 P1E). True: a ladder rung that fails above a
+    /// The last optimal rung. True: a ladder rung that fails above a
     /// solved rung reports the solved rung (an optimal l1-penalty step at the lower
     /// rho) instead of the failure; `SqpCounters::elastic_last_rung_fallbacks`.
     /// Under the fallback the report's qp_minor_iters / qp_factorizations are the solved
@@ -755,7 +596,7 @@ struct SqpAdvancedOptions {
     /// reconciles them.
     bool elastic_last_optimal_rung = false;
 
-    /// THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E), a fraction in [0, 1); 0 = OFF.
+    /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off (default).
     /// At k > 0 the restoration phase also resumes at a point with
     /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
     /// nothing (kNumericalError, or a kOptimal inside QC-1's no-claim margin).
@@ -765,8 +606,8 @@ struct SqpAdvancedOptions {
     double restoration_resume_reduction = 0.0;
 
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
-    /// gradient/Jacobian evaluation per rejection). False is the shipped
-    /// accepted-only rule (ruling C30 AMEND-4); true is the ablation.
+    /// gradient/Jacobian evaluation per rejection). False (default) offers accepted
+    /// pairs only.
     bool qn_update_on_reject = false;
 
     /// Under kLbfgsDamped, let B act on the NONLINEAR variables only -- those the model's
@@ -780,60 +621,50 @@ struct SqpAdvancedOptions {
     /// the L-BFGS window whenever the quasi-Newton dimension -- the nonlinear variables
     /// under `qn_nonlinear_only`, else every structural variable -- is at most this; it
     /// enters the QP as a dense block of H, with no lift, and is Oren-Luenberger
-    /// self-scaled (qn_models.h). 0 = never. 400 (the M7 QN quality round's measured
-    /// cut: the dense block won on TRAIN up to n = 344 and cost more than it gained at
-    /// 450-540). Read in no other mode. `validate()` refuses a negative value.
+    /// self-scaled (qn_models.h). 0 = never. Default 400. Read in no other mode. `validate()`
+    /// refuses a negative value.
     Index qn_full_memory_max = 400;
 
-    /// THE RESTORATION PHASE'S CURVATURE (M7 W2 RST); see SqpRestorationCurvature.
+    /// The curvature the restoration phase's QPs carry; see SqpRestorationCurvature.
     ///
-    /// WHY NOT THE EXACT HESSIAN. The feasibility wrapper minimizes the l1 violation, so
-    /// its multipliers are subgradient selectors of size sigma that do NOT shrink as the
-    /// violation goes to zero, and the curvature sum lambda_i hess c_i stays full-sized
-    /// and indefinite all the way to the restored point: a restoration QP may be
-    /// nonconvex at every major of the phase.
+    /// The feasibility wrapper minimizes the l1 violation, so its multipliers are
+    /// subgradient selectors that do not shrink with the violation and the
+    /// curvature sum lambda_i hess c_i stays full-sized and indefinite: a
+    /// restoration QP may be nonconvex at every major of the phase.
     ///
-    /// WHAT kRegularized DOES. B = mu D^2 on the x-block, mu(x) = min(1, h(x)) -- the
-    /// Levenberg-Marquardt parameter proportional to the residual norm (Yamashita &
-    /// Fukushima 2001; Fan & Yuan 2005). D is the proximity term's scaling when
-    /// `restoration_proximity > 0` (read at its centre, the requesting iterate), else
-    /// diag(min(1, 1/|x_i|)) at the wrapper's construction point: the phase's start, or
-    /// the switch point on a phase restarted under kModelThenRegularized. Every
-    /// restoration QP is then convex. Only the MODEL changes: the wrapper's objective,
-    /// constraints, gradients and the infeasibility certificate (first-order quantities)
-    /// are the same, and the phase's sub-solve runs the exact-Hessian path (eval_hess
-    /// supplies B) whatever `hessian_mode` is. The final certification stays on the
-    /// caller's problem. Alone it converges only linearly to a nonzero-residual
-    /// stationary point of h (the certified infeasible case), and slowly from far away.
+    /// kRegularized uses B = mu D^2 on the x-block, mu(x) = min(1, h(x)) (a
+    /// Levenberg-Marquardt parameter proportional to the residual norm; Yamashita
+    /// & Fukushima 2001; Fan & Yuan 2005), with D the proximity term's scaling
+    /// when `restoration_proximity > 0`, else diag(min(1, 1/|x_i|)) at the
+    /// wrapper's construction point. Every restoration QP is then convex. Only the
+    /// model changes: the wrapper's objective, constraints, gradients and the
+    /// infeasibility certificate are the same, and the sub-solve runs the
+    /// exact-Hessian path whatever `hessian_mode` is. Alone it converges only
+    /// linearly, and slowly from far away.
     ///
-    /// WHAT kModelThenRegularized DOES (the default). The phase runs on the exact model
-    /// and switches to kRegularized, from the point it stands at, on the FIRST of two
+    /// kModelThenRegularized (the default) runs the phase on the exact model and
+    /// switches to kRegularized, from the point it stands at, on the first of two
     /// triggers inside its sub-solve (`SqpCounters::restoration_curvature_switches`):
-    ///   1. a walk subproblem's answer -- the elastic tier's, where that tier took the
-    ///      subproblem -- is kMaxIter or kNumericalError (where the sub-solve would
-    ///      otherwise route the failure itself, by shrinking its radius);
-    ///   2. the elastic tier -- which keeps its place first for an infeasible subproblem
-    ///      and for an E2-class or certificate-refusal exit at a violated linearization --
-    ///      is exhausted and raises the nested restoration request, which is never
-    ///      serviced inside a phase.
-    /// The switch restarts the phase only when budget remains and the model is finite at
-    /// that point; otherwise the stopped sub-solve's own exit stands. A phase that meets
-    /// neither trigger is byte-identical to kModel. Under kLbfgsDamped it is kModel: that
-    /// phase's QN model is convex by construction. Measurements:
-    /// docs/notes/data/2026-10-m7-rst/.
+    ///   1. a walk subproblem's answer (the elastic tier's, where that tier took
+    ///      the subproblem) is kMaxIter or kNumericalError;
+    ///   2. the elastic tier is exhausted and raises the nested restoration
+    ///      request, which is never serviced inside a phase.
+    /// The switch restarts the phase only when budget remains and the model is
+    /// finite at that point; otherwise the stopped sub-solve's exit stands. A phase
+    /// that meets neither trigger is identical to kModel. Under kLbfgsDamped it is
+    /// kModel: that phase's quasi-Newton model is convex by construction.
     SqpRestorationCurvature restoration_curvature = SqpRestorationCurvature::kModelThenRegularized;
 
-    /// THE NUMBER OF RESTORATION PHASES ONE SOLVE MAY RUN (M7 W2 RST); >= 1.
+    /// The number of restoration phases one solve may run. Default 10; must be
+    /// >= 1.
     ///
-    /// 1 is the once-per-solve rule: a second restoration request is refused and the
-    /// solve ends kNumericalError. Above 1 a later request is serviced, as the filter
-    /// and funnel methods' restoration is (Fletcher & Leyffer, Math. Program. 91 (2002);
-    /// [KLV], globalization.h), but only when the main loop has ACCEPTED at least one step
-    /// since the previous resume -- a request from the point the last phase handed back,
-    /// with nothing done there, is refused as before. Every phase draws on the same
-    /// `common.max_iterations` budget, and each resume re-bases the funnel (KLV Algorithm 2). 10 is
-    /// a safety cap, not a tuned value (docs/notes/data/2026-10-m7-rst/). `validate()` refuses a
-    /// value below 1.
+    /// 1 is the once-per-solve rule: a second restoration request is refused and
+    /// the solve ends kNumericalError. Above 1 a later request is serviced, as in
+    /// the filter and funnel methods (Fletcher & Leyffer, Math. Program. 91 (2002);
+    /// [KLV], globalization.h), but only when the main loop has accepted at least one
+    /// step since the previous resume. Every phase draws on the same
+    /// `common.max_iterations` budget, and each resume re-bases the funnel (KLV
+    /// Algorithm 2).
     Index restoration_max_entries = 10;
 };
 
@@ -924,13 +755,12 @@ struct SqpOptions {
     /// residual at a large violation is a worse hand-off than a feasible point
     /// with a mediocre objective.
     ///
-    /// DEFAULT FALSE, and off reproduces plain kMaxIter-at-the-last-iterate
-    /// behaviour byte-identically.
+    /// Default false: a solve that exhausts the cap reports kMaxIter at the last
+    /// iterate.
     ///
     /// SCOPE: this lever governs ONLY the main loop's own common.max_iterations exhaustion. It
     /// does not change what happens when the restoration phase runs out of the
-    /// shared budget mid-restoration, which stays kMaxIter because it answers a
-    /// different question.
+    /// shared budget mid-restoration, which stays kMaxIter.
     bool budget_mode = false;
 
     // --- Problem scaling ---
@@ -941,16 +771,15 @@ struct SqpOptions {
     /// quantity back to the caller's units at the export boundary. The declared
     /// problem is never modified.
     ///
-    /// DEFAULT FALSE, and off means arithmetically untouched.
+    /// Default false.
     ///
-    /// What changes when IT IS ON, stated plainly because it is a contract
-    /// difference and not only a performance one: the CONVERGENCE TEST gates on
+    /// When on, the contract differs, not only the performance: the convergence test gates on
     /// the SCALED residuals, while `SqpResult`'s four terminal KKT fields, its
     /// `f`, its multiplier blocks and every history row report CALLER-scale
     /// values. Those two can differ, so a kOptimal solve may report a
     /// caller-scale `kkt_residual` above `common.optimality_tol`; `SqpScalingReport` carries
     /// both the factors and the scaled residual the gate actually read. One
-    /// exception, the caller-unit feasibility guard (M7 W2 SCL): a kOptimal also
+    /// exception, the caller-unit feasibility guard: a kOptimal also
     /// needs each row residual over its row factor to be <= common.feasibility_tol, so its
     /// caller-scale `sqp_feasibility` is within common.feasibility_tol
     /// (SqpCounters::scaled_convergence_refusals counts the refusals).
@@ -974,7 +803,7 @@ struct SqpOptions {
     /// is unbounded.
     double scaling_factor_limit = 1e12;
 
-    /// THE COLUMN (VARIABLE) LAYER of problem scaling (M7 W2 SCL). When it fires the
+    /// The column (variable) layer of problem scaling. When it fires the
     /// engine solves the problem in the variables x~ = x / d, d the power-of-two column
     /// half of a Ruiz equilibration of [Je; Ji] at the start point
     /// (detail/drivers/column_scaling.h); restoration, the trust region and the funnel
@@ -1007,7 +836,7 @@ struct SqpOptions {
     /// caller-unit re-measurement, `evals_full`), two under kAuto, whose row layer
     /// re-measures too.
     ///
-    /// DEFAULT kAuto (M7 W2 SCW, a declared event). kAuto's engagement of the row
+    /// Default kAuto. kAuto's engagement of the row
     /// layer uses the one-sided objective rule (problem_scaling.h,
     /// `amplify_objective`) unless `enable_scaling` is on.
     SqpColumnScaling column_scaling = SqpColumnScaling::kAuto;
@@ -1021,58 +850,25 @@ struct SqpOptions {
     /// and >= 1. Read only under kAuto.
     double column_scaling_threshold = 67108864.0;
 
-    /// THE OUT-OF-BOX START POINT: project it, or take it verbatim (M7 W2 M4).
+    /// Project the start point onto the declared box, or take it verbatim.
+    /// Default true.
     ///
-    /// DEFAULT TRUE since the M7 W2 ladder round (L2 = proposal E5; E2-D3 found
-    /// YORKNET's and SAWPATH's CUTEst x0 outside their own box). The dump line
-    /// moved with it -- a declared event.
+    /// `solve()` checks `x0`'s size and finiteness, never its box. At true, after
+    /// those refusals and before the first evaluation, `x0` is clamped onto the
+    /// box (`min(max(x, l), u)`, componentwise), and the number of components that
+    /// lay strictly outside it is reported as `SqpCounters::start_point_clamps`. A
+    /// point already inside its box is untouched. At false an out-of-box `x0` is
+    /// evaluated where it stands, which on a model undefined outside the box
+    /// returns `kNumericalError` in zero majors.
     ///
-    /// `solve()` checks `x0`'s SIZE and its FINITENESS and has never checked its
-    /// BOX. FALSE -- the default before the ladder round -- therefore means the start
-    /// point is TAKEN VERBATIM: an out-of-box `x0` is not refused, it is
-    /// evaluated where it stands. On a model whose objective or constraints are
-    /// undefined outside the box that first evaluation is non-finite, and the
-    /// solve RETURNS a `kNumericalError` status in zero majors -- the NON-FINITE
-    /// ITERATE exit, doing exactly what it was written to do, on a point no rule
-    /// of the problem admits. It is a reported status, not a boundary refusal,
-    /// which is why it reads to every consumer as "the solver failed".
-    ///
-    /// TRUE: after the size and finiteness refusals and BEFORE the first
-    /// evaluation, `x0` is clamped onto the declared box -- `min(max(x, l), u)`,
-    /// componentwise, which is the rule `NlpProblemModel::start_point()` already
-    /// applies to the origin -- and the number of components that lay STRICTLY
-    /// OUTSIDE the box is reported as `SqpCounters::start_point_clamps` (that
-    /// counter's own comment says why it is defined on the POINT rather than on
-    /// the repair; on this engine's clamp the two counts coincide). A fixed variable
-    /// (`l == u`) lands exactly on its value; an infinite bound moves nothing;
-    /// a point already inside its box is untouched, component for component, and
-    /// the solve is byte-identical to the same solve with this field false.
-    ///
-    /// WHAT IT DOES NOT DO. It does not weaken the finiteness refusal -- an `x0`
-    /// with a NaN or an infinity is still `std::invalid_argument`, because a NaN
-    /// has no projection. It does not touch the NON-FINITE ITERATE exit, which
-    /// keeps the case its own comment names: a point that is IN the box and still
-    /// un-evaluable. And it never moves a point the caller placed inside its
-    /// bounds, so it changes no solve that was well-posed to begin with.
-    ///
-    /// SCOPE -- IT PROJECTS THE `x0` ARGUMENT, and a WARM solve's start point is
-    /// not that argument. `prepare_solve` starts a solve at `warm.x` whenever a
-    /// warm object is ingested and at `x0` otherwise, so on the warm route the
-    /// point projected here is not the point the loop begins from. That includes
-    /// the MULTIPLIERS-ONLY seed, whose `warm.x` is a copy of `x0` taken one
-    /// frame above this projection -- so a caller combining that payload form
-    /// with an out-of-box `x0` gets the raw point even at true. Every cold solve,
-    /// which is the case this option was measured on, is covered. Widening it to
-    /// the resolved start point is registered, not done here: it would have to
-    /// run above the payload ingest, which is a second decision about a second
-    /// contract.
-    ///
-    /// NOT a curvature source (docs/counters.md): it selects where the solve
-    /// starts, not whether or how any second-order reading is taken.
-    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M4
+    /// It does not weaken the finiteness refusal (a NaN has no projection) or the
+    /// non-finite-iterate exit, and it projects the `x0` argument only: a warm
+    /// solve starts at `warm.x`, so on the warm route (including the
+    /// multipliers-only seed) the raw point is used. Not a curvature source
+    /// (docs/counters.md).
     bool project_start_point = true;
 
-    /// THE CURVATURE SOURCE (M7 QN stage 3); see SqpHessianMode. Under
+    /// The curvature source; see SqpHessianMode. Under
     /// kLbfgsDamped the model's eval_hess is never called
     /// (`SqpCounters::eval_hess_calls == 0`), `predicted_decrease` reads B, and every
     /// second-order reading an engine takes certifies the model B, not the NLP.
@@ -1106,9 +902,10 @@ struct SqpOptions {
 /// @param opts The options object to validate.
 /// @throws std::invalid_argument, naming the option and the value it had, on any
 ///         option the driver cannot honour: a non-positive or NaN tolerance, a
-///         negative `common.max_iterations`, an engaged `max_factorizations`
-///         below 0, an engaged `time_limit_seconds` that is not finite and
-///         positive, an `infinite_bound` <= 0 or NaN, a negative `common.threads`,
+///         `common.max_iterations` outside [0, INT_MAX], an engaged
+///         `max_factorizations` below 0, an engaged `time_limit_seconds` that is
+///         not finite and positive, an `infinite_bound` <= 0 or NaN, a negative
+///         `common.threads`, an engaged `qp.max_iter` below 1,
 ///         an out-of-range enum (every enum field is checked), a non-positive or
 ///         NaN `tr_init`, a `tr_max` below `tr_init` (a +inf `tr_init` is exempt),
 ///         a `tr_min` that is non-positive or above either end of the range it
@@ -1122,8 +919,7 @@ void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.
 ///
-/// "default" is the only name until M8's labeled configs, and it returns a
-/// default-constructed value.
+/// "default" is the only name, and it returns a default-constructed value.
 ///
 /// @param name A preset name.
 /// @throws std::invalid_argument, listing every valid name, if `name` is not one.
