@@ -25,7 +25,7 @@ for MODE in interior ipm ssn walk; do
   bash "$EV/runtime_r2_leg.sh" "$MODE" "$EV/$MODE" > "$EV/$MODE.log" 2>&1
   rc=$?; echo "LEG mode=$MODE rc=$rc $(date -Is)"
   python3 "$EV/analyze_r2.py" "$EV/$MODE" "$MODE" > "$EV/$MODE/analysis.txt" 2>&1
-  arc=$?; echo "ANALYSIS mode=$MODE rc=$arc"; grep -E 'STOP CONDITION|B/A|MODE ' "$EV/$MODE/analysis.txt"
+  arc=$?; echo "ANALYSIS mode=$MODE rc=$arc"; grep -E 'STOP CONDITION|VALIDITY|B/A|MODE ' "$EV/$MODE/analysis.txt"
   if [ $rc -ne 0 ] || [ $arc -ne 0 ]; then verdict="FAIL(mode=$MODE leg_rc=$rc analysis_rc=$arc)"; break; fi
 done
 echo "VERDICT $verdict"

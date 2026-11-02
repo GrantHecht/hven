@@ -16,6 +16,7 @@ env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
     perf record -q -c 2000000 -e instructions:u --call-graph dwarf,8192 --user-callchains -o "$DATA" -- \
     "$BIN" --engine interior --cells "$CELLS" --csv "$OUT/spin-explain-interior.csv" > "$OUT/spin-explain.stdout" 2>&1
 echo "record rc=$?"
+echo "throttle_events=$(perf report -i "$DATA" --stats 2> /dev/null | grep -E '^ +THROTTLE events' | awk '{print $3}')"
 # Callers of each spin symbol: the full caller-ordered report, then each spin symbol's
 # block cut out of it (a block runs from the symbol's top line to the next top line).
 perf report -i "$DATA" --comm hven_sqp_corpus --stdio --no-children --sort sym \

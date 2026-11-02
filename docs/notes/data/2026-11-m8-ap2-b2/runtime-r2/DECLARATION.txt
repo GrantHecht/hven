@@ -1,0 +1,65 @@
+M8 AP-2 group B2 -- successor runtime gate B2-runtime-r2 -- DECLARATION
+(settler rulings C213 and C214; committed before the first leg; never edited afterwards)
+================================================================================
+DISCLOSURE. This instrument was chosen AFTER r1's result was known. r1 (../runtime/, failed:
+interior instructions:u B/A = 1.008006, outside +-0.5 %) was diagnosed by a perf attribution
+(../runtime/diagnose-interior/) that placed the excess in wall-clock spin symbols (MKL's
+clock-frequency calibration and the time() polling it drives). The settler then specified
+this sampled, symbol-filtered criterion (C213) with a 20000-instruction period; a throttle
+preflight (PREFLIGHT-FINDING.txt, preflight-throttle.txt) showed that period is kernel-
+throttled on this box (26.75 % capture), and the period was then set to 200000 (C214), which
+read 0 THROTTLE events and 99.997 % capture in that preflight. The r1 failure stands in the
+record; this gate does not replace or reinterpret it.
+
+ARMS
+  A  the pin, origin/m8 03d5d121: build-b2/armA/hven_sqp_corpus,
+     sha256 0ba5d82441c5ab044e0f67e46907e963e77b107b0a8552a1b253a5de9c225656
+  B  the B2 code head after the R2 amendment, 75292af277a436bd3caafddbd3a959abbb8bfa86:
+     build-b2/rel/bench/hven_sqp_corpus copied to build-b2/armB-r2/, sha256
+     97222ee94cd3483a0961b52c8894d1f4bb543d69593e4f309228c99d76691a33
+     (run_all.sh refuses to start on any other sha)
+
+MODES  all four: interior, ipm, ssn, walk, run in that order. walk/ssn/ipm: each of the 27
+replay cells (docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt) is one process
+(--internal-run-one). interior: the top-level leg whole, one process (--engine interior
+--cells <27>).
+
+INSTRUMENT, per measured process (runtime_r2_leg.sh):
+  wait until `date +%N` < 5e6 (sub-second phase alignment), then
+  MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+    perf record -c 200000 -e instructions:u -- \
+    perf stat -x, -e instructions:u -- <arm binary> <cell args>
+  Samples are attributed with `perf report --comm hven_sqp_corpus --sort symbol` (the
+  measured process; the nested perf stat's own process is not counted).
+VALIDITY (C214): every measured process must show THROTTLE events == 0 (perf report
+  --stats). A throttled process VOIDS its leg: the leg stops at once and the gate stops and
+  is reported. No re-run.
+ROUNDS 3, arm order alternated per round: r1 A->B, r2 B->A, r3 A->B (per cell for the
+  per-cell modes; per leg for interior). One untimed, unrecorded warm-up process per arm at
+  the start of each mode.
+
+CRITERION, per mode: the FILTERED SUM -- the measured process's instructions:u samples summed
+  over every symbol EXCEPT exactly: difftime, difftime@plt, mkl_serv_get_clocks_frequency,
+  __vdso_time, __vdso_clock_gettime, time, clock_gettime. Per (arm, cell) the median over
+  the 3 rounds; per arm the sum of those medians; PASS for the mode iff
+  0.995 <= B/A <= 1.005. The gate PASSES iff all four modes pass.
+REPORTED BESIDE IT, NEVER THE CRITERION: the raw perf-stat instructions:u (same
+  aggregation), the unfiltered sample sum, the excluded samples, per-round ratios.
+STOP CONDITION: counter identity on every (round, cell) pair -- each child row field for
+  field except wall_s; the interior corpus CSV by scripts/compare_replay.py, EXACT. Any
+  difference or missing row stops the gate.
+EXPLANATORY, changes no verdict: one `perf record -c 2000000 -e instructions:u --call-graph
+  dwarf,8192 --user-callchains` of the interior leg in arm B, run first (spin_explain.sh):
+  the spin symbols' callers, and their samples clustered into bursts against the number of
+  solves (each on a fresh solver, so at least one Pardiso session each) -- naming whether the
+  spin is triggered once per process or once per Pardiso session (candidate:
+  src/linear/pardiso_session.cpp:325-341, iparm[17]/[18]).
+
+ON FAIL (a mode outside the band, a VOID leg, or a STOP): stop at that mode, report it, do
+not re-run, do not change the criterion.
+
+PROTOCOL: run_all.sh as `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial,
+alone; `pgrep -a hven_bench_cell` empty before the lock (its own command) and PGREP_EMPTY
+inside it; FOREGROUND_START/END; set -o pipefail; no timeout wrapper. perf.data files are
+deleted after their tables are written; the tables, perf stat outputs, throttle counts and
+CSVs are the evidence, in <mode>/ and spin/. Hardware/toolchain: as ../riders/PROVENANCE.txt.

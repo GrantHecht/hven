@@ -7,7 +7,8 @@ usage: analyze_r2.py <leg-dir> <mode>
    --internal-out file is one data row; every field but wall_s (the 14th) must be equal
    as strings. The interior leg's file is a corpus CSV, compared with
    scripts/compare_replay.py (EXACT). Any difference or missing file -> STOP.
-2. THE CRITERION: per process, the instructions:u samples (perf record -c 20000) of the
+   VALIDITY: every process's THROTTLE event count (throttle/) must be 0; else VOID.
+2. THE CRITERION: per process, the instructions:u samples (perf record -c 200000) of the
    measured process (comm hven_sqp_corpus), summed over every symbol EXCEPT exactly:
    difftime, difftime@plt, mkl_serv_get_clocks_frequency, __vdso_time,
    __vdso_clock_gettime, time, clock_gettime. Per (arm, cell): the median over the 3
@@ -94,6 +95,17 @@ print('STOP CONDITION: %d (round,cell) pairs compared, %d with a difference or m
       % (checked, mismatch, 'COUNTER IDENTITY HOLDS' if mismatch == 0 else 'STOP'))
 if mismatch:
     sys.exit(2)
+
+# validity: no throttled process
+throttled = []
+for p in sorted(glob.glob(os.path.join(leg, 'throttle', '*.txt'))):
+    if open(p).read().strip() != '0':
+        throttled.append(os.path.basename(p))
+nproc = len(glob.glob(os.path.join(leg, 'throttle', '*.txt')))
+print('VALIDITY: %d processes, %d throttled -> %s' % (nproc, len(throttled),
+      'VALID' if not throttled and nproc == 6 * len(tags) else 'VOID %s' % throttled[:5]))
+if throttled or nproc != 6 * len(tags):
+    sys.exit(3)
 
 # 2./3. the readings
 per = {}  # (arm, tag) -> list over rounds of (filtered, total, excluded, raw)
