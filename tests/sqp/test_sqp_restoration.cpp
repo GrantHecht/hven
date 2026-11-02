@@ -4466,9 +4466,10 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
             // A kOptimal on the valley is a KKT point of the NLP, checked against the model
             // itself (the objective is not convex here, so no objective comparison).
             const hven::solvers::test_support::NlpKktResidual chk =
-                hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
-            EXPECT_LE(chk.stationarity, 10.0 * opts.kkt_tol);
-            EXPECT_LE(chk.primal, 10.0 * opts.feas_tol);
+                hven::solvers::test_support::self_check_kkt(model, sol,
+                                                            opts.common.feasibility_tol);
+            EXPECT_LE(chk.stationarity, 10.0 * opts.common.optimality_tol);
+            EXPECT_LE(chk.primal, 10.0 * opts.common.feasibility_tol);
             EXPECT_LE(chk.dual_sign, 1e-9);
         }
 #endif

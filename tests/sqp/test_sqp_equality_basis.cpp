@@ -655,12 +655,12 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
         hven::test_support::record_off_reference_route(
             std::string("f9_ladder_") + std::to_string(static_cast<int>(mode)),
             fmt::format("status={} major_iters={} max_iter={}", static_cast<int>(res.status),
-                        res.counters.major_iters, o.max_iter));
+                        res.counters.major_iters, o.common.max_iterations));
         EXPECT_NE(res.status, SolveStatus::kOptimal); // the system is inconsistent
         EXPECT_TRUE(res.equality_basis.handed_off);
         EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
         EXPECT_GE(res.equality_basis.split_changes, 1);
-        EXPECT_LE(res.counters.major_iters, o.max_iter);
+        EXPECT_LE(res.counters.major_iters, o.common.max_iterations);
 #endif
     }
 }

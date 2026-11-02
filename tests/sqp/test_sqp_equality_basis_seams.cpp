@@ -109,7 +109,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
                 " major_iters=" + std::to_string(on.counters.major_iters));
         EXPECT_NE(on.status, SolveStatus::kOptimal);
         EXPECT_TRUE(on.equality_basis.handed_off);
-        EXPECT_LE(on.counters.major_iters, o.max_iter);
+        EXPECT_LE(on.counters.major_iters, o.common.max_iterations);
 #endif
         // The negative control.
         Seam::disable_hand_off = true;
