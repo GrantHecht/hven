@@ -630,10 +630,12 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     SqpSolver driver(o);
     // The nesting depth of every row event, in order: the sub-solve's rows arrive at depth 1.
     std::vector<Index> depths;
-    driver.set_iteration_callback([&depths](const IterationEvent &e) {
-        depths.push_back(e.depth.value_or(0));
-        return CallbackAction::kContinue;
-    });
+    driver.set_iteration_callback(
+        [&depths](const IterationEvent &e) {
+            depths.push_back(e.depth.value_or(0));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
@@ -987,13 +989,15 @@ TEST(SqpLadderSeam, AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart)
     ASSERT_EQ(o.advanced.restoration_curvature, SqpRestorationCurvature::kModelThenRegularized);
     SqpSolver solver(o);
     int depth1_rows = 0;
-    solver.set_iteration_callback([&](const IterationEvent &e) {
-        if (e.depth.value_or(0) >= 1) {
-            ++depth1_rows;
-            return CallbackAction::kStop;
-        }
-        return CallbackAction::kContinue;
-    });
+    solver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (e.depth.value_or(0) >= 1) {
+                ++depth1_rows;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(Seam::forced_restoration, 1);

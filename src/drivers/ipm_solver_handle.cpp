@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/drivers/result_message.h"
 #include "hven/detail/model/problem_access.h"
@@ -79,21 +80,21 @@ IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, const Wa
     IpmSolverImpl &engine = impl();
     NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
     detail::ProblemAccess::reset_work(problem);
+    const detail::CallbackRowsScope rows(engine, problem);
     IpmResult result =
         warm.empty() ? engine.solve(program, x0, budget) : engine.solve(program, x0, warm, budget);
     finish_result(engine, problem, budget, result);
     return result;
 }
 
-void IpmSolver::set_iteration_callback(IterationCallback cb) {
-    impl().set_iteration_callback(std::move(cb));
-}
-
-void IpmSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload) {
-    impl().set_iteration_callback(std::move(cb), payload);
+void IpmSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload,
+                                       CallbackScope scope) {
+    impl().set_iteration_callback(std::move(cb), payload, scope);
 }
 
 IterationPayload IpmSolver::iteration_payload() const { return impl().iteration_payload(); }
+
+CallbackScope IpmSolver::iteration_scope() const { return impl().iteration_scope(); }
 
 void IpmSolver::clear_iteration_callback() { impl().clear_iteration_callback(); }
 

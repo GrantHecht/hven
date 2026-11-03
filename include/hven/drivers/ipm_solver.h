@@ -171,8 +171,8 @@ class IpmSolver {
     IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
-    /// Installs the per-iteration callback that both engines accept, with the
-    /// full payload (`IterationPayload::kAll`). An empty function clears it.
+    /// Installs the per-iteration callback that both engines accept. An empty
+    /// function clears it.
     ///
     /// The callback fires once per `ipm.iter` trace row: at the top of the
     /// iteration that iterate starts, after its residuals are measured and
@@ -195,26 +195,35 @@ class IpmSolver {
     /// the change is deferred until the invocation returns, or failing that to
     /// the next solve entry. One slot serves each setter and the last write
     /// wins.
-    void set_iteration_callback(IterationCallback cb);
-
-    /// As above, and declares which parts of `IterationEvent` the consumer
-    /// reads; the engine prepares nothing else.
     ///
-    /// Under `IterationPayload::kScalars` the event carries `iteration`,
-    /// `phase`, `f`, `step_norm`, `mu` and `elapsed_seconds`; `x`, `lambda_e`,
-    /// `lambda_i` and `z` are empty views and the four declared diagnostics
-    /// are NaN, meaning "not requested". The engine then skips the O(n) work
-    /// that fills them.
+    /// @param payload Which parts of `IterationEvent` the consumer reads; the
+    ///        engine prepares nothing else. Under `IterationPayload::kScalars`
+    ///        the event carries `iteration`, `phase`, `f`, `step_norm`, `mu`
+    ///        and `elapsed_seconds`; `x`, `lambda` and `z` are empty views and
+    ///        the three declared diagnostics are NaN, meaning "not requested".
+    ///        The engine then skips the O(n) work that fills them. The mask is
+    ///        stored with the callable, parked through the same in-flight
+    ///        guard, and reset to `kAll` by `clear_iteration_callback()` and by
+    ///        passing an empty callable.
+    /// @param scope This engine has no nested solves, so every event is
+    ///        top-level and the scope is accepted with no effect.
     ///
-    /// The mask is stored with the callable, parked through the same in-flight
-    /// guard, and reset to `kAll` by `clear_iteration_callback()` and by
-    /// passing an empty callable.
-    void set_iteration_callback(IterationCallback cb, IterationPayload payload);
+    /// The stream has one event per iteration row, so the number of events
+    /// equals the iteration count. `IterationEvent::lambda` is in the
+    /// problem's row space, as `SolveResult::lambda` is, and costs a compose
+    /// per event only under a payload that includes `kVectors`.
+    void set_iteration_callback(IterationCallback cb,
+                                IterationPayload payload = IterationPayload::kAll,
+                                CallbackScope scope = CallbackScope::kTopLevel);
 
     /// The payload mask currently in force.
     IterationPayload iteration_payload() const;
 
-    /// Removes the callback and resets the payload mask to `kAll`. Deferred
+    /// The callback scope currently in force (`kTopLevel` when none is set).
+    CallbackScope iteration_scope() const;
+
+    /// Removes the callback and resets the payload mask to `kAll` and the scope
+    /// to `kTopLevel`. Deferred
     /// like `set_iteration_callback()` when called from inside a callback.
     void clear_iteration_callback();
 

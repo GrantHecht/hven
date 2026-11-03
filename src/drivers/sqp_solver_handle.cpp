@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/result_message.h"
 #include "hven/detail/drivers/sqp_solver_impl.h"
 #include "hven/detail/model/problem_access.h"
@@ -72,6 +73,7 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const SolveBudget &b
     const detail::SqpTarget target =
         detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
     detail::ProblemAccess::reset_work(problem);
+    const detail::CallbackRowsScope rows(engine, problem);
     SqpResult result = target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
@@ -105,15 +107,14 @@ SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const SqpWarmStart &
                     [&](auto &form) { return engine.solve(form, x0, state, budget); });
 }
 
-void SqpSolver::set_iteration_callback(IterationCallback cb) {
-    impl().set_iteration_callback(std::move(cb));
-}
-
-void SqpSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload) {
-    impl().set_iteration_callback(std::move(cb), payload);
+void SqpSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload,
+                                       CallbackScope scope) {
+    impl().set_iteration_callback(std::move(cb), payload, scope);
 }
 
 IterationPayload SqpSolver::iteration_payload() const { return impl().iteration_payload(); }
+
+CallbackScope SqpSolver::iteration_scope() const { return impl().iteration_scope(); }
 
 void SqpSolver::clear_iteration_callback() { impl().clear_iteration_callback(); }
 

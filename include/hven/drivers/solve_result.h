@@ -259,7 +259,7 @@ enum class CallbackAction {
 
 /// @brief What an attached iteration callback asks its engine to PREPARE.
 ///
-/// A bit mask, declared at attachment. The four vector views and the four
+/// A bit mask, declared at attachment. The three vector views and the three
 /// declared diagnostics cost O(n) of engine work per event -- an expansion out
 /// of the engine's own space, a units map, and one pass over every declared
 /// coordinate and constraint row -- prepared whether or not the consumer reads
@@ -268,17 +268,17 @@ enum class CallbackAction {
 /// the SQP engine, whose events are per major and few, it is carried for one
 /// surface across both engines.
 ///
-/// The one-argument set_iteration_callback() means @ref kAll on both engines.
+/// set_iteration_callback() defaults to @ref kAll on both engines.
 enum class IterationPayload : unsigned {
     /// The fields that cost only a copy, and that EVERY mask delivers:
     /// `iteration`, `phase`/`depth`, `f`, `step_norm`, `radius`/`mu` and
     /// `elapsed_seconds`. As a mask on its own it asks for nothing else.
     kScalars = 0,
-    /// The four vector views -- `x`, `lambda_e`, `lambda_i`, `z`. Without this
-    /// bit all four arrive EMPTY (size 0).
+    /// The three vector views -- `x`, `lambda`, `z`. Without this bit all
+    /// three arrive EMPTY (size 0).
     kVectors = 1,
-    /// The four declared diagnostics -- `stationarity`, `feasibility_e`,
-    /// `feasibility_i`, `complementarity`. Without this bit all four arrive
+    /// The three declared diagnostics -- `stationarity`, `feasibility`,
+    /// `complementarity`. Without this bit all three arrive
     /// NaN, which under this header's own rule reads as NOT MEASURED; under a
     /// mask that omits them it means NOT REQUESTED, which is the same absence.
     kDiagnostics = 2,
@@ -300,35 +300,59 @@ constexpr bool payload_requests(IterationPayload mask, IterationPayload part) no
            static_cast<unsigned>(part);
 }
 
+/// @brief Which iterations a callback is shown.
+///
+/// Only the SQP engine nests solves (its restoration phase runs a feasibility
+/// sub-solve); the interior-point engine's events are all top-level, so the
+/// scope is accepted there and changes nothing.
+enum class CallbackScope {
+    /// Only the caller's own solve: every event has `depth` 0 on the SQP. The
+    /// restoration sub-solves run without any callback machinery.
+    kTopLevel = 0,
+    /// Also the restoration sub-solves' own rows, stamped with their `depth`
+    /// (>= 1). Those rows are in the sub-problem's space; see
+    /// IterationEvent::depth.
+    kIncludeRestoration = 1,
+};
+
 /// @brief One iteration, as both engines report it to a caller's callback.
 ///
 /// What arrives depends on the payload mask the callback was attached with
 /// (@ref IterationPayload). Under the default @ref
-/// IterationPayload::kAll -- which is what the one-argument
-/// set_iteration_callback() installs -- every field below is prepared, as it
-/// always was. Under a narrower mask the four vector views arrive EMPTY and/or
-/// the four diagnostics arrive NaN, and the engine does not do the work that
-/// would have filled them. The scalars are delivered under every mask.
+/// IterationPayload::kAll every field below is prepared. Under a narrower mask
+/// the three vector views arrive EMPTY and/or the three diagnostics arrive NaN,
+/// and the engine does not do the work that would have filled them. The
+/// scalars are delivered under every mask.
+///
+/// HOW MANY EVENTS. One event per iteration row. The SQP's row 0 is the start
+/// point, so on a plain exit its default stream (@ref CallbackScope::kTopLevel)
+/// holds `iterations + 1` events, `SolveResult::iterations` being the number
+/// of steps taken. The interior-point engine's rows are its iterations: the
+/// number of events equals its iteration count.
 ///
 /// AT `depth` 0 -- which is every interior-point event and every top-level SQP
 /// major -- EVERY field is in DECLARED space and CALLER units, exactly as
 /// SolveResult is: the interior-point engine's reduced primal space is
 /// expanded, its internal fixing rows are sliced out of the equality block, and
 /// a scaled SQP solve's multipliers and prices carry no factor of the engine's.
+/// In particular `lambda` is in the problem's ROW SPACE, the form of
+/// SolveResult::lambda, and the final depth-0 event's `lambda` equals the
+/// result's.
 ///
 /// At `depth` 1 the space is the restoration sub-problem's, not the caller's.
 /// A depth-1 event is the feasibility
 /// sub-solve's OWN row: `x` is that problem's variable vector (whose width need
-/// not be the caller's `n`), `f` is its feasibility objective, and the four
+/// not be the caller's `n`), `f` is its feasibility objective, and the three
 /// diagnostics are measured on it. Nothing is mapped back -- see @ref depth.
 ///
-/// THE FOUR VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
+/// THE THREE VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
 /// storage the engine owns and reuses; a callback that needs them afterwards
 /// copies them. Copying the EVENT does not deepen the views.
 ///
-/// UNMEASURED IS NaN, never zero -- the four diagnostics follow SolveResult's
-/// own rule (this header's note), so an event taken where no finite evaluation
-/// of the point exists reports NaN in all four rather than a residual of zero.
+/// UNMEASURED IS NaN, never zero -- the three diagnostics (`stationarity`,
+/// `feasibility`, `complementarity`) follow SolveResult's own rule (this
+/// header's note), so an event taken where no finite evaluation of the point
+/// exists reports NaN in all three rather than a residual of zero.
 ///
 /// The three optionals say which engine produced the event rather than
 /// carrying a sentinel: `phase` and `mu` are the interior-point engine's,
@@ -359,10 +383,11 @@ struct IterationEvent {
 
     /// @brief Objective value at the event's point, on the caller's scale.
     double f = std::numeric_limits<double>::quiet_NaN();
-    /// @brief The four SHARED diagnostics of SolveResult, at the event's point.
+    /// @brief The three SHARED diagnostics of SolveResult, at the event's
+    ///        point: `feasibility` is the larger of the equality and inequality
+    ///        residuals, NaN if either is.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
-    double feasibility_e = std::numeric_limits<double>::quiet_NaN();
-    double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief The step that reached (SQP: that was taken from) this point.
     ///        SQP: SqpIterate::step_norm of the row. INTERIOR-POINT: the
@@ -378,13 +403,11 @@ struct IterationEvent {
 
     /// @brief The point, declared width. BORROWED -- see this struct's note.
     Eigen::Ref<const Vec> x;
-    /// @brief Equality multipliers at @ref x, in the engine's own split (c_E
-    ///        rows). BORROWED. The engine split stands until group B4;
-    ///        SolveResult::lambda is the problem's row-space form.
-    Eigen::Ref<const Vec> lambda_e;
-    /// @brief Inequality multipliers at @ref x, in the engine's own split (c_I
-    ///        rows, c_I(x) <= 0). BORROWED. Engine split until B4, as above.
-    Eigen::Ref<const Vec> lambda_i;
+    /// @brief Row multipliers at @ref x, in the problem's row space -- the
+    ///        definition of SolveResult::lambda. BORROWED. At `depth` >= 1 it
+    ///        is the restoration sub-problem's own [lambda_e; lambda_i]
+    ///        concatenation instead.
+    Eigen::Ref<const Vec> lambda;
     /// @brief Bound multipliers at @ref x, z = z_lower - z_upper, declared
     ///        width. BORROWED.
     Eigen::Ref<const Vec> z;

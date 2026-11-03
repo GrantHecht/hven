@@ -1271,7 +1271,7 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     };
     auto record = [](std::vector<Seen> &into) {
         return [&into](const IterationEvent &ev) {
-            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda_e});
+            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda});
             return CallbackAction::kContinue;
         };
     };
@@ -1279,12 +1279,14 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     opts.common.max_iterations = max_iter;
     std::vector<Seen> ref_events, events;
     SqpSolver plain{opts};
-    plain.set_iteration_callback(record(ref_events));
+    plain.set_iteration_callback(record(ref_events), IterationPayload::kAll,
+                                 CallbackScope::kIncludeRestoration);
     const ColumnScaledModel scaled_model(model, cs.cols);
     (void)plain.solve(hven::solvers::detail::problem_ref(scaled_model), scaled_model.to_scaled(x0));
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
-    driver.set_iteration_callback(record(events));
+    driver.set_iteration_callback(record(events), IterationPayload::kAll,
+                                  CallbackScope::kIncludeRestoration);
     (void)driver.solve(hven::solvers::detail::problem_ref(model), x0);
     ASSERT_EQ(ref_events.size(), events.size());
     Index depth1 = 0;

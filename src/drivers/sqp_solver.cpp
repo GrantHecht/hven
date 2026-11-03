@@ -41,6 +41,7 @@
 // complete.
 #include <hven/drivers/console_trace_sink.h>
 
+#include <hven/detail/drivers/callback_rows.h>
 #include <hven/detail/drivers/column_scaling.h>
 #include <hven/detail/drivers/equality_basis.h>
 #include <hven/detail/drivers/equality_basis_testing.h>
@@ -5688,7 +5689,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // `invoke_iteration_callback`, which reads `iteration_callback_` at the
         // moment of the call, so a replacement callable is already live at the
         // next depth-1 event.
-        if (iteration_callback_) {
+        // UNDER CallbackScope::kTopLevel NO FORWARDER IS INSTALLED: the sub-driver
+        // then has no callback at all and prepares no event snapshot, and since a
+        // callback that only returns kContinue cannot move the trajectory, the
+        // sub-solve is bitwise the one a forwarded run performs. (A kStop
+        // returned at depth 0 latches on this driver, not through the sub-solve.)
+        if (iteration_callback_ && iteration_scope_ == CallbackScope::kIncludeRestoration) {
             sub.set_iteration_callback(
                 [this, &st](const IterationEvent &e) {
                     // THE COLUMN LAYER'S MAP (M7 W2 SCL): on a column-scaled solve the
@@ -5716,15 +5722,13 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                         .depth = e.depth.value_or(0) + 1,
                         .f = e.f,
                         .stationarity = e.stationarity,
-                        .feasibility_e = e.feasibility_e,
-                        .feasibility_i = e.feasibility_i,
+                        .feasibility = e.feasibility,
                         .complementarity = e.complementarity,
                         .step_norm = e.step_norm,
                         .radius = e.radius,
                         .mu = e.mu,
                         .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
-                        .lambda_e = e.lambda_e,
-                        .lambda_i = e.lambda_i,
+                        .lambda = e.lambda,
                         .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
                         .elapsed_seconds = std::chrono::duration<double>(
                                                std::chrono::steady_clock::now() - this->entry_time_)
@@ -6264,21 +6268,33 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &expor
     if (!iteration_callback_) {
         return;
     }
+    // The multipliers in the problem's row space, composed only for a consumer
+    // that asked for vectors. A mask widened from inside a restoration event
+    // reaches this row after its snapshot was taken under the narrower mask: the
+    // snapshot is then empty and the event keeps the empty views (the new mask
+    // takes effect at the next measured row).
+    const bool want_vectors =
+        payload_requests(iteration_payload_, IterationPayload::kVectors) && mj.event_x.size() != 0;
+    if (want_vectors) {
+        detail::compose_event_lambda(callback_rows_, mj.event_lambda_e, mj.event_lambda_i,
+                                     event_lambda_scratch_);
+    } else {
+        event_lambda_scratch_.resize(0);
+    }
     IterationEvent event{
         .iteration = static_cast<Index>(st.out.history.size()),
         .phase = std::nullopt,
         .depth = Index{0},
         .f = exported.f,
         .stationarity = mj.event_diag.stationarity,
-        .feasibility_e = mj.event_diag.feasibility_e,
-        .feasibility_i = mj.event_diag.feasibility_i,
+        .feasibility =
+            detail::combine_feasibility(mj.event_diag.feasibility_e, mj.event_diag.feasibility_i),
         .complementarity = mj.event_diag.complementarity,
         .step_norm = exported.step_norm,
         .radius = exported.tr_radius,
         .mu = std::nullopt,
         .x = mj.event_x,
-        .lambda_e = mj.event_lambda_e,
-        .lambda_i = mj.event_lambda_i,
+        .lambda = event_lambda_scratch_,
         .z = mj.event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count(),
@@ -6334,8 +6350,10 @@ void SqpSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
     // same statement in every setter, so applying one without the other would
     // hand the new consumer the previous one's payload.
     iteration_payload_ = pending_payload_;
+    iteration_scope_ = pending_scope_;
     pending_callback_.reset();
     pending_payload_ = IterationPayload::kAll;
+    pending_scope_ = CallbackScope::kTopLevel;
     pending_callback_at_entry_ = false;
     // AND IT LANDS ON AN ACTIVE RESTORATION SUB-DRIVER TOO (M7 W0 T2 fix1).
     // This is the apply point a depth-1 setter call reaches: the forwarder

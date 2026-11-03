@@ -65,6 +65,7 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp.h>
+#include <hven/model/problem.h>
 
 #include "support/hs071_problem.h"
 
@@ -72,7 +73,9 @@ namespace {
 
 using hven::Index;
 using hven::solvers::CallbackAction;
+using hven::solvers::CallbackScope;
 using hven::solvers::IterationEvent;
+using hven::solvers::IterationPayload;
 using hven::solvers::Ledger;
 using hven::solvers::NlpModel;
 using hven::solvers::NlpProblemModel;
@@ -96,13 +99,12 @@ struct Seen {
     std::optional<Index> depth;
     double f = 0.0;
     double stationarity = 0.0;
-    double feasibility_e = 0.0;
-    double feasibility_i = 0.0;
+    double feasibility = 0.0;
     double complementarity = 0.0;
     double step_norm = 0.0;
     std::optional<double> radius;
     std::optional<double> mu;
-    Vec x, lambda_e, lambda_i, z;
+    Vec x, lambda, z;
     double elapsed_seconds = 0.0;
 };
 
@@ -113,15 +115,13 @@ Seen copy_of(const IterationEvent &e) {
     s.depth = e.depth;
     s.f = e.f;
     s.stationarity = e.stationarity;
-    s.feasibility_e = e.feasibility_e;
-    s.feasibility_i = e.feasibility_i;
+    s.feasibility = e.feasibility;
     s.complementarity = e.complementarity;
     s.step_norm = e.step_norm;
     s.radius = e.radius;
     s.mu = e.mu;
     s.x = e.x;
-    s.lambda_e = e.lambda_e;
-    s.lambda_i = e.lambda_i;
+    s.lambda = e.lambda;
     s.z = e.z;
     s.elapsed_seconds = e.elapsed_seconds;
     return s;
@@ -523,24 +523,26 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
         // own arithmetic (the engine divides mapped quantities where the
         // recomputation multiplies raw ones); nothing here is bitwise, and the
         // UNSCALED control below is what pins the bitwise claim.
-        ASSERT_EQ(e.lambda_e.size(), hven::solvers::detail::engine_rows(sol).lambda_e.size());
-        ASSERT_EQ(e.lambda_i.size(), hven::solvers::detail::engine_rows(sol).lambda_i.size());
+        const Eigen::Index me = hven::solvers::detail::engine_rows(sol).lambda_e.size();
+        const Eigen::Index mi = hven::solvers::detail::engine_rows(sol).lambda_i.size();
+        ASSERT_EQ(e.lambda.size(), me + mi);
         ASSERT_EQ(e.z.size(), sol.z.size());
         ASSERT_TRUE(e.x.allFinite());
-        ASSERT_TRUE(e.lambda_e.allFinite());
-        ASSERT_TRUE(e.lambda_i.allFinite());
+        ASSERT_TRUE(e.lambda.allFinite());
         ASSERT_TRUE(e.z.allFinite());
         {
             const NlpModel &m = *view.model;
             const hven::solvers::detail::DeclaredDiagnostics d =
                 hven::solvers::detail::compute_declared_diagnostics(
-                    e.x, e.lambda_e, e.lambda_i, e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
-                    m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+                    e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x),
+                    m.eval_jac_e(e.x), m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(),
+                    m.upper(), {});
             EXPECT_NEAR(e.f, m.eval_f(e.x), 1e-9 * (1.0 + std::abs(e.f)))
                 << "the event's objective is the caller's objective at the event's point";
             EXPECT_NEAR(e.stationarity, d.stationarity, 1e-7 * (1.0 + d.stationarity));
-            EXPECT_NEAR(e.feasibility_e, d.feasibility_e, 1e-9 * (1.0 + d.feasibility_e));
-            EXPECT_NEAR(e.feasibility_i, d.feasibility_i, 1e-9 * (1.0 + d.feasibility_i));
+            const double feas =
+                hven::solvers::detail::combine_feasibility(d.feasibility_e, d.feasibility_i);
+            EXPECT_NEAR(e.feasibility, feas, 1e-9 * (1.0 + feas));
             EXPECT_NEAR(e.complementarity, d.complementarity, 1e-7 * (1.0 + d.complementarity));
         }
     }
@@ -551,15 +553,9 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
     // re-measurement `finish` takes on a scaled solve.
     const Seen &last = rec.seen.back();
     EXPECT_TRUE(bit_equal(last.x, sol.x)) << "the terminal event's point IS the returned point";
-    ASSERT_EQ(last.lambda_e.size(), hven::solvers::detail::engine_rows(sol).lambda_e.size());
-    for (Eigen::Index i = 0; i < last.lambda_e.size(); ++i) {
-        EXPECT_NEAR(last.lambda_e[i], hven::solvers::detail::engine_rows(sol).lambda_e[i],
-                    1e-9 * (1.0 + std::abs(hven::solvers::detail::engine_rows(sol).lambda_e[i])));
-    }
-    ASSERT_EQ(last.lambda_i.size(), hven::solvers::detail::engine_rows(sol).lambda_i.size());
-    for (Eigen::Index i = 0; i < last.lambda_i.size(); ++i) {
-        EXPECT_NEAR(last.lambda_i[i], hven::solvers::detail::engine_rows(sol).lambda_i[i],
-                    1e-9 * (1.0 + std::abs(hven::solvers::detail::engine_rows(sol).lambda_i[i])));
+    ASSERT_EQ(last.lambda.size(), sol.lambda.size());
+    for (Eigen::Index i = 0; i < last.lambda.size(); ++i) {
+        EXPECT_NEAR(last.lambda[i], sol.lambda[i], 1e-9 * (1.0 + std::abs(sol.lambda[i])));
     }
 
     // FALSIFIABILITY: the engine-unit multipliers this solve ran at are NOT the
@@ -585,10 +581,8 @@ TEST(Callback, SqpTerminalEventDiagnosticsAreTheResultsOwn) {
     const Seen &last = rec.seen.back();
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.stationarity),
               std::bit_cast<std::uint64_t>(sol.stationarity));
-    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility_e),
-              std::bit_cast<std::uint64_t>(hven::solvers::detail::engine_rows(sol).feasibility_e));
-    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility_i),
-              std::bit_cast<std::uint64_t>(hven::solvers::detail::engine_rows(sol).feasibility_i));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility),
+              std::bit_cast<std::uint64_t>(sol.feasibility));
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.complementarity),
               std::bit_cast<std::uint64_t>(sol.complementarity));
 }
@@ -694,15 +688,17 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     std::vector<Seen> seen;
     bool stopped = false;
     std::size_t stop_index = 0;
-    driver.set_iteration_callback([&](const IterationEvent &e) {
-        seen.push_back(copy_of(e));
-        if (!stopped && e.depth.value_or(0) == 1) {
-            stopped = true;
-            stop_index = seen.size() - 1;
-            return CallbackAction::kStop;
-        }
-        return CallbackAction::kContinue;
-    });
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped && e.depth.value_or(0) == 1) {
+                stopped = true;
+                stop_index = seen.size() - 1;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
@@ -751,13 +747,15 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
 
     SqpSolver driver(opts);
     bool stopped = false;
-    driver.set_iteration_callback([&](const IterationEvent &e) {
-        if (!stopped && e.depth.value_or(0) == 1) {
-            stopped = true;
-            return CallbackAction::kStop;
-        }
-        return CallbackAction::kContinue;
-    });
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (!stopped && e.depth.value_or(0) == 1) {
+                stopped = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_TRUE(stopped);
@@ -804,10 +802,12 @@ template <class Model>
 void expect_every_depth0_event_is_its_own_point(Model &model, const SqpOptions &opts) {
     SqpSolver driver(opts);
     std::vector<Seen> seen;
-    driver.set_iteration_callback([&](const IterationEvent &e) {
-        seen.push_back(copy_of(e));
-        return CallbackAction::kContinue;
-    });
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_FALSE(sol.scaling.active) << "this pin is stated on an UNSCALED solve, where the "
@@ -831,10 +831,16 @@ void expect_every_depth0_event_is_its_own_point(Model &model, const SqpOptions &
                   std::bit_cast<std::uint64_t>(model.eval_f(e.x)))
             << "the event's objective is not the caller's objective at the event's point";
         const Vec ce = model.eval_ce(e.x);
-        if (ce.size() > 0 && !std::isnan(e.feasibility_e)) {
-            EXPECT_EQ(std::bit_cast<std::uint64_t>(e.feasibility_e),
-                      std::bit_cast<std::uint64_t>(ce.lpNorm<Eigen::Infinity>()))
-                << "the event's equality residual is not the residual at the event's point";
+        if (ce.size() > 0 && !std::isnan(e.feasibility)) {
+            const double ce_norm = ce.lpNorm<Eigen::Infinity>();
+            if (model.eval_ci(e.x).size() == 0) {
+                EXPECT_EQ(std::bit_cast<std::uint64_t>(e.feasibility),
+                          std::bit_cast<std::uint64_t>(ce_norm))
+                    << "the event's equality residual is not the residual at the event's point";
+            } else {
+                EXPECT_GE(e.feasibility, ce_norm)
+                    << "the event's feasibility is below the equality residual at its point";
+            }
         }
     }
     EXPECT_EQ(depth0, sol.history.size()) << "one depth-0 event per history row";
@@ -935,10 +941,12 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
     // The reference, so the sub-solve's own terminal depth-1 row is known.
     SqpSolver reference_driver(opts);
     std::vector<Seen> ref_seen;
-    reference_driver.set_iteration_callback([&](const IterationEvent &e) {
-        ref_seen.push_back(copy_of(e));
-        return CallbackAction::kContinue;
-    });
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult reference =
         reference_driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
@@ -957,13 +965,15 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
 
     SqpSolver driver(opts);
     bool stopped = false;
-    driver.set_iteration_callback([&](const IterationEvent &e) {
-        if (e.depth.value_or(0) == 1 && e.iteration == last_depth1) {
-            stopped = true;
-            return CallbackAction::kStop;
-        }
-        return CallbackAction::kContinue;
-    });
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (e.depth.value_or(0) == 1 && e.iteration == last_depth1) {
+                stopped = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_TRUE(stopped);
@@ -1252,8 +1262,7 @@ TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
     // NaN IN ALL FOUR: nothing was measured at that point, and a zero would
     // read as a converged residual.
     EXPECT_TRUE(std::isnan(seen[0].stationarity));
-    EXPECT_TRUE(std::isnan(seen[0].feasibility_e));
-    EXPECT_TRUE(std::isnan(seen[0].feasibility_i));
+    EXPECT_TRUE(std::isnan(seen[0].feasibility));
     EXPECT_TRUE(std::isnan(seen[0].complementarity));
     EXPECT_EQ(seen[0].iteration, 0);
     EXPECT_EQ(seen[0].depth.value_or(-1), 0);
@@ -1452,13 +1461,9 @@ void expect_terminal_event_is_the_ipm_result(hven::solvers::IpmSolver &solver,
 
     EXPECT_TRUE(bit_equal(last.x, r.x)) << "the terminal event's point IS the returned point";
     EXPECT_TRUE(bit_equal(last.z, r.z)) << "and its bound prices are the returned ones";
-    EXPECT_TRUE(bit_equal(last.lambda_e, hven::solvers::detail::engine_rows(r).lambda_e));
-    EXPECT_TRUE(bit_equal(last.lambda_i, hven::solvers::detail::engine_rows(r).lambda_i));
+    EXPECT_TRUE(bit_equal(last.lambda, r.lambda));
     EXPECT_TRUE(same_scalar(last.stationarity, r.stationarity));
-    EXPECT_TRUE(
-        same_scalar(last.feasibility_e, hven::solvers::detail::engine_rows(r).feasibility_e));
-    EXPECT_TRUE(
-        same_scalar(last.feasibility_i, hven::solvers::detail::engine_rows(r).feasibility_i));
+    EXPECT_TRUE(same_scalar(last.feasibility, r.feasibility));
     EXPECT_TRUE(same_scalar(last.complementarity, r.complementarity));
     // The objective too: on a converged OPT-phase exit the result reports
     // `iters.back().prim_obj_ / scale`, which is what the event reports.
@@ -1649,10 +1654,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         // pair carries its own provenance and may be unmeasured.
         EXPECT_TRUE(bit_equal(last.x, b.x));
         EXPECT_TRUE(same_scalar(last.stationarity, b.stationarity));
-        EXPECT_TRUE(
-            same_scalar(last.feasibility_e, hven::solvers::detail::engine_rows(b).feasibility_e));
-        EXPECT_TRUE(
-            same_scalar(last.feasibility_i, hven::solvers::detail::engine_rows(b).feasibility_i));
+        EXPECT_TRUE(same_scalar(last.feasibility, b.feasibility));
         EXPECT_TRUE(same_scalar(last.complementarity, b.complementarity));
         // AND NO EVENT WAS GAINED OR LOST: moving the dispatch below the
         // substitution changes WHAT the terminal event says, never how many
@@ -1990,12 +1992,11 @@ MaskRun sqp_run_under(std::optional<IterationPayload> mask) {
 }
 
 bool all_nan(const Seen &s) {
-    return std::isnan(s.stationarity) && std::isnan(s.feasibility_e) &&
-           std::isnan(s.feasibility_i) && std::isnan(s.complementarity);
+    return std::isnan(s.stationarity) && std::isnan(s.feasibility) && std::isnan(s.complementarity);
 }
 
 bool all_views_empty(const Seen &s) {
-    return s.x.size() == 0 && s.lambda_e.size() == 0 && s.lambda_i.size() == 0 && s.z.size() == 0;
+    return s.x.size() == 0 && s.lambda.size() == 0 && s.z.size() == 0;
 }
 
 /// The SCALARS, compared BITWISE. `elapsed_seconds` is excluded and only it:
@@ -2402,8 +2403,7 @@ constexpr Eigen::Index kHs071Mi = 1;
 
 void expect_full_views(const Seen &s) {
     EXPECT_EQ(s.x.size(), kHs071N);
-    EXPECT_EQ(s.lambda_e.size(), kHs071Me);
-    EXPECT_EQ(s.lambda_i.size(), kHs071Mi);
+    EXPECT_EQ(s.lambda.size(), kHs071Me + kHs071Mi);
     EXPECT_EQ(s.z.size(), kHs071N);
 }
 
@@ -2426,8 +2426,7 @@ TEST(CallbackPayload, TheOneArgumentOverloadStillDeliversEverything) {
         // on both engines -- every in-loop exit measures the point it returns.
         const Seen &last = implicit.seen.back();
         EXPECT_TRUE(std::isfinite(last.stationarity));
-        EXPECT_TRUE(std::isfinite(last.feasibility_e));
-        EXPECT_TRUE(std::isfinite(last.feasibility_i));
+        EXPECT_TRUE(std::isfinite(last.feasibility));
         EXPECT_TRUE(std::isfinite(last.complementarity));
         // And the explicit kAll is the same run, event for event.
         expect_same_scalars(implicit.seen, explicit_all.seen);
@@ -2471,8 +2470,7 @@ TEST(CallbackPayload, VectorsAloneDeliversTheViewsAndNaNDiagnostics) {
         for (std::size_t k = 0; k < full.seen.size(); ++k) {
             SCOPED_TRACE("event " + std::to_string(k));
             EXPECT_TRUE(bit_equal(full.seen[k].x, vectors.seen[k].x));
-            EXPECT_TRUE(bit_equal(full.seen[k].lambda_e, vectors.seen[k].lambda_e));
-            EXPECT_TRUE(bit_equal(full.seen[k].lambda_i, vectors.seen[k].lambda_i));
+            EXPECT_TRUE(bit_equal(full.seen[k].lambda, vectors.seen[k].lambda));
             EXPECT_TRUE(bit_equal(full.seen[k].z, vectors.seen[k].z));
         }
         expect_same_scalars(full.seen, vectors.seen);
@@ -2496,10 +2494,8 @@ TEST(CallbackPayload, DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews) {
             EXPECT_TRUE(all_views_empty(diag.seen[k]));
             EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].stationarity),
                       std::bit_cast<std::uint64_t>(diag.seen[k].stationarity));
-            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility_e),
-                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility_e));
-            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility_i),
-                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility_i));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility));
             EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].complementarity),
                       std::bit_cast<std::uint64_t>(diag.seen[k].complementarity));
         }
@@ -2688,7 +2684,7 @@ TEST(CallbackPayload, AMaskWidenedFromInsideARestorationEventReachesTheSubDriver
 
     hven::solvers::IterationCallback cb = [&](const IterationEvent &e) {
         seen.push_back({e.depth.value_or(0), e.x.size(),
-                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility_e)});
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility)});
         if (!widened && e.depth.value_or(0) == 1) {
             widened = true;
             // From INSIDE a depth-1 event. The park goes through the PARENT's
@@ -2698,14 +2694,15 @@ TEST(CallbackPayload, AMaskWidenedFromInsideARestorationEventReachesTheSubDriver
                 [&](const IterationEvent &later) {
                     seen.push_back(
                         {later.depth.value_or(0), later.x.size(),
-                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility_e)});
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility)});
                     return CallbackAction::kContinue;
                 },
-                IterationPayload::kAll);
+                IterationPayload::kAll, CallbackScope::kIncludeRestoration);
         }
         return CallbackAction::kContinue;
     };
-    driver.set_iteration_callback(cb, IterationPayload::kScalars);
+    driver.set_iteration_callback(cb, IterationPayload::kScalars,
+                                  CallbackScope::kIncludeRestoration);
     (void)driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
@@ -2737,21 +2734,21 @@ TEST(CallbackPayload, AMaskNarrowedFromInsideARestorationEventReachesTheSubDrive
 
     hven::solvers::IterationCallback cb = [&](const IterationEvent &e) {
         seen.push_back({e.depth.value_or(0), e.x.size(),
-                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility_e)});
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility)});
         if (!narrowed && e.depth.value_or(0) == 1) {
             narrowed = true;
             driver.set_iteration_callback(
                 [&](const IterationEvent &later) {
                     seen.push_back(
                         {later.depth.value_or(0), later.x.size(),
-                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility_e)});
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility)});
                     return CallbackAction::kContinue;
                 },
-                IterationPayload::kScalars);
+                IterationPayload::kScalars, CallbackScope::kIncludeRestoration);
         }
         return CallbackAction::kContinue;
     };
-    driver.set_iteration_callback(cb);
+    driver.set_iteration_callback(cb, IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     (void)driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
 
     const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
@@ -2819,4 +2816,253 @@ TEST(CallbackPayload, TheObservationPointReadsTheActiveMask) {
     EXPECT_EQ(driver.iteration_payload(), IterationPayload::kDiagnostics);
     driver.clear_iteration_callback();
     EXPECT_EQ(driver.iteration_payload(), IterationPayload::kAll);
+}
+
+// ===========================================================================
+// CALLBACK SCOPE, THE ROW-SPACE LAMBDA, AND THE EVENT COUNTS
+// ===========================================================================
+
+namespace {
+
+// Every field of two events but the clock, bitwise.
+void expect_same_event(const Seen &a, const Seen &b) {
+    EXPECT_EQ(a.iteration, b.iteration);
+    EXPECT_EQ(a.phase, b.phase);
+    EXPECT_EQ(a.depth, b.depth);
+    auto same = [](double u, double v) {
+        return std::bit_cast<std::uint64_t>(u) == std::bit_cast<std::uint64_t>(v);
+    };
+    EXPECT_TRUE(same(a.f, b.f));
+    EXPECT_TRUE(same(a.stationarity, b.stationarity));
+    EXPECT_TRUE(same(a.feasibility, b.feasibility));
+    EXPECT_TRUE(same(a.complementarity, b.complementarity));
+    EXPECT_TRUE(same(a.step_norm, b.step_norm));
+    EXPECT_EQ(a.radius.has_value(), b.radius.has_value());
+    if (a.radius && b.radius) {
+        EXPECT_TRUE(same(*a.radius, *b.radius));
+    }
+    EXPECT_EQ(a.mu.has_value(), b.mu.has_value());
+    EXPECT_TRUE(bit_equal(a.x, b.x));
+    EXPECT_TRUE(bit_equal(a.lambda, b.lambda));
+    EXPECT_TRUE(bit_equal(a.z, b.z));
+}
+
+template <class Model>
+void expect_top_level_scope_is_the_filtered_full_stream(Model &model, const SqpOptions &opts) {
+    std::vector<Seen> top, full;
+    SqpResult r_top, r_full;
+    {
+        SqpSolver driver(opts);
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                top.push_back(copy_of(e));
+                return CallbackAction::kContinue;
+            },
+            hven::solvers::IterationPayload::kAll, CallbackScope::kTopLevel);
+        EXPECT_EQ(driver.iteration_scope(), CallbackScope::kTopLevel);
+        r_top = driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    }
+    {
+        SqpSolver driver(opts);
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                full.push_back(copy_of(e));
+                return CallbackAction::kContinue;
+            },
+            hven::solvers::IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        EXPECT_EQ(driver.iteration_scope(), CallbackScope::kIncludeRestoration);
+        r_full = driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    }
+    std::vector<Seen> filtered;
+    std::size_t deeper = 0;
+    for (const Seen &e : full) {
+        if (e.depth.value_or(0) == 0) {
+            filtered.push_back(e);
+        } else {
+            ++deeper;
+        }
+    }
+    ASSERT_GT(deeper, 0u) << "fixture premise: the solve really restores";
+    ASSERT_EQ(top.size(), filtered.size());
+    for (std::size_t k = 0; k < top.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ(top[k].depth.value_or(-1), 0);
+        expect_same_event(top[k], filtered[k]);
+    }
+    // THE SOLVE ITSELF is the same solve.
+    EXPECT_EQ(r_top.status, r_full.status);
+    EXPECT_TRUE(bit_equal(r_top.x, r_full.x));
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(r_top.f), std::bit_cast<std::uint64_t>(r_full.f));
+    EXPECT_EQ(r_top.iterations, r_full.iterations);
+    EXPECT_EQ(r_top.counters.major_iters, r_full.counters.major_iters);
+    EXPECT_EQ(r_top.counters.restoration_iters, r_full.counters.restoration_iters);
+    EXPECT_EQ(r_top.counters.steps_accepted, r_full.counters.steps_accepted);
+    EXPECT_EQ(r_top.counters.rejected_steps, r_full.counters.rejected_steps);
+    EXPECT_EQ(r_top.counters.qp_minor_iters, r_full.counters.qp_minor_iters);
+    EXPECT_EQ(r_top.counters.factorizations, r_full.counters.factorizations);
+    EXPECT_EQ(r_top.history.size(), r_full.history.size());
+}
+
+} // namespace
+
+TEST(CallbackScope, TheDefaultStreamIsTheFullStreamFilteredToDepthZero) {
+    {
+        SCOPED_TRACE("the RESUMING route");
+        StalledValleyModel model;
+        SqpOptions opts = quiet_sqp();
+        opts.tr_init = 8.0;
+        opts.common.max_iterations = 60;
+        expect_top_level_scope_is_the_filtered_full_stream(model, opts);
+    }
+    {
+        SCOPED_TRACE("the EXITING route");
+        InfeasibleCircleLineModel model;
+        expect_top_level_scope_is_the_filtered_full_stream(model, quiet_sqp());
+    }
+}
+
+TEST(CallbackScope, TheScopeIsStoredWithTheCallableAndResetByAClear) {
+    SqpSolver sqp(quiet_sqp());
+    hven::solvers::IpmSolver ipm;
+    Recorder rec;
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kTopLevel);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kTopLevel);
+    sqp.set_iteration_callback(rec.hook(), hven::solvers::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    ipm.set_iteration_callback(rec.hook(), hven::solvers::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kIncludeRestoration);
+    sqp.clear_iteration_callback();
+    ipm.set_iteration_callback(hven::solvers::IterationCallback{},
+                               hven::solvers::IterationPayload::kAll,
+                               CallbackScope::kIncludeRestoration);
+    EXPECT_EQ(sqp.iteration_scope(), CallbackScope::kTopLevel);
+    EXPECT_EQ(ipm.iteration_scope(), CallbackScope::kTopLevel);
+}
+
+namespace {
+
+// A public Nlp whose three rows are, in this order, a RANGE row, an EQUALITY
+// row and a LOWER-bounded row, so that the row space interleaves the engines'
+// equality / inequality split.
+//     min (x0-1)^2 + (x1-2)^2 + (x2-3)^2
+//     -1 <= x0 + x1 <= 2.5      (row 0, range)
+//     x0 + x1 + x2 = 4          (row 1, equality)
+//     x1 + x2 >= 3.5            (row 2, lower-bounded)
+struct MixedRowsNlp final : hven::solvers::Nlp {
+    hven::solvers::NlpDimensions dimensions() const override { return {3, 3, 7, 3}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << -1.0, 4.0, 3.5;
+        gu << 2.5, 4.0, inf;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1) * (x[0] - 1) + (x[1] - 2) * (x[1] - 2) + (x[2] - 3) * (x[2] - 3);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2 * (x[0] - 1), 2 * (x[1] - 2), 2 * (x[2] - 3);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0] + x[1] + x[2], x[1] + x[2];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1, 1, 2, 2;
+        c << 0, 1, 0, 1, 2, 1, 2;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setOnes(); }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 2;
+        c << 0, 1, 2;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v.setConstant(2.0 * obj_factor);
+    }
+    std::string name() const override { return "MixedRowsNlp"; }
+};
+
+Vec mixed_start() { return Vec::Zero(3); }
+
+} // namespace
+
+TEST(CallbackRowSpace, TheFinalDepthZeroEventsLambdaIsTheResultsLambdaOnBothEngines) {
+    {
+        SCOPED_TRACE("SQP");
+        hven::solvers::Problem problem(std::make_shared<MixedRowsNlp>());
+        SqpSolver solver(quiet_sqp());
+        std::vector<Seen> seen;
+        solver.set_iteration_callback([&](const IterationEvent &e) {
+            if (e.depth.value_or(0) == 0) {
+                seen.push_back(copy_of(e));
+            }
+            return CallbackAction::kContinue;
+        });
+        const SqpResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_FALSE(seen.empty());
+        ASSERT_EQ(r.lambda.size(), 3);
+        ASSERT_EQ(seen.back().lambda.size(), 3);
+        EXPECT_TRUE(bit_equal(seen.back().lambda, r.lambda));
+        EXPECT_NE(r.lambda[1], 0.0) << "the equality row is active";
+        for (const Seen &s : seen) {
+            ASSERT_EQ(s.lambda.size(), 3) << "every event carries the row-space multipliers";
+        }
+    }
+    {
+        SCOPED_TRACE("interior-point");
+        hven::solvers::Problem problem(std::make_shared<MixedRowsNlp>());
+        hven::solvers::IpmOptions o;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        hven::solvers::IpmSolver solver(o);
+        std::vector<Seen> seen;
+        solver.set_iteration_callback([&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        });
+        const hven::solvers::IpmResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_FALSE(seen.empty());
+        ASSERT_EQ(r.lambda.size(), 3);
+        ASSERT_EQ(seen.back().lambda.size(), 3);
+        EXPECT_TRUE(bit_equal(seen.back().lambda, r.lambda));
+        EXPECT_NE(r.lambda[1], 0.0) << "the equality row is active";
+        for (const Seen &s : seen) {
+            ASSERT_EQ(s.lambda.size(), 3);
+        }
+    }
+}
+
+TEST(CallbackRowSpace, TheEventCountsOnBothEngines) {
+    {
+        SCOPED_TRACE("SQP: row 0 is the start point");
+        hven::solvers::Problem problem(std::make_shared<MixedRowsNlp>());
+        SqpSolver solver(quiet_sqp());
+        Index events = 0;
+        solver.set_iteration_callback([&](const IterationEvent &) {
+            ++events;
+            return CallbackAction::kContinue;
+        });
+        const SqpResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(events, r.iterations + 1);
+        EXPECT_EQ(events, static_cast<Index>(r.history.size()));
+    }
+    {
+        SCOPED_TRACE("interior-point: the rows are the iterations");
+        hven::solvers::Problem problem(std::make_shared<MixedRowsNlp>());
+        hven::solvers::IpmOptions o;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        hven::solvers::IpmSolver solver(o);
+        Index events = 0;
+        solver.set_iteration_callback([&](const IterationEvent &) {
+            ++events;
+            return CallbackAction::kContinue;
+        });
+        const hven::solvers::IpmResult r = solver.solve(problem, mixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(events, r.iterations);
+    }
 }

@@ -769,7 +769,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     // comparison below stays bit-for-bit.
     solver.set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
         late_xsl.emplace_back(ev.x);
-        late_lambda_e.emplace_back(ev.lambda_e);
+        late_lambda_e.emplace_back(ev.lambda);
         return hven::solvers::CallbackAction::kContinue;
     });
 

@@ -79,6 +79,7 @@ target_sources(hven PRIVATE
     drivers/solve_status.cpp
     drivers/solve_result.cpp
     drivers/result_message.cpp
+    drivers/callback_rows.cpp
 )
 
 ################################################################################
@@ -590,7 +591,10 @@ endif()
 # 55 as of drivers/result_message.cpp (M8 AP-2 B4): the one-line stop message built by the
 # public handles. NOT a PCH source, on the same footing: it includes only its own header,
 # the option and result headers, fmt and the standard library.
-set(_hven_expected_source_count 55)
+# 56 as of drivers/callback_rows.cpp (M8 AP-2 B4): the row-space compose of an iteration
+# event's multipliers. NOT a PCH source, on the same footing: it includes only its own header
+# and the problem access header.
+set(_hven_expected_source_count 56)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

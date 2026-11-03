@@ -3736,7 +3736,7 @@ TEST(SqpDriverQpFailure, TheCappedSubproblemsOwnStepIsTakenAndKeepsTheMultiplier
         std::vector<Vec> lambda_e_at;
         driver.set_iteration_callback([&lambda_e_at](const IterationEvent &e) {
             if (e.depth.value_or(0) == 0) {
-                lambda_e_at.emplace_back(e.lambda_e);
+                lambda_e_at.emplace_back(e.lambda);
             }
             return CallbackAction::kContinue;
         });

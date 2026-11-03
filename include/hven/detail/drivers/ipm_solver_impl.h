@@ -505,10 +505,6 @@ class IpmSolverImpl {
     /// set_kkt_hook()/clear_kkt_hook() called from inside the hook.
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
-    void set_iteration_callback(IterationCallback cb) {
-        this->set_iteration_callback(std::move(cb), IterationPayload::kAll);
-    }
-
     /// @brief Installs the per-iteration callback and DECLARES what it reads.
     ///
     /// Everything the one-argument overload documents holds here unchanged --
@@ -568,7 +564,9 @@ class IpmSolverImpl {
     ///                clearing (and, like clearing, resets the mask).
     /// @param payload What this callback reads. IterationPayload::kAll is the
     ///                shape every consumer had before this overload existed.
-    void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
+    void set_iteration_callback(IterationCallback cb,
+                                IterationPayload payload = IterationPayload::kAll,
+                                CallbackScope scope = CallbackScope::kTopLevel) {
         // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
         // sol review's fourth Minor). An empty std::function IS a clear, and a
         // clear resets the mask -- so storing a narrow mask beside one would
@@ -578,9 +576,13 @@ class IpmSolverImpl {
         // callable to disarm, and a throw there would punish the idiom the
         // one-argument form already allows.
         const IterationPayload effective = cb ? payload : IterationPayload::kAll;
+        // Accepted and stored; this engine has no nested solves, so the scope
+        // changes nothing here.
+        const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = std::move(cb);
             this->pending_payload_ = effective;
+            this->pending_scope_ = effective_scope;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5).
             //
             // FROM INSIDE A CALLER-SUPPLIED INVOCATION -- the iteration
@@ -620,7 +622,16 @@ class IpmSolverImpl {
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = std::move(cb);
         this->iteration_payload_ = effective;
+        this->iteration_scope_ = effective_scope;
     }
+
+    /// @brief The scope the installed callback declared (no effect here).
+    CallbackScope iteration_scope() const noexcept { return this->iteration_scope_; }
+
+    /// @brief The problem whose row space an event's `lambda` is composed in,
+    ///        or nullptr (concatenation). Installed by the public handle for
+    ///        the duration of one solve.
+    void set_callback_rows(const Problem *problem) noexcept { this->callback_rows_ = problem; }
 
     /// @brief The payload mask the installed callback declared, or
     ///        IterationPayload::kAll when none is installed.
@@ -644,6 +655,7 @@ class IpmSolverImpl {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
             this->pending_payload_ = IterationPayload::kAll;
+            this->pending_scope_ = CallbackScope::kTopLevel;
             this->pending_callback_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
@@ -653,6 +665,7 @@ class IpmSolverImpl {
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = nullptr;
         this->iteration_payload_ = IterationPayload::kAll;
+        this->iteration_scope_ = CallbackScope::kTopLevel;
     }
 
     // --- The interior-point-only KKT hook (M6 W5 T8.6; W5 T2 semantics) ---
@@ -1298,11 +1311,18 @@ class IpmSolverImpl {
     /// to, so an engine with no callback carries no narrowing into the next
     /// attach.
     IterationPayload iteration_payload_ = IterationPayload::kAll;
+    CallbackScope iteration_scope_ = CallbackScope::kTopLevel;
+    // The Problem the public handle is solving, for the row-space `lambda` of an
+    // event; null on every internal route (concatenation). Not owned.
+    const Problem *callback_rows_ = nullptr;
+    // The event's composed `lambda`, reused across events.
+    Eigen::VectorXd event_lambda_scratch_;
     /// The mask parked beside `pending_callback_`, and engaged exactly when it
     /// is: the two are written together at every setter and applied together
     /// at every safe point, so a deferred attach cannot land with the previous
     /// consumer's mask.
     IterationPayload pending_payload_ = IterationPayload::kAll;
+    CallbackScope pending_scope_ = CallbackScope::kTopLevel;
 
     /// When this solve's public entry was taken, for IterationEvent::
     /// elapsed_seconds. Written by every public solve() overload at the same

@@ -17,6 +17,7 @@
 // silently: nothing would fail to build. Keep the two lists in step, and see
 // scripts/check_pch_neutrality.sh for the check that proves they still are.
 
+#include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 
 #include <algorithm>
@@ -2400,8 +2401,13 @@ void hven::solvers::IpmSolverImpl::fire_iteration_event(const IterateInfo &iter,
     // documented "not requested" shape.
     const Eigen::VectorXd no_vector;
     const Eigen::VectorXd &event_x = want_vectors ? x_declared : no_vector;
-    const Eigen::VectorXd &event_lambda_e = want_vectors ? lambda_e_declared : no_vector;
-    const Eigen::VectorXd &event_lambda_i = want_vectors ? lambda_i_declared : no_vector;
+    // The multipliers in the problem's row space: composed (into the engine's
+    // scratch) only when the vectors were asked for.
+    if (want_vectors) {
+        detail::compose_event_lambda(this->callback_rows_, lambda_e_declared, lambda_i_declared,
+                                     this->event_lambda_scratch_);
+    }
+    const Eigen::VectorXd &event_lambda = want_vectors ? this->event_lambda_scratch_ : no_vector;
     const Eigen::VectorXd &event_z = want_vectors ? z_declared : no_vector;
 
     // THE OBJECTIVE, UNDER THE RESULT'S OWN PROVENANCE RULE (M6 W5 T8.6 fix1,
@@ -2424,15 +2430,13 @@ void hven::solvers::IpmSolverImpl::fire_iteration_event(const IterateInfo &iter,
         .depth = std::nullopt,
         .f = f_declared,
         .stationarity = diag.stationarity,
-        .feasibility_e = diag.feasibility_e,
-        .feasibility_i = diag.feasibility_i,
+        .feasibility = detail::combine_feasibility(diag.feasibility_e, diag.feasibility_i),
         .complementarity = diag.complementarity,
         .step_norm = step_norm,
         .radius = std::nullopt,
         .mu = mu / scale,
         .x = event_x,
-        .lambda_e = event_lambda_e,
-        .lambda_i = event_lambda_i,
+        .lambda = event_lambda,
         .z = event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
@@ -2479,8 +2483,10 @@ void hven::solvers::IpmSolverImpl::apply_pending_iteration_callback(bool at_solv
     // same statement in every setter, so applying one without the other would
     // hand the new consumer the previous one's payload.
     this->iteration_payload_ = this->pending_payload_;
+    this->iteration_scope_ = this->pending_scope_;
     this->pending_callback_.reset();
     this->pending_payload_ = IterationPayload::kAll;
+    this->pending_scope_ = CallbackScope::kTopLevel;
     this->pending_callback_at_entry_ = false;
 }
 
