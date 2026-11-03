@@ -110,6 +110,7 @@ class IpmSolver {
     /// Which exit the last phase of the most recent call left its iteration
     /// loop by. Reset at each phase start. A phase that converges on exactly
     /// its cap iteration reads `kNone`: the convergence, not the cap, ended it.
+    /// `kException` after a solve an exception escaped.
     IpmStopReason last_stop_reason() const;
 
     /// True when `problem`'s interior-point transcription is the one the solver's
@@ -168,8 +169,31 @@ class IpmSolver {
     ///         disagree or are not at the declared width, a duplicated,
     ///         unreadable or mis-sized polish extension, or a declaration stamp
     ///         that is not this problem's.
+    /// @throws hven::solvers::EvaluationError if the model throws one at the
+    ///         start point. At a trial point it is a rejected trial, never
+    ///         thrown; a non-finite value is treated exactly the same, and at
+    ///         the start point ends the solve `kNumericalError` (core/errors.h
+    ///         states the whole contract).
+    /// @throws hven::solvers::BackendError if the linear-algebra backend fails
+    ///         in a way no status can report.
+    /// @throws Any other exception a user callback throws, unchanged. The
+    ///         interrupted solve's result is then `last_result()`.
     IpmResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
+
+    /// The result of the most recent `solve()`: the value it returned, or --
+    /// when an exception escaped it -- what the interrupted solve reached,
+    /// finished into the problem's row space: status `kInterrupted`, the
+    /// iterations taken, the last committed iterate and its multipliers
+    /// (`x`, `lambda`, `z`), the work spent and a `message` naming the
+    /// exception. Its evaluation-derived fields are unmeasured (`g` empty, `f`
+    /// and the shared diagnostics NaN): the exception may have arrived
+    /// mid-evaluation. After ANY exception out of `solve()` -- an argument
+    /// refusal included -- it describes what was reached, the start point with no
+    /// iterations when nothing was. Cleared at the start of every `solve()`;
+    /// default-constructed before the first solve.
+    /// @throws std::logic_error on a moved-from solver.
+    const IpmResult &last_result() const;
 
     /// Installs the per-iteration callback that both engines accept. An empty
     /// function clears it.

@@ -17,6 +17,8 @@
 // silently: nothing would fail to build. Keep the two lists in step, and see
 // scripts/check_pch_neutrality.sh for the check that proves they still are.
 
+#include "hven/core/errors.h"
+#include "hven/detail/drivers/finite_screen.h"
 #include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 
@@ -25,8 +27,10 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <exception>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 #include "hven/detail/interior/aggregate_views.h"
 #include "hven/core/ledger.h"
@@ -1777,13 +1781,18 @@ bool hven::solvers::IpmSolverImpl::try_soft_feasibility_step(
     // eval, so reusing the assembly buffer here is safe.
     // An un-evaluable trial is not a reduced one: report no reduction so the
     // caller escalates to the full restoration entry.
+    // EvaluationError alone is absorbed (M8 B5); any other exception propagates.
     try {
         this->eval_nlp(algmode, obj_scale, XSL2, trial_obj, GX, RHS2, this->kkt_sol_.matrix(), mu);
-    } catch (const std::exception &e) {
+    } catch (const EvaluationError &e) {
         this->eval_error_log_.record(e.what());
         return false;
-    } catch (...) {
-        this->eval_error_log_.record_unknown();
+    }
+    // A non-finite trial is an un-evaluable one, exactly as a thrown
+    // EvaluationError is: the full evaluation is screened, derivatives included.
+    if (const char *quantity = this->nonfinite_quantity(trial_obj, GX, RHS2); quantity != nullptr)
+        [[unlikely]] {
+        this->eval_error_log_.record(std::string("non-finite ") + quantity + " at a trial point");
         return false;
     }
     v_rhs2.prim_grad() += GX;
@@ -2575,6 +2584,22 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // objective when it did.
     bool best_substituted = false;
 
+    // THE NON-FINITE STEP ROLLBACK'S STATE (M8 B5; see the committed point's
+    // evaluation at the top of the loop). The snapshot is the iterate a step
+    // was committed from -- the point, its bound multipliers, the step fraction
+    // and the cap it was taken under -- valid only for the step just committed
+    // and only off restoration. step_cap scales the next step after a rollback
+    // and is 1 otherwise.
+    Eigen::VectorXd rollback_xsl;
+    Eigen::VectorXd rollback_z_lower;
+    Eigen::VectorXd rollback_z_upper;
+    double rollback_alpha = 0.0;
+    double rollback_cap = 1.0;
+    bool rollback_valid = false;
+    double step_cap = 1.0;
+    const double step_cap_floor =
+        std::pow(1.0 / opts_.advanced.backtrack_divisor, opts_.advanced.line_search_max_backtracks);
+
     double mu = MuI;
 
     // Create KKTVector views over the working vectors
@@ -2633,6 +2658,24 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     std::vector<IterateInfo> iters;
     iters.reserve(this->effective_max_iters_);
     SolveStatus ExitCode = SolveStatus::kMaxIter;
+
+    // THE POINT AN EXCEPTION INTERRUPTS (M8 B5). An exception that escapes this
+    // phase -- a user callback's own, never an EvaluationError at a trial point,
+    // which the catch sites absorb -- unwinds through this frame; the recorder's
+    // destructor sees it in flight and records the committed iterate XSL holds
+    // (trial points live in RHS2/Temp, never in XSL) and the rows this phase
+    // took, while both are still alive. No work on the normal path: the
+    // destructor compares two exception counts and returns.
+    struct InterruptedPointRecorder {
+        IpmSolverImpl &self;
+        const Eigen::VectorXd &xsl;
+        const std::vector<IterateInfo> &rows;
+        int exceptions_at_entry = std::uncaught_exceptions();
+        ~InterruptedPointRecorder() {
+            if (std::uncaught_exceptions() > exceptions_at_entry)
+                self.record_interrupted_point(xsl, static_cast<Index>(rows.size()));
+        }
+    } interrupted_point_recorder{*this, XSL, iters};
     bool FirstPert = true;
 
     // Feasibility-restoration obj_val_ override. Dead on the default path
@@ -2678,15 +2721,91 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         double alphap = 1.0;
         double alphad = 1.0;
 
-        RHS.setZero();
-        PGX.setZero();
         double prim_obj = 0;
         double barr_obj = 0;
 
         // Evaluate NLP and build barrier terms
         Funtimer.start();
 
-        this->eval_nlp(algmode, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix(), mu);
+        // THE COMMITTED POINT'S EVALUATION, SCREENED (M8 B5). The line search
+        // judged the step that reached this point on its objective and
+        // constraint values alone; the derivatives are first evaluated here. A
+        // non-finite value anywhere in this evaluation -- objective, gradient,
+        // constraints, Jacobian or Hessian -- or an EvaluationError thrown by the
+        // model, makes the point un-evaluable, and the step that reached it is
+        // REJECTED AFTER THE FACT, as the SQP engine's non-finite step rollback
+        // does: the previous iterate and its bound multipliers are restored, the
+        // next step is capped below the rejected one (step_cap), and the
+        // iteration runs again from the restored point. BOUNDED: each rollback
+        // divides the step by backtrack_divisor and none is taken below the line
+        // search's own smallest fraction. Where no rollback is possible -- the
+        // start point, a phase's first iterate, an active restoration, the floor
+        // -- the phase ends kNumericalError at the last finite point it holds
+        // (IpmStopReason::kNonFiniteStart / kNonFiniteIterate). An
+        // EvaluationError at the solve's start point propagates.
+        bool nonfinite_abort = false;
+        bool rollback_floor_hit = false;
+        for (;;) {
+            RHS.setZero();
+            PGX.setZero();
+            prim_obj = 0;
+            std::string failure;
+            try {
+                this->eval_nlp(algmode, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix(),
+                               mu);
+                if (const char *quantity = this->nonfinite_quantity(prim_obj, PGX, RHS);
+                    quantity != nullptr) [[unlikely]] {
+                    failure = std::string("non-finite ") + quantity +
+                              (this->solve_at_start_ ? " at the start point"
+                                                     : fmt::format(" at iteration {}", i));
+                }
+            } catch (const EvaluationError &e) {
+                if (this->solve_at_start_)
+                    throw;
+                failure = fmt::format("EvaluationError at iteration {}: {}", i, e.what());
+            }
+            if (failure.empty()) [[likely]]
+                break;
+            if (!rollback_valid) {
+                this->stop_detail_ = std::move(failure);
+                nonfinite_abort = true;
+                break;
+            }
+            // Roll back: the restored point was evaluated finite once already.
+            this->eval_error_log_.record(failure + "; the step to it was rolled back");
+            this->stop_detail_ = std::move(failure);
+            rollback_valid = false;
+            XSL = rollback_xsl;
+            if (this->bounds_) {
+                this->bound_duals_.z_lower_ = rollback_z_lower;
+                this->bound_duals_.z_upper_ = rollback_z_upper;
+            }
+            ++this->result_.nonfinite_step_rollbacks;
+            const double next_cap =
+                rollback_cap * rollback_alpha / opts_.advanced.backtrack_divisor;
+            if (next_cap < step_cap_floor) {
+                rollback_floor_hit = true;
+            } else {
+                step_cap = next_cap;
+            }
+        }
+        if (rollback_floor_hit)
+            nonfinite_abort = true;
+        if (nonfinite_abort) [[unlikely]] {
+            // THE PHASE ENDS HERE, kNumericalError, at the point XSL holds: the
+            // start point, or the last finite iterate a rollback restored. Its
+            // row records what this evaluation measured, NaN where it was not
+            // finite; nothing is factorized or stepped from it.
+            Funtimer.stop();
+            v_rhs.prim_grad() += PGX;
+            this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
+            iters.push_back(Citer);
+            this->last_stop_reason_ = this->solve_at_start_ ? IpmStopReason::kNonFiniteStart
+                                                            : IpmStopReason::kNonFiniteIterate;
+            ExitCode = SolveStatus::kNumericalError;
+            this->result_.status = ExitCode;
+            break;
+        }
 
         // THE PROVENANCE OF WHAT THAT CALL JUST WROTE (M6 W5 T8.4 fix1), taken
         // HERE because here is where the two facts live: which algmode ran,
@@ -3726,8 +3845,31 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         // exit_at_acceptable / exit_stage_stalled).
         bool singular_abort = false;
 
+        // Set by the un-evaluable dispatch below when nothing can recover: every
+        // trial evaluation failed, the iterate is not acceptable and restoration
+        // cannot take over. Ends the phase kNumericalError at the loop tail
+        // (IpmStopReason::kEvaluationFailure), the same idiom as singular_abort.
+        bool evaluation_abort = false;
+
         Funtimer.start();
-        if (GoodStep) {
+        if (GoodStep && step_cap < 1.0) [[unlikely]] {
+            // THE CAPPED STEP AFTER A ROLLBACK (M8 B5): compute_step's two halves,
+            // with the fraction-to-boundary scaled direction shortened by
+            // step_cap between them, so the line search starts below the step
+            // that reached an un-evaluable point. alphap/alphad carry the cap so
+            // the bound multipliers' step (alpha * alphad) is shortened with it.
+            if (ctx.inequal_cons_ > 0 || ctx.bounds_ ||
+                (ctx.restoration_ && ctx.restoration_->is_active() &&
+                 ctx.restoration_->is_nested()))
+                mechanism_->max_primal_dual_step(XSL, DXSL, opts_.fraction_to_boundary, alphap,
+                                                 alphad, ctx);
+            DXSL *= step_cap;
+            alphap *= step_cap;
+            alphad *= step_cap;
+            alpha = mechanism_->run_acceptance_backtrack(lsmode, obj_scale * lsobjscale, step_mu,
+                                                         prim_obj, barr_obj, XSL, DXSL, Temp, RHS,
+                                                         RHS2, *acceptance_, Citer, iters, ctx);
+        } else if (GoodStep) {
             // compute_step fuses the fraction-to-boundary scaling (former
             // `if (inequal_cons_ > 0) max_primal_dual_step(...)`, now guarded
             // identically inside compute_step and MUTATING DXSL in place) and
@@ -3924,19 +4066,24 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                         // restoration, not to the watchdog relaxation it superseded.
                         resolved_depth = kRecoveryDepthRestoration;
                     } else {
+                        // NOTHING CAN RECOVER (M8 B5: a status, no longer a thrown
+                        // std::runtime_error -- an evaluation failure is the model's,
+                        // and the exception contract reports it as one). The phase
+                        // ends kNumericalError at the committed iterate.
+                        //
                         // alpha was reduced once more after the last rejected rung, so
                         // the smallest fraction actually evaluated is alpha * alpha_red_.
-                        throw std::runtime_error(fmt::format(
-                            "hven interior-point solver: line search failed at iteration {} "
-                            "because the NLP could "
-                            "not be evaluated at the trial steps ({} evaluation failure(s) this "
-                            "iteration; smallest trial step fraction attempted {:.3e}). "
-                            "Feasibility restoration (restoration_mode) was unavailable to "
-                            "recover: not configured, entry refused, or already active. Last "
-                            "evaluation error: {}",
+                        this->stop_detail_ = fmt::format(
+                            "the model could not be evaluated at any trial step of iteration {} "
+                            "({} evaluation failure(s); smallest trial step fraction {:.3e}) and "
+                            "feasibility restoration was unavailable (not configured, entry "
+                            "refused, or already active); last: {}",
                             Citer.iter_, this->eval_error_log_.count_ - eval_errs_before,
                             alpha * opts_.advanced.backtrack_divisor,
-                            this->eval_error_log_.last_message_));
+                            this->eval_error_log_.last_message_);
+                        alpha = 0.0;
+                        Citer.accepted_ = false;
+                        evaluation_abort = true;
                     }
                 }
                 break;
@@ -4098,6 +4245,13 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         if (singular_abort)
             ExitCode = SolveStatus::kNumericalError;
 
+        // An un-evaluable iteration nothing could recover (see the dispatch
+        // above): kNumericalError, labelled with the reason the message names.
+        if (evaluation_abort) {
+            ExitCode = SolveStatus::kNumericalError;
+            this->last_stop_reason_ = IpmStopReason::kEvaluationFailure;
+        }
+
         // exit_stage_stalled (see the stall dispatch above) forces the exit
         // without touching ExitCode: unlike exit_at_acceptable it does not
         // upgrade the verdict, so converge_check's own answer (NOTCONVERGED,
@@ -4141,6 +4295,26 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
             this->result_.status = ExitCode;
             break;
         }
+
+        // THE NON-FINITE STEP ROLLBACK'S SNAPSHOT (M8 B5), taken before the
+        // commit moves the iterate: the point, its bound multipliers, the step
+        // fraction and the cap in force. Valid for the next iteration's
+        // evaluation only, and only for a step that moved the point outside
+        // restoration (a nested phase also moves the elastic variables, which
+        // the snapshot does not carry). The cap is spent by this step.
+        rollback_valid = alpha > 0.0 && !(this->restoration_ && this->restoration_->is_active());
+        if (rollback_valid) {
+            rollback_xsl = XSL;
+            if (this->bounds_) {
+                rollback_z_lower = this->bound_duals_.z_lower_;
+                rollback_z_upper = this->bound_duals_.z_upper_;
+            }
+            rollback_alpha = alpha;
+            rollback_cap = step_cap;
+        }
+        if (alpha > 0.0)
+            this->solve_at_start_ = false;
+        step_cap = 1.0;
 
         // Apply step
         XSL += alpha * DXSL;
@@ -5118,6 +5292,13 @@ hven::solvers::IpmResult
 hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const Eigen::VectorXd &x,
                                                  const std::vector<PhaseStep> &steps,
                                                  SolveBudget budget, const WarmStart *payload) {
+    // THE INTERRUPTED-RESULT STATE (M8 B5), cleared first so a call refused
+    // below leaves no result of a previous call standing as this one's.
+    this->interrupted_result_ready_ = false;
+    this->interrupted_point_recorded_ = false;
+    this->in_phase_loop_ = false;
+    this->solve_at_start_ = true;
+    this->stop_detail_.clear();
     validate(budget);
     // The in-flight guard, and the ONE site it is set from: the public solve()
     // entry reaches this function exactly once per call. Cleared on every exit,
@@ -5145,6 +5326,22 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
             model_ = nullptr;
         }
     } solve_guard(this->solve_in_flight_, this->nlp_, model);
+
+    // THE INTERRUPTED SOLVE'S RESULT (M8 B5). Declared after the guard above, so
+    // it is destroyed first and finds the program still bound: when an exception
+    // escapes the phase loop, its destructor finishes what the loop reached --
+    // the objective-scale and reinsertion seams and the declared-space seam,
+    // the same code a returned result runs through -- into result_, which the
+    // public handle then takes (take_interrupted_result). Exceptions outside the
+    // phase loop leave nothing to finish.
+    struct InterruptedResultFinisher {
+        IpmSolverImpl &self;
+        int exceptions_at_entry = std::uncaught_exceptions();
+        ~InterruptedResultFinisher() {
+            if (std::uncaught_exceptions() > exceptions_at_entry && self.in_phase_loop_)
+                self.finish_interrupted_result();
+        }
+    } interrupted_result_finisher{*this};
 
     // THE CALL'S OWN RESULT, fresh. This is what retired reset_accumulators():
     // a default IpmResult already carries every sentinel that reset wrote, and
@@ -5272,6 +5469,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     // transcription-time option replaced since the last analysis all
     // re-transcribe.
     const Index analyses_before = this->kkt_analysis_count_;
+    this->analyses_at_entry_ = analyses_before;
     if (!this->analysis_matches(model) || this->qp_params_dirty_) {
         this->transcribe_bound_program();
     }
@@ -5668,6 +5866,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     for (std::size_t k = 0; k < steps.size(); ++k) {
         this->result_.phases[k].phase = opts_.phases[k];
     }
+    this->in_phase_loop_ = true;
 
     int phase_idx = 0;
     auto it = steps.begin();
@@ -5777,6 +5976,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         // skip so a skipped phase leaves the previous phase's reason standing
         // beside the verdict it belongs to. See last_stop_reason().
         this->last_stop_reason_ = IpmStopReason::kNone;
+        this->stop_detail_.clear();
         // AND THE VERDICT WITH IT (M6 W5 T8.4). This one line is the whole of
         // the fix for the defect design §2.3 registered for this task: the
         // reason was already phase-scoped and the verdict was not, so a later
@@ -5926,6 +6126,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         }
     }
 
+    this->in_phase_loop_ = false;
     t.stop();
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
     this->result_.timing.total = tottime / 1000.0;
@@ -5978,181 +6179,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     // result_.z at the SOLVER's reduced width and does its own scatter, so
     // converting z before it would hand it a vector of the wrong length.
     // =====================================================================
-    {
-        const Index n = this->full_primal_vars_;
-        const Index user_eq = this->nlp_->user_equal_cons_;
-        const Index fixing_rows =
-            hven::solvers::detail::engine_rows(this->result_).lambda_e.size() - user_eq;
-
-        // (0) THE PROVENANCE GATE (M6 W5 T8.4 fix1), FIRST because every step
-        //     below reads the two constraint blocks it decides about.
-        //
-        //     CLAUSE (c): the evaluation that produced the captured right-hand
-        //     side ran while feasibility restoration was active, or the exit
-        //     itself was taken with restoration still active. Under
-        //     l1_nested the constraint rows of that right-hand side are the
-        //     CONDENSED residuals r-tilde of the restoration subproblem, not
-        //     the declared residuals -- `infeas2_stationary`'s declared
-        //     equality is x0^2 + x1^2 + 1, which is >= 1 everywhere, while the
-        //     copied row is a tiny condensed number. So the blocks are
-        //     EMPTIED, not copied: drivers/solve_result.h states an empty
-        //     block as "unmeasured" and a zero-length vector cannot be read as
-        //     a feasible point the way a copied one can.
-        const ExitEvalProvenance &prov = this->exit_eval_prov_;
-        const bool restoration_contaminated =
-            prov.restoration_active || this->solve_exit_restoration_active_;
-        if (restoration_contaminated) {
-            hven::solvers::detail::engine_rows(this->result_).ce = Eigen::VectorXd();
-            hven::solvers::detail::engine_rows(this->result_).ci = Eigen::VectorXd();
-        }
-
-        // (1) The internal fixing rows come OFF the declared equality block.
-        //     They are the treatment's rows, not the declaration's, and they
-        //     occupy the block's tail -- so this is a truncation at one end and
-        //     nothing is renumbered. Reported separately rather than dropped:
-        //     under MakeConstraint they are how a caller sees what holding a
-        //     variable fixed cost.
-        Eigen::VectorXd fixed_lambda;
-        if (fixing_rows > 0) {
-            fixed_lambda =
-                hven::solvers::detail::engine_rows(this->result_).lambda_e.tail(fixing_rows);
-            this->result_.internal_fixed_lambda_e = fixed_lambda;
-            // Guarded on the block still being there: (0) above may have
-            // emptied it, and a tail() of a shorter vector is an out-of-range
-            // read Eigen only catches in a Debug build (CLAUDE.md section 4).
-            // An emptied block reports no fixing residual either -- the
-            // restoration-space number is not one.
-            if (hven::solvers::detail::engine_rows(this->result_).ce.size() ==
-                hven::solvers::detail::engine_rows(this->result_).lambda_e.size()) {
-                this->result_.internal_fixed_ce =
-                    hven::solvers::detail::engine_rows(this->result_).ce.tail(fixing_rows);
-                hven::solvers::detail::engine_rows(this->result_).ce = Eigen::VectorXd(
-                    hven::solvers::detail::engine_rows(this->result_).ce.head(user_eq));
-            }
-            hven::solvers::detail::engine_rows(this->result_).lambda_e = Eigen::VectorXd(
-                hven::solvers::detail::engine_rows(this->result_).lambda_e.head(user_eq));
-        }
-
-        // (2) z, scattered to DECLARED width. The reduced block has no entry
-        //     for an eliminated coordinate; the declared one has a 0 there,
-        //     which is the correct price of a bound the reduced problem does
-        //     not carry. Under MakeConstraint the fixed variable is NOT
-        //     eliminated and has no barrier bound either -- its price is the
-        //     fixing row's multiplier, with the sign the stationarity
-        //     convention grad f + J'lambda - z = 0 forces: z = -lambda_fix.
-        Eigen::VectorXd z_declared = Eigen::VectorXd::Zero(n);
-        if (this->result_.z.size() > 0) {
-            if (this->nlp_->is_reduced()) {
-                const auto &r2f = this->nlp_->reduced_to_full();
-                const Index reduced = this->nlp_->reduced_primal_vars();
-                if (this->result_.z.size() == reduced && r2f.size() == reduced) {
-                    for (Index k = 0; k < reduced; ++k) {
-                        z_declared[r2f[k]] = this->result_.z[k];
-                    }
-                }
-            } else if (this->result_.z.size() == n) {
-                z_declared = this->result_.z;
-            }
-        }
-        const auto &fixed_idx = this->nlp_->fixed_variable_indices();
-        if (fixing_rows > 0 && fixed_idx.size() == fixing_rows) {
-            for (Index k = 0; k < fixing_rows; ++k) {
-                z_declared[fixed_idx[k]] = -fixed_lambda[k];
-            }
-        }
-        this->result_.z = std::move(z_declared);
-
-        //     AND THE EXPORT SNAPSHOT TAKES THE SAME PRICE (M6 W5 T8.4 fix1).
-        //     capture_completed_warm_start ran ABOVE this seam -- it has to,
-        //     because it reads result_.z at the SOLVER's reduced width and
-        //     does its own scatter -- so its bound block carries the reduced
-        //     block's 0 on a MakeConstraint coordinate, where the result now
-        //     carries -lambda_fix. Two answers to one question, from one
-        //     solve. Patched here, at the one place the declared price is
-        //     known, rather than by moving the capture: the capture's
-        //     placement is load-bearing for the width it reads.
-        if (fixing_rows > 0 && fixed_idx.size() == fixing_rows && this->solve_completed_ &&
-            detail::WarmStartAccess::bound(this->completed_warm_).size() == n) {
-            for (Index k = 0; k < fixing_rows; ++k) {
-                detail::WarmStartAccess::bound(this->completed_warm_)[fixed_idx[k]] =
-                    -fixed_lambda[k];
-            }
-        }
-
-        // (3) THE FOUR SHARED DIAGNOSTICS, from the Lagrangian gradient the
-        //     last phase captured at the returned iterate -- no evaluation, so
-        //     the evaluation bill of every existing path is untouched.
-        //
-        //     UNMEASURED, and therefore NaN, in exactly two cases: no phase
-        //     produced a right-hand side at all, and an exit taken with
-        //     feasibility restoration still active -- where the gradient, and
-        //     under l1_nested the constraint rows too, describe the restoration
-        //     subproblem rather than the declared one. Absent is never
-        //     zero-filled.
-        //     UNMEASURED, and therefore NaN, is decided by the PROVENANCE of
-        //     the captured right-hand side and not by its size (M6 W5 T8.4
-        //     fix1 -- the T8.4 guard read the size and the exit's restoration
-        //     flag, which between them miss every case below):
-        //
-        //       * no phase produced a right-hand side at all -> all four NaN;
-        //       * clause (c), restoration -> all four NaN, and the two blocks
-        //         emptied at (0) above;
-        //       * clause (b), a right-hand side that belongs to the iterate
-        //         BEFORE a restoration return re-anchored the multipliers, on
-        //         a call the loop then exhausted -> all four NaN;
-        //       * clause (a), a right-hand side from a feasibility phase (SOE
-        //         / OPTNO) or from an evaluation the restoration seam was
-        //         substituting into -> STATIONARITY ALONE is NaN. The other
-        //         three read ce, ci, x, the box, lambda_i and z, every one of
-        //         which such a phase does evaluate, so they are measured and
-        //         are kept.
-        //
-        //     Absent is never zero-filled: the committed T8.4 baseline printed
-        //     a declared stationarity of exactly 0 for `infeas2_spike`, a
-        //     problem with objective f = x[1], gradient (0, 1) and no
-        //     multipliers, whose honest declared stationarity is 1 and whose
-        //     honest REPORT -- no objective gradient having been evaluated at
-        //     the returned point -- is NaN.
-        const bool measured = this->exit_grad_lag_.size() == this->primal_vars_ && prov.has_eval &&
-                              prov.at_returned_point && !restoration_contaminated;
-        if (measured) {
-            // THE ONE CONVERSION, CALLED (M6 W5 T8.6 fix1, astra item 2): into
-            // declared width, dividing out the objective scale the solver ran
-            // at (exit_grad_lag_ is obj_scale * (grad f + J'lambda) in the
-            // reduced space, and the caller's problem is the unscaled one),
-            // excluding the eliminated coordinates, folding the fixing rows out
-            // of the gradient, and applying clause (a)'s stationarity gate.
-            // Every one of those statements used to live here AND in
-            // fire_iteration_event; they live in
-            // declared_diagnostics_from_reduced_grad_lag now and both call it,
-            // so the event a caller is handed mid-solve and the result it gets
-            // at the end cannot drift apart. The numbers are unchanged.
-            const detail::DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
-                this->result_.x, hven::solvers::detail::engine_rows(this->result_).lambda_i,
-                this->result_.z, this->exit_grad_lag_, fixed_lambda,
-                hven::solvers::detail::engine_rows(this->result_).ce,
-                hven::solvers::detail::engine_rows(this->result_).ci, this->solve_obj_scale_,
-                prov.objective_bearing);
-            this->result_.stationarity = d.stationarity;
-            hven::solvers::detail::engine_rows(this->result_).feasibility_e = d.feasibility_e;
-            hven::solvers::detail::engine_rows(this->result_).feasibility_i = d.feasibility_i;
-            this->result_.feasibility =
-                hven::solvers::detail::combine_feasibility(d.feasibility_e, d.feasibility_i);
-            this->result_.complementarity = d.complementarity;
-        }
-
-        // (4) The snapshots. Each answers, on the value being returned, a
-        //     question that used to be asked of a solver that had gone on
-        //     living.
-        if (this->solve_completed_) {
-            this->result_.warm_start = this->completed_warm_;
-        }
-        this->result_.kkt_analyses_total = this->kkt_analysis_count_;
-        this->result_.kkt_analyses_this_call = this->kkt_analysis_count_ - analyses_before;
-        this->result_.kkt_factor_counters = this->kkt_sol_.counters();
-        this->result_.evaluation_errors = EvaluationErrors{
-            static_cast<Index>(this->eval_error_log_.count_), this->eval_error_log_.last_message_};
-    }
+    this->finish_declared_result(analyses_before);
 
     // THE SOLVE'S CLOSING LINE, at this function's SINGLE RETURN and written as
     // an explicit statement, not from a scope guard (the W4 T2 ruling: a
@@ -6236,6 +6263,7 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
     // attached, because it is one integer load and a conditional read would
     // make the record depend on when the ledger was attached.
     const Index factorizations_at_entry = this->lifetime_factorize_count();
+    this->factorizations_at_entry_ = factorizations_at_entry;
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
@@ -6290,10 +6318,296 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
     this->entry_time_ = std::chrono::steady_clock::now();
     // See the cold overload above.
     const Index factorizations_at_entry = this->lifetime_factorize_count();
+    this->factorizations_at_entry_ = factorizations_at_entry;
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
     this->record_solve(result, factorizations_at_entry);
     return result;
+}
+
+// THE DECLARED-SPACE SEAM (M6 W5 T8.4), a function since M8 B5 so that the
+// result of a solve an exception interrupted is finished by the same code as a
+// returned one. Called with the engine bound, after the objective-scale and
+// reinsertion seams.
+void hven::solvers::IpmSolverImpl::finish_declared_result(Index analyses_before) {
+    const Index n = this->full_primal_vars_;
+    const Index user_eq = this->nlp_->user_equal_cons_;
+    const Index fixing_rows =
+        hven::solvers::detail::engine_rows(this->result_).lambda_e.size() - user_eq;
+
+    // (0) THE PROVENANCE GATE (M6 W5 T8.4 fix1), FIRST because every step
+    //     below reads the two constraint blocks it decides about.
+    //
+    //     CLAUSE (c): the evaluation that produced the captured right-hand
+    //     side ran while feasibility restoration was active, or the exit
+    //     itself was taken with restoration still active. Under
+    //     l1_nested the constraint rows of that right-hand side are the
+    //     CONDENSED residuals r-tilde of the restoration subproblem, not
+    //     the declared residuals -- `infeas2_stationary`'s declared
+    //     equality is x0^2 + x1^2 + 1, which is >= 1 everywhere, while the
+    //     copied row is a tiny condensed number. So the blocks are
+    //     EMPTIED, not copied: drivers/solve_result.h states an empty
+    //     block as "unmeasured" and a zero-length vector cannot be read as
+    //     a feasible point the way a copied one can.
+    const ExitEvalProvenance &prov = this->exit_eval_prov_;
+    const bool restoration_contaminated =
+        prov.restoration_active || this->solve_exit_restoration_active_;
+    if (restoration_contaminated) {
+        hven::solvers::detail::engine_rows(this->result_).ce = Eigen::VectorXd();
+        hven::solvers::detail::engine_rows(this->result_).ci = Eigen::VectorXd();
+    }
+
+    // (1) The internal fixing rows come OFF the declared equality block.
+    //     They are the treatment's rows, not the declaration's, and they
+    //     occupy the block's tail -- so this is a truncation at one end and
+    //     nothing is renumbered. Reported separately rather than dropped:
+    //     under MakeConstraint they are how a caller sees what holding a
+    //     variable fixed cost.
+    Eigen::VectorXd fixed_lambda;
+    if (fixing_rows > 0) {
+        fixed_lambda = hven::solvers::detail::engine_rows(this->result_).lambda_e.tail(fixing_rows);
+        this->result_.internal_fixed_lambda_e = fixed_lambda;
+        // Guarded on the block still being there: (0) above may have
+        // emptied it, and a tail() of a shorter vector is an out-of-range
+        // read Eigen only catches in a Debug build (CLAUDE.md section 4).
+        // An emptied block reports no fixing residual either -- the
+        // restoration-space number is not one.
+        if (hven::solvers::detail::engine_rows(this->result_).ce.size() ==
+            hven::solvers::detail::engine_rows(this->result_).lambda_e.size()) {
+            this->result_.internal_fixed_ce =
+                hven::solvers::detail::engine_rows(this->result_).ce.tail(fixing_rows);
+            hven::solvers::detail::engine_rows(this->result_).ce =
+                Eigen::VectorXd(hven::solvers::detail::engine_rows(this->result_).ce.head(user_eq));
+        }
+        hven::solvers::detail::engine_rows(this->result_).lambda_e = Eigen::VectorXd(
+            hven::solvers::detail::engine_rows(this->result_).lambda_e.head(user_eq));
+    }
+
+    // (2) z, scattered to DECLARED width. The reduced block has no entry
+    //     for an eliminated coordinate; the declared one has a 0 there,
+    //     which is the correct price of a bound the reduced problem does
+    //     not carry. Under MakeConstraint the fixed variable is NOT
+    //     eliminated and has no barrier bound either -- its price is the
+    //     fixing row's multiplier, with the sign the stationarity
+    //     convention grad f + J'lambda - z = 0 forces: z = -lambda_fix.
+    Eigen::VectorXd z_declared = Eigen::VectorXd::Zero(n);
+    if (this->result_.z.size() > 0) {
+        if (this->nlp_->is_reduced()) {
+            const auto &r2f = this->nlp_->reduced_to_full();
+            const Index reduced = this->nlp_->reduced_primal_vars();
+            if (this->result_.z.size() == reduced && r2f.size() == reduced) {
+                for (Index k = 0; k < reduced; ++k) {
+                    z_declared[r2f[k]] = this->result_.z[k];
+                }
+            }
+        } else if (this->result_.z.size() == n) {
+            z_declared = this->result_.z;
+        }
+    }
+    const auto &fixed_idx = this->nlp_->fixed_variable_indices();
+    if (fixing_rows > 0 && fixed_idx.size() == fixing_rows) {
+        for (Index k = 0; k < fixing_rows; ++k) {
+            z_declared[fixed_idx[k]] = -fixed_lambda[k];
+        }
+    }
+    this->result_.z = std::move(z_declared);
+
+    //     AND THE EXPORT SNAPSHOT TAKES THE SAME PRICE (M6 W5 T8.4 fix1).
+    //     capture_completed_warm_start ran ABOVE this seam -- it has to,
+    //     because it reads result_.z at the SOLVER's reduced width and
+    //     does its own scatter -- so its bound block carries the reduced
+    //     block's 0 on a MakeConstraint coordinate, where the result now
+    //     carries -lambda_fix. Two answers to one question, from one
+    //     solve. Patched here, at the one place the declared price is
+    //     known, rather than by moving the capture: the capture's
+    //     placement is load-bearing for the width it reads.
+    if (fixing_rows > 0 && fixed_idx.size() == fixing_rows && this->solve_completed_ &&
+        detail::WarmStartAccess::bound(this->completed_warm_).size() == n) {
+        for (Index k = 0; k < fixing_rows; ++k) {
+            detail::WarmStartAccess::bound(this->completed_warm_)[fixed_idx[k]] = -fixed_lambda[k];
+        }
+    }
+
+    // (3) THE FOUR SHARED DIAGNOSTICS, from the Lagrangian gradient the
+    //     last phase captured at the returned iterate -- no evaluation, so
+    //     the evaluation bill of every existing path is untouched.
+    //
+    //     UNMEASURED, and therefore NaN, in exactly two cases: no phase
+    //     produced a right-hand side at all, and an exit taken with
+    //     feasibility restoration still active -- where the gradient, and
+    //     under l1_nested the constraint rows too, describe the restoration
+    //     subproblem rather than the declared one. Absent is never
+    //     zero-filled.
+    //     UNMEASURED, and therefore NaN, is decided by the PROVENANCE of
+    //     the captured right-hand side and not by its size (M6 W5 T8.4
+    //     fix1 -- the T8.4 guard read the size and the exit's restoration
+    //     flag, which between them miss every case below):
+    //
+    //       * no phase produced a right-hand side at all -> all four NaN;
+    //       * clause (c), restoration -> all four NaN, and the two blocks
+    //         emptied at (0) above;
+    //       * clause (b), a right-hand side that belongs to the iterate
+    //         BEFORE a restoration return re-anchored the multipliers, on
+    //         a call the loop then exhausted -> all four NaN;
+    //       * clause (a), a right-hand side from a feasibility phase (SOE
+    //         / OPTNO) or from an evaluation the restoration seam was
+    //         substituting into -> STATIONARITY ALONE is NaN. The other
+    //         three read ce, ci, x, the box, lambda_i and z, every one of
+    //         which such a phase does evaluate, so they are measured and
+    //         are kept.
+    //
+    //     Absent is never zero-filled: the committed T8.4 baseline printed
+    //     a declared stationarity of exactly 0 for `infeas2_spike`, a
+    //     problem with objective f = x[1], gradient (0, 1) and no
+    //     multipliers, whose honest declared stationarity is 1 and whose
+    //     honest REPORT -- no objective gradient having been evaluated at
+    //     the returned point -- is NaN.
+    const bool measured = this->exit_grad_lag_.size() == this->primal_vars_ && prov.has_eval &&
+                          prov.at_returned_point && !restoration_contaminated;
+    if (measured) {
+        // THE ONE CONVERSION, CALLED (M6 W5 T8.6 fix1, astra item 2): into
+        // declared width, dividing out the objective scale the solver ran
+        // at (exit_grad_lag_ is obj_scale * (grad f + J'lambda) in the
+        // reduced space, and the caller's problem is the unscaled one),
+        // excluding the eliminated coordinates, folding the fixing rows out
+        // of the gradient, and applying clause (a)'s stationarity gate.
+        // Every one of those statements used to live here AND in
+        // fire_iteration_event; they live in
+        // declared_diagnostics_from_reduced_grad_lag now and both call it,
+        // so the event a caller is handed mid-solve and the result it gets
+        // at the end cannot drift apart. The numbers are unchanged.
+        const detail::DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
+            this->result_.x, hven::solvers::detail::engine_rows(this->result_).lambda_i,
+            this->result_.z, this->exit_grad_lag_, fixed_lambda,
+            hven::solvers::detail::engine_rows(this->result_).ce,
+            hven::solvers::detail::engine_rows(this->result_).ci, this->solve_obj_scale_,
+            prov.objective_bearing);
+        this->result_.stationarity = d.stationarity;
+        hven::solvers::detail::engine_rows(this->result_).feasibility_e = d.feasibility_e;
+        hven::solvers::detail::engine_rows(this->result_).feasibility_i = d.feasibility_i;
+        this->result_.feasibility =
+            hven::solvers::detail::combine_feasibility(d.feasibility_e, d.feasibility_i);
+        this->result_.complementarity = d.complementarity;
+    }
+
+    // (4) The snapshots. Each answers, on the value being returned, a
+    //     question that used to be asked of a solver that had gone on
+    //     living.
+    if (this->solve_completed_) {
+        this->result_.warm_start = this->completed_warm_;
+    }
+    this->result_.kkt_analyses_total = this->kkt_analysis_count_;
+    this->result_.kkt_analyses_this_call = this->kkt_analysis_count_ - analyses_before;
+    this->result_.kkt_factor_counters = this->kkt_sol_.counters();
+    this->result_.evaluation_errors = EvaluationErrors{
+        static_cast<Index>(this->eval_error_log_.count_), this->eval_error_log_.last_message_};
+}
+
+// THE TOP-OF-LOOP SCREEN (M8 B5): the objective value, its gradient, the KKT
+// matrix values (constraint Jacobian and Lagrangian Hessian) and the
+// right-hand side (constraint values, J'lambda) one evaluation wrote. About one
+// instruction per value; the first non-finite block is named.
+const char *hven::solvers::IpmSolverImpl::nonfinite_quantity(double f, const Eigen::VectorXd &grad,
+                                                             const Eigen::VectorXd &rhs) const {
+    const auto &kkt = this->kkt_sol_.matrix();
+    const bool f_ok = detail::is_finite(f);
+    const bool grad_ok = detail::all_finite(grad);
+    const bool kkt_ok =
+        detail::all_finite(kkt.valuePtr(), static_cast<std::size_t>(kkt.nonZeros()));
+    const bool rhs_ok = detail::all_finite(rhs);
+    if (f_ok && grad_ok && kkt_ok && rhs_ok) [[likely]]
+        return nullptr;
+    if (!f_ok)
+        return "objective value";
+    if (!grad_ok)
+        return "objective gradient";
+    if (!kkt_ok)
+        return "constraint Jacobian or Lagrangian Hessian entry";
+    return "constraint value";
+}
+
+// Called from alg_impl's recorder while an exception unwinds the phase: the
+// committed iterate and its multipliers in the engine's shapes, exactly where
+// alg_impl's own tail writes them, with the evaluation-derived blocks left
+// unmeasured -- the exception may have arrived mid-evaluation, so no evaluation
+// at this point is trusted. noexcept by construction: a failure here leaves the
+// handle's fallback (the start point, no iterations) in place.
+void hven::solvers::IpmSolverImpl::record_interrupted_point(const Eigen::VectorXd &xsl,
+                                                            Index rows) noexcept {
+    try {
+        const int pv = this->primal_vars_;
+        const int sv = this->slack_vars_;
+        const int ec = this->equal_cons_;
+        const int ic = this->inequal_cons_;
+        if (xsl.size() != this->kkt_dim_)
+            return;
+        this->result_.x = xsl.head(pv);
+        auto &rows_out = hven::solvers::detail::engine_rows(this->result_);
+        rows_out.lambda_e = ec > 0 ? Eigen::VectorXd(xsl.segment(pv + sv, ec)) : Eigen::VectorXd();
+        rows_out.lambda_i = ic > 0 ? Eigen::VectorXd(xsl.tail(ic)) : Eigen::VectorXd();
+        rows_out.ce.resize(0);
+        rows_out.ci.resize(0);
+        this->result_.z.resize(0);
+        if (this->bounds_) {
+            this->result_.z = Eigen::VectorXd::Zero(pv);
+            const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+            const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+            for (int k = 0; k < nl; k++)
+                this->result_.z[this->bounds_->lower_idx_[k]] += this->bound_duals_.z_lower_[k];
+            for (int k = 0; k < nu; k++)
+                this->result_.z[this->bounds_->upper_idx_[k]] -= this->bound_duals_.z_upper_[k];
+        }
+        this->result_.f = std::numeric_limits<double>::quiet_NaN();
+        this->result_.iterations += rows;
+        this->exit_grad_lag_.resize(0);
+        this->exit_eval_prov_ = ExitEvalProvenance{};
+        this->interrupted_point_recorded_ = true;
+    } catch (...) {
+        this->interrupted_point_recorded_ = false;
+    }
+}
+
+// Called from run_phase_sequence's finisher while an exception unwinds the
+// call, with the program still bound. noexcept by construction, as above.
+void hven::solvers::IpmSolverImpl::finish_interrupted_result() noexcept {
+    try {
+        const bool have_point =
+            this->interrupted_point_recorded_ ||
+            this->result_.x.size() == static_cast<Eigen::Index>(this->primal_vars_);
+        if (!have_point)
+            return;
+        if (!this->interrupted_point_recorded_) {
+            // An earlier phase's tail wrote the point; its evaluation-derived
+            // blocks are trusted no more than the interrupted phase's.
+            this->exit_grad_lag_.resize(0);
+            this->exit_eval_prov_ = ExitEvalProvenance{};
+            hven::solvers::detail::engine_rows(this->result_).ce.resize(0);
+            hven::solvers::detail::engine_rows(this->result_).ci.resize(0);
+        }
+        this->unscale_reported_outputs();
+        if (this->nlp_ != nullptr && this->nlp_->is_reduced()) {
+            Eigen::VectorXd primals_full(this->full_primal_vars_);
+            this->nlp_->scatter_full_x(this->result_.x, primals_full);
+            this->result_.x = primals_full;
+        }
+        this->finish_declared_result(this->analyses_at_entry_);
+        this->result_.status = SolveStatus::kInterrupted;
+        this->result_.returned_best_iterate = false;
+        this->last_stop_reason_ = IpmStopReason::kException;
+        this->interrupted_result_ready_ = true;
+    } catch (...) {
+        this->interrupted_result_ready_ = false;
+    }
+}
+
+hven::solvers::IpmResult hven::solvers::IpmSolverImpl::take_interrupted_result() {
+    IpmResult out;
+    if (this->interrupted_result_ready_) {
+        this->interrupted_result_ready_ = false;
+        out = std::move(this->result_);
+    }
+    out.work.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;
+    return out;
 }

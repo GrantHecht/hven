@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "hven/core/errors.h"
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -41,15 +42,14 @@ inline thread_local bool g_is_pool_worker{false};
 /// Lives on the caller's stack. Workers hold `&ctx` — the caller MUST call
 /// `done.wait()` before `ctx` goes out of scope.
 ///
-/// Exception aggregation: captures up to `kMaxCaptured` distinct worker exceptions.
-/// If a single worker throws, `rethrow_if_exception()` rethrows that exception
-/// unchanged (preserves type). If multiple workers throw concurrently, it composes
-/// a `std::runtime_error` whose message concatenates every captured `.what()`.
+/// Exception capture: up to `kMaxCaptured` worker exceptions are stored, and
+/// `rethrow_if_exception()` rethrows ONE of them unchanged (the same object, its
+/// own type), preferring one that is not an EvaluationError.
 struct DispatchContext {
-    // 16 lets a 256-trajectory STM that diverges in many lanes preserve
-    // enough distinct messages to debug without forcing every caller to
-    // unwrap a composite. Storage is per-DispatchContext on the dispatch
-    // caller's stack, so the size cost is bounded.
+    // 16 slots are searched for a foreign exception among concurrent lane
+    // failures; one beyond them is counted, not kept. Storage is
+    // per-DispatchContext on the dispatch caller's stack, so the size cost is
+    // bounded.
     static constexpr int kMaxCaptured = 16; ///< @internal Maximum number of captured exceptions.
 
     std::latch done;                ///< @internal Countdown latch; each worker calls count_down().
@@ -63,8 +63,7 @@ struct DispatchContext {
 
     /// Store an exception. Only called from catch blocks (cold path).
     /// fetch_add serializes slot assignment; excess beyond kMaxCaptured
-    /// increments the suppressed counter (surfaced in the aggregated
-    /// message).
+    /// increments the suppressed counter.
     void store_exception() noexcept {
         int idx = captured.fetch_add(1, std::memory_order_acq_rel);
         if (idx < kMaxCaptured) {
@@ -74,51 +73,34 @@ struct DispatchContext {
         }
     }
 
-    /// Rethrow stored exception(s). MUST be called after done.wait()
-    /// (the latch provides the happens-before for the slot writes).
+    /// Rethrow ONE stored exception, UNCHANGED. MUST be called after
+    /// done.wait() (the latch provides the happens-before for the slot writes).
+    ///
+    /// THE SAME OBJECT, WITH ITS OWN TYPE (M8 B5): the engines' exception
+    /// contract (core/errors.h) recognises a model's EvaluationError as a
+    /// rejected trial and propagates every other exception a user callback
+    /// throws exactly as thrown, so a dispatch must never compose its workers'
+    /// exceptions into a new one. When several workers threw, one that is NOT an
+    /// EvaluationError is preferred -- a trial point some lanes could not
+    /// evaluate is still only a rejected trial, but a foreign exception in any
+    /// lane must reach the caller -- and the first such one captured is
+    /// rethrown; the rest are dropped.
     void rethrow_if_exception() {
         int total = captured.load(std::memory_order_acquire);
         if (total == 0)
             return;
 
         int n = total < kMaxCaptured ? total : kMaxCaptured;
-        // Preserve the original exception type when only one worker failed;
-        // aggregation is only useful when distinct root causes coexist.
-        if (n == 1) {
-            std::rethrow_exception(exceptions[0]);
-        }
-
-        // Build the aggregated message, but fall back to surfacing the
-        // first captured exception unchanged if string allocation fails:
-        // letting bad_alloc escape would mask every captured worker error
-        // with a misleading OOM at the dispatcher boundary.
-        std::string msg;
-        try {
-            msg = "[hven] dispatch: ";
-            msg += std::to_string(total);
-            msg += " concurrent worker exception(s):";
-            for (int i = 0; i < n; ++i) {
-                msg += "\n--- [";
-                msg += std::to_string(i);
-                msg += "] ---\n";
-                try {
-                    std::rethrow_exception(exceptions[i]);
-                } catch (const std::exception &e) {
-                    msg += e.what();
-                } catch (...) {
-                    msg += "<non-std::exception>";
-                }
+        for (int i = 0; i < n; ++i) {
+            try {
+                std::rethrow_exception(exceptions[i]);
+            } catch (const hven::solvers::EvaluationError &) {
+                continue;
+            } catch (...) {
+                throw;
             }
-            int extra = suppressed.load(std::memory_order_relaxed);
-            if (extra > 0) {
-                msg += "\n... and ";
-                msg += std::to_string(extra);
-                msg += " more suppressed";
-            }
-        } catch (const std::bad_alloc &) {
-            std::rethrow_exception(exceptions[0]);
         }
-        throw std::runtime_error(msg);
+        std::rethrow_exception(exceptions[0]);
     }
 };
 

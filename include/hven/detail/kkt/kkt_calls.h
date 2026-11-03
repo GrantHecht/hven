@@ -105,7 +105,7 @@ AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K);
 bool needs_analysis(const KktFactor &k, const SpMatRM &K);
 
 /// @brief Analyze iff the pattern changed, then factorize.
-/// @throws std::runtime_error As the three-argument overload.
+/// @throws hven::solvers::BackendError As the three-argument overload.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K);
 
 /// @brief The same, on a decision the caller has already taken -- which is what
@@ -114,7 +114,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
 /// The decision MUST be the one `analysis_decision()` returned for this same
 /// `k` and this same K's pattern; handing back a stale decision would analyze
 /// (or skip analyzing) against the wrong pattern.
-/// @throws std::runtime_error If the outcome is
+/// @throws hven::solvers::BackendError If the outcome is
 /// FactorizeOutcome::Status::kBackendError; every other status is returned.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);

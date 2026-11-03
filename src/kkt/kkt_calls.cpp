@@ -3,6 +3,8 @@
 
 #include <hven/detail/kkt/kkt_calls.h>
 
+#include <hven/core/errors.h>
+
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -36,7 +38,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
-        throw std::runtime_error(
+        throw hven::solvers::BackendError(
             fmt::format("KktFactor::factorize_checked: factorization failed, backend error {}",
                         outcome.backend_code));
     }

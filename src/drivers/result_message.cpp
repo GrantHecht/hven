@@ -51,8 +51,21 @@ std::string time_limit_message(const CommonOptions &common) {
     return "time limit reached";
 }
 
+// "<lead>: <detail>", or the lead alone when the engine gave no detail.
+std::string with_detail(const char *lead, const std::string &detail) {
+    if (detail.empty()) {
+        return lead;
+    }
+    return fmt::format("{}: {}", lead, detail);
+}
+
+std::string exception_message(const std::string &detail) {
+    return with_detail("interrupted by an exception that escaped the solve", detail);
+}
+
 std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
-                               const IpmOptions &options, const SolveBudget &budget) {
+                               const std::string &detail, const IpmOptions &options,
+                               const SolveBudget &budget) {
     const CommonOptions &common = options.common;
     switch (result.status) {
     case SolveStatus::kOptimal:
@@ -71,8 +84,18 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
     case SolveStatus::kDiverging:
         return "diverging: the iterates grew without bound";
     case SolveStatus::kNumericalError:
-        return "numerical error";
+        switch (reason) {
+        case IpmStopReason::kNonFiniteStart:
+        case IpmStopReason::kNonFiniteIterate:
+        case IpmStopReason::kEvaluationFailure:
+            return with_detail("numerical error", detail);
+        default:
+            return "numerical error";
+        }
     case SolveStatus::kInterrupted:
+        if (reason == IpmStopReason::kException) {
+            return exception_message(detail);
+        }
         return "interrupted by the iteration callback";
     case SolveStatus::kWorkLimit:
         return factorization_limit_message(common);
@@ -82,7 +105,8 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
     return "unrecognized status";
 }
 
-std::string sqp_status_message(const SqpResult &result, const SqpOptions &options,
+std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
+                               const std::string &detail, const SqpOptions &options,
                                const SolveBudget &budget) {
     const CommonOptions &common = options.common;
     switch (result.status) {
@@ -97,14 +121,42 @@ std::string sqp_status_message(const SqpResult &result, const SqpOptions &option
             return "locally infeasible (certified: restoration reached a stationary point of the "
                    "infeasibility measure)";
         }
+        if (reason == SqpStopReason::kInconsistentEqualities) {
+            return "locally infeasible (uncertified: the equality constraints are inconsistent)";
+        }
+        if (reason == SqpStopReason::kSubproblemFailure) {
+            return "locally infeasible (uncertified: the QP subproblem is infeasible)";
+        }
         return "locally infeasible (uncertified: no claim is made about the model)";
     case SolveStatus::kStalled:
         return "stalled: the iteration stopped making progress";
     case SolveStatus::kDiverging:
         return "diverging: the iterates grew without bound";
     case SolveStatus::kNumericalError:
-        return "numerical error";
+        switch (reason) {
+        case SqpStopReason::kNonFiniteStart:
+        case SqpStopReason::kNonFiniteIterate:
+            return with_detail("numerical error", detail);
+        case SqpStopReason::kSubproblemFailure:
+            return "numerical error: the QP subproblem failed and its retry budget was spent";
+        case SqpStopReason::kRestorationRefused:
+            return "numerical error: feasibility restoration was requested and could not be "
+                   "serviced (a request from inside restoration, or the entry cap spent)";
+        case SqpStopReason::kRestorationNonFinite:
+            return "numerical error: feasibility restoration ended where the model is not finite";
+        case SqpStopReason::kRestorationNoClaim:
+            return "numerical error: feasibility restoration converged without a claim (the "
+                   "point is neither feasible enough to resume nor infeasible enough to certify)";
+        case SqpStopReason::kRestorationFailed:
+            return with_detail("numerical error: the feasibility restoration sub-solve failed",
+                               detail);
+        default:
+            return "numerical error";
+        }
     case SolveStatus::kInterrupted:
+        if (reason == SqpStopReason::kException) {
+            return exception_message(detail);
+        }
         return "interrupted by the iteration callback";
     case SolveStatus::kWorkLimit:
         if (result.counters.probe_budget_stops > 0) {
@@ -124,15 +176,38 @@ std::string sqp_status_message(const SqpResult &result, const SqpOptions &option
 } // namespace
 
 std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
-                               const IpmOptions &options, const SolveBudget &budget) {
-    return with_best_clause(ipm_status_message(result, reason, options, budget),
+                               const std::string &detail, const IpmOptions &options,
+                               const SolveBudget &budget) {
+    return with_best_clause(ipm_status_message(result, reason, detail, options, budget),
                             result.returned_best_iterate);
 }
 
-std::string sqp_result_message(const SqpResult &result, const SqpOptions &options,
+std::string sqp_result_message(const SqpResult &result, SqpStopReason reason,
+                               const std::string &detail, const SqpOptions &options,
                                const SolveBudget &budget) {
-    return with_best_clause(sqp_status_message(result, options, budget),
+    return with_best_clause(sqp_status_message(result, reason, detail, options, budget),
                             result.returned_best_iterate);
+}
+
+std::string describe_exception(const std::exception_ptr &error) noexcept {
+    try {
+        if (error) {
+            std::rethrow_exception(error);
+        }
+        return std::string();
+    } catch (const std::exception &e) {
+        try {
+            return e.what();
+        } catch (...) {
+            return std::string();
+        }
+    } catch (...) {
+        try {
+            return "an exception of a type not derived from std::exception";
+        } catch (...) {
+            return std::string();
+        }
+    }
 }
 
 } // namespace hven::solvers::detail

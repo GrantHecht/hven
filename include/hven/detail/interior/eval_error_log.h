@@ -7,14 +7,13 @@
 
 namespace hven::solvers {
 
-/// @brief Latched trial-evaluation exception state for one solve call.
+/// @brief Latched trial-evaluation failure state for one solve call.
 ///
-/// The line-search / recovery trial evaluations convert an NLP evaluation
-/// exception into a rejected-trial signal instead of letting it unwind the
-/// solve; this log records how often that happened and keeps the most recent
-/// message so the solver can fold it into diagnostics (or into the abort
-/// message when no recovery path exists). Reset once per solve call, alongside
-/// SolveResult::reset_accumulators().
+/// The line-search / recovery trial evaluations convert a thrown EvaluationError,
+/// or a non-finite value, into a rejected-trial signal instead of letting it end
+/// the solve; this log records how often that happened and keeps the most recent
+/// message, which the solve reports as SolveResult::evaluation_errors and folds
+/// into the stop message when no recovery path exists. Reset once per solve call.
 struct EvalErrorLog {
     int count_ = 0;
     std::string last_message_;
@@ -23,7 +22,10 @@ struct EvalErrorLog {
         ++count_;
         last_message_ = what;
     }
-    void record_unknown() { record("unknown exception type (not derived from std::exception)"); }
+    void record(const std::string &what) {
+        ++count_;
+        last_message_ = what;
+    }
     void reset() {
         count_ = 0;
         last_message_.clear();

@@ -8,8 +8,10 @@
 // engine's own source stays free of the handle, and so the one boundary the
 // private implementation draws is a single, named file.
 
+#include <exception>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "hven/detail/drivers/callback_rows.h"
@@ -32,8 +34,30 @@ void finish_result(const IpmSolverImpl &engine, const Problem &problem, const So
                    IpmResult &result) {
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
-    result.message =
-        detail::ipm_result_message(result, engine.last_stop_reason(), engine.options(), budget);
+    result.message = detail::ipm_result_message(
+        result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+}
+
+// THE SAME FINISHING FOR A SOLVE AN EXCEPTION INTERRUPTED (M8 B5): what the
+// engine reached -- or, when it reached nothing, the start point with no
+// iterations -- mapped into the problem's row space, with the work the solve
+// spent and a message naming the exception. Runs inside the handle's catch
+// clause, so it must not throw: a failure leaves the bare partial.
+void finish_interrupted_result(IpmSolverImpl &engine, const Problem &problem,
+                               const SolveBudget &budget, const Vec &x0, const std::string &what,
+                               IpmResult &result) noexcept {
+    try {
+        if (result.x.size() == 0) {
+            result.x = x0;
+        }
+        result.status = SolveStatus::kInterrupted;
+        engine.note_exception_stop(what);
+        detail::ProblemAccess::report(problem, result);
+        detail::ProblemAccess::report_work(problem, result);
+        result.message = detail::ipm_result_message(
+            result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+    } catch (...) {
+    }
 }
 
 } // namespace
@@ -64,6 +88,8 @@ void IpmSolver::set_options(IpmOptions o) { impl().set_options(std::move(o)); }
 
 IpmStopReason IpmSolver::last_stop_reason() const { return impl().last_stop_reason(); }
 
+const IpmResult &IpmSolver::last_result() const { return impl().last_result(); }
+
 bool IpmSolver::kkt_pattern_is_analyzed(const Problem &problem) const {
     const IpmSolverImpl &engine = impl();
     const NonLinearProgram *program = detail::ProblemAccess::built_ipm_program(problem);
@@ -79,16 +105,28 @@ IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
                            SolveBudget budget) {
     const Vec x0 = x0_in;
     IpmSolverImpl &engine = impl();
+    engine.set_last_result(IpmResult{});
     // The tally restarts BEFORE the program is built: the build of an Nlp
     // problem's program walks the three sparsity patterns with one Hessian and
     // one Jacobian evaluation, and a solve that pays for the build reports it.
     detail::ProblemAccess::reset_work(problem);
-    NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
-    const detail::CallbackRowsScope rows(engine, problem);
-    IpmResult result =
-        warm.empty() ? engine.solve(program, x0, budget) : engine.solve(program, x0, warm, budget);
-    finish_result(engine, problem, budget, result);
-    return result;
+    try {
+        NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+        const detail::CallbackRowsScope rows(engine, problem);
+        IpmResult result = warm.empty() ? engine.solve(program, x0, budget)
+                                        : engine.solve(program, x0, warm, budget);
+        finish_result(engine, problem, budget, result);
+        engine.set_last_result(result);
+        return result;
+    } catch (...) {
+        // PROPAGATED UNCHANGED (M8 B5): the same exception object, after the
+        // partial result is finished and kept. Nothing here wraps it.
+        IpmResult partial = engine.take_interrupted_result();
+        finish_interrupted_result(engine, problem, budget, x0,
+                                  detail::describe_exception(std::current_exception()), partial);
+        engine.set_last_result(std::move(partial));
+        throw;
+    }
 }
 
 void IpmSolver::set_iteration_callback(IterationCallback cb, IterationPayload payload,

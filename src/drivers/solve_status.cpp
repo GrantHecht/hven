@@ -39,6 +39,14 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
         return SolveStatus::kWorkLimit;
     case IpmStopReason::kTimeLimit:
         return SolveStatus::kTimeLimit;
+    case IpmStopReason::kNonFiniteStart:
+    case IpmStopReason::kNonFiniteIterate:
+    case IpmStopReason::kEvaluationFailure:
+        // The engine ends these three kNumericalError, which the read above
+        // returns unchanged; this arm only labels a defensive kMaxIter.
+        return SolveStatus::kNumericalError;
+    case IpmStopReason::kException:
+        return SolveStatus::kInterrupted;
     case IpmStopReason::kIterationCap:
     case IpmStopReason::kNone:
         // kNone here is the defensive default: the engine labels every

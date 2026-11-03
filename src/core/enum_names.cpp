@@ -134,9 +134,46 @@ const char *to_string(IpmStopReason reason) {
         return "work_limit";
     case IpmStopReason::kTimeLimit:
         return "time_limit";
+    case IpmStopReason::kNonFiniteStart:
+        return "non_finite_start";
+    case IpmStopReason::kNonFiniteIterate:
+        return "non_finite_iterate";
+    case IpmStopReason::kEvaluationFailure:
+        return "evaluation_failure";
+    case IpmStopReason::kException:
+        return "exception";
     }
     throw std::invalid_argument(
         fmt::format("to_string(IpmStopReason): unrecognized value ({})", static_cast<int>(reason)));
+}
+
+const char *to_string(SqpStopReason reason) {
+    switch (reason) {
+    case SqpStopReason::kNone:
+        return "none";
+    case SqpStopReason::kInterrupted:
+        return "interrupted";
+    case SqpStopReason::kException:
+        return "exception";
+    case SqpStopReason::kNonFiniteStart:
+        return "non_finite_start";
+    case SqpStopReason::kNonFiniteIterate:
+        return "non_finite_iterate";
+    case SqpStopReason::kSubproblemFailure:
+        return "subproblem_failure";
+    case SqpStopReason::kInconsistentEqualities:
+        return "inconsistent_equalities";
+    case SqpStopReason::kRestorationRefused:
+        return "restoration_refused";
+    case SqpStopReason::kRestorationNonFinite:
+        return "restoration_non_finite";
+    case SqpStopReason::kRestorationNoClaim:
+        return "restoration_no_claim";
+    case SqpStopReason::kRestorationFailed:
+        return "restoration_failed";
+    }
+    throw std::invalid_argument(
+        fmt::format("to_string(SqpStopReason): unrecognized value ({})", static_cast<int>(reason)));
 }
 
 // THE NINE MESSAGE KINDS (M6 W5 T8.7b). Lower snake, which is both the display

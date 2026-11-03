@@ -135,6 +135,15 @@ class SqpSolver {
     ///         mis-sized or holds a non-finite or negative bound dual; any block
     ///         is not at the problem's declared dimensions; or the declaration
     ///         stamp is not this problem's.
+    /// @throws hven::solvers::EvaluationError if the model throws one at the
+    ///         start point. At a trial point it is a rejected trial, never
+    ///         thrown; a non-finite value is treated exactly the same, and at
+    ///         the start point ends the solve `kNumericalError` (core/errors.h
+    ///         states the whole contract).
+    /// @throws hven::solvers::BackendError if the linear-algebra backend fails
+    ///         in a way no status can report.
+    /// @throws Any other exception a user callback throws, unchanged. The
+    ///         interrupted solve's result is then `last_result()`.
     SqpResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
@@ -148,9 +157,29 @@ class SqpSolver {
     /// @param x0 The start point; ignored whenever `warm` resolves above
     ///           `kCold`, where the solve starts from the object's point.
     /// @throws std::invalid_argument as the overload above, checked before `warm`
-    ///         is looked at.
+    ///         is looked at; and everything else the overload above throws, under
+    ///         the same contract.
     SqpResult solve(Problem &problem, ConstVecRef x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
+
+    /// The result of the most recent `solve()`: the value it returned, or --
+    /// when an exception escaped it -- what the interrupted solve reached,
+    /// finished into the problem's row space: status `kInterrupted`, the majors
+    /// taken, the current iterate and its multipliers (`x`, `lambda`), the work
+    /// spent and a `message` naming the exception. Its evaluation-derived
+    /// fields are unmeasured (`g` and `z` empty, `f` and the shared diagnostics
+    /// NaN): the exception may have arrived mid-evaluation. After ANY exception
+    /// out of `solve()` -- an argument refusal included -- it describes what was
+    /// reached, the start point with no majors when nothing was. Cleared at the
+    /// start of every `solve()`; default-constructed before the first solve.
+    /// @throws std::logic_error on a moved-from solver.
+    const SqpResult &last_result() const;
+
+    /// Why the most recent solve ended, beside its status: which of the
+    /// engine's exits produced it (SqpStopReason). `kNone` when the status names
+    /// the cause on its own; `kException` after a solve an exception escaped.
+    /// The counterpart of IpmSolver::last_stop_reason().
+    SqpStopReason last_stop_reason() const;
 
     /// Installs the per-iteration callback that both engines accept. An empty
     /// function clears it.

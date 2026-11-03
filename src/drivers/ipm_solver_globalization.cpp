@@ -39,6 +39,8 @@
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
 
+#include "hven/core/errors.h"
+#include "hven/detail/drivers/finite_screen.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
@@ -65,20 +67,38 @@
 
 namespace hven::solvers {
 
+void detail::throw_non_finite_trial(const char *quantity) {
+    throw EvaluationError(std::string("non-finite ") + quantity + " at a trial point");
+}
+
 namespace {
-// File-local helpers shared by every wrapped trial-evaluation catch site
-// below (ls_lang/ls_l1/ls_auglang/generic_line_search): both null-guard on
-// `log` so a SolverContext built without an EvalErrorLog (e.g. a bare
-// unit-test context) stays a silent no-op, matching the inline record()/
-// record_unknown() calls they replace.
+// File-local helper shared by every wrapped trial-evaluation catch site below
+// (ls_lang/ls_l1/ls_auglang/generic_line_search and the SOC sites): it
+// null-guards on `log` so a SolverContext built without an EvalErrorLog (e.g. a
+// bare unit-test context) stays a silent no-op.
+//
+// THE SITES CATCH EvaluationError AND NOTHING ELSE (M8 B5). The model's own
+// "cannot evaluate here" signal, and the non-finite screen inside each trial
+// evaluator below, which throws one, are rejected trials; every other exception
+// is not this engine's to absorb and propagates out of the solve unchanged.
 void note_eval_error(EvalErrorLog *log, const char *what) {
     if (log)
         log->record(what);
 }
 
-void note_eval_error_unknown(EvalErrorLog *log) {
-    if (log)
-        log->record_unknown();
+// THE TRIAL SCREEN (M8 B5): the objective and constraint values a trial
+// evaluation produced, O(m). A NaN or an infinity is a failed trial, exactly as
+// a thrown EvaluationError is, so the screen throws one and the trial takes the
+// catch site's rejection path. Without it a -Inf merit passes every acceptance
+// comparison and a NaN one is rejected only because the comparisons are false.
+template <class EqBlock, class IqBlock>
+void screen_trial_values(double objective, const EqBlock &eq, const IqBlock &iq) {
+    if (detail::is_finite(objective) && detail::all_finite(eq) && detail::all_finite(iq))
+        [[likely]] {
+        return;
+    }
+    detail::throw_non_finite_trial(!detail::is_finite(objective) ? "objective value"
+                                                                 : "constraint value");
 }
 } // namespace
 
@@ -148,6 +168,17 @@ void ClassicMeritAcceptance::eval_rhs(double obj_scale,
                         detail::compound_rhs_scatter_view(*ctx_.nlp_, val, GX, AGXS_FX,
                                                           ctx_.primal_vars_, ctx_.slack_vars_,
                                                           ctx_.equal_cons_, ctx_.inequal_cons_));
+    // The screen (M8 B5): this request carries the first-order blocks too, so
+    // the whole right-hand side is read -- the objective gradient and J'lambda
+    // beside the constraint values. Both outputs name the same vector at the one
+    // caller (ls_lang); both are read so the screen does not depend on that.
+    if (!detail::is_finite(val) || !detail::all_finite(GX) || !detail::all_finite(AGXS_FX))
+        [[unlikely]] {
+        detail::throw_non_finite_trial(!detail::is_finite(val)
+                                           ? "objective value"
+                                           : "objective gradient, constraint value or Jacobian "
+                                             "entry");
+    }
 }
 
 void ClassicMeritAcceptance::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
@@ -180,6 +211,7 @@ void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, d
         detail::residual_rhs_scatter_view(*ctx_.nlp_, ptest, rhs2.eq_cons().data(),
                                           rhs2.iq_cons().data(), ctx_.equal_cons_,
                                           ctx_.inequal_cons_));
+    screen_trial_values(ptest, rhs2.eq_cons(), rhs2.iq_cons());
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx_.restoration_ is null). Shared by the L1 and AUGLANG variants. While
     // active, obj_scale is 0 (user objective contributes exactly 0.0) and the
@@ -247,11 +279,8 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
         bool evaluable = true;
         try {
             this->eval_rhs(obj_scale, xsl2.data(), ptest, rhs2.data(), rhs2.data());
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
@@ -338,11 +367,8 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
         bool evaluable = true;
         try {
             eval_trial_point_occ(obj_scale, mu, alpha, xsl, dxsl, xsl2, rhs2, ptest, btest);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
@@ -409,11 +435,8 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         bool evaluable = true;
         try {
             eval_trial_point_occ(obj_scale, mu, alpha, xsl, dxsl, xsl2, rhs2, ptest, btest);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
@@ -748,6 +771,7 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
         kRequestObjectiveAndConstraints, KktScatterView{},
         detail::residual_rhs_scatter_view(*ctx.nlp_, ptest, RHS2.data() + pv + sv,
                                           RHS2.data() + (RHS2.size() - ic), ec, ic));
+    screen_trial_values(ptest, RHS2.segment(pv + sv, ec), RHS2.tail(ic));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx.restoration_ is null). While active, obj_scale is 0 (user objective
     // contributes exactly 0.0) and the restoration objective at the trial primals
@@ -1011,11 +1035,8 @@ double BacktrackingLineSearch::generic_line_search(
         try {
             modern_eval_trial_point(ctx, obj_scale, mu, alpha, XSL, DXSL, XSL2, RHS2, ptest, btest,
                                     theta_t, resto_eq_shift_scratch_, resto_iq_shift_scratch_);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
@@ -1312,6 +1333,7 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
         kRequestObjectiveAndConstraints, KktScatterView{},
         detail::residual_rhs_scatter_view(*ctx.nlp_, val, cons_out.data(),
                                           cons_out.data() + (cons_out.size() - ic), ec, ic));
+    screen_trial_values(val, cons_out.head(cons_out.size() - ic), cons_out.tail(ic));
 
     // Slack reset on the inequality block against the trial slacks — the same
     // convention ClassicMeritAcceptance::apply_reset_slacks / alg_impl's RHS
@@ -1381,15 +1403,12 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     Eigen::VectorXd c_soc(ncons);
     try {
         eval_trial_constraints(ctx, obj_scale, XSL, DXSL, 1.0, XSL2, trial_cons);
-    } catch (const std::exception &e) {
+    } catch (const EvaluationError &e) {
         note_eval_error(ctx.eval_errors_, e.what());
         // The correction seed cannot be evaluated; there is no point starting
         // the SOC procedure. Fall back to the ladder-exhaustion path. alphap /
         // alphad are still at their snapshot values here (only do_correction
         // mutates them), so this early return needs no restore.
-        return Action::kAcceptAsIs;
-    } catch (...) {
-        note_eval_error_unknown(ctx.eval_errors_);
         return Action::kAcceptAsIs;
     }
     c_soc = RHS.tail(ncons) + trial_cons;
@@ -1454,11 +1473,8 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         // non-finite direction guard above uses.
         try {
             eval_trial_constraints(ctx, obj_scale, XSL, dxsl_soc, alpha_soc, XSL2, trial_cons);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx.eval_errors_, e.what());
-            return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
-        } catch (...) {
-            note_eval_error_unknown(ctx.eval_errors_);
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
         }
         c_soc = alpha_soc * c_soc + trial_cons;

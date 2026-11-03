@@ -312,6 +312,33 @@ class IpmSolverImpl {
     /// @return The stop reason recorded by the last phase that ran.
     IpmStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
 
+    /// @brief What last_stop_reason() stands for, in the words the result
+    ///        message uses: the non-finite quantity and where it was met, or the
+    ///        last evaluation failure. Empty when the reason needs no detail.
+    const std::string &last_stop_detail() const noexcept { return stop_detail_; }
+
+    /// @brief The result a solve an exception interrupted reached, finished
+    ///        into declared space (M8 B5): status kInterrupted, the iterations
+    ///        taken, the last committed iterate and its multipliers. A
+    ///        default-constructed result when the exception arrived before the
+    ///        first phase could record a point. Consumes it: a second call
+    ///        returns the default.
+    IpmResult take_interrupted_result();
+
+    /// @brief The result of the most recent solve() through the public handle:
+    ///        the returned value, or the interrupted partial when an exception
+    ///        escaped. Default-constructed before the first solve.
+    const IpmResult &last_result() const noexcept { return last_result_; }
+    /// @brief Replaces last_result(); the public handle's only writer.
+    void set_last_result(IpmResult result) { last_result_ = std::move(result); }
+
+    /// @brief Labels the call an exception ended: last_stop_reason() reads
+    ///        kException and last_stop_detail() the exception's description.
+    void note_exception_stop(std::string what) noexcept {
+        last_stop_reason_ = IpmStopReason::kException;
+        stop_detail_ = std::move(what);
+    }
+
     // eval_error_log(), kkt_analysis_count() and kkt_factor_counters() are GONE
     // (M6 W5 T8.4). Each answered a question about a solve after the fact, from
     // a solver that had gone on living; the answers are now SNAPSHOT FIELDS on
@@ -1458,6 +1485,28 @@ class IpmSolverImpl {
     /// unchanged and last_stop_reason_ stays last. sizeof() still moves (the
     /// std::function member above), which is named in this task's P-SYM set.
     bool interrupt_requested_ = false;
+    // THE INTERRUPTED SOLVE'S STATE (M8 B5): whether the phase loop is running
+    // (an exception outside it leaves nothing to finish), whether alg_impl's
+    // recorder took the committed point, and whether a finished partial result
+    // waits in result_ for take_interrupted_result(). All reset at every call's
+    // entry.
+    bool in_phase_loop_ = false;
+    bool interrupted_point_recorded_ = false;
+    bool interrupted_result_ready_ = false;
+    // TRUE UNTIL A STEP MOVES THE POINT (M8 B5): an evaluation failure while it
+    // holds is a failure AT THE START POINT -- an EvaluationError propagates,
+    // a non-finite value ends the solve kNumericalError (kNonFiniteStart).
+    bool solve_at_start_ = true;
+    // The kkt_analysis_count_ at this call's entry, for the declared seam of an
+    // interrupted call.
+    Index analyses_at_entry_ = 0;
+    // lifetime_factorize_count() at this call's public entry, for the work of
+    // an interrupted call.
+    Index factorizations_at_entry_ = 0;
+    // See last_stop_detail(); reset per phase with last_stop_reason_.
+    std::string stop_detail_;
+    // See last_result().
+    IpmResult last_result_;
     // THE WORK AND TIME LIMITS' STATE, reset at every solve entry: the
     // factorization count and clock the limits are measured from, and whether a
     // limit ended a phase (which then ends the sequence).
@@ -1765,6 +1814,22 @@ class IpmSolverImpl {
     void eval_nlp(AlgorithmMode algmode, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
                   EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, double mu);
+
+    // THE NON-FINITE SCREEN over one full evaluation (M8 B5): the objective
+    // value @p f, its gradient @p grad, the KKT matrix values and the
+    // right-hand side @p rhs. nullptr when every value is finite, else the name
+    // of the first block that is not, for a message.
+    const char *nonfinite_quantity(double f, const Eigen::VectorXd &grad,
+                                   const Eigen::VectorXd &rhs) const;
+
+    // THE INTERRUPTED SOLVE (M8 B5). record_interrupted_point runs while an
+    // exception unwinds alg_impl, finish_interrupted_result while it unwinds
+    // run_phase_sequence; see take_interrupted_result().
+    void record_interrupted_point(const Eigen::VectorXd &xsl, Index rows) noexcept;
+    void finish_interrupted_result() noexcept;
+    // The declared-space seam: the internal fixing rows, z at declared width,
+    // the shared diagnostics and the snapshots, written into result_.
+    void finish_declared_result(Index analyses_before);
 
     // --- Feasibility-restoration exit measures (defined in ipm_solver.cpp) ---
     // Shared by every restoration exit and teardown site. While restoration is

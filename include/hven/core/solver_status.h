@@ -133,6 +133,67 @@ enum class IpmStopReason {
     kWorkLimit = 5,
     /// `CommonOptions::time_limit_seconds` was reached at an iteration boundary.
     kTimeLimit = 6,
+    /// The model returned a non-finite value (objective, gradient, constraint or
+    /// derivative entry) at the solve's start point. Verdict kNumericalError.
+    kNonFiniteStart = 7,
+    /// The model returned a non-finite value, or threw EvaluationError, at an
+    /// iterate a step had reached, and the step could not be rolled back (no
+    /// previous iterate this phase, an active restoration, or the step cap
+    /// spent). Verdict kNumericalError.
+    kNonFiniteIterate = 8,
+    /// Every trial evaluation of an iteration failed (EvaluationError or a
+    /// non-finite value), the iterate was not acceptable and feasibility
+    /// restoration could not take over. Verdict kNumericalError.
+    kEvaluationFailure = 9,
+    /// An exception escaped the solve (a user callback's own, or one raised
+    /// inside hven). The verdict is kInterrupted and the partial result is the
+    /// solver's `last_result()`.
+    kException = 10,
+};
+
+/// @brief Why the SQP engine's solve ended, beside its SolveStatus -- the
+///        counterpart of IpmStopReason, read through
+///        SqpSolver::last_stop_reason().
+///
+/// kNone means the status names the cause on its own (kOptimal, kMaxIter,
+/// kWorkLimit, kTimeLimit and a certified kInfeasible). Every other value
+/// names which of the engine's exits produced the status beside it.
+enum class SqpStopReason {
+    kNone = 0,
+    /// The per-iteration callback returned CallbackAction::kStop -- at the top
+    /// level or inside a restoration sub-solve. Verdict kInterrupted.
+    kInterrupted = 1,
+    /// An exception escaped the solve. Verdict kInterrupted; the partial result
+    /// is the solver's `last_result()`.
+    kException = 2,
+    /// The model returned a non-finite value at the start point. Verdict
+    /// kNumericalError.
+    kNonFiniteStart = 3,
+    /// The model returned a non-finite value, or threw EvaluationError, at an
+    /// iterate a step had reached, and the step could not be rolled back (the
+    /// radius floor, or the full-step funnel mode). Verdict kNumericalError.
+    kNonFiniteIterate = 4,
+    /// The QP subproblem failed and its retry budget was spent. Verdict
+    /// kNumericalError, or kInfeasible (uncertified) for an infeasible
+    /// subproblem.
+    kSubproblemFailure = 5,
+    /// The equality constraints were judged inconsistent (the equality-basis
+    /// exit). Verdict kInfeasible, uncertified.
+    kInconsistentEqualities = 6,
+    /// Feasibility restoration was requested and could not be serviced: the
+    /// request came from inside a restoration sub-solve, or the per-solve entry
+    /// cap was spent. Verdict kNumericalError.
+    kRestorationRefused = 7,
+    /// Restoration ended at a point where the model is not finite. Verdict
+    /// kNumericalError.
+    kRestorationNonFinite = 8,
+    /// The restoration sub-solve converged without a claim: the point is
+    /// neither feasible enough to resume from nor infeasible enough to certify.
+    /// Verdict kNumericalError.
+    kRestorationNoClaim = 9,
+    /// The restoration sub-solve itself ended kNumericalError. Verdict
+    /// kNumericalError.
+    kRestorationFailed = 10,
 };
 
 /// @brief WHICH DIAGNOSTIC MESSAGE the interior-point engine emitted (schema
@@ -240,8 +301,14 @@ const char *to_string(IpmKktFactorStatus status);
 /// @brief Maps a stop reason to its lower-case display name.
 /// @param reason The stop reason.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the seven.
+/// @throws std::invalid_argument if @p reason is not one of the eleven.
 const char *to_string(IpmStopReason reason);
+
+/// @brief Maps an SQP stop reason to its lower-case display name.
+/// @param reason The stop reason.
+/// @return A static string, never null.
+/// @throws std::invalid_argument if @p reason is not one of the eleven.
+const char *to_string(SqpStopReason reason);
 
 /// @brief The reporting order over all ten statuses, weakest verdict first.
 ///

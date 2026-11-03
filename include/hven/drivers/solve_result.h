@@ -97,6 +97,22 @@ struct WorkCounters {
     Index factorizations = 0;
 };
 
+/// @brief The trial evaluations a solve rejected because the model could not be
+///        evaluated there, on both engines.
+///
+/// One count per rejected evaluation: the model threw EvaluationError
+/// (core/errors.h), or returned a non-finite objective value, constraint value or
+/// derivative entry. Each one was treated as a failed trial -- the step was
+/// rejected or backed off, never accepted -- so a nonzero count says the
+/// trajectory met points the model cannot evaluate, not that the answer is wrong.
+struct EvaluationErrors {
+    /// Number of rejected evaluations.
+    Index count = 0;
+    /// What the most recent one said: the EvaluationError's message, or a line
+    /// naming the non-finite quantity. Empty when `count` is 0.
+    std::string last_message;
+};
+
 /// @brief The result core both engines return through.
 ///
 /// EVERY field is in DECLARED space and CALLER units: the vectors are sized to
@@ -201,6 +217,9 @@ struct SolveResult {
 
     /// @brief What the solve spent; see WorkCounters.
     WorkCounters work;
+
+    /// @brief The trial evaluations this solve rejected; see EvaluationErrors.
+    EvaluationErrors evaluation_errors;
 
     /// @brief Wall-clock seconds from the public solve entry -- after argument
     ///        validation -- to its return, seam and warm setup, final reporting

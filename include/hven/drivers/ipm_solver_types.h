@@ -67,18 +67,6 @@ struct IpmTiming {
     double misc() const { return total - pre - kkt - func - print; }
 };
 
-/// @brief The NLP evaluation errors absorbed during one call.
-///
-/// A trial evaluation that throws is converted into a rejected trial instead of
-/// unwinding the solve; this records how often that happened and the most
-/// recent message.
-struct EvaluationErrors {
-    /// Number of absorbed evaluation errors.
-    Index count = 0;
-    /// The most recent message; empty when `count` is 0.
-    std::string last_message;
-};
-
 /// @brief What one interior-point solve produced.
 ///
 /// The base carries the answer in DECLARED space and CALLER units; everything
@@ -101,6 +89,13 @@ struct IpmResult : SolveResult {
     /// -- a foreign payload is refused at every rung -- and then nothing of it
     /// was applied.
     Index payload_ignored = 0;
+
+    /// @brief Steps REJECTED AFTER THE FACT because the point they reached could
+    ///        not be evaluated (M8 B5): the model returned a non-finite value, or
+    ///        threw EvaluationError, in the evaluation of that point's
+    ///        derivatives. Each one restored the previous iterate and shortened
+    ///        the next step.
+    Index nonfinite_step_rollbacks = 0;
 
     /// @brief 1 when this call was handed a payload carrying the
     ///        `"hven.ipm.polish.v1"` extension and did NOT consume it;
@@ -244,8 +239,6 @@ struct IpmResult : SolveResult {
     /// @brief The KKT factor's linear-layer call counters as of this result,
     ///        including the pattern-guard count.
     hven::linear::SymmetricFactor::Counters kkt_factor_counters;
-    /// @brief The NLP evaluation errors absorbed during this call.
-    EvaluationErrors evaluation_errors;
 };
 
 } // namespace hven::solvers

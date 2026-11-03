@@ -20,9 +20,30 @@
 
 #include <fmt/format.h>
 
+#include "hven/core/errors.h"
 #include "hven/core/pattern_hash.h"
 #include "hven/detail/linear/fault_injection.h"
 #include "hven/detail/linear/pardiso_session.h"
+
+namespace {
+
+// THE BACKEND'S OWN FAILURE, AS BackendError (M8 B5). The session layer
+// reports a failed symbolic analysis or solve -- the backend's error code in
+// the message -- as std::runtime_error; this adapter is where hven's contract
+// (core/errors.h) names it, so a caller catches every runtime failure hven
+// raises in one hven::solvers::Error clause. The message is the session's,
+// unchanged. Zero cost unless the backend fails.
+template <class Call> void backend_call(Call &&call) {
+    try {
+        call();
+    } catch (const hven::solvers::BackendError &) {
+        throw;
+    } catch (const std::runtime_error &e) {
+        throw hven::solvers::BackendError(e.what());
+    }
+}
+
+} // namespace
 
 namespace hven::linear {
 
@@ -604,11 +625,11 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // carries.
     if (detail::testing::AnalyzeFaultInjector::active) {
         const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
-        throw std::runtime_error(fmt::format(
+        throw hven::solvers::BackendError(fmt::format(
             "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
     }
 #endif
-    session->analyze(A);
+    backend_call([&] { session->analyze(A); });
 
 #ifdef HVEN_TESTING
     // Pure observation, not injection -- see PardisoIparmObserver's own doc
@@ -739,7 +760,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     }
 
     Vec rhs_buffer = rhs;
-    session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
+    backend_call([&] { session_->solve_partial(backend_phase, rhs_buffer.data(), x.data()); });
     ++counters_.partial_solve_count;
 
     SolveInfo info;

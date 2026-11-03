@@ -728,6 +728,36 @@ class SqpSolverImpl {
     /// one translation unit that includes `drivers/console_trace_sink.h`.
     ~SqpSolverImpl();
 
+    // --- THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5) ------------------
+
+    /// @brief Why the most recent solve ended, beside its status; see
+    ///        SqpStopReason. kException after a solve an exception escaped.
+    SqpStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
+    /// @brief The words the result message uses for last_stop_reason(): the
+    ///        non-finite quantity and where it was met, or the exception's
+    ///        description. Empty when the reason needs none.
+    const std::string &last_stop_detail() const noexcept { return stop_detail_; }
+    /// @brief What a solve an exception interrupted reached (status
+    ///        kInterrupted, the majors taken, the current iterate and its
+    ///        multipliers in the caller's units and variables, the counters);
+    ///        default-constructed when the exception arrived before the major
+    ///        loop's state existed. Consumes it.
+    SqpResult take_interrupted_result();
+    /// @brief The result of the most recent solve through the public handle;
+    ///        see SqpSolver::last_result().
+    const SqpResult &last_result() const noexcept { return last_result_; }
+    /// @brief Replaces last_result() and drops any interrupted result still
+    ///        waiting; the public handle's only writer.
+    void set_last_result(SqpResult result) {
+        last_result_ = std::move(result);
+        interrupted_ready_ = false;
+    }
+    /// @brief Labels the call an exception ended (kException, @p what).
+    void note_exception_stop(std::string what) noexcept {
+        last_stop_reason_ = SqpStopReason::kException;
+        stop_detail_ = std::move(what);
+    }
+
     /// @brief Solves from the model's own start_point().
     /// @param model The problem; wrapped in a bridge built here.
     /// @return The solution.
@@ -1939,6 +1969,32 @@ class SqpSolverImpl {
     // Every other driver -- restoration allowed or not -- builds its console at
     // the tiers the print level names.
     bool is_restoration_sub_driver_ = false;
+
+    // THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5): see last_stop_reason(),
+    // last_stop_detail(), take_interrupted_result() and last_result(). The first
+    // three are reset at every solve_impl entry.
+    SqpStopReason last_stop_reason_ = SqpStopReason::kNone;
+    std::string stop_detail_;
+    SqpResult interrupted_result_;
+    bool interrupted_ready_ = false;
+    SqpResult last_result_;
+    // Publishes an exit's reason and detail.
+    void publish_stop(SqpStopReason reason, std::string detail) {
+        last_stop_reason_ = reason;
+        stop_detail_ = std::move(detail);
+    }
+    // True while the iterate is still the point the solve started from.
+    bool at_start_point(const SolveState &st) const;
+    // The non-finite quantity at the iterate (its evaluation, else its
+    // subproblem), or the model's own words when it threw, and where.
+    std::string describe_nonfinite_point(const SolveState &st, Index iter) const;
+    // The exact-Hessian subproblem at the iterate. An EvaluationError from the
+    // Hessian propagates at the start point of a top-level solve and otherwise
+    // hands back a subproblem with a NaN Hessian, which the subproblem guard
+    // rejects (rollback, or the exit).
+    QpProblem build_exact_subproblem(SolveState &st, AssemblyEvalSeam &seam);
+    // Runs while an exception unwinds solve_impl_body; see the recorder there.
+    void record_interrupted_solve(SolveState &st, const AssemblyEvalSeam &seam) noexcept;
 
     // THE PER-VARIABLE BOUND-ACTIVITY TOLERANCE OF THE CONVERGENCE MEASUREMENT (QC-1), or
     // empty for the scalar `feas_tol` every other driver uses. Set only by the restoration

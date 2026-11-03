@@ -8,8 +8,10 @@
 // engine's own source stays free of the handle, and so the one boundary the
 // private implementation draws is a single, named file.
 
+#include <exception>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "hven/detail/drivers/callback_rows.h"
@@ -55,6 +57,10 @@ void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
 
 int SqpSolver::ssn_tier_num_threads() const { return impl().ssn_tier_num_threads(); }
 
+SqpStopReason SqpSolver::last_stop_reason() const { return impl().last_stop_reason(); }
+
+const SqpResult &SqpSolver::last_result() const { return impl().last_result(); }
+
 int SqpSolver::ipqp_tier_num_threads() const { return impl().ipqp_tier_num_threads(); }
 
 // The Problem is the solve's one argument: the SQP's form of it is refreshed
@@ -67,19 +73,56 @@ bool reads_exact_hessian(const SqpOptions &options) {
     return options.hessian_mode == SqpHessianMode::kExact;
 }
 
-template <class Entry>
-SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const SolveBudget &budget,
-                   Entry &&entry) {
-    const detail::SqpTarget target =
-        detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
-    detail::ProblemAccess::reset_work(problem);
-    const detail::CallbackRowsScope rows(engine, problem);
-    SqpResult result = target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
+// What the handle adds to the engine's result: the row-space blocks, the work
+// tally and the stop message.
+void finish_result(const SqpSolverImpl &engine, const Problem &problem, const SolveBudget &budget,
+                   SqpResult &result) {
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
     result.work.factorizations = result.counters.factorizations;
-    result.message = detail::sqp_result_message(result, engine.options(), budget);
-    return result;
+    result.message = detail::sqp_result_message(
+        result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+}
+
+// THE SAME FINISHING FOR A SOLVE AN EXCEPTION INTERRUPTED (M8 B5); see the
+// interior-point handle's twin. Runs inside the catch clause and must not throw.
+void finish_interrupted_result(SqpSolverImpl &engine, const Problem &problem,
+                               const SolveBudget &budget, const Vec &x0, const std::string &what,
+                               SqpResult &result) noexcept {
+    try {
+        if (result.x.size() == 0) {
+            result.x = x0;
+        }
+        result.status = SolveStatus::kInterrupted;
+        engine.note_exception_stop(what);
+        finish_result(engine, problem, budget, result);
+    } catch (...) {
+    }
+}
+
+template <class Entry>
+SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const Vec &x0,
+                   const SolveBudget &budget, Entry &&entry) {
+    engine.set_last_result(SqpResult{});
+    try {
+        const detail::SqpTarget target =
+            detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
+        detail::ProblemAccess::reset_work(problem);
+        const detail::CallbackRowsScope rows(engine, problem);
+        SqpResult result =
+            target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
+        finish_result(engine, problem, budget, result);
+        engine.set_last_result(result);
+        return result;
+    } catch (...) {
+        // PROPAGATED UNCHANGED (M8 B5): the same exception object, after the
+        // partial result is finished and kept. Nothing here wraps it.
+        SqpResult partial = engine.take_interrupted_result();
+        finish_interrupted_result(engine, problem, budget, x0,
+                                  detail::describe_exception(std::current_exception()), partial);
+        engine.set_last_result(std::move(partial));
+        throw;
+    }
 }
 
 } // namespace
@@ -91,10 +134,10 @@ SqpResult SqpSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
     const Vec x0 = x0_in;
     SqpSolverImpl &engine = impl();
     if (warm.empty()) {
-        return solve_on(engine, problem, budget,
+        return solve_on(engine, problem, x0, budget,
                         [&](auto &form) { return engine.solve(form, x0, budget); });
     }
-    return solve_on(engine, problem, budget,
+    return solve_on(engine, problem, x0, budget,
                     [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 
@@ -105,7 +148,7 @@ SqpResult SqpSolver::solve(Problem &problem, ConstVecRef x0_in, const SqpWarmSta
     const Vec x0 = x0_in;
     SqpSolverImpl &engine = impl();
     const detail::SqpWarmState &state = detail::SqpWarmAccess::state(warm);
-    return solve_on(engine, problem, budget,
+    return solve_on(engine, problem, x0, budget,
                     [&](auto &form) { return engine.solve(form, x0, state, budget); });
 }
 
