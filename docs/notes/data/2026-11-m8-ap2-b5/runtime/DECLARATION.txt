@@ -1,0 +1,41 @@
+M8 AP-2 group B5 -- runtime neutrality gate -- DECLARATION
+(the B4 riders instrument, ../../2026-11-m8-ap2-b4/riders/runtime/, re-derived for B5; committed before
+the first leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b4/riders/runtime/DECLARATION.txt (itself B4's runtime/DECLARATION.txt
+verbatim but for arms and paths), taken VERBATIM except for the arms, the paths and this group's name.
+runtime_leg.sh and run_all.sh are the B4 riders' with only the comment's group name, the worktree path,
+the build directory (build-b4 -> build-b5), the frozen-binary directories (armAr/armBr -> armAbin/armBbin),
+the evidence directory and arm A's sha256 replaced. analyze_r5.py is B4's runtime/ analyzer byte-for-byte
+(sha256 9f298a1cd5c7330443fa63a90bd5f527a6889da9ed0ef208154423382f3cd692): this directory sits at the
+depth of b4/runtime/ (five levels below the repository root), not b4/riders/runtime/, so the riders'
+one-line path fix (dff20c56...) is NOT taken -- the path depth is checked, not carried. The fixture is
+copied byte-for-byte; its pre-flight was read once before this commit (PASS: total 38909, excluded 21354,
+filtered 17555).
+
+ARMS
+  A  b70fda28 (the B5 base, B4 landed), built by ../legs/armA_build.sh in build-b5/armA from the detached
+     worktree build-b5/armA-src, Release, the build.sh flags; frozen at build-b5/armAbin/hven_sqp_corpus,
+     sha256 6204e879bed7ed30dbaabad2718a45aae961d1d8bdce7d91d9e1f6e653bee3c6 (stamp b70fda28b252).
+  B  the B5 code head 2142af0a: build-b5/rel/bench/hven_sqp_corpus (re-configured at the head) copied by
+     run_all.sh to build-b5/armBbin/, sha256
+     0b9fc7ded01e16281003347d5b9a705903a0701bf91ca64ea4f4d78461ac0961 (stamp 2142af0afcaf).
+     run_all.sh refuses to start on a mismatch for either arm.
+  NOTE. Arm A is at a different source and build path from arm B (as in B4); instructions:u do not
+     depend on it.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration. (B5's declared differences engage only
+on fault paths -- a model that throws or returns non-finite values -- and on new result fields; no
+measured row takes a fault path, so counter identity is expected on every pair.)
+WHAT B5 ADDS TO THE MEASURED PATHS, for the reader of the ratios: per interior-point iteration the
+non-finite screen of one evaluation (objective, gradient, KKT matrix values, right-hand side; an
+integer exponent test, about one instruction per value), the rollback snapshot copy of the iterate
+(and bound multipliers), an empty std::string; per SQP trial nothing beyond a branch on an existing flag
+and zero-cost exception scopes; per solve the recorder guards and one copy of the result into
+last_result().
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows UNOBSERVED.
