@@ -26,6 +26,10 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # Threads::Threads reaches it through hven::hven's own interface.
     test_concurrency.cpp
     test_console_sink.cpp
+    # AP-2 B5: evaluation failure and the exception contract on both engines --
+    # trial-point failures rejected, the start point, foreign exceptions
+    # propagated unchanged with last_result() kept, the stop reasons.
+    test_evaluation_failure.cpp
     test_options.cpp
     # M7 W0 T5(b): the options dump and its drift pin -- three axes (declared
     # field count, sizeof, dumped line count) against IpmOptions, SqpOptions and

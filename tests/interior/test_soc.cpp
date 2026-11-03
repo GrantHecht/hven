@@ -37,6 +37,7 @@
 // exists in it).
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "hven/core/errors.h"
 #include "solver_test_utils.h"
 
 #include "hven/detail/globalization/acceptance_strategy.h"
@@ -222,9 +223,13 @@ struct SocTrialProblem : hven::solvers::Nlp {
 
     /// 1-based call index of eval_g that must throw; 0 disables the fault.
     int throw_on_call_ = 0;
-    /// When true the fault is a non-std::exception, taking the `catch (...)`
-    /// arm rather than the `catch (const std::exception &)` one.
+    /// When true the fault is a FOREIGN exception (not an EvaluationError, not
+    /// even a std::exception), which no catch site absorbs (M8 B5).
     bool throw_unknown_ = false;
+    /// When true the fault is not a throw at all: the constraint values come
+    /// back non-finite, which the trial screen rejects as a thrown
+    /// EvaluationError would be (M8 B5).
+    bool return_nan_ = false;
     /// Drops the inequality row, so the program has no slack block at all --
     /// the shape on which the correction's fraction-to-boundary guard is FALSE.
     /// Fixed before the program is built; every shape method reads it.
@@ -258,15 +263,20 @@ struct SocTrialProblem : hven::solvers::Nlp {
     }
     void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         ++eval_g_calls_;
-        if (throw_on_call_ != 0 && eval_g_calls_ == throw_on_call_) {
+        const bool fault = throw_on_call_ != 0 && eval_g_calls_ == throw_on_call_;
+        if (fault && !return_nan_) {
             if (throw_unknown_) {
-                throw 42; // NOLINT(hicpp-exception-baseclass) -- the `catch (...)` arm
+                throw 42; // NOLINT(hicpp-exception-baseclass) -- a foreign, non-std exception
             }
-            throw std::runtime_error("SocTrialProblem: constraints refused at this point");
+            throw hven::solvers::EvaluationError(
+                "SocTrialProblem: constraints refused at this point");
         }
         g[0] = x[0] + x[1];
         if (!equality_only_) {
             g[1] = x[0] - x[1];
+        }
+        if (fault) {
+            g[0] = std::numeric_limits<double>::quiet_NaN();
         }
     }
     void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
@@ -697,28 +707,36 @@ TEST(SocRecovery, ARejectionWithoutAnInfeasibilityReadingStopsTheLoop) {
     EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
-// The four trial-evaluation fault arms. The SEED evaluation is eval_g call 1
-// and the ACCUMULATION after the first rejected correction is call 2; each
-// throw site has a std::exception arm (the message is logged) and a
-// `catch (...)` arm (the log records the unknown-type sentence). The effect
-// asserted is the same on all four: the link declines rather than unwinding the
-// solve, and the evaluation-error log carries exactly one record.
-void soc_expect_eval_fault(int throw_on_call, bool unknown, int expected_soc_steps,
+// The two trial-evaluation fault sites. The SEED evaluation is eval_g call 1
+// and the ACCUMULATION after the first rejected correction is call 2. Each site
+// absorbs an EvaluationError (the message is logged) and a non-finite value
+// (the screen's message is logged), and absorbs nothing else (M8 B5): a foreign
+// exception propagates out of the link. The effect asserted on the absorbed
+// faults is the same: the link declines rather than unwinding the solve, and
+// the evaluation-error log carries exactly one record.
+enum class SocFault { kEvaluationError, kNonFinite, kForeign };
+
+void soc_expect_eval_fault(int throw_on_call, SocFault fault, int expected_soc_steps,
                            int expected_mechanism_calls) {
     SocDrive drive(kSocRecommendedMaxCorrections);
     drive.problem_->throw_on_call_ = throw_on_call;
-    drive.problem_->throw_unknown_ = unknown;
+    drive.problem_->throw_unknown_ = fault == SocFault::kForeign;
+    drive.problem_->return_nan_ = fault == SocFault::kNonFinite;
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{false, 0.5, 1.0}, {false, 0.5, 0.5}});
     SocRecovery soc;
 
+    if (fault == SocFault::kForeign) {
+        EXPECT_THROW(drive.run(soc, acceptance, mechanism), int);
+        EXPECT_EQ(drive.errors_.count_, 0) << "a foreign exception is not an evaluation failure";
+        return;
+    }
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
     EXPECT_EQ(drive.soc_steps_, expected_soc_steps);
     EXPECT_EQ(mechanism.calls_, expected_mechanism_calls);
     EXPECT_EQ(drive.errors_.count_, 1) << "exactly one evaluation failure was recorded";
-    if (unknown) {
-        EXPECT_EQ(drive.errors_.last_message_,
-                  "unknown exception type (not derived from std::exception)");
+    if (fault == SocFault::kNonFinite) {
+        EXPECT_EQ(drive.errors_.last_message_, "non-finite constraint value at a trial point");
     } else {
         EXPECT_EQ(drive.errors_.last_message_,
                   "SocTrialProblem: constraints refused at this point");
@@ -729,22 +747,32 @@ void soc_expect_eval_fault(int throw_on_call, bool unknown, int expected_soc_ste
 }
 
 TEST(SocRecovery, AnUnevaluableSeedDeclinesAndLogsTheMessage) {
-    soc_expect_eval_fault(/*throw_on_call=*/1, /*unknown=*/false, /*expected_soc_steps=*/0,
+    soc_expect_eval_fault(/*throw_on_call=*/1, SocFault::kEvaluationError,
+                          /*expected_soc_steps=*/0, /*expected_mechanism_calls=*/0);
+}
+
+TEST(SocRecovery, ANonFiniteSeedDeclinesAndLogsTheScreen) {
+    soc_expect_eval_fault(/*throw_on_call=*/1, SocFault::kNonFinite, /*expected_soc_steps=*/0,
                           /*expected_mechanism_calls=*/0);
 }
 
-TEST(SocRecovery, AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel) {
-    soc_expect_eval_fault(/*throw_on_call=*/1, /*unknown=*/true, /*expected_soc_steps=*/0,
+TEST(SocRecovery, AForeignExceptionAtTheSeedPropagates) {
+    soc_expect_eval_fault(/*throw_on_call=*/1, SocFault::kForeign, /*expected_soc_steps=*/0,
                           /*expected_mechanism_calls=*/0);
 }
 
 TEST(SocRecovery, AnUnevaluableAccumulationPointEndsTheLoopAndLogsTheMessage) {
-    soc_expect_eval_fault(/*throw_on_call=*/2, /*unknown=*/false, /*expected_soc_steps=*/1,
+    soc_expect_eval_fault(/*throw_on_call=*/2, SocFault::kEvaluationError,
+                          /*expected_soc_steps=*/1, /*expected_mechanism_calls=*/1);
+}
+
+TEST(SocRecovery, ANonFiniteAccumulationPointEndsTheLoopAndLogsTheScreen) {
+    soc_expect_eval_fault(/*throw_on_call=*/2, SocFault::kNonFinite, /*expected_soc_steps=*/1,
                           /*expected_mechanism_calls=*/1);
 }
 
-TEST(SocRecovery, AnUnevaluableAccumulationPointOfUnknownTypeLogsTheSentinel) {
-    soc_expect_eval_fault(/*throw_on_call=*/2, /*unknown=*/true, /*expected_soc_steps=*/1,
+TEST(SocRecovery, AForeignExceptionAtTheAccumulationPointPropagates) {
+    soc_expect_eval_fault(/*throw_on_call=*/2, SocFault::kForeign, /*expected_soc_steps=*/1,
                           /*expected_mechanism_calls=*/1);
 }
 

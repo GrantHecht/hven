@@ -733,6 +733,9 @@ TEST(SqpLadderSeam, TheReductionResumeTakesTheNoClaimPointAndCountsIt) {
     }
     EXPECT_EQ(off.counters.restoration_reduction_resumes, 0);
     EXPECT_EQ(off.status, SolveStatus::kNumericalError) << "the sub-solve's no-claim exit";
+    // The sub-solve's own exit decides the parent's, and its words travel (M8 B5).
+    EXPECT_EQ(off.message, "numerical error: the feasibility restoration sub-solve failed: a "
+                           "restoration request inside it could not be serviced");
     EXPECT_EQ(on.counters.restoration_reduction_resumes, 1);
     EXPECT_GT(on.counters.major_iters, off.counters.major_iters) << "the solve went on";
     EXPECT_NE(on.status, SolveStatus::kInfeasible);
@@ -1061,6 +1064,10 @@ TEST(SqpLadderSeam, AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedResta
         } else {
             EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
             EXPECT_FALSE(sol.infeasibility_certified);
+            // The refused nested request ended the SUB-SOLVE numerical_error (M8 B5).
+            EXPECT_EQ(sol.message,
+                      "numerical error: the feasibility restoration sub-solve failed: a "
+                      "restoration request inside it could not be serviced");
         }
         EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
     }

@@ -1659,6 +1659,9 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     // never kInfeasible (M7 W2 ladder, L1; re-pinned from kInfeasible: this
     // fixture's NLP is feasible, so kInfeasible was the wrong answer).
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    // THE STOP REASON NAMES THIS EXIT (M8 B5), which the counters cannot.
+    EXPECT_EQ(driver.last_stop_reason(), SqpStopReason::kRestorationRefused);
+    EXPECT_NE(sol.message.find("could not be serviced"), std::string::npos) << sol.message;
     EXPECT_FALSE(sol.infeasibility_certified)
         << "the cap exit makes NO claim about the model -- and this fixture's NLP is in fact "
            "feasible, so a certificate here would be a wrong answer, not a conservative one";

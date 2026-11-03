@@ -727,6 +727,14 @@ const char *spec_spelling(IpmStopReason v) {
         return "\"work_limit\"";
     case IpmStopReason::kTimeLimit:
         return "\"time_limit\"";
+    case IpmStopReason::kNonFiniteStart:
+        return "\"non_finite_start\"";
+    case IpmStopReason::kNonFiniteIterate:
+        return "\"non_finite_iterate\"";
+    case IpmStopReason::kEvaluationFailure:
+        return "\"evaluation_failure\"";
+    case IpmStopReason::kException:
+        return "\"exception\"";
     }
     return kUnspelled;
 }
@@ -816,7 +824,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(RestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
-    static_assert(static_cast<int>(IpmStopReason::kInterrupted) == 5 - 1, "5 stop reasons");
+    static_assert(static_cast<int>(IpmStopReason::kException) == 11 - 1, "11 stop reasons");
     static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
                   "4 factorization statuses");
     static_assert(static_cast<int>(IpmMessageKind::kInterruptSkippingPhases) == 9 - 1,
@@ -1036,6 +1044,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     stop_reason(IpmStopReason::kRestorationLocallyInfeasible);
     stop_reason(IpmStopReason::kStageStalled);
     stop_reason(IpmStopReason::kInterrupted);
+    stop_reason(IpmStopReason::kWorkLimit);
+    stop_reason(IpmStopReason::kTimeLimit);
+    stop_reason(IpmStopReason::kNonFiniteStart);
+    stop_reason(IpmStopReason::kNonFiniteIterate);
+    stop_reason(IpmStopReason::kEvaluationFailure);
+    stop_reason(IpmStopReason::kException);
 
     const auto kkt_status = [](IpmKktFactorStatus v) {
         const IterateInfo row;

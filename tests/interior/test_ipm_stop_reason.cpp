@@ -29,6 +29,7 @@
 
 #include "../common_support/console_capture.h" // NOLINT(build/include_subdir)
 #include "declared_route.h"                    // NOLINT(build/include_subdir)
+#include "hven/core/errors.h"
 
 namespace stop_reason_test {
 namespace {
@@ -309,8 +310,8 @@ struct AnchorOnlyProblem : Nlp {
             return;
         }
         if (x != this->anchor_) {
-            throw std::runtime_error("AnchorOnlyProblem: this problem evaluates only at the "
-                                     "point it was first asked about");
+            throw hven::solvers::EvaluationError("AnchorOnlyProblem: this problem evaluates only "
+                                                 "at the point it was first asked about");
         }
     }
 
@@ -999,8 +1000,10 @@ TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
 // the CURRENT committed iterate already satisfies the acceptable tier, stop
 // here and report that level rather than aborting -- the failed step is
 // discarded (alpha = 0) and the iterate stays un-accepted. Only when the
-// iterate is NOT acceptable, and restoration cannot be entered, is the latched
-// evaluation error thrown wrapped in solver context.
+// iterate is NOT acceptable, and restoration cannot be entered, does the phase
+// end -- kNumericalError, IpmStopReason::kEvaluationFailure, with the latched
+// evaluation error in the stop detail (M8 B5: a status, no longer a thrown
+// std::runtime_error).
 //
 // The W6 T0 coverage read found that first branch cold (`ipm_solver.cpp
 // :3828-3858`, the fourth-largest uncovered region in `src/drivers/`). The two
@@ -1035,19 +1038,22 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatched
 
     // The SAME fixture, the SAME start: only the acceptable tier moved, and the
     // bypass's first branch no longer holds. With restoration off, the third
-    // branch is all that is left -- and it throws the latched evaluation error
-    // wrapped in solver context rather than returning a verdict.
-    try {
-        (void)solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0);
-        ADD_FAILURE() << "an un-evaluable line search at an unacceptable iterate must abort";
-    } catch (const std::runtime_error &e) {
-        const std::string what = e.what();
-        EXPECT_NE(what.find("line search failed at iteration"), std::string::npos) << what;
-        // The latched message is folded in, which is the half that makes the
-        // abort diagnosable (CLAUDE.md §4: never a diagnostic the exception
-        // does not carry).
-        EXPECT_NE(what.find("AnchorOnlyProblem"), std::string::npos) << what;
-    }
+    // branch is all that is left -- and it ends the phase kNumericalError,
+    // labelled kEvaluationFailure (M8 B5: an evaluation failure is reported as a
+    // status, never thrown as a std::runtime_error).
+    hven::solvers::IpmResult result;
+    ASSERT_NO_THROW(
+        result = solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0));
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kNumericalError);
+    EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kEvaluationFailure);
+    const std::string &detail = result.message;
+    EXPECT_NE(detail.find("could not be evaluated at any trial step of iteration"),
+              std::string::npos)
+        << detail;
+    // The latched message is folded in, which is the half that makes the exit
+    // diagnosable.
+    EXPECT_NE(detail.find("AnchorOnlyProblem"), std::string::npos) << detail;
+    EXPECT_GE(result.evaluation_errors.count, 1);
 }
 
 // RESTORATION IS ENTERED THROUGH THE RECOVERY CHAIN, NOT THROUGH THE BYPASS.

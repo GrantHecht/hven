@@ -43,6 +43,7 @@
 
 #include <fmt/format.h>
 
+#include "hven/core/errors.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/globalization/l1_restoration.h"
@@ -1617,8 +1618,9 @@ struct WarmInfeasibleBoundedProblem : Nlp {
             return;
         }
         if (x != this->anchor_) {
-            throw std::runtime_error("WarmInfeasibleBoundedProblem: this problem evaluates only "
-                                     "at the point it was first asked about");
+            throw hven::solvers::EvaluationError(
+                "WarmInfeasibleBoundedProblem: this problem evaluates only "
+                "at the point it was first asked about");
         }
     }
 
