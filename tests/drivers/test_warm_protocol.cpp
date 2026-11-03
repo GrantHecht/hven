@@ -7,8 +7,8 @@
 // itself, across BOTH engines and both routes, which is why it lives in the
 // shared drivers/ suite rather than in either engine's:
 //
-//   THE PAYLOAD ROUTE -- `solve(model, x0, const WarmStartData &, budget)` on
-//   the interior-point solver and on the SQP driver. `WarmStartData` is the
+//   THE PAYLOAD ROUTE -- `solve(model, x0, const WarmStart &, budget)` on
+//   the interior-point solver and on the SQP driver. `WarmStart` is the
 //   declared-space currency: it carries a `DeclarationKey` stamp, it crosses
 //   between engines, and it is the value `SolveResult::export_warm_start()`
 //   hands back. Its rule is
@@ -26,7 +26,7 @@
 //       blocks is refused at the hand-over on both engines. Only the NATIVE
 //       route degrades a non-finite value (to kCold).
 //
-//   THE NATIVE ROUTE -- `solve(bridge, x0, const SqpWarmStart &, budget)`, the
+//   THE NATIVE ROUTE -- `solve(bridge, x0, const SqpWarmState &, budget)`, the
 //   LABELLED SQP-ONLY entry. It carries no stamp, so nothing on it is ever
 //   refused for identity; every defect DEGRADES, exactly as before T8.5.
 //
@@ -74,7 +74,17 @@
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "support/hs071_problem.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 namespace {
 
@@ -86,9 +96,9 @@ using hven::solvers::SolveStatus;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
 using hven::solvers::SqpSolver;
-using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
-using hven::solvers::WarmStartData;
+using hven::solvers::WarmStart;
+using hven::solvers::detail::SqpWarmState;
 using Vec = Eigen::VectorXd;
 
 // A SECOND declared problem, deliberately UNLIKE HS071 in its declared
@@ -159,7 +169,7 @@ struct Hs071Export {
     std::shared_ptr<hven::solvers::Nlp> problem;
     std::shared_ptr<hven::solvers::NonLinearProgram> program;
     hven::solvers::IpmSolver ipm;
-    WarmStartData payload;
+    WarmStart payload;
 
     Hs071Export()
         : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
@@ -168,19 +178,19 @@ struct Hs071Export {
         const hven::solvers::IpmResult r =
             ipm.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
-        const std::optional<WarmStartData> snapshot = r.export_warm_start();
-        EXPECT_TRUE(snapshot.has_value());
-        payload = snapshot.value_or(WarmStartData{});
+        const WarmStart snapshot = r.warm_start;
+        EXPECT_TRUE(!snapshot.empty());
+        payload = snapshot;
     }
 };
 
 // The multipliers-only form of a payload: the two row blocks and the stamp
 // kept, the point and the bound prices dropped.
-WarmStartData seed_form(const WarmStartData &full) {
-    WarmStartData seed;
-    seed.eq_lmults_ = full.eq_lmults_;
-    seed.iq_lmults_ = full.iq_lmults_;
-    seed.structure_key_ = full.structure_key_;
+WarmStart seed_form(const WarmStart &full) {
+    WarmStart seed;
+    WarmStartAccess::eq(seed) = WarmStartAccess::eq(full);
+    WarmStartAccess::iq(seed) = WarmStartAccess::iq(full);
+    WarmStartAccess::key(seed) = WarmStartAccess::key(full);
     return seed;
 }
 
@@ -343,7 +353,7 @@ struct SqpView {
 
 TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
     const Hs071Export exported;
-    ASSERT_EQ(exported.payload.primal_.size(), 4);
+    ASSERT_EQ(WarmStartAccess::primal(exported.payload).size(), 4);
 
     // --- The interior-point engine ---
     const auto three = std::make_shared<ThreeVarProblem>();
@@ -408,11 +418,11 @@ TEST(WarmProtocol, KIpmModeNoLongerColdGradesAMismatch) {
 
 TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
     const Hs071Export exported;
-    const WarmStartData seed = seed_form(exported.payload);
-    ASSERT_EQ(seed.primal_.size(), 0);
-    ASSERT_EQ(seed.bound_lmults_.size(), 0);
-    ASSERT_EQ(seed.eq_lmults_.size(), 1);
-    ASSERT_EQ(seed.iq_lmults_.size(), 1);
+    const WarmStart seed = seed_form(exported.payload);
+    ASSERT_EQ(WarmStartAccess::primal(seed).size(), 0);
+    ASSERT_EQ(WarmStartAccess::bound(seed).size(), 0);
+    ASSERT_EQ(WarmStartAccess::eq(seed).size(), 1);
+    ASSERT_EQ(WarmStartAccess::iq(seed).size(), 1);
 
     const Vec x0 = hs071_start();
 
@@ -482,10 +492,10 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // pass vacuously.
     ASSERT_NE(hven::solvers::find_ipm_polish(exported.payload), nullptr);
 
-    WarmStartData seed = seed_form(exported.payload);
-    seed.extensions_ = exported.payload.extensions_;
-    ASSERT_EQ(seed.extensions_.size(), 1u);
-    ASSERT_EQ(seed.extensions_[0].tag_, std::string(kIpmPolishTag));
+    WarmStart seed = seed_form(exported.payload);
+    WarmStartAccess::extensions(seed) = WarmStartAccess::extensions(exported.payload);
+    ASSERT_EQ(WarmStartAccess::extensions(seed).size(), 1u);
+    ASSERT_EQ(WarmStartAccess::extensions(seed)[0].tag_, std::string(kIpmPolishTag));
 
     // --- The SQP: the extension is dropped and COUNTED ---
     //
@@ -551,10 +561,10 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
 TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     const Hs071Export exported;
 
-    WarmStartData half_empty = exported.payload;
-    half_empty.primal_.resize(0);
-    half_empty.extensions_.clear();
-    ASSERT_EQ(half_empty.bound_lmults_.size(), 4);
+    WarmStart half_empty = exported.payload;
+    WarmStartAccess::primal(half_empty).resize(0);
+    WarmStartAccess::extensions(half_empty).clear();
+    ASSERT_EQ(WarmStartAccess::bound(half_empty).size(), 4);
 
     // NEITHER FORM. `primal_` and `bound_lmults_` are two readings of ONE space,
     // so they are either both empty (the seed) or one length (a point and its
@@ -592,9 +602,9 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
 
     // AND THE REVERSE HALF, for completeness: a point with no prices beside it
     // is refused by the same rule, in the same place.
-    WarmStartData no_prices = exported.payload;
-    no_prices.bound_lmults_.resize(0);
-    no_prices.extensions_.clear();
+    WarmStart no_prices = exported.payload;
+    WarmStartAccess::bound(no_prices).resize(0);
+    WarmStartAccess::extensions(no_prices).clear();
     SqpView view(exported.problem);
     SqpSolver driver{quiet_sqp()};
     EXPECT_THROW((void)driver.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start(),
@@ -614,31 +624,31 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
     const SqpResult first =
         producer.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_NE(first.warm_start.structure_hash, 0u)
+    ASSERT_NE(SqpWarmAccess::state(first.native_warm_start).structure_hash, 0u)
         << "a native object from a real solve carries a real hash, or this pin measures nothing";
 
     // A DELIBERATELY WRONG HASH on an otherwise perfect object, against the very
     // problem it came from: the values are usable, the provenance claim is not.
     // The native route has no stamp to refuse against, so the ladder does the
     // work -- kSeeded, never a throw.
-    SqpWarmStart stale = first.warm_start;
+    hven::solvers::detail::SqpWarmState stale = SqpWarmAccess::state(first.native_warm_start);
     stale.structure_hash = 0x1;
     stale.hot.reset();
 
     SqpSolver consumer{quiet_sqp()};
     SqpResult out;
     ASSERT_NO_THROW(out = consumer.solve(hven::solvers::detail::problem_ref(*view.bridge),
-                                         hs071_start(), stale));
+                                         hs071_start(), SqpWarmAccess::wrap(stale)));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 
     // AND THE MATCHING OBJECT REACHES kWarm, so "kSeeded" above is the
     // degradation and not the ceiling this route always hits.
-    SqpWarmStart matching = first.warm_start;
+    hven::solvers::detail::SqpWarmState matching = SqpWarmAccess::state(first.native_warm_start);
     matching.hot.reset();
     SqpSolver warm_consumer{quiet_sqp()};
     const SqpResult warm = warm_consumer.solve(hven::solvers::detail::problem_ref(*view.bridge),
-                                               hs071_start(), matching);
+                                               hs071_start(), SqpWarmAccess::wrap(matching));
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
 }
 
@@ -651,7 +661,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
         producer.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
 
-    SqpWarmStart poisoned = first.warm_start;
+    hven::solvers::detail::SqpWarmState poisoned = SqpWarmAccess::state(first.native_warm_start);
     poisoned.hot.reset();
     poisoned.x(0) = std::numeric_limits<double>::quiet_NaN();
 
@@ -661,7 +671,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
     SqpSolver consumer{quiet_sqp()};
     SqpResult out;
     ASSERT_NO_THROW(out = consumer.solve(hven::solvers::detail::problem_ref(*view.bridge),
-                                         hs071_start(), poisoned));
+                                         hs071_start(), SqpWarmAccess::wrap(poisoned)));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold);
     EXPECT_EQ(out.counters.n_seeded, 0);
@@ -678,17 +688,18 @@ TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
     const SqpResult first =
         producer.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_GT(first.warm_start.lambda_i.size(), 0);
+    ASSERT_GT(SqpWarmAccess::state(first.native_warm_start).lambda_i.size(), 0);
 
     const auto run_with_price = [&](double price) {
-        SqpWarmStart w = first.warm_start;
+        hven::solvers::detail::SqpWarmState w = SqpWarmAccess::state(first.native_warm_start);
         w.hot.reset();
         // Hash 0: the seeded ladder is where the clamp lives, so the object has
         // to resolve kSeeded before the band can be read at all.
         w.structure_hash = 0;
         w.lambda_i(0) = price;
         SqpSolver driver{quiet_sqp()};
-        return driver.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start(), w);
+        return driver.solve(hven::solvers::detail::problem_ref(*view.bridge), hs071_start(),
+                            SqpWarmAccess::wrap(w));
     };
 
     // JUST OUTSIDE the band: degraded to cold, and the clamp counter reads 0 --
@@ -720,7 +731,7 @@ TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
 TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     const Hs071Export exported;
 
-    const auto solve_at = [&](StartLevel ceiling, const WarmStartData *payload) {
+    const auto solve_at = [&](StartLevel ceiling, const WarmStart *payload) {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
         hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
@@ -782,16 +793,20 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
 TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
     const Hs071Export exported;
 
-    WarmStartData wrong_stamp = exported.payload;
+    WarmStart wrong_stamp = exported.payload;
     // Every block is the exporter's own, so nothing is mis-sized.
-    ASSERT_EQ(wrong_stamp.primal_.size(), exported.payload.primal_.size());
-    ASSERT_EQ(wrong_stamp.eq_lmults_.size(), exported.payload.eq_lmults_.size());
-    ASSERT_EQ(wrong_stamp.iq_lmults_.size(), exported.payload.iq_lmults_.size());
-    ASSERT_EQ(wrong_stamp.bound_lmults_.size(), exported.payload.bound_lmults_.size());
+    ASSERT_EQ(WarmStartAccess::primal(wrong_stamp).size(),
+              WarmStartAccess::primal(exported.payload).size());
+    ASSERT_EQ(WarmStartAccess::eq(wrong_stamp).size(),
+              WarmStartAccess::eq(exported.payload).size());
+    ASSERT_EQ(WarmStartAccess::iq(wrong_stamp).size(),
+              WarmStartAccess::iq(exported.payload).size());
+    ASSERT_EQ(WarmStartAccess::bound(wrong_stamp).size(),
+              WarmStartAccess::bound(exported.payload).size());
     // ONE BIT of the bound conjunct, so the key is a different key and nothing
     // else about the value moved.
-    wrong_stamp.structure_key_.bound_digest_ ^= 1u;
-    ASSERT_FALSE(wrong_stamp.structure_key_ == exported.payload.structure_key_);
+    WarmStartAccess::key(wrong_stamp).bound_digest_ ^= 1u;
+    ASSERT_FALSE(WarmStartAccess::key(wrong_stamp) == WarmStartAccess::key(exported.payload));
 
     for (const StartLevel ceiling :
          {StartLevel::kCold, StartLevel::kSeeded, StartLevel::kWarm, StartLevel::kHot}) {
@@ -888,8 +903,8 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
 // than the event struct -- what a consumer sees is a line of a file.
 TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
     const Hs071Export exported;
-    WarmStartData seed = seed_form(exported.payload);
-    seed.extensions_ = exported.payload.extensions_;
+    WarmStart seed = seed_form(exported.payload);
+    WarmStartAccess::extensions(seed) = WarmStartAccess::extensions(exported.payload);
     ASSERT_NE(hven::solvers::find_ipm_polish(seed), nullptr)
         << "without the extension there is nothing to ignore and the pin is vacuous";
 
@@ -1019,7 +1034,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     hven::solvers::IpmSolver other;
     other.set_options(quiet_ipm(other));
     const hven::solvers::IpmResult explicit_default =
-        other.solve(hven::solvers::detail::problem_ref(*other_program), hs071_start(),
+        other.solve(hven::solvers::detail::problem_ref(*other_program), hs071_start(), {},
                     hven::solvers::SolveBudget{});
     EXPECT_EQ(explicit_default.status, out.status);
     expect_same_reported_numbers(explicit_default, out,
@@ -1027,7 +1042,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
 
     // A tiny helper so each arm below is one line and the two arities of the
     // payload overload differ ONLY in whether the budget is spelled.
-    const auto solve_with_payload = [&](const WarmStartData &w, bool spell_the_budget) {
+    const auto solve_with_payload = [&](const WarmStart &w, bool spell_the_budget) {
         const auto p = hven::solvers::make_nlp_program(problem);
         hven::solvers::IpmSolver s;
         s.set_options(quiet_ipm(s));
@@ -1049,10 +1064,10 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     // it, so this arm provably reached the payload overload.
     ASSERT_NE(hven::solvers::find_ipm_polish(exported.payload), nullptr)
         << "the export must carry the extension, or the polish_ignored pin is vacuous";
-    WarmStartData seed = seed_form(exported.payload);
-    seed.extensions_ = exported.payload.extensions_;
-    ASSERT_EQ(seed.primal_.size(), 0);
-    ASSERT_EQ(seed.extensions_.size(), 1u);
+    WarmStart seed = seed_form(exported.payload);
+    WarmStartAccess::extensions(seed) = WarmStartAccess::extensions(exported.payload);
+    ASSERT_EQ(WarmStartAccess::primal(seed).size(), 0);
+    ASSERT_EQ(WarmStartAccess::extensions(seed).size(), 1u);
 
     const hven::solvers::IpmResult seeded_default_budget = solve_with_payload(seed, false);
     const hven::solvers::IpmResult seeded_spelled_budget = solve_with_payload(seed, true);
@@ -1117,18 +1132,18 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
     EXPECT_EQ(crossed.counters.start_level_used, StartLevel::kSeeded);
 
     // --- SQP -> IPM, back the other way through the same currency ---
-    const std::optional<WarmStartData> back = crossed.export_warm_start();
-    ASSERT_TRUE(back.has_value());
-    EXPECT_TRUE(back->structure_key_ == declaration_key(view.bridge->declaration()))
+    const WarmStart back = crossed.warm_start;
+    ASSERT_TRUE(!back.empty());
+    EXPECT_TRUE(WarmStartAccess::key(back) == declaration_key(view.bridge->declaration()))
         << "one declared problem keys the same on both engines";
     // The SQP produces no extensions, so this is the core-only shape.
-    EXPECT_TRUE(back->extensions_.empty());
+    EXPECT_TRUE(WarmStartAccess::extensions(back).empty());
 
     const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
     hven::solvers::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     const hven::solvers::IpmResult returned =
-        ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), hs071_start(), *back);
+        ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), hs071_start(), back);
     EXPECT_EQ(returned.status, SolveStatus::kOptimal);
     EXPECT_EQ(returned.payload_ignored, 0);
     // No extension came back, so there was none to drop.

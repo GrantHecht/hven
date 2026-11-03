@@ -35,8 +35,18 @@
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 using hven::Index;
 using hven::SpMatRM;
@@ -332,7 +342,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
 
     const hven::solvers::IpmResult capped =
         solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                     hven::solvers::SolveBudget{.max_iterations = 2});
+                     {}, hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(capped.iterations, 2);
     ASSERT_EQ(capped.phases.size(), 1u);
@@ -344,7 +354,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     hven::solvers::IpmSolver small(tight);
     const hven::solvers::IpmResult still_capped =
         small.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                    hven::solvers::SolveBudget{.max_iterations = 10000});
+                    {}, hven::solvers::SolveBudget{.max_iterations = 10000});
     EXPECT_EQ(still_capped.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_LE(still_capped.iterations, 2);
 
@@ -410,10 +420,10 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
         solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
 
-    const auto before = r.export_warm_start();
-    ASSERT_TRUE(before.has_value());
-    ASSERT_EQ(before->primal_.size(), 4);
-    const Eigen::VectorXd captured = before->primal_;
+    const hven::solvers::WarmStart before = r.warm_start;
+    ASSERT_TRUE(!before.empty());
+    ASSERT_EQ(WarmStartAccess::primal(before).size(), 4);
+    const Eigen::VectorXd captured = WarmStartAccess::primal(before);
 
     // Scribble on every public field. The snapshot was taken at solve exit and
     // is not a view of these.
@@ -424,13 +434,13 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
     r.f = 0.0;
     r.status = hven::solvers::SolveStatus::kNumericalError;
 
-    const auto after = r.export_warm_start();
-    ASSERT_TRUE(after.has_value());
-    ASSERT_EQ(after->primal_.size(), captured.size());
+    const hven::solvers::WarmStart after = r.warm_start;
+    ASSERT_TRUE(!after.empty());
+    ASSERT_EQ(WarmStartAccess::primal(after).size(), captured.size());
     for (Index i = 0; i < captured.size(); ++i) {
-        EXPECT_EQ(after->primal_[i], captured[i]);
+        EXPECT_EQ(WarmStartAccess::primal(after)[i], captured[i]);
     }
-    EXPECT_GT(after->primal_.lpNorm<Eigen::Infinity>(), 0.0)
+    EXPECT_GT(WarmStartAccess::primal(after).lpNorm<Eigen::Infinity>(), 0.0)
         << "the export still carries the solution, not the zeroed field";
 }
 
@@ -565,7 +575,7 @@ TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
 
     // The export is still present -- this engine's is never nullopt, even here:
     // the returned point is the caller's own finite x0 with zero multipliers.
-    EXPECT_TRUE(r.export_warm_start().has_value());
+    EXPECT_FALSE(r.warm_start.empty());
 }
 
 TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
@@ -609,12 +619,12 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     // And the export snapshot is a snapshot: editing the public fields does not
     // reach it.
     hven::solvers::SqpResult edited = r;
-    const auto before = edited.export_warm_start();
-    ASSERT_TRUE(before.has_value());
+    const hven::solvers::WarmStart before = edited.warm_start;
+    ASSERT_TRUE(!before.empty());
     edited.x.setZero();
-    const auto after = edited.export_warm_start();
-    ASSERT_TRUE(after.has_value());
-    EXPECT_GT(after->primal_.template lpNorm<Eigen::Infinity>(), 0.0);
+    const hven::solvers::WarmStart after = edited.warm_start;
+    ASSERT_TRUE(!after.empty());
+    EXPECT_GT(WarmStartAccess::primal(after).template lpNorm<Eigen::Infinity>(), 0.0);
 }
 
 namespace {
@@ -694,7 +704,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // both phases. The sub-driver is allocated from the EFFECTIVE cap minus
     // what the outer loop has already spent, so the two together stay inside it.
     const hven::solvers::SqpResult capped =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), {},
                      hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
         << "the cap bounds the majors AND the restoration majors together";
@@ -703,7 +713,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // already spent the whole budget, so the request is REFUSED rather than
     // sub-budgeted -- no restoration major is spent at all.
     const hven::solvers::SqpResult refused =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(), {},
                      hven::solvers::SolveBudget{.max_iterations = 1});
     EXPECT_LE(refused.counters.major_iters, 1);
     EXPECT_EQ(refused.counters.restoration_iters, 0)
@@ -715,7 +725,7 @@ TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     tight.common.max_iterations = 2;
     hven::solvers::SqpSolver small(tight);
     const hven::solvers::SqpResult still =
-        small.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+        small.solve(hven::solvers::detail::problem_ref(model), model.start_point(), {},
                     hven::solvers::SolveBudget{.max_iterations = 100000});
     EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
 
@@ -1017,9 +1027,9 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
     const auto model =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
-    const hven::solvers::IpmResult huge =
-        solver.solve(hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(),
-                     hven::solvers::SolveBudget{.max_iterations = std::numeric_limits<int>::max()});
+    const hven::solvers::IpmResult huge = solver.solve(
+        hven::solvers::detail::problem_ref(*model), hven_drivers_tests::hs071_start(), {},
+        hven::solvers::SolveBudget{.max_iterations = std::numeric_limits<int>::max()});
     EXPECT_EQ(huge.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(huge.iterations, 0);
 
@@ -1067,7 +1077,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
 
     hven::solvers::SqpSolver model_driver(o);
     const hven::solvers::SqpResult capped =
-        model_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(),
+        model_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(), {},
                            hven::solvers::SolveBudget{.max_iterations = 2});
     EXPECT_LE(capped.counters.major_iters, 2);
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
@@ -1084,17 +1094,17 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     const hven::solvers::SqpResult warmup =
         bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), p.model->start_point());
     ASSERT_EQ(warmup.status, hven::solvers::SolveStatus::kOptimal);
-    const auto currency = warmup.export_warm_start();
-    ASSERT_TRUE(currency.has_value());
+    const hven::solvers::WarmStart currency = warmup.warm_start;
+    ASSERT_TRUE(!currency.empty());
     const hven::solvers::SqpResult payload_and_capped =
         bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), p.model->start_point(),
-                            *currency, hven::solvers::SolveBudget{.max_iterations = 1});
+                            currency, hven::solvers::SolveBudget{.max_iterations = 1});
     EXPECT_LE(payload_and_capped.counters.major_iters, 1);
 
     // AND THE DEFAULT IS THE IDENTITY on both new doors.
     hven::solvers::SqpSolver free_driver(o);
     const hven::solvers::SqpResult free_run =
-        free_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(),
+        free_driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point(), {},
                           hven::solvers::SolveBudget{});
     EXPECT_EQ(free_run.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(free_run.counters.major_iters, 2);

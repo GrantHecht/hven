@@ -8,7 +8,7 @@
 //   * an unchanged-bounds re-solve counter-identical to the internal route's re-solve;
 //   * a value-only bound change adopted in place: no re-analysis, the fresh-Problem
 //     solution, and a prior warm start kept (both engines);
-//   * a changed fixed set re-laid and counted, and a prior WarmStartData refused as an
+//   * a changed fixed set re-laid and counted, and a prior WarmStart refused as an
 //     identity mismatch;
 //   * a dimension change, a structure change and a row-kind flip refused by name;
 //   * the per-row lambda/g map on every row kind, an active range row on both sides,
@@ -27,6 +27,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include <Eigen/Core>
 
@@ -36,11 +37,18 @@
 #include "hven/detail/model/nlp_problem_model.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/nlp.h"
 #include "hven/model/problem.h"
+#include "hven/warmstart/ipm_polish_extension.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace {
 
@@ -378,15 +386,15 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
 
     const IpmResult free_solve = ipm.solve(problem, x0);
     ASSERT_EQ(free_solve.status, SolveStatus::kOptimal);
-    const std::optional<WarmStartData> payload = free_solve.export_warm_start();
-    ASSERT_TRUE(payload.has_value());
+    const WarmStart payload = free_solve.warm_start;
+    ASSERT_TRUE(!payload.empty());
     EXPECT_EQ(problem.statistics().boxed_variables, 3);
     EXPECT_EQ(problem.statistics().fixed_variables, 0);
 
     // A value-only change (x1 still boxed, both bounds finite): the payload's
     // declaration still matches (the value-only pins themselves are below).
     box->x1_upper = 5.0;
-    const IpmResult moved = ipm.solve(problem, x0, *payload);
+    const IpmResult moved = ipm.solve(problem, x0, payload);
     EXPECT_EQ(moved.status, SolveStatus::kOptimal);
     EXPECT_EQ(moved.kkt_analyses_this_call, 0);
     EXPECT_TRUE(ipm.kkt_pattern_is_analyzed(problem));
@@ -409,9 +417,9 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
     EXPECT_EQ(fixed.x[1], 0.25);
     EXPECT_EQ(problem.statistics().fixed_variables, 1);
     // ... and the payload taken before it is an identity mismatch.
-    EXPECT_THROW((void)ipm.solve(problem, x0, *payload), std::invalid_argument);
+    EXPECT_THROW((void)ipm.solve(problem, x0, payload), std::invalid_argument);
     SqpSolver sqp = quiet_sqp();
-    EXPECT_THROW((void)sqp.solve(problem, x0, *payload), std::invalid_argument);
+    EXPECT_THROW((void)sqp.solve(problem, x0, payload), std::invalid_argument);
 
     // Unchanged again: no re-lay.
     EXPECT_EQ(ipm.solve(problem, x0).kkt_analyses_this_call, 0);
@@ -507,9 +515,10 @@ TEST(Problem, AValueOnlyBoundChangeKeepsTheSqpWarmStarts) {
     const Vec x0 = Vec::Constant(3, 0.5);
     const SqpResult first = sqp.solve(problem, x0);
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    const std::optional<WarmStartData> payload = first.export_warm_start();
-    ASSERT_TRUE(payload.has_value());
-    const SqpWarmStart native = first.warm_start;
+    const WarmStart payload = first.warm_start;
+    ASSERT_TRUE(!payload.empty());
+    const hven::solvers::detail::SqpWarmState native =
+        SqpWarmAccess::state(first.native_warm_start);
     ASSERT_TRUE(native.valid);
 
     box->x1_upper = 0.5; // the unconstrained x1 = 2/3 is cut off: the bound is active
@@ -527,11 +536,11 @@ TEST(Problem, AValueOnlyBoundChangeKeepsTheSqpWarmStarts) {
         expect_same_sqp(cold, fresh_sqp.solve(fresh, x0));
     }
 
-    const SqpResult from_payload = sqp.solve(problem, x0, *payload);
+    const SqpResult from_payload = sqp.solve(problem, x0, payload);
     EXPECT_EQ(from_payload.status, SolveStatus::kOptimal);
     EXPECT_NEAR(from_payload.x[1], 0.5, 1e-8);
 
-    const SqpResult from_native = sqp.solve(problem, x0, native);
+    const SqpResult from_native = sqp.solve(problem, x0, SqpWarmAccess::wrap(native));
     EXPECT_EQ(from_native.status, SolveStatus::kOptimal);
     EXPECT_GT(from_native.counters.start_level_used, StartLevel::kCold);
     EXPECT_NEAR(from_native.x[1], 0.5, 1e-8);
@@ -1027,6 +1036,287 @@ TEST(Problem, AMovedFromProblemReportsEmptyAndRefusesASolve) {
     source = std::move(target);
     // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
     EXPECT_EQ(ipm.solve(source, hs071_start()).status, SolveStatus::kOptimal);
+}
+
+// ---------------------------------------------------------------------------
+// M8 AP-2 B4 (S2): the warm start in the problem's row space
+// ---------------------------------------------------------------------------
+
+static_assert(!std::is_default_constructible_v<SqpWarmStart>,
+              "SqpWarmStart declares no default constructor: a braced {} third argument must "
+              "select the WarmStart overload");
+static_assert(std::is_copy_constructible_v<SqpWarmStart> &&
+                  std::is_nothrow_move_constructible_v<SqpWarmStart>,
+              "SqpWarmStart is a copyable, movable handle");
+
+using hven::solvers::detail::WarmStartAccess;
+
+// A seed built from a result's own (x, lambda, z) is that result's warm start where
+// the row map is injective, and always reads back as the same row-space lambda.
+template <class Result>
+void expect_seed_round_trip(const Problem &problem, const Result &r, bool every_row_injective) {
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_FALSE(r.warm_start.empty());
+    const WarmStart seed = WarmStart::seed(problem, r.x, r.lambda, r.z);
+
+    EXPECT_TRUE(seed.key() == r.warm_start.key()) << "seed() stamps the key the engine stamps";
+    EXPECT_TRUE(bitwise_equal(seed.x(), r.warm_start.x()));
+    EXPECT_TRUE(bitwise_equal(seed.z(), r.warm_start.z()));
+    EXPECT_TRUE(seed.extensions().empty());
+    // The row-space read-back is the result's lambda; the export's own read-back is too.
+    EXPECT_TRUE(seed.lambda(problem) == r.lambda);
+    EXPECT_TRUE(r.warm_start.lambda(problem) == r.lambda);
+
+    const NlpProblemModel *model = detail::ProblemAccess::nlp_model(problem);
+    ASSERT_NE(model, nullptr);
+    const NLPRowClassification &rows = model->rows();
+    const Vec &seed_eq = WarmStartAccess::eq(seed);
+    const Vec &seed_iq = WarmStartAccess::iq(seed);
+    const Vec &warm_eq = WarmStartAccess::eq(r.warm_start);
+    const Vec &warm_iq = WarmStartAccess::iq(r.warm_start);
+    ASSERT_EQ(seed_eq.size(), warm_eq.size());
+    ASSERT_EQ(seed_iq.size(), warm_iq.size());
+    for (std::size_t k = 0; k < rows.kinds_.size(); ++k) {
+        switch (rows.kinds_[k]) {
+        case NLPRowKind::Equality:
+            EXPECT_EQ(seed_eq[rows.eq_row_[k]], warm_eq[rows.eq_row_[k]]) << "row " << k;
+            break;
+        case NLPRowKind::UpperBounded:
+            EXPECT_EQ(seed_iq[rows.iq_upper_row_[k]], warm_iq[rows.iq_upper_row_[k]])
+                << "row " << k;
+            break;
+        case NLPRowKind::LowerBounded:
+            EXPECT_EQ(seed_iq[rows.iq_lower_row_[k]], warm_iq[rows.iq_lower_row_[k]])
+                << "row " << k;
+            break;
+        case NLPRowKind::Range:
+            // compose is not injective on a range row's two sides: an interior-point
+            // pair with both sides live is recovered only as their difference.
+            if (every_row_injective) {
+                EXPECT_EQ(seed_iq[rows.iq_upper_row_[k]], warm_iq[rows.iq_upper_row_[k]])
+                    << "row " << k;
+                EXPECT_EQ(seed_iq[rows.iq_lower_row_[k]], warm_iq[rows.iq_lower_row_[k]])
+                    << "row " << k;
+            }
+            break;
+        case NLPRowKind::Free:
+            break;
+        }
+    }
+}
+
+TEST(WarmStartRowSpace, ASeedFromAResultRoundTripsOnEveryNlpRowKind) {
+    {
+        const auto nlp = std::make_shared<EveryRowKind>();
+        Problem problem(nlp);
+        const Vec x0{{0.0, 0.3, 1.2}};
+        IpmSolver ipm = quiet_ipm();
+        expect_seed_round_trip(problem, ipm.solve(problem, x0), /*every_row_injective=*/false);
+        SqpSolver sqp = quiet_sqp();
+        expect_seed_round_trip(problem, sqp.solve(problem, x0), /*every_row_injective=*/true);
+    }
+    {
+        // Two range rows active on opposite sides.
+        const auto nlp = std::make_shared<ActiveRanges>();
+        Problem problem(nlp);
+        const Vec x0 = Vec::Zero(3);
+        IpmSolver ipm = quiet_ipm();
+        expect_seed_round_trip(problem, ipm.solve(problem, x0), false);
+        SqpSolver sqp = quiet_sqp();
+        expect_seed_round_trip(problem, sqp.solve(problem, x0), true);
+    }
+}
+
+TEST(WarmStartRowSpace, TheSeedKeyIsTheKeyBothEnginesStampOnExport) {
+    const auto box = std::make_shared<Box3>();
+    Problem problem(box);
+    const Vec x0 = Vec::Constant(3, 0.5);
+    IpmSolver ipm = quiet_ipm();
+    SqpSolver sqp = quiet_sqp();
+    const IpmResult a = ipm.solve(problem, x0);
+    const SqpResult b = sqp.solve(problem, x0);
+    ASSERT_EQ(a.status, SolveStatus::kOptimal);
+    ASSERT_EQ(b.status, SolveStatus::kOptimal);
+    const WarmStart seed = WarmStart::seed(problem, Vec(), a.lambda, Vec());
+    EXPECT_TRUE(seed.key() == a.warm_start.key());
+    EXPECT_TRUE(seed.key() == b.warm_start.key());
+}
+
+TEST(WarmStartRowSpace, ASeedOnAPiecesProblemIsTheEqualityRowsThenTheInequalityRows) {
+    const auto program = make_nlp_program(hs071());
+    Problem pieces(AssemblyDeclaration(program->declaration()));
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult r = ipm.solve(pieces, hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.lambda.size(), 2);
+
+    const WarmStart seed = WarmStart::seed(pieces, r.x, r.lambda, r.z);
+    EXPECT_TRUE(seed.key() == r.warm_start.key());
+    ASSERT_EQ(WarmStartAccess::eq(seed).size(), 1);
+    ASSERT_EQ(WarmStartAccess::iq(seed).size(), 1);
+    EXPECT_EQ(WarmStartAccess::eq(seed)[0], r.lambda[0]);
+    EXPECT_EQ(WarmStartAccess::iq(seed)[0], r.lambda[1]);
+    EXPECT_EQ(WarmStartAccess::eq(seed)[0], WarmStartAccess::eq(r.warm_start)[0]);
+    EXPECT_EQ(WarmStartAccess::iq(seed)[0], WarmStartAccess::iq(r.warm_start)[0]);
+    EXPECT_TRUE(seed.lambda(pieces) == r.lambda);
+
+    // The IPM takes the value back.
+    IpmSolver again = quiet_ipm();
+    const IpmResult warm = again.solve(pieces, hs071_start(), seed);
+    EXPECT_EQ(warm.status, SolveStatus::kOptimal);
+    EXPECT_EQ(warm.payload_ignored, 0);
+}
+
+TEST(WarmStartRowSpace, AMultipliersOnlySeedReachesSeededOnTheSqpAndIsAcceptedByTheIpm) {
+    Problem problem(hs071());
+    SqpSolver producer = quiet_sqp();
+    const SqpResult first = producer.solve(problem, hs071_start());
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
+
+    const WarmStart seed = WarmStart::seed(problem, Vec(), first.lambda, Vec());
+    EXPECT_FALSE(seed.empty());
+    EXPECT_EQ(seed.x().size(), 0);
+    EXPECT_EQ(seed.z().size(), 0);
+
+    SqpSolver sqp = quiet_sqp();
+    const SqpResult seeded = sqp.solve(problem, hs071_start(), seed);
+    EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
+    EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
+
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult accepted = ipm.solve(problem, hs071_start(), seed);
+    EXPECT_EQ(accepted.status, SolveStatus::kOptimal);
+    EXPECT_EQ(accepted.payload_ignored, 0);
+    EXPECT_EQ(accepted.polish_ignored, 0);
+}
+
+TEST(WarmStartRowSpace, AnIdentityMismatchedSeedIsRefusedByBothEngines) {
+    const auto box = std::make_shared<Box3>();
+    Problem problem(box);
+    const Vec x0 = Vec::Constant(3, 0.5);
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult first = ipm.solve(problem, x0);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
+    const WarmStart seed = WarmStart::seed(problem, first.x, first.lambda, first.z);
+    const WarmStart multipliers_only = WarmStart::seed(problem, Vec(), first.lambda, Vec());
+
+    // A fixed variable changes the declared bound structure: a different problem.
+    box->x1_lower = box->x1_upper = 0.25;
+    SqpSolver sqp = quiet_sqp();
+    EXPECT_THROW((void)ipm.solve(problem, x0, seed), std::invalid_argument);
+    EXPECT_THROW((void)ipm.solve(problem, x0, multipliers_only), std::invalid_argument);
+    EXPECT_THROW((void)sqp.solve(problem, x0, seed), std::invalid_argument);
+    EXPECT_THROW((void)sqp.solve(problem, x0, multipliers_only), std::invalid_argument);
+    // ... and lambda() refuses to read it against the problem it no longer describes.
+    EXPECT_THROW((void)seed.lambda(problem), std::invalid_argument);
+}
+
+TEST(WarmStartRowSpace, SeedAndLambdaRefuseWrongWidthsByName) {
+    Problem problem(hs071());
+    const Vec x = hs071_start();
+    const Vec z = Vec::Zero(4);
+    const Vec lambda = Vec::Zero(2);
+    EXPECT_NO_THROW((void)WarmStart::seed(problem, x, lambda, z));
+    EXPECT_THROW((void)WarmStart::seed(problem, x, Vec::Zero(3), z), std::invalid_argument);
+    EXPECT_THROW((void)WarmStart::seed(problem, Vec::Zero(3), lambda, Vec::Zero(3)),
+                 std::invalid_argument);
+    EXPECT_THROW((void)WarmStart::seed(problem, x, lambda, Vec()), std::invalid_argument);
+    EXPECT_THROW((void)WarmStart::seed(problem, Vec(), lambda, z), std::invalid_argument);
+    // An empty value has no multiplier blocks at a problem that has rows.
+    EXPECT_THROW((void)WarmStart().lambda(problem), std::invalid_argument);
+}
+
+TEST(WarmStartRowSpace, AnEmptyWarmStartIsTheColdSolveCounterForCounter) {
+    {
+        Problem a(hs071());
+        Problem b(hs071());
+        IpmSolver plain = quiet_ipm();
+        IpmSolver empty = quiet_ipm();
+        const IpmResult cold = plain.solve(a, hs071_start());
+        const IpmResult with_empty = empty.solve(b, hs071_start(), WarmStart{});
+        expect_same_ipm(cold, with_empty);
+        EXPECT_EQ(cold.payload_ignored, with_empty.payload_ignored);
+        EXPECT_EQ(cold.polish_ignored, with_empty.polish_ignored);
+        EXPECT_EQ(with_empty.payload_ignored, 0);
+        EXPECT_EQ(with_empty.polish_ignored, 0);
+        EXPECT_EQ(cold.work.objective_evals, with_empty.work.objective_evals);
+        EXPECT_EQ(cold.work.hessian_evals, with_empty.work.hessian_evals);
+        EXPECT_TRUE(bitwise_equal(cold.lambda, with_empty.lambda));
+    }
+    {
+        Problem a(hs071());
+        Problem b(hs071());
+        SqpSolver plain = quiet_sqp();
+        SqpSolver empty = quiet_sqp();
+        const SqpResult cold = plain.solve(a, hs071_start());
+        const SqpResult with_empty = empty.solve(b, hs071_start(), WarmStart{});
+        expect_same_sqp(cold, with_empty);
+        EXPECT_EQ(cold.counters.start_level_used, with_empty.counters.start_level_used);
+        EXPECT_EQ(cold.counters.polish_ignored, with_empty.counters.polish_ignored);
+        EXPECT_EQ(cold.work.objective_evals, with_empty.work.objective_evals);
+    }
+}
+
+// A braced `{}` third argument is the WarmStart overload: SqpWarmStart has no default
+// constructor to compete with it, and a budget is spelled after it.
+TEST(WarmStartRowSpace, ABracedEmptyThirdArgumentSelectsTheWarmStartOverload) {
+    Problem a(hs071());
+    Problem b(hs071());
+    SqpSolver plain = quiet_sqp();
+    SqpSolver braced = quiet_sqp();
+    const SqpResult cold = plain.solve(a, hs071_start());
+    const SqpResult via_braces = braced.solve(b, hs071_start(), {});
+    expect_same_sqp(cold, via_braces);
+    EXPECT_EQ(via_braces.counters.polish_ignored, 0);
+
+    IpmSolver ipm = quiet_ipm();
+    Problem c(hs071());
+    const IpmResult ipm_braced = ipm.solve(c, hs071_start(), {});
+    EXPECT_EQ(ipm_braced.status, SolveStatus::kOptimal);
+    EXPECT_EQ(ipm_braced.payload_ignored, 0);
+
+    // The native overload is still reachable by its type, and a result's native warm
+    // start is a valid handle.
+    SqpSolver native = quiet_sqp();
+    Problem d(hs071());
+    const SqpResult native_first = native.solve(d, hs071_start());
+    ASSERT_TRUE(native_first.native_warm_start.valid());
+    EXPECT_EQ(native_first.native_warm_start.x().size(), 4);
+    const SqpResult native_second = native.solve(d, hs071_start(), native_first.native_warm_start);
+    EXPECT_EQ(native_second.status, SolveStatus::kOptimal);
+    EXPECT_GT(native_second.counters.start_level_used, StartLevel::kSeeded);
+}
+
+// The crossover from the currency, entered with the problem: the bounds and the
+// declaration key come from the Problem.
+TEST(WarmStartRowSpace, ToSqpWarmStartTakesTheBoundsAndTheKeyFromTheProblem) {
+    Problem problem(hs071());
+    IpmOptions rough;
+    rough.common.verbosity = hven::solvers::Verbosity::kSilent;
+    rough.common.optimality_tol = 1e-3;
+    rough.common.feasibility_tol = 1e-3;
+    IpmSolver ipm(rough);
+    const IpmResult r = ipm.solve(problem, hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+
+    const SqpWarmStart staged = to_sqp_warm_start(r.warm_start, problem);
+    EXPECT_TRUE(staged.valid());
+    EXPECT_EQ(staged.x().size(), 4);
+
+    SqpSolver sqp = quiet_sqp();
+    const SqpResult from_staged = sqp.solve(problem, r.x, staged);
+    EXPECT_EQ(from_staged.status, SolveStatus::kOptimal);
+    EXPECT_EQ(from_staged.counters.start_level_used, StartLevel::kSeeded);
+    SqpSolver sqp_direct = quiet_sqp();
+    const SqpResult direct = sqp_direct.solve(problem, r.x, r.warm_start);
+    EXPECT_EQ(direct.counters.start_level_used, StartLevel::kSeeded);
+
+    // A core-only value (no polish extension) cannot be bridged, and says so.
+    EXPECT_THROW((void)to_sqp_warm_start(WarmStart::seed(problem, r.x, r.lambda, r.z), problem),
+                 std::invalid_argument);
+    // A value taken under another problem is refused by its stamp.
+    Problem other(std::make_shared<Box3>());
+    EXPECT_THROW((void)to_sqp_warm_start(r.warm_start, other), std::invalid_argument);
 }
 
 } // namespace

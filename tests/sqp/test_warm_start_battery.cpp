@@ -283,6 +283,11 @@
 #include "support/scale_problems.h"
 
 #include "hven/core/compiler.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
@@ -1582,7 +1587,7 @@ TEST(WarmStartBattery, Corpus) {
 //
 // and `qp_built` is false on a solve that CONVERGED IMMEDIATELY (the
 // convergence test fires before the first subproblem is built, so
-// major_iters == 0 -- sqp_solver_types.h). The SqpWarmStart such a solve returned was
+// major_iters == 0 -- sqp_solver_types.h). The SqpWarmState such a solve returned was
 // `valid` but carried structure_hash == 0, which the ingest rule reads as
 // warm_start.h's hash-0 sentinel (then documented as "never computed"; since
 // the repair, "no model was seen") and degrades to kCold -- so a
@@ -1609,31 +1614,34 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
         driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.major_iters, 1) << "F1 is a QP: one subproblem is the whole problem";
-    ASSERT_NE(s1.warm_start.structure_hash, 0u);
+    ASSERT_NE(SqpWarmAccess::state(s1.native_warm_start).structure_hash, 0u);
 
     // Solve 2: re-solve at the SAME p from that hand-off. It ingests warm and
     // converges before building anything.
     const SqpResult s2 =
-        driver.solve(hven::solvers::detail::problem_ref(model), s1.warm_start.x, s1.warm_start);
+        driver.solve(hven::solvers::detail::problem_ref(model),
+                     SqpWarmAccess::state(s1.native_warm_start).x, s1.native_warm_start);
     ASSERT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(s2.counters.major_iters, 0) << "already at x*(p): the convergence test fires first";
 
     // THE REPAIR: solve 2 built nothing, and its hand-off is still hash-valid,
     // with the SAME hash the subproblem-building solve 1 emitted.
-    EXPECT_NE(s2.warm_start.structure_hash, 0u)
+    EXPECT_NE(SqpWarmAccess::state(s2.native_warm_start).structure_hash, 0u)
         << "make_warm_start probes the model when qp_built is false -- see this test's own note";
-    EXPECT_EQ(s2.warm_start.structure_hash, s1.warm_start.structure_hash)
+    EXPECT_EQ(SqpWarmAccess::state(s2.native_warm_start).structure_hash,
+              SqpWarmAccess::state(s1.native_warm_start).structure_hash)
         << "the probe hashes the SAME model's H/Ae/Ai pattern, so it cannot differ from the "
            "hash a built subproblem produces";
-    EXPECT_TRUE(s2.warm_start.valid);
+    EXPECT_TRUE(SqpWarmAccess::state(s2.native_warm_start).valid);
 
     // ...so solve 3, offered it, resolves warm -- nothing about the model, the
     // point or the options changed, and now nothing about the hand-off does
     // either. (kWarm exactly, not merely >= kWarm: battery_options caps the
     // level there.)
     const SqpResult s3 =
-        driver.solve(hven::solvers::detail::problem_ref(model), s2.warm_start.x, s2.warm_start);
+        driver.solve(hven::solvers::detail::problem_ref(model),
+                     SqpWarmAccess::state(s2.native_warm_start).x, s2.native_warm_start);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm)
         << "THE PIN: a zero-major solve's hand-off is accepted by the very next solve";
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -2134,7 +2142,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 // src/bindings/solvers/optimization_problem_bind.cpp at this task's HEAD).
 // `return_vars` returns the PRIMAL VECTOR AND NOTHING ELSE; the IPM binding
 // itself exposes settings and run info, never a multiplier vector. So there is
-// no way, today, to get a real IPM dual into a SqpWarmStart from Python, and
+// no way, today, to get a real IPM dual into a SqpWarmState from Python, and
 // the bridge's own `--dump-solution` format carries x alone.
 //
 // WHAT THIS CELL DOES INSTEAD, and why it is still the right measurement:
@@ -2276,7 +2284,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         const Vec z_lower = Vec::Zero(nx);
         const Vec z_upper = Vec::Zero(nx);
 
-        const SqpWarmStart crossover =
+        const hven::solvers::detail::SqpWarmState crossover =
             from_interior_point(x_ip, hven::solvers::detail::engine_rows(ref).lambda_e,
                                 hven::solvers::detail::engine_rows(ref).lambda_i, slack_i, z_lower,
                                 z_upper, ref_model.lower(), ref_model.upper(), ip_opts);
@@ -2296,8 +2304,9 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         // ---- ARM B (kSeeded): the whole object. ----
         F7CollocationChain seeded_model = make();
         SqpSolver seeded_driver(battery_options(StartLevel::kWarm, /*full_step=*/false));
-        const SqpResult seeded = seeded_driver.solve(
-            hven::solvers::detail::problem_ref(seeded_model), crossover.x, crossover);
+        const SqpResult seeded =
+            seeded_driver.solve(hven::solvers::detail::problem_ref(seeded_model), crossover.x,
+                                SqpWarmAccess::wrap(crossover));
 
         table += fmt::format(
             "  {:8g}  cold     {:6}  {:6}  {:6}  {:6}\n"

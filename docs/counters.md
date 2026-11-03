@@ -294,7 +294,7 @@ one of those three therefore cannot silently miss the trace.
   **THE COLUMN RULE'S JACOBIAN PROBE IS AN `evals_values`** (M7 W2 SCL rider).
   Whenever `SqpOptions::column_scaling != kOff` -- the shipped default is kAuto
   since M7 W2 SCW -- the rule evaluates the Jacobians once at the start point,
-  unless the warm start carries the decision (`SqpWarmStart::column_factors`),
+  unless the warm start carries the decision (the native `SqpWarmStart`'s carried column factors),
   when no probe runs; that query is charged one `evals_values`,
   as the warm-resolution probe's is, so the `evals_full` / `evals_values`
   partition stays a count of every model query. A solve the column layer scaled

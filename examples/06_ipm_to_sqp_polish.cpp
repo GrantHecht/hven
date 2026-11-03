@@ -7,23 +7,23 @@
 // solution cheaply (loose tolerances), then hand its answer to the SQP engine,
 // whose active-set steps finish the job to a tight tolerance.
 //
-//   1. IpmSolver solves HS071 to 1e-3 and exports its state as a
-//      WarmStartData payload (result.export_warm_start()). The payload carries
-//      the primal point, the multipliers and, as an extension, the
-//      interior-point's bound duals ("hven.ipm.polish.v1").
-//   2. to_sqp_warm_start() turns that payload into the SQP engine's own
-//      SqpWarmStart (the crossover: it infers the active set).
+//   1. IpmSolver solves HS071 to 1e-3 and hands back its state as a
+//      WarmStart (result.warm_start). It carries the primal point, the
+//      multipliers and, as an extension, the interior-point's bound duals
+//      ("hven.ipm.polish.v1").
+//   2. to_sqp_warm_start(warm, problem) turns that value into the SQP engine's
+//      own SqpWarmStart (the crossover: it infers the active set). The bounds and
+//      the declaration key come from the Problem.
 //   3. SqpSolver::solve(problem, x0, SqpWarmStart) polishes to 1e-10.
 //
-// The same payload can also be given to SqpSolver directly,
-// solve(problem, x0, payload), which runs the crossover internally; both are
+// The same WarmStart can also be given to SqpSolver directly,
+// solve(problem, x0, warm), which runs the crossover internally; both are
 // shown, next to a cold SQP solve to the same tolerance for comparison. Both
 // engines solve the one Problem.
 
 #include <cmath>
 #include <cstdio>
 #include <memory>
-#include <optional>
 
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
@@ -99,8 +99,8 @@ int main() {
     ipm_options.common.feasibility_tol = 1e-3;
     IpmSolver ipm(ipm_options);
     const IpmResult rough = ipm.solve(problem, x0);
-    const std::optional<WarmStartData> payload = rough.export_warm_start();
-    if (rough.status != SolveStatus::kOptimal || !payload) {
+    const WarmStart &warm = rough.warm_start;
+    if (rough.status != SolveStatus::kOptimal || warm.empty()) {
         std::printf("the interior-point stage failed\n");
         return 1;
     }
@@ -110,14 +110,11 @@ int main() {
     sqp_options.common.feasibility_tol = 1e-10;
     SqpSolver sqp(sqp_options);
 
-    // The staged crossover reads the variable bounds and stamps the problem's
-    // declaration key, which the payload already carries.
-    Eigen::VectorXd xl(4), xu(4), gl(2), gu(2);
-    hs071->bounds(xl, xu, gl, gu);
-    const SqpWarmStart staged = to_sqp_warm_start(*payload, xl, xu, payload->structure_key_);
+    // The staged crossover: inspectable before it is solved from.
+    const SqpWarmStart staged = to_sqp_warm_start(warm, problem);
 
     const SqpResult polished = sqp.solve(problem, rough.x, staged);
-    const SqpResult direct = sqp.solve(problem, rough.x, *payload);
+    const SqpResult direct = sqp.solve(problem, rough.x, warm);
     const SqpResult cold = sqp.solve(problem, x0);
 
     const double f_star = 17.01401725; // HS071 optimum

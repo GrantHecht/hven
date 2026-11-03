@@ -152,7 +152,7 @@ SqpOptions sweep_options() {
 
 Vec p_vec(double p) { return Vec::Constant(1, p); }
 
-// SqpWarmStart::bound_active's encoding read off a point GEOMETRICALLY -- the
+// SqpWarmState::bound_active's encoding read off a point GEOMETRICALLY -- the
 // same helper tests/test_predictor.cpp uses, and the only notion of activity
 // that is determinate where a multiplier vanishes (F1's DEGENERACY note).
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
@@ -823,7 +823,7 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     // level == kWarm. They used to report kCold, and the note here used to
     // explain why that was a property of the degenerate fixture rather than a
     // warm-ingest regression: a zero-budget solve builds no subproblem, so its
-    // SqpWarmStart::structure_hash stayed at the "never computed" sentinel and the
+    // SqpWarmState::structure_hash stayed at the "never computed" sentinel and the
     // next solve's ingest could not match it. sqp_solver.h's make_warm_start
     // now PROBES the model's structure on exactly that exit, so a solve that
     // spends no major still hands off a hash-valid object and the chain

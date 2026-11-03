@@ -551,10 +551,10 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         model->set_parameters(Vec::Constant(1, p));
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
         SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
-        const SqpResult sol =
-            have_prev
-                ? driver.solve(hven::solvers::detail::problem_ref(*model), prev.x, prev.warm_start)
-                : driver.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
+        const SqpResult sol = have_prev ? driver.solve(hven::solvers::detail::problem_ref(*model),
+                                                       prev.x, prev.native_warm_start)
+                                        : driver.solve(hven::solvers::detail::problem_ref(*model),
+                                                       model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -1389,7 +1389,7 @@ void check_soc_costs_what_it_costs() {
 //         :3908  the full-step arming              } unreachable on a cold solve
 //         :5109  make_warm_start's funnel->width() read, which runs on EVERY
 //                exit INCLUDING COLD -- so a decorated cold solve emits a
-//                SqpWarmStart whose funnel_width stays at the unset sentinel.
+//                SqpWarmState whose funnel_width stays at the unset sentinel.
 //       (Line numbers as of commit d83a8ed; sqp_solver.h has grown before and
 //       will again -- find the three sites by `dynamic_cast<.*FunnelStrategy`
 //       if these have drifted.)
@@ -1617,7 +1617,8 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
     SqpSolver d1(opts);
-    const SqpResult s1 = d1.solve(hven::solvers::detail::problem_ref(*model), s0.x, s0.warm_start);
+    const SqpResult s1 =
+        d1.solve(hven::solvers::detail::problem_ref(*model), s0.x, s0.native_warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.

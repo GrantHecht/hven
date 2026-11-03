@@ -93,7 +93,7 @@ struct InteriorVariant {
     /// `kNone` is every row before T8.5 and is inert. The other two run the
     /// cell TWICE: a converged producing solve from cold, whose result is
     /// exported, and then the measured solve, handed that export through the
-    /// PAYLOAD route `solve(model, x0, const WarmStartData &, budget)` -- the
+    /// PAYLOAD route `solve(model, x0, const WarmStart &, budget)` -- the
     /// entry that replaced `stage_warm_start`. Both measured solves start from
     /// the SAME `x0` the base row uses, so `iter_num` is directly comparable
     /// against it, and that comparison is the leg's only observable for the

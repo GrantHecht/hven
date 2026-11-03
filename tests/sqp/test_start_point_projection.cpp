@@ -33,11 +33,16 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace hven::solvers {
 namespace {
@@ -147,7 +152,7 @@ TEST(StartPointProjection, OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalError
     EXPECT_EQ(out.counters.start_point_clamps, 0);
     // The cold hand-off the exit's own comment promises, so a caller retrying
     // from a corrected x0 is honoured.
-    EXPECT_FALSE(out.warm_start.valid);
+    EXPECT_FALSE(SqpWarmAccess::state(out.native_warm_start).valid);
 }
 
 TEST(StartPointProjection, OffIsUnchangedOnAnInBoxStart) {

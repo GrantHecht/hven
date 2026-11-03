@@ -29,7 +29,12 @@
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/qp_as_nlp_model.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace hven::solvers {
 namespace {
@@ -192,7 +197,7 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     const SqpResult ok =
         control.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(ok.status, SolveStatus::kOptimal);
-    ASSERT_EQ(ok.warm_start.prox_center_lambda.size(), 2)
+    ASSERT_EQ(SqpWarmAccess::state(ok.native_warm_start).prox_center_lambda.size(), 2)
         << "fixture premise: a certifying SSN subproblem recorded a prox centre";
     EXPECT_EQ(ok.equality_basis.lift_refusals, 0);
     EXPECT_EQ(ok.equality_basis.dropped_rows, std::vector<Index>{1});
@@ -241,8 +246,9 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
 
         // The control arm: the probe reduces and the warm start resolves kWarm.
         SqpSolver control(o);
-        const SqpResult warm = control.solve(hven::solvers::detail::problem_ref(model),
-                                             model.start_point(), cold.warm_start, SolveBudget{});
+        const SqpResult warm =
+            control.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+                          cold.native_warm_start, SolveBudget{});
         ASSERT_EQ(warm.status, SolveStatus::kOptimal);
         EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
         EXPECT_EQ(warm.equality_basis.warm_probe_refusals, 0);
@@ -252,8 +258,9 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
         // degrades to kSeeded. The solve's own split is untouched.
         Seam::warm_probe_forward_tol = 1e-300;
         SqpSolver refused(o);
-        const SqpResult seeded = refused.solve(hven::solvers::detail::problem_ref(model),
-                                               model.start_point(), cold.warm_start, SolveBudget{});
+        const SqpResult seeded =
+            refused.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
+                          cold.native_warm_start, SolveBudget{});
         ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
         EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
         EXPECT_EQ(seeded.equality_basis.warm_probe_refusals, 1);

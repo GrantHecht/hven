@@ -213,7 +213,7 @@ SqpOptions tight_options() {
 }
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
-// therefore SqpWarmStart's) encoding. Mirrors the helper of the same name in
+// therefore SqpWarmState's) encoding. Mirrors the helper of the same name in
 // tests/test_parametric_families.cpp, which is file-local there.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;

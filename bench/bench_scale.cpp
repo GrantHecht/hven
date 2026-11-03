@@ -20,7 +20,7 @@
 //          N == 1 solves only at p1).
 //   hot    ONE SqpSolver, constructed with SqpOptions::common.start_level = kHot,
 //          walking the SAME evenly-spaced grid as `cold` but feeding each
-//          solve's own SqpWarmStart (primal/dual point AND the retained
+//          solve's own SqpWarmState (primal/dual point AND the retained
 //          factorization handle) into the next -- "chained solves on one
 //          driver feeding warm+hot back". The first grid point is always a
 //          plain 2-arg (cold) solve, since there is nothing to warm from yet.
@@ -235,6 +235,7 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/continuation.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
@@ -263,9 +264,9 @@ using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
 using hven::solvers::SqpSolver;
 using hven::solvers::SqpSolveRecord;
-using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
 using hven::solvers::WorkingSetLinearAlgebra;
+using hven::solvers::detail::SqpWarmState;
 using hven::solvers::test_support::F3SpringChain;
 using hven::solvers::test_support::F7CollocationChain;
 using hven::solvers::test_support::peak_rss_mib;
@@ -534,13 +535,14 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
     const std::vector<double> grid = linspace(p0, p1, sweep);
     SqpSolver driver(bench_options(StartLevel::kHot, tuning));
     driver.attach_ledger(&ledger, "hot");
-    SqpWarmStart warm; // default-constructed: valid == false, i.e. cold
+    hven::solvers::detail::SqpWarmState warm; // default-constructed: valid == false, i.e. cold
     for (std::size_t i = 0; i < grid.size(); ++i) {
         model.set_parameters(Vec::Constant(1, grid[i]));
         const SqpResult sol =
             (i == 0) ? driver.solve(hven::solvers::detail::problem_ref(model), model.start_point())
-                     : driver.solve(hven::solvers::detail::problem_ref(model), warm.x, warm);
-        warm = sol.warm_start;
+                     : driver.solve(hven::solvers::detail::problem_ref(model), warm.x,
+                                    hven::solvers::detail::SqpWarmAccess::wrap(warm));
+        warm = hven::solvers::detail::SqpWarmAccess::state(sol.native_warm_start);
         rows.push_back(
             Row{family, n, "hot", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins

@@ -58,7 +58,7 @@
 //                     still through the 2-arg solve() -- so it is cold BY
 //                     RESOLUTION but starts in a physically sensible
 //                     neighbourhood rather than the generic flat profile.
-//   kCorrupted        a genuine SqpWarmStart object (built exactly as
+//   kCorrupted        a genuine SqpWarmState object (built exactly as
 //                     kFullWarm's is, one cold solve at p0 on the SAME
 //                     driver) that is then DELIBERATELY DAMAGED before being
 //                     fed to the 3-arg solve() at p -- see
@@ -82,7 +82,7 @@
 //                     provenance (Task-0 carry).
 //   kFullWarm         TWO solves on the SAME driver instance: cold at p0,
 //                     then the 3-arg solve() at p fed that exit's own
-//                     SqpWarmStart -- the ordinary warm-start hand-off this
+//                     SqpWarmState -- the ordinary warm-start hand-off this
 //                     whole project is built around. Resolves kWarm or kHot
 //                     depending on whether the second solve's first
 //                     subproblem actually reused the first's factorization
@@ -122,6 +122,7 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
@@ -190,9 +191,9 @@ using hven::solvers::SqpCounters;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
 using hven::solvers::SqpSolver;
-using hven::solvers::SqpWarmStart;
 using hven::solvers::SsnCounters;
 using hven::solvers::StartLevel;
+using hven::solvers::detail::SqpWarmState;
 using hven::solvers::test_support::F7CollocationChain;
 using hven::solvers::test_support::NlpKktResidual;
 using hven::solvers::test_support::self_check_kkt;
@@ -245,7 +246,7 @@ struct CorpusCell {
 // summed over the solve; identically 0 for `engine == "walk"` today, since
 // the walk engine has nothing to escape TO -- Task 3+ is what makes this
 // field move. `kkt_residual` is the last history row's SqpIterate::
-// kkt_residual (sqp_solver_types.h), or -1.0 (SqpWarmStart's own "never populated"
+// kkt_residual (sqp_solver_types.h), or -1.0 (SqpWarmState's own "never populated"
 // convention) on a solve whose history is empty (converged at x0 with no
 // subproblem built). `wall_s` is informational only, per this project's
 // standing timing-honesty rule (ledger.h's own note) -- never a regression
@@ -1524,15 +1525,21 @@ inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double
     return it;
 }
 
+// The engine-native state of a solve's result (the opaque handle, unwrapped).
+inline const hven::solvers::detail::SqpWarmState &SqpWarmStateOf(const SqpResult &result) {
+    return hven::solvers::detail::SqpWarmAccess::state(result.native_warm_start);
+}
+
 // kCorrupted's damage: drop the (foreign, untrustworthy) hot handle, then
 // displace x by a deterministic, no-RNG sin-index pattern of magnitude
 // kCorruptedXDisp -- see that constant's own note for why displacing x
 // (rather than only the duals) is the recipe that is guaranteed to matter
-// regardless of which of SqpWarmStart's several redundant activity encodings
+// regardless of which of SqpWarmState's several redundant activity encodings
 // (ineq_active/bound_active vs qp_working_set) a given ingest path actually
 // reads: the geometric activity AT THE NEW x disagrees with the stale
 // hand-off's own hint no matter which encoding is consulted.
-inline SqpWarmStart corrupt_warm_start(SqpWarmStart warm) {
+inline hven::solvers::detail::SqpWarmState
+corrupt_warm_start(hven::solvers::detail::SqpWarmState warm) {
     warm.hot = nullptr;
     for (Index i = 0; i < warm.x.size(); ++i) {
         warm.x(i) += kCorruptedXDisp * std::sin(7.0 * static_cast<double>(i));
@@ -1544,7 +1551,7 @@ inline F7CollocationChain make_model(const CorpusCell &cell) {
     return F7CollocationChain(cell.n_nodes, /*states=*/3, /*controls=*/2, cell.p, /*radius=*/1.0);
 }
 
-// The last history row's kkt_residual, or -1.0 (SqpWarmStart's own "never
+// The last history row's kkt_residual, or -1.0 (SqpWarmState's own "never
 // populated" sentinel convention) on an empty history.
 inline double last_kkt_residual(const SqpResult &sol) {
     return sol.history.empty() ? -1.0 : sol.history.back().kkt_residual;
@@ -1646,7 +1653,7 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
 
 // Every solve this runner makes goes through here -- see kMinorBudget's own
 // note for why. `warm` defaults to an invalid (default-constructed)
-// SqpWarmStart, which resolves kCold exactly as the 2-arg solve() overload
+// SqpWarmState, which resolves kCold exactly as the 2-arg solve() overload
 // does; passing a real one (kCorrupted/kActivityOnly/kFullWarm's own
 // producers) is unaffected beyond gaining the same budget.
 // `budget` defaults to the corpus's own kMinorBudget; overridable ONLY so
@@ -1655,14 +1662,16 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
 // minors) without needing a fixture that burns through 50000 real minors to
 // exercise the same code path. Every call site in run_cell_walk below uses
 // the default.
-inline SqpResult budgeted_solve(SqpSolver &driver, const hven::solvers::NlpModel &model,
-                                const Vec &x0, const SqpWarmStart &warm = SqpWarmStart{},
-                                Index budget = kMinorBudget) {
+inline SqpResult budgeted_solve(
+    SqpSolver &driver, const hven::solvers::NlpModel &model, const Vec &x0,
+    const hven::solvers::detail::SqpWarmState &warm = hven::solvers::detail::SqpWarmState{},
+    Index budget = kMinorBudget) {
     // The MINOR budget, named (M6 W5 T8.4): the fourth argument is a
     // SolveBudget aggregate now, whose other member is the major cap. Every
     // corpus cell budgets minors and none caps majors, so this stays a one-field
     // value and every corpus row is byte-unchanged.
-    return driver.solve(hven::solvers::detail::problem_ref(model), x0, warm,
+    return driver.solve(hven::solvers::detail::problem_ref(model), x0,
+                        hven::solvers::detail::SqpWarmAccess::wrap(warm),
                         SolveBudget{.minor_budget = budget});
 }
 
@@ -1796,13 +1805,14 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         // -- an unbounded setup step would hang the runner exactly as an
         // unbounded target step would, and the row never reports it either
         // way (see the file banner). A budget-truncated seed is still a
-        // valid (if less converged) SqpWarmStart to feed forward -- every exit
+        // valid (if less converged) SqpWarmState to feed forward -- every exit
         // of solve() is "safe to feed forward" by this project's own
         // contract (warm_start.h). It is bounded by its OWN wall deadline
         // too, and a setup that exhausts it is reported as `dnf_setup`, not
         // as this taxonomy's own hand-off failing (I1).
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
-        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        const hven::solvers::detail::SqpWarmState corrupted =
+            corrupt_warm_start(SqpWarmStateOf(seed));
         model.set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, model, on_setup_complete,
@@ -1816,7 +1826,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(model, cell.p, mu, physics_informed_start(model, cell.p));
-        const SqpWarmStart crossover =
+        const hven::solvers::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
                                 model.lower(), model.upper(), IpCrossoverOptions{});
         return timed_row(
@@ -1832,7 +1842,9 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
         model.set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, model, on_setup_complete,
-            [&] { return budgeted_solve(driver, model, seed.warm_start.x, seed.warm_start); },
+            [&] {
+                return budgeted_solve(driver, model, SqpWarmStateOf(seed).x, SqpWarmStateOf(seed));
+            },
             cfg.score_model_surface);
     }
     }
@@ -1888,7 +1900,8 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         SqpSolver driver(opts);
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
-        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        const hven::solvers::detail::SqpWarmState corrupted =
+            corrupt_warm_start(SqpWarmStateOf(seed));
         model.set_parameters(Vec::Constant(1, cell.p));
         return first_qp_at(corrupted.x, corrupted.lambda_e, corrupted.lambda_i);
     }
@@ -1897,7 +1910,7 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(model, cell.p, mu, physics_informed_start(model, cell.p));
-        const SqpWarmStart crossover =
+        const hven::solvers::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
                                 model.lower(), model.upper(), IpCrossoverOptions{});
         return first_qp_at(crossover.x, crossover.lambda_e, crossover.lambda_i);
@@ -1907,7 +1920,8 @@ inline QpProblem first_qp_for_cell(const CorpusCell &cell,
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
         model.set_parameters(Vec::Constant(1, cell.p));
-        return first_qp_at(seed.warm_start.x, seed.warm_start.lambda_e, seed.warm_start.lambda_i);
+        return first_qp_at(SqpWarmStateOf(seed).x, SqpWarmStateOf(seed).lambda_e,
+                           SqpWarmStateOf(seed).lambda_i);
     }
     }
     throw std::invalid_argument(fmt::format(

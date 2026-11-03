@@ -37,6 +37,11 @@
 #include "support/hs_problems.h"
 
 #include "hven/core/compiler.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
@@ -686,11 +691,11 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
     const SqpResult first =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_TRUE(first.warm_start.valid);
-    ASSERT_NE(first.warm_start.structure_hash, 0u);
+    ASSERT_TRUE(SqpWarmAccess::state(first.native_warm_start).valid);
+    ASSERT_NE(SqpWarmAccess::state(first.native_warm_start).structure_hash, 0u);
     const Index calls_before = model.n_hess;
     const SqpResult second = driver.solve(hven::solvers::detail::problem_ref(model),
-                                          model.start_point(), first.warm_start);
+                                          model.start_point(), first.native_warm_start);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
     EXPECT_EQ(model.n_hess - calls_before, 1) << "only the lay walk: the probe made no call";
     EXPECT_EQ(second.counters.eval_hess_calls, 0);
@@ -703,7 +708,7 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
         exact.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(ex.status, SolveStatus::kOptimal);
     const SqpResult cross = driver.solve(hven::solvers::detail::problem_ref(*p.model),
-                                         p.model->start_point(), ex.warm_start);
+                                         p.model->start_point(), ex.native_warm_start);
     EXPECT_EQ(cross.status, SolveStatus::kOptimal);
     EXPECT_EQ(cross.counters.start_level_used, StartLevel::kSeeded);
 }

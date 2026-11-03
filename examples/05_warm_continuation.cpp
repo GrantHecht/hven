@@ -10,10 +10,11 @@
 // active and f* = (|p|*sqrt(5) - sqrt(1 + p/2))^2. The sweep crosses that
 // switch, which is where a warm start is tested.
 //
-// The currency is WarmStartData: every solve hands one back through
-// result.export_warm_start(), and the next solve takes it as a third argument,
-// on either engine. Cold = each p solved from scratch; warm = each p solved
-// from the previous p's payload.
+// The currency is WarmStart: every solve hands one back as result.warm_start,
+// and the next solve takes it as a third argument, on either engine. A default-
+// built WarmStart is empty and means "no warm start", so the loop passes it on
+// the first call and the previous result's thereafter. Cold = each p solved from
+// scratch; warm = each p solved from the previous p's value.
 //
 // The parameter is a member of the Nlp, changed IN PLACE between solves on ONE
 // Problem. Every solve re-reads the bounds (here the row bound 1 + p/2) and
@@ -25,7 +26,6 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
-#include <optional>
 
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
@@ -81,16 +81,16 @@ double exact_objective(double p) {
 // One sweep. `solve_at(p, warm)` returns the engine's result for parameter p.
 template <class SolveAt>
 bool sweep(const char *label, bool use_warm, SolveAt solve_at, long long &total) {
-    std::optional<WarmStartData> warm;
+    WarmStart warm; // empty: the first solve is cold
     total = 0;
     bool ok = true;
     std::printf("%-6s %-5s:", label, use_warm ? "warm" : "cold");
     for (double p : {0.2, 0.4, 0.6, 0.8, 1.0}) {
-        const SolveResult r = solve_at(p, use_warm ? warm : std::nullopt);
+        const SolveResult r = solve_at(p, use_warm ? warm : WarmStart{});
         ok = ok && r.status == SolveStatus::kOptimal && std::abs(r.f - exact_objective(p)) < 1e-6;
         total += r.iterations;
         std::printf(" %lld", static_cast<long long>(r.iterations));
-        warm = r.export_warm_start();
+        warm = r.warm_start;
     }
     std::printf("   total=%lld  %s\n", total, ok ? "OK" : "FAILED");
     return ok;
@@ -107,17 +107,17 @@ int main() {
     Problem problem(disc);
 
     IpmSolver ipm;
-    auto ipm_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
+    auto ipm_at = [&](double p, const WarmStart &w) -> SolveResult {
         disc->p = p;
-        return w ? ipm.solve(problem, x0, *w) : ipm.solve(problem, x0);
+        return ipm.solve(problem, x0, w);
     };
     ok &= sweep("IPM", false, ipm_at, cold);
     ok &= sweep("IPM", true, ipm_at, warm);
 
     SqpSolver sqp;
-    auto sqp_at = [&](double p, const std::optional<WarmStartData> &w) -> SolveResult {
+    auto sqp_at = [&](double p, const WarmStart &w) -> SolveResult {
         disc->p = p;
-        return w ? sqp.solve(problem, x0, *w) : sqp.solve(problem, x0);
+        return sqp.solve(problem, x0, w);
     };
     long long sqp_cold = 0, sqp_warm = 0;
     ok &= sweep("SQP", false, sqp_at, sqp_cold);

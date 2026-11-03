@@ -22,8 +22,13 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace hven::solvers {
 namespace {
@@ -499,8 +504,8 @@ TEST(IpqpDispatch, NoNegativeFacePriceEscapesUnderKIpmEither) {
             EXPECT_GE(hven::solvers::detail::engine_rows(s).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
         }
-        if (s.warm_start.lambda_i.size() > 0) {
-            EXPECT_GE(s.warm_start.lambda_i.minCoeff(), 0.0)
+        if (SqpWarmAccess::state(s.native_warm_start).lambda_i.size() > 0) {
+            EXPECT_GE(SqpWarmAccess::state(s.native_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, the half that reaches the currency";
         }
         // NOTHING ON THIS BATTERY PRICES NEGATIVE under any kernel (the same claim
@@ -852,7 +857,7 @@ TEST(IpqpDispatch, TheSsnWarmGradeExportsTheProximalCarry) {
         << "the fixture must reach the SSN warm grade, or nothing is tested";
     ASSERT_GT(s.counters.ssn.ssn_prox_updates, 0)
         << "and that subproblem's proximal ladder must have moved, or there is no level to carry";
-    EXPECT_GT(s.warm_start.prox_sigma, 0.0)
+    EXPECT_GT(SqpWarmAccess::state(s.native_warm_start).prox_sigma, 0.0)
         << "the level reaches the exported currency. Before the fix-round-1 ruling this path was "
            "excluded from the carry and this read 0, so a continuation loop alternating kSsn and "
            "kIpm re-climbed the ladder with no diagnostic";

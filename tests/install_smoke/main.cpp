@@ -14,7 +14,7 @@
 // `run_once` below is written once, against the SHARED SHAPE W5 T8 gives the
 // two solvers -- construction, `options()`/`set_options`, the solve family with
 // and without a warm-start payload, `set_iteration_callback`, `attach_trace`,
-// `attach_ledger`, and `export_warm_start()` off the returned result -- and is
+// `attach_ledger`, and `warm_start` off the returned result -- and is
 // instantiated for `IpmSolver` and for `SqpSolver`, both over ONE `Problem`
 // (M8 AP-2 B2: the one problem type both engines solve). A shape that has
 // drifted apart on one engine fails to COMPILE here, against an installed
@@ -157,16 +157,16 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
         return false;
     }
 
-    // (5) export_warm_start() off the result, and the PAYLOAD solve that takes
-    //     it back -- one currency, one entry, on both engines.
-    const std::optional<hven::solvers::WarmStartData> payload = cold.export_warm_start();
-    if (!payload.has_value()) {
+    // (5) warm_start off the result, and the solve that takes it back -- one
+    //     currency, one entry, on both engines.
+    const hven::solvers::WarmStart &payload = cold.warm_start;
+    if (payload.empty()) {
         std::fprintf(stderr, "install smoke: %s exported no warm start\n", label);
         return false;
     }
     solver.clear_iteration_callback();
     solver.attach_trace(nullptr);
-    const auto warm = solver.solve(problem, x0, *payload);
+    const auto warm = solver.solve(problem, x0, payload);
     if (warm.status != hven::solvers::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: %s did not converge from its own warm start\n", label);
         return false;

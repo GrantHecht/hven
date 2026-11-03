@@ -67,6 +67,8 @@
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/model/nlp_problem_model.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp.h>
@@ -539,7 +541,7 @@ inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
 /// deadline as the outer guard. Budgeting one leg and not the others would
 /// make the margins incomparable.
 inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
-                             const SqpOptions &opts, const WarmStartData *payload) {
+                             const SqpOptions &opts, const WarmStart *payload) {
     NlpModelAssembly bridge(model);
     SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
@@ -599,7 +601,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     legs.mi = model->mi();
 
     // --- leg (a): the interior-point baseline, and the exporter ---
-    WarmStartData exported;
+    WarmStart exported;
     {
         // THE ENGINE, CONSTRUCTED DIRECTLY (M6 W5 T8.9): the transcription is
         // the one-call make_nlp_program, the phase sequence is a field, and the
@@ -637,8 +639,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // disengaged one leaves `exported` default-constructed, which the two
         // warm legs then hand over and which is refused for its stamp -- loud,
         // where the old shape would have thrown at the export instead.
-        const std::optional<WarmStartData> snapshot = result.export_warm_start();
-        exported = snapshot.value_or(WarmStartData{});
+        exported = result.warm_start;
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
         legs.a.ran = true;
     }
@@ -660,8 +661,8 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     // (a)'s export with the producer's extensions cleared, which is the R3
     // shape. Runs after (d) -- see the execution-order note above.
     {
-        WarmStartData core = exported;
-        core.extensions_.clear();
+        WarmStart core = exported;
+        hven::solvers::detail::WarmStartAccess::extensions(core).clear();
         legs.c = detail::run_sqp_leg(model, x0, sqp_opts, &core);
     }
     emit(LegStage::kWarmCore);
@@ -818,13 +819,17 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         problem.emplace(nlp);
     }
     const auto solve = [&](SqpSolver &driver, const Vec &x0,
-                           const SqpWarmStart &warm = SqpWarmStart{}) {
+                           const hven::solvers::detail::SqpWarmState &warm =
+                               hven::solvers::detail::SqpWarmState{}) {
         const SolveBudget budget{.minor_budget = kMinorBudget};
+        // The native route, always (a cold state included): the handle is made
+        // in detail, the public type has no default.
+        const SqpWarmStart native = hven::solvers::detail::SqpWarmAccess::wrap(warm);
         if (route == NlpRoute::kNlpPublic) {
-            return driver.solve(*problem, x0, warm, budget);
+            return driver.solve(*problem, x0, native, budget);
         }
         NlpProblemModel fresh(nlp);
-        return driver.solve(hven::solvers::detail::problem_ref(fresh), x0, warm, budget);
+        return driver.solve(hven::solvers::detail::problem_ref(fresh), x0, native, budget);
     };
 
     switch (cell.start) {
@@ -849,7 +854,8 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         attach_observers(driver, cfg);
         model->set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = solve(driver, model->start_point());
-        const SqpWarmStart corrupted = corrupt_warm_start(seed.warm_start);
+        const hven::solvers::detail::SqpWarmState corrupted =
+            corrupt_warm_start(SqpWarmStateOf(seed));
         model->set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, *model, on_setup, [&] { return solve(driver, corrupted.x, corrupted); },
@@ -862,7 +868,7 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(*model, cell.p, mu, physics_informed_start(*model, cell.p));
-        const SqpWarmStart crossover =
+        const hven::solvers::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
                                 model->lower(), model->upper(), IpCrossoverOptions{});
         return timed_row(
@@ -877,7 +883,7 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         model->set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, *model, on_setup,
-            [&] { return solve(driver, seed.warm_start.x, seed.warm_start); },
+            [&] { return solve(driver, SqpWarmStateOf(seed).x, SqpWarmStateOf(seed)); },
             cfg.score_model_surface);
     }
     }

@@ -27,11 +27,16 @@
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipqp_e1_arm.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/e1_cells.h"
 #include "support/hs_problems.h"
 #include "support/indefinite_fixtures.h"
 #include "support/ipqp_test_support.h"
 #include "support/scale_problems.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace hven::solvers {
 namespace {
@@ -727,8 +732,9 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
 
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpSolver warm_driver(ipm_options());
-    const SqpResult warm = warm_driver.solve(hven::solvers::detail::problem_ref(model),
-                                             seed.warm_start.x, seed.warm_start);
+    const SqpResult warm =
+        warm_driver.solve(hven::solvers::detail::problem_ref(model),
+                          SqpWarmAccess::state(seed.native_warm_start).x, seed.native_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
     SqpSolver cold_driver(ipm_options());

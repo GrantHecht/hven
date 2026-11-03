@@ -38,9 +38,14 @@
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "../common_support/route_reference.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "support/e1b_off_golden.h"
 #include "support/e1b_off_golden_data.h"
 #include "support/qp_as_nlp_model.h"
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 namespace hven::solvers {
 namespace {
@@ -156,8 +161,8 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     EXPECT_LE(res.convergence.kkt_residual, 1e-6);
 
     // Warm round trip through the full-size currency: the fold takes it back.
-    const WarmStartData data = solver.export_warm_start();
-    ASSERT_EQ(data.eq_lmults_.size(), 9);
+    const WarmStart &data = res.warm_start;
+    ASSERT_EQ(WarmStartAccess::eq(data).size(), 9);
     SqpSolver again(opts_for(GetParam()));
     const SqpResult warm = again.solve(hven::solvers::detail::problem_ref(model),
                                        model.start_point(), data, SolveBudget{});
@@ -167,7 +172,7 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     // And through the in-process warm start.
     SqpSolver hot(opts_for(GetParam()));
     const SqpResult rehot = hot.solve(hven::solvers::detail::problem_ref(model),
-                                      model.start_point(), res.warm_start, SolveBudget{});
+                                      model.start_point(), res.native_warm_start, SolveBudget{});
     ASSERT_EQ(rehot.status, SolveStatus::kOptimal);
     EXPECT_LE((rehot.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
@@ -330,7 +335,7 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
     // The warm solve adds the probe's computation to the certificate telemetry.
     SqpSolver again(opts_for(GetParam()));
     const SqpResult warm = again.solve(hven::solvers::detail::problem_ref(net.model()),
-                                       Vec::Zero(11), res.warm_start, SolveBudget{});
+                                       Vec::Zero(11), res.native_warm_start, SolveBudget{});
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm.equality_basis.gram_factorizations, 8);

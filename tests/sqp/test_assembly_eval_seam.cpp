@@ -63,6 +63,11 @@
 #include "support/parametric_families.h"
 
 #include "hven/core/compiler.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
@@ -121,8 +126,8 @@ using hven::solvers::SqpIterate;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
 using hven::solvers::SqpSolver;
-using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
+using hven::solvers::detail::SqpWarmState;
 using hven::solvers::test_support::detail::kInf;
 using hven::solvers::test_support::detail::make_jac;
 using hven::solvers::test_support::detail::make_upper;
@@ -997,7 +1002,7 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
 // SqpSolver::solve(const NlpModel &, ...) -- the convenience wrapper, which
 // borrows the model into a bridge of its own for the duration of the call --
 // run THE SAME SOLVE. Same status, bit-equal iterate, every counter equal,
-// and a SqpWarmStart whose emitted fields agree field by field, on both a cold
+// and a SqpWarmState whose emitted fields agree field by field, on both a cold
 // and a warm arm of two battery families.
 //
 // THE ASYMMETRY IS DELIBERATE AND IS THE INTERESTING PART. The bridge arm
@@ -1078,7 +1083,8 @@ void expect_bit_equal(const Vec &bridge, const Vec &model, const std::string &wh
 /// The emitted hand-off, field by field. `hot` is compared by PRESENCE rather
 /// than by address: it is a handle onto one driver's own engine state, so two
 /// drivers cannot share one and equality of the pointers is not the claim.
-void expect_same_warm_start(const SqpWarmStart &bridge, const SqpWarmStart &model,
+void expect_same_warm_start(const hven::solvers::detail::SqpWarmState &bridge,
+                            const hven::solvers::detail::SqpWarmState &model,
                             const std::string &tag) {
     SCOPED_TRACE(tag);
     EXPECT_EQ(bridge.valid, model.valid);
@@ -1164,7 +1170,8 @@ void expect_same_solution(const SqpResult &bridge, const SqpResult &model, const
     expect_bit_equal(bridge.z, model.z, "z");
     expect_same_history(bridge.history, model.history, tag + " history");
     expect_same_counters(bridge.counters, model.counters, tag + " counters");
-    expect_same_warm_start(bridge.warm_start, model.warm_start, tag + " warm_start");
+    expect_same_warm_start(SqpWarmAccess::state(bridge.native_warm_start),
+                           SqpWarmAccess::state(model.native_warm_start), tag + " warm_start");
 }
 
 /// One family, both entries, cold arm. The two models are separate instances of
@@ -1204,17 +1211,17 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
     SqpSolver model_driver{opts};
     const SqpResult model_seed =
         model_driver.solve(hven::solvers::detail::problem_ref(*model_side), x0);
-    ASSERT_TRUE(model_seed.warm_start.valid) << tag;
+    ASSERT_TRUE(SqpWarmAccess::state(model_seed.native_warm_start).valid) << tag;
     const SqpResult via_model = model_driver.solve(hven::solvers::detail::problem_ref(*model_side),
-                                                   x0, model_seed.warm_start);
+                                                   x0, model_seed.native_warm_start);
 
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
     const SqpResult bridge_seed =
         bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
-    ASSERT_TRUE(bridge_seed.warm_start.valid) << tag;
-    const SqpResult via_bridge =
-        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0, bridge_seed.warm_start);
+    ASSERT_TRUE(SqpWarmAccess::state(bridge_seed.native_warm_start).valid) << tag;
+    const SqpResult via_bridge = bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0,
+                                                     bridge_seed.native_warm_start);
 
     // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
     // that is not redundant with the cold battery: those two solves are what
@@ -1224,7 +1231,9 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
     // from different places, and the hot handle each offers would be the only
     // trace, compared here by presence rather than by content.
     expect_same_solution(bridge_seed, model_seed, tag + " seed solve");
-    expect_same_warm_start(bridge_seed.warm_start, model_seed.warm_start, tag + " seed hand-off");
+    expect_same_warm_start(SqpWarmAccess::state(bridge_seed.native_warm_start),
+                           SqpWarmAccess::state(model_seed.native_warm_start),
+                           tag + " seed hand-off");
     // AND THE WARM ARM MUST ACTUALLY INGEST, or this is a second cold pin.
     ASSERT_NE(via_model.counters.start_level_used, StartLevel::kCold) << tag;
     expect_same_solution(via_bridge, via_model, tag + " warm");

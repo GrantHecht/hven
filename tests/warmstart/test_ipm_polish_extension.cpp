@@ -31,9 +31,14 @@
 #include <gtest/gtest.h>
 
 #include "hven/detail/warmstart/warm_start.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/ipm_polish_extension.h"
 #include "hven/warmstart/warm_start_data.h"
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 using hven::solvers::DeclarationKey;
 using hven::solvers::deserialize_ipm_polish;
@@ -42,10 +47,9 @@ using hven::solvers::from_interior_point;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
 using hven::solvers::serialize_ipm_polish;
-using hven::solvers::SqpWarmStart;
-using hven::solvers::to_sqp_warm_start;
 using hven::solvers::WarmExtension;
-using hven::solvers::WarmStartData;
+using hven::solvers::WarmStart;
+using hven::solvers::detail::SqpWarmState;
 
 namespace {
 
@@ -141,20 +145,20 @@ DeclarationKey key_of(std::uint64_t declaration) {
 
 /// A two-variable, one-equality, two-inequality hand-off, bounded on both
 /// sides, whose blocks are all distinguishable -- a swapped mapping cannot pass.
-WarmStartData bridgeable_value() {
-    WarmStartData data;
-    data.primal_ = vector_of({0.0, 3.0});
-    data.eq_lmults_ = vector_of({0.75});
-    data.iq_lmults_ = vector_of({2.0, 1.0e-12});
-    data.bound_lmults_ = vector_of({4.0, -1.5});
-    data.structure_key_ = key_of(0x11);
+WarmStart bridgeable_value() {
+    WarmStart data;
+    WarmStartAccess::primal(data) = vector_of({0.0, 3.0});
+    WarmStartAccess::eq(data) = vector_of({0.75});
+    WarmStartAccess::iq(data) = vector_of({2.0, 1.0e-12});
+    WarmStartAccess::bound(data) = vector_of({4.0, -1.5});
+    WarmStartAccess::key(data) = key_of(0x11);
 
     IpmPolishData polish;
     polish.mu_ = 1.0e-9;
     polish.z_lower_ = vector_of({4.0, 1.0e-12});
     polish.z_upper_ = vector_of({1.0e-12, 1.5});
     polish.iq_values_ = vector_of({-1.0e-10, -2.0});
-    data.extensions_.push_back(
+    WarmStartAccess::extensions(data).push_back(
         WarmExtension{std::string(kIpmPolishTag), serialize_ipm_polish(polish)});
     return data;
 }
@@ -162,7 +166,8 @@ WarmStartData bridgeable_value() {
 Eigen::VectorXd bridge_lower() { return vector_of({0.0, -10.0}); }
 Eigen::VectorXd bridge_upper() { return vector_of({10.0, 3.0}); }
 
-void expect_same_warm_start(const SqpWarmStart &actual, const SqpWarmStart &expected) {
+void expect_same_warm_start(const hven::solvers::detail::SqpWarmState &actual,
+                            const hven::solvers::detail::SqpWarmState &expected) {
     ASSERT_EQ(actual.x.size(), expected.x.size());
     for (Eigen::Index i = 0; i < expected.x.size(); ++i) {
         EXPECT_EQ(actual.x[i], expected.x[i]) << "x[" << i << "]";
@@ -310,24 +315,29 @@ INSTANTIATE_TEST_SUITE_P(EveryProperPrefix, IpmPolishTruncation,
 // ---------------------------------------------------------------------------
 
 TEST(IpmPolishLookup, ReturnsNullOnACoreOnlyValue) {
-    const WarmStartData data;
+    const WarmStart data;
     EXPECT_EQ(find_ipm_polish(data), nullptr);
 }
 
 TEST(IpmPolishLookup, IgnoresForeignTagsIncludingANearMiss) {
-    WarmStartData data;
-    data.extensions_.push_back(WarmExtension{"some.other.producer", bytes_of({0x01, 0x02})});
+    WarmStart data;
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{"some.other.producer", bytes_of({0x01, 0x02})});
     // A near miss: the same producer at a DIFFERENT version. The tag is the
     // version, so this one is foreign to a v1 reader.
-    data.extensions_.push_back(WarmExtension{"hven.ipm.polish.v2", frozen_bytes()});
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{"hven.ipm.polish.v2", frozen_bytes()});
     EXPECT_EQ(find_ipm_polish(data), nullptr);
 }
 
 TEST(IpmPolishLookup, FindsTheTagAmongOthersAndReturnsItsBytesVerbatim) {
-    WarmStartData data;
-    data.extensions_.push_back(WarmExtension{"some.other.producer", bytes_of({0x01})});
-    data.extensions_.push_back(WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
-    data.extensions_.push_back(WarmExtension{"another.producer", bytes_of({0x02})});
+    WarmStart data;
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{"some.other.producer", bytes_of({0x01})});
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{"another.producer", bytes_of({0x02})});
 
     const WarmExtension *found = find_ipm_polish(data);
     ASSERT_NE(found, nullptr);
@@ -335,9 +345,11 @@ TEST(IpmPolishLookup, FindsTheTagAmongOthersAndReturnsItsBytesVerbatim) {
 }
 
 TEST(IpmPolishLookup, RefusesTheTagCarriedTwice) {
-    WarmStartData data;
-    data.extensions_.push_back(WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
-    data.extensions_.push_back(WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
+    WarmStart data;
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
+    WarmStartAccess::extensions(data).push_back(
+        WarmExtension{std::string(kIpmPolishTag), frozen_bytes()});
     const std::string message = refusal_from([&] { find_ipm_polish(data); });
     EXPECT_TRUE(mentions(message, "more than once")) << message;
     EXPECT_TRUE(mentions(message, std::string(kIpmPolishTag))) << message;
@@ -348,14 +360,14 @@ TEST(IpmPolishLookup, RefusesTheTagCarriedTwice) {
 // ---------------------------------------------------------------------------
 
 TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
-    const WarmStartData data = bridgeable_value();
+    const WarmStart data = bridgeable_value();
     const IpmPolishData polish = deserialize_ipm_polish(find_ipm_polish(data)->payload_);
 
-    const SqpWarmStart bridged =
-        to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_);
-    const SqpWarmStart direct =
-        from_interior_point(data.primal_, data.eq_lmults_, data.iq_lmults_, polish.iq_values_,
-                            polish.z_lower_, polish.z_upper_, bridge_lower(), bridge_upper());
+    const hven::solvers::detail::SqpWarmState bridged = hven::solvers::detail::to_sqp_warm_state(
+        data, bridge_lower(), bridge_upper(), WarmStartAccess::key(data));
+    const hven::solvers::detail::SqpWarmState direct = from_interior_point(
+        WarmStartAccess::primal(data), WarmStartAccess::eq(data), WarmStartAccess::iq(data),
+        polish.iq_values_, polish.z_lower_, polish.z_upper_, bridge_lower(), bridge_upper());
 
     // Field for field, and EXACTLY: the bridge only forwards, so anything
     // weaker than bit equality here would be hiding an arithmetic step that
@@ -364,13 +376,13 @@ TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
 }
 
 TEST(IpmPolishBridge, ForwardsTheCrossoverOptions) {
-    const WarmStartData data = bridgeable_value();
+    const WarmStart data = bridgeable_value();
     hven::solvers::IpCrossoverOptions strict;
     // A dual_tol above every price in the fixture leaves every row and every
     // bound side FREE -- a verdict only the forwarded options can produce.
     strict.dual_tol = 1.0e3;
-    const SqpWarmStart bridged =
-        to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_, strict);
+    const hven::solvers::detail::SqpWarmState bridged = hven::solvers::detail::to_sqp_warm_state(
+        data, bridge_lower(), bridge_upper(), WarmStartAccess::key(data), strict);
     EXPECT_TRUE(bridged.qp_working_set.active_ineq().empty());
     for (const std::int8_t state : bridged.bound_active) {
         EXPECT_EQ(state, 0);
@@ -378,53 +390,64 @@ TEST(IpmPolishBridge, ForwardsTheCrossoverOptions) {
 }
 
 TEST(IpmPolishBridge, RefusesACoreOnlyValueNamingTheTag) {
-    WarmStartData data = bridgeable_value();
-    data.extensions_.clear();
-    const std::string message = refusal_from(
-        [&] { to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_); });
+    WarmStart data = bridgeable_value();
+    WarmStartAccess::extensions(data).clear();
+    const std::string message = refusal_from([&] {
+        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                                 WarmStartAccess::key(data));
+    });
     EXPECT_TRUE(mentions(message, std::string(kIpmPolishTag))) << message;
     EXPECT_TRUE(mentions(message, "does not invert")) << message;
 }
 
 TEST(IpmPolishBridge, RefusesAStampThatDoesNotMatchTheModel) {
-    const WarmStartData data = bridgeable_value();
+    const WarmStart data = bridgeable_value();
     const DeclarationKey other = key_of(0x22);
-    const std::string message =
-        refusal_from([&] { to_sqp_warm_start(data, bridge_lower(), bridge_upper(), other); });
-    EXPECT_TRUE(mentions(message, fmt::format("{:#x}", data.structure_key_.digest()))) << message;
+    const std::string message = refusal_from([&] {
+        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(), other);
+    });
+    EXPECT_TRUE(mentions(message, fmt::format("{:#x}", WarmStartAccess::key(data).digest())))
+        << message;
     EXPECT_TRUE(mentions(message, fmt::format("{:#x}", other.digest()))) << message;
 }
 
 TEST(IpmPolishBridge, RefusesAMalformedPayloadWithTheDecodesOwnMessage) {
-    WarmStartData data = bridgeable_value();
-    data.extensions_[0].payload_.resize(20);
-    const std::string message = refusal_from(
-        [&] { to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_); });
+    WarmStart data = bridgeable_value();
+    WarmStartAccess::extensions(data)[0].payload_.resize(20);
+    const std::string message = refusal_from([&] {
+        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                                 WarmStartAccess::key(data));
+    });
     EXPECT_TRUE(mentions(message, "deserialize_ipm_polish")) << message;
     EXPECT_TRUE(mentions(message, "byte offset")) << message;
 }
 
 TEST(IpmPolishBridge, RefusesAnExtensionWhoseWidthsDisagreeWithTheCore) {
-    WarmStartData data = bridgeable_value();
-    IpmPolishData polish = deserialize_ipm_polish(data.extensions_[0].payload_);
+    WarmStart data = bridgeable_value();
+    IpmPolishData polish = deserialize_ipm_polish(WarmStartAccess::extensions(data)[0].payload_);
     polish.z_lower_ = vector_of({1.0, 2.0, 3.0});
-    data.extensions_[0].payload_ = serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(data)[0].payload_ = serialize_ipm_polish(polish);
 
-    const std::string message = refusal_from(
-        [&] { to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_); });
+    const std::string message = refusal_from([&] {
+        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                                 WarmStartAccess::key(data));
+    });
     EXPECT_TRUE(mentions(message, "lower-bound multiplier block")) << message;
     EXPECT_TRUE(mentions(message, "holds 3 entries")) << message;
     EXPECT_TRUE(mentions(message, "is 2")) << message;
 }
 
 TEST(IpmPolishBridge, RefusesBoundVectorsThatAreNotAtTheCoresWidth) {
-    const WarmStartData data = bridgeable_value();
-    const std::string upper_message = refusal_from(
-        [&] { to_sqp_warm_start(data, bridge_lower(), vector_of({1.0}), data.structure_key_); });
+    const WarmStart data = bridgeable_value();
+    const std::string upper_message = refusal_from([&] {
+        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), vector_of({1.0}),
+                                                 WarmStartAccess::key(data));
+    });
     EXPECT_TRUE(mentions(upper_message, "the upper-bound vector")) << upper_message;
 
     const std::string lower_message = refusal_from([&] {
-        to_sqp_warm_start(data, vector_of({1.0, 2.0, 3.0}), bridge_upper(), data.structure_key_);
+        hven::solvers::detail::to_sqp_warm_state(data, vector_of({1.0, 2.0, 3.0}), bridge_upper(),
+                                                 WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(lower_message, "the lower-bound vector")) << lower_message;
 }

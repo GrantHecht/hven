@@ -215,7 +215,6 @@ TEST(SolverMove, SqpMoveAssignmentTransfersTheEngine) {
     hven::solvers::SqpSolver target(sqp_options());
     target = std::move(source);
     expect_same_solve(expected, target.solve(hven::solvers::detail::problem_ref(*p.model), x0));
-    EXPECT_NO_THROW((void)target.export_warm_start());
 }
 
 TEST(SolverMove, AMovedFromSqpSolverRefusesUseByName) {
@@ -226,7 +225,6 @@ TEST(SolverMove, AMovedFromSqpSolverRefusesUseByName) {
         (void)source.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point()),
         std::logic_error);
     EXPECT_THROW(source.set_options(sqp_options()), std::logic_error);
-    EXPECT_THROW((void)source.export_warm_start(), std::logic_error);
     EXPECT_THROW((void)source.options(), std::logic_error);
     EXPECT_THROW((void)source.iteration_payload(), std::logic_error);
 }

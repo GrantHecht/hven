@@ -30,7 +30,7 @@
 // multiplier on its whole middle branch (parametric_families.h's DEGENERACY
 // note): at a zero multiplier, whether a solver reports the row in its exit
 // working set is not determined by the KKT conditions, so asserting
-// SqpWarmStart::ineq_active there would be asserting a solver-internal choice as
+// SqpWarmState::ineq_active there would be asserting a solver-internal choice as
 // if it were mathematics. Where the analytic multiplier is nonzero the two
 // notions coincide and the assertion is the same either way.
 
@@ -88,7 +88,7 @@ SqpOptions tight_options() {
 }
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
-// therefore SqpWarmStart's) encoding. See this file's ACTIVITY note.
+// therefore SqpWarmState's) encoding. See this file's ACTIVITY note.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;
     a.bound_active.assign(static_cast<std::size_t>(model.n()), 0);

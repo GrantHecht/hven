@@ -59,13 +59,13 @@ std::shared_ptr<hven_drivers_tests::Hs071Problem> hs071() {
 IpmResult ipm_solve(const IpmOptions &o, SolveBudget budget = {}) {
     Problem p(hs071());
     IpmSolver s(o);
-    return s.solve(p, hs071_start(), budget);
+    return s.solve(p, hs071_start(), {}, budget);
 }
 
 SqpResult sqp_solve(const SqpOptions &o, SolveBudget budget = {}) {
     Problem p(hs071());
     SqpSolver s(o);
-    return s.solve(p, hs071_start(), budget);
+    return s.solve(p, hs071_start(), {}, budget);
 }
 
 // validate() refuses the value and names the field.

@@ -65,7 +65,7 @@
 //
 // TWO PINS THAT LIVE ELSEWHERE AND ARE CITED, NOT REWRITTEN:
 //   * a changed thread count refuses a hot handle --
-//     tests/sqp/test_warm_start.cpp, `SqpWarmStart.AChangedThreadCountRefusesAHotHandle`
+//     tests/sqp/test_warm_start.cpp, `SqpWarmState.AChangedThreadCountRefusesAHotHandle`
 //     (the options fingerprint folds `threads`; T8.3 built it, T8.8 gives the
 //     number teeth). Adoption also takes the SESSION's live count
 //     (SymmetricFactor::adopt), so an adopted handle at a matching fingerprint
@@ -111,7 +111,12 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "sqp/support/hs_problems.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 namespace {
 
@@ -297,11 +302,12 @@ SqpOptions base_options(QpMode mode, int threads) {
 // its solve emitted. `HotState::border` is the very `BorderState` the engine
 // solved through -- qp_engine.h defines the type the opaque handle names.
 int driver_k0_num_threads(const SqpResult &sol) {
-    EXPECT_NE(sol.warm_start.hot, nullptr) << "the driver emitted no hot handle to read";
-    if (sol.warm_start.hot == nullptr) {
+    EXPECT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr)
+        << "the driver emitted no hot handle to read";
+    if (SqpWarmAccess::state(sol.native_warm_start).hot == nullptr) {
         return -1;
     }
-    return sol.warm_start.hot->border->kkt.factor.num_threads();
+    return SqpWarmAccess::state(sol.native_warm_start).hot->border->kkt.factor.num_threads();
 }
 
 // ---------------------------------------------------------------------------
@@ -809,13 +815,14 @@ TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    ASSERT_NE(sol.warm_start.hot, nullptr);
-    ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value())
+    ASSERT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr);
+    ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur.has_value())
         << "PREMISE: this solve built a live Schur border";
-    ASSERT_GT(sol.warm_start.hot->border->schur->dim(), 0)
+    ASSERT_GT(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->dim(), 0)
         << "PREMISE: the border is NONEMPTY, so the dense factor really factorized";
 
-    EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), kAskedFor)
+    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->num_threads(),
+              kAskedFor)
         << "the DENSE border factor's own count, read through to the factor";
     EXPECT_EQ(max_threads_now(), before) << "and its LAPACK calls undid the scope";
 }
@@ -828,11 +835,11 @@ TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    ASSERT_NE(sol.warm_start.hot, nullptr);
-    ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value());
-    ASSERT_GT(sol.warm_start.hot->border->schur->dim(), 0)
+    ASSERT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr);
+    ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur.has_value());
+    ASSERT_GT(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->dim(), 0)
         << "PREMISE: the border is NONEMPTY, as in the pin above";
-    EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), 0);
+    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->num_threads(), 0);
 }
 
 // ===========================================================================

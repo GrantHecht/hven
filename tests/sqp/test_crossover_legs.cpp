@@ -44,6 +44,11 @@
 #include "../common_support/route_reference.h"
 
 #include "hven/core/compiler.h"
+#include "hven/detail/warmstart/warm_start_access.h"
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
@@ -62,7 +67,7 @@ using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
 using hven::solvers::SqpSolver;
 using hven::solvers::StartLevel;
-using hven::solvers::WarmStartData;
+using hven::solvers::WarmStart;
 using hven::solvers::corpus::CorpusCell;
 using hven::solvers::corpus::StartTaxonomy;
 using hven::solvers::crossover::ModelAsNlpProblem;
@@ -262,13 +267,13 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
         ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), x0);
     ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
     // THE EXPORT, OFF THE RESULT (M6 W5 T8.5).
-    const auto snapshot = ipm_result.export_warm_start();
-    ASSERT_TRUE(snapshot.has_value());
-    const WarmStartData exported = *snapshot;
+    const WarmStart snapshot = ipm_result.warm_start;
+    ASSERT_TRUE(!snapshot.empty());
+    const WarmStart exported = snapshot;
 
-    ASSERT_EQ(exported.primal_.size(), model->n());
-    ASSERT_EQ(exported.eq_lmults_.size(), model->me());
-    ASSERT_EQ(exported.iq_lmults_.size(), model->mi());
+    ASSERT_EQ(WarmStartAccess::primal(exported).size(), model->n());
+    ASSERT_EQ(WarmStartAccess::eq(exported).size(), model->me());
+    ASSERT_EQ(WarmStartAccess::iq(exported).size(), model->mi());
     // F7 declares a control box, so the hand-off carries the polish extension
     // beside its core -- which is what makes legs (c) and (d) different runs.
     EXPECT_NE(hven::solvers::find_ipm_polish(exported), nullptr);
@@ -280,7 +285,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
 
     // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
     // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
-    const auto solve_with = [&](const WarmStartData *payload) {
+    const auto solve_with = [&](const WarmStart *payload) {
         NlpModelAssembly bridge(converted);
         SqpSolver driver{opts};
         return payload != nullptr
@@ -292,8 +297,8 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
 
-    WarmStartData core = exported;
-    core.extensions_.clear();
+    WarmStart core = exported;
+    WarmStartAccess::extensions(core).clear();
     const SqpResult warm_core = solve_with(&core);
     const SqpResult warm_polish = solve_with(&exported);
 

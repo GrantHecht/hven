@@ -33,10 +33,15 @@
 #include "hven/detail/model/nlp_problem_model.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/model/nlp.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/warm_start_data.h"
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 namespace hven_interior_tests {
 
@@ -44,7 +49,7 @@ namespace hven_interior_tests {
 ///
 /// A test problem that seeds its own row multipliers derives from this beside
 /// Nlp; starting_multiplier_seed() finds the hook by a dynamic cast. The library
-/// has one seed route -- the multipliers-only WarmStartData -- and this builds
+/// has one seed route -- the multipliers-only WarmStart -- and this builds
 /// exactly that payload.
 struct MultiplierSeedHook {
     virtual ~MultiplierSeedHook() = default;
@@ -97,7 +102,7 @@ inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::Nlp> problem,
 /// declaration key -- which is what the payload route requires.
 ///
 /// @throws std::invalid_argument if the hook returns a non-finite value.
-inline std::optional<hven::solvers::WarmStartData>
+inline std::optional<hven::solvers::WarmStart>
 starting_multiplier_seed(const DeclaredRoute &route) {
     const auto *hook = dynamic_cast<const MultiplierSeedHook *>(route.problem.get());
     Eigen::VectorXd lam = Eigen::VectorXd::Zero(route.model->num_declared_rows());
@@ -110,10 +115,10 @@ starting_multiplier_seed(const DeclaredRoute &route) {
     }
     Eigen::VectorXd eqm, iqm;
     route.model->split_user_multipliers(lam, eqm, iqm);
-    hven::solvers::WarmStartData seed;
-    seed.eq_lmults_ = std::move(eqm);
-    seed.iq_lmults_ = std::move(iqm);
-    seed.structure_key_ = hven::solvers::declaration_key(route.program->declaration());
+    hven::solvers::WarmStart seed;
+    WarmStartAccess::eq(seed) = std::move(eqm);
+    WarmStartAccess::iq(seed) = std::move(iqm);
+    WarmStartAccess::key(seed) = hven::solvers::declaration_key(route.program->declaration());
     return seed;
 }
 
@@ -122,7 +127,7 @@ starting_multiplier_seed(const DeclaredRoute &route) {
 inline hven::solvers::IpmResult solve_declared(hven::solvers::IpmSolver &engine,
                                                const DeclaredRoute &route,
                                                const Eigen::VectorXd &x0) {
-    const std::optional<hven::solvers::WarmStartData> seed = starting_multiplier_seed(route);
+    const std::optional<hven::solvers::WarmStart> seed = starting_multiplier_seed(route);
     return seed.has_value()
                ? engine.solve(hven::solvers::detail::problem_ref(*route.program), x0, *seed)
                : engine.solve(hven::solvers::detail::problem_ref(*route.program), x0);

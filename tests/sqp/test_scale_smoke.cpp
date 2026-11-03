@@ -77,8 +77,13 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_solver_types.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 using namespace hven::solvers;
 using hven::Index;
@@ -880,22 +885,23 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         ASSERT_EQ(setup.status, SolveStatus::kOptimal) << "the hop's premise";
 
         model.set_parameters(Vec::Constant(1, kP));
-        const SqpResult hop = driver.solve(hven::solvers::detail::problem_ref(model),
-                                           setup.warm_start.x, setup.warm_start);
+        const SqpResult hop =
+            driver.solve(hven::solvers::detail::problem_ref(model),
+                         SqpWarmAccess::state(setup.native_warm_start).x, setup.native_warm_start);
         EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
         for (const SqpResult *sol : {&setup, &hop}) {
             // (b) THE INVARIANT, on BOTH halves of the export. lambda_i is
             // what a caller reads; warm_start.lambda_i is what reaches
-            // WarmStartData::iq_lmults_ and, through it, an interior-point
+            // WarmStart::iq_lmults_ and, through it, an interior-point
             // inequality seed -- the leak R6 exists to close.
             ASSERT_GT(hven::solvers::detail::engine_rows(*sol).lambda_i.size(), 0);
             EXPECT_GE(hven::solvers::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(),
+            ASSERT_EQ(SqpWarmAccess::state(sol->native_warm_start).lambda_i.size(),
                       hven::solvers::detail::engine_rows(*sol).lambda_i.size());
-            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+            EXPECT_GE(SqpWarmAccess::state(sol->native_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             // (c) EVERY SWEPT MAGNITUDE IS BELOW THE DISCLOSED SCALE. The
@@ -1017,9 +1023,9 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
             ASSERT_GT(hven::solvers::detail::engine_rows(*sol).lambda_i.size(), 0);
             EXPECT_GE(hven::solvers::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(),
+            ASSERT_EQ(SqpWarmAccess::state(sol->native_warm_start).lambda_i.size(),
                       hven::solvers::detail::engine_rows(*sol).lambda_i.size());
-            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+            EXPECT_GE(SqpWarmAccess::state(sol->native_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             swept_over_the_band += sol->counters.ssn.ssn_sign_swept;

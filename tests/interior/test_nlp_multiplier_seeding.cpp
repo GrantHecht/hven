@@ -8,7 +8,7 @@
 //
 // M6 W5 T8.5 REPLACED THE ENTRY, not the behaviour. IpmSolver::
 // set_initial_multipliers()/clear_initial_multipliers() are gone; a seed is the
-// MULTIPLIERS-ONLY FORM of the shared payload -- a WarmStartData with an EMPTY
+// MULTIPLIERS-ONLY FORM of the shared payload -- a WarmStart with an EMPTY
 // `primal_` -- handed to `solve(model, x0, warm, budget)` as an argument. The
 // install site, the [kSeededIqMultFloor, kSeededMultInitMax] clamps and the
 // objective-scale handling are unchanged, and `x0` is still the start. Three
@@ -33,6 +33,11 @@
 #include "hven/warmstart/warm_start_data.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
+#include "hven/detail/warmstart/warm_start_access.h"
+
+namespace {
+using hven::solvers::detail::WarmStartAccess;
+} // namespace
 
 namespace {
 constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
@@ -208,19 +213,19 @@ struct SeedEqOnlyProblem : Nlp {
 
 // THE MULTIPLIERS-ONLY SEED, built here (M6 W5 T8.5).
 // IpmSolver::set_initial_multipliers() is gone; a seed is now a
-// WarmStartData whose `primal_` is EMPTY, carrying the two row blocks and the
+// WarmStart whose `primal_` is EMPTY, carrying the two row blocks and the
 // program's declaration stamp, handed to `solve(model, x0, warm, budget)` as an
 // argument. `x0` is still the start -- which is what the old two-call shape
 // meant -- and the install site, the clamps and the objective-scale handling
 // are the same ones the staged seed fed.
 namespace {
-hven::solvers::WarmStartData seed_payload(const hven::solvers::NonLinearProgram &program,
-                                          const Eigen::VectorXd &eq_mults,
-                                          const Eigen::VectorXd &iq_mults) {
-    hven::solvers::WarmStartData seed;
-    seed.eq_lmults_ = eq_mults;
-    seed.iq_lmults_ = iq_mults;
-    seed.structure_key_ = hven::solvers::declaration_key(program.declaration());
+hven::solvers::WarmStart seed_payload(const hven::solvers::NonLinearProgram &program,
+                                      const Eigen::VectorXd &eq_mults,
+                                      const Eigen::VectorXd &iq_mults) {
+    hven::solvers::WarmStart seed;
+    WarmStartAccess::eq(seed) = eq_mults;
+    WarmStartAccess::iq(seed) = iq_mults;
+    WarmStartAccess::key(seed) = hven::solvers::declaration_key(program.declaration());
     return seed;
 }
 } // namespace

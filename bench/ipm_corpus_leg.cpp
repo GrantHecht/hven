@@ -22,6 +22,7 @@
 #include <hven/detail/interior/utils/thread_pool.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -658,7 +659,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     //
     // The producing solve is SETUP and is neither timed nor reported, exactly
     // as the bridge lay is on the other engine.
-    std::optional<hven::solvers::WarmStartData> payload;
+    std::optional<hven::solvers::WarmStart> payload;
     if (variant.warm != InteriorVariant::Warm::kNone) {
         ConfiguredSolve producer = make_configured();
         const hven::solvers::IpmResult produced_result =
@@ -671,8 +672,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                 "would pin nothing",
                 variant.name, identity.cell_id, to_string(produced)));
         }
-        payload = produced_result.export_warm_start();
-        if (!payload.has_value()) {
+        payload = produced_result.warm_start;
+        if (payload->empty()) {
             throw std::runtime_error(
                 fmt::format("run_interior_problem: the '{}' variant's producing solve of cell "
                             "'{}' captured no warm-start snapshot",
@@ -682,8 +683,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
             // THE MULTIPLIERS-ONLY FORM, built from the very same export the
             // payload row uses, so the two rows differ in exactly one thing:
             // whether the point and the bound state travel with the prices.
-            payload->primal_.resize(0);
-            payload->bound_lmults_.resize(0);
+            hven::solvers::detail::WarmStartAccess::primal(*payload).resize(0);
+            hven::solvers::detail::WarmStartAccess::bound(*payload).resize(0);
             // THE POLISH EXTENSION IS LEFT ON (M6 W5 T8.5 fix round 1), and
             // that is deliberate. It changes NOTHING about the solve -- the
             // seed form's `have_warm` is false, so the extension is never

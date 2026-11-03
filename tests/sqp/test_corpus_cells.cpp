@@ -41,6 +41,11 @@
 
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipm_corpus_leg.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+
+namespace {
+using hven::solvers::detail::SqpWarmAccess;
+} // namespace
 
 #ifndef HVEN_SQP_CORPUS_BINARY
 #error "HVEN_SQP_CORPUS_BINARY must be defined by bench/CMakeLists.txt (see its own comment)"
@@ -462,7 +467,7 @@ TEST(CorpusCellsRunner, BothKernelsAgreeOnTheANSWEREvenWhereTheyDisagreeOnTheCOS
 
 TEST(CorpusCellsRunner, WalkEngineIsDeterministic) {
     // ALL FIVE taxonomies, not just kNeutralCold -- each one's producer takes
-    // a different route to a SqpWarmStart (or none at all), and each route is a
+    // a different route to a SqpWarmState (or none at all), and each route is a
     // place an accidental coupling to wall-clock/address/allocator state
     // could sneak in without the others catching it (this is precisely what
     // caught a hand-injected mutation in kCorrupted's displacement during
@@ -567,7 +572,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     const detail::IpIterate it =
         detail::f7_ip_iterate(model, 0.85, detail::crossover_mu_for_n(12), x0);
     EXPECT_EQ(it.x, x0) << "the iterate carries the physics-informed primal, not x*";
-    const hven::solvers::SqpWarmStart crossover = hven::solvers::from_interior_point(
+    const hven::solvers::detail::SqpWarmState crossover = hven::solvers::from_interior_point(
         it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper, model.lower(),
         model.upper(), hven::solvers::IpCrossoverOptions{});
 
@@ -682,8 +687,10 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     ASSERT_EQ(seed.status, hven::solvers::SolveStatus::kOptimal);
 
     model.set_parameters(hven::Vec::Constant(1, cell.p));
-    const hven::solvers::QpProblem expected = hven::solvers::build_subproblem(
-        model, seed.warm_start.x, seed.warm_start.lambda_e, seed.warm_start.lambda_i);
+    const hven::solvers::QpProblem expected =
+        hven::solvers::build_subproblem(model, SqpWarmAccess::state(seed.native_warm_start).x,
+                                        SqpWarmAccess::state(seed.native_warm_start).lambda_e,
+                                        SqpWarmAccess::state(seed.native_warm_start).lambda_i);
 
     const hven::solvers::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_TRUE(actual.g.isApprox(expected.g, 0.0));
@@ -692,7 +699,7 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     EXPECT_TRUE(actual.H.isApprox(expected.H, 0.0));
     // And distinguishing from the cold case above is the whole point of this
     // test: the warm multipliers are not all zero on this fixture.
-    EXPECT_GT(seed.warm_start.lambda_e.cwiseAbs().maxCoeff(), 0.0)
+    EXPECT_GT(SqpWarmAccess::state(seed.native_warm_start).lambda_e.cwiseAbs().maxCoeff(), 0.0)
         << "fixture must exercise a nonzero warm dual, or this test proves nothing";
 }
 
@@ -825,7 +832,7 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
     hven::solvers::SqpSolver driver_a(opts);
     const auto direct = driver_a.solve(
         hven::solvers::detail::problem_ref(model), model.start_point(),
-        hven::solvers::SqpWarmStart{},
+        SqpWarmAccess::wrap(hven::solvers::detail::SqpWarmState{}),
         hven::solvers::SolveBudget{.minor_budget = hven::solvers::corpus::detail::kMinorBudget});
     hven::solvers::SqpSolver driver_b(opts);
     const auto via_helper =
@@ -852,7 +859,7 @@ TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     hven::solvers::SqpSolver driver(opts);
 
     const auto sol = hven::solvers::corpus::detail::budgeted_solve(
-        driver, model, model.start_point(), hven::solvers::SqpWarmStart{}, /*budget=*/1);
+        driver, model, model.start_point(), hven::solvers::detail::SqpWarmState{}, /*budget=*/1);
 
     EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kWorkLimit);
     EXPECT_EQ(sol.counters.probe_budget_stops, 1);
