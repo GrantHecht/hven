@@ -2,7 +2,7 @@
 """AP-2 B4 (the B3 instrument), settler C222 addition: the Accelerate syntax sweep.
 
 For every .cpp under src/ tests/ bench/ examples/ that contains USE_ACCELERATE_SPARSE, take
-its Linux compile command from build-b4/rel/compile_commands.json (no PCH), add
+its Linux compile command from build-b5/rel/compile_commands.json (no PCH), add
 -fsyntax-only -DUSE_ACCELERATE_SPARSE -ferror-limit=0, and record every error. Each error is
 classified: KNOWN-HEADER (the Accelerate framework header cannot be found on Linux),
 KNOWN-SIZEOF (a static_assert on an options struct's sizeof, whose Linux layout is gated on
@@ -21,10 +21,12 @@ usage: accelerate_sweep.py <out-dir>
 import json, os, re, shlex, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 
-WT = '/home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a'
+# r2 (B5): the worktree root is derived from this script's own location (legs/ is five levels
+# below it) rather than carried from the tree the instrument was copied from.
+WT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../..'))
 out_dir = sys.argv[1]
 os.makedirs(out_dir, exist_ok=True)
-cc = {e['file']: e for e in json.load(open(WT + '/build-b4/rel/compile_commands.json'))}
+cc = {e['file']: e for e in json.load(open(WT + '/build-b5/rel/compile_commands.json'))}
 files = []
 for d in ['src', 'tests', 'bench', 'examples']:
     for root, _, fs in os.walk(os.path.join(WT, d)):
@@ -39,7 +41,7 @@ files.sort()
 unity = {}
 for fname, e in cc.items():
     if '/Unity/unity_' in fname:
-        tdir = fname.split('/build-b4/rel/')[1].split('/CMakeFiles/')[0]
+        tdir = fname.split('/build-b5/rel/')[1].split('/CMakeFiles/')[0]
         unity.setdefault(tdir, e)
 
 
