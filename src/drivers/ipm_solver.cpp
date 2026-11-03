@@ -140,17 +140,6 @@ LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::solvers::KktPivoting
         "hven interior-point solver: unknown linear.pivoting ({})", static_cast<int>(mode)));
 }
 
-LinearOptions::FactorizationAlgorithm
-linear_factorization_algorithm_of(hven::solvers::KktFactorizationAlgorithm mode) {
-    using KktFactorizationAlgorithm = hven::solvers::KktFactorizationAlgorithm;
-    switch (mode) {
-    case KktFactorizationAlgorithm::kClassic:
-        return LinearOptions::FactorizationAlgorithm::kClassic;
-    }
-    throw std::invalid_argument(fmt::format(
-        "hven interior-point solver: unknown linear.algorithm ({})", static_cast<int>(mode)));
-}
-
 LinearOptions::SolveParallelism
 linear_solve_parallelism_of(hven::solvers::KktSolveParallelism mode) {
     using KktSolveParallelism = hven::solvers::KktSolveParallelism;
@@ -227,7 +216,7 @@ void hven::solvers::IpmSolverImpl::set_qp_params() {
     opts.weighted_matching = opts_.linear.matching != 0;
     opts.matrix_scaling = opts_.linear.scaling != 0;
     opts.pivot_strategy = linear_pivot_strategy_of(opts_.linear.pivoting);
-    opts.factorization_algorithm = linear_factorization_algorithm_of(opts_.linear.algorithm);
+    opts.factorization_algorithm = LinearOptions::FactorizationAlgorithm::kClassic;
     opts.solve_parallelism = linear_solve_parallelism_of(opts_.linear.parallel_solve);
     opts.cnr_threads = opts_.linear.conditional_reproducibility ? opts_.common.threads : 0;
     // The factorization-cost estimate is read unconditionally after every
@@ -863,7 +852,6 @@ void hven::solvers::IpmSolverImpl::set_options(IpmOptions o) {
         o.linear.refinement_steps != opts_.linear.refinement_steps ||
         o.linear.matching != opts_.linear.matching || o.linear.scaling != opts_.linear.scaling ||
         o.linear.pivoting != opts_.linear.pivoting ||
-        o.linear.algorithm != opts_.linear.algorithm ||
         o.linear.parallel_solve != opts_.linear.parallel_solve ||
         o.linear.conditional_reproducibility != opts_.linear.conditional_reproducibility
 #ifdef USE_ACCELERATE_SPARSE

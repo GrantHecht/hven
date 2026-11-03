@@ -261,7 +261,6 @@ void hven::solvers::validate(const IpmOptions &o) {
     non_negative(lin.pivot_perturbation, "linear.pivot_perturbation");
     non_negative(lin.refinement_steps, "linear.refinement_steps");
     enum_in_range(lin.parallel_solve, KktSolveParallelism::kSequential, "linear.parallel_solve");
-    enum_in_range(lin.algorithm, KktFactorizationAlgorithm::kClassic, "linear.algorithm");
 #ifdef USE_ACCELERATE_SPARSE
     pos_finite(lin.accelerate_zero_tolerance, "linear.accelerate_zero_tolerance");
 #endif
@@ -572,14 +571,6 @@ const char *enum_name(hven::solvers::InertiaMode v) {
     }
     return "unknown";
 }
-const char *enum_name(hven::solvers::KktFactorizationAlgorithm v) {
-    using hven::solvers::KktFactorizationAlgorithm;
-    switch (v) {
-    case KktFactorizationAlgorithm::kClassic:
-        return "kClassic";
-    }
-    return "unknown";
-}
 const char *enum_name(hven::solvers::KktOrdering v) {
     using hven::solvers::KktOrdering;
     switch (v) {
@@ -734,7 +725,6 @@ void hven::solvers::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_int(os, "linear.pivot_perturbation", l.pivot_perturbation);
     kv_int(os, "linear.refinement_steps", l.refinement_steps);
     kv_str(os, "linear.parallel_solve", enum_name(l.parallel_solve));
-    kv_str(os, "linear.algorithm", enum_name(l.algorithm));
     kv_bool(os, "linear.conditional_reproducibility", l.conditional_reproducibility);
     kv_bool(os, "linear.force_analysis", l.force_analysis);
 #ifdef USE_ACCELERATE_SPARSE

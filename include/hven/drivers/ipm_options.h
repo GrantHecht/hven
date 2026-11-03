@@ -53,8 +53,6 @@ struct IpmLinearOptions {
     int refinement_steps = 0;
     /// Default `kAdaptive`. Pardiso only.
     KktSolveParallelism parallel_solve = KktSolveParallelism::kAdaptive;
-    /// Default `kClassic`. Pardiso only.
-    KktFactorizationAlgorithm algorithm = KktFactorizationAlgorithm::kClassic;
     /// Conditional numerical reproducibility: pins the backend to
     /// `common.threads` CNR threads, making the factorization bit-reproducible
     /// across thread counts. Read when the factorization is configured. Default

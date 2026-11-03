@@ -61,12 +61,6 @@ enum class KktPivoting {
     kTwoByTwo,
 };
 
-/// @brief The sparse backend's factorization algorithm.
-enum class KktFactorizationAlgorithm {
-    /// The default.
-    kClassic,
-};
-
 /// @brief Parallelism of the forward and backward solves.
 enum class KktSolveParallelism {
     /// Partition the matrix for a single right-hand side, otherwise parallelize
