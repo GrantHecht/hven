@@ -156,6 +156,10 @@ struct SolveResult {
     ///        >= 0 at an active lower bound and <= 0 at an active upper bound.
     ///        DECLARED width -- an eliminated coordinate has an entry here (0
     ///        under MakeParameter, -lambda_fix under MakeConstraint).
+    ///        Interior-point engine: an inactive bound's entry is small but not
+    ///        zero (of the order of the final barrier parameter divided by the
+    ///        distance to the bound). It is the value the engine computed and is
+    ///        reported as such, never zeroed.
     Vec z;
 
     /// @brief Objective value at @ref x, on the caller's scale. NaN when

@@ -830,7 +830,7 @@ class SqpSolverImpl {
     /// @param cb The callback. An empty std::function is the same as clearing.
     /// @brief Installs the per-iteration callback and DECLARES what it reads.
     ///
-    /// Everything the one-argument overload documents holds here unchanged --
+    /// Everything the default-argument call documents holds here unchanged --
     /// one event per history row, the caller's units, the depth stamping and
     /// the restoration forwarding, what kStop does, the in-flight deferral,
     /// the throw contract. This overload adds ONE thing: @p payload, the mask
@@ -863,7 +863,7 @@ class SqpSolverImpl {
     ///
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
-    /// keeps kAll, which is what the one-argument overload installs.
+    /// keeps kAll, which is what the default-argument call installs.
     ///
     /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same
     /// in-flight guard, applied at the same safe point, reset to kAll by
@@ -893,7 +893,7 @@ class SqpSolverImpl {
         // Normalised rather than refused: a caller that always routes through
         // this overload with a stored mask may legitimately pass an empty
         // callable to disarm, and a throw there would punish the idiom the
-        // one-argument form already allows.
+        // default-argument form already allows.
         const IterationPayload effective = cb ? payload : IterationPayload::kAll;
         const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
         if (callback_in_flight_ || solve_in_flight_) {
@@ -961,7 +961,7 @@ class SqpSolverImpl {
     /// write wins.
     ///
     /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
-    /// the one-argument overload delivers the full payload and no narrowing
+    /// the default-argument call delivers the full payload and no narrowing
     /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
@@ -2016,7 +2016,7 @@ class SqpSolverImpl {
 
     // WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
     // `measure_iterate`'s snapshot prepares beyond the row's own scalars. kAll
-    // is what the one-argument set_iteration_callback() installs and what a
+    // is what the default-argument set_iteration_callback() installs and what a
     // clear resets to, so a driver with no callback carries no narrowing into
     // the next attach. FORWARDED into the restoration sub-driver beside the
     // forwarder itself (see enter_restoration).

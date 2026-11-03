@@ -507,7 +507,7 @@ class IpmSolverImpl {
     /// @param cb The callback. An empty std::function is the same as clearing.
     /// @brief Installs the per-iteration callback and DECLARES what it reads.
     ///
-    /// Everything the one-argument overload documents holds here unchanged --
+    /// Everything the default-argument call documents holds here unchanged --
     /// the placement of the event, what kStop does, the in-flight deferral,
     /// the throw contract. This overload adds ONE thing: @p payload, the mask
     /// of IterationEvent parts this consumer will actually read, and the
@@ -549,12 +549,12 @@ class IpmSolverImpl {
     /// COUNTS -- how many majors, at what objective, at what wall -- attaches
     /// with kScalars and stops paying for the vectors it never reads. A
     /// consumer that CAPTURES THE TRAJECTORY keeps kAll, which is what the
-    /// one-argument overload installs, and pays what it always paid.
+    /// default-argument call installs, and pays what it always paid.
     ///
     /// THE MASK RIDES THE CALLABLE. It is stored beside it, parked through the
     /// same in-flight guard, applied at the same safe point, and reset to kAll
     /// by clear_iteration_callback() -- so a re-attach through the
-    /// one-argument overload is kAll again. Set from INSIDE the callback it
+    /// default-argument call is kAll again. Set from INSIDE the callback it
     /// takes effect at the NEXT event, exactly as a replacement callable does.
     /// An empty callable passed here is a clear, and like a clear it resets
     /// the mask to kAll whatever @p payload says -- normalised at the setter
@@ -574,7 +574,7 @@ class IpmSolverImpl {
         // Normalised rather than refused: a caller that always routes through
         // this overload with a stored mask may legitimately pass an empty
         // callable to disarm, and a throw there would punish the idiom the
-        // one-argument form already allows.
+        // default-argument form already allows.
         const IterationPayload effective = cb ? payload : IterationPayload::kAll;
         // Accepted and stored; this engine has no nested solves, so the scope
         // changes nothing here.
@@ -649,7 +649,7 @@ class IpmSolverImpl {
     /// overwrites one made there in the same solve, and the last write wins.
     ///
     /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
-    /// the one-argument overload delivers the full payload and no narrowing
+    /// the default-argument call delivers the full payload and no narrowing
     /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
@@ -1307,7 +1307,7 @@ class IpmSolverImpl {
     IterationCallback iteration_callback_;
     /// WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
     /// fire_iteration_event prepares beyond the scalars. kAll is what the
-    /// one-argument set_iteration_callback() installs and what a clear resets
+    /// default-argument set_iteration_callback() installs and what a clear resets
     /// to, so an engine with no callback carries no narrowing into the next
     /// attach.
     IterationPayload iteration_payload_ = IterationPayload::kAll;
