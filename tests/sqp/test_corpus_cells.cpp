@@ -2436,7 +2436,7 @@ TEST(CorpusKktGate, OnlyRowsThatCLAIMOptimalAreJudged) {
     using namespace kkt_gate_test;
     for (const hven::solvers::SolveStatus st :
          {hven::solvers::SolveStatus::kMaxIter, hven::solvers::SolveStatus::kNumericalError,
-          hven::solvers::SolveStatus::kInfeasible, hven::solvers::SolveStatus::kBudgetExhausted}) {
+          hven::solvers::SolveStatus::kInfeasible, hven::solvers::SolveStatus::kWorkLimit}) {
         EXPECT_EQ(kkt_gate_verdict(row_with(1e3, 1e3, 1e3, 1e3, 1.0, 1.0, st)),
                   KktVerdict::kUnchecked);
     }

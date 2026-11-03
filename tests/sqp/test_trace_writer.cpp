@@ -649,8 +649,6 @@ const char *spec_spelling(hven::solvers::SolveStatus v) {
         return "\"diverging\"";
     case hven::solvers::SolveStatus::kNumericalError:
         return "\"numerical_error\"";
-    case hven::solvers::SolveStatus::kBudgetExhausted:
-        return "\"budget_exhausted\"";
     case hven::solvers::SolveStatus::kInterrupted:
         return "\"interrupted\"";
     }
@@ -684,8 +682,6 @@ const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
         return "\"diverging\"";
     case hven::solvers::RestorationSubStatus::kNumericalError:
         return "\"numerical_error\"";
-    case hven::solvers::RestorationSubStatus::kBudgetExhausted:
-        return "\"budget_exhausted\"";
     case hven::solvers::RestorationSubStatus::kInterrupted:
         return "\"interrupted\"";
     }
@@ -994,7 +990,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     solve_status(SolveStatus::kMaxIter);
     solve_status(SolveStatus::kInfeasible);
     solve_status(SolveStatus::kNumericalError);
-    solve_status(SolveStatus::kBudgetExhausted);
+    solve_status(SolveStatus::kWorkLimit);
 
     const auto ws_algebra = [](WorkingSetLinearAlgebra a) {
         SqpSolveBeginTraceEvent e;
@@ -1099,7 +1095,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     sub_status(hven::solvers::RestorationSubStatus::kStalled);
     sub_status(hven::solvers::RestorationSubStatus::kDiverging);
     sub_status(hven::solvers::RestorationSubStatus::kNumericalError);
-    sub_status(hven::solvers::RestorationSubStatus::kBudgetExhausted);
+    sub_status(hven::solvers::RestorationSubStatus::kWorkLimit);
     sub_status(hven::solvers::RestorationSubStatus::kInterrupted);
 
     // W4 T4: the interior-point driver's three alphabets. `SolveStatus` is
@@ -3129,10 +3125,10 @@ void assign_distinct(StartLevel &field, Index &next) {
 // default -- `kNotRun` is `restoration_sub_status`'s default (it was `kOptimal`
 // until M7 W2 M3a fix1 gave the field an enum with a not-run zero), and a
 // golden line that could not tell the filled counters from the empty ones at
-// this key would pin nothing here. `kBudgetExhausted` was a non-default value
-// under BOTH enums, so this line's bytes did not move with the type.
+// this key would pin nothing here. `kWorkLimit` is a non-default value
+// under BOTH enums.
 void assign_distinct(hven::solvers::RestorationSubStatus &field, Index &next) {
-    field = hven::solvers::RestorationSubStatus::kBudgetExhausted;
+    field = hven::solvers::RestorationSubStatus::kWorkLimit;
     ++next;
 }
 
@@ -3253,7 +3249,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     // `restoration_f_out` and the `ssn` object and the two nested tables'
     // distinct values shift up by one again. It is an ENUM, the table's second:
     // `assign_distinct` cannot give it an ordinal, so it takes
-    // `kBudgetExhausted` -- not its `kOptimal` default -- and this line would
+    // `kWorkLimit` -- not its `kOptimal` default -- and this line would
     // not tell a filled record from an empty one at this key otherwise.
     //
     // RE-DERIVED AT M7 W2 R2 (the same declared additive-trailing-key route),
@@ -3297,12 +3293,12 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // RE-DERIVED AT M7 W2 A2, the declared additive route: the three `ipqp_mu*` keys after
     // `ipqp_read_barrier_noise_sides`, LAST in the `ipqp` object, 141-143; nothing shifts.
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kWorkLimit, 42, c,
                                                 /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
                                                 /*columns_active=*/true, 2048.0});
     EXPECT_EQ(os.str(),
-              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exha"
-              "usted\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"fac"
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"work_limit"
+              "\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"fac"
               "torizations\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_"
               "applied\":7,\"soc_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":1"
               "0,\"elastic_escalations\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape"
@@ -3318,7 +3314,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               ":41,\"qp_failures_routed\":42,\"qp_failures_in_a_row_peak\":43,\"qp_cap_retries"
               "\":44,\"restoration_entries\":45,\"restoration_h_in\":46,\"restoration_h_out\":4"
               "7,\"restoration_f_in\":48,\"restoration_f_out\":49,\"restoration_sub_status\":\""
-              "budget_exhausted\",\"eqp_refine_iters\":51,\"eqp_residual_refusals\":52,\"eqp_po"
+              "work_limit\",\"eqp_refine_iters\":51,\"eqp_residual_refusals\":52,\"eqp_po"
               "lish_steps\":53,\"terminal_polish_solves\":54,\"terminal_polish_rejected\":55,\""
               "terminal_polish_adopted\":56,\"eqp_row_drift_refusals\":57,\"qp_failure_steps_ju"
               "dged\":58,\"qp_failure_steps_accepted\":59,\"nonfinite_subproblems\":60,\"nonfin"
@@ -4380,8 +4376,7 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
         for (const SolveStatus st :
              {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kMaxIter,
               SolveStatus::kInfeasible, SolveStatus::kStalled, SolveStatus::kDiverging,
-              SolveStatus::kNumericalError, SolveStatus::kBudgetExhausted,
-              SolveStatus::kInterrupted}) {
+              SolveStatus::kNumericalError, SolveStatus::kInterrupted}) {
             report.status = st;
             for (const IpmKktFactorStatus fs :
                  {IpmKktFactorStatus::kSuccess, IpmKktFactorStatus::kNumericalIssue,

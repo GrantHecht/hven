@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "hven/detail/drivers/result_message.h"
 #include "hven/detail/drivers/sqp_solver_impl.h"
 #include "hven/detail/model/problem_access.h"
 
@@ -64,11 +65,17 @@ bool reads_exact_hessian(const SqpOptions &options) {
     return options.hessian_mode == SqpHessianMode::kExact;
 }
 
-template <class Entry> SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, Entry &&entry) {
+template <class Entry>
+SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const SolveBudget &budget,
+                   Entry &&entry) {
     const detail::SqpTarget target =
         detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
+    detail::ProblemAccess::reset_work(problem);
     SqpResult result = target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
     detail::ProblemAccess::report(problem, result);
+    detail::ProblemAccess::report_work(problem, result);
+    result.work.factorizations = result.counters.factorizations;
+    result.message = detail::sqp_result_message(result, engine.options(), budget);
     return result;
 }
 
@@ -76,25 +83,27 @@ template <class Entry> SqpResult solve_on(SqpSolverImpl &engine, Problem &proble
 
 SqpResult SqpSolver::solve(Problem &problem, const Vec &x0) {
     SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem, [&](auto &form) { return engine.solve(form, x0); });
+    return solve_on(engine, problem, SolveBudget{},
+                    [&](auto &form) { return engine.solve(form, x0); });
 }
 
 SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, SolveBudget budget) {
     SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem, [&](auto &form) { return engine.solve(form, x0, budget); });
+    return solve_on(engine, problem, budget,
+                    [&](auto &form) { return engine.solve(form, x0, budget); });
 }
 
 SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
                            SolveBudget budget) {
     SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem,
+    return solve_on(engine, problem, budget,
                     [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 
 SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStartData &warm,
                            SolveBudget budget) {
     SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem,
+    return solve_on(engine, problem, budget,
                     [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 

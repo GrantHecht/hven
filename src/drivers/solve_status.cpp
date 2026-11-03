@@ -8,7 +8,7 @@
 // The vocabulary's own switches -- to_string and severity -- moved down to
 // src/core/enum_names.cpp with the enums themselves in M6 W5 T8.4.
 
-#include <hven/drivers/solve_status.h>
+#include <hven/detail/drivers/ipm_phase_status.h>
 
 #include <stdexcept>
 

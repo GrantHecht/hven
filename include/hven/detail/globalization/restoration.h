@@ -112,7 +112,7 @@ class RestorationStrategy {
     /// components' hooks. Non-virtual: both shipped strategies report the
     /// identical counter pair. When restoration_mode_ == off no strategy is
     /// constructed, so this is never reached on that path and the
-    /// corresponding IpmResult fields keep their -1 sentinel.
+    /// corresponding IpmResult fields stay nullopt.
     void append_diagnostics(IpmResult &result) const {
         result.last_feas_rest_entries = entries_;
         result.last_feas_rest_iters = iterations_in_mode_;

@@ -34,10 +34,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
+#include <hven/core/solver_status.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/solve_status.h>
 
 namespace hven::solvers {
 namespace {
@@ -211,7 +211,7 @@ TEST(StartPointProjection, OnLeavesAnInBoxStartByteIdenticalToOff) {
     EXPECT_EQ(b.status, a.status);
     EXPECT_EQ(b.f, a.f);
     EXPECT_EQ(b.x, a.x);
-    EXPECT_EQ(b.kkt_residual, a.kkt_residual);
+    EXPECT_EQ(b.convergence.kkt_residual, a.convergence.kkt_residual);
     EXPECT_EQ(b.iterations, a.iterations);
     EXPECT_EQ(b.history.size(), a.history.size());
     EXPECT_EQ(b.counters.start_point_clamps, 0);

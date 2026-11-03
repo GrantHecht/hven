@@ -61,7 +61,6 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_dense_policy.cpp
     include_ipm_solver.cpp
     include_sqp_solver.cpp
-    include_solve_status.cpp
     include_core_solver_status.cpp
     include_common_options.cpp
     include_ipm_solver_types.cpp

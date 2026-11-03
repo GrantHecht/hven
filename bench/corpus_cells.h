@@ -164,8 +164,6 @@ inline const char *legacy_status_string(SolveStatus status) {
         return "Infeasible";
     case SolveStatus::kNumericalError:
         return "NumericalError";
-    case SolveStatus::kBudgetExhausted:
-        return "BudgetExhausted";
     case SolveStatus::kWorkLimit:
         return "WorkLimit";
     case SolveStatus::kTimeLimit:
@@ -379,7 +377,7 @@ struct CorpusRow {
 // =============================================================================
 //
 // W1 -- WHICH ROWS ARE GATED. Every row that CLAIMS kOptimal. A row exiting
-//      kMaxIter/kNumericalError/kInfeasible/kBudgetExhausted claims nothing
+//      kMaxIter/kNumericalError/kInfeasible claims nothing
 //      about the point it returns, so re-checking it would manufacture
 //      "wrong answers" out of honest failures; those rows report their
 //      residuals in the artifact and carry the verdict `unchecked`.

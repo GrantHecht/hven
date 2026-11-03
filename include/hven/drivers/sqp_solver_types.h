@@ -478,29 +478,48 @@ struct SqpEqualityBasisReport {
     double max_gap = 0.0;
 };
 
+/// @brief The SQP engine's own terminal KKT measurement, taken at the RETURNED
+///        (x, lambda_e, lambda_i) by the same evaluate_kkt call the convergence
+///        test read.
+///
+/// These are in the space the engine's convergence test gated in; a tolerance
+/// comparison must be made against the number the test actually read. The
+/// shared SolveResult diagnostics are a different, declared-space measurement.
+///
+/// All four are NaN on the non-finite-iterate kNumericalError exit: nothing was
+/// measured there. On a certified kInfeasible exit they measure the problem's
+/// own KKT conditions at the returned (infeasible) point, so `feasibility` is
+/// large by construction and `stationarity` is the ordinary grad-L measure, not
+/// the subgradient certificate's residual.
+///
+/// One qualification, on the engine's own columns: when
+/// `counters.ssn.ssn_sign_swept > 0` the sign sweep clamped negative inequality
+/// prices AFTER this measurement, so these describe the PRE-SWEEP multipliers
+/// while `lambda` holds the swept ones; `stationarity` is then optimistic by at
+/// most `ssn_sign_sweep_max * ||Ji||inf`, and `complementarity` can only be
+/// over-stated. Not on a column-scaled solve (`scaling.columns_active`): there
+/// the four are re-measured on the caller's model at the returned, post-sweep
+/// multipliers. The sweep does not reach the shared base: where it moved a price
+/// after the measurement the base's `stationarity` and `complementarity` are
+/// NaN rather than describing prices the caller is not being handed.
+struct SqpConvergence {
+    /// Reduced/projected ||grad L||inf at the returned point.
+    double stationarity = std::numeric_limits<double>::quiet_NaN();
+    /// max(||cE||inf, max(cI)+, bound violation) at the returned point.
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
+    /// max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at kkt_tol on
+    /// a kOptimal exit -- see SqpIterate::complementarity.
+    double complementarity = std::numeric_limits<double>::quiet_NaN();
+    /// max(stationarity, feasibility). Not the whole convergence test:
+    /// complementarity is gated separately.
+    double kkt_residual = std::numeric_limits<double>::quiet_NaN();
+};
+
 struct SqpResult : SolveResult {
-    // The base carries the ANSWER -- status, x, lambda, z, f, the four shared
-    // declared diagnostics, g, iterations, wall_seconds and the warm-start
-    // snapshot -- in the problem's row space and caller units
+    // The base carries the ANSWER -- status, message, x, lambda, z, f, the
+    // shared declared diagnostics, g, iterations, work, wall_seconds and the
+    // warm-start snapshot -- in the problem's row space and caller units
     // (drivers/solve_result.h). Everything below is this engine's own.
-    //
-    // WHAT MOVED INTO THE BASE, and under which name (M6 W5 T8.4):
-    //   status         same name; the type is SolveStatus, the identity of
-    //                  SolveStatus on the five values this engine reports.
-    //   x, lambda_e, lambda_i, z, f     same names, same meanings.
-    //   iterations     NEW on the base: counters.major_iters of the TOP-LEVEL
-    //                  solve. Nested restoration majors are NOT added -- they
-    //                  are in `counters`.
-    //   ce, ci         NEW: the declared constraint residuals at the returned
-    //                  point, from the same stashed evaluation the shared
-    //                  diagnostics are computed from. Empty when unmeasured.
-    //   stationarity, feasibility_e, feasibility_i, complementarity
-    //                  NEW, and NOT this engine's own measurements -- see the
-    //                  three renamed fields below.
-    //   wall_seconds   NEW, and NOT this engine's old field of that name: the
-    //                  base's clock runs from the public entry to the return,
-    //                  seam and warm setup and the export snapshot included.
-    //                  The old measurement survives as solve_impl_seconds.
 
     /// @brief Work spent by this solve, restoration folded in.
     SqpCounters counters;
@@ -508,63 +527,15 @@ struct SqpResult : SolveResult {
     /// failing-subproblem row depends on the exit -- see SqpCounters.
     std::vector<SqpIterate> history;
 
-    // THE ENGINE'S OWN TERMINAL KKT MEASUREMENT, taken at the RETURNED
-    // (x, lambda_e, lambda_i) by the same evaluate_kkt call the convergence test
-    // read. It exists so a consumer can fill an outcome record without
-    // reconstructing the history's exit shape: the last history row is NOT
-    // reliably the returned point.
-    //
-    // RENAMED IN M6 W5 T8.4 -- `stationarity`, `feasibility` and
-    // `complementarity` became `sqp_*` -- because the base now carries fields
-    // of the first and last names with a DIFFERENT definition: the shared ones
-    // are over the DECLARED problem in caller units, these are this engine's
-    // own, in the space its convergence test gated in. A tolerance comparison
-    // must be made against the number the test actually read, which is these.
-    //
-    // All four are NaN on the non-finite-iterate kNumericalError exit: nothing
-    // was measured there, and a 0.0 would read as a converged residual.
-    //
-    // On a certified kInfeasible exit they measure the NLP's own KKT conditions
-    // at the returned point -- an INFEASIBLE point, so `sqp_feasibility` is
-    // large by construction and `sqp_stationarity` is the ordinary grad-L
-    // measure, NOT the subgradient certificate's residual.
-    //
-    // One qualification on "at the returned multipliers", and it is THIS
-    // ENGINE'S OWN: when `counters.ssn.ssn_sign_swept > 0` the sign sweep
-    // clamped negative inequality prices AFTER this measurement, so these four
-    // describe the PRE-SWEEP multipliers while `lambda_i` holds the swept
-    // ones. `sqp_stationarity` is then optimistic by at most
-    // `ssn_sign_sweep_max * ||Ji||inf`, and `sqp_complementarity` can only be
-    // over-stated. NOT on a column-scaled solve (`scaling.columns_active`):
-    // there the four are re-measured on the caller's model at the RETURNED,
-    // post-sweep multipliers.
-    //
-    // IT DOES NOT REACH THE SHARED BASE (M6 W5 T8.4 fix1). SolveResult's four
-    // are a statement about the values the call RETURNS: where the sweep -- or
-    // anything else -- moved a price after the measurement they were taken
-    // from, `SolveResult::stationarity` and `SolveResult::complementarity` are
-    // NaN, UNMEASURED, rather than quietly describing prices the caller is not
-    // being handed. An engine-measurement exception is this engine's to make
-    // about its own columns and is not inherited by the shared contract.
-    /// @brief Reduced/projected ||grad L||inf at the returned point.
-    double sqp_stationarity = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.
-    double sqp_feasibility = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Gated at
-    ///        kkt_tol on a kOptimal exit -- see SqpIterate::complementarity.
-    double sqp_complementarity = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max(sqp_stationarity, sqp_feasibility). Not the whole convergence
-    ///        test: complementarity (sqp_complementarity) is gated separately.
-    double kkt_residual = std::numeric_limits<double>::quiet_NaN();
+    /// @brief The engine's own terminal KKT measurement; see SqpConvergence.
+    SqpConvergence convergence;
 
     /// Wall-clock seconds spent inside this solve's `solve_impl` ALONE --
     /// never around model construction, the bridge or seam lay, the staged-value
     /// ingest or the ledger bookkeeping.
     ///
-    /// RENAMED from `wall_seconds` in M6 W5 T8.4, with its boundary UNCHANGED.
-    /// The base's `wall_seconds` is a different measurement -- the whole public
-    /// call -- and reusing the name for it would have made every existing
-    /// reading silently mean something else.
+    /// The base's `wall_seconds` is a different measurement: the whole public
+    /// call.
     ///
     /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this
     /// project's currency of correctness. Nothing may gate on it. Defaults to
@@ -580,67 +551,6 @@ struct SqpResult : SolveResult {
     /// `scaled_kkt_residual` is the number the convergence test gated on, and on
     /// an active solve it is the one that was required to be <= kkt_tol.
     SqpScalingReport scaling;
-
-    /// True ONLY on the certified infeasibility exit: the restoration phase ran to
-    /// its own KKT test, that test passed, and the returned point fails the
-    /// convergence test's inf-norm feasibility reading `SqpKkt::feasibility` --
-    /// which the resume test reads too (M7 W2 SNR) -- so (x, lambda_e, lambda_i,
-    /// z) is the subgradient certificate documented above. A point the
-    /// convergence test calls feasible is no certificate (M7 W2 C12, CERT-1);
-    /// since SNR such a point resumes.
-    ///
-    /// THE CERTIFICATE PREDICATE, STATED WITH ITS MARGIN (QC-1): the certificate
-    /// requires the restoration point's inf-norm violation to exceed
-    /// `kCertificateViolationMargin * feas_tol` (= 2 * feas_tol,
-    /// detail/globalization/sqp/restoration.h). A kOptimal sub-solve whose point
-    /// sits at inf-norm <= 2 * feas_tol takes the no-claim exit (kNumericalError),
-    /// or the sufficient-reduction resume when `restoration_resume_reduction > 0`.
-    ///
-    /// False on EVERY OTHER exit, including other kInfeasible ones, and that is
-    /// what this flag is for. It is NOT reliably derivable from the status or the
-    /// counters. (Before the M7 W2 ladder round a solve that restored once and
-    /// then met a second request, and one whose restoration was itself stuck,
-    /// both reported kInfeasible with restoration_iters > 0; both are
-    /// kNumericalError now, L1 -- the first only when the entry rule refuses that
-    /// request: `SqpOptions::restoration_max_entries`, default 10, services a later
-    /// request made after an accepted step.) Nor is the last row's verdict a reliable
-    /// discriminator: it is kRestore from the funnel's signature or the elastic
-    /// tier's exhaustion but kReject from the radius floor, and any of the three
-    /// kInfeasible outcomes can pair with either shape.
-    ///
-    /// READ IT AS A One-way guarantee: true means the certificate holds; false
-    /// means NO CLAIM IS MADE about the model.
-    ///
-    /// AND AT `SqpOptions::restoration_proximity > 0` THE PHASE'S OWN KKT TEST
-    /// IS NO LONGER ENOUGH (M7 W2 M2b). The proximity term makes the wrapper's
-    /// stationarity condition `grad P + J^T lambda - z_sub = 0`, so a
-    /// wrapper-stationary point is stationary for `h + P`. The driver therefore
-    /// computes `||J^T lambda - z_sub||_inf` -- with `z_sub` UNCORRECTED --
-    /// EXPLICITLY at the restored point, O(nnz(J)), and sets this flag only when
-    /// it is `<= kkt_tol`.
-    ///
-    /// EXPLICITLY, AND NOT VIA `zeta ||D^2 (x_r - x_k)||_inf`. The two coincide
-    /// at an EXACTLY stationary point of the wrapper, but a sub-solve returns
-    /// kOptimal at a FINITE tolerance: with `e = grad P + J^T lambda - z_sub`
-    /// and `||e||_inf <= kkt_tol`, the certificate needs `||e - grad P||_inf`,
-    /// which `||grad P||_inf <= kkt_tol` bounds only by `2*kkt_tol`. The
-    /// cheaper test can therefore certify a point whose real residual is above
-    /// tolerance, and it is not used -- not even as a fast path.
-    ///
-    /// AT THE SHIPPED `zeta = 0` NOTHING IS RECOMPUTED AT ALL. `grad P` is
-    /// identically zero there, so the residual IS the sub-solve's own x-block
-    /// stationarity, which its kOptimal already bounded IN THE RAW FRAME IT RAN
-    /// IN -- and the driver therefore returns that verdict without reading a
-    /// bundle, rather than re-deriving the same number through a scale
-    /// round-trip whose last bits need not agree. The OFF path is the pre-M2b
-    /// path by construction.
-    ///
-    /// The practical consequence at `zeta > 0` is stated rather than hidden: at
-    /// any weight heavy enough to change a phase, a phase that MOVED does not
-    /// certify. The recomputed residual is taken in the caller's frame recovered
-    /// from the engine-scaled bundle, which agrees with the raw frame to
-    /// ROUNDING and not bit for bit.
-    bool infeasibility_certified = false;
 
     /// What SqpOptions::equality_basis did on this solve.
     SqpEqualityBasisReport equality_basis;

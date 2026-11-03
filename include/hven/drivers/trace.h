@@ -23,7 +23,6 @@
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/detail/qp/ipqp_evidence.h>
 #include <hven/drivers/ipm_phase_report.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 

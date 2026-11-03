@@ -153,7 +153,7 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     EXPECT_LE(
         (hven::solvers::detail::engine_rows(res).lambda_e - lambda_star).lpNorm<Eigen::Infinity>(),
         1e-5);
-    EXPECT_LE(res.kkt_residual, 1e-6);
+    EXPECT_LE(res.convergence.kkt_residual, 1e-6);
 
     // Warm round trip through the full-size currency: the fold takes it back.
     const WarmStartData data = solver.export_warm_start();
@@ -197,7 +197,7 @@ TEST_P(EqualityBasisModes, F2SubToleranceInconsistencyIsSpreadAndConverges) {
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
     EXPECT_GT(res.equality_basis.max_gap, 1e-9);
-    EXPECT_LE(res.sqp_feasibility, o.common.feasibility_tol);
+    EXPECT_LE(res.convergence.feasibility, o.common.feasibility_tol);
 }
 
 void expect_bit_identical(const SqpResult &a, const SqpResult &b) {
@@ -538,7 +538,7 @@ TEST(SqpEqualityBasis, F5FixedArcsSplitTheNetworkIntoThreePieces) {
         solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kOptimal);
     EXPECT_EQ(res.equality_basis.dropped_rows.size(), 3u);
-    EXPECT_LE(res.sqp_feasibility, 1e-6);
+    EXPECT_LE(res.convergence.feasibility, 1e-6);
 }
 
 // c0 = x^2 - 1, c1 = exp(x - 1) - 1 (plus a free y): at x = 0 row 0 is empty on F

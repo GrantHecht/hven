@@ -24,10 +24,10 @@
 #include <string_view>
 #include <vector>
 
+#include <hven/core/solver_status.h>
 #include <hven/core/types.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/model/nlp.h>
 
 #include "corpus_cells.h"

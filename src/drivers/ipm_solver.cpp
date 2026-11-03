@@ -316,7 +316,7 @@ void hven::solvers::IpmSolverImpl::record_solve(const IpmResult &result,
         ran += phase.ran ? 1 : 0;
     }
     rec.phases_run = ran;
-    rec.total_time = result.total_time;
+    rec.total_time = result.timing.total;
     // A PER-CALL DELTA, not a total: on a solver reused for a second solve a
     // running total would charge this record for the first call's work too.
     //
@@ -776,7 +776,7 @@ void hven::solvers::IpmSolverImpl::eval_soe(double obj_scale, ConstEigenRef<Vect
 void hven::solvers::IpmSolverImpl::ensure_solver_initialized() {
     double initMs = ::hven::solvers::ensure_solver_initialized();
     if (initMs > 0.0) {
-        this->result_.solver_init_time = initMs / 1000.0;
+        this->result_.timing.solver_init = initMs / 1000.0;
         // THE NOTICE IS AN EVENT (M6 W5 T8.7b, brief section 5 A1). It used to be a
         // direct print, and it is not construction-time: this function is
         // called from `run_phase_sequence`, INSIDE the solve, after
@@ -2158,7 +2158,7 @@ void hven::solvers::IpmSolverImpl::track_best_iterate(const IterateInfo &iter, i
 // same statements in the same order -- and the interior leg's 41 rows and U0's
 // `ipm` arm are what prove it.
 // ---------------------------------------------------------------------------
-hven::solvers::DeclaredDiagnostics
+hven::solvers::detail::DeclaredDiagnostics
 hven::solvers::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
     const Eigen::VectorXd &x_declared, const Eigen::VectorXd &lambda_i,
     const Eigen::VectorXd &z_declared, const Eigen::VectorXd &grad_lag_reduced,
@@ -2196,7 +2196,7 @@ hven::solvers::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
             grad_lag[fixed_idx[k]] -= fixed_lambda[k];
         }
     }
-    DeclaredDiagnostics d = compute_declared_diagnostics_from_grad_lag(
+    detail::DeclaredDiagnostics d = detail::compute_declared_diagnostics_from_grad_lag(
         x_declared, lambda_i, z_declared, grad_lag, ce_declared, ci_declared, this->nlp_->x_lower_,
         this->nlp_->x_upper_, excluded);
     // CLAUSE (a) APPLIES TO ONE FIELD. `stationarity` is the only one of the
@@ -2292,7 +2292,7 @@ void hven::solvers::IpmSolverImpl::fire_iteration_event(const IterateInfo &iter,
     Eigen::VectorXd lambda_e_declared;
     Eigen::VectorXd lambda_i_declared;
     Eigen::VectorXd z_declared;
-    DeclaredDiagnostics diag;
+    detail::DeclaredDiagnostics diag;
     if (want_declared) {
         ConstKKTVector v_xsl = this->kkt_view(XSL);
         ConstKKTVector v_rhs = this->kkt_view(RHS);
@@ -4290,7 +4290,7 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // append_diagnostics() hook to collect this from after alg_impl() returns
     // (unlike the acceptance_/governor_/restoration_ diagnostics collected in
     // run_phase_sequence()), since the shifts are alg_impl-local mode state.
-    // Sentinel -1.0 stays untouched (from reset_accumulators()) when the mode
+    // The fields stay nullopt when the mode
     // is off, matching the classic path's byte-identical guarantee, and also
     // when the mode is on but the phase converged before its first
     // factorization (no shift was ever applied). Same last-phase-wins
@@ -4371,10 +4371,10 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     double nlptime = double(Funtimer.count<std::chrono::microseconds>()) / 1000000.0;
     double tottime = double(Runtimer.count<std::chrono::microseconds>()) / 1000000.0;
 
-    this->result_.func_time += nlptime;
-    this->result_.kkt_time += qptime;
+    this->result_.timing.func += nlptime;
+    this->result_.timing.kkt += qptime;
     double printtime = double(Printtimer.count<std::chrono::microseconds>()) / 1000000.0;
-    this->result_.print_time += printtime;
+    this->result_.timing.print += printtime;
 
     // Print exit statistics
     assert(!iters.empty());
@@ -4408,10 +4408,11 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
     // SolveResult's field note.
-    this->result_.kkt_inf = iters[retiter].kkt_inf_;
-    this->result_.barr_inf = iters[retiter].barr_inf_;
-    this->result_.econ_inf = iters[retiter].econ_inf_;
-    this->result_.icon_inf = iters[retiter].icon_inf_;
+    this->result_.returned_best_iterate = return_best_applied;
+    this->result_.convergence.kkt = iters[retiter].kkt_inf_;
+    this->result_.convergence.barrier = iters[retiter].barr_inf_;
+    this->result_.convergence.equality = iters[retiter].econ_inf_;
+    this->result_.convergence.inequality = iters[retiter].icon_inf_;
     // WHAT THE PHASE-EXIT EVENT NEEDS, LEFT WHERE `print_exit_stats()` STOOD
     // (M6 W5 T8.7b). `run_phase_sequence` emits `ipm.phase.exit` one statement
     // after this function returns -- after it has filled the phase's
@@ -4488,7 +4489,7 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::init_impl(const Eigen::VectorXd &x
     kktt.stop();
 
     double pretime = double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
-    this->result_.pre_time += pretime;
+    this->result_.timing.pre += pretime;
 
     this->result_.factor_flops = this->kkt_sol_.factor_flops();
     this->result_.factor_mem = this->kkt_sol_.factor_mem();
@@ -5860,7 +5861,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         // Same collection point and last-phase-wins semantics for the
         // feasibility-restoration diagnostics (entry count / iterations-in-mode
         // — see RestorationStrategy::append_diagnostics()). Null-guarded: the
-        // SolveResult::last_feas_rest_* fields keep their -1 sentinels when
+        // SolveResult::last_feas_rest_* fields stay nullopt when
         // restoration_mode_ == off (no strategy constructed).
         if (this->restoration_)
             this->restoration_->append_diagnostics(this->result_);
@@ -5929,13 +5930,13 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
 
     t.stop();
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
-    this->result_.total_time = tottime / 1000.0;
+    this->result_.timing.total = tottime / 1000.0;
 
     // THE TIMING SUMMARY, THE TOTAL, THE "Finished:" LINE AND THE CLOSING RULE
     // are the console sink's now (M6 W5 T8.7), rendered from `ipm.solve.end` at
     // this function's single return. Nothing between here and that emit writes
     // to the console, so the transcript is unchanged. `tottime` above is still
-    // this engine's own measurement and still lands in `result_.total_time`,
+    // this engine's own measurement and still lands in `result_.timing.total`,
     // which is the field the end event carries.
 
     // THE OBJECTIVE-SCALE SEAM, and it sits here for the same reason the
@@ -6127,15 +6128,17 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
             // declared_diagnostics_from_reduced_grad_lag now and both call it,
             // so the event a caller is handed mid-solve and the result it gets
             // at the end cannot drift apart. The numbers are unchanged.
-            const DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
+            const detail::DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
                 this->result_.x, hven::solvers::detail::engine_rows(this->result_).lambda_i,
                 this->result_.z, this->exit_grad_lag_, fixed_lambda,
                 hven::solvers::detail::engine_rows(this->result_).ce,
                 hven::solvers::detail::engine_rows(this->result_).ci, this->solve_obj_scale_,
                 prov.objective_bearing);
             this->result_.stationarity = d.stationarity;
-            this->result_.feasibility_e = d.feasibility_e;
-            this->result_.feasibility_i = d.feasibility_i;
+            hven::solvers::detail::engine_rows(this->result_).feasibility_e = d.feasibility_e;
+            hven::solvers::detail::engine_rows(this->result_).feasibility_i = d.feasibility_i;
+            this->result_.feasibility =
+                hven::solvers::detail::combine_feasibility(d.feasibility_e, d.feasibility_i);
             this->result_.complementarity = d.complementarity;
         }
 
@@ -6148,7 +6151,8 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         this->result_.kkt_analyses_total = this->kkt_analysis_count_;
         this->result_.kkt_analyses_this_call = this->kkt_analysis_count_ - analyses_before;
         this->result_.kkt_factor_counters = this->kkt_sol_.counters();
-        this->result_.eval_error_log = this->eval_error_log_;
+        this->result_.evaluation_errors = EvaluationErrors{
+            static_cast<Index>(this->eval_error_log_.count_), this->eval_error_log_.last_message_};
     }
 
     // THE SOLVE'S CLOSING LINE, at this function's SINGLE RETURN and written as
@@ -6160,13 +6164,13 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         IpmSolveEndTraceEvent end_event;
         end_event.status = result_.status;
         end_event.iters = result_.iterations;
-        end_event.total_time_s = result_.total_time;
-        end_event.pre_time_s = result_.pre_time;
-        end_event.func_time_s = result_.func_time;
-        end_event.kkt_time_s = result_.kkt_time;
-        end_event.print_time_s = result_.print_time;
-        end_event.solver_init_time_s = result_.solver_init_time;
-        end_event.misc_time_s = result_.misc_time();
+        end_event.total_time_s = result_.timing.total;
+        end_event.pre_time_s = result_.timing.pre;
+        end_event.func_time_s = result_.timing.func;
+        end_event.kkt_time_s = result_.timing.kkt;
+        end_event.print_time_s = result_.timing.print;
+        end_event.solver_init_time_s = result_.timing.solver_init;
+        end_event.misc_time_s = result_.timing.misc();
         sink->on_ipm_solve_end(end_event);
     }
 
@@ -6236,6 +6240,7 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
     this->record_solve(result, factorizations_at_entry);
     return result;
 }
@@ -6287,6 +6292,7 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
     this->record_solve(result, factorizations_at_entry);
     return result;
 }

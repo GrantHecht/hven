@@ -13,12 +13,12 @@
 #include <type_traits>
 #include <vector>
 
+#include "hven/detail/drivers/ipm_phase_status.h"
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/solve_status.h"
 #include "hven/drivers/trace.h"
 #include "hven/model/nlp.h"
 
@@ -1266,21 +1266,21 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
     const auto &settings = solver.options();
 
-    EXPECT_TRUE(std::isfinite(result.kkt_inf));
-    EXPECT_TRUE(std::isfinite(result.barr_inf));
-    EXPECT_TRUE(std::isfinite(result.econ_inf));
-    EXPECT_TRUE(std::isfinite(result.icon_inf));
+    EXPECT_TRUE(std::isfinite(result.convergence.kkt));
+    EXPECT_TRUE(std::isfinite(result.convergence.barrier));
+    EXPECT_TRUE(std::isfinite(result.convergence.equality));
+    EXPECT_TRUE(std::isfinite(result.convergence.inequality));
 
-    EXPECT_LT(result.kkt_inf, settings.common.optimality_tol);
-    EXPECT_LT(result.barr_inf, effective_complementarity_tol(settings));
-    EXPECT_LT(result.econ_inf, settings.common.feasibility_tol);
-    EXPECT_LT(result.icon_inf, settings.common.feasibility_tol);
+    EXPECT_LT(result.convergence.kkt, settings.common.optimality_tol);
+    EXPECT_LT(result.convergence.barrier, effective_complementarity_tol(settings));
+    EXPECT_LT(result.convergence.equality, settings.common.feasibility_tol);
+    EXPECT_LT(result.convergence.inequality, settings.common.feasibility_tol);
 
     // A residual is a norm: never negative, whatever the exit.
-    EXPECT_GE(result.kkt_inf, 0.0);
-    EXPECT_GE(result.barr_inf, 0.0);
-    EXPECT_GE(result.econ_inf, 0.0);
-    EXPECT_GE(result.icon_inf, 0.0);
+    EXPECT_GE(result.convergence.kkt, 0.0);
+    EXPECT_GE(result.convergence.barrier, 0.0);
+    EXPECT_GE(result.convergence.equality, 0.0);
+    EXPECT_GE(result.convergence.inequality, 0.0);
 
     // HS071 has both row kinds, so neither constraint residual is the vacuous
     // "no rows, therefore zero" reading.
@@ -1293,10 +1293,10 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     // gates.
     result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_LT(result.kkt_inf, settings.common.optimality_tol);
-    EXPECT_LT(result.barr_inf, effective_complementarity_tol(settings));
-    EXPECT_LT(result.econ_inf, settings.common.feasibility_tol);
-    EXPECT_LT(result.icon_inf, settings.common.feasibility_tol);
+    EXPECT_LT(result.convergence.kkt, settings.common.optimality_tol);
+    EXPECT_LT(result.convergence.barrier, effective_complementarity_tol(settings));
+    EXPECT_LT(result.convergence.equality, settings.common.feasibility_tol);
+    EXPECT_LT(result.convergence.inequality, settings.common.feasibility_tol);
 }
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
@@ -1435,11 +1435,11 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
 
     // THE PIN: the four residuals are the LAST iterate's -- the one the result
     // describes on a converged exit -- and not the best-scoring one's.
-    EXPECT_EQ(result.kkt_inf, rows[last].kkt_inf_);
-    EXPECT_EQ(result.barr_inf, rows[last].barr_inf_);
-    EXPECT_EQ(result.econ_inf, rows[last].econ_inf_);
-    EXPECT_EQ(result.icon_inf, rows[last].icon_inf_);
-    EXPECT_NE(result.kkt_inf, rows[best].kkt_inf_);
+    EXPECT_EQ(result.convergence.kkt, rows[last].kkt_inf_);
+    EXPECT_EQ(result.convergence.barrier, rows[last].barr_inf_);
+    EXPECT_EQ(result.convergence.equality, rows[last].econ_inf_);
+    EXPECT_EQ(result.convergence.inequality, rows[last].icon_inf_);
+    EXPECT_NE(result.convergence.kkt, rows[best].kkt_inf_);
 
     // AND THE OBJECTIVE AGREES WITH THEM: one point, one set of numbers. The
     // scale is 1 here, so obj_val_ is prim_obj_ unmodified.
@@ -1455,10 +1455,10 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
 // retired result() read from too, before its first solve.
 TEST(IpmSolverEntry, TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured) {
     const hven::solvers::IpmResult result;
-    EXPECT_TRUE(std::isnan(result.kkt_inf));
-    EXPECT_TRUE(std::isnan(result.barr_inf));
-    EXPECT_TRUE(std::isnan(result.econ_inf));
-    EXPECT_TRUE(std::isnan(result.icon_inf));
+    EXPECT_TRUE(std::isnan(result.convergence.kkt));
+    EXPECT_TRUE(std::isnan(result.convergence.barrier));
+    EXPECT_TRUE(std::isnan(result.convergence.equality));
+    EXPECT_TRUE(std::isnan(result.convergence.inequality));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

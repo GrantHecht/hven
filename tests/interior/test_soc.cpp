@@ -63,6 +63,7 @@
 
 namespace {
 
+using hven::Index;
 using hven::SpMatRM;
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::GlobalizationMechanism;
@@ -158,7 +159,7 @@ struct SocScriptedPrimitive {
 // budget is NOT spent.
 TEST(SocRunLoop, AnAcceptedCorrectionRetriesAndStopsEarly) {
     SocScriptedPrimitive primitive{{{true, 0.0}, {true, 0.0}}, {}, {}};
-    int soc_steps = 0;
+    Index soc_steps = 0;
 
     const Action action =
         soc_run_loop(/*first_trial_violation=*/1.0, /*max_soc=*/4, soc_steps, primitive);
@@ -176,7 +177,7 @@ TEST(SocRunLoop, AnAcceptedCorrectionRetriesAndStopsEarly) {
 TEST(SocRunLoop, RejectionsRunToTheCapCarryingTheViolationForward) {
     SocScriptedPrimitive primitive{
         {{false, 0.5}, {false, 0.25}, {false, 0.125}, {false, 0.0625}}, {}, {}};
-    int soc_steps = 0;
+    Index soc_steps = 0;
 
     const Action action =
         soc_run_loop(/*first_trial_violation=*/1.0, /*max_soc=*/4, soc_steps, primitive);
@@ -194,7 +195,7 @@ TEST(SocRunLoop, RejectionsRunToTheCapCarryingTheViolationForward) {
 // first correction always runs, the second is what soc_should_continue gates.
 TEST(SocRunLoop, AStagnatingViolationStopsBelowTheCap) {
     SocScriptedPrimitive primitive{{{false, 1.0}, {false, 0.1}}, {}, {}};
-    int soc_steps = 0;
+    Index soc_steps = 0;
 
     const Action action =
         soc_run_loop(/*first_trial_violation=*/1.0, /*max_soc=*/4, soc_steps, primitive);
@@ -401,9 +402,9 @@ struct SocDrive {
     double alpha_ = 1.0;
     double alphap_ = kEntryAlphaP;
     double alphad_ = kEntryAlphaD;
-    int soc_steps_ = 0;
+    Index soc_steps_ = 0;
     int resolved_depth_ = kRecoveryDepthUnresolved;
-    int watchdog_activations_ = 0;
+    Index watchdog_activations_ = 0;
 
     static constexpr double kEntryAlphaP = 0.9;
     static constexpr double kEntryAlphaD = 0.8;

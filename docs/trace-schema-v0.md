@@ -135,7 +135,7 @@ derived here. That census is REGISTERED for M7's model-contract work.
 
 | key | type | meaning |
 |---|---|---|
-| `status` | string `optimal\|max_iter\|infeasible\|numerical_error\|budget_exhausted` | `SqpStatus` |
+| `status` | string `optimal\|max_iter\|infeasible\|numerical_error` | `SqpStatus` |
 | `majors` | integer | `SqpCounters::major_iters` |
 | `counters` | object | the whole of `SqpCounters`, §5 |
 | `scaling_active` | bool | **M6 W5 T8.7.** `SqpResult::Scaling::active` — did the scaling layer run |
@@ -417,7 +417,7 @@ re-derivation comment at `:3598`).
 ### 4.13 `ipm.solve.end`
 
 `status` (`SolveStatus`, spelled as in §4.2 —
-`optimal\|acceptable\|max_iter\|infeasible\|stalled\|diverging\|numerical_error\|budget_exhausted\|interrupted`;
+`optimal\|acceptable\|max_iter\|infeasible\|stalled\|diverging\|numerical_error\|interrupted`;
 the old `ConvergenceFlags` vocabulary this paragraph named until M6 W5 T8.7b
 went with that enum at T8.4), `iters` (integer, `IpmResult::iterations` summed
 over the phases), then the driver's FULL timing set: `total_time_s`, `pre_time_s`,
@@ -748,7 +748,7 @@ ENUM.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_feas_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
+| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_feas_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other three `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`) exist in the alphabet so the map into it is total, and have never been observed here |
 
 It is **last in its group**, appended after
 `restoration_f_out` for that group's own reason — so the counters object gained
@@ -796,8 +796,7 @@ such a line is now `"not_run"`. **This is the only byte that moves**: the key's
 name, position and type (string) are unchanged, every other key is untouched,
 and on a solve that DID restore the spelling is what it always was. Both golden
 lines in `tests/sqp/test_trace_writer.cpp` were re-derived: the all-distinct one
-is UNCHANGED (its `assign_distinct` picks `budget_exhausted`, a non-default value
-under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
+is UNCHANGED (its `assign_distinct` picks a non-default value under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
 one key. Section 8's additive-key rule governs the original append; this
 correction is a VALUE change on one key of one line, declared here.
 

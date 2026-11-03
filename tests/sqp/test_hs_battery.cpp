@@ -246,8 +246,6 @@ const char *status_name(SolveStatus s) {
         return "kInfeasible";
     case SolveStatus::kNumericalError:
         return "kNumericalError";
-    case SolveStatus::kBudgetExhausted:
-        return "kBudgetExhausted";
     }
     return "?";
 }

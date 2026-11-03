@@ -928,10 +928,10 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
             const hven::solvers::test_support::NlpKktResidual rescored =
                 hven::solvers::test_support::self_check_kkt(model, hop,
                                                             opts.common.feasibility_tol);
-            EXPECT_GT(rescored.stationarity, hop.sqp_stationarity)
+            EXPECT_GT(rescored.stationarity, hop.convergence.stationarity)
                 << "the returned point's own stationarity must exceed the reported one whenever "
                    "prices were swept -- see SqpResult's terminal-KKT note";
-            EXPECT_LE(rescored.stationarity - hop.sqp_stationarity,
+            EXPECT_LE(rescored.stationarity - hop.convergence.stationarity,
                       hop.counters.ssn.ssn_sign_sweep_max *
                           std::max(1.0, hven::solvers::detail::engine_rows(hop)
                                             .lambda_i.template lpNorm<Eigen::Infinity>()) *

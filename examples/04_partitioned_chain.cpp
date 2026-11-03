@@ -343,7 +343,7 @@ namespace {
 struct ChainSolution {
     SolveStatus status;
     double f;
-    double feasibility_e;
+    double feasibility;
     int adopted_partitions;
     long long iterations;
     Vx x;
@@ -406,7 +406,7 @@ ChainSolution solve_chain(int steps, int requested_partitions) {
     }
     return {result.status,
             result.f,
-            result.feasibility_e,
+            result.feasibility,
             static_cast<int>(problem.partitions()),
             static_cast<long long>(result.iterations),
             result.x};
@@ -422,12 +422,12 @@ int main() {
          {std::pair{"1 partition requested", &one}, std::pair{"4 partitions requested", &many}}) {
         std::printf("%-22s adopted=%d status=%-8s iterations=%3lld f=%.9f |ce|=%.1e\n", label,
                     s->adopted_partitions, to_string(s->status), s->iterations, s->f,
-                    s->feasibility_e);
+                    s->feasibility);
     }
     const bool ok = one.status == SolveStatus::kOptimal && many.status == SolveStatus::kOptimal &&
                     many.adopted_partitions > 1 && std::abs(one.f - many.f) < 1e-8 &&
-                    (one.x - many.x).lpNorm<Eigen::Infinity>() < 1e-6 && one.feasibility_e < 1e-6 &&
-                    many.feasibility_e < 1e-6;
+                    (one.x - many.x).lpNorm<Eigen::Infinity>() < 1e-6 && one.feasibility < 1e-6 &&
+                    many.feasibility < 1e-6;
     std::printf("%s\n", ok ? "OK" : "FAILED");
     return ok ? 0 : 1;
 }

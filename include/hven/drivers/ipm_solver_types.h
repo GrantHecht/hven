@@ -9,19 +9,75 @@
 
 #include <array>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
-#include "hven/detail/interior/eval_error_log.h"
-#include "hven/detail/interior/kkt_factorization.h"
+#include "hven/core/types.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_options.h"
 #include "hven/drivers/ipm_phase_report.h"
 #include "hven/drivers/solve_result.h"
+#include "hven/linear/symmetric_factor.h"
 
 namespace hven::solvers {
+
+/// @brief The four scalars the interior-point convergence test gates on, with
+///        IterateInfo's definitions, so each is directly comparable against its
+///        matching IpmOptions tolerance.
+///
+/// `kkt` and `barrier` carry IpmOptions::objective_scale; `equality` and
+/// `inequality` carry no scale, and nothing here is unscaled on the way out. On
+/// a restoration-active exit they describe the restoration subproblem, not the
+/// NLP. Last phase wins. NaN means UNMEASURED, never "zero residual".
+struct IpmConvergence {
+    /// inf-norm dual infeasibility (z-form) at the reported iterate.
+    double kkt = std::numeric_limits<double>::quiet_NaN();
+    /// Complementarity (barrier) error at the reported iterate.
+    double barrier = std::numeric_limits<double>::quiet_NaN();
+    /// inf-norm equality-constraint residual; 0 when there are no equalities.
+    double equality = std::numeric_limits<double>::quiet_NaN();
+    /// inf-norm inequality-constraint residual; 0 when there are no inequalities.
+    double inequality = std::numeric_limits<double>::quiet_NaN();
+};
+
+/// @brief Where one interior-point call spent its wall-clock seconds.
+///
+/// INFORMATIONAL, NEVER ASSERTED -- counters are this project's currency of
+/// correctness, not timings. Measured on std::chrono::steady_clock.
+struct IpmTiming {
+    /// Total wall-clock time of the call.
+    double total = 0;
+    /// Setup/preprocessing time.
+    double pre = 0;
+    /// NLP evaluation callback time.
+    double func = 0;
+    /// KKT assembly/factorization/solve time.
+    double kkt = 0;
+    /// Printing time.
+    double print = 0;
+    /// Solver-initialization time (measured before the main timer starts).
+    double solver_init = 0;
+
+    /// Total minus all categorized components (excluding `solver_init`, which
+    /// is measured before the main timer starts): callback time, step
+    /// application, convergence checks and the like.
+    double misc() const { return total - pre - kkt - func - print; }
+};
+
+/// @brief The NLP evaluation errors absorbed during one call.
+///
+/// A trial evaluation that throws is converted into a rejected trial instead of
+/// unwinding the solve; this records how often that happened and the most
+/// recent message.
+struct EvaluationErrors {
+    /// Number of absorbed evaluation errors.
+    Index count = 0;
+    /// The most recent message; empty when `count` is 0.
+    std::string last_message;
+};
 
 /// @brief What one interior-point solve produced.
 ///
@@ -30,27 +86,21 @@ namespace hven::solvers {
 /// per-phase account and its factorization snapshot.
 ///
 /// PER CALL, all of it. This is a value returned by `solve()`, not an
-/// accumulator a caller reads later: the engine holds no result between calls
-/// and there is no `result()` accessor any more.
+/// accumulator a caller reads later.
 struct IpmResult : SolveResult {
 
-    // --- The warm-start PAYLOAD's own two counters (M6 W5 T8.5) ---
-    //
-    // Both are 0 on every solve that was handed no payload -- the cold
-    // overload, and any native-route caller -- and 0 or 1 otherwise, there
-    // being one payload per call. They exist because the alternative to
-    // counting a discarded payload is discarding it silently: a caller who set
-    // `common.start_level` in one place and attached a payload in another has
-    // no other way to find out which of the two won.
+    // The warm-start payload's own two counters: both 0 on every solve that was
+    // handed no payload, and 0 or 1 otherwise. A caller who set
+    // `common.start_level` in one place and attached a payload in another has no
+    // other way to find out which of the two won.
 
     /// @brief 1 when this call was handed a payload and IGNORED IT ENTIRELY
     ///        because `IpmOptions::common.start_level` was kCold; 0 otherwise.
     ///
     /// The payload's block lengths and its declaration stamp were still checked
     /// -- a foreign payload is refused at every rung -- and then nothing of it
-    /// was applied. Apart from this field the call is the solve it would have
-    /// been with no payload at all.
-    int payload_ignored = 0;
+    /// was applied.
+    Index payload_ignored = 0;
 
     /// @brief 1 when this call was handed a payload carrying the
     ///        `"hven.ipm.polish.v1"` extension and did NOT consume it;
@@ -60,12 +110,9 @@ struct IpmResult : SolveResult {
     /// multipliers are applied; and on the MULTIPLIERS-ONLY seed form (an empty
     /// `primal_`) there is no point to apply at any ceiling. Either way this
     /// solve starts at `x0`, while the extension's (z_lower, z_upper) pair and
-    /// inequality values are stated at the EXPORTER's point -- seeding barrier
-    /// state from them would describe somewhere this solve is not.
-    ///
-    /// 0 at a kCold ceiling: nothing of the payload was read there, and
-    /// `payload_ignored` is that call's answer.
-    int polish_ignored = 0;
+    /// inequality values are stated at the EXPORTER's point. 0 at a kCold
+    /// ceiling, where `payload_ignored` is the answer.
+    Index polish_ignored = 0;
 
     /// @brief Which IpmOptions::fixed_variable_treatment this call actually
     ///        ran under.
@@ -96,144 +143,81 @@ struct IpmResult : SolveResult {
     /// @brief Multipliers of those same rows, same order.
     Vec internal_fixed_lambda_e;
 
-    // --- The engine's OWN terminal measurements ---
-    //
-    // NOT the base's four shared diagnostics: these are what this engine's
-    // convergence test gated on, in ITS space, and a tolerance comparison must
-    // be made against the number the test actually read.
-    //
-    // --- Terminal KKT residuals ---
-    //
-    // The four scalars converge_check() gates on, with IterateInfo's
-    // definitions, so each is directly comparable against its matching
-    // IpmOptions tolerance. kkt_inf and barr_inf carry IpmOptions::objective_scale;
-    // econ_inf and icon_inf carry no scale, and nothing here is unscaled on
-    // the way out. On a restoration-active exit they describe the restoration
-    // subproblem, not the NLP. Last phase wins; the per-call reset sets them
-    // to NaN, and NaN means UNMEASURED, never "zero residual".
-    /// @brief inf-norm dual infeasibility (z-form) at the reported iterate.
-    double kkt_inf = std::numeric_limits<double>::quiet_NaN();
-    /// @brief Complementarity (barrier) error at the reported iterate.
-    double barr_inf = std::numeric_limits<double>::quiet_NaN();
-    /// @brief inf-norm equality-constraint residual; 0 when equal_cons == 0.
-    double econ_inf = std::numeric_limits<double>::quiet_NaN();
-    /// @brief inf-norm inequality-constraint residual; 0 when inequal_cons == 0.
-    double icon_inf = std::numeric_limits<double>::quiet_NaN();
+    /// @brief The engine's own terminal measurements: what its convergence test
+    ///        gated on, in its space. NOT the base's shared diagnostics.
+    IpmConvergence convergence;
 
-    // --- Timing (seconds) ---
-    /// @brief Total wall-clock time of the most recent call.
-    ///
-    /// INFORMATIONAL, NEVER ASSERTED -- counters are this project's currency
-    /// of correctness, not timings. Measured on std::chrono::steady_clock.
-    double total_time = 0;
-    /// @brief Setup/preprocessing time.
-    double pre_time = 0;
-    /// @brief NLP evaluation callback time.
-    double func_time = 0;
-    /// @brief KKT assembly/factorization/solve time.
-    double kkt_time = 0;
-    /// @brief Printing time.
-    double print_time = 0;
-    /// @brief Solver-initialization time (measured before the main timer starts).
-    double solver_init_time = 0;
-
-    /// Derived timing — total wall-clock minus all categorized components.
-    /// Excludes solver_init_time (measured before the main timer starts).
-    /// Captures: callback time, step application, convergence checks, etc.
-    double misc_time() const { return total_time - pre_time - kkt_time - func_time - print_time; }
+    /// @brief Where the call spent its wall-clock seconds.
+    IpmTiming timing;
 
     // --- Factorization stats ---
     /// @brief Memory reported by the last factorization.
-    int factor_mem = 0;
+    Index factor_mem = 0;
     /// @brief Flops reported by the last factorization.
-    int factor_flops = 0;
+    Index factor_flops = 0;
 
-    /// Number of second-order correction back-substitutions performed
-    /// across the whole solve (one per correction attempt; each costs a
-    /// single constraint evaluation + one back-substitution on the live
-    /// factorization). Always 0 when SOC is off (advanced.max_second_order_corrections == 0). Reset
-    /// per solve alongside the other accumulators.
-    int soc_steps_taken = 0;
+    /// Number of second-order correction back-substitutions performed across
+    /// the whole solve (one per correction attempt; each costs a single
+    /// constraint evaluation and one back-substitution on the live
+    /// factorization). Always 0 when SOC is off
+    /// (advanced.max_second_order_corrections == 0).
+    Index soc_steps_taken = 0;
 
-    /// Number of times the watchdog armed across the whole solve
-    /// (Chamberlain, Powell, Lemaréchal & Pedersen 1982; constants per
-    /// Wächter & Biegler 2006's implementation, globalization/watchdog.h).
-    /// Always 0 when the watchdog is off (advanced.watchdog == false). Reset per
-    /// solve alongside the other accumulators.
-    int watchdog_activations = 0;
+    /// Number of times the watchdog armed across the whole solve (Chamberlain,
+    /// Powell, Lemarechal & Pedersen 1982). Always 0 when the watchdog is off
+    /// (advanced.watchdog == false).
+    Index watchdog_activations = 0;
 
     /// Per-rejection recovery-chain outcome depth, indexed by the
     /// kRecoveryDepth* constants in globalization/recovery_chain.h: [0] SOC,
     /// [1] extended backtracking, [2] watchdog, [3] unresolved (the only
     /// bucket that increments when all three are off), [4] restoration
-    /// (increments only when advanced.restoration_mode != kOff). Counts REJECTIONS,
-    /// not interventions. Reset per solve.
-    std::array<int, 5> recovery_depth_histogram{};
+    /// (increments only when advanced.restoration_mode != kOff). Counts
+    /// REJECTIONS, not interventions.
+    std::array<Index, 5> recovery_depth_histogram{};
 
-    /// Final funnel width (tau) reported by FunnelAcceptance at the end of
-    /// the most recent solve's LAST PHASE. Sentinel -1.0 when the selected
-    /// acceptance strategy does not report it, and when no acceptance test ran
-    /// in that phase. A multi-phase call reports only the last phase's value.
-    /// Reset per solve, not by the per-phase AcceptanceStrategy::reset().
-    double last_funnel_width = -1.0;
+    // The last_* diagnostics below describe the LAST PHASE of the call. Each is
+    // nullopt when the selected strategy does not report it, or when nothing ran
+    // in that phase to report.
 
-    /// Final filter size (number of stored (θ, φ) pairs, Filter::size())
-    /// reported by FilterAcceptance::append_diagnostics()
-    /// (globalization/filter_acceptance.h) at the end of the most recent
-    /// solve's LAST PHASE. Sentinel -1 when the selected acceptance
-    /// strategy is not filter. Same last-phase-only semantics as
-    /// last_funnel_width above.
-    int last_filter_size = -1;
+    /// Final funnel width (tau) reported by FunnelAcceptance.
+    std::optional<double> last_funnel_width;
 
-    /// Total filter-reset-heuristic clears (FilterAcceptance::filter_resets())
-    /// at the end of the most recent solve's LAST PHASE. Sentinel -1 when the
-    /// acceptance strategy is not kFilter. PER-PHASE, and under
-    /// advanced.barrier_governor == kMonitored per barrier SUBPROBLEM: each mu-event
-    /// also clears the counter, so this reports resets since the last mu-event
-    /// of the last phase.
-    int last_filter_resets = -1;
+    /// Final filter size (stored (theta, phi) pairs); nullopt unless the
+    /// acceptance strategy is the filter.
+    std::optional<Index> last_filter_size;
 
-    /// Number of free -> monotone handoffs during the most recent solve's
-    /// LAST PHASE, reported by MonitoredBarrierGovernor. Sentinel -1 when the
-    /// selected barrier_governor is not monitored. Per-phase, like
-    /// last_filter_resets above.
-    int last_monotone_switches = -1;
+    /// Total filter-reset-heuristic clears; nullopt unless the acceptance
+    /// strategy is the filter. Under advanced.barrier_governor == kMonitored it
+    /// counts per barrier subproblem: resets since the last mu-event.
+    std::optional<Index> last_filter_resets;
 
-    /// Number of iterations spent in monotone mode during the most recent
-    /// solve's LAST PHASE, reported by MonitoredBarrierGovernor::
-    /// append_diagnostics(). Sentinel -1 when the selected
-    /// advanced.barrier_governor is not kMonitored. Same per-phase semantics as
-    /// last_monotone_switches.
-    int last_monotone_iters = -1;
+    /// Number of free -> monotone handoffs, reported by MonitoredBarrierGovernor;
+    /// nullopt unless the governor is kMonitored.
+    std::optional<Index> last_monotone_switches;
 
-    /// Number of times feasibility restoration was entered during the most
-    /// recent solve's LAST PHASE, reported by RestorationStrategy. WRITE-ONLY
-    /// diagnostics: no algorithm code reads it back. Sentinel -1 when no
-    /// restoration strategy is constructed. Counting is identical across both
-    /// modes -- entries_ increments once per entry call, iterations_in_mode_
-    /// once per note_iteration() while active.
-    int last_feas_rest_entries = -1;
+    /// Number of iterations spent in monotone mode; nullopt unless the governor
+    /// is kMonitored.
+    std::optional<Index> last_monotone_iters;
 
-    /// Number of iterations spent in restoration mode during the most
-    /// recent solve's LAST PHASE, reported by RestorationStrategy::
-    /// append_diagnostics(). WRITE-ONLY diagnostics field. Sentinel -1
-    /// when no restoration strategy is constructed. Same per-phase
-    /// semantics as last_feas_rest_entries (including the nested-mode
-    /// counting note above).
-    int last_feas_rest_iters = -1;
+    /// Number of times feasibility restoration was entered; nullopt when no
+    /// restoration strategy is constructed. Write-only diagnostics.
+    std::optional<Index> last_feas_rest_entries;
 
-    /// Proximal primal-dual regularization shifts applied at the LAST
-    /// FACTORIZED ITERATION of the most recent solve's last phase.
-    /// last_prox_reg_primal is the persistent primal base shift rho_k added
-    /// to the Hessian diagonal there; last_prox_reg_dual is the
-    /// barrier-scaled dual shift delta_c subtracted from the constraint-row
-    /// diagonals (0.0 when suppressed inside a nested l1 phase). Sentinel -1.0
-    /// for BOTH when advanced.inertia_mode != kProximalRegularization, and when a
-    /// mode-on phase converged before its first factorization.
-    double last_prox_reg_primal = -1.0;
-    /// The dual half of the pair documented just above: the barrier-scaled
-    /// dual shift δ_c, on the same sentinel and last-phase-wins rules.
-    double last_prox_reg_dual = -1.0;
+    /// Number of iterations spent in restoration mode; nullopt when no
+    /// restoration strategy is constructed. Write-only diagnostics.
+    std::optional<Index> last_feas_rest_iters;
+
+    /// Proximal primal-dual regularization shifts at the LAST FACTORIZED
+    /// ITERATION of the last phase: the persistent primal base shift rho_k added
+    /// to the Hessian diagonal. nullopt unless advanced.inertia_mode ==
+    /// kProximalRegularization, and when a phase converged before its first
+    /// factorization.
+    std::optional<double> last_prox_reg_primal;
+    /// The barrier-scaled dual shift delta_c subtracted from the constraint-row
+    /// diagonals (0.0 when suppressed inside a nested l1 phase), on the same
+    /// nullopt rules.
+    std::optional<double> last_prox_reg_dual;
 
     /// Message of the most recent trial-evaluation exception absorbed by
     /// the acceptance machinery during the most recent solve call (all
@@ -245,27 +229,22 @@ struct IpmResult : SolveResult {
     /// wrapped in solver context instead.
     std::string last_eval_exception;
 
-    /// The last non-Success status observed from kkt_sol_.info() by
-    /// factor_impl() within the CURRENT phase (alg_impl resets it on
-    /// entry, so the value is per-PHASE and never an earlier phase's).
-    /// Purely observational -- surfaced by `ipm.phase.exit`'s
-    /// `last_kkt_info` key, named there rather than raw (M6 W5 T8.7b; the
-    /// print_exit_stats() this note used to name is deleted) -- and it
-    /// feeds no control-flow decision in factor_impl.
+    /// The last non-Success status observed from the KKT factorization within
+    /// the CURRENT phase (per phase, never an earlier phase's). Purely
+    /// observational: it feeds no control-flow decision.
     Eigen::ComputationInfo last_kkt_info = Eigen::Success;
-    // --- The per-phase account (M6 W5 T8.4) ---
+
+    // --- The per-phase account ---
     /// @brief One entry per phase in `IpmOptions::phases`, in that order.
     ///
     /// The base's `status` is the LAST RAN phase's status and the base's
     /// `iterations` is the sum over the phases that ran.
     std::vector<IpmPhaseReport> phases;
 
-    // --- The factorization SNAPSHOT (M6 W5 T8.4) ---
+    // --- The factorization SNAPSHOT ---
     //
-    // These answer cross-call questions that used to be asked through
-    // accessors on the solver. They are SNAPSHOTS taken as this result was
-    // built, so they describe the solve that produced them and cannot go stale
-    // behind a caller's back.
+    // Taken as this result was built, so they describe the solve that produced
+    // them and cannot go stale behind a caller's back.
     /// @brief How many times the producing solver had laid and analyzed the KKT
     ///        sparsity pattern over its LIFETIME, as of this result.
     Index kkt_analyses_total = 0;
@@ -273,9 +252,9 @@ struct IpmResult : SolveResult {
     Index kkt_analyses_this_call = 0;
     /// @brief The KKT factor's linear-layer call counters as of this result,
     ///        including the pattern-guard count.
-    KktFactorization::Counters kkt_factor_counters;
-    /// @brief The log of NLP evaluation errors absorbed during this call.
-    EvalErrorLog eval_error_log;
+    hven::linear::SymmetricFactor::Counters kkt_factor_counters;
+    /// @brief The NLP evaluation errors absorbed during this call.
+    EvaluationErrors evaluation_errors;
 };
 
 } // namespace hven::solvers

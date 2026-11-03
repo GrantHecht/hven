@@ -23,6 +23,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
@@ -175,7 +176,7 @@ struct DeclaredDiagnosticsStash {
     /// prices nothing will report.
     bool duals_measured = false;
     /// The four, over the declared problem.
-    DeclaredDiagnostics d;
+    detail::DeclaredDiagnostics d;
     /// The declared constraint residuals at the same point.
     Vec ce, ci;
     /// THE PRICES THE DUAL HALF WAS MEASURED AT (M6 W5 T8.4 fix1). `finish`

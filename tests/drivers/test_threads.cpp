@@ -577,13 +577,12 @@ void expect_results_identical(const SqpResult &a, const SqpResult &b) {
     HVEN_EXPECT_SAME(a, b, iterations);
     HVEN_EXPECT_BITS(a, b, f);
     HVEN_EXPECT_BITS(a, b, stationarity);
-    HVEN_EXPECT_BITS(a, b, feasibility_e);
-    HVEN_EXPECT_BITS(a, b, feasibility_i);
+    HVEN_EXPECT_BITS(a, b, feasibility);
     HVEN_EXPECT_BITS(a, b, complementarity);
-    HVEN_EXPECT_BITS(a, b, sqp_stationarity);
-    HVEN_EXPECT_BITS(a, b, sqp_feasibility);
-    HVEN_EXPECT_BITS(a, b, sqp_complementarity);
-    HVEN_EXPECT_BITS(a, b, kkt_residual);
+    HVEN_EXPECT_BITS(a, b, convergence.stationarity);
+    HVEN_EXPECT_BITS(a, b, convergence.feasibility);
+    HVEN_EXPECT_BITS(a, b, convergence.complementarity);
+    HVEN_EXPECT_BITS(a, b, convergence.kkt_residual);
     HVEN_EXPECT_SAME(a, b, infeasibility_certified);
     expect_vectors_identical(a.x, b.x, "x");
     expect_vectors_identical(hven::solvers::detail::engine_rows(a).lambda_e,

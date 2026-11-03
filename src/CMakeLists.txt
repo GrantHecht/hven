@@ -68,8 +68,9 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
-# The shared solve-outcome vocabulary (include/hven/drivers/solve_status.h). Its
-# own block because it belongs to neither engine: the status both report and the
+# The shared solve-outcome vocabulary (core/solver_status.h), the interior-point
+# phase-status resolution (detail/drivers/ipm_phase_status.h), the shared declared
+# diagnostics and the one-line stop message. Its own block because it belongs to neither engine: the status both report and the
 # mappings from the two engine-native enums onto it. A TU on the same footing as
 # core/enum_names.cpp -- switches over enums, not a per-element path.
 ################################################################################
@@ -77,6 +78,7 @@ target_sources(hven PRIVATE
 target_sources(hven PRIVATE
     drivers/solve_status.cpp
     drivers/solve_result.cpp
+    drivers/result_message.cpp
 )
 
 ################################################################################
@@ -525,7 +527,7 @@ endif()
 # 43 as of drivers/solve_result.cpp (M6 W5 T8.4): the shared declared
 # diagnostics' one definition. Stays OUT on the same unmeasured-default footing
 # as the fourteen above. It includes its own header (core/types.h,
-# drivers/solve_status.h and warmstart/warm_start_data.h), fmt/format.h and
+# warmstart/warm_start_data.h), fmt/format.h and
 # three standard headers -- a different set in a different order from the one
 # src/hven_pch.h prefixes.
 #
@@ -585,7 +587,10 @@ endif()
 # 54 as of drivers/common_options.cpp (M8 AP-2 B3): the one CommonOptions validator. NOT a PCH
 # source, on the same unmeasured-default footing: it includes only its own header, fmt and
 # the standard library.
-set(_hven_expected_source_count 54)
+# 55 as of drivers/result_message.cpp (M8 AP-2 B4): the one-line stop message built by the
+# public handles. NOT a PCH source, on the same footing: it includes only its own header,
+# the option and result headers, fmt and the standard library.
+set(_hven_expected_source_count 55)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

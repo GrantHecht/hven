@@ -99,6 +99,20 @@ struct ProblemAccess {
     ///        own row blocks.
     static void report(const Problem &problem, SolveResult &result);
 
+    /// @brief Starts the evaluation tally of the next solve at zero.
+    static void reset_work(Problem &problem);
+
+    /// @brief Writes the evaluation counts of the solve just run into
+    ///        `result.work` (not `factorizations`).
+    ///
+    /// An Nlp problem: the five Nlp callbacks, counted at the Nlp boundary by
+    /// the decorator the problem installs under both transcriptions. A pieces
+    /// or program problem: the interior-point program's evaluation passes, by
+    /// the quantities each pass forms (NonLinearProgram::EvaluationTally). The
+    /// SQP's internal model and assembly routes (problem_from_model,
+    /// problem_from_assembly) are not counted and report 0.
+    static void report_work(const Problem &problem, SolveResult &result);
+
     /// @brief The Nlp transcription's model, or nullptr for any other problem.
     static const NlpProblemModel *nlp_model(const Problem &problem) noexcept;
 };

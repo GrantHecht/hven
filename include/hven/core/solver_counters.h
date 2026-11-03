@@ -1652,9 +1652,9 @@ struct SqpCounters {
     ///
     /// What it does NOT count: an ordinary max_iter exhaustion (kMaxIter, this field
     /// 0); a CommonOptions::max_factorizations stop (also kWorkLimit, this field 0); a
-    /// kBudgetExhausted exit under SqpOptions::budget_mode, a different budget with a different
-    /// contract; and a solve that spent more than the budget and CONVERGED anyway, which is
-    /// reported kOptimal with this field 0. A solve given no budget leaves this identically 0.
+    /// best-iterate max-iter exit under SqpOptions::budget_mode, a different budget with a
+    /// different contract; and a solve that spent more than the budget and CONVERGED anyway, which
+    /// is reported kOptimal with this field 0. A solve given no budget leaves this identically 0.
     Index probe_budget_stops = 0;
 
     /// How many inequality ROWS and variable BOUNDS SqpOptions::crash_basis seeded
@@ -2082,8 +2082,8 @@ struct SqpCounters {
     ///   `kNumericalError`  the sub-solve failed numerically.
     ///
     /// Those five and `kNotRun` are what this field has ever held. The enum
-    /// carries SolveStatus's remaining four (`kAcceptable`, `kStalled`,
-    /// `kDiverging`, `kBudgetExhausted`) so that the map into it is TOTAL and
+    /// carries SolveStatus's remaining three (`kAcceptable`, `kStalled`,
+    /// `kDiverging`) so that the map into it is TOTAL and
     /// needs no default arm; the SQP engine reports the first three on no exit
     /// at all, and the sub-solve runs with `budget_mode` forced false.
     ///

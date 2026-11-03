@@ -4153,7 +4153,9 @@ TEST(SqpDriverNonfiniteRollback, TheBudgetBestIsNotARolledBackPoint) {
     const SqpResult sol =
         driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
     ASSERT_GE(sol.counters.nonfinite_step_rollbacks, 1);
-    EXPECT_EQ(sol.status, SolveStatus::kBudgetExhausted);
+    EXPECT_EQ(sol.status, SolveStatus::kMaxIter);
+    EXPECT_TRUE(sol.returned_best_iterate);
+    EXPECT_NE(sol.message.find("returned the best iterate"), std::string::npos) << sol.message;
     EXPECT_EQ(sol.x(0), 9.0) << "the rolled-back point x0 = 0 is not the best";
     EXPECT_GT(sol.f, 0.0);
 }
@@ -8666,7 +8668,7 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
 
     EXPECT_EQ(SolveStatus::kWorkLimit, sol.status)
         << "THE PROBE BUDGET note's clause 4: a probe stop reports kWorkLimit (kMaxIter "
-           "before M8 AP-2 B3's declared relabel), not kBudgetExhausted";
+           "before M8 AP-2 B3's declared relabel), not a best-iterate max-iter exit";
     EXPECT_EQ(1, sol.counters.probe_budget_stops) << "and says so in the one field that tells "
                                                      "this exit from an ordinary max_iter one";
     EXPECT_EQ(0, sol.counters.qp_minor_iters)
@@ -9409,23 +9411,24 @@ TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime)
 
     // The scalar is the pair's own maximum -- SqpKkt::residual(), carried
     // across unchanged. Bitwise, because no arithmetic happens in between.
-    EXPECT_EQ(sol.kkt_residual, std::max(sol.sqp_stationarity, sol.sqp_feasibility));
+    EXPECT_EQ(sol.convergence.kkt_residual,
+              std::max(sol.convergence.stationarity, sol.convergence.feasibility));
 
     // The pair is the converged measurement: it satisfies both gates the
     // convergence test applied, at this solve's tolerances.
-    EXPECT_LE(sol.sqp_stationarity, opts.common.optimality_tol);
-    EXPECT_LE(sol.sqp_feasibility, opts.common.feasibility_tol);
-    EXPECT_TRUE(std::isfinite(sol.sqp_complementarity));
+    EXPECT_LE(sol.convergence.stationarity, opts.common.optimality_tol);
+    EXPECT_LE(sol.convergence.feasibility, opts.common.feasibility_tol);
+    EXPECT_TRUE(std::isfinite(sol.convergence.complementarity));
 
     // On this exit the returned point is the last iterate measured, so the two
     // readings agree bit for bit. Not a general rule -- see SqpResult's field
     // note in sqp_solver_types.h.
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &last = sol.history.back();
-    EXPECT_EQ(sol.sqp_stationarity, last.stationarity);
-    EXPECT_EQ(sol.sqp_feasibility, last.feasibility);
-    EXPECT_EQ(sol.sqp_complementarity, last.complementarity);
-    EXPECT_EQ(sol.kkt_residual, last.kkt_residual);
+    EXPECT_EQ(sol.convergence.stationarity, last.stationarity);
+    EXPECT_EQ(sol.convergence.feasibility, last.feasibility);
+    EXPECT_EQ(sol.convergence.complementarity, last.complementarity);
+    EXPECT_EQ(sol.convergence.kkt_residual, last.kkt_residual);
 
     // The `> 0` is a liveness pin: a solve that ran majors took measurable
     // time, so a zero here means the field was never written.
@@ -9449,10 +9452,13 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementIsNaNAtAnUnevaluablePoint) {
     const SqpResult bad = driver.solve(hven::solvers::detail::problem_ref(model), x0_outside);
 
     ASSERT_EQ(bad.status, SolveStatus::kNumericalError);
-    EXPECT_TRUE(std::isnan(bad.sqp_stationarity)) << "read " << bad.sqp_stationarity;
-    EXPECT_TRUE(std::isnan(bad.sqp_feasibility)) << "read " << bad.sqp_feasibility;
-    EXPECT_TRUE(std::isnan(bad.sqp_complementarity)) << "read " << bad.sqp_complementarity;
-    EXPECT_TRUE(std::isnan(bad.kkt_residual)) << "read " << bad.kkt_residual;
+    EXPECT_TRUE(std::isnan(bad.convergence.stationarity))
+        << "read " << bad.convergence.stationarity;
+    EXPECT_TRUE(std::isnan(bad.convergence.feasibility)) << "read " << bad.convergence.feasibility;
+    EXPECT_TRUE(std::isnan(bad.convergence.complementarity))
+        << "read " << bad.convergence.complementarity;
+    EXPECT_TRUE(std::isnan(bad.convergence.kkt_residual))
+        << "read " << bad.convergence.kkt_residual;
 
     // The wall time is still populated: the solve ran, it just could not
     // measure the model.
@@ -9475,12 +9481,13 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasu
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(sol.infeasibility_certified);
 
-    EXPECT_GT(sol.sqp_feasibility, opts.common.feasibility_tol)
+    EXPECT_GT(sol.convergence.feasibility, opts.common.feasibility_tol)
         << "the returned point is infeasible; a small feasibility measure here would mean "
            "these columns describe the restoration problem instead of the NLP";
-    EXPECT_EQ(sol.kkt_residual, std::max(sol.sqp_stationarity, sol.sqp_feasibility));
-    EXPECT_TRUE(std::isfinite(sol.sqp_stationarity));
-    EXPECT_TRUE(std::isfinite(sol.sqp_complementarity));
+    EXPECT_EQ(sol.convergence.kkt_residual,
+              std::max(sol.convergence.stationarity, sol.convergence.feasibility));
+    EXPECT_TRUE(std::isfinite(sol.convergence.stationarity));
+    EXPECT_TRUE(std::isfinite(sol.convergence.complementarity));
     EXPECT_GE(sol.solve_impl_seconds, 0.0);
 }
 

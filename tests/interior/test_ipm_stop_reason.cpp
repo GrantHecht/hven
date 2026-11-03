@@ -17,12 +17,12 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/drivers/ipm_phase_status.h>
 #include <hven/detail/globalization/recovery_chain.h>
 #include <hven/detail/model/non_linear_program.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/drivers/trace.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp.h>

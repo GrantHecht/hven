@@ -587,11 +587,13 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
     // a finding about the partitioned assembly's slot order (and therefore
     // about the order the backend is handed its input), not a reason to have
     // declined the comparison. The tolerance pin above still holds either way.
-    const bool bitwise = r2.f == r1.f && r2.kkt_inf == r1.kkt_inf && r2.econ_inf == r1.econ_inf &&
-                         r2.icon_inf == r1.icon_inf && r2.barr_inf == r1.barr_inf;
+    const bool bitwise = r2.f == r1.f && r2.convergence.kkt == r1.convergence.kkt &&
+                         r2.convergence.equality == r1.convergence.equality &&
+                         r2.convergence.inequality == r1.convergence.inequality &&
+                         r2.convergence.barrier == r1.convergence.barrier;
     fmt::print(stderr, "T89-PARTS bitwise_identity={}\n", bitwise ? "YES" : "NO");
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_TRUE(bitwise) << "reported, not merely asserted: kkt " << r1.kkt_inf << " vs "
-                         << r2.kkt_inf << ", f " << r1.f << " vs " << r2.f;
+    EXPECT_TRUE(bitwise) << "reported, not merely asserted: kkt " << r1.convergence.kkt << " vs "
+                         << r2.convergence.kkt << ", f " << r1.f << " vs " << r2.f;
 #endif
 }

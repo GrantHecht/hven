@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 
 #include "hven/detail/drivers/result_access.h"
+#include "hven/detail/model/counting_nlp.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/nlp_model.h"
@@ -143,7 +144,11 @@ class ProblemState {
         // The transcription the SQP solves, built now: its constructor reads and
         // validates the whole declaration (sizes, bounds, row bounds, both
         // structures) once, and this state reads it from there.
-        nlp_model_ = std::make_shared<NlpProblemModel>(nlp_);
+        // BOTH engines reach the user's Nlp through this transcription (the
+        // interior-point program is built over it), so the counting decorator
+        // between them counts every callback either engine makes.
+        counting_nlp_ = std::make_shared<CountingNlp>(nlp_);
+        nlp_model_ = std::make_shared<NlpProblemModel>(counting_nlp_);
         dims_ = nlp_model_->dimensions();
         count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);
         count_rows(nlp_model_->rows().kinds_, statistics_);
@@ -314,7 +319,44 @@ class ProblemState {
 
     const NlpProblemModel *nlp_model() const noexcept { return nlp_model_.get(); }
 
+    // The evaluation tally of the next solve starts at zero.
+    void reset_work() noexcept {
+        if (counting_nlp_ != nullptr) {
+            counting_nlp_->reset_tally();
+        }
+        if (counts_program_passes()) {
+            program_->evaluation_tally_ = NonLinearProgram::EvaluationTally{};
+        }
+    }
+
+    // Writes the evaluation counts of the solve just run. Nlp problems: the
+    // callbacks counted at the Nlp boundary. Pieces and program problems: the
+    // interior-point program's evaluation passes. The SQP's internal model and
+    // assembly routes, and a model solved by the interior-point engine, count
+    // nothing and report 0.
+    void report_work(SolveResult &result) const {
+        if (counting_nlp_ != nullptr) {
+            const CountingNlp::Tally &t = counting_nlp_->tally();
+            result.work.objective_evals = t.objective;
+            result.work.gradient_evals = t.gradient;
+            result.work.constraint_evals = t.constraints;
+            result.work.jacobian_evals = t.jacobian;
+            result.work.hessian_evals = t.hessian;
+        } else if (counts_program_passes()) {
+            const NonLinearProgram::EvaluationTally &t = program_->evaluation_tally_;
+            result.work.objective_evals = t.objective;
+            result.work.gradient_evals = t.gradient;
+            result.work.constraint_evals = t.constraints;
+            result.work.jacobian_evals = t.jacobian;
+            result.work.hessian_evals = t.hessian;
+        }
+    }
+
   private:
+    bool counts_program_passes() const noexcept {
+        return (kind_ == Kind::kPieces || kind_ == Kind::kProgram) && program_ != nullptr;
+    }
+
     // g in the problem's row space from the engine's measured residuals, each
     // row through its kind's shift: equality g = c_E + g_lower; upper-bounded
     // g = c_I + g_upper; lower-bounded g = g_lower - c_I; range g = c_I(upper
@@ -461,6 +503,7 @@ class ProblemState {
     // over it).
     std::shared_ptr<Nlp> nlp_;
     NlpDimensions dims_;
+    std::shared_ptr<CountingNlp> counting_nlp_;
     std::shared_ptr<NlpProblemModel> nlp_model_;
     // Scratch for the per-solve re-read, kept so a re-read allocates nothing.
     IndexVec scratch_jac_rows_, scratch_jac_cols_, scratch_hess_rows_, scratch_hess_cols_;
@@ -536,6 +579,12 @@ SqpTarget ProblemAccess::sqp_target(Problem &problem, bool exact_hessian) {
 
 void ProblemAccess::report(const Problem &problem, SolveResult &result) {
     ProblemAccess::state(problem).report(result);
+}
+
+void ProblemAccess::reset_work(Problem &problem) { ProblemAccess::state(problem).reset_work(); }
+
+void ProblemAccess::report_work(const Problem &problem, SolveResult &result) {
+    ProblemAccess::state(problem).report_work(result);
 }
 
 const NlpProblemModel *ProblemAccess::nlp_model(const Problem &problem) noexcept {

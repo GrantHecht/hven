@@ -87,6 +87,14 @@ struct Hs071 : Nlp {
 void print_result(const char *engine, const SolveResult &r) {
     std::printf("--- %s ---\n", engine);
     std::printf("status          %s\n", to_string(r.status));
+    std::printf("message         %s\n", r.message.c_str());
+    std::printf("work            f=%lld grad=%lld g=%lld jac=%lld hess=%lld factorizations=%lld\n",
+                static_cast<long long>(r.work.objective_evals),
+                static_cast<long long>(r.work.gradient_evals),
+                static_cast<long long>(r.work.constraint_evals),
+                static_cast<long long>(r.work.jacobian_evals),
+                static_cast<long long>(r.work.hessian_evals),
+                static_cast<long long>(r.work.factorizations));
     std::printf("iterations      %lld\n", static_cast<long long>(r.iterations));
     std::printf("objective       %.9f\n", r.f);
     std::cout << "x               " << r.x.transpose() << "\n";
@@ -94,8 +102,7 @@ void print_result(const char *engine, const SolveResult &r) {
     std::cout << "g               " << r.g.transpose() << "   (row values)\n";
     std::cout << "z (bounds)      " << r.z.transpose() << "\n";
     std::printf("stationarity    %.2e\n", r.stationarity);
-    std::printf("feasibility_e   %.2e\n", r.feasibility_e);
-    std::printf("feasibility_i   %.2e\n", r.feasibility_i);
+    std::printf("feasibility     %.2e\n", r.feasibility);
     std::printf("complementarity %.2e\n", r.complementarity);
     std::printf("wall seconds    %.4f (informational)\n", r.wall_seconds);
 }
@@ -151,7 +158,7 @@ int main() {
     print_result("IpmSolver", ipm_result);
     // Engine-specific extras live on IpmResult.
     std::printf("kkt_inf         %.2e   (the interior-point engine's own measure)\n",
-                ipm_result.kkt_inf);
+                ipm_result.convergence.kkt);
     std::printf("callbacks seen  %d\n", ipm_callbacks);
 
     // ---- SQP engine: callback + trace + counters ----
@@ -181,7 +188,7 @@ int main() {
     const SqpResult sqp_result = sqp.solve(problem, x0);
     print_result("SqpSolver", sqp_result);
     std::printf("sqp_stationarity %.2e   (the SQP engine's own measure)\n",
-                sqp_result.sqp_stationarity);
+                sqp_result.convergence.stationarity);
     std::printf("callbacks seen  %d\n", sqp_callbacks);
     std::printf("counters        major=%lld factorizations=%lld eval_hess_calls=%lld\n",
                 static_cast<long long>(sqp_result.counters.major_iters),

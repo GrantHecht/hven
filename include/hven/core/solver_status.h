@@ -8,12 +8,11 @@
 // reason the interior-point engine records beside it, both display-string
 // helpers and the reporting order.
 //
-// SolveStatus LIVES HERE, at the bottom tier, and not in drivers/: core/
+// SolveStatus lives here, at the bottom tier, and not in drivers/: core/
 // ledger.h reports a status, and a core header may depend on no tier above it
-// (CLAUDE.md section 2's map, pinned by CoreLayering). This is where SqpStatus
-// lived before M6 W5 T8.4 removed it, and for the same reason. What stays in
-// drivers/solve_status.h is resolve_ipm_phase_status(), a statement about ONE
-// engine's exits rather than about the vocabulary.
+// (pinned by CoreLayering). resolve_ipm_phase_status(), a statement about one
+// engine's exits rather than about the vocabulary, is in
+// detail/drivers/ipm_phase_status.h.
 
 #include <type_traits>
 
@@ -29,57 +28,28 @@ enum class QpStatus {
 
 /// @brief The verdict on a whole solve, reported by both engines.
 ///
-/// Reachability differs per engine: the interior-point engine reports neither
-/// kInfeasible nor kBudgetExhausted, and the SQP engine reports none of
-/// kAcceptable, kStalled and kDiverging. BOTH report kInterrupted -- what a
-/// per-iteration callback returning CallbackAction::kStop gets, at the point the
-/// engine was standing on -- and both report kWorkLimit and kTimeLimit.
+/// Reachability differs per engine: the interior-point engine never reports
+/// kInfeasible, and the SQP engine reports none of kAcceptable, kStalled and
+/// kDiverging. Both report kInterrupted -- what a per-iteration callback
+/// returning CallbackAction::kStop gets, at the point the engine was standing on
+/// -- and both report kWorkLimit and kTimeLimit.
 ///
-/// THE SQP ENGINE'S OWN NOTES, moved here from the removed SqpStatus (M6 W5
-/// T8.4) because they describe values this enum now carries:
-///
-/// Verdict on a whole SQP solve. Deliberately mirrors QpStatus's shape, but
-/// the correspondence is not literal: no subproblem status propagates into
-/// kInfeasible at all, and kBudgetExhausted has no QP counterpart.
-///
-/// kInfeasible has TWO shapes, and only one field tells them apart:
+/// kInfeasible has two shapes on the SQP engine, told apart only by
+/// SolveResult::infeasibility_certified:
 /// - Certified: the restoration phase reached a stationary point of the
-/// infeasibility measure h at which h is still above feas_tol (the
-/// Byrd-Curtis-Nocedal rapid-detection conclusion). No direction reduces
-/// the constraint violation from the returned point, so SqpResult::x is
-/// a LOCAL certificate that the NLP is infeasible there, and lambda_e /
-/// lambda_i are its subgradient certificate -- see SqpResult's own note
-/// for the certificate and sqp_solver.h's RESTORATION PHASE for what
-/// "stationary" is measured as.
+///   infeasibility measure h at which h is still above feas_tol (the
+///   Byrd-Curtis-Nocedal rapid-detection conclusion). No direction reduces the
+///   constraint violation from the returned point, so `x` is a local
+///   certificate that the problem is infeasible there.
 /// - Not certified: the sub-solve converged with h above feas_tol but the
-/// certificate gate refused it (restoration_proximity > 0), or E1's
-/// inconsistent-equalities exit. NO CLAIM is made about the model.
-/// An UNSERVICEABLE restoration request (nested, or refused by the entry rule:
-/// SqpOptions::restoration_max_entries and its progress guard) is
-/// kNumericalError, never kInfeasible (M7 W2 ladder round, L1).
+///   certificate gate refused it (restoration_proximity > 0), or the
+///   inconsistent-equalities exit. No claim is made about the model.
+/// An unserviceable restoration request (nested, or refused by the entry rule)
+/// is kNumericalError, never kInfeasible.
 ///
-/// THE ONLY FIELD DISTINGUISHING THE TWO SHAPES IS
-/// SqpResult::infeasibility_certified. counters.restoration_iters does NOT
-/// distinguish them: it is > 0 on both, because a violated entry always
-/// spends at least one major restoring.
-/// Nor does the last history row: its StepVerdict depends on which of the
-/// THREE REQUEST SOURCES raised the restoration (the funnel's signature and
-/// the elastic tier's exhaustion leave kRestore; the radius floor leaves
-/// kReject, told apart by tr_radius sitting at the floor), not on which exit
-/// was reached -- sqp_solver.h's RESTORATION PHASE has the decision table.
-/// tests/sqp/test_sqp_restoration.cpp shows how to re-derive the certificate from
-/// the model if a caller wants to check the driver's claim.
-///
-/// kBudgetExhausted is a THIRD shape of "ran out of majors", distinct from
-/// kMaxIter: what a max_iter exhaustion of the MAIN optimality loop reports
-/// when SqpOptions::budget_mode is on, paired with a DIFFERENT
-/// (x, lambda_e, lambda_i, z, f) than kMaxIter would report for the identical
-/// run -- the best iterate by the funnel's own ordering rather than the last
-/// one reached. See SqpOptions::budget_mode's own note for the full contract
-/// and sqp_solver.h's BUDGETED MODE note for the mechanics. It is NEVER
-/// reported when budget_mode is false (every max_iter exhaustion is kMaxIter)
-/// and NEVER reported by the restoration phase's own budget exhaustion (that
-/// stays kMaxIter regardless of budget_mode).
+/// A solve that exhausts its major-iteration cap reports kMaxIter;
+/// SolveResult::returned_best_iterate says whether the point returned is the
+/// best iterate (SqpOptions::budget_mode) rather than the last one reached.
 enum class SolveStatus {
     kOptimal = 0,
     kAcceptable = 1,
@@ -88,7 +58,7 @@ enum class SolveStatus {
     kStalled = 4,
     kDiverging = 5,
     kNumericalError = 6,
-    kBudgetExhausted = 7,
+    // 7 is retired; the remaining values keep their numbers.
     kInterrupted = 8,
     /// A deterministic work ceiling was reached: `CommonOptions::max_factorizations`
     /// on either engine, or the SQP engine's `SolveBudget::minor_budget`. Read at
@@ -103,7 +73,7 @@ enum class SolveStatus {
 /// @brief A restoration SUB-SOLVE's own terminal status AS A COUNTER, with an
 ///        explicit "never ran" zero (M7 W2 M3a fix1).
 ///
-/// SolveStatus's eleven values plus kNotRun, which is the DEFAULT and the whole
+/// SolveStatus's ten values plus kNotRun, which is the DEFAULT and the whole
 /// reason this enum exists. `SqpCounters::restoration_sub_status` is a field on
 /// a record that most solves never write: the first draft of it was a bare
 /// SolveStatus defaulting to the enum's zero, `kOptimal`, with absence read off
@@ -139,7 +109,7 @@ enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
     kStalled = 5,
     kDiverging = 6,
     kNumericalError = 7,
-    kBudgetExhausted = 8,
+    // 8 is retired; the remaining values keep their numbers.
     kInterrupted = 9,
     kWorkLimit = 10,
     kTimeLimit = 11,
@@ -234,14 +204,14 @@ enum class IpmKktFactorStatus {
 /// @brief Maps a status to its lower-case display name.
 /// @param status The status.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p status is not one of the eleven.
+/// @throws std::invalid_argument if @p status is not one of the ten.
 const char *to_string(SolveStatus status);
 
 /// @brief Maps a restoration sub-status to its lower-case snake name.
 /// @param status The sub-status.
 /// @return A static string, never null. `not_run` for @c kNotRun; otherwise
 ///         EXACTLY what to_string(SolveStatus) spells for the same name.
-/// @throws std::invalid_argument if @p status is not one of the twelve.
+/// @throws std::invalid_argument if @p status is not one of the eleven.
 const char *to_string(RestorationSubStatus status);
 
 /// @brief The TOTAL map from a sub-solve's status to the counter's vocabulary.
@@ -252,7 +222,7 @@ const char *to_string(RestorationSubStatus status);
 ///
 /// @param status The status the restoration sub-solve returned.
 /// @return Its counterpart, name for name.
-/// @throws std::invalid_argument if @p status is not one of the eleven.
+/// @throws std::invalid_argument if @p status is not one of the ten.
 RestorationSubStatus to_restoration_sub_status(SolveStatus status);
 
 /// @brief Maps a message kind to its lower-case snake name.
@@ -273,15 +243,15 @@ const char *to_string(IpmKktFactorStatus status);
 /// @throws std::invalid_argument if @p reason is not one of the seven.
 const char *to_string(IpmStopReason reason);
 
-/// @brief The reporting order over all eleven statuses, weakest verdict first.
+/// @brief The reporting order over all ten statuses, weakest verdict first.
 ///
 /// kOptimal < kAcceptable < kInterrupted < kMaxIter < kWorkLimit < kTimeLimit <
-/// kBudgetExhausted < kStalled < kInfeasible < kDiverging < kNumericalError. A
+/// kStalled < kInfeasible < kDiverging < kNumericalError. A
 /// reporting order only.
 ///
 /// @param status The status.
 /// @return Its rank, 0 through 10; distinct for every status.
-/// @throws std::invalid_argument if @p status is not one of the eleven.
+/// @throws std::invalid_argument if @p status is not one of the ten.
 int severity(SolveStatus status);
 
 // hven::solvers::SqpStatus -- the SQP engine's own five-value verdict enum --

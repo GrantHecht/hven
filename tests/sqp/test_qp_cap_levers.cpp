@@ -34,10 +34,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
+#include <hven/core/solver_status.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/qp/qp_types.h>
 

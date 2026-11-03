@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "hven/detail/drivers/ipm_solver_impl.h"
+#include "hven/detail/drivers/result_message.h"
 #include "hven/detail/model/problem_access.h"
 
 namespace hven::solvers {
@@ -22,6 +23,16 @@ namespace {
 [[noreturn]] void throw_ipm_moved_from() {
     throw std::logic_error("IpmSolver: the solver was moved from; it may only be destroyed or "
                            "assigned to");
+}
+
+// What the handle adds to the engine's result: the row-space blocks, the callback
+// tally and the stop message.
+void finish_result(const IpmSolverImpl &engine, const Problem &problem, const SolveBudget &budget,
+                   IpmResult &result) {
+    detail::ProblemAccess::report(problem, result);
+    detail::ProblemAccess::report_work(problem, result);
+    result.message =
+        detail::ipm_result_message(result, engine.last_stop_reason(), engine.options(), budget);
 }
 
 } // namespace
@@ -64,8 +75,9 @@ bool IpmSolver::kkt_pattern_is_analyzed(const Problem &problem) const {
 IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, SolveBudget budget) {
     IpmSolverImpl &engine = impl();
     NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+    detail::ProblemAccess::reset_work(problem);
     IpmResult result = engine.solve(program, x0, budget);
-    detail::ProblemAccess::report(problem, result);
+    finish_result(engine, problem, budget, result);
     return result;
 }
 
@@ -73,8 +85,9 @@ IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, const Wa
                            SolveBudget budget) {
     IpmSolverImpl &engine = impl();
     NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+    detail::ProblemAccess::reset_work(problem);
     IpmResult result = engine.solve(program, x0, warm, budget);
-    detail::ProblemAccess::report(problem, result);
+    finish_result(engine, problem, budget, result);
     return result;
 }
 

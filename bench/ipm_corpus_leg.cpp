@@ -23,7 +23,6 @@
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/model/problem_access.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
@@ -803,10 +802,10 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.status = crossover::flag_string(flag);
     row.iter_num = result.iterations;
     row.obj_val = result.f;
-    row.kkt_inf = result.kkt_inf;
-    row.barr_inf = result.barr_inf;
-    row.econ_inf = result.econ_inf;
-    row.icon_inf = result.icon_inf;
+    row.kkt_inf = result.convergence.kkt;
+    row.barr_inf = result.convergence.barrier;
+    row.econ_inf = result.convergence.equality;
+    row.icon_inf = result.convergence.inequality;
     row.factorizations = result.kkt_factor_counters.factorize_count;
     row.solves = result.kkt_factor_counters.solve_count;
     row.analyses = result.kkt_analyses_total;
@@ -845,8 +844,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.lambda_i_size = hven::solvers::detail::engine_rows(result).lambda_i.size();
     row.z_size = result.z.size();
     row.stationarity = result.stationarity;
-    row.feasibility_e = result.feasibility_e;
-    row.feasibility_i = result.feasibility_i;
+    row.feasibility_e = hven::solvers::detail::engine_rows(result).feasibility_e;
+    row.feasibility_i = hven::solvers::detail::engine_rows(result).feasibility_i;
     row.complementarity = result.complementarity;
 
     row.wall_s = wall_s;

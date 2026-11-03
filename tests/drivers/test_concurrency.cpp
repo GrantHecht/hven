@@ -190,8 +190,7 @@ void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading
 
     out.measures.push_back({"f", r.f});
     out.measures.push_back({"stationarity", r.stationarity});
-    out.measures.push_back({"feasibility_e", r.feasibility_e});
-    out.measures.push_back({"feasibility_i", r.feasibility_i});
+    out.measures.push_back({"feasibility", r.feasibility});
     out.measures.push_back({"complementarity", r.complementarity});
     for (Eigen::Index i = 0; i < r.x.size(); ++i) {
         out.measures.push_back({"x[" + std::to_string(i) + "]", r.x[i]});
@@ -248,10 +247,10 @@ void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
     out.exact.push_back({"watchdog_activations", static_cast<long long>(r.watchdog_activations)});
     out.exact.push_back({"payload_ignored", static_cast<long long>(r.payload_ignored)});
 
-    out.measures.push_back({"kkt_inf", r.kkt_inf});
-    out.measures.push_back({"barr_inf", r.barr_inf});
-    out.measures.push_back({"econ_inf", r.econ_inf});
-    out.measures.push_back({"icon_inf", r.icon_inf});
+    out.measures.push_back({"kkt_inf", r.convergence.kkt});
+    out.measures.push_back({"barr_inf", r.convergence.barrier});
+    out.measures.push_back({"econ_inf", r.convergence.equality});
+    out.measures.push_back({"icon_inf", r.convergence.inequality});
 }
 
 CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {

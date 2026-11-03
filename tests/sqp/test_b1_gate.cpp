@@ -1460,7 +1460,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     EXPECT_NE(SolveStatus::kOptimal, sol.status)
         << "the triple the ingest gate refused must not be certified after the restore";
     EXPECT_EQ(SolveStatus::kMaxIter, sol.status);
-    EXPECT_GT(sol.sqp_complementarity, opts.common.optimality_tol);
+    EXPECT_GT(sol.convergence.complementarity, opts.common.optimality_tol);
 }
 
 // =====================================================================

@@ -558,10 +558,9 @@ TEST(ConsoleSink, TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFoun
     EXPECT_NE(verdict_of(SolveStatus::kDiverging).find("Solution Diverging"), std::string::npos);
     EXPECT_NE(verdict_of(SolveStatus::kNumericalError).find("KKT System Persistently Singular"),
               std::string::npos);
-    // The two statuses the interior-point engine never reports write NOTHING,
+    // The status the interior-point engine never reports writes NOTHING,
     // exactly as the old chain's absent `else` did.
     EXPECT_EQ(verdict_of(SolveStatus::kInfeasible), "");
-    EXPECT_EQ(verdict_of(SolveStatus::kBudgetExhausted), "");
 }
 
 TEST(ConsoleSink, TheT8_7bLineKindsEachRenderAtTheirOwnTier) {

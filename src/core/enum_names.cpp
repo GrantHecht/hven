@@ -42,8 +42,6 @@ const char *to_string(SolveStatus status) {
         return "diverging";
     case SolveStatus::kNumericalError:
         return "numerical_error";
-    case SolveStatus::kBudgetExhausted:
-        return "budget_exhausted";
     case SolveStatus::kInterrupted:
         return "interrupted";
     case SolveStatus::kWorkLimit:
@@ -55,7 +53,7 @@ const char *to_string(SolveStatus status) {
         fmt::format("to_string(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
-// THE COUNTER'S OWN VOCABULARY (M7 W2 M3a fix1). Twelve spellings: the eleven above,
+// THE COUNTER'S OWN VOCABULARY (M7 W2 M3a fix1). Eleven spellings: the ten above,
 // byte for byte -- a consumer must be able to compare this key against the end
 // line's `status` without a translation table -- plus the `not_run` the enum
 // exists for. The switch is exhaustive and has no default arm, so an enumerator
@@ -78,8 +76,6 @@ const char *to_string(RestorationSubStatus status) {
         return "diverging";
     case RestorationSubStatus::kNumericalError:
         return "numerical_error";
-    case RestorationSubStatus::kBudgetExhausted:
-        return "budget_exhausted";
     case RestorationSubStatus::kInterrupted:
         return "interrupted";
     case RestorationSubStatus::kWorkLimit:
@@ -91,7 +87,7 @@ const char *to_string(RestorationSubStatus status) {
         "to_string(RestorationSubStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
-// THE TOTAL MAP, and the reason the enum above carries all eleven of SolveStatus's
+// THE TOTAL MAP, and the reason the enum above carries all ten of SolveStatus's
 // values rather than the five a feasibility sub-solve can return: an exhaustive
 // switch with no default arm and no invented image. A sub-solve that returned a
 // status has, by construction, RUN -- so `kNotRun` is unreachable from here.
@@ -111,8 +107,6 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status) {
         return RestorationSubStatus::kDiverging;
     case SolveStatus::kNumericalError:
         return RestorationSubStatus::kNumericalError;
-    case SolveStatus::kBudgetExhausted:
-        return RestorationSubStatus::kBudgetExhausted;
     case SolveStatus::kInterrupted:
         return RestorationSubStatus::kInterrupted;
     case SolveStatus::kWorkLimit:
@@ -205,16 +199,14 @@ int severity(SolveStatus status) {
         return 4;
     case SolveStatus::kTimeLimit:
         return 5;
-    case SolveStatus::kBudgetExhausted:
-        return 6;
     case SolveStatus::kStalled:
-        return 7;
+        return 6;
     case SolveStatus::kInfeasible:
-        return 8;
+        return 7;
     case SolveStatus::kDiverging:
-        return 9;
+        return 8;
     case SolveStatus::kNumericalError:
-        return 10;
+        return 9;
     }
     throw std::invalid_argument(
         fmt::format("severity(SolveStatus): unrecognized value ({})", static_cast<int>(status)));

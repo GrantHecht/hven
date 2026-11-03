@@ -865,6 +865,27 @@ struct NonLinearProgram : public NlpAssembly {
     /// without a realloc once sized to num_partitions_).
     std::vector<double> vals_scratch_;
 
+    /// Evaluation passes run on this program, by the quantities each pass forms.
+    /// Counted at the top of every pass, so the eval_ entry points, assemble() and
+    /// the candidate evaluations are all covered. Read and reset through
+    /// detail::ProblemAccess (SolveResult::work). The mapping, pass by pass:
+    ///   objective_pass                      f
+    ///   objective_constraints_pass          f, g
+    ///   objective_gradient_constraints_pass f, grad f, g
+    ///   first_order_rhs_pass                f, grad f, g, Jacobian (as J^T lambda)
+    ///   first_order_kkt_pass                f, grad f, g, Jacobian
+    ///   constraint_jacobian_pass            g, Jacobian
+    ///   constraint_kkt_pass                 g, Jacobian, Hessian (constraint terms)
+    ///   full_kkt_pass                       f, grad f, g, Jacobian, Hessian
+    struct EvaluationTally {
+        Index objective = 0;
+        Index gradient = 0;
+        Index constraints = 0;
+        Index jacobian = 0;
+        Index hessian = 0;
+    };
+    EvaluationTally evaluation_tally_;
+
     void eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
                   ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX,
                   EigenRef<VectorXd> AGX, EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI);

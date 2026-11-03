@@ -1338,8 +1338,8 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, LineSearchMode lsmode,
     double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-    double &alpha, double &alphap, double &alphad, int &soc_steps, int & /*resolved_depth*/,
-    int & /*watchdog_activations*/) {
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int & /*resolved_depth*/,
+    Index & /*watchdog_activations*/) {
     const int max_soc = ctx.opts_.advanced.max_second_order_corrections;
     if (max_soc <= 0)
         return Action::kAcceptAsIs; // defensive: SocRecovery is only built when max_soc_ > 0.
@@ -1487,8 +1487,8 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, LineSearchMode lsmode,
     double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-    double &alpha, double & /*alphap*/, double & /*alphad*/, int & /*soc_steps*/,
-    int & /*resolved_depth*/, int & /*watchdog_activations*/) {
+    double &alpha, double & /*alphap*/, double & /*alphad*/, Index & /*soc_steps*/,
+    int & /*resolved_depth*/, Index & /*watchdog_activations*/) {
     const int max_extended = ctx.opts_.advanced.line_search_extended_backtracks;
     if (max_extended <= 0)
         return Action::kAcceptAsIs; // defensive: only built when ls_extended_iters_ > 0.
@@ -1532,8 +1532,8 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, LineSearchMode lsmode,
     double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-    double &alpha, double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-    int &watchdog_activations) {
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Always-available proxy for "did the point improve" — see the file
     // docstring for why prim_obj + barr_obj (rather than a per-variant merit
     // value) is used here.
@@ -1615,8 +1615,8 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, LineSearchMode lsmode,
     double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-    double &alpha, double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-    int &watchdog_activations) {
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Links in trial order, each paired with the depth it stamps when it resolves.
     // A null link is simply absent from the chain.
     const std::array<std::pair<RecoveryChain *, int>, 2> links = {
@@ -1647,8 +1647,8 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, LineSearchMode lsmode,
     double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-    double &alpha, double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-    int &watchdog_activations) {
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Delegate the whole rejection to the inner chain first.
     const Action inner =
         inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu,
@@ -1883,7 +1883,8 @@ void FunnelAcceptance::register_accepted_step(const ProgressMeasures &current,
 }
 
 void FunnelAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_funnel_width = std::isfinite(width_) ? width_ : -1.0;
+    result.last_funnel_width =
+        std::isfinite(width_) ? std::optional<double>(width_) : std::optional<double>();
 }
 
 bool FunnelAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -2086,7 +2087,7 @@ void FilterAcceptance::register_accepted_step(const ProgressMeasures &current,
 }
 
 void FilterAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_filter_size = static_cast<int>(filter_.size());
+    result.last_filter_size = static_cast<Index>(filter_.size());
     result.last_filter_resets = n_filter_resets_;
 }
 

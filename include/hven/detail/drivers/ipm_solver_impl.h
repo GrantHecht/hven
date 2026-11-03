@@ -26,6 +26,8 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+#include "hven/detail/drivers/declared_diagnostics.h"
+#include "hven/detail/drivers/ipm_phase_status.h"
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
@@ -39,7 +41,6 @@
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/drivers/solve_status.h"
 #include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -1939,7 +1940,7 @@ class IpmSolverImpl {
     ///                    evaluation carried no declared objective gradient, in
     ///                    which case STATIONARITY ALONE comes back NaN.
     /// @return The four diagnostics.
-    DeclaredDiagnostics declared_diagnostics_from_reduced_grad_lag(
+    detail::DeclaredDiagnostics declared_diagnostics_from_reduced_grad_lag(
         const Eigen::VectorXd &x_declared, const Eigen::VectorXd &lambda_i,
         const Eigen::VectorXd &z_declared, const Eigen::VectorXd &grad_lag_reduced,
         const Eigen::VectorXd &fixed_lambda, const Eigen::VectorXd &ce_declared,

@@ -264,10 +264,10 @@ void validate_staged_polish(const WarmStartData &data) {
 // take kkt.z: the restoration exits replace that vector, and out.z is written
 // by the caller for exactly that reason.
 void record_terminal_kkt(SqpResult &out, const SqpKkt &kkt) {
-    out.sqp_stationarity = kkt.stationarity;
-    out.sqp_feasibility = kkt.feasibility;
-    out.sqp_complementarity = kkt.complementarity;
-    out.kkt_residual = kkt.residual();
+    out.convergence.stationarity = kkt.stationarity;
+    out.convergence.feasibility = kkt.feasibility;
+    out.convergence.complementarity = kkt.complementarity;
+    out.convergence.kkt_residual = kkt.residual();
 }
 
 // THE CALLER-UNIT STATIONARITY CEILING's measure (M7 W2 SCW): the engine's
@@ -450,8 +450,8 @@ DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const Sqp
     // FROM grad_lag, not from (grad, Je, Ji): the measurement in hand already
     // folded them, and folding them a second time is arithmetic with a chance
     // of disagreeing. No exclusions -- this engine eliminates no coordinate.
-    out.d = compute_declared_diagnostics_from_grad_lag(x, lambda_i, kkt.z, kkt.grad_lag, ev.ce,
-                                                       ev.ci, lo, up, {});
+    out.d = detail::compute_declared_diagnostics_from_grad_lag(x, lambda_i, kkt.z, kkt.grad_lag,
+                                                               ev.ce, ev.ci, lo, up, {});
     out.ce = ev.ce;
     out.ci = ev.ci;
     out.measured = true;
@@ -2871,7 +2871,7 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
             out.z = k.z;
         }
         record_terminal_kkt(out, k);
-        const DeclaredDiagnostics dd = compute_declared_diagnostics(
+        const detail::DeclaredDiagnostics dd = detail::compute_declared_diagnostics(
             out.x, detail::engine_rows(out).lambda_e, detail::engine_rows(out).lambda_i, out.z,
             ev.grad, ev.Je, ev.Ji, ev.ce, ev.ci, seam.lower(), seam.upper(), {});
         // Each shared diagnostic is replaced only where the inner solve MEASURED it:
@@ -2879,12 +2879,14 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
         if (!std::isnan(out.stationarity)) {
             out.stationarity = dd.stationarity;
         }
-        if (!std::isnan(out.feasibility_e)) {
-            out.feasibility_e = dd.feasibility_e;
+        auto &rows = detail::engine_rows(out);
+        if (!std::isnan(rows.feasibility_e)) {
+            rows.feasibility_e = dd.feasibility_e;
         }
-        if (!std::isnan(out.feasibility_i)) {
-            out.feasibility_i = dd.feasibility_i;
+        if (!std::isnan(rows.feasibility_i)) {
+            rows.feasibility_i = dd.feasibility_i;
         }
+        out.feasibility = detail::combine_feasibility(rows.feasibility_e, rows.feasibility_i);
         if (!std::isnan(out.complementarity)) {
             out.complementarity = dd.complementarity;
         }
@@ -4008,7 +4010,7 @@ struct SqpSolverImpl::MajorState {
     // NaN when nothing was measured at the point (the non-finite-start row),
     // which is DeclaredDiagnostics' own default -- a zero would read as a
     // converged residual.
-    DeclaredDiagnostics event_diag;
+    detail::DeclaredDiagnostics event_diag;
 
     // ---- cut (c): the trial point, its judgement, and the SOC correction --
     // `ev_trial` is VALUES ONLY until an acceptance upgrades it in place; on a
@@ -5545,8 +5547,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // budget is deliberately still reported as kMaxIter just
     // below (the "no budget left to restore with" exit, when
     // spent >= opts_.max_iter, is the same answer). Forcing this
-    // off is what keeps rs.status below able to stay exhaustive
-    // without a reachable kBudgetExhausted arm.
+    // off keeps the sub-solve from returning its best iterate.
     ropts.budget_mode = false;
     ropts.advanced.equality_basis = false;
     // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
@@ -6225,17 +6226,6 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     case SolveStatus::kNumericalError:
         st.resto.status = SolveStatus::kNumericalError;
         break;
-    case SolveStatus::kBudgetExhausted:
-        // UNREACHABLE: ropts.budget_mode is forced false just
-        // above, so this sub-solve never runs budgeted and
-        // rs.status can never be this value -- kept only to
-        // preserve the switch's exhaustiveness (the map_status
-        // convention, ported: an arm that cannot fire is still
-        // enumerated rather than left to a default). Mapped to
-        // kMaxIter defensively, exactly what it would have been
-        // reported as had budget_mode not been forced off.
-        st.resto.status = SolveStatus::kMaxIter;
-        break;
     }
     return RestorationOutcome::kExited;
 }
@@ -6470,7 +6460,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // is the second case, and a zero would read as a converged
             // residual. Under a mask that omits them the same NaN means NOT
             // REQUESTED (drivers/solve_result.h's IterationPayload).
-            mj.event_diag = DeclaredDiagnostics{};
+            mj.event_diag = detail::DeclaredDiagnostics{};
         }
         if (want_vectors || want_diagnostics) {
             const detail::ProblemScaling &sc = st.solve_scaling;
@@ -6505,7 +6495,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                         ci_c.array() /= sc.ineq_rows.array();
                     }
                 }
-                mj.event_diag = compute_declared_diagnostics_from_grad_lag(
+                mj.event_diag = detail::compute_declared_diagnostics_from_grad_lag(
                     mj.event_x, mj.event_lambda_i, mj.event_z, grad_lag_c, ce_c, ci_c, seam.lower(),
                     seam.upper(), {});
             }
@@ -8390,8 +8380,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // finished writing, so the comparison is the one it always was.
             const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
             check_major_pushed_once(iter);
+            st.out.returned_best_iterate = true;
             return finish(
-                seam, std::move(st.out), SolveStatus::kBudgetExhausted, st.mb.x, st.mb.lambda_e,
+                seam, std::move(st.out), SolveStatus::kMaxIter, st.mb.x, st.mb.lambda_e,
                 st.mb.lambda_i, st.mb.kkt, st.mb.f,
                 make_warm_start(seam, (best_is_current && st.have_seed) ? &st.seed : nullptr, st.qp,
                                 st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
@@ -8978,7 +8969,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // exported ones. `caller_ev` carries grad, Je and Ji at `x`, none of
         // which depends on a multiplier, so the re-fold is exact and costs no
         // model call.
-        caller_scale_declared.d = compute_declared_diagnostics(
+        caller_scale_declared.d = detail::compute_declared_diagnostics(
             x, detail::engine_rows(out).lambda_e, detail::engine_rows(out).lambda_i, out.z,
             caller_ev.grad, caller_ev.Je, caller_ev.Ji, caller_ev.ce, caller_ev.ci, seam.lower(),
             seam.upper(), {});
@@ -9037,12 +9028,14 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     const DeclaredDiagnosticsStash &declared =
         caller_scale_declared.measured ? caller_scale_declared : stash;
     if (declared.measured) {
-        // THE PRIMAL HALF, unconditionally: `feasibility_e`, `feasibility_i`
+        // THE PRIMAL HALF, unconditionally: `feasibility`
         // and the two blocks read ce, ci, x and the declared box, not one
         // price between them, so nothing that happens to a multiplier after
         // the stash was taken can make them describe a different point.
-        out.feasibility_e = declared.d.feasibility_e;
-        out.feasibility_i = declared.d.feasibility_i;
+        detail::engine_rows(out).feasibility_e = declared.d.feasibility_e;
+        detail::engine_rows(out).feasibility_i = declared.d.feasibility_i;
+        out.feasibility =
+            detail::combine_feasibility(declared.d.feasibility_e, declared.d.feasibility_i);
         detail::engine_rows(out).ce = declared.ce;
         detail::engine_rows(out).ci = declared.ci;
         // THE DUAL HALF ONLY WHEN IT DESCRIBES THE PRICES THIS CALL RETURNS

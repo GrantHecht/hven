@@ -508,14 +508,14 @@ inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
     row.ip_activity_inferred = sol.counters.ip_activity_inferred;
     row.seeded_clamped = sol.counters.seeded_clamped;
     row.f = sol.f;
-    row.kkt_residual = sol.kkt_residual;
+    row.kkt_residual = sol.convergence.kkt_residual;
     // The engine's OWN measurements, renamed in M6 W5 T8.4 when the result
     // base grew shared ones of the first and last names with a different
     // definition (declared space, caller units). This artifact's columns are
     // the engine's, so they follow the sqp_* names.
-    row.stationarity = sol.sqp_stationarity;
-    row.feasibility = sol.sqp_feasibility;
-    row.complementarity = sol.sqp_complementarity;
+    row.stationarity = sol.convergence.stationarity;
+    row.feasibility = sol.convergence.feasibility;
+    row.complementarity = sol.convergence.complementarity;
     row.wall_s = wall_s;
     return row;
 }
@@ -622,10 +622,10 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         legs.a.flag = result.status;
         legs.a.iters = result.iterations;
         legs.a.f = result.f;
-        legs.a.kkt_inf = result.kkt_inf;
-        legs.a.econ_inf = result.econ_inf;
-        legs.a.icon_inf = result.icon_inf;
-        legs.a.barr_inf = result.barr_inf;
+        legs.a.kkt_inf = result.convergence.kkt;
+        legs.a.econ_inf = result.convergence.equality;
+        legs.a.icon_inf = result.convergence.inequality;
+        legs.a.barr_inf = result.convergence.barrier;
         legs.a.analyses = result.kkt_analyses_total;
         legs.a.factorizations = result.kkt_factor_counters.factorize_count;
         legs.a.solves = result.kkt_factor_counters.solve_count;

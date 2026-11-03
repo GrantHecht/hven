@@ -60,8 +60,8 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Stateless: nothing to clear.
     void reset() override {}
@@ -201,8 +201,8 @@ class WatchdogRecovery : public RecoveryChain {
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Resets the shortened-iteration counter on real progress, then threads
     /// the notification through to the wrapped chain.
@@ -251,8 +251,8 @@ class ChainedRecovery : public RecoveryChain {
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Propagates to whichever links are present (legitimately null when a
     /// link is disabled by Settings).

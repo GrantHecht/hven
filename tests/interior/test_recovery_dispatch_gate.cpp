@@ -42,6 +42,7 @@
 
 namespace {
 
+using hven::Index;
 using hven::solvers::AcceptanceKind;
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::BarrierGovernorKind;
@@ -101,7 +102,7 @@ class GateRecordingRecovery : public RecoveryChain {
                             hven::solvers::LineSearchMode, double, double, double, double,
                             Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                             Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
-                            int &, int &, int &) override {
+                            Index &, int &, Index &) override {
         ++calls_;
         return Action::kAcceptAsIs;
     }
@@ -138,9 +139,9 @@ void drive_gate(bool good_step, IterateInfo &citer, RecoveryChain &recovery,
         GateUnusedMechanism mechanism;
         Eigen::VectorXd v;
         double alpha = 1.0, alphap = 1.0, alphad = 1.0;
-        int soc_steps = 0;
+        Index soc_steps = 0;
         int resolved_depth = kRecoveryDepthUnresolved;
-        int watchdog_activations = 0;
+        Index watchdog_activations = 0;
         recovery.on_step_rejected(citer, iters, ctx, acceptance, mechanism,
                                   hven::solvers::LineSearchMode::kAugLang, 1.0, 1e-3, 0.0, 0.0, v,
                                   v, v, v, v, alpha, alphap, alphad, soc_steps, resolved_depth,

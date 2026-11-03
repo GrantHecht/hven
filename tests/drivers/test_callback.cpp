@@ -51,6 +51,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
@@ -531,8 +532,8 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
         ASSERT_TRUE(e.z.allFinite());
         {
             const NlpModel &m = *view.model;
-            const hven::solvers::DeclaredDiagnostics d =
-                hven::solvers::compute_declared_diagnostics(
+            const hven::solvers::detail::DeclaredDiagnostics d =
+                hven::solvers::detail::compute_declared_diagnostics(
                     e.x, e.lambda_e, e.lambda_i, e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
                     m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
             EXPECT_NEAR(e.f, m.eval_f(e.x), 1e-9 * (1.0 + std::abs(e.f)))
@@ -585,9 +586,9 @@ TEST(Callback, SqpTerminalEventDiagnosticsAreTheResultsOwn) {
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.stationarity),
               std::bit_cast<std::uint64_t>(sol.stationarity));
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility_e),
-              std::bit_cast<std::uint64_t>(sol.feasibility_e));
+              std::bit_cast<std::uint64_t>(hven::solvers::detail::engine_rows(sol).feasibility_e));
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.feasibility_i),
-              std::bit_cast<std::uint64_t>(sol.feasibility_i));
+              std::bit_cast<std::uint64_t>(hven::solvers::detail::engine_rows(sol).feasibility_i));
     EXPECT_EQ(std::bit_cast<std::uint64_t>(last.complementarity),
               std::bit_cast<std::uint64_t>(sol.complementarity));
 }
@@ -622,7 +623,7 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
         // handing back a different iterate than the one the caller stopped on
         // would make the event a lie.
         EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
-        EXPECT_NE(sol.status, SolveStatus::kBudgetExhausted);
+        EXPECT_FALSE(sol.returned_best_iterate);
 
         // THE SHAPE. One more row than majors, exactly as a capped solve: the
         // interrupted major pushed its row and built no subproblem.
@@ -1454,8 +1455,10 @@ void expect_terminal_event_is_the_ipm_result(hven::solvers::IpmSolver &solver,
     EXPECT_TRUE(bit_equal(last.lambda_e, hven::solvers::detail::engine_rows(r).lambda_e));
     EXPECT_TRUE(bit_equal(last.lambda_i, hven::solvers::detail::engine_rows(r).lambda_i));
     EXPECT_TRUE(same_scalar(last.stationarity, r.stationarity));
-    EXPECT_TRUE(same_scalar(last.feasibility_e, r.feasibility_e));
-    EXPECT_TRUE(same_scalar(last.feasibility_i, r.feasibility_i));
+    EXPECT_TRUE(
+        same_scalar(last.feasibility_e, hven::solvers::detail::engine_rows(r).feasibility_e));
+    EXPECT_TRUE(
+        same_scalar(last.feasibility_i, hven::solvers::detail::engine_rows(r).feasibility_i));
     EXPECT_TRUE(same_scalar(last.complementarity, r.complementarity));
     // The objective too: on a converged OPT-phase exit the result reports
     // `iters.back().prim_obj_ / scale`, which is what the event reports.
@@ -1646,8 +1649,10 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         // pair carries its own provenance and may be unmeasured.
         EXPECT_TRUE(bit_equal(last.x, b.x));
         EXPECT_TRUE(same_scalar(last.stationarity, b.stationarity));
-        EXPECT_TRUE(same_scalar(last.feasibility_e, b.feasibility_e));
-        EXPECT_TRUE(same_scalar(last.feasibility_i, b.feasibility_i));
+        EXPECT_TRUE(
+            same_scalar(last.feasibility_e, hven::solvers::detail::engine_rows(b).feasibility_e));
+        EXPECT_TRUE(
+            same_scalar(last.feasibility_i, hven::solvers::detail::engine_rows(b).feasibility_i));
         EXPECT_TRUE(same_scalar(last.complementarity, b.complementarity));
         // AND NO EVENT WAS GAINED OR LOST: moving the dispatch below the
         // substitution changes WHAT the terminal event says, never how many
@@ -1732,8 +1737,10 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         EXPECT_TRUE(bit_equal(again.z, baseline.z));
         EXPECT_TRUE(same_scalar(again.f, baseline.f));
         EXPECT_TRUE(same_scalar(again.stationarity, baseline.stationarity));
-        EXPECT_TRUE(same_scalar(again.feasibility_e, baseline.feasibility_e));
-        EXPECT_TRUE(same_scalar(again.feasibility_i, baseline.feasibility_i));
+        EXPECT_TRUE(same_scalar(hven::solvers::detail::engine_rows(again).feasibility_e,
+                                hven::solvers::detail::engine_rows(baseline).feasibility_e));
+        EXPECT_TRUE(same_scalar(hven::solvers::detail::engine_rows(again).feasibility_i,
+                                hven::solvers::detail::engine_rows(baseline).feasibility_i));
         EXPECT_TRUE(same_scalar(again.complementarity, baseline.complementarity));
         EXPECT_EQ(again.counters.major_iters, baseline.counters.major_iters);
         EXPECT_EQ(again.counters.qp_minor_iters, baseline.counters.qp_minor_iters);
@@ -1810,13 +1817,15 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
                               hven::solvers::detail::engine_rows(baseline).ci));
         EXPECT_TRUE(same_scalar(again.f, baseline.f));
         EXPECT_TRUE(same_scalar(again.stationarity, baseline.stationarity));
-        EXPECT_TRUE(same_scalar(again.feasibility_e, baseline.feasibility_e));
-        EXPECT_TRUE(same_scalar(again.feasibility_i, baseline.feasibility_i));
+        EXPECT_TRUE(same_scalar(hven::solvers::detail::engine_rows(again).feasibility_e,
+                                hven::solvers::detail::engine_rows(baseline).feasibility_e));
+        EXPECT_TRUE(same_scalar(hven::solvers::detail::engine_rows(again).feasibility_i,
+                                hven::solvers::detail::engine_rows(baseline).feasibility_i));
         EXPECT_TRUE(same_scalar(again.complementarity, baseline.complementarity));
-        EXPECT_TRUE(same_scalar(again.kkt_inf, baseline.kkt_inf));
-        EXPECT_TRUE(same_scalar(again.barr_inf, baseline.barr_inf));
-        EXPECT_TRUE(same_scalar(again.econ_inf, baseline.econ_inf));
-        EXPECT_TRUE(same_scalar(again.icon_inf, baseline.icon_inf));
+        EXPECT_TRUE(same_scalar(again.convergence.kkt, baseline.convergence.kkt));
+        EXPECT_TRUE(same_scalar(again.convergence.barrier, baseline.convergence.barrier));
+        EXPECT_TRUE(same_scalar(again.convergence.equality, baseline.convergence.equality));
+        EXPECT_TRUE(same_scalar(again.convergence.inequality, baseline.convergence.inequality));
         EXPECT_EQ(again.soc_steps_taken, baseline.soc_steps_taken);
         EXPECT_EQ(again.watchdog_activations, baseline.watchdog_activations);
         EXPECT_EQ(again.fixed_variable_treatment, baseline.fixed_variable_treatment);
@@ -2271,18 +2280,17 @@ void expect_same_result_core(const hven::solvers::SolveResult &a,
         << "ci";
     HVEN_T2_EXPECT_BITS(f);
     HVEN_T2_EXPECT_BITS(stationarity);
-    HVEN_T2_EXPECT_BITS(feasibility_e);
-    HVEN_T2_EXPECT_BITS(feasibility_i);
+    HVEN_T2_EXPECT_BITS(feasibility);
     HVEN_T2_EXPECT_BITS(complementarity);
 }
 
 void expect_same_sqp_solve(const SqpResult &a, const SqpResult &b) {
     expect_same_result_core(a, b);
     expect_same_counters(a.counters, b.counters);
-    HVEN_T2_EXPECT_BITS(sqp_stationarity);
-    HVEN_T2_EXPECT_BITS(sqp_feasibility);
-    HVEN_T2_EXPECT_BITS(sqp_complementarity);
-    HVEN_T2_EXPECT_BITS(kkt_residual);
+    HVEN_T2_EXPECT_BITS(convergence.stationarity);
+    HVEN_T2_EXPECT_BITS(convergence.feasibility);
+    HVEN_T2_EXPECT_BITS(convergence.complementarity);
+    HVEN_T2_EXPECT_BITS(convergence.kkt_residual);
     EXPECT_EQ(a.infeasibility_certified, b.infeasibility_certified);
     // THE WHOLE TRAJECTORY, ROW BY ROW -- not only its length. Every column of
     // SqpIterate that a mask could conceivably reach is a scalar this engine
@@ -2335,23 +2343,23 @@ void expect_same_ipm_solve(const hven::solvers::IpmResult &a, const hven::solver
     EXPECT_TRUE(bit_equal(a.internal_fixed_ce, b.internal_fixed_ce)) << "internal_fixed_ce";
     EXPECT_TRUE(bit_equal(a.internal_fixed_lambda_e, b.internal_fixed_lambda_e))
         << "internal_fixed_lambda_e";
-    HVEN_T2_EXPECT_BITS(kkt_inf);
-    HVEN_T2_EXPECT_BITS(barr_inf);
-    HVEN_T2_EXPECT_BITS(econ_inf);
-    HVEN_T2_EXPECT_BITS(icon_inf);
+    HVEN_T2_EXPECT_BITS(convergence.kkt);
+    HVEN_T2_EXPECT_BITS(convergence.barrier);
+    HVEN_T2_EXPECT_BITS(convergence.equality);
+    HVEN_T2_EXPECT_BITS(convergence.inequality);
     EXPECT_EQ(a.factor_mem, b.factor_mem);
     EXPECT_EQ(a.factor_flops, b.factor_flops);
     EXPECT_EQ(a.soc_steps_taken, b.soc_steps_taken);
     EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
-    HVEN_T2_EXPECT_BITS(last_funnel_width);
+    EXPECT_EQ(a.last_funnel_width, b.last_funnel_width);
     EXPECT_EQ(a.last_filter_size, b.last_filter_size);
     EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
     EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
     EXPECT_EQ(a.last_monotone_iters, b.last_monotone_iters);
     EXPECT_EQ(a.last_feas_rest_entries, b.last_feas_rest_entries);
     EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
-    HVEN_T2_EXPECT_BITS(last_prox_reg_primal);
-    HVEN_T2_EXPECT_BITS(last_prox_reg_dual);
+    EXPECT_EQ(a.last_prox_reg_primal, b.last_prox_reg_primal);
+    EXPECT_EQ(a.last_prox_reg_dual, b.last_prox_reg_dual);
     EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
     EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
     EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);

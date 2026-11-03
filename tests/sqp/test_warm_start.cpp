@@ -1049,10 +1049,11 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     // to itself.
     EXPECT_EQ(hot.status, warm.status);
     expect_same_bits(hot.f, warm.f, "objective");
-    expect_same_bits(hot.sqp_stationarity, warm.sqp_stationarity, "stationarity");
-    expect_same_bits(hot.sqp_feasibility, warm.sqp_feasibility, "feasibility");
-    expect_same_bits(hot.sqp_complementarity, warm.sqp_complementarity, "complementarity");
-    expect_same_bits(hot.kkt_residual, warm.kkt_residual, "kkt_residual");
+    expect_same_bits(hot.convergence.stationarity, warm.convergence.stationarity, "stationarity");
+    expect_same_bits(hot.convergence.feasibility, warm.convergence.feasibility, "feasibility");
+    expect_same_bits(hot.convergence.complementarity, warm.convergence.complementarity,
+                     "complementarity");
+    expect_same_bits(hot.convergence.kkt_residual, warm.convergence.kkt_residual, "kkt_residual");
     ASSERT_EQ(hot.x.size(), warm.x.size());
     for (Index i = 0; i < hot.x.size(); ++i) {
         expect_same_bits(hot.x(i), warm.x(i), "primal " + std::to_string(i));
@@ -2035,7 +2036,8 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(*p.model), x0);
 
-    ASSERT_EQ(sol.status, SolveStatus::kBudgetExhausted);
+    ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
+    EXPECT_TRUE(sol.returned_best_iterate);
     EXPECT_EQ(sol.counters.major_iters, 3);
     ASSERT_EQ(sol.history.size(), 4u);
     EXPECT_EQ(sol.counters.suspect_escalations, 0)
@@ -2094,7 +2096,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
 // (max_iter = 6 per round rather than 3, so the chain has room to make
 // progress each round instead of only ever re-discovering the same best
 // iterate). MEASURED: round 1 (cold, 2-arg overload) and round 2 (warm) both
-// exhaust their 6-major budget and report kBudgetExhausted; round 3 (warm)
+// exhaust their 6-major budget and report kMaxIter with returned_best_iterate; round 3 (warm)
 // converges in 4 majors. Total majors across all three: 6 + 6 + 4 = 16 --
 // IDENTICAL to a single unbudgeted solve of the same fixture from the same
 // x0 (also measured at 16), i.e. this fixture's own budget slicing costs
@@ -2111,7 +2113,8 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
 
     SqpSolver d1(opts);
     const SqpResult s1 = d1.solve(hven::solvers::detail::problem_ref(*p.model), x0);
-    ASSERT_EQ(s1.status, SolveStatus::kBudgetExhausted);
+    ASSERT_EQ(s1.status, SolveStatus::kMaxIter);
+    EXPECT_TRUE(s1.returned_best_iterate);
     EXPECT_EQ(s1.counters.major_iters, 6);
     EXPECT_EQ(s1.counters.start_level_used, StartLevel::kCold)
         << "the 2-arg overload is always cold by construction";
@@ -2121,7 +2124,8 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
     SqpSolver d2(opts);
     const SqpResult s2 =
         d2.solve(hven::solvers::detail::problem_ref(*p.model), s1.warm_start.x, s1.warm_start);
-    ASSERT_EQ(s2.status, SolveStatus::kBudgetExhausted);
+    ASSERT_EQ(s2.status, SolveStatus::kMaxIter);
+    EXPECT_TRUE(s2.returned_best_iterate);
     EXPECT_EQ(s2.counters.major_iters, 6);
     EXPECT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(s2.counters.suspect_escalations, 0);

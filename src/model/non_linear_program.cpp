@@ -2285,6 +2285,10 @@ void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
                                                            ConstEigenRef<VectorXd> LE,
                                                            ConstEigenRef<VectorXd> LI,
                                                            double &val) {
+    ++evaluation_tally_.objective;
+    ++evaluation_tally_.gradient;
+    ++evaluation_tally_.constraints;
+    ++evaluation_tally_.jacobian;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 
@@ -2306,6 +2310,9 @@ void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
 
 void hven::solvers::NonLinearProgram::objective_gradient_constraints_pass(
     double ObjScale, ConstEigenRef<VectorXd> Xf, double &val) {
+    ++evaluation_tally_.objective;
+    ++evaluation_tally_.gradient;
+    ++evaluation_tally_.constraints;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 
@@ -2328,6 +2335,8 @@ void hven::solvers::NonLinearProgram::objective_gradient_constraints_pass(
 void hven::solvers::NonLinearProgram::objective_constraints_pass(double ObjScale,
                                                                  ConstEigenRef<VectorXd> Xf,
                                                                  double &val) {
+    ++evaluation_tally_.objective;
+    ++evaluation_tally_.constraints;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_con_coeffs_zero();
 
@@ -2349,6 +2358,7 @@ void hven::solvers::NonLinearProgram::objective_constraints_pass(double ObjScale
 
 void hven::solvers::NonLinearProgram::objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
                                                      double &val) {
+    ++evaluation_tally_.objective;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
 
     auto OGCevalOP = [&](int thrnum) {
@@ -2366,6 +2376,11 @@ void hven::solvers::NonLinearProgram::objective_pass(double ObjScale, ConstEigen
 void hven::solvers::NonLinearProgram::full_kkt_pass(
     double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
     ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    ++evaluation_tally_.objective;
+    ++evaluation_tally_.gradient;
+    ++evaluation_tally_.constraints;
+    ++evaluation_tally_.jacobian;
+    ++evaluation_tally_.hessian;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
 
     this->set_rhs_coeffs_zero();
@@ -2395,6 +2410,9 @@ void hven::solvers::NonLinearProgram::full_kkt_pass(
 void hven::solvers::NonLinearProgram::constraint_kkt_pass(
     ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    ++evaluation_tally_.constraints;
+    ++evaluation_tally_.jacobian;
+    ++evaluation_tally_.hessian;
     this->set_rhs_coeffs_zero();
 
     auto KKTevalOP = [&](int thrnum) {
@@ -2413,6 +2431,8 @@ void hven::solvers::NonLinearProgram::constraint_kkt_pass(
 
 void hven::solvers::NonLinearProgram::constraint_jacobian_pass(
     ConstEigenRef<VectorXd> Xf, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    ++evaluation_tally_.constraints;
+    ++evaluation_tally_.jacobian;
     this->set_rhs_coeffs_zero();
 
     auto SOEevalOP = [&](int thrnum) {
@@ -2430,6 +2450,10 @@ void hven::solvers::NonLinearProgram::constraint_jacobian_pass(
 void hven::solvers::NonLinearProgram::first_order_kkt_pass(
     double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
     ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+    ++evaluation_tally_.objective;
+    ++evaluation_tally_.gradient;
+    ++evaluation_tally_.constraints;
+    ++evaluation_tally_.jacobian;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
     this->set_rhs_coeffs_zero();
 

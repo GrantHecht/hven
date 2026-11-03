@@ -17,7 +17,7 @@
 #include <string>
 
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/solve_status.h>
+#include <hven/detail/drivers/ipm_phase_status.h>
 
 using hven::solvers::IpmStopReason;
 using hven::solvers::resolve_ipm_phase_status;
@@ -27,20 +27,20 @@ using hven::solvers::to_string;
 
 namespace {
 
-// The nine statuses in the documented reporting order, weakest first.
-const SolveStatus kSeverityOrder[] = {
-    SolveStatus::kOptimal,    SolveStatus::kAcceptable,      SolveStatus::kInterrupted,
-    SolveStatus::kMaxIter,    SolveStatus::kBudgetExhausted, SolveStatus::kStalled,
-    SolveStatus::kInfeasible, SolveStatus::kDiverging,       SolveStatus::kNumericalError};
+// Eight of the ten statuses in the documented reporting order, weakest first.
+const SolveStatus kSeverityOrder[] = {SolveStatus::kOptimal,     SolveStatus::kAcceptable,
+                                      SolveStatus::kInterrupted, SolveStatus::kMaxIter,
+                                      SolveStatus::kStalled,     SolveStatus::kInfeasible,
+                                      SolveStatus::kDiverging,   SolveStatus::kNumericalError};
 
 } // namespace
 
 TEST(SolveStatus, SeverityIsTotalAndOrderedAsDocumented) {
-    for (int i = 1; i < 9; ++i) {
+    for (int i = 1; i < 8; ++i) {
         SCOPED_TRACE(to_string(kSeverityOrder[i]));
         EXPECT_LT(severity(kSeverityOrder[i - 1]), severity(kSeverityOrder[i]));
     }
-    // Total, not merely monotone on this list: nine distinct ranks over nine
+    // Total, not merely monotone on this list: eight distinct ranks over eight
     // distinct statuses, and every name distinct too.
     std::set<int> ranks;
     std::set<std::string> names;
@@ -48,8 +48,8 @@ TEST(SolveStatus, SeverityIsTotalAndOrderedAsDocumented) {
         ranks.insert(severity(s));
         names.insert(to_string(s));
     }
-    EXPECT_EQ(ranks.size(), 9u);
-    EXPECT_EQ(names.size(), 9u);
+    EXPECT_EQ(ranks.size(), 8u);
+    EXPECT_EQ(names.size(), 8u);
 }
 
 TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
@@ -82,7 +82,6 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
               IpmStopReason::kRestorationLocallyInfeasible, IpmStopReason::kStageStalled}) {
             const SolveStatus s = resolve_ipm_phase_status(f, r);
             EXPECT_NE(s, SolveStatus::kInfeasible);
-            EXPECT_NE(s, SolveStatus::kBudgetExhausted);
             EXPECT_NE(s, SolveStatus::kInterrupted);
         }
     }
@@ -92,8 +91,8 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
 // engine reports SolveStatus directly, and the five values it can report are
 // the first five enumerators under the same names. What is left to pin is the
 // vocabulary itself, which is the CSV column and the printed status.
-TEST(SolveStatus, TheNineDisplayNamesArePinnedLiterals) {
-    // All NINE spellings, not a sample of three: these strings are the CSV
+TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
+    // Every spelling, not a sample: these strings are the CSV
     // column and the printed status, so each one is a pinned literal.
     EXPECT_STREQ(to_string(SolveStatus::kOptimal), "optimal");
     EXPECT_STREQ(to_string(SolveStatus::kAcceptable), "acceptable");
@@ -102,7 +101,6 @@ TEST(SolveStatus, TheNineDisplayNamesArePinnedLiterals) {
     EXPECT_STREQ(to_string(SolveStatus::kStalled), "stalled");
     EXPECT_STREQ(to_string(SolveStatus::kDiverging), "diverging");
     EXPECT_STREQ(to_string(SolveStatus::kNumericalError), "numerical_error");
-    EXPECT_STREQ(to_string(SolveStatus::kBudgetExhausted), "budget_exhausted");
     EXPECT_STREQ(to_string(SolveStatus::kInterrupted), "interrupted");
     EXPECT_STREQ(to_string(IpmStopReason::kNone), "none");
     EXPECT_STREQ(to_string(IpmStopReason::kIterationCap), "iteration_cap");
@@ -138,7 +136,7 @@ TEST(SolveStatus, TheNineDisplayNamesArePinnedLiterals) {
 // `SolveStatus` has no value to spare for. Two properties are the whole point
 // of it and neither is visible from a solve, so they are pinned here:
 //
-//   * the map into it is TOTAL -- every one of the nine statuses a sub-solve
+//   * the map into it is TOTAL -- every one of the statuses a sub-solve
 //     could return has an image, so the writer needs no default arm and cannot
 //     mistranslate one;
 //   * the spellings AGREE, name for name, with `to_string(SolveStatus)`. A
@@ -149,8 +147,8 @@ TEST(RestorationSubStatus, TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun
     using hven::solvers::RestorationSubStatus;
     using hven::solvers::to_restoration_sub_status;
 
-    // TOTAL, and spelling-preserving on every one of the nine. The severity
-    // list above IS the nine, so this loop is exhaustive by construction.
+    // TOTAL, and spelling-preserving on every one of the eight. The severity
+    // list above IS the eight, so this loop is exhaustive by construction.
     std::set<std::string> names;
     std::set<int> codes;
     for (const SolveStatus s : kSeverityOrder) {
@@ -163,8 +161,8 @@ TEST(RestorationSubStatus, TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun
         names.insert(to_string(sub));
         codes.insert(static_cast<int>(sub));
     }
-    EXPECT_EQ(names.size(), 9u) << "the map must be INJECTIVE: nine statuses, nine images";
-    EXPECT_EQ(codes.size(), 9u);
+    EXPECT_EQ(names.size(), 8u) << "the map must be INJECTIVE: eight statuses, eight images";
+    EXPECT_EQ(codes.size(), 8u);
 
     // THE TENTH VALUE, which is the reason the enum exists.
     EXPECT_STREQ(to_string(RestorationSubStatus::kNotRun), "not_run");

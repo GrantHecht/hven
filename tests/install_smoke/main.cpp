@@ -33,7 +33,6 @@
 #include "hven/core/solver_status.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/drivers/solve_status.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
 #include "hven/model/nlp.h"
@@ -192,9 +191,10 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
 // with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18;
 // make_nlp_program at M7 W0 T5(a), 18 -> 19; at M8 AP-2 B2 the three model-layer
 // TUs became nlp, problem and fixed_variable_treatment, 19 -> 19; at M8 AP-2 B3
-// fixed_variable_treatment left and the six options-break headers joined, 19 -> 24).
-// Each proves COMPILE-TIME self-containment only: none odr-uses anything its
-// header declares, so the link proves the objects link, nothing about exports.
+// fixed_variable_treatment left and the six options-break headers joined, 19 -> 24; at M8 AP-2 B4
+// solve_status left with its header, 24 -> 23). Each proves COMPILE-TIME self-containment only:
+// none odr-uses anything its header declares, so the link proves the objects link, nothing about
+// exports.
 namespace hven_install_smoke {
 int standalone_include_trace_writer();
 int standalone_include_trace();
@@ -211,7 +211,6 @@ int standalone_include_step_verdict();
 int standalone_include_dense_policy();
 int standalone_include_interior_point_solver();
 int standalone_include_sqp_driver();
-int standalone_include_solve_status();
 int standalone_include_core_solver_status();
 int standalone_include_common_options();
 int standalone_include_ipm_solver_types();
@@ -238,7 +237,6 @@ int main() {
                                hven_install_smoke::standalone_include_dense_policy() +
                                hven_install_smoke::standalone_include_interior_point_solver() +
                                hven_install_smoke::standalone_include_sqp_driver() +
-                               hven_install_smoke::standalone_include_solve_status() +
                                hven_install_smoke::standalone_include_core_solver_status() +
                                hven_install_smoke::standalone_include_common_options() +
                                hven_install_smoke::standalone_include_ipm_solver_types() +
@@ -247,8 +245,8 @@ int main() {
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 24) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 24\n",
+    if (standalone_tus != 23) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 23\n",
                      standalone_tus);
         return 1;
     }

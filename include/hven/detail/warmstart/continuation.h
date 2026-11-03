@@ -23,9 +23,9 @@
 // THE LOOP
 //
 //   1. Solve COLD at p0. If that fails there is no path to follow: return
-//      immediately with reached_p1 == false. A kBudgetExhausted there is not a
-//      failure but a continue, under the SAME rule and cap every later
-//      parameter value gets -- see BUDGET EXHAUSTION below.
+//      immediately with reached_p1 == false. A budget exhaustion (kMaxIter with
+//      returned_best_iterate) there is not a failure but a continue, under the SAME rule and cap
+//      every later parameter value gets -- see BUDGET EXHAUSTION below.
 //   2. Repeat: propose p_next = p_cur + dp * direction, CLAMPED at p1
 //      (direction is the unit vector along p1 - p0, dp an arc length along
 //      that segment, so a multi-parameter sweep moves along the SEGMENT and
@@ -34,7 +34,7 @@
 //      start otherwise -- re-pose the model at p_next and solve warm.
 //        - kOptimal: accept. p_cur := p_next, the warm start advances, and dp
 //          GROWS by `grow` (capped at dp_max) if the step cost <= target_majors.
-//        - kBudgetExhausted: see BUDGET EXHAUSTION below -- neither.
+//        - kMaxIter with returned_best_iterate: see BUDGET EXHAUSTION below -- neither.
 //        - anything else: reject. dp SHRINKS by `shrink` and the step is
 //          retried from the LAST GOOD warm start, at the last good p. Below
 //          dp_min the run fails.
@@ -74,7 +74,7 @@
 // treats as neither success nor failure.
 //
 // When the caller's driver runs with SqpOptions::budget_mode, a solve that
-// exhausts max_iter reports kBudgetExhausted and returns THE BEST ITERATE IT
+// exhausts max_iter reports kMaxIter with returned_best_iterate set and returns THE BEST ITERATE IT
 // VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the
 // tie-break) rather than the last one reached -- a hand-off designed for this
 // loop. The honest reading of it is "the step was too expensive for one
@@ -105,7 +105,7 @@
 // three budgets is not a cheap step and must not lengthen the next one.
 //
 // With budget_mode OFF (the default) none of this is reachable:
-// sqp_solver_types.h guarantees kBudgetExhausted is NEVER reported then, and every
+// returned_best_iterate is NEVER set then, and every
 // max_iter exhaustion arrives as kMaxIter, which is an ordinary failure here.
 //
 // ---------------------------------------------------------------------
@@ -309,6 +309,9 @@ struct ContinuationStep {
     // sequence, not off this field.
     double dp = 0.0;
     SolveStatus status = SolveStatus::kOptimal;
+    // SqpResult::returned_best_iterate of this solve: with kMaxIter, a budget
+    // exhaustion.
+    bool returned_best_iterate = false;
     // The driver's own counters for this one solve; ContinuationResult::
     // total_majors is the sum of counters.major_iters over every step.
     SqpCounters counters;
@@ -389,7 +392,7 @@ struct ContinuationResult {
 
 namespace continuation_detail {
 
-// Consecutive kBudgetExhausted solves allowed at ONE proposal before it is
+// Consecutive best-iterate max-iter solves allowed at ONE proposal before it is
 // demoted to an ordinary failure (this header's BUDGET EXHAUSTION note). 3
 // is an implementation choice, not a paper constant: small enough that a
 // genuinely stuck proposal costs a bounded multiple of the caller's own

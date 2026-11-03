@@ -20,10 +20,10 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
+#include "hven/core/solver_status.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
-#include "hven/drivers/solve_status.h"
 #include "hven/model/problem.h"
 #include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"

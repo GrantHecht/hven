@@ -31,6 +31,7 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/problem_scaling.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
@@ -473,7 +474,7 @@ TEST(ProblemScalingOffPath, TheDefaultIsOffAndReportsTheIdentity) {
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_min);
     // On an unscaled solve the two residuals are the SAME measurement, not two
     // that happen to agree -- the scaled one is copied from the gate's own read.
-    EXPECT_DOUBLE_EQ(sol.kkt_residual, sol.scaling.scaled_kkt_residual);
+    EXPECT_DOUBLE_EQ(sol.convergence.kkt_residual, sol.scaling.scaled_kkt_residual);
 }
 
 TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
@@ -499,10 +500,10 @@ TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
     EXPECT_EQ(a.counters.evals_full, b.counters.evals_full);
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
     EXPECT_DOUBLE_EQ(a.f, b.f);
-    EXPECT_DOUBLE_EQ(a.kkt_residual, b.kkt_residual);
-    EXPECT_DOUBLE_EQ(a.sqp_stationarity, b.sqp_stationarity);
-    EXPECT_DOUBLE_EQ(a.sqp_feasibility, b.sqp_feasibility);
-    EXPECT_DOUBLE_EQ(a.sqp_complementarity, b.sqp_complementarity);
+    EXPECT_DOUBLE_EQ(a.convergence.kkt_residual, b.convergence.kkt_residual);
+    EXPECT_DOUBLE_EQ(a.convergence.stationarity, b.convergence.stationarity);
+    EXPECT_DOUBLE_EQ(a.convergence.feasibility, b.convergence.feasibility);
+    EXPECT_DOUBLE_EQ(a.convergence.complementarity, b.convergence.complementarity);
     ASSERT_EQ(a.x.size(), b.x.size());
     EXPECT_TRUE(a.x.isApprox(b.x, 0.0)) << "EXACT equality, not approximate";
     EXPECT_TRUE(hven::solvers::detail::engine_rows(a).lambda_e.isApprox(
@@ -555,11 +556,13 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
     // verdict.
     std::printf("[ W0.2 ] S=1e12 OFF: status=%d majors=%lld f=%.15g kkt=%.6g\n",
                 static_cast<int>(before.status),
-                static_cast<long long>(before.counters.major_iters), before.f, before.kkt_residual);
+                static_cast<long long>(before.counters.major_iters), before.f,
+                before.convergence.kkt_residual);
     std::printf("[ W0.2 ] S=1e12 ON : status=%d majors=%lld f=%.15g kkt=%.6g scaled_kkt=%.6g "
                 "sf=%.6g\n",
                 static_cast<int>(after.status), static_cast<long long>(after.counters.major_iters),
-                after.f, after.kkt_residual, after.scaling.scaled_kkt_residual, after.scaling.obj);
+                after.f, after.convergence.kkt_residual, after.scaling.scaled_kkt_residual,
+                after.scaling.obj);
 
     // THE PIN. The instance the fixture banner in test_b1_gate.cpp records as
     // running out of majors converges here.
@@ -612,11 +615,13 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
 
     std::printf("[ W0.2 ] HS25 OFF: status=%d majors=%lld f=%.15g kkt=%.6g\n",
                 static_cast<int>(before.status),
-                static_cast<long long>(before.counters.major_iters), before.f, before.kkt_residual);
+                static_cast<long long>(before.counters.major_iters), before.f,
+                before.convergence.kkt_residual);
     std::printf("[ W0.2 ] HS25 ON : status=%d majors=%lld f=%.15g kkt=%.6g scaled_kkt=%.6g "
                 "sf=%.6g\n",
                 static_cast<int>(after.status), static_cast<long long>(after.counters.major_iters),
-                after.f, after.kkt_residual, after.scaling.scaled_kkt_residual, after.scaling.obj);
+                after.f, after.convergence.kkt_residual, after.scaling.scaled_kkt_residual,
+                after.scaling.obj);
 
     // WHAT IS ASSERTED, and it is deliberately NOT "it converges to f* = 0".
     //
@@ -681,10 +686,10 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     const SqpKkt independent = evaluate_kkt(
         model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
         hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
-    EXPECT_DOUBLE_EQ(independent.stationarity, sol.sqp_stationarity);
-    EXPECT_DOUBLE_EQ(independent.feasibility, sol.sqp_feasibility);
-    EXPECT_DOUBLE_EQ(independent.complementarity, sol.sqp_complementarity);
-    EXPECT_DOUBLE_EQ(independent.residual(), sol.kkt_residual);
+    EXPECT_DOUBLE_EQ(independent.stationarity, sol.convergence.stationarity);
+    EXPECT_DOUBLE_EQ(independent.feasibility, sol.convergence.feasibility);
+    EXPECT_DOUBLE_EQ(independent.complementarity, sol.convergence.complementarity);
+    EXPECT_DOUBLE_EQ(independent.residual(), sol.convergence.kkt_residual);
     ASSERT_EQ(sol.z.size(), independent.z.size());
     // TO THE SAME STANDARD AS THE FOUR RESIDUALS BESIDE IT, not a looser one:
     // `z` is a coordinate of the same `grad_lag` those were folded out of, and
@@ -960,7 +965,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
     // The residual columns stay NaN, which is what "nothing was measured" reads
     // as; the multipliers stay cleared, which the map leaves cleared.
-    EXPECT_TRUE(std::isnan(sol.kkt_residual));
+    EXPECT_TRUE(std::isnan(sol.convergence.kkt_residual));
     EXPECT_TRUE(hven::solvers::detail::engine_rows(sol).lambda_i.isZero(0.0));
 
     // AND THE CURRENCY DROP IS THE ONE `finish` APPLIES (fix round 2). This
@@ -1034,9 +1039,9 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     const SqpKkt independent = evaluate_kkt(
         model, b.x, hven::solvers::detail::engine_rows(b).lambda_e,
         hven::solvers::detail::engine_rows(b).lambda_i, off_opts.common.feasibility_tol);
-    EXPECT_DOUBLE_EQ(independent.stationarity, b.sqp_stationarity);
-    EXPECT_DOUBLE_EQ(independent.feasibility, b.sqp_feasibility);
-    EXPECT_DOUBLE_EQ(independent.residual(), b.kkt_residual);
+    EXPECT_DOUBLE_EQ(independent.stationarity, b.convergence.stationarity);
+    EXPECT_DOUBLE_EQ(independent.feasibility, b.convergence.feasibility);
+    EXPECT_DOUBLE_EQ(independent.residual(), b.convergence.kkt_residual);
     // The bound prices are the FEASIBILITY problem's own (the certificate's,
     // not grad L's), so they are compared against the unscaled solve's rather
     // than against a re-measurement -- and they too carry no second factor.
@@ -1145,7 +1150,7 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     for (Index i = 0; i < sol.z.size(); ++i) {
         EXPECT_EQ(independent.z(i), sol.z(i)) << "bound price " << i;
     }
-    EXPECT_EQ(independent.stationarity, sol.sqp_stationarity);
+    EXPECT_EQ(independent.stationarity, sol.convergence.stationarity);
 
     // AND THE SHARED FOUR ARE TAKEN AT THE VECTORS THIS CALL RETURNS (M6 W5
     // T8.4 fix1, astra item 2). The scaled arm is the one place a caller-scale
@@ -1156,14 +1161,15 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     // computation over the model at exactly the returned vectors reproduces
     // them.
     const NlpEval ev_at_solution = eval_nlp(model, sol.x);
-    const DeclaredDiagnostics d = compute_declared_diagnostics(
-        sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-        hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev_at_solution.grad,
-        ev_at_solution.Je, ev_at_solution.Ji, ev_at_solution.ce, ev_at_solution.ci, model.lower(),
-        model.upper(), {});
+    const hven::solvers::detail::DeclaredDiagnostics d =
+        hven::solvers::detail::compute_declared_diagnostics(
+            sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+            hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev_at_solution.grad,
+            ev_at_solution.Je, ev_at_solution.Ji, ev_at_solution.ce, ev_at_solution.ci,
+            model.lower(), model.upper(), {});
     EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
-    EXPECT_NEAR(d.feasibility_e, sol.feasibility_e, 1e-9);
-    EXPECT_NEAR(d.feasibility_i, sol.feasibility_i, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::solvers::detail::engine_rows(sol).feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, hven::solvers::detail::engine_rows(sol).feasibility_i, 1e-9);
     EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
 }
 

@@ -680,7 +680,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
 // (i) BUDGET EXHAUSTION IS A CONTINUE, NOT A SHRINK -- continuation.h's own
 //     design decision, and the one status the loop treats as neither success
 //     nor failure. Same starved driver as (f), with budget_mode ON, so the
-//     identical exhaustions arrive as kBudgetExhausted instead of kMaxIter.
+//     identical exhaustions arrive as best-iterate kMaxIter (returned_best_iterate).
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions budgeted = sweep_options();
@@ -703,7 +703,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     // hand-off, which is why no new prediction is made for it.
     Index exhausted = 0, continued = 0;
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
-        if (res.steps[i].status != SolveStatus::kBudgetExhausted) {
+        if (res.steps[i].status != SolveStatus::kMaxIter || !res.steps[i].returned_best_iterate) {
             continue;
         }
         ++exhausted;
@@ -743,8 +743,8 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
         run_continuation(model_plain, p_vec(0.0), p_vec(1.0), driver_plain, copts);
     ASSERT_TRUE(plain_res.reached_p1) << trajectory(plain_res);
     for (const ContinuationStep &st : plain_res.steps) {
-        EXPECT_NE(st.status, SolveStatus::kBudgetExhausted)
-            << "kBudgetExhausted must be unreachable with budget_mode off";
+        EXPECT_FALSE(st.returned_best_iterate)
+            << "a best-iterate exit must be unreachable with budget_mode off";
     }
     EXPECT_NE(res.steps.size(), plain_res.steps.size())
         << "the continue rule and the shrink rule produced the same trajectory, so nothing "
@@ -872,7 +872,8 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     // change these run lengths.
     std::vector<std::pair<double, Index>> chains; // (p, consecutive attempts)
     for (std::size_t i = 1; i < res.steps.size(); ++i) {
-        EXPECT_EQ(res.steps[i].status, SolveStatus::kBudgetExhausted)
+        EXPECT_TRUE(res.steps[i].status == SolveStatus::kMaxIter &&
+                    res.steps[i].returned_best_iterate)
             << "step " << i << " is not an exhaustion:\n"
             << trajectory(res);
         if (!chains.empty() && chains.back().first == res.steps[i].p(0)) {
@@ -1067,7 +1068,8 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     for (const ContinuationStep &st : res.steps) {
         EXPECT_EQ(st.p(0), 0.6) << "a cold continuation moved p:\n" << trajectory(res);
         EXPECT_EQ(st.dp, 0.0);
-        EXPECT_EQ(st.status, SolveStatus::kBudgetExhausted) << trajectory(res);
+        EXPECT_EQ(st.status, SolveStatus::kMaxIter) << trajectory(res);
+        EXPECT_TRUE(st.returned_best_iterate) << trajectory(res);
         EXPECT_FALSE(st.predictor_outcome.has_value()) << "nothing is predicted at p0";
     }
     EXPECT_EQ(res.predictor_calls, 0);

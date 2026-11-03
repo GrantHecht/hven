@@ -1008,10 +1008,10 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const hven::solvers::IpmResult &b = bare_result;
     const int bare_iters = b.iterations;
     const double bare_obj = b.f;
-    const double bare_kkt = b.kkt_inf;
-    const double bare_barr = b.barr_inf;
-    const double bare_econ = b.econ_inf;
-    const double bare_icon = b.icon_inf;
+    const double bare_kkt = b.convergence.kkt;
+    const double bare_barr = b.convergence.barrier;
+    const double bare_econ = b.convergence.equality;
+    const double bare_icon = b.convergence.inequality;
     const Eigen::VectorXd bare_x = bare_result.x;
 
     const auto traced_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
@@ -1033,10 +1033,10 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     EXPECT_EQ(traced_flag, bare_flag);
     EXPECT_EQ(t.iterations, bare_iters);
     EXPECT_EQ(t.f, bare_obj);
-    EXPECT_EQ(t.kkt_inf, bare_kkt);
-    EXPECT_EQ(t.barr_inf, bare_barr);
-    EXPECT_EQ(t.econ_inf, bare_econ);
-    EXPECT_EQ(t.icon_inf, bare_icon);
+    EXPECT_EQ(t.convergence.kkt, bare_kkt);
+    EXPECT_EQ(t.convergence.barrier, bare_barr);
+    EXPECT_EQ(t.convergence.equality, bare_econ);
+    EXPECT_EQ(t.convergence.inequality, bare_icon);
     EXPECT_EQ(traced_result.x, bare_x);
     // NON-VACUITY: the sink really did run.
     EXPECT_GT(sink.lines_written(), 2);
@@ -1234,7 +1234,7 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     EXPECT_EQ(second.label, "ipm_1");
     EXPECT_EQ(first.status, SolveStatus::kOptimal);
     EXPECT_EQ(first.iterations, first_result.iterations);
-    EXPECT_EQ(first.total_time, first_result.total_time);
+    EXPECT_EQ(first.total_time, first_result.timing.total);
     EXPECT_EQ(first.phases_run, 1);
     EXPECT_GT(first.factorizations, 0);
     EXPECT_GT(first.analyses, 0);
@@ -1243,7 +1243,7 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     // The second record likewise, against the SECOND call's result.
     EXPECT_EQ(second.status, second_result.status);
     EXPECT_EQ(second.iterations, second_result.iterations);
-    EXPECT_EQ(second.total_time, second_result.total_time);
+    EXPECT_EQ(second.total_time, second_result.timing.total);
     EXPECT_EQ(second.soc_steps_taken, second_result.soc_steps_taken);
     EXPECT_EQ(second.watchdog_activations, second_result.watchdog_activations);
     // wall_seconds is INFORMATIONAL (CLAUDE.md section 7): populated, never a
@@ -2010,10 +2010,10 @@ IpmAnswer answer_of(const IpmResult &r) {
     a.status = r.status;
     a.iterations = r.iterations;
     a.f = r.f;
-    a.kkt_inf = r.kkt_inf;
-    a.barr_inf = r.barr_inf;
-    a.econ_inf = r.econ_inf;
-    a.icon_inf = r.icon_inf;
+    a.kkt_inf = r.convergence.kkt;
+    a.barr_inf = r.convergence.barrier;
+    a.econ_inf = r.convergence.equality;
+    a.icon_inf = r.convergence.inequality;
     a.x = r.x;
     a.lambda_e = hven::solvers::detail::engine_rows(r).lambda_e;
     a.lambda_i = hven::solvers::detail::engine_rows(r).lambda_i;

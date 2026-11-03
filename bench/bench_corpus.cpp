@@ -1177,9 +1177,6 @@ hven::solvers::SolveStatus parse_status(const std::string &s) {
     if (s == "TimeLimit") {
         return hven::solvers::SolveStatus::kTimeLimit;
     }
-    if (s == "BudgetExhausted") {
-        return hven::solvers::SolveStatus::kBudgetExhausted;
-    }
     throw std::invalid_argument(
         fmt::format("hven_sqp_corpus: internal row parse: unrecognised status string '{}'", s));
 }

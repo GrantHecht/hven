@@ -95,6 +95,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         step.x = sol.x;
         step.dp = dp;
         step.status = sol.status;
+        step.returned_best_iterate = sol.returned_best_iterate;
         step.counters = sol.counters;
         step.level = sol.counters.start_level_used;
         step.predictor_used = used;
@@ -125,7 +126,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     // proposal cost is the whole of what arriving at it cost.
     Index minors_at_proposal = sol.counters.qp_minor_iters;
     for (int cold_continuations = 0;
-         sol.status == SolveStatus::kBudgetExhausted &&
+         sol.status == SolveStatus::kMaxIter && sol.returned_best_iterate &&
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
         const SqpWarmStart handoff = sol.warm_start;
@@ -322,7 +323,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
             continue;
         }
 
-        if (sol.status == SolveStatus::kBudgetExhausted &&
+        if (sol.status == SolveStatus::kMaxIter && sol.returned_best_iterate &&
             budget_continuations < continuation_detail::kBudgetContinuationsMax) {
             ++budget_continuations;
             continuing = true;

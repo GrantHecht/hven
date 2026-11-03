@@ -88,7 +88,7 @@ struct SocCorrectionOutcome {
 /// with a scripted lambda. The first correction always runs once triggered;
 /// subsequent ones are gated by soc_should_continue.
 template <class CorrectionFn>
-RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, int &soc_steps,
+RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, Index &soc_steps,
                                    CorrectionFn &&do_correction) {
     double prev_violation = first_trial_violation;
     int corrections = 0;
@@ -149,8 +149,8 @@ class SocRecovery : public RecoveryChain {
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Stateless (per RecoveryChain's ownership rule): nothing to clear.
     void reset() override {}

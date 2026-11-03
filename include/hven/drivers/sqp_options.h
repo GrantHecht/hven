@@ -740,7 +740,7 @@ struct SqpOptions {
     QpMode qp_mode = QpMode::kWalk;
 
     /// BUDGETED MODE: when true, a solve that exhausts common.max_iterations in the MAIN
-    /// optimality loop reports SolveStatus::kBudgetExhausted rather than kMaxIter,
+    /// optimality loop reports SolveStatus::kMaxIter with returned_best_iterate set,
     /// and x/lambda_e/lambda_i/z/f are the Best iterate this solve visited by the
     /// funnel's own ordering -- feasibility first: min h(x), tie-break min f --
     /// rather than the last iterate reached. warm_start is populated from that

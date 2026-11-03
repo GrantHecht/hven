@@ -35,6 +35,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/column_scaling.h>
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/problem_scaling.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
@@ -524,10 +525,10 @@ void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     const SqpKkt k = evaluate_kkt(model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
                                   hven::solvers::detail::engine_rows(sol).lambda_i,
                                   SqpOptions{}.common.feasibility_tol);
-    EXPECT_DOUBLE_EQ(k.stationarity, sol.sqp_stationarity);
-    EXPECT_DOUBLE_EQ(k.feasibility, sol.sqp_feasibility);
-    EXPECT_DOUBLE_EQ(k.complementarity, sol.sqp_complementarity);
-    EXPECT_DOUBLE_EQ(k.residual(), sol.kkt_residual);
+    EXPECT_DOUBLE_EQ(k.stationarity, sol.convergence.stationarity);
+    EXPECT_DOUBLE_EQ(k.feasibility, sol.convergence.feasibility);
+    EXPECT_DOUBLE_EQ(k.complementarity, sol.convergence.complementarity);
+    EXPECT_DOUBLE_EQ(k.residual(), sol.convergence.kkt_residual);
     ASSERT_EQ(k.z.size(), sol.z.size());
     for (Index i = 0; i < sol.z.size(); ++i) {
         EXPECT_DOUBLE_EQ(k.z(i), sol.z(i)) << "bound price " << i;
@@ -543,13 +544,14 @@ void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     model.eval_ci_in_place(sol.x, ci);
     model.eval_jac_e_in_place(sol.x, je);
     model.eval_jac_i_in_place(sol.x, ji);
-    const DeclaredDiagnostics dd =
-        compute_declared_diagnostics(sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-                                     hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, g, je,
-                                     ji, ce, ci, model.lower(), model.upper(), {});
+    const hven::solvers::detail::DeclaredDiagnostics dd =
+        hven::solvers::detail::compute_declared_diagnostics(
+            sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+            hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, g, je, ji, ce, ci,
+            model.lower(), model.upper(), {});
     EXPECT_DOUBLE_EQ(dd.stationarity, sol.stationarity);
-    EXPECT_DOUBLE_EQ(dd.feasibility_e, sol.feasibility_e);
-    EXPECT_DOUBLE_EQ(dd.feasibility_i, sol.feasibility_i);
+    EXPECT_DOUBLE_EQ(dd.feasibility_e, hven::solvers::detail::engine_rows(sol).feasibility_e);
+    EXPECT_DOUBLE_EQ(dd.feasibility_i, hven::solvers::detail::engine_rows(sol).feasibility_i);
     EXPECT_DOUBLE_EQ(dd.complementarity, sol.complementarity);
 }
 
@@ -627,7 +629,7 @@ void expect_same_solve(const SqpResult &a, const SqpResult &b) {
         hven::solvers::detail::engine_rows(b).lambda_i, 0.0));
     EXPECT_TRUE(a.z.isApprox(b.z, 0.0));
     EXPECT_EQ(a.f, b.f);
-    EXPECT_EQ(a.kkt_residual, b.kkt_residual);
+    EXPECT_EQ(a.convergence.kkt_residual, b.convergence.kkt_residual);
     EXPECT_EQ(a.history.size(), b.history.size());
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
@@ -876,7 +878,7 @@ template <class Model> Equivalence expect_scaled_equivalence(const Model &model,
         EXPECT_TRUE(sol.z.isApprox(Vec(ref.z.cwiseQuotient(e.d)), 0.0))
             << sol.z.transpose() << " vs " << ref.z.transpose() << " / d";
     }
-    EXPECT_EQ(ref.kkt_residual, sol.scaling.scaled_kkt_residual)
+    EXPECT_EQ(ref.convergence.kkt_residual, sol.scaling.scaled_kkt_residual)
         << "the inner residual, under the column layer alone";
     return e;
 }
@@ -1475,7 +1477,7 @@ TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) 
     const double c = model.eval_ce(sol.x)(0);
     EXPECT_LE(std::abs(c), opts.common.feasibility_tol)
         << "the caller's own residual at the returned point";
-    EXPECT_LE(sol.sqp_feasibility, opts.common.feasibility_tol);
+    EXPECT_LE(sol.convergence.feasibility, opts.common.feasibility_tol);
 
     // UNSCALED, the guard is never entered.
     SqpOptions plain_opts = off_options();
@@ -1502,7 +1504,7 @@ TEST(ScaledConvergenceGuard, ABoxViolationAColumnFactorHidIsRefused) {
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_LE(sol.x(1), model.upper()(1) + opts.common.feasibility_tol)
         << "the returned point is in the box";
-    EXPECT_LE(sol.sqp_feasibility, opts.common.feasibility_tol);
+    EXPECT_LE(sol.convergence.feasibility, opts.common.feasibility_tol);
 }
 
 // ===========================================================================
@@ -1567,7 +1569,7 @@ TEST(ScaledConvergenceGuard, ACallerUnitGradientAColumnFactorHidIsRefused) {
         << "the warm point passes the scaled test with a caller-unit gradient of 20";
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_GE(sol.counters.major_iters, 1);
-    EXPECT_LE(sol.sqp_stationarity, 1.0) << "the caller-unit ceiling holds at the answer";
+    EXPECT_LE(sol.convergence.stationarity, 1.0) << "the caller-unit ceiling holds at the answer";
 }
 
 // ===========================================================================

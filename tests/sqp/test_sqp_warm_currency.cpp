@@ -1158,10 +1158,11 @@ void expect_same_answer(const SqpResult &hot, const SqpResult &cold) {
     EXPECT_EQ(hot.status, cold.status);
     EXPECT_EQ(hot.infeasibility_certified, cold.infeasibility_certified);
     expect_same_bits(hot.f, cold.f, "objective");
-    expect_same_bits(hot.sqp_stationarity, cold.sqp_stationarity, "stationarity");
-    expect_same_bits(hot.sqp_feasibility, cold.sqp_feasibility, "feasibility");
-    expect_same_bits(hot.sqp_complementarity, cold.sqp_complementarity, "complementarity");
-    expect_same_bits(hot.kkt_residual, cold.kkt_residual, "kkt_residual");
+    expect_same_bits(hot.convergence.stationarity, cold.convergence.stationarity, "stationarity");
+    expect_same_bits(hot.convergence.feasibility, cold.convergence.feasibility, "feasibility");
+    expect_same_bits(hot.convergence.complementarity, cold.convergence.complementarity,
+                     "complementarity");
+    expect_same_bits(hot.convergence.kkt_residual, cold.convergence.kkt_residual, "kkt_residual");
 
     ASSERT_EQ(hot.x.size(), cold.x.size());
     for (Index i = 0; i < hot.x.size(); ++i) {

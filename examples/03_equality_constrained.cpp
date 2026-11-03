@@ -66,11 +66,11 @@ bool check(const char *engine, const SolveResult &r) {
     const double f_star = (p_norm - 2.0) * (p_norm - 2.0);
     const double lambda_star = 0.5 * p_norm - 1.0;
     const bool ok = r.status == SolveStatus::kOptimal && std::abs(r.f - f_star) < 1e-6 &&
-                    std::abs(r.lambda[0] - lambda_star) < 1e-5 && r.feasibility_e < 1e-6;
+                    std::abs(r.lambda[0] - lambda_star) < 1e-5 && r.feasibility < 1e-6;
     std::printf("%-10s status=%-8s iterations=%3lld  f=%.8f (exact %.8f)  lambda=%.6f "
                 "(exact %.6f)  g=%.6f  |ce|=%.1e  %s\n",
                 engine, to_string(r.status), static_cast<long long>(r.iterations), r.f, f_star,
-                r.lambda[0], lambda_star, r.g[0], r.feasibility_e, ok ? "OK" : "FAILED");
+                r.lambda[0], lambda_star, r.g[0], r.feasibility, ok ? "OK" : "FAILED");
     return ok;
 }
 

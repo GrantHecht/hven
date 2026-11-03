@@ -2250,10 +2250,10 @@ WarmAnswer answer_of(const hven::solvers::IpmSolver &) {
     a.flag_ = r.status;
     a.iters_ = r.iterations;
     a.obj_ = r.f;
-    a.kkt_inf_ = r.kkt_inf;
-    a.barr_inf_ = r.barr_inf;
-    a.econ_inf_ = r.econ_inf;
-    a.icon_inf_ = r.icon_inf;
+    a.kkt_inf_ = r.convergence.kkt;
+    a.barr_inf_ = r.convergence.barrier;
+    a.econ_inf_ = r.convergence.equality;
+    a.icon_inf_ = r.convergence.inequality;
     a.primals_ = r.x;
     a.eq_lmults_ = hven::solvers::detail::engine_rows(r).lambda_e;
     a.iq_lmults_ = hven::solvers::detail::engine_rows(r).lambda_i;

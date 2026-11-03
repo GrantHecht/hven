@@ -94,8 +94,8 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// A genuinely accepted regular step means the ordinary optimality-phase
     /// acceptance test recovered, so any soft pre-stage in progress has ended:

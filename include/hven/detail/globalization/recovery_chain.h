@@ -97,8 +97,8 @@ class RecoveryChain {
                                     Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                                     Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                     Eigen::VectorXd &RHS2, double &alpha, double &alphap,
-                                    double &alphad, int &soc_steps, int &resolved_depth,
-                                    int &watchdog_activations) = 0;
+                                    double &alphad, Index &soc_steps, int &resolved_depth,
+                                    Index &watchdog_activations) = 0;
 
     /// @brief Called once per genuinely ACCEPTED iteration — i.e. the rejection
     /// hook was skipped because should_dispatch_recovery was false.

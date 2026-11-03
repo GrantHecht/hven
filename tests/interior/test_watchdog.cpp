@@ -39,6 +39,7 @@
 
 namespace {
 
+using hven::Index;
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::ChainedRecovery;
 using hven::solvers::ExtendedBacktrackRecovery;
@@ -289,7 +290,9 @@ TEST(ExtendedBacktrackGuards, DisabledDeclines) {
     Eigen::VectorXd XSL(1), DXSL(1), XSL2(1), RHS(1), RHS2(1);
     DXSL << 1.0;
     double alpha = 0.5, alphap = 1.0, alphad = 1.0;
-    int soc_steps = 0, resolved_depth = kRecoveryDepthUnresolved, watchdog_activations = 0;
+    Index soc_steps = 0;
+    int resolved_depth = kRecoveryDepthUnresolved;
+    Index watchdog_activations = 0;
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
@@ -317,7 +320,9 @@ TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
     Eigen::VectorXd XSL(3), XSL2(3), RHS(3), RHS2(3);
     const double live_alpha = 0.5;
     double alpha = live_alpha, alphap = 1.0, alphad = 1.0;
-    int soc_steps = 0, resolved_depth = kRecoveryDepthUnresolved, watchdog_activations = 0;
+    Index soc_steps = 0;
+    int resolved_depth = kRecoveryDepthUnresolved;
+    Index watchdog_activations = 0;
 
     // Three rejections in a row (cap == 3): never accepted.
     ExtBtScriptedAcceptance acceptance({{false, 0.25}, {false, 0.5}, {false, 0.1}});
@@ -358,7 +363,9 @@ TEST(ExtendedBacktrackLadder, AcceptsAndStopsEarly) {
     Eigen::VectorXd XSL(2), XSL2(2), RHS(2), RHS2(2);
     const double live_alpha = 0.8;
     double alpha = live_alpha, alphap = 1.0, alphad = 1.0;
-    int soc_steps = 0, resolved_depth = kRecoveryDepthUnresolved, watchdog_activations = 0;
+    Index soc_steps = 0;
+    int resolved_depth = kRecoveryDepthUnresolved;
+    Index watchdog_activations = 0;
 
     ExtBtScriptedAcceptance acceptance({{false, 0.3}, {true, 0.2}});
 
@@ -429,7 +436,7 @@ class WatchdogSpyRecovery : public RecoveryChain {
                             hven::solvers::LineSearchMode, double, double, double, double,
                             Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                             Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
-                            int &, int &, int &) override {
+                            Index &, int &, Index &) override {
         ++calls_;
         return action_;
     }
@@ -449,9 +456,9 @@ struct WatchdogChainDrive {
     std::vector<IterateInfo> iters;
     Eigen::VectorXd v = Eigen::VectorXd::Zero(1);
     double alpha = 1.0, alphap = 1.0, alphad = 1.0;
-    int soc_steps = 0;
+    Index soc_steps = 0;
     int resolved_depth = kRecoveryDepthUnresolved;
-    int watchdog_activations = 0;
+    Index watchdog_activations = 0;
 };
 
 Action watchdog_drive_chain(RecoveryChain &chain, WatchdogChainDrive &d, SolverContext &ctx,
@@ -550,10 +557,10 @@ TEST(ChainedRecoveryOrdering, NotifyStepAcceptedPropagatesToBothLinks) {
 Action drive_watchdog(WatchdogRecovery &watchdog, SolverContext &ctx,
                       AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
                       Eigen::VectorXd &v, IterateInfo &citer, double mu, double prim_obj,
-                      double &alpha, int &resolved_depth, int &watchdog_activations) {
+                      double &alpha, int &resolved_depth, Index &watchdog_activations) {
     std::vector<IterateInfo> iters;
     double alphap = 1.0, alphad = 1.0;
-    int soc_steps = 0;
+    Index soc_steps = 0;
     return watchdog.on_step_rejected(
         citer, iters, ctx, acceptance, mechanism, hven::solvers::LineSearchMode::kAugLang,
         /*obj_scale=*/1.0, mu, prim_obj, /*barr_obj=*/0.0, v, v, v, v, v, alpha, alphap, alphad,
@@ -572,7 +579,7 @@ TEST(WatchdogRecoveryDecorator, DelegatesWhileNotArmed) {
     WatchdogSpyRecovery *inner_ptr = inner.get();
     WatchdogRecovery watchdog(std::move(inner));
 
-    int watchdog_activations = 0;
+    Index watchdog_activations = 0;
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i) {
         Eigen::VectorXd v(1);
         v << 1.0;
@@ -604,7 +611,7 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
 
     constexpr double kMu = 1.0;
     constexpr double kSnapshotValue = 100.0;
-    int watchdog_activations = 0;
+    Index watchdog_activations = 0;
 
     // kWatchdogShortenedIterTrigger - 1 plain rejections (not armed yet;
     // consulted through to inner each time). merit == prim_obj (barr_obj ==
@@ -678,7 +685,7 @@ TEST(WatchdogRecoveryDecorator, ProgressDisarmsAndDelegatesBack) {
     WatchdogRecovery watchdog(std::move(inner));
 
     constexpr double kMu = 1.0;
-    int watchdog_activations = 0;
+    Index watchdog_activations = 0;
 
     for (int i = 0; i < kWatchdogShortenedIterTrigger; ++i) { // arms on the last of these
         Eigen::VectorXd v(1);
@@ -722,7 +729,7 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
     WatchdogRecovery watchdog(std::move(inner));
 
     constexpr double kMu = 1.0;
-    int watchdog_activations = 0;
+    Index watchdog_activations = 0;
 
     static_assert(kWatchdogShortenedIterTrigger == 10,
                   "test assumes the paper's 10-rejection trigger");

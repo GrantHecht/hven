@@ -279,28 +279,27 @@ void expect_same_reported_numbers(const hven::solvers::IpmResult &a,
     // The four DECLARED diagnostics, NaN-aware: NaN on both sides is agreement,
     // which is the whole reason this is a bit comparison and not `==`.
     EXPECT_TRUE(bits_equal("stationarity", a.stationarity, b.stationarity));
-    EXPECT_TRUE(bits_equal("feasibility_e", a.feasibility_e, b.feasibility_e));
-    EXPECT_TRUE(bits_equal("feasibility_i", a.feasibility_i, b.feasibility_i));
+    EXPECT_TRUE(bits_equal("feasibility", a.feasibility, b.feasibility));
     EXPECT_TRUE(bits_equal("complementarity", a.complementarity, b.complementarity));
     // The engine's own four.
-    EXPECT_TRUE(bits_equal("kkt_inf", a.kkt_inf, b.kkt_inf));
-    EXPECT_TRUE(bits_equal("barr_inf", a.barr_inf, b.barr_inf));
-    EXPECT_TRUE(bits_equal("econ_inf", a.econ_inf, b.econ_inf));
-    EXPECT_TRUE(bits_equal("icon_inf", a.icon_inf, b.icon_inf));
+    EXPECT_TRUE(bits_equal("kkt_inf", a.convergence.kkt, b.convergence.kkt));
+    EXPECT_TRUE(bits_equal("barr_inf", a.convergence.barrier, b.convergence.barrier));
+    EXPECT_TRUE(bits_equal("econ_inf", a.convergence.equality, b.convergence.equality));
+    EXPECT_TRUE(bits_equal("icon_inf", a.convergence.inequality, b.convergence.inequality));
 
     EXPECT_EQ(a.soc_steps_taken, b.soc_steps_taken);
     EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
     EXPECT_EQ(a.recovery_depth_histogram, b.recovery_depth_histogram);
 
-    EXPECT_TRUE(bits_equal("last_funnel_width", a.last_funnel_width, b.last_funnel_width));
+    EXPECT_EQ(a.last_funnel_width, b.last_funnel_width);
     EXPECT_EQ(a.last_filter_size, b.last_filter_size);
     EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
     EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
     EXPECT_EQ(a.last_monotone_iters, b.last_monotone_iters);
     EXPECT_EQ(a.last_feas_rest_entries, b.last_feas_rest_entries);
     EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
-    EXPECT_TRUE(bits_equal("last_prox_reg_primal", a.last_prox_reg_primal, b.last_prox_reg_primal));
-    EXPECT_TRUE(bits_equal("last_prox_reg_dual", a.last_prox_reg_dual, b.last_prox_reg_dual));
+    EXPECT_EQ(a.last_prox_reg_primal, b.last_prox_reg_primal);
+    EXPECT_EQ(a.last_prox_reg_dual, b.last_prox_reg_dual);
     EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
     EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
 

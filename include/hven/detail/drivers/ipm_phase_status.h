@@ -3,16 +3,9 @@
 
 #pragma once
 
-// The interior-point engine's phase-status resolution.
-//
-// The vocabulary itself -- SolveStatus, IpmStopReason, their display strings
-// and the severity order -- lives in core/solver_status.h, because
-// core/ledger.h reports a status and a core header may depend on no tier above
-// it. This header holds one function, a statement about one engine's exits
-// rather than about the vocabulary.
-//
-// It stays a public header of its own rather than folding into the engine's,
-// so a caller resolving a verdict it obtained elsewhere needs neither engine.
+// The interior-point engine's phase-status resolution: one function, a
+// statement about one engine's exits rather than about the status vocabulary
+// (core/solver_status.h).
 
 #include <hven/core/solver_status.h>
 

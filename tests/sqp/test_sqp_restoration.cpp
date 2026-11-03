@@ -45,6 +45,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/problem_access.h>
@@ -1783,19 +1784,20 @@ TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPri
     // INDEPENDENTLY, from the model itself at exactly the vectors this call
     // returns. A test may evaluate; a solve may not.
     const NlpEval ev = eval_nlp(model, sol.x);
-    const DeclaredDiagnostics d = compute_declared_diagnostics(
-        sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-        hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev.grad, ev.Je, ev.Ji, ev.ce,
-        ev.ci, model.lower(), model.upper(), {});
+    const hven::solvers::detail::DeclaredDiagnostics d =
+        hven::solvers::detail::compute_declared_diagnostics(
+            sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
+            hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev.grad, ev.Je, ev.Ji, ev.ce,
+            ev.ci, model.lower(), model.upper(), {});
     EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
-    EXPECT_NEAR(d.feasibility_e, sol.feasibility_e, 1e-9);
-    EXPECT_NEAR(d.feasibility_i, sol.feasibility_i, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::solvers::detail::engine_rows(sol).feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, hven::solvers::detail::engine_rows(sol).feasibility_i, 1e-9);
     EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
     // And the numbers themselves, hand-derived above: the price the caller gets
     // back does NOT close the declared stationarity at this point, and it must
     // not be made to look as though it does.
     EXPECT_NEAR(sol.stationarity, 1.0, 1e-6);
-    EXPECT_NEAR(sol.feasibility_e, 4.0, 1e-6);
+    EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).feasibility_e, 4.0, 1e-6);
 }
 
 // THE SAME EXHAUSTION IN THE OTHER TWO MODES (W2 T4, owner ruling Q-O3): the
