@@ -582,9 +582,10 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
                                            r1.iterations, r2.iterations, r1.f, r2.f));
     ASSERT_EQ(r1.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_LE(std::abs(r2.f - r1.f), 10.0 * std::max(r1.kkt_inf, r2.kkt_inf) *
+    EXPECT_LE(std::abs(r2.f - r1.f), 10.0 * std::max(r1.convergence.kkt, r2.convergence.kkt) *
                                          std::max(1.0, std::max(std::abs(r1.f), std::abs(r2.f))))
-        << "f " << r1.f << " vs " << r2.f << ", kkt " << r1.kkt_inf << " / " << r2.kkt_inf;
+        << "f " << r1.f << " vs " << r2.f << ", kkt " << r1.convergence.kkt << " / "
+        << r2.convergence.kkt;
 #endif
 
     // BITWISE IDENTITY, REPORTED. The evaluation is serial at either count and
