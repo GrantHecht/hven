@@ -1020,7 +1020,7 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLe
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable);
     // NON-VACUOUS: an evaluation really was refused and absorbed, which is what
     // put the solve on this path at all.
-    EXPECT_FALSE(result.last_eval_exception.empty())
+    EXPECT_FALSE(result.evaluation_errors.last_message.empty())
         << "no trial evaluation was refused, so the bypass never ran";
     // And it stopped THERE rather than burning the budget: the bypass exits the
     // loop on the iteration the failure landed on.
@@ -1099,7 +1099,7 @@ TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheR
     ASSERT_NO_THROW(
         result = solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0));
 
-    EXPECT_FALSE(result.last_eval_exception.empty())
+    EXPECT_FALSE(result.evaluation_errors.last_message.empty())
         << "no trial evaluation was refused, so this path never ran";
     EXPECT_GT(result.last_feas_rest_entries, 0) << "restoration was not entered";
     // And the iteration is ATTRIBUTED to restoration in the recovery-depth
@@ -1125,7 +1125,7 @@ void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchMode ls,
         solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), x0);
 
     EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable) << what;
-    EXPECT_FALSE(result.last_eval_exception.empty())
+    EXPECT_FALSE(result.evaluation_errors.last_message.empty())
         << what << ": no trial evaluation was refused, so the variant's catch arms never ran";
     EXPECT_LT(result.iterations, 20) << what;
 }

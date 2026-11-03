@@ -400,8 +400,8 @@ IpmPolishData fixture_polish(const SqpResult &sol) {
 
 WarmExtension polish_extension(const IpmPolishData &polish) {
     WarmExtension ext;
-    ext.tag_ = std::string(kIpmPolishTag);
-    ext.payload_ = serialize_ipm_polish(polish);
+    ext.tag = std::string(kIpmPolishTag);
+    ext.payload = serialize_ipm_polish(polish);
     return ext;
 }
 
@@ -573,7 +573,7 @@ TEST(SqpWarmCurrency, TheHandOverRefusesAMalformedPolishPayloadNamingTheTag) {
 
     WarmStart data = core_payload(sol, *bridge);
     WarmExtension ext = polish_extension(fixture_polish(sol));
-    ext.payload_.resize(ext.payload_.size() - 4); // truncated mid-block
+    ext.payload.resize(ext.payload.size() - 4); // truncated mid-block
     WarmStartAccess::extensions(data).push_back(ext);
 
     SqpSolver driver{SqpOptions{}};
@@ -687,8 +687,8 @@ TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
 
     WarmStart data = core_payload(sol, *bridge);
     WarmExtension ext;
-    ext.tag_ = "some.other.engine.v3";
-    ext.payload_ = {std::byte{0xde}, std::byte{0xad}};
+    ext.tag = "some.other.engine.v3";
+    ext.payload = {std::byte{0xde}, std::byte{0xad}};
     WarmStartAccess::extensions(data).push_back(ext);
 
     SqpSolver driver{SqpOptions{}};
@@ -1016,7 +1016,7 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     // The problem HAS finite variable bounds, so the hand-off carries the
     // interior-point polish extension beside its core.
     ASSERT_EQ(WarmStartAccess::extensions(exported).size(), 1u);
-    ASSERT_EQ(WarmStartAccess::extensions(exported)[0].tag_, std::string(kIpmPolishTag));
+    ASSERT_EQ(WarmStartAccess::extensions(exported)[0].tag, std::string(kIpmPolishTag));
     // It really did solve the fixture problem.
     EXPECT_NEAR(WarmStartAccess::primal(exported)(0), -0.5, 1e-5);
     EXPECT_NEAR(WarmStartAccess::primal(exported)(1), 1.5, 1e-5);

@@ -218,7 +218,7 @@ WarmStart seed_form(const WarmStart &full) {
 // the work counters `kkt_analyses_this_call`, `kkt_analyses_total` and all
 // five of `kkt_factor_counters`; `soc_steps_taken`, `watchdog_activations`,
 // `recovery_depth_histogram`; the nine last-phase globalization diagnostics;
-// `last_eval_exception`, `last_kkt_info`; `polish_ignored`; and the `phases`
+// `evaluation_errors`, `last_kkt_info`; `polish_ignored`; and the `phases`
 // vector's NON-TIMING fields (`phase`, `status`, `iterations`, `ran`).
 //
 // WHAT IS EXCLUDED, and why -- three groups, and nothing else:
@@ -310,7 +310,7 @@ void expect_same_reported_numbers(const hven::solvers::IpmResult &a,
     EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
     EXPECT_EQ(a.last_prox_reg_primal, b.last_prox_reg_primal);
     EXPECT_EQ(a.last_prox_reg_dual, b.last_prox_reg_dual);
-    EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
+    EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
     EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
 
     EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
@@ -495,7 +495,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     WarmStart seed = seed_form(exported.payload);
     WarmStartAccess::extensions(seed) = WarmStartAccess::extensions(exported.payload);
     ASSERT_EQ(WarmStartAccess::extensions(seed).size(), 1u);
-    ASSERT_EQ(WarmStartAccess::extensions(seed)[0].tag_, std::string(kIpmPolishTag));
+    ASSERT_EQ(WarmStartAccess::extensions(seed)[0].tag, std::string(kIpmPolishTag));
 
     // --- The SQP: the extension is dropped and COUNTED ---
     //

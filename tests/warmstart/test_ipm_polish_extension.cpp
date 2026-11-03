@@ -341,7 +341,7 @@ TEST(IpmPolishLookup, FindsTheTagAmongOthersAndReturnsItsBytesVerbatim) {
 
     const WarmExtension *found = find_ipm_polish(data);
     ASSERT_NE(found, nullptr);
-    EXPECT_EQ(found->payload_, frozen_bytes());
+    EXPECT_EQ(found->payload, frozen_bytes());
 }
 
 TEST(IpmPolishLookup, RefusesTheTagCarriedTwice) {
@@ -361,7 +361,7 @@ TEST(IpmPolishLookup, RefusesTheTagCarriedTwice) {
 
 TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
     const WarmStart data = bridgeable_value();
-    const IpmPolishData polish = deserialize_ipm_polish(find_ipm_polish(data)->payload_);
+    const IpmPolishData polish = deserialize_ipm_polish(find_ipm_polish(data)->payload);
 
     const hven::solvers::detail::SqpWarmState bridged = hven::solvers::detail::to_sqp_warm_state(
         data, bridge_lower(), bridge_upper(), WarmStartAccess::key(data));
@@ -413,7 +413,7 @@ TEST(IpmPolishBridge, RefusesAStampThatDoesNotMatchTheModel) {
 
 TEST(IpmPolishBridge, RefusesAMalformedPayloadWithTheDecodesOwnMessage) {
     WarmStart data = bridgeable_value();
-    WarmStartAccess::extensions(data)[0].payload_.resize(20);
+    WarmStartAccess::extensions(data)[0].payload.resize(20);
     const std::string message = refusal_from([&] {
         hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
                                                  WarmStartAccess::key(data));
@@ -424,9 +424,9 @@ TEST(IpmPolishBridge, RefusesAMalformedPayloadWithTheDecodesOwnMessage) {
 
 TEST(IpmPolishBridge, RefusesAnExtensionWhoseWidthsDisagreeWithTheCore) {
     WarmStart data = bridgeable_value();
-    IpmPolishData polish = deserialize_ipm_polish(WarmStartAccess::extensions(data)[0].payload_);
+    IpmPolishData polish = deserialize_ipm_polish(WarmStartAccess::extensions(data)[0].payload);
     polish.z_lower_ = vector_of({1.0, 2.0, 3.0});
-    WarmStartAccess::extensions(data)[0].payload_ = serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(data)[0].payload = serialize_ipm_polish(polish);
 
     const std::string message = refusal_from([&] {
         hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),

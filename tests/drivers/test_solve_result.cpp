@@ -1388,8 +1388,10 @@ bool names(const std::string &message, const char *needle) {
 } // namespace
 
 // The tally is the callbacks the solve itself made. The first solve of an
-// interior-point Problem also builds its program (a one-time structure probe),
-// which is no part of any solve, so the check is made on the second solve.
+// interior-point Problem also builds its program (a one-time structure probe of
+// one Hessian and one Jacobian evaluation); the tally restarts before that
+// build, so the first solve reports it (the next test pins the first solve
+// against the fixture's own count since construction).
 TEST(SolveWork, IsTheNlpCallbacksOfTheSolveOnTheInteriorPointEngine) {
     auto nlp = std::make_shared<CountedHs071>();
     hven::solvers::Problem problem(nlp);
@@ -1400,6 +1402,70 @@ TEST(SolveWork, IsTheNlpCallbacksOfTheSolveOnTheInteriorPointEngine) {
     const hven::solvers::IpmResult r = solver.solve(problem, x0);
     ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
     expect_work_matches(r.work, *nlp);
+}
+
+TEST(SolveWork, TheFirstInteriorPointSolveCountsItsProgramBuild) {
+    auto nlp = std::make_shared<CountedHs071>();
+    hven::solvers::Problem problem(nlp);
+    hven::solvers::IpmSolver solver{hven::solvers::IpmOptions{}};
+    const Vec x0 = hven_drivers_tests::hs071_start();
+    nlp->reset();
+    const hven::solvers::IpmResult first = solver.solve(problem, x0);
+    ASSERT_EQ(first.status, hven::solvers::SolveStatus::kOptimal);
+    // Everything the Nlp was asked since construction, the build's probe included.
+    expect_work_matches(first.work, *nlp);
+    nlp->reset();
+    const hven::solvers::IpmResult second = solver.solve(problem, x0);
+    ASSERT_EQ(second.status, hven::solvers::SolveStatus::kOptimal);
+    expect_work_matches(second.work, *nlp);
+    // The same trajectory twice: the first solve exceeds the second by exactly
+    // the build's probe (no gradient, objective or constraint evaluation).
+    EXPECT_EQ(first.work.objective_evals, second.work.objective_evals);
+    EXPECT_EQ(first.work.gradient_evals, second.work.gradient_evals);
+    EXPECT_EQ(first.work.constraint_evals, second.work.constraint_evals);
+    EXPECT_EQ(first.work.factorizations, second.work.factorizations);
+    EXPECT_EQ(first.work.jacobian_evals, second.work.jacobian_evals + 1);
+    EXPECT_EQ(first.work.hessian_evals, second.work.hessian_evals + 1);
+}
+
+// Literal, hand-counted HS071 work. The counts are numbers rather than a
+// counting fixture's read-back: a change in how often an engine evaluates the
+// model moves these pins and is a deliberate re-pin, not a silent drift.
+TEST(SolveWork, Hs071InteriorPointSecondSolveHasTheHandCountedWork) {
+    hven::solvers::Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::IpmSolver solver{hven::solvers::IpmOptions{}};
+    const Vec x0 = hven_drivers_tests::hs071_start();
+    (void)solver.solve(problem, x0);
+    const hven::solvers::IpmResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+    // Ten iterations, one gradient / constraint / Jacobian / Hessian evaluation
+    // and one factorization per iteration, two objective evaluations per
+    // iteration. The same totals the counting fixture reads back above.
+    EXPECT_EQ(r.iterations, 10);
+    EXPECT_EQ(r.work.objective_evals, 20);
+    EXPECT_EQ(r.work.gradient_evals, 10);
+    EXPECT_EQ(r.work.constraint_evals, 10);
+    EXPECT_EQ(r.work.jacobian_evals, 10);
+    EXPECT_EQ(r.work.hessian_evals, 10);
+    EXPECT_EQ(r.work.factorizations, 10);
+}
+
+TEST(SolveWork, Hs071SqpHasTheHandCountedWork) {
+    hven::solvers::Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::SqpSolver solver{hven::solvers::SqpOptions{}};
+    const Vec x0 = hven_drivers_tests::hs071_start();
+    const hven::solvers::SqpResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+    // Five iterations; the totals are the ones the counting fixture reads back
+    // above (the Jacobian is evaluated once more than the other callbacks, and
+    // the QP subproblems factor 19 times in all).
+    EXPECT_EQ(r.iterations, 5);
+    EXPECT_EQ(r.work.objective_evals, 6);
+    EXPECT_EQ(r.work.gradient_evals, 6);
+    EXPECT_EQ(r.work.constraint_evals, 6);
+    EXPECT_EQ(r.work.jacobian_evals, 7);
+    EXPECT_EQ(r.work.hessian_evals, 6);
+    EXPECT_EQ(r.work.factorizations, 19);
 }
 
 TEST(SolveWork, IsTheNlpCallbacksOfTheSolveOnTheSqpEngine) {
@@ -1484,6 +1550,65 @@ TEST(SolveMessage, NamesTheStopOnTheSqpEngine) {
         EXPECT_TRUE(names(r.message, "factorization ceiling")) << r.message;
         EXPECT_TRUE(names(r.message, "max_factorizations = 2")) << r.message;
     }
+}
+
+// The best-iterate clause rides on every status the flag is set with.
+TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
+    using hven::solvers::SolveStatus;
+    const std::string clause = "; returned the best iterate";
+    const auto has_clause = [&](const std::string &message) {
+        return message.size() >= clause.size() &&
+               message.compare(message.size() - clause.size(), clause.size(), clause) == 0;
+    };
+    const auto model =
+        hven::solvers::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+    const auto run = [&](int cap, bool return_best) {
+        hven::solvers::IpmOptions o;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.threads = 1;
+        o.common.max_iterations = cap;
+        o.return_best = return_best;
+        hven::solvers::IpmSolver solver{o};
+        return solver.solve(hven::solvers::detail::problem_ref(*model), two_var_start(1.0, 1.0));
+    };
+
+    // kMaxIter with the substitution: the iteration-limit line plus the clause.
+    bool saw_max_iter = false;
+    for (int cap = 2; cap <= 30 && !saw_max_iter; ++cap) {
+        const hven::solvers::IpmResult r = run(cap, true);
+        if (r.status == SolveStatus::kMaxIter && r.returned_best_iterate) {
+            saw_max_iter = true;
+            EXPECT_TRUE(has_clause(r.message)) << r.message;
+            EXPECT_TRUE(names(r.message, "iteration limit reached")) << r.message;
+        }
+    }
+    EXPECT_TRUE(saw_max_iter) << "no cap in [2, 30] gave a best-iterate kMaxIter";
+
+    // A non-kMaxIter, non-optimal exit with the flag on: HS071 against
+    // tolerances it cannot meet ends kAcceptable, and the same clause follows
+    // that status's own line.
+    const auto run_hs071 = [&](bool return_best) {
+        hven::solvers::IpmOptions o;
+        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.threads = 1;
+        o.common.optimality_tol = 1e-12;
+        o.common.feasibility_tol = 1e-12;
+        o.return_best = return_best;
+        hven::solvers::Problem p(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::IpmSolver solver{o};
+        return solver.solve(p, hven_drivers_tests::hs071_start());
+    };
+    const hven::solvers::IpmResult flagged = run_hs071(true);
+    ASSERT_EQ(flagged.status, SolveStatus::kAcceptable);
+    EXPECT_TRUE(flagged.returned_best_iterate);
+    EXPECT_TRUE(has_clause(flagged.message)) << flagged.message;
+    EXPECT_TRUE(names(flagged.message, "acceptable level")) << flagged.message;
+
+    // Without the option the same exit carries no clause.
+    const hven::solvers::IpmResult plain = run_hs071(false);
+    ASSERT_EQ(plain.status, SolveStatus::kAcceptable);
+    EXPECT_FALSE(plain.returned_best_iterate);
+    EXPECT_FALSE(names(plain.message, "best iterate")) << plain.message;
 }
 
 // ===========================================================================

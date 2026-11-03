@@ -398,7 +398,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     // ONE extension: this problem HAS finite variable bounds, so the export
     // carries the polish hand-off beside the core.
     ASSERT_EQ(WarmStartAccess::extensions(warm).size(), 1u);
-    EXPECT_EQ(WarmStartAccess::extensions(warm)[0].tag_, std::string(hven::solvers::kIpmPolishTag));
+    EXPECT_EQ(WarmStartAccess::extensions(warm)[0].tag, std::string(hven::solvers::kIpmPolishTag));
 
     // The eliminated coordinate carries the value the treatment holds it at --
     // exactly, not a zero. A payload that zeroed it would not restart the same
@@ -420,7 +420,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     // are priced at while the pair can. The eliminated coordinate has nothing
     // scattered to it: an exact zero on both sides, like the core block.
     const hven::solvers::IpmPolishData polish =
-        hven::solvers::deserialize_ipm_polish(hven::solvers::find_ipm_polish(warm)->payload_);
+        hven::solvers::deserialize_ipm_polish(hven::solvers::find_ipm_polish(warm)->payload);
     ASSERT_EQ(polish.z_lower_.size(), 3);
     ASSERT_EQ(polish.z_upper_.size(), 3);
     EXPECT_EQ(polish.iq_values_.size(), 0);
@@ -1295,7 +1295,7 @@ struct WarmBoundedSolve {
 hven::solvers::IpmPolishData polish_of(const WarmStart &data) {
     const hven::solvers::WarmExtension *extension = hven::solvers::find_ipm_polish(data);
     EXPECT_NE(extension, nullptr);
-    return hven::solvers::deserialize_ipm_polish(extension->payload_);
+    return hven::solvers::deserialize_ipm_polish(extension->payload);
 }
 
 WarmStart without_extensions(WarmStart data) {
@@ -1371,7 +1371,7 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
     const auto &result = warm_result();
 
     ASSERT_EQ(WarmStartAccess::extensions(solved.warm_).size(), 1u);
-    EXPECT_EQ(WarmStartAccess::extensions(solved.warm_)[0].tag_,
+    EXPECT_EQ(WarmStartAccess::extensions(solved.warm_)[0].tag,
               std::string(hven::solvers::kIpmPolishTag));
 
     const hven::solvers::IpmPolishData polish = polish_of(solved.warm_);
@@ -1522,7 +1522,7 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
 
     const WarmStart bounded = warm_export();
     ASSERT_EQ(WarmStartAccess::extensions(bounded).size(), 1u);
-    EXPECT_EQ(WarmStartAccess::extensions(bounded)[0].tag_,
+    EXPECT_EQ(WarmStartAccess::extensions(bounded)[0].tag,
               std::string(hven::solvers::kIpmPolishTag));
 
     // --- The re-lay: same instance, same program, no set_nlp(). The treatment
@@ -1721,7 +1721,7 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     // absorbed (the anchor), and an iteration was attributed to the restoration
     // recovery bucket -- so this pin cannot quietly start passing because some
     // backend's numerics happened to exhaust a line search instead.
-    EXPECT_FALSE(result.last_eval_exception.empty());
+    EXPECT_FALSE(result.evaluation_errors.last_message.empty());
     EXPECT_GT(result.recovery_depth_histogram[hven::solvers::kRecoveryDepthRestoration], 0);
 
     // The solve completed, so the currency is exportable and carries its core.
@@ -1883,7 +1883,7 @@ TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
 
     const WarmStart warm = warm_export();
     ASSERT_EQ(WarmStartAccess::extensions(warm).size(), 1u);
-    EXPECT_EQ(WarmStartAccess::extensions(warm)[0].tag_, std::string(hven::solvers::kIpmPolishTag));
+    EXPECT_EQ(WarmStartAccess::extensions(warm)[0].tag, std::string(hven::solvers::kIpmPolishTag));
 }
 
 TEST(IpmWarmStart, ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim) {
@@ -1891,8 +1891,8 @@ TEST(IpmWarmStart, ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim) {
     const WarmStart decoded = hven::solvers::deserialize(hven::solvers::serialize(solved.warm_));
     EXPECT_EQ(decoded, solved.warm_);
     ASSERT_EQ(WarmStartAccess::extensions(decoded).size(), 1u);
-    EXPECT_EQ(WarmStartAccess::extensions(decoded)[0].payload_,
-              WarmStartAccess::extensions(solved.warm_)[0].payload_);
+    EXPECT_EQ(WarmStartAccess::extensions(decoded)[0].payload,
+              WarmStartAccess::extensions(solved.warm_)[0].payload);
     EXPECT_EQ(polish_of(decoded), polish_of(solved.warm_));
 }
 
@@ -1901,7 +1901,7 @@ TEST(IpmWarmStart, ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim) {
 TEST(IpmWarmStart, TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt) {
     const WarmBoundedSolve solved;
     WarmStart corrupt = solved.warm_;
-    WarmStartAccess::extensions(corrupt)[0].payload_[4] = std::byte{0xFF}; // break the magic
+    WarmStartAccess::extensions(corrupt)[0].payload[4] = std::byte{0xFF}; // break the magic
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
@@ -1932,7 +1932,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt) 
 // than letting a short payload through into a solve.
 TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTheOffset) {
     const WarmBoundedSolve solved;
-    const std::vector<std::byte> &full = WarmStartAccess::extensions(solved.warm_)[0].payload_;
+    const std::vector<std::byte> &full = WarmStartAccess::extensions(solved.warm_)[0].payload;
     ASSERT_FALSE(full.empty());
 
     const auto fresh_program =
@@ -1946,7 +1946,7 @@ TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTh
 
     for (std::size_t prefix = 0; prefix < full.size(); prefix++) {
         WarmStart truncated = solved.warm_;
-        WarmStartAccess::extensions(truncated)[0].payload_.assign(
+        WarmStartAccess::extensions(truncated)[0].payload.assign(
             full.begin(), full.begin() + static_cast<long>(prefix));
         try {
             (void)fresh.solve(hven::solvers::detail::problem_ref(*fresh_program),
@@ -1968,7 +1968,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
     polish.z_upper_ = Eigen::VectorXd::Zero(3);
 
     WarmStart wide = solved.warm_;
-    WarmStartAccess::extensions(wide)[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(wide)[0].payload = hven::solvers::serialize_ipm_polish(polish);
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
@@ -2005,7 +2005,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheB
     polish.z_lower_[1] = -1.0;
 
     WarmStart corrupt = solved.warm_;
-    WarmStartAccess::extensions(corrupt)[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(corrupt)[0].payload = hven::solvers::serialize_ipm_polish(polish);
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
@@ -2036,7 +2036,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheB
     polish.z_upper_[0] = -1e-12;
 
     WarmStart corrupt = solved.warm_;
-    WarmStartAccess::extensions(corrupt)[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(corrupt)[0].payload = hven::solvers::serialize_ipm_polish(polish);
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
@@ -2070,7 +2070,7 @@ TEST(IpmWarmStart, AZeroValuedPriceBlockIsStillAcceptedAndSolves) {
     polish.z_upper_.setZero();
 
     WarmStart zeroed = solved.warm_;
-    WarmStartAccess::extensions(zeroed)[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
+    WarmStartAccess::extensions(zeroed)[0].payload = hven::solvers::serialize_ipm_polish(polish);
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());

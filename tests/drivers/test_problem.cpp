@@ -441,6 +441,20 @@ TEST(Problem, ReportsTheUserRowSpaceUnderMakeConstraintWithAFixedVariable) {
     EXPECT_NEAR(r.g[0], g[0], 1e-12 * std::max(1.0, std::abs(g[0])));
 }
 
+// The seed of an export carries the key the export carries, also when a fixed
+// variable is held by an internal fixing row.
+TEST(Problem, SeedKeyMatchesTheExportKeyUnderMakeConstraintWithAFixedVariable) {
+    const auto box = std::make_shared<Box3>();
+    box->x1_lower = box->x1_upper = 0.25;
+    Problem problem(box);
+    IpmSolver ipm = quiet_ipm(FixedVariableTreatment::kMakeConstraint);
+    const IpmResult r = ipm.solve(problem, Vec::Constant(3, 0.5));
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_FALSE(r.warm_start.empty());
+    const WarmStart seed = WarmStart::seed(problem, r.x, r.lambda, r.z);
+    EXPECT_TRUE(seed.key() == r.warm_start.key());
+}
+
 // A value-only change -- every variable keeps which sides are finite and whether
 // it is fixed -- is adopted in place: no re-analysis, and the solution a fresh
 // Problem at the new bounds returns, BITWISE. Bitwise because nothing about the

@@ -2361,7 +2361,7 @@ void expect_same_ipm_solve(const hven::solvers::IpmResult &a, const hven::solver
     EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
     EXPECT_EQ(a.last_prox_reg_primal, b.last_prox_reg_primal);
     EXPECT_EQ(a.last_prox_reg_dual, b.last_prox_reg_dual);
-    EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
+    EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
     EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
     EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
     EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);

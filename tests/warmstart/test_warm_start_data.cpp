@@ -400,11 +400,11 @@ TEST(WarmStartValue, EqualityIsFieldwiseOverTheExtensionList) {
     EXPECT_NE(base, dropped);
 
     WarmStart retagged = base;
-    WarmStartAccess::extensions(retagged)[0].tag_ += "x";
+    WarmStartAccess::extensions(retagged)[0].tag += "x";
     EXPECT_NE(base, retagged);
 
     WarmStart repaid = base;
-    WarmStartAccess::extensions(repaid)[1].payload_.push_back(std::byte{0});
+    WarmStartAccess::extensions(repaid)[1].payload.push_back(std::byte{0});
     EXPECT_NE(base, repaid);
 
     WarmStart reordered = base;
@@ -494,8 +494,8 @@ TEST(WarmStartSerialization, RoundTripsAwkwardExtensionsInOrder) {
     const WarmStart decoded = deserialize(serialize(original));
     EXPECT_EQ(original, decoded);
     ASSERT_EQ(WarmStartAccess::extensions(decoded).size(), 4U);
-    EXPECT_EQ(WarmStartAccess::extensions(decoded)[1].tag_.size(), 8U);
-    EXPECT_EQ(WarmStartAccess::extensions(decoded)[2].tag_, "hven.ipm.polish.v1");
+    EXPECT_EQ(WarmStartAccess::extensions(decoded)[1].tag.size(), 8U);
+    EXPECT_EQ(WarmStartAccess::extensions(decoded)[2].tag, "hven.ipm.polish.v1");
 }
 
 TEST(WarmStartSerialization, TheEncodingIsAFunctionOfTheValueAlone) {
