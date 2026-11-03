@@ -133,6 +133,17 @@ class WarmStart {
     ///        sign convention of `SolveResult::lambda`.
     /// @param z The bound multipliers, declared width when @p x is given and
     ///        empty when it is not.
+    ///
+    /// RANGE ROWS. A row-space multiplier cannot say which side of a two-sided
+    /// row carries the price, so the signed value goes to the one side its sign
+    /// names and the other side takes 0; a free row's value is dropped. The
+    /// opposite order is not an identity: an interior-point export whose range
+    /// row has BOTH sides live holds two positive multipliers, `lambda(problem)`
+    /// reports only their difference, and
+    /// `seed(problem, x, ws.lambda(problem), z)` is therefore NOT that export
+    /// (it carries the net on one side). Warm-start from the export itself to
+    /// keep both sides.
+    ///
     /// @throws std::invalid_argument naming the block, on a size that does not
     ///         match the problem.
     static WarmStart seed(const Problem &problem, ConstVecRef x, ConstVecRef lambda, ConstVecRef z);

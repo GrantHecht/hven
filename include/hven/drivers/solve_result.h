@@ -85,8 +85,6 @@ void validate(const SolveBudget &budget);
 ///   * A pieces or program problem on the interior-point engine: counted per
 ///     evaluation pass, by the quantities that pass forms (objective, gradient,
 ///     constraints, Jacobian, Hessian).
-///   * The SQP engine's internal model and assembly routes report 0 for the
-///     evaluation counts.
 /// `factorizations` is the number of KKT factorizations the solve performed:
 /// the interior-point engine's factorizations over the call, the SQP engine's
 /// `SqpCounters::factorizations`.
@@ -118,11 +116,15 @@ struct SolveResult {
     std::string message;
 
     /// @brief True when the returned point is the best iterate the solve
-    ///        visited rather than the last one it reached: the interior-point
-    ///        engine's return-best substitution replaced the returned point
-    ///        (describing the last phase that ran), or the SQP engine's
-    ///        SqpOptions::budget_mode ran out of iterations. Reported with
-    ///        SolveStatus::kMaxIter.
+    ///        visited rather than the last one it reached.
+    ///
+    /// The rule per engine. Interior-point: set when IpmOptions::return_best is
+    /// on and the solve ended in any non-optimal status except an interrupt
+    /// (the substitution applies to the last phase that ran), so it can ride
+    /// with kMaxIter, kStalled, kWorkLimit and the other non-optimal exits.
+    /// SQP: set only when SqpOptions::budget_mode ran out of iterations
+    /// (SolveStatus::kMaxIter). The message gains "; returned the best iterate"
+    /// whenever it is set.
     bool returned_best_iterate = false;
 
     /// @brief SQP engine only (the interior-point engine leaves it false). True
@@ -371,8 +373,9 @@ struct IterationEvent {
     ///        to, in IpmResult::phases. nullopt on the SQP.
     std::optional<Index> phase;
     /// @brief SQP ONLY: the restoration nesting level -- 0 in the caller's own
-    ///        solve, 1 inside a restoration sub-solve, and one deeper per level
-    ///        below that. nullopt on the interior-point engine.
+    ///        solve, 1 inside a restoration sub-solve. nullopt on the
+    ///        interior-point engine. Depth >= 2 is unreachable: a restoration
+    ///        sub-solve refuses to nest another.
     ///
     /// A NON-ZERO DEPTH CHANGES THE SPACE THE EVENT IS IN. The restoration
     /// sub-solve runs the FEASIBILITY problem -- a different model, in its own

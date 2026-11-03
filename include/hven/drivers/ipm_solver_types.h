@@ -120,7 +120,8 @@ struct IpmResult : SolveResult {
     /// Always equals the option's value at the time the call ran --
     /// configure_variable_treatment runs the requested treatment or throws,
     /// never substitutes. Overwritten unconditionally at the start of every
-    /// call. Recorded here because it decides lambda_e's shape.
+    /// call. Recorded here because it decides whether the internal fixing rows
+    /// below exist.
     FixedVariableTreatment fixed_variable_treatment = FixedVariableTreatment::kMakeParameter;
 
     // --- The treatment's own rows, reported rather than dropped ---

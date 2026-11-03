@@ -250,7 +250,7 @@ const char *to_string(IpmStopReason reason);
 /// reporting order only.
 ///
 /// @param status The status.
-/// @return Its rank, 0 through 10; distinct for every status.
+/// @return Its rank, 0 through 9; distinct for every status.
 /// @throws std::invalid_argument if @p status is not one of the ten.
 int severity(SolveStatus status);
 
