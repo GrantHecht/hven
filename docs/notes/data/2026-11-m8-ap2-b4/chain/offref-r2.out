@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-03T03:56:10-05:00
+build rc=0
+26
+[338/339] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+[339/339] Linking CXX executable tests/sqp/hven_sqp_tests
+docs/notes/data/2026-11-m8-ap2-b4/legs/offref.sh: line 25: docs/notes/data/2026-11-m8-ap2-b4/offref/ctest-release.log: No such file or directory
+tail: cannot open 'docs/notes/data/2026-11-m8-ap2-b4/offref/ctest-release.log' for reading: No such file or directory
+ctest rc=1
+FOREGROUND_END 2026-11-03T03:56:40-05:00
