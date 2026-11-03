@@ -6,7 +6,7 @@
 #include <Eigen/Core>
 
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 // BarrierMode requires the complete IpmSolver class; see
 // acceptance_strategy.h's include note for why this is a plain,
 // non-circular include (ipm_solver.h does not include this directory back).

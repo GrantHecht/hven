@@ -55,7 +55,7 @@
 #include <fmt/format.h>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
-#include <hven/detail/interior/iterate_info.h>
+#include <hven/drivers/ipm_iterate_info.h>
 
 namespace hven::solvers {
 

@@ -1,8 +1,8 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// R6 (Codex 5, CLAUDE.md section 5): the sink's non-hot virtual destructor
-// lives here, not inline in the header.
+// The sink's non-hot virtual destructor and its no-op event defaults live here,
+// not inline in the header.
 
 #include <cmath>
 #include <stdexcept>
@@ -15,8 +15,16 @@ namespace hven::solvers {
 
 TraceSink::~TraceSink() = default;
 
-// The W4 events' defaults are EMPTY, not pure (plan section 6 Q-S3): a sink
-// written for the eight W1/W2 events keeps compiling and simply ignores them.
+// Every event's default is EMPTY: a sink overrides the events it wants, and an
+// event added later is ignored by a sink that predates it.
+void TraceSink::on_ipqp_iter(const IpqpTraceIterEvent &) {}
+void TraceSink::on_ipqp_reg(const IpqpTraceRegEvent &) {}
+void TraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &) {}
+void TraceSink::on_ipqp_route(const IpqpTraceRouteEvent &) {}
+void TraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &) {}
+void TraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &) {}
+void TraceSink::on_qp_mode(const QpModeTraceEvent &) {}
+void TraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) {}
 void TraceSink::on_sqp_major(const SqpMajorTraceEvent &) {}
 void TraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {}
 void TraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &) {}

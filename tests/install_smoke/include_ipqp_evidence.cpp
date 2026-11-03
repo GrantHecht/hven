@@ -8,7 +8,7 @@
 // W5 T4 split the two escape-evidence blocks out of ipqp_engine.h into this
 // header, whose whole point is that it needs core/types.h and nothing else.
 
-#include "hven/detail/qp/ipqp_evidence.h"
+#include "hven/qp/ipqp_evidence.h"
 
 namespace hven_install_smoke {
 int standalone_include_ipqp_evidence() { return 1; }

@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 
 #include "hven/detail/globalization/progress_measures.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 // The complete IpmSolver class is required here (classic_line_search
 // takes its nested LineSearchMode by value, and a nested enum cannot be
 // forward-declared independently of its enclosing class). This include is

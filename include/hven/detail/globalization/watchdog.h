@@ -14,7 +14,7 @@
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/bound_set.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 
 namespace hven::solvers {
 

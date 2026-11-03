@@ -30,7 +30,7 @@
 #include "hven/detail/globalization/modern_merit.h"
 #include "hven/detail/globalization/monitored_governor.h"
 #include "hven/detail/globalization/recovery_chain.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 #include "hven/drivers/ipm_options.h"
 
 #include <gtest/gtest.h>

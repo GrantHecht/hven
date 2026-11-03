@@ -10,7 +10,7 @@
 
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 // LineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
 // requires the complete IpmSolver class; see acceptance_strategy.h's include note.
 #include "hven/drivers/ipm_solver.h"

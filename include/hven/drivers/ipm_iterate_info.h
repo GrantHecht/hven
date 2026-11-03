@@ -66,7 +66,7 @@ struct IterateInfo {
     /// KktFactorization::ppivs() projects an absent backend count to the
     /// integer 0 (`.value_or(0)`, kkt_factorization.cpp), and Apple Accelerate
     /// reports no perturbed-pivot count at all -- so a 0 there is a substituted
-    /// value, not a measurement (CLAUDE.md section 6). fill_iter_info sets this
+    /// value, not a measurement. fill_iter_info sets this
     /// from the factorization's own optional beside the projected int; it stays
     /// false on a record that was never factorized (the converge-check exit's).
     /// The projected int is unchanged and every existing consumer reads it as

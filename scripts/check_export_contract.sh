@@ -125,21 +125,17 @@ INCLUDE_DIRS_COUNT="$(grep -c 'INTERFACE_INCLUDE_DIRECTORIES' "${TARGETS_FILE}" 
     || fail "INTERFACE_INCLUDE_DIRECTORIES appears ${INCLUDE_DIRS_COUNT} times in ${TARGETS_FILE} (expected exactly once)"
 echo "-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once"
 
-# No public header includes a `detail/` header (M8 AP-2 B1).
+# No public header includes a `detail/` header.
 #
 # "Public header" = any installed header under <prefix>/include/hven that is not
-# itself inside a `detail/` directory. Its includes are scanned for any path with a
-# `detail/` component. What remains is listed in
-# scripts/export_contract_detail_includes.allow, a SHRINK-ONLY allow-list: a pair that
-# is not listed is refused, and a listed pair that no longer occurs is refused too (the
-# line must be deleted), so the list can only get shorter. The rule is armed without
-# exceptions, and the allow-list removed, when B4 closes.
+# itself inside a `detail/` directory. Its #include lines are scanned for any path
+# with a `detail/` component; one such line anywhere is a failure. There is no
+# allow-list. (Only #include lines match: a string literal or comment that merely
+# mentions a detail path is not an include.)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ALLOW_FILE="${SCRIPT_DIR}/export_contract_detail_includes.allow"
 PREFIX_DIR="$(cd "${TARGETS_DIR}/../../.." && pwd)"
 INCLUDE_ROOT="${PREFIX_DIR}/include/hven"
 [ -d "${INCLUDE_ROOT}" ] || fail "no installed headers at ${INCLUDE_ROOT} (derived from ${TARGETS_FILE})"
-[ -f "${ALLOW_FILE}" ] || fail "no allow-list at ${ALLOW_FILE}"
 
 FOUND_PAIRS="$(
     cd "${INCLUDE_ROOT}" &&
@@ -152,16 +148,9 @@ FOUND_PAIRS="$(
                 done
         done | LC_ALL=C sort
 )"
-ALLOWED_PAIRS="$(grep -vE '^[[:space:]]*(#|$)' "${ALLOW_FILE}" | cut -d'|' -f1,2 | LC_ALL=C sort)"
-
-NEW_PAIRS="$(comm -23 <(printf '%s\n' "${FOUND_PAIRS}" | sed '/^$/d') <(printf '%s\n' "${ALLOWED_PAIRS}" | sed '/^$/d'))"
-STALE_PAIRS="$(comm -13 <(printf '%s\n' "${FOUND_PAIRS}" | sed '/^$/d') <(printf '%s\n' "${ALLOWED_PAIRS}" | sed '/^$/d'))"
-[ -z "${NEW_PAIRS}" ] \
-    || fail "public header(s) include a detail/ header that is not on the allow-list (header|included):
-${NEW_PAIRS}"
-[ -z "${STALE_PAIRS}" ] \
-    || fail "allow-list entries that no longer occur -- delete them from ${ALLOW_FILE} (the list may only shrink):
-${STALE_PAIRS}"
-echo "-- no public header includes detail/ beyond the shrink-only allow-list ($(printf '%s\n' "${ALLOWED_PAIRS}" | sed '/^$/d' | wc -l) residual pairs)"
+[ -z "${FOUND_PAIRS}" ] \
+    || fail "public header(s) include a detail/ header (header|included):
+${FOUND_PAIRS}"
+echo "-- no public header includes a detail/ header"
 
 echo "== export contract OK for platform=${PLATFORM}, align=${ALIGN_VALUE}"

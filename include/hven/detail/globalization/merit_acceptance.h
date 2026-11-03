@@ -12,8 +12,8 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
+#include "hven/drivers/ipm_iterate_info.h"
 #include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {

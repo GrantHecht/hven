@@ -20,16 +20,15 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/detail/interior/iterate_info.h>
-#include <hven/detail/qp/ipqp_evidence.h>
+#include <hven/drivers/ipm_iterate_info.h>
 #include <hven/drivers/ipm_phase_report.h>
 #include <hven/drivers/sqp_solver_types.h>
+#include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
 
-/// @brief The absence sentinel for a per-kind `double` slot on `ipm.message`
-///        (M6 W5 T8.7b).
+/// @brief The absence sentinel for a per-kind `double` slot on `ipm.message`.
 ///
 /// NaN rather than a negative number, because two of the four double slots
 /// carry INFEASIBILITIES, for which every non-negative value is a reading and
@@ -730,27 +729,27 @@ struct IpmSolveEndTraceEvent {
     double misc_time_s = 0.0; ///< `IpmResult::misc_time()`, the derived remainder.
 };
 
-/// @brief The W4 hook: one sink; the eight W1/W2 methods are PURE, and every
-/// method W4 adds is non-pure with an empty default (Q-S3). `nullptr` is
-/// the off state every emit site checks before EMITTING; the seven tier
-/// events are also built there, while `fallback.verdict` is the judge's own
-/// out-param and is filled whether or not a sink is attached (a handful of
-/// scalars). Destructor out-of-line (src/drivers/trace.cpp, CLAUDE.md section 5).
+/// @brief The trace hook: one sink, every event delivered through a virtual
+/// method that is a no-op by default. A sink overrides the events it wants;
+/// events added in later releases are ADDITIVE -- a sink written before one
+/// exists keeps compiling and ignores it. `nullptr` is the off state every emit
+/// site checks before emitting; the tier events are also built only there,
+/// while `fallback.verdict` is the judge's own out-param and is filled whether
+/// or not a sink is attached (a handful of scalars). The destructor is
+/// out-of-line (src/drivers/trace.cpp).
 class TraceSink {
   public:
     virtual ~TraceSink();
-    virtual void on_ipqp_iter(const IpqpTraceIterEvent &event) = 0;
-    virtual void on_ipqp_reg(const IpqpTraceRegEvent &event) = 0;
-    virtual void on_ipqp_restart(const IpqpTraceRestartEvent &event) = 0;
-    virtual void on_ipqp_route(const IpqpTraceRouteEvent &event) = 0;
-    virtual void on_ipqp_certify(const IpqpTraceCertifyEvent &event) = 0;
-    virtual void on_ipqp_escape(const IpqpTraceEscapeEvent &event) = 0;
-    virtual void on_qp_mode(const QpModeTraceEvent &event) = 0;
-    virtual void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) = 0;
+    virtual void on_ipqp_iter(const IpqpTraceIterEvent &event);
+    virtual void on_ipqp_reg(const IpqpTraceRegEvent &event);
+    virtual void on_ipqp_restart(const IpqpTraceRestartEvent &event);
+    virtual void on_ipqp_route(const IpqpTraceRouteEvent &event);
+    virtual void on_ipqp_certify(const IpqpTraceCertifyEvent &event);
+    virtual void on_ipqp_escape(const IpqpTraceEscapeEvent &event);
+    virtual void on_qp_mode(const QpModeTraceEvent &event);
+    virtual void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event);
 
-    /// @brief One exported history row. NON-PURE, with an empty out-of-line
-    /// default (plan section 6 Q-S3): the four recording sinks W1/W2 left in
-    /// the tests do not want this event and are not touched by its arrival.
+    /// @brief One exported history row.
     virtual void on_sqp_major(const SqpMajorTraceEvent &event);
 
     /// @brief The solve's opening line. A sink that counts nesting does it here
@@ -758,8 +757,7 @@ class TraceSink {
     virtual void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event);
     virtual void on_sqp_solve_end(const SqpSolveEndTraceEvent &event);
 
-    /// @brief One interior-point iteration. NON-PURE with an empty out-of-line
-    /// default, on the same terms as the three above (plan section 6 Q-S3).
+    /// @brief One interior-point iteration.
     virtual void on_ipm_iter(const IpmIterTraceEvent &event);
 
     /// @brief The interior-point solve's opening and closing lines.
@@ -771,16 +769,12 @@ class TraceSink {
     virtual void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event);
     virtual void on_ipm_solve_end(const IpmSolveEndTraceEvent &event);
 
-    /// @brief The restoration-locally-infeasible exit door's own line (M6 W5
-    /// T8.7). NON-PURE with an empty out-of-line default, on the same terms as
-    /// the five above: no sink that predates it is touched by its arrival.
+    /// @brief The restoration-locally-infeasible exit door's own line.
     ///
     /// LIKE `on_ipm_iter`, THIS MOVES NO `depth`.
     virtual void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event);
 
-    /// @brief One phase opening and closing (M6 W5 T8.7b). NON-PURE with empty
-    /// out-of-line defaults, on the same terms as the six above: no sink that
-    /// predates them is touched by their arrival.
+    /// @brief One phase opening and closing.
     ///
     /// NEITHER MOVES A `depth`, and neither does any of the three below. The
     /// interior-point driver nests no driver of its own, so every line it
@@ -791,14 +785,14 @@ class TraceSink {
     virtual void on_ipm_phase_begin(const IpmPhaseTraceEvent &event);
     virtual void on_ipm_phase_end(const IpmPhaseTraceEvent &event);
 
-    /// @brief One KKT-matrix analysis or re-initialization (M6 W5 T8.7b).
+    /// @brief One KKT-matrix analysis or re-initialization.
     /// MOVES NO `depth`.
     virtual void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event);
 
-    /// @brief One phase's exit statistics (M6 W5 T8.7b). MOVES NO `depth`.
+    /// @brief One phase's exit statistics. MOVES NO `depth`.
     virtual void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event);
 
-    /// @brief One diagnostic message (M6 W5 T8.7b). MOVES NO `depth`.
+    /// @brief One diagnostic message. MOVES NO `depth`.
     ///
     /// MAY FIRE FROM INSIDE A FACTORIZATION, which is the one place a sink is
     /// reached with the engine's linear algebra half way through a ladder. A
@@ -806,9 +800,7 @@ class TraceSink {
     /// guards clear the in-flight flags and release the borrowed model, and the
     /// solver stays usable and destructible.
     ///
-    /// WHAT THE NEXT SOLVE DOES (M6 W5 T8.7b fix1, astra's I1 -- the sentence
-    /// this replaced said "re-analyzes rather than reusing it", which is not
-    /// what the code does). Nothing invalidates the symbolic analysis, so the
+    /// WHAT THE NEXT SOLVE DOES. Nothing invalidates the symbolic analysis, so the
     /// next solve on an unchanged model REFACTORIZES ON THE REUSED ANALYSIS.
     /// That is sound, not a leak: the analysis depends only on the PATTERN and
     /// no ladder step changes the pattern (the perturbations add to diagonal

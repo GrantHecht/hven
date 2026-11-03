@@ -30,10 +30,10 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
 #include <hven/detail/interior/kkt_factorization.h>
-#include <hven/detail/qp/ipqp_evidence.h>
 #include <hven/detail/qp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/drivers/sqp_solver_types.h>
+#include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {

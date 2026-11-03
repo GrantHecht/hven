@@ -44,9 +44,9 @@
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/soc.h"
 #include "hven/detail/interior/eval_error_log.h"
-#include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/drivers/ipm_iterate_info.h"
 #include "hven/model/nlp.h"
 
 #include <gtest/gtest.h>

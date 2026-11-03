@@ -10,7 +10,7 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate_info.h"
 // LineSearchMode (forwarded to the acceptance re-test during a
 // second-order correction) requires the complete IpmSolver class; pulled in
 // transitively via the two globalization headers above. See solver_context.h's

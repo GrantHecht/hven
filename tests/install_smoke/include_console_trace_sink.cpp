@@ -9,7 +9,7 @@
 // and gave the composition behind "attaching a console never displaces your
 // sink" a name of its own, `FanOutTraceSink`. Both are public, and the
 // header's own claim is that it needs nothing else: in particular NOT
-// `detail/interior/iterate_info.h`, the interior-point iteration record the
+// `drivers/ipm_iterate_info.h`, the interior-point iteration record the
 // row renderer reads, which arrives by reference through `drivers/trace.h`.
 // A consumer that includes only this header and constructs a console must
 // compile, and that is what this TU is.
