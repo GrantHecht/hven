@@ -53,13 +53,13 @@ struct ProblemStatistics {
 /// nothing. A changed set is adopted by its kind of change:
 /// - Values only (every variable keeps which sides are finite and whether it is
 ///   fixed): adopted in place. Nothing is re-laid and the interior-point engine does
-///   not re-analyse (IpmResult::kkt_analyses_this_call == 0); a WarmStartData taken
+///   not re-analyse (IpmResult::kkt_analyses_this_call == 0); a WarmStart taken
 ///   before still matches. The one exception: under
 ///   FixedVariableTreatment::kMakeConstraint a moved fixing value re-installs that
 ///   treatment's fixing rows, which re-analyses (counted).
 /// - A change in which variables are fixed, or in which bounds are finite: the
 ///   interior-point transcription is re-laid and re-analysed (counted), and a
-///   WarmStartData taken before no longer matches the declaration and is refused
+///   WarmStart taken before no longer matches the declaration and is refused
 ///   by the identity rule.
 /// - A change in the dimensions, in either structure, or in a row's kind: refused
 ///   by name (std::invalid_argument), with nothing changed.

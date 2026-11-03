@@ -25,6 +25,7 @@
 #include "hven/drivers/solve_result.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/nlp.h"
+#include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
 namespace detail {
@@ -319,6 +320,129 @@ class ProblemState {
 
     const NlpProblemModel *nlp_model() const noexcept { return nlp_model_.get(); }
 
+    // The declaration key a warm-start value for this problem is stamped with:
+    // the same value both engines stamp on export (declaration_key over the
+    // declaration each engine consumes). An Nlp or model problem is stated by
+    // its dimensions and its box as last read; building the declaration from
+    // those reads no callback.
+    DeclarationKey declaration_key() const {
+        if (kind_ == Kind::kPieces || kind_ == Kind::kProgram) {
+            return solvers::declaration_key(program_->declaration());
+        }
+        if (kind_ == Kind::kAssembly) {
+            return solvers::declaration_key(bridge_->declaration());
+        }
+        AssemblyDeclaration declaration;
+        declaration.primal_vars_ = static_cast<int>(num_variables());
+        const Vec *lower = nullptr;
+        const Vec *upper = nullptr;
+        if (kind_ == Kind::kNlp) {
+            declaration.equality_rows_ = nlp_model_->me();
+            declaration.inequality_rows_ = nlp_model_->mi();
+            lower = &nlp_model_->lower();
+            upper = &nlp_model_->upper();
+        } else {
+            declaration.equality_rows_ = model_->me();
+            declaration.inequality_rows_ = model_->mi();
+            lower = &model_->lower();
+            upper = &model_->upper();
+        }
+        declaration.variable_bounds_.reserve(static_cast<std::size_t>(declaration.primal_vars_));
+        for (int i = 0; i < declaration.primal_vars_; ++i) {
+            declaration.variable_bounds_.push_back(VariableBound{i, (*lower)[i], (*upper)[i]});
+        }
+        return solvers::declaration_key(declaration);
+    }
+
+    // The declared variable bounds as the solve entry sees them.
+    void variable_bounds(Vec &lower, Vec &upper) const {
+        switch (kind_) {
+        case Kind::kNlp:
+            lower = nlp_model_->lower();
+            upper = nlp_model_->upper();
+            return;
+        case Kind::kModel:
+            lower = model_->lower();
+            upper = model_->upper();
+            return;
+        case Kind::kAssembly:
+            lower = bridge_->model().lower();
+            upper = bridge_->model().upper();
+            return;
+        case Kind::kPieces:
+        case Kind::kProgram: {
+            const std::vector<VariableBound> bounds =
+                program_->declaration().materialize_variable_bounds();
+            lower.resize(static_cast<Index>(bounds.size()));
+            upper.resize(static_cast<Index>(bounds.size()));
+            for (std::size_t i = 0; i < bounds.size(); ++i) {
+                lower[static_cast<Index>(i)] = bounds[i].lower_;
+                upper[static_cast<Index>(i)] = bounds[i].upper_;
+            }
+            return;
+        }
+        }
+    }
+
+    // The problem's row space as the engines split it: me equality rows and mi
+    // inequality rows.
+    void row_counts(Index &me, Index &mi) const noexcept {
+        switch (kind_) {
+        case Kind::kNlp:
+            me = nlp_model_->me();
+            mi = nlp_model_->mi();
+            return;
+        case Kind::kPieces:
+        case Kind::kProgram:
+            me = static_cast<Index>(program_->user_equal_cons_);
+            mi = static_cast<Index>(program_->inequal_cons_);
+            return;
+        case Kind::kModel:
+            me = model_->me();
+            mi = model_->mi();
+            return;
+        case Kind::kAssembly:
+            me = bridge_->model().me();
+            mi = bridge_->model().mi();
+            return;
+        }
+        me = mi = 0;
+    }
+
+    // Engine split -> row space.
+    Vec compose_rows(const Vec &lambda_e, const Vec &lambda_i) const {
+        if (kind_ == Kind::kNlp) {
+            return nlp_model_->compose_user_multipliers(lambda_e, lambda_i);
+        }
+        Index me = 0, mi = 0;
+        row_counts(me, mi);
+        if (lambda_e.size() != me || lambda_i.size() != mi) {
+            throw std::invalid_argument(
+                fmt::format("Problem: the equality and inequality multiplier blocks hold {} and {} "
+                            "entries, but the problem has {} equality and {} inequality rows",
+                            lambda_e.size(), lambda_i.size(), me, mi));
+        }
+        return concatenate(lambda_e, lambda_i);
+    }
+
+    // Row space -> engine split.
+    void split_rows(const Vec &lambda, Vec &lambda_e, Vec &lambda_i) const {
+        if (kind_ == Kind::kNlp) {
+            nlp_model_->split_user_multipliers(lambda, lambda_e, lambda_i);
+            return;
+        }
+        Index me = 0, mi = 0;
+        row_counts(me, mi);
+        if (lambda.size() != me + mi) {
+            throw std::invalid_argument(
+                fmt::format("Problem: {} row multipliers were supplied for a problem with {} rows "
+                            "({} equality, {} inequality)",
+                            lambda.size(), me + mi, me, mi));
+        }
+        lambda_e = lambda.head(me);
+        lambda_i = lambda.tail(mi);
+    }
+
     // The evaluation tally of the next solve starts at zero.
     void reset_work() noexcept {
         if (counting_nlp_ != nullptr) {
@@ -585,6 +709,27 @@ void ProblemAccess::reset_work(Problem &problem) { ProblemAccess::state(problem)
 
 void ProblemAccess::report_work(const Problem &problem, SolveResult &result) {
     ProblemAccess::state(problem).report_work(result);
+}
+
+DeclarationKey ProblemAccess::declaration_key(const Problem &problem) {
+    return ProblemAccess::state(problem).declaration_key();
+}
+
+void ProblemAccess::variable_bounds(const Problem &problem, Vec &lower, Vec &upper) {
+    ProblemAccess::state(problem).variable_bounds(lower, upper);
+}
+
+void ProblemAccess::row_counts(const Problem &problem, Index &me, Index &mi) {
+    ProblemAccess::state(problem).row_counts(me, mi);
+}
+
+Vec ProblemAccess::compose_rows(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i) {
+    return ProblemAccess::state(problem).compose_rows(lambda_e, lambda_i);
+}
+
+void ProblemAccess::split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e,
+                               Vec &lambda_i) {
+    ProblemAccess::state(problem).split_rows(lambda, lambda_e, lambda_i);
 }
 
 const NlpProblemModel *ProblemAccess::nlp_model(const Problem &problem) noexcept {

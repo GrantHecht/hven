@@ -8,7 +8,7 @@
 // p0 and then only warm ones.
 //
 // This is the workflow the whole warm-start subsystem exists for. Nothing
-// here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmStart + the
+// here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmState + the
 // 3-arg solve (the hand-off between consecutive parameter values), the `hot`
 // factorization handle (reachable only when the caller raises
 // SqpOptions::common.start_level to kHot; the predictor drops `hot` by contract, so
@@ -346,7 +346,7 @@ struct ContinuationResult {
     // parameter value is the last kOptimal step's `p`. If NO step converged
     // (the cold solve at p0 failed), this is that failed solve's own warm
     // start, which warm_start.h guarantees is still safe to feed forward.
-    SqpWarmStart final_warm;
+    detail::SqpWarmState final_warm;
 
     // Aggregate accounting over `steps`. Sums rather than new measurements:
     // total_majors is sum of counters.major_iters, predictor_calls counts the

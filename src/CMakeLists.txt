@@ -238,7 +238,7 @@ target_sources(hven PRIVATE
 ################################################################################
 # The warm-start currency (include/hven/warmstart/warm_start_data.h). Its own
 # block rather than part of the engine blocks above, because it is neither
-# engine's: WarmStartData is the value a consumer holds BETWEEN solves, and the
+# engine's: WarmStart is the value a consumer holds BETWEEN solves, and the
 # component names no engine type and includes no engine header. Its TU carries
 # the byte form -- the layout, the bounds-checked decode, and the refusals --
 # which is orchestration-shaped, non-template code that CLAUDE.md section 5

@@ -377,9 +377,9 @@ class IpmSolverImpl {
     ///        starting from the shared warm-start PAYLOAD @p warm.
     ///
     /// THE PAYLOAD ROUTE, one protocol on both engines (design 2.4). @p warm is
-    /// the declared-space currency `WarmStartData` -- the same value the SQP
+    /// the declared-space currency `WarmStart` -- the same value the SQP
     /// accepts through its own payload overload, and the same value
-    /// `SolveResult::export_warm_start()` hands back. It is an ARGUMENT, not
+    /// `SolveResult::warm_start` carries. It is an ARGUMENT, not
     /// staged state: it applies to this call and nothing outlives it.
     ///
     /// THE RULE. Identity mismatch REFUSES; pattern and value defects DEGRADE.
@@ -438,7 +438,7 @@ class IpmSolverImpl {
     ///         is not at the declared width, if the polish extension is
     ///         duplicated, unreadable or not at the core's widths, or if the
     ///         declaration stamp is not this program's.
-    IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, const WarmStartData &warm,
+    IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, const WarmStart &warm,
                     SolveBudget budget = {});
 
     // The ~50 validated set_*() methods that lived here, the four static
@@ -790,7 +790,7 @@ class IpmSolverImpl {
     // set_initial_multipliers() / clear_initial_multipliers() and the three
     // staged_*_mults_ / mults_staged_ members they armed were REMOVED in
     // M6 W5 T8.5. The replacement is the MULTIPLIERS-ONLY SEED on the payload
-    // route: a WarmStartData whose `primal_` is EMPTY carries multipliers and
+    // route: a WarmStart whose `primal_` is EMPTY carries multipliers and
     // nothing else, and `solve(model, x0, warm, budget)` applies them through
     // exactly the install site the staged seed used, with the same clamps and
     // the same objective-scale handling. `x0` is then the start, which is what
@@ -803,7 +803,7 @@ class IpmSolverImpl {
     /// than at export so the stamp and the blocks describe the same solve: a
     /// re-lay between the solve and the export must not stamp these blocks
     /// with a key they were never taken under.
-    WarmStartData completed_warm_;
+    WarmStart completed_warm_;
     /// True once a run_phase_sequence() call has RETURNED on this instance. A
     /// call that threw part-way through never reaches the capture and so does
     /// not arm this; convergence is NOT required (a caller reads the verdict
@@ -814,20 +814,20 @@ class IpmSolverImpl {
 
     // stage_warm_start() / clear_staged_warm_start() and the staged_warm_ /
     // warm_staged_ pair they armed were REMOVED in M6 W5 T8.5, together with
-    // this class's own export_warm_start(). Their replacements:
+    // this class's own export. Their replacements:
     //
     //   stage_warm_start(p); solve(m, x0)  ->  solve(m, x0, p)
     //   clear_staged_warm_start()          ->  (nothing to clear: a payload
     //                                           lives exactly as long as the
     //                                           call it is an argument to)
-    //   solver.export_warm_start()         ->  result.export_warm_start()
-    //                                           (drivers/solve_result.h; an
-    //                                           optional, empty when the solve
-    //                                           captured nothing)
+    //   solver.export_warm_start()         ->  result.warm_start
+    //                                           (drivers/solve_result.h; empty
+    //                                           when the solve captured
+    //                                           nothing)
     //
     // The payload overload is declared beside the cold solve() above. The
     // members below are the CAPTURE side, which is internal state feeding
-    // IpmResult::export_snapshot_ and is unchanged.
+    // SolveResult::warm_start and is unchanged.
 
     // --- Printing ---
     //
@@ -1504,7 +1504,7 @@ class IpmSolverImpl {
     // replaced the staged_warm_/warm_staged_ pair with this parameter).
     IpmResult run_phase_sequence(NonLinearProgram &model, const Eigen::VectorXd &x,
                                  const std::vector<PhaseStep> &steps, SolveBudget budget,
-                                 const WarmStartData *payload);
+                                 const WarmStart *payload);
 
     // --- Core algorithm (defined in ipm_solver.cpp) ---
     Eigen::VectorXd alg_impl(AlgorithmMode algmode, BarrierMode barmode, LineSearchMode lsmode,
@@ -1539,10 +1539,10 @@ class IpmSolverImpl {
     // program, not this solver's cached copies. `entry` names the public entry.
     /// The AGAINST-THE-PROBLEM half: every block at the declared dimensions.
     /// Needs a bound program, so it runs at solve entry (M6 W5 T8.4).
-    void validate_warm_start_dimensions(const WarmStartData &data, const char *entry) const;
+    void validate_warm_start_dimensions(const WarmStart &data, const char *entry) const;
     /// The PAYLOAD'S-OWN half: every block a real number. Needs no program, so
     /// it runs at the staging call, where a caller can still act on it.
-    void validate_warm_start_finiteness(const WarmStartData &data, const char *entry) const;
+    void validate_warm_start_finiteness(const WarmStart &data, const char *entry) const;
 
     // Captures completed_warm_ from result_ and the bound program, and arms
     // solve_completed_. Defensive but not fatal: a failed internal-consistency
@@ -1571,7 +1571,7 @@ class IpmSolverImpl {
     // ignored entirely. The decoded value is DISCARDED: the bytes are the one
     // source of truth and are decoded again at application. `entry` names the
     // public entry in the refusal.
-    void validate_staged_polish(const WarmStartData &data, const char *entry) const;
+    void validate_staged_polish(const WarmStart &data, const char *entry) const;
 
     // Installs a staged polish hand-off's bound multipliers over the fresh seed
     // push_initial_point_interior just wrote: declared -> reduced by the bound

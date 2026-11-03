@@ -7,8 +7,5 @@
 # deleted, when B4 closes.
 #
 # format: <public header, relative to include/hven>|<included path>|<group that removes it>
-drivers/sqp_solver_types.h|hven/detail/warmstart/warm_start.h|B4
 drivers/trace.h|hven/detail/interior/iterate_info.h|B4
 drivers/trace.h|hven/detail/qp/ipqp_evidence.h|B4
-warmstart/ipm_polish_extension.h|hven/detail/warmstart/warm_start.h|B4
-warmstart/sqp_warm_start.h|hven/detail/qp/working_set.h|B4

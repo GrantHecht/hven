@@ -72,6 +72,7 @@
 
 // The polish extension's value type, byte form, and tag lookup. The driver's
 // public header only forward-declares IpmPolishData -- see its note there.
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/warmstart/ipm_polish_extension.h"
 
 // clang-format on
@@ -4598,13 +4599,13 @@ void hven::solvers::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL
 }
 
 // export_warm_start() and stage_warm_start() were REMOVED from this class in
-// M6 W5 T8.5. The export is `IpmResult::export_warm_start()` (an optional on
-// the returned value, drivers/solve_result.h), fed by the capture below;
+// M6 W5 T8.5. The export is `SolveResult::warm_start` (a field of the returned
+// value, drivers/solve_result.h), fed by the capture below;
 // staging is the payload OVERLOAD, whose hand-over checks are inlined at that
 // entry and whose against-the-problem checks are in run_phase_sequence.
 // completed_warm_/solve_completed_ survive as the capture's own state.
 
-void hven::solvers::IpmSolverImpl::validate_warm_start_dimensions(const WarmStartData &data,
+void hven::solvers::IpmSolverImpl::validate_warm_start_dimensions(const WarmStart &data,
                                                                   const char *entry) const {
     // Off the program, not off this solver's cached dimensions: those are
     // refreshed at set_nlp() and at solve entry, so between a re-lay and the
@@ -4624,23 +4625,23 @@ void hven::solvers::IpmSolverImpl::validate_warm_start_dimensions(const WarmStar
     };
     // THE ROW BLOCKS ARE CHECKED ON BOTH FORMS: they are what a multipliers-only
     // seed carries, so a mis-sized one is exactly the defect that matters there.
-    check_size("eq_lmults_", data.eq_lmults_.size(), declared_eq);
-    check_size("iq_lmults_", data.iq_lmults_.size(), declared_iq);
+    check_size("eq_lmults_", detail::WarmStartAccess::eq(data).size(), declared_eq);
+    check_size("iq_lmults_", detail::WarmStartAccess::iq(data).size(), declared_iq);
     // THE TWO PRIMAL-SPACE BLOCKS ARE SKIPPED ON THE SEED FORM (M6 W5 T8.5),
     // whose `primal_` is EMPTY -- checking them would refuse a multipliers-only
     // payload for being one. The half-empty shape (an empty `primal_` beside a
     // populated `bound_lmults_`, or the reverse) is refused at the public
     // entry, before this runs, so an empty `primal_` here implies an empty
     // `bound_lmults_` beside it.
-    if (data.primal_.size() != 0) {
-        check_size("primal_", data.primal_.size(), declared_primal);
-        check_size("bound_lmults_", data.bound_lmults_.size(), declared_primal);
+    if (detail::WarmStartAccess::primal(data).size() != 0) {
+        check_size("primal_", detail::WarmStartAccess::primal(data).size(), declared_primal);
+        check_size("bound_lmults_", detail::WarmStartAccess::bound(data).size(), declared_primal);
     }
 }
 
 // THE PAYLOAD'S OWN CONSISTENCY, checkable with no program in hand -- which is
 // what makes it the half that still runs at the staging call (M6 W5 T8.4).
-void hven::solvers::IpmSolverImpl::validate_warm_start_finiteness(const WarmStartData &data,
+void hven::solvers::IpmSolverImpl::validate_warm_start_finiteness(const WarmStart &data,
                                                                   const char *entry) const {
     const auto check_finite = [&](const char *block, const Eigen::VectorXd &v) {
         if (!v.allFinite()) {
@@ -4651,10 +4652,10 @@ void hven::solvers::IpmSolverImpl::validate_warm_start_finiteness(const WarmStar
                             entry, block));
         }
     };
-    check_finite("primal_", data.primal_);
-    check_finite("eq_lmults_", data.eq_lmults_);
-    check_finite("iq_lmults_", data.iq_lmults_);
-    check_finite("bound_lmults_", data.bound_lmults_);
+    check_finite("primal_", detail::WarmStartAccess::primal(data));
+    check_finite("eq_lmults_", detail::WarmStartAccess::eq(data));
+    check_finite("iq_lmults_", detail::WarmStartAccess::iq(data));
+    check_finite("bound_lmults_", detail::WarmStartAccess::bound(data));
 }
 
 void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
@@ -4663,18 +4664,18 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     // call sits one line before a completed solve's return: throwing would
     // destroy a converged result to report a defect in a side product. A
     // failed check skips the capture instead, leaving solve_completed_ false
-    // so export_warm_start() refuses. None of the conditions is reachable
+    // so the result carries an empty warm start. None of the conditions is reachable
     // today; they are guards, and Eigen's asserts are gone under Release.
     //
     // skip_capture clears the marker rather than leaving it alone, so a
     // skipped capture cannot leave a previous solve's payload standing to be
     // exported as this one's. A solve that threw never reaches this function.
     const auto skip_capture = [this] {
-        this->completed_warm_ = WarmStartData{};
+        this->completed_warm_ = WarmStart{};
         this->solve_completed_ = false;
     };
 
-    WarmStartData captured;
+    WarmStart captured;
 
     // As of this solve: read here rather than at export, so a re-lay between
     // the two cannot stamp these blocks with a key they were never taken
@@ -4686,7 +4687,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     // fixing-row split, declaration() through require_master_lists_unmoved and
     // the piece materialization's narrowing check).
     try {
-        captured.structure_key_ = declaration_key(this->nlp_->declaration());
+        detail::WarmStartAccess::key(captured) = declaration_key(this->nlp_->declaration());
     } catch (const std::exception &) {
         skip_capture();
         return;
@@ -4696,7 +4697,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     // eliminated variable back in its own coordinate at the value the
     // treatment holds it at, which is exactly what a warm payload has to carry
     // for the point to be restartable.
-    captured.primal_ = this->result_.x;
+    detail::WarmStartAccess::primal(captured) = this->result_.x;
 
     // The declared equality rows exactly: result_.lambda_e is sized
     // equal_cons_, which under the MakeConstraint treatment counts one
@@ -4721,9 +4722,9 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     // No treatment ever adds an inequality row, so the reported inequality
     // block is the declared one.
     if (!declared_block(hven::solvers::detail::engine_rows(this->result_).lambda_e,
-                        this->nlp_->user_equal_cons_, captured.eq_lmults_) ||
+                        this->nlp_->user_equal_cons_, detail::WarmStartAccess::eq(captured)) ||
         !declared_block(hven::solvers::detail::engine_rows(this->result_).lambda_i,
-                        this->nlp_->inequal_cons_, captured.iq_lmults_)) {
+                        this->nlp_->inequal_cons_, detail::WarmStartAccess::iq(captured))) {
         skip_capture();
         return;
     }
@@ -4735,7 +4736,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
     // is the entry a consumer ignores. An empty reported block (no finite
     // variable bounds at all) exports as the declared-width zero vector.
     const int declared_primal = this->full_primal_vars_;
-    captured.bound_lmults_ = Eigen::VectorXd::Zero(declared_primal);
+    detail::WarmStartAccess::bound(captured) = Eigen::VectorXd::Zero(declared_primal);
     if (this->result_.z.size() > 0) {
         if (this->nlp_->is_reduced()) {
             // The scatter indexes reduced_to_full by k, so a reported block
@@ -4750,7 +4751,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
                 return;
             }
             for (Eigen::Index k = 0; k < reduced; k++) {
-                captured.bound_lmults_[reduced_to_full[k]] = this->result_.z[k];
+                detail::WarmStartAccess::bound(captured)[reduced_to_full[k]] = this->result_.z[k];
             }
         } else {
             // On the identity path the reported block is the declared one, so
@@ -4760,7 +4761,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
                 skip_capture();
                 return;
             }
-            captured.bound_lmults_ = this->result_.z;
+            detail::WarmStartAccess::bound(captured) = this->result_.z;
         }
     }
 
@@ -4790,7 +4791,7 @@ void hven::solvers::IpmSolverImpl::capture_completed_warm_start() {
             skip_capture();
             return;
         }
-        captured.extensions_.push_back(std::move(polish));
+        detail::WarmStartAccess::extensions(captured).push_back(std::move(polish));
     }
 
     this->completed_warm_ = std::move(captured);
@@ -4863,7 +4864,7 @@ bool hven::solvers::IpmSolverImpl::build_polish_extension(const Eigen::VectorXd 
     return true;
 }
 
-void hven::solvers::IpmSolverImpl::validate_staged_polish(const WarmStartData &data,
+void hven::solvers::IpmSolverImpl::validate_staged_polish(const WarmStart &data,
                                                           const char *entry) const {
     // Null when the value simply does not carry the tag -- the ordinary
     // core-only hand-off; a throw means a duplicated one. Wrapped so that
@@ -4902,8 +4903,8 @@ void hven::solvers::IpmSolverImpl::validate_staged_polish(const WarmStartData &d
     // with them agrees with the problem exactly when they do. The message still
     // names the declared problem, because that is what both widths are stated
     // over.
-    const Eigen::Index declared_primal = data.primal_.size();
-    const Eigen::Index declared_iq = data.iq_lmults_.size();
+    const Eigen::Index declared_primal = detail::WarmStartAccess::primal(data).size();
+    const Eigen::Index declared_iq = detail::WarmStartAccess::iq(data).size();
     const auto check_size = [&](const char *block, Eigen::Index held, Eigen::Index declared) {
         if (held != static_cast<Eigen::Index>(declared)) {
             throw std::invalid_argument(fmt::format(
@@ -5119,7 +5120,7 @@ hven::solvers::IpmSolverImpl::phase_steps() const {
 hven::solvers::IpmResult
 hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const Eigen::VectorXd &x,
                                                  const std::vector<PhaseStep> &steps,
-                                                 SolveBudget budget, const WarmStartData *payload) {
+                                                 SolveBudget budget, const WarmStart *payload) {
     validate(budget);
     // The in-flight guard, and the ONE site it is set from: the public solve()
     // entry reaches this function exactly once per call. Cleared on every exit,
@@ -5193,7 +5194,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     int first_opt_phase_idx = -1;
     // TRUE only when the POINT and the polish extension are to be applied.
     bool have_warm = false;
-    WarmStartData warm;
+    WarmStart warm;
     if (payload != nullptr) {
         // THIS CALL'S OWN COPY, so the two blocks below can be moved out of it
         // without touching the caller's value. Taken before any check, because
@@ -5215,7 +5216,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         this->validate_warm_start_dimensions(warm, "solve");
 
         const auto ceiling = this->opts_.common.start_level;
-        const bool multipliers_only = warm.primal_.size() == 0;
+        const bool multipliers_only = detail::WarmStartAccess::primal(warm).size() == 0;
         if (ceiling == StartLevel::kCold) {
             // IGNORED, AND SAID SO. The alternative -- accepting it and
             // applying nothing -- is the silent failure this counter exists to
@@ -5229,8 +5230,8 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
             //
             // Moved, not copied: `warm` is this call's own copy and nothing
             // below reads these two blocks again.
-            seed_eq_mults = std::move(warm.eq_lmults_);
-            seed_iq_mults = std::move(warm.iq_lmults_);
+            seed_eq_mults = std::move(detail::WarmStartAccess::eq(warm));
+            seed_iq_mults = std::move(detail::WarmStartAccess::iq(warm));
             have_seed = true;
             // THE POINT AND THE POLISH, only at kWarm and above, and only when
             // the payload actually carries a point. A polish extension that is
@@ -5461,7 +5462,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         // Read off the program's declaration, which at this point in the call
         // is the declaration this solve lays under.
         const DeclarationKey live = declaration_key(this->nlp_->declaration());
-        if (!(warm.structure_key_ == live)) {
+        if (!(detail::WarmStartAccess::key(warm) == live)) {
             throw std::invalid_argument(fmt::format(
                 "IpmSolver: the warm-start payload was taken under declaration key "
                 "{0:#x} but the problem this solve binds keys {1:#x} -- the value describes a "
@@ -5469,7 +5470,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
                 "fixed-variable treatment's own rows subtracted) and the declared bound "
                 "STRUCTURE, so one of those moved. The payload is refused rather than "
                 "silently dropped; re-export against the current declaration.",
-                warm.structure_key_.digest(), live.digest()));
+                detail::WarmStartAccess::key(warm).digest(), live.digest()));
         }
     }
 
@@ -5627,7 +5628,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     // Its primal block is declared-space and the gather is the declared ->
     // reduced mapping, so an eliminated variable's entry is dropped here and
     // written nowhere -- ignored by construction, not by a special case.
-    const Eigen::VectorXd &start_x = have_warm ? warm.primal_ : x;
+    const Eigen::VectorXd &start_x = have_warm ? detail::WarmStartAccess::primal(warm) : x;
     Eigen::VectorXd x_solver(this->primal_vars_);
     this->nlp_->gather_reduced_x(start_x, x_solver);
 
@@ -6074,9 +6075,10 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         //     known, rather than by moving the capture: the capture's
         //     placement is load-bearing for the width it reads.
         if (fixing_rows > 0 && fixed_idx.size() == fixing_rows && this->solve_completed_ &&
-            this->completed_warm_.bound_lmults_.size() == n) {
+            detail::WarmStartAccess::bound(this->completed_warm_).size() == n) {
             for (Index k = 0; k < fixing_rows; ++k) {
-                this->completed_warm_.bound_lmults_[fixed_idx[k]] = -fixed_lambda[k];
+                detail::WarmStartAccess::bound(this->completed_warm_)[fixed_idx[k]] =
+                    -fixed_lambda[k];
             }
         }
 
@@ -6146,7 +6148,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         //     question that used to be asked of a solver that had gone on
         //     living.
         if (this->solve_completed_) {
-            this->result_.export_snapshot_ = this->completed_warm_;
+            this->result_.warm_start = this->completed_warm_;
         }
         this->result_.kkt_analyses_total = this->kkt_analysis_count_;
         this->result_.kkt_analyses_this_call = this->kkt_analysis_count_ - analyses_before;
@@ -6255,7 +6257,7 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
 // run_phase_sequence, where a program is bound.
 hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &model,
                                                              const Eigen::VectorXd &x0,
-                                                             const WarmStartData &warm,
+                                                             const WarmStart &warm,
                                                              SolveBudget budget) {
     if (x0.size() != static_cast<Eigen::Index>(model.primal_vars_)) {
         throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
@@ -6272,13 +6274,15 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
     // non-empty `bound_lmults_` -- bound prices at a point the payload does not
     // name. Refused where the caller is still standing, before any of it
     // reaches a solve.
-    if (warm.primal_.size() != warm.bound_lmults_.size()) {
+    if (detail::WarmStartAccess::primal(warm).size() !=
+        detail::WarmStartAccess::bound(warm).size()) {
         throw std::invalid_argument(fmt::format(
             "IpmSolver::solve: warm-start block primal_ holds {0} entries but "
             "bound_lmults_ holds {1}; both are stated over the DECLARED variables and must be "
             "EITHER BOTH EMPTY (the multipliers-only seed, whose start is this call's own x0) OR "
             "ONE LENGTH -- one bound price per variable",
-            warm.primal_.size(), warm.bound_lmults_.size()));
+            detail::WarmStartAccess::primal(warm).size(),
+            detail::WarmStartAccess::bound(warm).size()));
     }
     this->validate_warm_start_finiteness(warm, "solve");
     this->validate_staged_polish(warm, "solve");

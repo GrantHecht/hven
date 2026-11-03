@@ -1503,7 +1503,7 @@ constexpr std::uint64_t kFnvOffsetBasis = 14695981039346656037ULL;
 // not depend on host byte order or on SpMatRM::StorageIndex's width. No
 // consumer compares it against anything but another call of this same
 // function in the same process; 0 stays meaningful only as
-// SqpWarmStart::structure_hash's "no claim made" sentinel.
+// SqpWarmState::structure_hash's "no claim made" sentinel.
 inline std::uint64_t structural_hash(const QpProblem &qp) {
     return combined_pattern_hash(qp.H, qp.Ae, qp.Ai);
 }
@@ -1665,7 +1665,7 @@ struct EliminatedFace {
     }
 };
 
-// Hot-start level. The opaque handle behind warm_start.h's SqpWarmStart::hot,
+// Hot-start level. The opaque handle behind warm_start.h's SqpWarmState::hot,
 // forward-declared there and DEFINED here: a frozen copy of the
 // fingerprint/exit-state members QpEngine::run() tracks per instance, plus
 // shared ownership of the BorderState those fingerprints describe.
@@ -1796,7 +1796,7 @@ class QpEngine {
                      const SolveOverrides &overrides) const;
 
     // Warm start with a per-solve override AND a hot handle
-    // (SqpWarmStart::hot) from a PRIOR solve -- typically on a DIFFERENT
+    // (SqpWarmState::hot) from a PRIOR solve -- typically on a DIFFERENT
     // QpEngine instance -- offered for THIS engine to adopt as its own
     // border-mode cache if it does not already have a valid one (see run()'s
     // ADOPT AN EXTERNAL HOT HANDLE step). `hot` may be null (falls back to
@@ -1809,7 +1809,7 @@ class QpEngine {
 
     // A shared, opaque snapshot of this engine's CURRENTLY valid border-mode
     // cache -- what warm_start.h's make_warm_start attaches to
-    // SqpWarmStart::hot on every exit. Returns nullptr whenever border_valid_ is
+    // SqpWarmState::hot on every exit. Returns nullptr whenever border_valid_ is
     // false: no solve() on this instance has yet ended kOptimal, or
     // ws_algebra == kRefactorize.
     //

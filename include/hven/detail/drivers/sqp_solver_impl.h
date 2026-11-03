@@ -1113,7 +1113,7 @@ class SqpSolverImpl {
     ///         staging (M6 W5 T8.5). A call names exactly one warm-start
     ///         source, which is its own argument, so two sources for one solve
     ///         is no longer a state that can be reached.
-    SqpResult solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+    SqpResult solve(const NlpModel &model, const Vec &x0, const detail::SqpWarmState &warm,
                     SolveBudget budget = {});
 
     /// @brief Warm-start ingest against an already-built bridge, on the same
@@ -1130,7 +1130,7 @@ class SqpSolverImpl {
     ///         does not re-check the box). The two-warm-start-sources refusal
     ///         this entry used to name is gone with staging (M6 W5 T8.5) --
     ///         see the model-taking overload just above.
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const detail::SqpWarmState &warm,
                     SolveBudget budget = {});
 
     // --- The PAYLOAD route: the shared protocol, on both engines -----------
@@ -1139,9 +1139,9 @@ class SqpSolverImpl {
     // this engine's OWN native object (`warmstart/sqp_warm_start.h`), which is
     // the LABELLED SQP-ONLY entry -- the exact counterpart of the IPM-only KKT
     // hook -- and is the only route to kWarm/kHot. The two below take the
-    // SHARED declared-space currency `WarmStartData`, which the interior-point
+    // SHARED declared-space currency `WarmStart`, which the interior-point
     // engine's own `solve(model, x0, warm, budget)` also takes, which
-    // `SolveResult::export_warm_start()` hands back, and which is what travels
+    // `SolveResult::warm_start` carries, and which is what travels
     // between engines and across a serialization boundary.
     //
     // THE RULE ON THIS ROUTE: identity mismatch REFUSES; pattern and value
@@ -1178,11 +1178,11 @@ class SqpSolverImpl {
     // today's rule, restated here because the payload carries a `bound_lmults_`
     // block that looks ingestable and is not.
     //
-    // AMBIGUITY, stated once: an lvalue of `SqpWarmStart` or of `WarmStartData`
+    // AMBIGUITY, stated once: an lvalue of `SqpWarmState` or of `WarmStart`
     // selects its own overload unambiguously (neither converts to the other,
     // and `SolveBudget` converts from neither). The ONE ambiguous SPELLING is a
     // BRACED third argument -- `solve(bridge, x0, {})` would match
-    // `SolveBudget`, `WarmStartData` and `SqpWarmStart` alike. Spell the type.
+    // `SolveBudget`, `WarmStart` and `SqpWarmState` alike. Spell the type.
 
     /// @brief Warm-start ingest from the SHARED payload, against a model.
     /// @param model  The problem to solve.
@@ -1201,7 +1201,7 @@ class SqpSolverImpl {
     ///         non-finite or negative bound dual; if any block is not at this
     ///         problem's declared dimensions; or if the declaration stamp is
     ///         not this problem's -- the last two IN EVERY qp_mode.
-    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                     SolveBudget budget = {});
 
     /// @brief Warm-start ingest from the SHARED payload, against a bridge.
@@ -1213,7 +1213,7 @@ class SqpSolverImpl {
     /// @throws std::invalid_argument on the classes the model-taking payload
     ///         overload above enumerates, less the model-box class this entry
     ///         does not re-check.
-    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+    SqpResult solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStart &warm,
                     SolveBudget budget = {});
 
     // --- Warm-start currency ---
@@ -1222,18 +1222,7 @@ class SqpSolverImpl {
     // nothing until a solve() call names a problem, so the currency's two checks
     // -- the block sizes and the stamp -- are made at solve entry, not at
     // staging.
-    /// @brief The warm-start value of the last completed solve, in DECLARED
-    ///        space.
-    /// @return The captured value, by copy. Blocks, all at declared dimensions:
-    ///         `primal_` is SqpResult::x, `eq_lmults_` its lambda_e,
-    ///         `iq_lmults_` its lambda_i and `bound_lmults_` its z, verbatim --
-    ///         model space is declared space on this engine. `z` already is the
-    ///         currency's z = zL - zU. The stamp is the bridge's declaration key
-    ///         as of that solve's completion. No extensions: this engine produces
-    ///         none, so `extensions_` reads empty.
-    /// @throws std::logic_error if no solve has COMPLETED on this instance --
-    ///         completed meaning a public solve() that returned.
-    WarmStartData export_warm_start() const;
+    // The export is `SolveResult::warm_start`, captured at solve exit.
 
     // stage_warm_start() and the staged_warm_ / warm_staged_ pair it armed were
     // REMOVED in M6 W5 T8.5. `stage(p); solve(m, x0)` becomes `solve(m, x0, p)`
@@ -1254,12 +1243,13 @@ class SqpSolverImpl {
     // THE PAYLOAD'S ONE INGEST, shared by both bridge-taking payload overloads:
     // the against-the-problem checks (block lengths, then the declaration
     // stamp, both refusing in EVERY qp_mode), the kIpm tier seed, and the
-    // translation of the declared-space currency into the native `SqpWarmStart`
+    // translation of the declared-space currency into the native `SqpWarmState`
     // the rest of this engine speaks. `x0` is read for the MULTIPLIERS-ONLY
     // form, whose `primal_` is empty and whose start is therefore the call's
     // own. Renamed from consume_staged_warm_start, which read a member.
-    SqpWarmStart consume_payload(const AssemblyEvalSeam &seam, const NlpModelAssembly &bridge,
-                                 const Vec &x0, const WarmStartData &data);
+    detail::SqpWarmState consume_payload(const AssemblyEvalSeam &seam,
+                                         const NlpModelAssembly &bridge, const Vec &x0,
+                                         const WarmStart &data);
 
     // The export's one capture at completion, taken after record_solve returns.
     // A failed internal-consistency check skips the capture and clears the marker
@@ -1285,7 +1275,7 @@ class SqpSolverImpl {
     ///                     carries that contract.
     /// @return The assembled solution.
     SqpResult solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
-                         const SqpWarmStart &warm, SolveBudget budget);
+                         const detail::SqpWarmState &warm, SolveBudget budget);
 
     /// @brief The major loop itself, entered only with validated arguments and
     ///        the strategy its caller built.
@@ -1301,7 +1291,7 @@ class SqpSolverImpl {
     /// @param strategy     The globalization strategy, consumed.
     /// @return The assembled solution.
     SqpResult solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
-                              const SqpWarmStart &warm, SolveBudget budget,
+                              const detail::SqpWarmState &warm, SolveBudget budget,
                               std::unique_ptr<GlobalizationStrategy> strategy);
 
     /// @brief The solve-scope state `solve_impl_body` owns, DEFINED IN THE .cpp.
@@ -1321,7 +1311,8 @@ class SqpSolverImpl {
     /// @param warm     The ingested warm start.
     /// @param strategy The globalization strategy, consumed.
     void prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec &x0,
-                       const SqpWarmStart &warm, std::unique_ptr<GlobalizationStrategy> strategy);
+                       const detail::SqpWarmState &warm,
+                       std::unique_ptr<GlobalizationStrategy> strategy);
 
     /// @brief The per-major routing bundle, DEFINED IN THE .cpp.
     ///
@@ -1370,7 +1361,7 @@ class SqpSolverImpl {
     /// @param overrides The caller's own walk levers.
     /// @param offer_hot True to offer the retained hot handle to the walk.
     /// @param use_crash True to seed the first working set from the crash basis.
-    void solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
+    void solve_with_walk(SolveState &st, MajorState &mj, const detail::SqpWarmState &warm,
                          const SolveOverrides &overrides, bool offer_hot, bool use_crash);
 
     /// @brief The subproblem at the current iterate under SqpHessianMode::kLbfgsDamped (M7
@@ -1480,8 +1471,8 @@ class SqpSolverImpl {
     /// @param iter         This major's index.
     /// @return What this major decided.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
-                           NlpModelAssembly &bridge, const SqpWarmStart &warm, SolveBudget budget,
-                           Index iter);
+                           NlpModelAssembly &bridge, const detail::SqpWarmState &warm,
+                           SolveBudget budget, Index iter);
 
     /// @brief Builds ONE IterationEvent from the row being pushed and hands it
     ///        to the installed per-iteration callback (M6 W5 T8.6).
@@ -1557,10 +1548,10 @@ class SqpSolverImpl {
     // model-taking entry's stamp otherwise.
     SqpResult solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget,
                                std::optional<std::chrono::steady_clock::time_point> outer_entry);
-    SqpResult solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                               SolveBudget budget,
+    SqpResult solve_from_entry(NlpModelAssembly &bridge, const Vec &x0,
+                               const detail::SqpWarmState &warm, SolveBudget budget,
                                std::optional<std::chrono::steady_clock::time_point> outer_entry);
-    SqpResult solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+    SqpResult solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStart &warm,
                                SolveBudget budget,
                                std::optional<std::chrono::steady_clock::time_point> outer_entry);
 
@@ -1677,7 +1668,7 @@ class SqpSolverImpl {
                                       SqpCounters &counters, QpSolution &qs,
                                       detail::QnLiftBridge *qn);
 
-    /// @brief Builds the SqpWarmStart every exit of solve_impl attaches to
+    /// @brief Builds the SqpWarmState every exit of solve_impl attaches to
     ///        SqpResult::warm_start.
     ///
     /// @param seam              The solve's evaluation seam.
@@ -1702,11 +1693,12 @@ class SqpSolverImpl {
     ///
     /// @return The warm start to attach to `SqpResult::warm_start`.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver.h
-    SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
-                                 const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
-                                 const Vec *probe_x, double delta, double dual_mu_eff,
-                                 double primal_delta_eff, const GlobalizationStrategy *strategy,
-                                 std::shared_ptr<const HotState> hot);
+    detail::SqpWarmState make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
+                                         const QpProblem &qp, bool qp_built,
+                                         const NlpEval *probe_ev, const Vec *probe_x, double delta,
+                                         double dual_mu_eff, double primal_delta_eff,
+                                         const GlobalizationStrategy *strategy,
+                                         std::shared_ptr<const HotState> hot);
 
     /// The QN structural block for a problem of @p n variables (qn_struct_vars_).
     Index qn_probe_struct(Index n) const {
@@ -1746,7 +1738,7 @@ class SqpSolverImpl {
     ///              re-measurement `finish` already takes.
     SqpResult finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status, const Vec &x,
                      const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
-                     SqpWarmStart warm, const DeclaredDiagnosticsStash &stash,
+                     detail::SqpWarmState warm, const DeclaredDiagnosticsStash &stash,
                      bool multipliers_are_caller_scale = false);
 
     /// @brief Computes this solve's scaling factors and installs them on @p seam,
@@ -1767,7 +1759,7 @@ class SqpSolverImpl {
     ///        otherwise. Every public route calls this where it called solve_impl.
     ///
     /// Under kOff it IS solve_impl. A warm start that passes the ingest gate and
-    /// carries a usable decision (SqpWarmStart::column_factors) is solved under that
+    /// carries a usable decision (SqpWarmState::column_factors) is solved under that
     /// decision with no probe. Otherwise it evaluates the caller's Jacobians once
     /// (counted in `evals_values`) at the point the solve's ingest gate admits --
     /// warm.x when the warm start passes that gate, else x0, projected iff
@@ -1783,7 +1775,7 @@ class SqpSolverImpl {
     /// Argument refusals are solve_impl's: a mis-sized or non-finite x0, or a seam
     /// and bridge over different providers, is handed to it unscaled to throw.
     SqpResult solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
-                                  const SqpWarmStart &warm, SolveBudget budget);
+                                  const detail::SqpWarmState &warm, SolveBudget budget);
 
     /// @brief The column-scaled solve's answer in the CALLER's units (M7 W2 SCL),
     ///        called by solve_impl before the `sqp.solve.end` emission whenever
@@ -1908,7 +1900,7 @@ class SqpSolverImpl {
     // staged, the mode is not kIpm, or the grade came out cold. Spent at the
     // next tier entry, whenever that is.
     std::optional<IpqpSeed> ipqp_staged_seed_;
-    // The proximal level to EXPORT on this solve's SqpWarmStart, and the point it was
+    // The proximal level to EXPORT on this solve's SqpWarmState, and the point it was
     // reached at (warm_start.h's `prox_sigma`/`prox_center_*` block). A member
     // rather than a local because solve_impl has a dozen exits and
     // make_warm_start is static; reset at the top of every solve_impl call.
@@ -1981,7 +1973,7 @@ class SqpSolverImpl {
     //
     // The value captured at the end of the last COMPLETED solve, valid only while
     // solve_completed_ is true.
-    WarmStartData completed_warm_;
+    WarmStart completed_warm_;
     // True once a public solve() has RETURNED on this instance. A call that
     // threw never reaches the capture and so does not arm this; convergence
     // is NOT required (the caller reads the verdict from SqpResult::status).

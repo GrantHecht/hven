@@ -45,6 +45,10 @@
 #include <hven/detail/drivers/equality_basis.h>
 #include <hven/detail/drivers/equality_basis_testing.h>
 #include <hven/detail/drivers/ladder_testing.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/sqp_warm_state.h>
+#include <hven/detail/warmstart/warm_start.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 
 namespace hven::solvers {
 
@@ -116,14 +120,16 @@ void require_declared_box(const NlpModel &model) {
 // `primal_` beside a non-empty `bound_lmults_` claims bound prices at a point
 // the payload does not name, and this is the one place that can be said before
 // a problem exists to say it against.
-void require_consistent_core(const WarmStartData &data) {
-    if (data.primal_.size() != data.bound_lmults_.size()) {
+void require_consistent_core(const WarmStart &data) {
+    if (detail::WarmStartAccess::primal(data).size() !=
+        detail::WarmStartAccess::bound(data).size()) {
         throw std::invalid_argument(fmt::format(
             "SqpSolver::solve: warm-start block primal_ holds {0} entries but "
             "bound_lmults_ holds {1}; both are stated over the DECLARED variables and must be "
             "EITHER BOTH EMPTY (the multipliers-only seed, whose start is this call's own x0) OR "
             "ONE LENGTH -- one bound price per variable",
-            data.primal_.size(), data.bound_lmults_.size()));
+            detail::WarmStartAccess::primal(data).size(),
+            detail::WarmStartAccess::bound(data).size()));
     }
 }
 
@@ -131,7 +137,7 @@ void require_consistent_core(const WarmStartData &data) {
 // prices this solve starts from; a NaN in any of them is not a start state,
 // and the ingest gate would silently degrade it to a cold solve rather than say
 // so. Refused here, where the caller is still standing.
-void require_finite_core(const WarmStartData &data) {
+void require_finite_core(const WarmStart &data) {
     const auto check = [](const char *block, const Vec &v) {
         if (!v.allFinite()) {
             throw std::invalid_argument(
@@ -141,10 +147,10 @@ void require_finite_core(const WarmStartData &data) {
                             block));
         }
     };
-    check("primal_", data.primal_);
-    check("eq_lmults_", data.eq_lmults_);
-    check("iq_lmults_", data.iq_lmults_);
-    check("bound_lmults_", data.bound_lmults_);
+    check("primal_", detail::WarmStartAccess::primal(data));
+    check("eq_lmults_", detail::WarmStartAccess::eq(data));
+    check("iq_lmults_", detail::WarmStartAccess::iq(data));
+    check("bound_lmults_", detail::WarmStartAccess::bound(data));
 }
 
 // THE KNOWN EXTENSION, if the value carries it. An unreadable payload is
@@ -157,7 +163,7 @@ void require_finite_core(const WarmStartData &data) {
 // is internal to the value. Whether that structure is the one the next solve
 // lays is the STAMP's question. to_sqp_warm_start re-checks both from its own
 // side; this pass exists so the refusal names the staging call.
-void validate_staged_polish(const WarmStartData &data) {
+void validate_staged_polish(const WarmStart &data) {
     const WarmExtension *extension = nullptr;
     try {
         extension = find_ipm_polish(data);
@@ -204,11 +210,14 @@ void validate_staged_polish(const WarmStartData &data) {
     // still checked here: it is decoded, its values must be finite, and its two
     // price blocks must be non-negative -- a corrupt extension stays loud even
     // when it is about to be dropped.
-    if (data.primal_.size() != 0) {
-        check_size("the lower-bound multiplier block", polish.z_lower_.size(), data.primal_.size());
-        check_size("the upper-bound multiplier block", polish.z_upper_.size(), data.primal_.size());
+    if (detail::WarmStartAccess::primal(data).size() != 0) {
+        check_size("the lower-bound multiplier block", polish.z_lower_.size(),
+                   detail::WarmStartAccess::primal(data).size());
+        check_size("the upper-bound multiplier block", polish.z_upper_.size(),
+                   detail::WarmStartAccess::primal(data).size());
     }
-    check_size("the inequality-value block", polish.iq_values_.size(), data.iq_lmults_.size());
+    check_size("the inequality-value block", polish.iq_values_.size(),
+               detail::WarmStartAccess::iq(data).size());
 
     const auto check_finite = [](const char *block, const Vec &v) {
         if (!v.allFinite()) {
@@ -302,7 +311,7 @@ double caller_unit_stationarity(const SqpKkt &k, const Vec &x, const Vec &lo, co
     return out;
 }
 
-// THE CARRIED COLUMN DECISION (SqpWarmStart::column_factors, M7 W2 SCW): usable
+// THE CARRIED COLUMN DECISION (SqpWarmState::column_factors, M7 W2 SCW): usable
 // when it is sized to this problem and every factor is a finite positive power of
 // two inside [1/limit, limit] -- the only values the rule produces. A record that is
 // not is ignored and the rule runs, so a hand-edited object can cost a probe and
@@ -371,7 +380,7 @@ void record_scaling_report(SqpResult &out, const detail::ProblemScaling &sc, con
 //
 // `tr_radius` SURVIVES, and is deliberately not touched here: it is an
 // l-infinity radius in the variable space, and this layer scales no variable.
-void drop_scaled_space_state(SqpWarmStart &warm) {
+void drop_scaled_space_state(detail::SqpWarmState &warm) {
     warm.funnel_width = -1.0;
     warm.primal_delta = -1.0;
     warm.dual_mu = -1.0;
@@ -1647,19 +1656,18 @@ SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
 // THE SECTION 5.4 GRADE (plan ruling 4): full warm from the `hven.ipm.polish.v1` payload,
 // base warm from the core's signed price alone, `nullopt` = cold; flow (a) already consumed
 // `primal_` as `x0`. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 3.
-std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index n, Index me,
-                                               Index mi) {
+std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStart &data, Index n, Index me, Index mi) {
     // Sizes: `primal_`, `iq_lmults_` and `bound_lmults_` were checked against
     // this problem by the caller's degrade gate, and the polish widths against
     // the core at staging; only the fixing-adjusted equality count is left.
-    if (data.eq_lmults_.size() != me) {
+    if (detail::WarmStartAccess::eq(data).size() != me) {
         return std::nullopt;
     }
     IpqpSeed seed;
     seed.x = Vec::Zero(n);
     seed.s = Vec::Zero(mi);
-    seed.lambda_e = data.eq_lmults_;
-    seed.lambda_i = data.iq_lmults_;
+    seed.lambda_e = detail::WarmStartAccess::eq(data);
+    seed.lambda_i = detail::WarmStartAccess::iq(data);
     seed.zeta = Vec::Zero(n);
     seed.lambda_est_e = Vec::Zero(me);
     seed.lambda_est_i = Vec::Zero(mi);
@@ -1667,8 +1675,8 @@ std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index 
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
         seed.grade = IpqpRestartGrade::kBaseWarm;
-        seed.zl = data.bound_lmults_.cwiseMax(0.0);
-        seed.zu = (-data.bound_lmults_).cwiseMax(0.0);
+        seed.zl = detail::WarmStartAccess::bound(data).cwiseMax(0.0);
+        seed.zu = (-detail::WarmStartAccess::bound(data)).cwiseMax(0.0);
         seed.mu = 0.0; // absent: the 5.3 clamp then reads the measured floor only.
         return seed;
     }
@@ -2099,8 +2107,8 @@ SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, SolveBudget
     return out;
 }
 
-SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
-                               SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0,
+                               const detail::SqpWarmState &warm, SolveBudget budget) {
     require_declared_box(model);
     // The shared clock, on the same boundary as the cold model overload above
     // and for the same reason: the bridge lay is this call's work.
@@ -2152,12 +2160,12 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBu
     AssemblyEvalSeam seam{bridge};
     // A COLD SOLVE, unconditionally (M6 W5 T8.5): staging is gone, so this
     // entry has no warm-start source to consult and runs the same solve it
-    // always ran when nothing was staged -- a default-constructed SqpWarmStart.
+    // always ran when nothing was staged -- a default-constructed SqpWarmState.
     // The tier seed is still cleared, for the reason the native overload below
     // states.
     ipqp_staged_seed_.reset();
     payload_polish_ignored_ = 0;
-    const SqpWarmStart warm{};
+    const detail::SqpWarmState warm{};
     // Timed around solve_impl ALONE -- never around model construction,
     // x0/warm setup above, or record_solve's own ledger bookkeeping
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
@@ -2174,14 +2182,14 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBu
     return done;
 }
 
-SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                               SolveBudget budget) {
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0,
+                               const detail::SqpWarmState &warm, SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
 SqpResult
-SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
-                                SolveBudget budget,
+SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0,
+                                const detail::SqpWarmState &warm, SolveBudget budget,
                                 std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE NATIVE ROUTE BUILDS NO TIER SEED, so it must still CLEAR one: a
     // previous solve that armed one and never entered the tier would otherwise
@@ -2223,7 +2231,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const S
 // needs a PROBLEM -- the block lengths and the declaration stamp -- waits for
 // consume_payload, below the seam lay.
 
-SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
                                SolveBudget budget) {
     // THE MODEL'S OWN DEFECT FIRST, before the payload is looked at and before
     // the bridge lay: a model that cannot describe a problem is not worth a
@@ -2240,13 +2248,13 @@ SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const WarmS
     return out;
 }
 
-SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStart &warm,
                                SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
 SqpResult
-SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStart &warm,
                                 SolveBudget budget,
                                 std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE HAND-OVER CHECKS, in the order the staging call ran them and with
@@ -2272,7 +2280,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const W
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
     // count for this call.
-    const SqpWarmStart native = consume_payload(seam, bridge, x0, warm);
+    const detail::SqpWarmState native = consume_payload(seam, bridge, x0, warm);
     const auto t0 = std::chrono::steady_clock::now();
     SqpResult out = solve_column_scaled(seam, bridge, x0, native, budget);
     const auto t1 = std::chrono::steady_clock::now();
@@ -2322,7 +2330,7 @@ SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
     //
     // GATED ON A NONZERO SIGMA, which is what makes the whole block free at
     // the shipped default: at `qp_mode == QpMode::kWalk` no SSN subproblem
-    // runs, `ssn_prox_sigma_out_` is still 0.0, and the emitted SqpWarmStart
+    // runs, `ssn_prox_sigma_out_` is still 0.0, and the emitted SqpWarmState
     // is byte-for-byte the one this driver has always emitted -- the two
     // centre vectors stay empty and `has_prox_center` stays false. See
     // warm_start.h's THE COST GATE.
@@ -2333,10 +2341,11 @@ SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
     // vectors empty. That is the honest reading, and warm_start.h's own
     // field note already admits the shape ("n, or empty").
     if (ssn_prox_sigma_out_ > 0.0) {
-        out.warm_start.has_prox_center = true;
-        out.warm_start.prox_sigma = ssn_prox_sigma_out_;
-        out.warm_start.prox_center_x = ssn_prox_center_x_out_;
-        out.warm_start.prox_center_lambda = ssn_prox_center_lambda_out_;
+        detail::SqpWarmState &native = detail::SqpWarmAccess::mutable_state(out.native_warm_start);
+        native.has_prox_center = true;
+        native.prox_sigma = ssn_prox_sigma_out_;
+        native.prox_center_x = ssn_prox_center_x_out_;
+        native.prox_center_lambda = ssn_prox_center_lambda_out_;
     }
     if (ledger_ != nullptr) {
         SqpSolveRecord rec;
@@ -2377,22 +2386,9 @@ SqpResult SqpSolverImpl::record_solve(SqpResult out, double wall_seconds) {
 
 // --- WARM-START CURRENCY: THE TWO PUBLIC ENTRIES AND THEIR TWO HOOKS ---
 
-WarmStartData SqpSolverImpl::export_warm_start() const {
-    // REFUSED, not served empty. An empty payload would stage cleanly against
-    // any problem and then silently cold-start, which is the wrong-but-
-    // plausible shape this entry exists to rule out.
-    if (!solve_completed_) {
-        throw std::logic_error(
-            "SqpSolver::export_warm_start: no completed solve on this instance -- there is no "
-            "warm-start value to export. Call solve() (a call that threw does not count as "
-            "completed) before exporting.");
-    }
-    return completed_warm_;
-}
-
-SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
-                                            const NlpModelAssembly &bridge, const Vec &x0,
-                                            const WarmStartData &data) {
+detail::SqpWarmState SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
+                                                    const NlpModelAssembly &bridge, const Vec &x0,
+                                                    const WarmStart &data) {
     // The tier's seed is per solve and spent once; nothing may leak from the
     // previous one. Same for the polish-ignored count this call may raise.
     ipqp_staged_seed_.reset();
@@ -2403,7 +2399,7 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     // and no point, and this call's own `x0` is the start. `require_consistent
     // _core` has already refused the half-empty shapes at the hand-over, so an
     // empty `primal_` here implies an empty `bound_lmults_` beside it.
-    const bool multipliers_only = data.primal_.size() == 0;
+    const bool multipliers_only = detail::WarmStartAccess::primal(data).size() == 0;
 
     // THE DECLARATION THIS CALL BINDS, read ONCE and used by both checks below
     // -- the sizes and the stamp have to be answered against the same reading,
@@ -2426,7 +2422,7 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     const Index declared_eq = declaration.equality_rows_ - declaration.fixing_rows_;
 
     // THE MODE-LOCAL COLD DEGRADE UNDER kIpm IS GONE (M6 W5 T8.5, owner
-    // ruling; design 2.4). It stood here, and it returned a cold SqpWarmStart
+    // ruling; design 2.4). It stood here, and it returned a cold SqpWarmState
     // where kWalk and kSsn threw, so the SAME payload against the SAME problem
     // was refused or silently discarded depending on which QP kernel the
     // driver happened to be configured for -- an identity check whose answer
@@ -2448,15 +2444,15 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     };
     // THE ROW BLOCKS ARE CHECKED ON BOTH FORMS: they are what a seed carries,
     // so an omitted or mis-sized one is exactly the defect that matters there.
-    check_size("eq_lmults_", data.eq_lmults_.size(), declared_eq);
-    check_size("iq_lmults_", data.iq_lmults_.size(), seam.mi());
+    check_size("eq_lmults_", detail::WarmStartAccess::eq(data).size(), declared_eq);
+    check_size("iq_lmults_", detail::WarmStartAccess::iq(data).size(), seam.mi());
     // THE TWO PRIMAL-SPACE BLOCKS ARE SKIPPED ON THE SEED FORM, because their
     // emptiness IS the form -- checking them would refuse a multipliers-only
     // payload for being one. The half-empty shape they would otherwise catch
     // was already refused at the hand-over, by require_consistent_core.
     if (!multipliers_only) {
-        check_size("primal_", data.primal_.size(), seam.n());
-        check_size("bound_lmults_", data.bound_lmults_.size(), seam.n());
+        check_size("primal_", detail::WarmStartAccess::primal(data).size(), seam.n());
+        check_size("bound_lmults_", detail::WarmStartAccess::bound(data).size(), seam.n());
     }
 
     // AND THE STAMP, after the sizes and against the same problem. Sizes first,
@@ -2469,7 +2465,7 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     // engine's own claim order and partition count -- which would refuse every
     // cross-engine hand-off.
     const DeclarationKey live = declaration_key(declaration);
-    if (!(data.structure_key_ == live)) {
+    if (!(detail::WarmStartAccess::key(data) == live)) {
         throw std::invalid_argument(fmt::format(
             "SqpSolver::solve: the warm-start payload was taken under declaration key {0:#x} but "
             "the problem this solve binds keys {1:#x} -- the value describes a different declared "
@@ -2477,12 +2473,12 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
             "own rows subtracted) and the declared bound STRUCTURE, so one of those moved. The "
             "payload is refused rather than silently dropped -- in EVERY qp_mode -- so re-export "
             "against the current declaration.",
-            data.structure_key_.digest(), live.digest()));
+            detail::WarmStartAccess::key(data).digest(), live.digest()));
     }
 
     // --- THE PRESERVED-SEED INGEST (plan ruling 4) -------------------------
     // Built HERE and never through `to_sqp_warm_start`, which collapses `zL`/`zU` into
-    // `SqpWarmStart`'s single SIGNED `z` -- lossy at a two-sided bound. Flow (a) is untouched in
+    // `SqpWarmState`'s single SIGNED `z` -- lossy at a two-sided bound. Flow (a) is untouched in
     // every mode; this is flow (b)'s own input (spec 5.1).
     //
     // THE SEED FORM YIELDS AN EMPTY STAGED SEED (M6 W5 T8.5): every field
@@ -2520,10 +2516,10 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
         if (find_ipm_polish(data) != nullptr) {
             ++payload_polish_ignored_;
         }
-        SqpWarmStart warm;
+        detail::SqpWarmState warm;
         warm.x = x0;
-        warm.lambda_e = data.eq_lmults_;
-        warm.lambda_i = data.iq_lmults_;
+        warm.lambda_e = detail::WarmStartAccess::eq(data);
+        warm.lambda_i = detail::WarmStartAccess::iq(data);
         // SIZED AND ZERO, not the payload's empty block: `z` is never ingested
         // by this engine on any route, and a sized zero vector is what every
         // other producer here hands over for "no bound prices to offer".
@@ -2544,7 +2540,7 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     // fail here; a duplicated tag and a malformed payload were refused at the
     // hand-over.
     if (find_ipm_polish(data) != nullptr) {
-        return to_sqp_warm_start(data, seam.lower(), seam.upper(), live);
+        return detail::to_sqp_warm_state(data, seam.lower(), seam.upper(), live);
     }
 
     // CORE-ONLY -- the shape every producer that is not this project's
@@ -2560,11 +2556,11 @@ SqpWarmStart SqpSolverImpl::consume_payload(const AssemblyEvalSeam &seam,
     //
     // structure_hash STAYS 0: it fingerprints assembled matrices this value
     // never saw and could not carry, which is what caps the level at kSeeded.
-    SqpWarmStart warm;
-    warm.x = data.primal_;
-    warm.lambda_e = data.eq_lmults_;
-    warm.lambda_i = data.iq_lmults_;
-    warm.z = data.bound_lmults_;
+    detail::SqpWarmState warm;
+    warm.x = detail::WarmStartAccess::primal(data);
+    warm.lambda_e = detail::WarmStartAccess::eq(data);
+    warm.lambda_i = detail::WarmStartAccess::iq(data);
+    warm.z = detail::WarmStartAccess::bound(data);
     warm.ineq_active.assign(static_cast<std::size_t>(seam.mi()), 0);
     warm.bound_active.assign(static_cast<std::size_t>(seam.n()), 0);
     warm.qp_working_set = WorkingSet(seam.n(), seam.mi());
@@ -2579,7 +2575,7 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
     // destroy a solved result the caller was about to receive, after
     // record_solve had already run, to report a defect in a side product.
     const auto skip_capture = [this] {
-        completed_warm_ = WarmStartData{};
+        completed_warm_ = WarmStart{};
         solve_completed_ = false;
     };
 
@@ -2610,11 +2606,13 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
         skip_capture();
         return;
     }
-    WarmStartData captured;
-    captured.primal_ = out.x;
-    captured.bound_lmults_ = out.z;
-    if (!row_block(detail::engine_rows(out).lambda_e, seam.me(), captured.eq_lmults_) ||
-        !row_block(detail::engine_rows(out).lambda_i, seam.mi(), captured.iq_lmults_)) {
+    WarmStart captured;
+    detail::WarmStartAccess::primal(captured) = out.x;
+    detail::WarmStartAccess::bound(captured) = out.z;
+    if (!row_block(detail::engine_rows(out).lambda_e, seam.me(),
+                   detail::WarmStartAccess::eq(captured)) ||
+        !row_block(detail::engine_rows(out).lambda_i, seam.mi(),
+                   detail::WarmStartAccess::iq(captured))) {
         skip_capture();
         return;
     }
@@ -2630,7 +2628,7 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
     // is reachable through NlpModelAssembly today, but a promise with one
     // unguarded call at its head is not one.
     try {
-        captured.structure_key_ = declaration_key(bridge.declaration());
+        detail::WarmStartAccess::key(captured) = declaration_key(bridge.declaration());
     } catch (const std::exception &) {
         skip_capture();
         return;
@@ -2645,7 +2643,7 @@ void SqpSolverImpl::capture_completed_warm_start(SqpResult &out, const AssemblyE
     // than off a driver that has gone on solving. This engine's export is NEVER
     // nullopt: every exit, the non-finite start included, returns a finite
     // point with zero multipliers and a valid stamp.
-    out.export_snapshot_ = completed_warm_;
+    out.warm_start = completed_warm_;
 }
 
 // ===========================================================================
@@ -2696,7 +2694,7 @@ Index SqpSolverImpl::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0
 // ===========================================================================
 
 SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
-                                             const Vec &x0, const SqpWarmStart &warm,
+                                             const Vec &x0, const detail::SqpWarmState &warm,
                                              SolveBudget budget) {
     if (opts_.column_scaling == SqpColumnScaling::kOff) {
         return solve_impl(seam, bridge, x0, warm, budget);
@@ -2718,7 +2716,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
                             warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
                             warm.qp_working_set.mi() == seam.mi() && warm.x.allFinite() &&
                             warm.lambda_e.allFinite() && warm.lambda_i.allFinite();
-    // THE CARRIED DECISION (SqpWarmStart::column_factors): a warm start the ingest
+    // THE CARRIED DECISION (SqpWarmState::column_factors): a warm start the ingest
     // gate admits and that records the factors its producer ran under hands them on
     // as they are -- no probe, no rule -- so a warm chain keeps its cold root's
     // variables. Anything else runs the rule.
@@ -2794,7 +2792,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
             column_report_spread_ = cs.spread;
             out = solve_impl(seam, bridge, x0, warm, budget);
         }
-        out.warm_start.column_factors = Vec::Ones(n);
+        detail::SqpWarmAccess::mutable_state(out.native_warm_start).column_factors = Vec::Ones(n);
         return out;
     }
 
@@ -2810,7 +2808,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
     // carried (the row layer's own ingest refusal, for the same reasons), and
     // neither is a payload's interior-point tier seed, which is built in the
     // caller's variables: the tier cold-starts.
-    SqpWarmStart scaled_warm = warm;
+    detail::SqpWarmState scaled_warm = warm;
     if (scaled_warm.x.size() == n) {
         scaled_warm.x.array() /= d.array();
     }
@@ -2835,7 +2833,7 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
         column_report_max_ = cs.col_max;
         out = solve_impl(scaled_seam, scaled_bridge, scaled_x0, scaled_warm, budget);
     }
-    out.warm_start.column_factors = d;
+    detail::SqpWarmAccess::mutable_state(out.native_warm_start).column_factors = d;
     return out;
 }
 
@@ -2895,7 +2893,7 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
     }
     // THE EXPORTED WARM START, in the caller's variables, stripped of the
     // scaled-space state its ingest would refuse anyway.
-    SqpWarmStart &w = out.warm_start;
+    detail::SqpWarmState &w = detail::SqpWarmAccess::mutable_state(out.native_warm_start);
     if (w.x.size() == n) {
         w.x.array() *= d.array();
     }
@@ -2907,7 +2905,7 @@ void SqpSolverImpl::map_column_scaled_answer(SqpResult &out) {
 }
 
 SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
-                                    const SqpWarmStart &warm, SolveBudget budget) {
+                                    const detail::SqpWarmState &warm, SolveBudget budget) {
     // THE IN-FLIGHT GUARD, AND THE ONE SITE IT IS SET FROM. The four public
     // solve() overloads NEST -- solve(model) -> solve(model, x0) -> solve(bridge,
     // x0) -> here -- so a flag set at each of them would double-set on the
@@ -4047,7 +4045,7 @@ struct SqpSolverImpl::MajorState {
 // rather than hunting them out of 650 lines of setup.
 // ---------------------------------------------------------------------------
 void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec &x0,
-                                  const SqpWarmStart &warm,
+                                  const detail::SqpWarmState &warm,
                                   std::unique_ptr<GlobalizationStrategy> strategy) {
     // POINTER IDENTITY, taken first: `full_step_funnel` will aim at this object.
     st.strategy = std::move(strategy);
@@ -4248,7 +4246,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
         warm.valid && warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
         warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
         warm.qp_working_set.mi() == seam.mi();
-    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one. SqpWarmStart
+    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one. SqpWarmState
     // is an aggregate with public fields: a hand-assembled or
     // foreign-solver object can carry warm.x(0) = NaN and a structure_hash
     // that matches, resolve kWarm, and be ingested -- which would contradict
@@ -4360,7 +4358,7 @@ void SqpSolverImpl::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const 
     lambda_e = warm_ingest ? warm.lambda_e : Vec::Zero(seam.me());
     lambda_i = warm_ingest ? warm.lambda_i : Vec::Zero(seam.mi());
     // THE W0.2 INGEST BOUNDARY, and it is exactly these two vectors. Every
-    // SqpWarmStart this driver emits carries CALLER-scale multipliers (see
+    // SqpWarmState this driver emits carries CALLER-scale multipliers (see
     // `finish`), so a scaled solve must map them into its own units before
     // adopting them -- lambda~_j = sf * lambda_j / s_j, the CALLER->ENGINE
     // direction of problem_scaling.h's multiplier map. `x` is untouched because
@@ -4715,7 +4713,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         // x ssn_engine.h measures at 133x-160x the trust region and
         // whose export certifies nothing. The carried centre would
         // therefore, by construction, usually be a DIVERGED POINT --
-        // shipped on the SqpWarmStart interface under a field documented
+        // shipped on the SqpWarmState interface under a field documented
         // as "the point it was reached at". No live defect (the
         // centres are unread today), but this gate keeps them
         // trustworthy for when a reader does. The centre carries its
@@ -5184,7 +5182,8 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
 // same engine, with `walk_owns_this_qp` false, and is deliberately left there
 // (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
-void SqpSolverImpl::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
+void SqpSolverImpl::solve_with_walk(SolveState &st, MajorState &mj,
+                                    const detail::SqpWarmState &warm,
                                     const SolveOverrides &overrides, bool offer_hot,
                                     bool use_crash) {
     // The names this successor knows the state by. ALIASES, not copies.
@@ -6370,8 +6369,8 @@ void SqpSolverImpl::push_payload_to_restoration_sub() {
 SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState &mj,
                                                      AssemblyEvalSeam &seam,
                                                      NlpModelAssembly &bridge,
-                                                     const SqpWarmStart &warm, SolveBudget budget,
-                                                     Index iter) {
+                                                     const detail::SqpWarmState &warm,
+                                                     SolveBudget budget, Index iter) {
     // The QPs' equality rows changed (a new split, a refusal, a hand-off): every
     // warm state held in the previous rows' coordinates is dropped.
     auto drop_row_coordinate_carries = [this](SolveState &state) {
@@ -6724,15 +6723,17 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // instead of being pinned back onto this one. The fields
         // overwritten below are still populated, for a caller that
         // wants to inspect what the failed solve stood on.
-        st.out.warm_start =
+        st.out.native_warm_start = detail::SqpWarmAccess::wrap(
             make_warm_start(seam, /*activity=*/nullptr, st.qp,
                             /*qp_built=*/st.qp_built, /*probe_ev=*/nullptr,
                             /*probe_x=*/nullptr, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
-                            st.strategy.get(), engine_->hot_state());
-        st.out.warm_start.x = st.out.x;
-        st.out.warm_start.lambda_e = detail::engine_rows(st.out).lambda_e;
-        st.out.warm_start.lambda_i = detail::engine_rows(st.out).lambda_i;
-        st.out.warm_start.z = st.out.z;
+                            st.strategy.get(), engine_->hot_state()));
+        detail::SqpWarmState &native =
+            detail::SqpWarmAccess::mutable_state(st.out.native_warm_start);
+        native.x = st.out.x;
+        native.lambda_e = detail::engine_rows(st.out).lambda_e;
+        native.lambda_i = detail::engine_rows(st.out).lambda_i;
+        native.z = st.out.z;
         if (st.solve_scaling.active) {
             // THE SAME DROP `finish` APPLIES, so this exit's object is
             // symmetric with every other one a scaled solve emits (M6 W0.2
@@ -6742,7 +6743,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // reason to leave scaled-space state sitting in a field whose
             // contract says caller-scale, and a future consumer that
             // inspects a failed solve's object would find it.
-            drop_scaled_space_state(st.out.warm_start);
+            drop_scaled_space_state(native);
         }
         // ASSEMBLED, AND THE CALLER TAKES IT FROM HERE: the terminal
         // exactly-once check and the move of `st.out` are the caller's, which
@@ -8155,7 +8156,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
 }
 
 SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
-                                         const Vec &x0, const SqpWarmStart &warm,
+                                         const Vec &x0, const detail::SqpWarmState &warm,
                                          SolveBudget budget,
                                          std::unique_ptr<GlobalizationStrategy> strategy_in) {
     // THE ARGUMENTS WERE VALIDATED BY `solve_impl`, the only caller, which
@@ -8733,14 +8734,14 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     return false;
 }
 
-SqpWarmStart SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
-                                            const QpProblem &qp, bool qp_built,
-                                            const NlpEval *probe_ev, const Vec *probe_x,
-                                            double delta, double dual_mu_eff,
-                                            double primal_delta_eff,
-                                            const GlobalizationStrategy *strategy,
-                                            std::shared_ptr<const HotState> hot) {
-    SqpWarmStart w;
+detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
+                                                    const QpSolution *activity, const QpProblem &qp,
+                                                    bool qp_built, const NlpEval *probe_ev,
+                                                    const Vec *probe_x, double delta,
+                                                    double dual_mu_eff, double primal_delta_eff,
+                                                    const GlobalizationStrategy *strategy,
+                                                    std::shared_ptr<const HotState> hot) {
+    detail::SqpWarmState w;
     // TRUE ON EVERY EXIT BUT ONE -- see THE UNEVALUABLE EXIT above, and
     // warm_start.h's `valid` note, which documents that exception as the
     // boundary of its "a failed solve's point is still safe evidence"
@@ -8811,7 +8812,7 @@ SqpWarmStart SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam, const QpSolu
 
 SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status,
                                 const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                                const SqpKkt &kkt, double f, SqpWarmStart warm,
+                                const SqpKkt &kkt, double f, detail::SqpWarmState warm,
                                 const DeclaredDiagnosticsStash &stash,
                                 bool multipliers_are_caller_scale) {
     // A VALUE, NOT A REFERENCE INTO THE SEAM, and the distinction is
@@ -8989,7 +8990,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         record_terminal_kkt(out, kkt);
     }
     // The point/multipliers make_warm_start's caller reports are exactly
-    // the ones being finished here -- see SqpWarmStart's own note on why a
+    // the ones being finished here -- see SqpWarmState's own note on why a
     // failed solve's point is still safe to carry.
     warm.x = x;
     // THE EXPORTED VECTORS, not the parameters. `out.lambda_e` is the parameter
@@ -8999,7 +9000,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     //
     // THE SWEPT VECTOR for the inequality block specifically: the warm start is
     // the half of this export that reaches the crossover currency
-    // (`WarmStartData::iq_lmults_`) and, through it, an interior-point
+    // (`WarmStart::iq_lmults_`) and, through it, an interior-point
     // inequality seed. Reading the `lambda_i` PARAMETER here would leave exactly
     // the leak R6 exists to close -- and, since W0.2, would additionally hand a
     // consumer engine-scale prices labelled as caller-scale ones.
@@ -9012,7 +9013,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
         // drop_scaled_space_state, which the non-finite-iterate exit shares.
         drop_scaled_space_state(warm);
     }
-    out.warm_start = std::move(warm);
+    out.native_warm_start = detail::SqpWarmAccess::wrap(std::move(warm));
 
     // ===================================================================
     // THE SHARED BASE (M6 W5 T8.4). Everything above filled this engine's own

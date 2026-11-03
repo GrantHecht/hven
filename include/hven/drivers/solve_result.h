@@ -198,7 +198,7 @@ struct SolveResult {
 
     /// @brief Wall-clock seconds from the public solve entry -- after argument
     ///        validation -- to its return, seam and warm setup, final reporting
-    ///        and the export snapshot INCLUDED.
+    ///        and the warm-start snapshot INCLUDED.
     ///
     /// INFORMATIONAL, NEVER ASSERTED: counters, not timings, are this project's
     /// currency of correctness (CLAUDE.md §7). This is deliberately NOT either
@@ -210,19 +210,13 @@ struct SolveResult {
     ///        exit while the model and workspace were still valid.
     ///
     /// A SNAPSHOT: later edits to this result's public fields do not reach it.
-    ///
-    /// @return The captured value, or nullopt when the solve produced no usable
-    ///         point. Per engine: the interior-point engine returns nullopt
-    ///         only on a numerical-error exit taken before the first iterate;
-    ///         the SQP engine NEVER returns nullopt -- every one of its exits,
-    ///         the non-finite start included, carries a finite point, zero
-    ///         multipliers and a valid stamp.
-    std::optional<WarmStartData> export_warm_start() const { return export_snapshot_; }
-
-  protected:
-    /// The snapshot @ref export_warm_start hands out; written by the engine at
-    /// solve exit and by nothing else.
-    std::optional<WarmStartData> export_snapshot_;
+    /// EMPTY (`warm_start.empty()`) when the solve produced no usable point,
+    /// which a solve accepts as "no warm start". Per engine: the interior-point
+    /// engine leaves it empty only on a numerical-error exit taken before the
+    /// first iterate; the SQP engine NEVER does -- every one of its exits, the
+    /// non-finite start included, carries a finite point, zero multipliers and a
+    /// valid stamp.
+    WarmStart warm_start;
 
   private:
     /// The engine's own row blocks at @ref x: equality and inequality multipliers
@@ -242,10 +236,8 @@ struct SolveResult {
     };
     EngineRows engine_rows_;
 
-    // The two engines fill the snapshot on a result they are about to return.
-    // Protected rather than public because a result is a REPORT: a consumer
-    // reads the snapshot, and nothing outside the producing engine may install
-    // one.
+    // The two engines fill the private row blocks of a result they are about to
+    // return.
     friend class IpmSolverImpl;
     friend class SqpSolverImpl;
     friend struct detail::ResultAccess;

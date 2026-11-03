@@ -15,6 +15,7 @@
 #include "hven/detail/drivers/result_message.h"
 #include "hven/detail/drivers/sqp_solver_impl.h"
 #include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
 
 namespace hven::solvers {
 
@@ -81,33 +82,28 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const SolveBudget &b
 
 } // namespace
 
-SqpResult SqpSolver::solve(Problem &problem, const Vec &x0) {
+// An empty WarmStart takes EXACTLY the cold entry (the no-payload engine route),
+// so no payload counter moves for it.
+SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStart &warm,
+                           SolveBudget budget) {
     SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem, SolveBudget{},
-                    [&](auto &form) { return engine.solve(form, x0); });
-}
-
-SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, SolveBudget budget) {
-    SqpSolverImpl &engine = impl();
+    if (warm.empty()) {
+        return solve_on(engine, problem, budget,
+                        [&](auto &form) { return engine.solve(form, x0, budget); });
+    }
     return solve_on(engine, problem, budget,
-                    [&](auto &form) { return engine.solve(form, x0, budget); });
+                    [&](auto &form) { return engine.solve(form, x0, warm, budget); });
 }
 
+// The native route: the opaque handle is unwrapped to the engine's state here and
+// nowhere deeper.
 SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
                            SolveBudget budget) {
     SqpSolverImpl &engine = impl();
+    const detail::SqpWarmState &state = detail::SqpWarmAccess::state(warm);
     return solve_on(engine, problem, budget,
-                    [&](auto &form) { return engine.solve(form, x0, warm, budget); });
+                    [&](auto &form) { return engine.solve(form, x0, state, budget); });
 }
-
-SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStartData &warm,
-                           SolveBudget budget) {
-    SqpSolverImpl &engine = impl();
-    return solve_on(engine, problem, budget,
-                    [&](auto &form) { return engine.solve(form, x0, warm, budget); });
-}
-
-WarmStartData SqpSolver::export_warm_start() const { return impl().export_warm_start(); }
 
 void SqpSolver::set_iteration_callback(IterationCallback cb) {
     impl().set_iteration_callback(std::move(cb));

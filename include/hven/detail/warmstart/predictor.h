@@ -4,8 +4,8 @@
 #pragma once
 
 /// @file
-/// @brief The tangential predictor: given a converged SqpWarmStart at parameter p
-///        and a step dp, produce a first-order-accurate SqpWarmStart at p + dp by
+/// @brief The tangential predictor: given a converged SqpWarmState at parameter p
+///        and a step dp, produce a first-order-accurate SqpWarmState at p + dp by
 ///        solving ONE parametric-sensitivity KKT system on the active set
 ///        FROZEN at the warm start.
 /// @see docs/notes/2026-09-header-prose-archive.md §predictor.h
@@ -82,7 +82,7 @@
 // prediction is a WARM START, and the consuming solve re-derives the active set.
 //
 // No hot-start reuse; predict() ALWAYS factorizes its own KKT system, and the
-// returned SqpWarmStart therefore NEVER carries a `hot` handle.
+// returned SqpWarmState therefore NEVER carries a `hot` handle.
 //
 // Two right-hand-side conventions, ON PURPOSE. The constraint rows carry the
 // PURE sensitivity term, omitting the warm start's own base residual; the pin
@@ -104,7 +104,7 @@
 // the same linear algebra the engine uses.
 //
 // NEVER MUTATES `warm`, taken by const reference and copied into the returned
-// object; the caller's SqpWarmStart, and any `hot` handle it carries, is untouched.
+// object; the caller's SqpWarmState, and any `hot` handle it carries, is untouched.
 
 #include <algorithm>
 #include <cmath>
@@ -152,7 +152,7 @@ struct PredictorOptions {
     // rounds independently of this budget; the smaller of the two governs.
     //
     // On truncation the path stops at the breakpoint it reached, at some
-    // t <= 1, and the returned SqpWarmStart is the point and activity there. That
+    // t <= 1, and the returned SqpWarmState is the point and activity there. That
     // is not reported as kDegraded -- a step was computed and applied -- and it
     // is visible through `reached_t < 1.0`.
     //
@@ -174,7 +174,7 @@ struct PredictorOptions {
 // An enum rather than a bool because a ledger has to count kPredicted and
 // kDegraded separately: a sweep in which every predict() degraded must not look
 // identical to one in which every predict() succeeded. Reported through an
-// optional out-parameter rather than a field on SqpWarmStart, which every solve
+// optional out-parameter rather than a field on SqpWarmState, which every solve
 // emits and where a predictor-only field would be meaningless.
 enum class PredictorOutcome { kPredicted, kZeroStep, kDegraded };
 
@@ -376,9 +376,10 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
 // and what every pre-T8.8 caller passed, leaves the backend's own default
 // alone -- so a defaulted call is bit-for-bit the pre-T8.8 one. LAST in the
 // parameter list so no existing call site's arguments move.
-inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm, const Vec &dp,
-                            const PredictorOptions &opts = {}, PredictorOutcome *outcome = nullptr,
-                            double *reached_t = nullptr, int threads = 0) {
+inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::SqpWarmState &warm,
+                                    const Vec &dp, const PredictorOptions &opts = {},
+                                    PredictorOutcome *outcome = nullptr,
+                                    double *reached_t = nullptr, int threads = 0) {
     const auto report = [outcome](PredictorOutcome value) {
         if (outcome != nullptr) {
             *outcome = value;
@@ -451,7 +452,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
     // the effective regularization) carries forward unchanged, which is what
     // makes the result ingestible by a solve at p + dp. `hot` is the one field
     // deliberately dropped; see this header's NO HOT-START REUSE note.
-    SqpWarmStart identity = warm;
+    detail::SqpWarmState identity = warm;
     identity.hot.reset();
 
     const double dp_norm = dp.norm();
@@ -959,7 +960,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
             }
         }
         // ---- THE PREDICTED WARM START ------------------------------------
-        SqpWarmStart out = identity;
+        detail::SqpWarmState out = identity;
         out.x = x_cur;
         // A clamped variable sits EXACTLY on its bound: the border's -dual_mu
         // diagonal leaves the pin equation satisfied only to O(dual_mu * y), and a
@@ -1013,7 +1014,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
                 out.qp_working_set.add_ineq(j);
                 out.ineq_active[static_cast<std::size_t>(j)] = 1;
                 // THE EMITTED PRICE IS NEVER NEGATIVE. `lambda_i >= 0` is a
-                // SqpWarmStart PRECONDITION (warm_start.h's SIGN CONVENTIONS),
+                // SqpWarmState PRECONDITION (warm_start.h's SIGN CONVENTIONS),
                 // gated in the driver at kSeeded only -- and this producer's
                 // output reaches solve() at kWarm/kHot (predict() carries
                 // structure_hash forward), where it is not gated at all. So

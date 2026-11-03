@@ -19,12 +19,12 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
-#include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/common_options.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_options.h>
 #include <hven/drivers/step_verdict.h>
 #include <hven/qp/qp_types.h>
+#include <hven/warmstart/sqp_warm_start.h>
 
 namespace hven::solvers {
 
@@ -555,17 +555,22 @@ struct SqpResult : SolveResult {
     /// What SqpOptions::equality_basis did on this solve.
     SqpEqualityBasisReport equality_basis;
 
-    /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
-    /// nearby problem to feed back in. Populated on EVERY exit of
-    /// SqpSolver::solve(), including a failed one, from the best-known iterate.
-    /// Populated is NOT the same as `valid`: one exit -- a start point the model
-    /// could not evaluate -- fills these fields for inspection but reports
-    /// valid == false, because feeding that point back would override the
+    /// @brief SQP ONLY: the solve's exit state as this engine's own native
+    ///        warm-start object, for a LATER solve of a nearby problem to feed
+    ///        back through the labelled native entry
+    ///        `SqpSolver::solve(problem, x0, const SqpWarmStart &)`.
+    ///
+    /// Populated on EVERY exit of SqpSolver::solve(), including a failed one,
+    /// from the best-known iterate. Populated is NOT the same as
+    /// `native_warm_start.valid()`: one exit -- a start point the model could not
+    /// evaluate -- holds a state for the engine's own bookkeeping but reports
+    /// valid() == false, because feeding that point back would override the
     /// caller's own corrected x0.
     ///
-    /// The base's `export_warm_start()` carries the SHARED currency shape
-    /// (WarmStartData) taken at the same exit; this is the engine-native one.
-    SqpWarmStart warm_start;
+    /// The base's `warm_start` carries the SHARED currency (WarmStart) taken at
+    /// the same exit; this is the engine-native one, and only this engine reads
+    /// it.
+    SqpWarmStart native_warm_start{SqpWarmStart::Cold{}};
 };
 
 } // namespace hven::solvers

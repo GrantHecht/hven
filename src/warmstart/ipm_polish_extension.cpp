@@ -36,6 +36,11 @@
 
 #include <fmt/format.h>
 
+#include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start.h"
+#include "hven/detail/warmstart/warm_start_access.h"
+
 namespace hven::solvers {
 
 namespace {
@@ -180,9 +185,9 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes) {
     return polish;
 }
 
-const WarmExtension *find_ipm_polish(const WarmStartData &data) {
+const WarmExtension *find_ipm_polish(const WarmStart &data) {
     const WarmExtension *found = nullptr;
-    for (const WarmExtension &extension : data.extensions_) {
+    for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
         if (extension.tag_ != kIpmPolishTag) {
             continue;
         }
@@ -199,7 +204,9 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data) {
     return found;
 }
 
-SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
+namespace detail {
+
+SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Vec &upper,
                                const DeclarationKey &structure_key,
                                const IpCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
@@ -223,20 +230,20 @@ SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, cons
     // THE STAMP, before anything is decoded: if the bounds and the value were
     // not taken under one declared structure, every index below names a
     // different variable in each of them.
-    if (!(data.structure_key_ == structure_key)) {
+    if (!(detail::WarmStartAccess::key(data) == structure_key)) {
         throw std::invalid_argument(fmt::format(
             "to_sqp_warm_start: the warm-start value was taken under declaration key {0:#x} but "
             "the bounds handed in belong to a model keying {1:#x} -- the value describes a "
             "different declared problem. The key covers the declared dimensions (with any "
             "fixed-variable treatment's own rows subtracted) and the declared bound STRUCTURE, so "
             "one of those moved",
-            data.structure_key_.digest(), structure_key.digest()));
+            detail::WarmStartAccess::key(data).digest(), structure_key.digest()));
     }
 
     const IpmPolishData polish = deserialize_ipm_polish(extension->payload_);
 
-    const Eigen::Index n = data.primal_.size();
-    const Eigen::Index mi = data.iq_lmults_.size();
+    const Eigen::Index n = detail::WarmStartAccess::primal(data).size();
+    const Eigen::Index mi = detail::WarmStartAccess::iq(data).size();
     const auto check = [&](const char *what, Eigen::Index held, Eigen::Index expected,
                            const char *expected_name) {
         if (held != expected) {
@@ -260,8 +267,21 @@ SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, cons
     // own convention and what the extension carries; the activity inference,
     // the kFixed choice and the kSeeded consequence all live in
     // from_interior_point.
-    return from_interior_point(data.primal_, data.eq_lmults_, data.iq_lmults_, polish.iq_values_,
-                               polish.z_lower_, polish.z_upper_, lower, upper, opts);
+    return from_interior_point(detail::WarmStartAccess::primal(data),
+                               detail::WarmStartAccess::eq(data), detail::WarmStartAccess::iq(data),
+                               polish.iq_values_, polish.z_lower_, polish.z_upper_, lower, upper,
+                               opts);
+}
+
+} // namespace detail
+
+SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
+                               const IpCrossoverOptions &opts) {
+    Vec lower;
+    Vec upper;
+    detail::ProblemAccess::variable_bounds(problem, lower, upper);
+    return detail::SqpWarmAccess::wrap(detail::to_sqp_warm_state(
+        warm, lower, upper, detail::ProblemAccess::declaration_key(problem), opts));
 }
 
 } // namespace hven::solvers

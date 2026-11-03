@@ -9,6 +9,7 @@
 #include <hven/detail/warmstart/continuation.h>
 
 #include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
 
 namespace hven::solvers {
 
@@ -129,13 +130,14 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
          sol.status == SolveStatus::kMaxIter && sol.returned_best_iterate &&
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
-        const SqpWarmStart handoff = sol.warm_start;
-        sol = driver.solve(detail::problem_ref(model), handoff.x, handoff);
+        const detail::SqpWarmState handoff = detail::SqpWarmAccess::state(sol.native_warm_start);
+        sol = driver.solve(detail::problem_ref(model), handoff.x,
+                           detail::SqpWarmAccess::wrap(handoff));
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p0, 0.0, sol, std::nullopt, /*used=*/false);
     }
 
-    out.final_warm = sol.warm_start;
+    out.final_warm = detail::SqpWarmAccess::state(sol.native_warm_start);
     if (sol.status != SolveStatus::kOptimal) {
         // A FAILED INITIAL POINT IS A FAILED ATTEMPT, classified here EXACTLY
         // as the loop classifies its own below: caught by the probe budget,
@@ -192,7 +194,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     const Vec direction = segment / total;
 
     Vec p_cur = p0;
-    SqpWarmStart warm_cur = sol.warm_start;
+    detail::SqpWarmState warm_cur = detail::SqpWarmAccess::state(sol.native_warm_start);
     double s_cur = 0.0; // arc position of p_cur along the segment
     double dp = opts.dp_init;
 
@@ -206,7 +208,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     Index majors_at_proposal = 0;
     int budget_continuations = 0;
     bool continuing = false;
-    SqpWarmStart budget_warm;
+    detail::SqpWarmState budget_warm;
 
     // `last_good_minors` is the whole minor cost of arriving at the last
     // CONVERGED parameter value -- the cold solve at p0 to begin with -- and
@@ -217,7 +219,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     bool growth_suspended = false;
 
     while (true) {
-        SqpWarmStart seed;
+        detail::SqpWarmState seed;
         std::optional<PredictorOutcome> reported;
         bool predictor_used = false;
 
@@ -288,7 +290,8 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         if (probe_minors > 0) {
             budget.minor_budget = probe_minors;
         }
-        sol = driver.solve(detail::problem_ref(model), seed.x, seed, budget);
+        sol = driver.solve(detail::problem_ref(model), seed.x, detail::SqpWarmAccess::wrap(seed),
+                           budget);
         majors_at_proposal += sol.counters.major_iters;
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p_next, step_dp, sol, reported, predictor_used);
@@ -296,7 +299,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         if (sol.status == SolveStatus::kOptimal) {
             p_cur = p_next;
             s_cur = s_next;
-            warm_cur = sol.warm_start;
+            warm_cur = detail::SqpWarmAccess::state(sol.native_warm_start);
             out.final_warm = warm_cur;
             continuing = false;
             budget_continuations = 0;
@@ -327,7 +330,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
             budget_continuations < continuation_detail::kBudgetContinuationsMax) {
             ++budget_continuations;
             continuing = true;
-            budget_warm = sol.warm_start;
+            budget_warm = detail::SqpWarmAccess::state(sol.native_warm_start);
             continue;
         }
 

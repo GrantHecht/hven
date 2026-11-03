@@ -84,92 +84,73 @@ class SqpSolver {
     /// -1 when this solver has not built that tier yet.
     int ipqp_tier_num_threads() const;
 
-    /// Solves `problem` from `x0`.
+    /// Solves `problem` from `x0`, optionally starting from a warm start.
     ///
     /// The problem is borrowed for the call. Its per-solve re-read runs first
     /// (model/problem.h). `lambda` and `g` on the result are in the problem's row
     /// space.
+    ///
+    /// The warm start is the shared currency: the declared-space value both
+    /// engines accept, that `SolveResult::warm_start` hands back and that travels
+    /// between engines and across a serialization boundary. A default-built
+    /// (empty) value means no warm start: the solve is the cold one, counter for
+    /// counter. Otherwise identity mismatch refuses; pattern and value defects
+    /// degrade. Identity is the block lengths and the declaration stamp, checked
+    /// at solve entry in every `SqpOptions::qp_mode`. A payload never saw a model,
+    /// so the level it resolves to is capped at `kSeeded`. An inequality
+    /// multiplier a shade negative is clamped and counted; a badly negative one
+    /// degrades the object to `kCold`. A non-finite entry in a payload's core
+    /// blocks is refused, not degraded.
+    ///
+    /// A multipliers-only value (`WarmStart::seed` with an empty `x`) is a seed:
+    /// `x0` is the start, the object resolves `kSeeded`. A polish extension on a
+    /// seed is ignored and counted in `SqpCounters::polish_ignored`. `z` is never
+    /// ingested from any seed on this engine.
+    ///
     /// @param problem The problem; borrowed.
-    /// @param x0      The start point.
+    /// @param x0      The start point, used whenever `warm` does not supply one.
+    /// @param warm    The warm start; read, never retained.
+    /// @param budget  `minor_budget` is the probe budget: empty is no budget, and
+    ///                an engaged value stops the solve at the top of the first
+    ///                major that finds `qp_minor_iters >= minor_budget` without
+    ///                having converged, reporting `kWorkLimit` and counting the
+    ///                stop in `counters.probe_budget_stops`. Convergence always
+    ///                wins, and under `kSsn` the budget also charges the SSN and
+    ///                refinement factorizations. An engaged `max_iterations`
+    ///                gives an effective major cap of
+    ///                `min(max_iterations, common.max_iterations)` that governs
+    ///                the exit conjunction, the restoration refusal and the
+    ///                restoration sub-driver alike: a caller may tighten the
+    ///                engine's limit, never loosen it.
     /// @throws std::invalid_argument if the problem refuses the solve: a pieces
     ///         problem, which this engine does not solve; a dimension, structure
     ///         or row-kind change; an Nlp with has_hessian() == false under
     ///         SqpHessianMode::kExact. Also on a declaration this engine cannot
     ///         lay: a crossed or NaN box, a Jacobian or Hessian whose dimensions
     ///         contradict the row and variable counts, and, per evaluation, a
-    ///         stored element count or coordinate set that moves with `x`.
-    SqpResult solve(Problem &problem, const Vec &x0);
+    ///         stored element count or coordinate set that moves with `x`. And,
+    ///         for a non-empty `warm`: any core block holds a non-finite value;
+    ///         the primal and bound blocks are neither both empty nor one length;
+    ///         the `"hven.ipm.polish.v1"` extension is duplicated, unreadable,
+    ///         mis-sized or holds a non-finite or negative bound dual; any block
+    ///         is not at the problem's declared dimensions; or the declaration
+    ///         stamp is not this problem's.
+    SqpResult solve(Problem &problem, const Vec &x0, const WarmStart &warm = {},
+                    SolveBudget budget = {});
 
-    /// Solves from `x0` under a work ceiling.
-    /// @param budget `minor_budget` is the probe budget: empty is no budget, and
-    ///               an engaged value stops the solve at the top of the first
-    ///               major that finds `qp_minor_iters >= minor_budget` without
-    ///               having converged, reporting `kWorkLimit` and counting the
-    ///               stop in `counters.probe_budget_stops`. Convergence always
-    ///               wins, and under `kSsn` the budget also charges the SSN and
-    ///               refinement factorizations. An engaged `max_iterations`
-    ///               gives an effective major cap of
-    ///               `min(max_iterations, common.max_iterations)` that governs
-    ///               the exit conjunction, the restoration refusal and the
-    ///               restoration sub-driver alike: a caller may tighten the
-    ///               engine's limit, never loosen it.
-    SqpResult solve(Problem &problem, const Vec &x0, SolveBudget budget);
-
-    /// Warm-start ingest of this engine's native object.
+    /// Warm-start ingest of this engine's native object. SQP-only, labelled.
     ///
-    /// The native route is the SQP-only entry and the only route to `kWarm` and
-    /// `kHot`. It never throws on a stale or foreign value: an unusable hash
-    /// resolves `kSeeded` and still contributes its values, and a failed
-    /// ingest gate degrades to `kCold`.
+    /// The native route is the only route to `kWarm` and `kHot`. It never throws
+    /// on a stale or foreign value: an unusable hash resolves `kSeeded` and still
+    /// contributes its values, and a failed ingest gate degrades to `kCold`.
+    /// `SqpSolver::solve(problem, x0, {})` selects the `WarmStart` overload above:
+    /// `SqpWarmStart` declares no default constructor.
     /// @param x0 The start point; ignored whenever `warm` resolves above
-    ///           `kCold`, where the solve starts from `warm.x`.
-    /// @throws std::invalid_argument as the cold overload, checked before `warm`
+    ///           `kCold`, where the solve starts from the object's point.
+    /// @throws std::invalid_argument as the overload above, checked before `warm`
     ///         is looked at.
     SqpResult solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
-
-    /// Warm-start ingest of the shared payload.
-    ///
-    /// The payload is the declared-space currency that both engines accept,
-    /// that `SolveResult::export_warm_start()` hands back and that travels
-    /// between engines and across a serialization boundary. Identity mismatch
-    /// refuses; pattern and value defects degrade. Identity is the block
-    /// lengths and the declaration stamp, checked at solve entry in every
-    /// `SqpOptions::qp_mode`. A payload never saw a model, so the level it
-    /// resolves to is capped at `kSeeded`. An inequality multiplier a shade
-    /// negative is clamped and counted; a badly negative one degrades the
-    /// object to `kCold`. A non-finite entry in a payload's core blocks is
-    /// refused, not degraded.
-    ///
-    /// A payload whose `primal_` is empty is a multipliers-only seed: `x0` is
-    /// the start, the object resolves `kSeeded`, and `primal_`/`bound_lmults_`
-    /// must be both empty or both at the declared primal width. A polish
-    /// extension on a seed is ignored and counted in
-    /// `SqpCounters::polish_ignored`. `z` is never ingested from any seed on
-    /// this engine.
-    ///
-    /// A braced third argument (`solve(problem, x0, {})`) is ambiguous between
-    /// `SolveBudget`, `WarmStartData` and `SqpWarmStart`; spell the type.
-    ///
-    /// @param x0 The start point, used whenever `warm` does not supply one.
-    /// @throws std::invalid_argument as the cold overload (checked first); if
-    ///         any core block of `warm` holds a non-finite value; if `primal_`
-    ///         and `bound_lmults_` are neither both empty nor one length; if the
-    ///         `"hven.ipm.polish.v1"` extension is duplicated, unreadable,
-    ///         mis-sized or holds a non-finite or negative bound dual; if any
-    ///         block is not at the problem's declared dimensions; or if the
-    ///         declaration stamp is not this problem's.
-    SqpResult solve(Problem &problem, const Vec &x0, const WarmStartData &warm,
-                    SolveBudget budget = {});
-
-    /// The warm-start value of the last completed solve, in declared space and
-    /// by copy. `primal_` is `SqpResult::x`, `eq_lmults_` and
-    /// `iq_lmults_` the engine's own equality and inequality multipliers at it,
-    /// and `bound_lmults_` its `z`. The stamp is the
-    /// assembly's declaration key as of that solve's completion. This engine
-    /// produces no extensions.
-    /// @throws std::logic_error if no solve has completed on this solver.
-    WarmStartData export_warm_start() const;
 
     /// Installs the per-iteration callback that both engines accept, with the
     /// full payload (`IterationPayload::kAll`). An empty function clears it.

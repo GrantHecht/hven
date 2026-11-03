@@ -350,7 +350,7 @@ QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
 QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
                          const SolveOverrides &overrides,
                          const std::shared_ptr<const HotState> &hot) const {
-    // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmStart::hot, opaque) is a
+    // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmState::hot, opaque) is a
     // snapshot possibly produced by a DIFFERENT QpEngine instance's
     // hot_state(). Adopted ONLY when this engine's OWN instance-level
     // cache is not already trustworthy (border_valid_ false). Adoption

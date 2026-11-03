@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "hven/model/problem.h"
+#include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
 
@@ -112,6 +113,27 @@ struct ProblemAccess {
     /// SQP's internal model and assembly routes (problem_from_model,
     /// problem_from_assembly) are not counted and report 0.
     static void report_work(const Problem &problem, SolveResult &result);
+
+    /// @brief The declaration key both engines stamp on a warm-start export for
+    ///        this problem (declaration_key over the declaration each engine
+    ///        consumes), as of the last solve entry or construction.
+    static DeclarationKey declaration_key(const Problem &problem);
+
+    /// @brief The declared variable bounds, as the solve entry sees them (an
+    ///        absent bound is infinite).
+    static void variable_bounds(const Problem &problem, Vec &lower, Vec &upper);
+
+    /// @brief The problem's equality and inequality row counts: the two blocks
+    ///        of the engines' row split.
+    static void row_counts(const Problem &problem, Index &me, Index &mi);
+
+    /// @brief The engines' split multipliers in the problem's row space.
+    /// @throws std::invalid_argument if a block is not at its row count.
+    static Vec compose_rows(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i);
+
+    /// @brief A row-space multiplier vector in the engines' split.
+    /// @throws std::invalid_argument if @p lambda is not one entry per row.
+    static void split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e, Vec &lambda_i);
 
     /// @brief The Nlp transcription's model, or nullptr for any other problem.
     static const NlpProblemModel *nlp_model(const Problem &problem) noexcept;

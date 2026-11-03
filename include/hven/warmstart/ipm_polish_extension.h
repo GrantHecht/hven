@@ -23,8 +23,8 @@
 #include <Eigen/Core>
 
 #include "hven/core/types.h"
-#include "hven/detail/warmstart/warm_start.h"
 #include "hven/model/structure_identity.h"
+#include "hven/warmstart/sqp_warm_start.h"
 #include "hven/warmstart/warm_start_data.h"
 
 namespace hven::solvers {
@@ -98,41 +98,42 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes);
 ///         the value carries none -- the ordinary core-only case, which is a
 ///         capability statement and not an error.
 /// @throws std::invalid_argument if the value carries the tag MORE THAN ONCE.
-const WarmExtension *find_ipm_polish(const WarmStartData &data);
+const WarmExtension *find_ipm_polish(const WarmStart &data);
 
 /// @brief Builds an SQP `SqpWarmStart` from a warm-start value carrying the
 ///        polish extension -- the interior-point crossover, entered from the
-///        currency.
+///        currency. This is the INSPECTABLE route: the caller may look at the
+///        returned object before solving; `SqpSolver::solve(problem, x0, warm)`
+///        with the `WarmStart` itself runs the same crossover inside the solve.
+///        Both routes resolve at most `StartLevel::kSeeded`.
 ///
-/// A validate-then-forward: the core's `primal_`/`eq_lmults_`/`iq_lmults_` and
+/// A validate-then-forward: the core's primal, equality and inequality blocks and
 /// the extension's `iq_values_`/`z_lower_`/`z_upper_` are handed to
 /// `from_interior_point` as `x`, `lambda_e`, `lambda_i`, `slack_i`, `z_lower`,
-/// `z_upper`, with the caller's own `lower` and `upper`. Every sign convention,
-/// activity rule and ingest semantic is that function's, in
-/// detail/warmstart/warm_start.h. Read it before wiring a caller: the resulting
-/// object carries `structure_hash == 0` (there is no model here to hash) and so
-/// resolves StartLevel::kSeeded, never kWarm or kHot.
+/// `z_upper`, with the problem's own bounds. Every sign convention, activity rule
+/// and ingest semantic is that function's, in detail/warmstart/warm_start.h. Read
+/// it before wiring a caller: the resulting object carries no structure hash
+/// (there is no model here to hash) and so resolves StartLevel::kSeeded, never
+/// kWarm or kHot.
 ///
-/// The core's own `bound_lmults_` is deliberately NOT read. A value whose core
-/// and extension disagree is a corrupt value, not a case reconciled here.
+/// The core's own bound-multiplier block is deliberately NOT read. A value whose
+/// core and extension disagree is a corrupt value, not a case reconciled here.
 ///
-/// @param data The warm-start value, in declared space, carrying the tag.
-/// @param lower Declared lower bounds, size n (nlp_model.h's -1e20 convention
-///        marks a side nothing can be active at).
-/// @param upper Declared upper bounds, size n.
-/// @param structure_key The DECLARATION key (model/structure_identity.h's
-///        declaration_key) of the model `lower`/`upper` belong to. The value's
-///        own stamp must equal it.
+/// @param warm The warm-start value carrying the tag; its stamp must be
+///        @p problem's declaration key.
+/// @param problem The problem the value was taken under. The declared variable
+///        bounds and the declaration key come from it, as the solve entry sees
+///        them; an absent bound is infinite (absent-bound normalization is a
+///        later group's).
 /// @param opts The crossover's activity-inference tolerances, forwarded
 ///        verbatim.
-/// @return The crossover object, `valid == true`.
-/// @throws std::invalid_argument if `data` carries no polish extension (naming
-///         the tag), if the stamp does not match `structure_key` (naming both
+/// @return The crossover object, `valid() == true`.
+/// @throws std::invalid_argument if `warm` carries no polish extension (naming
+///         the tag), if the stamp does not match @p problem (naming both
 ///         digests), if the payload is malformed (the decode's own
-///         offset-naming refusal), if the extension's block widths disagree
-///         with the core's, or if `lower`/`upper` are not at the core's own n.
-SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                               const DeclarationKey &structure_key,
+///         offset-naming refusal), or if the extension's block widths disagree
+///         with the core's.
+SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
                                const IpCrossoverOptions &opts = {});
 
 } // namespace hven::solvers

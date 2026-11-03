@@ -119,7 +119,8 @@ class IpmSolver {
     /// transcription a bound change re-laid.
     bool kkt_pattern_is_analyzed(const Problem &problem) const;
 
-    /// Runs the configured phase sequence over `problem` from `x0`.
+    /// Runs the configured phase sequence over `problem` from `x0`, optionally
+    /// starting from a warm start.
     ///
     /// The problem is borrowed for the call and released on every exit, a throw
     /// included. Its per-solve re-read runs first (model/problem.h). `lambda` and
@@ -127,6 +128,33 @@ class IpmSolver {
     ///
     /// @param problem The problem; borrowed.
     /// @param x0     The start point, in the problem's variable space.
+    /// @param warm   The warm start; read, never retained. A default-built
+    ///               (empty) value means no warm start: the solve is the cold
+    ///               one, counter for counter, so a loop may pass the previous
+    ///               result's `warm_start` from its first call. Otherwise
+    ///               identity mismatch refuses; value defects degrade. The
+    ///               declaration stamp and block lengths are checked at entry
+    ///               against the program this call binds and a mismatch is
+    ///               `std::invalid_argument`. A seeded multiplier outside the
+    ///               seeding band is clamped and applied. What is applied
+    ///               depends on `IpmOptions::common.start_level`, a ceiling on
+    ///               this route:
+    ///                - `kCold`: the value is ignored and counted
+    ///                  (`payload_ignored`); the call is bitwise the cold solve.
+    ///                  Identity is still checked first.
+    ///                - `kSeeded`: only the multipliers are applied. The primal
+    ///                  point and the polish extension are ignored (the
+    ///                  extension counted in `polish_ignored`). `x0` is the
+    ///                  start.
+    ///                - `kWarm`: the whole value. Its primal point becomes the
+    ///                  starting point, the multipliers are applied as at
+    ///                  `kSeeded`, and the `"hven.ipm.polish.v1"` extension,
+    ///                  when present, seeds the bound multipliers.
+    ///                - `kHot`: identical to `kWarm`. The engine has no hot
+    ///                  handle.
+    ///               A multipliers-only value (`WarmStart::seed` with an empty
+    ///               `x`) leaves `x0` as the start and only the multipliers
+    ///               travel.
     /// @param budget Work ceiling. A non-zero `max_iterations` caps each phase
     ///               at `min(budget, IpmOptions::max_iters)`: a caller may
     ///               tighten the engine's limit, never loosen it. `minor_budget`
@@ -135,41 +163,12 @@ class IpmSolver {
     /// @throws std::invalid_argument if `x0` is not sized to the declared
     ///         primal width, if the options fail validation, if the problem
     ///         refuses the solve (a dimension, structure or row-kind change; an
-    ///         Nlp with has_hessian() == false; an SQP-only internal form).
-    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, SolveBudget budget = {});
-
-    /// As above, starting from the warm-start payload `warm`.
-    ///
-    /// Identity mismatch refuses; value defects degrade. The declaration stamp
-    /// and block lengths are checked at entry against the program this call
-    /// binds and a mismatch is `std::invalid_argument`. A seeded multiplier
-    /// outside the seeding band is clamped and applied.
-    ///
-    /// What is applied depends on `IpmOptions::common.start_level`, a ceiling
-    /// on this route:
-    ///  - `kCold`: the payload is ignored and counted (`payload_ignored`); the
-    ///    call is bitwise the cold solve. Identity is still checked first.
-    ///  - `kSeeded`: only the multipliers are applied. `primal_` and the polish
-    ///    extension are ignored (the extension counted in `polish_ignored`).
-    ///    `x0` is the start.
-    ///  - `kWarm`: the whole payload. `primal_` becomes the starting point,
-    ///    the multipliers are applied as at `kSeeded`, and the
-    ///    `"hven.ipm.polish.v1"` extension, when present, seeds the bound
-    ///    multipliers.
-    ///  - `kHot`: identical to `kWarm`. The engine has no hot handle.
-    ///
-    /// A payload whose `primal_` is empty is a multipliers-only seed: `x0` is
-    /// the start and only the multipliers travel. `primal_` and `bound_lmults_`
-    /// must be both empty or both at the declared primal width;
-    /// `eq_lmults_`/`iq_lmults_` must always match the declared row counts.
-    ///
-    /// @param warm The payload; read, never retained.
-    /// @throws std::invalid_argument if `x0` is mis-sized, the options fail
-    ///         validation, any block of `warm` is non-finite or not at the
-    ///         declared width, the core blocks disagree, the polish extension
-    ///         is duplicated, unreadable or mis-sized, or the declaration
-    ///         stamp is not this problem's, or as above.
-    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStartData &warm,
+    ///         Nlp with has_hessian() == false; an SQP-only internal form), or
+    ///         if a non-empty `warm` has a non-finite entry, blocks that
+    ///         disagree or are not at the declared width, a duplicated,
+    ///         unreadable or mis-sized polish extension, or a declaration stamp
+    ///         that is not this problem's.
+    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
     /// Installs the per-iteration callback that both engines accept, with the

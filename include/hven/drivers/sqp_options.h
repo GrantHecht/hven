@@ -827,7 +827,7 @@ struct SqpOptions {
     /// THE DECISION TRAVELS WITH THE WARM START (SqpWarmStart::column_factors): a
     /// warm start the ingest gate admits and that carries a decision is solved under
     /// it, without the rule; so is a decision of "unscaled". Only the native
-    /// SqpWarmStart carries it: the WarmStartData payload route and interior-point
+    /// SqpWarmStart carries it: the WarmStart payload route and interior-point
     /// crossover warm starts re-read the rule.
     ///
     /// COST: whenever the rule runs, one Jacobian evaluation at the start point,
