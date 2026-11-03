@@ -1,0 +1,21 @@
+M8 AP-2 group B4 -- DECLARATION r2 (successor to DECLARATION.txt; committed before the r2 legs; never
+edited). Everything in DECLARATION.txt and runtime/DECLARATION.txt stands except as stated here.
+================================================================================
+WHY. The first chain (legs/chain1.sh, 2026-11-02/03) passed P1-P6, P9, P10 and P4 (census 57/57, 0
+mismatches). P7 FAILED: the off-reference clean build stopped on tests/sqp/test_crossover_legs.cpp:585-587,
+an #else region compiled only with -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF that still named
+IpmResult::kkt_inf (renamed convergence.kkt in 8fa33f1f). The failed record is kept unmodified in
+offref-r1-failed/ (configure.log, build.log, leg.out). ctest was not reached.
+P8 (Accelerate sweep) leg rc=1 is NOT a failure of its criterion: pass A reads OTHER 0 (clean 25,
+known-header 6, known-sizeof 2, as B3), and the rc=1 is pass B (the stub sweep, reported beside the
+criterion, rc=1 at B3 too), whose 76 lines are identical to B3's riders' pass B except the KNOWN-SIZEOF
+line carrying the re-pinned value 472 (X1). No new failure.
+FIX. 0323a725 (test only): those three lines read convergence.kkt. A default build (ON) compiles none of
+them: the library, hven_sqp_corpus (arm B, sha256 101be1a2...), the R/D suites, examples and installs
+of P1-P6, P9-P11 are unaffected and are NOT re-run.
+NEW CODE HEAD 0323a725.
+RE-RUN. P7 only: legs/offref.sh into offref/ (fresh directory, same criterion: build passes, ctest
+Release passes), then P11 (runtime gate) as declared, arms unchanged.
+DEVIATION (box protocol), disclosed: while diagnosing the failure one keep-going rebuild of the
+off-reference tree (ninja -C build-b4/offref -k 0, after the fix) was run by hand WITHOUT the box lock;
+no other job was running (pgrep empty) and it is not evidence. The r2 leg below rebuilds from scratch.
