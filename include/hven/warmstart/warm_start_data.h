@@ -38,8 +38,8 @@ struct WarmStartAccess;
 /// guessing at its bytes. Tag bytes and payload bytes are both arbitrary: a
 /// tag is compared, never displayed as text and never assumed NUL-free.
 struct WarmExtension {
-    std::string tag_; ///< e.g. "hven.ipm.polish.v1".
-    std::vector<std::byte> payload_;
+    std::string tag; ///< e.g. "hven.ipm.polish.v1".
+    std::vector<std::byte> payload;
 
     friend bool operator==(const WarmExtension &, const WarmExtension &) = default;
 };

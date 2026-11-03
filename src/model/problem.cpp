@@ -425,6 +425,25 @@ class ProblemState {
         return concatenate(lambda_e, lambda_i);
     }
 
+    // compose_rows, in place.
+    void compose_rows_into(const Vec &lambda_e, const Vec &lambda_i, Vec &out) const {
+        if (kind_ == Kind::kNlp) {
+            nlp_model_->compose_user_multipliers_into(out, lambda_e, lambda_i);
+            return;
+        }
+        Index me = 0, mi = 0;
+        row_counts(me, mi);
+        if (lambda_e.size() != me || lambda_i.size() != mi) {
+            throw std::invalid_argument(
+                fmt::format("Problem: the equality and inequality multiplier blocks hold {} and {} "
+                            "entries, but the problem has {} equality and {} inequality rows",
+                            lambda_e.size(), lambda_i.size(), me, mi));
+        }
+        out.resize(lambda_e.size() + lambda_i.size());
+        out.head(lambda_e.size()) = lambda_e;
+        out.tail(lambda_i.size()) = lambda_i;
+    }
+
     // Row space -> engine split.
     void split_rows(const Vec &lambda, Vec &lambda_e, Vec &lambda_i) const {
         if (kind_ == Kind::kNlp) {
@@ -725,6 +744,11 @@ void ProblemAccess::row_counts(const Problem &problem, Index &me, Index &mi) {
 
 Vec ProblemAccess::compose_rows(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i) {
     return ProblemAccess::state(problem).compose_rows(lambda_e, lambda_i);
+}
+
+void ProblemAccess::compose_rows_into(const Problem &problem, const Vec &lambda_e,
+                                      const Vec &lambda_i, Vec &out) {
+    ProblemAccess::state(problem).compose_rows_into(lambda_e, lambda_i, out);
 }
 
 void ProblemAccess::split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e,

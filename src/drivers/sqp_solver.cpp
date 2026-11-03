@@ -182,7 +182,7 @@ void validate_staged_polish(const WarmStart &data) {
 
     IpmPolishData polish;
     try {
-        polish = deserialize_ipm_polish(extension->payload_);
+        polish = deserialize_ipm_polish(extension->payload);
     } catch (const std::invalid_argument &error) {
         throw std::invalid_argument(
             fmt::format("SqpSolver::solve: the warm-start payload carries a \"{0}\" "
@@ -1683,7 +1683,7 @@ std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStart &data, Index n, I
     }
     // The find and the decode cannot fail here -- a duplicated tag and an
     // unreadable payload were refused at staging.
-    const IpmPolishData polish = deserialize_ipm_polish(extension->payload_);
+    const IpmPolishData polish = deserialize_ipm_polish(extension->payload);
     // PLAN SECTION 7 NOTE (f): a non-finite `mu_` marks the extension MALFORMED and the tier
     // degrades cold, mode-local -- staging finiteness-checks the polish VECTORS but not `mu_`
     // and the decode round-trips NaN/inf bit-exactly. The core staging throw is unchanged.

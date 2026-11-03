@@ -131,6 +131,11 @@ struct ProblemAccess {
     /// @throws std::invalid_argument if a block is not at its row count.
     static Vec compose_rows(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i);
 
+    /// @brief compose_rows writing into @p out in place (resized, overwritten):
+    ///        no allocation once @p out has the capacity. Same refusals.
+    static void compose_rows_into(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i,
+                                  Vec &out);
+
     /// @brief A row-space multiplier vector in the engines' split.
     /// @throws std::invalid_argument if @p lambda is not one entry per row.
     static void split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e, Vec &lambda_i);

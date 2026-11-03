@@ -86,8 +86,9 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const SolveBudget &b
 
 // An empty WarmStart takes EXACTLY the cold entry (the no-payload engine route),
 // so no payload counter moves for it.
-SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStart &warm,
+SqpResult SqpSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart &warm,
                            SolveBudget budget) {
+    const Vec x0 = x0_in;
     SqpSolverImpl &engine = impl();
     if (warm.empty()) {
         return solve_on(engine, problem, budget,
@@ -99,8 +100,9 @@ SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const WarmStart &war
 
 // The native route: the opaque handle is unwrapped to the engine's state here and
 // nowhere deeper.
-SqpResult SqpSolver::solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
+SqpResult SqpSolver::solve(Problem &problem, ConstVecRef x0_in, const SqpWarmStart &warm,
                            SolveBudget budget) {
+    const Vec x0 = x0_in;
     SqpSolverImpl &engine = impl();
     const detail::SqpWarmState &state = detail::SqpWarmAccess::state(warm);
     return solve_on(engine, problem, budget,

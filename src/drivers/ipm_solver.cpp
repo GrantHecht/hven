@@ -4308,15 +4308,6 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         this->result_.last_prox_reg_dual = last_prox_dual;
     }
 
-    // Trial-evaluation exception diagnostic: the message of the most recent
-    // evaluation failure the acceptance machinery absorbed. Unlike the shifts
-    // above there is no mode gate — the log is per-SOLVE (reset alongside
-    // result_.reset_accumulators()), not per-phase, so a phase that absorbed
-    // nothing after an earlier phase did leaves the earlier message standing,
-    // and an entirely clean solve leaves the empty sentinel untouched.
-    if (this->eval_error_log_.count_ > 0)
-        this->result_.last_eval_exception = this->eval_error_log_.last_message_;
-
     // THE ONE INPUT THE SHARED DECLARED DIAGNOSTICS NEED that only a phase
     // holds, taken HERE (M6 W5 T8.4) because here is where the right-hand side
     // is known to describe the RETURNED iterate: the return_best_ substitution
@@ -4865,8 +4856,8 @@ bool hven::solvers::IpmSolverImpl::build_polish_extension(const Eigen::VectorXd 
         return false;
     }
 
-    out.tag_ = std::string(kIpmPolishTag);
-    out.payload_ = serialize_ipm_polish(polish);
+    out.tag = std::string(kIpmPolishTag);
+    out.payload = serialize_ipm_polish(polish);
     return true;
 }
 
@@ -4895,7 +4886,7 @@ void hven::solvers::IpmSolverImpl::validate_staged_polish(const WarmStart &data,
     // inner message would put two spellings of one refusal in the tree.
     IpmPolishData polish;
     try {
-        polish = deserialize_ipm_polish(extension->payload_);
+        polish = deserialize_ipm_polish(extension->payload);
     } catch (const std::invalid_argument &error) {
         throw std::invalid_argument(
             fmt::format("IpmSolver::{0}: the staged warm start carries a \"{1}\" "
@@ -5662,7 +5653,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     // source of truth leaves no second copy to keep in step with staged_warm_.
     if (have_warm && this->bounds_) {
         if (const WarmExtension *polish = find_ipm_polish(warm); polish != nullptr) {
-            this->apply_polish_bound_duals(deserialize_ipm_polish(polish->payload_));
+            this->apply_polish_bound_duals(deserialize_ipm_polish(polish->payload));
         }
     }
 

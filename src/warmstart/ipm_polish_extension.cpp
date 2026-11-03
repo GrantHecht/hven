@@ -188,7 +188,7 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes) {
 const WarmExtension *find_ipm_polish(const WarmStart &data) {
     const WarmExtension *found = nullptr;
     for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
-        if (extension.tag_ != kIpmPolishTag) {
+        if (extension.tag != kIpmPolishTag) {
             continue;
         }
         if (found != nullptr) {
@@ -240,7 +240,7 @@ SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Ve
             detail::WarmStartAccess::key(data).digest(), structure_key.digest()));
     }
 
-    const IpmPolishData polish = deserialize_ipm_polish(extension->payload_);
+    const IpmPolishData polish = deserialize_ipm_polish(extension->payload);
 
     const Eigen::Index n = detail::WarmStartAccess::primal(data).size();
     const Eigen::Index mi = detail::WarmStartAccess::iq(data).size();

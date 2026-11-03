@@ -130,9 +130,11 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
          sol.status == SolveStatus::kMaxIter && sol.returned_best_iterate &&
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
-        const detail::SqpWarmState handoff = detail::SqpWarmAccess::state(sol.native_warm_start);
-        sol = driver.solve(detail::problem_ref(model), handoff.x,
-                           detail::SqpWarmAccess::wrap(handoff));
+        // The handle is shared, not deep-copied: `sol` is overwritten by the
+        // solve, so the hand-off keeps the state alive across it.
+        const SqpWarmStart handoff = sol.native_warm_start;
+        sol = driver.solve(detail::problem_ref(model), detail::SqpWarmAccess::state(handoff).x,
+                           handoff);
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p0, 0.0, sol, std::nullopt, /*used=*/false);
     }
@@ -290,8 +292,11 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         if (probe_minors > 0) {
             budget.minor_budget = probe_minors;
         }
-        sol = driver.solve(detail::problem_ref(model), seed.x, detail::SqpWarmAccess::wrap(seed),
-                           budget);
+        // The seed moves into its handle once; its point is read back through
+        // the handle (it is not copied a second time).
+        const SqpWarmStart seed_handle = detail::SqpWarmAccess::wrap(std::move(seed));
+        sol = driver.solve(detail::problem_ref(model), detail::SqpWarmAccess::state(seed_handle).x,
+                           seed_handle, budget);
         majors_at_proposal += sol.counters.major_iters;
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p_next, step_dp, sol, reported, predictor_used);

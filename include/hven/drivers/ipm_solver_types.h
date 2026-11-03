@@ -219,16 +219,6 @@ struct IpmResult : SolveResult {
     /// nullopt rules.
     std::optional<double> last_prox_reg_dual;
 
-    /// Message of the most recent trial-evaluation exception absorbed by
-    /// the acceptance machinery during the most recent solve call (all
-    /// phases). Empty when every evaluation succeeded. A populated value
-    /// means the solver rejected un-evaluable trial steps and continued —
-    /// to full recovery, to a graceful ACCEPTABLE-level exit at an
-    /// already-acceptable iterate, or into feasibility restoration. When
-    /// none of those paths existed, the solve threw the latched message
-    /// wrapped in solver context instead.
-    std::string last_eval_exception;
-
     /// The last non-Success status observed from the KKT factorization within
     /// the CURRENT phase (per phase, never an earlier phase's). Purely
     /// observational: it feeds no control-flow decision.

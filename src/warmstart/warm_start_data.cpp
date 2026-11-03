@@ -205,7 +205,7 @@ std::size_t encoded_size_hint(const WarmStart &data) {
     size += 8 + 8; // the stamp's two conjuncts
     size += 8;     // the extension count
     for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
-        size += kMinExtensionSize + extension.tag_.size() + extension.payload_.size();
+        size += kMinExtensionSize + extension.tag.size() + extension.payload.size();
     }
     return size;
 }
@@ -230,12 +230,12 @@ std::vector<std::byte> serialize(const WarmStart &data) {
 
     append_u64(out, static_cast<std::uint64_t>(detail::WarmStartAccess::extensions(data).size()));
     for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
-        append_u64(out, static_cast<std::uint64_t>(extension.tag_.size()));
-        for (const char character : extension.tag_) {
+        append_u64(out, static_cast<std::uint64_t>(extension.tag.size()));
+        for (const char character : extension.tag) {
             out.push_back(static_cast<std::byte>(static_cast<unsigned char>(character)));
         }
-        append_u64(out, static_cast<std::uint64_t>(extension.payload_.size()));
-        out.insert(out.end(), extension.payload_.begin(), extension.payload_.end());
+        append_u64(out, static_cast<std::uint64_t>(extension.payload.size()));
+        out.insert(out.end(), extension.payload.begin(), extension.payload.end());
     }
     return out;
 }
@@ -297,14 +297,14 @@ WarmStart deserialize(std::span<const std::byte> bytes) {
         const std::uint64_t tag_size = reader.read_length("an extension tag", kByteSize);
         const std::span<const std::byte> tag =
             reader.take(static_cast<std::size_t>(tag_size), "an extension tag");
-        extension.tag_.resize(static_cast<std::size_t>(tag_size));
+        extension.tag.resize(static_cast<std::size_t>(tag_size));
         if (tag_size > 0) {
-            std::memcpy(extension.tag_.data(), tag.data(), static_cast<std::size_t>(tag_size));
+            std::memcpy(extension.tag.data(), tag.data(), static_cast<std::size_t>(tag_size));
         }
         const std::uint64_t payload_size = reader.read_length("an extension payload", kByteSize);
         const std::span<const std::byte> payload =
             reader.take(static_cast<std::size_t>(payload_size), "an extension payload");
-        extension.payload_.assign(payload.begin(), payload.end());
+        extension.payload.assign(payload.begin(), payload.end());
         detail::WarmStartAccess::extensions(data).push_back(std::move(extension));
     }
 

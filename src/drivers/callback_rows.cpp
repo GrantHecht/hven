@@ -10,7 +10,7 @@ namespace hven::solvers::detail {
 void compose_event_lambda(const Problem *problem, const Vec &lambda_e, const Vec &lambda_i,
                           Vec &scratch) {
     if (problem != nullptr) {
-        scratch = ProblemAccess::compose_rows(*problem, lambda_e, lambda_i);
+        ProblemAccess::compose_rows_into(*problem, lambda_e, lambda_i, scratch);
         return;
     }
     scratch.resize(lambda_e.size() + lambda_i.size());

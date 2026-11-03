@@ -168,7 +168,7 @@ class IpmSolver {
     ///         disagree or are not at the declared width, a duplicated,
     ///         unreadable or mis-sized polish extension, or a declaration stamp
     ///         that is not this problem's.
-    IpmResult solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStart &warm = {},
+    IpmResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
     /// Installs the per-iteration callback that both engines accept. An empty

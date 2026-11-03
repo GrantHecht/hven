@@ -626,6 +626,11 @@ Vec NlpProblemModel::compose_user_multipliers(ConstEigenRef<Vec> lambda_e,
     return lambda_user;
 }
 
+void NlpProblemModel::compose_user_multipliers_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e,
+                                                    ConstEigenRef<Vec> lambda_i) const {
+    this->compose_into(lambda_user, lambda_e, lambda_i, "compose_user_multipliers");
+}
+
 void NlpProblemModel::split_user_multipliers(ConstEigenRef<Vec> lambda_user, Vec &lambda_e,
                                              Vec &lambda_i) const {
     if (lambda_user.size() != m_) {

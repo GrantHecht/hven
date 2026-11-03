@@ -75,11 +75,15 @@ bool IpmSolver::kkt_pattern_is_analyzed(const Problem &problem) const {
 // and the result's row blocks are mapped into the problem's row space last.
 // An empty WarmStart takes EXACTLY the cold entry (the no-payload engine route),
 // so no payload counter moves for it.
-IpmResult IpmSolver::solve(Problem &problem, const Eigen::VectorXd &x0, const WarmStart &warm,
+IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart &warm,
                            SolveBudget budget) {
+    const Vec x0 = x0_in;
     IpmSolverImpl &engine = impl();
-    NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+    // The tally restarts BEFORE the program is built: the build of an Nlp
+    // problem's program walks the three sparsity patterns with one Hessian and
+    // one Jacobian evaluation, and a solve that pays for the build reports it.
     detail::ProblemAccess::reset_work(problem);
+    NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
     const detail::CallbackRowsScope rows(engine, problem);
     IpmResult result =
         warm.empty() ? engine.solve(program, x0, budget) : engine.solve(program, x0, warm, budget);

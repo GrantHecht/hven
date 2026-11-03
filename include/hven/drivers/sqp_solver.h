@@ -135,7 +135,7 @@ class SqpSolver {
     ///         mis-sized or holds a non-finite or negative bound dual; any block
     ///         is not at the problem's declared dimensions; or the declaration
     ///         stamp is not this problem's.
-    SqpResult solve(Problem &problem, const Vec &x0, const WarmStart &warm = {},
+    SqpResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
     /// Warm-start ingest of this engine's native object. SQP-only, labelled.
@@ -149,7 +149,7 @@ class SqpSolver {
     ///           `kCold`, where the solve starts from the object's point.
     /// @throws std::invalid_argument as the overload above, checked before `warm`
     ///         is looked at.
-    SqpResult solve(Problem &problem, const Vec &x0, const SqpWarmStart &warm,
+    SqpResult solve(Problem &problem, ConstVecRef x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
 
     /// Installs the per-iteration callback that both engines accept. An empty

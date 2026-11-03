@@ -299,6 +299,12 @@ class NlpProblemModel final : public NlpModel {
     ///         itself 0, never a general shorthand for all-zero.
     Vec compose_user_multipliers(ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i) const;
 
+    /// @brief compose_user_multipliers writing into @p lambda_user in place: it
+    ///        is resized (no allocation once at capacity) and overwritten.
+    ///        Same refusals.
+    void compose_user_multipliers_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e,
+                                       ConstEigenRef<Vec> lambda_i) const;
+
     /// @brief Maps declared multipliers onto the native row spaces.
     /// @param lambda_user One multiplier per declared row, Ipopt sign convention.
     /// @param lambda_e Filled with the equality multipliers, sized me().

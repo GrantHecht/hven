@@ -21,9 +21,18 @@ Index effective_iteration_cap(const CommonOptions &common, const SolveBudget &bu
                                  : common.max_iterations;
 }
 
-std::string iteration_limit_message(Index cap, bool best) {
-    return fmt::format("iteration limit reached (max_iterations = {}){}", cap,
-                       best ? "; returned the best iterate" : "");
+std::string iteration_limit_message(Index cap) {
+    return fmt::format("iteration limit reached (max_iterations = {})", cap);
+}
+
+// The best-iterate clause rides on every status the flag is set with, not only
+// kMaxIter: the interior-point return-best substitution applies to any
+// non-optimal exit but an interrupt.
+std::string with_best_clause(std::string message, bool returned_best_iterate) {
+    if (returned_best_iterate) {
+        message += "; returned the best iterate";
+    }
+    return message;
 }
 
 std::string factorization_limit_message(const CommonOptions &common) {
@@ -42,9 +51,7 @@ std::string time_limit_message(const CommonOptions &common) {
     return "time limit reached";
 }
 
-} // namespace
-
-std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
+std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
                                const IpmOptions &options, const SolveBudget &budget) {
     const CommonOptions &common = options.common;
     switch (result.status) {
@@ -53,8 +60,7 @@ std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
     case SolveStatus::kAcceptable:
         return "converged to an acceptable level: the acceptable tolerances were met";
     case SolveStatus::kMaxIter:
-        return iteration_limit_message(effective_iteration_cap(common, budget),
-                                       result.returned_best_iterate);
+        return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
         return "locally infeasible";
     case SolveStatus::kStalled:
@@ -76,7 +82,7 @@ std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
     return "unrecognized status";
 }
 
-std::string sqp_result_message(const SqpResult &result, const SqpOptions &options,
+std::string sqp_status_message(const SqpResult &result, const SqpOptions &options,
                                const SolveBudget &budget) {
     const CommonOptions &common = options.common;
     switch (result.status) {
@@ -85,8 +91,7 @@ std::string sqp_result_message(const SqpResult &result, const SqpOptions &option
     case SolveStatus::kAcceptable:
         return "converged to an acceptable level: the acceptable tolerances were met";
     case SolveStatus::kMaxIter:
-        return iteration_limit_message(effective_iteration_cap(common, budget),
-                                       result.returned_best_iterate);
+        return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
         if (result.infeasibility_certified) {
             return "locally infeasible (certified: restoration reached a stationary point of the "
@@ -114,6 +119,20 @@ std::string sqp_result_message(const SqpResult &result, const SqpOptions &option
         return time_limit_message(common);
     }
     return "unrecognized status";
+}
+
+} // namespace
+
+std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
+                               const IpmOptions &options, const SolveBudget &budget) {
+    return with_best_clause(ipm_status_message(result, reason, options, budget),
+                            result.returned_best_iterate);
+}
+
+std::string sqp_result_message(const SqpResult &result, const SqpOptions &options,
+                               const SolveBudget &budget) {
+    return with_best_clause(sqp_status_message(result, options, budget),
+                            result.returned_best_iterate);
 }
 
 } // namespace hven::solvers::detail
