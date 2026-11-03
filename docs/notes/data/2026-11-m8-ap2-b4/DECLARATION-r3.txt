@@ -1,0 +1,11 @@
+M8 AP-2 group B4 -- DECLARATION r3 (successor to DECLARATION-r2.txt; committed before the r3 leg; never
+edited). Everything in DECLARATION.txt, DECLARATION-r2.txt and runtime/DECLARATION.txt stands except as
+stated here.
+================================================================================
+WHY. The r2 P7 leg was invoked with a RELATIVE evidence directory
+(docs/notes/data/2026-11-m8-ap2-b4/offref); legs/offref.sh changes directory into the build tree before
+ctest, so its ctest log could not be written and ctest never ran (rc=1). The configure and the clean
+build at 0323a725 PASSED in that run (build rc=0, 26 warning lines). Record kept in offref-r2-aborted/
+(configure.log, build.log, leg.out). Nothing was judged.
+CHANGE. None to code, script or criterion. The leg is re-invoked with the ABSOLUTE evidence directory,
+as legs/chain1.sh passes it, into a fresh offref/ (the script deletes and rebuilds its build tree).
