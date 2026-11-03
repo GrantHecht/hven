@@ -1,0 +1,110 @@
+M8 AP-2 group B4 (results, warm start, callbacks, trace interface) -- DECLARATION
+(committed before the first proof leg; never edited afterwards; a failed leg is followed by a fix and a
+successor DECLARATION-rN.txt, and the failed record is kept)
+================================================================================
+Base        m8 at f1117a86 (B3 landed).
+Code head   74084e73 (m8-b4). Code commits, oldest first:
+              010471cd refactor: IpmLinearOptions::algorithm + KktFactorizationAlgorithm removed [IPARM-SURFACE]
+              8fa33f1f feat(s1): results core
+              3da35a54 build(s1): export-contract allow-list shrinks (ipm_solver_types.h pairs)
+              4d0a73ee feat(s2): WarmStart class, row-space seed, result.warm_start, opaque SqpWarmStart
+              0d91895c test,bench,examples(s2): consumers ported; row-space seed pins
+              1072804a feat(s3): CallbackScope, row-space event lambda, combined feasibility
+              7794f769 feat(s4): TraceSink no-op defaults, public evidence headers, export contract armed
+              74084e73 docs: SolveResult::z (#31), impl-header prose
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B3.
+Spec        docs/notes/2026-11-m8-ap1-api-review.md §3, §5, §6, §7, §10.3, §13 (B4 row).
+
+THE CHANGE UNDER TEST (public surface; full detail in the commit messages)
+--------------------------------------------------------------------------------
+C1  IpmLinearOptions::algorithm and enum KktFactorizationAlgorithm removed; the IPM writes
+    SymmetricFactor::Options::factorization_algorithm = kClassic itself (iparm[23] = 0, as before).
+C2  SolveResult: + message, returned_best_iterate, infeasibility_certified (moved from SqpResult; the
+    IPM leaves it false), work (WorkCounters), feasibility (= max(feasibility_e, feasibility_i), NaN if
+    either is NaN; the two parts leave the public result); warm_start is a FIELD of type WarmStart
+    (export_warm_start() gone); the engine row blocks are private (detail::engine_rows the door).
+C3  WorkCounters: Nlp problems counted at the Nlp callback boundary (a counting decorator between the
+    user's Nlp and both transcriptions); pieces/program problems on the IPM per NonLinearProgram
+    evaluation pass by quantity; SQP internal routes 0; factorizations from each engine's own count.
+C4  SolveStatus::kBudgetExhausted and RestorationSubStatus::kBudgetExhausted retired (no renumbering);
+    a budget_mode exhaustion reports kMaxIter with returned_best_iterate = true, point unchanged.
+C5  IpmResult: convergence{kkt,barrier,equality,inequality}, timing{...}, nine last_* sentinels ->
+    std::optional, int counts -> Index, kkt_factor_counters typed SymmetricFactor::Counters,
+    evaluation_errors (public EvaluationErrors). SqpResult: convergence{stationarity,feasibility,
+    complementarity,kkt_residual}; native_warm_start (was warm_start).
+C6  WarmStart (was WarmStartData) a class: private blocks, seed(problem, x, lambda, z) and
+    lambda(problem) in the problem's row space, serialize/deserialize format v2 unchanged.
+    SqpWarmStart opaque (shared state, no default constructor); SqpSolver::export_warm_start() removed;
+    to_sqp_warm_start(warm, problem[, IpCrossoverOptions]); IpCrossoverOptions public. The two-argument
+    budget form solve(problem, x0, budget) becomes solve(problem, x0, {}, budget).
+C7  CallbackScope {kTopLevel (default), kIncludeRestoration}; one set_iteration_callback(cb, payload =
+    kAll, scope = kTopLevel); IterationEvent carries row-space lambda and stationarity/feasibility/
+    complementarity.
+C8  TraceSink: every on_* has a no-op default. IterateInfo -> drivers/ipm_iterate_info.h,
+    Ipqp{Stall,Infeasibility}Evidence -> qp/ipqp_evidence.h (public). compute_declared_diagnostics*,
+    DeclaredDiagnostics, resolve_ipm_phase_status -> detail/; public drivers/solve_status.h deleted.
+C9  The export contract's no-detail-include rule ARMED WITHOUT EXCEPTIONS:
+    scripts/export_contract_detail_includes.allow deleted (7 pairs at B3 -> 0).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  Removed/renamed public surface as listed in C1-C9 (a compile-time break; no trajectory moves).
+    IPM options dump 68 -> 67 lines (69 -> 68 on Accelerate): `linear.algorithm` leaves the linear block.
+    sizeof (Linux x86-64): IpmLinearOptions 56 -> 48, IpmOptions 480 -> 472.
+X2  Status label kBudgetExhausted -> kMaxIter + returned_best_iterate on SqpOptions::budget_mode solves
+    only. Corpus/replay/census cells with budget_mode on: 0 (expected count of moved replay or census
+    rows: 0). The `sqp.solve.end` status alphabet loses `budget_exhausted`; every remaining value prints
+    as before. Unit-test literals that used budget_exhausted as a sample value were re-spelled.
+X3  A callback attached with default arguments on the SQP no longer receives restoration (depth >= 1)
+    rows; kIncludeRestoration restores the full stream. No replay, census or runtime row attaches a
+    callback (expected moved rows: 0).
+X4  New outputs only (message, work, returned_best_iterate on the IPM return_best path): no existing
+    value changes. The work tally adds one increment per NonLinearProgram evaluation pass and per Nlp
+    callback (an instruction delta, covered by the runtime gate).
+X5  Two new library TUs (src/drivers/result_message.cpp, src/drivers/callback_rows.cpp); the PCH source
+    count 54 -> 56.
+EXPECTED UNCHANGED: the 27-cell replay (EXACT), the 57-cell walk census (0 mismatches against
+bench/baselines), the iparm dump over all 15 configurations (byte-identical), every trace golden
+(tests/golden_rig/expected untouched: `git diff f1117a86..74084e73 -- tests/golden_rig bench/baselines
+docs/notes/data` is empty), every counter and status of every measured runtime row.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b4/rel) and Debug (build-b4/dbg), full, -j4 under setsid: every test
+    passes (3309 expected; 3293 at B3 + 16 new). Includes the golden rig and trace unit goldens.
+P2  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P3  iparm (IPARM-SURFACE validation of C1), legs/iparm.sh: the B3 riders' dumper (byte copy, iparm/)
+    against an install of the B4 head: BYTE-IDENTICAL to
+    docs/notes/data/2026-11-m8-ap2-b3/riders/iparm/iparm-riders.txt, 15 configurations.
+P4  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh: scripts/run_walk_census.sh at defaults, scripts/census_compare.py), on arm B.
+P5  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh,
+    now with the detail-include rule armed and NO allow-list: pass (legs/install_smoke.sh).
+P6  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P7  off-reference CLEAN build: linux-clang-release preset in a fresh directory with
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass (legs/offref.sh).
+P8  Accelerate syntax sweep, pass A as B3 (legs/accelerate_sweep.py): no OTHER; only the classes B3
+    recorded (KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED.
+P9  examples: all 8 build (HVEN_BUILD_EXAMPLES=ON) and exit 0 (legs/examples.sh).
+P10 compile-flags diff, library TUs, f1117a86 (build-b4/armA) vs the head (build-b4/rel), legs/flags.sh
+    (B3's flags_diff.py byte-for-byte, after a path-prefix rewrite of arm A's database, stated in the
+    script): every TU in both has an identical flag list; only-after = exactly the two X5 TUs.
+P11 runtime gate (runtime/DECLARATION.txt, the B3 instrument verbatim): arm A = f1117a86,
+    arm B = 74084e73; filtered instructions:u, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0,
+    counter identity as the STOP condition, arm order alternated.
+ARMS
+  A  f1117a86 in the detached worktree build-b4/armA-src (submodules at the pinned commits), built by
+     legs/armA_build.sh (build.sh's configure flags, Release, target hven_sqp_corpus) in build-b4/armA,
+     frozen at build-b4/armAbin/hven_sqp_corpus,
+     sha256 c6d5202f14b3554c4d78c6baa84ac8e3d0a703a174bed4c487f15800a44a4b6a (stamp f1117a86521c).
+  B  74084e73: build-b4/rel (re-configured at the head before the build, stamp 74084e73e922),
+     bench/hven_sqp_corpus frozen at build-b4/armB/hven_sqp_corpus,
+     sha256 101be1a2bffa31ef3e579116fa0639fa2fe7a606c26aebc8957062ec53f51788.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock); `pgrep -a hven_bench_cell` empty before the
+lock and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4
+under setsid; FOREGROUND_START/END markers.
