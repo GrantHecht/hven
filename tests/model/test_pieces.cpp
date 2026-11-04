@@ -1688,12 +1688,15 @@ TEST(PiecesLocalBlocks, AWidePieceSolvesOnFourPartitions) {
     const IpmResult r = ipm.solve(problem, Vx::Zero(kApps * kWide));
     ASSERT_EQ(problem.partitions(), 4);
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
-    // The square system fixes the point: every block's residual vanishes.
+    // The square system fixes the point: every block's residual is inside the
+    // engine's feasibility tolerance (the criterion the solve converged on; a
+    // tighter bound is a property of one run's last iterate, not of the solve).
+    const double feasibility_tol = IpmOptions{}.common.feasibility_tol;
     const WideMap map{};
     for (int a = 0; a < kApps; a++) {
         Vx out(kWide);
         map.value(r.x.segment(a * kWide, kWide), out);
-        EXPECT_LE(out.lpNorm<Eigen::Infinity>(), 1e-8) << a;
+        EXPECT_LE(out.lpNorm<Eigen::Infinity>(), feasibility_tol) << a;
     }
 }
 
