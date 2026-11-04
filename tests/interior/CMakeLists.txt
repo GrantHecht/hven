@@ -103,7 +103,10 @@ gtest_discover_tests(hven_interior_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_M
 # convenient.
 ################################################################################
 set(_hven_adapter_probes
-    unregistered_constraint
+    no_constraint_surface
+    constraint_hook_as_objective
+    local_jacobian_pattern_out_of_range
+    local_hessian_pattern_upper
     constraint_only_objective
     partial_objective_surface
     objective_unsupported_mixin
@@ -141,7 +144,10 @@ endforeach()
 set(_hven_raw_member_diagnostic "error: no member named")
 
 # probe name -> which authored prefix pins it
-set(_hven_probe_regex_unregistered_constraint  "hven constraint adapter:")
+set(_hven_probe_regex_no_constraint_surface   "hven constraint adapter:")
+set(_hven_probe_regex_constraint_hook_as_objective "hven objective adapter:")
+set(_hven_probe_regex_local_jacobian_pattern_out_of_range "hven local block:")
+set(_hven_probe_regex_local_hessian_pattern_upper "hven local block:")
 set(_hven_probe_regex_constraint_only_objective "hven objective adapter:")
 set(_hven_probe_regex_partial_objective_surface "hven objective adapter:")
 set(_hven_probe_regex_objective_unsupported_mixin "hven objective adapter:")

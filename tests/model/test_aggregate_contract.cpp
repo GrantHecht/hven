@@ -19,12 +19,12 @@
 #include <gtest/gtest.h>
 
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
+#include "hven/model/indexing_data.h"
 #include "hven/model/nlp_assembly.h"
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
@@ -92,23 +92,21 @@ static_assert(
 static_assert(
     ConstraintAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
 
-// The objective-kind concept is NOT weaker than the seam that stores an
-// objective: that seam forwards the constraint surface too, so a type carrying
-// only the three scalar methods is not storable however objective-shaped it
-// looks. A constraint piece has the constraint surface and not the objective
-// one, and must fail the objective-kind concept for that reason alone.
+// The objective-kind concept is exactly what the seam that stores an objective
+// forwards: the piece surface and the three scalar methods, no constraint surface
+// (AP-2 B6, friction #19). A constraint piece has the constraint surface and not
+// the objective one, and fails the objective-kind concept for that reason alone.
 static_assert(
     !ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
 static_assert(!hven::solvers::ObjectiveAssemblySurface<hven::solvers::NLPConstraintPiece,
                                                        hven::solvers::SolverIndexingData>);
 static_assert(!ObjectiveAssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
 
-/// The scalar objective surface alone, with no constraint surface behind it:
-/// objective-shaped, and still not storable as an objective.
+/// The piece surface and the scalar objective surface, with no constraint surface
+/// and no output count behind it: an objective piece.
 struct ContractProbeObjectiveSurfaceOnly {
     std::string name() const { return "objective-surface-only"; }
     int input_rows() const { return 2; }
-    int output_rows() const { return 1; }
     bool thread_safe() const { return true; }
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &, int, bool,
@@ -129,8 +127,10 @@ struct ContractProbeObjectiveSurfaceOnly {
 
 static_assert(hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
                                                       ContractProbeIndexData>);
-static_assert(!ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
-              "the objective-kind concept must be no weaker than the seam that stores one");
+static_assert(ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+              "an objective piece needs no constraint surface and no output count");
+static_assert(!ConstraintAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+              "a piece without the constraint surface is not a constraint piece");
 
 } // namespace
 
@@ -145,13 +145,15 @@ TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
         (AssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>));
 }
 
-TEST(AggregatePieceConcept, TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne) {
+TEST(AggregatePieceConcept, TheObjectiveKindCarriesNoConstraintSurface) {
     EXPECT_TRUE((ObjectiveAssemblyPiece<hven::solvers::NLPObjectivePiece,
                                         hven::solvers::SolverIndexingData>));
     EXPECT_TRUE((hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
                                                          ContractProbeIndexData>));
-    EXPECT_FALSE(
+    EXPECT_TRUE(
         (ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
+    EXPECT_FALSE(
+        (ConstraintAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
     EXPECT_FALSE((ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece,
                                          hven::solvers::SolverIndexingData>));
 }

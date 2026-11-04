@@ -32,6 +32,7 @@ set(HVEN_MODEL_TEST_SOURCES
     test_model_structure_key.cpp
     test_model_surface_kkt.cpp
     test_nlp_model_assembly.cpp
+    test_pieces.cpp
     test_structure_epoch.cpp
 )
 

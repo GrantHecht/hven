@@ -15,9 +15,9 @@
 #include <vector>
 
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/detail/interior/utils/type_storage.h"
+#include "hven/core/type_storage.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/detail/solvers/solver_interface_specs.h"
+#include "hven/model/solver_interface_specs.h"
 
 namespace type_storage_test {
 

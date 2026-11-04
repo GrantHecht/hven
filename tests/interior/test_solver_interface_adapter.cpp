@@ -19,9 +19,11 @@
 using adapter_fixture::StubAdapterMissingObjective;
 using adapter_fixture::StubConstraintOnly;
 using adapter_fixture::StubDefectFamily;
+using adapter_fixture::StubHandle;
 using adapter_fixture::StubMixinConstraintOnly;
 using adapter_fixture::StubMixinObjectiveOnly;
 using adapter_fixture::StubPartialObjective;
+using adapter_fixture::StubPlainObjective;
 using adapter_fixture::StubScalarObjective;
 using adapter_fixture::StubUnregistered;
 using hven::solvers::ConstraintInterface;
@@ -30,12 +32,48 @@ using hven::solvers::ObjectiveInterface;
 using hven::solvers::ObjectiveModel;
 using hven::solvers::SolverInterfaceAdapter;
 
-// The primary template must be safe to INSTANTIATE and inspect. Only calling
-// an install function on an unregistered type is a diagnostic, so this probe
-// has to compile -- if the primary template's asserts were not body-local,
-// this line alone would fail the build.
+// The primary template is the default policy and is safe to INSTANTIATE and
+// inspect: `registered` reads false for a type no specialization names.
 TEST(SolverInterfaceAdapter, PrimaryTemplateIsInspectableForAnUnregisteredType) {
     EXPECT_FALSE(SolverInterfaceAdapter<StubUnregistered>::registered);
+    EXPECT_FALSE(SolverInterfaceAdapter<StubPlainObjective>::registered);
+    EXPECT_FALSE(SolverInterfaceAdapter<StubHandle>::registered);
+}
+
+// A plain type needs no specialization: the default adapter stores it as itself,
+// one erasure and one virtual dispatch per evaluation call (AP-2 B6, friction #20).
+TEST(SolverInterfaceAdapter, AnUnregisteredPlainTypeIsStoredAsItself) {
+    const StubUnregistered f{};
+    const ConstraintInterface ci(f);
+    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubUnregistered>));
+}
+
+// An objective piece needs no constraint surface and no output count (AP-2 B6,
+// friction #19); the handle reports the one output itself.
+TEST(SolverInterfaceAdapter, AnObjectiveWithoutAConstraintSurfaceIsStoredAsItself) {
+    const StubPlainObjective f{};
+    const ObjectiveInterface oi(f);
+    EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubPlainObjective>));
+    EXPECT_EQ(oi.output_rows(), 1);
+    EXPECT_EQ(oi.input_rows(), 1);
+}
+
+// The single-dispatch pin for a handle with the hooks: the default adapter
+// detects them, and the stored dynamic type is the CONCRETE payload's model --
+// not a model of the handle -- on both routes. The handle exposes nothing of the
+// piece surface, so no evaluation can dispatch through it: one virtual call per
+// evaluation, the stored model's.
+TEST(SolverInterfaceAdapter, AHookTypeStillSingleDispatches) {
+    const StubHandle as_constraint{
+        std::make_shared<StubHandle::Model<StubDefectFamily<2>>>(StubDefectFamily<2>{})};
+    const ConstraintInterface ci(as_constraint);
+    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubDefectFamily<2>>));
+    EXPECT_EQ(ci.output_rows(), 2);
+
+    const StubHandle as_objective{
+        std::make_shared<StubHandle::Model<StubScalarObjective>>(StubScalarObjective{})};
+    const ObjectiveInterface oi(as_objective);
+    EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubScalarObjective>));
 }
 
 TEST(SolverInterfaceAdapter, RegisteredTypesReportRegistered) {
@@ -130,6 +168,9 @@ TEST(SolverInterfaceAdapter, SurfaceProbesMatchWhatTheModelsRequire) {
 
     EXPECT_TRUE(SolverObjectiveFunction<StubScalarObjective>);
     EXPECT_FALSE(SolverObjectiveFunction<StubPartialObjective>);
+    // An objective needs the piece surface and the objective members, nothing else.
+    EXPECT_TRUE(SolverObjectiveFunction<StubPlainObjective>);
+    EXPECT_FALSE(SolverConstraintFunction<StubPlainObjective>);
 }
 
 // Copying an interface must reproduce the stored dynamic type, not collapse

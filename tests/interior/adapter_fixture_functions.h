@@ -14,14 +14,17 @@
 // under test is the ROUTING decision, which is settled entirely at compile
 // time.
 
+#include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/solvers/solver_interface_specs.h"
+#include "hven/model/solver_interface_specs.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace adapter_fixture {
@@ -130,9 +133,84 @@ struct StubMixinObjectiveOnly : StubScalarObjective {};
 /// backstop can diagnose this one.
 struct StubAdapterMissingObjective : StubConstraintSurface {};
 
-/// Never registered anywhere. Reaching either interface with it is a
-/// diagnosed error.
+/// Never registered anywhere: the default adapter stores it as itself.
 struct StubUnregistered : StubConstraintSurface {};
+
+/// An objective with the piece surface and the three scalar members only -- no
+/// output count, no constraint surface -- and no registration.
+struct StubPlainObjective {
+    std::string name() const { return "adapter_fixture_plain_objective"; }
+    int input_rows() const { return 1; }
+    bool thread_safe() const { return true; }
+    void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &, int, bool,
+                       bool, hven::solvers::SolverIndexingData &) {}
+    int num_kkt_elements(bool, bool) const { return 0; }
+    void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &Val,
+                   const hven::solvers::SolverIndexingData &) const {
+        Val = 0.0;
+    }
+    void objective_gradient(double, const Eigen::Ref<const Eigen::VectorXd> &, double &Val,
+                            Eigen::Ref<Eigen::VectorXd>,
+                            const hven::solvers::SolverIndexingData &) const {
+        Val = 0.0;
+    }
+    void objective_gradient_hessian(double, const Eigen::Ref<const Eigen::VectorXd> &, double &Val,
+                                    Eigen::Ref<Eigen::VectorXd>,
+                                    Eigen::SparseMatrix<double, Eigen::RowMajor> &,
+                                    Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
+                                    std::vector<std::mutex> &,
+                                    const hven::solvers::SolverIndexingData &) const {
+        Val = 0.0;
+    }
+};
+
+/// No piece surface at all, and no registration and no hook: the default
+/// adapter refuses it in words.
+struct StubNoSurface {
+    std::string name() const { return "adapter_fixture_no_surface"; }
+};
+
+/// An ERASED HANDLE with the payload-emplacement hooks: it carries a concrete
+/// piece behind its own vtable and exposes nothing of the piece surface itself.
+/// The default adapter detects the hooks, so what the interface stores is the
+/// concrete payload's model and no call ever goes through this handle.
+struct StubHandle {
+    struct Concept {
+        virtual ~Concept() = default;
+        virtual void pack_into_constraint_interface(hven::solvers::ConstraintInterface &) const = 0;
+        virtual void pack_into_objective_interface(hven::solvers::ObjectiveInterface &) const = 0;
+    };
+    template <class T> struct Model final : Concept {
+        T payload;
+        explicit Model(T t) : payload(std::move(t)) {}
+        void pack_into_constraint_interface(hven::solvers::ConstraintInterface &ci) const override {
+            ci.storage_.emplace<hven::solvers::ConstraintModel<T>>(payload);
+        }
+        void pack_into_objective_interface(hven::solvers::ObjectiveInterface &oi) const override {
+            if constexpr (hven::solvers::SolverObjectiveFunction<T>) {
+                oi.storage_.emplace<hven::solvers::ObjectiveModel<T>>(payload);
+            } else {
+                throw std::logic_error("StubHandle: this payload is not an objective");
+            }
+        }
+    };
+    std::shared_ptr<const Concept> impl;
+
+    void pack_into_constraint_interface(hven::solvers::ConstraintInterface &ci) const {
+        impl->pack_into_constraint_interface(ci);
+    }
+    void pack_into_objective_interface(hven::solvers::ObjectiveInterface &oi) const {
+        impl->pack_into_objective_interface(oi);
+    }
+};
+
+/// A handle with the constraint hook only: it cannot be an objective.
+struct StubConstraintHookOnly {
+    StubConstraintOnly payload;
+    void pack_into_constraint_interface(hven::solvers::ConstraintInterface &ci) const {
+        ci.storage_.emplace<hven::solvers::ConstraintModel<StubConstraintOnly>>(payload);
+    }
+};
 
 } // namespace adapter_fixture
 

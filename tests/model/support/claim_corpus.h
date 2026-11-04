@@ -29,9 +29,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/objective_function.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/solver_interface_adapter.h"
 

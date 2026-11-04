@@ -28,8 +28,8 @@
 // constructs or destroys one needs the piece definitions in scope. This double
 // has a declaration member, so it brings them itself rather than leaning on
 // whatever its includer happens to have pulled in.
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
 #include "hven/model/claim_stream_source.h"
 #include "hven/model/structure_identity.h"
 

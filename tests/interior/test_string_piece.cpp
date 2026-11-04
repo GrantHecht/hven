@@ -16,11 +16,11 @@
 #include <vector>
 
 #include "hven/core/solver_status.h"
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
-#include "hven/detail/solvers/solver_interface_specs.h"
+#include "hven/model/solver_interface_specs.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
