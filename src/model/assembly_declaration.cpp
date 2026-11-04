@@ -129,6 +129,16 @@ void require_map_shape(const Eigen::MatrixXi &map, int expected_rows, const char
     }
 }
 
+/// The declaration's variable space, as a refusal states it: "N variables
+/// (indices 0..N-1)", or, for a declaration with none (default-constructed),
+/// that it has none and how to give it some.
+std::string variable_space(int primal_vars) {
+    if (primal_vars <= 0) {
+        return "no variables (construct it as AssemblyDeclaration(n), n the variable count)";
+    }
+    return fmt::format("{0} variables (indices 0..{1})", primal_vars, primal_vars - 1);
+}
+
 /// Refuses a variable index outside the declaration.
 void require_variables_in_range(const Eigen::MatrixXi &variables, int primal_vars, const char *call,
                                 const std::string &piece) {
@@ -138,8 +148,8 @@ void require_variables_in_range(const Eigen::MatrixXi &variables, int primal_var
             if (index < 0 || index >= primal_vars) {
                 throw std::invalid_argument(fmt::format(
                     "AssemblyDeclaration::{0}: application {1} of piece '{2}' names variable {3} "
-                    "as input {4}, but the declaration has {5} variables (indices 0..{6})",
-                    call, V, piece, index, i, primal_vars, primal_vars - 1));
+                    "as input {4}, but the declaration has {5}",
+                    call, V, piece, index, i, variable_space(primal_vars)));
             }
         }
     }
@@ -236,6 +246,14 @@ void AssemblyDeclaration::add_constraint_handle(ConstraintInterface piece,
                     "output {4}; a row is a non-negative index",
                     call, V, name, rows(j, V), j));
             }
+            // The row space is 0 .. (largest row named), so its count is the
+            // largest row plus one, and that has to be an int.
+            if (rows(j, V) == std::numeric_limits<int>::max()) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names row {3} as "
+                    "output {4}; a block's rows are 0 .. {5} (its row count must fit an int)",
+                    call, V, name, rows(j, V), j, std::numeric_limits<int>::max() - 1));
+            }
         }
     }
 
@@ -268,10 +286,10 @@ AssemblyDeclaration &AssemblyDeclaration::set_bounds(Index first, Index last, do
                         first, last));
     }
     if (first < 0 || last >= primal_vars_) {
-        throw std::invalid_argument(fmt::format(
-            "AssemblyDeclaration::set_bounds: the range {0}..{1} leaves the declaration's {2} "
-            "variables (indices 0..{3})",
-            first, last, primal_vars_, primal_vars_ - 1));
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the range {0}..{1} is outside the "
+                        "declaration, which has {2}",
+                        first, last, variable_space(primal_vars_)));
     }
     require_bound_pair(first, lower, upper);
     for (Index index = first; index <= last; index++) {

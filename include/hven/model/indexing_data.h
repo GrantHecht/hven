@@ -56,6 +56,12 @@ struct SolverIndexingData {
 
     bool vindex_init_ = false;
     bool cindex_init_ = false;
+
+    /// Whether this copy's rows are written by its own partition only. Set by
+    /// the layout on every partition copy (NonLinearProgram::
+    /// mark_shared_constraint_rows): false when another partition also names one
+    /// of its rows, and then the Jacobian scatter locks a contested column
+    /// (docs/assembly-protocol.md §5). True on one partition.
     bool unique_constraints_ = true;
 
     /// @brief Matrix whose columns contain the ordered indices of the

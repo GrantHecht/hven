@@ -131,6 +131,10 @@ concept ObjectiveAssemblyPiece =
 /// THE RAW ROUTE writes the fields below directly; the builder members and the
 /// raw fields fill the same value.
 struct AssemblyDeclaration {
+    /// @brief An empty declaration over no variables: the raw route's starting
+    ///        point, whose fields are then written directly. The builder starts
+    ///        from AssemblyDeclaration(n); a builder call on a declaration with
+    ///        no variables refuses any variable and says so.
     AssemblyDeclaration();
     /// @brief An empty declaration over @p variables primal variables.
     /// @throws std::invalid_argument if @p variables is negative or past INT_MAX.
@@ -163,7 +167,8 @@ struct AssemblyDeclaration {
     /// @throws std::invalid_argument on a map of the wrong shape (rows differing
     ///         from the piece's counts, or the two maps' application counts
     ///         differing), a map with no application, a variable index outside
-    ///         [0, primal_vars_), a negative row, or a row past INT_MAX.
+    ///         [0, primal_vars_), a negative row, or a row of INT_MAX (a block's
+    ///         row count, the largest row plus one, must fit an int).
     template <class Piece>
     AssemblyDeclaration &add_equality(const Piece &piece, const Eigen::MatrixXi &variables,
                                       const Eigen::MatrixXi &rows) {

@@ -9,8 +9,8 @@
 // The raw piece protocol's two type-erased handles, ConstraintInterface and
 // ObjectiveInterface, and the surface probes their adapters check a piece
 // against. The protocol is specified in docs/assembly-protocol.md; the
-// local-block layer (model/local_blocks.h) is the default way to write a piece
-// and produces these handles itself.
+// local-block layer (model/local_blocks.h, included at the end of this header)
+// is the default way to write a piece and produces these handles itself.
 
 #pragma once
 
@@ -478,6 +478,11 @@ struct ObjectiveInterface {
 
 template <class T>
 void DirectFunctionModel<T>::install_constraint(const T &t, ConstraintInterface &ci) {
+    static_assert(!SolverConstraintFunction<T> || std::is_copy_constructible_v<T>,
+                  "hven constraint adapter: a piece must be copy-constructible: the layout "
+                  "copies it once per partition and evaluates the copies concurrently. Hold "
+                  "state the copies share through a std::shared_ptr, to data that is safe to "
+                  "read concurrently.");
     static_assert(SolverConstraintFunction<T>,
                   "hven constraint adapter: this type does not provide the piece constraint "
                   "surface (and exposes no pack_into_constraint_interface hook). A directly "
@@ -487,7 +492,7 @@ void DirectFunctionModel<T>::install_constraint(const T &t, ConstraintInterface 
                   "constraints_jacobian_adjointgradient, and "
                   "constraints_jacobian_adjointgradient_adjointhessian), get_kkt_space, and "
                   "num_kkt_elements -- callable with the argument types ConstraintModel passes.");
-    if constexpr (SolverConstraintFunction<T>) {
+    if constexpr (SolverConstraintFunction<T> && std::is_copy_constructible_v<T>) {
         ci.storage_.emplace<ConstraintModel<T>>(t);
     }
 }
@@ -498,6 +503,11 @@ void DirectFunctionModel<T>::install_objective(const T &t, ObjectiveInterface &o
     // is reachable from BOTH interfaces, so a constraint-only family can reach
     // this one. The piece surface and the objective surface are asserted
     // separately, so a type missing exactly one is told which.
+    static_assert(!SolverObjectiveFunction<T> || std::is_copy_constructible_v<T>,
+                  "hven objective adapter: a piece must be copy-constructible: the layout "
+                  "copies it once per partition and evaluates the copies concurrently. Hold "
+                  "state the copies share through a std::shared_ptr, to data that is safe to "
+                  "read concurrently.");
     static_assert(PieceIdentity<T> && PieceClaimSurface<T>,
                   "hven objective adapter: this type does not provide the piece surface an "
                   "objective needs: name / input_rows / thread_safe, get_kkt_space and "
@@ -510,9 +520,17 @@ void DirectFunctionModel<T>::install_objective(const T &t, ObjectiveInterface &o
                   "three are required, callable with the argument types ObjectiveModel passes. "
                   "A type without them can enter ConstraintInterface only; declare that by "
                   "inheriting hven::solvers::ObjectiveUnsupported<T> in its adapter.");
-    if constexpr (SolverObjectiveFunction<T>) {
+    if constexpr (SolverObjectiveFunction<T> && std::is_copy_constructible_v<T>) {
         oi.storage_.emplace<ObjectiveModel<T>>(t);
     }
 }
 
 } // namespace hven::solvers
+
+// The local-block layer's adapters, at the end of this header so that every
+// translation unit that can convert a piece to a handle also sees them: a
+// local-block piece can never reach the default adapter for want of an include,
+// and no two translation units can disagree about which adapter a type takes.
+// local_blocks.h includes this header first; #pragma once makes the pair
+// order-independent.
+#include "hven/model/local_blocks.h"

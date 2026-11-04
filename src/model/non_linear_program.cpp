@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -1590,6 +1591,10 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     // band that separates them is a fact about the layout, not about the claim.
     this->claim_segment_marks_.resize(3 * this->num_partitions_ + 1);
 
+    // Before the claims: the Jacobian scatter's lock decision for every
+    // partition copy (see mark_shared_constraint_rows).
+    this->mark_shared_constraint_rows();
+
     for (int i = 0; i < this->num_partitions_; i++) {
         int kkstart = space.next_free_;
         this->claim_segment_marks_[3 * i] = kkstart;
@@ -1643,6 +1648,78 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     std::vector<std::mutex> kktemp(this->num_kkt_clashes_);
 
     this->kkt_locks_.swap(kktemp);
+}
+
+void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
+    // THE JACOBIAN HALF OF THE LOCK PROTOCOL. A Jacobian entry (row, variable)
+    // is written by every application that names both, and two such
+    // applications in DIFFERENT partitions write one double concurrently. That
+    // takes a shared row: rows named once, or only within one partition, are
+    // written serially. So the decision is per row, not per entry -- a function
+    // whose rows are all its partition's own writes its Jacobian without a
+    // lock, as it always has, and a function touching a row another partition
+    // also names takes its column's mutex (get_mat_space marks that column
+    // contested: both partitions claim a slot under it).
+    //
+    // Set both ways on every lay: the partition copies are handed out fresh
+    // from the masters (flag true), but a re-lay at another partition count
+    // must not inherit a previous lay's answer.
+    auto mark = [&](std::vector<std::vector<ConstraintFunction>> &parts, int rows,
+                    const char *which) {
+        if (this->num_partitions_ <= 1) {
+            for (auto &part : parts) {
+                for (auto &func : part) {
+                    func.index_data_.unique_constraints_ = true;
+                }
+            }
+            return;
+        }
+        constexpr int kUnowned = -1;
+        constexpr int kShared = -2;
+        std::vector<int> owner(static_cast<std::size_t>(std::max(rows, 0)), kUnowned);
+        auto row_at = [&](const SolverIndexingData &data, int j, int V) {
+            const int row = data.c_loc(j, V);
+            if (row < 0 || row >= rows) {
+                throw std::logic_error(fmt::format(
+                    "mark_shared_constraint_rows: a {0} function names row {1}, outside the {2} "
+                    "{0} rows laid",
+                    which, row, rows));
+            }
+            return static_cast<std::size_t>(row);
+        };
+        for (int p = 0; p < static_cast<int>(parts.size()); p++) {
+            for (const auto &func : parts[p]) {
+                const SolverIndexingData &data = func.index_data_;
+                for (int V = 0; V < data.num_appl(); V++) {
+                    for (int j = 0; j < data.output_size_; j++) {
+                        int &o = owner[row_at(data, j, V)];
+                        if (o == kUnowned) {
+                            o = p;
+                        } else if (o != p) {
+                            o = kShared;
+                        }
+                    }
+                }
+            }
+        }
+        for (auto &part : parts) {
+            for (auto &func : part) {
+                SolverIndexingData &data = func.index_data_;
+                bool shared = false;
+                for (int V = 0; V < data.num_appl() && !shared; V++) {
+                    for (int j = 0; j < data.output_size_; j++) {
+                        if (owner[row_at(data, j, V)] == kShared) {
+                            shared = true;
+                            break;
+                        }
+                    }
+                }
+                data.unique_constraints_ = !shared;
+            }
+        }
+    };
+    mark(this->part_eq_, this->equal_cons_, "equality");
+    mark(this->part_iq_, this->inequal_cons_, "inequality");
 }
 
 void hven::solvers::NonLinearProgram::get_rhs_space() {

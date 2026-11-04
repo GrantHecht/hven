@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include <iostream>
 #include <string>
 
 #include <Eigen/Core>
@@ -43,21 +42,6 @@ template <class FuncType> struct SolverFunctionBase {
     SolverIndexingData index_data_;
 
     SolverFunctionBase() {}
-
-    void print_data() {
-        using std::cout;
-        using std::endl;
-
-        cout << "Name: " << this->function_.name() << endl << endl;
-        cout << "Input  Rows:" << this->function_.input_rows() << endl << endl;
-        cout << "Output Rows:" << this->function_.output_rows() << endl << endl;
-        cout << "Thread Policy:" << static_cast<int>(thread_mode_) << endl << endl;
-
-        cout << "v_index_: " << endl << this->index_data_.get_v_index() << endl << endl;
-        if (this->index_data_.cindex_init_) {
-            cout << "c_index_: " << endl << this->index_data_.get_c_index() << endl << endl;
-        }
-    }
 
     /// @brief How many KKT slots one application of this piece claims when it is
     ///        asked for Jacobian space, Hessian space, or both.

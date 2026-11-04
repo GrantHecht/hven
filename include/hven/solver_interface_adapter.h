@@ -34,9 +34,17 @@
 // hook before freezing it; the hook has to be reachable from the handle's own
 // erasure, so it cannot be retrofitted from outside.
 //
-// Any movable type is a legal piece. The handle stores a small piece inline and
-// relocates it by move construction, so a piece may own a std::string, a
-// std::vector or any other movable member.
+// A piece must be COPY-CONSTRUCTIBLE: the layout copies it once per partition
+// (the handles copy deeply) and evaluates the copies concurrently from several
+// threads. State the copies share is held through a std::shared_ptr and must be
+// safe to read concurrently. The handle stores a small piece inline and relocates
+// it by move construction, so a piece may own a std::string, a std::vector or any
+// other copyable member. A piece that is not copy-constructible is refused with
+// an authored message.
+//
+// A class with a static member kInputs is a LOCAL-BLOCK piece
+// (model/local_blocks.h). That header's partial specializations take it, and the
+// handles' header includes it, so such a type never reaches the default below.
 //
 // Explicit specializations remain the override. A specialization of
 // SolverInterfaceAdapter<T> replaces the default for T, and it belongs in the
@@ -105,6 +113,11 @@ template <class T> struct SolverInterfaceAdapter {
     static constexpr bool registered = false;
 
     static void install_constraint(const T &t, ConstraintInterface &ci) {
+        static_assert(
+            !requires { T::kInputs; },
+            "hven local block: a local-block piece reached the default adapter; "
+            "include hven/model/solver_interface_specs.h (or hven/model/pieces.h) "
+            "before naming SolverInterfaceAdapter for it");
         if constexpr (ConstraintPackHook<T>) {
             t.pack_into_constraint_interface(ci);
         } else {
@@ -113,6 +126,11 @@ template <class T> struct SolverInterfaceAdapter {
     }
 
     static void install_objective(const T &t, ObjectiveInterface &oi) {
+        static_assert(
+            !requires { T::kInputs; },
+            "hven local block: a local-block piece reached the default adapter; "
+            "include hven/model/solver_interface_specs.h (or hven/model/pieces.h) "
+            "before naming SolverInterfaceAdapter for it");
         if constexpr (ObjectivePackHook<T>) {
             t.pack_into_objective_interface(oi);
         } else {

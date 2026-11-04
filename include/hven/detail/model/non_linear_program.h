@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -536,28 +535,6 @@ struct NonLinearProgram : public NlpAssembly {
 
     BoundSet variable_bound_set_;
 
-    void print_data() {
-        for (int i = 0; i < this->num_partitions_; i++) {
-            std::cout << "Partition: " << i << std::endl << std::endl;
-            std::cout << "---------------objectives_---------------" << std::endl << std::endl;
-
-            for (auto &obj : this->part_obj_[i]) {
-                obj.print_data();
-            }
-
-            std::cout << "---------------Equalities---------------" << std::endl << std::endl;
-
-            for (auto &eq : this->part_eq_[i]) {
-                eq.print_data();
-            }
-            std::cout << "--------------Inequalities--------------" << std::endl << std::endl;
-
-            for (auto &ineq : this->part_iq_[i]) {
-                ineq.print_data();
-            }
-        }
-    }
-
     void count_elems();
 
     void materialize_variable_bounds();
@@ -565,6 +542,13 @@ struct NonLinearProgram : public NlpAssembly {
     void analyze_partitioning();
 
     void get_mat_space();
+
+    /// Sets unique_constraints_ on every partition copy of a constraint
+    /// function: false when one of its rows is also named by an application in
+    /// another partition (a shared row two partitions write), true otherwise.
+    /// The Jacobian scatter locks a contested column only for a function whose
+    /// flag is false, so two partitions writing one Jacobian entry serialise.
+    void mark_shared_constraint_rows();
 
     void get_rhs_space();
 

@@ -30,13 +30,6 @@
 
 #include <cmath>
 #include <cstddef>
-// PCH neutrality (scripts/check_pch_neutrality.sh): src/hven_pch.h reaches <iostream>
-// through detail/model/non_linear_program.h, which emits a reference to
-// std::ios_base_library_init in every TU that includes it. This TU used to get
-// <iostream> from ipm_solver_types.h and lost it when that header stopped
-// including the Nlp; naming it here keeps the include set, and so the object,
-// identical with and without the PCH.
-#include <iostream>
 #include <optional>
 #include <ostream>
 #include <stdexcept>
