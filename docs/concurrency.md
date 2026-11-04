@@ -147,7 +147,7 @@ concurrent dispatches from separate threads inherently safe; `thread_pool.h`, th
 `Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`), beside the N×1 pin above and running the
 same two steps over the same helpers: it builds TWO different programs through
-the internal `make_nlp_program(problem, num_partitions)` (a public `Problem(Nlp)` lays one partition; a partition request is M8 AP-2 B6) at counts the layout
+the internal `make_nlp_program(problem, num_partitions)` (a public `Problem(Nlp)` lays one partition; a pieces problem's request is `AssemblyDeclaration::set_partitions`) at counts the layout
 ACTUALLY ADOPTS — 2 partitions over 3000 user KKT elements and 3 over 4200,
 asserted rather than assumed, because the count is clamped rather than refused
 (`src/model/non_linear_program.cpp:415-426`) — solves them once serially on the
@@ -177,6 +177,19 @@ running the other partitions' bodies and writing into each program's own scratch
 statement makes and precisely what was unmeasured. Genuine partitioned
 EVALUATION over an `Nlp` needs a thread-safe adapter and is
 registered for M7.
+
+**A pieces problem is the route that does evaluate concurrently.** A `Problem` built from an
+`AssemblyDeclaration` asks for its partitions with `AssemblyDeclaration::set_partitions(k)`, the
+layout clamps the request down by the same rule (`Problem::partitions()` reports the count
+adopted), and each adopted partition evaluates its share of the pieces' applications on a pool
+worker -- the last on the calling thread. A piece is therefore called concurrently through its
+`const` members, on disjoint applications, and must be safe to call that way
+(docs/assembly-protocol.md §6, which also states the one write that takes no lock: a Jacobian
+entry two partitions share through a shared row). The pins are
+`PiecesLocalBlocks.AssemblyMatchesTheDenseReferenceOnSeveralPartitions` (every assembled value
+against a dense reference, at an adopted count above one) and `PiecesExample4.BothFormsAgree` (the
+raw and local-block forms solve identically at four requested partitions) in
+`tests/model/test_pieces.cpp`.
 
 Not to fan out is the easy case and it is the common one:
 `make_nlp_program(problem)` defaults to **one partition**, and a `Problem(Nlp)`
