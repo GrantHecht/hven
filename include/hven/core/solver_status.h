@@ -50,6 +50,13 @@ enum class QpStatus {
 /// A solve that exhausts its major-iteration cap reports kMaxIter;
 /// SolveResult::returned_best_iterate says whether the point returned is the
 /// best iterate (SqpOptions::budget_mode) rather than the last one reached.
+///
+/// A non-finite evaluation the solve cannot recover from is kNumericalError. The
+/// interior-point engine with IpmOptions::return_best on returns its best
+/// iterate in full on that exit (returned_best_iterate set) when it recorded
+/// one, and otherwise the failed point with its multipliers cleared
+/// (returned_best_iterate false); the SQP engine returns the failed point with
+/// its multipliers cleared.
 enum class SolveStatus {
     kOptimal = 0,
     kAcceptable = 1,

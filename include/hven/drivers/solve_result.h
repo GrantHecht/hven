@@ -138,8 +138,14 @@ struct SolveResult {
     /// on and the solve ended in any non-optimal status except an interrupt
     /// (the substitution applies to the last phase that ran), so it can ride
     /// with kMaxIter, kStalled, kWorkLimit and the other non-optimal exits.
+    /// A non-finite abort (kNumericalError, kNonFiniteIterate) returns the best
+    /// iterate in full -- x, multipliers and every residual column -- with this
+    /// set, when one was recorded; when none was (a non-finite start, a phase's
+    /// first iterate, a failed initial factorization) it returns the failed
+    /// point with its multipliers cleared and this false.
     /// SQP: set only when SqpOptions::budget_mode ran out of iterations
-    /// (SolveStatus::kMaxIter). The message gains "; returned the best iterate"
+    /// (SolveStatus::kMaxIter); its non-finite exits never substitute and leave
+    /// it false. The message gains "; returned the best iterate"
     /// whenever it is set.
     bool returned_best_iterate = false;
 
