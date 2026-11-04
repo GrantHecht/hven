@@ -45,7 +45,8 @@ TEST(SolverInterfaceAdapter, PrimaryTemplateIsInspectableForAnUnregisteredType) 
 TEST(SolverInterfaceAdapter, AnUnregisteredPlainTypeIsStoredAsItself) {
     const StubUnregistered f{};
     const ConstraintInterface ci(f);
-    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubUnregistered>));
+    const auto &stored = ci.storage_.get();
+    EXPECT_EQ(typeid(stored), typeid(ConstraintModel<StubUnregistered>));
 }
 
 // An objective piece needs no constraint surface and no output count (AP-2 B6,
@@ -53,7 +54,8 @@ TEST(SolverInterfaceAdapter, AnUnregisteredPlainTypeIsStoredAsItself) {
 TEST(SolverInterfaceAdapter, AnObjectiveWithoutAConstraintSurfaceIsStoredAsItself) {
     const StubPlainObjective f{};
     const ObjectiveInterface oi(f);
-    EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubPlainObjective>));
+    const auto &stored = oi.storage_.get();
+    EXPECT_EQ(typeid(stored), typeid(ObjectiveModel<StubPlainObjective>));
     EXPECT_EQ(oi.output_rows(), 1);
     EXPECT_EQ(oi.input_rows(), 1);
 }
@@ -67,13 +69,15 @@ TEST(SolverInterfaceAdapter, AHookTypeStillSingleDispatches) {
     const StubHandle as_constraint{
         std::make_shared<StubHandle::Model<StubDefectFamily<2>>>(StubDefectFamily<2>{})};
     const ConstraintInterface ci(as_constraint);
-    EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubDefectFamily<2>>));
+    const auto &stored_constraint = ci.storage_.get();
+    EXPECT_EQ(typeid(stored_constraint), typeid(ConstraintModel<StubDefectFamily<2>>));
     EXPECT_EQ(ci.output_rows(), 2);
 
     const StubHandle as_objective{
         std::make_shared<StubHandle::Model<StubScalarObjective>>(StubScalarObjective{})};
     const ObjectiveInterface oi(as_objective);
-    EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubScalarObjective>));
+    const auto &stored_objective = oi.storage_.get();
+    EXPECT_EQ(typeid(stored_objective), typeid(ObjectiveModel<StubScalarObjective>));
 }
 
 TEST(SolverInterfaceAdapter, RegisteredTypesReportRegistered) {

@@ -16,6 +16,11 @@
 //   * A pieces problem's row space (lambda and g), its warm-start round trip, the
 //     evaluation-failure contract (core/errors.h) on a piece, and the SQP's
 //     refusal.
+//   * The B6 riders (C235, C236): shared Jacobian entries across partitions
+//     serialised by the layout (the flags, exact assembly, and the same solve at
+//     one and four partitions); a descending application; eliminated variables at
+//     four partitions; a 256 x 256 piece on per-copy scratch; C-array patterns;
+//     default names; the row and empty-declaration refusals.
 
 #include <gtest/gtest.h>
 
@@ -781,8 +786,10 @@ TEST(PiecesLocalBlocks, TheDenseReferenceMatchesCentralDifferences) {
 }
 
 /// Evaluates a pieces problem's laid program at (x, sigma, le, li) and compares
-/// every value it assembles against the dense reference.
-void expect_program_matches(Problem &problem, const TestChain &chain, unsigned seed) {
+/// every value it assembles against the chain's dense reference (n, me, mi and
+/// evaluate(x, sigma, le, li) -> TestChain::Eval).
+template <class Chain>
+void expect_program_matches(Problem &problem, const Chain &chain, unsigned seed) {
     NonLinearProgram &nlp = ProblemAccess::ipm_program(problem);
     ASSERT_EQ(nlp.primal_vars_, chain.n);
     ASSERT_EQ(nlp.equal_cons_, chain.me);
@@ -799,7 +806,7 @@ void expect_program_matches(Problem &problem, const TestChain &chain, unsigned s
     Vx FXE = Vx::Zero(nlp.equal_cons_), FXI = Vx::Zero(nlp.inequal_cons_);
     nlp.eval_kkt(sigma, x, le, li, val, PGX, AGX, FXE, FXI, kkt);
 
-    const auto ref = chain.evaluate(x, sigma, le, li);
+    const TestChain::Eval ref = chain.evaluate(x, sigma, le, li);
     constexpr double kTol = 1e-12;
     EXPECT_NEAR(val, sigma * ref.f, kTol * std::max(1.0, std::abs(ref.f)));
     EXPECT_LE((PGX - sigma * ref.grad).lpNorm<Eigen::Infinity>(), kTol);
@@ -1285,6 +1292,479 @@ TEST(PiecesBuilder, TakesRawProtocolPieces) {
     EXPECT_EQ(d.equality_rows_, 2);
     EXPECT_EQ(d.equality_shared_row_overcount_, 0);
     EXPECT_NO_THROW(d.validate());
+}
+
+// ===========================================================================
+// AP-2 B6 riders (C235, C236).
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Shared Jacobian entries across partitions (C235). Two pieces write the SAME
+// Jacobian entries: row i of the chain is written by Step (ascending
+// applications, on (y_i, y_{i+1})) and by Couple (DESCENDING applications, on
+// (y_{i+1}, y_i)), so under the by-application split the two writers of most
+// rows sit in different partitions. The layout serialises them: the pieces'
+// partition copies carry unique_constraints_ = false and lock the contested
+// column. Couple's inputs are listed in descending variable order, so its
+// lower-triangle Hessian entry (1, 0) lands at global (y_i, y_{i+1}): the r < c
+// orientation (C236 R5).
+// ---------------------------------------------------------------------------
+
+struct Step { // y_{i+1} - y_i - 0.01 sin(y_i)
+    static constexpr Index kInputs = 2, kOutputs = 1;
+    void value(ConstVecRef v, VecRef out) const { out[0] = v[1] - v[0] - 0.01 * std::sin(v[0]); }
+    void jacobian(ConstVecRef v, MatRef J) const {
+        J(0, 0) = -1.0 - 0.01 * std::cos(v[0]);
+        J(0, 1) = 1.0;
+    }
+    void hessian(ConstVecRef v, ConstVecRef lambda, MatRef H) const {
+        H(0, 0) = 0.01 * std::sin(v[0]) * lambda[0];
+    }
+};
+
+struct Couple { // 0.01 v0 v1 + 0.02 v1^2, v = (y_{i+1}, y_i)
+    static constexpr Index kInputs = 2, kOutputs = 1;
+    void value(ConstVecRef v, VecRef out) const {
+        out[0] = 0.01 * v[0] * v[1] + 0.02 * v[1] * v[1];
+    }
+    void jacobian(ConstVecRef v, MatRef J) const {
+        J(0, 0) = 0.01 * v[1];
+        J(0, 1) = 0.01 * v[0] + 0.04 * v[1];
+    }
+    void hessian(ConstVecRef, ConstVecRef lambda, MatRef H) const {
+        H(1, 0) = 0.01 * lambda[0];
+        H(1, 1) = 0.04 * lambda[0];
+    }
+};
+
+/// The shared-entry chain: N variables y, N-1 equality rows (Step + Couple on
+/// each), the objective sum_i 0.5 (y_i - 0.3)^2 + y_0 pinned near 0.5 by a
+/// stronger term, and an inequality y_i^2 + y_{i+1}^2 <= 4 per row (Disc).
+struct SharedChain {
+    int n = 0, me = 0, mi = 0;
+    Mi singles, step_vars, step_rows, couple_vars, couple_rows, first, disc_vars, disc_rows;
+
+    explicit SharedChain(int n_) : n(n_) {
+        me = n - 1;
+        mi = n - 1;
+        singles.resize(1, n);
+        for (int i = 0; i < n; i++) {
+            singles(0, i) = i;
+        }
+        step_vars.resize(2, me);
+        step_rows.resize(1, me);
+        couple_vars.resize(2, me);
+        couple_rows.resize(1, me);
+        disc_vars.resize(2, mi);
+        disc_rows.resize(1, mi);
+        for (int i = 0; i < me; i++) {
+            step_vars.col(i) << i, i + 1;
+            step_rows(0, i) = i;
+            const int r = me - 1 - i; // descending applications
+            couple_vars.col(i) << r + 1, r;
+            couple_rows(0, i) = r;
+            disc_vars.col(i) << i, i + 1;
+            disc_rows(0, i) = i;
+        }
+        first = (Mi(1, 1) << 0).finished();
+    }
+
+    AssemblyDeclaration declaration(int partitions) const {
+        AssemblyDeclaration d(n);
+        d.add_objective(local::Quadratic{0.5, 0.3}, singles);
+        d.add_objective(local::Quadratic{5.0, 0.5}, first);
+        d.add_equality(Step{}, step_vars, step_rows);
+        d.add_equality(Couple{}, couple_vars, couple_rows);
+        d.add_inequality(Disc{4.0}, disc_vars, disc_rows);
+        d.set_partitions(partitions);
+        return d;
+    }
+
+    TestChain::Eval evaluate(const Vx &x, double sigma, const Vx &le, const Vx &li) const {
+        TestChain::Eval e;
+        e.grad = Vx::Zero(n);
+        e.ce = Vx::Zero(me);
+        e.ci = Vx::Zero(mi);
+        e.je = Eigen::MatrixXd::Zero(me, n);
+        e.ji = Eigen::MatrixXd::Zero(mi, n);
+        Eigen::MatrixXd hf = Eigen::MatrixXd::Zero(n, n);
+        TestChain::add_objective(local::Quadratic{0.5, 0.3}, singles, x, e.f, &e.grad, &hf);
+        TestChain::add_objective(local::Quadratic{5.0, 0.5}, first, x, e.f, &e.grad, &hf);
+        e.hess = sigma * hf;
+        TestChain::add_constraint(Step{}, step_vars, step_rows, x, &le, e.ce, &e.je, &e.hess);
+        TestChain::add_constraint(Couple{}, couple_vars, couple_rows, x, &le, e.ce, &e.je, &e.hess);
+        TestChain::add_constraint(Disc{4.0}, disc_vars, disc_rows, x, &li, e.ci, &e.ji, &e.hess);
+        return e;
+    }
+};
+
+/// The unique_constraints_ flag of every laid partition copy of the equality and
+/// inequality functions, per block.
+struct LaidFlags {
+    int eq_shared = 0, eq_unique = 0, iq_shared = 0, iq_unique = 0;
+};
+LaidFlags laid_flags(Problem &problem) {
+    NonLinearProgram &nlp = ProblemAccess::ipm_program(problem);
+    LaidFlags f;
+    for (const auto &part : nlp.part_eq_) {
+        for (const auto &func : part) {
+            (func.index_data_.unique_constraints_ ? f.eq_unique : f.eq_shared)++;
+        }
+    }
+    for (const auto &part : nlp.part_iq_) {
+        for (const auto &func : part) {
+            (func.index_data_.unique_constraints_ ? f.iq_unique : f.iq_shared)++;
+        }
+    }
+    return f;
+}
+
+/// The assembled KKT matrix (upper triangle) of a laid program at one point.
+SpMatRM assembled_kkt(Problem &problem, const Vx &x, const Vx &le, const Vx &li) {
+    NonLinearProgram &nlp = ProblemAccess::ipm_program(problem);
+    SpMatRM kkt(nlp.kkt_dim_, nlp.kkt_dim_);
+    nlp.analyze_sparsity(kkt);
+    Eigen::Map<Vx>(kkt.valuePtr(), kkt.nonZeros()).setZero();
+    double val = 0.0;
+    Vx PGX = Vx::Zero(nlp.primal_vars_), AGX = Vx::Zero(nlp.primal_vars_);
+    Vx FXE = Vx::Zero(nlp.equal_cons_), FXI = Vx::Zero(nlp.inequal_cons_);
+    nlp.eval_kkt(0.7, x, le, li, val, PGX, AGX, FXE, FXI, kkt);
+    return kkt;
+}
+
+// The layout's decision: at four partitions the two equality pieces' copies
+// whose rows another partition also writes are marked shared (and lock); the
+// inequality piece, whose rows are its own, is not; at one partition nothing
+// is shared.
+TEST(PiecesSharedEntries, TheLayoutMarksTheCopiesThatShareARow) {
+    const SharedChain chain(2000);
+    Problem four(chain.declaration(4));
+    ProblemAccess::ipm_program(four);
+    ASSERT_EQ(four.partitions(), 4);
+    const LaidFlags f4 = laid_flags(four);
+    EXPECT_GT(f4.eq_shared, 0);
+    EXPECT_EQ(f4.iq_shared, 0);
+    EXPECT_GT(f4.iq_unique, 0);
+
+    Problem one(chain.declaration(1));
+    ProblemAccess::ipm_program(one);
+    ASSERT_EQ(one.partitions(), 1);
+    const LaidFlags f1 = laid_flags(one);
+    EXPECT_EQ(f1.eq_shared, 0);
+    EXPECT_EQ(f1.iq_shared, 0);
+
+    // An unshared declaration at four partitions marks nothing: the Jacobian
+    // scatter of every copy stays lock-free, as before the rider.
+    const TestChain plain(400);
+    AssemblyDeclaration d(plain.n);
+    d.add_objective(local::Quadratic{plain.h, 0.0}, plain.u_single);
+    d.add_equality(DenseDefect{plain.h}, plain.defect_vars, plain.defect_rows);
+    d.add_inequality(Ring{3.0}, plain.ring_vars.leftCols(plain.steps),
+                     plain.ring_rows.leftCols(plain.steps));
+    d.set_partitions(4);
+    Problem unshared(std::move(d));
+    ProblemAccess::ipm_program(unshared);
+    ASSERT_GT(unshared.partitions(), 1);
+    const LaidFlags fu = laid_flags(unshared);
+    EXPECT_EQ(fu.eq_shared + fu.iq_shared, 0);
+}
+
+// Every assembled value against the dense reference at four partitions (the
+// descending piece's r < c Hessian orientation included); and, over repeated
+// evaluations, every JACOBIAN entry at four partitions bit-identical to one
+// partition's. Each shared Jacobian entry here has exactly two writers (Step and
+// Couple), so a serialised sum is order-free and a lost update would show as a
+// difference. Hessian entries, which sum three or more terms in a
+// partition-dependent order, agree to round-off.
+TEST(PiecesSharedEntries, AssemblyIsExactAtFourPartitions) {
+    const SharedChain small(600);
+    Problem p(small.declaration(4));
+    ProblemAccess::ipm_program(p);
+    ASSERT_EQ(p.partitions(), 4);
+    for (unsigned seed : {3u, 8u}) {
+        SCOPED_TRACE(seed);
+        expect_program_matches(p, small, seed);
+    }
+
+    const SharedChain chain(2000);
+    Problem one(chain.declaration(1));
+    Problem four(chain.declaration(4));
+    ProblemAccess::ipm_program(one);
+    ASSERT_EQ(one.partitions(), 1);
+    ProblemAccess::ipm_program(four);
+    ASSERT_EQ(four.partitions(), 4);
+    const Vx x = test_point(chain.n, 5);
+    const Vx le = test_point(chain.me, 6), li = test_point(chain.mi, 7);
+    const SpMatRM ref = assembled_kkt(one, x, le, li);
+    int jacobian_entries = 0;
+    for (int rep = 0; rep < 25; rep++) {
+        const SpMatRM got = assembled_kkt(four, x, le, li);
+        ASSERT_EQ(got.nonZeros(), ref.nonZeros());
+        jacobian_entries = 0;
+        for (int row = 0; row < chain.n; row++) {
+            SpMatRM::InnerIterator g(got, row), r(ref, row);
+            for (; g && r; ++g, ++r) {
+                ASSERT_EQ(g.col(), r.col());
+                if (g.col() >= chain.n) { // a Jacobian entry (variable row, constraint column)
+                    ASSERT_EQ(g.value(), r.value())
+                        << "repetition " << rep << " at (" << row << ", " << g.col() << ")";
+                    jacobian_entries++;
+                } else {
+                    ASSERT_NEAR(g.value(), r.value(), 1e-13 * std::max(1.0, std::abs(r.value())));
+                }
+            }
+        }
+    }
+    // 2 per equality row and 2 per inequality row.
+    EXPECT_EQ(jacobian_entries, 2 * chain.me + 2 * chain.mi);
+}
+
+// The C235 pin: the shared-entry declaration solves identically at one and four
+// partitions -- the same status and iteration count, the point and objective to
+// round-off.
+TEST(PiecesSharedEntries, ASharedEntryDeclarationSolvesIdenticallyAtOneAndFourPartitions) {
+    const SharedChain chain(2000);
+    Problem one(chain.declaration(1));
+    Problem four(chain.declaration(4));
+    IpmSolver ipm_one = quiet_ipm();
+    IpmSolver ipm_four = quiet_ipm();
+    const Vx x0 = Vx::Constant(chain.n, 0.4);
+    const IpmResult a = ipm_one.solve(one, x0);
+    const IpmResult b = ipm_four.solve(four, x0);
+    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(a.status, SolveStatus::kOptimal);
+    EXPECT_EQ(b.status, a.status);
+    EXPECT_EQ(b.iterations, a.iterations);
+    EXPECT_LE(std::abs(a.f - b.f), 1e-10 * std::max(1.0, std::abs(a.f)));
+    EXPECT_LE((a.x - b.x).lpNorm<Eigen::Infinity>(), 1e-8);
+}
+
+// ---------------------------------------------------------------------------
+// Eliminated variables at four partitions (C236 R5): fixed controls are
+// eliminated (FixedVariableTreatment::kMakeParameter, the default), and the
+// partitioned layout claims, scatters and solves through the -1 slots. The
+// same problem at one partition, and with the fixed controls kept as
+// constraint rows (kMakeConstraint), reaches the same point.
+// ---------------------------------------------------------------------------
+TEST(PiecesLocalBlocks, EliminatedVariablesAtFourPartitions) {
+    constexpr int kSteps = 1000;
+    const double h = 1.0 / kSteps;
+    const ChainMaps m = chain_maps(kSteps);
+    auto declaration = [&](int partitions) {
+        AssemblyDeclaration d(m.n);
+        d.add_objective(local::Quadratic{h, 0.0}, m.u_idx);
+        d.add_objective(local::Quadratic{h, 0.3}, m.y_idx);
+        d.add_equality(local::Defect{h}, m.defect_vars, m.defect_rows);
+        d.add_equality(local::Boundary{0.0, 0.5}, m.boundary_vars, m.boundary_rows);
+        d.set_bounds(m.u0, m.u0 + kSteps - 1, -2.0, 2.0);
+        for (int k = 0; k < kSteps; k += 7) {
+            d.set_bounds(m.u0 + k, 0.1, 0.1);
+        }
+        d.set_partitions(partitions);
+        return d;
+    };
+    IpmOptions constraint_options;
+    constraint_options.common.verbosity = Verbosity::kSilent;
+    constraint_options.fixed_variable_treatment =
+        hven::solvers::FixedVariableTreatment::kMakeConstraint;
+
+    Problem one(declaration(1));
+    Problem four(declaration(4));
+    Problem rows(declaration(4));
+    const Vx x0 = chain_start(kSteps);
+    IpmSolver ipm_one = quiet_ipm();
+    IpmSolver ipm_four = quiet_ipm();
+    IpmSolver ipm_rows(constraint_options);
+    const IpmResult a = ipm_one.solve(one, x0);
+    const IpmResult b = ipm_four.solve(four, x0);
+    const IpmResult c = ipm_rows.solve(rows, x0);
+    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(a.status, SolveStatus::kOptimal);
+    ASSERT_EQ(b.status, SolveStatus::kOptimal);
+    ASSERT_EQ(c.status, SolveStatus::kOptimal);
+    EXPECT_EQ(ProblemAccess::ipm_program(four).reduced_primal_vars_count_, m.n - (kSteps + 6) / 7);
+    EXPECT_EQ(b.iterations, a.iterations);
+    EXPECT_LE(std::abs(a.f - b.f), 1e-10 * std::max(1.0, std::abs(a.f)));
+    EXPECT_LE((a.x - b.x).lpNorm<Eigen::Infinity>(), 1e-8);
+    EXPECT_LE((c.x - b.x).lpNorm<Eigen::Infinity>(), 1e-6);
+    for (int k = 0; k < kSteps; k += 7) {
+        EXPECT_EQ(b.x[m.u0 + k], 0.1) << k;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// A large piece WORKS (C236 R2): a kInputs = kOutputs = 256 constraint piece
+// and a 256-input objective piece, whose blocks exceed the stack budget and so
+// evaluate into per-copy scratch, solve on four partitions.
+// ---------------------------------------------------------------------------
+constexpr Index kWide = 256;
+
+struct WideMap { // out_j = v_j + 0.01 v_j^2 + 1e-4 sum(v) - t_j: a dense block
+    static constexpr Index kInputs = kWide, kOutputs = kWide;
+    static double target(Index j) { return 0.2 + 0.001 * static_cast<double>(j); }
+    void value(ConstVecRef v, VecRef out) const {
+        const double s = 1e-4 * v.sum();
+        for (Index j = 0; j < kWide; j++) {
+            out[j] = v[j] + 0.01 * v[j] * v[j] + s - target(j);
+        }
+    }
+    void jacobian(ConstVecRef v, MatRef J) const {
+        J.setConstant(1e-4);
+        for (Index j = 0; j < kWide; j++) {
+            J(j, j) += 1.0 + 0.02 * v[j];
+        }
+    }
+    void hessian(ConstVecRef, ConstVecRef lambda, MatRef H) const {
+        for (Index j = 0; j < kWide; j++) {
+            H(j, j) = 0.02 * lambda[j];
+        }
+    }
+};
+
+struct WideTerm { // 0.5 ||v||^2 + 5e-4 (sum v)^2: a dense Hessian
+    static constexpr Index kInputs = kWide;
+    double value(ConstVecRef v) const { return 0.5 * v.squaredNorm() + 5e-4 * v.sum() * v.sum(); }
+    void gradient(ConstVecRef v, VecRef g) const { g = v + Vx::Constant(kWide, 1e-3 * v.sum()); }
+    void hessian(ConstVecRef, MatRef H) const {
+        H.setConstant(1e-3);
+        H.diagonal().array() += 1.0;
+    }
+};
+
+static_assert(!hven::solvers::LocalConstraintBlock<WideMap>::kBuffersOnStack);
+static_assert(!hven::solvers::LocalObjectiveBlock<WideTerm>::kBuffersOnStack);
+static_assert(hven::solvers::LocalConstraintBlock<DenseDefect>::kBuffersOnStack);
+
+/// Four applications of the wide pieces on disjoint variables and rows.
+struct WideChain {
+    static constexpr int kApps = 4;
+    int n = kApps * static_cast<int>(kWide), me = kApps * static_cast<int>(kWide), mi = 0;
+    Mi vars, rows;
+    WideChain() : vars(kWide, kApps), rows(kWide, kApps) {
+        for (int a = 0; a < kApps; a++) {
+            for (int j = 0; j < kWide; j++) {
+                vars(j, a) = a * static_cast<int>(kWide) + j;
+                rows(j, a) = a * static_cast<int>(kWide) + j;
+            }
+        }
+    }
+    AssemblyDeclaration declaration(int partitions) const {
+        AssemblyDeclaration d(n);
+        d.add_objective(WideTerm{}, vars);
+        d.add_equality(WideMap{}, vars, rows);
+        d.set_partitions(partitions);
+        return d;
+    }
+    TestChain::Eval evaluate(const Vx &x, double sigma, const Vx &le, const Vx &) const {
+        TestChain::Eval e;
+        e.grad = Vx::Zero(n);
+        e.ce = Vx::Zero(me);
+        e.ci = Vx::Zero(0);
+        e.je = Eigen::MatrixXd::Zero(me, n);
+        e.ji = Eigen::MatrixXd::Zero(0, n);
+        Eigen::MatrixXd hf = Eigen::MatrixXd::Zero(n, n);
+        TestChain::add_objective(WideTerm{}, vars, x, e.f, &e.grad, &hf);
+        e.hess = sigma * hf;
+        TestChain::add_constraint(WideMap{}, vars, rows, x, &le, e.ce, &e.je, &e.hess);
+        return e;
+    }
+};
+
+// The scratch path assembles exactly what the dense reference does, on four
+// partitions (one application each, so each copy's scratch is its own).
+TEST(PiecesLocalBlocks, AWidePieceAssemblesOnFourPartitions) {
+    const WideChain chain;
+    Problem problem(chain.declaration(4));
+    ProblemAccess::ipm_program(problem);
+    ASSERT_EQ(problem.partitions(), 4);
+    expect_program_matches(problem, chain, 4);
+}
+
+TEST(PiecesLocalBlocks, AWidePieceSolvesOnFourPartitions) {
+    constexpr int kApps = WideChain::kApps;
+    const WideChain chain;
+    Problem problem(chain.declaration(4));
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult r = ipm.solve(problem, Vx::Zero(kApps * kWide));
+    ASSERT_EQ(problem.partitions(), 4);
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    // The square system fixes the point: every block's residual vanishes.
+    const WideMap map{};
+    for (int a = 0; a < kApps; a++) {
+        Vx out(kWide);
+        map.value(r.x.segment(a * kWide, kWide), out);
+        EXPECT_LE(out.lpNorm<Eigen::Infinity>(), 1e-8) << a;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Patterns declared as C arrays are detected (C236 R3), and the default names
+// carry the sizes (R6).
+// ---------------------------------------------------------------------------
+struct CArrayEnds { // v0 - a, v1 - b, with C-array patterns
+    double a, b;
+    static constexpr Index kInputs = 2, kOutputs = 2;
+    static constexpr BlockEntry kJacobianPattern[] = {{0, 0}, {1, 1}};
+    static constexpr BlockEntry kHessianPattern[] = {{1, 1}};
+    void value(ConstVecRef v, VecRef out) const { out << v[0] - a, v[1] - b + 0.1 * v[1] * v[1]; }
+    void jacobian(ConstVecRef v, MatRef J) const {
+        J(0, 0) = 1.0;
+        J(1, 1) = 1.0 + 0.2 * v[1];
+    }
+    void hessian(ConstVecRef, ConstVecRef lambda, MatRef H) const { H(1, 1) = 0.2 * lambda[1]; }
+};
+
+static_assert(hven::solvers::detail::HasJacobianPattern<CArrayEnds>);
+static_assert(hven::solvers::detail::HasHessianPattern<CArrayEnds>);
+static_assert(hven::solvers::LocalConstraintBlock<CArrayEnds>::kJacobianCount == 2);
+static_assert(hven::solvers::LocalConstraintBlock<CArrayEnds>::kHessianCount == 1);
+
+TEST(PiecesLocalBlocks, ACArrayPatternIsDetected) {
+    const hven::solvers::ConstraintInterface ci(CArrayEnds{1.0, 2.0});
+    EXPECT_EQ(ci.num_kkt_elements(true, false), 2);
+    EXPECT_EQ(ci.num_kkt_elements(false, true), 1);
+    AssemblyDeclaration d(2);
+    d.add_objective(local::Quadratic{1.0, 0.0}, (Mi(1, 2) << 0, 1).finished());
+    d.add_equality(CArrayEnds{1.0, 2.0}, (Mi(2, 1) << 0, 1).finished(),
+                   (Mi(2, 1) << 0, 1).finished());
+    Problem problem(std::move(d));
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult r = ipm.solve(problem, Vx::Zero(2));
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    EXPECT_NEAR(r.x[0], 1.0, 1e-9);
+    EXPECT_NEAR(r.x[1] + 0.1 * r.x[1] * r.x[1], 2.0, 1e-9);
+    // Two objective Hessian entries, two Jacobian entries, one Hessian entry.
+    EXPECT_EQ(ProblemAccess::ipm_program(problem).num_user_kkt_elems_, 2 + 2 + 1);
+}
+
+TEST(PiecesLocalBlocks, TheDefaultNameCarriesTheSizes) {
+    EXPECT_EQ(hven::solvers::ConstraintInterface(Nudge{}).name(),
+              "local constraint block (kInputs 1, kOutputs 1)");
+    EXPECT_EQ(hven::solvers::ConstraintInterface(Ring{1.0}).name(),
+              "local constraint block (kInputs 2, kOutputs 1)");
+    EXPECT_EQ(hven::solvers::ObjectiveInterface(Smooth{1.0}).name(),
+              "local objective block (kInputs 2)");
+    EXPECT_EQ(hven::solvers::ConstraintInterface(DenseDefect{0.1}).name(), "dense defect");
+}
+
+// ---------------------------------------------------------------------------
+// Builder refusals added by the riders (C236 R9, R10).
+// ---------------------------------------------------------------------------
+TEST(PiecesBuilder, RefusesTheLargestRowAndNamesAnEmptyDeclaration) {
+    AssemblyDeclaration d(2);
+    expect_refusal(
+        [&] {
+            d.add_equality(Nudge{}, (Mi(1, 1) << 0).finished(),
+                           (Mi(1, 1) << std::numeric_limits<int>::max()).finished());
+        },
+        {"add_equality", "fit an int"});
+    EXPECT_TRUE(d.equality_constraints_.empty());
+
+    AssemblyDeclaration empty;
+    expect_refusal([&] { empty.add_objective(Linear{1.0}, (Mi(1, 1) << 0).finished()); },
+                   {"add_objective", "no variables", "AssemblyDeclaration(n)"});
+    expect_refusal([&] { empty.set_bounds(0, 0.0, 1.0); },
+                   {"set_bounds", "no variables", "AssemblyDeclaration(n)"});
 }
 
 } // namespace pieces_test

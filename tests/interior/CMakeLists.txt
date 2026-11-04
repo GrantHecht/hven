@@ -107,6 +107,12 @@ set(_hven_adapter_probes
     constraint_hook_as_objective
     local_jacobian_pattern_out_of_range
     local_hessian_pattern_upper
+    local_nonconst_value
+    local_constraint_hessian_signature
+    local_outputs_on_objective
+    local_hook_ambiguous
+    local_not_copyable
+    local_nonconst_name
     constraint_only_objective
     partial_objective_surface
     objective_unsupported_mixin
@@ -148,6 +154,12 @@ set(_hven_probe_regex_no_constraint_surface   "hven constraint adapter:")
 set(_hven_probe_regex_constraint_hook_as_objective "hven objective adapter:")
 set(_hven_probe_regex_local_jacobian_pattern_out_of_range "hven local block:")
 set(_hven_probe_regex_local_hessian_pattern_upper "hven local block:")
+set(_hven_probe_regex_local_nonconst_value "hven local block: value.v, out. must be a const member")
+set(_hven_probe_regex_local_constraint_hessian_signature "hven local block: a constraint piece's hessian takes the multipliers")
+set(_hven_probe_regex_local_outputs_on_objective "hven local block: this piece declares kOutputs, which makes it a constraint piece")
+set(_hven_probe_regex_local_hook_ambiguous "hven local block: this type is a local-block piece AND carries a")
+set(_hven_probe_regex_local_not_copyable "hven local block: a piece must be copy-constructible")
+set(_hven_probe_regex_local_nonconst_name "hven local block: name.. must be a const member")
 set(_hven_probe_regex_constraint_only_objective "hven objective adapter:")
 set(_hven_probe_regex_partial_objective_surface "hven objective adapter:")
 set(_hven_probe_regex_objective_unsupported_mixin "hven objective adapter:")
