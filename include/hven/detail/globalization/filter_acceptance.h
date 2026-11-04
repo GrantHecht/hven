@@ -232,6 +232,11 @@ class FilterAcceptance final : public SwitchingAcceptance {
     /// meaningful only when cause == kMembership.
     void notify_trial_rejected(RejectionCause cause, bool trial_passed_progress_test) override;
 
+    /// The retraction pair: the filter and the reset-heuristic fields
+    /// register_accepted_step may move.
+    void save_acceptance_state() override;
+    void restore_acceptance_state() override;
+
   private:
     /// Acceptable-to-current-iterate: the barrier-objective ceiling AND the
     /// two-condition margin test.
@@ -244,6 +249,12 @@ class FilterAcceptance final : public SwitchingAcceptance {
     int successive_filter_rejections_ = 0;
     int n_filter_resets_ = 0;
     bool last_rejection_was_filter_ = false;
+
+    /// The state before the last accept, for retract_last_acceptance().
+    Filter retract_filter_;
+    int retract_successive_filter_rejections_ = 0;
+    int retract_n_filter_resets_ = 0;
+    bool retract_last_rejection_was_filter_ = false;
 
     // Feasibility-restoration state: the PRESERVED optimality-phase working
     // state, stashed at entry and restored at exit; the exit test consults

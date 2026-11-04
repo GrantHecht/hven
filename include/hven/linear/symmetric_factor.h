@@ -737,14 +737,14 @@ class SymmetricFactor {
     // Throws std::invalid_argument unless A is compressed, square,
     // non-empty, stores only its upper triangle, and has every diagonal
     // entry present in its pattern (the backend requires the structural
-    // diagonal even where the value is zero). Throws std::runtime_error if
-    // the backend's symbolic phase itself fails; this instance keeps
+    // diagonal even where the value is zero). Throws
+    // hven::solvers::BackendError if the backend's symbolic phase itself fails; this instance keeps
     // whatever state it had.
     void analyze(const SpMatRM &A);
 
     // Numeric factorization into the EXISTING symbolic -- never re-analyzes.
     //
-    // Throws std::runtime_error if no symbolic analysis is available (call
+    // Throws std::logic_error if no symbolic analysis is available (call
     // analyze() first, or adopt() a handle that carries one), and
     // std::invalid_argument if A's pattern hash differs from the analyzed
     // key: a different pattern is a contract violation, not a numeric
@@ -777,7 +777,7 @@ class SymmetricFactor {
     // -- see detail::VectorShaped above for why the obvious spelling cannot
     // be written in C++.
     //
-    // Both overloads throw std::runtime_error when no usable factorization
+    // Both overloads throw std::logic_error when no usable factorization
     // exists (never factorized, the last factorization failed, or this
     // engine adopted a handle whose numerics are stale), and
     // std::invalid_argument on a size mismatch.
@@ -847,7 +847,7 @@ class SymmetricFactor {
     // treats any difference as stale. Same for Factorization::inertia(),
     // which likewise reports the session's current evidence.
     //
-    // Throws std::runtime_error if there is no usable factorization to
+    // Throws std::logic_error if there is no usable factorization to
     // share.
     std::shared_ptr<const Factorization> share();
 
@@ -887,7 +887,7 @@ class SymmetricFactor {
     //   - session or epoch MISMATCH (a co-owner has refactorized since the
     //     handle was emitted): symbolic-only reuse. The handle's numerics are
     //     stale, so solves through this engine are REFUSED with a
-    //     std::runtime_error explaining the staleness -- but the symbolic is
+    //     std::logic_error explaining the staleness -- but the symbolic is
     //     still good, so the first factorize() reuses it with no re-analysis
     //     and clears the refusal.
     //   - pattern mismatch: the structural key travels with the handle and
@@ -963,7 +963,10 @@ class Factorization {
     Factorization &operator=(const Factorization &) = delete;
 
     // Multi-RHS and single-RHS solves, with the same shapes, errors, and
-    // ambiguity workaround as SymmetricFactor's own.
+    // ambiguity workaround as SymmetricFactor's own -- except that a session a
+    // co-owner's failed factorize() left without numerics is refused with
+    // hven::solvers::BackendError: the holder of a handle saw no outcome to
+    // check, so the refusal is the backend's failure, not the holder's bug.
     SolveInfo solve(ConstMatRef RHS, MatRef X) const;
 
     template <class RhsT, class XT>

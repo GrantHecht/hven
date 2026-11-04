@@ -2257,7 +2257,7 @@ class QpEngine {
     /// Neither branch declines and neither swallows. On a miss the twin
     /// factorizes a system the walk never solved, and that system can be exactly
     /// singular at a legal setting (`dual_mu = 0`), which MKL Pardiso's default
-    /// static pivoting perturbs and reports as success. A std::runtime_error out
+    /// static pivoting perturbs and reports as success. A BackendError out
     /// of `factorize_checked` here is therefore a genuine backend fault and
     /// propagates, as does the hit branch's `solve_vec`; the attempted
     /// factorization stays charged. Accelerate's behaviour on an exactly
@@ -2286,7 +2286,7 @@ class QpEngine {
     /// @param opts          The effective options; `(primal_delta, dual_mu)` are
     ///                      fixed across one iteration.
     /// @return True iff the refined point was adopted.
-    /// @throws std::runtime_error propagated from `factorize_checked` on a miss,
+    /// @throws hven::solvers::BackendError propagated from `factorize_checked` on a miss,
     ///         and from the hit branch's `solve_vec`; the attempted
     ///         factorization stays charged.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
@@ -2429,7 +2429,7 @@ class QpEngine {
     // there; the suspect-stall gate then decides a would-be kOptimal as for any
     // kSuspect (correctness guard: AMuFreeSuspectReadDoesNotCertifyASaddle). Any
     // other outcome -- a kWrong mu-free read, a kSuspect with a non-kOk second
-    // read, or a backend runtime_error -- leaves the kWrong standing. Known gap
+    // read, or a BackendError -- leaves the kWrong standing. Known gap
     // (registered): a strict local minimum whose mu-free read is kSuspect and
     // whose dual_mu read is kWrong is not certified (ACOPR57 qp4); the honest fix
     // is the reduced Hessian's inertia on a small face, a later round.

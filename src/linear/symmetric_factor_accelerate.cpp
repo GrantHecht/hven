@@ -587,8 +587,8 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
 
 FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
     if (!has_pattern_ || !session_) {
-        throw std::runtime_error("SymmetricFactor::factorize: called before analyze() (or before "
-                                 "adopting a factorization that carries a symbolic analysis)");
+        throw std::logic_error("SymmetricFactor::factorize: called before analyze() (or before "
+                               "adopting a factorization that carries a symbolic analysis)");
     }
     if (!A.isCompressed()) {
         throw std::invalid_argument(
@@ -775,11 +775,11 @@ bool SymmetricFactor::has_usable_numerics() const {
 
 void SymmetricFactor::require_solvable(const char *what) const {
     if (!session_ || !session_->has_numerics()) {
-        throw std::runtime_error(
+        throw std::logic_error(
             fmt::format("SymmetricFactor::{}: called before a successful factorize()", what));
     }
     if (numerics_refused_) {
-        throw std::runtime_error(fmt::format(
+        throw std::logic_error(fmt::format(
             "SymmetricFactor::{}: this engine adopted a factorization emitted at epoch {}, but the "
             "shared session has since been refactorized (it is at epoch {}) -- those numerics are "
             "stale and numeric reuse is refused; call factorize() to produce this engine's own",
@@ -797,16 +797,18 @@ Factorization::~Factorization() = default;
 
 SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
-                                 "usable factorization (a co-owner's factorize() failed)");
+        throw hven::solvers::BackendError(
+            "Factorization::solve: the shared session no longer holds a "
+            "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, RHS, X, "solve");
 }
 
 SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
-                                 "usable factorization (a co-owner's factorize() failed)");
+        throw hven::solvers::BackendError(
+            "Factorization::solve: the shared session no longer holds a "
+            "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, rhs, x, "solve");
 }

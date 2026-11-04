@@ -3788,15 +3788,16 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         }
     }
 
-    // SchurComplement::solve throws std::runtime_error on an exactly
+    // SchurComplement::solve throws BackendError on an exactly
     // singular C. QpEngine::solve owes a QpStatus for every solvable input
     // and must not leak a linear-algebra exception, so a singular factor
     // that slips through the checks above degrades to the elimination path
     // like any other untrustworthy border stack.
     //
-    // That must NOT swallow every std::runtime_error: the KKT factor
-    // throws the same type for a failed backend factorization and for a
-    // solve before any successful factorize, which are genuine faults
+    // That must NOT swallow every BackendError: the KKT factor throws the
+    // same type for a failed backend factorization (a solve before any
+    // successful factorize is a std::logic_error and is not caught here at
+    // all), which is a genuine fault
     // kRefactorize mode reports and border mode must not hide. The
     // discriminator is the state the throw leaves behind -- a singular C
     // sets SchurComplement's singular_ flag, so needs_refactorization() is

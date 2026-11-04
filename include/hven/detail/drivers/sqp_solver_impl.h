@@ -743,8 +743,9 @@ class SqpSolverImpl {
     ///        default-constructed when the exception arrived before the major
     ///        loop's state existed. Consumes it.
     SqpResult take_interrupted_result();
-    /// @brief The result of the most recent solve through the public handle;
-    ///        see SqpSolver::last_result().
+    /// @brief The partial result of the most recent solve through the public
+    ///        handle that an exception escaped; empty after one that returned.
+    ///        See SqpSolver::last_result().
     const SqpResult &last_result() const noexcept { return last_result_; }
     /// @brief Replaces last_result() and drops any interrupted result still
     ///        waiting; the public handle's only writer.

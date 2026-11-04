@@ -2588,8 +2588,10 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // evaluation at the top of the loop). The snapshot is the iterate a step
     // was committed from -- the point, its bound multipliers, the step fraction
     // and the cap it was taken under -- valid only for the step just committed
-    // and only off restoration. step_cap scales the next step after a rollback
-    // and is 1 otherwise.
+    // and only off restoration: anything else that moves the iterate (a
+    // restoration entry or return) invalidates it. step_cap scales every step
+    // after a rollback until a step that MOVED the point is followed by a
+    // screened evaluation of that point (cap_reset_pending); it is 1 otherwise.
     Eigen::VectorXd rollback_xsl;
     Eigen::VectorXd rollback_z_lower;
     Eigen::VectorXd rollback_z_upper;
@@ -2597,6 +2599,7 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     double rollback_cap = 1.0;
     bool rollback_valid = false;
     double step_cap = 1.0;
+    bool cap_reset_pending = false;
     const double step_cap_floor =
         std::pow(1.0 / opts_.advanced.backtrack_divisor, opts_.advanced.line_search_max_backtracks);
 
@@ -2735,16 +2738,36 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         // model, makes the point un-evaluable, and the step that reached it is
         // REJECTED AFTER THE FACT, as the SQP engine's non-finite step rollback
         // does: the previous iterate and its bound multipliers are restored, the
+        // acceptance strategy gives back what accepting the step registered, the
         // next step is capped below the rejected one (step_cap), and the
-        // iteration runs again from the restored point. BOUNDED: each rollback
-        // divides the step by backtrack_divisor and none is taken below the line
-        // search's own smallest fraction. Where no rollback is possible -- the
-        // start point, a phase's first iterate, an active restoration, the floor
-        // -- the phase ends kNumericalError at the last finite point it holds
-        // (IpmStopReason::kNonFiniteStart / kNonFiniteIterate). An
-        // EvaluationError at the solve's start point propagates.
+        // iteration runs again from the restored point.
+        //
+        // BOUNDED. A rollback sets the cap to cap * alpha / backtrack_divisor,
+        // where cap and alpha are the rolled-back step's, so each rollback at
+        // least divides the cap by backtrack_divisor. The cap returns to 1 only
+        // once a step that moved the point is followed by a clean screen of the
+        // point it reached; alpha = 0 iterations in between leave it alone. So a
+        // run of rollbacks with no such step between them reaches the floor --
+        // the line search's own smallest fraction, backtrack_divisor to the
+        // power line_search_max_backtracks -- within line_search_max_backtracks
+        // rollbacks, and the rollback that would cross it ends the phase
+        // instead.
+        //
+        // Where no rollback is possible -- the start point, a phase's first
+        // iterate, an active restoration (or a point restoration just moved
+        // to), the floor -- the phase ends kNumericalError at the point whose
+        // evaluation failed (IpmStopReason::kNonFiniteStart /
+        // kNonFiniteIterate), with its multipliers cleared: nothing at that
+        // point is trusted. An EvaluationError at the solve's start point
+        // propagates.
         bool nonfinite_abort = false;
-        bool rollback_floor_hit = false;
+        // An entry failure init_impl left (a non-finite start-point evaluation
+        // or a failed initial factorization) ends the phase at this, its first
+        // iterate, whatever this evaluation finds.
+        std::string entry_failure = std::move(this->pending_entry_failure_);
+        this->pending_entry_failure_.clear();
+        bool entry_factorization_failed = this->pending_entry_factorization_failed_;
+        this->pending_entry_factorization_failed_ = false;
         for (;;) {
             RHS.setZero();
             PGX.setZero();
@@ -2764,44 +2787,73 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                     throw;
                 failure = fmt::format("EvaluationError at iteration {}: {}", i, e.what());
             }
-            if (failure.empty()) [[likely]]
+            if (!entry_failure.empty()) [[unlikely]] {
+                // This evaluation's own failure, when it has one, names the exit.
+                entry_factorization_failed = entry_factorization_failed && failure.empty();
+                this->stop_detail_ =
+                    failure.empty() ? std::move(entry_failure) : std::move(failure);
+                nonfinite_abort = true;
                 break;
-            if (!rollback_valid) {
+            }
+            if (failure.empty()) [[likely]] {
+                // A clean screen of a point a step moved to: the cap is spent.
+                if (cap_reset_pending) {
+                    step_cap = 1.0;
+                    cap_reset_pending = false;
+                }
+                break;
+            }
+            const double next_cap =
+                rollback_cap * rollback_alpha / opts_.advanced.backtrack_divisor;
+            if (!rollback_valid || next_cap < step_cap_floor) {
+                if (rollback_valid)
+                    failure += "; the step to it could not be rolled back (step cap floor)";
                 this->stop_detail_ = std::move(failure);
                 nonfinite_abort = true;
                 break;
             }
             // Roll back: the restored point was evaluated finite once already.
             this->eval_error_log_.record(failure + "; the step to it was rolled back");
-            this->stop_detail_ = std::move(failure);
             rollback_valid = false;
+            cap_reset_pending = false;
             XSL = rollback_xsl;
             if (this->bounds_) {
                 this->bound_duals_.z_lower_ = rollback_z_lower;
                 this->bound_duals_.z_upper_ = rollback_z_upper;
             }
+            this->acceptance_->retract_last_acceptance();
             ++this->result_.nonfinite_step_rollbacks;
-            const double next_cap =
-                rollback_cap * rollback_alpha / opts_.advanced.backtrack_divisor;
-            if (next_cap < step_cap_floor) {
-                rollback_floor_hit = true;
-            } else {
-                step_cap = next_cap;
-            }
+            step_cap = next_cap;
         }
-        if (rollback_floor_hit)
-            nonfinite_abort = true;
         if (nonfinite_abort) [[unlikely]] {
             // THE PHASE ENDS HERE, kNumericalError, at the point XSL holds: the
-            // start point, or the last finite iterate a rollback restored. Its
-            // row records what this evaluation measured, NaN where it was not
-            // finite; nothing is factorized or stepped from it.
+            // point whose evaluation failed. Its row records what this
+            // evaluation measured, NaN where it was not finite; its multipliers
+            // are cleared, as on the SQP engine's non-finite exit, because
+            // nothing measured at the point is trusted. Nothing is factorized or
+            // stepped from it.
             Funtimer.stop();
             v_rhs.prim_grad() += PGX;
             this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
             iters.push_back(Citer);
-            this->last_stop_reason_ = this->solve_at_start_ ? IpmStopReason::kNonFiniteStart
-                                                            : IpmStopReason::kNonFiniteIterate;
+            if (this->equal_cons_ > 0)
+                v_xsl.eq_lmults().setZero();
+            if (this->inequal_cons_ > 0)
+                v_xsl.iq_lmults().setZero();
+            if (this->bounds_) {
+                this->bound_duals_.z_lower_.setZero();
+                this->bound_duals_.z_upper_.setZero();
+            }
+            if (entry_factorization_failed) {
+                // kNumericalError with no reason of its own, as a singular KKT
+                // system is; the message carries what failed. The phase-entry
+                // reset cleared the record the initial factorization wrote.
+                this->last_stop_reason_ = IpmStopReason::kNone;
+                this->result_.last_kkt_info = this->kkt_sol_.info();
+            } else {
+                this->last_stop_reason_ = this->solve_at_start_ ? IpmStopReason::kNonFiniteStart
+                                                                : IpmStopReason::kNonFiniteIterate;
+            }
             ExitCode = SolveStatus::kNumericalError;
             this->result_.status = ExitCode;
             break;
@@ -3020,6 +3072,9 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                         this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
+                        // The return moved the iterate (multipliers re-anchored):
+                        // the snapshot no longer describes the step to it.
+                        rollback_valid = false;
                         continue;
                     }
                     // Locally infeasible: hand off to the shared teardown below
@@ -3052,6 +3107,9 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                         this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
+                        // The return moved the iterate (multipliers re-anchored):
+                        // the snapshot no longer describes the step to it.
+                        rollback_valid = false;
                         continue;
                     }
                     // Staying in restoration mode this iteration.
@@ -3105,6 +3163,9 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                         this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
+                        // The return moved the iterate (multipliers re-anchored):
+                        // the snapshot no longer describes the step to it.
+                        rollback_valid = false;
                         continue;
                     }
                     // Proximal subproblem converged/stalled at a still-infeasible
@@ -3144,6 +3205,9 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                         this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
+                        // The return moved the iterate (multipliers re-anchored):
+                        // the snapshot no longer describes the step to it.
+                        rollback_valid = false;
                         continue;
                     }
                     // Staying in restoration mode this iteration.
@@ -3468,6 +3532,8 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
                     this->cur_eval_prov_.at_returned_point = false;
                     iters.pop_back();
                     QPtimer.stop();
+                    // The entry re-anchored the iterate: no rollback across it.
+                    rollback_valid = false;
                     continue;
                 }
                 // Measured against the same rounding-noise floor the detector
@@ -4314,7 +4380,9 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         }
         if (alpha > 0.0)
             this->solve_at_start_ = false;
-        step_cap = 1.0;
+        // The cap stays in force until the point this step reaches is screened
+        // clean; an alpha = 0 iteration does not spend it.
+        cap_reset_pending = alpha > 0.0;
 
         // Apply step
         XSL += alpha * DXSL;
@@ -4625,8 +4693,50 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::init_impl(const Eigen::VectorXd &x
     // INIT mode never runs with restoration active (init_impl is the one-shot
     // multiplier initializer), so the μ argument is inert here; pass mu for
     // consistency with the live phase parameter.
-    this->eval_nlp(AlgorithmMode::kInit, this->solve_obj_scale_, XSL, val,
-                   RHS.head(this->primal_vars_), RHS, this->kkt_sol_.matrix(), mu);
+    //
+    // SCREENED BEFORE ANYTHING IS FACTORIZED (M8 B5 riders). A non-finite value
+    // in this evaluation -- objective, gradient, constraint value, Jacobian
+    // entry -- never reaches the backend: the factorization and the multiplier
+    // solve are skipped, the multipliers stay zero, and the failure is left for
+    // the phase's first iterate, which ends the phase kNumericalError
+    // (kNonFiniteStart at the solve's start point) without factorizing either.
+    // An EvaluationError here propagates at the start point and is the same
+    // failure otherwise (a re-initialization between phases).
+    std::string failure;
+    try {
+        this->eval_nlp(AlgorithmMode::kInit, this->solve_obj_scale_, XSL, val,
+                       RHS.head(this->primal_vars_), RHS, this->kkt_sol_.matrix(), mu);
+        const Eigen::VectorXd grad = RHS.head(this->primal_vars_);
+        if (const char *quantity = this->nonfinite_quantity(val, grad, RHS); quantity != nullptr)
+            [[unlikely]] {
+            failure = std::string("non-finite ") + quantity +
+                      (this->solve_at_start_ ? " at the start point"
+                                             : " at the point a phase was re-initialized from");
+        }
+    } catch (const EvaluationError &e) {
+        if (this->solve_at_start_)
+            throw;
+        failure = std::string("EvaluationError at the point a phase was re-initialized from: ") +
+                  e.what();
+    }
+    if (!failure.empty()) [[unlikely]] {
+        this->pending_entry_failure_ = std::move(failure);
+        this->pending_entry_factorization_failed_ = false;
+        // Nothing was analyzed: a claimed analysis is handed back, so the next
+        // solve on this solver analyzes afresh instead of refactorizing a
+        // pattern nobody analyzed.
+        if (docompute)
+            this->qp_analyzed_ = false;
+        kktt.stop();
+        this->result_.timing.pre += double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
+        XSL.tail(this->equal_cons_ + this->inequal_cons_).setZero();
+        if (this->inequal_cons_ > 0) {
+            XSL.segment(this->primal_vars_, this->slack_vars_).setConstant(opts_.bound_push);
+            this->nlp_->set_slack_diags(0.0);
+        }
+        this->nlp_->set_primal_diags(0.0);
+        return XSL;
+    }
 
     KKTVector v_xsl = kkt_view(XSL);
     KKTVector v_rhs = kkt_view(RHS);
@@ -4684,6 +4794,25 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::init_impl(const Eigen::VectorXd &x
         analysis.docompute = docompute;
         analysis.analysis_time_s = pretime;
         sink->on_ipm_kkt_analysis(analysis);
+    }
+
+    // THE FACTORIZATION'S OUTCOME, READ BEFORE THE SOLVE (M8 B5 riders): a
+    // factorization that left no numerics is a status, never the linear
+    // layer's precondition error from the solve below. The multiplier solve is
+    // skipped and the failure left for the phase's first iterate, which ends
+    // the phase kNumericalError at the (finite) point it evaluates there.
+    if (this->kkt_sol_.info() != Eigen::Success) [[unlikely]] {
+        this->result_.last_kkt_info = this->kkt_sol_.info();
+        this->pending_entry_failure_ = fmt::format(
+            "the initial KKT factorization failed ({}); no step can be computed",
+            this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue" : "backend error");
+        this->pending_entry_factorization_failed_ = true;
+        if (docompute)
+            this->qp_analyzed_ = false;
+        if (this->inequal_cons_ > 0)
+            this->nlp_->set_slack_diags(0.0);
+        this->nlp_->set_primal_diags(0.0);
+        return XSL;
     }
 
     // See the solve-into comment in alg_impl: solve straight into the
@@ -5298,6 +5427,8 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
     this->interrupted_point_recorded_ = false;
     this->in_phase_loop_ = false;
     this->solve_at_start_ = true;
+    this->pending_entry_failure_.clear();
+    this->pending_entry_factorization_failed_ = false;
     this->stop_detail_.clear();
     validate(budget);
     // The in-flight guard, and the ONE site it is set from: the public solve()

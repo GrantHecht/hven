@@ -577,9 +577,9 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // `x_k` is the PROXIMAL CENTRE, of size qp.n() -- the same required argument, with
 // the same meaning, as solve_eqp's; eqp_solve.h states the system both solve.
 //
-// Throws whatever SchurComplement::solve throws -- notably std::runtime_error
-// on an exactly singular Schur complement, which the caller is expected to
-// have ruled out via needs_refactorization() first.
+// Throws whatever SchurComplement::solve throws -- notably
+// hven::solvers::BackendError on an exactly singular Schur complement, which the caller is expected
+// to have ruled out via needs_refactorization() first.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,

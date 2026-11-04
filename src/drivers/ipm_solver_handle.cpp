@@ -42,15 +42,17 @@ void finish_result(const IpmSolverImpl &engine, const Problem &problem, const So
 // engine reached -- or, when it reached nothing, the start point with no
 // iterations -- mapped into the problem's row space, with the work the solve
 // spent and a message naming the exception. Runs inside the handle's catch
-// clause, so it must not throw: a failure leaves the bare partial.
+// clause, so it must not throw: a failure leaves the bare partial, which still
+// carries the status and the fixed message set first.
 void finish_interrupted_result(IpmSolverImpl &engine, const Problem &problem,
                                const SolveBudget &budget, const Vec &x0, const std::string &what,
                                IpmResult &result) noexcept {
+    result.status = SolveStatus::kInterrupted;
     try {
+        result.message = "interrupted by an exception that escaped the solve";
         if (result.x.size() == 0) {
             result.x = x0;
         }
-        result.status = SolveStatus::kInterrupted;
         engine.note_exception_stop(what);
         detail::ProblemAccess::report(problem, result);
         detail::ProblemAccess::report_work(problem, result);
@@ -116,7 +118,7 @@ IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
         IpmResult result = warm.empty() ? engine.solve(program, x0, budget)
                                         : engine.solve(program, x0, warm, budget);
         finish_result(engine, problem, budget, result);
-        engine.set_last_result(result);
+        // A returned solve leaves last_result() empty: the value is the caller's.
         return result;
     } catch (...) {
         // PROPAGATED UNCHANGED (M8 B5): the same exception object, after the

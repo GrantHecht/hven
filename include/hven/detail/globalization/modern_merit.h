@@ -148,6 +148,10 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     /// @throws std::logic_error When not in the feasibility phase.
     void notify_switch_to_optimality(const ProgressMeasures &current_progress) override;
 
+    /// Puts back what the last accept moved (pi_l and the smallest-known
+    /// tracker); see the interface's contract.
+    void retract_last_acceptance() override;
+
     /// Penalty-state accessors (diagnostics + unit tests).
     double wmno_penalty() const { return nu_; }
     double flex_pi_l() const { return pi_l_; }
@@ -217,6 +221,12 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     /// Set at entry, cleared at exit; makes reset() phase-aware (a mid-phase
     /// mu-event must preserve the stash and this flag).
     bool in_feasibility_phase_ = false;
+
+    /// What the last accept moved, saved for retract_last_acceptance(), and
+    /// whether that accept is still the last thing this strategy saw.
+    double retract_pi_l_ = kFlexInitPiL;
+    double retract_smallest_known_infeasibility_ = std::numeric_limits<double>::infinity();
+    bool retraction_armed_ = false;
 };
 
 } // namespace hven::solvers

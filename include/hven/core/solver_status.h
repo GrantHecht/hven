@@ -134,12 +134,18 @@ enum class IpmStopReason {
     /// `CommonOptions::time_limit_seconds` was reached at an iteration boundary.
     kTimeLimit = 6,
     /// The model returned a non-finite value (objective, gradient, constraint or
-    /// derivative entry) at the solve's start point. Verdict kNumericalError.
+    /// derivative entry) at the solve's start point. Verdict kNumericalError,
+    /// reached before anything is factorized. The returned point is the start
+    /// point, its multipliers cleared.
     kNonFiniteStart = 7,
     /// The model returned a non-finite value, or threw EvaluationError, at an
     /// iterate a step had reached, and the step could not be rolled back (no
-    /// previous iterate this phase, an active restoration, or the step cap
-    /// spent). Verdict kNumericalError.
+    /// previous iterate this phase, an active restoration or a point
+    /// restoration just moved to, or the step cap at its floor). Verdict
+    /// kNumericalError. The returned point is that iterate -- the one whose
+    /// evaluation failed -- with its multipliers cleared; the residual fields
+    /// report what its evaluation measured, NaN where it measured nothing. The
+    /// SQP engine's kNonFiniteIterate returns the same.
     kNonFiniteIterate = 8,
     /// Every trial evaluation of an iteration failed (EvaluationError or a
     /// non-finite value), the iterate was not acceptable and feasibility
@@ -167,11 +173,15 @@ enum class SqpStopReason {
     /// is the solver's `last_result()`.
     kException = 2,
     /// The model returned a non-finite value at the start point. Verdict
-    /// kNumericalError.
+    /// kNumericalError. The returned point is the start point, its multipliers
+    /// cleared.
     kNonFiniteStart = 3,
     /// The model returned a non-finite value, or threw EvaluationError, at an
     /// iterate a step had reached, and the step could not be rolled back (the
     /// radius floor, or the full-step funnel mode). Verdict kNumericalError.
+    /// The returned point is that iterate -- the one whose evaluation failed --
+    /// with its multipliers cleared, as on the interior-point engine; the
+    /// residual fields report what was measured there, NaN where nothing was.
     kNonFiniteIterate = 4,
     /// The QP subproblem failed and its retry budget was spent. Verdict
     /// kNumericalError, or kInfeasible (uncertified) for an infeasible

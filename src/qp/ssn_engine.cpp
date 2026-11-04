@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 #include <Eigen/SparseCore>
 
@@ -1197,7 +1198,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
         const std::size_t expected = value_pos_.size();
         for_each_entry(qp, n, me, mi, mb, [&](Index, Index, double v) {
             if (t >= expected) {
-                throw std::runtime_error(
+                throw std::logic_error(
                     fmt::format("SsnEngine: structure-key collision detected -- the reused pattern "
                                 "expects {} entries but this QP emits more; refusing to write past "
                                 "the cached position map",
@@ -1206,7 +1207,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
             vals[value_pos_[t++]] += v;
         });
         if (t != expected) {
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SsnEngine: structure-key collision detected -- the reused pattern expects "
                 "{} entries but this QP emitted {}",
                 expected, t));
@@ -1243,7 +1244,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
             // checked rather than asserted because a Release build compiles
             // an assert out entirely and a wrong position would corrupt K
             // silently on every later reuse.
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SsnEngine: internal error -- entry ({}, {}) is missing from the matrix "
                 "just assembled from it",
                 row, col));

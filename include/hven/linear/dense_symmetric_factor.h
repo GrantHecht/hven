@@ -84,7 +84,7 @@ class DenseSymmetricFactor {
     // itself succeeds, and factorized() is false until it does.
     //
     // Throws std::invalid_argument if A is not square or is 0x0. Throws
-    // std::runtime_error (fmt-formatted, carrying LAPACK's info code) if
+    // hven::solvers::BackendError (fmt-formatted, carrying LAPACK's info code) if
     // dsytrf itself fails -- info < 0 is an illegal-argument bug internal
     // to this class; info > 0 means A is exactly singular (a zero pivot
     // at that 1-based index) and cannot be factorized this way.
@@ -112,7 +112,7 @@ class DenseSymmetricFactor {
     // non-square, empty, or wrong-triangle argument throws
     // std::invalid_argument, and info < 0 (an illegal argument value
     // internal to this class -- a bug here, not a property of A) throws
-    // std::runtime_error. Only exact singularity is demoted to a return
+    // hven::solvers::BackendError. Only exact singularity is demoted to a return
     // value.
     [[nodiscard]] DenseFactorizeOutcome try_factorize(ConstMatRef A, Triangle triangle);
 
@@ -124,9 +124,9 @@ class DenseSymmetricFactor {
     //
     // A zero-column RHS is accepted and is a no-op (X is untouched).
     //
-    // Throws std::runtime_error if called before a successful
-    // factorize(). Throws std::invalid_argument if RHS's row count does
-    // not equal dim(), or if X's shape does not match RHS's shape.
+    // Throws std::logic_error if called before a successful
+    // factorize() (a caller that ignored the outcome). Throws std::invalid_argument if RHS's row
+    // count does not equal dim(), or if X's shape does not match RHS's shape.
     void solve(ConstMatRef RHS, MatRef X) const;
 
     // True iff the most recent factorize() call completed successfully.
@@ -154,7 +154,7 @@ class DenseSymmetricFactor {
     //
     // Computed on demand from the cached factors and pivots (O(dim())),
     // not cached: a consumer that reads it per solve should hold onto the
-    // result itself. Throws std::runtime_error only if the cached pivot
+    // result itself. Throws std::logic_error only if the cached pivot
     // array is malformed in a way a successful dsytrf cannot produce (a
     // can't-happen bounds guard, never a consequence of what the caller
     // passed).

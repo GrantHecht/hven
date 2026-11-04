@@ -896,8 +896,8 @@ class SsnEngine {
     // hashed. A collision in the first is GUARDED, not merely asserted away: the
     // refresh path bounds-checks every write and requires the emission to consume
     // the map exactly, turning a structure-mismatched refresh into a thrown
-    // std::runtime_error. A collision between two structures with the same entry
-    // count remains the honest residual exposure.
+    // std::logic_error (an invariant the structure key was meant to keep). A collision between two
+    // structures with the same entry count remains the honest residual exposure.
     template <typename Emit>
     void for_each_entry(const QpProblem &qp, Index n, Index me, Index mi, Index mb,
                         Emit emit) const;

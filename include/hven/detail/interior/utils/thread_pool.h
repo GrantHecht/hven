@@ -80,27 +80,42 @@ struct DispatchContext {
     /// contract (core/errors.h) recognises a model's EvaluationError as a
     /// rejected trial and propagates every other exception a user callback
     /// throws exactly as thrown, so a dispatch must never compose its workers'
-    /// exceptions into a new one. When several workers threw, one that is NOT an
+    /// exceptions into a new one. When several lanes threw, one that is NOT an
     /// EvaluationError is preferred -- a trial point some lanes could not
     /// evaluate is still only a rejected trial, but a foreign exception in any
-    /// lane must reach the caller -- and the first such one captured is
-    /// rethrown; the rest are dropped.
-    void rethrow_if_exception() {
-        int total = captured.load(std::memory_order_acquire);
-        if (total == 0)
+    /// lane must reach the caller: the first foreign one captured from the pool,
+    /// else the calling thread's own (@p inline_ex) when it is foreign, else the
+    /// first pool EvaluationError, else the calling thread's. The rest are
+    /// dropped. @p inline_ex is the exception the dispatching thread's own
+    /// partition threw (null when it threw none); it is never subject to the
+    /// kMaxCaptured cap, so a foreign one is never lost behind a full set of
+    /// EvaluationErrors (M8 B5 riders).
+    void rethrow_if_exception(std::exception_ptr inline_ex = nullptr) {
+        const int total = captured.load(std::memory_order_acquire);
+        if (total == 0 && !inline_ex)
             return;
 
-        int n = total < kMaxCaptured ? total : kMaxCaptured;
+        const int n = total < kMaxCaptured ? total : kMaxCaptured;
         for (int i = 0; i < n; ++i) {
-            try {
+            if (!is_evaluation_error(exceptions[i]))
                 std::rethrow_exception(exceptions[i]);
-            } catch (const hven::solvers::EvaluationError &) {
-                continue;
-            } catch (...) {
-                throw;
-            }
         }
-        std::rethrow_exception(exceptions[0]);
+        if (inline_ex && !is_evaluation_error(inline_ex))
+            std::rethrow_exception(inline_ex);
+        if (n > 0)
+            std::rethrow_exception(exceptions[0]);
+        std::rethrow_exception(inline_ex);
+    }
+
+  private:
+    static bool is_evaluation_error(const std::exception_ptr &e) noexcept {
+        try {
+            std::rethrow_exception(e);
+        } catch (const hven::solvers::EvaluationError &) {
+            return true;
+        } catch (...) {
+            return false;
+        }
     }
 };
 
@@ -605,7 +620,9 @@ bool pool_configuring();
 // These wrap ThreadPool's enqueue_work API with:
 //   1. Automatic inline fallback when use_thread_pool() is false or nparts <= 1
 //   2. Per-dispatch synchronization via std::latch (no global wait())
-//   3. Exception propagation — first exception from any task is rethrown
+//   3. Exception propagation — one exception from any task, the calling
+//      thread's own partition included, is rethrown unchanged (a foreign one
+//      before an EvaluationError; see DispatchContext::rethrow_if_exception)
 //   4. Calling thread runs the last partition inline (stays productive)
 //
 // Per-dispatch latches make concurrent dispatches from separate threads
@@ -659,9 +676,7 @@ template <typename F> void parallel_blocks(int count, F &&func, int nparts) {
             inline_ex = std::current_exception();
         }
         ctx.done.wait(); // MUST complete before ctx destruction
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         func(0, count);
     }
@@ -705,9 +720,7 @@ template <typename F> void parallel_sequence(int n, F &&func) {
             inline_ex = std::current_exception();
         }
         ctx.done.wait();
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         for (int i = 0; i < n; i++)
             func(i);
@@ -749,14 +762,12 @@ void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
         } catch (...) {
             inline_ex = std::current_exception();
         }
-        // Exception priority: pool exception is rethrown first. If both arms
-        // throw (extremely unlikely — independent numerical failures), the
-        // inline exception is discarded. Both would indicate the same
-        // underlying issue; nested_exception adds complexity for no benefit.
+        // Exception priority: DispatchContext::rethrow_if_exception's -- a
+        // foreign exception in either arm wins over an EvaluationError in the
+        // other; between two of the same kind the pool's is rethrown and the
+        // inline one is dropped.
         ctx.done.wait();
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         // Fallback: execute sequentially (pool_work first, then inline_work).
         // In the parallel path above, execution order is unspecified.

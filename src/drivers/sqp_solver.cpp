@@ -3826,12 +3826,15 @@ struct SqpSolverImpl::SolveState {
     NlpEval ev;
 
     // ---- evaluation failure and the stop reason (M8 B5) --------------------
-    // The point the solve started from, after prepare_solve: an evaluation
-    // failure while the iterate is still here is a failure AT THE START POINT.
-    Vec start_x;
-    // The model's own words for the derivative failure the next iterate
-    // measurement (or subproblem guard) will meet; consumed by the rollback or
-    // the exit that follows.
+    // True until the first commit (or a restoration return) moves the iterate:
+    // an evaluation failure while it holds is a failure AT THE START POINT. A
+    // flag, not a comparison with the start point: a rollback that lands back
+    // on x0 restores an iterate the solve has already stepped from.
+    bool at_start = true;
+    // The model's own words for a derivative failure of the bundle `ev` holds,
+    // for the iterate measurement (or subproblem guard) that meets it; written
+    // exactly where a bundle becomes `ev` and consumed by the rollback or the
+    // exit that follows.
     std::string derivative_failure;
     // The reason and detail an exit inside run_major decided, for the caller's
     // switch to publish (kFinishManual, kFinishQpFailure).
@@ -4172,6 +4175,10 @@ struct SqpSolverImpl::MajorState {
     NlpEval ev_soc;
     QpSolution qs_soc;
     Vec x_soc;
+    // The model's own words when the promoted correction's derivatives threw;
+    // it travels with `ev_soc` and becomes the iterate's at the commit (M8 B5
+    // riders).
+    std::string soc_derivative_failure;
 
     // THE ACCEPTED TRIAL IS A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2): the
     // commit keeps the multipliers and does not grow the radius.
@@ -5155,7 +5162,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
     // kNone` MEANS a converged, FINITE point (plan section 7 note (h)), so a kNone
     // result carrying a non-finite export is an engine regression, not a routing row.
     if (!usable && ires.escape_reason == IpqpEscape::kNone && !ires.declined_pinned) {
-        throw std::runtime_error(fmt::format(
+        throw std::logic_error(fmt::format(
             "SqpSolver: the IPQP tier returned IpqpEscape::kNone with a point the routing "
             "chain cannot use (x size {}, all-finite {}) at major {} -- kNone means a "
             "converged FINITE point, and every non-finite iterate, residual or step "
@@ -5617,7 +5624,10 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                 // The values-only query already charged is UPGRADED in
                 // place -- one query RECLASSIFIED, never a second one
                 // charged (solver_counters.h's EVAL ECONOMICS exception).
-                refresh_derivatives_at(seam, *cand.values_ev, *cand.x, st.derivative_failure);
+                // A failure here leaves the bundle non-finite, which the screen
+                // below refuses: the words are not the iterate's and are dropped.
+                std::string cand_failure;
+                refresh_derivatives_at(seam, *cand.values_ev, *cand.x, cand_failure);
                 ++st.out.counters.evals_full;
                 --st.out.counters.evals_values;
                 // Charged even if the finiteness screen below then refuses:
@@ -6196,6 +6206,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // RESUME. The order here is the header note's order.
         st.x = x_r;
         st.ev = std::move(ev_r);
+        st.at_start = false;
+        st.derivative_failure.clear();
         // The multipliers in hand price the WRAPPER's constraints
         // (they are subgradient selectors in [-1,1], not NLP
         // prices); the first main-loop QP re-estimates them.
@@ -6249,6 +6261,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
                                  rs.status, kkt_r.feasibility);
     st.x = x_r;
+    st.at_start = false;
     // The point being reported is now the RESTORED point, which
     // no in-loop QpSolution (qs/seed) was ever solved at -- see
     // this flag's own declaration note.
@@ -7067,7 +7080,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             st.lambda_e = std::move(st.fs.best_lambda_e);
             st.lambda_i = std::move(st.fs.best_lambda_i);
             st.ev = std::move(st.fs.best_ev);
-            st.rollback.valid = false; // the iterate moved by other means than a commit
+            st.derivative_failure.clear(); // a bundle that was the iterate's before
+            st.rollback.valid = false;     // the iterate moved by other means than a commit
             mj.kkt = measure_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i);
             measure_iterate();
             // KLV Eq. (13) re-basing, which ALSO clears the strategy's
@@ -7369,12 +7383,14 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         ++st.out.counters.nonfinite_box_projections;
         const Vec xc = st.x.cwiseMax(seam.lower()).cwiseMin(seam.upper());
         NlpEval evc = trial_values(seam, xc, st.out.evaluation_errors);
+        std::string evc_failure;
         if (evc.all_finite) {
-            refresh_derivatives_at(seam, evc, xc, st.derivative_failure);
+            refresh_derivatives_at(seam, evc, xc, evc_failure);
         }
         ++st.out.counters.evals_full;
         st.x = xc;
         st.ev = std::move(evc);
+        st.derivative_failure = std::move(evc_failure);
         if (qn_mode) {
             st.qp = build_qn_subproblem(st, mj.kkt, seam);
         } else {
@@ -8262,7 +8278,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 // the values-only evaluation above skipped -- in
                 // place, not a second eval_f/eval_ce/ eval_ci (see
                 // upgrade_to_full's own note).
-                refresh_derivatives_at(seam, mj.ev_soc, mj.x_soc, st.derivative_failure);
+                refresh_derivatives_at(seam, mj.ev_soc, mj.x_soc, mj.soc_derivative_failure);
                 ++st.out.counters.evals_full;
             } else {
                 // The corrected point is ALSO not accepted (a
@@ -8310,9 +8326,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         ++st.out.counters.rejected_steps;
         // THE UPDATE-ON-REJECT ABLATION (SqpOptions::qn_update_on_reject, off by default): the
         // rejected trial's pair, priced at this QP's own multipliers, for one derivative query.
+        // The trial is not the iterate, so a derivative failure there is not the
+        // iterate's to report: its words are dropped (the pair offer screens the
+        // NaN gradient it leaves, as it screens any other unusable pair).
         if (st.qn && opts_.advanced.qn_update_on_reject && mj.ev_trial.all_finite) {
             NlpEval ev_t = mj.ev_trial;
-            refresh_derivatives_at(seam, ev_t, mj.x_trial, st.derivative_failure);
+            std::string ev_t_failure;
+            refresh_derivatives_at(seam, ev_t, mj.x_trial, ev_t_failure);
             ++st.out.counters.evals_full;
             Vec le_qp;
             (void)st.eqb.basis.lift(mj.qs.lambda_e, le_qp);
@@ -8420,7 +8440,6 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                           : opts_.common.max_iterations;
     st.limit_clock_start = std::chrono::steady_clock::now();
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
-    st.start_x = st.x;
     struct BasisViewGuard {
         SqpSolverImpl *self;
         ~BasisViewGuard() { self->eq_basis_view_ = nullptr; }
@@ -8523,10 +8542,12 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             st.rollback.x.swap(st.x);
             std::swap(st.rollback.ev, st.ev);
             st.rollback.valid = true;
+            st.at_start = false;
 
             if (mj.soc_applied) {
                 st.x = mj.x_soc;
                 st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
+                st.derivative_failure = std::move(mj.soc_derivative_failure);
                 if (!st.eqb.basis.lift(mj.qs_soc.lambda_e, st.lambda_e)) {
                     ++st.out.equality_basis.lift_refusals;
                     ++st.out.equality_basis.lift_refusal_sites.commit_lift;
@@ -8547,6 +8568,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 // fixture), because nlp_model.h deliberately adds no third
                 // "derivatives only, values already known" entry point.
                 st.x = mj.x_trial;
+                st.derivative_failure.clear();
                 refresh_derivatives_at(seam, mj.ev_trial, mj.x_trial, st.derivative_failure);
                 ++st.out.counters.evals_full;
                 st.ev = std::move(mj.ev_trial);
@@ -8647,7 +8669,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 // `st.ev` has moved on to a later iterate by now.
                 st.mb.diag);
         }
-        case MajorOutcome::kFinishQpFailure:
+        case MajorOutcome::kFinishQpFailure: {
             // No restoration was consulted on this path -- x is still
             // the pre-trial iterate `mj.qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
@@ -8656,15 +8678,32 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                                                                 : SqpStopReason::kSubproblemFailure,
                          st.exit_detail);
             check_major_pushed_once(iter);
-            return finish(seam, std::move(st.out), map_status(mj.qs.status), st.x, st.lambda_e,
-                          st.lambda_i, mj.kkt, mj.row.f,
-                          make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
-                                          st.last_dual_mu, opts_.qp.primal_delta, st.strategy.get(),
-                                          engine_->hot_state()),
-                          // Live, like the current-iterate exit: no trial was
-                          // taken, so `st.ev` is still at `st.x`.
-                          stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
-                                                     seam.upper()));
+            // THE NON-FINITE SUBPROBLEM EXIT CLEARS THE MULTIPLIERS (M8 B5 riders),
+            // as the non-finite evaluation exit does and as the interior-point
+            // engine's non-finite exits do: the point's derivatives are not
+            // finite, so no price at it is evidence. The residuals stay what was
+            // measured at the point.
+            const bool nonfinite_exit = st.exit_reason == SqpStopReason::kNonFiniteStart ||
+                                        st.exit_reason == SqpStopReason::kNonFiniteIterate;
+            if (nonfinite_exit) {
+                st.lambda_e.setZero();
+                st.lambda_i.setZero();
+            }
+            SqpResult finished =
+                finish(seam, std::move(st.out), map_status(mj.qs.status), st.x, st.lambda_e,
+                       st.lambda_i, mj.kkt, mj.row.f,
+                       make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
+                                       st.last_dual_mu, opts_.qp.primal_delta, st.strategy.get(),
+                                       engine_->hot_state()),
+                       // Live, like the current-iterate exit: no trial was
+                       // taken, so `st.ev` is still at `st.x`.
+                       stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                  seam.upper()));
+            if (nonfinite_exit) {
+                finished.z.setZero();
+            }
+            return finished;
+        }
         case MajorOutcome::kFinishRestorationSeed:
             // THE ELASTIC REQUESTER'S ACTIVITY SOURCE IS `seed`, NOT `qs`: qs_e
             // (the elastic re-solve) is in the AUGMENTED (original + slack)
@@ -9332,9 +9371,7 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
 
 // --- THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5) ----------------------
 
-bool SqpSolverImpl::at_start_point(const SolveState &st) const {
-    return st.start_x.size() == st.x.size() && (st.x.array() == st.start_x.array()).all();
-}
+bool SqpSolverImpl::at_start_point(const SolveState &st) const { return st.at_start; }
 
 std::string SqpSolverImpl::describe_nonfinite_point(const SolveState &st, Index iter) const {
     const std::string where =

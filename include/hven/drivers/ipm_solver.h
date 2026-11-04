@@ -181,16 +181,16 @@ class IpmSolver {
     IpmResult solve(Problem &problem, ConstVecRef x0, const WarmStart &warm = {},
                     SolveBudget budget = {});
 
-    /// The result of the most recent `solve()`: the value it returned, or --
-    /// when an exception escaped it -- what the interrupted solve reached,
-    /// finished into the problem's row space: status `kInterrupted`, the
-    /// iterations taken, the last committed iterate and its multipliers
+    /// The partial result of the most recent `solve()` that an exception
+    /// escaped -- an argument refusal included: what the interrupted solve
+    /// reached, finished into the problem's row space: status `kInterrupted`,
+    /// the iterations taken, the last committed iterate and its multipliers
     /// (`x`, `lambda`, `z`), the work spent and a `message` naming the
-    /// exception. Its evaluation-derived fields are unmeasured (`g` empty, `f`
-    /// and the shared diagnostics NaN): the exception may have arrived
-    /// mid-evaluation. After ANY exception out of `solve()` -- an argument
-    /// refusal included -- it describes what was reached, the start point with no
-    /// iterations when nothing was. Cleared at the start of every `solve()`;
+    /// exception; the start point with no iterations when nothing was reached.
+    /// Its evaluation-derived fields are unmeasured (`g` empty, `f` and the
+    /// shared diagnostics NaN): the exception may have arrived mid-evaluation.
+    /// A `solve()` that returns leaves it empty (default-constructed): the
+    /// returned value is the result. Cleared at the start of every `solve()`;
     /// default-constructed before the first solve.
     /// @throws std::logic_error on a moved-from solver.
     const IpmResult &last_result() const;

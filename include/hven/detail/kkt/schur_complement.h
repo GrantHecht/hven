@@ -78,6 +78,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/errors.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
@@ -275,10 +276,11 @@ class SchurComplement {
     }
 
     // rhs_full sized K0.rows() + dim(); returns [x0; y] of the same size.
-    // Throws std::runtime_error if C's last factorization found an exact
-    // zero pivot (see factor_c()) -- needs_refactorization() would
+    // Throws hven::solvers::BackendError if C's last factorization found an
+    // exact zero pivot (see factor_c()) -- needs_refactorization() would
     // already be true in that case, so this is a belt-and-suspenders guard
-    // against a caller ignoring it.
+    // against a caller ignoring it, and the QP engine's border path reads it
+    // as the singular-C degradation it answers by falling back.
     Vec solve(const Vec &rhs_full) const {
         const Index m = dim();
         const Index n0 = rhs_full.size() - m;
@@ -294,7 +296,7 @@ class SchurComplement {
         Vec y(m);
         if (m > 0) {
             if (singular_) {
-                throw std::runtime_error(fmt::format(
+                throw BackendError(fmt::format(
                     "SchurComplement::solve: Schur complement (dim={}) is exactly singular "
                     "(DenseSymmetricFactor reported kExactlySingular); refactorize instead "
                     "of solving",
@@ -409,18 +411,20 @@ class SchurComplement {
     // negative and one positive eigenvalue -- computed directly here (not
     // assumed) from the block's own two eigenvalues.
     //
-    // Throws std::runtime_error whenever there is no usable block evidence to
+    // Throws std::logic_error whenever there is no usable block evidence to
     // read the inertia off -- C's last factorization found an exact zero pivot
     // (singular_), or the last rebuild threw before it produced any. Returning
     // 0 in either case would be a plausible-LOOKING but WRONG answer: a
     // singular C may still be indefinite, and this class has no basis for
     // claiming "no negative eigenvalues" about a matrix it could not factor.
+    // Its one caller reads needs_refactorization() first, so a throw is a
+    // caller bug.
     Index expected_neg_eigs_delta() const {
         if (dim() == 0) {
             return 0;
         }
         if (!evidence_usable()) {
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SchurComplement::expected_neg_eigs_delta: Schur complement (dim={}) has no "
                 "usable factorization ({}); refactorize instead of querying its inertia",
                 dim(),
@@ -451,7 +455,7 @@ class SchurComplement {
     // declines to judge, expected_neg_eigs_delta() throws -- which is
     // exactly what each already did for singular_. solve() needs no guard
     // here: it reaches factor_.solve(), which refuses a factor that never
-    // completed with its own std::runtime_error.
+    // completed with its own std::logic_error.
     bool evidence_usable() const noexcept { return !singular_ && evidence_.has_value(); }
 
     // The shared loop of near_null_direction() and dominant_direction(): `apply`

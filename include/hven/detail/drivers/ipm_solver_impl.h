@@ -325,9 +325,9 @@ class IpmSolverImpl {
     ///        returns the default.
     IpmResult take_interrupted_result();
 
-    /// @brief The result of the most recent solve() through the public handle:
-    ///        the returned value, or the interrupted partial when an exception
-    ///        escaped. Default-constructed before the first solve.
+    /// @brief The partial result of the most recent solve() through the public
+    ///        handle that an exception (an argument refusal included) escaped;
+    ///        empty after a solve that returned. See IpmSolver::last_result().
     const IpmResult &last_result() const noexcept { return last_result_; }
     /// @brief Replaces last_result(); the public handle's only writer.
     void set_last_result(IpmResult result) { last_result_ = std::move(result); }
@@ -1497,6 +1497,13 @@ class IpmSolverImpl {
     // holds is a failure AT THE START POINT -- an EvaluationError propagates,
     // a non-finite value ends the solve kNumericalError (kNonFiniteStart).
     bool solve_at_start_ = true;
+    // AN ENTRY FAILURE init_impl LEFT FOR THE PHASE'S FIRST ITERATE (M8 B5
+    // riders): a non-finite start-point (or re-initialization) evaluation, or
+    // an initial factorization that left no numerics. Nothing was factorized or
+    // solved from it; alg_impl's first evaluation ends the phase kNumericalError
+    // on it. Reset at every call's entry and consumed by the phase that reads it.
+    std::string pending_entry_failure_;
+    bool pending_entry_factorization_failed_ = false;
     // The kkt_analysis_count_ at this call's entry, for the declared seam of an
     // interrupted call.
     Index analyses_at_entry_ = 0;

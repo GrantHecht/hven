@@ -85,15 +85,17 @@ void finish_result(const SqpSolverImpl &engine, const Problem &problem, const So
 }
 
 // THE SAME FINISHING FOR A SOLVE AN EXCEPTION INTERRUPTED (M8 B5); see the
-// interior-point handle's twin. Runs inside the catch clause and must not throw.
+// interior-point handle's twin. Runs inside the catch clause and must not throw:
+// a failure leaves the bare partial, with the status and the fixed message.
 void finish_interrupted_result(SqpSolverImpl &engine, const Problem &problem,
                                const SolveBudget &budget, const Vec &x0, const std::string &what,
                                SqpResult &result) noexcept {
+    result.status = SolveStatus::kInterrupted;
     try {
+        result.message = "interrupted by an exception that escaped the solve";
         if (result.x.size() == 0) {
             result.x = x0;
         }
-        result.status = SolveStatus::kInterrupted;
         engine.note_exception_stop(what);
         finish_result(engine, problem, budget, result);
     } catch (...) {
@@ -112,7 +114,7 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const Vec &x0,
         SqpResult result =
             target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
         finish_result(engine, problem, budget, result);
-        engine.set_last_result(result);
+        // A returned solve leaves last_result() empty: the value is the caller's.
         return result;
     } catch (...) {
         // PROPAGATED UNCHANGED (M8 B5): the same exception object, after the

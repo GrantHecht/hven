@@ -156,7 +156,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
             // be the only thing standing between malformed pivot data and
             // an out-of-bounds read.
             if (ipiv_[uk] == 0 || k + 1 >= dim_) {
-                throw std::runtime_error(fmt::format(
+                throw std::logic_error(fmt::format(
                     "DenseSymmetricFactor::block_evidence: malformed dsytrf pivot data at index "
                     "{} of {} (ipiv={}) -- cannot decode the Bunch-Kaufman block structure",
                     k, dim_, ipiv_[uk]));
@@ -186,7 +186,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
 
 void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     if (!factorized_) {
-        throw std::runtime_error(
+        throw std::logic_error(
             "DenseSymmetricFactor::solve: called before a successful factorize()");
     }
     if (RHS.rows() != dim_) {

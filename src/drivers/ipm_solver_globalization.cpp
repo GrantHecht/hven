@@ -562,6 +562,7 @@ void ModernMeritAcceptance::reset() {
     pi_l_ = kFlexInitPiL;
     pi_u_ = kFlexInitPiU;
     smallest_known_infeasibility_ = std::numeric_limits<double>::infinity();
+    retraction_armed_ = false;
     // Phase-aware, mirroring the filter/funnel: inside the feasibility phase
     // this is a μ-event reset — the stashed optimality-phase state (which the
     // exit test reduces against) and the in-feasibility flag SURVIVE, so a
@@ -652,6 +653,8 @@ void ModernMeritAcceptance::notify_switch_to_optimality(const ProgressMeasures &
     pi_u_ = stashed_pi_u_;
     smallest_known_infeasibility_ = stashed_smallest_known_infeasibility_;
     in_feasibility_phase_ = false;
+    // The saved state belonged to the feasibility phase just left.
+    retraction_armed_ = false;
 }
 
 bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
@@ -664,6 +667,13 @@ bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &curren
     // likewise accepted and ignored — see modern_merit.h's declaration comment.
     (void)objective_multiplier;
     (void)step_length;
+    // THE RETRACTION'S SAVE (M8 B5 riders): what an ACCEPT moves -- the
+    // flexible rule's pi_l and the smallest-known tracker. The penalty updates
+    // that run on every trial (nu, pi_u) are the direction's, not the accept's,
+    // and stay.
+    retract_pi_l_ = pi_l_;
+    retract_smallest_known_infeasibility_ = smallest_known_infeasibility_;
+    retraction_armed_ = false;
     bool accept;
     switch (rule_) {
     case MeritPenaltyRule::kWmno:
@@ -680,10 +690,20 @@ bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &curren
     // by std::min() ONLY inside the accept branch of is_iterate_acceptable (the
     // restoration-exit test reduces against it). FP-inert on the default path —
     // it writes a member that nothing reads unless the exit test runs.
-    if (accept)
+    if (accept) {
         smallest_known_infeasibility_ =
             std::min(smallest_known_infeasibility_, trial.infeasibility);
+        retraction_armed_ = true;
+    }
     return accept;
+}
+
+void ModernMeritAcceptance::retract_last_acceptance() {
+    if (retraction_armed_) {
+        pi_l_ = retract_pi_l_;
+        smallest_known_infeasibility_ = retract_smallest_known_infeasibility_;
+        retraction_armed_ = false;
+    }
 }
 
 // WMNO Math. Program. 107 (2006), §3.1. Merit Eq. (3.1), ν_TRIAL Eq. (3.5, σ=0),
@@ -1735,7 +1755,15 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
 
 void SwitchingAcceptance::reset() {
     bounds_initialized_ = false;
+    retraction_armed_ = false;
     reset_bounds();
+}
+
+void SwitchingAcceptance::retract_last_acceptance() {
+    if (retraction_armed_) {
+        restore_acceptance_state();
+        retraction_armed_ = false;
+    }
 }
 
 bool SwitchingAcceptance::is_infeasibility_sufficiently_reduced(
@@ -1779,6 +1807,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     // the arithmetic here — see modern_merit.h's identical posture.
     (void)objective_multiplier;
 
+    // A new acceptance test supersedes whatever the last accept left to retract.
+    retraction_armed_ = false;
+
     // Lazy per-phase initialization (see the file-top formulation): θ₀ is the
     // FIRST current.infeasibility seen since the last reset().
     if (!bounds_initialized_) {
@@ -1821,7 +1852,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     if (switching_holds) {
         // F-type: accept iff the Armijo condition on φ holds (Eq. 20).
         if (armijo_holds(current, trial, predicted_reduction)) {
+            save_acceptance_state();
             register_accepted_step(current, trial, /*h_type=*/false);
+            retraction_armed_ = true;
             return true;
         }
         // T1 (Armijo) failed by definition to reach this branch.
@@ -1836,7 +1869,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
         notify_trial_rejected(RejectionCause::kHTypeProgress, false);
         return false;
     }
+    save_acceptance_state();
     register_accepted_step(current, trial, /*h_type=*/true);
+    retraction_armed_ = true;
     return true;
 }
 
@@ -1897,6 +1932,13 @@ void FunnelAcceptance::register_accepted_step(const ProgressMeasures &current,
         width_ = kFunnelBeta * width_;
     }
 }
+
+// THE RETRACTION PAIR (M8 B5 riders): register_accepted_step moves the width and
+// nothing else, so the width is the whole of what an accept can be asked to give
+// back.
+void FunnelAcceptance::save_acceptance_state() { retract_width_ = width_; }
+
+void FunnelAcceptance::restore_acceptance_state() { width_ = retract_width_; }
 
 void FunnelAcceptance::append_diagnostics(IpmResult &result) const {
     result.last_funnel_width =
@@ -1968,6 +2010,8 @@ void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     width_ = stashed_width_;
     width_ = convex_combination(width_, current_progress.infeasibility, kFunnelKappa);
     in_feasibility_phase_ = false;
+    // The saved width belonged to the feasibility phase just left.
+    disarm_retraction();
 }
 
 // FilterAcceptance — (θ, φ)-pair filter H-type strategy on the switching
@@ -2102,6 +2146,24 @@ void FilterAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
+// THE RETRACTION PAIR (M8 B5 riders): register_accepted_step may augment the
+// filter (an H-type accept), clear it (the reset heuristic) and moves the three
+// reset-heuristic fields, so all four are saved. Copy-assignment into a member
+// reuses its capacity: no allocation once the filter has stopped growing.
+void FilterAcceptance::save_acceptance_state() {
+    retract_filter_ = filter_;
+    retract_successive_filter_rejections_ = successive_filter_rejections_;
+    retract_n_filter_resets_ = n_filter_resets_;
+    retract_last_rejection_was_filter_ = last_rejection_was_filter_;
+}
+
+void FilterAcceptance::restore_acceptance_state() {
+    filter_ = retract_filter_;
+    successive_filter_rejections_ = retract_successive_filter_rejections_;
+    n_filter_resets_ = retract_n_filter_resets_;
+    last_rejection_was_filter_ = retract_last_rejection_was_filter_;
+}
+
 void FilterAcceptance::append_diagnostics(IpmResult &result) const {
     result.last_filter_size = static_cast<Index>(filter_.size());
     result.last_filter_resets = n_filter_resets_;
@@ -2206,6 +2268,8 @@ void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     n_filter_resets_ = stashed_n_filter_resets_;
     last_rejection_was_filter_ = stashed_last_rejection_was_filter_;
     filter_.augment(phi_exit, theta_exit);
+    // The saved filter belonged to the feasibility phase just left.
+    disarm_retraction();
 
     // Leave feasibility mode. The stash is intentionally NOT cleared here: it is
     // now a harmless leftover (the exit test only reads it while the flag is set,

@@ -151,6 +151,10 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     void register_accepted_step(const ProgressMeasures &current, const ProgressMeasures &trial,
                                 bool h_type) override;
 
+    /// The retraction pair: the width register_accepted_step may move.
+    void save_acceptance_state() override;
+    void restore_acceptance_state() override;
+
   private:
     /// Reference convex_combination(a, b, coeff) = coeff*a + (1-coeff)*b.
     static double convex_combination(double a, double b, double coefficient) {
@@ -164,6 +168,9 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     /// PRESERVED optimality-phase width, stashed at entry, restored at exit;
     /// the exit test's membership half consults it while in the phase.
     double stashed_width_ = std::numeric_limits<double>::infinity();
+
+    /// The width before the last accept, for retract_last_acceptance().
+    double retract_width_ = std::numeric_limits<double>::infinity();
 
     /// Set at entry, cleared at exit; makes reset_bounds() phase-aware.
     bool in_feasibility_phase_ = false;

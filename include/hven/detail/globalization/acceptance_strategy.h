@@ -99,6 +99,16 @@ class AcceptanceStrategy {
     /// feedback path. The default body is a no-op.
     virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 
+    /// @brief Undoes the state the most recent ACCEPTED trial registered, when
+    /// the step to it is rejected after the fact (the interior-point engine's
+    /// non-finite step rollback). Valid only while that acceptance is the last
+    /// thing the strategy saw: any later is_iterate_acceptable() call, reset()
+    /// or phase switch disarms it, and a disarmed retraction is a no-op. So a
+    /// committed step the strategy did not accept (a recovery fallback taking a
+    /// rejected trial) retracts nothing. Default no-op: a strategy that records
+    /// nothing per acceptance has nothing to undo.
+    virtual void retract_last_acceptance() {}
+
     /// @brief Classic fused entry point: loop and merit test in one call.
     /// Operates on raw Eigen::VectorXd blocks (no named-segment views); a
     /// future implementation reconstructs any view types internally if
