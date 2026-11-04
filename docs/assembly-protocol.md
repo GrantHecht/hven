@@ -45,9 +45,12 @@ hven::solvers::Problem problem(std::move(d));
   with no piece is the constraint `0 = 0`, and `validate()` refuses it, naming the row.
 - **Refusals.** Each builder call refuses, by name and with both numbers, an index map whose row
   count is not the piece's input (or output) count, a pair of maps with different application
-  counts, a map with no application, a variable outside `[0, n)` and a negative row. `set_bounds`
+  counts, a map with no application, a variable outside `[0, n)`, a negative row and a row of
+  `INT_MAX` (a block's row count, its largest row plus one, must fit an `int`). `set_bounds`
   refuses an index outside the declaration, an empty range, a NaN side and an inverted pair.
-  Repeated bounds on one variable intersect, tightest wins.
+  Repeated bounds on one variable intersect, tightest wins. A builder call on a
+  default-constructed declaration (no variables) refuses every variable and says to construct
+  it as `AssemblyDeclaration(n)`.
 - **Partitions.** `set_partitions(k)` asks the interior-point layout for `k` evaluation
   partitions. The layout may clamp the request down, never up: it adopts at most one partition
   per 1000 claimed KKT elements, and at least one. `Problem::partitions()` reports the count
@@ -68,6 +71,13 @@ A piece enters the layout through one of two type-erased handles
 `ObjectiveInterface` for an objective piece. Both take any piece type by converting constructor.
 What gets stored is decided by `SolverInterfaceAdapter<T>` (`hven/solver_interface_adapter.h`):
 
+- **A local-block piece** (a class with a static `kInputs`) takes the local-block layer's
+  adapter, `LocalConstraintBlock<P>` or `LocalObjectiveBlock<P>`. `solver_interface_specs.h`
+  includes `local_blocks.h` at its end, so every translation unit that can convert a piece sees
+  that adapter and none can take the default for such a type. A near miss (a non-const member, a
+  wrong signature, `kOutputs` on what is written as an objective, a non-const `name()`) is one
+  authored compile-time message naming the requirement; a local-block piece that also carries a
+  `pack_into_*_interface` hook is refused as ambiguous.
 - **No registration is needed.** The default stores a plain type as itself: one erasure, one
   virtual dispatch per evaluation call.
 - **An erased handle with the hooks** (`pack_into_constraint_interface(ConstraintInterface &)
@@ -79,8 +89,11 @@ What gets stored is decided by `SolverInterfaceAdapter<T>` (`hven/solver_interfa
 - **An explicit specialization** of `SolverInterfaceAdapter<T>` replaces the default for `T`. It
   lives in the file that defines `T`, and it provides both installs (inherit
   `ConstraintUnsupported<T>` or `ObjectiveUnsupported<T>` to refuse a direction in words).
-- **Any movable type is legal.** A small piece is stored inline and relocated by move
-  construction, so a piece may own a `std::string`, a `std::vector` or any other movable member.
+- **A piece must be copy-constructible.** The handles copy deeply, and the layout copies every
+  piece once per partition (§6). A small piece is stored inline and relocated by move
+  construction, so a piece may own a `std::string`, a `std::vector` or any other copyable member.
+  State the copies share is held through a `std::shared_ptr` and must be safe to read
+  concurrently. A piece that is not copy-constructible is refused with an authored message.
 
 Every refusal on these routes is an authored compile-time message.
 
@@ -179,19 +192,26 @@ of an entry is fixed, so every writer of one entry takes the same mutex:
 Within one partition writes are serial; a single-partition problem takes no lock. Do not
 introduce another keying.
 
-**A stated hazard.** `unique_constraints_` is true for every piece in this release, so Jacobian
-writes never lock. Two applications that write the SAME Jacobian entry (one row and one variable,
-which takes a shared row) from DIFFERENT partitions would race. A provider whose shared rows can
-do that keeps the pieces involved in one partition with `ConstraintFunction::set_thread_mode`
-(for example `ThreadingFlags::MainThread`). Shared rows on distinct variables are safe: they name
-distinct entries.
+**Shared Jacobian entries are serialised by the layout.** Two applications write the same
+Jacobian entry (one row, one variable) only through a shared row. When the layout partitions a
+problem it marks every partition copy of a constraint piece: `d.unique_constraints_` is `false`
+when one of the copy's rows is also named by an application in ANOTHER partition, and `true`
+otherwise (always `true` on one partition). Such an entry's column is contested by construction
+(both partitions claim a slot under it), so a raw piece that honours `!d.unique_constraints_` as
+above takes that column's mutex; the local-block layer does. Rows written by one partition only,
+which is every row of a declaration without shared rows, keep the lock-free Jacobian scatter. A
+locked entry with three or more writers from different partitions is summed in a scheduling
+order, so its last bits may differ from run to run, as a contested Hessian entry's always could;
+with two writers the sum is exact.
 
 ## 6. Threading
 
 A partitioned layout evaluates its partitions concurrently on the library's thread pool, one task
-per partition, and the last partition on the calling thread. A piece's members are therefore
-called from several threads at once, on disjoint applications, and must be safe to call
-concurrently: every evaluation member is `const`. By default a piece's applications are split
+per partition, and the last partition on the calling thread. Each partition holds its own copy of
+each piece it evaluates (the layout copies the handle, and the handle copies the piece), so a
+piece is copy-constructible (§2). The copies are called from several threads at once, on disjoint
+applications, through `const` members; state they share through a `std::shared_ptr` must be safe
+to read concurrently. One copy is evaluated by one partition, one thread at a time. By default a piece's applications are split
 across the partitions (`ThreadingFlags::ByApplication`); `set_thread_mode` on its
 `ObjectiveFunction` / `ConstraintFunction` pins it instead (`MainThread`, `RoundRobin` or a fixed
 partition index), and is part of the declaration: set it before the problem is built.
@@ -207,9 +227,14 @@ its own type, also from a pool thread.
 ## 8. The local-block layer, for reference
 
 `LocalConstraintBlock<P>` and `LocalObjectiveBlock<P>` are this protocol, written once. Per
-application they gather the inputs into stack buffers, call the piece's blocks into zeroed
-buffers, and write: residuals and gradients into their slots, `J^T lambda` into the adjoint
+application they gather the inputs, call the piece's blocks into zeroed buffers, and write: residuals and gradients into their slots, `J^T lambda` into the adjoint
 gradient slots, and the pattern entries of the Jacobian and Hessian blocks through the claimed
 slots, under §5's locks. The claims of one application are the Jacobian pattern's entries in
 order, then the Hessian pattern's. A Hessian block is read in its lower triangle; an off-diagonal
 block entry whose two inputs name one variable lands on that variable's diagonal with weight 2.
+The buffers of one application live on the stack while they fit `kLocalBlockStackBudget` (16 KiB);
+a larger piece (a 256 x 256 constraint block takes about 1 MiB) evaluates into scratch its
+partition copy allocates once, on its first evaluation, and reuses. Patterns may be declared as a
+`std::array` or a C array of `BlockEntry`; anything else named `kJacobianPattern` or
+`kHessianPattern` is refused. Without `name()` a block is named by its kind and sizes, for
+example `local constraint block (kInputs 3, kOutputs 1)`.

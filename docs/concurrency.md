@@ -183,9 +183,10 @@ registered for M7.
 layout clamps the request down by the same rule (`Problem::partitions()` reports the count
 adopted), and each adopted partition evaluates its share of the pieces' applications on a pool
 worker -- the last on the calling thread. A piece is therefore called concurrently through its
-`const` members, on disjoint applications, and must be safe to call that way
-(docs/assembly-protocol.md §6, which also states the one write that takes no lock: a Jacobian
-entry two partitions share through a shared row). The pins are
+`const` members, on disjoint applications, and must be safe to call that way; each partition
+evaluates its own copy of the piece (docs/assembly-protocol.md §6). A Jacobian entry two
+partitions share through a shared row is written under its column's lock: the layout marks the
+copies that touch such a row (§5 there; pinned by `PiecesSharedEntries.*`). The pins are
 `PiecesLocalBlocks.AssemblyMatchesTheDenseReferenceOnSeveralPartitions` (every assembled value
 against a dense reference, at an adopted count above one) and `PiecesExample4.BothFormsAgree` (the
 raw and local-block forms solve identically at four requested partitions) in
