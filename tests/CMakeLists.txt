@@ -522,6 +522,9 @@ add_executable(hven_sqp_seam_tests
     $<TARGET_PROPERTY:hven,SOURCES>
     sqp/test_sqp_equality_basis_seams.cpp
     sqp/test_sqp_ladder_seams.cpp
+    # M8 B5 riders: the backend-failure half of the exception contract through
+    # the public handles, on the linear layer's analyze/factorize injectors.
+    sqp/test_backend_error_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

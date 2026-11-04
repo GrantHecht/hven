@@ -335,7 +335,9 @@ TEST_P(SqpTrace, T4b_AdoptRefusesStaleNumerics) {
 
     // Numeric reuse refused ...
     Vec x(a.K.rows());
-    EXPECT_THROW(adopter->solve(a.rhs, x), std::runtime_error)
+    // std::exception, the common base: hven refuses with std::logic_error (a
+    // precondition, M8 B5 riders) and an OLD-SEAM adapter with its own type.
+    EXPECT_THROW(adopter->solve(a.rhs, x), std::exception)
         << "solving through an engine that adopted stale numerics must be refused, not served";
 
     // ... while symbolic reuse stays legal: the adopter's first factorization

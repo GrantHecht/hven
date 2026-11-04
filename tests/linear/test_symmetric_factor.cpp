@@ -244,19 +244,19 @@ TEST(SymmetricFactor, MisuseOrderingThrows) {
     const SpMatRM A = upper_csr(spd4());
 
     // factorize before analyze
-    EXPECT_THROW(factor.factorize(A), std::runtime_error);
+    EXPECT_THROW(factor.factorize(A), std::logic_error);
 
     Vec b = Vec::Ones(4);
     Vec x(4);
 
     // solve before factorize, with and without a symbolic analysis in hand
-    EXPECT_THROW(factor.solve(b, x), std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+    EXPECT_THROW(factor.solve(b, x), std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
     factor.analyze(A);
-    EXPECT_THROW(factor.solve(b, x), std::runtime_error);
+    EXPECT_THROW(factor.solve(b, x), std::logic_error);
     EXPECT_THROW(factor.solve_partial(SymmetricFactor::SolvePhase::kForward, b, x),
-                 std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+                 std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
 
     // ... and none of that counted as work.
     EXPECT_EQ(factor.counters().factorize_count, 0);
@@ -1045,8 +1045,8 @@ TEST(SymmetricFactor, AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic) {
 
     SymmetricFactor adopter = SymmetricFactor::adopt(handle);
     Vec x(3);
-    EXPECT_THROW(adopter.solve(b, x), std::runtime_error);
-    EXPECT_THROW(adopter.share(), std::runtime_error);
+    EXPECT_THROW(adopter.solve(b, x), std::logic_error);
+    EXPECT_THROW(adopter.share(), std::logic_error);
     EXPECT_FALSE(adopter.supports_partial_solve());
     EXPECT_EQ(adopter.inertia().state, InertiaEvidence::State::kUnavailable)
         << "an engine refused the numerics does not report their evidence as its own";

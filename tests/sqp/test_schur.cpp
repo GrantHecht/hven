@@ -266,7 +266,7 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     ASSERT_EQ(schur.dim(), 1);
 
     EXPECT_TRUE(schur.needs_refactorization());
-    EXPECT_THROW(schur.expected_neg_eigs_delta(), std::runtime_error);
+    EXPECT_THROW(schur.expected_neg_eigs_delta(), std::logic_error);
 }
 
 // M3 final review (FX-1 + FX-7b). A non-finite border makes C non-finite, and
@@ -330,7 +330,7 @@ TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     try {
         (void)schur.expected_neg_eigs_delta();
         FAIL() << "expected_neg_eigs_delta() must refuse a stack with no usable factorization";
-    } catch (const std::runtime_error &e) {
+    } catch (const std::logic_error &e) {
         EXPECT_NE(std::string(e.what()).find("threw before producing block evidence"),
                   std::string::npos)
             << e.what();
@@ -342,7 +342,7 @@ TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     EXPECT_TRUE(schur.needs_refactorization())
         << "there is no usable cached factorization, so the caller must rebuild K0 rather than "
            "keep bordering";
-    EXPECT_THROW((void)schur.expected_neg_eigs_delta(), std::runtime_error);
+    EXPECT_THROW((void)schur.expected_neg_eigs_delta(), std::logic_error);
 
     // The surviving borders are still real borders at their original indices:
     // dropping from the top empties the stack and restores a healthy one, which
@@ -577,7 +577,7 @@ TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
         // Inside the batch no reader may see a stale factorization.
         EXPECT_TRUE(batched.needs_refactorization());
         EXPECT_TRUE(std::isinf(batched.cond_estimate()));
-        EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::runtime_error);
+        EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::logic_error);
     }
     EXPECT_THROW(batched.drop_border(0), std::logic_error);
     EXPECT_THROW(batched.begin_batch(), std::logic_error);
@@ -629,7 +629,7 @@ TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
     EXPECT_EQ(batched.dim(), 2);
     EXPECT_TRUE(batched.needs_refactorization());
     EXPECT_TRUE(per_add.needs_refactorization());
-    EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::runtime_error);
+    EXPECT_THROW((void)batched.expected_neg_eigs_delta(), std::logic_error);
 
     // Both stacks keep their surviving borders at their original indices, and a
     // later drop lands on the right one.

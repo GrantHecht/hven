@@ -223,7 +223,7 @@ TEST(DenseSymmetricFactor, SolveBeforeFactorizeThrows) {
     DenseSymmetricFactor f;
     Mat RHS = Mat::Identity(2, 2);
     Mat X(2, 2);
-    EXPECT_THROW({ f.solve(RHS, X); }, std::runtime_error);
+    EXPECT_THROW({ f.solve(RHS, X); }, std::logic_error);
 }
 
 TEST(DenseSymmetricFactor, NonSquareFactorizeThrows) {

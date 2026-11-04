@@ -173,8 +173,8 @@ TEST(MklFactorizeFaultInjection, FirstFactorizeFailureLeavesNoUsableNumericsAndD
 
     Vec rhs = Vec::Ones(3);
     Vec x(3);
-    EXPECT_THROW(factor.solve(rhs, x), std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+    EXPECT_THROW(factor.solve(rhs, x), std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
 }
 
 // Companion sanity check: with the injector disengaged, the exact same

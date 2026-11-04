@@ -42,6 +42,9 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_type_storage.cpp
     test_switching_acceptance.cpp
     test_watchdog.cpp
+    # M8 B5 riders: AcceptanceStrategy::retract_last_acceptance(). Last in the
+    # list so the unity batches before it keep their composition.
+    test_acceptance_retraction.cpp
 )
 
 add_executable(hven_interior_tests ${HVEN_INTERIOR_TEST_SOURCES})

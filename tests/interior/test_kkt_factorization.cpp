@@ -132,7 +132,7 @@ TEST(KktFactorizationTest, RefactorizeBeforeAnySymbolicAnalysisThrows) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
 
-    EXPECT_THROW(kkt.refactorize(), std::runtime_error);
+    EXPECT_THROW(kkt.refactorize(), std::logic_error);
 }
 
 TEST(KktFactorizationTest, RefactorizeAgainstADifferentPatternThrows) {
@@ -161,7 +161,7 @@ TEST(KktFactorizationTest, ReleaseDropsTheBufferAndTheFactorization) {
     EXPECT_EQ(kkt.matrix().cols(), 0);
     Eigen::VectorXd rhs = Eigen::VectorXd::Zero(2);
     Eigen::VectorXd x(2);
-    EXPECT_THROW(kkt.solve(rhs, x), std::runtime_error);
+    EXPECT_THROW(kkt.solve(rhs, x), std::logic_error);
 }
 
 TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
@@ -175,7 +175,7 @@ TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
 
     // The options are baked into the session the symbolic lives in, so the new
     // configuration starts without one.
-    EXPECT_THROW(kkt.refactorize(), std::runtime_error);
+    EXPECT_THROW(kkt.refactorize(), std::logic_error);
     EXPECT_NO_THROW(kkt.compute());
     EXPECT_EQ(kkt.peigs(), 1);
     EXPECT_EQ(kkt.neigs(), 1);

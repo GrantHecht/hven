@@ -238,7 +238,7 @@ TEST(DenseSymmetricFactorGrowth, TryFactorizeReportsExactSingularityWithoutThrow
 
     Mat RHS = Mat::Ones(2, 1);
     Mat X(2, 1);
-    EXPECT_THROW({ f.solve(RHS, X); }, std::runtime_error);
+    EXPECT_THROW({ f.solve(RHS, X); }, std::logic_error);
 }
 
 // The success path: kOk leaves a factorization every bit as usable as
@@ -282,7 +282,7 @@ TEST(DenseSymmetricFactorGrowth, TryFactorizeSingularClearsAnEarlierUsableFactor
 
     Mat RHS = Mat::Ones(3, 1);
     Mat X(3, 1);
-    EXPECT_THROW({ f.solve(RHS, X); }, std::runtime_error); // not the stale 3x3 solve
+    EXPECT_THROW({ f.solve(RHS, X); }, std::logic_error); // not the stale 3x3 solve
 }
 
 // --- Triangle plumbing -----------------------------------------------------
