@@ -68,7 +68,19 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_sqp_warm_start.cpp
     include_seeding.cpp
     include_console_trace_sink.cpp
-    include_compiler.cpp)
+    include_compiler.cpp
+    include_pieces.cpp
+    include_local_blocks.cpp
+    include_solver_interface_specs.cpp
+    include_solver_interface_adapter.cpp
+    include_indexing_data.cpp
+    include_objective_function.cpp
+    include_constraint_function.cpp
+    include_solver_function_base.cpp
+    include_sizing_specs.cpp
+    include_threading_flags.cpp
+    include_parsed_io_flags.cpp
+    include_type_storage.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
 target_link_libraries(hven_install_smoke PRIVATE hven::hven)

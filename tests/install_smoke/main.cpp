@@ -27,6 +27,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "hven/core/ledger.h"
@@ -36,6 +37,7 @@
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
 #include "hven/model/nlp.h"
+#include "hven/model/pieces.h"
 #include "hven/model/problem.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -183,6 +185,45 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
     std::printf("install smoke: %s converged, objective = %.7f (OK)\n", label, f_actual);
     return true;
 }
+/// min (x0 - 1)^2 + (x1 - 2)^2  s.t.  x0 + x1 = 1, as one objective piece applied
+/// twice and one linear constraint piece. Optimum (0, 1).
+struct ShiftedSquare {
+    double ref;
+    static constexpr hven::Index kInputs = 1;
+    double value(hven::ConstVecRef v) const { return (v[0] - ref) * (v[0] - ref); }
+    void gradient(hven::ConstVecRef v, hven::VecRef g) const { g[0] = 2.0 * (v[0] - ref); }
+    void hessian(hven::ConstVecRef, hven::MatRef H) const { H(0, 0) = 2.0; }
+};
+struct SumIsOne {
+    static constexpr hven::Index kInputs = 2, kOutputs = 1;
+    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    void value(hven::ConstVecRef v, hven::VecRef out) const { out[0] = v[0] + v[1] - 1.0; }
+    void jacobian(hven::ConstVecRef, hven::MatRef J) const { J << 1.0, 1.0; }
+};
+
+bool solve_pieces_problem() {
+    hven::solvers::AssemblyDeclaration d(2);
+    d.add_objective(ShiftedSquare{1.0}, (Eigen::MatrixXi(1, 1) << 0).finished());
+    d.add_objective(ShiftedSquare{2.0}, (Eigen::MatrixXi(1, 1) << 1).finished());
+    d.add_equality(SumIsOne{}, (Eigen::MatrixXi(2, 1) << 0, 1).finished(),
+                   (Eigen::MatrixXi(1, 1) << 0).finished());
+    hven::solvers::Problem problem(std::move(d));
+    hven::solvers::IpmSolver ipm;
+    const hven::solvers::IpmResult r = ipm.solve(problem, Eigen::VectorXd::Zero(2));
+    if (r.status != hven::solvers::SolveStatus::kOptimal || std::abs(r.x[0]) > 1e-6 ||
+        std::abs(r.x[1] - 1.0) > 1e-6) {
+        std::fprintf(stderr, "install smoke: the pieces problem did not reach (0, 1)\n");
+        return false;
+    }
+    hven::solvers::SqpSolver sqp;
+    try {
+        (void)sqp.solve(problem, Eigen::VectorXd::Zero(2));
+    } catch (const std::invalid_argument &) {
+        return true;
+    }
+    std::fprintf(stderr, "install smoke: the SQP engine did not refuse the pieces problem\n");
+    return false;
+}
 } // namespace
 
 // The standalone-include TUs (M6 W5 T0; nlp_solver joined at T1 fix1,
@@ -192,7 +233,8 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
 // make_nlp_program at M7 W0 T5(a), 18 -> 19; at M8 AP-2 B2 the three model-layer
 // TUs became nlp, problem and fixed_variable_treatment, 19 -> 19; at M8 AP-2 B3
 // fixed_variable_treatment left and the six options-break headers joined, 19 -> 24; at M8 AP-2 B4
-// solve_status left with its header, 24 -> 23). Each proves COMPILE-TIME self-containment only:
+// solve_status left with its header, 24 -> 23; at M8 AP-2 B6 the twelve piece-protocol headers
+// joined, 23 -> 35). Each proves COMPILE-TIME self-containment only:
 // none odr-uses anything its header declares, so the link proves the objects link, nothing about
 // exports.
 namespace hven_install_smoke {
@@ -219,6 +261,18 @@ int standalone_include_sqp_warm_start();
 int standalone_include_seeding();
 int standalone_include_console_trace_sink();
 int standalone_include_compiler();
+int standalone_include_pieces();
+int standalone_include_local_blocks();
+int standalone_include_solver_interface_specs();
+int standalone_include_solver_interface_adapter();
+int standalone_include_indexing_data();
+int standalone_include_objective_function();
+int standalone_include_constraint_function();
+int standalone_include_solver_function_base();
+int standalone_include_sizing_specs();
+int standalone_include_threading_flags();
+int standalone_include_parsed_io_flags();
+int standalone_include_type_storage();
 } // namespace hven_install_smoke
 
 int main() {
@@ -244,9 +298,21 @@ int main() {
                                hven_install_smoke::standalone_include_sqp_warm_start() +
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
-                               hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 23) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 23\n",
+                               hven_install_smoke::standalone_include_compiler() +
+                               hven_install_smoke::standalone_include_pieces() +
+                               hven_install_smoke::standalone_include_local_blocks() +
+                               hven_install_smoke::standalone_include_solver_interface_specs() +
+                               hven_install_smoke::standalone_include_solver_interface_adapter() +
+                               hven_install_smoke::standalone_include_indexing_data() +
+                               hven_install_smoke::standalone_include_objective_function() +
+                               hven_install_smoke::standalone_include_constraint_function() +
+                               hven_install_smoke::standalone_include_solver_function_base() +
+                               hven_install_smoke::standalone_include_sizing_specs() +
+                               hven_install_smoke::standalone_include_threading_flags() +
+                               hven_install_smoke::standalone_include_parsed_io_flags() +
+                               hven_install_smoke::standalone_include_type_storage();
+    if (standalone_tus != 35) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 35\n",
                      standalone_tus);
         return 1;
     }
@@ -267,8 +333,15 @@ int main() {
         return 1;
     }
 
-    std::printf("install smoke: both solvers converged through one generic consumer; "
-                "%d standalone-include TUs compiled and linked\n",
+    // A PROBLEM BUILT FROM PIECES, through the installed headers alone: the
+    // local-block layer and the declaration builder, solved by the interior-point
+    // engine; the SQP engine refuses it by name.
+    if (!solve_pieces_problem()) {
+        return 1;
+    }
+
+    std::printf("install smoke: both solvers converged through one generic consumer; a pieces "
+                "problem solved; %d standalone-include TUs compiled and linked\n",
                 standalone_tus);
     return 0;
 }
