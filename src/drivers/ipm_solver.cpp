@@ -2583,6 +2583,13 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // assembly at this function's tail, which must report the BEST iterate's
     // objective when it did.
     bool best_substituted = false;
+    // Whether a finite best iterate was recorded by this phase (set where the
+    // tracker runs). Read by the non-finite abort exit: with return_best on it
+    // returns that iterate in full, and without one it returns the failed point.
+    bool best_recorded = false;
+    // The non-finite abort found return_best on and nothing to return: the
+    // failed point stands, so the result must not claim the best iterate.
+    bool abort_without_best = false;
 
     // THE NON-FINITE STEP ROLLBACK'S STATE (M8 B5; see the committed point's
     // evaluation at the top of the loop). The snapshot is the iterate a step
@@ -2758,8 +2765,12 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         // to), the floor -- the phase ends kNumericalError at the point whose
         // evaluation failed (IpmStopReason::kNonFiniteStart /
         // kNonFiniteIterate), with its multipliers cleared: nothing at that
-        // point is trusted. An EvaluationError at the solve's start point
-        // propagates.
+        // point is trusted. With IpmOptions::return_best on and a finite best
+        // iterate recorded, the exit returns THAT iterate in full instead (x,
+        // multipliers and every residual column, returned_best_iterate set);
+        // with none recorded (the start, a phase's first iterate) it is the
+        // failed point with returned_best_iterate false. An EvaluationError at
+        // the solve's start point propagates.
         bool nonfinite_abort = false;
         // An entry failure init_impl left (a non-finite start-point evaluation
         // or a failed initial factorization) ends the phase at this, its first
@@ -2836,13 +2847,31 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
             v_rhs.prim_grad() += PGX;
             this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
             iters.push_back(Citer);
-            if (this->equal_cons_ > 0)
-                v_xsl.eq_lmults().setZero();
-            if (this->inequal_cons_ > 0)
-                v_xsl.iq_lmults().setZero();
-            if (this->bounds_) {
-                this->bound_duals_.z_lower_.setZero();
-                this->bound_duals_.z_upper_.setZero();
+            if (opts_.return_best && best_recorded) {
+                // RETURN_BEST ON AND A FINITE BEST ITERATE RECORDED: it is
+                // returned in full, as on every other non-optimal exit -- the
+                // point, its multipliers and every residual column are the
+                // best iterate's, and returned_best_iterate says so. The failed
+                // point and its evaluation are not what the result describes.
+                XSL = BestXSL;
+                RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
+                this->cur_eval_prov_ = this->best_eval_prov_;
+                this->cur_eval_prov_.substituted = true;
+                best_substituted = true;
+            } else {
+                // Nothing to return but the failed point (the start, or a
+                // phase's first iterate, or return_best off): the point with
+                // its multipliers cleared, and no best-iterate claim.
+                abort_without_best = opts_.return_best;
+                if (this->equal_cons_ > 0)
+                    v_xsl.eq_lmults().setZero();
+                if (this->inequal_cons_ > 0)
+                    v_xsl.iq_lmults().setZero();
+                if (this->bounds_) {
+                    this->bound_duals_.z_lower_.setZero();
+                    this->bound_duals_.z_upper_.setZero();
+                }
             }
             if (entry_factorization_failed) {
                 // kNumericalError with no reason of its own, as a singular KKT
@@ -3362,8 +3391,10 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
             // report a mixed-scale winner. Only DIVERGING-while-active reaches
             // this early-exit block (CONVERGED/ACCEPTABLE are intercepted by the
             // restoration handling above).
-            if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active()))
+            if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active())) {
                 this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
+                best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+            }
 
             // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
             // reached before this iterate is factorized, so its line carries the
@@ -4260,8 +4291,10 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
         // prim_obj/kkt_inf are proximal-scale and must not compete with
         // true-objective iterates for "best" — otherwise return_best_ could
         // report a mixed-scale winner.
-        if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active()))
+        if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active())) {
             this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
+            best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+        }
 
         // SITE 2 OF 2 (`ipm.iter`): the ORDINARY END-OF-ITERATION site, after
         // fill_iter_info. Its ROW is this iteration's; the shared iteration
@@ -4642,8 +4675,12 @@ Eigen::VectorXd hven::solvers::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ba
     // it back off `retiter == BestIter` would say "yes" whenever the best
     // iterate happened to be the last one. Same operands, same short-circuit
     // order, same value.
-    const bool return_best_applied = (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
-                                      this->last_stop_reason_ != IpmStopReason::kInterrupted);
+    // A non-finite abort with return_best on substitutes the best iterate in full
+    // when one was recorded (best_substituted, set at the abort); with none
+    // (abort_without_best) it returns the failed point and claims nothing.
+    const bool return_best_applied =
+        (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
+         this->last_stop_reason_ != IpmStopReason::kInterrupted && !abort_without_best);
     const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
