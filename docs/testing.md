@@ -1098,6 +1098,24 @@ would hand back. Fixtures: `tests/sqp/test_sqp_ladder_seams.cpp`
 (`SqpLadderSeam.*`), compiled into `hven_sqp_seam_tests` beside the fifth seam's.
 No new target, no `notices/` entry.
 
+## The linear injectors through the public handles (M8 B5 riders)
+
+No new seam: `tests/sqp/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),
+compiled into `hven_sqp_seam_tests`, arms the two existing linear injectors around
+a whole `IpmSolver::solve` / `SqpSolver::solve`, to pin the backend half of the
+exception contract (`core/errors.h`) end to end: a failure the engine can report
+is a status, one it cannot is a `BackendError` that leaves `solve` with the
+interrupted solve in `last_result()`. Each use stays inside the scope its
+injector is faithful for (above):
+
+- `AnalyzeFaultInjector` -- faithful in every scenario -- fails the interior-point
+  engine's initial analysis (a status, `kNumericalError`) and the SQP's KKT
+  analysis (a `BackendError` through the handle).
+- `FactorizeFaultInjector` -- faithful only on a session that never factorized --
+  fails a FRESH solver's first factorization, the interior-point engine's initial
+  KKT factorization, which is exactly that scenario. Nothing after it is read: the
+  solve ends on the status before a second factorization runs.
+
 ## Alternatives considered and rejected
 
 - **Putting the two FAULT INJECTORS inside the session files** rather than at
