@@ -1320,4 +1320,92 @@ TEST(RiderRestorationStop, ARestorationEndingWhereTheModelIsNotFiniteIsReportedA
     EXPECT_TRUE(all_zero(r.lambda));
 }
 
+// --- return_best on a non-finite abort (riders round 2) ------------------------
+
+IpmOptions best_ipm(bool return_best) {
+    IpmOptions o = quiet_ipm();
+    o.return_best = return_best;
+    return o;
+}
+
+// The chain-to-the-floor fixture of the rollback test above: every point past
+// the fire_at-th Hessian call that the model never saw faults.
+std::shared_ptr<FaultyHs071> floor_fixture() {
+    auto nlp = std::make_shared<FaultyHs071>();
+    nlp->where = Callback::kHessian;
+    nlp->fault = Fault::kNaN;
+    nlp->fire_at = kFireAt;
+    nlp->sticky = true;
+    nlp->fresh_only = true;
+    return nlp;
+}
+
+// With return_best on and a finite best iterate recorded, the abort returns that
+// iterate IN FULL: the point, its multipliers and every residual column are the
+// best iterate's, the flag says so, and the message carries both the cause and
+// the best-iterate clause.
+TEST(RiderReturnBest, ANonFiniteAbortWithABestIterateReturnsItInFull) {
+    auto nlp = floor_fixture();
+    Problem problem(nlp);
+    IpmSolver solver(best_ipm(true));
+    IpmResult r;
+    ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
+    EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_TRUE(r.returned_best_iterate);
+    EXPECT_NE(r.message.find("Hessian"), std::string::npos) << r.message;
+    EXPECT_NE(r.message.find("non-finite"), std::string::npos) << r.message;
+    EXPECT_NE(r.message.find("returned the best iterate"), std::string::npos) << r.message;
+    // The point is one the model evaluated cleanly, not the failed one ...
+    ASSERT_EQ(r.x.size(), 4);
+    EXPECT_TRUE(nlp->was_seen_public(r.x)) << "the best iterate, not the failed point";
+    // ... its multipliers are present ...
+    EXPECT_FALSE(all_zero(r.lambda));
+    // ... and every residual column describes it: the equality row is
+    // sum x^2 = 40 at the returned x.
+    const double equality = std::abs(r.x.squaredNorm() - 40.0);
+    EXPECT_TRUE(std::isfinite(r.convergence.kkt));
+    EXPECT_TRUE(std::isfinite(r.convergence.barrier));
+    EXPECT_TRUE(std::isfinite(r.convergence.inequality));
+    EXPECT_NEAR(r.convergence.equality, equality, 1e-9 * std::max(1.0, equality))
+        << "the equality column is the returned x's";
+}
+
+// Nothing recorded -- the fault is at the start point -- the failed point
+// stands, its multipliers cleared, and no best-iterate claim is made.
+TEST(RiderReturnBest, ANonFiniteStartWithNoBestIterateReturnsTheStartPointAndNoClaim) {
+    auto nlp = std::make_shared<FaultyHs071>();
+    nlp->where = Callback::kConstraints;
+    nlp->fault = Fault::kNaN;
+    nlp->start_mode = true;
+    Problem problem(nlp);
+    IpmSolver solver(best_ipm(true));
+    IpmResult r;
+    ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
+    EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteStart);
+    EXPECT_FALSE(r.returned_best_iterate);
+    EXPECT_EQ(r.message.find("best iterate"), std::string::npos) << r.message;
+    EXPECT_TRUE(r.x == interior_start());
+    EXPECT_TRUE(all_zero(r.lambda));
+    EXPECT_TRUE(all_zero(r.z));
+}
+
+// return_best off keeps the failed-point rule: the point whose evaluation
+// failed, multipliers cleared, no claim.
+TEST(RiderReturnBest, WithReturnBestOffTheFailedPointRuleIsUnchanged) {
+    auto nlp = floor_fixture();
+    Problem problem(nlp);
+    IpmSolver solver(best_ipm(false));
+    IpmResult r;
+    ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
+    EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_FALSE(r.returned_best_iterate);
+    EXPECT_EQ(r.message.find("best iterate"), std::string::npos) << r.message;
+    EXPECT_FALSE(nlp->was_seen_public(r.x)) << "the failed point";
+    EXPECT_TRUE(all_zero(r.lambda));
+    EXPECT_TRUE(all_zero(r.z));
+}
+
 } // namespace
