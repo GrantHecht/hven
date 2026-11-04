@@ -9,7 +9,10 @@ R=$WT/docs/notes/data/2026-11-m8-ap2-b6-riders
 L=$R/legs
 cd "$WT" || exit 1
 stale=$(grep -nE 'build-b6/|build-b5|2026-11-m8-ap2-b6/(legs|runtime|suites|replay|census|install-smoke|pch|offref|accelerate|flags)|/m8-ap2-b5/riders/(legs|runtime)' \
-  "$L"/*.sh "$L"/*.py "$R"/runtime/*.sh | grep -v '^[^:]*:[0-9]*:#')
+  $(ls "$L"/*.sh "$L"/*.py "$R"/runtime/*.sh | grep -v -e '/chain1.sh$' -e '/armA_config.sh$') | grep -v '^[^:]*:[0-9]*:#')
+# r2: this script (its own pattern line) and armA_config.sh (run before the declaration; its one
+# build-b6/ path is the informational sha256 of B6's frozen arm B) are not scanned -- neither is a leg
+# this chain runs. DECLARATION-r2.txt.
 if [ -n "$stale" ]; then echo "PREFLIGHT_STALE_PATH"; echo "$stale"; exit 9; fi
 for f in "$L"/*.sh "$R"/runtime/*.sh; do
   grep -q "WT=$WT\$" "$f" || grep -q 'WT=' "$f" || continue
