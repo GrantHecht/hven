@@ -1,0 +1,40 @@
+M8 AP-2 group B6 -- runtime neutrality gate -- DECLARATION
+(the B5 riders' instrument, ../../2026-11-m8-ap2-b5/riders/runtime/, re-derived for B6; committed before
+the first leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b5/riders/runtime/DECLARATION.txt, taken VERBATIM except for the arms, the
+paths and this group's name. run_all.sh and runtime_leg.sh are the B5 riders' with only the comments'
+group name, the worktree path, the build directory (build-b5 -> build-b6), the frozen-binary directories
+(armAr/armBr -> armAbin/armBbin), the perf scratch directory (runtime-perf-r -> runtime-perf), the
+evidence directory and arm A's sha256 replaced. analyze_r5.py is the B5 riders' analyzer
+(dff20c561faf54a8...) with its one repository-root line fixed for THIS directory's depth: b6/runtime/
+is five levels below the repository root, as B5's runtime/ was, where the riders' riders/runtime/ was
+six -- the path depth is checked, not carried. Its code is therefore B5's runtime/ analyzer
+(9f298a1c...) plus a comment on that line (sha256 ca0157f608a03501b54f5933972876391d9f2c1d2ed38878938dbabb990dd93f). The fixture is copied byte-for-byte; its pre-flight was read
+once before this commit (PASS: total 38909, excluded 21354, filtered 17555).
+
+ARMS
+  A  1c94174e (the B6 base, B5 landed), built by ../legs/armA_build.sh in build-b6/armA from the detached
+     worktree build-b6/armA-src, Release, the build.sh flags; frozen at build-b6/armAbin/hven_sqp_corpus,
+     sha256 87a9564e5d98c26115995232e50ac1415797584bee32cb47e917b0cac20759bf (stamp 1c94174eed30).
+  B  the B6 code head 2a0392b9: build-b6/rel/bench/hven_sqp_corpus (re-configured at the head) copied by
+     run_all.sh to build-b6/armBbin/, sha256
+     2beb40b8ea9b94a969c5cc063c1ba6adf56bb020a913dea7863f75a5c65144f8 (stamp 2a0392b94be7).
+     run_all.sh refuses to start on a mismatch for either arm.
+  NOTE. Arm A is at a different source and build path from arm B (as in B5); instructions:u do not
+     depend on it.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration. (B6 changes no engine path; no
+measured row takes the new code, so counter identity is expected on every pair.)
+WHAT B6 ADDS TO THE MEASURED PATHS, for the reader of the ratios: the interior-point engine's objective
+piece is called through a smaller objective vtable (the same one virtual call per evaluation); the
+indexing-data checks that run at layout time call cold out-of-line functions for their messages; the
+Nlp bridge's objective piece lost five unreachable members. Nothing per iteration. The SQP modes run no
+changed code beyond the shared headers.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows
+UNOBSERVED.
