@@ -178,6 +178,46 @@ template <std::size_t K> constexpr bool pattern_unique(const std::array<BlockEnt
     return true;
 }
 
+/// Whether a piece's DECLARED Jacobian pattern is in range / unique; true when it
+/// declares none (the dense default is both by construction).
+template <class P> constexpr bool declared_jacobian_in_range() {
+    if constexpr (HasJacobianPattern<P>) {
+        return pattern_in_range(as_pattern<P::kJacobianPattern>(), P::kOutputs, P::kInputs);
+    } else {
+        return true;
+    }
+}
+template <class P> constexpr bool declared_jacobian_unique() {
+    if constexpr (HasJacobianPattern<P>) {
+        return pattern_unique(as_pattern<P::kJacobianPattern>());
+    } else {
+        return true;
+    }
+}
+/// Whether a piece's DECLARED Hessian pattern is in range / lower / unique; true
+/// when it declares none (the full lower triangle is all three by construction).
+template <class P> constexpr bool declared_hessian_in_range() {
+    if constexpr (HasHessianPattern<P>) {
+        return pattern_in_range(as_pattern<P::kHessianPattern>(), P::kInputs, P::kInputs);
+    } else {
+        return true;
+    }
+}
+template <class P> constexpr bool declared_hessian_lower() {
+    if constexpr (HasHessianPattern<P>) {
+        return pattern_lower(as_pattern<P::kHessianPattern>());
+    } else {
+        return true;
+    }
+}
+template <class P> constexpr bool declared_hessian_unique() {
+    if constexpr (HasHessianPattern<P>) {
+        return pattern_unique(as_pattern<P::kHessianPattern>());
+    } else {
+        return true;
+    }
+}
+
 /// The Jacobian pattern a constraint piece is laid with.
 template <class P> constexpr auto local_jacobian_pattern() {
     if constexpr (HasJacobianPattern<P>) {
@@ -260,18 +300,18 @@ template <class P> struct LocalConstraintBlock {
     static constexpr int kJacobianCount = static_cast<int>(kJacobian.size());
     static constexpr int kHessianCount = static_cast<int>(kHessian.size());
 
-    static_assert(detail::pattern_in_range(kJacobian, P::kOutputs, P::kInputs),
+    static_assert(detail::declared_jacobian_in_range<P>(),
                   "hven local block: a kJacobianPattern entry lies outside the kOutputs x "
                   "kInputs block");
-    static_assert(detail::pattern_unique(kJacobian),
+    static_assert(detail::declared_jacobian_unique<P>(),
                   "hven local block: kJacobianPattern lists an entry more than once");
-    static_assert(detail::pattern_in_range(kHessian, P::kInputs, P::kInputs),
+    static_assert(detail::declared_hessian_in_range<P>(),
                   "hven local block: a kHessianPattern entry lies outside the kInputs x "
                   "kInputs block");
-    static_assert(detail::pattern_lower(kHessian),
+    static_assert(detail::declared_hessian_lower<P>(),
                   "hven local block: a kHessianPattern entry lies above the diagonal; list the "
                   "lower triangle (row >= col) only");
-    static_assert(detail::pattern_unique(kHessian),
+    static_assert(detail::declared_hessian_unique<P>(),
                   "hven local block: kHessianPattern lists an entry more than once");
 
     P piece_;
@@ -510,13 +550,13 @@ template <class P> struct LocalObjectiveBlock {
     static constexpr auto kHessian = detail::local_hessian_pattern<P>();
     static constexpr int kHessianCount = static_cast<int>(kHessian.size());
 
-    static_assert(detail::pattern_in_range(kHessian, P::kInputs, P::kInputs),
+    static_assert(detail::declared_hessian_in_range<P>(),
                   "hven local block: a kHessianPattern entry lies outside the kInputs x "
                   "kInputs block");
-    static_assert(detail::pattern_lower(kHessian),
+    static_assert(detail::declared_hessian_lower<P>(),
                   "hven local block: a kHessianPattern entry lies above the diagonal; list the "
                   "lower triangle (row >= col) only");
-    static_assert(detail::pattern_unique(kHessian),
+    static_assert(detail::declared_hessian_unique<P>(),
                   "hven local block: kHessianPattern lists an entry more than once");
 
     P piece_;

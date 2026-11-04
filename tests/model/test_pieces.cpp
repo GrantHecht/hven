@@ -881,6 +881,58 @@ TEST(PiecesLocalBlocks, TheBuilderDerivesTheRowCounts) {
     EXPECT_EQ(problem.statistics().boxed_variables, chain.steps);
 }
 
+// A large block needs no pattern: the dense default (every Hessian entry of a
+// 40-input block's lower triangle, 820 slots) is generated, not checked, so it
+// costs no compile-time budget, and it assembles correctly.
+// f(v) = sum_i (v_i - c_i)^2 + w (sum_i v_i)^2, minimized at v = c - w S 1 with
+// S = sum(c) / (1 + 40 w).
+struct CoupledSquares {
+    static constexpr Index kInputs = 40;
+    double w;
+    static double target(Index i) { return 0.1 * static_cast<double>(i) - 1.0; }
+    double value(ConstVecRef v) const {
+        double f = 0.0;
+        for (Index i = 0; i < kInputs; i++) {
+            f += (v[i] - target(i)) * (v[i] - target(i));
+        }
+        const double sum = v.sum();
+        return f + w * sum * sum;
+    }
+    void gradient(ConstVecRef v, VecRef g) const {
+        const double sum = v.sum();
+        for (Index i = 0; i < kInputs; i++) {
+            g[i] = 2.0 * (v[i] - target(i)) + 2.0 * w * sum;
+        }
+    }
+    void hessian(ConstVecRef, MatRef H) const {
+        H.setConstant(2.0 * w);
+        H.diagonal().array() += 2.0;
+    }
+};
+
+TEST(PiecesLocalBlocks, ALargeDenseBlockNeedsNoPattern) {
+    constexpr double kW = 0.25;
+    AssemblyDeclaration d(CoupledSquares::kInputs);
+    Mi all(CoupledSquares::kInputs, 1);
+    for (Index i = 0; i < CoupledSquares::kInputs; i++) {
+        all(i, 0) = static_cast<int>(i);
+    }
+    d.add_objective(CoupledSquares{kW}, all);
+    Problem problem(std::move(d));
+    IpmSolver ipm = quiet_ipm();
+    const IpmResult r = ipm.solve(problem, Vx::Zero(CoupledSquares::kInputs));
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    double sum_c = 0.0;
+    for (Index i = 0; i < CoupledSquares::kInputs; i++) {
+        sum_c += CoupledSquares::target(i);
+    }
+    const double s = sum_c / (1.0 + CoupledSquares::kInputs * kW);
+    for (Index i = 0; i < CoupledSquares::kInputs; i++) {
+        EXPECT_NEAR(r.x[i], CoupledSquares::target(i) - kW * s, 1e-7) << i;
+    }
+    EXPECT_EQ(ProblemAccess::ipm_program(problem).num_user_kkt_elems_, 40 * 41 / 2);
+}
+
 // ---------------------------------------------------------------------------
 // The same problem as an Nlp: dense callbacks over the reference.
 // ---------------------------------------------------------------------------
