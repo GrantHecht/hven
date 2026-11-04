@@ -16,10 +16,9 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 
-#include "hven/detail/interior/solver_function_base.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/model/solver_function_base.h"
 
 namespace hven::solvers {
 
@@ -56,24 +55,27 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     /// @brief Calls the type-erased function's .constraints method, passing
     /// through the solver's arguments and the indexing data.
-    void constraints(ConstEigenRef<Eigen::VectorXd> X, Eigen::Ref<Eigen::VectorXd> FX) const {
+    void constraints(const Eigen::Ref<const Eigen::VectorXd> &X,
+                     Eigen::Ref<Eigen::VectorXd> FX) const {
         this->function_.constraints(X, FX, this->index_data_);
     }
 
     /// @brief Calls the type-erased function's .constraints_adjointgradient
     /// method, passing through the solver's arguments and the indexing data.
-    void constraints_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
-                                     ConstEigenRef<Eigen::VectorXd> L, EigenRef<Eigen::VectorXd> FX,
-                                     EigenRef<Eigen::VectorXd> AGX) const {
+    void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &X,
+                                     const Eigen::Ref<const Eigen::VectorXd> &L,
+                                     Eigen::Ref<Eigen::VectorXd> FX,
+                                     Eigen::Ref<Eigen::VectorXd> AGX) const {
         this->function_.constraints_adjointgradient(X, L, FX, AGX, this->index_data_);
     }
 
     /// @brief Calls the type-erased function's .constraints_jacobian method,
     /// passing through the solver's arguments and the indexing data.
-    void constraints_jacobian(ConstEigenRef<Eigen::VectorXd> X, EigenRef<Eigen::VectorXd> FX,
+    void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &X,
+                              Eigen::Ref<Eigen::VectorXd> FX,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                              EigenRef<Eigen::VectorXi> KKTLocations,
-                              EigenRef<Eigen::VectorXi> KKTClashes,
+                              Eigen::Ref<Eigen::VectorXi> KKTLocations,
+                              Eigen::Ref<Eigen::VectorXi> KKTClashes,
                               std::vector<std::mutex> &KKTLocks) const {
         this->function_.constraints_jacobian(X, FX, KKTmat, KKTLocations, KKTClashes, KKTLocks,
                                              this->index_data_);
@@ -82,13 +84,13 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
     /// @brief Calls the type-erased function's
     /// .constraints_jacobian_adjointgradient method, passing through the
     /// solver's arguments and the indexing data.
-    void constraints_jacobian_adjointgradient(ConstEigenRef<Eigen::VectorXd> X,
-                                              ConstEigenRef<Eigen::VectorXd> L,
-                                              EigenRef<Eigen::VectorXd> FX,
-                                              EigenRef<Eigen::VectorXd> AGX,
+    void constraints_jacobian_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &X,
+                                              const Eigen::Ref<const Eigen::VectorXd> &L,
+                                              Eigen::Ref<Eigen::VectorXd> FX,
+                                              Eigen::Ref<Eigen::VectorXd> AGX,
                                               Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                              EigenRef<Eigen::VectorXi> KKTLocations,
-                                              EigenRef<Eigen::VectorXi> KKTClashes,
+                                              Eigen::Ref<Eigen::VectorXi> KKTLocations,
+                                              Eigen::Ref<Eigen::VectorXi> KKTClashes,
                                               std::vector<std::mutex> &KKTLocks) const {
         this->function_.constraints_jacobian_adjointgradient(
             X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data_);
@@ -98,10 +100,10 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
     /// .constraints_jacobian_adjointgradient_adjointhessian method, passing
     /// through the solver's arguments and the indexing data.
     void constraints_jacobian_adjointgradient_adjointhessian(
-        ConstEigenRef<Eigen::VectorXd> X, ConstEigenRef<Eigen::VectorXd> L,
-        EigenRef<Eigen::VectorXd> FX, EigenRef<Eigen::VectorXd> AGX,
+        const Eigen::Ref<const Eigen::VectorXd> &X, const Eigen::Ref<const Eigen::VectorXd> &L,
+        Eigen::Ref<Eigen::VectorXd> FX, Eigen::Ref<Eigen::VectorXd> AGX,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-        EigenRef<Eigen::VectorXi> KKTLocations, EigenRef<Eigen::VectorXi> KKTClashes,
+        Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
         std::vector<std::mutex> &KKTLocks) const {
         this->function_.constraints_jacobian_adjointgradient_adjointhessian(
             X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data_);

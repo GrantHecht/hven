@@ -12,37 +12,23 @@
 // and ObjectiveFunction.
 
 #pragma once
-#include "hven/detail/interior/parsed_io_flags.h"
-#include <algorithm>
-#include <array>
-#include <functional>
-#include <iostream>
-#include <numeric>
-#include <stdexcept>
-#include <string>
-#include <type_traits>
-#include <typeinfo>
-#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <Eigen/Sparse>
 
-#include <fmt/format.h>
-
-#include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/detail/interior/utils/flat_map.h"
-#include "hven/detail/interior/utils/function_return_type.h"
-#include "hven/detail/interior/utils/get_core_count.h"
-#include "hven/detail/interior/utils/math_functions.h"
-#include "hven/detail/interior/utils/sizing_helpers.h"
-#include "hven/detail/interior/utils/std_extensions.h"
-#include "hven/detail/interior/utils/thread_pool.h"
-#include "hven/detail/interior/utils/type_name.h"
-#include "hven/detail/interior/utils/type_storage.h"
+#include "hven/model/parsed_io_flags.h"
 
 namespace hven::solvers {
+
+namespace detail {
+// The cold throw paths of SolverIndexingData's checks (src/model/validation_errors.cpp):
+// each check stays inline below, and only the message and the throw are out of line.
+[[noreturn]] void throw_output_v_index_shape(Eigen::Index rows, Eigen::Index cols,
+                                             Eigen::Index got_rows, Eigen::Index got_cols);
+[[noreturn]] void throw_thread_split_count(int threads);
+[[noreturn]] void throw_v_index_rows(int expected, Eigen::Index got);
+[[noreturn]] void throw_c_index_rows(int expected, Eigen::Index got);
+} // namespace detail
 
 /// @brief Canonical KKT lock column for the physical slot coupling global indices
 /// @p a and @p b: the smaller of the two.
@@ -146,10 +132,8 @@ struct SolverIndexingData {
     /// never has to undo a previous mapping.
     void set_output_v_index(const MatrixXi &vout) {
         if (vout.rows() != this->v_index_.rows() || vout.cols() != this->v_index_.cols()) {
-            throw std::invalid_argument(fmt::format(
-                "SolverIndexingData::set_output_v_index: expected a {}x{} map to "
-                "match the input map, got {}x{}",
-                this->v_index_.rows(), this->v_index_.cols(), vout.rows(), vout.cols()));
+            detail::throw_output_v_index_shape(this->v_index_.rows(), this->v_index_.cols(),
+                                               vout.rows(), vout.cols());
         }
         this->v_out_index_ = vout;
         this->v_out_reduced_ = true;
@@ -174,7 +158,7 @@ struct SolverIndexingData {
         return this->v_out_reduced_ ? this->v_out_index_(loc, col) : this->v_index_(loc, col);
     }
 
-    void get_gradient_space(EigenRef<VectorXi> GXrows, int &freeloc) {
+    void get_gradient_space(Eigen::Ref<VectorXi> GXrows, int &freeloc) {
         this->inner_gradient_starts_.resize(this->num_appl());
         for (int V = 0; V < this->num_appl(); V++) {
             this->inner_gradient_starts_[V] = freeloc;
@@ -188,7 +172,7 @@ struct SolverIndexingData {
             }
         }
     }
-    void get_constraint_space(EigenRef<VectorXi> FXrows, int &freeloc) {
+    void get_constraint_space(Eigen::Ref<VectorXi> FXrows, int &freeloc) {
         this->inner_constraint_starts_.resize(this->num_appl());
         for (int V = 0; V < this->num_appl(); V++) {
             this->inner_constraint_starts_[V] = freeloc;
@@ -201,8 +185,7 @@ struct SolverIndexingData {
 
     std::vector<SolverIndexingData> thread_split(int Threads) const {
         if (Threads <= 0)
-            throw std::invalid_argument(
-                fmt::format("thread_split: Threads must be positive, got {}", Threads));
+            detail::throw_thread_split_count(Threads);
 
         std::vector<SolverIndexingData> split;
         split.reserve(Threads);
@@ -236,10 +219,7 @@ struct SolverIndexingData {
 
     void set_v_index(const MatrixXi &vt) {
         if (vt.rows() != this->input_size_)
-            throw std::invalid_argument(
-                fmt::format("SolverIndexingData::set_v_index: expected {} rows (input_size_), "
-                            "got {}",
-                            this->input_size_, vt.rows()));
+            detail::throw_v_index_rows(this->input_size_, vt.rows());
         this->v_index_ = vt;
         this->vindex_init_ = true;
         this->num_funcappl_ = this->v_index_.cols();
@@ -250,10 +230,7 @@ struct SolverIndexingData {
     }
     void set_c_index(const MatrixXi &ct) {
         if (ct.rows() != this->output_size_)
-            throw std::invalid_argument(
-                fmt::format("SolverIndexingData::set_c_index: expected {} rows (output_size_), "
-                            "got {}",
-                            this->output_size_, ct.rows()));
+            detail::throw_c_index_rows(this->output_size_, ct.rows());
         this->c_index_ = ct;
         this->c_index_continuity_.resize(this->c_index_.cols());
         this->cindex_init_ = true;

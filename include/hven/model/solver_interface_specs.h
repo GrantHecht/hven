@@ -6,42 +6,27 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
-// Defines the type erasure specs (SolverConstraintSpec, SolverObjectiveSpec)
-// and concrete type erasure (ConstraintInterface, ObjectiveInterface) that
-// enable vector functions to interface with IpmSolver and NonLinearProgram.
+// The raw piece protocol's two type-erased handles, ConstraintInterface and
+// ObjectiveInterface, and the surface probes their adapters check a piece
+// against. The protocol is specified in docs/assembly-protocol.md; the
+// local-block layer (model/local_blocks.h) is the default way to write a piece
+// and produces these handles itself.
 
 #pragma once
 
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/sizing_specs.h"
-#include "hven/solver_interface_adapter.h"
-#include <algorithm>
-#include <array>
 #include <concepts>
-#include <functional>
-#include <iostream>
-#include <numeric>
-#include <stdexcept>
+#include <mutex>
 #include <string>
 #include <type_traits>
-#include <typeinfo>
-#include <variant>
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 
-#include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/detail/interior/utils/flat_map.h"
-#include "hven/detail/interior/utils/function_return_type.h"
-#include "hven/detail/interior/utils/get_core_count.h"
-#include "hven/detail/interior/utils/math_functions.h"
-#include "hven/detail/interior/utils/sizing_helpers.h"
-#include "hven/detail/interior/utils/std_extensions.h"
-#include "hven/detail/interior/utils/thread_pool.h"
-#include "hven/detail/interior/utils/type_name.h"
-#include "hven/detail/interior/utils/type_storage.h"
+#include "hven/core/type_storage.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/sizing_specs.h"
+#include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
 
@@ -61,13 +46,30 @@ using utils::TypeStorage;
 // They are expression probes, not signature matches: anything a Model can call
 // satisfies them, and nothing else does.
 
+/// What every piece reports about itself: its name, its input count and its
+/// threading posture. An objective piece needs nothing more of this kind.
 template <class T>
-concept SizableFunction = requires(const T &f) {
+concept PieceIdentity = requires(const T &f) {
     { f.name() } -> std::convertible_to<std::string>;
     { f.input_rows() } -> std::convertible_to<int>;
-    { f.output_rows() } -> std::convertible_to<int>;
     { f.thread_safe() } -> std::convertible_to<bool>;
 };
+
+/// The identity plus the output count a constraint piece reports.
+template <class T>
+concept SizableFunction = PieceIdentity<T> && requires(const T &f) {
+    { f.output_rows() } -> std::convertible_to<int>;
+};
+
+/// The claim pass: how many KKT slots one application claims, and claiming them.
+/// Both kinds of piece carry it.
+template <class T>
+concept PieceClaimSurface =
+    requires(const T &f, T &mf, Eigen::Ref<Eigen::VectorXi> KKTIdx, SolverIndexingData &mdata,
+             int &freeloc, int offset, bool flag) {
+        mf.get_kkt_space(KKTIdx, KKTIdx, freeloc, offset, flag, flag, mdata);
+        { f.num_kkt_elements(flag, flag) } -> std::convertible_to<int>;
+    };
 
 template <class T>
 concept SolverConstraintFunction =
@@ -88,9 +90,9 @@ concept SolverConstraintFunction =
         { f.num_kkt_elements(flag, flag) } -> std::convertible_to<int>;
     };
 
-/// The three scalar-objective members ONLY. Deliberately does not subsume
-/// SolverConstraintFunction: keeping the two groups independent is what lets
-/// a type missing exactly one of them get exactly one authored message.
+/// The three scalar-objective members ONLY. Deliberately independent of the
+/// identity and claim probes: keeping the groups apart is what lets a type
+/// missing exactly one of them get exactly one authored message.
 template <class T>
 concept SolverObjectiveSurface =
     requires(const T &f, double s, const Eigen::Ref<const Eigen::VectorXd> &X, double &Val,
@@ -102,10 +104,12 @@ concept SolverObjectiveSurface =
         f.objective_gradient_hessian(s, X, Val, GX, KKTmat, KKTIdx, KKTIdx, KKTLocks, data);
     };
 
-/// What ObjectiveModel<T> needs in full: it forwards the constraint surface as
-/// well as the objective one.
+/// What ObjectiveModel<T> needs in full: the identity, the claim pass and the
+/// three objective members. An objective piece carries no constraint surface
+/// and no output count; the handle reports one output, the scalar.
 template <class T>
-concept SolverObjectiveFunction = SolverConstraintFunction<T> && SolverObjectiveSurface<T>;
+concept SolverObjectiveFunction =
+    PieceIdentity<T> && PieceClaimSurface<T> && SolverObjectiveSurface<T>;
 
 /// @brief Type-erasure spec for a vector function usable as a constraint
 /// inside IpmSolver: the pure-virtual Concept the stored model
@@ -336,9 +340,16 @@ struct ConstraintInterface {
 
 // ObjectiveBase / ObjectiveModel<T> / ObjectiveInterface
 
-struct ObjectiveBase : SolverConstraintSpec::Concept,
-                       SolverObjectiveSpec::Concept,
-                       SizableSpec::Concept {
+/// The objective handle's erased surface: the identity, the claim pass and the
+/// objective members, and nothing of the constraint kind.
+struct ObjectiveBase : SolverObjectiveSpec::Concept {
+    virtual std::string name() const = 0;
+    virtual int input_rows() const = 0;
+    virtual bool thread_safe() const = 0;
+    virtual void get_kkt_space(Eigen::Ref<Eigen::VectorXi> KKTrows,
+                               Eigen::Ref<Eigen::VectorXi> KKTcols, int &freeloc, int conoffset,
+                               bool dojac, bool dohess, SolverIndexingData &data) = 0;
+    virtual int num_kkt_elements(bool dojac, bool dohess) const = 0;
     virtual void clone_into(TypeStorage<ObjectiveBase> &) const = 0;
 };
 
@@ -346,51 +357,10 @@ template <typename T> struct ObjectiveModel final : ObjectiveBase {
     T data_;
     explicit ObjectiveModel(T t) : data_(std::move(t)) {}
 
-    // SizableSpec::Concept
     std::string name() const override { return data_.name(); }
     int input_rows() const override { return data_.input_rows(); }
-    int output_rows() const override { return data_.output_rows(); }
     bool thread_safe() const override { return data_.thread_safe(); }
 
-    // SolverConstraintSpec::Concept
-    void constraints(const Eigen::Ref<const Eigen::VectorXd> &X, Eigen::Ref<Eigen::VectorXd> FX,
-                     const SolverIndexingData &data) const override {
-        data_.constraints(X, FX, data);
-    }
-    void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &X,
-                                     const Eigen::Ref<const Eigen::VectorXd> &L,
-                                     Eigen::Ref<Eigen::VectorXd> FX,
-                                     Eigen::Ref<Eigen::VectorXd> AGX,
-                                     const SolverIndexingData &data) const override {
-        data_.constraints_adjointgradient(X, L, FX, AGX, data);
-    }
-    void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &X,
-                              Eigen::Ref<Eigen::VectorXd> FX,
-                              Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                              Eigen::Ref<Eigen::VectorXi> KKTLocations,
-                              Eigen::Ref<Eigen::VectorXi> KKTClashes,
-                              std::vector<std::mutex> &KKTLocks,
-                              const SolverIndexingData &data) const override {
-        data_.constraints_jacobian(X, FX, KKTmat, KKTLocations, KKTClashes, KKTLocks, data);
-    }
-    void constraints_jacobian_adjointgradient(
-        const Eigen::Ref<const Eigen::VectorXd> &X, const Eigen::Ref<const Eigen::VectorXd> &L,
-        Eigen::Ref<Eigen::VectorXd> FX, Eigen::Ref<Eigen::VectorXd> AGX,
-        Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-        Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
-        std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const override {
-        data_.constraints_jacobian_adjointgradient(X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes,
-                                                   KKTLocks, data);
-    }
-    void constraints_jacobian_adjointgradient_adjointhessian(
-        const Eigen::Ref<const Eigen::VectorXd> &X, const Eigen::Ref<const Eigen::VectorXd> &L,
-        Eigen::Ref<Eigen::VectorXd> FX, Eigen::Ref<Eigen::VectorXd> AGX,
-        Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-        Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
-        std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const override {
-        data_.constraints_jacobian_adjointgradient_adjointhessian(
-            X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, data);
-    }
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> KKTrows, Eigen::Ref<Eigen::VectorXi> KKTcols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
                        SolverIndexingData &data) override {
@@ -457,48 +427,11 @@ struct ObjectiveInterface {
     // Forwarding methods
     std::string name() const { return storage_.get().name(); }
     int input_rows() const { return storage_.get().input_rows(); }
-    int output_rows() const { return storage_.get().output_rows(); }
+    /// An objective is scalar: one output, reported here rather than asked of
+    /// the piece.
+    int output_rows() const { return 1; }
     bool thread_safe() const { return storage_.get().thread_safe(); }
 
-    void constraints(const Eigen::Ref<const Eigen::VectorXd> &X, Eigen::Ref<Eigen::VectorXd> FX,
-                     const SolverIndexingData &data) const {
-        storage_.get().constraints(X, FX, data);
-    }
-    void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &X,
-                                     const Eigen::Ref<const Eigen::VectorXd> &L,
-                                     Eigen::Ref<Eigen::VectorXd> FX,
-                                     Eigen::Ref<Eigen::VectorXd> AGX,
-                                     const SolverIndexingData &data) const {
-        storage_.get().constraints_adjointgradient(X, L, FX, AGX, data);
-    }
-    void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &X,
-                              Eigen::Ref<Eigen::VectorXd> FX,
-                              Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                              Eigen::Ref<Eigen::VectorXi> KKTLocations,
-                              Eigen::Ref<Eigen::VectorXi> KKTClashes,
-                              std::vector<std::mutex> &KKTLocks,
-                              const SolverIndexingData &data) const {
-        storage_.get().constraints_jacobian(X, FX, KKTmat, KKTLocations, KKTClashes, KKTLocks,
-                                            data);
-    }
-    void constraints_jacobian_adjointgradient(
-        const Eigen::Ref<const Eigen::VectorXd> &X, const Eigen::Ref<const Eigen::VectorXd> &L,
-        Eigen::Ref<Eigen::VectorXd> FX, Eigen::Ref<Eigen::VectorXd> AGX,
-        Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-        Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
-        std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const {
-        storage_.get().constraints_jacobian_adjointgradient(X, L, FX, AGX, KKTmat, KKTLocations,
-                                                            KKTClashes, KKTLocks, data);
-    }
-    void constraints_jacobian_adjointgradient_adjointhessian(
-        const Eigen::Ref<const Eigen::VectorXd> &X, const Eigen::Ref<const Eigen::VectorXd> &L,
-        Eigen::Ref<Eigen::VectorXd> FX, Eigen::Ref<Eigen::VectorXd> AGX,
-        Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-        Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
-        std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const {
-        storage_.get().constraints_jacobian_adjointgradient_adjointhessian(
-            X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, data);
-    }
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> KKTrows, Eigen::Ref<Eigen::VectorXi> KKTcols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
                        SolverIndexingData &data) {
@@ -546,8 +479,9 @@ struct ObjectiveInterface {
 template <class T>
 void DirectFunctionModel<T>::install_constraint(const T &t, ConstraintInterface &ci) {
     static_assert(SolverConstraintFunction<T>,
-                  "hven constraint adapter: this registered type does not provide the solver "
-                  "constraint surface. A directly-stored constraint must supply name / "
+                  "hven constraint adapter: this type does not provide the piece constraint "
+                  "surface (and exposes no pack_into_constraint_interface hook). A directly "
+                  "stored constraint must supply name / "
                   "input_rows / output_rows / thread_safe, the constraints* evaluation family "
                   "(constraints, constraints_adjointgradient, constraints_jacobian, "
                   "constraints_jacobian_adjointgradient, and "
@@ -560,19 +494,17 @@ void DirectFunctionModel<T>::install_constraint(const T &t, ConstraintInterface 
 
 template <class T>
 void DirectFunctionModel<T>::install_objective(const T &t, ObjectiveInterface &oi) {
-    // Registration is per type, not per interface: a family registered for
-    // direct storage is registered for BOTH interfaces, so a constraint-only
-    // family can reach this one. The two surfaces are asserted separately
-    // because ObjectiveModel forwards both, and a type missing exactly one
-    // should be told which.
-    static_assert(SolverConstraintFunction<T>,
-                  "hven objective adapter: this registered type does not provide the solver "
-                  "constraint surface, which an objective needs as well -- ObjectiveModel "
-                  "forwards the constraints* family, get_kkt_space, and num_kkt_elements "
-                  "alongside the objective members. See install_constraint's message for the "
-                  "full list.");
+    // Registration is per type, not per interface: a family stored directly
+    // is reachable from BOTH interfaces, so a constraint-only family can reach
+    // this one. The piece surface and the objective surface are asserted
+    // separately, so a type missing exactly one is told which.
+    static_assert(PieceIdentity<T> && PieceClaimSurface<T>,
+                  "hven objective adapter: this type does not provide the piece surface an "
+                  "objective needs: name / input_rows / thread_safe, get_kkt_space and "
+                  "num_kkt_elements -- callable with the argument types ObjectiveModel passes. "
+                  "An objective piece needs no output_rows and no constraints* family.");
     static_assert(SolverObjectiveSurface<T>,
-                  "hven objective adapter: this registered type does not provide the scalar "
+                  "hven objective adapter: this type does not provide the scalar "
                   "objective interface (objective / objective_gradient / "
                   "objective_gradient_hessian; OR == 1) -- or provides only part of it. All "
                   "three are required, callable with the argument types ObjectiveModel passes. "

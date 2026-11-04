@@ -1,13 +1,8 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// AssemblyDeclaration's special members and its boundary validation.
-//
-// Out of line because the declaration holds its piece lists BY VALUE while the
-// header only declares the piece handle types: defining the special members
-// here, where the definitions are in scope, is what lets a consumer name,
-// construct, inspect and validate a declaration without pulling the piece
-// machinery in behind it.
+// AssemblyDeclaration's special members, its builder and its boundary
+// validation.
 
 #include "hven/model/assembly_declaration.h"
 
@@ -16,16 +11,28 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
 #include "hven/model/structure_identity.h"
 
 namespace hven::solvers {
 
 AssemblyDeclaration::AssemblyDeclaration() = default;
+
+AssemblyDeclaration::AssemblyDeclaration(Index variables) {
+    if (variables < 0 || variables > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration: {0} variables is not a variable count a declaration can state "
+            "(it must lie in [0, {1}])",
+            variables, std::numeric_limits<int>::max()));
+    }
+    primal_vars_ = static_cast<int>(variables);
+}
 AssemblyDeclaration::~AssemblyDeclaration() = default;
 AssemblyDeclaration::AssemblyDeclaration(const AssemblyDeclaration &) = default;
 AssemblyDeclaration &AssemblyDeclaration::operator=(const AssemblyDeclaration &) = default;
@@ -104,7 +111,185 @@ void require_non_negative(int value, const char *what) {
     }
 }
 
+/// Refuses an index map whose shape does not fit the piece, or that names no
+/// application.
+void require_map_shape(const Eigen::MatrixXi &map, int expected_rows, const char *call,
+                       const std::string &piece, const char *map_name, const char *count_name) {
+    if (map.rows() != expected_rows) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration::{0}: piece '{1}' has {2} {3}, but the {4} map has {5} rows; "
+            "row i of column V names {3} i of application V",
+            call, piece, expected_rows, count_name, map_name, map.rows()));
+    }
+    if (map.cols() < 1) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::{0}: the {1} map of piece '{2}' has no column, so "
+                        "it names no application",
+                        call, map_name, piece));
+    }
+}
+
+/// Refuses a variable index outside the declaration.
+void require_variables_in_range(const Eigen::MatrixXi &variables, int primal_vars, const char *call,
+                                const std::string &piece) {
+    for (Index V = 0; V < variables.cols(); V++) {
+        for (Index i = 0; i < variables.rows(); i++) {
+            const int index = variables(i, V);
+            if (index < 0 || index >= primal_vars) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names variable {3} "
+                    "as input {4}, but the declaration has {5} variables (indices 0..{6})",
+                    call, V, piece, index, i, primal_vars, primal_vars - 1));
+            }
+        }
+    }
+}
+
+/// One past the largest row a block's applications name (0 for an empty block).
+int row_space_end(const std::vector<ConstraintFunction> &pieces) {
+    int end = 0;
+    for (const ConstraintFunction &piece : pieces) {
+        const Eigen::MatrixXi &rows = piece.index_data_.get_c_index();
+        if (rows.size() > 0) {
+            end = std::max(end, rows.maxCoeff() + 1);
+        }
+    }
+    return end;
+}
+
+/// Refuses, on a block whose rows the builder derived, a row no application names
+/// and a row past the block's count.
+void require_rows_covered(const std::vector<ConstraintFunction> &pieces, int declared,
+                          const char *which) {
+    std::vector<char> named(static_cast<std::size_t>(std::max(declared, 0)), 0);
+    for (std::size_t k = 0; k < pieces.size(); k++) {
+        const Eigen::MatrixXi &rows = pieces[k].index_data_.get_c_index();
+        for (Index V = 0; V < rows.cols(); V++) {
+            for (Index j = 0; j < rows.rows(); j++) {
+                const int row = rows(j, V);
+                if (row < 0 || row >= declared) {
+                    throw std::invalid_argument(fmt::format(
+                        "AssemblyDeclaration: {0} piece {1} ('{2}') names {0} row {3} in "
+                        "application {4}, outside the {5} {0} rows the declaration states",
+                        which, k, pieces[k].function_.name(), row, V, declared));
+                }
+                named[static_cast<std::size_t>(row)] = 1;
+            }
+        }
+    }
+    for (int row = 0; row < declared; row++) {
+        if (named[static_cast<std::size_t>(row)] == 0) {
+            throw std::invalid_argument(fmt::format(
+                "AssemblyDeclaration: {0} row {1} is named by no application of any {0} piece; "
+                "every row of a block's row space 0..{2} must be some piece's output (a row "
+                "with no piece is the constraint 0 = 0)",
+                which, row, declared - 1));
+        }
+    }
+}
+
+/// Refuses a bound side that is NaN, or a lower side above the upper.
+void require_bound_pair(Index index, double lower, double upper) {
+    if (std::isnan(lower) || std::isnan(upper)) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the bound on variable {0} is not a "
+                        "number (lower={1}, upper={2})",
+                        index, lower, upper));
+    }
+    if (lower > upper) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the bound on variable {0} is inverted "
+                        "(lower={1} is above upper={2})",
+                        index, lower, upper));
+    }
+}
+
 } // namespace
+
+void AssemblyDeclaration::add_objective_handle(ObjectiveInterface piece,
+                                               const Eigen::MatrixXi &variables) {
+    const std::string name = piece.name();
+    require_map_shape(variables, piece.input_rows(), "add_objective", name, "variable", "inputs");
+    require_variables_in_range(variables, primal_vars_, "add_objective", name);
+    objectives_.emplace_back(piece, variables);
+}
+
+void AssemblyDeclaration::add_constraint_handle(ConstraintInterface piece,
+                                                const Eigen::MatrixXi &variables,
+                                                const Eigen::MatrixXi &rows, bool inequality) {
+    const char *call = inequality ? "add_inequality" : "add_equality";
+    const std::string name = piece.name();
+    require_map_shape(variables, piece.input_rows(), call, name, "variable", "inputs");
+    require_map_shape(rows, piece.output_rows(), call, name, "row", "outputs");
+    if (rows.cols() != variables.cols()) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration::{0}: piece '{1}' has {2} applications in its variable map and "
+            "{3} in its row map; column V of both describes application V",
+            call, name, variables.cols(), rows.cols()));
+    }
+    require_variables_in_range(variables, primal_vars_, call, name);
+    for (Index V = 0; V < rows.cols(); V++) {
+        for (Index j = 0; j < rows.rows(); j++) {
+            if (rows(j, V) < 0) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names row {3} as "
+                    "output {4}; a row is a non-negative index",
+                    call, V, name, rows(j, V), j));
+            }
+        }
+    }
+
+    std::vector<ConstraintFunction> &block =
+        inequality ? inequality_constraints_ : equality_constraints_;
+    block.emplace_back(piece, variables, rows);
+
+    // The derived counts: the row space is 0 .. (largest row named), and the
+    // overcount is how far the pieces' claimed rows exceed it. A block whose
+    // pieces outgrow a count already on hand widens it; validate() then refuses
+    // any row of the space no application names.
+    int &declared = inequality ? inequality_rows_ : equality_rows_;
+    int &overcount = inequality ? inequality_shared_row_overcount_ : equality_shared_row_overcount_;
+    const char *which = inequality ? "inequality" : "equality";
+    declared = std::max(declared, row_space_end(block));
+    overcount = declared_rows(block, which) - declared;
+    rows_derived_ = true;
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_bounds(Index index, double lower, double upper) {
+    return set_bounds(index, index, lower, upper);
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_bounds(Index first, Index last, double lower,
+                                                     double upper) {
+    if (last < first) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the range {0}..{1} is empty (last is "
+                        "below first; the range is inclusive)",
+                        first, last));
+    }
+    if (first < 0 || last >= primal_vars_) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration::set_bounds: the range {0}..{1} leaves the declaration's {2} "
+            "variables (indices 0..{3})",
+            first, last, primal_vars_, primal_vars_ - 1));
+    }
+    require_bound_pair(first, lower, upper);
+    for (Index index = first; index <= last; index++) {
+        variable_bounds_.push_back(VariableBound{static_cast<int>(index), lower, upper});
+    }
+    return *this;
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_partitions(Index partitions) {
+    if (partitions < 1 || partitions > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_partitions: {0} partitions is not a count the "
+                        "layout can adopt (it must lie in [1, {1}])",
+                        partitions, std::numeric_limits<int>::max()));
+    }
+    partition_count_ = static_cast<int>(partitions);
+    return *this;
+}
 
 std::vector<VariableBound> AssemblyDeclaration::materialize_variable_bounds() const {
     constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -150,6 +335,14 @@ std::vector<VariableBound> AssemblyDeclaration::materialize_variable_bounds() co
 }
 
 void AssemblyDeclaration::validate() const {
+    // A builder-derived row space has a piece behind every row. Checked first: a
+    // row no piece names is what a negative derived overcount below would mean,
+    // and this says which row.
+    if (rows_derived_) {
+        require_rows_covered(equality_constraints_, equality_rows_, "equality");
+        require_rows_covered(inequality_constraints_, inequality_rows_, "inequality");
+    }
+
     require_non_negative(primal_vars_, "the primal-variable count");
     require_non_negative(equality_rows_, "the equality-row count");
     require_non_negative(inequality_rows_, "the inequality-row count");

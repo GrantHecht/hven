@@ -3,7 +3,7 @@
 
 // General-purpose SBO container with value semantics: the storage behind this
 // library's erased function handles (ConstraintInterface / ObjectiveInterface,
-// see detail/solvers/solver_interface_specs.h), available to any consumer
+// see model/solver_interface_specs.h), available to any consumer
 // handle built on the same clone_into convention.
 
 #pragma once

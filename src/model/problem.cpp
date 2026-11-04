@@ -283,7 +283,9 @@ class ProblemState {
         case Kind::kProgram:
             throw std::invalid_argument(
                 "SqpSolver: this Problem is built from pieces (an AssemblyDeclaration), which "
-                "the SQP engine does not solve; solve it with IpmSolver");
+                "the SQP engine does not solve; solve it with IpmSolver, or state the problem as "
+                "an "
+                "Nlp (model/nlp.h), which both engines solve");
         }
         throw std::logic_error("Problem: unrecognised problem kind");
     }

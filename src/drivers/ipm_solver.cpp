@@ -38,6 +38,7 @@
 #include "hven/drivers/trace.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
+#include "hven/detail/interior/utils/get_core_count.h"
 #include "hven/detail/interior/utils/timer.h"
 
 #ifdef USE_ACCELERATE_SPARSE

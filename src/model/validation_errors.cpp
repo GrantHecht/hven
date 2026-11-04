@@ -18,7 +18,10 @@
 
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/local_blocks.h"
 #include "hven/model/nlp_assembly.h"
+#include "hven/model/solver_function_base.h"
 #include "hven/model/structure_identity.h"
 
 namespace hven::solvers::detail {
@@ -218,6 +221,50 @@ void throw_bound_destination_mismatch(const double *view_values, const double *b
         "fill. (A consumer matrix that was resized or reallocated moves its value array, so "
         "this is a stale location table being caught rather than a rejected argument.)",
         fmt::ptr(view_values), fmt::ptr(bound)));
+}
+
+// ------------------------------------------------------------- indexing_data.h
+
+void throw_output_v_index_shape(Eigen::Index rows, Eigen::Index cols, Eigen::Index got_rows,
+                                Eigen::Index got_cols) {
+    throw std::invalid_argument(fmt::format("SolverIndexingData::set_output_v_index: expected a "
+                                            "{}x{} map to match the input map, got {}x{}",
+                                            rows, cols, got_rows, got_cols));
+}
+
+void throw_thread_split_count(int threads) {
+    throw std::invalid_argument(
+        fmt::format("thread_split: Threads must be positive, got {}", threads));
+}
+
+void throw_v_index_rows(int expected, Eigen::Index got) {
+    throw std::invalid_argument(fmt::format(
+        "SolverIndexingData::set_v_index: expected {} rows (input_size_), got {}", expected, got));
+}
+
+void throw_c_index_rows(int expected, Eigen::Index got) {
+    throw std::invalid_argument(fmt::format(
+        "SolverIndexingData::set_c_index: expected {} rows (output_size_), got {}", expected, got));
+}
+
+// ------------------------------------------------------- solver_function_base.h
+
+void throw_thread_mode_laid(const std::string &piece, int mode) {
+    throw std::invalid_argument(fmt::format(
+        "set_thread_mode: the layout on hand was laid over '{0}' with thread mode {1}, and "
+        "the mode decides which partition claims its KKT slots; re-lay from a declaration "
+        "carrying the new mode instead of writing the laid piece",
+        piece, mode));
+}
+
+// --------------------------------------------------------------- local_blocks.h
+
+void throw_local_block_split_claim(const std::string &piece) {
+    throw std::logic_error(fmt::format(
+        "local constraint block '{0}': claimed for one of its Jacobian and Hessian domains "
+        "without the other; a constraint piece's Hessian slots follow its Jacobian slots, so "
+        "the layout claims the two together",
+        piece));
 }
 
 } // namespace hven::solvers::detail

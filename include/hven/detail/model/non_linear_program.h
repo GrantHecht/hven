@@ -31,9 +31,9 @@
 #include <fmt/format.h>
 
 #include "hven/detail/interior/bound_set.h"
-#include "hven/detail/interior/constraint_function.h"
+#include "hven/model/constraint_function.h"
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/objective_function.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/model/claim_restatement.h"

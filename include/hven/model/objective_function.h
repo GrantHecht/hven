@@ -16,10 +16,9 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 
-#include "hven/detail/interior/solver_function_base.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/model/solver_function_base.h"
 
 namespace hven::solvers {
 
@@ -48,24 +47,24 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
 
     /// @brief Calls the type-erased function's .objective method, passing
     /// through the solver's arguments and the indexing data.
-    void objective(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val) const {
+    void objective(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X, double &Val) const {
         this->function_.objective(ObjScale, X, Val, this->index_data_);
     }
 
     /// @brief Calls the type-erased function's .objective_gradient method,
     /// passing through the solver's arguments and the indexing data.
-    void objective_gradient(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
-                            EigenRef<Eigen::VectorXd> GX) const {
+    void objective_gradient(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X,
+                            double &Val, Eigen::Ref<Eigen::VectorXd> GX) const {
         this->function_.objective_gradient(ObjScale, X, Val, GX, this->index_data_);
     }
 
     /// @brief Calls the type-erased function's .objective_gradient_hessian
     /// method, passing through the solver's arguments and the indexing data.
-    void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
-                                    EigenRef<Eigen::VectorXd> GX,
+    void objective_gradient_hessian(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X,
+                                    double &Val, Eigen::Ref<Eigen::VectorXd> GX,
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                    EigenRef<Eigen::VectorXi> KKTLocations,
-                                    EigenRef<Eigen::VectorXi> KKTClashes,
+                                    Eigen::Ref<Eigen::VectorXi> KKTLocations,
+                                    Eigen::Ref<Eigen::VectorXi> KKTClashes,
                                     std::vector<std::mutex> &KKTLocks) {
         this->function_.objective_gradient_hessian(ObjScale, X, Val, GX, KKTmat, KKTLocations,
                                                    KKTClashes, KKTLocks, this->index_data_);

@@ -36,13 +36,13 @@
 #include <fmt/format.h>
 
 #include "hven/core/types.h"
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/objective_function.h"
-#include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_model.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/objective_function.h"
+#include "hven/model/threading_flags.h"
 #include "hven/solver_interface_adapter.h"
 
 namespace hven::solvers {
@@ -284,7 +284,6 @@ struct NLPObjectivePiece {
 
     std::string name() const { return core_->name_ + " (objective)"; }
     int input_rows() const { return core_->n_; }
-    int output_rows() const { return 1; }
     bool thread_safe() const { return false; }
     bool owns_hessian() const { return core_->hess_owner_ == NLPAdapterCore::HessOwner::Objective; }
 
@@ -332,41 +331,6 @@ struct NLPObjectivePiece {
             core_->le_recorded_ = false;
             throw;
         }
-    }
-
-    // A constraint interface is part of the objective concept because the KKT
-    // sizing pass is shared; only the two structure methods are ever invoked on
-    // an objective. The evaluation methods below are unreachable and say so.
-    void constraints(ConstEigenRef<Eigen::VectorXd>, EigenRef<Eigen::VectorXd>,
-                     const SolverIndexingData &) const {
-        throw std::logic_error("NLPObjectivePiece: constraint evaluation on an objective");
-    }
-    void constraints_adjointgradient(ConstEigenRef<Eigen::VectorXd>, ConstEigenRef<Eigen::VectorXd>,
-                                     EigenRef<Eigen::VectorXd>, EigenRef<Eigen::VectorXd>,
-                                     const SolverIndexingData &) const {
-        throw std::logic_error("NLPObjectivePiece: constraint evaluation on an objective");
-    }
-    void constraints_jacobian(ConstEigenRef<Eigen::VectorXd>, EigenRef<Eigen::VectorXd>,
-                              Eigen::SparseMatrix<double, Eigen::RowMajor> &,
-                              EigenRef<Eigen::VectorXi>, EigenRef<Eigen::VectorXi>,
-                              std::vector<std::mutex> &, const SolverIndexingData &) const {
-        throw std::logic_error("NLPObjectivePiece: constraint evaluation on an objective");
-    }
-    void constraints_jacobian_adjointgradient(ConstEigenRef<Eigen::VectorXd>,
-                                              ConstEigenRef<Eigen::VectorXd>,
-                                              EigenRef<Eigen::VectorXd>, EigenRef<Eigen::VectorXd>,
-                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &,
-                                              EigenRef<Eigen::VectorXi>, EigenRef<Eigen::VectorXi>,
-                                              std::vector<std::mutex> &,
-                                              const SolverIndexingData &) const {
-        throw std::logic_error("NLPObjectivePiece: constraint evaluation on an objective");
-    }
-    void constraints_jacobian_adjointgradient_adjointhessian(
-        ConstEigenRef<Eigen::VectorXd>, ConstEigenRef<Eigen::VectorXd>, EigenRef<Eigen::VectorXd>,
-        EigenRef<Eigen::VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &,
-        EigenRef<Eigen::VectorXi>, EigenRef<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const SolverIndexingData &) const {
-        throw std::logic_error("NLPObjectivePiece: constraint evaluation on an objective");
     }
 
     void get_kkt_space(EigenRef<Eigen::VectorXi> KKTrows, EigenRef<Eigen::VectorXi> KKTcols,

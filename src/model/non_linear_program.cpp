@@ -16,7 +16,7 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/indexing_data.h"
+#include "hven/model/indexing_data.h"
 #include "hven/detail/interior/utils/timer.h"
 #include "hven/detail/model/non_linear_program.h"
 

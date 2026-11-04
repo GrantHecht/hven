@@ -19,9 +19,9 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/threading_flags.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/solver_interface_adapter.h"
 

@@ -16,19 +16,20 @@
 #pragma once
 
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 #include <Eigen/Core>
 
-#include <fmt/format.h>
-
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/threading_flags.h"
-#include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/detail/solvers/solver_interface_specs.h"
+#include "hven/model/indexing_data.h"
+#include "hven/model/solver_interface_specs.h"
+#include "hven/model/threading_flags.h"
 
 namespace hven::solvers {
+
+namespace detail {
+// The cold throw path of set_thread_mode's check (src/model/validation_errors.cpp).
+[[noreturn]] void throw_thread_mode_laid(const std::string &piece, int mode);
+} // namespace detail
 
 /// The one type allowed to move a piece's lay marker: it is the thing that
 /// lays layouts, and the marker records that it has.
@@ -96,23 +97,20 @@ template <class FuncType> struct SolverFunctionBase {
     /// carries the new mode, never by writing the piece on hand.
     void set_thread_mode(ThreadingFlags mode) {
         if (this->thread_mode_laid_) {
-            throw std::invalid_argument(fmt::format(
-                "set_thread_mode: the layout on hand was laid over '{0}' with thread mode {1}, and "
-                "the mode decides which partition claims its KKT slots; re-lay from a declaration "
-                "carrying the new mode instead of writing the laid piece",
-                this->function_.name(), static_cast<int>(this->thread_mode_)));
+            detail::throw_thread_mode_laid(this->function_.name(),
+                                           static_cast<int>(this->thread_mode_));
         }
         this->thread_mode_ = mode;
     }
-    void get_kkt_space(EigenRef<VectorXi> KKTrows, EigenRef<VectorXi> KKTcols, int &freeloc,
+    void get_kkt_space(Eigen::Ref<VectorXi> KKTrows, Eigen::Ref<VectorXi> KKTcols, int &freeloc,
                        int conoffset, bool dojac, bool dohess) {
         this->function_.get_kkt_space(KKTrows, KKTcols, freeloc, conoffset, dojac, dohess,
                                       this->index_data_);
     }
-    void get_gradient_space(EigenRef<VectorXi> GXrows, int &freeloc) {
+    void get_gradient_space(Eigen::Ref<VectorXi> GXrows, int &freeloc) {
         this->index_data_.get_gradient_space(GXrows, freeloc);
     }
-    void get_constraint_space(EigenRef<VectorXi> FXrows, int &freeloc) {
+    void get_constraint_space(Eigen::Ref<VectorXi> FXrows, int &freeloc) {
         this->index_data_.get_constraint_space(FXrows, freeloc);
     }
 
