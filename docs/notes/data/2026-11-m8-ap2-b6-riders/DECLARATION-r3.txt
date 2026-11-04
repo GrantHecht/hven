@@ -1,0 +1,26 @@
+M8 AP-2 group B6 riders -- DECLARATION-r3 (successor to DECLARATION-r2.txt; committed before the re-run;
+never edited afterwards)
+================================================================================
+WHAT FAILED. chain1 (r2) leg ctest-debug, rc 8: 3440/3441, PiecesLocalBlocks.AWidePieceSolvesOnFourPartitions
+failed its own residual bound -- a block residual of 2.40e-8 against the test's 1e-8 at the converged point
+(suites/ctest-debug.log). The same test passed in the Release suite of the same chain, in the off-reference
+Release ctest, and in the dev Debug and Release suites before the declaration: at four partitions the last
+bits of contested Hessian sums follow the scheduling order, and the final residual of one run moves with
+them. The test's bound was tighter than the solve's own convergence criterion (common.feasibility_tol =
+1e-6); the code under test is not implicated. Every other chain1 leg passed: replay 0 differences x3,
+iparm byte-identical, Release suite 3441/3441, examples 8/8, smoke both arms + export contract, PCH PASS,
+Accelerate pass A byte-identical to B6's, off-reference clean build (26 warning lines) + ctest 3441/3441,
+flags IDENTICAL. The census leg was still running when this was written and continues to its end on the
+frozen arm B binary. All chain1 records are kept where they are (chain/, suites/, replay/, ...).
+THE FIX. e3c634c5 (test only): the test bounds each block's residual by IpmOptions{}.common.feasibility_tol.
+New code head e3c634c5; no library, bench or example source changed.
+THE RE-RUN (legs/chain2.sh, records under r3/): incremental rebuild of build-b6r/rel and build-b6r/dbg at
+e3c634c5; a FAIL-CLOSED check that build-b6r/rel/bench/hven_sqp_corpus is byte-identical to arm B
+(sha256 ba7735c4f0d3a6ad9e3cc0473da3af6d3fca9e485bfdd9496683af9e79da0bd8); then replay, iparm (legs/iparm.sh
+now takes its output directory, RIDERS_IPARM_EV; the dumper source unchanged), the Release and Debug
+suites, examples, install smoke, PCH, Accelerate, the off-reference clean build + ctest, and flags.
+CARRIED BY BYTE IDENTITY (declared here, not re-run): P11 runtime gate (runtime/, PASS) and P5 census
+(census/, chain1's leg on build-b6r/armBbin) measure only the corpus binary, which the check above proves
+unchanged; a moved corpus binary stops the chain (CORPUS_BINARY_MOVED) and the two are then re-run.
+CRITERIA. DECLARATION.txt's P1-P11 and X1-X6 unchanged, with the code head read as e3c634c5 and X5's count
+unchanged (3441; the fix renames and adds nothing). P5 is judged on chain1's census record.
