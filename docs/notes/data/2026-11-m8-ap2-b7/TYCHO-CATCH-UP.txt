@@ -1,0 +1,30 @@
+M8 AP-2 B7 -- tycho catch-up (what tycho must check or change when it consumes B7)
+================================================================================
+T1  BEHAVIOUR (the declared default event). CommonOptions::infinite_bound = 1e20 is now LIVE on both
+    engines: a declared bound b >= 1e20 is +inf and b <= -1e20 is -inf, on variable and constraint-row
+    bounds, every route. Before B7 the interior-point engine (and the SQP's NLP-level tests) took every
+    finite value as a real bound. A tycho model that writes "no bound" as +/-1e20 (or beyond) now gets
+    no barrier term and no slack for it on the IPM -- iteration counts and residuals move on such
+    problems; one that relies on a finite bound >= 1e20 being REAL must set
+    common.infinite_bound = kInfinity (or above its largest real bound).
+T2  REFUSALS. A bound pair the threshold makes empty is refused by name: a lower bound at or beyond
+    +1e20 (or an upper at or below -1e20), an equality row at +/-1e20, a variable fixed at +/-1e20.
+    Before B7 these were accepted as real (huge) bounds.
+T3  A Problem solved under a non-default threshold is re-laid (counted IPM analysis); a pre-laid
+    program (detail::problem_from_program) or an NlpModelAssembly laid under one threshold and solved
+    under another is refused by name. make_nlp_program(..., num_partitions, infinite_bound),
+    NlpProblemModel(nlp, infinite_bound), NlpModelAssembly(model, infinite_bound) and
+    NonLinearProgram::set_infinite_bound carry the threshold (defaults = 1e20, source compatible).
+T4  REMOVED detail constants: detail::kEngineInfBound (qp_engine.h), detail::kIpqpInfBound
+    (ipqp_math.h), detail::kSsnInfBound (ssn_engine.h), testing::QpDegeneracyParams::inf_bound. The
+    one QP-tier cutoff is QpProblem::infinite_bound (default 1e20 for a hand-built QpProblem;
+    has_lower(i)/has_upper(i)). A tycho site naming any of the four must move to it.
+    ipqp_has_lower/ipqp_has_upper now test infinity alone (make_ipqp_box writes an absent side as an
+    infinity). detail::kRestorationSlackBound is +inf (was 1e20).
+T5  ADDED: ProblemStatistics::absent_bounds; NlpModel::absent_bounds() (virtual, default 0; a tycho
+    NlpModel need not override); the trailing `absent_bounds` key on the sqp.solve.begin and
+    ipm.solve.begin trace lines (and the struct fields), so a tycho golden pin of either line moves by
+    one trailing key.
+T6  The model-taking free helpers evaluate_kkt(model, ...) and build_subproblem(model, ...) read the
+    model's box under the DEFAULT threshold (absent sides become infinities; the subproblem is
+    stamped QpProblem::infinite_bound = +inf).

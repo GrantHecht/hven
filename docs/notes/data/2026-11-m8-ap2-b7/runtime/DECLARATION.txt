@@ -1,0 +1,47 @@
+M8 AP-2 group B7 -- runtime neutrality gate -- DECLARATION
+(the B6 riders' instrument, ../../2026-11-m8-ap2-b6-riders/runtime/, re-derived for B7; committed before
+the first leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b6-riders/runtime/DECLARATION.txt, taken VERBATIM except for the arms, the
+paths, this group's name and the one declared change to the interior mode below. run_all.sh and
+runtime_leg.sh are the B6 riders' with the comments' group name, the worktree path, the build directory
+(build-b6r -> build-b7e), the evidence directory and arm A's sha256 replaced, plus runtime_leg.sh's
+interior-mode pin (below). analyze_r5.py is the B6 riders' byte for byte except the comment on its one
+repository-root line: b7/runtime/ is five levels below the root, as b6-riders/runtime/ was (checked by
+chain1.sh's pre-flight, not carried; sha256 1aeb3efd227421d6bd83fec5ba68adbae3e1dc7a1ca14eb7fd180ef9dd7206c4).
+The fixture is copied byte for byte; its pre-flight was read once before this commit (PASS: total
+38909, excluded 21354, filtered 17555).
+
+ARMS
+  A  the B7 base 31c73879 (m8 after B6), built by ../legs/armA_config.sh in build-b7e/armA from the
+     detached worktree build-b7e/armA-src, Release, the build.sh flags; frozen at
+     build-b7e/armAbin/hven_sqp_corpus, sha256 55fc58a35389c58260005a0d875db612e6f8f40d5193983b0c6bb0f108a70ea3.
+  B  the B7 code head 8089104c: build-b7e/rel/bench/hven_sqp_corpus (a fresh configure and build at
+     the head, ../legs/build.sh) copied by run_all.sh to build-b7e/armBbin/, sha256 d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c.
+     run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration.
+THE INTERIOR MODE (the one declared change). B7 is a declared DEFAULT event for the interior-point
+engine: at infinite_bound = 1e20 the F7 cells' +/-1e20 free-state bounds are absent, where arm A
+reads them as real, so the two arms' interior rows differ at the defaults (../DECLARATION.txt, D2) and
+counter identity cannot hold there. The interior mode therefore runs arm B under the leg's declared
+pre-event pin, HVEN_LEG_PRE_B7_INFINITE_BOUND=1 (bench/ipm_corpus_leg.cpp: the leg solves and lays its
+program under infinite_bound = kInfinity, "every finite value is a real bound", the pre-B7 reading),
+and arm A under a placeholder variable of the same length (HVEN_LEG_NOT_B7_INFINITE_BOUND=1, read by
+nothing), so the environments are one size. Measured before this declaration (dev, not evidence): arm B
+under the pin reproduces arm A's interior rows exactly (compare_replay.py, 43 rows x 30 columns, 0
+differences). The ratio therefore measures B7's code -- the rule's per-bound reads, the per-program
+threshold, the trace count -- at the pre-event semantics. The SQP modes (ipm, ssn, walk) run both arms
+at the defaults, unchanged: their rows are byte-identical at the defaults (../DECLARATION.txt, P3).
+WHAT B7 ADDS TO THE MEASURED PATHS, for the reader of the ratios: per bound at transcription (once per
+lay), a two-comparison normalization and an absent count; a bridge, program and seam built per solve
+read each bound once more; the SQP subproblem carries one more double (QpProblem::infinite_bound) and
+the walk/SSN/IPQP presence tests read it from the problem instead of a constant (IPQP: an infinity test
+on a box it maps once per subproblem); nothing per iteration on the interior-point engine.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows
+UNOBSERVED.
