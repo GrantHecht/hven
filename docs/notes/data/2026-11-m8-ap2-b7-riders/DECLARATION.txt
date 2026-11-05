@@ -1,0 +1,129 @@
+M8 AP-2 group B7 RIDERS (C238 (1)(3)(4), C239 R1-R7) -- DECLARATION (committed before the first proof
+leg; never edited afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and the
+failed record is kept; criteria are never changed after data)
+================================================================================
+Base        m8-b7 4996a7b8 (B7 evidence; B7 code head 8089104c, on m8 31c73879).
+Code head   ee27e1b2 (m8-b7). Commits after 4996a7b8, oldest first:
+              a498abe0 fix:   riders C238 (3)(4) + C239 R1/R2/R3/R5/R6 (the threshold read everywhere the box is)
+              9f97fbb2 test:  the rider pins (+11)
+              ee27e1b2 bench: C238 (1), the interior baseline re-derived and promoted (+ its transcripts,
+                              baseline/ in this directory)
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B7.
+Scratch     build trees under build-b7r/ (git-ignored): cap (the baseline capture, at 9f97fbb2), rel, dbg
+            (fresh, legs/build.sh at the code head, built before this declaration: chain/build-rel.out,
+            chain/build-dbg.out), armAbin + armA-compile_commands.json (legs/armA.sh, run before this
+            declaration: chain/armA.out), armBbin, offref, smoke-*, pch-check, iparm-build, inst-iparm,
+            census-run, runtime-perf. Dev trees (build-b7/) are not evidence and no leg reads them.
+
+THE RIDERS UNDER TEST
+--------------------------------------------------------------------------------
+R1  make_nlp_program(core / Nlp) sets the program's source_absent_bounds_ from its model
+    (NlpModel::absent_bounds()): a pre-laid program (problem_from_program(make_nlp_program(nlp))) reports
+    the Nlp's count in ProblemStatistics::absent_bounds and on ipm.solve.begin (was 0).
+R2  NlpModel::source_infinite_bound() (new virtual, default nullopt; NlpProblemModel answers its
+    construction threshold). problem_from_model over a model that answers a threshold REFUSES BY NAME a
+    solve under any other common.infinite_bound, on both engines, before anything is committed.
+R3  evaluate_kkt(model, ...) and build_subproblem(model, ...) (both overloads each) take a trailing
+    infinite_bound (default 1e20, refused <= 0 / NaN) and read the box under it; nlp_model.h's text says
+    so (it said "verbatim"); NlpProblemModel's class note no longer says "bounds are verbatim".
+R4  (pins) the re-lay pin: the same solvers, kkt_analyses_this_call 0 on a repeat and 1 on each re-lay,
+    the re-laid program's threshold, the SQP half bit for bit against a fresh Problem.
+R5  NonLinearProgram::absent_bounds_ counts once per (variable, side) of the MATERIALISED box (a side
+    absent because a record read a finite value as an infinity, and still infinite after the merge), at
+    the first lay and after update_variable_bound_values alike (staged_absent_sides_, new).
+R6  problem_from_assembly's census adds the bridge's model's count: statistics == the sqp.solve.begin key.
+R7  (pins) a WarmStart taken under one threshold, offered after a re-lay under another that reads a bound
+    differently, is refused (declaration key) on both engines; a variable upper bound read as -inf is
+    refused by name (Nlp and pieces); absent_bounds on problem_from_program.
+C238 (3)  PredictorOptions::infinite_bound (default 1e20; refused <= 0): predict() reads the model's box
+    through the rule (run_continuation passes the driver's common.infinite_bound); RestorationModel's
+    six-argument constructor takes a trailing infinite_bound (the SQP passes its bridge's): the centre
+    clamp and the start clamp read the box through the rule. The wrapper's own box stays the model's as
+    declared (tests/sqp/test_sqp_restoration.cpp pins it; the sub-solve's bridge reads it under the same
+    threshold). Pinned with threshold 1e6 and a bound at 2e6.
+C238 (4)  problem_from_model's solve: every refusal (R2; a pair the new threshold empties -- now refused by
+    the Problem, "Problem: variable i has no interval ...", on both engines) is made before the threshold,
+    the census, the key or the interior-point program is committed; the program is built whole first.
+C238 (1)  THE INTERIOR BASELINE PROMOTED: bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv (new;
+    banner with the provenance stamp; captured twice at 9f97fbb2 with the frozen file's own invocation,
+    0 differences between the captures, transcripts in baseline/); tests/sqp/CMakeLists.txt's
+    HVEN_SQP_INTERIOR_BASELINE_CSV points at it; bench/baselines/2026-09-t8-ipm-leg/ is FROZEN, unedited.
+    Measured before this declaration (baseline/promotion-check.txt): the frozen file against the
+    promoted one is EXACTLY B7's declared 237 pairs (../2026-11-m8-ap2-b7/interior/interior-declared.txt,
+    INTERIOR_AS_DECLARED), and the frozen file equals B7's arm A capture (compare_replay.py, 0 differences).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D1  SQP CORPUS: NO ROW MOVES. The riders touch no corpus path's numerics: the corpus's models answer no
+    threshold (R2 inert), the restoration clamps and the predictor read the F7 boxes identically at the
+    default (every finite point is inside +/-1e20), and the counts are not CSV columns. Replay x
+    walk/ssn/ipm EXACT against the M7 WX2 reference; census 57/57, 0 mismatches against the promoted
+    walk baseline. A census mismatch is NOT pre-declared: it fails the leg.
+D2  INTERIOR CORPUS: NO ROW MOVES against B7 (arm A = 8089104c). The promoted baseline is B7's declared
+    event (D2 of ../2026-11-m8-ap2-b7/DECLARATION.txt), re-derived here and nothing else.
+D3  API: NlpModel::source_infinite_bound() (virtual, default nullopt) + NlpProblemModel's override;
+    PredictorOptions::infinite_bound; RestorationModel(..., regularized_curvature, infinite_bound =
+    1e20); evaluate_kkt / build_subproblem (model overloads) gain a trailing defaulted infinite_bound;
+    NonLinearProgram::staged_absent_sides_ (new public member) and absent_bounds_'s meaning (R5). No new
+    library TU.
+D4  BEHAVIOUR off the corpus: every behaviour of THE RIDERS above (the refusals, the strong guarantee, the
+    counts on the pre-laid program and bridge routes and with repeated records, the threshold-aware
+    helpers, predictor and restoration clamps).
+D5  TESTS: 3461 -> 3472 (+11, tests/drivers/test_infinite_bound.cpp). Changed in place: the re-lay pin
+    (R4), TheInternalModelRouteReadsTheBoxOnBothEngines (now over a verbatim decorator: an
+    NlpProblemModel under kInfinity is refused on that route by R2). ctest's count ("out of N") is 3472
+    in both builds (two further registered tests disabled/skipped, as at B7).
+D6  TRACE: no key, struct or golden line changes; only the counts of R1/R5/R6 on the routes named.
+D7  Objects and libhven.a bytes differ from arm A (code changed); the compile flags do not (P10).
+D8  No iparm change: no linear/ file or iparm field is touched (no IPARM-SURFACE label).
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b7r/rel) and Debug (build-b7r/dbg), full, -j4 under setsid: every test
+    passes, 3472 (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences (D1).
+P4  iparm (legs/iparm.sh): the dumper (byte copy, iparm/) against an install of the code head:
+    BYTE-IDENTICAL to ../2026-11-m8-ap2-b7/iparm/iparm-b7.txt, 15 configurations.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on the frozen arm B binary (sha256 below).
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass, the
+    detail-include rule armed and NO allow-list.
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh build-b7r/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass, 3472; warning lines == 26 (legs/offref.sh; evidence directory ABSOLUTE).
+P9  Accelerate syntax sweep pass A (legs/misc.sh accelerate): OTHER 0 and BYTE-IDENTICAL to B7's pass A
+    (../2026-11-m8-ap2-b7/accelerate/accelerate-sweep.txt). Apple hardware: UNOBSERVED; no Apple value is
+    recorded.
+P10 compile-flags diff (legs/flags.sh, B7's instrument): library TUs of arm A (8089104c, B7's
+    build-b7e/rel compile database, copied by legs/armA.sh) vs the code head (build-b7r/rel): IDENTICAL
+    flags, the same TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = 8089104c (B7's frozen arm B binary, sha256
+    d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c, copied to build-b7r/armAbin), arm B
+    = ee27e1b2 (build-b7r/rel -> build-b7r/armBbin, sha256 ff39639edf676a6c08741b105e37beb4c09e2efd5cbf48ac7901124d73c97004); band 0.995 <= B/A <= 1.005 per mode,
+    THROTTLE == 0, counter identity as the STOP condition, arm order alternated; every mode at the
+    defaults, both arms (no pin: arm A is the B7 code head).
+P12 interior (legs/interior.sh): unmoved -- arm A vs arm B, 27 cells, compare_replay.py EXACT, 0
+    differences (D2); promoted -- arm B under the promoted baseline's own invocation against
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv, compare_replay.py EXACT, 0 differences;
+    declared -- the frozen predecessor against the promoted file, legs/interior_check.py --check against
+    B7's declared list: INTERIOR_AS_DECLARED (237 pairs, missing 0, extra 0, value 0).
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock, after a fail-closed pre-flight of every script and
+instrument in this directory, itself included, whose patterns are assembled so they cannot match their own
+line, and of the two python instruments' root depth); `pgrep -a hven_bench_cell` empty before the lock and
+PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid;
+FOREGROUND_START/END; ABSOLUTE evidence paths. The copied scripts were re-pointed (b7 -> b7-riders,
+build-b7e -> build-b7r, arm A 31c73879 -> 8089104c); B7's paths a leg reads are its read-only pins
+(armA.sh's two sources, the iparm pin, the declared interior list, the Accelerate sweeps), named by the
+pre-flight's allow-list. Order: the runtime gate alone first (runtime/run_all.sh), then chain1.
+DEV CHECKS before this declaration (not evidence), under the lock, on dev trees build-b7/ (sources
+before the one clang-format pass, whitespace only, applied with no build in flight before a498abe0): Release
+and Debug full suites 3472/3472 each; the replay 27 x 75 x walk/ssn/ipm against the WX2 reference, 0
+differences each; the interior 27-cell capture against B7's arm B capture, 43 x 30, 0 differences; the
+eight baseline-reading CorpusCells tests against the promoted file, pass. Not run before this declaration:
+the census, the runtime gate, the iparm dump, smoke, PCH, off-reference, Accelerate, flags.
