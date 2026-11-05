@@ -760,8 +760,12 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 
 SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x, const Vec &lambda_e,
                     const Vec &lambda_i, double bound_tol) {
-    return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), model.lower(),
-                                     model.upper(), ev, x, lambda_e, lambda_i, bound_tol);
+    Vec lower = model.lower();
+    Vec upper = model.upper();
+    detail::normalize_bounds(lower, detail::kDefaultInfiniteBound);
+    detail::normalize_bounds(upper, detail::kDefaultInfiniteBound);
+    return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), lower, upper, ev, x,
+                                     lambda_e, lambda_i, bound_tol);
 }
 
 SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
@@ -788,8 +792,13 @@ QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &
     qp.Ai.makeCompressed();
     qp.bi = -ev.ci;
 
-    qp.lower = model.lower() - x;
-    qp.upper = model.upper() - x;
+    qp.lower = model.lower();
+    qp.upper = model.upper();
+    detail::normalize_bounds(qp.lower, detail::kDefaultInfiniteBound);
+    detail::normalize_bounds(qp.upper, detail::kDefaultInfiniteBound);
+    qp.lower -= x;
+    qp.upper -= x;
+    qp.infinite_bound = std::numeric_limits<double>::infinity();
     return qp;
 }
 
@@ -1638,8 +1647,8 @@ IpqpTraceQpMode trace_mode_of(QpMode mode) {
 /// NOT AN RAII SCOPE any more (fix round 1, R1): the pair is written by two
 /// explicit statements in `solve_impl`, so the last write of a solve is not
 /// inside a `noexcept` destructor.
-SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
-                                               const AssemblyEvalSeam &seam) {
+SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts, const AssemblyEvalSeam &seam,
+                                               Index absent_bounds) {
     SqpSolveBeginTraceEvent ev;
     ev.n = seam.n();
     ev.me = seam.me();
@@ -1654,6 +1663,7 @@ SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
     ev.vars_fixed = box.vars_fixed;
     ev.qp_mode = trace_mode_of(opts.qp_mode);
     ev.ws_algebra = opts.qp.ws_algebra;
+    ev.absent_bounds = absent_bounds;
     return ev;
 }
 
@@ -2225,7 +2235,7 @@ SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, SolveBudget
     // this assignment overwrites it with the wider, truer measurement, which
     // is the whole reason the boundary is stated per overload.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAssembly bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model), opts_.common.infinite_bound};
     // THE OUTER STAMP IS CARRIED DOWN (M6 W5 T8.6 fix1, astra item 4): the
     // delegate used to take a stamp of its OWN, below the bridge lay, and
     // IterationEvent::elapsed_seconds then omitted the lay while
@@ -2242,7 +2252,7 @@ SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0,
     // The shared clock, on the same boundary as the cold model overload above
     // and for the same reason: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAssembly bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model), opts_.common.infinite_bound};
     // The outer stamp, carried down; see the cold model overload above.
     SqpResult out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
@@ -2256,6 +2266,18 @@ SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0) {
 
 SqpResult SqpSolverImpl::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
     return solve_from_entry(bridge, x0, budget, std::nullopt);
+}
+
+void SqpSolverImpl::adopt_bridge_threshold(const NlpModelAssembly &bridge) {
+    if (bridge.infinite_bound() != opts_.common.infinite_bound) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver::solve: the bridge was laid under infinite_bound = {}, and this solve's "
+            "common.infinite_bound is {}. A bridge reads its box once, under its own threshold; "
+            "lay it under {} (NlpModelAssembly(model, {})) or solve it under {}",
+            bridge.infinite_bound(), opts_.common.infinite_bound, opts_.common.infinite_bound,
+            opts_.common.infinite_bound, bridge.infinite_bound()));
+    }
+    solve_absent_bounds_ = bridge.absent_bounds() + bridge.model().absent_bounds();
 }
 
 SqpResult
@@ -2286,6 +2308,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBu
     // is setup, not iteration. The seam binds the claim-stream interface the
     // bridge derives from; the bridge itself stays in this frame and rides
     // into solve_impl for the restoration phase's one Level 1 read.
+    adopt_bridge_threshold(bridge);
     AssemblyEvalSeam seam{bridge};
     // A COLD SOLVE, unconditionally (M6 W5 T8.5): staging is gone, so this
     // entry has no warm-start source to consult and runs the same solve it
@@ -2334,6 +2357,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0,
     entry_time_ = entry;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
+    adopt_bridge_threshold(bridge);
     AssemblyEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
@@ -2369,7 +2393,7 @@ SqpResult SqpSolverImpl::solve(const NlpModel &model, const Vec &x0, const WarmS
     // The shared clock, on the same boundary as every other model-taking
     // overload: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAssembly bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model), opts_.common.infinite_bound};
     // The outer stamp, carried down; see the cold model overload above.
     SqpResult out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
@@ -2405,6 +2429,7 @@ SqpSolverImpl::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const W
     entry_time_ = entry;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
+    adopt_bridge_threshold(bridge);
     AssemblyEvalSeam seam{bridge};
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
@@ -2926,8 +2951,13 @@ SqpResult SqpSolverImpl::solve_column_scaled(AssemblyEvalSeam &seam, NlpModelAss
     }
 
     const Vec &d = cs.cols;
-    auto scaled_model = std::make_shared<const detail::ColumnScaledModel>(bridge.model(), d);
-    NlpModelAssembly scaled_bridge{scaled_model};
+    auto scaled_model = std::make_shared<const detail::ColumnScaledModel>(bridge.model(), d,
+                                                                          bridge.infinite_bound());
+    // THE SCALED BOX IS ALREADY READ (M8 B7): the scaled model divides the box as the
+    // caller's threshold reads it, so an absent side is an infinity and stays one;
+    // a finite scaled bound is a real one however large, and the scaled bridge
+    // takes every finite value as real.
+    NlpModelAssembly scaled_bridge{scaled_model, std::numeric_limits<double>::infinity()};
     AssemblyEvalSeam scaled_seam{scaled_bridge};
 
     // THE WARM START, IN: x~ = x / d and z~ = z * d (a bound price is a gradient
@@ -3228,7 +3258,7 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
     // implicitly `noexcept`, so under the armed mask T1 ruled must PROPAGATE, a
     // failure on this last line called `std::terminate` instead.
     if (ipqp_trace_ != nullptr) {
-        ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
+        ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam, solve_absent_bounds_));
     }
     finish_exported_feasibility_price_ = false;
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
@@ -5688,6 +5718,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
                                        opts_.advanced.restoration_proximity, regularized);
     SqpOptions ropts = opts_;
+    // THE PHASE READS ITS WRAPPER'S BOX UNDER THIS SOLVE'S BRIDGE THRESHOLD (M8 B7):
+    // the wrapper repeats `bridge.model()`'s box, which the bridge read under its own
+    // threshold -- the solve's common.infinite_bound, or +inf on a column-scaled
+    // solve, whose model is already read -- so the sub-solve's bridge reads it the
+    // same way.
+    ropts.common.infinite_bound = bridge.infinite_bound();
     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
     // qp_mode forcings just below and for the same kind of reason: the
     // restoration problem is a DIFFERENT problem (a feasibility one, in
@@ -7832,10 +7868,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // ZERO step is no offer -- it IS x, and "taken" would be a lie.
             const bool have_p =
                 report.p_elastic.size() == st.n && report.p_elastic.lpNorm<Eigen::Infinity>() > 0.0;
-            const Vec x_elastic = have_p ? Vec((st.x + report.p_elastic)
-                                                   .cwiseMax(bridge.model().lower())
-                                                   .cwiseMin(bridge.model().upper()))
-                                         : Vec();
+            const Vec x_elastic =
+                have_p
+                    ? Vec((st.x + report.p_elastic).cwiseMax(seam.lower()).cwiseMin(seam.upper()))
+                    : Vec();
             RestorationCandidate elastic_cand;
             if (have_p) {
                 elastic_cand.x = &x_elastic;

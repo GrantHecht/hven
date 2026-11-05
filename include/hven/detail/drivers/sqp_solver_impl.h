@@ -241,6 +241,10 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 
 /// @brief Measures (x, lambda_e, lambda_i) against the model, reusing an
 ///        evaluation already taken at the SAME x.
+///
+/// The model's box is read through the absent-bound rule at the DEFAULT
+/// threshold (detail::kDefaultInfiniteBound, CommonOptions{}.infinite_bound), so
+/// this measures the problem an SqpSolver at its default options solves.
 /// @param model     The problem.
 /// @param ev        An evaluation at `x`.
 /// @param x         The iterate.
@@ -267,6 +271,10 @@ SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, co
 
 /// @brief Builds the SQP subproblem at `x`, in the step variable p, from an
 ///        evaluation already taken at that x.
+///
+/// The model's box is read through the absent-bound rule at the DEFAULT
+/// threshold, and the subproblem is stamped QpProblem::infinite_bound = +inf --
+/// the subproblem the engine's own seam builds at its default options.
 /// @param model     The problem.
 /// @param ev        An evaluation at `x`; must be finite (the caller's
 ///                  obligation, not checked here).
@@ -1578,6 +1586,13 @@ class SqpSolverImpl {
     ///        only what that invocation itself parked.
     void apply_pending_iteration_callback(bool at_solve_entry = false);
 
+    // THE ABSENT-BOUND THRESHOLD AT A BRIDGE ENTRY (M8 B7): a bridge reads its box
+    // once, under the threshold it was laid with, so a bridge laid under another
+    // threshold than this solve's common.infinite_bound is refused by name (the
+    // model-taking overloads lay theirs under it). Records the solve's count of
+    // declared values read as absent, for the sqp.solve.begin event.
+    void adopt_bridge_threshold(const NlpModelAssembly &bridge);
+
     // --- The clock the delegating public overloads carry (M6 W5 T8.6 fix1) ---
     // ONE ENTRY POINT OWNS THE CLOCK AND THE DELEGATES RECEIVE IT. A
     // model-taking overload lays a bridge -- real work, inside the boundary
@@ -1970,6 +1985,8 @@ class SqpSolverImpl {
     // Every other driver -- restoration allowed or not -- builds its console at
     // the tiers the print level names.
     bool is_restoration_sub_driver_ = false;
+    // Declared bound values read as absent this solve (adopt_bridge_threshold).
+    Index solve_absent_bounds_ = 0;
 
     // THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5): see last_stop_reason(),
     // last_stop_detail(), take_interrupted_result() and last_result(). The first

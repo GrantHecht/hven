@@ -117,11 +117,37 @@ struct CommonOptions {
     ///  - `kWarm`, `kHot`: the whole payload -- point, multipliers, polish.
     StartLevel start_level = StartLevel::kWarm;
 
-    /// The magnitude at or beyond which a bound is absent. DECLARED, NOT YET
-    /// READ: no engine consults it until the absent-bound normalization lands;
-    /// until then every finite bound is a real bound on the interior-point
-    /// engine, as before. Validated now. Default 1e20. Must be > 0 (and not NaN);
-    /// `kInfinity` means "every finite value is a real bound".
+    /// The magnitude at or beyond which a declared bound is ABSENT. Default 1e20
+    /// (the Knitro and SNOPT convention; Ipopt's is 1e19). Must be > 0 and not
+    /// NaN; `kInfinity` means "every finite value is a real bound".
+    ///
+    /// The rule, on both engines, on every variable bound and every constraint-row
+    /// bound, lower and upper: a bound `b >= infinite_bound` is +infinity and a
+    /// bound `b <= -infinite_bound` is -infinity. An absent side has no barrier
+    /// term, no active-set entry, no residual and no multiplier. So:
+    ///  - both sides absent: the variable is free, the row is free (not passed to
+    ///    either engine; its `g` entry is NaN, as for a free row today);
+    ///  - exactly at the threshold is absent; the largest double below it is a
+    ///    real bound;
+    ///  - equal finite bounds below the threshold fix the variable (or make the row
+    ///    an equality) exactly as before;
+    ///  - a pair the rule makes empty is refused by name with std::invalid_argument
+    ///    (the message names the declared values and the threshold): a lower bound
+    ///    at or beyond +infinite_bound, an upper bound at or beyond -infinite_bound,
+    ///    or both sides one infinity (a variable fixed at infinity, an equality row
+    ///    at infinity) -- the same refusals as for the infinities themselves;
+    ///  - a NaN bound and a lower bound above its upper are refused by name, as
+    ///    before.
+    ///
+    /// Applied once, where the declaration enters each engine's transcription: an
+    /// Nlp problem's variable and row bounds, a pieces problem's variable bounds,
+    /// and the SQP's QP subproblems, which inherit the decision (every QP mode
+    /// reads an absent side as an infinity). A Problem is laid out under the
+    /// default; a solve under another threshold re-lays it (the interior-point
+    /// engine re-analyses, counted; a WarmStart whose bound structure differs no
+    /// longer matches). The census Problem::statistics() reports, and the
+    /// `absent_bounds` key of the `sqp.solve.begin` and `ipm.solve.begin` trace
+    /// lines, count the finite values the threshold made absent.
     double infinite_bound = 1e20;
 };
 

@@ -14,6 +14,8 @@
 
 #include <memory>
 
+#include "hven/detail/model/absent_bound.h"
+
 namespace hven::solvers {
 
 struct NonLinearProgram;
@@ -27,6 +29,8 @@ class Nlp;
 ///        M6 W5 T8.9 got.
 /// @return The program: the objective piece, the constraint pieces the row
 ///         counts call for, the staged variable bounds, and the layout.
+/// @param infinite_bound The program's absent-bound threshold
+///        (NonLinearProgram::infinite_bound_; CommonOptions::infinite_bound).
 /// @throws std::invalid_argument if @p num_partitions is below 1.
 ///
 /// The one production path, and the one the tests assemble through.
@@ -46,8 +50,9 @@ class Nlp;
 /// silently ADOPTS fewer. Read the adopted count off the returned program's
 /// public `num_partitions_` member (equivalently `declaration().partition_count_`),
 /// never off the request.
-std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core,
-                                                   int num_partitions = 1);
+std::shared_ptr<NonLinearProgram>
+make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core, int num_partitions = 1,
+                 double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief THE ONE-CALL TRANSCRIPTION: an Nlp to the program the
 ///        interior-point engine consumes.
@@ -70,7 +75,10 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
 /// @return The program.
 /// @throws std::invalid_argument if @p problem is null or @p num_partitions is
 ///         below 1, and whatever the conversion and the layout themselves throw.
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem,
-                                                   int num_partitions = 1);
+///
+/// Both the conversion and the program read the bounds under @p infinite_bound.
+std::shared_ptr<NonLinearProgram>
+make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions = 1,
+                 double infinite_bound = detail::kDefaultInfiniteBound);
 
 } // namespace hven::solvers

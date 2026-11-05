@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -38,11 +39,12 @@ namespace hven::solvers {
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
-/// "Effectively infinite" upper bound on a slack, matching qp_problem.h's own
-/// stated convention (+/-1e20) rather than a true +inf, so every bound
-/// arithmetic in the engine and in build_subproblem (upper - x) stays in
-/// ordinary floating point.
-inline constexpr double kRestorationSlackBound = 1e20;
+/// The upper bound on a slack: none. Written as +inf, the one spelling of an
+/// absent side under every CommonOptions::infinite_bound (a finite stand-in would
+/// become a real bound under a larger threshold). The restoration sub-solve's
+/// bridge read the former 1e20 as +inf at the default threshold already, and
+/// every subproblem bound arithmetic (upper - x) keeps an infinity infinite.
+inline constexpr double kRestorationSlackBound = std::numeric_limits<double>::infinity();
 
 /// The restored point's violation (the convergence test's inf-norm) must exceed this
 /// multiple of `feas_tol` before a kOptimal restoration sub-solve is read as a certificate

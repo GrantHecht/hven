@@ -26,6 +26,12 @@ struct ProblemAccess;
 /// range (two finite, unequal bounds) and free (no finite bound). A pieces
 /// problem's rows are its equality rows and its inequality rows (c_I(x) <= 0,
 /// upper-bounded).
+///
+/// "Finite" is as CommonOptions::infinite_bound reads it: a bound at or beyond
+/// the threshold is absent (see that option), and absent_bounds counts the finite
+/// declared values the threshold made absent, variable and row sides together.
+/// The census is the one of the last solve entry's threshold (the default
+/// threshold, 1e20, before the first solve).
 struct ProblemStatistics {
     Index variables = 0;
     Index free_variables = 0;
@@ -40,6 +46,8 @@ struct ProblemStatistics {
     Index upper_bounded_rows = 0;
     Index range_rows = 0;
     Index free_rows = 0;
+
+    Index absent_bounds = 0;
 };
 
 /// @brief What IpmSolver and SqpSolver solve.
@@ -63,6 +71,14 @@ struct ProblemStatistics {
 ///   by the identity rule.
 /// - A change in the dimensions, in either structure, or in a row's kind: refused
 ///   by name (std::invalid_argument), with nothing changed.
+///
+/// Absent bounds. Every bound is read through CommonOptions::infinite_bound: a
+/// value at or beyond it is the infinity of its sign. A Problem is laid out under
+/// the default threshold (1e20); a solve under another threshold re-lays it as a
+/// new Problem would be (an Nlp's rows may then take another kind, the
+/// interior-point engine re-analyses, counted), and a later solve under the
+/// default re-lays it back. A threshold under which a bound pair describes no
+/// interval refuses that solve by name and leaves the Problem as it was.
 ///
 /// Engines. Both engines solve an Nlp problem, and may alternate on one Problem; an
 /// IpmSolver that did not lay the current interior-point analysis re-analyses

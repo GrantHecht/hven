@@ -52,6 +52,7 @@
 //     <= feas_tol (drivers/sqp_solver.cpp, the convergence test).
 
 #include <hven/core/types.h>
+#include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 
 namespace hven::solvers::detail {
@@ -116,7 +117,10 @@ class ColumnScaledModel final : public NlpModel {
   public:
     /// @throws std::invalid_argument if d's size is not model.n() or any d_j is not
     ///         finite and > 0.
-    ColumnScaledModel(const NlpModel &model, Vec d);
+    ///
+    /// The box is the model's as the absent-bound rule reads it at @p infinite_bound
+    /// (absent_bound.h), divided by d: an absent side is an infinity and stays one.
+    ColumnScaledModel(const NlpModel &model, Vec d, double infinite_bound = kDefaultInfiniteBound);
 
     Index n() const override { return model_.n(); }
     Index me() const override { return model_.me(); }

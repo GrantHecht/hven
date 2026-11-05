@@ -191,14 +191,25 @@ class NlpModel {
 
     HVEN_SUPPRESS_DEPRECATED_END
 
-    /// @brief Variable lower bounds, size n(). Unboundedness on a side is
-    ///        written -inf / +inf; every finite value is a real bound, however
-    ///        large -- nothing in this layer treats a finite magnitude as a
-    ///        stand-in for infinity, so a bound of 1e20 constrains the
-    ///        variable to 1e20.
+    /// @brief Variable lower bounds, size n(), as the model declares them.
+    ///        Unboundedness on a side is written -inf / +inf, or as any value at
+    ///        or beyond the solve's CommonOptions::infinite_bound: the engines
+    ///        read a model's box through the absent-bound rule
+    ///        (detail/model/absent_bound.h) where their transcription lays it
+    ///        (NlpModelAssembly for the SQP, NonLinearProgram for the
+    ///        interior-point engine), so at the default threshold a bound of
+    ///        +/-1e20 is absent. The model-taking free helpers of
+    ///        sqp_solver_impl.h (evaluate_kkt, build_subproblem) read this box
+    ///        verbatim.
     virtual const Vec &lower() const = 0;
     /// @brief Variable upper bounds, size n(); same convention as lower().
     virtual const Vec &upper() const = 0;
+
+    /// @brief How many finite declared bound values this model itself read as
+    ///        absent (NlpProblemModel, which applies the rule to an Nlp's
+    ///        variable and row bounds); 0 for a model that reports its box
+    ///        verbatim.
+    virtual Index absent_bounds() const { return 0; }
 
     /// @brief The model's suggested starting point, size n().
     virtual Vec start_point() const = 0;

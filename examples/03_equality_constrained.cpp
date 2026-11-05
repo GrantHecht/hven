@@ -34,7 +34,8 @@ struct Sphere : Nlp {
         return {.n = 3, .m = 1, .jacobian_nonzeros = 3, .hessian_nonzeros = 3};
     }
     void bounds(VecRef xl, VecRef xu, VecRef gl, VecRef gu) const override {
-        // Free variables are +/-kInfinity, NOT a large finite number such as 1e20.
+        // Free variables are +/-kInfinity. A finite value at or beyond
+        // common.infinite_bound (1e20 by default) is read the same way: absent.
         xl.setConstant(-kInfinity);
         xu.setConstant(kInfinity);
         gl << 4.0;

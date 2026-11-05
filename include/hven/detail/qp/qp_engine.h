@@ -861,10 +861,6 @@ namespace hven::solvers {
 
 namespace detail {
 
-// Bounds at or beyond this magnitude are treated as absent (matches the
-// dense oracle's convention).
-constexpr double kEngineInfBound = 1e20;
-
 // THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iter (qp_types.h)
 // defaults to the sentinel 0, meaning "derive the cap from this subproblem's
 // size"; a positive value is an explicit absolute cap and wins outright.
@@ -885,7 +881,7 @@ inline Index qp_cap_base(const QpProblem &qp) {
     const Index n = qp.n();
     Index bounded = 0;
     for (Index i = 0; i < n; ++i) {
-        if (qp.lower(i) > -kEngineInfBound || qp.upper(i) < kEngineInfBound) {
+        if (qp.has_lower(i) || qp.has_upper(i)) {
             ++bounded;
         }
     }
@@ -2378,7 +2374,7 @@ class QpEngine {
     // components that grew toward a non-constraining bound are eligible.
     //
     // "Non-constraining" is measured against the runaway threshold itself
-    // rather than kEngineInfBound: a hand-written "effectively infinite"
+    // rather than QpProblem::infinite_bound: a hand-written "effectively infinite"
     // bound like 1e18 still cannot restrain an artifact sitting at
     // ~1/primal_delta.
     bool is_runaway(const QpProblem &qp, const Vec &x, const WorkingSet &ws,

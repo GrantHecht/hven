@@ -46,12 +46,6 @@ namespace hven::solvers {
 
 namespace detail {
 
-// Bounds at or beyond this magnitude are ABSENT and contribute no FB row.
-// Identical value and meaning to qp_engine.h's kEngineInfBound and to the
-// +/-1e20 sentinel nlp_model.h/qp_problem.h document; restated rather than
-// reached for so this header depends on the QP data types only, not on the
-// walk's internals.
-inline constexpr double kSsnInfBound = 1e20;
 // The relative band below which a seeded bound price on an ABSENT side is read as
 // round-off rather than a caller error (SsnEngine::split_bound_multipliers).
 // 1024 ulps of 1.0. The band is this times max(1, ||z||_inf): the floor of 1 keeps a
@@ -282,7 +276,7 @@ struct SsnNorms {
 // What one factorization's reported inertia says about the system factorized.
 //
 // This is qp_engine.h's detail::InertiaVerdict, RESTATED rather than included,
-// for the same reason kSsnInfBound is: this header depends on the QP data types
+// so that this header depends on the QP data types
 // and the KKT factor helper, never on the walk's internals. The rules are that
 // header's exactly -- non-kObserved evidence routes to kSuspect, then perturbed
 // pivots (whose counts carry no information at all, including when they happen

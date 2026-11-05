@@ -76,12 +76,13 @@ detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, cons
     std::vector<BoundState> &states = out.qp_working_set.bound_state();
     // The two bound sides are SEPARATE dual populations (a variable can be
     // priced at one side only), so each sets its own scale. A caller that
-    // prices an UNBOUNDED side -- z_lower(i) > 0 against lower(i) = -1e20 --
-    // poisons its side's mu_hat with a ~1e20 product and drives that side's
+    // prices an UNBOUNDED side -- z_lower(i) > 0 against an absent lower(i) (an
+    // infinity, or a value beyond CommonOptions::infinite_bound) -- poisons its
+    // side's mu_hat with an infinite (or huge) product and drives that side's
     // whole verdict to FREE; that is the safe direction on a malformed
     // hand-off, and such an input is a contradiction the caller must not
-    // produce in the first place (nlp_model.h's +/-1e20 convention marks a
-    // side nothing can be active at).
+    // produce in the first place (an absent side marks a side nothing can be
+    // active at).
     const double lower_threshold =
         detail::ip_activity_threshold(z_lower, x - lower, opts.activity_rel_tol);
     const double upper_threshold =

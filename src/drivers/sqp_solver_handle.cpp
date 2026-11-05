@@ -107,8 +107,8 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const Vec &x0,
                    const SolveBudget &budget, Entry &&entry) {
     engine.set_last_result(SqpResult{});
     try {
-        const detail::SqpTarget target =
-            detail::ProblemAccess::sqp_target(problem, reads_exact_hessian(engine.options()));
+        const detail::SqpTarget target = detail::ProblemAccess::sqp_target(
+            problem, reads_exact_hessian(engine.options()), engine.options().common.infinite_bound);
         detail::ProblemAccess::reset_work(problem);
         const detail::CallbackRowsScope rows(engine, problem);
         SqpResult result =

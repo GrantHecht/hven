@@ -49,6 +49,7 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
+#include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/claim_stream_source.h"
 #include "hven/model/nlp_assembly.h"
@@ -99,7 +100,20 @@ class NlpModelAssembly final : public ClaimStreamSource {
     /// widening is source-compatible. It also lets a consumer that does not own
     /// its model bridge a `const NlpModel &` through shared_ptr's aliasing
     /// constructor with a null owner.
-    explicit NlpModelAssembly(std::shared_ptr<const NlpModel> model);
+    ///
+    /// THE BOX IS READ THROUGH THE ABSENT-BOUND RULE (absent_bound.h): a model
+    /// bound at or beyond @p infinite_bound is the infinity of its sign in the
+    /// laid declaration, so the seam and every SQP test over it see it absent.
+    /// A pair the rule reads as inverted or as fixed at an infinity is refused
+    /// by name. @p infinite_bound must be > 0; the SQP engine passes its
+    /// CommonOptions::infinite_bound.
+    explicit NlpModelAssembly(std::shared_ptr<const NlpModel> model,
+                              double infinite_bound = detail::kDefaultInfiniteBound);
+
+    /// @brief The absent-bound threshold the box was laid under.
+    double infinite_bound() const noexcept { return infinite_bound_; }
+    /// @brief How many finite model bound values the last lay read as absent.
+    Index absent_bounds() const noexcept { return laid_.absent_bounds_; }
 
     /// @brief The declaration these structures were laid from.
     ///
@@ -313,6 +327,7 @@ class NlpModelAssembly final : public ClaimStreamSource {
         Eigen::VectorXi inequality_residual_rows_;
 
         ModelStructureKey key_;
+        Index absent_bounds_ = 0;
     };
 
     /// Builds a complete layout at @p partition_count without touching this
@@ -346,6 +361,7 @@ class NlpModelAssembly final : public ClaimStreamSource {
     // consumer bind a bridge over a `const NlpModel &` it does not own, through
     // shared_ptr's aliasing constructor.
     std::shared_ptr<const NlpModel> model_;
+    double infinite_bound_ = detail::kDefaultInfiniteBound;
     int primal_vars_ = 0;
     int equality_rows_ = 0;
     int inequality_rows_ = 0;

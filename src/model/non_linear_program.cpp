@@ -17,9 +17,9 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/indexing_data.h"
 #include "hven/detail/interior/utils/timer.h"
 #include "hven/detail/model/non_linear_program.h"
+#include "hven/model/indexing_data.h"
 
 namespace {
 
@@ -1283,19 +1283,27 @@ void hven::solvers::NonLinearProgram::install_function_output_maps() {
     }
 }
 
-bool hven::solvers::NonLinearProgram::update_variable_bound_values(ConstEigenRef<VectorXd> lower,
-                                                                   ConstEigenRef<VectorXd> upper) {
+bool hven::solvers::NonLinearProgram::update_variable_bound_values(
+    ConstEigenRef<VectorXd> declared_lower, ConstEigenRef<VectorXd> declared_upper) {
     const int n = this->primal_vars_;
     if (this->x_lower_.size() != n || this->x_upper_.size() != n) {
         throw std::invalid_argument(
             "update_variable_bound_values: the variable bounds are not materialized; lay the "
             "problem out (make_nlp) first");
     }
-    if (lower.size() != n || upper.size() != n) {
+    if (declared_lower.size() != n || declared_upper.size() != n) {
         throw std::invalid_argument(fmt::format(
             "update_variable_bound_values: bounds sized ({0}, {1}) for {2} primal variables",
-            lower.size(), upper.size(), n));
+            declared_lower.size(), declared_upper.size(), n));
     }
+    // The values as the absent-bound rule reads them (infinite_bound_); every
+    // check and write below is on these.
+    VectorXd lower_read = declared_lower;
+    VectorXd upper_read = declared_upper;
+    const Index absent = detail::normalize_bounds(lower_read, this->infinite_bound_) +
+                         detail::normalize_bounds(upper_read, this->infinite_bound_);
+    const VectorXd &lower = lower_read;
+    const VectorXd &upper = upper_read;
     // Every refusal before anything is written.
     for (int i = 0; i < n; i++) {
         const double lo = lower[i], up = upper[i];
@@ -1336,6 +1344,7 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(ConstEigenRef
         }
     }
     this->laid_variable_bounds_ = this->staged_variable_bounds_;
+    this->absent_bounds_ = absent;
     // The declaration's records re-materialize from the laid snapshot on their
     // next read; the bound digest is recomputed with them and is unchanged, since
     // it digests the structure checked above.

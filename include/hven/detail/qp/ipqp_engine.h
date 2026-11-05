@@ -296,8 +296,8 @@ struct IpqpBox {
 /// centre a zero-width pair can arise only at a declared `lower(i) == upper(i)` or
 /// at `Delta == 0`, both of which the walk solves best.
 struct IpqpBounds {
-    Vec lower; ///< n. `IpqpBox::lo_eff`. `<= -kIpqpInfBound` means ABSENT.
-    Vec upper; ///< n. `IpqpBox::up_eff`. `>= kIpqpInfBound` means ABSENT.
+    Vec lower; ///< n. `IpqpBox::lo_eff`. -inf means ABSENT (make_ipqp_box).
+    Vec upper; ///< n. `IpqpBox::up_eff`. +inf means ABSENT (make_ipqp_box).
 
     Index num_lower = 0; ///< Variables with a finite effective lower bound.
     Index num_upper = 0; ///< Variables with a finite effective upper bound.

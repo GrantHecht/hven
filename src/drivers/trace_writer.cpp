@@ -618,7 +618,7 @@ static_assert(::hven::detail::kAggregateArity<QpModeTraceEvent> == 5,
 // THE SAME NET ON THE PAIR'S OWN STRUCTS (fix round 2, F3). Both are written key
 // by key below, so a field added to either would be silently dropped from a line
 // the golden pins compare byte for byte -- and the pin would still pass.
-static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 10,
+static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 11,
               "SqpSolveBeginTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_sqp_solve_begin, re-derive the golden line, and update "
               "this count. The variable-bound census is the part most likely to grow.");
@@ -664,12 +664,12 @@ static_assert(::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
               "JsonLinesTraceSink::on_ipm_iter, re-derive the golden line, and update these "
               "two counts.");
 
-// 28 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
+// 29 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
 // settings + M6 W5 T8.7's eight (the four ACCEPTABLE tolerances, `wide_console`
-// and `print_stats`'s own three KKT/fixing-row inputs). The census is FLAT on
-// the struct so this count can see it: the arity helper reads a NESTED
-// aggregate's members through brace elision.
-static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 28,
+// and `print_stats`'s own three KKT/fixing-row inputs) + M8 B7's `absent_bounds`. The census is
+// FLAT on the struct so this count can see it: the arity helper reads a NESTED aggregate's members
+// through brace elision.
+static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 29,
               "IpmSolveBeginTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_solve_begin, re-derive the golden line, and update "
               "this count.");
@@ -986,6 +986,7 @@ void JsonLinesTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event
     key_index(b, first, "vars_fixed", event.vars_fixed);
     key_enum(b, first, "qp_mode", to_json(event.qp_mode));
     key_enum(b, first, "ws_algebra", to_json(event.ws_algebra));
+    key_index(b, first, "absent_bounds", event.absent_bounds);
     write_line("sqp.solve.begin", b);
 }
 
@@ -1103,6 +1104,7 @@ void JsonLinesTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event
     key_index(b, first, "kkt_dim", event.kkt_dim);
     key_index(b, first, "kkt_nnz", event.kkt_nnz);
     key_index(b, first, "internal_fixed_rows", event.internal_fixed_rows);
+    key_index(b, first, "absent_bounds", event.absent_bounds);
     write_line("ipm.solve.begin", b);
 }
 

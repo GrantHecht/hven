@@ -460,6 +460,18 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
         if (box.zero_width_index < 0 && !(box.lo_eff(i) < box.up_eff(i))) {
             box.zero_width_index = i;
         }
+        // THE SUBPROBLEM'S ABSENT-BOUND CUTOFF, applied once here
+        // (QpProblem::infinite_bound): an effective side at or beyond it is ABSENT
+        // and is written as the infinity of its sign, so the kernels' presence test
+        // (ipqp_has_lower/upper) reads infinity alone. The same sides as the cutoff
+        // read on the effective box before; only their stored value changes.
+        constexpr double kInf = std::numeric_limits<double>::infinity();
+        if (box.lo_eff(i) <= -qp.infinite_bound) {
+            box.lo_eff(i) = -kInf;
+        }
+        if (box.up_eff(i) >= qp.infinite_bound) {
+            box.up_eff(i) = kInf;
+        }
     }
     return box;
 }
@@ -2986,10 +2998,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // `SsnEngine::split_bound_multipliers`' rule verbatim: under a FINITE radius every variable
         // has finite effective bounds, and the residue at an absent side is an internal TR dual.
         if (at_lower || at_upper) {
-            const double z_lower =
-                (at_lower && detail::ipqp_has_lower(qp.lower(i))) ? w.zl(i) : 0.0;
-            const double z_upper =
-                (at_upper && detail::ipqp_has_upper(qp.upper(i))) ? w.zu(i) : 0.0;
+            const double z_lower = (at_lower && qp.has_lower(i)) ? w.zl(i) : 0.0;
+            const double z_upper = (at_upper && qp.has_upper(i)) ? w.zu(i) : 0.0;
             out.z(i) = z_lower - z_upper;
         }
         // else: `bound_state[u]` is kFree and `out.z(i)` stays the 0 that

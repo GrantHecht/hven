@@ -30,15 +30,16 @@
 #include <fmt/format.h>
 
 #include "hven/detail/interior/bound_set.h"
-#include "hven/model/constraint_function.h"
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/model/objective_function.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/claim_restatement.h"
 #include "hven/detail/model/fixed_variable_treatment.h"
 #include "hven/model/claim_stream_source.h"
+#include "hven/model/constraint_function.h"
 #include "hven/model/nlp_assembly.h"
+#include "hven/model/objective_function.h"
 
 namespace hven::solvers {
 
@@ -271,8 +272,55 @@ struct NonLinearProgram : public NlpAssembly {
     /// u = min(u_prev, u_new). A declaration with both bounds infinite leaves
     /// the variable unbounded and is a no-op.
     ///
+    /// THE ABSENT-BOUND RULE'S THRESHOLD (CommonOptions::infinite_bound;
+    /// detail/model/absent_bound.h). Every bound this program stages or adopts is
+    /// read through it: a value at or beyond it is the infinity of its sign, so
+    /// the staged records, x_lower_/x_upper_, the declaration and the bound digest
+    /// all describe the bounds as the rule reads them. Fixed for the program's
+    /// life once a bound is staged (set_infinite_bound); a Problem that solves
+    /// under another threshold builds another program.
+    double infinite_bound_ = detail::kDefaultInfiniteBound;
+
+    /// How many finite declared bound values set_variable_bound (or the last
+    /// update_variable_bound_values) read as absent. Reset by
+    /// clear_variable_bounds().
+    Index absent_bounds_ = 0;
+
+    /// How many finite bound values the program's SOURCE read as absent before
+    /// handing its bounds here (an Nlp's NlpProblemModel, rows included). Set by
+    /// the Problem at each interior-point solve entry; reported with
+    /// absent_bounds_ in the solve-begin trace event.
+    Index source_absent_bounds_ = 0;
+
+    /// @brief Sets the absent-bound threshold before any bound is staged.
+    /// @throws std::invalid_argument if @p infinite_bound is not > 0.
+    /// @throws std::logic_error once a bound is staged or materialized.
+    void set_infinite_bound(double infinite_bound) {
+        if (!(infinite_bound > 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "NonLinearProgram: infinite_bound must be > 0 (kInfinity is legal), got {}",
+                infinite_bound));
+        }
+        if (!this->staged_variable_bounds_.empty() || this->x_lower_.size() != 0) {
+            throw std::logic_error(
+                "NonLinearProgram::set_infinite_bound: bounds are already staged under the "
+                "current threshold; build a new program to change it");
+        }
+        this->infinite_bound_ = infinite_bound;
+    }
+
+    /// @brief Stages a bound declaration for primal variable global_index.
+    ///
+    /// Repeated declarations on the same index are intersected (tightest wins)
+    /// when make_nlp materializes x_lower_/x_upper_: l = max(l_prev, l_new),
+    /// u = min(u_prev, u_new). A declaration with both bounds infinite leaves
+    /// the variable unbounded and is a no-op. Each side is first read through the
+    /// absent-bound rule (infinite_bound_).
+    ///
     /// @throws std::invalid_argument on a NaN bound, since it cannot
-    ///         participate in the max/min merge.
+    ///         participate in the max/min merge; and on a pair the rule makes
+    ///         empty (a lower bound read as +inf, an upper read as -inf, or both
+    ///         sides one infinity), naming the declared values and the threshold.
     void set_variable_bound(int global_index, double lower, double upper) {
         if (std::isnan(lower) || std::isnan(upper)) {
             throw std::invalid_argument(
@@ -280,11 +328,22 @@ struct NonLinearProgram : public NlpAssembly {
                             "upper={2})",
                             global_index, lower, upper));
         }
+        const int absent = (detail::reads_as_absent(lower, this->infinite_bound_) ? 1 : 0) +
+                           (detail::reads_as_absent(upper, this->infinite_bound_) ? 1 : 0);
+        const double lo = detail::normalize_bound(lower, this->infinite_bound_);
+        const double up = detail::normalize_bound(upper, this->infinite_bound_);
+        if (absent > 0 && (lo > up || (lo == up && !std::isfinite(lo)))) {
+            throw std::invalid_argument(fmt::format(
+                "set_variable_bound: variable {0} has no interval (lower={1}, upper={2}){3}",
+                global_index, lower, upper,
+                detail::absent_bound_clause(lower, upper, this->infinite_bound_)));
+        }
+        this->absent_bounds_ += absent;
         constexpr double kInf = std::numeric_limits<double>::infinity();
-        if (lower == -kInf && upper == kInf) {
+        if (lo == -kInf && up == kInf) {
             return;
         }
-        this->staged_variable_bounds_.push_back({global_index, lower, upper});
+        this->staged_variable_bounds_.push_back({global_index, lo, up});
     }
 
     /// Drops every staged declaration and the materialized x_lower_/x_upper_
@@ -293,6 +352,7 @@ struct NonLinearProgram : public NlpAssembly {
         this->staged_variable_bounds_.clear();
         this->x_lower_.resize(0);
         this->x_upper_.resize(0);
+        this->absent_bounds_ = 0;
         this->bounds_revision_++;
     }
 

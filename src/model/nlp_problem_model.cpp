@@ -12,6 +12,8 @@
 
 #include <fmt/format.h>
 
+#include "hven/detail/model/absent_bound.h"
+
 namespace hven::solvers {
 
 namespace {
@@ -109,6 +111,31 @@ NLPRowKind classify_row(double lo, double up, int r) {
     return NLPRowKind::Range;
 }
 
+/// One declared row's RAW bound pair, refused under the absent-bound rule
+/// (absent_bound.h) before it is normalized: a NaN side, a pair whose normalized
+/// sides are inverted, or one whose normalized sides are an equal infinity. The
+/// message carries the values as declared, plus the threshold clause whenever the
+/// rule read one of them as an infinity.
+void check_row_pair(double lo, double up, double infinite_bound, int r) {
+    if (std::isnan(lo) || std::isnan(up)) {
+        throw std::invalid_argument(
+            fmt::format("constraint row {}: bound is NaN (lower={}, upper={})", r, lo, up));
+    }
+    const double nlo = detail::normalize_bound(lo, infinite_bound);
+    const double nup = detail::normalize_bound(up, infinite_bound);
+    if (nlo > nup) {
+        throw std::invalid_argument(
+            fmt::format("constraint row {}: lower bound {} exceeds upper bound {}{}", r, lo, up,
+                        detail::absent_bound_clause(lo, up, infinite_bound)));
+    }
+    if (nlo == nup && !std::isfinite(nlo)) {
+        throw std::invalid_argument(
+            fmt::format("constraint row {}: both bounds are {}{} — an equality at infinity", r,
+                        lo == up ? fmt::format("{}", lo) : fmt::format("{} and {}", lo, up),
+                        detail::absent_bound_clause(lo, up, infinite_bound)));
+    }
+}
+
 const char *row_kind_name(NLPRowKind kind) {
     switch (kind) {
     case NLPRowKind::Equality:
@@ -169,9 +196,17 @@ NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorX
     return rc;
 }
 
-NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem) : problem_(std::move(problem)) {
+NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem, double infinite_bound)
+    : problem_(std::move(problem)), infinite_bound_(infinite_bound) {
     if (!problem_) {
         throw std::invalid_argument("NlpProblemModel: the problem pointer is null");
+    }
+    // The options validate the threshold (CommonOptions::infinite_bound); this
+    // layer is also reached without options, so it refuses what they would.
+    if (!(infinite_bound_ > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("NlpProblemModel: infinite_bound must be > 0 (kInfinity is legal), got {}",
+                        infinite_bound_));
     }
     const NlpDimensions dims = problem_->dimensions();
     this->validate_sizes(dims);
@@ -186,6 +221,14 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem) : problem_(std::m
     g_upper_.resize(m_);
     problem_->bounds(x_lower_, x_upper_, g_lower_, g_upper_);
     this->validate_variable_bounds(x_lower_, x_upper_);
+    for (int r = 0; r < m_; r++) {
+        check_row_pair(g_lower_[r], g_upper_[r], infinite_bound_, r);
+    }
+    raw_x_lower_ = x_lower_;
+    raw_x_upper_ = x_upper_;
+    raw_g_lower_ = g_lower_;
+    raw_g_upper_ = g_upper_;
+    absent_bounds_ = this->normalize_read_bounds(x_lower_, x_upper_, g_lower_, g_upper_);
 
     rows_ = NLPRowClassification::classify(g_lower_, g_upper_);
     this->build_row_tables();
@@ -234,17 +277,21 @@ void NlpProblemModel::validate_variable_bounds(const Vec &x_lower, const Vec &x_
     // The declared variable bounds, checked here because this is where they
     // enter the library: every consumer of this model reads them through
     // lower()/upper(), and start_point() projects the origin onto them, so a
-    // pair that describes no interval has to be refused before either.
+    // pair that describes no interval has to be refused before either. The pair
+    // is checked as the absent-bound rule reads it (absent_bound.h), and the
+    // message names the values as declared.
     for (int i = 0; i < n_; i++) {
         const double lo = x_lower[i], up = x_upper[i];
         if (std::isnan(lo) || std::isnan(up)) {
             throw std::invalid_argument(fmt::format(
                 "{}: variable {} bound is NaN (lower={}, upper={})", problem_->name(), i, lo, up));
         }
-        if (lo > up) {
-            throw std::invalid_argument(
-                fmt::format("{}: variable {} lower bound {} exceeds upper bound {}",
-                            problem_->name(), i, lo, up));
+        const double nlo = detail::normalize_bound(lo, infinite_bound_);
+        const double nup = detail::normalize_bound(up, infinite_bound_);
+        if (nlo > nup) {
+            throw std::invalid_argument(fmt::format(
+                "{}: variable {} lower bound {} exceeds upper bound {}{}", problem_->name(), i, lo,
+                up, detail::absent_bound_clause(lo, up, infinite_bound_)));
         }
         // A variable fixed at an infinity describes no value at all, and every
         // check that could catch it lets it through: an infinity is not NaN,
@@ -253,12 +300,22 @@ void NlpProblemModel::validate_variable_bounds(const Vec &x_lower, const Vec &x_
         // installed unbounded, which is a wrong answer rather than a missing
         // diagnostic. Fixing a variable at a finite value is untouched and
         // remains the ordinary way to fix one.
-        if (lo == up && !std::isfinite(lo)) {
+        if (nlo == nup && !std::isfinite(nlo)) {
             throw std::invalid_argument(
-                fmt::format("{}: variable {}: both bounds are {} — a variable fixed at infinity",
-                            problem_->name(), i, lo));
+                fmt::format("{}: variable {}: both bounds are {}{} — a variable fixed at infinity",
+                            problem_->name(), i,
+                            lo == up ? fmt::format("{}", lo) : fmt::format("{} and {}", lo, up),
+                            detail::absent_bound_clause(lo, up, infinite_bound_)));
         }
     }
+}
+
+Index NlpProblemModel::normalize_read_bounds(Vec &x_lower, Vec &x_upper, Vec &g_lower,
+                                             Vec &g_upper) const {
+    return detail::normalize_bounds(x_lower, infinite_bound_) +
+           detail::normalize_bounds(x_upper, infinite_bound_) +
+           detail::normalize_bounds(g_lower, infinite_bound_) +
+           detail::normalize_bounds(g_upper, infinite_bound_);
 }
 
 void NlpProblemModel::build_row_tables() {
@@ -304,27 +361,44 @@ bool NlpProblemModel::update_bounds(const Vec &x_lower, const Vec &x_upper, cons
     }
     this->validate_variable_bounds(x_lower, x_upper);
     for (int r = 0; r < m_; r++) {
+        check_row_pair(g_lower[r], g_upper[r], infinite_bound_, r);
+    }
+    // The normalized copies, in scratch kept across updates (no allocation once
+    // sized). Nothing is committed until every refusal below has been made.
+    upd_x_lower_ = x_lower;
+    upd_x_upper_ = x_upper;
+    upd_g_lower_ = g_lower;
+    upd_g_upper_ = g_upper;
+    const Index absent =
+        this->normalize_read_bounds(upd_x_lower_, upd_x_upper_, upd_g_lower_, upd_g_upper_);
+    for (int r = 0; r < m_; r++) {
         const NLPRowKind was = rows_.kinds_[r];
-        const NLPRowKind now = classify_row(g_lower[r], g_upper[r], r);
+        const NLPRowKind now = classify_row(upd_g_lower_[r], upd_g_upper_[r], r);
         if (was != now) {
             throw std::invalid_argument(fmt::format(
                 "Problem '{}': row {} changed kind between solves, from {} to {} (bounds "
-                "[{}, {}] -> [{}, {}]). A row's kind fixes the engines' row layout and the "
+                "[{}, {}] -> [{}, {}]{}). A row's kind fixes the engines' row layout and the "
                 "multiplier map; build a new Problem",
-                problem_->name(), r, row_kind_name(was), row_kind_name(now), g_lower_[r],
-                g_upper_[r], g_lower[r], g_upper[r]));
+                problem_->name(), r, row_kind_name(was), row_kind_name(now), raw_g_lower_[r],
+                raw_g_upper_[r], g_lower[r], g_upper[r],
+                detail::absent_bound_clause(g_lower[r], g_upper[r], infinite_bound_)));
         }
     }
     bool box_changed = false;
     for (int i = 0; i < n_ && !box_changed; i++) {
-        box_changed =
-            box_structure(x_lower_[i], x_upper_[i]) != box_structure(x_lower[i], x_upper[i]);
+        box_changed = box_structure(x_lower_[i], x_upper_[i]) !=
+                      box_structure(upd_x_lower_[i], upd_x_upper_[i]);
     }
     // Commit. Same-length assignments: nothing here allocates.
-    x_lower_ = x_lower;
-    x_upper_ = x_upper;
-    g_lower_ = g_lower;
-    g_upper_ = g_upper;
+    raw_x_lower_ = x_lower;
+    raw_x_upper_ = x_upper;
+    raw_g_lower_ = g_lower;
+    raw_g_upper_ = g_upper;
+    x_lower_ = upd_x_lower_;
+    x_upper_ = upd_x_upper_;
+    g_lower_ = upd_g_lower_;
+    g_upper_ = upd_g_upper_;
+    absent_bounds_ = absent;
     this->build_row_tables();
     this->invalidate_cache();
     return box_changed;

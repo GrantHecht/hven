@@ -14,6 +14,7 @@
 #include <memory>
 #include <utility>
 
+#include "hven/detail/model/absent_bound.h"
 #include "hven/model/problem.h"
 #include "hven/model/structure_identity.h"
 
@@ -81,20 +82,31 @@ struct ProblemAccess {
 
     /// @brief The interior-point program, refreshed for this solve (re-read,
     ///        caches cleared) and built on first use.
+    ///
+    /// @p infinite_bound is the solve's CommonOptions::infinite_bound. A Problem
+    /// laid under another threshold is re-laid under this one first (an Nlp's
+    /// transcription rebuilt, a pieces program rebuilt from its declaration with
+    /// the bounds as declared), which the engine counts as a fresh analysis; a
+    /// pre-laid program (problem_from_program) cannot be re-laid and is refused.
     /// @throws std::logic_error on a moved-from Problem; std::invalid_argument on
     ///         a refused change, a Problem the interior-point engine cannot solve
-    ///         (a bridge, or an Nlp without a Hessian), or a refused transcription.
-    static NonLinearProgram &ipm_program(Problem &problem);
+    ///         (a bridge, or an Nlp without a Hessian), a pre-laid program under
+    ///         another threshold, or a refused transcription.
+    static NonLinearProgram &ipm_program(Problem &problem,
+                                         double infinite_bound = kDefaultInfiniteBound);
 
     /// @brief The interior-point program if one is built; nullptr otherwise.
     static const NonLinearProgram *built_ipm_program(const Problem &problem) noexcept;
 
     /// @brief The SQP's form, refreshed for this solve.
     /// @param exact_hessian Whether the solve reads the problem's Hessian.
+    /// @param infinite_bound The solve's CommonOptions::infinite_bound: an Nlp's
+    ///        transcription laid under another threshold is rebuilt under this one.
     /// @throws std::logic_error on a moved-from Problem; std::invalid_argument on
     ///         a refused change, a pieces problem, or an Nlp without a Hessian
     ///         under an exact-Hessian solve.
-    static SqpTarget sqp_target(Problem &problem, bool exact_hessian);
+    static SqpTarget sqp_target(Problem &problem, bool exact_hessian,
+                                double infinite_bound = kDefaultInfiniteBound);
 
     /// @brief Writes lambda and g, in the problem's row space, from the engine's
     ///        own row blocks.

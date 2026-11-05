@@ -30,6 +30,7 @@
 
 #include "hven/core/types.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/nlp.h"
 
@@ -130,15 +131,35 @@ struct NLPRowClassification {
 class NlpProblemModel final : public NlpModel {
   public:
     /// @brief Converts a declared problem, validating its declaration.
+    ///
+    /// Every variable and row bound is read through the absent-bound rule
+    /// (absent_bound.h): a bound at or beyond @p infinite_bound is the infinity
+    /// of its sign, and lower()/upper()/row_lower()/row_upper() report it so.
+    /// The pair checks below are made on the bounds as the rule reads them.
+    ///
     /// @param problem The problem to convert; must not be null.
-    /// @throws std::invalid_argument on a null problem, a non-positive
-    ///         variable count, a negative or inconsistent nonzero count, a
-    ///         variable bound pair that is NaN, inverted, or fixes the variable
-    ///         at an infinity, a constraint-row bound pair that is NaN,
-    ///         inverted, or an equality at infinity, or a structure entry
-    ///         outside its matrix (a Hessian entry above the diagonal
+    /// @param infinite_bound The threshold (CommonOptions::infinite_bound); > 0.
+    /// @throws std::invalid_argument on a null problem, a threshold that is not
+    ///         > 0, a non-positive variable count, a negative or inconsistent
+    ///         nonzero count, a variable bound pair that is NaN, inverted, or
+    ///         fixes the variable at an infinity, a constraint-row bound pair
+    ///         that is NaN, inverted, or an equality at infinity, or a structure
+    ///         entry outside its matrix (a Hessian entry above the diagonal
     ///         included).
-    explicit NlpProblemModel(std::shared_ptr<Nlp> problem);
+    explicit NlpProblemModel(std::shared_ptr<Nlp> problem,
+                             double infinite_bound = detail::kDefaultInfiniteBound);
+
+    /// @brief The absent-bound threshold this model read its bounds under.
+    double infinite_bound() const noexcept { return infinite_bound_; }
+    /// @brief How many finite declared bound values (variable and row sides) the
+    ///        last read took as absent.
+    Index absent_bounds() const override { return absent_bounds_; }
+    /// @brief The declared bounds as last read, before the rule (the values a
+    ///        per-solve re-read is compared against).
+    const Vec &raw_lower() const { return raw_x_lower_; }
+    const Vec &raw_upper() const { return raw_x_upper_; }
+    const Vec &raw_row_lower() const { return raw_g_lower_; }
+    const Vec &raw_row_upper() const { return raw_g_upper_; }
 
     Index n() const override { return n_; }
     Index me() const override { return rows_.num_eq_; }
@@ -227,9 +248,9 @@ class NlpProblemModel final : public NlpModel {
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
 
-    /// @brief Declared variable lower bounds, verbatim.
+    /// @brief Declared variable lower bounds, as the absent-bound rule reads them.
     const Vec &lower() const override { return x_lower_; }
-    /// @brief Declared variable upper bounds, verbatim.
+    /// @brief Declared variable upper bounds, as the absent-bound rule reads them.
     const Vec &upper() const override { return x_upper_; }
 
     /// @brief The origin projected onto the declared variable bounds.
@@ -239,9 +260,9 @@ class NlpProblemModel final : public NlpModel {
     /// rather than a value the problem stated.
     Vec start_point() const override;
 
-    /// @brief The declared row lower bounds, verbatim, one per declared row.
+    /// @brief The declared row lower bounds as the rule reads them, one per row.
     const Vec &row_lower() const { return g_lower_; }
-    /// @brief The declared row upper bounds, verbatim, one per declared row.
+    /// @brief The declared row upper bounds as the rule reads them, one per row.
     const Vec &row_upper() const { return g_upper_; }
     /// @brief The dimensions read at construction.
     NlpDimensions dimensions() const { return {n_, m_, jac_nnz_, hess_nnz_}; }
@@ -259,7 +280,7 @@ class NlpProblemModel final : public NlpModel {
     /// only on each row's kind, so nothing else moves. The per-iterate cache is
     /// cleared. Every refusal is made before anything is written.
     ///
-    /// @param x_lower n entries.  @param x_upper n entries.
+    /// @param x_lower n entries, as declared (the rule is applied here).  @param x_upper n.
     /// @param g_lower m entries.  @param g_upper m entries.
     /// @return true iff the variable box's STRUCTURE changed: which sides of a
     ///         variable are finite, or which variables are fixed.
@@ -330,6 +351,7 @@ class NlpProblemModel final : public NlpModel {
 
     void validate_sizes(const NlpDimensions &dims) const;
     void validate_variable_bounds(const Vec &x_lower, const Vec &x_upper) const;
+    Index normalize_read_bounds(Vec &x_lower, Vec &x_upper, Vec &g_lower, Vec &g_upper) const;
     void build_row_tables();
     void read_structures();
     void build_jacobian_pattern();
@@ -347,10 +369,14 @@ class NlpProblemModel final : public NlpModel {
     void refresh_jac(const Vec &x) const;
 
     std::shared_ptr<Nlp> problem_;
+    double infinite_bound_ = detail::kDefaultInfiniteBound;
+    Index absent_bounds_ = 0;
     int n_ = 0, m_ = 0, jac_nnz_ = 0, hess_nnz_ = 0;
 
-    Vec x_lower_, x_upper_;
-    Vec g_lower_, g_upper_; ///< declared row bounds, verbatim
+    Vec x_lower_, x_upper_; ///< declared variable bounds, normalized (absent_bound.h)
+    Vec g_lower_, g_upper_; ///< declared row bounds, normalized (absent_bound.h)
+    Vec raw_x_lower_, raw_x_upper_, raw_g_lower_, raw_g_upper_; ///< as declared
+    Vec upd_x_lower_, upd_x_upper_, upd_g_lower_, upd_g_upper_; ///< update_bounds scratch
     NLPRowClassification rows_;
     Eigen::VectorXi jac_rows_, jac_cols_;   ///< declared Jacobian structure
     Eigen::VectorXi hess_rows_, hess_cols_; ///< declared Hessian structure, lower triangle

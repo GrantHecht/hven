@@ -6,6 +6,7 @@
 
 #include "hven/detail/model/nlp_model_assembly.h"
 
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -221,10 +222,15 @@ void accumulate_adjoint(const SpMatRM &jacobian, const Vec &multipliers, Vec &ou
 
 } // namespace
 
-NlpModelAssembly::NlpModelAssembly(std::shared_ptr<const NlpModel> model)
-    : model_(std::move(model)) {
+NlpModelAssembly::NlpModelAssembly(std::shared_ptr<const NlpModel> model, double infinite_bound)
+    : model_(std::move(model)), infinite_bound_(infinite_bound) {
     if (model_ == nullptr) {
         throw std::invalid_argument("NlpModelAssembly: the model is null");
+    }
+    if (!(infinite_bound_ > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("NlpModelAssembly: infinite_bound must be > 0 (kInfinity is legal), got {}",
+                        infinite_bound_));
     }
 
     primal_vars_ = to_declared_count(model_->n(), "n()");
@@ -248,19 +254,32 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
     laid.declaration_.inequality_rows_ = inequality_rows_;
     laid.declaration_.partition_count_ = partition_count;
 
-    // The model's bounds, one record per variable, verbatim. The model layer's
-    // convention (nlp_model.h) is that unboundedness is written -inf / +inf and
-    // every finite value is a real bound, so there is nothing here to
-    // reinterpret: applying a magnitude threshold of this bridge's invention
-    // would put a bound the model never declared into a declared structure.
+    // The model's bounds, one record per variable, read through the
+    // absent-bound rule (absent_bound.h, CommonOptions::infinite_bound): a bound
+    // at or beyond the threshold is laid as the infinity of its sign, so the seam
+    // and every SQP test over this declaration see it absent. A pair the rule
+    // reads as inverted or as fixed at an infinity describes no interval and is
+    // refused by name; a NaN is left for validate() below, which names it.
     const Vec &lower = model_->lower();
     const Vec &upper = model_->upper();
     require_block_size(lower.size(), primal_vars_, "lower()");
     require_block_size(upper.size(), primal_vars_, "upper()");
     laid.declaration_.variable_bounds_.reserve(static_cast<std::size_t>(primal_vars_));
     for (int index = 0; index < primal_vars_; ++index) {
-        laid.declaration_.variable_bounds_.push_back(
-            VariableBound{index, lower[index], upper[index]});
+        const double lo = detail::normalize_bound(lower[index], infinite_bound_);
+        const double up = detail::normalize_bound(upper[index], infinite_bound_);
+        const int absent = (detail::reads_as_absent(lower[index], infinite_bound_) ? 1 : 0) +
+                           (detail::reads_as_absent(upper[index], infinite_bound_) ? 1 : 0);
+        laid.absent_bounds_ += absent;
+        // Only where the rule changed a value: a pair that was already empty as
+        // declared is validate()'s to refuse, in its own words.
+        if (absent > 0 && (lo > up || (lo == up && !std::isfinite(lo)))) {
+            throw std::invalid_argument(fmt::format(
+                "NlpModelAssembly: variable {0} has no interval (lower={1}, upper={2}){3}", index,
+                lower[index], upper[index],
+                detail::absent_bound_clause(lower[index], upper[index], infinite_bound_)));
+        }
+        laid.declaration_.variable_bounds_.push_back(VariableBound{index, lo, up});
     }
 
     // Validated at the contract's own boundary before anything is laid over it,

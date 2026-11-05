@@ -5948,6 +5948,7 @@ hven::solvers::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model, const 
         begin_event.vars_upper_only = box.vars_upper_only;
         begin_event.vars_ranged = box.vars_ranged;
         begin_event.vars_fixed = box.vars_fixed;
+        begin_event.absent_bounds = this->nlp_->absent_bounds_ + this->nlp_->source_absent_bounds_;
         begin_event.phases = static_cast<Index>(steps.size());
         begin_event.max_iters = opts_.common.max_iterations;
         begin_event.max_acc_iters = opts_.termination.acceptable_iterations;
@@ -6407,6 +6408,16 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
                                                 "elements, expected {} primal variables",
                                                 x0.size(), model.primal_vars_));
     }
+    // THE ABSENT-BOUND THRESHOLD (M8 B7): a program reads its bounds once, under
+    // its own threshold, so one laid under another threshold than this solve's is
+    // refused by name. A Problem re-lays its own program first (ProblemAccess).
+    if (model.infinite_bound_ != this->opts_.common.infinite_bound) {
+        throw std::invalid_argument(fmt::format(
+            "hven interior-point solver: the program was laid under infinite_bound = {}, and "
+            "this solve's common.infinite_bound is {}; lay the program under the solve's "
+            "threshold or solve it under its own",
+            model.infinite_bound_, this->opts_.common.infinite_bound));
+    }
 
     // THE COMMON WALL CLOCK (design §2.3), started HERE -- at the public
     // entry, immediately after the argument check above -- and stopped at the
@@ -6457,6 +6468,16 @@ hven::solvers::IpmResult hven::solvers::IpmSolverImpl::solve(NonLinearProgram &m
         throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
                                                 "elements, expected {} primal variables",
                                                 x0.size(), model.primal_vars_));
+    }
+    // THE ABSENT-BOUND THRESHOLD (M8 B7): a program reads its bounds once, under
+    // its own threshold, so one laid under another threshold than this solve's is
+    // refused by name. A Problem re-lays its own program first (ProblemAccess).
+    if (model.infinite_bound_ != this->opts_.common.infinite_bound) {
+        throw std::invalid_argument(fmt::format(
+            "hven interior-point solver: the program was laid under infinite_bound = {}, and "
+            "this solve's common.infinite_bound is {}; lay the program under the solve's "
+            "threshold or solve it under its own",
+            model.infinite_bound_, this->opts_.common.infinite_bound));
     }
 
     // THE HAND-OVER, in the order stage_warm_start ran it and with the same

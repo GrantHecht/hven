@@ -318,6 +318,9 @@ struct SqpSolveBeginTraceEvent {
     Index vars_fixed = 0;                             ///< Both finite and equal (a zero-width box).
     IpqpTraceQpMode qp_mode = IpqpTraceQpMode::kWalk; ///< The SETTING, not an outcome.
     WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    /// Finite declared bound values read as absent (CommonOptions::infinite_bound):
+    /// variable sides, plus an Nlp's row sides. The census above is taken after.
+    Index absent_bounds = 0;
 };
 
 /// @brief The solve's closing line (schema `sqp.solve.end`, M6 W4 T2).
@@ -478,6 +481,10 @@ struct IpmSolveBeginTraceEvent {
     Index kkt_dim = 0;
     Index kkt_nnz = 0; ///< Nonzeros in the assembled KKT matrix.
     Index internal_fixed_rows = 0;
+
+    /// Finite declared bound values read as absent (CommonOptions::infinite_bound):
+    /// variable sides, plus an Nlp's row sides. The census above is taken after.
+    Index absent_bounds = 0;
 };
 
 /// @brief The row the restoration-locally-infeasible door hands back (schema

@@ -163,9 +163,9 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
             continue; // pinned below, against the local copy
         }
         const BoundState st = face.bound_state[si];
-        if (st == BoundState::kAtLower && qp_in.lower(i) > -detail::kEngineInfBound) {
+        if (st == BoundState::kAtLower && qp_in.lower(i) > -qp_in.infinite_bound) {
             ws.bound_state()[si] = BoundState::kAtLower;
-        } else if (st == BoundState::kAtUpper && qp_in.upper(i) < detail::kEngineInfBound) {
+        } else if (st == BoundState::kAtUpper && qp_in.upper(i) < qp_in.infinite_bound) {
             ws.bound_state()[si] = BoundState::kAtUpper;
         }
     }
@@ -3070,8 +3070,7 @@ void QpEngine::ingest_seed_working_set(const QpProblem &qp_real, const QpProblem
                 continue;
             }
             const double bound = at_lower ? qp_real.lower(i) : qp_real.upper(i);
-            if (at_lower ? !(bound > -detail::kEngineInfBound)
-                         : !(bound < detail::kEngineInfBound)) {
+            if (at_lower ? !(bound > -qp_real.infinite_bound) : !(bound < qp_real.infinite_bound)) {
                 continue; // no real bound on that side to pin at
             }
             if (bound < qp_eff.lower(i) || bound > qp_eff.upper(i)) {
@@ -4093,8 +4092,8 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
                                  Index i, double hii) const {
     const double lo = qp.lower(i);
     const double up = qp.upper(i);
-    const bool lo_ok = lo > -detail::kEngineInfBound;
-    const bool up_ok = up < detail::kEngineInfBound;
+    const bool lo_ok = lo > -qp.infinite_bound;
+    const bool up_ok = up < qp.infinite_bound;
     if (!lo_ok && !up_ok) {
         return false;
     }
@@ -5101,7 +5100,7 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
         double sq = 0.0;
         for (Index i = 0; i < n; ++i) {
             const double bound = b(i) > 0.0 ? qp.lower(i) : qp.upper(i);
-            if (b(i) != 0.0 && !(std::abs(bound) < detail::kEngineInfBound)) {
+            if (b(i) != 0.0 && !(std::abs(bound) < qp.infinite_bound)) {
                 sq += b(i) * b(i);
             }
         }
@@ -5206,7 +5205,7 @@ bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
             continue;
         }
         const double bound = b > 0.0 ? qp.lower(i) : qp.upper(i);
-        if (!(std::abs(bound) < detail::kEngineInfBound)) {
+        if (!(std::abs(bound) < qp.infinite_bound)) {
             if (std::abs(b) <= drop_tol) {
                 dropped_sq += b * b;
                 continue;
@@ -5278,8 +5277,8 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
             const double e = gamma * w_abs(i);
             const double lo = qp.lower(i);
             const double up = qp.upper(i);
-            const bool lo_inf = !(std::abs(lo) < detail::kEngineInfBound);
-            const bool up_inf = !(std::abs(up) < detail::kEngineInfBound);
+            const bool lo_inf = !(std::abs(lo) < qp.infinite_bound);
+            const bool up_inf = !(std::abs(up) < qp.infinite_bound);
             const bool needed_inf =
                 w(i) > 0.0 ? lo_inf : (w(i) < 0.0 ? up_inf : (lo_inf || up_inf));
             if (needed_inf && std::abs(w(i)) <= e) {
@@ -5360,9 +5359,9 @@ QpEngine::PassOverScan::PassOverScan(const QpProblem &qp, const WorkingSet &ws, 
             continue;
         }
         double ratio = kInf;
-        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
+        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < qp.infinite_bound) {
             ratio = std::max(0.0, qp.upper(i) - x(i)) / p(i);
-        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
+        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -qp.infinite_bound) {
             ratio = std::min(0.0, qp.lower(i) - x(i)) / p(i);
         }
         if (ratio < kInf) {
@@ -6361,7 +6360,7 @@ static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::k
               "at the default the arms' candidate set is production's candidate set");
 
 /// AND THE SAME TIE FOR M7 W2 M5's ARM B1, for the same reason and in the same
-/// place. `qp_degeneracy_arm.h` cannot name these three constants either --
+/// place. `qp_degeneracy_arm.h` cannot name these two constants either --
 /// `qp_engine.h` includes that file, through `qp_walk_trace.h`, ABOVE its own
 /// declarations of them -- so the literals are tied together HERE, where both
 /// are visible. b1 re-enumerates the ratio test's candidates; if its
@@ -6369,11 +6368,10 @@ static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::k
 /// a DIFFERENT candidate set than the one it claims to re-order, and its own
 /// per-pass self-check against production's blocker would start refusing
 /// passes for a reason no counter could name. A future edit to either side
-/// fails the build instead.
+/// fails the build instead. (The absent-bound cutoff needs no tie: both read
+/// the subproblem's own QpProblem::infinite_bound.)
 static_assert(detail::testing::QpDegeneracyParams{}.negligible_pivot == detail::kEngineDenomTol,
               "ARM B1's candidate enumeration must use hven's own ratio-test pivot threshold");
-static_assert(detail::testing::QpDegeneracyParams{}.inf_bound == detail::kEngineInfBound,
-              "ARM B1's candidate enumeration must use hven's own infinite-bound threshold");
 static_assert(detail::testing::QpDegeneracyParams{}.step_tie_tol == detail::kEngineStepTieTol,
               "ARM B1's cap-at-unit convention must use hven's own step-tie tolerance");
 
@@ -6441,14 +6439,13 @@ std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &
             continue;
         }
         ArmCandidate c;
-        if (p(i) > AcState::params.negligible_pivot && qp.upper(i) < detail::kEngineInfBound) {
+        if (p(i) > AcState::params.negligible_pivot && qp.upper(i) < qp.infinite_bound) {
             c.state = BoundState::kAtUpper;
             c.prod_step = std::max(0.0, qp.upper(i) - x(i)) / p(i);
             c.step_exact = (qp.upper(i) - x(i)) / p(i);
             c.step_relaxed = (qp.upper(i) + delta - x(i)) / p(i);
             c.key = AcKey{i, 1, 1};
-        } else if (p(i) < -AcState::params.negligible_pivot &&
-                   qp.lower(i) > -detail::kEngineInfBound) {
+        } else if (p(i) < -AcState::params.negligible_pivot && qp.lower(i) > -qp.infinite_bound) {
             c.state = BoundState::kAtLower;
             // The SIGNED-ZERO site the census named: with x(i) exactly on its
             // lower bound this is `min(0, 0)/negative` == -0.0, which neither
@@ -6660,10 +6657,10 @@ double QpEngine::ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec
         }
         double ratio = std::numeric_limits<double>::infinity();
         BoundState hit = BoundState::kFree;
-        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
+        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < qp.infinite_bound) {
             ratio = std::max(0.0, qp.upper(i) - x(i)) / p(i);
             hit = BoundState::kAtUpper;
-        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
+        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -qp.infinite_bound) {
             ratio = std::min(0.0, qp.lower(i) - x(i)) / p(i);
             hit = BoundState::kAtLower;
         }

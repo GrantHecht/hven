@@ -124,6 +124,7 @@ nesting stuck open.
 | `vars_fixed` | integer | both finite and equal (a zero-width box) |
 | `qp_mode` | string `ipqp\|walk\|ssn` | the SETTING, not an outcome |
 | `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.ws_algebra` |
+| `absent_bounds` | integer | **M8 B7.** finite declared bound values the solve's `CommonOptions::infinite_bound` read as ABSENT (`b >= infinite_bound` is +inf, `b <= -infinite_bound` is -inf): variable sides, plus an Nlp problem's row sides. The census above is taken AFTER the threshold, so a variable declared `[-1e20, 1e20]` counts in `vars_free` at the default threshold. 0 under `infinite_bound = kInfinity` |
 
 **The five-way census is over VARIABLES, exhaustive and disjoint**: the five
 counts sum to `n`. There is **no row-kind census** on this contract and none is
@@ -401,6 +402,7 @@ counters without also filtering on `entered_rung_a`.
 | `kkt_dim` | integer | **M6 W5 T8.7.** the assembled KKT system's dimension (`IpmSolver::kkt_dim_`). This is the PRINTED copy §4.17's join-key `kkt_dim` points at |
 | `kkt_nnz` | integer | **M6 W5 T8.7.** nonzeros in the assembled KKT matrix. **Mind the spelling**: `ipm.kkt_analysis`'s nonzero key is `nnz`, not `kkt_nnz` (§4.17) |
 | `internal_fixed_rows` | integer | **M6 W5 T8.7.** the INTERNAL equality rows the MakeConstraint fixed-variable treatment has installed (`NonLinearProgram::internal_fixed_constraints()`) — one per fixed variable, at the tail of the equality row space; the "(d declared + f fixing)" split in `me` above. Zero under every other treatment and whenever nothing is fixed. **NOT `vars_fixed`**, which is the DECLARED BOX's census and equals this count only under MakeConstraint |
+| `absent_bounds` | integer | **M8 B7.** the same count, same rule, as `sqp.solve.begin`'s `absent_bounds`: finite declared bound values the solve's `CommonOptions::infinite_bound` read as absent, variable sides plus an Nlp problem's row sides; the census keys above are taken after it |
 
 **THE LAST EIGHT KEYS ARE TRAILING, AND WERE ADDED IN ONE STEP (M6 W5 T8.7)**,
 so this event's golden line moves ONCE. They are what the console's Problem
@@ -1019,10 +1021,10 @@ non-additive is v1.
 | `fallback.verdict` | W4 T1 | — |
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)**; **M7 W2 M1** (`site` gains the value `cap_retry` — a new ENUMERATOR on an existing key, not a new key: no line's SHAPE moves, and the two `qp.mode` golden lines are untouched because neither writes that value) |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
-| `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
+| `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry); **M8 B7** (`absent_bounds`, one declared additive trailing key — `GoldenLineSqpSolveBegin`) |
 | `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other; **M7 W2 M2** (the five-field restoration excursion record, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other; **M7 W2 A2** (`ipqp_mu0_derived`, `ipqp_mu0_fallbacks`, `ipqp_mu_floor_binds`, appended LAST in the nested `ipqp` object — declared additive trailing keys), which moves those same two golden lines ONCE, by three keys, and no other; and **M7 W2 A3** (`ipqp_ladder_zero_trial_skips`, appended LAST in the nested `ipqp` object — a declared additive trailing key), which moves those same two golden lines ONCE, by one key, and no other |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
-| `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
+| `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`); **M8 B7** (`absent_bounds`, one declared additive trailing key, same golden line) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |
 | `ipm.restoration_exit_row` | **W5 T8.7** | added T8.7; **its §4 entry and this row are T8.7b's** — the document did not follow the writer at T8.7 and does now |
 | `ipm.phase.begin` | **W5 T8.7b** | added T8.7b |

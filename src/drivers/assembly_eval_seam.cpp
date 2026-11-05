@@ -24,6 +24,13 @@ namespace hven::solvers {
 
 namespace {
 
+/// THE CUTOFF EVERY SUBPROBLEM THIS SEAM BUILDS CARRIES (QpProblem::infinite_bound).
+/// The absent-bound rule (CommonOptions::infinite_bound) was applied once, where
+/// the declaration was laid (NlpModelAssembly), so an absent side of lower_/upper_
+/// is already an infinity and stays one after the shift by -x; every finite
+/// subproblem bound is a real one, however large.
+constexpr double kSubproblemInfiniteBound = std::numeric_limits<double>::infinity();
+
 /// The arena's initial state. NOT +0.0: the provider ACCUMULATES, and
 /// (-0.0) + x == x for every double x while (+0.0) + (-0.0) == +0.0 -- so this
 /// seed, and only this seed, makes a one-contribution accumulation the exact
@@ -267,8 +274,9 @@ void AssemblyEvalSeam::lay() {
     // The declaration's own intersection, in variable order, which is the
     // record the layout and the structural key's bound conjunct are both taken
     // over. Where the provider is the NlpModel bridge this is the model's own
-    // lower()/upper() back again, and the same pair of vectors by
-    // construction: that bridge lays one record per variable verbatim, and
+    // lower()/upper() back again as the absent-bound rule reads them: that
+    // bridge lays one record per variable, normalized (a bound at or beyond
+    // CommonOptions::infinite_bound is an infinity), and
     // intersecting a single record with (-inf, +inf) returns it.
     const std::vector<VariableBound> bounds = declared.materialize_variable_bounds();
     lower_.resize(primal_vars_);
@@ -827,6 +835,7 @@ QpProblem AssemblyEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, co
 
     qp.lower = lower_ - x;
     qp.upper = upper_ - x;
+    qp.infinite_bound = kSubproblemInfiniteBound;
     return qp;
 }
 
@@ -875,6 +884,7 @@ QpProblem AssemblyEvalSeam::build_subproblem_without_hessian(const NlpEval &ev, 
 
     qp.lower = lower_ - x;
     qp.upper = upper_ - x;
+    qp.infinite_bound = kSubproblemInfiniteBound;
     return qp;
 }
 

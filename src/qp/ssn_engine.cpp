@@ -26,8 +26,8 @@
 // finish_deferred_certification() and discard_deferred_certification() --
 // crossed at most twice per QP subproblem.
 //
-// The `detail::` free functions and constants above SsnEngine (kSsnInfBound,
-// the safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
+// The `detail::` free functions and constants above SsnEngine (the
+// safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
 // types) stay inline in the header: tests, bench, src/drivers/sqp_solver.cpp
 // and include/hven/detail/warmstart/warm_start.h name them directly, and this
 // TU inlines them exactly as before.
@@ -1056,10 +1056,10 @@ void SsnEngine::build_bound_rows(const QpProblem &qp, const Vec &centre, double 
                 up_from_tr = true;
             }
         }
-        if (lo > -detail::kSsnInfBound) {
+        if (lo > -qp.infinite_bound) {
             bound_rows_.push_back(detail::SsnBoundRow{j, -1.0, -lo, lo_from_tr});
         }
-        if (up < detail::kSsnInfBound) {
+        if (up < qp.infinite_bound) {
             bound_rows_.push_back(detail::SsnBoundRow{j, 1.0, up, up_from_tr});
         }
     }
@@ -1087,19 +1087,19 @@ Vec SsnEngine::split_bound_multipliers(const QpProblem &qp, const Vec &z) const 
         if (std::abs(zj) <= band) {
             continue;
         }
-        if (zj > 0.0 && !(qp.lower(j) > -detail::kSsnInfBound)) {
+        if (zj > 0.0 && !(qp.lower(j) > -qp.infinite_bound)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: start.z({}) = {} prices variable {}'s LOWER bound, but "
-                "that bound is absent (lower = {}, at or beyond the +/-{} infinity "
-                "sentinel) -- there is no row for that multiplier",
-                j, zj, j, qp.lower(j), detail::kSsnInfBound));
+                "that bound is absent (lower = {}, at or beyond the subproblem's infinite_bound {}"
+                ") -- there is no row for that multiplier",
+                j, zj, j, qp.lower(j), qp.infinite_bound));
         }
-        if (zj < 0.0 && !(qp.upper(j) < detail::kSsnInfBound)) {
+        if (zj < 0.0 && !(qp.upper(j) < qp.infinite_bound)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: start.z({}) = {} prices variable {}'s UPPER bound, but "
-                "that bound is absent (upper = {}, at or beyond the +/-{} infinity "
-                "sentinel) -- there is no row for that multiplier",
-                j, zj, j, qp.upper(j), detail::kSsnInfBound));
+                "that bound is absent (upper = {}, at or beyond the subproblem's infinite_bound {}"
+                ") -- there is no row for that multiplier",
+                j, zj, j, qp.upper(j), qp.infinite_bound));
         }
     }
     Vec lb = Vec::Zero(static_cast<Index>(bound_rows_.size()));

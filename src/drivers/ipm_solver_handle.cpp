@@ -113,7 +113,8 @@ IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
     // one Jacobian evaluation, and a solve that pays for the build reports it.
     detail::ProblemAccess::reset_work(problem);
     try {
-        NonLinearProgram &program = detail::ProblemAccess::ipm_program(problem);
+        NonLinearProgram &program =
+            detail::ProblemAccess::ipm_program(problem, engine.options().common.infinite_bound);
         const detail::CallbackRowsScope rows(engine, problem);
         IpmResult result = warm.empty() ? engine.solve(program, x0, budget)
                                         : engine.solve(program, x0, warm, budget);

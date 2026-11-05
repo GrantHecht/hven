@@ -143,6 +143,7 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
     e.qp.Ai.makeCompressed();
     e.qp.bi = qp.bi;
 
+    e.qp.infinite_bound = qp.infinite_bound;
     e.qp.lower = Vec::Zero(n2);
     e.qp.upper = Vec::Zero(n2);
     e.qp.lower.head(n) = lo;

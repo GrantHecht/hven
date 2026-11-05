@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 
 #include "hven/detail/drivers/result_access.h"
+#include "hven/detail/model/absent_bound.h"
 #include "hven/detail/model/counting_nlp.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_adapter.h"
@@ -35,7 +36,13 @@ namespace {
 // The variable census of a box. A box whose sides disagree in length with each
 // other or with @p n describes no census: it is left empty here, and the solve
 // refuses the box by name (the engines' own entry checks).
-void count_variables(Index n, const Vec &lower, const Vec &upper, ProblemStatistics &stats) {
+//
+// The box is read through the absent-bound rule at @p infinite_bound (a no-op on
+// a box already normalized by its transcription); the values the rule takes as
+// absent are counted in stats.absent_bounds by the caller, which knows whether
+// row bounds were read too.
+void count_variables(Index n, const Vec &lower, const Vec &upper, ProblemStatistics &stats,
+                     double infinite_bound = kDefaultInfiniteBound) {
     stats.variables = n;
     stats.free_variables = stats.lower_bounded_variables = stats.upper_bounded_variables = 0;
     stats.boxed_variables = stats.fixed_variables = 0;
@@ -43,10 +50,12 @@ void count_variables(Index n, const Vec &lower, const Vec &upper, ProblemStatist
         return;
     }
     for (Index i = 0; i < n; ++i) {
-        const bool has_lower = std::isfinite(lower[i]);
-        const bool has_upper = std::isfinite(upper[i]);
+        const double lo = normalize_bound(lower[i], infinite_bound);
+        const double up = normalize_bound(upper[i], infinite_bound);
+        const bool has_lower = std::isfinite(lo);
+        const bool has_upper = std::isfinite(up);
         if (has_lower && has_upper) {
-            ++(lower[i] == upper[i] ? stats.fixed_variables : stats.boxed_variables);
+            ++(lo == up ? stats.fixed_variables : stats.boxed_variables);
         } else if (has_lower) {
             ++stats.lower_bounded_variables;
         } else if (has_upper) {
@@ -55,6 +64,17 @@ void count_variables(Index n, const Vec &lower, const Vec &upper, ProblemStatist
             ++stats.free_variables;
         }
     }
+}
+
+Index count_absent(const Vec &lower, const Vec &upper, double infinite_bound) {
+    Index absent = 0;
+    for (Index i = 0; i < lower.size(); ++i) {
+        absent += reads_as_absent(lower[i], infinite_bound) ? 1 : 0;
+    }
+    for (Index i = 0; i < upper.size(); ++i) {
+        absent += reads_as_absent(upper[i], infinite_bound) ? 1 : 0;
+    }
+    return absent;
 }
 
 void count_rows(const std::vector<NLPRowKind> &kinds, ProblemStatistics &stats) {
@@ -97,8 +117,9 @@ void count_program(const NonLinearProgram &program, ProblemStatistics &stats) {
         lower[static_cast<Index>(i)] = bounds[i].lower_;
         upper[static_cast<Index>(i)] = bounds[i].upper_;
     }
-    count_variables(program.primal_vars_, lower, upper, stats);
+    count_variables(program.primal_vars_, lower, upper, stats, program.infinite_bound_);
     count_split_rows(program.user_equal_cons_, program.inequal_cons_, stats);
+    stats.absent_bounds = program.absent_bounds_ + program.source_absent_bounds_;
 }
 
 Vec concatenate(const Vec &head, const Vec &tail) {
@@ -151,11 +172,15 @@ class ProblemState {
         counting_nlp_ = std::make_shared<CountingNlp>(nlp_);
         nlp_model_ = std::make_shared<NlpProblemModel>(counting_nlp_);
         dims_ = nlp_model_->dimensions();
-        count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);
-        count_rows(nlp_model_->rows().kinds_, statistics_);
+        count_nlp();
     }
 
     explicit ProblemState(AssemblyDeclaration pieces) : kind_(Kind::kPieces) {
+        // The bounds AS DECLARED, kept so a solve under another absent-bound
+        // threshold can re-lay the pieces with them (the program holds them as
+        // its threshold reads them).
+        pieces_bounds_ = pieces.variable_bounds_;
+        pieces_partitions_ = pieces.partition_count_;
         auto program = std::make_shared<NonLinearProgram>(pieces.partition_count_);
         program->adopt_declaration(std::move(pieces));
         count_program(*program, statistics_);
@@ -175,14 +200,15 @@ class ProblemState {
         if (model_ == nullptr) {
             throw std::invalid_argument("problem_from_model: the model pointer is null");
         }
-        count_variables(model_->n(), model_->lower(), model_->upper(), statistics_);
-        count_split_rows(model_->me(), model_->mi(), statistics_);
+        count_model();
     }
 
     explicit ProblemState(NlpModelAssembly &bridge) : kind_(Kind::kAssembly), bridge_(&bridge) {
+        infinite_bound_ = bridge.infinite_bound();
         count_variables(bridge.model().n(), bridge.model().lower(), bridge.model().upper(),
-                        statistics_);
+                        statistics_, infinite_bound_);
         count_split_rows(bridge.model().me(), bridge.model().mi(), statistics_);
+        statistics_.absent_bounds = bridge.absent_bounds();
     }
 
     Index num_variables() const noexcept {
@@ -221,7 +247,7 @@ class ProblemState {
         return program_ != nullptr ? static_cast<Index>(program_->num_partitions_) : 1;
     }
 
-    NonLinearProgram &ipm_program() {
+    NonLinearProgram &ipm_program(double infinite_bound) {
         switch (kind_) {
         case Kind::kNlp:
             if (!nlp_->has_hessian()) {
@@ -232,25 +258,47 @@ class ProblemState {
                     "in quasi-Newton mode (SqpHessianMode::kLbfgsDamped)",
                     nlp_->name()));
             }
-            refresh_nlp();
+            refresh_nlp(infinite_bound);
             if (program_ == nullptr) {
                 auto core = std::make_shared<NLPAdapterCore>(nlp_model_, nlp_->name());
-                program_ = make_nlp_program(core);
+                program_ = make_nlp_program(core, 1, nlp_model_->infinite_bound());
                 core_ = std::move(core);
             }
+            program_->source_absent_bounds_ = nlp_model_->absent_bounds();
             return *program_;
         case Kind::kModel:
+            adopt_model_threshold(infinite_bound);
+            if (program_ != nullptr && program_->infinite_bound_ != infinite_bound) {
+                program_.reset();
+                core_.reset();
+            }
             if (program_ == nullptr) {
                 auto core =
                     std::make_shared<NLPAdapterCore>(std::const_pointer_cast<NlpModel>(model_));
-                program_ = make_nlp_program(core);
+                program_ = make_nlp_program(core, 1, infinite_bound);
                 core_ = std::move(core);
             } else {
                 core_->invalidate_cache();
             }
+            program_->source_absent_bounds_ = model_->absent_bounds();
             return *program_;
         case Kind::kPieces:
+            if (program_->infinite_bound_ != infinite_bound) {
+                relay_pieces(infinite_bound);
+            }
+            infinite_bound_ = infinite_bound;
+            return *program_;
         case Kind::kProgram:
+            if (program_->infinite_bound_ != infinite_bound) {
+                throw std::invalid_argument(fmt::format(
+                    "IpmSolver: this Problem wraps a program laid under infinite_bound = {}, "
+                    "and this solve's common.infinite_bound is {}. A laid program reads its "
+                    "bounds once, under its own threshold; lay it under {} "
+                    "(make_nlp_program(..., {})) or solve it under {}",
+                    program_->infinite_bound_, infinite_bound, infinite_bound, infinite_bound,
+                    program_->infinite_bound_));
+            }
+            infinite_bound_ = infinite_bound;
             return *program_;
         case Kind::kAssembly:
             throw std::invalid_argument(
@@ -262,7 +310,7 @@ class ProblemState {
 
     const NonLinearProgram *built_ipm_program() const noexcept { return program_.get(); }
 
-    SqpTarget sqp_target(bool exact_hessian) {
+    SqpTarget sqp_target(bool exact_hessian, double infinite_bound) {
         switch (kind_) {
         case Kind::kNlp:
             if (exact_hessian && !nlp_->has_hessian()) {
@@ -273,11 +321,14 @@ class ProblemState {
                     "eval_hessian()",
                     nlp_->name()));
             }
-            refresh_nlp();
+            refresh_nlp(infinite_bound);
             return SqpTarget{nlp_model_.get(), nullptr};
         case Kind::kModel:
+            adopt_model_threshold(infinite_bound);
             return SqpTarget{model_.get(), nullptr};
         case Kind::kAssembly:
+            // The bridge was laid under its own threshold; the engine refuses a
+            // solve under another one by name.
             return SqpTarget{nullptr, bridge_};
         case Kind::kPieces:
         case Kind::kProgram:
@@ -349,9 +400,13 @@ class ProblemState {
             lower = &model_->lower();
             upper = &model_->upper();
         }
+        // The box as the engines read it: an Nlp's is normalized by its
+        // transcription, a model's is read here under the last solve's threshold.
         declaration.variable_bounds_.reserve(static_cast<std::size_t>(declaration.primal_vars_));
         for (int i = 0; i < declaration.primal_vars_; ++i) {
-            declaration.variable_bounds_.push_back(VariableBound{i, (*lower)[i], (*upper)[i]});
+            declaration.variable_bounds_.push_back(
+                VariableBound{i, normalize_bound((*lower)[i], infinite_bound_),
+                              normalize_bound((*upper)[i], infinite_bound_)});
         }
         return solvers::declaration_key(declaration);
     }
@@ -366,10 +421,14 @@ class ProblemState {
         case Kind::kModel:
             lower = model_->lower();
             upper = model_->upper();
+            normalize_bounds(lower, infinite_bound_);
+            normalize_bounds(upper, infinite_bound_);
             return;
         case Kind::kAssembly:
             lower = bridge_->model().lower();
             upper = bridge_->model().upper();
+            normalize_bounds(lower, infinite_bound_);
+            normalize_bounds(upper, infinite_bound_);
             return;
         case Kind::kPieces:
         case Kind::kProgram: {
@@ -558,7 +617,7 @@ class ProblemState {
     // THE PER-SOLVE RE-READ. Values and bounds may change between solves; the
     // dimensions, the structures and the row kinds may not. Every refusal is made
     // before anything is committed, so a refused solve leaves the Problem as it was.
-    void refresh_nlp() {
+    void refresh_nlp(double infinite_bound) {
         const NlpDimensions dims = nlp_->dimensions();
         if (dims.n != dims_.n || dims.m != dims_.m ||
             dims.jacobian_nonzeros != dims_.jacobian_nonzeros ||
@@ -577,15 +636,32 @@ class ProblemState {
         refuse_structure_change("Hessian", nlp_model_->hessian_rows(), nlp_model_->hessian_cols(),
                                 scratch_hess_rows_, scratch_hess_cols_);
 
+        // ANOTHER ABSENT-BOUND THRESHOLD is a re-lay, as a new Problem would be:
+        // the transcription is rebuilt under it (it re-reads the bounds, so a row
+        // may take another kind), and the interior-point program is dropped and
+        // re-laid on that engine's next solve (counted). The dimensions and the
+        // structures were checked above; the rebuild commits only once it has
+        // succeeded, so a refused one leaves the Problem as it was.
+        if (infinite_bound != nlp_model_->infinite_bound()) {
+            auto rebuilt = std::make_shared<NlpProblemModel>(counting_nlp_, infinite_bound);
+            nlp_model_ = std::move(rebuilt);
+            program_.reset();
+            core_.reset();
+            infinite_bound_ = infinite_bound;
+            count_nlp();
+            return;
+        }
         scratch_x_lower_.resize(dims_.n);
         scratch_x_upper_.resize(dims_.n);
         scratch_g_lower_.resize(dims_.m);
         scratch_g_upper_.resize(dims_.m);
         nlp_->bounds(scratch_x_lower_, scratch_x_upper_, scratch_g_lower_, scratch_g_upper_);
-        const bool unchanged = scratch_x_lower_ == nlp_model_->lower() &&
-                               scratch_x_upper_ == nlp_model_->upper() &&
-                               scratch_g_lower_ == nlp_model_->row_lower() &&
-                               scratch_g_upper_ == nlp_model_->row_upper();
+        // Compared as declared: the transcription keeps the declared values
+        // beside the ones the absent-bound rule reads.
+        const bool unchanged = scratch_x_lower_ == nlp_model_->raw_lower() &&
+                               scratch_x_upper_ == nlp_model_->raw_upper() &&
+                               scratch_g_lower_ == nlp_model_->raw_row_lower() &&
+                               scratch_g_upper_ == nlp_model_->raw_row_upper();
         if (!unchanged) {
             adopt_bounds();
         }
@@ -638,10 +714,61 @@ class ProblemState {
                 }
             }
         }
-        count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_);
+        count_nlp();
+    }
+
+    // The Nlp census: the transcription's normalized box and row kinds, and its
+    // count of declared values read as absent (variable and row sides).
+    void count_nlp() {
+        count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_,
+                        nlp_model_->infinite_bound());
+        count_rows(nlp_model_->rows().kinds_, statistics_);
+        statistics_.absent_bounds = nlp_model_->absent_bounds();
+    }
+
+    // The model census under the current threshold.
+    void count_model() {
+        count_variables(model_->n(), model_->lower(), model_->upper(), statistics_,
+                        infinite_bound_);
+        count_split_rows(model_->me(), model_->mi(), statistics_);
+        statistics_.absent_bounds =
+            count_absent(model_->lower(), model_->upper(), infinite_bound_) +
+            model_->absent_bounds();
+    }
+
+    // A model problem's threshold is the solve's: the engines read the model's
+    // box through it (the SQP's bridge, the interior-point program), and the
+    // census and the declaration key follow it.
+    void adopt_model_threshold(double infinite_bound) {
+        if (infinite_bound != infinite_bound_) {
+            infinite_bound_ = infinite_bound;
+            count_model();
+        }
+    }
+
+    // A pieces problem under another threshold: the program is rebuilt from its
+    // own declaration with the bounds as declared, read under the new threshold.
+    // Built whole, then committed; the engine re-analyses the new program.
+    void relay_pieces(double infinite_bound) {
+        AssemblyDeclaration declaration = program_->declaration();
+        declaration.variable_bounds_ = pieces_bounds_;
+        declaration.partition_count_ = pieces_partitions_;
+        auto program = std::make_shared<NonLinearProgram>(pieces_partitions_);
+        program->set_infinite_bound(infinite_bound);
+        program->adopt_declaration(std::move(declaration));
+        count_program(*program, statistics_);
+        program_ = std::move(program);
     }
 
     Kind kind_;
+
+    // The absent-bound threshold the Problem was last laid or solved under
+    // (CommonOptions::infinite_bound); the default until the first solve.
+    double infinite_bound_ = kDefaultInfiniteBound;
+
+    // Kind::kPieces: the bounds as declared and the requested partition count.
+    std::vector<VariableBound> pieces_bounds_;
+    int pieces_partitions_ = 1;
 
     // Kind::kNlp: the problem as stated and the engines' transcriptions (the SQP's
     // model, which holds the last-read declaration, and the interior-point program
@@ -710,16 +837,16 @@ const ProblemState &ProblemAccess::state(const Problem &problem) {
     return *problem.state_;
 }
 
-NonLinearProgram &ProblemAccess::ipm_program(Problem &problem) {
-    return ProblemAccess::state(problem).ipm_program();
+NonLinearProgram &ProblemAccess::ipm_program(Problem &problem, double infinite_bound) {
+    return ProblemAccess::state(problem).ipm_program(infinite_bound);
 }
 
 const NonLinearProgram *ProblemAccess::built_ipm_program(const Problem &problem) noexcept {
     return problem.state_ != nullptr ? problem.state_->built_ipm_program() : nullptr;
 }
 
-SqpTarget ProblemAccess::sqp_target(Problem &problem, bool exact_hessian) {
-    return ProblemAccess::state(problem).sqp_target(exact_hessian);
+SqpTarget ProblemAccess::sqp_target(Problem &problem, bool exact_hessian, double infinite_bound) {
+    return ProblemAccess::state(problem).sqp_target(exact_hessian, infinite_bound);
 }
 
 void ProblemAccess::report(const Problem &problem, SolveResult &result) {

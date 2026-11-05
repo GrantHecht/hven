@@ -313,7 +313,7 @@ void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
 }
 
 std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core,
-                                                   int num_partitions) {
+                                                   int num_partitions, double infinite_bound) {
     if (num_partitions < 1) {
         throw std::invalid_argument(fmt::format(
             "make_nlp_program: a partition count must be at least 1 (got {})", num_partitions));
@@ -325,6 +325,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     }
 
     auto nlp = std::make_shared<NonLinearProgram>(num_partitions);
+    nlp->set_infinite_bound(infinite_bound);
 
     ObjectiveFunction obj(ObjectiveInterface(NLPObjectivePiece(core)), vindex);
     obj.set_thread_mode(ThreadingFlags::MainThread);
@@ -362,8 +363,8 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     return nlp;
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem,
-                                                   int num_partitions) {
+std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions,
+                                                   double infinite_bound) {
     if (problem == nullptr) {
         throw std::invalid_argument("make_nlp_program: the problem pointer is null");
     }
@@ -373,9 +374,9 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem,
     // the caller holding nothing half-built -- there is no state here to leave
     // behind.
     const std::string name = problem->name();
-    auto model = std::make_shared<NlpProblemModel>(std::move(problem));
+    auto model = std::make_shared<NlpProblemModel>(std::move(problem), infinite_bound);
     auto core = std::make_shared<NLPAdapterCore>(std::move(model), name);
-    return make_nlp_program(core, num_partitions);
+    return make_nlp_program(core, num_partitions, infinite_bound);
 }
 
 } // namespace hven::solvers

@@ -458,8 +458,9 @@ struct QpDegeneracyParams {
 
     /// THE RATIO TEST'S OWN ELIGIBILITY CONSTANTS, so that arm b1's candidate
     /// enumeration considers EXACTLY the constraints `QpEngine::ratio_test`
-    /// considers and no others. They are the engine's `kEngineDenomTol`,
-    /// `kEngineInfBound` and `kEngineStepTieTol`, and the literals are
+    /// considers and no others. They are the engine's `kEngineDenomTol` and
+    /// `kEngineStepTieTol` (the absent-bound cutoff is the subproblem's own
+    /// `QpProblem::infinite_bound`, read by both), and the literals are
     /// repeated here rather than referenced for the same reason
     /// `dependency_tol`'s is: `qp_engine.h` includes this file (through
     /// `qp_walk_trace.h`) ABOVE its own declarations of them. They are TIED to
@@ -467,7 +468,6 @@ struct QpDegeneracyParams {
     /// beside M4's, where both are visible, so an edit to either one fails the
     /// build rather than silently giving the arm a different candidate set.
     double negligible_pivot = 1e-12;
-    double inf_bound = 1e20;
     double step_tie_tol = 1e-9;
 
     /// A CEILING on how many candidates ONE pass may put through the
@@ -1044,10 +1044,10 @@ inline std::vector<QpB1Candidate> b1_candidates(const QpProblem &qp, const Worki
             continue;
         }
         QpB1Candidate c;
-        if (p(i) > prm.negligible_pivot && qp.upper(i) < prm.inf_bound) {
+        if (p(i) > prm.negligible_pivot && qp.upper(i) < qp.infinite_bound) {
             c.state = BoundState::kAtUpper;
             c.step = std::max(0.0, qp.upper(i) - x(i)) / p(i);
-        } else if (p(i) < -prm.negligible_pivot && qp.lower(i) > -prm.inf_bound) {
+        } else if (p(i) < -prm.negligible_pivot && qp.lower(i) > -qp.infinite_bound) {
             c.state = BoundState::kAtLower;
             // The signed-zero site: with `x(i)` exactly on its lower bound
             // this is `min(0, 0)/negative == -0.0`, which the stable sort

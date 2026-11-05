@@ -8,6 +8,7 @@
 // arithmetic here, only comparisons and values handed to fmt.
 
 #include "hven/detail/drivers/common_options_validate.h"
+#include "hven/detail/model/absent_bound.h"
 
 #include <cmath>
 #include <limits>
@@ -16,6 +17,11 @@
 #include <fmt/format.h>
 
 namespace hven::solvers::detail {
+
+// The one default threshold: the public field's and the one the layers built
+// before any options exist read under (a Problem's first transcription).
+static_assert(CommonOptions{}.infinite_bound == kDefaultInfiniteBound,
+              "CommonOptions::infinite_bound's default must be detail::kDefaultInfiniteBound");
 
 namespace {
 
