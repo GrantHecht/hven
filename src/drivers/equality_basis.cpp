@@ -13,7 +13,7 @@
 
 #include <hven/linear/symmetric_factor.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -1402,4 +1402,4 @@ const Vec &EqualityRowSubsetModel::lower() const { return model_.lower(); }
 const Vec &EqualityRowSubsetModel::upper() const { return model_.upper(); }
 Vec EqualityRowSubsetModel::start_point() const { return model_.start_point(); }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

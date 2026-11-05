@@ -327,11 +327,11 @@ TEST(SymmetricFactor, SolveRejectsSizeMismatch) {
 
 TEST(SymmetricFactor, UnimplementedFactorKindsThrow) {
     SymmetricFactor::Options llt = default_options();
-    llt.kind = hven::linear::FactorKind::kLLT;
+    llt.kind = hven::linear::FactorKind::kLlt;
     EXPECT_THROW(SymmetricFactor{llt}, std::logic_error);
 
     SymmetricFactor::Options lu = default_options();
-    lu.kind = hven::linear::FactorKind::kLU;
+    lu.kind = hven::linear::FactorKind::kLu;
     EXPECT_THROW(SymmetricFactor{lu}, std::logic_error);
 }
 

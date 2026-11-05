@@ -8,7 +8,7 @@
 // the expected diagnostic is the one authored "hven local block:" message naming
 // the kOutputs.
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace {
 struct ObjectiveWithOutputs {
@@ -19,6 +19,6 @@ struct ObjectiveWithOutputs {
 };
 } // namespace
 
-hven::solvers::ObjectiveInterface probe_local_outputs_on_objective() {
-    return hven::solvers::ObjectiveInterface(ObjectiveWithOutputs{});
+hven::ObjectiveInterface probe_local_outputs_on_objective() {
+    return hven::ObjectiveInterface(ObjectiveWithOutputs{});
 }

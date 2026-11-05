@@ -7,7 +7,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 class Nlp;
 struct AssemblyDeclaration;
@@ -140,4 +140,4 @@ class Problem {
     std::unique_ptr<detail::ProblemState> state_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

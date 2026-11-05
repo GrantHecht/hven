@@ -5,7 +5,7 @@
 
 #include "hven/detail/model/problem_access.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 void compose_event_lambda(const Problem *problem, const Vec &lambda_e, const Vec &lambda_i,
                           Vec &scratch) {
@@ -18,4 +18,4 @@ void compose_event_lambda(const Problem *problem, const Vec &lambda_e, const Vec
     scratch.tail(lambda_i.size()) = lambda_i;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

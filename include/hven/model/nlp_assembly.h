@@ -53,7 +53,7 @@
 #include "hven/model/claim_space.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -157,9 +157,9 @@ namespace detail {
 /// view under a naming request is incoherent rather than degenerate.
 inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
     if (view.empty()) {
-        const char *missing = view.values_ == nullptr      ? "storage"
-                              : view.locations_ == nullptr ? "location table"
-                                                           : "rows (its length is zero)";
+        const char *missing = view.values == nullptr      ? "storage"
+                              : view.locations == nullptr ? "location table"
+                                                          : "rows (its length is zero)";
         detail::throw_arena_view_missing(arena, static_cast<std::uint32_t>(flag), missing);
     }
 }
@@ -185,12 +185,12 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
     if (declared_rows == 0) {
         return;
     }
-    if (view.locations_ == nullptr || view.values_ == nullptr) {
+    if (view.locations == nullptr || view.values == nullptr) {
         detail::throw_residual_arena_view_missing(
-            arena, declared_rows, view.values_ == nullptr ? "storage" : "location table");
+            arena, declared_rows, view.values == nullptr ? "storage" : "location table");
     }
-    if (view.size_ != declared_rows) {
-        detail::throw_residual_arena_size(arena, view.size_, declared_rows);
+    if (view.size != declared_rows) {
+        detail::throw_residual_arena_size(arena, view.size, declared_rows);
     }
 }
 
@@ -222,24 +222,24 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 /// why the gradient arenas are not checked the same way.
 inline void validate_request_destinations(EvalRequest request, const AssemblyDeclaration &declared,
                                           const KktScatterView &kkt, const RhsScatterView &rhs) {
-    if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
+    if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective == nullptr) {
         detail::throw_objective_slot_missing(
             static_cast<std::uint32_t>(EvalRequest::kObjectiveValue));
     }
     if (has_request(request, EvalRequest::kObjectiveGradient)) {
-        detail::require_arena_view(rhs.objective_gradient_, EvalRequest::kObjectiveGradient,
+        detail::require_arena_view(rhs.objective_gradient, EvalRequest::kObjectiveGradient,
                                    "objective gradient");
     }
     if (has_request(request, EvalRequest::kConstraintValues)) {
         // One flag, two arenas: no evaluation shape produces one residual block
         // without the other, so naming the flag names both destinations.
-        detail::require_residual_arena(rhs.equality_residuals_, declared.equality_rows_,
+        detail::require_residual_arena(rhs.equality_residuals, declared.equality_rows,
                                        "equality residual");
-        detail::require_residual_arena(rhs.inequality_residuals_, declared.inequality_rows_,
+        detail::require_residual_arena(rhs.inequality_residuals, declared.inequality_rows,
                                        "inequality residual");
     }
     if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        detail::require_arena_view(rhs.constraint_adjoint_gradient_,
+        detail::require_arena_view(rhs.constraint_adjoint_gradient,
                                    EvalRequest::kConstraintAdjointGradient,
                                    "constraint adjoint gradient");
     }
@@ -284,8 +284,8 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
     if (bound == nullptr || kkt.empty()) {
         return;
     }
-    if (kkt.values_ != bound) {
-        detail::throw_bound_destination_mismatch(kkt.values_, bound);
+    if (kkt.values != bound) {
+        detail::throw_bound_destination_mismatch(kkt.values, bound);
     }
 }
 
@@ -558,10 +558,10 @@ class NlpAssembly {
                   RhsScatterView rhs) {
         const AssemblyDeclaration &declared = this->declaration();
         validate_eval_request(request);
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
         if (request_consumes_multipliers(request)) {
-            validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+            validate_full_multipliers(point, declared.equality_rows, declared.inequality_rows);
         }
         validate_request_destinations(request, declared, kkt, rhs);
         validate_bound_destination(this->bound_kkt_destination(), kkt);
@@ -600,9 +600,9 @@ class NlpAssembly {
     /// internals -- which is the whole point of the surface existing.
     void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) {
         const AssemblyDeclaration &declared = this->declaration();
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
-        validate_candidate_values(out, declared.equality_rows_, declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
+        validate_candidate_values(out, declared.equality_rows, declared.inequality_rows);
         this->evaluate_candidate_values_impl(point, out);
     }
 
@@ -630,11 +630,11 @@ class NlpAssembly {
     /// and a scorer that skips those rows is insensitive to the difference.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
         const AssemblyDeclaration &declared = this->declaration();
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
-        validate_candidate_first_order(out, declared.primal_vars_, declared.equality_rows_,
-                                       declared.inequality_rows_);
-        validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
+        validate_candidate_first_order(out, declared.primal_vars, declared.equality_rows,
+                                       declared.inequality_rows);
+        validate_full_multipliers(point, declared.equality_rows, declared.inequality_rows);
         this->evaluate_candidate_first_order_impl(point, out);
     }
 
@@ -696,4 +696,4 @@ inline ModelStructureKey model_structure_key(const NlpAssembly &aggregate) {
     return aggregate.model_structure_key();
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -17,7 +17,7 @@
 // solve is a fan-out over the caller's sink and the console, and the caller's
 // stream is byte-identical to what it would have been with no console at all.
 //
-// This header includes `trace.h` and `<cstdio>`, and nothing else. `IterateInfo`
+// This header includes `trace.h` and `<cstdio>`, and nothing else. `IpmIterate`
 // -- the interior-point iteration record the row renderer reads -- arrives
 // through `trace.h`, which refers to it by reference. The install smoke compiles
 // this header alone to prove it is self-contained.
@@ -43,7 +43,7 @@
 
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Renders both engines' console tables from the trace stream.
 ///
@@ -150,7 +150,7 @@ class ConsoleTraceSink final : public TraceSink {
     void ipm_print_stats(const IpmSolveBeginTraceEvent &event);
     void ipm_print_beginning(std::string_view msg);
     void ipm_print_finished(std::string_view msg);
-    void ipm_print_row(const IterateInfo &row);
+    void ipm_print_row(const IpmIterate &row);
 
     Format fmt_;
     std::FILE *out_;
@@ -239,4 +239,4 @@ class FanOutTraceSink final : public TraceSink {
     TraceSink *second_ = nullptr;
 };
 
-} // namespace hven::solvers
+} // namespace hven

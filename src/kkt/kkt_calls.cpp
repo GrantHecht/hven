@@ -9,7 +9,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K) {
     // Short-circuits on `!k.analyzed` exactly as needs_analysis() always has:
@@ -38,7 +38,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
-        throw hven::solvers::BackendError(
+        throw hven::BackendError(
             fmt::format("KktFactor::factorize_checked: factorization failed, backend error {}",
                         outcome.backend_code));
     }
@@ -55,4 +55,4 @@ Vec solve_vec(const KktFactor &k, const Vec &rhs) {
     return x;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

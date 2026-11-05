@@ -33,7 +33,7 @@
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/drivers/sqp_solver.h>
 
-namespace hven::solvers {
+namespace hven {
 
 const char *to_string(PredictorOutcome outcome) {
     switch (outcome) {
@@ -131,4 +131,4 @@ std::string format_iteration_table(const SqpResult &sol) {
     return result;
 }
 
-} // namespace hven::solvers
+} // namespace hven

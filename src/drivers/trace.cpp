@@ -11,7 +11,7 @@
 
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+namespace hven {
 
 TraceSink::~TraceSink() = default;
 
@@ -79,4 +79,4 @@ VariableBoundCensus census_variable_bounds(const Vec &lower, const Vec &upper, I
     return census;
 }
 
-} // namespace hven::solvers
+} // namespace hven

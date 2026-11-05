@@ -134,7 +134,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 /// Which arm is armed on this thread. `kOff` is the default and is production
 /// behaviour EXACTLY: every hook site in `src/qp/qp_engine.cpp` runs the
@@ -153,7 +153,7 @@ enum class QpAntiCycleArm : int { kOff = 0, kExpand = 1, kLexicographic = 2 };
 struct QpAntiCycleParams {
     /// §4.2, "the 'master' feasibility tolerance" delta_f. The paper derives
     /// delta_f = eps^(3/8) and reports 1e-6 for eps = 1e-16. hven's own
-    /// `QpOptions::feas_tol` defaults to 1e-9, and a WORKING tolerance larger
+    /// `QpOptions::feasibility_tol` defaults to 1e-9, and a WORKING tolerance larger
     /// than the engine's structural-violation tolerance would let the walk
     /// certify points the engine's own verdict calls infeasible, so the
     /// DEFAULT HERE IS hven's feas_tol default and NOT the paper's 1e-6. The
@@ -385,6 +385,6 @@ struct QpAntiCycleArmState {
     };
 };
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

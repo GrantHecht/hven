@@ -13,7 +13,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
 
-hven::SpMatRM probe_deprecated_eval_hess(const hven::solvers::NlpModel &model, const hven::Vec &x,
+hven::SpMatRM probe_deprecated_eval_hess(const hven::NlpModel &model, const hven::Vec &x,
                                          const hven::Vec &le, const hven::Vec &li) {
     hven::SpMatRM out;
     model.eval_hess_in_place(x, 1.0, le, li, out); // the replacement: not deprecated

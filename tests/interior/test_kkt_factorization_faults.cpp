@@ -38,10 +38,10 @@
 
 namespace {
 
+using hven::KktFactorization;
 using hven::SpMatRM;
 using hven::linear::detail::testing::AnalyzeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
-using hven::solvers::KktFactorization;
 
 // An ordinary, healthy 2x2 system: diag(2, -3), one positive and one negative
 // eigenvalue. Every test below makes the INJECTED fault the reason a
@@ -56,7 +56,7 @@ SpMatRM fault_probe_matrix() {
 
 KktFactorization::Options fault_probe_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLDLT;
+    opts.kind = hven::linear::FactorKind::kLdlt;
     opts.num_threads = 1;
     return opts;
 }

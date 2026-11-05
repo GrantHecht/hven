@@ -7,7 +7,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The sizes an Nlp declares.
 struct NlpDimensions {
@@ -107,4 +107,4 @@ class Nlp {
     virtual std::string name() const { return "nlp"; }
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -20,7 +20,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -108,10 +108,10 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
                          int row_offset, int matrix_rows, int matrix_cols, bool upper_triangle,
                          const char *domain) {
     DomainClaims claims;
-    claims.rows_.reserve(static_cast<std::size_t>(block.count_));
-    claims.cols_.reserve(static_cast<std::size_t>(block.count_));
-    for (int index = 0; index < block.count_; ++index) {
-        const int slot = block.start_ + index;
+    claims.rows_.reserve(static_cast<std::size_t>(block.count));
+    claims.cols_.reserve(static_cast<std::size_t>(block.count));
+    for (int index = 0; index < block.count; ++index) {
+        const int slot = block.start + index;
         const int row = stream_rows[slot] - row_offset;
         const int col = stream_cols[slot];
         if (row < 0 || row >= matrix_rows || col < 0 || col >= matrix_cols) {
@@ -164,7 +164,7 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
 void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matrix_rows,
                   int matrix_cols, int arena_base, const char *domain, SpMatRM &pattern,
                   std::vector<int> &locations) {
-    const int count = block.count_;
+    const int count = block.count;
 
     std::vector<int> order(static_cast<std::size_t>(count));
     std::iota(order.begin(), order.end(), 0);
@@ -219,7 +219,7 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
             // The permutation itself: the claim the provider will hand out at
             // slot `block.start_ + claim_index` lands at CSR position
             // `position` of this domain's segment.
-            locations[static_cast<std::size_t>(block.start_ + claim_index)] = arena_base + position;
+            locations[static_cast<std::size_t>(block.start + claim_index)] = arena_base + position;
         }
     }
 }
@@ -257,19 +257,19 @@ void AssemblyEvalSeam::lay() {
     // longer exist. Refused here, in the same voice require_bundle_matches_layout
     // refuses a bundle these structures no longer describe, and BEFORE anything
     // is written, so the refusal leaves this seam exactly as it was.
-    if (scaling_.active && (scaling_.eq_rows.size() != declared.equality_rows_ ||
-                            scaling_.ineq_rows.size() != declared.inequality_rows_)) {
+    if (scaling_.active && (scaling_.eq_rows.size() != declared.equality_rows ||
+                            scaling_.ineq_rows.size() != declared.inequality_rows)) {
         throw std::invalid_argument(fmt::format(
             "AssemblyEvalSeam: the aggregate re-laid to ({}, {}) constraint rows while a problem "
             "scaling sized for ({}, {}) was installed; the factors are fixed for a solve and "
             "cannot describe rows that changed under them",
-            declared.equality_rows_, declared.inequality_rows_, scaling_.eq_rows.size(),
+            declared.equality_rows, declared.inequality_rows, scaling_.eq_rows.size(),
             scaling_.ineq_rows.size()));
     }
 
-    primal_vars_ = declared.primal_vars_;
-    equality_rows_ = declared.equality_rows_;
-    inequality_rows_ = declared.inequality_rows_;
+    primal_vars_ = declared.primal_vars;
+    equality_rows_ = declared.equality_rows;
+    inequality_rows_ = declared.inequality_rows;
 
     // The declaration's own intersection, in variable order, which is the
     // record the layout and the structural key's bound conjunct are both taken
@@ -283,8 +283,8 @@ void AssemblyEvalSeam::lay() {
     upper_.resize(primal_vars_);
     for (Index variable = 0; variable < primal_vars_; ++variable) {
         const VariableBound &record = bounds[static_cast<std::size_t>(variable)];
-        lower_[variable] = record.lower_;
-        upper_[variable] = record.upper_;
+        lower_[variable] = record.lower;
+        upper_[variable] = record.upper;
     }
 
     hessian_ = aggregate_->hessian_claims();
@@ -337,17 +337,17 @@ void AssemblyEvalSeam::lay() {
          {"inequality Jacobian", &inequality_jacobian_}}};
 
     for (const auto &[domain, block] : declared_blocks) {
-        if (block->start_ < 0 || block->count_ < 0) {
+        if (block->start < 0 || block->count < 0) {
             throw std::invalid_argument(
                 fmt::format("AssemblyEvalSeam: the {0} block reports start {1} and count {2}; "
                             "neither may be negative",
-                            domain, block->start_, block->count_));
+                            domain, block->start, block->count));
         }
     }
 
-    const std::int64_t covered = static_cast<std::int64_t>(hessian_.count_) +
-                                 static_cast<std::int64_t>(equality_jacobian_.count_) +
-                                 static_cast<std::int64_t>(inequality_jacobian_.count_);
+    const std::int64_t covered = static_cast<std::int64_t>(hessian_.count) +
+                                 static_cast<std::int64_t>(equality_jacobian_.count) +
+                                 static_cast<std::int64_t>(inequality_jacobian_.count);
     if (covered != static_cast<std::int64_t>(total_claims)) {
         throw std::invalid_argument(fmt::format(
             "AssemblyEvalSeam: the three claim blocks cover {0} of the stream's {1} slots", covered,
@@ -378,12 +378,12 @@ void AssemblyEvalSeam::lay() {
         // start_ + count_ > total_claims: both operands are non-negative by the
         // pass above and total_claims is non-negative, so the subtraction is
         // representable, while the sum need not be.
-        if (block->start_ > total_claims - block->count_) {
-            throw std::invalid_argument(fmt::format(
-                "AssemblyEvalSeam: the {0} block names slots [{1}, {2}) of a "
-                "claim stream {3} slots long",
-                domain, block->start_, static_cast<std::int64_t>(block->start_) + block->count_,
-                total_claims));
+        if (block->start > total_claims - block->count) {
+            throw std::invalid_argument(
+                fmt::format("AssemblyEvalSeam: the {0} block names slots [{1}, {2}) of a "
+                            "claim stream {3} slots long",
+                            domain, block->start,
+                            static_cast<std::int64_t>(block->start) + block->count, total_claims));
         }
     }
 
@@ -400,11 +400,11 @@ void AssemblyEvalSeam::lay() {
         std::array<std::pair<const char *, const ClaimBlock *>, 3> occupied{};
         int occupied_count = 0;
         for (const auto &entry : declared_blocks) {
-            if (entry.second->count_ == 0) {
+            if (entry.second->count == 0) {
                 continue;
             }
             int position = occupied_count;
-            while (position > 0 && occupied[position - 1].second->start_ > entry.second->start_) {
+            while (position > 0 && occupied[position - 1].second->start > entry.second->start) {
                 occupied[position] = occupied[position - 1];
                 --position;
             }
@@ -417,13 +417,13 @@ void AssemblyEvalSeam::lay() {
             const auto &following = occupied[index + 1];
             // Both ends are representable: the bound pass above proved each
             // start_ + count_ no larger than total_claims, which is an int.
-            const int current_end = current.second->start_ + current.second->count_;
-            if (following.second->start_ < current_end) {
+            const int current_end = current.second->start + current.second->count;
+            if (following.second->start < current_end) {
                 throw std::invalid_argument(fmt::format(
                     "AssemblyEvalSeam: the {0} block names slots [{1}, {2}) and the {3} block "
                     "names [{4}, {5}); the three blocks must be pairwise disjoint",
-                    current.first, current.second->start_, current_end, following.first,
-                    following.second->start_, following.second->start_ + following.second->count_));
+                    current.first, current.second->start, current_end, following.first,
+                    following.second->start, following.second->start + following.second->count));
             }
         }
     }
@@ -443,14 +443,14 @@ void AssemblyEvalSeam::lay() {
     kkt_locations_.assign(static_cast<std::size_t>(total_claims), 0);
     build_domain(
         read_claims(stream_rows, stream_cols, hessian_, 0, primal, primal, true, "Hessian"),
-        hessian_, primal, primal, hessian_.start_, "Hessian", hessian_pattern_, kkt_locations_);
+        hessian_, primal, primal, hessian_.start, "Hessian", hessian_pattern_, kkt_locations_);
     build_domain(read_claims(stream_rows, stream_cols, equality_jacobian_, primal, equality, primal,
                              false, "equality Jacobian"),
-                 equality_jacobian_, equality, primal, equality_jacobian_.start_,
+                 equality_jacobian_, equality, primal, equality_jacobian_.start,
                  "equality Jacobian", equality_pattern_, kkt_locations_);
     build_domain(read_claims(stream_rows, stream_cols, inequality_jacobian_, primal + equality,
                              inequality, primal, false, "inequality Jacobian"),
-                 inequality_jacobian_, inequality, primal, inequality_jacobian_.start_,
+                 inequality_jacobian_, inequality, primal, inequality_jacobian_.start,
                  "inequality Jacobian", inequality_pattern_, kkt_locations_);
 
     // Uncontested BY THIS SEAM'S OWN SUPPORT STATEMENT, not by anything the
@@ -534,31 +534,31 @@ void AssemblyEvalSeam::relay_if_stale() {
 
 KktScatterView AssemblyEvalSeam::kkt_view() {
     KktScatterView view;
-    view.values_ = arena_.data();
-    view.size_ = static_cast<int>(arena_.size());
-    view.locations_ = &kkt_table_;
+    view.values = arena_.data();
+    view.size = static_cast<int>(arena_.size());
+    view.locations = &kkt_table_;
     return view;
 }
 
 RhsArenaView AssemblyEvalSeam::gradient_view() {
     RhsArenaView view;
-    view.values_ = gradient_arena_.data();
-    view.size_ = static_cast<int>(gradient_arena_.size());
-    view.locations_ = &gradient_table_;
+    view.values = gradient_arena_.data();
+    view.size = static_cast<int>(gradient_arena_.size());
+    view.locations = &gradient_table_;
     return view;
 }
 
 void AssemblyEvalSeam::seed_kkt_segment(const ClaimBlock &block) {
-    if (block.count_ > 0) {
-        arena_.segment(block.start_, block.count_).setConstant(kArenaSeed);
+    if (block.count > 0) {
+        arena_.segment(block.start, block.count).setConstant(kArenaSeed);
     }
 }
 
 void AssemblyEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &pattern,
                                       SpMatRM &out) const {
     out = pattern;
-    if (block.count_ > 0) {
-        Eigen::Map<Vec>(out.valuePtr(), block.count_) = arena_.segment(block.start_, block.count_);
+    if (block.count > 0) {
+        Eigen::Map<Vec>(out.valuePtr(), block.count) = arena_.segment(block.start, block.count);
     }
 }
 
@@ -571,7 +571,7 @@ void AssemblyEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &pa
 // multiply per element on a buffer this seam has just filled and still owns.
 //
 // EVERY SITE IS BEHIND `scaling_.active`. At the shipped default
-// (SqpOptions::enable_scaling == false) no factor is ever installed, every
+// (SqpOptions::row_scaling == false) no factor is ever installed, every
 // predicate below is false, and this seam does the arithmetic it has always
 // done -- which is what the OFF-path bit-identity pin asserts.
 // ===========================================================================
@@ -679,7 +679,7 @@ void AssemblyEvalSeam::assemble_gradient_and_jacobians(const Vec &x) {
     // subproblem's scaling is applied where the subproblem is built.
     const Vec no_multipliers;
     RhsScatterView rhs;
-    rhs.objective_gradient_ = this->gradient_view();
+    rhs.objective_gradient = this->gradient_view();
     aggregate_->assemble(CandidatePoint{x, no_multipliers, no_multipliers, 1.0},
                          kRequestGradientAndJacobians, this->kkt_view(), rhs);
 }
@@ -888,4 +888,4 @@ QpProblem AssemblyEvalSeam::build_subproblem_without_hessian(const NlpEval &ev, 
     return qp;
 }
 
-} // namespace hven::solvers
+} // namespace hven

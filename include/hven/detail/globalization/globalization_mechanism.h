@@ -10,12 +10,12 @@
 
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 // LineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
 // requires the complete IpmSolver class; see acceptance_strategy.h's include note.
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Owns the fraction-to-boundary + backtracking sequence for one step
 /// proposal, then dispatches acceptance.
@@ -38,7 +38,7 @@ class GlobalizationMechanism {
     /// gate.
     ///
     /// XSL/DXSL/XSL2/RHS/RHS2 are raw Eigen::VectorXd blocks viewed via
-    /// hven::solvers::KKTVector internally. bfrac and the step strategy are
+    /// hven::KktVector internally. bfrac and the step strategy are
     /// read from ctx.settings_ (persistent settings, not per-call transients).
     /// lsmode/obj_scale/mu/prim_obj/barr_obj are forwarded verbatim to the
     /// acceptance strategy once scaling has been applied.
@@ -50,7 +50,7 @@ class GlobalizationMechanism {
                                 double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                                 Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
                                 AcceptanceStrategy &acceptance, double &alphap, double &alphad,
-                                IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+                                IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                                 SolverContext &ctx) = 0;
 
     /// @brief Fraction-to-boundary primal/dual step scaling alone — the first
@@ -85,8 +85,8 @@ class GlobalizationMechanism {
                                             double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                             Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                            AcceptanceStrategy &acceptance, IterateInfo &Citer,
-                                            const std::vector<IterateInfo> &iters,
+                                            AcceptanceStrategy &acceptance, IpmIterate &Citer,
+                                            const std::vector<IpmIterate> &iters,
                                             SolverContext &ctx) {
         (void)lsmode;
         (void)obj_scale;
@@ -113,4 +113,4 @@ class GlobalizationMechanism {
     virtual void reset() = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

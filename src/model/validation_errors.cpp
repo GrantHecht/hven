@@ -18,13 +18,13 @@
 
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
-#include "hven/model/indexing_data.h"
 #include "hven/model/local_blocks.h"
 #include "hven/model/nlp_assembly.h"
 #include "hven/model/solver_function_base.h"
+#include "hven/model/solver_indexing_data.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 // ---------------------------------------------------------------- claim_space.h
 
@@ -223,7 +223,7 @@ void throw_bound_destination_mismatch(const double *view_values, const double *b
         fmt::ptr(view_values), fmt::ptr(bound)));
 }
 
-// ------------------------------------------------------------- indexing_data.h
+// ------------------------------------------------------ solver_indexing_data.h
 
 void throw_output_v_index_shape(Eigen::Index rows, Eigen::Index cols, Eigen::Index got_rows,
                                 Eigen::Index got_cols) {
@@ -267,4 +267,4 @@ void throw_local_block_split_claim(const std::string &piece) {
         piece));
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

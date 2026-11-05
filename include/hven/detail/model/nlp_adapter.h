@@ -40,18 +40,18 @@
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/constraint_function.h"
-#include "hven/model/indexing_data.h"
 #include "hven/model/objective_function.h"
+#include "hven/model/solver_indexing_data.h"
+#include "hven/model/solver_interface_adapter.h"
 #include "hven/model/threading_flags.h"
-#include "hven/solver_interface_adapter.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct NonLinearProgram;
 class Nlp;
 
 /// One stored matrix entry's coordinates, in the order the model presents them.
-struct NLPCoordinate {
+struct NlpCoordinate {
     int row_;
     int col_;
 };
@@ -70,7 +70,7 @@ struct NLPCoordinate {
 /// which is what this check makes meaningful -- and, because it runs first,
 /// nothing has been summed anywhere when it refuses.
 void nlp_require_claimed_pattern(const Eigen::SparseMatrix<double, Eigen::RowMajor> &matrix,
-                                 const std::vector<NLPCoordinate> &recorded, const char *what,
+                                 const std::vector<NlpCoordinate> &recorded, const char *what,
                                  const std::string &name);
 
 /// Shared state behind the adapter pieces: the model, the coordinates its three
@@ -78,21 +78,21 @@ void nlp_require_claimed_pattern(const Eigen::SparseMatrix<double, Eigen::RowMaj
 /// evaluation cache, and the per-assembly multiplier records. Shared by every
 /// piece copy via shared_ptr; safe without locking because the adapter always
 /// runs single-partition, so every access is serial.
-struct NLPAdapterCore {
+struct NlpAdapterCore {
     std::shared_ptr<NlpModel> model_;
     std::string name_; ///< names the model in diagnostics and in the piece names
     int n_ = 0, num_eq_ = 0, num_iq_ = 0;
 
     Eigen::VectorXd x_lower_, x_upper_; ///< variable bounds, as the model reports them
 
-    std::vector<NLPCoordinate> eq_jac_; ///< equality Jacobian, claim order
-    std::vector<NLPCoordinate> iq_jac_; ///< inequality Jacobian, claim order
-    std::vector<NLPCoordinate> hess_;   ///< Lagrangian Hessian, upper triangle, claim order
+    std::vector<NlpCoordinate> eq_jac_; ///< equality Jacobian, claim order
+    std::vector<NlpCoordinate> iq_jac_; ///< inequality Jacobian, claim order
+    std::vector<NlpCoordinate> hess_;   ///< Lagrangian Hessian, upper triangle, claim order
 
     /// Which piece scatters the (monolithic) Lagrangian Hessian: the last one
     /// the evaluation order reaches, decided once here.
-    enum class HessOwner { Objective, EqPiece, IqPiece };
-    HessOwner hess_owner_ = HessOwner::Objective;
+    enum class HessOwner { kObjective, kEqualityPiece, kInequalityPiece };
+    HessOwner hess_owner_ = HessOwner::kObjective;
 
     // Per-iterate cache. The model's callbacks are pure, so it keys on the
     // iterate value. x_cache_ is also the plain vector every model call is
@@ -132,7 +132,7 @@ struct NLPAdapterCore {
     ///         count, a negative row count, a bound vector of the wrong length,
     ///         a variable bound that is NaN, inverted, or fixed at infinity, or
     ///         a Hessian return carrying an entry below the diagonal.
-    explicit NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name = "NLP model");
+    explicit NlpAdapterCore(std::shared_ptr<NlpModel> model, std::string name = "NLP model");
 
     /// @brief Copies @p x into the cache, invalidating what is keyed on it.
     /// @param x The solver's iterate.
@@ -219,10 +219,10 @@ struct NLPAdapterCore {
 /// Claims the Lagrangian-Hessian block: one KKT slot per stored Hessian entry,
 /// at the (reduced) variable coordinates. The reduced renumbering is monotone,
 /// so an upper-triangle pattern stays upper-triangle.
-inline void nlp_claim_hessian_block(const NLPAdapterCore &core, EigenRef<Eigen::VectorXi> KKTrows,
+inline void nlp_claim_hessian_block(const NlpAdapterCore &core, EigenRef<Eigen::VectorXi> KKTrows,
                                     EigenRef<Eigen::VectorXi> KKTcols, int &freeloc,
                                     const SolverIndexingData &data) {
-    for (const NLPCoordinate &entry : core.hess_) {
+    for (const NlpCoordinate &entry : core.hess_) {
         const int r = data.v_scatter_loc(entry.row_, 0);
         const int c = data.v_scatter_loc(entry.col_, 0);
         if (r < 0 || c < 0) {
@@ -241,7 +241,7 @@ inline void nlp_claim_hessian_block(const NLPAdapterCore &core, EigenRef<Eigen::
 /// (kkt_canonical_lock_col); with the adapter's single partition no slot is
 /// ever contested, but the discipline is kept so the code stays correct if
 /// that ever changes.
-inline void nlp_scatter_hessian_block(const NLPAdapterCore &core, int claim_start,
+inline void nlp_scatter_hessian_block(const NlpAdapterCore &core, int claim_start,
                                       Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                                       EigenRef<Eigen::VectorXi> KKTLocs,
                                       EigenRef<Eigen::VectorXi> VarClashes,
@@ -275,17 +275,19 @@ inline void nlp_scatter_hessian_block(const NLPAdapterCore &core, int claim_star
 
 /// The model's objective, as a solver objective. Also the Hessian owner when
 /// the model has no constraint rows.
-struct NLPObjectivePiece {
-    std::shared_ptr<NLPAdapterCore> core_;
+struct NlpObjectivePiece {
+    std::shared_ptr<NlpAdapterCore> core_;
     int hess_claim_start_ = -1; ///< recorded per partition copy during get_kkt_space
 
-    NLPObjectivePiece() = default;
-    explicit NLPObjectivePiece(std::shared_ptr<NLPAdapterCore> core) : core_(std::move(core)) {}
+    NlpObjectivePiece() = default;
+    explicit NlpObjectivePiece(std::shared_ptr<NlpAdapterCore> core) : core_(std::move(core)) {}
 
     std::string name() const { return core_->name_ + " (objective)"; }
     int input_rows() const { return core_->n_; }
     bool thread_safe() const { return false; }
-    bool owns_hessian() const { return core_->hess_owner_ == NLPAdapterCore::HessOwner::Objective; }
+    bool owns_hessian() const {
+        return core_->hess_owner_ == NlpAdapterCore::HessOwner::kObjective;
+    }
 
     void objective(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
                    const SolverIndexingData &data) const {
@@ -298,7 +300,7 @@ struct NLPObjectivePiece {
                             EigenRef<Eigen::VectorXd> GX, const SolverIndexingData &data) const {
         this->objective(ObjScale, X, Val, data);
         core_->refresh_gradient(X);
-        GX.segment(data.inner_gradient_starts_[0], core_->n_) = ObjScale * core_->gradient();
+        GX.segment(data.inner_gradient_starts[0], core_->n_) = ObjScale * core_->gradient();
     }
 
     void objective_gradient_hessian(double ObjScale, ConstEigenRef<Eigen::VectorXd> X, double &Val,
@@ -338,8 +340,8 @@ struct NLPObjectivePiece {
                        SolverIndexingData &data) {
         (void)conoffset;
         (void)dojac;
-        data.inner_kkt_starts_.resize(1);
-        data.inner_kkt_starts_[0] = freeloc;
+        data.inner_kkt_starts.resize(1);
+        data.inner_kkt_starts[0] = freeloc;
         if (dohess && this->owns_hessian()) {
             hess_claim_start_ = freeloc;
             nlp_claim_hessian_block(*core_, KKTrows, KKTcols, freeloc, data);
@@ -354,13 +356,13 @@ struct NLPObjectivePiece {
 /// One block of the model's constraint rows — the equalities or the
 /// inequalities — as a solver constraint. The last-evaluated piece also owns
 /// the Lagrangian Hessian.
-struct NLPConstraintPiece {
-    std::shared_ptr<NLPAdapterCore> core_;
+struct NlpConstraintPiece {
+    std::shared_ptr<NlpAdapterCore> core_;
     bool is_inequality_ = false;
     int hess_claim_start_ = -1;
 
-    NLPConstraintPiece() = default;
-    NLPConstraintPiece(std::shared_ptr<NLPAdapterCore> core, bool is_inequality)
+    NlpConstraintPiece() = default;
+    NlpConstraintPiece(std::shared_ptr<NlpAdapterCore> core, bool is_inequality)
         : core_(std::move(core)), is_inequality_(is_inequality) {}
 
     std::string name() const {
@@ -370,11 +372,11 @@ struct NLPConstraintPiece {
     int output_rows() const { return is_inequality_ ? core_->num_iq_ : core_->num_eq_; }
     bool thread_safe() const { return false; }
     bool owns_hessian() const {
-        return is_inequality_ ? core_->hess_owner_ == NLPAdapterCore::HessOwner::IqPiece
-                              : core_->hess_owner_ == NLPAdapterCore::HessOwner::EqPiece;
+        return is_inequality_ ? core_->hess_owner_ == NlpAdapterCore::HessOwner::kInequalityPiece
+                              : core_->hess_owner_ == NlpAdapterCore::HessOwner::kEqualityPiece;
     }
     /// The claim-order coordinates of this block's Jacobian.
-    const std::vector<NLPCoordinate> &jac_coords() const {
+    const std::vector<NlpCoordinate> &jac_coords() const {
         return is_inequality_ ? core_->iq_jac_ : core_->eq_jac_;
     }
     /// This block's most recently evaluated Jacobian.
@@ -427,7 +429,7 @@ struct NLPConstraintPiece {
         Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
         EigenRef<Eigen::VectorXi> KKTLocations, EigenRef<Eigen::VectorXi> KKTClashes,
         std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const {
-        // Same exception-safety concern as NLPObjectivePiece::objective_gradient_hessian
+        // Same exception-safety concern as NlpObjectivePiece::objective_gradient_hessian
         // above: this piece's own model calls can throw either before or after
         // it has recorded its multipliers, and the owner (this piece or the one
         // after it) may never run to consume a record either piece left behind.
@@ -469,10 +471,10 @@ struct NLPConstraintPiece {
     void get_kkt_space(EigenRef<Eigen::VectorXi> KKTrows, EigenRef<Eigen::VectorXi> KKTcols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
                        SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(1);
-        data.inner_kkt_starts_[0] = freeloc;
+        data.inner_kkt_starts.resize(1);
+        data.inner_kkt_starts[0] = freeloc;
         if (dojac) {
-            for (const NLPCoordinate &entry : this->jac_coords()) {
+            for (const NlpCoordinate &entry : this->jac_coords()) {
                 const int col = data.v_scatter_loc(entry.col_, 0);
                 KKTrows[freeloc] = (col < 0) ? -1 : data.c_loc(entry.row_, 0) + conoffset;
                 KKTcols[freeloc] = col;
@@ -493,7 +495,7 @@ struct NLPConstraintPiece {
     void write_residuals(EigenRef<Eigen::VectorXd> FX, const SolverIndexingData &data) const {
         const Eigen::VectorXd &residuals =
             is_inequality_ ? core_->inequality_residuals() : core_->equality_residuals();
-        FX.segment(data.inner_constraint_starts_[0], residuals.size()) = residuals;
+        FX.segment(data.inner_constraint_starts[0], residuals.size()) = residuals;
     }
     // Both fills below index stored value k by recorded coordinate k. The
     // pattern was checked against the claim order once, when the Jacobian was
@@ -513,9 +515,9 @@ struct NLPConstraintPiece {
             core_->refuse_short_multiplier_block(L.size(), rows, is_inequality_,
                                                  "at the piece's first read");
         }
-        const std::vector<NLPCoordinate> &coords = this->jac_coords();
+        const std::vector<NlpCoordinate> &coords = this->jac_coords();
         const double *values = this->jacobian().valuePtr();
-        const int gstart = data.inner_gradient_starts_[0];
+        const int gstart = data.inner_gradient_starts[0];
         for (std::size_t k = 0; k < coords.size(); k++) {
             AGX[gstart + coords[k].col_] += values[k] * L[data.c_loc(coords[k].row_, 0)];
         }
@@ -524,15 +526,15 @@ struct NLPConstraintPiece {
                           EigenRef<Eigen::VectorXi> KKTLocs, EigenRef<Eigen::VectorXi> VarClashes,
                           std::vector<std::mutex> &ClashLocks,
                           const SolverIndexingData &data) const {
-        const std::vector<NLPCoordinate> &coords = this->jac_coords();
+        const std::vector<NlpCoordinate> &coords = this->jac_coords();
         const double *values = this->jacobian().valuePtr();
-        int cursor = data.inner_kkt_starts_[0];
+        int cursor = data.inner_kkt_starts[0];
         for (std::size_t k = 0; k < coords.size(); k++, cursor++) {
             const int vcol = data.v_scatter_loc(coords[k].col_, 0);
             if (vcol < 0) {
                 continue;
             }
-            const bool lock_column = !data.unique_constraints_ && (VarClashes[vcol] != -1);
+            const bool lock_column = !data.unique_constraints && (VarClashes[vcol] != -1);
             if (lock_column) {
                 ClashLocks[VarClashes[vcol]].lock();
             }
@@ -547,14 +549,14 @@ struct NLPConstraintPiece {
 // Both pieces are plain value types, not erased handles, so each is stored as
 // itself: one erasure, one virtual dispatch per solver call. Registered here,
 // beside the definitions, per the placement rule in
-// hven/solver_interface_adapter.h.
+// hven/model/solver_interface_adapter.h.
 template <>
-struct SolverInterfaceAdapter<NLPObjectivePiece> : DirectFunctionModel<NLPObjectivePiece> {};
+struct SolverInterfaceAdapter<NlpObjectivePiece> : DirectFunctionModel<NlpObjectivePiece> {};
 template <>
-struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConstraintPiece> {};
+struct SolverInterfaceAdapter<NlpConstraintPiece> : DirectFunctionModel<NlpConstraintPiece> {};
 
 // The two make_nlp_program() overloads are declared in
 // hven/detail/model/make_nlp_program.h, included above; the bodies are in
 // src/model/nlp_adapter.cpp, beside the machinery above that they drive.
 
-} // namespace hven::solvers
+} // namespace hven

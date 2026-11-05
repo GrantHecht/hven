@@ -9,10 +9,10 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // `Index` below is `hven::Index`, reached by ordinary enclosing-namespace
-// lookup out of `hven::solvers`; there is no SQP-side index alias.
+// lookup out of `hven`; there is no SQP-side index alias.
 
 /// How much of a previous solve's state a caller intends to feed into the
 /// next one. THE ORDER IS LOAD-BEARING AND THE ENUM IS COMPARED BY IT:
@@ -50,7 +50,7 @@ namespace hven::solvers {
 ///       (mesh_transfer.h section 4 declines to transfer funnel_width;
 ///       kSeeded extends the refusal to tr_radius, which MeshTransfer does
 ///       carry). The destination solve seeds its funnel from Eq. (9) at its
-///       own first measured h0 and starts at SqpOptions::tr_init, exactly as
+///       own first measured h0 and starts at SqpOptions::trust_region_initial, exactly as
 ///       a cold solve does.
 ///     * THE KUNGURTSEV-DIEHL FULL-STEP WINDOW (SqpOptions::warm_full_step):
 ///       the full-step-first rule presumes local convergence of a warm start
@@ -106,4 +106,4 @@ struct StartLevelHistogram {
     Index total() const { return cold + seeded + warm + hot; }
 };
 
-} // namespace hven::solvers
+} // namespace hven

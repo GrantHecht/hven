@@ -72,7 +72,7 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -102,7 +102,7 @@ const std::vector<double> &path_samples() {
 // about the FAMILY rather than about the default stopping tolerance.
 //
 // THE QP MINOR-ITERATION CAP IS RAISED, AND THAT IS A MEASUREMENT, NOT A
-// WORKAROUND. QpOptions::max_iter defaults to 500. At N = 100 (mi = 100 path
+// WORKAROUND. QpOptions::max_iterations defaults to 500. At N = 100 (mi = 100 path
 // rows plus 2*N*nc = 400 finite bounds) the FIRST real major -- the one that
 // walks from the cold start onto the active window -- needs 761 minor
 // iterations at p = 0.68 and 954 at p = 0.85, because an active-set method
@@ -147,7 +147,7 @@ const std::vector<double> &path_samples() {
 //
 // CARRY 2 FOR TASK 3 -- A WALL-TIME CLIFF JUST ABOVE THIS FIXTURE'S LARGEST
 // SOLVE. Same probe, Release, p = 0.85, these options verbatim:
-// N = 100 -> 2.62 s; N = 200 -> DID NOT FINISH in 300 s at qp.max_iter = 5000,
+// N = 100 -> 2.62 s; N = 200 -> DID NOT FINISH in 300 s at qp.max_iterations = 5000,
 // nor in 13 min at 50000 (both killed). That is a >100x wall-time jump for a
 // 2x size step, against ~4.4x per doubling from N = 50 to N = 100.
 //
@@ -156,7 +156,7 @@ const std::vector<double> &path_samples() {
 // verdict, so a reader of THIS file does not have to open that one to learn
 // whether the question is still live:
 //
-//   The cause is a QpOptions::schur_cap-TRIGGERED K0-REBUILD STORM -- a pure
+//   The cause is a QpOptions::max_schur_border_dimension-TRIGGERED K0-REBUILD STORM -- a pure
 //   linear-algebra cost explosion. Once the live Schur-border count exceeds the
 //   default schur_cap = 128, nearly every minor iteration pays a K0 rebuild
 //   plus a full re-border, and because a rebuild folds the working rows back
@@ -198,8 +198,8 @@ const std::vector<double> &path_samples() {
 // 6: at N = 800 a single QP subproblem consumes whatever cap it is given
 // without converging (the solve still returns kOptimal, in 279 s at a cap of
 // 20000 and 4944 s at 500000). Unreachable at the shipped default cap.
-// MARKED NOTE, PHASE-6 TASK 4 (M6): `opts.qp.max_iter = 5000` below is now an
-// EXPLICIT cap in the precedence sense (qp_types.h's QpOptions::max_iter) rather
+// MARKED NOTE, PHASE-6 TASK 4 (M6): `opts.qp.max_iterations = 5000` below is now an
+// EXPLICIT cap in the precedence sense (qp_types.h's QpOptions::max_iterations) rather
 // than merely a raised one -- it wins outright over the size-derived default,
 // so every figure this file publishes is measured at exactly the cap it always
 // was and none of them moved under M6.
@@ -208,7 +208,7 @@ SqpOptions tight_options() {
     opts.common.optimality_tol = 1e-9;
     opts.common.feasibility_tol = 1e-9;
     opts.common.max_iterations = 60;
-    opts.qp.max_iter = 5000;
+    opts.qp.max_iterations = 5000;
     return opts;
 }
 
@@ -407,8 +407,7 @@ void check_path_at(F7CollocationChain &model, double p) {
     model.set_parameters(Vec::Constant(1, p));
     const SqpOptions opts = tight_options();
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const double f_star = model.f_star(p);
@@ -416,7 +415,7 @@ void check_path_at(F7CollocationChain &model, double p) {
         << fmt::format("f = {:.17g} vs f_star = {:.17g}", sol.f, f_star);
     const Vec x_star = model.x_star(p);
     EXPECT_LE((sol.x - x_star).lpNorm<Eigen::Infinity>(), kXTol);
-    EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i - model.lambda_i_star(p))
+    EXPECT_LE((hven::detail::engine_rows(sol).lambda_i - model.lambda_i_star(p))
                   .lpNorm<Eigen::Infinity>(),
               kMultTol);
     EXPECT_LE((sol.z - model.z_star(p)).lpNorm<Eigen::Infinity>(), kMultTol);
@@ -625,8 +624,7 @@ void check_wide_window_walk(Index nodes, double p, const WalkCounts &want) {
     SqpSolver driver(tight_options());
     Ledger ledger;
     driver.attach_ledger(&ledger, "walk");
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WalkCounts got = walk_counts(ledger);
@@ -1280,20 +1278,20 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
         opts.common.optimality_tol = 1e-9;
         opts.common.feasibility_tol = 1e-9;
         opts.common.max_iterations = 60;
-        return opts; // qp.max_iter at the library default (M6's sentinel)
+        return opts; // qp.max_iterations at the library default (M6's sentinel)
     };
 
     F7CollocationChain model_off(100, 3, 2, p, 1.0);
     SqpSolver driver_off(make_options());
     const SqpResult off =
-        driver_off.solve(hven::solvers::detail::problem_ref(model_off), model_off.start_point());
+        driver_off.solve(hven::detail::problem_ref(model_off), model_off.start_point());
 
     SqpOptions on_opts = make_options();
     on_opts.advanced.crash_basis = true;
     F7CollocationChain model_on(100, 3, 2, p, 1.0);
     SqpSolver driver_on(on_opts);
     const SqpResult on =
-        driver_on.solve(hven::solvers::detail::problem_ref(model_on), model_on.start_point());
+        driver_on.solve(hven::detail::problem_ref(model_on), model_on.start_point());
 
     ASSERT_EQ(off.status, SolveStatus::kOptimal);
     ASSERT_EQ(on.status, SolveStatus::kOptimal);
@@ -1331,7 +1329,7 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
 // N = 50, p = 0.85 is the SMALLEST wide-window cell whose one substantive
 // subproblem demands more minors than the pre-M6 fixed default of 500: it
 // wants 629 (docs/notes/2026-08-03-crash-basis.md Sec. 4). So the same solve,
-// at the same tolerances, differs ONLY in QpOptions::max_iter and differs in
+// at the same tolerances, differs ONLY in QpOptions::max_iterations and differs in
 // OUTCOME -- which is the whole argument for the default change, made once,
 // as a test rather than only as a table.
 //
@@ -1349,12 +1347,11 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     opts.common.optimality_tol = 1e-9;
     opts.common.feasibility_tol = 1e-9;
     opts.common.max_iterations = 60;
-    // qp.max_iter deliberately LEFT AT THE LIBRARY DEFAULT -- the sentinel.
-    ASSERT_LE(opts.qp.max_iter, 0) << "the shipped default must BE the sentinel";
+    // qp.max_iterations deliberately LEFT AT THE LIBRARY DEFAULT -- the sentinel.
+    ASSERT_LE(opts.qp.max_iterations, 0) << "the shipped default must BE the sentinel";
 
     SqpSolver derived(opts);
-    const SqpResult good =
-        derived.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult good = derived.solve(hven::detail::problem_ref(model), model.start_point());
     EXPECT_EQ(good.status, SolveStatus::kOptimal);
     EXPECT_LT((good.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8);
     // OBSERVED: 4 majors / 635 minors, against a derived cap of
@@ -1366,15 +1363,14 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     // escape hatch. It fails, at a point nowhere near x* -- exactly what
     // docs/notes/2026-07-30-scale-study-cold.md Sec. 5 recorded.
     SqpOptions old_default = opts;
-    old_default.qp.max_iter = 500;
+    old_default.qp.max_iterations = 500;
     SqpSolver fixed(old_default);
-    const SqpResult bad =
-        fixed.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult bad = fixed.solve(hven::detail::problem_ref(model), model.start_point());
     EXPECT_NE(bad.status, SolveStatus::kOptimal);
     EXPECT_GT((bad.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-3);
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

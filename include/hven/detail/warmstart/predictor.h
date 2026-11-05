@@ -128,7 +128,7 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // Tuning for predict().
 struct PredictorOptions {
@@ -557,10 +557,10 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
         // -1 is warm_start.h's "never populated" sentinel for both.
         QpOptions qopts;
         if (warm.primal_delta > 0.0) {
-            qopts.primal_delta = warm.primal_delta;
+            qopts.primal_regularization = warm.primal_delta;
         }
         if (warm.dual_mu > 0.0) {
-            qopts.dual_mu = warm.dual_mu;
+            qopts.dual_regularization = warm.dual_mu;
         }
 
         const std::vector<Index> &rows0 = warm.qp_working_set.active_ineq();
@@ -632,7 +632,7 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
         // an ill-conditioned C -- and this function's degradation path returns
         // the identity prediction rather than unwinding the two by hand).
         const auto add_pin = [&](Index i) {
-            schur.add_border(BorderOps::pin_variable(i, k0_rows), -qopts.dual_mu);
+            schur.add_border(BorderOps::pin_variable(i, k0_rows), -qopts.dual_regularization);
             borders.push_back({predictor_detail::PredictorBorder::Kind::kPin, i});
         };
         const auto drop_pin = [&](Index i) {
@@ -968,7 +968,7 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
                     break;
                 case predictor_detail::PredictorBreakpoint::Kind::kAdd:
                     schur.add_border(BorderOps::add_ineq_row(qp, hit.target, k0_rows),
-                                     -qopts.dual_mu);
+                                     -qopts.dual_regularization);
                     borders.push_back(
                         {predictor_detail::PredictorBorder::Kind::kRowAdd, hit.target});
                     row_active[k] = 1;
@@ -1087,4 +1087,4 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

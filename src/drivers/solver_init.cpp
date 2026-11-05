@@ -13,13 +13,13 @@
 #include <mkl.h>
 #endif
 
-namespace hven::solvers {
+namespace hven {
 
 double ensure_solver_initialized() {
     static std::once_flag flag;
     double first_init_ms = 0.0;
     std::call_once(flag, [&first_init_ms]() {
-        hven::utils::Timer t;
+        hven::detail::Timer t;
         t.start();
 #ifdef USE_ACCELERATE_SPARSE
         ensure_accelerate_initialized(HVEN_DEFAULT_QP_THREADS);
@@ -32,4 +32,4 @@ double ensure_solver_initialized() {
     return first_init_ms;
 }
 
-} // namespace hven::solvers
+} // namespace hven

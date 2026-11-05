@@ -111,13 +111,13 @@
 #include "hven/detail/warmstart/sqp_warm_access.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -149,12 +149,11 @@ Vec p_vec(double p) { return Vec::Constant(1, p); }
 
 // A converged SqpWarmState at parameter p, from a COLD solve -- the object the
 // predictor is contractually fed.
-hven::solvers::detail::SqpWarmState converged_warm(ParametricNlpModel &model, double p,
-                                                   const SqpOptions &opts = tight_options()) {
+hven::detail::SqpWarmState converged_warm(ParametricNlpModel &model, double p,
+                                          const SqpOptions &opts = tight_options()) {
     model.set_parameters(p_vec(p));
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal)
         << "cold solve at p = " << p << " did not converge";
     return SqpWarmAccess::state(sol.native_warm_start);
@@ -162,8 +161,7 @@ hven::solvers::detail::SqpWarmState converged_warm(ParametricNlpModel &model, do
 
 // The same warm start with its effective regularization overridden -- the
 // knob predict() reads to build its KKT system (see this file's banner item 2).
-hven::solvers::detail::SqpWarmState with_regularization(hven::solvers::detail::SqpWarmState warm,
-                                                        double reg) {
+hven::detail::SqpWarmState with_regularization(hven::detail::SqpWarmState warm, double reg) {
     warm.primal_delta = reg;
     warm.dual_mu = reg;
     return warm;
@@ -255,20 +253,20 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
 
             SqpSolver driver(opts);
             const SqpResult sol =
-                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+                driver.solve(hven::detail::problem_ref(model), (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p.transpose();
             EXPECT_LE((sol.x - F4MovingConstraints::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose() << " vs "
                 << F4MovingConstraints::x_star(p).transpose();
             EXPECT_NEAR(sol.f, F4MovingConstraints::f_star(p), 1e-9);
-            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_e -
-                       F4MovingConstraints::lambda_e_star(p))
-                          .lpNorm<Eigen::Infinity>(),
-                      1e-7);
-            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i -
-                       F4MovingConstraints::lambda_i_star(p))
-                          .lpNorm<Eigen::Infinity>(),
-                      1e-7);
+            EXPECT_LE(
+                (hven::detail::engine_rows(sol).lambda_e - F4MovingConstraints::lambda_e_star(p))
+                    .lpNorm<Eigen::Infinity>(),
+                1e-7);
+            EXPECT_LE(
+                (hven::detail::engine_rows(sol).lambda_i - F4MovingConstraints::lambda_i_star(p))
+                    .lpNorm<Eigen::Infinity>(),
+                1e-7);
             EXPECT_LE((sol.z - F4MovingConstraints::z_star(p)).lpNorm<Eigen::Infinity>(), 1e-7);
             EXPECT_EQ(geometric_bound_active(model, sol.x, 1e-8),
                       F4MovingConstraints::active_set(p).bound_active);
@@ -287,15 +285,15 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
 
             SqpSolver driver(opts);
             const SqpResult sol =
-                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+                driver.solve(hven::detail::problem_ref(model), (model).start_point());
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p;
             EXPECT_LE((sol.x - F5MovingThreshold::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose();
             EXPECT_NEAR(sol.f, F5MovingThreshold::f_star(p), 1e-9);
-            EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i -
-                       F5MovingThreshold::lambda_i_star(p))
-                          .lpNorm<Eigen::Infinity>(),
-                      1e-7);
+            EXPECT_LE(
+                (hven::detail::engine_rows(sol).lambda_i - F5MovingThreshold::lambda_i_star(p))
+                    .lpNorm<Eigen::Infinity>(),
+                1e-7);
             EXPECT_LE((sol.z - F5MovingThreshold::z_star(p)).lpNorm<Eigen::Infinity>(), 1e-7);
         }
     }
@@ -327,13 +325,12 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     F4MovingConstraints model;
     model.set_parameters(p0);
     SqpSolver driver(tight_options());
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const hven::solvers::detail::SqpWarmState warm = SqpWarmAccess::state(sol.native_warm_start);
+    const hven::detail::SqpWarmState warm = SqpWarmAccess::state(sol.native_warm_start);
 
     model.set_parameters(p0);
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, dp);
+    const hven::detail::SqpWarmState pred = predict(model, warm, dp);
 
     // The path is affine in p on this branch, so there is no linearization
     // error at all and the residual is the regularization floor (measured
@@ -371,7 +368,7 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     PredictorOptions wide_fd;
     wide_fd.fd_step_scale = 100.0;
     model.set_parameters(p0);
-    const hven::solvers::detail::SqpWarmState sharp =
+    const hven::detail::SqpWarmState sharp =
         predict(model, with_regularization(warm, kTightReg), dp, wide_fd);
     EXPECT_LE((sharp.x - F4MovingConstraints::x_star(p1)).lpNorm<Eigen::Infinity>(), 5e-12)
         << "x_pred = " << sharp.x.transpose();
@@ -386,12 +383,12 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.2;
     F5MovingThreshold model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_EQ(warm.ineq_active[0], 0) << "fixture premise: nothing active at p < 0";
     ASSERT_EQ(warm.bound_active[1], 0);
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
     const double p_far = kP + kDp;
 
     // Both branches are affine, so the far side is hit exactly (up to the
@@ -408,8 +405,8 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
     // And it is consumable: seeded at p_far, the solve confirms the far side.
     model.set_parameters(p_vec(p_far));
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model),
-                                       model.start_point(), SqpWarmAccess::wrap(pred));
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       SqpWarmAccess::wrap(pred));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -426,14 +423,14 @@ TEST(Predictor, PredictorTracksSmoothPath) {
     const std::vector<double> steps = {0.04, 0.02, 0.01};
 
     F2CircleNlp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_TRUE(warm.valid);
     ASSERT_LE((warm.x - F2CircleNlp::x_star(kP)).norm(), 1e-9);
 
     std::vector<double> errors;
     for (double dp : steps) {
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(dp));
+        const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(dp));
         EXPECT_TRUE(pred.valid);
         // predict() must leave the model at its ENTRY parameters (predictor.h's
         // PARAMETER RESTORATION contract).
@@ -480,18 +477,18 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         constexpr double kP = 0.45;
         constexpr double kDp = 0.2; // 0.45 -> 0.65, both interior to branch M
         F1BoxQp model(kP);
-        const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+        const hven::detail::SqpWarmState warm = converged_warm(model, kP);
         ASSERT_DOUBLE_EQ(warm.primal_delta, 1e-8) << "fixture premise: the default regularization";
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+        const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
         // delta * ||dp|| = 2e-9; measured 2.000e-09.
         EXPECT_LE((pred.x - F1BoxQp::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-9)
             << "x_pred = " << pred.x.transpose()
             << " vs x_star = " << F1BoxQp::x_star(kP + kDp).transpose();
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState sharp =
+        const hven::detail::SqpWarmState sharp =
             predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
         // Four orders less regularization, four orders less error: 2.001e-13.
         EXPECT_LE((sharp.x - F1BoxQp::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-13)
@@ -505,10 +502,10 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         constexpr double kP = 0.20;
         constexpr double kDp = 0.15; // 0.20 -> 0.35, both below p_act = 0.5
         F3SpringChain model(/*n=*/12, /*p_act=*/0.5, /*p0=*/kP);
-        const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+        const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+        const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
         // ~500 * delta * ||dp||, the chain's own conditioning: measured
         // 7.590e-07 in x and 9.900e-08 in lambda_e.
         EXPECT_LE((pred.x - model.x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 2e-6)
@@ -516,7 +513,7 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         EXPECT_LE((pred.lambda_e - model.lambda_e_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-7);
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState sharp =
+        const hven::detail::SqpWarmState sharp =
             predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
         // Measured 7.619e-11 and 9.940e-12 -- the same four orders.
 #ifdef USE_ACCELERATE_SPARSE
@@ -572,11 +569,11 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         constexpr double kP = 0.15;
         constexpr double kDp = 0.10;
         F1BoxQp model(kP);
-        const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+        const hven::detail::SqpWarmState warm = converged_warm(model, kP);
         ASSERT_EQ(warm.bound_active[1], +1) << "fixture premise: x2 starts at its upper bound";
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+        const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
         const double p_far = kP + kDp;
         // The regularization floor again (measured 7.5e-10), not a
         // linearization error: branch M is affine.
@@ -638,11 +635,11 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         constexpr double kP = 0.25;
         constexpr double kDp = -0.10;
         F1BoxQp model(kP);
-        const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+        const hven::detail::SqpWarmState warm = converged_warm(model, kP);
         ASSERT_EQ(warm.bound_active[1], 0) << "fixture premise: x2 starts free";
 
         model.set_parameters(p_vec(kP));
-        const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+        const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
         const double p_far = kP + kDp;
         EXPECT_LE((pred.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 5e-9)
             << "x_pred = " << pred.x.transpose();
@@ -681,11 +678,11 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     constexpr double kP = 0.40;
     constexpr double kDp = 0.20; // 0.40 -> 0.60, both interior to branch M
     F1BoxQp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_NEAR(warm.lambda_i(0), 0.0, 1e-9) << "fixture premise: the row is weakly active";
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
     const double p_far = kP + kDp;
 
     // (i) It does not crash, and the prediction is still accurate to the
@@ -714,8 +711,8 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     //       to the far-side path (the (c)-style consumption the brief asks be
     //       shown not to break at a zero multiplier).
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model),
-                                       model.start_point(), SqpWarmAccess::wrap(pred));
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       SqpWarmAccess::wrap(pred));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -730,19 +727,19 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
     constexpr double kP = 0.90;
     constexpr double kDp = 0.20;
     F2CircleNlp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
 
     const SqpOptions opts = tight_options();
     model.set_parameters(p_vec(kP + kDp));
 
     SqpSolver plain_driver(opts);
-    const SqpResult plain = plain_driver.solve(hven::solvers::detail::problem_ref(model),
+    const SqpResult plain = plain_driver.solve(hven::detail::problem_ref(model),
                                                model.start_point(), SqpWarmAccess::wrap(warm));
     SqpSolver pred_driver(opts);
-    const SqpResult boosted = pred_driver.solve(hven::solvers::detail::problem_ref(model),
+    const SqpResult boosted = pred_driver.solve(hven::detail::problem_ref(model),
                                                 model.start_point(), SqpWarmAccess::wrap(pred));
 
     ASSERT_EQ(plain.status, SolveStatus::kOptimal);
@@ -766,14 +763,14 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
 TEST(Predictor, PredictorNeverMutatesItsInputs) {
     constexpr double kP = 0.9;
     F2CircleNlp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
     const Vec x_before = warm.x;
     const Vec lam_before = warm.lambda_i;
     const std::vector<std::int8_t> bounds_before = warm.bound_active;
 
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(0.05));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(0.05));
 
     EXPECT_EQ(warm.x, x_before);
     EXPECT_EQ(warm.lambda_i, lam_before);
@@ -792,10 +789,10 @@ TEST(Predictor, PredictorNeverMutatesItsInputs) {
 TEST(Predictor, PredictorIsTheIdentityOnAZeroStep) {
     constexpr double kP = 0.45;
     F1BoxQp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, Vec::Zero(1));
+    const hven::detail::SqpWarmState pred = predict(model, warm, Vec::Zero(1));
     EXPECT_EQ(pred.x, warm.x);
     EXPECT_EQ(pred.lambda_i, warm.lambda_i);
     EXPECT_EQ(pred.bound_active, warm.bound_active);
@@ -814,7 +811,7 @@ TEST(Predictor, PredictorIsTheIdentityOnAZeroStep) {
 TEST(Predictor, PredictorReportsWhichPathItTook) {
     constexpr double kP = 0.45;
     F1BoxQp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     // The sentinel is set to the WRONG value before each call, so a predict()
     // that failed to write would leave the assertion failing rather than
@@ -840,7 +837,7 @@ TEST(Predictor, DegradationIsReportedRatherThanThrown) {
     // the two are the same problem at the same p, which is all predict()
     // requires of a warm start.
     F1BoxQp plain(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(plain, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(plain, kP);
 
     // BOTH exception types, because the net is by phase and not by type: a
     // std::invalid_argument raised AFTER caller validation is a numerical
@@ -850,7 +847,7 @@ TEST(Predictor, DegradationIsReportedRatherThanThrown) {
         SCOPED_TRACE(as_invalid_argument ? "std::invalid_argument" : "std::runtime_error");
         ProbeRejectingF1 model(kP, as_invalid_argument);
         PredictorOutcome outcome = PredictorOutcome::kPredicted;
-        hven::solvers::detail::SqpWarmState pred;
+        hven::detail::SqpWarmState pred;
         // It does not THROW -- that is the whole contract: a predictor that
         // cannot predict declines, it does not kill the caller's sweep.
         ASSERT_NO_THROW(pred = predict(model, warm, p_vec(0.1), PredictorOptions{}, &outcome));
@@ -874,12 +871,12 @@ TEST(Predictor, FrozenActivityModeTakesTheRawStep) {
     constexpr double kP = 0.25;
     constexpr double kDp = -0.10;
     F1BoxQp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     PredictorOptions frozen;
     frozen.allow_activity_change = false;
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp), frozen);
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp), frozen);
 
     EXPECT_GT(pred.x(1), F1BoxQp::kBoxUpper + 1e-3)
         << "x_pred = " << pred.x.transpose() << " should have crossed the 0.8 ceiling unrepaired";
@@ -888,18 +885,17 @@ TEST(Predictor, FrozenActivityModeTakesTheRawStep) {
 
 TEST(Predictor, PredictorRejectsMismatchedDimensions) {
     F1BoxQp model(0.45);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, 0.45);
+    const hven::detail::SqpWarmState warm = converged_warm(model, 0.45);
     model.set_parameters(p_vec(0.45));
 
     // dp against parameter_dim()
     EXPECT_THROW(predict(model, warm, Vec::Zero(2)), std::invalid_argument);
     // a warm start from a DIFFERENT model shape
-    hven::solvers::detail::SqpWarmState foreign = warm;
+    hven::detail::SqpWarmState foreign = warm;
     foreign.x = Vec::Zero(5);
     EXPECT_THROW(predict(model, foreign, p_vec(0.1)), std::invalid_argument);
     // a cold (default-constructed) object has nothing to predict FROM
-    EXPECT_THROW(predict(model, hven::solvers::detail::SqpWarmState{}, p_vec(0.1)),
-                 std::invalid_argument);
+    EXPECT_THROW(predict(model, hven::detail::SqpWarmState{}, p_vec(0.1)), std::invalid_argument);
     // a non-finite step
     EXPECT_THROW(predict(model, warm, p_vec(std::nan(""))), std::invalid_argument);
     // a nonsensical finite-difference step
@@ -921,12 +917,12 @@ TEST(Predictor, PredictionAcrossAnInequalityThresholdIsStillSafeToConsume) {
     const double kP = p_star - 0.05;
     const double kDp = 0.10; // lands 0.05 past the threshold
     F2CircleNlp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_FALSE(F2CircleNlp::constraint_active(kP));
     ASSERT_TRUE(F2CircleNlp::constraint_active(kP + kDp));
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
     // The ADD move fired: the row the warm start had inactive is active in the
     // prediction, and its multiplier is the positive one the far side carries.
     EXPECT_EQ(pred.ineq_active[0], 1);
@@ -934,8 +930,8 @@ TEST(Predictor, PredictionAcrossAnInequalityThresholdIsStillSafeToConsume) {
 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver driver(tight_options());
-    const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model),
-                                       model.start_point(), SqpWarmAccess::wrap(pred));
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       SqpWarmAccess::wrap(pred));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
 }
@@ -951,13 +947,13 @@ TEST(Predictor, PredictorDropsAStrictlyActiveRowAcrossItsThreshold) {
     const double kP = p_star + 0.05;
     const double kDp = -0.10; // lands 0.05 short of the threshold
     F2CircleNlp model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_TRUE(F2CircleNlp::constraint_active(kP));
     ASSERT_FALSE(F2CircleNlp::constraint_active(kP + kDp));
     ASSERT_GT(warm.lambda_i(0), 0.05) << "fixture premise: the row leaves with a real multiplier";
 
     model.set_parameters(p_vec(kP));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
 
     EXPECT_EQ(pred.ineq_active[0], 0);
     // EXACTLY zero: a deactivated row's multiplier is not "small", it is gone.
@@ -1037,14 +1033,14 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
     opts.advanced.adaptive_mu = false;
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP, opts);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP, opts);
     ASSERT_EQ(warm.bound_active, model.active_set(kP).bound_active)
         << "fixture premise: nothing is on the ceiling at p = 0.35";
 
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const hven::solvers::detail::SqpWarmState pred =
+    const hven::detail::SqpWarmState pred =
         predict(model, warm, p_vec(kDp), PredictorOptions{}, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
     // EXACTLY 1.0: F3's path is piecewise affine, so one breakpoint IS the whole
@@ -1076,7 +1072,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver seeded(opts);
     const SqpResult boosted =
-        seeded.solve(hven::solvers::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
+        seeded.solve(hven::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
     // M7 W2 E4 fix round 1 (declared mover): 2 -> 3 minors, majors and
@@ -1089,7 +1085,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver plain(opts);
     const SqpResult unpredicted =
-        plain.solve(hven::solvers::detail::problem_ref(model), warm.x, SqpWarmAccess::wrap(warm));
+        plain.solve(hven::detail::problem_ref(model), warm.x, SqpWarmAccess::wrap(warm));
     ASSERT_EQ(unpredicted.status, SolveStatus::kOptimal);
     EXPECT_EQ(unpredicted.counters.qp_minor_iters, 24);
     // The comparison the battery could not make before: the predicted seed is
@@ -1110,7 +1106,7 @@ TEST(PredictorRatioTest, SimultaneousCrossingsAreOneBreakpoint) {
     constexpr double kP = -0.1;  // both constraints inactive
     constexpr double kDp = 0.25; // lands at p = 0.15, both active
     F5MovingThreshold model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
     ASSERT_EQ(warm.ineq_active[0], 0);
     ASSERT_EQ(warm.bound_active[1], 0);
 
@@ -1119,7 +1115,7 @@ TEST(PredictorRatioTest, SimultaneousCrossingsAreOneBreakpoint) {
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const hven::solvers::detail::SqpWarmState pred =
+    const hven::detail::SqpWarmState pred =
         predict(model, warm, p_vec(kDp), one_breakpoint, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
     // ONE breakpoint was enough to reach p + dp, which is the whole claim: if
@@ -1154,14 +1150,14 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.25;
     F5MovingThreshold model(kP);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP);
 
     PredictorOptions truncate;
     truncate.max_activity_rounds = 0;
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const hven::solvers::detail::SqpWarmState pred =
+    const hven::detail::SqpWarmState pred =
         predict(model, warm, p_vec(kDp), truncate, &outcome, &reached_t);
     EXPECT_EQ(outcome, PredictorOutcome::kPredicted)
         << "truncation is a prediction, not a degradation -- see "
@@ -1180,7 +1176,7 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver driver(tight_options());
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
+        driver.solve(hven::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -1210,7 +1206,7 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.25;
     F5MovingThreshold model(kP);
-    hven::solvers::detail::SqpWarmState stale = converged_warm(model, kP);
+    hven::detail::SqpWarmState stale = converged_warm(model, kP);
     ASSERT_EQ(stale.bound_active[1], 0) << "fixture premise: x2 is FREE at p = -0.1";
     // x2 marginally BELOW its lower bound (which is p = -0.1) and moving away
     // from it -- the bound rises with p at rate dp while dx2 is 0, so the gap
@@ -1222,7 +1218,7 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const hven::solvers::detail::SqpWarmState pred =
+    const hven::detail::SqpWarmState pred =
         predict(model, stale, p_vec(kDp), truncate, &outcome, &reached_t);
 
     // The pair, and only the pair, is unambiguous.
@@ -1240,7 +1236,7 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     // about staleness.
     model.set_parameters(p_vec(kP));
     double full_t = -1.0;
-    const hven::solvers::detail::SqpWarmState full =
+    const hven::detail::SqpWarmState full =
         predict(model, stale, p_vec(kDp), PredictorOptions{}, &outcome, &full_t);
     EXPECT_EQ(full_t, 1.0);
     EXPECT_NE(full.x, stale.x);
@@ -1276,12 +1272,12 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
     opts.advanced.adaptive_mu = false;
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, kP, opts);
+    const hven::detail::SqpWarmState warm = converged_warm(model, kP, opts);
 
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const hven::solvers::detail::SqpWarmState pred =
+    const hven::detail::SqpWarmState pred =
         predict(model, warm, p_vec(kDp), PredictorOptions{}, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
 
@@ -1310,7 +1306,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     model.set_parameters(p_vec(kP + kDp));
     SqpSolver seeded(opts);
     const SqpResult boosted =
-        seeded.solve(hven::solvers::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
+        seeded.solve(hven::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
     // THE CLAIM: it converges at all. Pre-Task-6 this was kNumericalError.
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal) << "status = " << to_string(boosted.status);
     EXPECT_EQ(boosted.counters.major_iters, 3);
@@ -1332,7 +1328,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
 // one (project rule T6).
 TEST(PredictorRatioTest, RejectsANegativeRoundBudget) {
     F1BoxQp model(0.45);
-    const hven::solvers::detail::SqpWarmState warm = converged_warm(model, 0.45);
+    const hven::detail::SqpWarmState warm = converged_warm(model, 0.45);
     model.set_parameters(p_vec(0.45));
     PredictorOptions bad;
     bad.max_activity_rounds = -1;
@@ -1441,7 +1437,7 @@ SqpOptions scaled_price_options() {
 
 TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     W1ScaledPriceLine model(0.0);
-    const hven::solvers::detail::SqpWarmState warm =
+    const hven::detail::SqpWarmState warm =
         with_regularization(converged_warm(model, 0.0, scaled_price_options()), kTightReg);
     ASSERT_NEAR(W1ScaledPriceLine::lambda_star(0.0), warm.lambda_i(0), 1e3)
         << "fixture premise: the warm price is ~1e9, so the retention band is ~1.0 wide";
@@ -1451,7 +1447,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     // the warm solve's last digits were -- see the fixture banner.
     const double kDp = (warm.lambda_i(0) + 0.5) / W1ScaledPriceLine::kScale;
     model.set_parameters(p_vec(0.0));
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(kDp));
 
     // The ratio test KEPT the row -- the retained value is inside the band, so
     // no DROP breakpoint fires and this is the bypass, not a drop.
@@ -1473,7 +1469,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     model.set_parameters(p_vec(kDp));
     SqpSolver driver(scaled_price_options());
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
+        driver.solve(hven::detail::problem_ref(model), pred.x, SqpWarmAccess::wrap(pred));
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), model.slope(), 1e-6);
     EXPECT_LT(model.slope(), 1.0) << "fixture premise: the row is no longer binding at p + dp";
@@ -1485,13 +1481,12 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
 // so the emitted multiplier can be negative by any amount at all.
 TEST(Predictor, TheFrozenSetStepAlsoEmitsANonNegativePrice) {
     W1ScaledPriceLine model(0.0);
-    const hven::solvers::detail::SqpWarmState warm =
-        converged_warm(model, 0.0, scaled_price_options());
+    const hven::detail::SqpWarmState warm = converged_warm(model, 0.0, scaled_price_options());
     model.set_parameters(p_vec(0.0));
 
     PredictorOptions frozen;
     frozen.allow_activity_change = false;
-    const hven::solvers::detail::SqpWarmState pred = predict(model, warm, p_vec(1.5), frozen);
+    const hven::detail::SqpWarmState pred = predict(model, warm, p_vec(1.5), frozen);
 
     EXPECT_EQ(pred.ineq_active[0], 1) << "the frozen set is frozen -- the row stays nominated";
     EXPECT_GE(pred.lambda_i(0), 0.0)
@@ -1500,6 +1495,6 @@ TEST(Predictor, TheFrozenSetStepAlsoEmitsANonNegativePrice) {
     EXPECT_DOUBLE_EQ(pred.lambda_i(0), 0.0);
 }
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

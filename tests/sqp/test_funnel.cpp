@@ -57,7 +57,7 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 

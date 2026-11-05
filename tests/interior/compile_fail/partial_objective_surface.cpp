@@ -12,7 +12,7 @@
 
 #include "adapter_fixture_functions.h"
 
-hven::solvers::ObjectiveInterface probe_partial_objective_surface() {
+hven::ObjectiveInterface probe_partial_objective_surface() {
     const adapter_fixture::StubPartialObjective f{};
-    return hven::solvers::ObjectiveInterface(f);
+    return hven::ObjectiveInterface(f);
 }

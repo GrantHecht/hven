@@ -12,7 +12,7 @@
 
 #include "hven/core/pattern_hash.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -281,4 +281,4 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

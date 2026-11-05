@@ -156,7 +156,7 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 // One Hock-Schittkowski problem re-posed along a scalar parameter -- see this
 // header's THE CONSTRUCTION note for the three-line formula and for why it is
@@ -353,6 +353,6 @@ inline std::unique_ptr<HsSweep> make_hs_sweep(int number) {
     return std::make_unique<HsSweep>(s.number, s.tilt, s.ce_shift, s.ci_shift, s.p0);
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support
 
 HVEN_SUPPRESS_DEPRECATED_END

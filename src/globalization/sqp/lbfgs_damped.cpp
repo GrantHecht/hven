@@ -13,7 +13,7 @@
 
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -263,4 +263,4 @@ double LbfgsDamped::max_eigenvalue() const {
     return u_.cols() < n_ ? std::max(hi, sigma_) : hi;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

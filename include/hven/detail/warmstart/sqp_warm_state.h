@@ -127,7 +127,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // Opaque hot-start handle; fully defined in qp_engine.h, right next to
 // QpEngine's own border-mode reuse state. Forward-declared here only so
@@ -316,4 +316,4 @@ struct SqpWarmState {
 
 } // namespace detail
 
-} // namespace hven::solvers
+} // namespace hven

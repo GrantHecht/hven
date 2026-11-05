@@ -30,9 +30,9 @@
 
 namespace {
 
-using hven::solvers::ClassicMeritAcceptance;
-using hven::solvers::kKappaResto;
-using hven::solvers::ProgressMeasures;
+using hven::ClassicMeritAcceptance;
+using hven::kKappaResto;
+using hven::ProgressMeasures;
 using TychoTest::InertSolverContext;
 using TychoTest::pm;
 

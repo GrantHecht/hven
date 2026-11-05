@@ -31,15 +31,15 @@ namespace {
 // reports a failed symbolic analysis or solve -- the backend's error code in
 // the message -- as std::runtime_error; this adapter is where hven's contract
 // (core/errors.h) names it, so a caller catches every runtime failure hven
-// raises in one hven::solvers::Error clause. The message is the session's,
+// raises in one hven::Error clause. The message is the session's,
 // unchanged. Zero cost unless the backend fails.
 template <class Call> void backend_call(Call &&call) {
     try {
         call();
-    } catch (const hven::solvers::BackendError &) {
+    } catch (const hven::BackendError &) {
         throw;
     } catch (const std::runtime_error &e) {
-        throw hven::solvers::BackendError(e.what());
+        throw hven::BackendError(e.what());
     }
 }
 
@@ -51,12 +51,12 @@ namespace {
 
 const char *kind_name(FactorKind kind) {
     switch (kind) {
-    case FactorKind::kLDLT:
-        return "kLDLT";
-    case FactorKind::kLLT:
-        return "kLLT";
-    case FactorKind::kLU:
-        return "kLU";
+    case FactorKind::kLdlt:
+        return "kLdlt";
+    case FactorKind::kLlt:
+        return "kLlt";
+    case FactorKind::kLu:
+        return "kLu";
     }
     return "unknown";
 }
@@ -246,7 +246,7 @@ void validate_num_threads(int num_threads, const char *where) {
 
 detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     detail::PardisoConfig cfg;
-    // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
+    // Real symmetric indefinite. Only kLdlt reaches here -- the constructor
     // rejects the kinds whose backend paths have not landed.
     cfg.mtype = -2;
     cfg.num_threads = opts.num_threads;
@@ -463,9 +463,9 @@ int pardiso_phase_of(SymmetricFactor::SolvePhase phase) {
 // SymmetricFactor
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
-    if (opts_.kind != FactorKind::kLDLT) {
+    if (opts_.kind != FactorKind::kLdlt) {
         throw std::logic_error(
-            fmt::format("SymmetricFactor: FactorKind::{} is not yet implemented -- only kLDLT has "
+            fmt::format("SymmetricFactor: FactorKind::{} is not yet implemented -- only kLdlt has "
                         "a backend path today",
                         kind_name(opts_.kind)));
     }
@@ -625,7 +625,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // carries.
     if (detail::testing::AnalyzeFaultInjector::active) {
         const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
-        throw hven::solvers::BackendError(fmt::format(
+        throw hven::BackendError(fmt::format(
             "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
     }
 #endif
@@ -813,7 +813,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // configuration that session was built with rather than imposing a new
     // one on a factorization that has already been computed.
     Options opts;
-    opts.kind = FactorKind::kLDLT;
+    opts.kind = FactorKind::kLdlt;
     opts.num_threads = cfg.num_threads;
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
@@ -877,18 +877,16 @@ Factorization::~Factorization() = default;
 
 SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
     if (!session_->has_numerics()) {
-        throw hven::solvers::BackendError(
-            "Factorization::solve: the shared session no longer holds a "
-            "usable factorization (a co-owner's factorize() failed)");
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
+                                 "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, RHS, X, "solve");
 }
 
 SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
     if (!session_->has_numerics()) {
-        throw hven::solvers::BackendError(
-            "Factorization::solve: the shared session no longer holds a "
-            "usable factorization (a co-owner's factorize() failed)");
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
+                                 "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, rhs, x, "solve");
 }

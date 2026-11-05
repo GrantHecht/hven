@@ -14,7 +14,7 @@
 // TUs. What this file declares is consumed by the QP tier
 // (src/qp/ipqp_engine.cpp) and is about the tier's own reading of an
 // already-computed factorization, not about a backend call. Putting a
-// `hven::solvers` injector inside a `hven::linear` header would make the
+// `hven` injector inside a `hven::linear` header would make the
 // linear layer's seam header depend on a consumer above it. The CONVENTION is
 // the shared thing, and it is followed exactly (CLAUDE.md section 8: "use this
 // convention for any new need rather than inventing another").
@@ -61,7 +61,7 @@
 #include <hven/core/types.h>
 #include <hven/linear/symmetric_factor.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 // Substitutes the inertia evidence the tier READS for a factorization that
 // really ran. The factorization itself is untouched -- the backend session,
@@ -228,6 +228,6 @@ struct IpqpStepObserver {
     }
 };
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

@@ -30,7 +30,7 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -153,7 +153,7 @@ TEST(QpLatchReason, SchurExactlySingularHasNoNearNullDirection) {
 
 TEST(QpLatchReason, TakeLatchPastTheCapRecordsTheCapReason) {
     QpOptions opts;
-    opts.schur_cap = 2;
+    opts.max_schur_border_dimension = 2;
     BorderState b;
     pin_borders(b, 4, {{0, -1.0}, {1, -1.0}, {2, -1.0}}, opts);
     const WorkingSet ws = ws_with(4, 0, {0, 1, 2});
@@ -169,7 +169,7 @@ TEST(QpLatchReason, TakeLatchPastTheCapRecordsTheCapReason) {
 // At the cap exactly the reason is conditioning: the cap test is `pinned > schur_cap`.
 TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     QpOptions opts;
-    opts.schur_cap = 3;
+    opts.max_schur_border_dimension = 3;
     BorderState b;
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
@@ -192,7 +192,7 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
 // records the reason and the flag, and leaves the members alone.
 TEST(QpLatchReason, TakeLatchOnAnUpdatedStackRecordsOnlyTheReason) {
     QpOptions opts;
-    opts.schur_cap = 3;
+    opts.max_schur_border_dimension = 3;
     BorderState b;
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
@@ -207,7 +207,7 @@ TEST(QpLatchReason, TakeLatchOnAnUpdatedStackRecordsOnlyTheReason) {
     EXPECT_TRUE(b.latch_pins.empty());
     EXPECT_TRUE(b.latch_culprits.empty());
     QpCounters c2;
-    EXPECT_FALSE(detail::latch_still_holds(ws, b, c2, opts.schur_cap));
+    EXPECT_FALSE(detail::latch_still_holds(ws, b, c2, opts.max_schur_border_dimension));
     EXPECT_EQ(c2.border_latch_holds, 0);
 }
 
@@ -224,7 +224,7 @@ TEST(QpLatchReason, TakeLatchJudgesWhetherItsCIsMild) {
         EXPECT_EQ(b.latch_reason, LatchReason::kConditioning);
         return b.latch_mild;
     };
-    const double limit = detail::kLatchMildCondFactor * opts.schur_cond_max;
+    const double limit = detail::kLatchMildCondFactor * opts.schur_condition_max;
     // Cond 3e9: past schur_cond_max (1e9), within the factor -- indefinite and definite alike.
     EXPECT_TRUE(latch_on(-1.0, 1.0, -3e9));
     EXPECT_TRUE(latch_on(-1.0, -1.0, -3e9));
@@ -407,15 +407,16 @@ QpProblem singular_pair_then_arrivals_qp() {
 TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
     const QpProblem qp = singular_pair_then_arrivals_qp();
     QpOptions opts;
-    opts.schur_cond_max = 1e3; // the pinned pair's C (~5e5) severely past it, K0's pivots clean
+    opts.schur_condition_max =
+        1e3; // the pinned pair's C (~5e5) severely past it, K0's pivots clean
 
     QpOptions ref_opts = opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
     const QpSolution ref = QpEngine{ref_opts}.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
     QpOptions bor_opts = opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
     const QpSolution bor = QpEngine{bor_opts}.solve(qp);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
     EXPECT_LT((bor.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-8);
@@ -440,8 +441,8 @@ TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
 TEST(QpLatchReason, TheWalkRecordsACapLatchAsBefore) {
     const QpProblem qp = singular_pair_then_arrivals_qp();
     QpOptions opts;
-    opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
-    opts.schur_cap = 1;
+    opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    opts.max_schur_border_dimension = 1;
     const QpSolution s = QpEngine{opts}.solve(qp);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_GE(s.counters.border_latches_cap, 1);
@@ -463,8 +464,8 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
         std::string(HVEN_QP_E2D4_FIXTURES) + "/RLA_BRITGAS_qp0.txt");
     ASSERT_NE(d.result.find("status=2 minors=508 facts=1024"), std::string::npos) << d.result;
     QpOptions o = d.opts;
-    ASSERT_EQ(o.ws_algebra, WorkingSetLinearAlgebra::kSchurBorder);
-    o.max_iter = kMinors;
+    ASSERT_EQ(o.working_set_algebra, WorkingSetLinearAlgebra::kSchurBorder);
+    o.max_iterations = kMinors;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     const QpCounters &c = s.counters;
     std::printf(

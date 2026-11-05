@@ -94,8 +94,8 @@ constexpr double kAllocInf = std::numeric_limits<double>::infinity();
 /// n = 2, one equality row, one upper-bounded row and one lower-bounded row,
 /// so an assembly runs the objective piece and both constraint pieces and the
 /// inequality piece owns the Hessian.
-struct AllocTestProblem : hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+struct AllocTestProblem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -205,9 +205,9 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
 // left to allocate.
 TEST(NlpAdapterAllocationTest, AWarmAssemblyAllocatesNothing) {
     auto problem = std::make_shared<AllocTestProblem>();
-    auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
-    auto core = std::make_shared<hven::solvers::NLPAdapterCore>(model, problem->name());
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto model = std::make_shared<hven::NlpProblemModel>(problem);
+    auto core = std::make_shared<hven::NlpAdapterCore>(model, problem->name());
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);

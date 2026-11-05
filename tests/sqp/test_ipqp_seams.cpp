@@ -24,7 +24,7 @@
 
 #include "support/indefinite_fixtures.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using hven::linear::InertiaEvidence;
@@ -79,7 +79,7 @@ Vec vec(const std::vector<double> &v) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -854,4 +854,4 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     EXPECT_GT(r.counters.ipqp_iters, 0) << "the solve continued from the kFixed start";
 }
 
-} // namespace hven::solvers
+} // namespace hven

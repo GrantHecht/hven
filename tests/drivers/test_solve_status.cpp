@@ -19,11 +19,11 @@
 #include <hven/core/solver_counters.h>
 #include <hven/detail/drivers/ipm_phase_status.h>
 
-using hven::solvers::IpmStopReason;
-using hven::solvers::resolve_ipm_phase_status;
-using hven::solvers::severity;
-using hven::solvers::SolveStatus;
-using hven::solvers::to_string;
+using hven::IpmStopReason;
+using hven::resolve_ipm_phase_status;
+using hven::severity;
+using hven::SolveStatus;
+using hven::to_string;
 
 namespace {
 
@@ -144,8 +144,8 @@ TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
 //     `sqp.solve.end` line's own `status` key without a translation table, and
 //     a drift between the two tables would break that silently.
 TEST(RestorationSubStatus, TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun) {
-    using hven::solvers::RestorationSubStatus;
-    using hven::solvers::to_restoration_sub_status;
+    using hven::RestorationSubStatus;
+    using hven::to_restoration_sub_status;
 
     // TOTAL, and spelling-preserving on every one of the eight. The severity
     // list above IS the eight, so this loop is exhaustive by construction.
@@ -177,5 +177,5 @@ TEST(RestorationSubStatus, TheMapIsTotalAndTheSpellingsAreSolveStatusSPlusNotRun
 
     // AND THE DEFAULT IS THE NOT-RUN VALUE where it matters: on the counters
     // aggregate itself. A fresh SqpCounters has run no restoration.
-    EXPECT_EQ(hven::solvers::SqpCounters{}.restoration_sub_status, RestorationSubStatus::kNotRun);
+    EXPECT_EQ(hven::SqpCounters{}.restoration_sub_status, RestorationSubStatus::kNotRun);
 }

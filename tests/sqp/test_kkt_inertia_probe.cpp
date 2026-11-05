@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::SpMatRM;
 using hven::linear::InertiaEvidence;
 

@@ -64,13 +64,13 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::test_support::hs_numbers;
-using hven::solvers::test_support::HsProblem;
-using hven::solvers::test_support::make_hs;
+using hven::test_support::hs_numbers;
+using hven::test_support::HsProblem;
+using hven::test_support::make_hs;
 
 namespace {
 
@@ -179,10 +179,10 @@ Outcome run_one(const Row &r, const Cell &c, const Regime &g) {
     opts.common.optimality_tol = g.tol;
     opts.common.feasibility_tol = g.tol;
     opts.advanced.adaptive_mu = c.adaptive_mu;
-    opts.qp.ws_algebra = c.algebra;
+    opts.qp.working_set_algebra = c.algebra;
     SqpSolver driver(opts);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     const double target = std::isnan(r.f_target) ? p.f_star : r.f_target;
     Outcome o;
@@ -471,12 +471,11 @@ void f7_ceiling_sweep(Index nodes, double p, double scale, double tol) {
         opts.common.optimality_tol = tol;
         opts.common.feasibility_tol = tol;
         opts.common.max_iterations = 60;
-        opts.qp.max_iter = 5000; // the wide window needs it (scale-study note S5)
+        opts.qp.max_iterations = 5000; // the wide window needs it (scale-study note S5)
         opts.advanced.adaptive_mu = c.adaptive_mu;
-        opts.qp.ws_algebra = c.algebra;
+        opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -506,9 +505,9 @@ void scaled_row_sweep(double a, double lo, double tol) {
         opts.common.optimality_tol = tol;
         opts.common.feasibility_tol = tol;
         opts.advanced.adaptive_mu = c.adaptive_mu;
-        opts.qp.ws_algebra = c.algebra;
+        opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
-        const SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), x0);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), x0);
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -560,9 +559,9 @@ TEST(EqpRefinementAb, DISABLED_FootprintRuleProbe) {
         if (qp.me() > 0) {
             residual = std::max(residual, (qp.Ae * r.x - qp.be).lpNorm<Eigen::Infinity>());
         }
-        const double footprint =
-            std::max(on.primal_delta * r.x.lpNorm<Eigen::Infinity>(),
-                     qp.me() > 0 ? on.dual_mu * r.lambda_e.lpNorm<Eigen::Infinity>() : 0.0);
+        const double footprint = std::max(
+            on.primal_regularization * r.x.lpNorm<Eigen::Infinity>(),
+            qp.me() > 0 ? on.dual_regularization * r.lambda_e.lpNorm<Eigen::Infinity>() : 0.0);
         // WOULD AN ITERATED LOOP HAVE HAD ANYTHING TO DO? The bordered rule's
         // two exits, evaluated against this path's single-step answer: the
         // footprint test (residual above ||diag(reg)*y||inf) and the relative
@@ -744,12 +743,11 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         opts.common.optimality_tol = kTol;
         opts.common.feasibility_tol = kTol;
         opts.common.max_iterations = 60;
-        opts.qp.max_iter = 5000;
+        opts.qp.max_iterations = 5000;
         opts.advanced.adaptive_mu = c.adaptive_mu;
-        opts.qp.ws_algebra = c.algebra;
+        opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         const Vec x_star = model.x_star();
         const double err = (sol.x - x_star).norm() / x_star.norm();
 

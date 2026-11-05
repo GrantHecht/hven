@@ -55,7 +55,7 @@
 #include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief The column rule's parameters. Validated where SqpOptions is validated.
 struct ColumnScalingRule {
@@ -169,4 +169,4 @@ class ColumnScaledModel final : public NlpModel {
     Vec upper_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

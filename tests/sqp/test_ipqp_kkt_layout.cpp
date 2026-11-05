@@ -25,9 +25,9 @@
 namespace {
 
 using hven::Index;
+using hven::IpqpKktLayout;
+using hven::KktFactorization;
 using hven::SpMatRM;
-using hven::solvers::IpqpKktLayout;
-using hven::solvers::KktFactorization;
 
 SpMatRM sparse_from(Index rows, Index cols, const std::vector<Eigen::Triplet<double>> &entries) {
     SpMatRM m(rows, cols);
@@ -339,7 +339,7 @@ constexpr double kDelta = 1.0;
 
 KktFactorization::Options factor_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLDLT;
+    opts.kind = hven::linear::FactorKind::kLdlt;
     opts.num_threads = 1;
     return opts;
 }

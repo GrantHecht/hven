@@ -30,7 +30,7 @@
 
 #include "hven/core/types.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// CommonOptions{}.infinite_bound, for the layers that are built before any
 /// options exist (a Problem's first transcription, the internal routes). Tied to
@@ -80,4 +80,4 @@ inline std::string absent_bound_clause(double raw_lower, double raw_upper, doubl
                        normalize_bound(raw_upper, infinite_bound), infinite_bound);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

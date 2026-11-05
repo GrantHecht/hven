@@ -29,9 +29,9 @@
 #include "hven/model/constraint_function.h"
 #include "hven/model/local_blocks.h"
 #include "hven/model/objective_function.h"
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// One declared variable bound: a variable's global index and the two sides.
 ///
@@ -40,9 +40,9 @@ namespace hven::solvers {
 /// are intersected (tightest wins) when the bounds are materialized, so this
 /// type records a declaration verbatim and merges nothing.
 struct VariableBound {
-    int index_ = 0;
-    double lower_ = -std::numeric_limits<double>::infinity();
-    double upper_ = std::numeric_limits<double>::infinity();
+    int index = 0;
+    double lower = -std::numeric_limits<double>::infinity();
+    double upper = std::numeric_limits<double>::infinity();
 
     friend bool operator==(const VariableBound &, const VariableBound &) = default;
 };
@@ -122,7 +122,7 @@ concept ObjectiveAssemblyPiece =
 /// A piece is a local-block piece (model/local_blocks.h) or a raw-protocol piece
 /// (docs/assembly-protocol.md). Column V of an index map describes application V:
 /// the variables it reads, and the rows of its block its outputs are. The builder
-/// derives equality_rows_, inequality_rows_ and the two shared-row overcounts
+/// derives equality_rows, inequality_rows and the two shared-row overcounts
 /// from the row maps: a block's row space is 0 .. (largest row named), every row
 /// in it must be named by some application (checked by validate()), and rows
 /// named by several applications are summed. Each call refuses, by name, an index
@@ -152,7 +152,7 @@ struct AssemblyDeclaration {
     ///        application V reads, in the piece's input order.
     /// @throws std::invalid_argument on a map whose row count is not the piece's
     ///         input count, a map with no application, or a variable index outside
-    ///         [0, primal_vars_).
+    ///         [0, primal_vars).
     template <class Piece>
     AssemblyDeclaration &add_objective(const Piece &piece, const Eigen::MatrixXi &variables) {
         add_objective_handle(ObjectiveInterface(piece), variables);
@@ -167,7 +167,7 @@ struct AssemblyDeclaration {
     /// @throws std::invalid_argument on a map of the wrong shape (rows differing
     ///         from the piece's counts, or the two maps' application counts
     ///         differing), a map with no application, a variable index outside
-    ///         [0, primal_vars_), a negative row, or a row of INT_MAX (a block's
+    ///         [0, primal_vars), a negative row, or a row of INT_MAX (a block's
     ///         row count, the largest row plus one, must fit an int).
     template <class Piece>
     AssemblyDeclaration &add_equality(const Piece &piece, const Eigen::MatrixXi &variables,
@@ -188,13 +188,13 @@ struct AssemblyDeclaration {
     /// @brief Bounds one variable: lower <= x[index] <= upper. Either side may be
     ///        infinite (hven::kInfinity). Repeated bounds on one variable
     ///        intersect, tightest wins.
-    /// @throws std::invalid_argument on an index outside [0, primal_vars_), a NaN
+    /// @throws std::invalid_argument on an index outside [0, primal_vars), a NaN
     ///         side, or lower above upper.
     AssemblyDeclaration &set_bounds(Index index, double lower, double upper);
 
     /// @brief Bounds variables first .. last, INCLUSIVE, each to [lower, upper].
     /// @throws std::invalid_argument on last below first, an index outside
-    ///         [0, primal_vars_), a NaN side, or lower above upper.
+    ///         [0, primal_vars), a NaN side, or lower above upper.
     AssemblyDeclaration &set_bounds(Index first, Index last, double lower, double upper);
 
     /// @brief The number of evaluation partitions the interior-point layout is
@@ -208,18 +208,18 @@ struct AssemblyDeclaration {
     /// @throws std::invalid_argument if @p partitions is below 1 or past INT_MAX.
     AssemblyDeclaration &set_partitions(Index partitions);
 
-    std::vector<ObjectiveFunction> objectives_;
-    std::vector<ConstraintFunction> equality_constraints_;
-    std::vector<ConstraintFunction> inequality_constraints_;
+    std::vector<ObjectiveFunction> objectives;
+    std::vector<ConstraintFunction> equality_constraints;
+    std::vector<ConstraintFunction> inequality_constraints;
 
-    int primal_vars_ = 0;
-    int equality_rows_ = 0;
-    int inequality_rows_ = 0;
+    int primal_vars = 0;
+    int equality_rows = 0;
+    int inequality_rows = 0;
 
-    /// The internal fixing rows included in equality_rows_ (the AS-LAID
+    /// The internal fixing rows included in equality_rows (the AS-LAID
     /// count); subtracting this yields the user count the sizing entry takes.
     /// A fixing row is ONE SINGLE-ROW PIECE AT THE TAIL of
-    /// equality_constraints_, the shape a fixed-variable treatment appends and
+    /// equality_constraints, the shape a fixed-variable treatment appends and
     /// the shape validate() holds this count to, so a consumer may split the
     /// tail off by piece count alone.
     ///
@@ -230,7 +230,7 @@ struct AssemblyDeclaration {
     /// claims.
     ///
     /// THIS IS THE DECLARATION'S TRUST BOUNDARY, and two other fields stand on
-    /// it: equality_shared_row_overcount_ and inequality_shared_row_overcount_
+    /// it: equality_shared_row_overcount and inequality_shared_row_overcount
     /// below. What the three have in common is the reason they are trusted
     /// rather than checked -- each states something about the pieces that the
     /// piece surface does not expose, so nothing at this boundary can tell a
@@ -241,10 +241,10 @@ struct AssemblyDeclaration {
     /// only where pieces exist, a fixing-row count only inside the equality row
     /// space), and neither is verified for VALUE, because there is nothing here
     /// to verify it against. A provider that states one states it correctly.
-    int fixing_rows_ = 0;
+    int fixing_rows = 0;
 
     /// @brief How many rows the equality pieces claim IN EXCESS of
-    ///        equality_rows_, because pieces share rows with each other.
+    ///        equality_rows, because pieces share rows with each other.
     ///
     /// A piece reports how many rows it claims; it does not report WHICH rows,
     /// and placement is assigned at lay. So a provider whose pieces
@@ -253,7 +253,7 @@ struct AssemblyDeclaration {
     /// hands out more claimed rows than the row space it declares, and the
     /// difference is not recoverable from anything the declaration carries.
     /// This states it: validate()'s piece-sum conjunct reads
-    /// `sum(piece rows) == equality_rows_ + this`, an EQUALITY rather than an
+    /// `sum(piece rows) == equality_rows + this`, an EQUALITY rather than an
     /// inequality, so a provider with row-overlapping pieces is expressible
     /// and a piece list that has drifted by an unstated amount is still
     /// refused.
@@ -262,14 +262,14 @@ struct AssemblyDeclaration {
     /// zero-overcount declaration exactly what it was before this field
     /// existed.
     ///
-    /// TRUSTED, on fixing_rows_'s footing and for the same reason: nothing at
+    /// TRUSTED, on fixing_rows's footing and for the same reason: nothing at
     /// this boundary can tell a shared row from a piece list that has drifted,
     /// so a wrong count buys silence from the one conjunct that would have
     /// caught the drift. Held non-negative, and legal only where the
     /// declaration carries pieces at all -- with no pieces there is no sum for
     /// an excess to be an excess OF.
     ///
-    /// NOT A STRUCTURAL-KEY CONJUNCT, mirroring fixing_rows_: the key is taken
+    /// NOT A STRUCTURAL-KEY CONJUNCT, mirroring fixing_rows: the key is taken
     /// over the claim stream, the adopted partition count and the materialized
     /// bound structure, and two declarations differing only in this field
     /// describe the same laid system.
@@ -279,33 +279,33 @@ struct AssemblyDeclaration {
     /// the row space, so it computes this rather than replaying a number it
     /// was handed -- which is what makes an emitted declaration one that
     /// validates and can be adopted again, at a nonzero overcount as at zero.
-    int equality_shared_row_overcount_ = 0;
+    int equality_shared_row_overcount = 0;
 
     /// @brief The inequality block's shared-row overcount, on exactly the
-    ///        terms equality_shared_row_overcount_ states.
+    ///        terms equality_shared_row_overcount states.
     ///
     /// Per block rather than one number for both: the two conjuncts are
     /// checked separately and a refusal names the block it is about, so one
     /// block's overlap can never excuse the other block's drift.
-    int inequality_shared_row_overcount_ = 0;
+    int inequality_shared_row_overcount = 0;
 
     /// Requested partition count (set_partitions); the adopted count is returned
     /// by negotiate_partition_count() and governs layout and the structural key.
-    int partition_count_ = 1;
+    int partition_count = 1;
 
     /// Whether the builder derived the row counts. When set, validate() also
     /// refuses a row of either block that no application names, and a row past
     /// the block's count: a row with no piece behind it is a constraint 0 = 0
     /// with an empty Jacobian row.
-    bool rows_derived_ = false;
+    bool rows_derived = false;
 
     /// The declared bound records, verbatim and unmerged, in declaration order.
     /// Repeated records on one index are intersected tightest-wins when the
     /// bounds are materialized -- see materialize_variable_bounds.
-    std::vector<VariableBound> variable_bounds_;
+    std::vector<VariableBound> variable_bounds;
 
     /// The declared records intersected into one record per primal variable, in
-    /// variable order: length primal_vars_, starting from (-inf, +inf) and
+    /// variable order: length primal_vars, starting from (-inf, +inf) and
     /// narrowed by each record in declaration order (lower = max, upper = min).
     ///
     /// This is what decides the layout, and therefore what the structural key's
@@ -324,7 +324,7 @@ struct AssemblyDeclaration {
     ///
     /// @throws std::invalid_argument naming what disagreed and both numbers,
     ///         for any of: a non-positive partition count; a negative
-    ///         dimension; a fixing-row count outside [0, equality_rows_]; a
+    ///         dimension; a fixing-row count outside [0, equality_rows]; a
     ///         fixing-row count the tail of the equality list does not have
     ///         one single-row piece each for; a bound naming a variable the
     ///         declaration does not have; a NaN bound; a single record whose
@@ -357,4 +357,4 @@ struct AssemblyDeclaration {
                                const Eigen::MatrixXi &rows, bool inequality);
 };
 
-} // namespace hven::solvers
+} // namespace hven

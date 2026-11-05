@@ -13,7 +13,7 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 
@@ -899,7 +899,7 @@ TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
     for (const WorkingSetLinearAlgebra alg :
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         QpOptions opts;
-        opts.ws_algebra = alg;
+        opts.working_set_algebra = alg;
         SCOPED_TRACE(alg == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder"
                                                                   : "kRefactorize");
         EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
@@ -918,7 +918,7 @@ TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
     // Regression guard for any future absorbency that multiplies by dual_mu without a cap: an
     // infinite tolerance makes kInfeasible unreachable engine-wide, silently and totally.
     QpOptions opts;
-    opts.dual_mu = std::numeric_limits<double>::infinity();
+    opts.dual_regularization = std::numeric_limits<double>::infinity();
     // MEASURED, and it is neither kInfeasible nor kOptimal on either: an infinite
     // dual_mu poisons the factorization long before the classification. RE-DERIVED AT
     // M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kNumericalError on both.
@@ -1057,7 +1057,7 @@ TEST(QpEngine, RandomizedWithEqualityRowAgainstOracle) {
         for (const auto algebra :
              {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
             QpOptions opts;
-            opts.ws_algebra = algebra;
+            opts.working_set_algebra = algebra;
             const auto sol = QpEngine{opts}.solve(qp);
             SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
                                                                           : "refactorize");
@@ -1089,7 +1089,7 @@ TEST(QpEngine, WarmStartFromOptimalSolutionConvergesImmediately) {
 
 TEST(QpEngine, MaxIterBudgetIsReported) {
     QpOptions opts;
-    opts.max_iter = 1;
+    opts.max_iterations = 1;
     const auto sol = QpEngine{opts}.solve(all_bounds_active_qp());
     EXPECT_EQ(sol.status, QpStatus::kMaxIter);
     EXPECT_EQ(sol.counters.minor_iters, 1);
@@ -1150,7 +1150,7 @@ TEST(QpEngineExportInvariant, AFreeVariableCarriesNoBoundPriceAtACappedExit) {
     seed.ineq_active = {};
 
     QpOptions opts;
-    opts.max_iter = 1;
+    opts.max_iterations = 1;
     const auto sol = QpEngine{opts}.solve(qp, seed);
 
     ASSERT_EQ(sol.status, QpStatus::kMaxIter) << "the fixture must reach the capped exit";
@@ -1194,7 +1194,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
         for (const Case &c : cases) {
             QpOptions opts;
             if (cap > 0) {
-                opts.max_iter = cap;
+                opts.max_iterations = cap;
             }
             const auto sol = QpEngine{opts}.solve(c.qp);
             for (Index i = 0; i < c.qp.n(); ++i) {
@@ -1210,7 +1210,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
 // =====================================================================
 // PHASE-6 TASK 4 (M6) -- THE SIZE-DERIVED max_iter.
 //
-// QpOptions::max_iter's default became a SENTINEL meaning "derive the cap
+// QpOptions::max_iterations's default became a SENTINEL meaning "derive the cap
 // from this subproblem's size" (qp_types.h). The derivation is three small
 // functions in qp_engine.h's detail namespace, tested here directly so the
 // policy is pinned away from any solve, and so a change to the coefficient
@@ -1256,14 +1256,14 @@ TEST(QpEngineSizeDerivedCap, AnExplicitCapWinsOutrightAndTheSentinelDerives) {
     // And the engine honours it end to end: a cap of 1 still reports kMaxIter
     // after exactly one minor, on a problem whose derived cap is 500.
     QpOptions opts;
-    opts.max_iter = 1;
+    opts.max_iterations = 1;
     const auto capped = QpEngine{opts}.solve(qp);
     EXPECT_EQ(capped.status, QpStatus::kMaxIter);
     EXPECT_EQ(capped.counters.minor_iters, 1);
 
     // The default sentinel solves the same problem to optimality.
     QpOptions defaults;
-    ASSERT_FALSE(defaults.max_iter.has_value()) << "the shipped default must be empty";
+    ASSERT_FALSE(defaults.max_iterations.has_value()) << "the shipped default must be empty";
     const auto solved = QpEngine{defaults}.solve(qp);
     EXPECT_EQ(solved.status, QpStatus::kOptimal);
 }
@@ -1406,7 +1406,7 @@ TEST(QpEngineFaceRefine, ATrustRegionPinIsHonouredAsPartOfTheFaceAndPricesNothin
     face.tr_active[1] = true;
 
     SolveOverrides overrides;
-    overrides.tr_radius = 0.5;
+    overrides.trust_region_radius = 0.5;
 
     QpSolution out;
     QpEngine engine{QpOptions{}};

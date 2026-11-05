@@ -70,7 +70,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief Acceptance thresholds of an EqualityBasis split.
 struct EqualityBasisTolerances {
@@ -271,4 +271,4 @@ class EqualityRowSubsetModel final : public NlpModel {
     std::vector<Index> rows_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

@@ -18,10 +18,10 @@
 #include "support/parametric_families.h"
 
 namespace {
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 } // namespace
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -48,7 +48,7 @@ Vec vec(const std::vector<double> &v) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -674,15 +674,15 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
 
         // The FREE-branch solve, and its currency.
         const SqpResult seeded =
-            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+            driver.solve(hven::detail::problem_ref(model), model.start_point());
         EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
         const WarmStart payload = seeded.warm_start;
 
         // The perturbation: past the activation threshold, so the exported
         // point's active set is the wrong one for the problem being solved.
         model.set_parameters(Vec::Constant(1, 0.8));
-        return driver.solve(hven::solvers::detail::problem_ref(model),
-                            WarmStartAccess::primal(payload), payload);
+        return driver.solve(hven::detail::problem_ref(model), WarmStartAccess::primal(payload),
+                            payload);
     };
 
     const SqpResult killed = solve_continuation(1);
@@ -703,4 +703,4 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
     EXPECT_LT((killed.x - patient.x).lpNorm<Eigen::Infinity>(), 1e-6);
 }
 
-} // namespace hven::solvers
+} // namespace hven

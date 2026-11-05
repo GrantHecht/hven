@@ -54,7 +54,7 @@
 #include "hven/model/claim_stream_source.h"
 #include "hven/model/nlp_assembly.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief An NlpAssembly over one NlpModel: a single serial piece at partition
 ///        count 1.
@@ -388,4 +388,4 @@ class NlpModelAssembly final : public ClaimStreamSource {
     Vec probe_inequality_scratch_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

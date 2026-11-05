@@ -25,8 +25,8 @@
 
 namespace {
 
+using hven::KktFactorization;
 using hven::SpMatRM;
-using hven::solvers::KktFactorization;
 
 // Upper triangle of a symmetric matrix, in the row-major CSR convention the
 // factor requires: a structural diagonal in every row, nothing below it.
@@ -43,7 +43,7 @@ std::vector<Eigen::Triplet<double>> indefinite_2x2() { return {{0, 0, 2.0}, {1, 
 
 KktFactorization::Options mkl_like_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLDLT;
+    opts.kind = hven::linear::FactorKind::kLdlt;
     opts.num_threads = 1;
     return opts;
 }
@@ -314,8 +314,8 @@ TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
 
 // A one-variable unconstrained problem, only ever transcribed -- these tests
 // reject at configuration time and never reach a solve.
-struct KktConfigRejectProblem : hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+struct KktConfigRejectProblem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -354,27 +354,26 @@ struct KktConfigRejectProblem : hven::solvers::Nlp {
 // left behind -- so the second solve below (the one that matters) runs
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
+    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
-    ASSERT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
-              hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::detail::problem_ref(*program), x0).status,
+              hven::SolveStatus::kOptimal);
 
     {
         auto o = solver.options();
         o.common.threads = solver.options().common.threads + 1;
         solver.set_options(std::move(o));
     }
-    EXPECT_EQ(solver.solve(hven::solvers::detail::problem_ref(*program), x0).status,
-              hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::detail::problem_ref(*program), x0).status,
+              hven::SolveStatus::kOptimal);
 }
 
 #if defined(USE_ACCELERATE_SPARSE)
@@ -383,9 +382,8 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // performs no refinement, where the engine's previous interface ran its own
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
+    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
     {
         auto o = solver.options();
         o.linear.refinement_steps = 2;
@@ -394,9 +392,8 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(
-        solver.solve(hven::solvers::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
-        std::invalid_argument);
+    EXPECT_THROW(solver.solve(hven::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
+                 std::invalid_argument);
 }
 
 #else
@@ -405,12 +402,11 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
 // the undocumented ones this enum also carries are not passed through as raw
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
+    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
     // M8 AP-2 B3: refused at validate(), by name, before any solve.
     auto o = solver.options();
-    o.linear.pivoting = static_cast<hven::solvers::KktPivoting>(13);
+    o.linear.pivoting = static_cast<hven::KktPivoting>(13);
     EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
     (void)program;
 }

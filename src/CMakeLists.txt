@@ -536,7 +536,7 @@ endif()
 # tables, rendered from the trace stream. NOT a PCH source, on the same
 # unmeasured-default footing as the fifteen above -- it includes its own header
 # (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_solver.h,
-# drivers/ipm_iterate_info.h and three standard headers, again a different
+# drivers/ipm_iterate.h and three standard headers, again a different
 # set in a different order from src/hven_pch.h's prefix.
 #
 # 43 as of M6 W5 T8.7b, which DELETED drivers/interior_point_solver_print.cpp.

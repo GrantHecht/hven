@@ -78,12 +78,12 @@
 
 #include "corpus_cells.h"
 
-namespace hven::solvers::crossover {
+namespace hven::crossover {
 
 using hven::Index;
 using hven::Vec;
-using hven::solvers::corpus::CorpusCell;
-using hven::solvers::corpus::StartTaxonomy;
+using hven::corpus::CorpusCell;
+using hven::corpus::StartTaxonomy;
 
 // =============================================================================
 // ModelAsNlpProblem — an NlpModel, stated the way Nlp states a problem
@@ -117,7 +117,7 @@ using hven::solvers::corpus::StartTaxonomy;
 /// the conversion is an index transpose on the declared structure and nothing
 /// at all on the values.
 class ModelAsNlpProblem final : public Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -418,7 +418,7 @@ struct IpmLegRow {
     /// False until this leg actually finished; a leg that never ran reports
     /// `absent`, never a default value -- see margins_row.
     bool ran = false;
-    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
+    hven::SolveStatus flag = hven::SolveStatus::kMaxIter;
     int iters = -1;
     Index analyses = -1;
     Index factorizations = -1;
@@ -472,7 +472,7 @@ struct LegOptions {
     /// Interior-point iteration cap per phase.
     int ipm_max_iters = 200;
     /// Interior-point console verbosity; 3 and above is silent.
-    hven::solvers::Verbosity ipm_verbosity = hven::solvers::Verbosity::kSilent;
+    hven::Verbosity ipm_verbosity = hven::Verbosity::kSilent;
 };
 
 namespace detail {
@@ -536,7 +536,7 @@ inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
 /// four-argument entry used to be REFUSED beside a staged value, which is what
 /// kept legs (c) and (d) off it; with staging gone every leg could take a
 /// budget, and none does, because all three must be bounded by the SAME thing
-/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iter
+/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iterations
 /// caps, which corpus_cells.h's options_for_cell sets, with the runner's wall
 /// deadline as the outer guard. Budgeting one leg and not the others would
 /// make the margins incomparable.
@@ -545,9 +545,9 @@ inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, cons
     NlpModelAssembly bridge(model);
     SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol =
-        payload != nullptr ? driver.solve(hven::solvers::detail::problem_ref(bridge), x0, *payload)
-                           : driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
+    const SqpResult sol = payload != nullptr
+                              ? driver.solve(hven::detail::problem_ref(bridge), x0, *payload)
+                              : driver.solve(hven::detail::problem_ref(bridge), x0);
     return record_sqp(sol, seconds_since(t0));
 }
 
@@ -607,9 +607,9 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // the one-call make_nlp_program, the phase sequence is a field, and the
         // program is an argument of the solve. The TIMED WINDOW is unchanged --
         // it brackets the solve only, and the transcription runs above `t0`.
-        const auto ipm_program = hven::solvers::make_nlp_program(declared);
-        hven::solvers::IpmSolver ipm;
-        hven::solvers::IpmOptions ipm_opts = ipm.options();
+        const auto ipm_program = hven::make_nlp_program(declared);
+        hven::IpmSolver ipm;
+        hven::IpmOptions ipm_opts = ipm.options();
         ipm_opts.common.verbosity = opts.ipm_verbosity;
         ipm_opts.common.max_iterations = opts.ipm_max_iters;
         ipm_opts.common.optimality_tol = corpus::detail::kKktTol;
@@ -617,8 +617,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         ipm_opts.termination.complementarity_tol = corpus::detail::kKktTol;
         ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
-        const hven::solvers::IpmResult result =
-            ipm.solve(hven::solvers::detail::problem_ref(*ipm_program), x0);
+        const hven::IpmResult result = ipm.solve(hven::detail::problem_ref(*ipm_program), x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
         legs.a.flag = result.status;
@@ -662,7 +661,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     // shape. Runs after (d) -- see the execution-order note above.
     {
         WarmStart core = exported;
-        hven::solvers::detail::WarmStartAccess::extensions(core).clear();
+        hven::detail::WarmStartAccess::extensions(core).clear();
         legs.c = detail::run_sqp_leg(model, x0, sqp_opts, &core);
     }
     emit(LegStage::kWarmCore);
@@ -730,9 +729,7 @@ inline std::string cell_prefix(const CorpusCell &cell) {
 /// nothing else. So `stop_reason` (the column T8.2 added) is what separates the
 /// stage-stall row from the locally-infeasible-restoration row, and it is
 /// LOAD-BEARING in this artifact rather than merely informative.
-inline const char *flag_string(hven::solvers::SolveStatus flag) {
-    return hven::solvers::to_string(flag);
-}
+inline const char *flag_string(hven::SolveStatus flag) { return hven::to_string(flag); }
 
 /// The token every column of this artifact uses for a value that was never
 /// measured. Never `0` and never a status: a status would claim an outcome the
@@ -743,7 +740,7 @@ inline constexpr const char *kAbsent = "absent";
 inline std::string leg_status(const SqpLegRow &row) {
     // The CAPITALISED vocabulary this artifact's baselines are pinned to; see
     // corpus::legacy_status_string (M6 W5 T8.4).
-    return row.ran ? std::string(hven::solvers::corpus::legacy_status_string(row.status))
+    return row.ran ? std::string(hven::corpus::legacy_status_string(row.status))
                    : std::string(kAbsent);
 }
 
@@ -819,17 +816,16 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         problem.emplace(nlp);
     }
     const auto solve = [&](SqpSolver &driver, const Vec &x0,
-                           const hven::solvers::detail::SqpWarmState &warm =
-                               hven::solvers::detail::SqpWarmState{}) {
+                           const hven::detail::SqpWarmState &warm = hven::detail::SqpWarmState{}) {
         const SolveBudget budget{.minor_budget = kMinorBudget};
         // The native route, always (a cold state included): the handle is made
         // in detail, the public type has no default.
-        const SqpWarmStart native = hven::solvers::detail::SqpWarmAccess::wrap(warm);
+        const SqpWarmStart native = hven::detail::SqpWarmAccess::wrap(warm);
         if (route == NlpRoute::kNlpPublic) {
             return driver.solve(*problem, x0, native, budget);
         }
         NlpProblemModel fresh(nlp);
-        return driver.solve(hven::solvers::detail::problem_ref(fresh), x0, native, budget);
+        return driver.solve(hven::detail::problem_ref(fresh), x0, native, budget);
     };
 
     switch (cell.start) {
@@ -854,8 +850,7 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         attach_observers(driver, cfg);
         model->set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = solve(driver, model->start_point());
-        const hven::solvers::detail::SqpWarmState corrupted =
-            corrupt_warm_start(SqpWarmStateOf(seed));
+        const hven::detail::SqpWarmState corrupted = corrupt_warm_start(SqpWarmStateOf(seed));
         model->set_parameters(Vec::Constant(1, cell.p));
         return timed_row(
             cell, *model, on_setup, [&] { return solve(driver, corrupted.x, corrupted); },
@@ -868,9 +863,9 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
             f7_ip_iterate(*model, cell.p, mu, physics_informed_start(*model, cell.p));
-        const hven::solvers::detail::SqpWarmState crossover =
+        const hven::detail::SqpWarmState crossover =
             from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
-                                model->lower(), model->upper(), IpCrossoverOptions{});
+                                model->lower(), model->upper(), IpmCrossoverOptions{});
         return timed_row(
             cell, *model, on_setup, [&] { return solve(driver, crossover.x, crossover); },
             cfg.score_model_surface);
@@ -897,4 +892,4 @@ inline void install_nlp_route(corpus::detail::NlpRoute route) {
     corpus::detail::nlp_route_runner() = &run_cell_engine_nlp;
 }
 
-} // namespace hven::solvers::crossover
+} // namespace hven::crossover

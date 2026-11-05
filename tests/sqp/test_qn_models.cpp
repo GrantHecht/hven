@@ -20,7 +20,7 @@
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 #include <hven/detail/globalization/sqp/qn_models.h>
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using detail::DenseDampedBfgs;
@@ -635,4 +635,4 @@ TEST(MixedLiftScalarPart, ValidationRejectsBadReplacements) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

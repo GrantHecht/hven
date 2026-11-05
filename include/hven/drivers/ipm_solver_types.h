@@ -22,10 +22,10 @@
 #include "hven/drivers/solve_result.h"
 #include "hven/linear/symmetric_factor.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The four scalars the interior-point convergence test gates on, with
-///        IterateInfo's definitions, so each is directly comparable against its
+///        IpmIterate's definitions, so each is directly comparable against its
 ///        matching IpmOptions tolerance.
 ///
 /// `kkt` and `barrier` carry IpmOptions::objective_scale; `equality` and
@@ -184,7 +184,7 @@ struct IpmResult : SolveResult {
     std::optional<Index> last_filter_size;
 
     /// Total filter-reset-heuristic clears; nullopt unless the acceptance
-    /// strategy is the filter. Under advanced.barrier_governor == kMonitored it
+    /// strategy is the filter. Under advanced.barrier_governor_mode == kMonitored it
     /// counts per barrier subproblem: resets since the last mu-event.
     std::optional<Index> last_filter_resets;
 
@@ -241,4 +241,4 @@ struct IpmResult : SolveResult {
     hven::linear::SymmetricFactor::Counters kkt_factor_counters;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -36,7 +36,7 @@
 #include "hven/detail/warmstart/warm_start_access.h"
 
 namespace {
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 } // namespace
 
 namespace {
@@ -44,14 +44,14 @@ constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::Nlp;
+using hven::Nlp;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian. Same problem as
 // test_ipm_solver_entry.cpp's Hs071Problem, duplicated under a distinct name to
 // avoid a unity-build symbol collision.
 struct SeedHs071Problem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -136,27 +136,27 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 
     const auto unseeded_route =
         hven_interior_tests::transcribe(std::make_shared<SeedHs071Problem>());
-    hven::solvers::IpmSolver unseeded;
-    hven::solvers::IpmResult unseeded_result;
+    hven::IpmSolver unseeded;
+    hven::IpmResult unseeded_result;
     {
         auto o = unseeded.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         unseeded.set_options(std::move(o));
     }
     unseeded_result = hven_interior_tests::solve_declared(unseeded, unseeded_route, x0);
-    ASSERT_EQ(unseeded_result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(unseeded_result.status, hven::SolveStatus::kOptimal);
 
     const auto seeded_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedHs071Problem>());
-    hven::solvers::IpmSolver seeded;
-    hven::solvers::IpmResult seeded_result;
+    hven::IpmSolver seeded;
+    hven::IpmResult seeded_result;
     {
         auto o = seeded.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         seeded.set_options(std::move(o));
     }
     seeded_result = hven_interior_tests::solve_declared(seeded, seeded_route, x0);
-    ASSERT_EQ(seeded_result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(seeded_result.status, hven::SolveStatus::kOptimal);
 
     EXPECT_LT((seeded_result.x - unseeded_result.x).lpNorm<Eigen::Infinity>(), 1e-6);
 }
@@ -166,7 +166,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 // (rather than through starting_multipliers()) with deliberately wrong-sized
 // vectors.
 struct SeedEqOnlyProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -219,13 +219,12 @@ struct SeedEqOnlyProblem : Nlp {
 // meant -- and the install site, the clamps and the objective-scale handling
 // are the same ones the staged seed fed.
 namespace {
-hven::solvers::WarmStart seed_payload(const hven::solvers::NonLinearProgram &program,
-                                      const Eigen::VectorXd &eq_mults,
-                                      const Eigen::VectorXd &iq_mults) {
-    hven::solvers::WarmStart seed;
+hven::WarmStart seed_payload(const hven::NonLinearProgram &program, const Eigen::VectorXd &eq_mults,
+                             const Eigen::VectorXd &iq_mults) {
+    hven::WarmStart seed;
     WarmStartAccess::eq(seed) = eq_mults;
     WarmStartAccess::iq(seed) = iq_mults;
-    WarmStartAccess::key(seed) = hven::solvers::declaration_key(program.declaration());
+    WarmStartAccess::key(seed) = hven::declaration_key(program.declaration());
     return seed;
 }
 } // namespace
@@ -233,11 +232,11 @@ hven::solvers::WarmStart seed_payload(const hven::solvers::NonLinearProgram &pro
 TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -255,7 +254,7 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
     // means this size-mismatch probe has to bypass it. The throw fires from
     // validate_staged_multipliers, right after variable-treatment
     // reconfiguration and before the entry init_impl/factorization.
-    EXPECT_THROW((void)solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0,
+    EXPECT_THROW((void)solver.solve(hven::detail::problem_ref(*solver_route.program), x0,
                                     seed_payload(*solver_route.program, bad_eq, bad_iq)),
                  std::invalid_argument);
 
@@ -263,10 +262,9 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
     // own argument, so a second, seedless solve converges normally by
     // construction rather than by a disarm-on-throw discipline. The check is
     // kept because the PROPERTY is what mattered, not the mechanism.
-    const hven::solvers::IpmResult r2 =
-        solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0);
+    const hven::IpmResult r2 = solver.solve(hven::detail::problem_ref(*solver_route.program), x0);
     const Eigen::VectorXd &x = r2.x;
-    ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(r2.status, hven::SolveStatus::kOptimal);
     Eigen::VectorXd expect(2);
     expect << 1.0, 1.0;
     EXPECT_LT((x - expect).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -275,7 +273,7 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
 // f = x0^2 subject to x0 >= 1 -- optimum x0 = 1, a single active lower-bound
 // inequality row and no equality rows.
 struct SeedLowerBoundProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -333,17 +331,17 @@ struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem,
 TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedLowerBoundProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 1.0, 1e-5);
 }
 
@@ -354,17 +352,17 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
 TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     // The result is the proof: a payload was neither built nor applied.
     EXPECT_EQ(result.payload_ignored, 0);
     EXPECT_EQ(result.polish_ignored, 0);
@@ -378,7 +376,7 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
 
 // SeededPhaseEntryEqOnlyProblem's seed reaching the OPT phase's very first
 // iteration (before any Newton step) is observed through IpmSolver's early
-// (per-iteration) callback: XSL's KKTVector layout is documented as
+// (per-iteration) callback: XSL's KktVector layout is documented as
 // [primals | slacks | eq_lmults | iq_lmults] (kkt_vector.h). For
 // SeedEqOnlyProblem specifically -- 2 unbounded primal vars (so reduced ==
 // full, no fixed-variable elimination), 0 inequality rows (no slacks), 1
@@ -413,11 +411,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     {
         const auto solver_route =
             hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         {
             auto o = solver.options();
-            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.common.verbosity = hven::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
@@ -431,12 +429,12 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         });
         {
             auto o = solver.options();
-            o.phases = {hven::solvers::IpmPhase::kSolve,
-                        hven::solvers::IpmPhase::kOptimize}; // what solve_optimize() ran
+            o.phases = {hven::IpmPhase::kSolve,
+                        hven::IpmPhase::kOptimize}; // what solve_optimize() ran
             solver.set_options(std::move(o));
         }
         result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     }
     ASSERT_FALSE(std::isnan(unseeded_opt_entry_eq_mult));
 
@@ -444,11 +442,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     {
         const auto solver_route =
             hven_interior_tests::transcribe(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         {
             auto o = solver.options();
-            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.common.verbosity = hven::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
@@ -462,12 +460,12 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         });
         {
             auto o = solver.options();
-            o.phases = {hven::solvers::IpmPhase::kSolve,
-                        hven::solvers::IpmPhase::kOptimize}; // what solve_optimize() ran
+            o.phases = {hven::IpmPhase::kSolve,
+                        hven::IpmPhase::kOptimize}; // what solve_optimize() ran
             solver.set_options(std::move(o));
         }
         result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     }
 
     EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // IpmSolver's own correct answer
@@ -484,7 +482,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
 // targets: a seed sized to the 1 user row must still be accepted, and the
 // internal row zero-padded, not rejected as a size mismatch against 2.
 struct SeedFixedVarEqProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -541,17 +539,17 @@ struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem,
 TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedFixedVarEqProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     Eigen::VectorXd x = result.x;
     EXPECT_NEAR(x[0], 1.0, 1e-6);
     EXPECT_NEAR(x[1], 1.0, 1e-6);
@@ -568,17 +566,17 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
 TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(result.payload_ignored, 0);
 
     Eigen::VectorXd x = result.x;
@@ -590,11 +588,11 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
 TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -614,7 +612,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     // block is now refused at the HAND-OVER, in this frame, rather than at
     // validate_staged_multipliers inside the solve. Same exception type, same
     // call, one frame earlier.
-    EXPECT_THROW((void)solver.solve(hven::solvers::detail::problem_ref(*solver_route.program), x0,
+    EXPECT_THROW((void)solver.solve(hven::detail::problem_ref(*solver_route.program), x0,
                                     seed_payload(*solver_route.program, eq, iq)),
                  std::invalid_argument);
 }
@@ -636,11 +634,11 @@ struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem, hven_interior_tests::Mu
 TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededOversizedEqOnlyProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -657,7 +655,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_eq_mult, 1.0e6); // kSeededMultInitMax, not the raw 1e12 seed
 }
 
@@ -679,11 +677,11 @@ struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem,
 TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededOversizedLowerBoundProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -701,7 +699,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     Eigen::VectorXd x0(1);
     x0 << 3.0;
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
 
@@ -715,17 +713,17 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMultipliers) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedFixedVarEqProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
-        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     Eigen::VectorXd x = result.x;
     EXPECT_NEAR(x[0], 1.0, 1e-6);
@@ -738,7 +736,7 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
     // the problem's, and this test asserted that length; the split is what
     // makes the report below correct by construction rather than by a trim.
     ASSERT_EQ(solver_route.model->me(), 1);
-    EXPECT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), solver_route.model->me());
+    EXPECT_EQ(hven::detail::engine_rows(result).lambda_e.size(), solver_route.model->me());
     ASSERT_EQ(result.internal_fixed_lambda_e.size(), 1)
         << "MakeConstraint must report the fixing row it added";
     ASSERT_EQ(result.internal_fixed_ce.size(), 1);
@@ -748,11 +746,10 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
     // ...and the report is in the problem's own row space, one entry, carrying
     // the multiplier of the problem's own row and not the engine's.
     Eigen::VectorXd lambda = solver_route.model->compose_user_multipliers(
-        hven::solvers::detail::engine_rows(result).lambda_e,
-        hven::solvers::detail::engine_rows(result).lambda_i);
+        hven::detail::engine_rows(result).lambda_e, hven::detail::engine_rows(result).lambda_i);
     ASSERT_EQ(lambda.size(), 1);
     // min x0^2 + x1^2 s.t. x0 + x1 = 2 with x1 fixed at 1: stationarity in the
     // free variable gives 2*x0 + lambda = 0 at x0 = 1.
     EXPECT_NEAR(lambda[0], -2.0, 1e-6);
-    EXPECT_NEAR(lambda[0], hven::solvers::detail::engine_rows(result).lambda_e[0], 1e-12);
+    EXPECT_NEAR(lambda[0], hven::detail::engine_rows(result).lambda_e[0], 1e-12);
 }

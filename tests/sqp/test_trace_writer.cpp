@@ -56,7 +56,7 @@
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::HsProblem;
@@ -629,27 +629,27 @@ const char *spec_spelling(SqpFallbackVerdict v) {
 // whose display names are the ones below. `converged` -> `optimal`,
 // `not_converged` -> `max_iter` (and the exits the old vocabulary could not tell
 // apart now reach `stalled`), `singular_kkt` -> `numerical_error`.
-const char *spec_spelling(hven::solvers::SolveStatus v) {
+const char *spec_spelling(hven::SolveStatus v) {
     switch (v) {
-    case hven::solvers::SolveStatus::kOptimal:
+    case hven::SolveStatus::kOptimal:
         return "\"optimal\"";
-    case hven::solvers::SolveStatus::kAcceptable:
+    case hven::SolveStatus::kAcceptable:
         return "\"acceptable\"";
-    case hven::solvers::SolveStatus::kMaxIter:
+    case hven::SolveStatus::kMaxIter:
         return "\"max_iter\"";
-    case hven::solvers::SolveStatus::kWorkLimit:
+    case hven::SolveStatus::kWorkLimit:
         return "\"work_limit\"";
-    case hven::solvers::SolveStatus::kTimeLimit:
+    case hven::SolveStatus::kTimeLimit:
         return "\"time_limit\"";
-    case hven::solvers::SolveStatus::kInfeasible:
+    case hven::SolveStatus::kInfeasible:
         return "\"infeasible\"";
-    case hven::solvers::SolveStatus::kStalled:
+    case hven::SolveStatus::kStalled:
         return "\"stalled\"";
-    case hven::solvers::SolveStatus::kDiverging:
+    case hven::SolveStatus::kDiverging:
         return "\"diverging\"";
-    case hven::solvers::SolveStatus::kNumericalError:
+    case hven::SolveStatus::kNumericalError:
         return "\"numerical_error\"";
-    case hven::solvers::SolveStatus::kInterrupted:
+    case hven::SolveStatus::kInterrupted:
         return "\"interrupted\"";
     }
     return kUnspelled;
@@ -660,29 +660,29 @@ const char *spec_spelling(hven::solvers::SolveStatus v) {
 // overload above spells them -- written out again rather than forwarded,
 // because a forwarding "spec" would agree with the writer by construction and
 // pin nothing.
-const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
+const char *spec_spelling(hven::RestorationSubStatus v) {
     switch (v) {
-    case hven::solvers::RestorationSubStatus::kNotRun:
+    case hven::RestorationSubStatus::kNotRun:
         return "\"not_run\"";
-    case hven::solvers::RestorationSubStatus::kOptimal:
+    case hven::RestorationSubStatus::kOptimal:
         return "\"optimal\"";
-    case hven::solvers::RestorationSubStatus::kAcceptable:
+    case hven::RestorationSubStatus::kAcceptable:
         return "\"acceptable\"";
-    case hven::solvers::RestorationSubStatus::kMaxIter:
+    case hven::RestorationSubStatus::kMaxIter:
         return "\"max_iter\"";
-    case hven::solvers::RestorationSubStatus::kWorkLimit:
+    case hven::RestorationSubStatus::kWorkLimit:
         return "\"work_limit\"";
-    case hven::solvers::RestorationSubStatus::kTimeLimit:
+    case hven::RestorationSubStatus::kTimeLimit:
         return "\"time_limit\"";
-    case hven::solvers::RestorationSubStatus::kInfeasible:
+    case hven::RestorationSubStatus::kInfeasible:
         return "\"infeasible\"";
-    case hven::solvers::RestorationSubStatus::kStalled:
+    case hven::RestorationSubStatus::kStalled:
         return "\"stalled\"";
-    case hven::solvers::RestorationSubStatus::kDiverging:
+    case hven::RestorationSubStatus::kDiverging:
         return "\"diverging\"";
-    case hven::solvers::RestorationSubStatus::kNumericalError:
+    case hven::RestorationSubStatus::kNumericalError:
         return "\"numerical_error\"";
-    case hven::solvers::RestorationSubStatus::kInterrupted:
+    case hven::RestorationSubStatus::kInterrupted:
         return "\"interrupted\"";
     }
     return kUnspelled;
@@ -1031,7 +1031,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     ipm_phase(IpmPhase::kSolve);
 
     const auto stop_reason = [](IpmStopReason v) {
-        const IterateInfo row;
+        const IpmIterate row;
         IpmPhaseReport report;
         report.stop_reason = v;
         std::ostringstream os;
@@ -1052,7 +1052,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     stop_reason(IpmStopReason::kException);
 
     const auto kkt_status = [](IpmKktFactorStatus v) {
-        const IterateInfo row;
+        const IpmIterate row;
         const IpmPhaseReport report;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
@@ -1093,7 +1093,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     // values including the `not_run` that is the reason the enum exists. Driven
     // through the same end event, so this covers the `key_value` overload the
     // field's own type selects.
-    const auto sub_status = [](hven::solvers::RestorationSubStatus v) {
+    const auto sub_status = [](hven::RestorationSubStatus v) {
         SqpCounters counters;
         counters.restoration_sub_status = v;
         std::ostringstream os;
@@ -1101,20 +1101,20 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
         EXPECT_EQ(raw_field(os.str(), "restoration_sub_status"), spec_spelling(v));
     };
-    sub_status(hven::solvers::RestorationSubStatus::kNotRun);
-    sub_status(hven::solvers::RestorationSubStatus::kOptimal);
-    sub_status(hven::solvers::RestorationSubStatus::kAcceptable);
-    sub_status(hven::solvers::RestorationSubStatus::kMaxIter);
-    sub_status(hven::solvers::RestorationSubStatus::kInfeasible);
-    sub_status(hven::solvers::RestorationSubStatus::kStalled);
-    sub_status(hven::solvers::RestorationSubStatus::kDiverging);
-    sub_status(hven::solvers::RestorationSubStatus::kNumericalError);
-    sub_status(hven::solvers::RestorationSubStatus::kWorkLimit);
-    sub_status(hven::solvers::RestorationSubStatus::kInterrupted);
+    sub_status(hven::RestorationSubStatus::kNotRun);
+    sub_status(hven::RestorationSubStatus::kOptimal);
+    sub_status(hven::RestorationSubStatus::kAcceptable);
+    sub_status(hven::RestorationSubStatus::kMaxIter);
+    sub_status(hven::RestorationSubStatus::kInfeasible);
+    sub_status(hven::RestorationSubStatus::kStalled);
+    sub_status(hven::RestorationSubStatus::kDiverging);
+    sub_status(hven::RestorationSubStatus::kNumericalError);
+    sub_status(hven::RestorationSubStatus::kWorkLimit);
+    sub_status(hven::RestorationSubStatus::kInterrupted);
 
     // W4 T4: the interior-point driver's three alphabets. `SolveStatus` is
     // that driver's own exit status; the two mode selectors shape the run.
-    const auto ipm_status = [](hven::solvers::SolveStatus st) {
+    const auto ipm_status = [](hven::SolveStatus st) {
         IpmSolveEndTraceEvent e;
         e.status = st;
         std::ostringstream os;
@@ -1122,11 +1122,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_end(e);
         EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
     };
-    ipm_status(hven::solvers::SolveStatus::kOptimal);
-    ipm_status(hven::solvers::SolveStatus::kAcceptable);
-    ipm_status(hven::solvers::SolveStatus::kMaxIter);
-    ipm_status(hven::solvers::SolveStatus::kDiverging);
-    ipm_status(hven::solvers::SolveStatus::kNumericalError);
+    ipm_status(hven::SolveStatus::kOptimal);
+    ipm_status(hven::SolveStatus::kAcceptable);
+    ipm_status(hven::SolveStatus::kMaxIter);
+    ipm_status(hven::SolveStatus::kDiverging);
+    ipm_status(hven::SolveStatus::kNumericalError);
 
     const auto inertia_mode = [](InertiaMode m) {
         IpmSolveBeginTraceEvent e;
@@ -1429,7 +1429,7 @@ TEST(JsonLinesTraceSink, WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKI
         TeeSink tee(json);
         driver.attach_trace(&tee);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
         const std::map<std::string, Index> by_ev = census(os.str());
         const auto at = [&](const char *k) {
@@ -1513,14 +1513,14 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
 
     SqpSolver bare(opts);
     const SqpResult without =
-        bare.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        bare.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     SqpSolver traced(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     traced.attach_trace(&json);
     const SqpResult with =
-        traced.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        traced.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_EQ(without.status, with.status);
     ASSERT_GT(without.counters.major_iters, 0) << "non-vacuous: the cell really solves";
@@ -1745,7 +1745,7 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
 
     SqpSolver bare(opts);
     const SqpResult without =
-        bare.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        bare.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     FailAfterBuf buf(4096); // a few lines in, then ENOSPC
     std::ostream out(&buf);
@@ -1753,7 +1753,7 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
     const SqpResult with =
-        traced.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        traced.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_EQ(without.status, with.status);
     expect_counters_identical(without.counters, with.counters);
@@ -1780,9 +1780,8 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     SqpSolver traced(opts);
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
-    EXPECT_THROW(
-        traced.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()),
-        std::ios_base::failure);
+    EXPECT_THROW(traced.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()),
+                 std::ios_base::failure);
 }
 
 // ===========================================================================
@@ -1899,14 +1898,14 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
 
     SqpSolver bare(opts);
     const SqpResult without =
-        bare.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        bare.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     SqpSolver traced(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     traced.attach_trace(&json);
     const SqpResult with =
-        traced.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        traced.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_EQ(without.status, with.status);
     ASSERT_GT(json.lines_written(), 0) << "non-vacuous: the sink really ran";
@@ -1933,8 +1932,7 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     const IpqpCounters &c = sol.counters.ipqp;
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1995,7 +1993,7 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
     JsonLinesTraceSink json(os);
     for (const Entry &e : entries) {
         SqpOptions opts;
-        opts.qp.tr_radius = e.engine_tr;
+        opts.qp.trust_region_radius = e.engine_tr;
         QpEngine engine(opts.qp);
         SqpIterate row;
         std::optional<ElasticLadderReport> report;
@@ -2357,7 +2355,7 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpm
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
         SCOPED_TRACE("HS" + std::to_string(leg.hs));
         const std::vector<std::string> rows = major_lines(os.str());
@@ -2378,7 +2376,7 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
     // INSIDE `push_history`, after its scaling map, so the stream must equal
     // `history` field for field even where the two spaces differ.
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(25);
     SqpSolver driver(opts);
@@ -2386,7 +2384,7 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_TRUE(sol.scaling.active) << "non-vacuous: the solve really scaled";
     const std::vector<std::string> rows = major_lines(os.str());
@@ -2437,7 +2435,7 @@ TEST(JsonLinesTraceSink, QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
     ASSERT_GT(sol.counters.major_iters, 1);
@@ -2461,7 +2459,7 @@ TEST(JsonLinesTraceSink, QpModeOnAnSsnCellCountsTheArmAndItsHandOffs) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
     const auto at = [&](const char *k) {
@@ -2513,7 +2511,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         TeeSink tee(json);
         driver.attach_trace(&tee);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
         const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
         const auto at = [&](const char *k) {
@@ -2546,8 +2544,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
         ASSERT_GT(sol.counters.ipqp.ipqp_declined_pinned, 0) << "non-vacuous: it really declines";
@@ -2679,8 +2676,8 @@ void expect_counter_field(const std::string &line, const char *k, StartLevel v, 
     EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
-void expect_counter_field(const std::string &line, const char *k,
-                          hven::solvers::RestorationSubStatus v, bool) {
+void expect_counter_field(const std::string &line, const char *k, hven::RestorationSubStatus v,
+                          bool) {
     EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
@@ -2729,7 +2726,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     const std::string end = only_line(os.str(), "sqp.solve.end");
     ASSERT_FALSE(end.empty());
@@ -2769,11 +2766,11 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
     SqpSolver a(opts);
     a.attach_trace(&json);
     const SqpResult first =
-        a.solve(hven::solvers::detail::problem_ref(*p24.model), (*p24.model).start_point());
+        a.solve(hven::detail::problem_ref(*p24.model), (*p24.model).start_point());
     SqpSolver b(opts);
     b.attach_trace(&json);
     const SqpResult second =
-        b.solve(hven::solvers::detail::problem_ref(*p11.model), (*p11.model).start_point());
+        b.solve(hven::detail::problem_ref(*p11.model), (*p11.model).start_point());
 
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_GT(lines.size(), 4u);
@@ -2833,7 +2830,7 @@ TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     Index brackets = 0;
     Index pending = 0;
@@ -2949,7 +2946,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"optimal\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2963,7 +2960,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"max_iter\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2976,8 +2973,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"infeasible\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2999,8 +2995,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet) {
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
 
@@ -3038,8 +3033,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals) {
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
@@ -3069,8 +3063,7 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
@@ -3141,8 +3134,8 @@ void assign_distinct(StartLevel &field, Index &next) {
 // golden line that could not tell the filled counters from the empty ones at
 // this key would pin nothing here. `kWorkLimit` is a non-default value
 // under BOTH enums.
-void assign_distinct(hven::solvers::RestorationSubStatus &field, Index &next) {
-    field = hven::solvers::RestorationSubStatus::kWorkLimit;
+void assign_distinct(hven::RestorationSubStatus &field, Index &next) {
+    field = hven::RestorationSubStatus::kWorkLimit;
     ++next;
 }
 
@@ -3516,8 +3509,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLoca
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+    SqpResult sol = driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_FALSE(sol.history.empty());
     const SqpResult moved = std::move(sol);
 
@@ -3544,7 +3536,7 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
         JsonLinesTraceSink json(measure);
         SqpSolver driver(opts);
         driver.attach_trace(&json);
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     }
     const std::vector<std::string> lines = split_lines(measure.str());
     ASSERT_GE(lines.size(), 2u);
@@ -3558,9 +3550,8 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
     SqpSolver traced(opts);
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
-    EXPECT_THROW(
-        traced.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point()),
-        std::ios_base::failure);
+    EXPECT_THROW(traced.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()),
+                 std::ios_base::failure);
     EXPECT_EQ(buf.taken.size(), static_cast<std::size_t>(budget)) << "it really failed on the last";
 }
 
@@ -3581,16 +3572,14 @@ TEST(JsonLinesTraceSink, ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDep
 
     SqpSolver bad(opts);
     bad.attach_trace(&json);
-    EXPECT_THROW(
-        bad.solve(hven::solvers::detail::problem_ref(*p.model), Vec::Zero(p.model->n() + 1)),
-        std::invalid_argument);
+    EXPECT_THROW(bad.solve(hven::detail::problem_ref(*p.model), Vec::Zero(p.model->n() + 1)),
+                 std::invalid_argument);
     EXPECT_EQ(os.str(), "") << "a refused call writes nothing at all";
     EXPECT_EQ(json.lines_written(), 0);
 
     SqpSolver good(opts);
     good.attach_trace(&json);
-    const SqpResult sol =
-        good.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+    const SqpResult sol = good.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_GT(sol.counters.major_iters, 0);
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_FALSE(lines.empty());
@@ -3661,9 +3650,8 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     ThrowsOnSecondGradientModel bad_model;
     SqpSolver thrower(opts);
     thrower.attach_trace(&json);
-    EXPECT_THROW(
-        thrower.solve(hven::solvers::detail::problem_ref(bad_model), (bad_model).start_point()),
-        std::runtime_error);
+    EXPECT_THROW(thrower.solve(hven::detail::problem_ref(bad_model), (bad_model).start_point()),
+                 std::runtime_error);
     const Index lines_after_throw = json.lines_written();
     ASSERT_GT(lines_after_throw, 0);
 
@@ -3706,8 +3694,7 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     const HsProblem p = make_hs(24);
     SqpSolver good(opts);
     good.attach_trace(&json);
-    const SqpResult sol =
-        good.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+    const SqpResult sol = good.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_GT(sol.counters.major_iters, 0);
 
     const std::vector<std::string> lines = split_lines(os.str());
@@ -3738,8 +3725,7 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoratio
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
     Index seeded_rows = 0;
@@ -3780,7 +3766,7 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_GT(sol.counters.ipqp.ipqp_to_ssn, 0) << "non-vacuous: the grade must be reached";
     Index rows_reading_ssn = 0;
@@ -3823,8 +3809,7 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
     Index nested_end_seq = 0;
@@ -3857,38 +3842,38 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
 /// @brief The classic path's record: every field distinct, with `prox_reg_*` at
 /// "proximal mode off", the rejection pair at "no rejection recorded", and the
 /// perturbed-pivot count NOT OBSERVED. Five `null`s, three different meanings.
-IterateInfo golden_ipm_iter_sentinels() {
-    IterateInfo r;
-    r.iter_ = 7;
-    r.mu_ = 0.25;
-    r.prim_obj_ = 1.5;
-    r.barr_obj_ = 2.25;
-    r.kkt_inf_ = 0.5;
-    r.barr_inf_ = 0.125;
-    r.econ_inf_ = 0.0625;
-    r.icon_inf_ = 0.03125;
-    r.pen_par1_ = 3.5;
-    r.pen_par2_ = 4.75;
-    r.ls_iters_ = 2;
-    r.alpha_p_ = 0.9;
-    r.alpha_d_ = 0.8;
-    r.alpha_t_ = 0.7;
-    r.h_pert_ = 1e-8;
-    r.h_facs_ = 3;
-    r.h_pert_cum_ = 2e-8;
-    r.prox_reg_primal_ = -1.0;
-    r.prox_reg_dual_ = -1.0;
-    r.p_pivots_ = 5;
+IpmIterate golden_ipm_iter_sentinels() {
+    IpmIterate r;
+    r.iter = 7;
+    r.mu = 0.25;
+    r.prim_obj = 1.5;
+    r.barr_obj = 2.25;
+    r.kkt_inf = 0.5;
+    r.barr_inf = 0.125;
+    r.econ_inf = 0.0625;
+    r.icon_inf = 0.03125;
+    r.pen_par1 = 3.5;
+    r.pen_par2 = 4.75;
+    r.ls_iters = 2;
+    r.alpha_p = 0.9;
+    r.alpha_d = 0.8;
+    r.alpha_t = 0.7;
+    r.h_pert = 1e-8;
+    r.h_facs = 3;
+    r.h_pert_cum = 2e-8;
+    r.prox_reg_primal = -1.0;
+    r.prox_reg_dual = -1.0;
+    r.p_pivots = 5;
     // NOT observed: the projected 5 is the substitute an absent backend count
     // leaves behind, so the line must read `null` and not repeat it.
-    r.p_pivots_observed_ = false;
-    r.max_e_mult_ = 11.0;
-    r.max_i_mult_ = 12.5;
-    r.merit_val_ = 13.25;
-    r.accepted_ = false;
-    r.first_rejection_iter_ = -1;
-    r.theta_at_first_rejection_ = -1.0;
-    r.eval_exceptions_ = 4;
+    r.p_pivots_observed = false;
+    r.max_e_mult = 11.0;
+    r.max_i_mult = 12.5;
+    r.merit_val = 13.25;
+    r.accepted = false;
+    r.first_rejection_iter = -1;
+    r.theta_at_first_rejection = -1.0;
+    r.eval_exceptions = 4;
     return r;
 }
 
@@ -3897,41 +3882,41 @@ IterateInfo golden_ipm_iter_sentinels() {
 /// `first_rejection_iter_ == 0` (the FIRST trial was rejected) and
 /// `theta_at_first_rejection_ == 0.0` (a feasible reading). Both are numbers,
 /// not `null`, which is what makes the `< 0` predicate falsifiable.
-IterateInfo golden_ipm_iter_present() {
-    IterateInfo r;
-    r.iter_ = 1;
-    r.mu_ = 0.1;
-    r.prim_obj_ = -0.5;
-    r.barr_obj_ = -0.25;
-    r.kkt_inf_ = std::numeric_limits<double>::quiet_NaN();
-    r.barr_inf_ = std::numeric_limits<double>::infinity();
-    r.econ_inf_ = -std::numeric_limits<double>::infinity();
-    r.icon_inf_ = -0.0;
-    r.pen_par1_ = 100.0;
-    r.pen_par2_ = 1000.0;
-    r.ls_iters_ = 1;
-    r.alpha_p_ = 0.5;
-    r.alpha_d_ = 0.25;
-    r.alpha_t_ = 0.125;
-    r.h_pert_ = 1e-4;
-    r.h_facs_ = 2;
-    r.h_pert_cum_ = 3e-4;
-    r.prox_reg_primal_ = 1e-6;
-    r.prox_reg_dual_ = 2e-6;
-    r.p_pivots_ = 9;
-    r.p_pivots_observed_ = true;
-    r.max_e_mult_ = 1e3;
-    r.max_i_mult_ = 1e4;
-    r.merit_val_ = 0.1;
-    r.accepted_ = true;
-    r.first_rejection_iter_ = 0;
-    r.theta_at_first_rejection_ = 0.0;
-    r.eval_exceptions_ = 0;
+IpmIterate golden_ipm_iter_present() {
+    IpmIterate r;
+    r.iter = 1;
+    r.mu = 0.1;
+    r.prim_obj = -0.5;
+    r.barr_obj = -0.25;
+    r.kkt_inf = std::numeric_limits<double>::quiet_NaN();
+    r.barr_inf = std::numeric_limits<double>::infinity();
+    r.econ_inf = -std::numeric_limits<double>::infinity();
+    r.icon_inf = -0.0;
+    r.pen_par1 = 100.0;
+    r.pen_par2 = 1000.0;
+    r.ls_iters = 1;
+    r.alpha_p = 0.5;
+    r.alpha_d = 0.25;
+    r.alpha_t = 0.125;
+    r.h_pert = 1e-4;
+    r.h_facs = 2;
+    r.h_pert_cum = 3e-4;
+    r.prox_reg_primal = 1e-6;
+    r.prox_reg_dual = 2e-6;
+    r.p_pivots = 9;
+    r.p_pivots_observed = true;
+    r.max_e_mult = 1e3;
+    r.max_i_mult = 1e4;
+    r.merit_val = 0.1;
+    r.accepted = true;
+    r.first_rejection_iter = 0;
+    r.theta_at_first_rejection = 0.0;
+    r.eval_exceptions = 0;
     return r;
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpmIterWithBothMinusOneConventionsActive) {
-    const IterateInfo r = golden_ipm_iter_sentinels();
+    const IpmIterate r = golden_ipm_iter_sentinels();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_iter(IpmIterTraceEvent{r, 1});
@@ -3948,7 +3933,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmIterWithBothMinusOneConventionsActive) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpmIterWithEverySentinelBearingFieldPresent) {
-    const IterateInfo r = golden_ipm_iter_present();
+    const IpmIterate r = golden_ipm_iter_present();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_iter(IpmIterTraceEvent{r, 0});
@@ -3969,23 +3954,23 @@ TEST(JsonLinesTraceSink, GoldenLineIpmIterWithEverySentinelBearingFieldPresent) 
 /// emit site before the driver reports DIVERGING, so the stream really can carry
 /// it. Everything else here is a real reading, so this line isolates the third
 /// sentinel from the other two.
-IterateInfo golden_ipm_iter_nonfinite_newton() {
-    IterateInfo r = golden_ipm_iter_present();
-    r.iter_ = 4;
-    r.h_facs_ = -1;
-    r.h_pert_ = 0.0;
-    r.h_pert_cum_ = 0.0;
-    r.accepted_ = false;
-    r.merit_val_ = 6.5;
-    r.kkt_inf_ = 2.0;
-    r.barr_inf_ = 1.5;
-    r.econ_inf_ = 1.25;
-    r.icon_inf_ = 0.75;
+IpmIterate golden_ipm_iter_nonfinite_newton() {
+    IpmIterate r = golden_ipm_iter_present();
+    r.iter = 4;
+    r.h_facs = -1;
+    r.h_pert = 0.0;
+    r.h_pert_cum = 0.0;
+    r.accepted = false;
+    r.merit_val = 6.5;
+    r.kkt_inf = 2.0;
+    r.barr_inf = 1.5;
+    r.econ_inf = 1.25;
+    r.icon_inf = 0.75;
     return r;
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpmIterWithTheNonFiniteNewtonLadderMarker) {
-    const IterateInfo r = golden_ipm_iter_nonfinite_newton();
+    const IpmIterate r = golden_ipm_iter_nonfinite_newton();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_iter(IpmIterTraceEvent{r, 2});
@@ -4006,7 +3991,7 @@ TEST(JsonLinesTraceSink, TheThreeIpmIterGoldenLinesIsolateEverySentinelSlot) {
     // FALSIFIABILITY, the T1 convention, over SIX null-bearing keys and THREE
     // records: every key reads `null` in at least one line and a number in at
     // least one other, so no predicate can be dropped without moving a line.
-    const auto line = [](const IterateInfo &r, Index phase) {
+    const auto line = [](const IpmIterate &r, Index phase) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipm_iter(IpmIterTraceEvent{r, phase});
@@ -4099,7 +4084,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
 
 TEST(JsonLinesTraceSink, GoldenLineIpmSolveEnd) {
     IpmSolveEndTraceEvent e;
-    e.status = hven::solvers::SolveStatus::kAcceptable;
+    e.status = hven::SolveStatus::kAcceptable;
     e.iters = 42;
     e.total_time_s = 1.5;
     e.pre_time_s = 0.25;
@@ -4125,8 +4110,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpmRestorationExitRow) {
     // record in one stream is two things for a reader to reconcile. What this
     // line adds is the door's identity and the two numbers that decided it,
     // plus `iter`/`phase` so the pairing survives a filtered read.
-    IterateInfo row;
-    row.iter_ = 7;
+    IpmIterate row;
+    row.iter = 7;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{row, 2, 1.5e-3, 1.0e-6});
@@ -4151,8 +4136,8 @@ TEST(JsonLinesTraceSink, TheRestorationExitRowIsAdjacentToItsOwnIterLine) {
     // THE ORDER THE ENGINE EMITS IN, pinned so a later change that separates
     // them has to say so: the row's `ipm.iter` line, then the marker, with the
     // same `iter` and `phase` on both.
-    IterateInfo row;
-    row.iter_ = 4;
+    IpmIterate row;
+    row.iter = 4;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_iter(IpmIterTraceEvent{row, 1});
@@ -4252,13 +4237,13 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     // line this fix round moves, and it moves by exactly that removal.
     // THE REPORT IS EMBEDDED and flattened as the trailing keys, so a reader
     // sees the returned `IpmPhaseReport` on the same line as the exit itself.
-    IterateInfo row;
-    row.iter_ = 11;
-    row.prim_obj_ = 17.25;
-    row.kkt_inf_ = 0.00048828125;
-    row.barr_inf_ = 0.000244140625;
-    row.econ_inf_ = 0.0001220703125;
-    row.icon_inf_ = 6.103515625e-05;
+    IpmIterate row;
+    row.iter = 11;
+    row.prim_obj = 17.25;
+    row.kkt_inf = 0.00048828125;
+    row.barr_inf = 0.000244140625;
+    row.econ_inf = 0.0001220703125;
+    row.icon_inf = 6.103515625e-05;
     IpmPhaseReport report;
     report.phase = IpmPhase::kOptimize;
     report.status = SolveStatus::kAcceptable;
@@ -4387,7 +4372,7 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     // M6 W5 T8.7b's five records, every alphabet on them exercised at BOTH
     // ends of its range so a missing `to_json` case cannot hide behind a
     // default-constructed value.
-    const IterateInfo row;
+    const IpmIterate row;
     IpmPhaseReport report;
     sink.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
     sink.on_ipm_kkt_analysis(IpmKktAnalysisTraceEvent{});
@@ -4473,7 +4458,7 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
     // hardest: this model ENTERS RESTORATION, so the stream carries depth-1
     // lines from the sub-driver. Handing the sub-driver the caller's half
     // instead of the fan-out -- or handing it the console -- moves those lines.
-    auto run = [](hven::solvers::Verbosity print_level) {
+    auto run = [](hven::Verbosity print_level) {
         CircleAndFarLineModel model;
         SqpOptions opts;
         opts.common.max_iterations = 200;
@@ -4484,12 +4469,11 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
         driver.attach_trace(&json);
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         return std::pair<std::string, Index>{os.str(), sol.counters.restoration_iters};
     };
-    const auto silent = run(hven::solvers::Verbosity::kSilent);
-    const auto printing = run(hven::solvers::Verbosity::kIterations);
+    const auto silent = run(hven::Verbosity::kSilent);
+    const auto printing = run(hven::Verbosity::kIterations);
     ASSERT_GE(silent.second, 1) << "fixture premise: this cell enters restoration";
     EXPECT_EQ(silent.first, printing.first)
         << "the console displaced or perturbed the caller's stream";
@@ -4507,14 +4491,14 @@ TEST(SqpConsole, TheLiveConsoleEqualsFormatIterationTable) {
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.common.max_iterations = 200;
-    opts.common.verbosity = hven::solvers::Verbosity::kIterations;
+    opts.common.verbosity = hven::Verbosity::kIterations;
     SqpSolver driver(opts);
     std::string written;
     SqpResult sol;
     {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         written = capture.text();
     }
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: restoration runs";
@@ -4535,7 +4519,7 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         written = capture.text();
         EXPECT_FALSE(sol.history.empty());
     }
@@ -4543,7 +4527,7 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
 }
 
 TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
-    auto run = [](hven::solvers::Verbosity print_level, bool attach_first) {
+    auto run = [](hven::Verbosity print_level, bool attach_first) {
         HsProblem p = make_hs(38);
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
@@ -4562,12 +4546,12 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
         }
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         return tally.seen;
     };
-    const std::vector<std::string> off = run(hven::solvers::Verbosity::kSilent, true);
-    const std::vector<std::string> on = run(hven::solvers::Verbosity::kIterations, true);
-    const std::vector<std::string> on_late = run(hven::solvers::Verbosity::kIterations, false);
+    const std::vector<std::string> off = run(hven::Verbosity::kSilent, true);
+    const std::vector<std::string> on = run(hven::Verbosity::kIterations, true);
+    const std::vector<std::string> on_late = run(hven::Verbosity::kIterations, false);
     EXPECT_FALSE(off.empty());
     EXPECT_EQ(off, on);
     EXPECT_EQ(off, on_late);
@@ -4589,14 +4573,14 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.common.max_iterations = 200;
-    opts.common.verbosity = hven::solvers::Verbosity::kIterations;
+    opts.common.verbosity = hven::Verbosity::kIterations;
     SqpSolver driver(opts);
     std::string written;
     SqpResult sol;
     {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         written = capture.text();
     }
     ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: restoration runs";
@@ -4635,11 +4619,11 @@ TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {
         }
         return CallbackAction::kContinue;
     });
-    driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+    driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     EXPECT_TRUE(threw) << "attach_trace inside a solve must be refused";
     // ... and it is legal again once the solve has returned.
     EXPECT_NO_THROW(driver.attach_trace(&json));
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

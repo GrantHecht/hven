@@ -14,7 +14,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason) {
     // THE VERDICT IS READ FIRST, so a stronger one the convergence check already
@@ -60,4 +60,4 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
 // to_solve_status(SolveStatus) went with SolveStatus in M6 W5 T8.4: the mapping was
 // the identity on the five values, and the SQP engine reports SolveStatus now.
 
-} // namespace hven::solvers
+} // namespace hven

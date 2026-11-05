@@ -10,7 +10,7 @@
 
 #include <fmt/color.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The interior-point iteration table's five-band residual colouring.
 ///
@@ -25,4 +25,4 @@ namespace hven::solvers {
 /// @return An fmt foreground style.
 fmt::text_style ipm_residual_color(double value, double target, double acceptable);
 
-} // namespace hven::solvers
+} // namespace hven

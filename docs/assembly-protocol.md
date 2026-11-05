@@ -26,13 +26,13 @@ two forms solve identically and claim the same slots.
 The builder fills a declaration and derives what it can:
 
 ```cpp
-hven::solvers::AssemblyDeclaration d(n);            // n variables
+hven::AssemblyDeclaration d(n);            // n variables
 d.add_objective(term, vars);                        // vars: inputs x applications
 d.add_equality(piece, vars, rows);                  // rows: outputs x applications; c(x) = 0
 d.add_inequality(piece, vars, rows);                // c(x) <= 0
 d.set_bounds(first, last, lower, upper);            // variables first..last, inclusive
 d.set_partitions(k);                                // the one place the count is given
-hven::solvers::Problem problem(std::move(d));
+hven::Problem problem(std::move(d));
 ```
 
 - **Index maps.** Column `V` of `vars` lists the variables application `V` reads, in the piece's
@@ -56,23 +56,23 @@ hven::solvers::Problem problem(std::move(d));
   per 1000 claimed KKT elements, and at least one. `Problem::partitions()` reports the count
   adopted. Partitions are evaluated concurrently (§6).
 
-The raw route writes the same fields directly: `objectives_`, `equality_constraints_` and
-`inequality_constraints_` (lists of `ObjectiveFunction` / `ConstraintFunction`, each a handle plus
-its index maps), `primal_vars_`, `equality_rows_`, `inequality_rows_`, the two
-`*_shared_row_overcount_` fields, `partition_count_` and `variable_bounds_`. On that route the
+The raw route writes the same fields directly: `objectives`, `equality_constraints` and
+`inequality_constraints` (lists of `ObjectiveFunction` / `ConstraintFunction`, each a handle plus
+its index maps), `primal_vars`, `equality_rows`, `inequality_rows`, the two
+`*_shared_row_overcount` fields, `partition_count` and `variable_bounds`. On that route the
 counts are stated, not derived, and `validate()` checks them: each block's pieces must claim
-exactly `rows + overcount` rows. `fixing_rows_` is internal (a fixed-variable treatment's rows)
+exactly `rows + overcount` rows. `fixing_rows` is internal (a fixed-variable treatment's rows)
 and stays 0 in a consumer's declaration.
 
 ## 2. The handles
 
 A piece enters the layout through one of two type-erased handles
-(`hven/model/solver_interface_specs.h`): `ConstraintInterface` for a constraint piece and
+(`hven/model/piece_interfaces.h`): `ConstraintInterface` for a constraint piece and
 `ObjectiveInterface` for an objective piece. Both take any piece type by converting constructor.
-What gets stored is decided by `SolverInterfaceAdapter<T>` (`hven/solver_interface_adapter.h`):
+What gets stored is decided by `SolverInterfaceAdapter<T>` (`hven/model/solver_interface_adapter.h`):
 
 - **A local-block piece** (a class with a static `kInputs`) takes the local-block layer's
-  adapter, `LocalConstraintBlock<P>` or `LocalObjectiveBlock<P>`. `solver_interface_specs.h`
+  adapter, `LocalConstraintBlock<P>` or `LocalObjectiveBlock<P>`. `piece_interfaces.h`
   includes `local_blocks.h` at its end, so every translation unit that can convert a piece sees
   that adapter and none can take the default for such a type. A near miss (a non-const member, a
   wrong signature, `kOutputs` on what is written as an objective, a non-const `name()`) is one
@@ -134,7 +134,7 @@ Each evaluation loops over the applications `V = 0 .. d.num_appl() - 1` of the p
 
 ## 4. `SolverIndexingData`: maps, arenas and claims
 
-`SolverIndexingData` (`hven/model/indexing_data.h`) is the per-piece record the layout fills.
+`SolverIndexingData` (`hven/model/solver_indexing_data.h`) is the per-piece record the layout fills.
 
 **Reading inputs.** `X[d.v_loc(i, V)]` is input `i` of application `V`. `X` is the full primal
 vector, in the problem's own variable space, always.
@@ -146,14 +146,14 @@ the block's own multiplier vector (equality or inequality), addressed by row.
 application owns a contiguous run of slots, and the engine sums every slot into its row after
 the pass. Application `V`'s slots start at
 
-- `d.inner_constraint_starts_[V]` in `FX` (`output_rows()` slots, one per output),
-- `d.inner_gradient_starts_[V]` in `GX` and `AGX` (`input_rows()` slots, one per input).
+- `d.inner_constraint_starts[V]` in `FX` (`output_rows()` slots, one per output),
+- `d.inner_gradient_starts[V]` in `GX` and `AGX` (`input_rows()` slots, one per input).
 
 The engine zeroes the arenas before every pass. Write `FX[start + j]` and `GX[start + i]`, and
 add into `AGX[start + i]`. An input whose variable the engine eliminated still owns its gradient
 slot; the engine skips it when it sums.
 
-**Claims.** `get_kkt_space` records, for each application `V`, `d.inner_kkt_starts_[V] =
+**Claims.** `get_kkt_space` records, for each application `V`, `d.inner_kkt_starts[V] =
 free_slot`, and then claims that application's slots contiguously, advancing `free_slot` once per
 slot and writing each slot's coordinates into `rows[slot]`, `cols[slot]`:
 
@@ -177,7 +177,7 @@ calls; a piece that answers otherwise is refused by name when the claim stream i
 ## 5. The scatter and the lock protocol
 
 A scatter walks the claims in claim order: application `V`'s `k`-th claimed slot is
-`d.inner_kkt_starts_[V] + k`, and its value goes to `kkt.valuePtr()[locations[slot]] += value`.
+`d.inner_kkt_starts[V] + k`, and its value goes to `kkt.valuePtr()[locations[slot]] += value`.
 Skip a slot whose claim was `(-1, -1)`. The engine zeroes the KKT values before every pass.
 
 When the problem is partitioned, two partitions may write one matrix entry. `clashes[col]` is
@@ -187,17 +187,17 @@ of an entry is fixed, so every writer of one entry takes the same mutex:
 - a **Hessian** entry `(r, c)` locks `kkt_canonical_lock_col(r, c)` (the smaller of the two),
   whenever that column is contested;
 - a **Jacobian** entry `(row, col)` locks `col` (constraint rows sort above every variable
-  column), when the column is contested and `!d.unique_constraints_`.
+  column), when the column is contested and `!d.unique_constraints`.
 
 Within one partition writes are serial; a single-partition problem takes no lock. Do not
 introduce another keying.
 
 **Shared Jacobian entries are serialised by the layout.** Two applications write the same
 Jacobian entry (one row, one variable) only through a shared row. When the layout partitions a
-problem it marks every partition copy of a constraint piece: `d.unique_constraints_` is `false`
+problem it marks every partition copy of a constraint piece: `d.unique_constraints` is `false`
 when one of the copy's rows is also named by an application in ANOTHER partition, and `true`
 otherwise (always `true` on one partition). Such an entry's column is contested by construction
-(both partitions claim a slot under it), so a raw piece that honours `!d.unique_constraints_` as
+(both partitions claim a slot under it), so a raw piece that honours `!d.unique_constraints` as
 above takes that column's mutex; the local-block layer does. Rows written by one partition only,
 which is every row of a declaration without shared rows, keep the lock-free Jacobian scatter. A
 locked entry with three or more writers from different partitions is summed in a scheduling
@@ -212,14 +212,14 @@ each piece it evaluates (the layout copies the handle, and the handle copies the
 piece is copy-constructible (§2). The copies are called from several threads at once, on disjoint
 applications, through `const` members; state they share through a `std::shared_ptr` must be safe
 to read concurrently. One copy is evaluated by one partition, one thread at a time. By default a piece's applications are split
-across the partitions (`ThreadingFlags::ByApplication`); `set_thread_mode` on its
+across the partitions (`ThreadingFlags::kByApplication`); `set_thread_mode` on its
 `ObjectiveFunction` / `ConstraintFunction` pins it instead (`MainThread`, `RoundRobin` or a fixed
 partition index), and is part of the declaration: set it before the problem is built.
 
 ## 7. Evaluation failure
 
 A piece follows the library's contract (`hven/core/errors.h`): at a point it cannot evaluate,
-throw `hven::solvers::EvaluationError`, or produce a non-finite value, and the engine treats the
+throw `hven::EvaluationError`, or produce a non-finite value, and the engine treats the
 trial as rejected and backs off. At the solve's start point an `EvaluationError` propagates and a
 non-finite value ends the solve `kNumericalError`. Any other exception propagates unchanged, with
 its own type, also from a pool thread.

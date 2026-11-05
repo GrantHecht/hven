@@ -13,7 +13,7 @@
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/sqp_solver_types.h>
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
@@ -302,4 +302,4 @@ TEST(IpqpOptions, TheShippedDefaultsValidate) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

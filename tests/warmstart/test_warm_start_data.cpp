@@ -33,15 +33,15 @@
 #include "hven/warmstart/warm_start_data.h"
 
 namespace {
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 } // namespace
 
-using hven::solvers::DeclarationKey;
-using hven::solvers::deserialize;
-using hven::solvers::kWarmStartFormatVersion;
-using hven::solvers::serialize;
-using hven::solvers::WarmExtension;
-using hven::solvers::WarmStart;
+using hven::DeclarationKey;
+using hven::deserialize;
+using hven::kWarmStartFormatVersion;
+using hven::serialize;
+using hven::WarmExtension;
+using hven::WarmStart;
 
 namespace {
 
@@ -384,11 +384,11 @@ TEST(WarmStartValue, EqualityIsFieldwiseOverBothStampConjuncts) {
     const WarmStart base = make_populated();
 
     WarmStart declaration = base;
-    WarmStartAccess::key(declaration).declaration_digest_ += 1;
+    WarmStartAccess::key(declaration).declaration_digest += 1;
     EXPECT_NE(base, declaration);
 
     WarmStart bounds = base;
-    WarmStartAccess::key(bounds).bound_digest_ += 1;
+    WarmStartAccess::key(bounds).bound_digest += 1;
     EXPECT_NE(base, bounds);
 }
 
@@ -453,13 +453,13 @@ TEST(WarmStartSerialization, RoundTripsEmptyBlocksWithAPopulatedStamp) {
     WarmStartAccess::key(original) = DeclarationKey{0xFFFFFFFFFFFFFFFFULL, 0ULL};
     WarmStart decoded = deserialize(serialize(original));
     EXPECT_EQ(original, decoded);
-    EXPECT_EQ(WarmStartAccess::key(decoded).declaration_digest_, 0xFFFFFFFFFFFFFFFFULL);
-    EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest_, 0ULL);
+    EXPECT_EQ(WarmStartAccess::key(decoded).declaration_digest, 0xFFFFFFFFFFFFFFFFULL);
+    EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest, 0ULL);
 
     WarmStartAccess::key(original) = DeclarationKey{0ULL, 0x8000000000000000ULL};
     decoded = deserialize(serialize(original));
     EXPECT_EQ(original, decoded);
-    EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest_, 0x8000000000000000ULL);
+    EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest, 0x8000000000000000ULL);
 }
 
 TEST(WarmStartSerialization, RoundTripsSpecialDoublesBitExactly) {

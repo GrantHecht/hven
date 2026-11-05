@@ -28,7 +28,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/watchdog.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
 #include <gtest/gtest.h>
 
@@ -39,24 +39,24 @@
 
 namespace {
 
+using hven::AcceptanceStrategy;
+using hven::ChainedRecovery;
+using hven::ExtendedBacktrackRecovery;
+using hven::GlobalizationMechanism;
 using hven::Index;
-using hven::solvers::AcceptanceStrategy;
-using hven::solvers::ChainedRecovery;
-using hven::solvers::ExtendedBacktrackRecovery;
-using hven::solvers::GlobalizationMechanism;
-using hven::solvers::IpmSolver;
-using hven::solvers::IterateInfo;
-using hven::solvers::kRecoveryDepthExtended;
-using hven::solvers::kRecoveryDepthSoc;
-using hven::solvers::kRecoveryDepthUnresolved;
-using hven::solvers::kRecoveryDepthWatchdog;
-using hven::solvers::kWatchdogShortenedIterTrigger;
-using hven::solvers::kWatchdogTrialIterMax;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::RecoveryChain;
-using hven::solvers::SolverContext;
-using hven::solvers::WatchdogRecovery;
-using hven::solvers::WatchdogState;
+using hven::IpmIterate;
+using hven::IpmSolver;
+using hven::kRecoveryDepthExtended;
+using hven::kRecoveryDepthSoc;
+using hven::kRecoveryDepthUnresolved;
+using hven::kRecoveryDepthWatchdog;
+using hven::kWatchdogShortenedIterTrigger;
+using hven::kWatchdogTrialIterMax;
+using hven::ProgressMeasures;
+using hven::RecoveryChain;
+using hven::SolverContext;
+using hven::WatchdogRecovery;
+using hven::WatchdogState;
 using TychoTest::InertSolverContext;
 
 using Action = RecoveryChain::Action;
@@ -211,10 +211,10 @@ class ExtBtUnusedAcceptance : public AcceptanceStrategy {
 // of the extended-backtracking path and must never be reached.
 class ExtBtPassThroughMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(hven::solvers::LineSearchMode, double, double, double, double,
+    double compute_step(hven::LineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
-                        const std::vector<IterateInfo> &, SolverContext &) override {
+                        AcceptanceStrategy &, double &, double &, IpmIterate &,
+                        const std::vector<IpmIterate> &, SolverContext &) override {
         ADD_FAILURE() << "compute_step must never be reached by ExtendedBacktrackRecovery";
         return 1.0;
     }
@@ -222,12 +222,12 @@ class ExtBtPassThroughMechanism : public GlobalizationMechanism {
                               const SolverContext &) override {
         ADD_FAILURE() << "max_primal_dual_step must never be reached by ExtendedBacktrackRecovery";
     }
-    double run_acceptance_backtrack(hven::solvers::LineSearchMode lsmode, double obj_scale,
-                                    double mu, double prim_obj, double barr_obj,
-                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                                    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                                    IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    double run_acceptance_backtrack(hven::LineSearchMode lsmode, double obj_scale, double mu,
+                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                    AcceptanceStrategy &acceptance, IpmIterate &Citer,
+                                    const std::vector<IpmIterate> &iters,
                                     SolverContext &) override {
         return acceptance.classic_line_search(lsmode, obj_scale, mu, prim_obj, barr_obj, XSL, DXSL,
                                               XSL2, RHS, RHS2, Citer, iters);
@@ -255,17 +255,17 @@ class ExtBtScriptedAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    double classic_line_search(hven::solvers::LineSearchMode, double, double, double, double,
+    double classic_line_search(hven::LineSearchMode, double, double, double, double,
                                Eigen::VectorXd &, Eigen::VectorXd &DXSL, Eigen::VectorXd &,
-                               Eigen::VectorXd &, Eigen::VectorXd &, IterateInfo &Citer,
-                               const std::vector<IterateInfo> &) override {
+                               Eigen::VectorXd &, Eigen::VectorXd &, IpmIterate &Citer,
+                               const std::vector<IpmIterate> &) override {
         recorded_dxsl_.push_back(DXSL);
         const auto &[accept, alpha_result] = outcomes_.at(static_cast<std::size_t>(calls_));
         ++calls_;
-        Citer.accepted_ = accept;
+        Citer.accepted = accept;
         if (accept) {
-            Citer.ls_iters_ = 7;
-            Citer.merit_val_ = 42.0;
+            Citer.ls_iters = 7;
+            Citer.merit_val = 42.0;
         }
         return alpha_result;
     }
@@ -281,12 +281,12 @@ class ExtBtScriptedAcceptance : public AcceptanceStrategy {
 // acceptance nor the mechanism.
 TEST(ExtendedBacktrackGuards, DisabledDeclines) {
     InertSolverContext inert;
-    inert.opts_.advanced.line_search_extended_backtracks = 0;
+    inert.opts_.advanced.max_extended_backtracks = 0;
     SolverContext ctx = inert.ctx();
     ExtBtUnusedAcceptance acceptance;
     ExtBtPassThroughMechanism mechanism;
-    IterateInfo citer;
-    const std::vector<IterateInfo> iters;
+    IpmIterate citer;
+    const std::vector<IpmIterate> iters;
     Eigen::VectorXd XSL(1), DXSL(1), XSL2(1), RHS(1), RHS2(1);
     DXSL << 1.0;
     double alpha = 0.5, alphap = 1.0, alphad = 1.0;
@@ -296,7 +296,7 @@ TEST(ExtendedBacktrackGuards, DisabledDeclines) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, hven::solvers::LineSearchMode::kAugLang, 1.0,
+        citer, iters, ctx, acceptance, mechanism, hven::LineSearchMode::kAugmentedLagrangian, 1.0,
         1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
         resolved_depth, watchdog_activations);
     EXPECT_EQ(action, Action::kAcceptAsIs);
@@ -309,11 +309,11 @@ TEST(ExtendedBacktrackGuards, DisabledDeclines) {
 // (ls_extended_iters_) bounds the number of external calls.
 TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
     InertSolverContext inert;
-    inert.opts_.advanced.line_search_extended_backtracks = 3;
+    inert.opts_.advanced.max_extended_backtracks = 3;
     SolverContext ctx = inert.ctx();
     ExtBtPassThroughMechanism mechanism;
-    IterateInfo citer;
-    const std::vector<IterateInfo> iters;
+    IpmIterate citer;
+    const std::vector<IpmIterate> iters;
 
     Eigen::VectorXd DXSL(3);
     DXSL << 1.0, 2.0, 3.0;
@@ -329,7 +329,7 @@ TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, hven::solvers::LineSearchMode::kAugLang, 1.0,
+        citer, iters, ctx, acceptance, mechanism, hven::LineSearchMode::kAugmentedLagrangian, 1.0,
         1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
         resolved_depth, watchdog_activations);
 
@@ -352,11 +352,11 @@ TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
 // budget) and commits the accepted scaled direction/alpha.
 TEST(ExtendedBacktrackLadder, AcceptsAndStopsEarly) {
     InertSolverContext inert;
-    inert.opts_.advanced.line_search_extended_backtracks = 5; // budget bigger than needed
+    inert.opts_.advanced.max_extended_backtracks = 5; // budget bigger than needed
     SolverContext ctx = inert.ctx();
     ExtBtPassThroughMechanism mechanism;
-    IterateInfo citer;
-    const std::vector<IterateInfo> iters;
+    IpmIterate citer;
+    const std::vector<IpmIterate> iters;
 
     Eigen::VectorXd DXSL(2);
     DXSL << 4.0, 0.0;
@@ -371,15 +371,15 @@ TEST(ExtendedBacktrackLadder, AcceptsAndStopsEarly) {
 
     ExtendedBacktrackRecovery ext;
     const Action action = ext.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, hven::solvers::LineSearchMode::kAugLang, 1.0,
+        citer, iters, ctx, acceptance, mechanism, hven::LineSearchMode::kAugmentedLagrangian, 1.0,
         1e-3, 0.0, 0.0, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
         resolved_depth, watchdog_activations);
 
     EXPECT_EQ(action, Action::kRetry);
     EXPECT_EQ(acceptance.calls_, 2); // stopped as soon as accepted
-    EXPECT_TRUE(citer.accepted_);
-    EXPECT_EQ(citer.ls_iters_, 7);
-    EXPECT_DOUBLE_EQ(citer.merit_val_, 42.0);
+    EXPECT_TRUE(citer.accepted);
+    EXPECT_EQ(citer.ls_iters, 7);
+    EXPECT_DOUBLE_EQ(citer.merit_val, 42.0);
     EXPECT_DOUBLE_EQ(alpha, 0.2); // the accepted call's returned alpha
 
     const double scale2 = 0.3 * live_alpha;
@@ -410,10 +410,10 @@ class WatchdogUnusedAcceptance : public AcceptanceStrategy {
 
 class WatchdogUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(hven::solvers::LineSearchMode, double, double, double, double,
+    double compute_step(hven::LineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
-                        const std::vector<IterateInfo> &, SolverContext &) override {
+                        AcceptanceStrategy &, double &, double &, IpmIterate &,
+                        const std::vector<IpmIterate> &, SolverContext &) override {
         ADD_FAILURE() << "mechanism must not be reached by a spy recovery link";
         return 1.0;
     }
@@ -431,12 +431,11 @@ class WatchdogSpyRecovery : public RecoveryChain {
   public:
     explicit WatchdogSpyRecovery(Action action) : action_(action) {}
 
-    Action on_step_rejected(IterateInfo &, const std::vector<IterateInfo> &, SolverContext &,
-                            AcceptanceStrategy &, GlobalizationMechanism &,
-                            hven::solvers::LineSearchMode, double, double, double, double,
-                            Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                            Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
-                            Index &, int &, Index &) override {
+    Action on_step_rejected(IpmIterate &, const std::vector<IpmIterate> &, SolverContext &,
+                            AcceptanceStrategy &, GlobalizationMechanism &, hven::LineSearchMode,
+                            double, double, double, double, Eigen::VectorXd &, Eigen::VectorXd &,
+                            Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, double &,
+                            double &, double &, Index &, int &, Index &) override {
         ++calls_;
         return action_;
     }
@@ -452,8 +451,8 @@ class WatchdogSpyRecovery : public RecoveryChain {
 };
 
 struct WatchdogChainDrive {
-    IterateInfo citer;
-    std::vector<IterateInfo> iters;
+    IpmIterate citer;
+    std::vector<IpmIterate> iters;
     Eigen::VectorXd v = Eigen::VectorXd::Zero(1);
     double alpha = 1.0, alphap = 1.0, alphad = 1.0;
     Index soc_steps = 0;
@@ -464,8 +463,8 @@ struct WatchdogChainDrive {
 Action watchdog_drive_chain(RecoveryChain &chain, WatchdogChainDrive &d, SolverContext &ctx,
                             AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism) {
     return chain.on_step_rejected(d.citer, d.iters, ctx, acceptance, mechanism,
-                                  hven::solvers::LineSearchMode::kAugLang, 1.0, 1e-3, 0.0, 0.0, d.v,
-                                  d.v, d.v, d.v, d.v, d.alpha, d.alphap, d.alphad, d.soc_steps,
+                                  hven::LineSearchMode::kAugmentedLagrangian, 1.0, 1e-3, 0.0, 0.0,
+                                  d.v, d.v, d.v, d.v, d.v, d.alpha, d.alphap, d.alphad, d.soc_steps,
                                   d.resolved_depth, d.watchdog_activations);
 }
 
@@ -556,13 +555,13 @@ TEST(ChainedRecoveryOrdering, NotifyStepAcceptedPropagatesToBothLinks) {
 // caller-owned so the test can inspect them after the call.
 Action drive_watchdog(WatchdogRecovery &watchdog, SolverContext &ctx,
                       AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-                      Eigen::VectorXd &v, IterateInfo &citer, double mu, double prim_obj,
+                      Eigen::VectorXd &v, IpmIterate &citer, double mu, double prim_obj,
                       double &alpha, int &resolved_depth, Index &watchdog_activations) {
-    std::vector<IterateInfo> iters;
+    std::vector<IpmIterate> iters;
     double alphap = 1.0, alphad = 1.0;
     Index soc_steps = 0;
     return watchdog.on_step_rejected(
-        citer, iters, ctx, acceptance, mechanism, hven::solvers::LineSearchMode::kAugLang,
+        citer, iters, ctx, acceptance, mechanism, hven::LineSearchMode::kAugmentedLagrangian,
         /*obj_scale=*/1.0, mu, prim_obj, /*barr_obj=*/0.0, v, v, v, v, v, alpha, alphap, alphad,
         soc_steps, resolved_depth, watchdog_activations);
 }
@@ -583,7 +582,7 @@ TEST(WatchdogRecoveryDecorator, DelegatesWhileNotArmed) {
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i) {
         Eigen::VectorXd v(1);
         v << 1.0;
-        IterateInfo citer;
+        IpmIterate citer;
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         const Action action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer,
@@ -619,7 +618,7 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i) {
         Eigen::VectorXd v(1);
         v << kSnapshotValue;
-        IterateInfo citer;
+        IpmIterate citer;
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
@@ -631,7 +630,7 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
     // relaxed accept, inner not consulted, one activation recorded.
     Eigen::VectorXd v1(1);
     v1 << kSnapshotValue;
-    IterateInfo citer1;
+    IpmIterate citer1;
     double alpha1 = 1.0;
     int resolved_depth1 = kRecoveryDepthUnresolved;
     Action action =
@@ -641,12 +640,12 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
     EXPECT_EQ(inner_ptr->calls_, kWatchdogShortenedIterTrigger - 1); // still not consulted
     EXPECT_EQ(resolved_depth1, kRecoveryDepthWatchdog);
     EXPECT_EQ(watchdog_activations, 1);
-    EXPECT_TRUE(citer1.accepted_);
+    EXPECT_TRUE(citer1.accepted);
 
     // Trial #2: merit unchanged (no progress) -> still relaxed, no 2nd activation.
     Eigen::VectorXd v2(1);
     v2 << kSnapshotValue;
-    IterateInfo citer2;
+    IpmIterate citer2;
     double alpha2 = 1.0;
     int resolved_depth2 = kRecoveryDepthUnresolved;
     action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v2, citer2, kMu,
@@ -659,7 +658,7 @@ TEST(WatchdogRecoveryDecorator, ArmsRelaxesThenReverts) {
     static_assert(kWatchdogTrialIterMax == 3, "test assumes the paper's 3-trial window");
     Eigen::VectorXd v3(1);
     v3 << 999.0; // the "about to be applied" value the revert must discard
-    IterateInfo citer3;
+    IpmIterate citer3;
     double alpha3 = 1.0;
     int resolved_depth3 = kRecoveryDepthUnresolved;
     action = drive_watchdog(watchdog, ctx, acceptance, mechanism, v3, citer3, kMu,
@@ -690,7 +689,7 @@ TEST(WatchdogRecoveryDecorator, ProgressDisarmsAndDelegatesBack) {
     for (int i = 0; i < kWatchdogShortenedIterTrigger; ++i) { // arms on the last of these
         Eigen::VectorXd v(1);
         v << 1.0;
-        IterateInfo citer;
+        IpmIterate citer;
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
@@ -703,7 +702,7 @@ TEST(WatchdogRecoveryDecorator, ProgressDisarmsAndDelegatesBack) {
     // disarm and delegate to inner (which now DOES get consulted).
     Eigen::VectorXd v(1);
     v << 1.0;
-    IterateInfo citer;
+    IpmIterate citer;
     double alpha = 1.0;
     int resolved_depth = kRecoveryDepthUnresolved;
     const Action action =
@@ -736,7 +735,7 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
     for (int i = 0; i < kWatchdogShortenedIterTrigger - 1; ++i) {
         Eigen::VectorXd v(1);
         v << 1.0;
-        IterateInfo citer;
+        IpmIterate citer;
         double alpha = 1.0;
         int resolved_depth = kRecoveryDepthUnresolved;
         drive_watchdog(watchdog, ctx, acceptance, mechanism, v, citer, kMu, /*prim_obj=*/10.0,
@@ -754,7 +753,7 @@ TEST(WatchdogRecoveryDecorator, NotifyStepAcceptedResetsArmingCounter) {
     // NEXT two calls instead).
     Eigen::VectorXd v(1);
     v << 1.0;
-    IterateInfo citer;
+    IpmIterate citer;
     double alpha = 1.0;
     int resolved_depth = kRecoveryDepthUnresolved;
     const Action action =

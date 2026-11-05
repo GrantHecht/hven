@@ -18,7 +18,7 @@
 
 #include "hven/core/types.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief Ipopt's bound-damping coefficient, applied on ONE-SIDED bounds only.
 ///
@@ -312,4 +312,4 @@ inline void ipqp_augment_bound_complementarity(const Eigen::Ref<const Eigen::Vec
     }
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

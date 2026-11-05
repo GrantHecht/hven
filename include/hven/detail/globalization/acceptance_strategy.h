@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 
 #include "hven/detail/globalization/progress_measures.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 // The complete IpmSolver class is required here (classic_line_search
 // takes its nested LineSearchMode by value, and a nested enum cannot be
 // forward-declared independently of its enclosing class). This include is
@@ -17,7 +17,7 @@
 // into this directory.
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Relative infeasibility-reduction floor for leaving feasibility
 /// restoration: a trial's constraint violation must fall to
@@ -126,7 +126,7 @@ class AcceptanceStrategy {
                                        double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                        Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                        Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                       IterateInfo &Citer, const std::vector<IterateInfo> &iters) {
+                                       IpmIterate &Citer, const std::vector<IpmIterate> &iters) {
         (void)lsmode;
         (void)obj_scale;
         (void)mu;
@@ -143,4 +143,4 @@ class AcceptanceStrategy {
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -20,13 +20,13 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/drivers/ipm_iterate_info.h>
+#include <hven/drivers/ipm_iterate.h>
 #include <hven/drivers/ipm_phase_report.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The absence sentinel for a per-kind `double` slot on `ipm.message`.
 ///
@@ -173,7 +173,7 @@ struct IpqpTraceEscapeEvent {
 ///   * `kCapRetry` -- the cap retry's walk re-solve (M7 W2 M1), made once per
 ///     capped subproblem under `SqpOptions::qp_cap_retry` and NEVER at that
 ///     toggle's default: it is the same subproblem at the same radius on an
-///     engine whose `QpOptions::max_iter` is twice the cap, so its line's
+///     engine whose `QpOptions::max_iterations` is twice the cap, so its line's
 ///     `iters` is the retry's own minor count. `== SqpCounters::qp_cap_retries`.
 ///
 /// The restoration sub-solve is NOT a site: it is a whole nested SQP solve and
@@ -364,8 +364,8 @@ struct SqpSolveEndTraceEvent {
 /// @brief One interior-point iteration record (schema `ipm.iter`, M6 W4 T4).
 ///
 /// THE RECORD IS HELD BY REFERENCE, exactly as `sqp.major` holds its row: the
-/// serializer writes `IterateInfo`'s own fields in DECLARATION ORDER with the
-/// trailing underscores dropped, and a `static_assert` on the record's aggregate
+/// serializer writes `IpmIterate`'s own fields in DECLARATION ORDER, each under
+/// its own name as the key, and a `static_assert` on the record's aggregate
 /// arity fails the build until a field added there gets a key.
 ///
 /// EMITTED AT BOTH OF `alg_impl`'s LATE-CALLBACK SITES, immediately before the
@@ -393,7 +393,7 @@ struct SqpSolveEndTraceEvent {
 ///     `0` is a READING, not an absence: the FIRST trial was rejected.
 ///   * `theta_at_first_rejection` -- unavailable: no rejection was recorded,
 ///     OR the LANG acceptance variant ran, which records no theta
-///     (iterate_info.h). `0.0` is a feasible reading, not an absence.
+///     (ipm_iterate.h). `0.0` is a feasible reading, not an absence.
 ///   * `h_facs` -- the Newton direction came back non-finite, so no inertia
 ///     ladder ran and there is no step count (alg_impl's `!GoodStep` branch
 ///     writes -1). `0` is a reading: the factorization needed no ladder step,
@@ -402,13 +402,13 @@ struct SqpSolveEndTraceEvent {
 ///     none (Apple Accelerate), or this iterate was never factorized. The
 ///     engine's own projection substitutes the integer 0 for an absent count
 ///     and the stream must not repeat that fabrication (CLAUDE.md section 6);
-///     `IterateInfo::p_pivots_observed_` is the predicate and carries no key.
+///     `IpmIterate::p_pivots_observed` is the predicate and carries no key.
 struct IpmIterTraceEvent {
     /// The iteration record, valid for the duration of the `on_ipm_iter` call
     /// only.
-    const IterateInfo &iterate;
+    const IpmIterate &iterate;
     /// THE PHASE this iteration belongs to, 0-based over the phase sequence the
-    /// call requested. Carried because `IterateInfo::iter_` restarts at 0 in
+    /// call requested. Carried because `IpmIterate::iter` restarts at 0 in
     /// every phase, so on a multi-phase entry point (`solve_optimize`, ...) it
     /// is not a key on its own.
     Index phase = 0;
@@ -508,7 +508,7 @@ struct IpmRestorationExitRowTraceEvent {
     /// The iteration record the door returns, valid for the duration of the
     /// `on_ipm_restoration_exit_row` call only. The SAME object the adjacent
     /// `ipm.iter` line carried.
-    const IterateInfo &iterate;
+    const IpmIterate &iterate;
     /// The phase this row belongs to, on `IpmIterTraceEvent::phase`'s reading.
     Index phase = 0;
     /// The infeasibility restoration converged to.
@@ -615,14 +615,14 @@ struct IpmKktAnalysisTraceEvent {
 /// THE SELECTED ROW IS BORROWED, on `ipm.iter`'s own convention: the five
 /// values the block prints are read off it and the record's other keys are not
 /// repeated. It is the row the phase RETURNS -- the last one, or the best one
-/// when the `return_best` substitution applied. `iterate.prim_obj_` is printed
+/// when the `return_best` substitution applied. `iterate.prim_obj` is printed
 /// RAW: the restoration-contamination NaN rule that governs the iteration
 /// CALLBACK's `f` does not apply to this block and never did.
 ///
 /// THE ROW'S INDEX IN THE HISTORY IS NOT CARRIED, and there is nothing to carry
-/// (M6 W5 T8.7b fix1, the lane's M4): the phase loop stamps `Citer.iter_ = i`
+/// (M6 W5 T8.7b fix1, the lane's M4): the phase loop stamps `Citer.iter = i`
 /// and pushes exactly one row per iteration, so a row's index in the history IS
-/// its `iter_`. A `selected_iter` key beside `iter` would have been the same
+/// its `iter`. A `selected_iter` key beside `iter` would have been the same
 /// number under a second name, and it is dropped before the record freezes.
 /// The join to the selected row's `ipm.iter` line is (`phase`, `iter`).
 struct IpmPhaseExitTraceEvent {
@@ -630,7 +630,7 @@ struct IpmPhaseExitTraceEvent {
     /// for the duration of the call only.
     const IpmPhaseReport &report;
     /// The row this phase returns. Valid for the duration of the call only.
-    const IterateInfo &iterate;
+    const IpmIterate &iterate;
     /// The phase's 0-based index, as on `IpmPhaseTraceEvent`.
     Index phase = 0;
     /// True when `return_best` substituted the best iterate for the last one.
@@ -824,4 +824,4 @@ class TraceSink {
     virtual void on_ipm_message(const IpmMessageTraceEvent &event);
 };
 
-} // namespace hven::solvers
+} // namespace hven

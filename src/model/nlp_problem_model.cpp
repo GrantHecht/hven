@@ -14,7 +14,7 @@
 
 #include "hven/detail/model/absent_bound.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -83,7 +83,7 @@ SpMatRM lay_pattern(int rows, int cols, const std::vector<Eigen::Triplet<double>
 
 /// One declared row's kind, from its bound pair; refuses a pair that describes
 /// no row.
-NLPRowKind classify_row(double lo, double up, int r) {
+NlpRowKind classify_row(double lo, double up, int r) {
     if (std::isnan(lo) || std::isnan(up)) {
         throw std::invalid_argument(
             fmt::format("constraint row {}: bound is NaN (lower={}, upper={})", r, lo, up));
@@ -97,18 +97,18 @@ NLPRowKind classify_row(double lo, double up, int r) {
             throw std::invalid_argument(fmt::format(
                 "constraint row {}: both bounds are {} — an equality at infinity", r, lo));
         }
-        return NLPRowKind::Equality;
+        return NlpRowKind::kEquality;
     }
     if (lo == -kInf && up == kInf) {
-        return NLPRowKind::Free;
+        return NlpRowKind::kFree;
     }
     if (lo == -kInf) {
-        return NLPRowKind::UpperBounded;
+        return NlpRowKind::kUpperBounded;
     }
     if (up == kInf) {
-        return NLPRowKind::LowerBounded;
+        return NlpRowKind::kLowerBounded;
     }
-    return NLPRowKind::Range;
+    return NlpRowKind::kRange;
 }
 
 /// One declared row's RAW bound pair, refused under the absent-bound rule
@@ -136,17 +136,17 @@ void check_row_pair(double lo, double up, double infinite_bound, int r) {
     }
 }
 
-const char *row_kind_name(NLPRowKind kind) {
+const char *row_kind_name(NlpRowKind kind) {
     switch (kind) {
-    case NLPRowKind::Equality:
+    case NlpRowKind::kEquality:
         return "equality";
-    case NLPRowKind::UpperBounded:
+    case NlpRowKind::kUpperBounded:
         return "upper-bounded";
-    case NLPRowKind::LowerBounded:
+    case NlpRowKind::kLowerBounded:
         return "lower-bounded";
-    case NLPRowKind::Range:
+    case NlpRowKind::kRange:
         return "range";
-    case NLPRowKind::Free:
+    case NlpRowKind::kFree:
         return "free";
     }
     return "unknown";
@@ -160,7 +160,7 @@ int box_structure(double lo, double up) {
 
 } // namespace
 
-NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorXd> gl,
+NlpRowClassification NlpRowClassification::classify(ConstEigenRef<Eigen::VectorXd> gl,
                                                     ConstEigenRef<Eigen::VectorXd> gu) {
     if (gl.size() != gu.size()) {
         throw std::invalid_argument(
@@ -168,28 +168,28 @@ NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorX
                         gu.size()));
     }
     const int m = static_cast<int>(gl.size());
-    NLPRowClassification rc;
-    rc.kinds_.resize(m);
-    rc.eq_row_ = Eigen::VectorXi::Constant(m, -1);
-    rc.iq_upper_row_ = Eigen::VectorXi::Constant(m, -1);
-    rc.iq_lower_row_ = Eigen::VectorXi::Constant(m, -1);
+    NlpRowClassification rc;
+    rc.kinds.resize(m);
+    rc.eq_row = Eigen::VectorXi::Constant(m, -1);
+    rc.iq_upper_row = Eigen::VectorXi::Constant(m, -1);
+    rc.iq_lower_row = Eigen::VectorXi::Constant(m, -1);
     for (int r = 0; r < m; r++) {
-        rc.kinds_[r] = classify_row(gl[r], gu[r], r);
-        switch (rc.kinds_[r]) {
-        case NLPRowKind::Equality:
-            rc.eq_row_[r] = rc.num_eq_++;
+        rc.kinds[r] = classify_row(gl[r], gu[r], r);
+        switch (rc.kinds[r]) {
+        case NlpRowKind::kEquality:
+            rc.eq_row[r] = rc.num_eq++;
             break;
-        case NLPRowKind::UpperBounded:
-            rc.iq_upper_row_[r] = rc.num_iq_++;
+        case NlpRowKind::kUpperBounded:
+            rc.iq_upper_row[r] = rc.num_iq++;
             break;
-        case NLPRowKind::LowerBounded:
-            rc.iq_lower_row_[r] = rc.num_iq_++;
+        case NlpRowKind::kLowerBounded:
+            rc.iq_lower_row[r] = rc.num_iq++;
             break;
-        case NLPRowKind::Range:
-            rc.iq_upper_row_[r] = rc.num_iq_++;
-            rc.iq_lower_row_[r] = rc.num_iq_++;
+        case NlpRowKind::kRange:
+            rc.iq_upper_row[r] = rc.num_iq++;
+            rc.iq_lower_row[r] = rc.num_iq++;
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             break;
         }
     }
@@ -230,7 +230,7 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem, double infinite_b
     raw_g_upper_ = g_upper_;
     absent_bounds_ = this->normalize_read_bounds(x_lower_, x_upper_, g_lower_, g_upper_);
 
-    rows_ = NLPRowClassification::classify(g_lower_, g_upper_);
+    rows_ = NlpRowClassification::classify(g_lower_, g_upper_);
     this->build_row_tables();
     this->read_structures();
     this->build_jacobian_pattern();
@@ -241,8 +241,8 @@ NlpProblemModel::NlpProblemModel(std::shared_ptr<Nlp> problem, double infinite_b
     lambda_user_.resize(m_);
     hess_vals_.resize(hess_nnz_);
     grad_.resize(n_);
-    ce_.resize(rows_.num_eq_);
-    ci_.resize(rows_.num_iq_);
+    ce_.resize(rows_.num_eq);
+    ci_.resize(rows_.num_iq);
 }
 
 void NlpProblemModel::validate_sizes(const NlpDimensions &dims) const {
@@ -329,21 +329,21 @@ void NlpProblemModel::build_row_tables() {
     eq_res_.clear();
     iq_res_.clear();
     for (int r = 0; r < m_; r++) {
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
+        switch (rows_.kinds[r]) {
+        case NlpRowKind::kEquality:
             eq_res_.push_back({r, 1.0, gl[r]});
             break;
-        case NLPRowKind::UpperBounded:
+        case NlpRowKind::kUpperBounded:
             iq_res_.push_back({r, 1.0, gu[r]});
             break;
-        case NLPRowKind::LowerBounded:
+        case NlpRowKind::kLowerBounded:
             iq_res_.push_back({r, -1.0, gl[r]});
             break;
-        case NLPRowKind::Range:
+        case NlpRowKind::kRange:
             iq_res_.push_back({r, 1.0, gu[r]});
             iq_res_.push_back({r, -1.0, gl[r]});
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             break;
         }
     }
@@ -372,8 +372,8 @@ bool NlpProblemModel::update_bounds(const Vec &x_lower, const Vec &x_upper, cons
     const Index absent =
         this->normalize_read_bounds(upd_x_lower_, upd_x_upper_, upd_g_lower_, upd_g_upper_);
     for (int r = 0; r < m_; r++) {
-        const NLPRowKind was = rows_.kinds_[r];
-        const NLPRowKind now = classify_row(upd_g_lower_[r], upd_g_upper_[r], r);
+        const NlpRowKind was = rows_.kinds[r];
+        const NlpRowKind now = classify_row(upd_g_lower_[r], upd_g_upper_[r], r);
         if (was != now) {
             throw std::invalid_argument(fmt::format(
                 "Problem '{}': row {} changed kind between solves, from {} to {} (bounds "
@@ -461,27 +461,27 @@ void NlpProblemModel::build_jacobian_pattern() {
 
     for (int s = 0; s < jac_nnz_; s++) {
         const int r = jac_rows_[s];
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            record(eq_entries, eq_coords, eq_jac_, s, rows_.eq_row_[r], 1.0);
+        switch (rows_.kinds[r]) {
+        case NlpRowKind::kEquality:
+            record(eq_entries, eq_coords, eq_jac_, s, rows_.eq_row[r], 1.0);
             break;
-        case NLPRowKind::UpperBounded:
-            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_upper_row_[r], 1.0);
+        case NlpRowKind::kUpperBounded:
+            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_upper_row[r], 1.0);
             break;
-        case NLPRowKind::LowerBounded:
-            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_lower_row_[r], -1.0);
+        case NlpRowKind::kLowerBounded:
+            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_lower_row[r], -1.0);
             break;
-        case NLPRowKind::Range:
-            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_upper_row_[r], 1.0);
-            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_lower_row_[r], -1.0);
+        case NlpRowKind::kRange:
+            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_upper_row[r], 1.0);
+            record(iq_entries, iq_coords, iq_jac_, s, rows_.iq_lower_row[r], -1.0);
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             break;
         }
     }
 
-    jac_e_ = lay_pattern(rows_.num_eq_, n_, eq_entries);
-    jac_i_ = lay_pattern(rows_.num_iq_, n_, iq_entries);
+    jac_e_ = lay_pattern(rows_.num_eq, n_, eq_entries);
+    jac_i_ = lay_pattern(rows_.num_iq, n_, iq_entries);
     for (std::size_t k = 0; k < eq_jac_.size(); k++) {
         eq_jac_[k].value_index_ =
             compressed_value_index(jac_e_, eq_coords[k].first, eq_coords[k].second);
@@ -560,7 +560,7 @@ void NlpProblemModel::eval_grad_in_place(const Vec &x, Vec &out) const {
 
 void NlpProblemModel::eval_ce_in_place(const Vec &x, Vec &out) const {
     this->refresh_g(x);
-    out.resize(rows_.num_eq_);
+    out.resize(rows_.num_eq);
     for (std::size_t k = 0; k < eq_res_.size(); k++) {
         const ResTarget &t = eq_res_[k];
         out[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
@@ -569,7 +569,7 @@ void NlpProblemModel::eval_ce_in_place(const Vec &x, Vec &out) const {
 
 void NlpProblemModel::eval_ci_in_place(const Vec &x, Vec &out) const {
     this->refresh_g(x);
-    out.resize(rows_.num_iq_);
+    out.resize(rows_.num_iq);
     for (std::size_t k = 0; k < iq_res_.size(); k++) {
         const ResTarget &t = iq_res_[k];
         out[static_cast<Index>(k)] = t.sign_ * (g_cache_[t.row_] - t.shift_);
@@ -659,34 +659,34 @@ void NlpProblemModel::compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e
     // is itself 0 -- not a special case that means "all-zero" regardless of
     // how many rows are actually hosted. A caller that wants all-zero
     // multipliers on a model with rows passes that many zeros explicitly.
-    if (lambda_e.size() != rows_.num_eq_) {
+    if (lambda_e.size() != rows_.num_eq) {
         throw std::invalid_argument(fmt::format(
             "{}: {} refused {} equality multipliers for {} equality rows -- exactly that many "
             "are accepted; empty is the exact length only when zero rows are hosted",
-            problem_->name(), site, lambda_e.size(), rows_.num_eq_));
+            problem_->name(), site, lambda_e.size(), rows_.num_eq));
     }
-    if (lambda_i.size() != rows_.num_iq_) {
+    if (lambda_i.size() != rows_.num_iq) {
         throw std::invalid_argument(fmt::format(
             "{}: {} refused {} inequality multipliers for {} inequality rows -- exactly that "
             "many are accepted; empty is the exact length only when zero rows are hosted",
-            problem_->name(), site, lambda_i.size(), rows_.num_iq_));
+            problem_->name(), site, lambda_i.size(), rows_.num_iq));
     }
     lambda_user.resize(m_);
     for (int r = 0; r < m_; r++) {
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            lambda_user[r] = lambda_e[rows_.eq_row_[r]];
+        switch (rows_.kinds[r]) {
+        case NlpRowKind::kEquality:
+            lambda_user[r] = lambda_e[rows_.eq_row[r]];
             break;
-        case NLPRowKind::UpperBounded:
-            lambda_user[r] = lambda_i[rows_.iq_upper_row_[r]];
+        case NlpRowKind::kUpperBounded:
+            lambda_user[r] = lambda_i[rows_.iq_upper_row[r]];
             break;
-        case NLPRowKind::LowerBounded:
-            lambda_user[r] = -lambda_i[rows_.iq_lower_row_[r]];
+        case NlpRowKind::kLowerBounded:
+            lambda_user[r] = -lambda_i[rows_.iq_lower_row[r]];
             break;
-        case NLPRowKind::Range:
-            lambda_user[r] = lambda_i[rows_.iq_upper_row_[r]] - lambda_i[rows_.iq_lower_row_[r]];
+        case NlpRowKind::kRange:
+            lambda_user[r] = lambda_i[rows_.iq_upper_row[r]] - lambda_i[rows_.iq_lower_row[r]];
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             lambda_user[r] = 0.0;
             break;
         }
@@ -712,32 +712,32 @@ void NlpProblemModel::split_user_multipliers(ConstEigenRef<Vec> lambda_user, Vec
             fmt::format("{}: {} multipliers were supplied for {} declared constraint rows",
                         problem_->name(), lambda_user.size(), m_));
     }
-    lambda_e = Vec::Zero(rows_.num_eq_);
-    lambda_i = Vec::Zero(rows_.num_iq_);
+    lambda_e = Vec::Zero(rows_.num_eq);
+    lambda_i = Vec::Zero(rows_.num_iq);
     for (int r = 0; r < m_; r++) {
-        switch (rows_.kinds_[r]) {
-        case NLPRowKind::Equality:
-            lambda_e[rows_.eq_row_[r]] = lambda_user[r];
+        switch (rows_.kinds[r]) {
+        case NlpRowKind::kEquality:
+            lambda_e[rows_.eq_row[r]] = lambda_user[r];
             break;
-        case NLPRowKind::UpperBounded:
-            lambda_i[rows_.iq_upper_row_[r]] = lambda_user[r];
+        case NlpRowKind::kUpperBounded:
+            lambda_i[rows_.iq_upper_row[r]] = lambda_user[r];
             break;
-        case NLPRowKind::LowerBounded:
-            lambda_i[rows_.iq_lower_row_[r]] = -lambda_user[r];
+        case NlpRowKind::kLowerBounded:
+            lambda_i[rows_.iq_lower_row[r]] = -lambda_user[r];
             break;
-        case NLPRowKind::Range:
+        case NlpRowKind::kRange:
             // The two native rows are one-sided, so the signed declared value
             // goes to whichever side it names and the other side takes zero.
             // Composing this undoes it exactly; the reverse order does not,
             // since a pair with both sides nonzero composes to their
             // difference and cannot be recovered from it.
-            lambda_i[rows_.iq_upper_row_[r]] = std::max(lambda_user[r], 0.0);
-            lambda_i[rows_.iq_lower_row_[r]] = std::max(-lambda_user[r], 0.0);
+            lambda_i[rows_.iq_upper_row[r]] = std::max(lambda_user[r], 0.0);
+            lambda_i[rows_.iq_lower_row[r]] = std::max(-lambda_user[r], 0.0);
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             break;
         }
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -9,7 +9,7 @@
 
 #include "hven/drivers/solve_result.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 struct ResultAccess {
     static auto &rows(SolveResult &result) noexcept { return result.engine_rows_; }
@@ -22,4 +22,4 @@ inline const auto &engine_rows(const SolveResult &result) noexcept {
     return ResultAccess::rows(result);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

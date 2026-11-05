@@ -50,21 +50,21 @@
 
 namespace pieces_test {
 
+using hven::AssemblyDeclaration;
+using hven::BlockEntry;
 using hven::ConstVecRef;
 using hven::Index;
+using hven::IpmOptions;
+using hven::IpmResult;
+using hven::IpmSolver;
 using hven::MatRef;
+using hven::NonLinearProgram;
+using hven::Problem;
+using hven::SolveStatus;
 using hven::Vec;
 using hven::VecRef;
-using hven::solvers::AssemblyDeclaration;
-using hven::solvers::BlockEntry;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpmResult;
-using hven::solvers::IpmSolver;
-using hven::solvers::NonLinearProgram;
-using hven::solvers::Problem;
-using hven::solvers::SolveStatus;
-using hven::solvers::Verbosity;
-using hven::solvers::detail::ProblemAccess;
+using hven::Verbosity;
+using hven::detail::ProblemAccess;
 using Vx = Eigen::VectorXd;
 using Vi = Eigen::VectorXi;
 using Mi = Eigen::MatrixXi;
@@ -85,8 +85,8 @@ IpmSolver quiet_ipm() {
 
 namespace raw {
 
-using hven::solvers::kkt_canonical_lock_col;
-using hven::solvers::SolverIndexingData;
+using hven::kkt_canonical_lock_col;
+using hven::SolverIndexingData;
 
 void kkt_add(SpMatRM &kkt, const Eigen::Ref<Vi> &locations, const Eigen::Ref<Vi> &clashes,
              std::vector<std::mutex> &locks, int slot, int lock_col, double value,
@@ -120,7 +120,7 @@ struct QuadraticTerm {
                             Eigen::Ref<Vx> GX, const SolverIndexingData &d) const {
         this->objective(scale, X, val, d);
         for (int V = 0; V < d.num_appl(); V++) {
-            GX[d.inner_gradient_starts_[V]] = scale * 2.0 * weight * (X[d.v_loc(0, V)] - ref);
+            GX[d.inner_gradient_starts[V]] = scale * 2.0 * weight * (X[d.v_loc(0, V)] - ref);
         }
     }
     void objective_gradient_hessian(double scale, const Eigen::Ref<const Vx> &X, double &val,
@@ -133,15 +133,15 @@ struct QuadraticTerm {
             if (r < 0) {
                 continue;
             }
-            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts_[V],
+            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts[V],
                     kkt_canonical_lock_col(r, r), scale * 2.0 * weight, true);
         }
     }
     void get_kkt_space(Eigen::Ref<Vi> rows, Eigen::Ref<Vi> cols, int &free_slot, int, bool,
                        bool do_hess, SolverIndexingData &d) {
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_hess) {
                 rows[free_slot] = cols[free_slot] = d.v_scatter_loc(0, V);
                 free_slot++;
@@ -163,14 +163,14 @@ struct Defect {
                      const SolverIndexingData &d) const {
         for (int V = 0; V < d.num_appl(); V++) {
             const double y0 = X[d.v_loc(0, V)], y1 = X[d.v_loc(1, V)], u = X[d.v_loc(2, V)];
-            FX[d.inner_constraint_starts_[V]] = y1 - y0 - h * (u - y0 * y0);
+            FX[d.inner_constraint_starts[V]] = y1 - y0 - h * (u - y0 * y0);
         }
     }
     void adjoint_gradient(const Eigen::Ref<const Vx> &X, const Eigen::Ref<const Vx> &L,
                           Eigen::Ref<Vx> AGX, const SolverIndexingData &d) const {
         for (int V = 0; V < d.num_appl(); V++) {
             const double lam = L[d.c_loc(0, V)], y0 = X[d.v_loc(0, V)];
-            const int g = d.inner_gradient_starts_[V];
+            const int g = d.inner_gradient_starts[V];
             AGX[g + 0] += lam * (-1.0 + 2.0 * h * y0);
             AGX[g + 1] += lam * 1.0;
             AGX[g + 2] += lam * -h;
@@ -186,8 +186,8 @@ struct Defect {
                 if (col < 0) {
                     continue;
                 }
-                kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts_[V] + k, col, jac[k],
-                        !d.unique_constraints_);
+                kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts[V] + k, col, jac[k],
+                        !d.unique_constraints);
             }
         }
     }
@@ -199,7 +199,7 @@ struct Defect {
             if (r < 0) {
                 continue;
             }
-            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts_[V] + 3,
+            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts[V] + 3,
                     kkt_canonical_lock_col(r, r), 2.0 * h * L[d.c_loc(0, V)], true);
         }
     }
@@ -232,9 +232,9 @@ struct Defect {
     }
     void get_kkt_space(Eigen::Ref<Vi> rows, Eigen::Ref<Vi> cols, int &free_slot, int con_offset,
                        bool do_jac, bool do_hess, SolverIndexingData &d) {
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_jac) {
                 for (int k = 0; k < 3; k++, free_slot++) {
                     const int col = d.v_scatter_loc(k, V);
@@ -264,8 +264,8 @@ struct Boundary {
     void constraints(const Eigen::Ref<const Vx> &X, Eigen::Ref<Vx> FX,
                      const SolverIndexingData &d) const {
         for (int V = 0; V < d.num_appl(); V++) {
-            FX[d.inner_constraint_starts_[V] + 0] = X[d.v_loc(0, V)] - target0;
-            FX[d.inner_constraint_starts_[V] + 1] = X[d.v_loc(1, V)] - target1;
+            FX[d.inner_constraint_starts[V] + 0] = X[d.v_loc(0, V)] - target0;
+            FX[d.inner_constraint_starts[V] + 1] = X[d.v_loc(1, V)] - target1;
         }
     }
     void constraints_adjointgradient(const Eigen::Ref<const Vx> &X, const Eigen::Ref<const Vx> &L,
@@ -273,8 +273,8 @@ struct Boundary {
                                      const SolverIndexingData &d) const {
         this->constraints(X, FX, d);
         for (int V = 0; V < d.num_appl(); V++) {
-            AGX[d.inner_gradient_starts_[V] + 0] += L[d.c_loc(0, V)];
-            AGX[d.inner_gradient_starts_[V] + 1] += L[d.c_loc(1, V)];
+            AGX[d.inner_gradient_starts[V] + 0] += L[d.c_loc(0, V)];
+            AGX[d.inner_gradient_starts[V] + 1] += L[d.c_loc(1, V)];
         }
     }
     void constraints_jacobian(const Eigen::Ref<const Vx> &X, Eigen::Ref<Vx> FX, SpMatRM &kkt,
@@ -285,8 +285,8 @@ struct Boundary {
             for (int k = 0; k < 2; k++) {
                 const int col = d.v_scatter_loc(k, V);
                 if (col >= 0) {
-                    kkt_add(kkt, loc, clash, locks, d.inner_kkt_starts_[V] + k, col, 1.0,
-                            !d.unique_constraints_);
+                    kkt_add(kkt, loc, clash, locks, d.inner_kkt_starts[V] + k, col, 1.0,
+                            !d.unique_constraints);
                 }
             }
         }
@@ -307,9 +307,9 @@ struct Boundary {
     }
     void get_kkt_space(Eigen::Ref<Vi> rows, Eigen::Ref<Vi> cols, int &free_slot, int con_offset,
                        bool do_jac, bool, SolverIndexingData &d) {
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_jac) {
                 for (int k = 0; k < 2; k++, free_slot++) {
                     const int col = d.v_scatter_loc(k, V);
@@ -352,7 +352,7 @@ struct Boundary {
     double a, b;
     static constexpr Index kInputs = 2, kOutputs = 2;
     static constexpr std::array<BlockEntry, 2> kJacobianPattern{{{0, 0}, {1, 1}}};
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     void value(ConstVecRef v, VecRef out) const { out << v[0] - a, v[1] - b; }
     void jacobian(ConstVecRef, MatRef J) const { J(0, 0) = J(1, 1) = 1.0; }
 };
@@ -387,21 +387,20 @@ Problem raw_chain(int steps, int partitions) {
     const double h = 1.0 / steps;
     const ChainMaps m = chain_maps(steps);
     AssemblyDeclaration d;
-    d.primal_vars_ = m.n;
-    d.equality_rows_ = steps + 2;
-    d.inequality_rows_ = 0;
-    d.partition_count_ = partitions;
-    d.objectives_.emplace_back(
-        hven::solvers::ObjectiveInterface(raw::QuadraticTerm{"effort", h, 0.0}), m.u_idx);
-    d.objectives_.emplace_back(
-        hven::solvers::ObjectiveInterface(raw::QuadraticTerm{"tracking", h, 0.3}), m.y_idx);
-    d.equality_constraints_.emplace_back(hven::solvers::ConstraintInterface(raw::Defect{h}),
-                                         m.defect_vars, m.defect_rows);
-    d.equality_constraints_.emplace_back(
-        hven::solvers::ConstraintInterface(raw::Boundary{0.0, 0.5}), m.boundary_vars,
-        m.boundary_rows);
+    d.primal_vars = m.n;
+    d.equality_rows = steps + 2;
+    d.inequality_rows = 0;
+    d.partition_count = partitions;
+    d.objectives.emplace_back(hven::ObjectiveInterface(raw::QuadraticTerm{"effort", h, 0.0}),
+                              m.u_idx);
+    d.objectives.emplace_back(hven::ObjectiveInterface(raw::QuadraticTerm{"tracking", h, 0.3}),
+                              m.y_idx);
+    d.equality_constraints.emplace_back(hven::ConstraintInterface(raw::Defect{h}), m.defect_vars,
+                                        m.defect_rows);
+    d.equality_constraints.emplace_back(hven::ConstraintInterface(raw::Boundary{0.0, 0.5}),
+                                        m.boundary_vars, m.boundary_rows);
     for (int i = 0; i < steps; i++) {
-        d.variable_bounds_.push_back(hven::solvers::VariableBound{m.u0 + i, -2.0, 2.0});
+        d.variable_bounds.push_back(hven::VariableBound{m.u0 + i, -2.0, 2.0});
     }
     return Problem(std::move(d));
 }
@@ -511,7 +510,7 @@ struct Smooth { // w*(v1 - v0)^2 + 0.1*v0*v1
 struct Linear { // c * v0
     double c;
     static constexpr Index kInputs = 1;
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     double value(ConstVecRef v) const { return c * v[0]; }
     void gradient(ConstVecRef, VecRef g) const { g[0] = c; }
 };
@@ -548,7 +547,7 @@ struct Ends { // v0 - a, v1 - b: diagonal Jacobian pattern, linear
     double a, b;
     static constexpr Index kInputs = 2, kOutputs = 2;
     static constexpr std::array<BlockEntry, 2> kJacobianPattern{{{0, 0}, {1, 1}}};
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     void value(ConstVecRef v, VecRef out) const { out << v[0] - a, v[1] - b; }
     void jacobian(ConstVecRef, MatRef J) const { J(0, 0) = J(1, 1) = 1.0; }
 };
@@ -671,7 +670,7 @@ struct TestChain {
                     (*grad)[vars(i, V)] += g[i];
                 }
             }
-            if constexpr (!hven::solvers::detail::DeclaresNoHessian<P>) {
+            if constexpr (!hven::detail::DeclaresNoHessian<P>) {
                 if (H != nullptr) {
                     Eigen::MatrixXd hb = Eigen::MatrixXd::Zero(P::kInputs, P::kInputs);
                     p.hessian(v, hb);
@@ -697,7 +696,7 @@ struct TestChain {
                     }
                 }
             }
-            if constexpr (!hven::solvers::detail::DeclaresNoHessian<P>) {
+            if constexpr (!hven::detail::DeclaresNoHessian<P>) {
                 if (H != nullptr) {
                     Vx lam(P::kOutputs);
                     for (Index j = 0; j < P::kOutputs; j++) {
@@ -872,13 +871,13 @@ TEST(PiecesLocalBlocks, AssemblyMatchesTheDenseReferenceOnSeveralPartitions) {
 TEST(PiecesLocalBlocks, TheBuilderDerivesTheRowCounts) {
     const TestChain chain(6);
     const AssemblyDeclaration d = chain.declaration(1);
-    EXPECT_EQ(d.primal_vars_, chain.n);
-    EXPECT_EQ(d.equality_rows_, chain.me);
-    EXPECT_EQ(d.inequality_rows_, chain.mi);
-    EXPECT_EQ(d.equality_shared_row_overcount_, chain.steps - 1);
-    EXPECT_EQ(d.inequality_shared_row_overcount_, 0);
-    EXPECT_EQ(d.partition_count_, 1);
-    EXPECT_EQ(d.variable_bounds_.size(), static_cast<std::size_t>(chain.steps));
+    EXPECT_EQ(d.primal_vars, chain.n);
+    EXPECT_EQ(d.equality_rows, chain.me);
+    EXPECT_EQ(d.inequality_rows, chain.mi);
+    EXPECT_EQ(d.equality_shared_row_overcount, chain.steps - 1);
+    EXPECT_EQ(d.inequality_shared_row_overcount, 0);
+    EXPECT_EQ(d.partition_count, 1);
+    EXPECT_EQ(d.variable_bounds.size(), static_cast<std::size_t>(chain.steps));
     EXPECT_NO_THROW(d.validate());
     Problem problem{chain.declaration(1)};
     EXPECT_EQ(problem.num_variables(), chain.n);
@@ -944,11 +943,11 @@ TEST(PiecesLocalBlocks, ALargeDenseBlockNeedsNoPattern) {
 // The same problem as an Nlp: dense callbacks over the reference.
 // ---------------------------------------------------------------------------
 
-struct TestChainNlp final : hven::solvers::Nlp {
+struct TestChainNlp final : hven::Nlp {
     TestChain chain;
     explicit TestChainNlp(int steps) : chain(steps) {}
 
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         const Index m = chain.me + chain.mi;
         return {.n = chain.n,
                 .m = m,
@@ -1090,7 +1089,7 @@ TEST(PiecesLocalBlocks, AWarmStartRoundTripsOnAPiecesProblem) {
     EXPECT_LE((warm.x - cold.x).lpNorm<Eigen::Infinity>(), 1e-5);
     EXPECT_LT(warm.iterations, cold.iterations);
 
-    const auto seed = hven::solvers::WarmStart::seed(problem, cold.x, cold.lambda, cold.z);
+    const auto seed = hven::WarmStart::seed(problem, cold.x, cold.lambda, cold.z);
     const IpmResult seeded = ipm.solve(problem, cold.x, seed);
     ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
     EXPECT_LE((seeded.x - cold.x).lpNorm<Eigen::Infinity>(), 1e-5);
@@ -1117,7 +1116,7 @@ struct FaultyDefect {
         if (v[2] != 0.0 && fired->exchange(1) == 0) {
             switch (fault) {
             case PieceFault::kEvaluationError:
-                throw hven::solvers::EvaluationError("defect: cannot evaluate here");
+                throw hven::EvaluationError("defect: cannot evaluate here");
             case PieceFault::kNaN:
                 out[0] = std::numeric_limits<double>::quiet_NaN();
                 break;
@@ -1189,7 +1188,7 @@ TEST(PiecesEvaluationFailure, AForeignExceptionFromAPiecePropagates) {
 
 TEST(PiecesProblem, TheSqpRefusesAPiecesProblemByName) {
     Problem problem = local_chain(20, 1);
-    hven::solvers::SqpSolver sqp{hven::solvers::SqpOptions{}};
+    hven::SqpSolver sqp{hven::SqpOptions{}};
     try {
         (void)sqp.solve(problem, chain_start(20));
         FAIL() << "expected std::invalid_argument";
@@ -1232,9 +1231,9 @@ TEST(PiecesBuilder, RefusesAMapOfTheWrongShape) {
                    {"add_inequality", "2 applications in its variable map", "3 in its row map"});
     expect_refusal([&] { d.add_objective(local::Quadratic{1.0, 0.0}, Mi::Zero(1, 0)); },
                    {"add_objective", "no column", "names no application"});
-    EXPECT_TRUE(d.objectives_.empty());
-    EXPECT_TRUE(d.equality_constraints_.empty());
-    EXPECT_TRUE(d.inequality_constraints_.empty());
+    EXPECT_TRUE(d.objectives.empty());
+    EXPECT_TRUE(d.equality_constraints.empty());
+    EXPECT_TRUE(d.inequality_constraints.empty());
 }
 
 TEST(PiecesBuilder, RefusesAnIndexOutsideTheDeclaration) {
@@ -1260,7 +1259,7 @@ TEST(PiecesBuilder, RefusesAnIndexOutsideTheDeclaration) {
 TEST(PiecesBuilder, RefusesARowNoApplicationNames) {
     AssemblyDeclaration d(4);
     d.add_equality(Ends{0.0, 1.0}, (Mi(2, 1) << 0, 1).finished(), (Mi(2, 1) << 0, 2).finished());
-    EXPECT_EQ(d.equality_rows_, 3);
+    EXPECT_EQ(d.equality_rows, 3);
     expect_refusal([&] { d.validate(); }, {"equality row 1", "named by no application"});
     expect_refusal([&] { Problem p{AssemblyDeclaration(d)}; }, {"equality row 1"});
 }
@@ -1272,13 +1271,13 @@ TEST(PiecesBuilder, RefusesBadBoundsAndPartitionCounts) {
     expect_refusal([&] { d.set_bounds(2, 4, -1.0, 1.0); }, {"set_bounds", "2..4", "4 variables"});
     expect_refusal([&] { d.set_bounds(3, 2, -1.0, 1.0); }, {"set_bounds", "3..2", "empty"});
     expect_refusal([&] { d.set_bounds(-1, -1.0, 1.0); }, {"set_bounds", "-1..-1"});
-    EXPECT_TRUE(d.variable_bounds_.empty());
+    EXPECT_TRUE(d.variable_bounds.empty());
     expect_refusal([&] { d.set_partitions(0); }, {"set_partitions", "0 partitions"});
     expect_refusal([&] { AssemblyDeclaration bad(-1); }, {"-1 variables"});
     d.set_bounds(0, 3, -kInf, 2.0);
-    EXPECT_EQ(d.variable_bounds_.size(), 4u);
+    EXPECT_EQ(d.variable_bounds.size(), 4u);
     d.set_partitions(3);
-    EXPECT_EQ(d.partition_count_, 3);
+    EXPECT_EQ(d.partition_count, 3);
 }
 
 // A raw-protocol piece goes through the builder too, and its counts are derived
@@ -1289,8 +1288,8 @@ TEST(PiecesBuilder, TakesRawProtocolPieces) {
     d.add_objective(raw::QuadraticTerm{"effort", 1.0, 0.0}, (Mi(1, 2) << 3, 4).finished());
     d.add_equality(raw::Defect{h}, (Mi(3, 2) << 0, 1, 1, 2, 3, 4).finished(),
                    (Mi(1, 2) << 0, 1).finished());
-    EXPECT_EQ(d.equality_rows_, 2);
-    EXPECT_EQ(d.equality_shared_row_overcount_, 0);
+    EXPECT_EQ(d.equality_rows, 2);
+    EXPECT_EQ(d.equality_shared_row_overcount, 0);
     EXPECT_NO_THROW(d.validate());
 }
 
@@ -1408,12 +1407,12 @@ LaidFlags laid_flags(Problem &problem) {
     LaidFlags f;
     for (const auto &part : nlp.part_eq_) {
         for (const auto &func : part) {
-            (func.index_data_.unique_constraints_ ? f.eq_unique : f.eq_shared)++;
+            (func.index_data.unique_constraints ? f.eq_unique : f.eq_shared)++;
         }
     }
     for (const auto &part : nlp.part_iq_) {
         for (const auto &func : part) {
-            (func.index_data_.unique_constraints_ ? f.iq_unique : f.iq_shared)++;
+            (func.index_data.unique_constraints ? f.iq_unique : f.iq_shared)++;
         }
     }
     return f;
@@ -1565,8 +1564,7 @@ TEST(PiecesLocalBlocks, EliminatedVariablesAtFourPartitions) {
     };
     IpmOptions constraint_options;
     constraint_options.common.verbosity = Verbosity::kSilent;
-    constraint_options.fixed_variable_treatment =
-        hven::solvers::FixedVariableTreatment::kMakeConstraint;
+    constraint_options.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
 
     Problem one(declaration(1));
     Problem four(declaration(4));
@@ -1631,9 +1629,9 @@ struct WideTerm { // 0.5 ||v||^2 + 5e-4 (sum v)^2: a dense Hessian
     }
 };
 
-static_assert(!hven::solvers::LocalConstraintBlock<WideMap>::kBuffersOnStack);
-static_assert(!hven::solvers::LocalObjectiveBlock<WideTerm>::kBuffersOnStack);
-static_assert(hven::solvers::LocalConstraintBlock<DenseDefect>::kBuffersOnStack);
+static_assert(!hven::LocalConstraintBlock<WideMap>::kBuffersOnStack);
+static_assert(!hven::LocalObjectiveBlock<WideTerm>::kBuffersOnStack);
+static_assert(hven::LocalConstraintBlock<DenseDefect>::kBuffersOnStack);
 
 /// Four applications of the wide pieces on disjoint variables and rows.
 struct WideChain {
@@ -1717,13 +1715,13 @@ struct CArrayEnds { // v0 - a, v1 - b, with C-array patterns
     void hessian(ConstVecRef, ConstVecRef lambda, MatRef H) const { H(1, 1) = 0.2 * lambda[1]; }
 };
 
-static_assert(hven::solvers::detail::HasJacobianPattern<CArrayEnds>);
-static_assert(hven::solvers::detail::HasHessianPattern<CArrayEnds>);
-static_assert(hven::solvers::LocalConstraintBlock<CArrayEnds>::kJacobianCount == 2);
-static_assert(hven::solvers::LocalConstraintBlock<CArrayEnds>::kHessianCount == 1);
+static_assert(hven::detail::HasJacobianPattern<CArrayEnds>);
+static_assert(hven::detail::HasHessianPattern<CArrayEnds>);
+static_assert(hven::LocalConstraintBlock<CArrayEnds>::kJacobianCount == 2);
+static_assert(hven::LocalConstraintBlock<CArrayEnds>::kHessianCount == 1);
 
 TEST(PiecesLocalBlocks, ACArrayPatternIsDetected) {
-    const hven::solvers::ConstraintInterface ci(CArrayEnds{1.0, 2.0});
+    const hven::ConstraintInterface ci(CArrayEnds{1.0, 2.0});
     EXPECT_EQ(ci.num_kkt_elements(true, false), 2);
     EXPECT_EQ(ci.num_kkt_elements(false, true), 1);
     AssemblyDeclaration d(2);
@@ -1741,13 +1739,12 @@ TEST(PiecesLocalBlocks, ACArrayPatternIsDetected) {
 }
 
 TEST(PiecesLocalBlocks, TheDefaultNameCarriesTheSizes) {
-    EXPECT_EQ(hven::solvers::ConstraintInterface(Nudge{}).name(),
+    EXPECT_EQ(hven::ConstraintInterface(Nudge{}).name(),
               "local constraint block (kInputs 1, kOutputs 1)");
-    EXPECT_EQ(hven::solvers::ConstraintInterface(Ring{1.0}).name(),
+    EXPECT_EQ(hven::ConstraintInterface(Ring{1.0}).name(),
               "local constraint block (kInputs 2, kOutputs 1)");
-    EXPECT_EQ(hven::solvers::ObjectiveInterface(Smooth{1.0}).name(),
-              "local objective block (kInputs 2)");
-    EXPECT_EQ(hven::solvers::ConstraintInterface(DenseDefect{0.1}).name(), "dense defect");
+    EXPECT_EQ(hven::ObjectiveInterface(Smooth{1.0}).name(), "local objective block (kInputs 2)");
+    EXPECT_EQ(hven::ConstraintInterface(DenseDefect{0.1}).name(), "dense defect");
 }
 
 // ---------------------------------------------------------------------------
@@ -1761,7 +1758,7 @@ TEST(PiecesBuilder, RefusesTheLargestRowAndNamesAnEmptyDeclaration) {
                            (Mi(1, 1) << std::numeric_limits<int>::max()).finished());
         },
         {"add_equality", "fit an int"});
-    EXPECT_TRUE(d.equality_constraints_.empty());
+    EXPECT_TRUE(d.equality_constraints.empty());
 
     AssemblyDeclaration empty;
     expect_refusal([&] { empty.add_objective(Linear{1.0}, (Mi(1, 1) << 0).finished()); },

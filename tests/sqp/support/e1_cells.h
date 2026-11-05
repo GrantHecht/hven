@@ -26,7 +26,7 @@
 
 #include "scale_problems.h"
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 /// E1's own bound-arc parameter: the pattern every constructed cell is cut
 /// from (`e1_generate.cpp`'s `kBoundArcP`, and `bench/corpus_cells.h`'s
@@ -277,4 +277,4 @@ inline E1RuleCounts e1_rule_counts(const E1Cell &cell, const Vec &x, const Vec &
     return c;
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

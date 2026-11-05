@@ -20,12 +20,12 @@
 
 #include "hven/model/solver_function_base.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
     using Base = SolverFunctionBase<ConstraintInterface>;
-    using Base::function_;
-    using Base::index_data_;
+    using Base::function;
+    using Base::index_data;
     using MatrixXi = Eigen::MatrixXi;
     using VectorXi = Eigen::VectorXi;
 
@@ -33,22 +33,22 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
 
     ConstraintFunction(const ConstraintInterface &f, const MatrixXi &vindex,
                        const MatrixXi &cindex) {
-        this->function_ = f;
-        this->index_data_ = SolverIndexingData(f.input_rows(), f.output_rows(), vindex, cindex);
+        this->function = f;
+        this->index_data = SolverIndexingData(f.input_rows(), f.output_rows(), vindex, cindex);
     }
 
     ConstraintFunction(const ConstraintInterface &f, const SolverIndexingData &data) {
-        this->function_ = f;
-        this->index_data_ = data;
+        this->function = f;
+        this->index_data = data;
     }
 
     /// @brief Partitions multiple calls to this function into separate
     /// ConstraintFunction instances that will be called on multiple threads.
     std::vector<ConstraintFunction> thread_split(int Thr) const {
-        std::vector<SolverIndexingData> idat = this->index_data_.thread_split(Thr);
+        std::vector<SolverIndexingData> idat = this->index_data.thread_split(Thr);
         std::vector<ConstraintFunction> split(idat.size());
         for (int i = 0; i < idat.size(); i++) {
-            split[i] = ConstraintFunction(this->function_, idat[i]);
+            split[i] = ConstraintFunction(this->function, idat[i]);
         }
         return split;
     }
@@ -57,7 +57,7 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
     /// through the solver's arguments and the indexing data.
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &X,
                      Eigen::Ref<Eigen::VectorXd> FX) const {
-        this->function_.constraints(X, FX, this->index_data_);
+        this->function.constraints(X, FX, this->index_data);
     }
 
     /// @brief Calls the type-erased function's .constraints_adjointgradient
@@ -66,7 +66,7 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
                                      const Eigen::Ref<const Eigen::VectorXd> &L,
                                      Eigen::Ref<Eigen::VectorXd> FX,
                                      Eigen::Ref<Eigen::VectorXd> AGX) const {
-        this->function_.constraints_adjointgradient(X, L, FX, AGX, this->index_data_);
+        this->function.constraints_adjointgradient(X, L, FX, AGX, this->index_data);
     }
 
     /// @brief Calls the type-erased function's .constraints_jacobian method,
@@ -77,8 +77,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
                               Eigen::Ref<Eigen::VectorXi> KKTLocations,
                               Eigen::Ref<Eigen::VectorXi> KKTClashes,
                               std::vector<std::mutex> &KKTLocks) const {
-        this->function_.constraints_jacobian(X, FX, KKTmat, KKTLocations, KKTClashes, KKTLocks,
-                                             this->index_data_);
+        this->function.constraints_jacobian(X, FX, KKTmat, KKTLocations, KKTClashes, KKTLocks,
+                                            this->index_data);
     }
 
     /// @brief Calls the type-erased function's
@@ -92,8 +92,8 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
                                               Eigen::Ref<Eigen::VectorXi> KKTLocations,
                                               Eigen::Ref<Eigen::VectorXi> KKTClashes,
                                               std::vector<std::mutex> &KKTLocks) const {
-        this->function_.constraints_jacobian_adjointgradient(
-            X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data_);
+        this->function.constraints_jacobian_adjointgradient(X, L, FX, AGX, KKTmat, KKTLocations,
+                                                            KKTClashes, KKTLocks, this->index_data);
     }
 
     /// @brief Calls the type-erased function's
@@ -105,9 +105,9 @@ struct ConstraintFunction : SolverFunctionBase<ConstraintInterface> {
         Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
         Eigen::Ref<Eigen::VectorXi> KKTLocations, Eigen::Ref<Eigen::VectorXi> KKTClashes,
         std::vector<std::mutex> &KKTLocks) const {
-        this->function_.constraints_jacobian_adjointgradient_adjointhessian(
-            X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data_);
+        this->function.constraints_jacobian_adjointgradient_adjointhessian(
+            X, L, FX, AGX, KKTmat, KKTLocations, KKTClashes, KKTLocks, this->index_data);
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

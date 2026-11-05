@@ -37,19 +37,19 @@
 #include "hven/warmstart/warm_start_data.h"
 
 namespace {
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 } // namespace
 
-using hven::solvers::DeclarationKey;
-using hven::solvers::deserialize_ipm_polish;
-using hven::solvers::find_ipm_polish;
-using hven::solvers::from_interior_point;
-using hven::solvers::IpmPolishData;
-using hven::solvers::kIpmPolishTag;
-using hven::solvers::serialize_ipm_polish;
-using hven::solvers::WarmExtension;
-using hven::solvers::WarmStart;
-using hven::solvers::detail::SqpWarmState;
+using hven::DeclarationKey;
+using hven::deserialize_ipm_polish;
+using hven::find_ipm_polish;
+using hven::from_interior_point;
+using hven::IpmPolishData;
+using hven::kIpmPolishTag;
+using hven::serialize_ipm_polish;
+using hven::WarmExtension;
+using hven::WarmStart;
+using hven::detail::SqpWarmState;
 
 namespace {
 
@@ -99,10 +99,10 @@ template <typename Callable> std::string refusal_from(Callable &&callable) {
 /// its lower bound, one at its upper), one inequality row, a barrier level.
 IpmPolishData frozen_value() {
     IpmPolishData polish;
-    polish.mu_ = 0.5;
-    polish.z_lower_ = vector_of({1.0, 0.0});
-    polish.z_upper_ = vector_of({0.0, 2.0});
-    polish.iq_values_ = vector_of({-0.25});
+    polish.mu = 0.5;
+    polish.z_lower = vector_of({1.0, 0.0});
+    polish.z_upper = vector_of({0.0, 2.0});
+    polish.iq_values = vector_of({-0.25});
     return polish;
 }
 
@@ -138,8 +138,8 @@ void poke_u64(std::vector<std::byte> &bytes, std::size_t offset, std::uint64_t v
 
 DeclarationKey key_of(std::uint64_t declaration) {
     DeclarationKey key;
-    key.declaration_digest_ = declaration;
-    key.bound_digest_ = 0xABCDEF;
+    key.declaration_digest = declaration;
+    key.bound_digest = 0xABCDEF;
     return key;
 }
 
@@ -154,10 +154,10 @@ WarmStart bridgeable_value() {
     WarmStartAccess::key(data) = key_of(0x11);
 
     IpmPolishData polish;
-    polish.mu_ = 1.0e-9;
-    polish.z_lower_ = vector_of({4.0, 1.0e-12});
-    polish.z_upper_ = vector_of({1.0e-12, 1.5});
-    polish.iq_values_ = vector_of({-1.0e-10, -2.0});
+    polish.mu = 1.0e-9;
+    polish.z_lower = vector_of({4.0, 1.0e-12});
+    polish.z_upper = vector_of({1.0e-12, 1.5});
+    polish.iq_values = vector_of({-1.0e-10, -2.0});
     WarmStartAccess::extensions(data).push_back(
         WarmExtension{std::string(kIpmPolishTag), serialize_ipm_polish(polish)});
     return data;
@@ -166,8 +166,8 @@ WarmStart bridgeable_value() {
 Eigen::VectorXd bridge_lower() { return vector_of({0.0, -10.0}); }
 Eigen::VectorXd bridge_upper() { return vector_of({10.0, 3.0}); }
 
-void expect_same_warm_start(const hven::solvers::detail::SqpWarmState &actual,
-                            const hven::solvers::detail::SqpWarmState &expected) {
+void expect_same_warm_start(const hven::detail::SqpWarmState &actual,
+                            const hven::detail::SqpWarmState &expected) {
     ASSERT_EQ(actual.x.size(), expected.x.size());
     for (Eigen::Index i = 0; i < expected.x.size(); ++i) {
         EXPECT_EQ(actual.x[i], expected.x[i]) << "x[" << i << "]";
@@ -215,29 +215,29 @@ TEST(IpmPolishSerialization, RoundTripsADefaultConstructedPayload) {
     const IpmPolishData original;
     const IpmPolishData decoded = deserialize_ipm_polish(serialize_ipm_polish(original));
     EXPECT_EQ(decoded, original);
-    EXPECT_EQ(decoded.z_lower_.size(), 0);
-    EXPECT_EQ(decoded.iq_values_.size(), 0);
+    EXPECT_EQ(decoded.z_lower.size(), 0);
+    EXPECT_EQ(decoded.iq_values.size(), 0);
 }
 
 TEST(IpmPolishSerialization, RoundTripsSpecialDoublesBitExactly) {
     IpmPolishData original;
-    original.mu_ = -0.0;
-    original.z_lower_ = vector_of({std::numeric_limits<double>::infinity(),
-                                   -std::numeric_limits<double>::infinity(),
-                                   std::numeric_limits<double>::denorm_min()});
-    original.z_upper_ = vector_of({std::numeric_limits<double>::quiet_NaN(), -0.0, 0.0});
-    original.iq_values_ = vector_of({std::numeric_limits<double>::max()});
+    original.mu = -0.0;
+    original.z_lower = vector_of({std::numeric_limits<double>::infinity(),
+                                  -std::numeric_limits<double>::infinity(),
+                                  std::numeric_limits<double>::denorm_min()});
+    original.z_upper = vector_of({std::numeric_limits<double>::quiet_NaN(), -0.0, 0.0});
+    original.iq_values = vector_of({std::numeric_limits<double>::max()});
 
     const IpmPolishData decoded = deserialize_ipm_polish(serialize_ipm_polish(original));
     // Bit patterns, not values: NaN is not == itself, and the sign of zero is
     // invisible to ==. The currency's own round-trip pin makes the same move.
     const auto bits = [](double value) { return std::bit_cast<std::uint64_t>(value); };
-    EXPECT_EQ(bits(decoded.mu_), bits(original.mu_));
-    for (Eigen::Index i = 0; i < original.z_lower_.size(); ++i) {
-        EXPECT_EQ(bits(decoded.z_lower_[i]), bits(original.z_lower_[i])) << i;
-        EXPECT_EQ(bits(decoded.z_upper_[i]), bits(original.z_upper_[i])) << i;
+    EXPECT_EQ(bits(decoded.mu), bits(original.mu));
+    for (Eigen::Index i = 0; i < original.z_lower.size(); ++i) {
+        EXPECT_EQ(bits(decoded.z_lower[i]), bits(original.z_lower[i])) << i;
+        EXPECT_EQ(bits(decoded.z_upper[i]), bits(original.z_upper[i])) << i;
     }
-    EXPECT_EQ(bits(decoded.iq_values_[0]), bits(original.iq_values_[0]));
+    EXPECT_EQ(bits(decoded.iq_values[0]), bits(original.iq_values[0]));
 }
 
 TEST(IpmPolishSerialization, FrozenByteLayout) {
@@ -363,11 +363,11 @@ TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
     const WarmStart data = bridgeable_value();
     const IpmPolishData polish = deserialize_ipm_polish(find_ipm_polish(data)->payload);
 
-    const hven::solvers::detail::SqpWarmState bridged = hven::solvers::detail::to_sqp_warm_state(
+    const hven::detail::SqpWarmState bridged = hven::detail::to_sqp_warm_state(
         data, bridge_lower(), bridge_upper(), WarmStartAccess::key(data));
-    const hven::solvers::detail::SqpWarmState direct = from_interior_point(
+    const hven::detail::SqpWarmState direct = from_interior_point(
         WarmStartAccess::primal(data), WarmStartAccess::eq(data), WarmStartAccess::iq(data),
-        polish.iq_values_, polish.z_lower_, polish.z_upper_, bridge_lower(), bridge_upper());
+        polish.iq_values, polish.z_lower, polish.z_upper, bridge_lower(), bridge_upper());
 
     // Field for field, and EXACTLY: the bridge only forwards, so anything
     // weaker than bit equality here would be hiding an arithmetic step that
@@ -377,11 +377,11 @@ TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
 
 TEST(IpmPolishBridge, ForwardsTheCrossoverOptions) {
     const WarmStart data = bridgeable_value();
-    hven::solvers::IpCrossoverOptions strict;
+    hven::IpmCrossoverOptions strict;
     // A dual_tol above every price in the fixture leaves every row and every
     // bound side FREE -- a verdict only the forwarded options can produce.
     strict.dual_tol = 1.0e3;
-    const hven::solvers::detail::SqpWarmState bridged = hven::solvers::detail::to_sqp_warm_state(
+    const hven::detail::SqpWarmState bridged = hven::detail::to_sqp_warm_state(
         data, bridge_lower(), bridge_upper(), WarmStartAccess::key(data), strict);
     EXPECT_TRUE(bridged.qp_working_set.active_ineq().empty());
     for (const std::int8_t state : bridged.bound_active) {
@@ -393,8 +393,8 @@ TEST(IpmPolishBridge, RefusesACoreOnlyValueNamingTheTag) {
     WarmStart data = bridgeable_value();
     WarmStartAccess::extensions(data).clear();
     const std::string message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
-                                                 WarmStartAccess::key(data));
+        hven::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                        WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(message, std::string(kIpmPolishTag))) << message;
     EXPECT_TRUE(mentions(message, "does not invert")) << message;
@@ -403,9 +403,8 @@ TEST(IpmPolishBridge, RefusesACoreOnlyValueNamingTheTag) {
 TEST(IpmPolishBridge, RefusesAStampThatDoesNotMatchTheModel) {
     const WarmStart data = bridgeable_value();
     const DeclarationKey other = key_of(0x22);
-    const std::string message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(), other);
-    });
+    const std::string message = refusal_from(
+        [&] { hven::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(), other); });
     EXPECT_TRUE(mentions(message, fmt::format("{:#x}", WarmStartAccess::key(data).digest())))
         << message;
     EXPECT_TRUE(mentions(message, fmt::format("{:#x}", other.digest()))) << message;
@@ -415,8 +414,8 @@ TEST(IpmPolishBridge, RefusesAMalformedPayloadWithTheDecodesOwnMessage) {
     WarmStart data = bridgeable_value();
     WarmStartAccess::extensions(data)[0].payload.resize(20);
     const std::string message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
-                                                 WarmStartAccess::key(data));
+        hven::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                        WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(message, "deserialize_ipm_polish")) << message;
     EXPECT_TRUE(mentions(message, "byte offset")) << message;
@@ -425,12 +424,12 @@ TEST(IpmPolishBridge, RefusesAMalformedPayloadWithTheDecodesOwnMessage) {
 TEST(IpmPolishBridge, RefusesAnExtensionWhoseWidthsDisagreeWithTheCore) {
     WarmStart data = bridgeable_value();
     IpmPolishData polish = deserialize_ipm_polish(WarmStartAccess::extensions(data)[0].payload);
-    polish.z_lower_ = vector_of({1.0, 2.0, 3.0});
+    polish.z_lower = vector_of({1.0, 2.0, 3.0});
     WarmStartAccess::extensions(data)[0].payload = serialize_ipm_polish(polish);
 
     const std::string message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
-                                                 WarmStartAccess::key(data));
+        hven::detail::to_sqp_warm_state(data, bridge_lower(), bridge_upper(),
+                                        WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(message, "lower-bound multiplier block")) << message;
     EXPECT_TRUE(mentions(message, "holds 3 entries")) << message;
@@ -440,14 +439,14 @@ TEST(IpmPolishBridge, RefusesAnExtensionWhoseWidthsDisagreeWithTheCore) {
 TEST(IpmPolishBridge, RefusesBoundVectorsThatAreNotAtTheCoresWidth) {
     const WarmStart data = bridgeable_value();
     const std::string upper_message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, bridge_lower(), vector_of({1.0}),
-                                                 WarmStartAccess::key(data));
+        hven::detail::to_sqp_warm_state(data, bridge_lower(), vector_of({1.0}),
+                                        WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(upper_message, "the upper-bound vector")) << upper_message;
 
     const std::string lower_message = refusal_from([&] {
-        hven::solvers::detail::to_sqp_warm_state(data, vector_of({1.0, 2.0, 3.0}), bridge_upper(),
-                                                 WarmStartAccess::key(data));
+        hven::detail::to_sqp_warm_state(data, vector_of({1.0, 2.0, 3.0}), bridge_upper(),
+                                        WarmStartAccess::key(data));
     });
     EXPECT_TRUE(mentions(lower_message, "the lower-bound vector")) << lower_message;
 }

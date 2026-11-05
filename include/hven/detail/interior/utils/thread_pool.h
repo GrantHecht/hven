@@ -27,11 +27,9 @@
 #include <windows.h>
 #endif
 
-namespace hven::utils {
+namespace hven::detail {
 
 // Worker thread identification + per-dispatch synchronization.
-
-namespace detail {
 
 /// Set to true on each pool worker thread.
 inline thread_local bool g_is_pool_worker{false};
@@ -111,15 +109,13 @@ struct DispatchContext {
     static bool is_evaluation_error(const std::exception_ptr &e) noexcept {
         try {
             std::rethrow_exception(e);
-        } catch (const hven::solvers::EvaluationError &) {
+        } catch (const hven::EvaluationError &) {
             return true;
         } catch (...) {
             return false;
         }
     }
 };
-
-} // namespace detail
 
 /// Returns true if the calling thread is a pool worker.
 inline bool is_pool_worker() noexcept { return detail::g_is_pool_worker; }
@@ -648,9 +644,10 @@ template <typename F> void parallel_blocks(int count, F &&func, int nparts) {
     if (nparts > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
             throw std::logic_error(
-                "hven::utils::parallel_blocks: nested dispatch from pool worker");
+                "hven::detail::parallel_blocks: nested dispatch from pool worker");
         if (pool_configuring())
-            throw std::logic_error("hven::utils::parallel_blocks: dispatch during set_num_threads");
+            throw std::logic_error(
+                "hven::detail::parallel_blocks: dispatch during set_num_threads");
         int pool_tasks = nparts - 1;
         detail::DispatchContext ctx(pool_tasks);
         int block_size = count / nparts;
@@ -697,10 +694,10 @@ template <typename F> void parallel_sequence(int n, F &&func) {
     if (n > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
             throw std::logic_error(
-                "hven::utils::parallel_sequence: nested dispatch from pool worker");
+                "hven::detail::parallel_sequence: nested dispatch from pool worker");
         if (pool_configuring())
             throw std::logic_error(
-                "hven::utils::parallel_sequence: dispatch during set_num_threads");
+                "hven::detail::parallel_sequence: dispatch during set_num_threads");
         int pool_tasks = n - 1;
         detail::DispatchContext ctx(pool_tasks);
         for (int i = 0; i < pool_tasks; ++i)
@@ -744,9 +741,9 @@ template <typename FTask, typename FInline>
 void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
     if (nparts > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
-            throw std::logic_error("hven::utils::parallel_task: nested dispatch from pool worker");
+            throw std::logic_error("hven::detail::parallel_task: nested dispatch from pool worker");
         if (pool_configuring())
-            throw std::logic_error("hven::utils::parallel_task: dispatch during set_num_threads");
+            throw std::logic_error("hven::detail::parallel_task: dispatch during set_num_threads");
         detail::DispatchContext ctx(1);
         thread_pool().enqueue_work([f = std::forward<FTask>(pool_work), &ctx] {
             try {
@@ -776,4 +773,4 @@ void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
     }
 }
 
-} // namespace hven::utils
+} // namespace hven::detail

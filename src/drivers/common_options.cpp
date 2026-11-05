@@ -16,7 +16,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 // The one default threshold: the public field's and the one the layers built
 // before any options exist read under (a Problem's first transcription).
@@ -64,4 +64,4 @@ void validate_common_options(const CommonOptions &c, CommonOptionsFloors floors)
             "common.infinite_bound must be > 0 (kInfinity is legal), got {}", c.infinite_bound));
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

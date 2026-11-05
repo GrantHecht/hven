@@ -13,7 +13,7 @@
 
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -390,4 +390,4 @@ IpqpResult QnLiftBridge::solve(IpqpEngine &engine, const QpProblem &qp, const Ip
     return res;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

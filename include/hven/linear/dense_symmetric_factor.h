@@ -84,7 +84,7 @@ class DenseSymmetricFactor {
     // itself succeeds, and factorized() is false until it does.
     //
     // Throws std::invalid_argument if A is not square or is 0x0. Throws
-    // hven::solvers::BackendError (fmt-formatted, carrying LAPACK's info code) if
+    // hven::BackendError (fmt-formatted, carrying LAPACK's info code) if
     // dsytrf itself fails -- info < 0 is an illegal-argument bug internal
     // to this class; info > 0 means A is exactly singular (a zero pivot
     // at that 1-based index) and cannot be factorized this way.
@@ -112,7 +112,7 @@ class DenseSymmetricFactor {
     // non-square, empty, or wrong-triangle argument throws
     // std::invalid_argument, and info < 0 (an illegal argument value
     // internal to this class -- a bug here, not a property of A) throws
-    // hven::solvers::BackendError. Only exact singularity is demoted to a return
+    // hven::BackendError. Only exact singularity is demoted to a return
     // value.
     [[nodiscard]] DenseFactorizeOutcome try_factorize(ConstMatRef A, Triangle triangle);
 

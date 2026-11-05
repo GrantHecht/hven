@@ -7,12 +7,12 @@
 //
 // Covers:
 //   - the default (base-class) body is a no-op: a strategy that does not
-//     override it leaves the hven::solvers::IpmResult untouched;
+//     override it leaves the hven::IpmResult untouched;
 //   - a fake strategy's override IS invoked through the virtual dispatch, the
 //     same call shape run_phase_sequence() uses (see ipm_solver.cpp);
 //   - the two real overrides (FunnelAcceptance, FilterAcceptance) report their
 //     documented fields (funnel_acceptance.h / filter_acceptance.h);
-//   - a default-constructed hven::solvers::IpmResult carries the three sentinel
+//   - a default-constructed hven::IpmResult carries the three sentinel
 //     values (-1.0 / -1 / -1) documented on the fields in ipm_solver.h.
 //
 // UNITY RULE: anonymous namespace does not protect names against the unity
@@ -34,12 +34,12 @@
 
 namespace {
 
-using hven::solvers::AcceptanceStrategy;
-using hven::solvers::FilterAcceptance;
-using hven::solvers::FunnelAcceptance;
-using hven::solvers::IpmSolver;
-using hven::solvers::kFunnelInfeasibilityFactor;
-using hven::solvers::ProgressMeasures;
+using hven::AcceptanceStrategy;
+using hven::FilterAcceptance;
+using hven::FunnelAcceptance;
+using hven::IpmSolver;
+using hven::kFunnelInfeasibilityFactor;
+using hven::ProgressMeasures;
 using TychoTest::pm;
 
 // Bare AcceptanceStrategy: implements only the pure-virtual surface and does
@@ -78,7 +78,7 @@ class DiagFakeAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    void append_diagnostics(hven::solvers::IpmResult &result) const override {
+    void append_diagnostics(hven::IpmResult &result) const override {
         ++calls_;
         result.last_funnel_width = 42.0;
     }
@@ -86,13 +86,13 @@ class DiagFakeAcceptance : public AcceptanceStrategy {
     mutable int calls_ = 0;
 };
 
-// The default body is a no-op: a freshly default-constructed hven::solvers::IpmResult at its
+// The default body is a no-op: a freshly default-constructed hven::IpmResult at its
 // sentinel values is untouched by a strategy that doesn't override append_diagnostics.
 TEST(AcceptanceDiagnostics, DefaultIsNoop) {
     DiagBareAcceptance strategy;
-    // A default hven::solvers::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
+    // A default hven::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
     // unreported (nullopt) by default.
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     ASSERT_FALSE(result.last_funnel_width.has_value());
     ASSERT_FALSE(result.last_filter_size.has_value());
     ASSERT_FALSE(result.last_filter_resets.has_value());
@@ -112,9 +112,9 @@ TEST(AcceptanceDiagnostics, DefaultIsNoop) {
 // this->acceptance_->append_diagnostics(this->result_)).
 TEST(AcceptanceDiagnostics, FakeStrategyOverrideIsInvoked) {
     DiagFakeAcceptance strategy;
-    // A default hven::solvers::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
+    // A default hven::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
     // unreported (nullopt) by default.
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
 
     AcceptanceStrategy &base = strategy;
     base.append_diagnostics(result);
@@ -137,9 +137,9 @@ TEST(AcceptanceDiagnostics, FunnelReportsWidth) {
                                                      pm(0.0, 0.0, 0.0), 1.0, 1.0);
     ASSERT_FALSE(primed);
     ASSERT_DOUBLE_EQ(funnel.funnel_width(), kFunnelInfeasibilityFactor * 4.0);
-    // A default hven::solvers::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
+    // A default hven::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
     // unreported (nullopt) by default.
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
 
     ASSERT_TRUE(result.last_funnel_width.has_value());
@@ -160,9 +160,9 @@ TEST(AcceptanceDiagnostics, DiagFunnelUninitializedWidthSentinel) {
     FunnelAcceptance funnel;
     // Do NOT call is_iterate_acceptable — width_ remains at +∞.
     ASSERT_FALSE(std::isfinite(funnel.funnel_width()));
-    // A default hven::solvers::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
+    // A default hven::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
     // unreported (nullopt) by default.
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     static_cast<AcceptanceStrategy &>(funnel).append_diagnostics(result);
 
     EXPECT_FALSE(result.last_funnel_width.has_value());
@@ -183,9 +183,9 @@ TEST(AcceptanceDiagnostics, FilterReportsSizeAndResets) {
     ASSERT_TRUE(accepted);
     ASSERT_EQ(filter.filter_size(), 1u);
     ASSERT_EQ(filter.filter_resets(), 0);
-    // A default hven::solvers::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
+    // A default hven::IpmResult IS the reset state (M6 W5 T8.4): every diagnostic is
     // unreported (nullopt) by default.
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     static_cast<AcceptanceStrategy &>(filter).append_diagnostics(result);
 
     EXPECT_EQ(result.last_filter_size, 1);
@@ -195,18 +195,18 @@ TEST(AcceptanceDiagnostics, FilterReportsSizeAndResets) {
     EXPECT_FALSE(result.last_funnel_width.has_value());
 }
 
-// A DEFAULT hven::solvers::IpmResult IS the reset state (M6 W5 T8.4). reset_accumulators()
+// A DEFAULT hven::IpmResult IS the reset state (M6 W5 T8.4). reset_accumulators()
 // was retired because a solve builds a fresh result rather than clearing a
 // carried one, so what used to be "reset restores the sentinels" is now "the
 // sentinels are the defaults" -- the same promise, made by the type instead of
 // by a call. A field written on one value cannot reach the next.
 TEST(AcceptanceDiagnostics, ADefaultResultCarriesTheSentinels) {
-    hven::solvers::IpmResult written;
+    hven::IpmResult written;
     written.last_funnel_width = 6.0;
     written.last_filter_size = 3;
     written.last_filter_resets = 2;
 
-    const hven::solvers::IpmResult fresh;
+    const hven::IpmResult fresh;
     EXPECT_FALSE(fresh.last_funnel_width.has_value());
     EXPECT_FALSE(fresh.last_filter_size.has_value());
     EXPECT_FALSE(fresh.last_filter_resets.has_value());
@@ -215,8 +215,8 @@ TEST(AcceptanceDiagnostics, ADefaultResultCarriesTheSentinels) {
     EXPECT_TRUE(std::isnan(fresh.stationarity));
     EXPECT_TRUE(std::isnan(fresh.feasibility));
     EXPECT_TRUE(std::isnan(fresh.complementarity));
-    EXPECT_EQ(hven::solvers::detail::engine_rows(fresh).ce.size(), 0);
-    EXPECT_EQ(hven::solvers::detail::engine_rows(fresh).ci.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(fresh).ce.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(fresh).ci.size(), 0);
 }
 
 } // namespace

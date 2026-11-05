@@ -18,14 +18,14 @@
 
 #include "support/indefinite_fixtures.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr Index kNever = 1000000; // above any attempt's iteration count (hard cap 60)
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = std::numeric_limits<double>::infinity();
+    o.trust_region_radius = std::numeric_limits<double>::infinity();
     return o;
 }
 
@@ -188,4 +188,4 @@ TEST(IpqpLadderSkip, AnExplicitThreeIsTheDefault) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

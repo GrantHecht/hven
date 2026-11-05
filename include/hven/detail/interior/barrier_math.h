@@ -30,7 +30,7 @@
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief Completes the raw inequality residual g(x) into g(x) + s: a slack
 /// below neg_slack_reset is clamped to that floor for the purpose of the sum
@@ -232,4 +232,4 @@ inline void accumulate_bound_sigma(ConstEigenRef<Eigen::VectorXd> x, const Bound
     }
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

@@ -70,7 +70,7 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -503,4 +503,4 @@ inline std::vector<QpSolution> enumerate_local_minimizers(const QpProblem &qp) {
     return minimizers;
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -14,7 +14,7 @@
 
 #include "support/ipqp_test_support.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -395,4 +395,4 @@ TEST(AccumulateIpqpCounters, TotalStartingFromANonzeroBaseFoldsCorrectly) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

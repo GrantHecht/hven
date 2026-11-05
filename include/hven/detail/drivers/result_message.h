@@ -13,7 +13,7 @@
 #include "hven/core/solver_status.h"
 #include "hven/drivers/solve_result.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct IpmOptions;
 struct SqpOptions;
@@ -45,4 +45,4 @@ std::string sqp_result_message(const SqpResult &result, SqpStopReason reason,
 std::string describe_exception(const std::exception_ptr &error) noexcept;
 
 } // namespace detail
-} // namespace hven::solvers
+} // namespace hven

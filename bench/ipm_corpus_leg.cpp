@@ -30,11 +30,11 @@
 #include "counting_trace_sink.h"
 #include "crossover_legs.h"
 
-namespace hven::solvers::corpus {
+namespace hven::corpus {
 
 namespace {
 
-using hven::solvers::crossover::ModelAsNlpProblem;
+using hven::crossover::ModelAsNlpProblem;
 
 // The test fixture's own spelling of an absent upper bound
 // (tests/interior/test_ipm_solver_entry.cpp:20), copied with it.
@@ -49,7 +49,7 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 // include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
 struct Hs071FixedProblem final : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -139,7 +139,7 @@ Vec hs071_fixed_start() {
 // tests/interior/test_ipm_stop_reason.cpp; a bench binary does not include a
 // test file, so it is a copy.
 struct PowerSpikeProblem final : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -188,7 +188,7 @@ struct PowerSpikeProblem final : Nlp {
 // stationary point at the origin -- the shape a restoration phase converges to
 // and then declares locally infeasible. Copied for the same reason as above.
 struct LocallyInfeasibleProblem final : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -312,10 +312,9 @@ const char *leg_callback_payload_tag() {
         fmt::format("HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars", value));
 }
 
-hven::solvers::IterationPayload leg_callback_payload() {
-    return std::string(leg_callback_payload_tag()) == "scalars"
-               ? hven::solvers::IterationPayload::kScalars
-               : hven::solvers::IterationPayload::kAll;
+hven::IterationPayload leg_callback_payload() {
+    return std::string(leg_callback_payload_tag()) == "scalars" ? hven::IterationPayload::kScalars
+                                                                : hven::IterationPayload::kAll;
 }
 
 } // namespace
@@ -443,7 +442,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         // than one partition at all.
         //
         // WHAT THEY ARE, EXACTLY. `make_nlp_program(problem, 2)` lays TWO
-        // partitions; all three adapter pieces are ThreadingFlags::MainThread,
+        // partitions; all three adapter pieces are ThreadingFlags::kMainThread,
         // and analyze_partitioning forces every MainThread function into the
         // LAST partition to run inline on the calling thread. So both rows are
         // LAYOUT rows: partition 1 holds the whole problem and runs serially,
@@ -544,8 +543,8 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
     // environment, the three fields the declared IPM-default event moved are
     // written back to the values IpmOptions{} carried before it:
     //
-    //     acceptance_strategy   filter    -> classic_merit
-    //     barrier_governor      monitored -> classic_adaptive
+    //     acceptance_mode   filter    -> classic_merit
+    //     barrier_governor_mode      monitored -> classic_adaptive
     //     max_iters             1000      -> 500
     //
     // The first two are exactly ipm_preset("classic")'s values for them; the
@@ -558,8 +557,8 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
     // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
     // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
     if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
-        o.advanced.acceptance_strategy = AcceptanceKind::kClassicMerit;
-        o.advanced.barrier_governor = BarrierGovernorKind::kClassicAdaptive;
+        o.advanced.acceptance_mode = AcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = BarrierGovernorMode::kClassicAdaptive;
         o.common.max_iterations = 500;
     }
 
@@ -597,7 +596,7 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
     }
     if (variant.restoration_mode != RestorationMode::kOff) {
         o.advanced.restoration_mode = variant.restoration_mode;
-        o.advanced.restoration_max_entries = variant.max_feas_rest;
+        o.advanced.max_restoration_entries = variant.max_feas_rest;
     }
     ipm.set_options(std::move(o));
 }
@@ -654,9 +653,9 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     const auto make_configured = [&]() {
         ConfiguredSolve configured{
             public_route ? std::make_unique<Problem>(problem)
-                         : std::make_unique<Problem>(hven::solvers::detail::problem_from_program(
-                               hven::solvers::make_nlp_program(problem, requested_partitions,
-                                                               interior_leg_infinite_bound()))),
+                         : std::make_unique<Problem>(
+                               hven::detail::problem_from_program(hven::make_nlp_program(
+                                   problem, requested_partitions, interior_leg_infinite_bound()))),
             std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
         return configured;
@@ -676,13 +675,12 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     //
     // The producing solve is SETUP and is neither timed nor reported, exactly
     // as the bridge lay is on the other engine.
-    std::optional<hven::solvers::WarmStart> payload;
+    std::optional<hven::WarmStart> payload;
     if (variant.warm != InteriorVariant::Warm::kNone) {
         ConfiguredSolve producer = make_configured();
-        const hven::solvers::IpmResult produced_result =
-            producer.engine->solve(*producer.problem, x0);
-        const hven::solvers::SolveStatus produced = produced_result.status;
-        if (produced != hven::solvers::SolveStatus::kOptimal) {
+        const hven::IpmResult produced_result = producer.engine->solve(*producer.problem, x0);
+        const hven::SolveStatus produced = produced_result.status;
+        if (produced != hven::SolveStatus::kOptimal) {
             throw std::runtime_error(fmt::format(
                 "run_interior_problem: the '{}' variant's producing solve of cell '{}' did not "
                 "converge (status {}); a warm row measured against a hand-off from a failed solve "
@@ -700,8 +698,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
             // THE MULTIPLIERS-ONLY FORM, built from the very same export the
             // payload row uses, so the two rows differ in exactly one thing:
             // whether the point and the bound state travel with the prices.
-            hven::solvers::detail::WarmStartAccess::primal(*payload).resize(0);
-            hven::solvers::detail::WarmStartAccess::bound(*payload).resize(0);
+            hven::detail::WarmStartAccess::primal(*payload).resize(0);
+            hven::detail::WarmStartAccess::bound(*payload).resize(0);
             // THE POLISH EXTENSION IS LEFT ON (M6 W5 T8.5 fix round 1), and
             // that is deliberate. It changes NOTHING about the solve -- the
             // seed form's `have_warm` is false, so the extension is never
@@ -710,11 +708,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
             // statement that this row really did travel the seed route rather
             // than some other one. Clearing it here would have thrown away the
             // one observable the row has that is not a residual.
-            if (hven::solvers::find_ipm_polish(*payload) == nullptr) {
+            if (hven::find_ipm_polish(*payload) == nullptr) {
                 throw std::runtime_error(fmt::format(
                     "run_interior_problem: the '{}' variant's export of cell '{}' carries no "
                     "\"{}\" extension, so the row's polish_ignored observable would be vacuous",
-                    variant.name, identity.cell_id, hven::solvers::kIpmPolishTag));
+                    variant.name, identity.cell_id, hven::kIpmPolishTag));
             }
         }
     }
@@ -744,13 +742,13 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // ignored when HVEN_LEG_COUNT_CALLBACK was absent while the comment on the
     // parser claimed otherwise. A mislabelled measurement arm is the one
     // failure this lever must not have, and the claim now matches the code.
-    const hven::solvers::IterationPayload leg_payload = leg_callback_payload();
+    const hven::IterationPayload leg_payload = leg_callback_payload();
     long long events_seen = 0;
     if (count_events) {
         ipm.set_iteration_callback(
-            [&events_seen](const hven::solvers::IterationEvent &) {
+            [&events_seen](const hven::IterationEvent &) {
                 ++events_seen;
-                return hven::solvers::CallbackAction::kContinue;
+                return hven::CallbackAction::kContinue;
             },
             leg_payload);
     }
@@ -779,11 +777,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // way, and the TIMED WINDOW is what it always was: it brackets the solve
     // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
-    const hven::solvers::IpmResult measured =
+    const hven::IpmResult measured =
         payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
     const double wall_s = seconds_since(t0);
-    const hven::solvers::SolveStatus flag = measured.status;
-    const hven::solvers::IpmResult &warm_result = measured;
+    const hven::SolveStatus flag = measured.status;
+    const hven::IpmResult &warm_result = measured;
 
     // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
     // 1; the SQP lane's M1). A warm row whose payload was silently ignored
@@ -810,7 +808,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     }
 
     // The MEASURED solve's result, whichever door it came through.
-    const hven::solvers::IpmResult &result = measured;
+    const hven::IpmResult &result = measured;
     InteriorRow row;
     row.cell_id = identity.cell_id;
     row.family = identity.family;
@@ -844,8 +842,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
         if (!packed.empty()) {
             packed += "|";
         }
-        const char *name =
-            phase.phase == hven::solvers::IpmPhase::kOptimize ? "kOptimize" : "kSolve";
+        const char *name = phase.phase == hven::IpmPhase::kOptimize ? "kOptimize" : "kSolve";
         if (phase.ran) {
             ++row.phases_ran;
             packed += fmt::format("{}:{}:{}", name, to_string(phase.status), phase.iterations);
@@ -858,12 +855,12 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // The DECLARED widths of the four returned blocks, and the four shared
     // declared diagnostics beside them.
     row.x_size = result.x.size();
-    row.lambda_e_size = hven::solvers::detail::engine_rows(result).lambda_e.size();
-    row.lambda_i_size = hven::solvers::detail::engine_rows(result).lambda_i.size();
+    row.lambda_e_size = hven::detail::engine_rows(result).lambda_e.size();
+    row.lambda_i_size = hven::detail::engine_rows(result).lambda_i.size();
     row.z_size = result.z.size();
     row.stationarity = result.stationarity;
-    row.feasibility_e = hven::solvers::detail::engine_rows(result).feasibility_e;
-    row.feasibility_i = hven::solvers::detail::engine_rows(result).feasibility_i;
+    row.feasibility_e = hven::detail::engine_rows(result).feasibility_e;
+    row.feasibility_i = hven::detail::engine_rows(result).feasibility_i;
     row.complementarity = result.complementarity;
 
     row.wall_s = wall_s;
@@ -911,11 +908,11 @@ InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requ
     }
     const auto f7 = std::make_shared<F7CollocationChain>(detail::make_model(cell));
     const auto declared = std::make_shared<ModelAsNlpProblem>(f7, std::string(cell.id));
-    const auto program = hven::solvers::make_nlp_program(declared, requested);
+    const auto program = hven::make_nlp_program(declared, requested);
     InteriorPartitionStamp stamp;
     stamp.requested = requested;
     stamp.adopted = program->num_partitions_;
-    stamp.pool_threads = hven::utils::get_num_threads();
+    stamp.pool_threads = hven::detail::get_num_threads();
     return stamp;
 }
 
@@ -1009,8 +1006,8 @@ std::string interior_globalization_stamp() {
     const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
     IpmOptions o;
     if (pinned) {
-        o.advanced.acceptance_strategy = AcceptanceKind::kClassicMerit;
-        o.advanced.barrier_governor = BarrierGovernorKind::kClassicAdaptive;
+        o.advanced.acceptance_mode = AcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = BarrierGovernorMode::kClassicAdaptive;
         o.common.max_iterations = 500;
     }
 
@@ -1059,4 +1056,4 @@ std::string interior_csv_row(const InteriorRow &row) {
                        row.feasibility_e, row.feasibility_i, row.complementarity, row.wall_s);
 }
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

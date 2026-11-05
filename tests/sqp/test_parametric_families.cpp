@@ -59,7 +59,7 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -176,8 +176,7 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     SCOPED_TRACE(::testing::Message() << "p = " << p);
     const SqpOptions opts = tight_options();
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
@@ -187,17 +186,17 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
         << "x = " << sol.x.transpose() << " vs x_star = " << x_star.transpose();
 
     if (model.me() > 0) {
-        EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_e - lambda_e_star)
-                      .lpNorm<Eigen::Infinity>(),
-                  kMultTol)
-            << "lambda_e = " << hven::solvers::detail::engine_rows(sol).lambda_e.transpose()
+        EXPECT_LE(
+            (hven::detail::engine_rows(sol).lambda_e - lambda_e_star).lpNorm<Eigen::Infinity>(),
+            kMultTol)
+            << "lambda_e = " << hven::detail::engine_rows(sol).lambda_e.transpose()
             << " vs analytic " << lambda_e_star.transpose();
     }
     if (model.mi() > 0) {
-        EXPECT_LE((hven::solvers::detail::engine_rows(sol).lambda_i - lambda_i_star)
-                      .lpNorm<Eigen::Infinity>(),
-                  kMultTol)
-            << "lambda_i = " << hven::solvers::detail::engine_rows(sol).lambda_i.transpose()
+        EXPECT_LE(
+            (hven::detail::engine_rows(sol).lambda_i - lambda_i_star).lpNorm<Eigen::Infinity>(),
+            kMultTol)
+            << "lambda_i = " << hven::detail::engine_rows(sol).lambda_i.transpose()
             << " vs analytic " << lambda_i_star.transpose();
     }
     EXPECT_LE((sol.z - z_star).lpNorm<Eigen::Infinity>(), kMultTol)
@@ -875,6 +874,6 @@ TEST(ParametricModelContract, SpringChainRejectsDegenerateConstruction) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

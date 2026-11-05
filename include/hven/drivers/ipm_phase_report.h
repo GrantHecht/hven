@@ -13,7 +13,7 @@
 #include <hven/core/types.h>
 #include <hven/drivers/ipm_enums.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief What one phase of a solve did.
 ///
@@ -36,4 +36,4 @@ struct IpmPhaseReport {
     bool ran = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

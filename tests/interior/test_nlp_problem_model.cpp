@@ -28,11 +28,11 @@ constexpr double kNpmInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::Nlp;
-using hven::solvers::NLPAdapterCore;
-using hven::solvers::NLPCoordinate;
-using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPRowKind;
+using hven::Nlp;
+using hven::NlpAdapterCore;
+using hven::NlpCoordinate;
+using hven::NlpProblemModel;
+using hven::NlpRowKind;
 
 namespace {
 
@@ -40,7 +40,7 @@ namespace {
 /// column 0 whose value is the row index plus one. g_r(x) = (r + 1) * x0, so
 /// every residual and every Jacobian entry below is a hand-checkable number.
 struct NpmKindsProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -94,7 +94,7 @@ struct NpmKindsProblem : Nlp {
 /// Unconstrained, n = 2, and a declared Hessian structure that is genuinely
 /// lower-triangular and carries a duplicate slot.
 struct NpmHessProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -131,7 +131,7 @@ struct NpmHessProblem : Nlp {
 /// 0 is bounded at +/-1e20, variable 1 is genuinely free, row 0 is an equality
 /// at 1e20 and row 1 is a range between -1e20 and 1e20.
 struct NpmLargeBoundProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -173,7 +173,7 @@ struct NpmLargeBoundProblem : Nlp {
 /// Variable bounds that leave the origin outside the box on two of three
 /// variables, so a projected start point is distinguishable from the origin.
 struct NpmBoxedProblem : NpmHessProblem {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -204,11 +204,11 @@ TEST(NlpProblemModelTest, RowKindsDecideTheNativeBlocksAndTheirSigns) {
     EXPECT_EQ(model.me(), 1);
     EXPECT_EQ(model.mi(), 4);
     EXPECT_EQ(model.num_declared_rows(), 5);
-    EXPECT_EQ(model.rows().kinds_[0], NLPRowKind::Equality);
-    EXPECT_EQ(model.rows().kinds_[1], NLPRowKind::UpperBounded);
-    EXPECT_EQ(model.rows().kinds_[2], NLPRowKind::LowerBounded);
-    EXPECT_EQ(model.rows().kinds_[3], NLPRowKind::Range);
-    EXPECT_EQ(model.rows().kinds_[4], NLPRowKind::Free);
+    EXPECT_EQ(model.rows().kinds[0], NlpRowKind::kEquality);
+    EXPECT_EQ(model.rows().kinds[1], NlpRowKind::kUpperBounded);
+    EXPECT_EQ(model.rows().kinds[2], NlpRowKind::kLowerBounded);
+    EXPECT_EQ(model.rows().kinds[3], NlpRowKind::kRange);
+    EXPECT_EQ(model.rows().kinds[4], NlpRowKind::kFree);
 
     Eigen::VectorXd x(2);
     x << 2.0, 0.0;
@@ -387,8 +387,8 @@ TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsUnderAnInfiniteThreshold) {
     // A row declared at 1e20 on both sides is an equality AT 1e20, not a free
     // row and not an equality at infinity; a row between -1e20 and 1e20 is a
     // range, not a free row.
-    EXPECT_EQ(model.rows().kinds_[0], NLPRowKind::Equality);
-    EXPECT_EQ(model.rows().kinds_[1], NLPRowKind::Range);
+    EXPECT_EQ(model.rows().kinds[0], NlpRowKind::kEquality);
+    EXPECT_EQ(model.rows().kinds[1], NlpRowKind::kRange);
     EXPECT_EQ(model.me(), 1);
     EXPECT_EQ(model.mi(), 2);
 
@@ -400,7 +400,7 @@ TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsUnderAnInfiniteThreshold) {
     EXPECT_DOUBLE_EQ(ci[1], -1e20 - 2.0);
 
     // And the host stages variable 0's bounds while leaving variable 1 free.
-    auto core = std::make_shared<NLPAdapterCore>(
+    auto core = std::make_shared<NlpAdapterCore>(
         std::make_shared<NlpProblemModel>(problem, kNpmInf), problem->name());
     EXPECT_DOUBLE_EQ(core->x_lower_[0], -1e20);
     EXPECT_DOUBLE_EQ(core->x_upper_[0], 1e20);
@@ -452,26 +452,23 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     claimed.insert(0, 0) = 1.0;
     claimed.insert(1, 1) = 1.0;
     claimed.makeCompressed();
-    const std::vector<NLPCoordinate> recorded{{0, 0}, {1, 1}};
-    EXPECT_NO_THROW(
-        hven::solvers::nlp_require_claimed_pattern(claimed, recorded, "eval_jac_e", "NpmProbe"));
+    const std::vector<NlpCoordinate> recorded{{0, 0}, {1, 1}};
+    EXPECT_NO_THROW(hven::nlp_require_claimed_pattern(claimed, recorded, "eval_jac_e", "NpmProbe"));
 
     // Same entry count, one coordinate moved.
     Eigen::SparseMatrix<double, Eigen::RowMajor> moved(2, 2);
     moved.insert(0, 1) = 1.0;
     moved.insert(1, 1) = 1.0;
     moved.makeCompressed();
-    EXPECT_THROW(
-        hven::solvers::nlp_require_claimed_pattern(moved, recorded, "eval_jac_e", "NpmProbe"),
-        std::invalid_argument);
+    EXPECT_THROW(hven::nlp_require_claimed_pattern(moved, recorded, "eval_jac_e", "NpmProbe"),
+                 std::invalid_argument);
 
     // A different entry count is refused before any coordinate is compared.
     Eigen::SparseMatrix<double, Eigen::RowMajor> shrunk(2, 2);
     shrunk.insert(0, 0) = 1.0;
     shrunk.makeCompressed();
-    EXPECT_THROW(
-        hven::solvers::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
-        std::invalid_argument);
+    EXPECT_THROW(hven::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
+                 std::invalid_argument);
 }
 
 namespace {
@@ -479,7 +476,7 @@ namespace {
 /// A bare NlpModel -- not the triplet conversion -- whose inequality Jacobian
 /// and Hessian patterns move once armed. n = 3, no equality rows, one
 /// inequality row.
-struct NpmDriftingModel : hven::solvers::NlpModel {
+struct NpmDriftingModel : hven::NlpModel {
     mutable bool drifted_ = false;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
     Eigen::VectorXd upper_{{kNpmInf, kNpmInf, kNpmInf}};
@@ -526,7 +523,7 @@ TEST(NlpAdapterHostTest, AModelWhosePatternDriftsAfterTranscriptionIsRefused) {
     // model that presents a different one afterwards must be refused on the
     // host's own path, not merely by the guard called in isolation.
     auto model = std::make_shared<NpmDriftingModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmDriftingModel");
+    hven::NlpAdapterCore core(model, "NpmDriftingModel");
 
     Eigen::VectorXd x(3);
     x << 0.5, -0.25, 1.5;
@@ -546,8 +543,8 @@ TEST(NlpAdapterHostTest, AModelWhosePatternDriftsAfterTranscriptionIsRefused) {
 
     // And through a full assembly, which is the path a solve takes.
     auto fresh = std::make_shared<NpmDriftingModel>();
-    auto fresh_core = std::make_shared<hven::solvers::NLPAdapterCore>(fresh, "NpmDriftingModel");
-    auto nlp = hven::solvers::make_nlp_program(fresh_core);
+    auto fresh_core = std::make_shared<hven::NlpAdapterCore>(fresh, "NpmDriftingModel");
+    auto nlp = hven::make_nlp_program(fresh_core);
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
     Eigen::Map<Eigen::VectorXd>(kkt.valuePtr(), kkt.nonZeros()).setZero();
@@ -603,7 +600,7 @@ namespace {
 /// A bare NlpModel that can return an uncompressed matrix from whichever of
 /// the three matrix entry points is selected. n = 2, one equality row, one
 /// inequality row.
-struct NpmUncompressedModel : hven::solvers::NlpModel {
+struct NpmUncompressedModel : hven::NlpModel {
     enum class Loose { None, JacE, JacI, Hess };
     mutable Loose loose_ = Loose::None;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
@@ -675,7 +672,7 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
         auto model = std::make_shared<NpmUncompressedModel>();
         model->loose_ = loose;
         return std::make_pair(
-            model, std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+            model, std::make_shared<hven::NlpAdapterCore>(model, "NpmUncompressedModel"));
     };
 
     // The control: compressed throughout, nothing refused.
@@ -694,13 +691,13 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
                        NpmUncompressedModel::Loose::Hess}) {
         auto from_the_start = std::make_shared<NpmUncompressedModel>();
         from_the_start->loose_ = loose;
-        EXPECT_THROW(hven::solvers::NLPAdapterCore(from_the_start, "NpmUncompressedModel"),
+        EXPECT_THROW(hven::NlpAdapterCore(from_the_start, "NpmUncompressedModel"),
                      std::invalid_argument);
 
         auto model = std::make_shared<NpmUncompressedModel>();
-        std::shared_ptr<hven::solvers::NLPAdapterCore> core;
-        ASSERT_NO_THROW(
-            core = std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+        std::shared_ptr<hven::NlpAdapterCore> core;
+        ASSERT_NO_THROW(core =
+                            std::make_shared<hven::NlpAdapterCore>(model, "NpmUncompressedModel"));
         model->loose_ = loose;
         if (loose == NpmUncompressedModel::Loose::Hess) {
             EXPECT_THROW(core->eval_hessian_values(x, 1.0, le, li), std::invalid_argument);
@@ -716,7 +713,7 @@ namespace {
 /// implementations: it forwards only the by-value methods and overrides none
 /// of the in-place ones, so every in-place call on it takes NlpModel's
 /// delegation.
-struct NpmByValueOnlyModel : hven::solvers::NlpModel {
+struct NpmByValueOnlyModel : hven::NlpModel {
     std::shared_ptr<NlpProblemModel> inner_;
 
     explicit NpmByValueOnlyModel(std::shared_ptr<NlpProblemModel> inner)
@@ -835,7 +832,7 @@ namespace {
 /// methods, so the in-place calls the host makes arrive here through
 /// NlpModel's defaults and one host call is one count. n = 3, one equality
 /// row, one inequality row.
-struct NpmCountingModel : hven::solvers::NlpModel {
+struct NpmCountingModel : hven::NlpModel {
     mutable int n_f_ = 0, n_grad_ = 0, n_ce_ = 0, n_ci_ = 0;
     mutable int n_jac_e_ = 0, n_jac_i_ = 0, n_hess_ = 0, n_start_point_ = 0;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
@@ -912,7 +909,7 @@ struct NpmCountingModel : hven::solvers::NlpModel {
 // nothing setup needs.
 TEST(NlpAdapterHostTest, TranscriptionSpendsOneStartPointAndThreeDerivativeCalls) {
     auto model = std::make_shared<NpmCountingModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::NlpAdapterCore core(model, "NpmCountingModel");
 
     EXPECT_EQ(model->n_start_point_, 1);
     EXPECT_EQ(model->n_hess_, 1);
@@ -948,7 +945,7 @@ namespace {
 /// A bare NlpModel whose gradient is one entry longer than it declares.
 /// Everything else is well formed, so it survives the host's claim pass and
 /// the refusal has to come from the evaluation.
-struct NpmWrongGradientModel : hven::solvers::NlpModel {
+struct NpmWrongGradientModel : hven::NlpModel {
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
     Eigen::VectorXd upper_{{kNpmInf, kNpmInf}};
 
@@ -988,7 +985,7 @@ TEST(NlpAdapterHostTest, AWrongLengthGradientIsRefusedAndNamesBothCounts) {
     // of any other length would be written past the rows laid for it. Every
     // other by-value result on this host is length-checked; this one is too.
     auto model = std::make_shared<NpmWrongGradientModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmWrongGradientModel");
+    hven::NlpAdapterCore core(model, "NpmWrongGradientModel");
 
     Eigen::VectorXd x(2);
     x << 0.5, -0.25;
@@ -1010,7 +1007,7 @@ TEST(NlpAdapterHostTest, AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced)
     // head to take, and the slice would read past the end, which under NDEBUG
     // is silent. The refusal comes before the slice.
     auto model = std::make_shared<NpmCountingModel>(); // one equality row
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::NlpAdapterCore core(model, "NpmCountingModel");
     ASSERT_EQ(core.num_eq_, 1);
 
     Eigen::VectorXd empty(0);
@@ -1046,7 +1043,7 @@ TEST(NlpAdapterHostTest, AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwn
     // all-zero. The engine hands down full-length blocks on every path, so a
     // block that arrives empty where rows are hosted is a defect in the chain.
     auto model = std::make_shared<NpmCountingModel>(); // one equality, one inequality row
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::NlpAdapterCore core(model, "NpmCountingModel");
     ASSERT_EQ(core.num_eq_, 1);
     ASSERT_EQ(core.num_iq_, 1);
 

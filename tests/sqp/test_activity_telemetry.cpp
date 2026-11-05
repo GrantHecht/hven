@@ -37,13 +37,13 @@
 #include "support/qp_as_nlp_model.h"
 #include "support/ssn_fixtures.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
-using ::hven::solvers::test_support::HsProblem;
-using ::hven::solvers::test_support::make_hs;
-using ::hven::solvers::test_support::QpAsNlpModel;
-using ::hven::solvers::test_support::weakly_active_qp;
+using ::hven::test_support::HsProblem;
+using ::hven::test_support::make_hs;
+using ::hven::test_support::QpAsNlpModel;
+using ::hven::test_support::weakly_active_qp;
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
@@ -273,7 +273,7 @@ SqpOptions telemetry_opts() {
     SqpOptions opts;
     // WIDE ENOUGH THAT NO STEP BELOW IS TRUST-REGION LIMITED, so each fixture's
     // reported active set is the one its own algebra determines.
-    opts.tr_init = 4.0;
+    opts.trust_region_initial = 4.0;
     return opts;
 }
 
@@ -285,8 +285,7 @@ TEST(ActivityTelemetry, NearActiveRowsIsNonVacuousOnAControlledSlack) {
          {std::pair<double, Index>{1e-9, 1}, std::pair<double, Index>{1e-3, 0}}) {
         QpAsNlpModel model(one_var_qp(0.0, 1.0, cell.first), (Vec(1) << -0.5).finished());
         SqpSolver driver(telemetry_opts());
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         const std::vector<SqpIterate> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
@@ -304,8 +303,7 @@ TEST(ActivityTelemetry, WeakActiveRowsIsNonVacuousOnAControlledPrice) {
          {std::pair<double, Index>{1e-9, 1}, std::pair<double, Index>{1e-3, 0}}) {
         QpAsNlpModel model(one_var_qp(cell.first, 0.0, 10.0), (Vec(1) << -0.5).finished());
         SqpSolver driver(telemetry_opts());
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         const std::vector<SqpIterate> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
@@ -332,8 +330,7 @@ TEST(ActivityTelemetry, EveryFieldIsZeroOnABoundOnlyQpNlpWithNoActiveBound) {
 
     QpAsNlpModel model(qp, Vec::Zero(2));
     SqpSolver driver(telemetry_opts());
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_FALSE(reporting_rows(sol).empty());
     for (const SqpIterate &r : sol.history) {
@@ -357,7 +354,7 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs35sActiveRow) {
     const HsProblem p = make_hs(35);
     SqpSolver driver(telemetry_opts());
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
@@ -381,7 +378,7 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs45sVertex) {
     opts.common.max_iterations = 200;
     SqpSolver driver(opts);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
@@ -398,7 +395,7 @@ TEST(ActivityTelemetry, ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForwa
     const HsProblem p = make_hs(35);
     SqpSolver driver(telemetry_opts());
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &stopped = sol.history.back();
     ASSERT_FALSE(stopped.qp_solved);
@@ -419,7 +416,7 @@ TEST(ActivityTelemetry, TheFourFoldsAreTheRowsOwnSumAndPeaks) {
         opts.common.max_iterations = 200;
         SqpSolver driver(opts);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         Index total = 0;
         Index delta_peak = 0;
         Index weak_peak = 0;
@@ -466,8 +463,7 @@ TEST(ActivityTelemetry, TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons)
     SqpOptions opts = telemetry_opts();
     opts.qp_mode = QpMode::kSsn;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
@@ -485,4 +481,4 @@ TEST(ActivityTelemetry, TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons)
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

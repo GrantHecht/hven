@@ -10,7 +10,7 @@
 
 #include <type_traits>
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @internal
 /// @brief Type trait that strips both `const` and reference qualifiers from T
@@ -20,4 +20,4 @@ template <class T> struct remove_const_reference {
     using type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
 };
 
-} // namespace hven::utils
+} // namespace hven::detail

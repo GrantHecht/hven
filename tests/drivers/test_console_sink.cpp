@@ -5,7 +5,7 @@
 //
 // WHAT THIS FILE PROVES, and what it deliberately leaves to a leg:
 //
-//   * THE SCRIPTED BYTE-PIN. Twelve constructed `IterateInfo` records, in two
+//   * THE SCRIPTED BYTE-PIN. Twelve constructed `IpmIterate` records, in two
 //     phases of six, fed to `ConsoleTraceSink` and compared BYTE FOR BYTE
 //     against a literal captured from the OLD `print_last_iterate` at BASE
 //     (c0e3c6c) on the SAME records. Wide and narrow. That is the identity
@@ -41,10 +41,10 @@
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/ipm_iterate_info.h>
+#include <hven/drivers/ipm_iterate.h>
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 // --- the scripted records ---------------------------------------------------
@@ -65,31 +65,31 @@ namespace {
 // THIS GENERATOR IS DUPLICATED VERBATIM in the BASE capture program
 // (`.scratch/w5t87/basecap/capture_rows.cpp`, quoted in the transcripts): the
 // two must construct the same records or the literal below means nothing.
-std::vector<IterateInfo> scripted_rows() {
-    std::vector<IterateInfo> v;
+std::vector<IpmIterate> scripted_rows() {
+    std::vector<IpmIterate> v;
     for (int phase = 0; phase < 2; ++phase) {
         for (int k = 0; k < 6; ++k) {
-            IterateInfo r;
-            r.iter_ = k;
+            IpmIterate r;
+            r.iter = k;
             const double bump = (k == 5) ? 10.0 : 1.0;
-            r.mu_ = 1e-1 * std::pow(10.0, -k);
-            r.prim_obj_ = 1.7e1 + (phase == 1 ? 1.0 : 0.0) - 0.5 * k;
-            r.barr_obj_ = r.prim_obj_ + 0.25 * bump;
-            r.kkt_inf_ = 1e-1 * std::pow(10.0, -k) * bump;
-            r.barr_inf_ = 2e-1 * std::pow(10.0, -k) * bump;
-            r.econ_inf_ = 3e-1 * std::pow(10.0, -k) / bump;
-            r.icon_inf_ = 4e-1 * std::pow(10.0, -k) / bump;
-            r.ls_iters_ = k;
-            r.alpha_p_ = 1.0 - 0.05 * k;
-            r.alpha_d_ = 1.0 - 0.02 * k;
-            r.alpha_t_ = 1.0;
-            r.h_facs_ = k % 3;
-            r.h_pert_cum_ = 1e-8 * k;
-            r.p_pivots_ = 2 * k;
-            r.p_pivots_observed_ = true;
-            r.max_e_mult_ = 1.5 + k;
-            r.max_i_mult_ = 2.5 + k;
-            r.merit_val_ = 1.9e1 - 0.3 * k;
+            r.mu = 1e-1 * std::pow(10.0, -k);
+            r.prim_obj = 1.7e1 + (phase == 1 ? 1.0 : 0.0) - 0.5 * k;
+            r.barr_obj = r.prim_obj + 0.25 * bump;
+            r.kkt_inf = 1e-1 * std::pow(10.0, -k) * bump;
+            r.barr_inf = 2e-1 * std::pow(10.0, -k) * bump;
+            r.econ_inf = 3e-1 * std::pow(10.0, -k) / bump;
+            r.icon_inf = 4e-1 * std::pow(10.0, -k) / bump;
+            r.ls_iters = k;
+            r.alpha_p = 1.0 - 0.05 * k;
+            r.alpha_d = 1.0 - 0.02 * k;
+            r.alpha_t = 1.0;
+            r.h_facs = k % 3;
+            r.h_pert_cum = 1e-8 * k;
+            r.p_pivots = 2 * k;
+            r.p_pivots_observed = true;
+            r.max_e_mult = 1.5 + k;
+            r.max_i_mult = 2.5 + k;
+            r.merit_val = 1.9e1 - 0.3 * k;
             v.push_back(r);
         }
     }
@@ -217,7 +217,7 @@ struct CountingSink : TraceSink {
 
 // --- the byte-pin -----------------------------------------------------------
 
-void run_scripted(ConsoleTraceSink &sink, const std::vector<IterateInfo> &rows) {
+void run_scripted(ConsoleTraceSink &sink, const std::vector<IpmIterate> &rows) {
     for (std::size_t i = 0; i < rows.size(); ++i) {
         sink.on_ipm_iter(IpmIterTraceEvent{rows[i], static_cast<Index>(i / 6)});
     }
@@ -226,8 +226,8 @@ void run_scripted(ConsoleTraceSink &sink, const std::vector<IterateInfo> &rows) 
 TEST(ConsoleSink, IpmScriptedRowsAreByteIdenticalToTheOldPrinterNarrow) {
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(
-        ConsoleTraceSink::Format{/*wide=*/false, hven::solvers::Verbosity::kIterations}, f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, hven::Verbosity::kIterations},
+                          f);
     sink.on_ipm_solve_begin(scripted_begin(/*wide=*/false));
     std::fflush(f);
     const long after_begin = std::ftell(f);
@@ -251,8 +251,8 @@ TEST(ConsoleSink, IpmScriptedRowsAreByteIdenticalToTheOldPrinterWide) {
     // `Format::wide` is FALSE here on purpose: the begin event's own
     // `wide_console` is what a solve's layout is, and this proves the sink
     // adopts it rather than keeping its construction-time default.
-    ConsoleTraceSink sink(
-        ConsoleTraceSink::Format{/*wide=*/false, hven::solvers::Verbosity::kIterations}, f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, hven::Verbosity::kIterations},
+                          f);
     sink.on_ipm_solve_begin(scripted_begin(/*wide=*/true));
     std::fflush(f);
     const long after_begin = std::ftell(f);
@@ -268,11 +268,10 @@ TEST(ConsoleSink, ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow) {
     // A1's shape: ONE begin, twelve rows, a phase change in the middle. Phase
     // 1's first row has a HIGHER prim_obj than phase 0's last, so a missing
     // reset would paint its separator red; a correct reset leaves it plain.
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_ipm_solve_begin(scripted_begin(false));
     std::fflush(f);
     const long after_begin = std::ftell(f);
@@ -327,11 +326,10 @@ TEST(ConsoleSink, ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow) {
 }
 
 TEST(ConsoleSink, ASecondSolveBeginAlsoResetsThePreviousRow) {
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_ipm_solve_begin(scripted_begin(false));
     sink.on_ipm_iter(IpmIterTraceEvent{rows[0], 0});
     sink.on_ipm_iter(IpmIterTraceEvent{rows[1], 0});
@@ -354,12 +352,12 @@ TEST(ConsoleSink, ASecondSolveBeginAlsoResetsThePreviousRow) {
 }
 
 TEST(ConsoleSink, IpmRendersNothingAboveTheTiers) {
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     // print_level 1: no stats block, no rows; the header and the two
     // Beginning/Finished lines and the timing summary still render.
     std::FILE *f1 = std::tmpfile();
     ASSERT_NE(f1, nullptr);
-    ConsoleTraceSink one(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kSummary}, f1);
+    ConsoleTraceSink one(ConsoleTraceSink::Format{false, hven::Verbosity::kSummary}, f1);
     one.on_ipm_solve_begin(scripted_begin(false));
     run_scripted(one, rows);
     one.on_ipm_solve_end(scripted_end());
@@ -373,7 +371,7 @@ TEST(ConsoleSink, IpmRendersNothingAboveTheTiers) {
     // print_level 2: the exit block's own tier; nothing this sink writes.
     std::FILE *f2 = std::tmpfile();
     ASSERT_NE(f2, nullptr);
-    ConsoleTraceSink two(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kWarnings}, f2);
+    ConsoleTraceSink two(ConsoleTraceSink::Format{false, hven::Verbosity::kWarnings}, f2);
     two.on_ipm_solve_begin(scripted_begin(false));
     run_scripted(two, rows);
     two.on_ipm_solve_end(scripted_end());
@@ -383,7 +381,7 @@ TEST(ConsoleSink, IpmRendersNothingAboveTheTiers) {
     // print_level 3: silent.
     std::FILE *f3 = std::tmpfile();
     ASSERT_NE(f3, nullptr);
-    ConsoleTraceSink three(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kSilent}, f3);
+    ConsoleTraceSink three(ConsoleTraceSink::Format{false, hven::Verbosity::kSilent}, f3);
     three.on_ipm_solve_begin(scripted_begin(false));
     run_scripted(three, rows);
     three.on_ipm_solve_end(scripted_end());
@@ -416,7 +414,7 @@ namespace {
 /// phase's body), and the exit event comes INSIDE it, just before the phase's
 /// closing line.
 void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
 
     sink.on_ipm_solve_begin(scripted_begin(wide));
 
@@ -507,8 +505,8 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
 TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow) {
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(
-        ConsoleTraceSink::Format{/*wide=*/false, hven::solvers::Verbosity::kIterations}, f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, hven::Verbosity::kIterations},
+                          f);
     run_scripted_transcript(sink, /*wide=*/false);
     EXPECT_EQ(read_all(f), std::string(kBaseTranscriptNarrow));
     std::fclose(f);
@@ -517,8 +515,8 @@ TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow) {
 TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseWide) {
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(
-        ConsoleTraceSink::Format{/*wide=*/false, hven::solvers::Verbosity::kIterations}, f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, hven::Verbosity::kIterations},
+                          f);
     run_scripted_transcript(sink, /*wide=*/true);
     EXPECT_EQ(read_all(f), std::string(kBaseTranscriptWide));
     std::fclose(f);
@@ -530,12 +528,11 @@ TEST(ConsoleSink, TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFoun
     // the RESOLVED status, which at three doors is kStalled or kInterrupted
     // instead. All three must render the same bytes, or the transcript moves at
     // exactly those doors.
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     auto verdict_of = [&rows](SolveStatus status) {
         std::FILE *f = std::tmpfile();
         EXPECT_NE(f, nullptr);
-        ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kWarnings},
-                              f);
+        ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kWarnings}, f);
         sink.on_ipm_solve_begin(scripted_begin(false));
         IpmPhaseReport report;
         report.status = status;
@@ -568,8 +565,8 @@ TEST(ConsoleSink, TheT8_7bLineKindsEachRenderAtTheirOwnTier) {
     // moved: the phase lines, the analysis block, the exit BLOCK and the
     // initialization notice at `< 2`; the exit VERDICT line and the eight
     // warnings at `< 3`.
-    const std::vector<IterateInfo> rows = scripted_rows();
-    auto at = [&rows](hven::solvers::Verbosity level) {
+    const std::vector<IpmIterate> rows = scripted_rows();
+    auto at = [&rows](hven::Verbosity level) {
         std::FILE *f = std::tmpfile();
         EXPECT_NE(f, nullptr);
         ConsoleTraceSink sink(ConsoleTraceSink::Format{false, level}, f);
@@ -579,10 +576,10 @@ TEST(ConsoleSink, TheT8_7bLineKindsEachRenderAtTheirOwnTier) {
         std::fclose(f);
         return out;
     };
-    const std::string l0 = at(hven::solvers::Verbosity::kIterations);
-    const std::string l1 = at(hven::solvers::Verbosity::kSummary);
-    const std::string l2 = at(hven::solvers::Verbosity::kWarnings);
-    const std::string l3 = at(hven::solvers::Verbosity::kSilent);
+    const std::string l0 = at(hven::Verbosity::kIterations);
+    const std::string l1 = at(hven::Verbosity::kSummary);
+    const std::string l2 = at(hven::Verbosity::kWarnings);
+    const std::string l3 = at(hven::Verbosity::kSilent);
 
     // level 0: every kind.
     EXPECT_NE(l0.find("Beginning"), std::string::npos);
@@ -620,11 +617,10 @@ TEST(ConsoleSink, TheT8_7bLineKindsEachRenderAtTheirOwnTier) {
 TEST(ConsoleSink, TheRestorationExitRowMarkerRendersNothing) {
     // It marks a row that is ALREADY on the stream as an `ipm.iter` line, and
     // the sink renders one row per `ipm.iter`. Rendering here would double it.
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_ipm_solve_begin(scripted_begin(false));
     sink.on_ipm_iter(IpmIterTraceEvent{rows[0], 0});
     std::fflush(f);
@@ -671,8 +667,7 @@ TEST(ConsoleSink, TheSqpTableIsByteIdenticalToFormatIterationTable) {
     const SqpResult sol = make_solution();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     for (std::size_t i = 0; i < sol.history.size(); ++i) {
         sink.on_sqp_major(
@@ -689,8 +684,7 @@ TEST(ConsoleSink, TheSqpTableRendersOnlyDepthZeroMajors) {
     const SqpResult sol = make_solution();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     sink.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
     // A nested solve: its begin, its rows, its end. None of it renders.
@@ -715,7 +709,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     // Status.
     std::FILE *f1 = std::tmpfile();
     ASSERT_NE(f1, nullptr);
-    ConsoleTraceSink one(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kSummary}, f1);
+    ConsoleTraceSink one(ConsoleTraceSink::Format{false, hven::Verbosity::kSummary}, f1);
     one.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     one.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
     one.on_sqp_solve_end(
@@ -730,7 +724,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     // 2: the Status line only.
     std::FILE *f2 = std::tmpfile();
     ASSERT_NE(f2, nullptr);
-    ConsoleTraceSink two(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kWarnings}, f2);
+    ConsoleTraceSink two(ConsoleTraceSink::Format{false, hven::Verbosity::kWarnings}, f2);
     two.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     two.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
     two.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, 3, sol.counters});
@@ -741,7 +735,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     // gain rather than a change for a caller who never set a print level.
     std::FILE *f3 = std::tmpfile();
     ASSERT_NE(f3, nullptr);
-    ConsoleTraceSink three(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kSilent}, f3);
+    ConsoleTraceSink three(ConsoleTraceSink::Format{false, hven::Verbosity::kSilent}, f3);
     three.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     three.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
     three.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, 3, sol.counters});
@@ -752,8 +746,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
 TEST(ConsoleSink, TheEightQpTierEventsRenderNothing) {
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                          f);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_ipqp_iter(IpqpTraceIterEvent{});
     sink.on_ipqp_reg(IpqpTraceRegEvent{});
     sink.on_ipqp_restart(IpqpTraceRestartEvent{});
@@ -781,7 +774,7 @@ TEST(FanOut, ForwardsEveryEventToBothHalvesFirstThenSecond) {
     b.tag = "b";
     FanOutTraceSink fan(&a, &b);
     const SqpCounters counters;
-    const IterateInfo row;
+    const IpmIterate row;
     const SqpIterate sqp_row;
     fan.on_ipqp_iter(IpqpTraceIterEvent{});
     fan.on_ipqp_reg(IpqpTraceRegEvent{});
@@ -820,7 +813,7 @@ TEST(FanOut, ANullHalfIsSkippedRatherThanDereferenced) {
     FanOutTraceSink first_only(&a, nullptr);
     FanOutTraceSink second_only(nullptr, &a);
     FanOutTraceSink neither(nullptr, nullptr);
-    const IterateInfo row;
+    const IpmIterate row;
     first_only.on_ipm_iter(IpmIterTraceEvent{row, 0});
     second_only.on_ipm_iter(IpmIterTraceEvent{row, 0});
     neither.on_ipm_iter(IpmIterTraceEvent{row, 0});
@@ -834,10 +827,9 @@ TEST(FanOut, AUserSinkIsNotDisplacedByTheConsole) {
     CountingSink user;
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
-    ConsoleTraceSink console(ConsoleTraceSink::Format{false, hven::solvers::Verbosity::kIterations},
-                             f);
+    ConsoleTraceSink console(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     FanOutTraceSink fan(&user, &console);
-    const std::vector<IterateInfo> rows = scripted_rows();
+    const std::vector<IpmIterate> rows = scripted_rows();
     fan.on_ipm_solve_begin(scripted_begin(false));
     for (std::size_t i = 0; i < rows.size(); ++i) {
         fan.on_ipm_iter(IpmIterTraceEvent{rows[i], static_cast<Index>(i / 6)});
@@ -857,4 +849,4 @@ TEST(FanOut, AUserSinkIsNotDisplacedByTheConsole) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

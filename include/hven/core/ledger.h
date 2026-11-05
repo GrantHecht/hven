@@ -10,7 +10,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// A single QP-engine solve event: label, warm-start flag, status, and
 /// performance counters.
@@ -266,4 +266,4 @@ class Ledger {
     std::vector<IpmSolveRecord> ipm_records_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -76,7 +76,7 @@ gtest_discover_tests(hven_interior_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_M
 
 ################################################################################
 # Compile-fail probes for the function-entry seam
-# (include/hven/solver_interface_adapter.h).
+# (include/hven/model/solver_interface_adapter.h).
 #
 # The seam's whole point is that the wrong type entering an interface is a
 # LOUD compile error rather than a silent second virtual dispatch, so the

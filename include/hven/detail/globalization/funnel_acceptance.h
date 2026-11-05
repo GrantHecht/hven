@@ -9,7 +9,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// (init) absolute floor tau-bar (KLV Eq. (9); reference option "funnel_ubd" = 1.0).
 inline constexpr double kFunnelInitialUpperBound = 1.0;
@@ -176,4 +176,4 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     bool in_feasibility_phase_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

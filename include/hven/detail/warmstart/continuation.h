@@ -15,7 +15,7 @@
 // a PREDICTED sweep is kWarm by construction), SqpOptions::warm_full_step
 // (which stops the funnel from re-globalizing a warm start from scratch, and
 // engages automatically on every step past the first here), SqpOptions::
-// budget_mode (see BUDGET EXHAUSTION below), and predict() -- the tangential
+// return_best_on_max_iterations (see BUDGET EXHAUSTION below), and predict() -- the tangential
 // predictor that turns the warm start at p into a first-order-accurate one
 // at p + dp.
 //
@@ -73,7 +73,7 @@
 // BUDGET EXHAUSTION IS A CONTINUE, NOT A SHRINK -- the one status this loop
 // treats as neither success nor failure.
 //
-// When the caller's driver runs with SqpOptions::budget_mode, a solve that
+// When the caller's driver runs with SqpOptions::return_best_on_max_iterations, a solve that
 // exhausts max_iter reports kMaxIter with returned_best_iterate set and returns THE BEST ITERATE IT
 // VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the
 // tie-break) rather than the last one reached -- a hand-off designed for this
@@ -104,7 +104,7 @@
 // not just the last slice -- is within target_majors. A proposal that took
 // three budgets is not a cheap step and must not lengthen the next one.
 //
-// With budget_mode OFF (the default) none of this is reachable:
+// With return_best_on_max_iterations OFF (the default) none of this is reachable:
 // returned_best_iterate is NEVER set then, and every
 // max_iter exhaustion arrives as kMaxIter, which is an ordinary failure here.
 //
@@ -196,7 +196,7 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // How the sweep proposes and re-sizes its parameter steps. Every field is a
 // CALLER-VISIBLE POLICY: none of them changes what a converged step means,
@@ -399,7 +399,7 @@ namespace continuation_detail {
 // genuinely stuck proposal costs a bounded multiple of the caller's own
 // max_iter, large enough that a step needing "a bit more than one budget"
 // -- the case the whole continue rule exists for -- is not thrown away on
-// its first slice. It is inert whenever SqpOptions::budget_mode is off,
+// its first slice. It is inert whenever SqpOptions::return_best_on_max_iterations is off,
 // which is the default.
 inline constexpr int kBudgetContinuationsMax = 3;
 
@@ -467,4 +467,4 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, const Vec &p1,
                                     SqpSolver &driver, const ContinuationOptions &opts = {});
 
-} // namespace hven::solvers
+} // namespace hven

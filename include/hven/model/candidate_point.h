@@ -24,7 +24,7 @@
 #include "hven/core/pattern_hash.h"
 #include "hven/core/types.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -57,10 +57,10 @@ namespace detail {
 /// referring to a view object that died at the end of the expression that
 /// formed it.
 struct CandidatePoint {
-    Eigen::Ref<const Vec> x_;
-    Eigen::Ref<const Vec> equality_multipliers_;   ///< may be empty
-    Eigen::Ref<const Vec> inequality_multipliers_; ///< may be empty
-    double objective_scale_ = 1.0;
+    Eigen::Ref<const Vec> x;
+    Eigen::Ref<const Vec> equality_multipliers;   ///< may be empty
+    Eigen::Ref<const Vec> inequality_multipliers; ///< may be empty
+    double objective_scale = 1.0;
 };
 
 /// Caller-owned storage for an aggregate's VALUES at a candidate point.
@@ -70,9 +70,9 @@ struct CandidatePoint {
 /// opposite of what assemble does to an arena -- are stated at
 /// evaluate_candidate_values in model/nlp_assembly.h.
 struct CandidateValues {
-    double &objective_;
-    Eigen::Ref<Vec> equality_residuals_;
-    Eigen::Ref<Vec> inequality_residuals_;
+    double &objective;
+    Eigen::Ref<Vec> equality_residuals;
+    Eigen::Ref<Vec> inequality_residuals;
 };
 
 /// Caller-owned storage for an aggregate's values AND its first derivatives at
@@ -84,9 +84,9 @@ struct CandidateValues {
 /// All of it at an arbitrary point, with no engine in the picture and no access
 /// to whatever model sits behind the provider.
 struct CandidateFirstOrder {
-    CandidateValues values_;
-    Eigen::Ref<Vec> objective_gradient_;
-    Eigen::Ref<Vec> constraint_adjoint_gradient_;
+    CandidateValues values;
+    Eigen::Ref<Vec> objective_gradient;
+    Eigen::Ref<Vec> constraint_adjoint_gradient;
 };
 
 /// Rejects a candidate point whose blocks do not match the dimensions they are
@@ -95,17 +95,17 @@ struct CandidateFirstOrder {
 /// both numbers.
 inline void validate_candidate_point(const CandidatePoint &point, Eigen::Index primal_vars,
                                      Eigen::Index equality_rows, Eigen::Index inequality_rows) {
-    if (point.x_.size() != primal_vars) {
-        detail::throw_candidate_primal_size(point.x_.size(), primal_vars);
+    if (point.x.size() != primal_vars) {
+        detail::throw_candidate_primal_size(point.x.size(), primal_vars);
     }
-    if (point.equality_multipliers_.size() != 0 &&
-        point.equality_multipliers_.size() != equality_rows) {
-        detail::throw_candidate_equality_multiplier_size(point.equality_multipliers_.size(),
+    if (point.equality_multipliers.size() != 0 &&
+        point.equality_multipliers.size() != equality_rows) {
+        detail::throw_candidate_equality_multiplier_size(point.equality_multipliers.size(),
                                                          equality_rows);
     }
-    if (point.inequality_multipliers_.size() != 0 &&
-        point.inequality_multipliers_.size() != inequality_rows) {
-        detail::throw_candidate_inequality_multiplier_size(point.inequality_multipliers_.size(),
+    if (point.inequality_multipliers.size() != 0 &&
+        point.inequality_multipliers.size() != inequality_rows) {
+        detail::throw_candidate_inequality_multiplier_size(point.inequality_multipliers.size(),
                                                            inequality_rows);
     }
 }
@@ -115,12 +115,12 @@ inline void validate_candidate_point(const CandidatePoint &point, Eigen::Index p
 /// numbers.
 inline void validate_candidate_values(const CandidateValues &out, Eigen::Index equality_rows,
                                       Eigen::Index inequality_rows) {
-    if (out.equality_residuals_.size() != equality_rows) {
-        detail::throw_candidate_equality_residual_size(out.equality_residuals_.size(),
+    if (out.equality_residuals.size() != equality_rows) {
+        detail::throw_candidate_equality_residual_size(out.equality_residuals.size(),
                                                        equality_rows);
     }
-    if (out.inequality_residuals_.size() != inequality_rows) {
-        detail::throw_candidate_inequality_residual_size(out.inequality_residuals_.size(),
+    if (out.inequality_residuals.size() != inequality_rows) {
+        detail::throw_candidate_inequality_residual_size(out.inequality_residuals.size(),
                                                          inequality_rows);
     }
 }
@@ -131,13 +131,12 @@ inline void validate_candidate_values(const CandidateValues &out, Eigen::Index e
 inline void validate_candidate_first_order(const CandidateFirstOrder &out, Eigen::Index primal_vars,
                                            Eigen::Index equality_rows,
                                            Eigen::Index inequality_rows) {
-    validate_candidate_values(out.values_, equality_rows, inequality_rows);
-    if (out.objective_gradient_.size() != primal_vars) {
-        detail::throw_candidate_objective_gradient_size(out.objective_gradient_.size(),
-                                                        primal_vars);
+    validate_candidate_values(out.values, equality_rows, inequality_rows);
+    if (out.objective_gradient.size() != primal_vars) {
+        detail::throw_candidate_objective_gradient_size(out.objective_gradient.size(), primal_vars);
     }
-    if (out.constraint_adjoint_gradient_.size() != primal_vars) {
-        detail::throw_candidate_adjoint_gradient_size(out.constraint_adjoint_gradient_.size(),
+    if (out.constraint_adjoint_gradient.size() != primal_vars) {
+        detail::throw_candidate_adjoint_gradient_size(out.constraint_adjoint_gradient.size(),
                                                       primal_vars);
     }
 }
@@ -153,15 +152,15 @@ inline void validate_candidate_first_order(const CandidateFirstOrder &out, Eigen
 /// pin.
 inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
     Fnv1a hash;
-    hash.feed(&values.objective_, sizeof(double));
-    hash.feed_index(values.equality_residuals_.size());
-    for (Eigen::Index row = 0; row < values.equality_residuals_.size(); ++row) {
-        const double value = values.equality_residuals_[row];
+    hash.feed(&values.objective, sizeof(double));
+    hash.feed_index(values.equality_residuals.size());
+    for (Eigen::Index row = 0; row < values.equality_residuals.size(); ++row) {
+        const double value = values.equality_residuals[row];
         hash.feed(&value, sizeof(double));
     }
-    hash.feed_index(values.inequality_residuals_.size());
-    for (Eigen::Index row = 0; row < values.inequality_residuals_.size(); ++row) {
-        const double value = values.inequality_residuals_[row];
+    hash.feed_index(values.inequality_residuals.size());
+    for (Eigen::Index row = 0; row < values.inequality_residuals.size(); ++row) {
+        const double value = values.inequality_residuals[row];
         hash.feed(&value, sizeof(double));
     }
     return hash.value();
@@ -202,7 +201,7 @@ inline std::uint64_t candidate_value_digest(const CandidateValues &values) {
 enum class EvalRequest : std::uint32_t {
     kNone = 0,
 
-    /// The scalar objective value, into RhsScatterView::objective_.
+    /// The scalar objective value, into RhsScatterView::objective.
     kObjectiveValue = 1u << 0,
     /// The objective's gradient, into the objective-gradient arena.
     kObjectiveGradient = 1u << 1,
@@ -274,7 +273,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // "entry"/"moment" is the legacy entry point or driver moment the row
 // replaces; "writes" lists the destinations the shape fills; "empty" lists
 // the destinations the request does not name, which may therefore be left
-// empty by the caller. `objective` is RhsScatterView::objective_ (the scalar
+// empty by the caller. `objective` is RhsScatterView::objective (the scalar
 // out slot); the four arena names are RhsScatterView's four members; `kkt` is
 // the KktScatterView. Rows 1-8: owner = the partitioned evaluation engine.
 //
@@ -287,16 +286,16 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 // 2. objective value + both residual blocks  -> kRequestObjectiveAndConstraints
 //    entry   eval_occ
 //    flags   kObjectiveValue | kConstraintValues
-//    writes  objective, equality_residuals_, inequality_residuals_
-//    empty   objective_gradient_, constraint_adjoint_gradient_, kkt
+//    writes  objective, equality_residuals, inequality_residuals
+//    empty   objective_gradient, constraint_adjoint_gradient, kkt
 //
 // 3. objective value and gradient
 //    + both residual blocks                  -> kRequestObjectiveGradientAndConstraints
 //    entry   eval_ogc
 //    flags   kObjectiveValue | kObjectiveGradient | kConstraintValues
-//    writes  objective, objective_gradient_, equality_residuals_,
-//            inequality_residuals_
-//    empty   constraint_adjoint_gradient_, kkt
+//    writes  objective, objective_gradient, equality_residuals,
+//            inequality_residuals
+//    empty   constraint_adjoint_gradient, kkt
 //
 // 4. the full right-hand side: objective value
 //    and gradient, both residual blocks,
@@ -304,16 +303,16 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    entry   eval_rhs
 //    flags   kObjectiveValue | kObjectiveGradient | kConstraintValues
 //            | kConstraintAdjointGradient
-//    writes  objective, objective_gradient_, constraint_adjoint_gradient_,
-//            equality_residuals_, inequality_residuals_
+//    writes  objective, objective_gradient, constraint_adjoint_gradient,
+//            equality_residuals, inequality_residuals
 //    empty   kkt
 //
 // 5. constraint residuals + Jacobian, no
 //    objective and no adjoint gradient       -> kRequestConstraintResidualsAndJacobian
 //    entry   eval_soe
 //    flags   kConstraintValues | kConstraintJacobian
-//    writes  equality_residuals_, inequality_residuals_, kkt (Jacobian blocks)
-//    empty   objective, objective_gradient_, constraint_adjoint_gradient_
+//    writes  equality_residuals, inequality_residuals, kkt (Jacobian blocks)
+//    empty   objective, objective_gradient, constraint_adjoint_gradient
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // 6. first-order KKT: objective value and
@@ -322,8 +321,8 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    entry   eval_aug
 //    flags   kObjectiveValue | kObjectiveGradient | kConstraintValues
 //            | kConstraintAdjointGradient | kConstraintJacobian
-//    writes  objective, objective_gradient_, constraint_adjoint_gradient_,
-//            equality_residuals_, inequality_residuals_, kkt (Jacobian blocks)
+//    writes  objective, objective_gradient, constraint_adjoint_gradient,
+//            equality_residuals, inequality_residuals, kkt (Jacobian blocks)
 //    empty   -
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
@@ -333,16 +332,16 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //    entry   eval_kkt_no
 //    flags   kConstraintValues | kConstraintAdjointGradient
 //            | kConstraintJacobian | kConstraintAdjointHessian
-//    writes  constraint_adjoint_gradient_, equality_residuals_,
-//            inequality_residuals_, kkt (Jacobian + adjoint-Hessian blocks)
-//    empty   objective, objective_gradient_
+//    writes  constraint_adjoint_gradient, equality_residuals,
+//            inequality_residuals, kkt (Jacobian + adjoint-Hessian blocks)
+//    empty   objective, objective_gradient
 //    caller  also scatters its own solver KKT coefficients, outside assemble
 //
 // 8. the full KKT system                     -> kRequestFullKkt
 //    entry   eval_kkt
 //    flags   every flag above
-//    writes  objective, objective_gradient_, constraint_adjoint_gradient_,
-//            equality_residuals_, inequality_residuals_, kkt (objective
+//    writes  objective, objective_gradient, constraint_adjoint_gradient,
+//            equality_residuals, inequality_residuals, kkt (objective
 //            Hessian + Jacobian + adjoint-Hessian blocks)
 //    empty   -
 //    caller  also scatters its own solver KKT coefficients, outside assemble
@@ -360,7 +359,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //            it by one eval_hess pass, not two separate blocks)
 //    empty   objective, every arena
 //    note    consumes the multipliers (the adjoint half contracts against
-//            them); obj_scale rides CandidatePoint::objective_scale_
+//            them); obj_scale rides CandidatePoint::objective_scale
 //
 // 10. objective gradient + constraint
 //     Jacobians, values not re-evaluated      -> kRequestGradientAndJacobians
@@ -368,9 +367,9 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //            evaluated on the values-only path and are deliberately not
 //            re-evaluated on acceptance)
 //    flags   kObjectiveGradient | kConstraintJacobian
-//    writes  objective_gradient_, kkt (Jacobian blocks)
-//    empty   objective, constraint_adjoint_gradient_, equality_residuals_,
-//            inequality_residuals_
+//    writes  objective_gradient, kkt (Jacobian blocks)
+//    empty   objective, constraint_adjoint_gradient, equality_residuals,
+//            inequality_residuals
 //
 // 11. constraint Jacobians alone              -> kRequestConstraintJacobiansOnly
 //    moment  the zero-major ingest probe's Jacobian fetch (its values arrive
@@ -536,14 +535,14 @@ constexpr bool request_consumes_multipliers(EvalRequest request) noexcept {
 /// no diagnostic. Throws std::invalid_argument naming the block and both sizes.
 inline void validate_full_multipliers(const CandidatePoint &point, Eigen::Index equality_rows,
                                       Eigen::Index inequality_rows) {
-    if (point.equality_multipliers_.size() != equality_rows) {
-        detail::throw_candidate_equality_multipliers_absent(point.equality_multipliers_.size(),
+    if (point.equality_multipliers.size() != equality_rows) {
+        detail::throw_candidate_equality_multipliers_absent(point.equality_multipliers.size(),
                                                             equality_rows);
     }
-    if (point.inequality_multipliers_.size() != inequality_rows) {
-        detail::throw_candidate_inequality_multipliers_absent(point.inequality_multipliers_.size(),
+    if (point.inequality_multipliers.size() != inequality_rows) {
+        detail::throw_candidate_inequality_multipliers_absent(point.inequality_multipliers.size(),
                                                               inequality_rows);
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

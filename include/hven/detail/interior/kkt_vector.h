@@ -7,14 +7,14 @@
 // (see LICENSE).
 
 // The solver's compound KKT vectors are plain Eigen::VectorXd of length
-// primal_vars + slack_vars + equal_cons + inequal_cons. KKTVector is the
-// non-owning view giving those four blocks names, and ConstKKTVector is its
+// primal_vars + slack_vars + equal_cons + inequal_cons. KktVector is the
+// non-owning view giving those four blocks names, and ConstKktVector is its
 // read-only twin for storage the holder may not write. Deliberately a standalone
 // header with no IpmSolver dependency: the solver and every
 // globalization component build views from the SAME two types, so ONE layout
 // contract governs every compound KKT vector in the engine. The two views
 // duplicate the short accessor expressions that spell that contract out -- see
-// ConstKKTVector's own note for why it is a second class and not a template
+// ConstKktVector's own note for why it is a second class and not a template
 // instantiation -- and tests/interior/test_structure_epoch_gating.cpp pins the
 // duplication accessor for accessor, since nothing else holds them in step.
 // Each component supplies its own kkt_view() factory, since dimensions come
@@ -33,7 +33,7 @@
 
 #include <Eigen/Core>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Lightweight non-owning view over the compound KKT layout
 /// [primals | slacks | eq_lmults | iq_lmults], used both as the iterate
@@ -43,9 +43,9 @@ namespace hven::solvers {
 /// const overloads use std::as_const(data_) to force Eigen's segment accessors
 /// to return immutable expressions. Lifetime: must not outlive the referenced
 /// VectorXd.
-class KKTVector {
+class KktVector {
   public:
-    KKTVector(Eigen::VectorXd &data, int pv, int sv, int ec, int ic)
+    KktVector(Eigen::VectorXd &data, int pv, int sv, int ec, int ic)
         : data_(data), pv_(pv), sv_(sv), ec_(ec), ic_(ic) {
         assert(pv >= 0 && sv >= 0 && ec >= 0 && ic >= 0);
         assert(data.size() >= pv + sv + ec + ic);
@@ -95,26 +95,26 @@ class KKTVector {
     // The read-only twin below is built from these directly: it is the same
     // layout over the same storage, and re-deriving the widths from segment
     // sizes would be the same four numbers taken the long way round.
-    friend class ConstKKTVector;
+    friend class ConstKktVector;
 
     Eigen::VectorXd &data_;
     int pv_, sv_, ec_, ic_;
 };
 
-/// @brief The READ-ONLY twin of KKTVector: the same four-block layout over
+/// @brief The READ-ONLY twin of KktVector: the same four-block layout over
 /// storage the holder may not write.
 ///
 /// It exists because a function that only READS a compound vector should be
-/// able to say so in its signature. KKTVector's constructor takes
+/// able to say so in its signature. KktVector's constructor takes
 /// `Eigen::VectorXd &`, so before this class a const `Eigen::VectorXd` could
 /// not be viewed at all without a const_cast or a copy -- which is why
 /// IpmSolver::enter_feasibility_restoration took its RHS by mutable
 /// reference while never writing it (M6 W5 T2).
 ///
 /// DELIBERATELY NOT A TEMPLATE, and this is the whole design decision. The
-/// natural C++ shape is one `BasicKKTVector<Storage>` with `KKTVector` and
-/// `ConstKKTVector` as two alias instantiations. That shape is correct and it
-/// was rejected: `KKTVector` names a type in 28 signatures across 11 files,
+/// natural C++ shape is one `BasicKKTVector<Storage>` with `KktVector` and
+/// `ConstKktVector` as two alias instantiations. That shape is correct and it
+/// was rejected: `KktVector` names a type in 28 signatures across 11 files,
 /// including the virtual interfaces of every globalization component, and an
 /// alias does not preserve a mangled name -- `10KKTVector` would become the
 /// template's spelling in every one of them, renaming those functions, the
@@ -122,13 +122,13 @@ class KKTVector {
 /// non-template classes cost one duplicated set of segment expressions in one
 /// header and leave every existing symbol exactly where it is.
 ///
-/// Converts implicitly from KKTVector, so a caller holding a mutable view can
+/// Converts implicitly from KktVector, so a caller holding a mutable view can
 /// pass it to a read-only parameter without naming this type. Lifetime: must
-/// not outlive the referenced VectorXd (the KKTVector conversion binds to that
-/// vector, not to the KKTVector).
-class ConstKKTVector {
+/// not outlive the referenced VectorXd (the KktVector conversion binds to that
+/// vector, not to the KktVector).
+class ConstKktVector {
   public:
-    ConstKKTVector(const Eigen::VectorXd &data, int pv, int sv, int ec, int ic)
+    ConstKktVector(const Eigen::VectorXd &data, int pv, int sv, int ec, int ic)
         : data_(data), pv_(pv), sv_(sv), ec_(ec), ic_(ic) {
         assert(pv >= 0 && sv >= 0 && ec >= 0 && ic >= 0);
         assert(data.size() >= pv + sv + ec + ic);
@@ -136,7 +136,7 @@ class ConstKKTVector {
 
     /// @brief Implicit read-only view of an existing mutable view, over the
     ///        SAME storage and with the same block widths.
-    ConstKKTVector(const KKTVector &v) : ConstKKTVector(v.data_, v.pv_, v.sv_, v.ec_, v.ic_) {}
+    ConstKktVector(const KktVector &v) : ConstKktVector(v.data_, v.pv_, v.sv_, v.ec_, v.ic_) {}
 
     // --- Primal/slack segments ---
     auto primals() const { return data_.head(pv_); }
@@ -164,4 +164,4 @@ class ConstKKTVector {
     int pv_, sv_, ec_, ic_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

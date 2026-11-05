@@ -66,19 +66,19 @@
 #include "hven/detail/warmstart/sqp_warm_access.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 
 /// The permutation-corruption hook the falsification battery needs, declared as
 /// a friend by the seam and defined ONLY here. Nothing in the shipped class can
 /// mutate a location table.
 struct AggregateEvalSeamTestAccess {
-    static int hessian_claim_count(const AssemblyEvalSeam &seam) { return seam.hessian_.count_; }
+    static int hessian_claim_count(const AssemblyEvalSeam &seam) { return seam.hessian_.count; }
 
     static int location(const AssemblyEvalSeam &seam, int claim_slot) {
         return seam.kkt_locations_[static_cast<std::size_t>(claim_slot)];
@@ -97,40 +97,40 @@ struct AggregateEvalSeamTestAccess {
     /// the structures. Used to construct the two states a lay that throws could
     /// leave behind -- structures partial, epoch either committed or stale --
     /// so the recovery rule can be pinned in both directions.
-    static void adopt_epoch(AssemblyEvalSeam &seam, hven::solvers::StructureEpoch epoch) {
+    static void adopt_epoch(AssemblyEvalSeam &seam, hven::StructureEpoch epoch) {
         seam.epoch_at_lay_ = epoch;
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven
 
 namespace {
 
+using hven::AggregateEvalSeamTestAccess;
+using hven::AssemblyEvalSeam;
+using hven::build_subproblem;
+using hven::eval_nlp;
+using hven::eval_nlp_values;
 using hven::Index;
+using hven::NlpEval;
+using hven::NlpModel;
+using hven::NlpModelAssembly;
+using hven::QpProblem;
 using hven::SpMatRM;
+using hven::upgrade_to_full;
 using hven::Vec;
-using hven::solvers::AggregateEvalSeamTestAccess;
-using hven::solvers::AssemblyEvalSeam;
-using hven::solvers::build_subproblem;
-using hven::solvers::eval_nlp;
-using hven::solvers::eval_nlp_values;
-using hven::solvers::NlpEval;
-using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAssembly;
-using hven::solvers::QpProblem;
-using hven::solvers::upgrade_to_full;
 // The driver-entry battery at the end of this file.
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpCounters;
-using hven::solvers::SqpIterate;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::StartLevel;
-using hven::solvers::detail::SqpWarmState;
-using hven::solvers::test_support::detail::kInf;
-using hven::solvers::test_support::detail::make_jac;
-using hven::solvers::test_support::detail::make_upper;
+using hven::SolveStatus;
+using hven::SqpCounters;
+using hven::SqpIterate;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::StartLevel;
+using hven::detail::SqpWarmState;
+using hven::test_support::detail::kInf;
+using hven::test_support::detail::make_jac;
+using hven::test_support::detail::make_upper;
 
 // ---------------------------------------------------------------------------
 // The coupling fixture: me > 0, mi > 0, a genuinely non-diagonal Hessian, a
@@ -224,16 +224,16 @@ std::vector<SeamFixture> fixtures() {
                    {(Vec(3) << 0.0, 0.25, 0.0).finished(), (Vec(3) << 0.7, -0.3, 1.25).finished(),
                     (Vec(3) << -1.5, 2.0, 0.5).finished()}});
     all.push_back({"HS14",
-                   std::make_shared<hven::solvers::test_support::Hs14Model>(),
+                   std::make_shared<hven::test_support::Hs14Model>(),
                    {(Vec(2) << 2.0, 2.0).finished(), (Vec(2) << 1.5, -0.25).finished(),
                     (Vec(2) << 0.0, 0.0).finished()}});
     all.push_back({"HS15",
-                   std::make_shared<hven::solvers::test_support::Hs15Model>(),
+                   std::make_shared<hven::test_support::Hs15Model>(),
                    {(Vec(2) << -2.0, 1.0).finished(), (Vec(2) << 0.5, 2.0).finished(),
                     (Vec(2) << 0.0, 0.0).finished()}});
     all.push_back(
         {"HS76",
-         std::make_shared<hven::solvers::test_support::Hs76Model>(),
+         std::make_shared<hven::test_support::Hs76Model>(),
          {(Vec(4) << 0.5, 0.5, 0.5, 0.5).finished(), (Vec(4) << 0.0, 1.25, -0.5, 2.0).finished()}});
     return all;
 }
@@ -481,10 +481,8 @@ TEST(AggregateEvalSeamIdentity, LaysTheDeclarationsDimensionsAndBounds) {
         // (M8 B7): a model bound at or beyond 1e20 is laid as an infinity.
         Vec lower = fixture.model_->lower();
         Vec upper = fixture.model_->upper();
-        hven::solvers::detail::normalize_bounds(lower,
-                                                hven::solvers::detail::kDefaultInfiniteBound);
-        hven::solvers::detail::normalize_bounds(upper,
-                                                hven::solvers::detail::kDefaultInfiniteBound);
+        hven::detail::normalize_bounds(lower, hven::detail::kDefaultInfiniteBound);
+        hven::detail::normalize_bounds(upper, hven::detail::kDefaultInfiniteBound);
         expect_same_vector(seam.lower(), lower, "lower");
         expect_same_vector(seam.upper(), upper, "upper");
         EXPECT_EQ(&seam.aggregate(), &aggregate);
@@ -507,7 +505,7 @@ TEST(AggregateEvalSeamIdentity, LaysTheDeclarationsDimensionsAndBounds) {
 // carry these matrices downstream are compressed on BOTH sides, because
 // build_subproblem compresses, and their raw arrays are asserted equal below.
 TEST(AggregateEvalSeamIdentity, PublishesCompressedJacobiansWhereAModelReturnMayNotBe) {
-    const auto model = std::make_shared<hven::solvers::test_support::Hs76Model>();
+    const auto model = std::make_shared<hven::test_support::Hs76Model>();
     const Vec x = (Vec(4) << 0.5, 0.5, 0.5, 0.5).finished();
     const Vec lambda_e = multipliers(0, 0.5);
     const Vec lambda_i = multipliers(3, 0.25);
@@ -582,7 +580,7 @@ TEST(AggregateEvalSeamEpoch, ARenegotiationForcesARelayAndTheOutputsStillAgree) 
     const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
     const Vec lambda_e = multipliers(1, 0.5);
     const Vec lambda_i = multipliers(2, 0.25);
-    const hven::solvers::StructureEpoch before = seam.epoch();
+    const hven::StructureEpoch before = seam.epoch();
 
     // A renegotiation is a structural event by contract, even at the count
     // already in force: claim ORDER moved, so slot-indexed state is stale.
@@ -678,7 +676,7 @@ TEST(AggregateEvalSeamEpoch, AStaleEpochOverBrokenStructuresHealsAtTheNextMoment
     const Vec lambda_i = multipliers(2, 0.25);
     const NlpEval free_ev = eval_nlp(*model, x);
     const QpProblem reference = build_subproblem(*model, free_ev, x, lambda_e, lambda_i, 1.0);
-    const hven::solvers::StructureEpoch current = seam.epoch();
+    const hven::StructureEpoch current = seam.epoch();
 
     // A seam whose structures are wrong, standing at the current epoch: this is
     // what a commit-first ordering would leave, and it stays wrong.
@@ -694,7 +692,7 @@ TEST(AggregateEvalSeamEpoch, AStaleEpochOverBrokenStructuresHealsAtTheNextMoment
 
     // The same broken structures, standing at a STALE epoch: this is what the
     // commit-last ordering leaves, and the next moment repairs it.
-    AggregateEvalSeamTestAccess::adopt_epoch(seam, hven::solvers::StructureEpoch{});
+    AggregateEvalSeamTestAccess::adopt_epoch(seam, hven::StructureEpoch{});
     ASSERT_NE(seam.epoch(), aggregate.structure_epoch());
 
     const NlpEval healed = seam.eval_nlp(x, lambda_e, lambda_i);
@@ -1091,9 +1089,8 @@ void expect_bit_equal(const Vec &bridge, const Vec &model, const std::string &wh
 /// The emitted hand-off, field by field. `hot` is compared by PRESENCE rather
 /// than by address: it is a handle onto one driver's own engine state, so two
 /// drivers cannot share one and equality of the pointers is not the claim.
-void expect_same_warm_start(const hven::solvers::detail::SqpWarmState &bridge,
-                            const hven::solvers::detail::SqpWarmState &model,
-                            const std::string &tag) {
+void expect_same_warm_start(const hven::detail::SqpWarmState &bridge,
+                            const hven::detail::SqpWarmState &model, const std::string &tag) {
     SCOPED_TRACE(tag);
     EXPECT_EQ(bridge.valid, model.valid);
     EXPECT_EQ(bridge.structure_hash, model.structure_hash);
@@ -1171,10 +1168,10 @@ void expect_same_solution(const SqpResult &bridge, const SqpResult &model, const
     EXPECT_EQ(bridge.infeasibility_certified, model.infeasibility_certified);
     EXPECT_EQ(std::bit_cast<std::uint64_t>(bridge.f), std::bit_cast<std::uint64_t>(model.f));
     expect_bit_equal(bridge.x, model.x, "x");
-    expect_bit_equal(hven::solvers::detail::engine_rows(bridge).lambda_e,
-                     hven::solvers::detail::engine_rows(model).lambda_e, "lambda_e");
-    expect_bit_equal(hven::solvers::detail::engine_rows(bridge).lambda_i,
-                     hven::solvers::detail::engine_rows(model).lambda_i, "lambda_i");
+    expect_bit_equal(hven::detail::engine_rows(bridge).lambda_e,
+                     hven::detail::engine_rows(model).lambda_e, "lambda_e");
+    expect_bit_equal(hven::detail::engine_rows(bridge).lambda_i,
+                     hven::detail::engine_rows(model).lambda_i, "lambda_i");
     expect_bit_equal(bridge.z, model.z, "z");
     expect_same_history(bridge.history, model.history, tag + " history");
     expect_same_counters(bridge.counters, model.counters, tag + " counters");
@@ -1192,15 +1189,13 @@ template <typename Make> void check_cold_arm(Make make, const std::string &tag) 
 
     SqpOptions opts;
     SqpSolver model_driver{opts};
-    const SqpResult via_model =
-        model_driver.solve(hven::solvers::detail::problem_ref(*model_side), x0);
+    const SqpResult via_model = model_driver.solve(hven::detail::problem_ref(*model_side), x0);
 
     // ONE bridge, built outside the solve -- the hot-loop shape the driver
     // header's model-taking overloads point callers at.
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
-    const SqpResult via_bridge =
-        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
+    const SqpResult via_bridge = bridge_driver.solve(hven::detail::problem_ref(bridge), x0);
 
     ASSERT_EQ(via_model.status, SolveStatus::kOptimal) << tag;
     expect_same_solution(via_bridge, via_model, tag + " cold");
@@ -1217,19 +1212,17 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
 
     SqpOptions opts;
     SqpSolver model_driver{opts};
-    const SqpResult model_seed =
-        model_driver.solve(hven::solvers::detail::problem_ref(*model_side), x0);
+    const SqpResult model_seed = model_driver.solve(hven::detail::problem_ref(*model_side), x0);
     ASSERT_TRUE(SqpWarmAccess::state(model_seed.native_warm_start).valid) << tag;
-    const SqpResult via_model = model_driver.solve(hven::solvers::detail::problem_ref(*model_side),
-                                                   x0, model_seed.native_warm_start);
+    const SqpResult via_model = model_driver.solve(hven::detail::problem_ref(*model_side), x0,
+                                                   model_seed.native_warm_start);
 
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
-    const SqpResult bridge_seed =
-        bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0);
+    const SqpResult bridge_seed = bridge_driver.solve(hven::detail::problem_ref(bridge), x0);
     ASSERT_TRUE(SqpWarmAccess::state(bridge_seed.native_warm_start).valid) << tag;
-    const SqpResult via_bridge = bridge_driver.solve(hven::solvers::detail::problem_ref(bridge), x0,
-                                                     bridge_seed.native_warm_start);
+    const SqpResult via_bridge =
+        bridge_driver.solve(hven::detail::problem_ref(bridge), x0, bridge_seed.native_warm_start);
 
     // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
     // that is not redundant with the cold battery: those two solves are what
@@ -1250,15 +1243,13 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
 } // namespace
 
 TEST(SqpDriverEntryEquivalence, ColdArmAgreesOnF1AndF3n50) {
-    check_cold_arm([] { return hven::solvers::test_support::F1BoxQp(0.0); }, "F1");
-    check_cold_arm([] { return hven::solvers::test_support::F3SpringChain(50, 0.5, 0.25); },
-                   "F3n50");
+    check_cold_arm([] { return hven::test_support::F1BoxQp(0.0); }, "F1");
+    check_cold_arm([] { return hven::test_support::F3SpringChain(50, 0.5, 0.25); }, "F3n50");
 }
 
 TEST(SqpDriverEntryEquivalence, WarmArmAgreesOnF1AndF3n50) {
-    check_warm_arm([] { return hven::solvers::test_support::F1BoxQp(0.0); }, "F1");
-    check_warm_arm([] { return hven::solvers::test_support::F3SpringChain(50, 0.5, 0.25); },
-                   "F3n50");
+    check_warm_arm([] { return hven::test_support::F1BoxQp(0.0); }, "F1");
+    check_warm_arm([] { return hven::test_support::F3SpringChain(50, 0.5, 0.25); }, "F3n50");
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

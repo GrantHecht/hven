@@ -14,13 +14,13 @@
 namespace {
 struct OutOfRange {
     static constexpr hven::Index kInputs = 2, kOutputs = 1;
-    static constexpr std::array<hven::solvers::BlockEntry, 2> kJacobianPattern{{{0, 0}, {0, 2}}};
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr std::array<hven::BlockEntry, 2> kJacobianPattern{{{0, 0}, {0, 2}}};
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     void value(hven::ConstVecRef, hven::VecRef) const {}
     void jacobian(hven::ConstVecRef, hven::MatRef) const {}
 };
 } // namespace
 
-hven::solvers::ConstraintInterface probe_local_jacobian_pattern_out_of_range() {
-    return hven::solvers::ConstraintInterface(OutOfRange{});
+hven::ConstraintInterface probe_local_jacobian_pattern_out_of_range() {
+    return hven::ConstraintInterface(OutOfRange{});
 }

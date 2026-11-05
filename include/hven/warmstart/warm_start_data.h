@@ -22,7 +22,7 @@
 #include "hven/core/types.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 
 class Problem;
 
@@ -198,4 +198,4 @@ std::vector<std::byte> serialize(const WarmStart &data);
 ///         so no input reads past `bytes`.
 WarmStart deserialize(std::span<const std::byte> bytes);
 
-} // namespace hven::solvers
+} // namespace hven

@@ -94,10 +94,10 @@
 
 #include "support/hs_sweeps.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 namespace {
 
@@ -136,7 +136,7 @@ int main() {
             SqpSolver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
             const SqpResult sol =
-                driver.solve(hven::solvers::detail::problem_ref(*model), model->start_point());
+                driver.solve(hven::detail::problem_ref(*model), model->start_point());
             all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;

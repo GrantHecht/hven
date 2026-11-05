@@ -21,7 +21,7 @@
 #include "support/indefinite_fixtures.h"
 #include "support/ipqp_test_support.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -70,7 +70,7 @@ Vec vec(const std::vector<double> &v) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -123,7 +123,7 @@ TEST(IpqpCertificationTest, ADowngradedCertificateReportsNumericalErrorAndNotANe
 
     // It CONVERGED -- this is not a failure dressed up as one.
     EXPECT_GT(r.counters.ipqp_iters, 0);
-    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * io.converge_slack);
+    EXPECT_LE(r.residuals.worst(), tight_opts().optimality_tol * io.converge_slack);
 
     // ... and reports a downgrade with NO escape.
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 3);
@@ -245,7 +245,7 @@ TEST(IpqpA11Test, TheIndefiniteFamilyRidesNegativeCurvatureToABoundAndCertifiesH
         EXPECT_NEAR(r.x(0), c, 1e-5);
         EXPECT_NEAR(std::abs(r.x(1)), 1.0, 1e-6) << "landed at a bound, not in the interior";
         EXPECT_GT(std::abs(r.x(1) - 0.125), 0.5) << "and specifically NOT at the interior saddle";
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().optimality_tol * IpqpOptions{}.converge_slack);
 
         // (4) THE FINAL READ HAPPENED AND AGREED. `0` is also the structural value on a solve
         // that never reached the read, so the certifying exit above disambiguates and the
@@ -360,7 +360,7 @@ TEST(IpqpA11Test, TheHSIndefiniteRowsConvergeAndReachTheRequiredFinalRead) {
         EXPECT_EQ(r.counters.ipqp_escapes, 0);
         EXPECT_EQ(census_entries(r.counters), 0);
         EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().optimality_tol * IpqpOptions{}.converge_slack);
         ++reached_read_hs;
 
         // WHERE IT LANDED AND WHAT IT COST, matched as ONE WHOLE TRAJECTORY against the
@@ -880,7 +880,7 @@ TEST(IpqpLadderTest, AFixedPointOfTheExecutedMapIsAPointTheGateCanSee) {
         // whatever it then said.
         EXPECT_TRUE(r.escape_reason == IpqpEscape::kNone ||
                     r.escape_reason == IpqpEscape::kIndefinite);
-        EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
+        EXPECT_LE(r.residuals.worst(), tight_opts().optimality_tol * IpqpOptions{}.converge_slack);
         // T4b GATE 5's COST TABLE, re-readable at any head (M6 W1 T9 item 10).
         RecordProperty(std::string(c.name) + "_cost",
                        fmt::format("it={} fac={} reclimbs={} retries={} armed_no_adv={} "
@@ -1784,4 +1784,4 @@ TEST(IpqpCertificationTest, AKilledWarmAttemptsHistoryNeverReachesTheColdRestart
 #endif
 }
 
-} // namespace hven::solvers
+} // namespace hven

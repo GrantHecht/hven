@@ -29,7 +29,7 @@
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #endif // not ENABLE_VIRTUAL_TERMINAL_PROCESSING
 
-void hven::utils::enable_color_console() {
+void hven::detail::enable_color_console() {
 
 #if defined(_WIN32)
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);

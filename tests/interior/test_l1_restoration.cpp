@@ -37,16 +37,16 @@
 
 namespace {
 
-using hven::solvers::ElasticSlackInit;
-using hven::solvers::IpmSolver;
-using hven::solvers::kBoundMultResetThreshold;
-using hven::solvers::kNearFeasibleGuardFactor;
-using hven::solvers::kRestoPenaltyParameter;
-using hven::solvers::kRestoProximityWeight;
-using hven::solvers::l1_elastic_slack_init;
-using hven::solvers::NestedL1Restoration;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::SolverContext;
+using hven::ElasticSlackInit;
+using hven::IpmSolver;
+using hven::kBoundMultResetThreshold;
+using hven::kNearFeasibleGuardFactor;
+using hven::kRestoPenaltyParameter;
+using hven::kRestoProximityWeight;
+using hven::l1_elastic_slack_init;
+using hven::NestedL1Restoration;
+using hven::ProgressMeasures;
+using hven::SolverContext;
 using TychoTest::InertSolverContext;
 
 // =============================================================================
@@ -639,7 +639,7 @@ TEST(L1RestoRecenter, ResetClearsRecenterCount) {
 TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
     InertSolverContext inert;
     inert.opts_.common.feasibility_tol = 1e-6;
-    inert.opts_.advanced.restoration_max_entries = 2;
+    inert.opts_.advanced.max_restoration_entries = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -653,7 +653,7 @@ TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
 TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
     InertSolverContext inert;
     inert.opts_.common.feasibility_tol = 1e-6;
-    inert.opts_.advanced.restoration_max_entries = 2;
+    inert.opts_.advanced.max_restoration_entries = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -677,7 +677,7 @@ TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
 TEST(L1RestoEntryPermitted, ZeroBudgetAlwaysRefuses) {
     InertSolverContext inert;
     inert.opts_.common.feasibility_tol = 1e-6;
-    inert.opts_.advanced.restoration_max_entries = 0;
+    inert.opts_.advanced.max_restoration_entries = 0;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -762,7 +762,7 @@ TEST(L1RestoReset, ClearsAllElasticState) {
 
 TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
     EXPECT_EQ(result.last_feas_rest_entries, 0);
     EXPECT_EQ(result.last_feas_rest_iters, 0);
@@ -785,7 +785,7 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_nested(ref, xr, eq, empty, 0.2);
     r.note_iteration();
 
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
     EXPECT_EQ(result.last_feas_rest_entries, 2);
     EXPECT_EQ(result.last_feas_rest_iters, 4);

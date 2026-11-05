@@ -14,7 +14,7 @@
 
 #include <string>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Type-erasure spec: query the Input/Output rows of a type-erased
 /// vector function, plus its name and thread safety.
@@ -29,4 +29,4 @@ struct SizableSpec {
     };
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -16,21 +16,21 @@
 #include <vector>
 
 #include "hven/core/solver_status.h"
-#include "hven/model/constraint_function.h"
-#include "hven/model/objective_function.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/detail/model/problem_access.h"
-#include "hven/model/solver_interface_specs.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/model/assembly_declaration.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
+#include "hven/model/piece_interfaces.h"
 #include "hven/model/problem.h"
-#include "hven/solver_interface_adapter.h"
+#include "hven/model/solver_interface_adapter.h"
 
 namespace string_piece_test {
 
 using namespace hven;
-using namespace hven::solvers;
+using namespace hven;
 using Vx = Eigen::VectorXd;
 using Vi = Eigen::VectorXi;
 using SpMatRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
@@ -103,7 +103,7 @@ struct StringLabelledQuadratic : NoConstraintSurface {
                             const SolverIndexingData &d) const {
         this->objective(scale, X, val, d);
         for (int V = 0; V < d.num_appl(); V++) {
-            GX[d.inner_gradient_starts_[V]] = scale * 2.0 * weight * (X[d.v_loc(0, V)] - ref);
+            GX[d.inner_gradient_starts[V]] = scale * 2.0 * weight * (X[d.v_loc(0, V)] - ref);
         }
     }
     void objective_gradient_hessian(double scale, hven::ConstEigenRef<Vx> X, double &val,
@@ -116,15 +116,15 @@ struct StringLabelledQuadratic : NoConstraintSurface {
             if (r < 0) {
                 continue; // variable eliminated by the solver: slot claimed, nothing to write
             }
-            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts_[V],
+            kkt_add(kkt, locations, clashes, locks, d.inner_kkt_starts[V],
                     kkt_canonical_lock_col(r, r), scale * 2.0 * weight, true);
         }
     }
     void get_kkt_space(Eigen::Ref<Vi> rows, Eigen::Ref<Vi> cols, int &free_slot, int /*con_offset*/,
                        bool /*do_jac*/, bool do_hess, SolverIndexingData &d) {
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_hess) {
                 rows[free_slot] = cols[free_slot] = d.v_scatter_loc(0, V); // -1 when eliminated
                 free_slot++;
@@ -137,7 +137,7 @@ struct StringLabelledQuadratic : NoConstraintSurface {
 } // namespace string_piece_test
 
 template <>
-struct hven::solvers::SolverInterfaceAdapter<string_piece_test::StringLabelledQuadratic>
+struct hven::SolverInterfaceAdapter<string_piece_test::StringLabelledQuadratic>
     : DirectFunctionModel<string_piece_test::StringLabelledQuadratic> {};
 
 namespace string_piece_test {
@@ -149,26 +149,26 @@ TEST(StringPiece, DeclaredAndSolvedThroughTheAssemblyPath) {
     x1_idx(0, 0) = 1;
 
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = n;
-    declaration.equality_rows_ = 0;
-    declaration.inequality_rows_ = 0;
-    declaration.partition_count_ = 1;
-    declaration.objectives_.emplace_back(
+    declaration.primal_vars = n;
+    declaration.equality_rows = 0;
+    declaration.inequality_rows = 0;
+    declaration.partition_count = 1;
+    declaration.objectives.emplace_back(
         ObjectiveInterface(StringLabelledQuadratic{{}, "q0", 1.0, 0.25}), x0_idx);
-    declaration.objectives_.emplace_back(
+    declaration.objectives.emplace_back(
         ObjectiveInterface(StringLabelledQuadratic{
             {}, "a label long enough to defeat the small-string optimisation", 2.0, -0.5}),
         x1_idx);
-    declaration.variable_bounds_.push_back(VariableBound{0, -1.0, 1.0});
-    declaration.variable_bounds_.push_back(VariableBound{1, -1.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{0, -1.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{1, -1.0, 1.0});
 
     NonLinearProgram program(1);
     program.adopt_declaration(std::move(declaration));
 
     IpmOptions options;
-    options.common.verbosity = hven::solvers::Verbosity::kIterations;
+    options.common.verbosity = hven::Verbosity::kIterations;
     IpmSolver solver(options);
-    const IpmResult result = solver.solve(hven::solvers::detail::problem_ref(program), Vx::Zero(n));
+    const IpmResult result = solver.solve(hven::detail::problem_ref(program), Vx::Zero(n));
 
     EXPECT_EQ(result.status, SolveStatus::kOptimal);
     EXPECT_NEAR(result.x[0], 0.25, 1e-6);
@@ -184,14 +184,14 @@ TEST(StringPiece, APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp) {
     x0_idx(0, 0) = 0;
     x1_idx(0, 0) = 1;
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = 2;
-    declaration.partition_count_ = 1;
-    declaration.objectives_.emplace_back(
+    declaration.primal_vars = 2;
+    declaration.partition_count = 1;
+    declaration.objectives.emplace_back(
         ObjectiveInterface(StringLabelledQuadratic{{}, "q0", 1.0, 0.25}), x0_idx);
-    declaration.objectives_.emplace_back(
+    declaration.objectives.emplace_back(
         ObjectiveInterface(StringLabelledQuadratic{{}, "q1", 2.0, -0.5}), x1_idx);
-    declaration.variable_bounds_.push_back(VariableBound{0, -1.0, 1.0});
-    declaration.variable_bounds_.push_back(VariableBound{1, -1.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{0, -1.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{1, -1.0, 1.0});
 
     Problem problem(std::move(declaration));
     EXPECT_EQ(problem.num_variables(), 2);
@@ -200,7 +200,7 @@ TEST(StringPiece, APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp) {
     EXPECT_EQ(problem.statistics().boxed_variables, 2);
 
     IpmOptions options;
-    options.common.verbosity = hven::solvers::Verbosity::kSilent;
+    options.common.verbosity = hven::Verbosity::kSilent;
     IpmSolver ipm(options);
     const IpmResult result = ipm.solve(problem, Vx::Zero(2));
     EXPECT_EQ(result.status, SolveStatus::kOptimal);

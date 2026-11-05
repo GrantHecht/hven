@@ -75,12 +75,12 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Deg = hven::solvers::detail::testing::QpDegeneracyArmState;
-using DegArm = hven::solvers::detail::testing::QpDegeneracyArm;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Deg = hven::detail::testing::QpDegeneracyArmState;
+using DegArm = hven::detail::testing::QpDegeneracyArm;
 
 namespace {
 
@@ -280,7 +280,7 @@ struct Walk {
     Index period = 0;
     Index tail = 0;
     double tail_motion = 0.0;
-    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> records;
+    std::vector<hven::detail::testing::QpWalkMinorRecord> records;
 };
 
 /// Solves with the observer ARMED and reports both the answer and the
@@ -439,8 +439,8 @@ struct DegArmGuard {
 /// rather than assuming it.
 QpOptions cycling_opts() {
     QpOptions o;
-    o.max_iter = 200;
-    o.opt_tol = 1e-6;
+    o.max_iterations = 200;
+    o.optimality_tol = 1e-6;
     // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
     // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
     // end of test_qp_anti_cycling_arm.cpp).
@@ -551,7 +551,7 @@ TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTermi
     // is measured against the same three facts rather than silently tolerated.
     Index drops = 0;
     for (const auto &rec : off.records) {
-        if (rec.drop_route != hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+        if (rec.drop_route != hven::detail::testing::QpWalkDropRoute::kDantzig) {
             continue;
         }
         ++drops;
@@ -642,7 +642,7 @@ TEST(QpDegeneracyArm, TheDropScaleColumnHasNoDropPassToCheck) {
 
     Index checked = 0;
     for (const auto &rec : off.records) {
-        if (rec.drop_route != hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+        if (rec.drop_route != hven::detail::testing::QpWalkDropRoute::kDantzig) {
             continue;
         }
         // BITS, not a tolerance: the arm's internal-consistency argument is
@@ -715,7 +715,7 @@ TEST(QpDegeneracyArm, TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns) {
     Index drops = 0;
     Index adds = 0;
     for (const auto &rec : w.records) {
-        if (rec.drop_route == hven::solvers::detail::testing::QpWalkDropRoute::kDantzig) {
+        if (rec.drop_route == hven::detail::testing::QpWalkDropRoute::kDantzig) {
             ++drops;
             // The integer screen is free and is taken on every drop pass.
             EXPECT_EQ(rec.dep_n, qp.n());
@@ -727,7 +727,7 @@ TEST(QpDegeneracyArm, TheDiagnosticColumnsStayAbsentBecauseNoDropPassRuns) {
             EXPECT_GE(rec.post_drop_expected_pos, 0);
             EXPECT_GE(rec.post_drop_expected_neg, 0);
         }
-        if (rec.action == hven::solvers::detail::testing::QpWalkAction::kAdd) {
+        if (rec.action == hven::detail::testing::QpWalkAction::kAdd) {
             ++adds;
             EXPECT_FALSE(std::isnan(rec.add_a_dot_p));
             EXPECT_FALSE(std::isnan(rec.add_leak_bound));
@@ -896,9 +896,9 @@ double box_violation(const QpProblem &qp, const Vec &x) {
 }
 
 /// Every record the arm actually ran on.
-std::vector<hven::solvers::detail::testing::QpWalkMinorRecord>
-b1_records(const std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> &recs) {
-    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> out;
+std::vector<hven::detail::testing::QpWalkMinorRecord>
+b1_records(const std::vector<hven::detail::testing::QpWalkMinorRecord> &recs) {
+    std::vector<hven::detail::testing::QpWalkMinorRecord> out;
     for (const auto &r : recs) {
         if (r.add_b1_examined >= 0) {
             out.push_back(r);
@@ -940,7 +940,7 @@ TEST(QpDegeneracyArm, ArmB1IsInertOnTheFixtureThatNoLongerCycles) {
     // certificate's bound half exited kInfeasible there (M7 W2 E4's own finding).
     // With no pass-over there is no leak, and the absence is asserted: a returning
     // leak fails here rather than passing as "kInfeasible, as documented".
-    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feasibility_tol)
         << "the iterate is outside its box again: the pass-over leak is back";
 
     // WHAT THE ARM DID: NOTHING, and every one of amendment A8's three
@@ -1042,7 +1042,7 @@ TEST(QpDegeneracyArm, ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotR
 
     EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal))
         << "the walk no longer leaves its box here; a kInfeasible means the pass-over is back";
-    EXPECT_LE(box_violation(qp, on.solution.x), opts.feas_tol)
+    EXPECT_LE(box_violation(qp, on.solution.x), opts.feasibility_tol)
         << "the iterate is outside its box again: the M5 excursion has returned";
     EXPECT_EQ(Deg::indep_candidates_passed_over, 0)
         << "arm B1 passed a candidate over: the degenerate tie is back";
@@ -1054,7 +1054,7 @@ TEST(QpDegeneracyArm, ArmB1HasNoPassOverToLeaveTheBoxWithAndTheCertificateIsNotR
     // nothing the arm looked at would have left the box had it been passed over.
     for (const auto &r : on.records) {
         if (!std::isnan(r.add_b1_passed_violation)) {
-            EXPECT_LE(r.add_b1_passed_violation, opts.feas_tol)
+            EXPECT_LE(r.add_b1_passed_violation, opts.feasibility_tol)
                 << "a recorded post-step violation is outside feas_tol: the excursion is back";
         }
     }
@@ -1103,8 +1103,8 @@ TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
          {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
         for (const double mu : {1e-8, 1e-4}) {
             QpOptions opts = cycling_opts();
-            opts.ws_algebra = algebra;
-            opts.dual_mu = mu;
+            opts.working_set_algebra = algebra;
+            opts.dual_regularization = mu;
             const QpSolution s = plain_solve(qp, opts);
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << static_cast<int>(algebra) << " dual_mu=" << mu);
@@ -1124,7 +1124,7 @@ TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
                 << "violation " << viol << " is not exactly +0.0";
             // And, separately, inside the tolerance class the predicate uses:
             // the larger of feas_tol * scale and dual_mu * |z| (|z| = 3, 5).
-            const double tol = std::max(opts.feas_tol * 2.0, mu * 5.0);
+            const double tol = std::max(opts.feasibility_tol * 2.0, mu * 5.0);
             EXPECT_LE(viol, tol);
             EXPECT_TRUE(is_a_kkt_point(qp, s, 1e-6));
         }
@@ -1133,7 +1133,7 @@ TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
 
 namespace {
 
-using Cert = hven::solvers::detail::testing::QpCertificateSeam;
+using Cert = hven::detail::testing::QpCertificateSeam;
 
 /// Every certificate-seam fixture starts disarmed and leaves the seam so.
 struct CertSeamGuard {
@@ -1236,8 +1236,8 @@ void expect_certificate_verdict(const QpProblem &qp, const QpOptions &opts, Cert
     cert_presented(side, v, x, z);
     const QpSolution s = present_to_certificate(qp, opts, x, z);
     ASSERT_EQ(Cert::presentations, 1) << "the certificate never read the presented pair";
-    EXPECT_EQ(Cert::eff_dual_mu, opts.dual_mu);
-    EXPECT_EQ(Cert::eff_feas_tol, opts.feas_tol);
+    EXPECT_EQ(Cert::eff_dual_mu, opts.dual_regularization);
+    EXPECT_EQ(Cert::eff_feas_tol, opts.feasibility_tol);
     EXPECT_EQ(box_violation(qp, s.x), v) << "the returned x is not the presented one";
     EXPECT_TRUE(same_bits(s.x, x, "x"));
     if (want_refused) {
@@ -1266,8 +1266,8 @@ TEST(QpDegeneracyArm, CertificateSeamIsInertUnarmedOnTheFixtureQp) {
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
             QpOptions opts = cycling_opts();
-            opts.ws_algebra = algebra;
-            opts.dual_mu = mu;
+            opts.working_set_algebra = algebra;
+            opts.dual_regularization = mu;
             const QpSolution s = plain_solve(qp, opts);
             EXPECT_EQ(Cert::presentations, 0);
             ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
@@ -1297,9 +1297,9 @@ TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructura
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
             QpOptions opts = cycling_opts();
-            opts.ws_algebra = algebra;
-            opts.dual_mu = mu;
-            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            opts.working_set_algebra = algebra;
+            opts.dual_regularization = mu;
+            const CertThresholds th = cert_thresholds(opts.feasibility_tol, mu, 5.0);
             ASSERT_GT(th.margin, 0.0);
             for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
                 expect_certificate_verdict(qp, opts, side, 0.5 * th.margin, false, "inside");
@@ -1329,9 +1329,9 @@ TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargi
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
             QpOptions opts = cycling_opts();
-            opts.ws_algebra = algebra;
-            opts.dual_mu = mu;
-            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            opts.working_set_algebra = algebra;
+            opts.dual_regularization = mu;
+            const CertThresholds th = cert_thresholds(opts.feasibility_tol, mu, 5.0);
             const double past_margin = std::nextafter(th.margin, 1.0);
             const double far = 100.0 * std::max(th.margin, th.residue_floor);
             // Which regime each dual_mu is in is ASSERTED, so the two
@@ -1506,7 +1506,7 @@ TEST(QpDegeneracyArm, ArmB1sMuSweepFindsNoPassOverToLeakAtAnyMu) {
     const QpProblem qp = period2_cycle_qp();
     for (const double mu : {1e-6, 1e-8, 1e-10}) {
         QpOptions opts = cycling_opts();
-        opts.dual_mu = mu;
+        opts.dual_regularization = mu;
         Deg::reset();
         Deg::arm = DegArm::kIndependentAdd;
         const Walk on = observed_walk(qp, opts);
@@ -1583,7 +1583,7 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
 
 TEST(QpDegeneracyArm, CondROnTheQrIsFilledWhereADecompositionRanAndSizesTheConditioning) {
     DegArmGuard guard;
-    namespace seam = hven::solvers::detail::testing;
+    namespace seam = hven::detail::testing;
 
     // PART 1 -- THE STATISTIC ON TWO WORKING SETS WHOSE CONDITIONING IS KNOWN
     // BY CONSTRUCTION, read off the SAME decomposition the dependency test

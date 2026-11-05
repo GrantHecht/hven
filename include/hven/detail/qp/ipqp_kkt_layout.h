@@ -20,7 +20,7 @@
 
 #include "hven/core/types.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The one-time pattern layout of the interior-point QP tier's KKT
 /// matrix, plus the per-iteration scatter plan that refills it without
@@ -70,7 +70,7 @@ class IpqpKktLayout {
     // ---------------------------------------------------------------------
     //
     // `diag_pos()` is a dim-length table of each row's DIAGONAL position in `k.valuePtr()`,
-    // in row order; the four bases below partition it by block, in KKTVector's order. The
+    // in row order; the four bases below partition it by block, in KktVector's order. The
     // four slot accessors are the same map, O(1), spelled shorter. Neither touches pattern.
 
     /// Each row's diagonal position in the value array, in row order.
@@ -175,4 +175,4 @@ class IpqpKktLayout {
     bool has_structure_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -173,7 +173,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -345,8 +345,8 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
         return 0;
     }
     Vec reg = Vec::Zero(y.size());
-    reg.head(n_free).setConstant(opts.primal_delta);
-    reg.segment(n_free, n_rows).setConstant(-opts.dual_mu);
+    reg.head(n_free).setConstant(opts.primal_regularization);
+    reg.segment(n_free, n_rows).setConstant(-opts.dual_regularization);
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec((rhs0 - Kyy) + reg.cwiseProduct(yy));
@@ -430,7 +430,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     Vec rhs(dim);
     for (Index k = 0; k < n_free; ++k) {
         const Index i = asm_.free_of_full[static_cast<std::size_t>(k)];
-        rhs(k) = -qp.g(i) - asm_.rhs_shift(k) + opts.primal_delta * x_k(i);
+        rhs(k) = -qp.g(i) - asm_.rhs_shift(k) + opts.primal_regularization * x_k(i);
     }
     for (Index r = 0; r < me; ++r) {
         rhs(n_free + r) = qp.be(r) - asm_.rhs_shift(n_free + r);
@@ -490,7 +490,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         }
         const double scale =
             std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                     opts.dual_mu * yy.segment(n_free, nc).lpNorm<Eigen::Infinity>());
+                     opts.dual_regularization * yy.segment(n_free, nc).lpNorm<Eigen::Infinity>());
         return r.segment(n_free, nc).lpNorm<Eigen::Infinity>() / scale;
     };
     Vec r_reg = regularized_residual(y);
@@ -523,7 +523,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // delta stays in the target because it is a term of the model -- see the
     // header's Iterative refinement section.
     Vec reg = Vec::Zero(dim);
-    reg.segment(n_free, nc).setConstant(-opts.dual_mu);
+    reg.segment(n_free, nc).setConstant(-opts.dual_regularization);
 
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
@@ -545,7 +545,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // structural, not tuned: see polish_eqp_core.
     Vec rhs0 = rhs;
     for (Index k = 0; k < n_free; ++k) {
-        rhs0(k) -= opts.primal_delta * x_k(asm_.free_of_full[static_cast<std::size_t>(k)]);
+        rhs0(k) -= opts.primal_regularization * x_k(asm_.free_of_full[static_cast<std::size_t>(k)]);
     }
     const Index polish_kept =
         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
@@ -647,4 +647,4 @@ inline Index polish_eqp_unregularized(const QpProblem &qp, const WorkingSet &ws,
     return kept;
 }
 
-} // namespace hven::solvers
+} // namespace hven

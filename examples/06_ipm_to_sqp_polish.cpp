@@ -25,15 +25,11 @@
 #include <cstdio>
 #include <memory>
 
-#include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/sqp_solver.h"
-#include "hven/model/nlp.h"
-#include "hven/model/problem.h"
-#include "hven/warmstart/ipm_polish_extension.h"
+#include <hven/hven.h>
 
 namespace {
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::ConstVecRef;
 using hven::IndexVecRef;
 using hven::kInfinity;

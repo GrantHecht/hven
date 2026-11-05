@@ -11,7 +11,7 @@
 
 #include "adapter_fixture_functions.h"
 
-hven::solvers::ObjectiveInterface probe_objective_unsupported_mixin() {
+hven::ObjectiveInterface probe_objective_unsupported_mixin() {
     const adapter_fixture::StubMixinConstraintOnly f{};
-    return hven::solvers::ObjectiveInterface(f);
+    return hven::ObjectiveInterface(f);
 }

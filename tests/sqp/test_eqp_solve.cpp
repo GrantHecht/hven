@@ -7,7 +7,7 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 

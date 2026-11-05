@@ -18,7 +18,7 @@
 #include "hven/model/problem.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct NonLinearProgram;
 class NlpModel;
@@ -34,7 +34,7 @@ Problem problem_from_program(std::shared_ptr<NonLinearProgram> program);
 Problem problem_from_program(NonLinearProgram &program);
 
 /// @brief A Problem over an SQP model. The interior-point engine transcribes it
-///        on its first solve (NLPAdapterCore, then make_nlp_program).
+///        on its first solve (NlpAdapterCore, then make_nlp_program).
 Problem problem_from_model(std::shared_ptr<const NlpModel> model);
 /// @brief A Problem over a borrowed SQP model.
 Problem problem_from_model(const NlpModel &model);
@@ -157,4 +157,4 @@ struct ProblemAccess {
 };
 
 } // namespace detail
-} // namespace hven::solvers
+} // namespace hven

@@ -12,7 +12,7 @@
 #include <tuple>      // std::tuple
 #include <type_traits>
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @internal
 /// @brief Apply a function to every element of a tuple in forward order.
@@ -214,4 +214,4 @@ constexpr auto make_array(Function f)
     return make_array_helper(f, std::make_index_sequence<N>{});
 }
 
-} // namespace hven::utils
+} // namespace hven::detail

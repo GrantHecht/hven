@@ -32,7 +32,7 @@
 
 #include "corpus_cells.h"
 
-namespace hven::solvers::corpus {
+namespace hven::corpus {
 
 /// The id of the fixed-variable cell this leg adds to the corpus's own cells.
 inline constexpr const char *kHs071FixedCellId = "hs071_x1_fixed";
@@ -51,7 +51,7 @@ struct InteriorLevers {
     /// Iteration cap per phase.
     int max_iters = 200;
     /// Console verbosity: silent.
-    hven::solvers::Verbosity verbosity = hven::solvers::Verbosity::kSilent;
+    hven::Verbosity verbosity = hven::Verbosity::kSilent;
     /// The corpus's own tolerances, in kkt/econ/icon/barr order.
     double kkt_tol = detail::kKktTol;
     double econ_tol = detail::kFeasTol;
@@ -221,7 +221,7 @@ struct InteriorRow {
     int watchdog_activations = -1;
     std::string fixed_treatment;
     /// The stop reason the engine recorded for the last phase; `none` on every
-    /// converged row. hven::solvers::to_string(IpmStopReason) writes it.
+    /// converged row. hven::to_string(IpmStopReason) writes it.
     std::string stop_reason;
     /// The variant's name, carried in the row KEY rather than in a column;
     /// empty on a base row.
@@ -400,8 +400,8 @@ std::string interior_row_key(const InteriorRow &row);
 ///
 /// M7 W2 D1 (2026-09-18). The leg's `# levers:` stamp exists so that, as the
 /// committed baseline's own header puts it, "a row is reproducible from this
-/// file alone" -- and that claim was false while `acceptance_strategy` and
-/// `barrier_governor` decided the trajectory and appeared in no line of the
+/// file alone" -- and that claim was false while `acceptance_mode` and
+/// `barrier_governor_mode` decided the trajectory and appeared in no line of the
 /// file. InteriorLevers cannot express them (there is no member, deliberately:
 /// the leg does not choose them, it inherits them), so they are read off a
 /// default-constructed IpmOptions here, through the same dump_options() printer
@@ -417,4 +417,4 @@ std::string interior_csv_header();
 /// @brief One row as CSV text, newline terminated.
 std::string interior_csv_row(const InteriorRow &row);
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

@@ -60,7 +60,7 @@
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
@@ -73,7 +73,7 @@ constexpr double kInfinity = std::numeric_limits<double>::infinity();
 /// pins the interior-point driver's optimum on, so the stream is taken over a
 /// trajectory that is already asserted elsewhere.
 struct Hs071Problem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -144,7 +144,7 @@ struct Hs071Problem : Nlp {
 /// solve this one -- which is the situation M6 W5 T8.7 fix1's L3 pins the
 /// per-call factorization delta across.
 struct TwoVarProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -208,7 +208,7 @@ struct TwoVarProblem : Nlp {
 /// mismatch or as a perturbed pivot is the BACKEND's choice and would make the
 /// pin MKL-only.
 struct NonconvexProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -262,12 +262,11 @@ Eigen::VectorXd nonconvex_start() {
 /// A solver over `NonconvexProblem` with the empty ladder and no console, with
 /// the program it solves (M6 W5 T8.9: declared_route.h's IpmCase).
 hven_interior_tests::IpmCase nonconvex_solver() {
-    hven_interior_tests::IpmCase c{
-        hven::solvers::make_nlp_program(std::make_shared<NonconvexProblem>()),
-        std::make_unique<hven::solvers::IpmSolver>()};
+    hven_interior_tests::IpmCase c{hven::make_nlp_program(std::make_shared<NonconvexProblem>()),
+                                   std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
-    o.common.verbosity = hven::solvers::Verbosity::kSilent;
-    o.advanced.inertia_correction_max_attempts = 0;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.advanced.max_inertia_correction_attempts = 0;
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -417,20 +416,20 @@ std::string body_after_envelope(const std::string &line) {
 }
 
 /// @brief Serializes one record through a throwaway sink, so a recorded
-/// `IterateInfo` is compared through the SAME writer the stream used -- a
+/// `IpmIterate` is compared through the SAME writer the stream used -- a
 /// field-by-field comparison here would be a second, weaker copy of the key
 /// list.
-std::string serialize_iter(const IterateInfo &record, Index phase) {
+std::string serialize_iter(const IpmIterate &record, Index phase) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_iter(IpmIterTraceEvent{record, phase});
     return body_after_envelope(split_lines(os.str()).front());
 }
 
-/// @brief Records every `IterateInfo` the TRACE hands out (M6 W5 T8.6 fix1).
+/// @brief Records every `IpmIterate` the TRACE hands out (M6 W5 T8.6 fix1).
 ///
 /// THE WHOLE-RECORD ORACLE, RESTORED. Until T8.6 the oracle was the LATE
-/// CALLBACK, which was handed the `IterateInfo` itself, so re-serializing its
+/// CALLBACK, which was handed the `IpmIterate` itself, so re-serializing its
 /// copy compared EVERY field of the line -- the two `null` conventions included
 /// -- rather than a hand-picked subset. The shared iteration callback that
 /// replaced the late one is handed a different view entirely, and T8.6 dropped
@@ -448,7 +447,7 @@ std::string serialize_iter(const IterateInfo &record, Index phase) {
 /// drops nothing from it.
 struct RecordOracle : public TraceSink {
     TraceSink *inner = nullptr;
-    std::vector<IterateInfo> seen;
+    std::vector<IpmIterate> seen;
     std::vector<Index> phases;
 
     explicit RecordOracle(TraceSink *next) : inner(next) {}
@@ -480,7 +479,7 @@ struct RecordOracle : public TraceSink {
 };
 
 /// @brief Records every event the SHARED ITERATION CALLBACK is handed -- the
-/// oracle (M6 W5 T8.6; it recorded `IterateInfo` from the late callback until
+/// oracle (M6 W5 T8.6; it recorded `IpmIterate` from the late callback until
 /// that callback was retired). Installed alongside the sink so both observe the
 /// same iterations.
 ///
@@ -500,10 +499,10 @@ struct CallbackOracle {
     };
     std::vector<Seen> seen;
 
-    hven::solvers::IterationCallback hook() {
-        return [this](const hven::solvers::IterationEvent &ev) {
+    hven::IterationCallback hook() {
+        return [this](const hven::IterationEvent &ev) {
             this->seen.push_back(Seen{ev.iteration, ev.phase.value_or(-1), ev.f});
-            return hven::solvers::CallbackAction::kContinue;
+            return hven::CallbackAction::kContinue;
         };
     }
 };
@@ -513,12 +512,12 @@ struct CallbackOracle {
 // ===========================================================================
 
 TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -527,9 +526,9 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     solver.attach_trace(&sink);
     solver.set_iteration_callback(oracle.hook());
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    const hven::solvers::SolveStatus flag = result.status;
-    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    const hven::SolveStatus flag = result.status;
+    ASSERT_EQ(flag, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     const Index reported = result.iterations;
@@ -539,12 +538,12 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
 }
 
 TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -553,8 +552,8 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     CallbackOracle oracle;
     solver.attach_trace(&records);
     solver.set_iteration_callback(oracle.hook());
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_EQ(iter_lines.size(), oracle.seen.size());
@@ -571,8 +570,8 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     }
     // FALSIFIABILITY: the comparison above must be able to fail. A record whose
     // iteration index is bumped serializes differently.
-    IterateInfo mutated = records.seen.back();
-    mutated.iter_ += 1;
+    IpmIterate mutated = records.seen.back();
+    mutated.iter += 1;
     EXPECT_NE(body_after_envelope(iter_lines.back()), serialize_iter(mutated, 0));
 
     // (b) AND THE EVENT ORACLE, on the two quantities the event and the line
@@ -600,12 +599,12 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
 }
 
 TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -613,8 +612,8 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     CallbackOracle oracle;
     solver.attach_trace(&sink);
     solver.set_iteration_callback(oracle.hook());
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_FALSE(iter_lines.empty());
@@ -628,31 +627,30 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
 TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode) {
     // Rule 5, the FIRST of the record's two -1 conventions: "proximal mode off".
     // The classic path writes -1 on every iteration, which is not a shift of -1.
-    const auto classic_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver classic;
-    hven::solvers::IpmResult classic_result;
+    const auto classic_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver classic;
+    hven::IpmResult classic_result;
     {
         auto o = classic.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         classic.set_options(std::move(o));
     }
     std::ostringstream os_classic;
     JsonLinesTraceSink sink_classic(os_classic);
     classic.attach_trace(&sink_classic);
-    classic_result =
-        classic.solve(hven::solvers::detail::problem_ref(*classic_program), hs071_start());
-    ASSERT_EQ(classic_result.status, hven::solvers::SolveStatus::kOptimal);
+    classic_result = classic.solve(hven::detail::problem_ref(*classic_program), hs071_start());
+    ASSERT_EQ(classic_result.status, hven::SolveStatus::kOptimal);
     for (const std::string &l : lines_of_event(os_classic.str(), "ipm.iter")) {
         EXPECT_EQ(field(l, "prox_reg_primal"), "null");
         EXPECT_EQ(field(l, "prox_reg_dual"), "null");
     }
 
-    const auto prox_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver prox;
-    hven::solvers::IpmResult prox_result;
+    const auto prox_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver prox;
+    hven::IpmResult prox_result;
     {
         auto o = prox.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         prox.set_options(std::move(o));
     }
     {
@@ -663,7 +661,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     std::ostringstream os_prox;
     JsonLinesTraceSink sink_prox(os_prox);
     prox.attach_trace(&sink_prox);
-    prox.solve(hven::solvers::detail::problem_ref(*prox_program), hs071_start());
+    prox.solve(hven::detail::problem_ref(*prox_program), hs071_start());
     const std::vector<std::string> prox_lines = lines_of_event(os_prox.str(), "ipm.iter");
     ASSERT_FALSE(prox_lines.empty());
     // NOT EVERY line: the converge-check exit fires before any factorization
@@ -688,7 +686,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
 /// THAT SITE EMITS A RECORD `fill_iter_info` NEVER TOUCHED. The record was
 /// filled by `fill_residual_info` at the top of the iteration and the branch
 /// leaves before any factorization, line search or barrier evaluation, so
-/// `barr_obj_`, `merit_val_` and `ls_iters_` are still IterateInfo's fresh
+/// `barr_obj_`, `merit_val_` and `ls_iters_` are still IpmIterate's fresh
 /// per-iteration 0 and the three alphas are still its fresh 1.0 -- the set the
 /// driver's own comment at that branch enumerates. Site 2's record has all of
 /// them written from the iteration that just ran.
@@ -702,21 +700,20 @@ bool looks_like_the_early_exit_site(const std::string &line) {
 }
 
 TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot) {
-    const auto converged_program =
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver converged;
-    hven::solvers::IpmResult converged_result;
+    const auto converged_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver converged;
+    hven::IpmResult converged_result;
     {
         auto o = converged.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         converged.set_options(std::move(o));
     }
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.attach_trace(&sink_c);
     converged_result =
-        converged.solve(hven::solvers::detail::problem_ref(*converged_program), hs071_start());
-    ASSERT_EQ(converged_result.status, hven::solvers::SolveStatus::kOptimal);
+        converged.solve(hven::detail::problem_ref(*converged_program), hs071_start());
+    ASSERT_EQ(converged_result.status, hven::SolveStatus::kOptimal);
     const std::vector<std::string> c_lines = lines_of_event(os_c.str(), "ipm.iter");
     ASSERT_GT(c_lines.size(), 1u);
 
@@ -731,13 +728,12 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     // Every other line is site 2's, so BOTH sites emitted on this one solve.
     EXPECT_FALSE(looks_like_the_early_exit_site(c_lines.front()));
 
-    const auto truncated_program =
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver truncated;
-    hven::solvers::IpmResult truncated_result;
+    const auto truncated_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver truncated;
+    hven::IpmResult truncated_result;
     {
         auto o = truncated.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.common.max_iterations = 3;
         truncated.set_options(std::move(o));
     }
@@ -745,8 +741,8 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     JsonLinesTraceSink sink_t(os_t);
     truncated.attach_trace(&sink_t);
     truncated_result =
-        truncated.solve(hven::solvers::detail::problem_ref(*truncated_program), hs071_start());
-    ASSERT_EQ(truncated_result.status, hven::solvers::SolveStatus::kMaxIter);
+        truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
+    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kMaxIter);
     const std::vector<std::string> t_lines = lines_of_event(os_t.str(), "ipm.iter");
     // THE CONTROL that makes the signature above mean something: a solve that
     // runs out of iterations never reaches site 1, so no line matches -- the
@@ -764,19 +760,19 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     //
     // BOTH ARMS ARE COMPILED FROM ONE SOURCE and the backend picks which runs,
     // so the macOS lane executes the Accelerate arm without an edit here.
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_GT(iter_lines.size(), 1u);
@@ -810,19 +806,19 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
 // ===========================================================================
 
 TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> all = split_lines(os.str());
     ASSERT_GE(all.size(), 3u);
@@ -836,20 +832,20 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
 }
 
 TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.common.max_iterations = 40;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
     ASSERT_EQ(begin.size(), 1u);
@@ -873,12 +869,12 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
 }
 
 TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -889,7 +885,7 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
         o.phases = {IpmPhase::kSolve, IpmPhase::kOptimize}; // what solve_optimize() ran
         solver.set_options(std::move(o));
     }
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
 
     const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
     ASSERT_EQ(begin.size(), 1u);
@@ -921,21 +917,20 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
 }
 
 TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
-    const auto converged_program =
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver converged;
-    hven::solvers::IpmResult converged_result;
+    const auto converged_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver converged;
+    hven::IpmResult converged_result;
     {
         auto o = converged.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         converged.set_options(std::move(o));
     }
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.attach_trace(&sink_c);
     converged_result =
-        converged.solve(hven::solvers::detail::problem_ref(*converged_program), hs071_start());
-    ASSERT_EQ(converged_result.status, hven::solvers::SolveStatus::kOptimal);
+        converged.solve(hven::detail::problem_ref(*converged_program), hs071_start());
+    ASSERT_EQ(converged_result.status, hven::SolveStatus::kOptimal);
     const std::vector<std::string> end_c = lines_of_event(os_c.str(), "ipm.solve.end");
     ASSERT_EQ(end_c.size(), 1u);
     // THE VOCABULARY MOVED IN M6 W5 T8.4, declared: the event carries SolveStatus
@@ -945,13 +940,12 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     EXPECT_EQ(field(end_c.front(), "status"), "\"optimal\"");
     EXPECT_EQ(field(end_c.front(), "iters"), std::to_string(converged_result.iterations));
 
-    const auto truncated_program =
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver truncated;
-    hven::solvers::IpmResult truncated_result;
+    const auto truncated_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver truncated;
+    hven::IpmResult truncated_result;
     {
         auto o = truncated.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.common.max_iterations = 3;
         truncated.set_options(std::move(o));
     }
@@ -959,8 +953,8 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     JsonLinesTraceSink sink_t(os_t);
     truncated.attach_trace(&sink_t);
     truncated_result =
-        truncated.solve(hven::solvers::detail::problem_ref(*truncated_program), hs071_start());
-    ASSERT_EQ(truncated_result.status, hven::solvers::SolveStatus::kMaxIter);
+        truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
+    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kMaxIter);
     const std::vector<std::string> end_t = lines_of_event(os_t.str(), "ipm.solve.end");
     ASSERT_EQ(end_t.size(), 1u);
     EXPECT_EQ(field(end_t.front(), "status"), "\"max_iter\"");
@@ -970,12 +964,12 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
 TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     // The `begin` emit sits AFTER every argument refusal, so a call that never
     // ran leaves no opening line dangling in the artifact.
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -983,7 +977,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     solver.attach_trace(&sink);
     Eigen::VectorXd wrong(3);
     wrong << 1.0, 1.0, 1.0;
-    EXPECT_THROW((void)solver.solve(hven::solvers::detail::problem_ref(*program), wrong),
+    EXPECT_THROW((void)solver.solve(hven::detail::problem_ref(*program), wrong),
                  std::invalid_argument);
     EXPECT_EQ(os.str(), "");
     EXPECT_EQ(sink.lines_written(), 0);
@@ -995,17 +989,17 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
 // ===========================================================================
 
 TEST(IpmTrace, AttachingASinkMovesNoResultField) {
-    const auto bare_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver bare;
-    hven::solvers::IpmResult bare_result;
+    const auto bare_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver bare;
+    hven::IpmResult bare_result;
     {
         auto o = bare.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         bare.set_options(std::move(o));
     }
-    bare_result = bare.solve(hven::solvers::detail::problem_ref(*bare_program), hs071_start());
-    const hven::solvers::SolveStatus bare_flag = bare_result.status;
-    const hven::solvers::IpmResult &b = bare_result;
+    bare_result = bare.solve(hven::detail::problem_ref(*bare_program), hs071_start());
+    const hven::SolveStatus bare_flag = bare_result.status;
+    const hven::IpmResult &b = bare_result;
     const int bare_iters = b.iterations;
     const double bare_obj = b.f;
     const double bare_kkt = b.convergence.kkt;
@@ -1014,21 +1008,20 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const double bare_icon = b.convergence.inequality;
     const Eigen::VectorXd bare_x = bare_result.x;
 
-    const auto traced_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver traced;
-    hven::solvers::IpmResult traced_result;
+    const auto traced_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver traced;
+    hven::IpmResult traced_result;
     {
         auto o = traced.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         traced.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     traced.attach_trace(&sink);
-    traced_result =
-        traced.solve(hven::solvers::detail::problem_ref(*traced_program), hs071_start());
-    const hven::solvers::SolveStatus traced_flag = traced_result.status;
-    const hven::solvers::IpmResult &t = traced_result;
+    traced_result = traced.solve(hven::detail::problem_ref(*traced_program), hs071_start());
+    const hven::SolveStatus traced_flag = traced_result.status;
+    const hven::IpmResult &t = traced_result;
 
     EXPECT_EQ(traced_flag, bare_flag);
     EXPECT_EQ(t.iterations, bare_iters);
@@ -1043,25 +1036,25 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
 }
 
 TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     const Index first = sink.lines_written();
     ASSERT_GT(first, 0);
 
     solver.attach_trace(nullptr);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(sink.lines_written(), first);
 }
 
@@ -1078,23 +1071,22 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     SqpSolver driver(opts);
     driver.attach_trace(&sink);
     TinySqpModel model;
-    const SqpResult sqp_out =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult sqp_out = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_GT(sink.lines_written(), 0);
     EXPECT_EQ(sqp_out.status, SolveStatus::kOptimal);
     const Index after_sqp = sink.lines_written();
 
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_GT(sink.lines_written(), after_sqp);
 
     const std::vector<std::string> all = split_lines(os.str());
@@ -1193,11 +1185,10 @@ std::string mask_wall_clock(const std::string &stream) {
 /// A silent solver on HS071 -- `print_level` 10 -- so a ledger pin does not
 /// also print a table into the test log.
 hven_interior_tests::IpmCase silent_hs071() {
-    hven_interior_tests::IpmCase c{
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>()),
-        std::make_unique<hven::solvers::IpmSolver>()};
+    hven_interior_tests::IpmCase c{hven::make_nlp_program(std::make_shared<Hs071Problem>()),
+                                   std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
-    o.common.verbosity = hven::solvers::Verbosity::kSilent;
+    o.common.verbosity = hven::Verbosity::kSilent;
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -1216,10 +1207,10 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     // call. (M6 W5 T8.9: the engine returns its result by value, so this is
     // simply the two return values.)
     const IpmResult first_result =
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start());
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start());
     ASSERT_EQ(first_result.status, SolveStatus::kOptimal);
     const IpmResult second_result =
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start());
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start());
     ASSERT_EQ(second_result.status, SolveStatus::kOptimal);
 
     ASSERT_EQ(ledger.ipm_records().size(), 2u);
@@ -1259,11 +1250,11 @@ TEST(IpmLedger, FactorizationsAndAnalysesArePerCallNotLifetime) {
     Ledger ledger;
     solver.engine->attach_ledger(&ledger, "reuse");
     const IpmResult first_result =
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start());
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start());
     ASSERT_EQ(first_result.status, SolveStatus::kOptimal);
     const Index lifetime_after_first = first_result.kkt_factor_counters.factorize_count;
     const IpmResult second_result =
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start());
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start());
     ASSERT_EQ(second_result.status, SolveStatus::kOptimal);
     const Index lifetime_after_second = second_result.kkt_factor_counters.factorize_count;
 
@@ -1296,15 +1287,15 @@ TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
     // The second program, laid out and ready to be BORROWED by the first
     // solver: since M6 W5 T8.4 a program is an argument of solve(), so one
     // solver may be handed two.
-    const auto other_program = hven::solvers::make_nlp_program(std::make_shared<TwoVarProblem>());
+    const auto other_program = hven::make_nlp_program(std::make_shared<TwoVarProblem>());
 
     Ledger ledger;
     hs.engine->attach_ledger(&ledger, "cross");
     const IpmResult first_result =
-        hs.engine->solve(hven::solvers::detail::problem_ref(*hs.program), hs071_start());
+        hs.engine->solve(hven::detail::problem_ref(*hs.program), hs071_start());
     ASSERT_EQ(first_result.status, SolveStatus::kOptimal);
     const IpmResult second_result =
-        hs.engine->solve(hven::solvers::detail::problem_ref(*other_program), two_var_start());
+        hs.engine->solve(hven::detail::problem_ref(*other_program), two_var_start());
 
     ASSERT_EQ(ledger.ipm_records().size(), 2u) << "two calls, two records";
     const IpmSolveRecord &first = ledger.ipm_records()[0];
@@ -1355,7 +1346,7 @@ TEST(IpmLedger, AMultiPhaseCallCountsOnlyThePhasesThatRan) {
         both.engine->set_options(std::move(o));
     }
     const IpmResult ran_both =
-        both.engine->solve(hven::solvers::detail::problem_ref(*both.program), hs071_start());
+        both.engine->solve(hven::detail::problem_ref(*both.program), hs071_start());
     ASSERT_EQ(ran_both.status, SolveStatus::kOptimal);
     ASSERT_EQ(ran_both.phases.size(), 2u) << "premise: two phases were declared";
     EXPECT_TRUE(ran_both.phases[0].ran);
@@ -1376,7 +1367,7 @@ TEST(IpmLedger, AMultiPhaseCallCountsOnlyThePhasesThatRan) {
         stopped.engine->set_options(std::move(o));
     }
     const IpmResult stopped_result =
-        stopped.engine->solve(hven::solvers::detail::problem_ref(*stopped.program), hs071_start());
+        stopped.engine->solve(hven::detail::problem_ref(*stopped.program), hs071_start());
     ASSERT_EQ(stopped_result.phases.size(), 2u);
     ASSERT_TRUE(stopped_result.phases[0].ran);
     ASSERT_FALSE(stopped_result.phases[1].ran) << "premise: the second phase was skipped";
@@ -1398,8 +1389,7 @@ TEST(IpmLedger, ACallbackThatThrowsAfterWorkBeganWritesNoRecord) {
     Ledger ledger;
     solver.engine->attach_ledger(&ledger, "boom");
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(ledger.ipm_records().size(), 1u);
 
@@ -1408,17 +1398,15 @@ TEST(IpmLedger, ACallbackThatThrowsAfterWorkBeganWritesNoRecord) {
         ++fired;
         throw std::runtime_error("from inside the callback, after work began");
     });
-    EXPECT_THROW(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start()),
-        std::runtime_error);
+    EXPECT_THROW(solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()),
+                 std::runtime_error);
     EXPECT_GE(fired, 1) << "premise: the solve had begun iterating";
     EXPECT_EQ(ledger.ipm_records().size(), 1u) << "a throw out of a solve records nothing";
 
     // ... and the number it did not consume is the next one.
     solver.engine->clear_iteration_callback();
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(ledger.ipm_records().size(), 2u);
     EXPECT_EQ(ledger.ipm_records()[1].label, "boom_1");
@@ -1429,16 +1417,14 @@ TEST(IpmLedger, AttachResetsTheCounterAndADetachStopsRecording) {
     Ledger first_ledger;
     solver.engine->attach_ledger(&first_ledger, "a");
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     EXPECT_EQ(first_ledger.ipm_records().size(), 1u);
 
     Ledger second_ledger;
     solver.engine->attach_ledger(&second_ledger, "b");
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(second_ledger.ipm_records().size(), 1u);
     EXPECT_EQ(second_ledger.ipm_records()[0].label, "b_0")
@@ -1447,8 +1433,7 @@ TEST(IpmLedger, AttachResetsTheCounterAndADetachStopsRecording) {
 
     solver.engine->attach_ledger(nullptr, "");
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     EXPECT_EQ(second_ledger.ipm_records().size(), 1u);
 }
@@ -1460,8 +1445,7 @@ TEST(IpmLedger, ARefusedCallRecordsNothingAndConsumesNoLabel) {
     // One good solve first, which is also what TRANSCRIBES the program this
     // test then hands a bad start to.
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(ledger.ipm_records().size(), 1u);
     EXPECT_EQ(ledger.ipm_records()[0].label, "throw_0");
@@ -1470,13 +1454,12 @@ TEST(IpmLedger, ARefusedCallRecordsNothingAndConsumesNoLabel) {
     // ABOVE the funnel that writes the record.
     Eigen::VectorXd bad(3);
     bad << 1.0, 1.0, 1.0;
-    EXPECT_THROW(solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), bad),
+    EXPECT_THROW(solver.engine->solve(hven::detail::problem_ref(*solver.program), bad),
                  std::invalid_argument);
     EXPECT_EQ(ledger.ipm_records().size(), 1u) << "a refused call records nothing";
 
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(ledger.ipm_records().size(), 2u);
     EXPECT_EQ(ledger.ipm_records()[1].label, "throw_1") << "the refusal consumed no number";
@@ -1490,12 +1473,10 @@ TEST(IpmLedger, TheSummaryTableIsEmptyWithoutRecordsAndHasARowPerRecordWithThem)
     Ledger ledger;
     solver.engine->attach_ledger(&ledger, "tbl");
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
     ASSERT_EQ(
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start())
-            .status,
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start()).status,
         SolveStatus::kOptimal);
 
     const std::string table = ledger.ipm_summary_table();
@@ -1515,19 +1496,19 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     // M6 W5 T8.7's addition, read off a REAL solve rather than a scripted
     // event: the four acceptable tolerances, the layout width, and the three
     // `print_stats` inputs.
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.wide_console = true;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.attach_trace(&sink);
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, SolveStatus::kOptimal);
 
     const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
@@ -1627,30 +1608,30 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
     // separates them. DECLARED, not changed silently -- see
     // `.superpowers/w5-t8-7b-progress.md` §1b.
     auto run = [](int which) {
-        const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         {
             auto o = solver.options();
-            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.common.verbosity = hven::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
         std::ostringstream os;
         JsonLinesTraceSink sink(os);
         solver.attach_trace(&sink);
         if (which == 0) {
-            result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+            result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
             EXPECT_EQ(result.status, SolveStatus::kOptimal);
         } else if (which == 1) {
             auto o = solver.options();
             o.phases = {IpmPhase::kSolve, IpmPhase::kOptimize}; // what solve_optimize() ran
             solver.set_options(std::move(o));
-            result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+            result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
         } else {
             auto o = solver.options();
             o.phases = {IpmPhase::kOptimize, IpmPhase::kSolve}; // what optimize_solve() ran
             solver.set_options(std::move(o));
-            result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+            result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
             EXPECT_EQ(result.status, SolveStatus::kOptimal);
         }
         return shape_of(os.str());
@@ -1715,12 +1696,12 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
     // these has to say so. The analysis is OUTSIDE the bracket, ahead of it:
     // `init_impl` runs before the phase loop for the first phase and at the end
     // of the previous phase's body for every later one.
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1731,7 +1712,7 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
         o.phases = {IpmPhase::kSolve, IpmPhase::kOptimize}; // what solve_optimize() ran
         solver.set_options(std::move(o));
     }
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     const StreamShape sh = shape_of(os.str());
 
     // The skeleton, with the rows and any messages removed.
@@ -1780,12 +1761,12 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     // so this compares the LINE against the RETURNED report field for field --
     // everything except `phase_seconds`, which is wall-clock and never asserted
     // (CLAUDE.md §7).
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1796,7 +1777,7 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
         o.phases = {IpmPhase::kSolve, IpmPhase::kOptimize}; // what solve_optimize() ran
         solver.set_options(std::move(o));
     }
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
 
     const std::vector<std::string> exits = lines_of_event(os.str(), "ipm.phase.exit");
     ASSERT_EQ(exits.size(), 2u);
@@ -1899,8 +1880,7 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
     sink.solver = solver.engine.get();
     sink.hook_calls = &hook_calls;
     solver.engine->attach_trace(&sink);
-    (void)solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
-                               nonconvex_start());
+    (void)solver.engine->solve(hven::detail::problem_ref(*solver.program), nonconvex_start());
     // THE PREMISE, NON-VACUOUS: a FACTOR-TIME message really was raised, and it
     // is the kind the fixture is built to raise.
     ASSERT_GT(sink.messages, 0) << "premise: the sink saw a message to install from";
@@ -1911,8 +1891,8 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
         << "a hook installed from inside a sink method must not arm the solve that is running";
 
     // ... and the NEXT solve runs it, from its first iteration on.
-    const IpmResult second = solver.engine->solve(
-        hven::solvers::detail::problem_ref(*solver.program), nonconvex_start());
+    const IpmResult second =
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), nonconvex_start());
     EXPECT_GT(hook_calls, 0) << "the deferral must be applied at the next solve's entry";
     // AND THE VERIFICATION IS ARMED FOR IT: the hand-out site sets the flag
     // beside the hand-out itself, so a hook that arrives this way still forces
@@ -1964,7 +1944,7 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
     {
         {
             auto c = silent_hs071();
-            (void)c.engine->solve(hven::solvers::detail::problem_ref(*c.program), hs071_start());
+            (void)c.engine->solve(hven::detail::problem_ref(*c.program), hs071_start());
         }
     }
     auto run = [](bool install) {
@@ -1976,8 +1956,7 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
         inst.arm = install;
         FanOutTraceSink fan(&json, &inst);
         solver.engine->attach_trace(&fan);
-        (void)solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program),
-                                   nonconvex_start());
+        (void)solver.engine->solve(hven::detail::problem_ref(*solver.program), nonconvex_start());
         EXPECT_EQ(inst.done, install) << "premise: the installing arm really did install";
         return os.str();
     };
@@ -2015,11 +1994,11 @@ IpmAnswer answer_of(const IpmResult &r) {
     a.econ_inf = r.convergence.equality;
     a.icon_inf = r.convergence.inequality;
     a.x = r.x;
-    a.lambda_e = hven::solvers::detail::engine_rows(r).lambda_e;
-    a.lambda_i = hven::solvers::detail::engine_rows(r).lambda_i;
+    a.lambda_e = hven::detail::engine_rows(r).lambda_e;
+    a.lambda_i = hven::detail::engine_rows(r).lambda_i;
     a.z = r.z;
-    a.ce = hven::solvers::detail::engine_rows(r).ce;
-    a.ci = hven::solvers::detail::engine_rows(r).ci;
+    a.ce = hven::detail::engine_rows(r).ce;
+    a.ci = hven::detail::engine_rows(r).ci;
     return a;
 }
 
@@ -2128,25 +2107,24 @@ TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
     // arm ran first and shift its `seq`.
     {
         auto warm = nonconvex_solver();
-        (void)warm.engine->solve(hven::solvers::detail::problem_ref(*warm.program),
-                                 nonconvex_start());
+        (void)warm.engine->solve(hven::detail::problem_ref(*warm.program), nonconvex_start());
     }
 
     // ARM ONE: the solve that dies inside a factorization, then the retry.
     auto reused = nonconvex_solver();
     ThrowingMessageSink thrower;
     reused.engine->attach_trace(&thrower);
-    EXPECT_THROW((void)reused.engine->solve(hven::solvers::detail::problem_ref(*reused.program),
-                                            nonconvex_start()),
-                 std::runtime_error);
+    EXPECT_THROW(
+        (void)reused.engine->solve(hven::detail::problem_ref(*reused.program), nonconvex_start()),
+        std::runtime_error);
     ASSERT_TRUE(thrower.threw) << "premise: the sink threw from a FACTOR-TIME message";
     reused.engine->attach_trace(nullptr);
 
     std::ostringstream retry_os;
     JsonLinesTraceSink retry_sink(retry_os);
     reused.engine->attach_trace(&retry_sink);
-    const IpmResult retry_result = reused.engine->solve(
-        hven::solvers::detail::problem_ref(*reused.program), nonconvex_start());
+    const IpmResult retry_result =
+        reused.engine->solve(hven::detail::problem_ref(*reused.program), nonconvex_start());
     const IpmAnswer retry = answer_of(retry_result);
     EXPECT_EQ(retry_result.kkt_analyses_this_call, 0)
         << "the retry must take the REUSE branch -- that is the fact the contract now states";
@@ -2157,7 +2135,7 @@ TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
     JsonLinesTraceSink fresh_sink(fresh_os);
     fresh.engine->attach_trace(&fresh_sink);
     const IpmResult fresh_result =
-        fresh.engine->solve(hven::solvers::detail::problem_ref(*fresh.program), nonconvex_start());
+        fresh.engine->solve(hven::detail::problem_ref(*fresh.program), nonconvex_start());
     const IpmAnswer cold = answer_of(fresh_result);
     EXPECT_GT(fresh_result.kkt_analyses_this_call, 0)
         << "premise: the fresh arm really did pay the analysis the retry skipped";
@@ -2237,12 +2215,12 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
 
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Index sink_calls = 0;
@@ -2264,7 +2242,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
         }
         return CallbackAction::kContinue;
     });
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, SolveStatus::kOptimal);
 
     ASSERT_TRUE(sink.installed) << "premise: the sink really did park a callback";
@@ -2275,7 +2253,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
 
     // AND IT IS GONE, not queued: the next solve's entry does not resurrect it.
     const Index second_calls_after_first_solve = second_calls;
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+    result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, SolveStatus::kOptimal);
     EXPECT_EQ(sink_calls, 0) << "an overwritten park must not be applied at a later entry";
     EXPECT_GT(second_calls, second_calls_after_first_solve)
@@ -2291,15 +2269,15 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
     // the whole transcript against a BASE capture in this task's leg.
     std::string printed;
     {
-        const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kIterations;
+        o.common.verbosity = hven::Verbosity::kIterations;
         solver.set_options(std::move(o));
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+        solver.solve(hven::detail::problem_ref(*program), hs071_start());
         printed = capture.text();
     }
     EXPECT_NE(printed.find("hven Interior-Point Solver"), std::string::npos);
@@ -2317,7 +2295,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
         auto solver = silent_hs071();
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        solver.engine->solve(hven::solvers::detail::problem_ref(*solver.program), hs071_start());
+        solver.engine->solve(hven::detail::problem_ref(*solver.program), hs071_start());
         silent = capture.text();
     }
     EXPECT_EQ(silent, "");
@@ -2338,13 +2316,13 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     {
         {
             auto c = silent_hs071();
-            (void)c.engine->solve(hven::solvers::detail::problem_ref(*c.program), hs071_start());
+            (void)c.engine->solve(hven::detail::problem_ref(*c.program), hs071_start());
         }
     }
-    auto run = [](hven::solvers::Verbosity print_level) {
-        const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+    auto run = [](hven::Verbosity print_level) {
+        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         auto o = solver.options();
         o.common.verbosity = print_level;
         solver.set_options(std::move(o));
@@ -2353,11 +2331,11 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
         solver.attach_trace(&sink);
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+        solver.solve(hven::detail::problem_ref(*program), hs071_start());
         return std::pair<std::string, std::string>{os.str(), capture.text()};
     };
-    const auto silent = run(hven::solvers::Verbosity::kSilent);
-    const auto printing = run(hven::solvers::Verbosity::kIterations);
+    const auto silent = run(hven::Verbosity::kSilent);
+    const auto printing = run(hven::Verbosity::kIterations);
     EXPECT_FALSE(silent.first.empty());
 
     // EVERY WALL-CLOCK VALUE IS MASKED AND EVERYTHING ELSE IS COMPARED BYTE FOR
@@ -2417,16 +2395,16 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
     {
         {
             auto c = silent_hs071();
-            (void)c.engine->solve(hven::solvers::detail::problem_ref(*c.program), hs071_start());
+            (void)c.engine->solve(hven::detail::problem_ref(*c.program), hs071_start());
         }
     }
 
     auto printing_solve = [](bool attack) {
-        const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kIterations;
+        o.common.verbosity = hven::Verbosity::kIterations;
         solver.set_options(std::move(o));
         std::ostringstream os;
         JsonLinesTraceSink usurper(os);
@@ -2445,7 +2423,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
         {
             hven::testing::StdoutCapture capture;
             EXPECT_TRUE(capture.active());
-            result = solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+            result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
             EXPECT_EQ(result.status, SolveStatus::kOptimal);
             printed = capture.text();
         }
@@ -2462,9 +2440,9 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
         << "a refused mid-solve attach must leave the console's table untouched";
 
     // ... and it is legal again the moment the solve has returned.
-    const auto after_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver after;
-    hven::solvers::IpmResult after_result;
+    const auto after_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver after;
+    hven::IpmResult after_result;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     EXPECT_NO_THROW(after.attach_trace(&sink));
@@ -2500,18 +2478,18 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
         void on_qp_mode(const QpModeTraceEvent &) override {}
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     SelfDetachingSink sink;
     sink.solver = &solver;
     solver.attach_trace(&sink);
-    EXPECT_THROW(solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start()),
+    EXPECT_THROW(solver.solve(hven::detail::problem_ref(*program), hs071_start()),
                  std::logic_error);
     EXPECT_GE(sink.rows, 1) << "premise: the sink saw a row before it tried to detach";
 }
@@ -2519,16 +2497,16 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
 TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
     std::string printed;
     {
-        const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::IpmSolver solver;
-        hven::solvers::IpmResult result;
+        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        hven::IpmSolver solver;
+        hven::IpmResult result;
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kIterations;
+        o.common.verbosity = hven::Verbosity::kIterations;
         o.wide_console = true;
         solver.set_options(std::move(o));
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        solver.solve(hven::solvers::detail::problem_ref(*program), hs071_start());
+        solver.solve(hven::detail::problem_ref(*program), hs071_start());
         printed = capture.text();
     }
     EXPECT_NE(printed.find("Max EMult"), std::string::npos);
@@ -2570,13 +2548,13 @@ struct ThrowingRowSink final : TraceSink {
 /// One HS071 engine and the program it solves, configured identically on both
 /// arms of the pin below.
 struct RetryCase {
-    std::shared_ptr<hven::solvers::NonLinearProgram> program =
-        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    std::unique_ptr<hven::solvers::IpmSolver> engine = std::make_unique<hven::solvers::IpmSolver>();
+    std::shared_ptr<hven::NonLinearProgram> program =
+        hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    std::unique_ptr<hven::IpmSolver> engine = std::make_unique<hven::IpmSolver>();
 
     RetryCase() {
         auto o = engine->options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.common.threads = 1;
         engine->set_options(std::move(o));
     }
@@ -2609,16 +2587,16 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     // arm ran first and shift its `seq`.
     {
         RetryCase warm;
-        (void)warm.engine->solve(hven::solvers::detail::problem_ref(*warm.program), hs071_start());
+        (void)warm.engine->solve(hven::detail::problem_ref(*warm.program), hs071_start());
     }
 
     // ARM ONE: the solve that dies on its third row, then the retry.
     RetryCase reused;
     ThrowingRowSink thrower(/*throw_on_row=*/3);
     reused.engine->attach_trace(&thrower);
-    EXPECT_THROW((void)reused.engine->solve(hven::solvers::detail::problem_ref(*reused.program),
-                                            hs071_start()),
-                 std::runtime_error);
+    EXPECT_THROW(
+        (void)reused.engine->solve(hven::detail::problem_ref(*reused.program), hs071_start()),
+        std::runtime_error);
     ASSERT_TRUE(thrower.threw) << "premise: the sink threw from an iteration row";
     ASSERT_EQ(thrower.rows, 3) << "premise: the throw landed on the third row, so the interrupted "
                                   "solve had already accepted steps and moved its iterate";
@@ -2628,7 +2606,7 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     JsonLinesTraceSink retry_sink(retry_os);
     reused.engine->attach_trace(&retry_sink);
     const IpmResult retry_result =
-        reused.engine->solve(hven::solvers::detail::problem_ref(*reused.program), hs071_start());
+        reused.engine->solve(hven::detail::problem_ref(*reused.program), hs071_start());
     const IpmAnswer retry = answer_of(retry_result);
     EXPECT_EQ(retry_result.kkt_analyses_this_call, 0)
         << "the retry must take the REUSE branch -- the same fact the one-iteration pin states";
@@ -2639,7 +2617,7 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     JsonLinesTraceSink fresh_sink(fresh_os);
     fresh.engine->attach_trace(&fresh_sink);
     const IpmResult fresh_result =
-        fresh.engine->solve(hven::solvers::detail::problem_ref(*fresh.program), hs071_start());
+        fresh.engine->solve(hven::detail::problem_ref(*fresh.program), hs071_start());
     const IpmAnswer cold = answer_of(fresh_result);
     EXPECT_GT(fresh_result.kkt_analyses_this_call, 0)
         << "premise: the fresh arm really did pay the analysis the retry skipped";
@@ -2677,4 +2655,4 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

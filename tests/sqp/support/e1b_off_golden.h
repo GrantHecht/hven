@@ -30,7 +30,7 @@
 
 #include "qp_as_nlp_model.h"
 
-namespace hven::solvers::e1b_golden {
+namespace hven::e1b_golden {
 
 inline QpProblem dependent_networks_qp() {
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(10, 11);
@@ -92,16 +92,15 @@ inline std::vector<std::string> off_fingerprint(QpMode mode) {
     o.qp.independent_working_set = false;
 #endif
     SqpSolver solver(o);
-    const SqpResult r =
-        solver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult r = solver.solve(hven::detail::problem_ref(model), (model).start_point());
     const SqpCounters &c = r.counters;
     return {
         fmt::format("status {}", static_cast<int>(r.status)),
         fmt::format("counters {} {} {} {} {} {}", c.major_iters, c.qp_minor_iters, c.factorizations,
                     c.steps_accepted, c.rejected_steps, c.restoration_iters),
         fmt::format("x {}", hex_of(r.x)),
-        fmt::format("lambda_e {}", hex_of(hven::solvers::detail::engine_rows(r).lambda_e)),
+        fmt::format("lambda_e {}", hex_of(hven::detail::engine_rows(r).lambda_e)),
     };
 }
 
-} // namespace hven::solvers::e1b_golden
+} // namespace hven::e1b_golden

@@ -36,7 +36,7 @@
 #include <hven/core/types.h>
 #include <hven/warmstart/warm_start_data.h>
 
-namespace hven::solvers {
+namespace hven {
 
 class IpmSolverImpl;
 class SqpSolverImpl;
@@ -143,7 +143,7 @@ struct SolveResult {
     /// set, when one was recorded; when none was (a non-finite start, a phase's
     /// first iterate, a failed initial factorization) it returns the failed
     /// point with its multipliers cleared and this false.
-    /// SQP: set only when SqpOptions::budget_mode ran out of iterations
+    /// SQP: set only when SqpOptions::return_best_on_max_iterations ran out of iterations
     /// (SolveStatus::kMaxIter); its non-finite exits never substitute and leave
     /// it false. The message gains "; returned the best iterate"
     /// whenever it is set.
@@ -462,4 +462,4 @@ struct IterationEvent {
 /// solver USABLE for the next call.
 using IterationCallback = std::function<CallbackAction(const IterationEvent &)>;
 
-} // namespace hven::solvers
+} // namespace hven

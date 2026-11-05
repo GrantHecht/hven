@@ -15,7 +15,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief QP solver performance counters.
 ///
@@ -124,7 +124,7 @@ struct QpCounters {
     /// end whose classification was going to be kOptimal anyway. Nothing is
     /// excluded by algebra: both paths refine at a would-be-kInfeasible dead end,
     /// and which twin runs is decided by the candidate's provenance rather than
-    /// by QpOptions::ws_algebra.
+    /// by QpOptions::working_set_algebra.
     ///
     /// At most detail::kMaxVerdictRefineSteps steps are bought per dead end; a
     /// whole-solve figure is only as large as the fixture's dead ends make it.
@@ -146,7 +146,7 @@ struct QpCounters {
     /// rebuilding K0, not merely whether `factorizations` reads 0. The two are
     /// different claims: `factorizations == 0` also arises from a reduced system
     /// with nothing to factorize and from a solve that never reached the loop.
-    /// Always false under QpOptions::ws_algebra == kRefactorize, where the
+    /// Always false under QpOptions::working_set_algebra == kRefactorize, where the
     /// border-mode cache does not exist.
     bool k0_reused = false;
 
@@ -1652,9 +1652,10 @@ struct SqpCounters {
     ///
     /// What it does NOT count: an ordinary max_iter exhaustion (kMaxIter, this field
     /// 0); a CommonOptions::max_factorizations stop (also kWorkLimit, this field 0); a
-    /// best-iterate max-iter exit under SqpOptions::budget_mode, a different budget with a
-    /// different contract; and a solve that spent more than the budget and CONVERGED anyway, which
-    /// is reported kOptimal with this field 0. A solve given no budget leaves this identically 0.
+    /// best-iterate max-iter exit under SqpOptions::return_best_on_max_iterations, a different
+    /// budget with a different contract; and a solve that spent more than the budget and CONVERGED
+    /// anyway, which is reported kOptimal with this field 0. A solve given no budget leaves this
+    /// identically 0.
     Index probe_budget_stops = 0;
 
     /// How many inequality ROWS and variable BOUNDS SqpOptions::crash_basis seeded
@@ -1842,7 +1843,7 @@ struct SqpCounters {
     /// @brief Subproblem exits with `QpStatus::kMaxIter` -- the subproblem spent
     ///        its whole minor budget (M7 W2 M1).
     ///
-    /// A BUDGET FACT, NOT A NUMERICAL ONE. The cap is `QpOptions::max_iter`
+    /// A BUDGET FACT, NOT A NUMERICAL ONE. The cap is `QpOptions::max_iterations`
     /// resolved for this subproblem -- the size-derived
     /// `max(500, 5*(n + mi + #bounded))` at the shipped sentinel, or the
     /// caller's own positive value -- and a solve that reaches it returns the
@@ -1957,7 +1958,7 @@ struct SqpCounters {
     /// could measure its returned point on the caller's own model: the RESUME
     /// arm and the not-feasible-enough arm, which are the two the four fields
     /// below are written at. The three REFUSALS never enter the phase at all (a
-    /// nested restoration, the entry rule (`SqpOptions::restoration_max_entries`), and no budget
+    /// nested restoration, the entry rule (`SqpOptions::max_restoration_entries`), and no budget
     /// left to restore with), and the NON-FINITE exit -- where the restored point or its KKT
     /// measurement is not finite -- ran the phase but measured nothing, so it moves neither this
     /// count nor the four fields, on the driver's own rule at that exit: nothing was measured, so
@@ -2002,7 +2003,7 @@ struct SqpCounters {
     /// seed was taken.
     ///
     /// IN THE ENGINE'S OWN UNITS, which are the caller's unless
-    /// `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    /// `SqpOptions::row_scaling` is on -- the units the resume test is taken
     /// in, so that the record is stated in the units of the decision it
     /// describes.
     ///
@@ -2085,7 +2086,7 @@ struct SqpCounters {
     /// carries SolveStatus's remaining three (`kAcceptable`, `kStalled`,
     /// `kDiverging`) so that the map into it is TOTAL and
     /// needs no default arm; the SQP engine reports the first three on no exit
-    /// at all, and the sub-solve runs with `budget_mode` forced false.
+    /// at all, and the sub-solve runs with `return_best_on_max_iterations` forced false.
     ///
     /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED (M7 W2 M3a fix1).
     /// The resume decision is `restoration_feas_out <= SqpOptions::feas_tol`
@@ -2212,7 +2213,7 @@ struct SqpCounters {
     /// @brief Pairs evicted early by the window's rank test. FOLDED.
     Index qn_rank_dropped = 0;
     /// @brief Window resets, by reason: consecutive non-zero-step skips, the radius
-    ///        floor (a shrink below tr_min), a restoration resume. FOLDED.
+    ///        floor (a shrink below trust_region_min), a restoration resume. FOLDED.
     Index qn_resets_consecutive_skips = 0;
     Index qn_resets_radius_floor = 0;
     Index qn_resets_restoration_resume = 0;
@@ -2388,4 +2389,4 @@ static_assert(counters_offsets_increase(kOffsetsSqpCounters, kSqpCountersFieldCo
               "declaration position. The JSON key order is the table's, so this must be the "
               "struct's.");
 
-} // namespace hven::solvers
+} // namespace hven

@@ -13,7 +13,7 @@
 //
 // WHY IT EXISTS. `QpEngine`'s finest public instrument is the per-SOLVE
 // `Ledger` record: one `QpCounters` per subproblem. M7 W2 M3a addendum F read
-// those counters on STEENBRB and YORKNET at `tr_init = inf` and found the first
+// those counters on STEENBRB and YORKNET at `trust_region_initial = inf` and found the first
 // QP subproblem spending its whole iteration cap — 4680 and 2560 minors — in
 // what the counters describe as long degenerate active-set churn (2319 of 2344
 // additions at a (near-)zero step on STEENBRB; 23 distinct bound variables
@@ -158,7 +158,7 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 /// WHICH BRANCH OF THE WALK a minor took. Every `continue`, every `break` and
 /// the fall-through step are enumerated, so a trace never has to infer an
@@ -397,7 +397,7 @@ struct QpWalkMinorRecord {
     /// The Dantzig violation of the constraint that was dropped, or the
     /// magnitude of the (numerically zero) multiplier the probe dropped on.
     double decision_multiplier = kAbsent;
-    /// The tolerance it was compared against (`QpOptions::opt_tol`).
+    /// The tolerance it was compared against (`QpOptions::optimality_tol`).
     double decision_tol = kAbsent;
     /// The largest violation in the drop rule's candidate set.
     double best_multiplier = kAbsent;
@@ -1145,6 +1145,6 @@ inline void qp_walk_note_inertia(const hven::linear::InertiaEvidence &e, Index e
     });
 }
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

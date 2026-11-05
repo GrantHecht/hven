@@ -9,17 +9,17 @@
 // interior-point engine's first solve.
 //
 // DECLARATIONS ONLY: the bodies stay in src/model/nlp_adapter.cpp, and the
-// adapter machinery -- NLPAdapterCore, the pieces, the claim pass -- stays in
+// adapter machinery -- NlpAdapterCore, the pieces, the claim pass -- stays in
 // detail/model/nlp_adapter.h.
 
 #include <memory>
 
 #include "hven/detail/model/absent_bound.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct NonLinearProgram;
-struct NLPAdapterCore;
+struct NlpAdapterCore;
 class Nlp;
 
 /// @brief Builds the NonLinearProgram for an adapter core.
@@ -36,7 +36,7 @@ class Nlp;
 /// The one production path, and the one the tests assemble through.
 ///
 /// PARTITIONS THROUGH THIS ADAPTER ARE LAYOUT ONLY. All three pieces are
-/// ThreadingFlags::MainThread, because NLPAdapterCore is one shared stateful
+/// ThreadingFlags::kMainThread, because NlpAdapterCore is one shared stateful
 /// object, and analyze_partitioning forces every MainThread function into the
 /// LAST partition to be run inline on the calling thread. So N here means N
 /// laid partitions with the whole problem in partition N-1, evaluated serially
@@ -51,7 +51,7 @@ class Nlp;
 /// public `num_partitions_` member (equivalently `declaration().partition_count_`),
 /// never off the request.
 std::shared_ptr<NonLinearProgram>
-make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core, int num_partitions = 1,
+make_nlp_program(const std::shared_ptr<NlpAdapterCore> &core, int num_partitions = 1,
                  double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief THE ONE-CALL TRANSCRIPTION: an Nlp to the program the
@@ -59,7 +59,7 @@ make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core, int num_partitions
 ///
 /// The named replacement for NLPSolver::transcribe() (M6 W5 T8.9), which is
 /// what every former consumer of that wrapper re-derived by hand:
-/// NlpProblemModel(problem) -> NLPAdapterCore(model, problem->name()) -> the
+/// NlpProblemModel(problem) -> NlpAdapterCore(model, problem->name()) -> the
 /// program. A caller that needs the intermediate model as well (to compose or
 /// split user multipliers, say) builds the NlpProblemModel itself and calls the
 /// core-taking overload above.
@@ -81,4 +81,4 @@ std::shared_ptr<NonLinearProgram>
 make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions = 1,
                  double infinite_bound = detail::kDefaultInfiniteBound);
 
-} // namespace hven::solvers
+} // namespace hven

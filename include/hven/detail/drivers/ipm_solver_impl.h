@@ -36,7 +36,7 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/common_options.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 #include "hven/drivers/ipm_options.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
@@ -56,13 +56,12 @@ class RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
 class RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test;
 class RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 
-namespace hven::solvers {
+namespace hven {
 
-// Pull root-namespace Eigen type aliases into hven::solvers so that IpmSolver
-// member declarations (EigenRef<VectorXd>, ConstEigenRef<VectorXd>, …) resolve
-// without full qualification inside this namespace.
-using hven::ConstEigenRef;
-using hven::EigenRef;
+/// The interior-point engine's internal iteration mode. A phase runs one of the
+/// first three (`SolvePhaseMode` names them for a kSolve phase); kInit is the
+/// multiplier initializer's one-shot evaluation, never a phase's mode.
+enum class AlgorithmMode { kOpt, kOptNo, kSoe, kInit };
 
 // The interior-point polish hand-off (hven/warmstart/ipm_polish_extension.h),
 // forward-declared rather than included: it appears here only as a `const &`
@@ -121,13 +120,13 @@ class Ledger;
 /// feasibility-restoration mode switches.
 class IpmSolverImpl {
   public:
-    // The options are hven::solvers::IpmOptions (drivers/ipm_options.h). Read it through
+    // The options are hven::IpmOptions (drivers/ipm_options.h). Read it through
     // options(), replace it through set_options().
 
     // The nested struct SolveResult that lived here is GONE (M6 W5 T8.4). Its
-    // replacement is hven::solvers::IpmResult in drivers/ipm_solver_types.h --
+    // replacement is hven::IpmResult in drivers/ipm_solver_types.h --
     // the same fields under the same names with the trailing underscores gone,
-    // on top of the shared hven::solvers::SolveResult base that carries the
+    // on top of the shared hven::SolveResult base that carries the
     // answer itself (status, x, lambda_e, lambda_i, z, f, the four shared
     // declared diagnostics, ce/ci, iterations, wall_seconds and the warm-start
     // snapshot) in DECLARED space and CALLER units.
@@ -186,7 +185,7 @@ class IpmSolverImpl {
         std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
                           ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
 
-    // LateCallBackType WENT in M6 W5 T8.6, and IterateInfo left the CALLBACK
+    // LateCallBackType WENT in M6 W5 T8.6, and IpmIterate left the CALLBACK
     // surface with it -- it remains the trace row type in drivers/trace.h,
     // which hands it out by reference as IpmIterTraceEvent::iterate exactly as
     // the IPQP's trace event types are handed out, and T8.7's console sink
@@ -194,7 +193,7 @@ class IpmSolverImpl {
     // was wrong -- a type reachable through an installed public header on a
     // public event is on the public surface). Its replacement ON THE CALLBACK
     // is the SHARED per-iteration callback
-    // both engines take -- hven::solvers::IterationCallback, over
+    // both engines take -- hven::IterationCallback, over
     // IterationEvent, in drivers/solve_result.h -- installed with
     // set_iteration_callback() below. The old type handed out this engine's own
     // per-iteration record in this engine's own space; the new one hands out
@@ -477,7 +476,7 @@ class IpmSolverImpl {
     // docs/notes/2026-09-m6-w5-migration-guide.md.
 
     // apply_preset() was REMOVED in M6 W5 T8.3: the preset is now the free
-    // function hven::solvers::ipm_preset(name), which RETURNS a full IpmOptions
+    // function hven::ipm_preset(name), which RETURNS a full IpmOptions
     // value rather than mutating a solver's settings in place. See
     // drivers/ipm_solver_types.h.
 
@@ -824,7 +823,7 @@ class IpmSolverImpl {
     // SQP's own seeded-dual band -- three policies, three derivations, one
     // header, values DELIBERATELY NOT UNIFIED (design 2.4). M6 W5 T8.10 swept
     // the call sites that spelled them on this class and dropped the aliases:
-    // `hven::solvers::kSeededIqMultFloor` and `::kSeededMultInitMax` are the
+    // `hven::kSeededIqMultFloor` and `::kSeededMultInitMax` are the
     // only names for these two values now.
 
     // set_initial_multipliers() / clear_initial_multipliers() and the three
@@ -1016,7 +1015,7 @@ class IpmSolverImpl {
     // --- Problem dimensions ---
     // primal_vars_ is the SOLVER's primal width: the NLP's variable count minus
     // the variables the fixed-variable treatment eliminated. Every vector this
-    // solver sizes, every KKTVector segment and the KKT matrix are in that
+    // solver sizes, every KktVector segment and the KKT matrix are in that
     // space. full_primal_vars_ is the problem's own count -- the width of an
     // initial guess and of the returned solution, and the only one a caller
     // ever sees. They are equal unless a variable is bound-fixed.
@@ -1434,7 +1433,7 @@ class IpmSolverImpl {
     /// and read by `run_phase_sequence` one statement after `alg_impl` returns.
     ///
     /// A COPY OF THE ROW, not a reference: `iters` is an `alg_impl` local and
-    /// is destroyed by the time the emit runs. `IterateInfo` is 28 scalars.
+    /// is destroyed by the time the emit runs. `IpmIterate` is 28 scalars.
     ///
     /// WRITTEN UNCONDITIONALLY, sink or no sink: it is four doubles, two
     /// integers, a bool and one record copy per PHASE -- not per iteration --
@@ -1444,7 +1443,7 @@ class IpmSolverImpl {
     /// stamps `Citer.iter_ = i` and pushes one row per iteration, so the index
     /// IS `row.iter_` and a second member would be the same number twice.
     struct PhaseExitScratch {
-        IterateInfo row;               ///< The row the phase returns.
+        IpmIterate row;                ///< The row the phase returns.
         bool best_substituted = false; ///< Did `return_best` substitute it?
         double total_s = 0.0;          ///< alg_impl's `Runtimer`.
         double func_s = 0.0;
@@ -1534,25 +1533,25 @@ class IpmSolverImpl {
     /// appending it moves no existing member's offset.
     IpmStopReason last_stop_reason_ = IpmStopReason::kNone;
 
-    // KKTVector — the compound-KKT segment view — lives in
-    // detail/interior/kkt_vector.h as hven::solvers::KKTVector, shared with
+    // KktVector — the compound-KKT segment view — lives in
+    // detail/interior/kkt_vector.h as hven::KktVector, shared with
     // the globalization components (which are non-member, non-friend).
 
-    /// @brief Create a KKTVector view over a VectorXd using this solver's dimensions.
-    KKTVector kkt_view(Eigen::VectorXd &v) {
-        return KKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
+    /// @brief Create a KktVector view over a VectorXd using this solver's dimensions.
+    KktVector kkt_view(Eigen::VectorXd &v) {
+        return KktVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
     }
     /// @brief The read-only view over const storage, same dimensions. Chosen by
     ///        overload resolution, so a member that only reads its vector can
     ///        take it by `const Eigen::VectorXd &` and still say `kkt_view(v)`.
-    ConstKKTVector kkt_view(const Eigen::VectorXd &v) const {
-        return ConstKKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
+    ConstKktVector kkt_view(const Eigen::VectorXd &v) const {
+        return ConstKktVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
     }
     /// @brief Refused for a TEMPORARY. The const overload above binds an rvalue
-    ///        and ConstKKTVector holds a reference, so the view would outlive its
+    ///        and ConstKktVector holds a reference, so the view would outlive its
     ///        storage. Const-qualified so the refusal also covers a call from a
     ///        const member function.
-    ConstKKTVector kkt_view(const Eigen::VectorXd &&) const = delete;
+    ConstKktVector kkt_view(const Eigen::VectorXd &&) const = delete;
 
     // --- Phase sequence ---
     // Describes one phase in a multi-phase solve strategy. run_phase_sequence
@@ -1737,7 +1736,7 @@ class IpmSolverImpl {
     // complementarity at the new point capped at kFreeModeClipMuCap -- a free-mode
     // parameter is a proposal for the NEXT step, and the safeguard needs a
     // description of where the iterate sits.
-    void apply_bound_dual_step(double alphad, KKTVector &xsl_new, double mu, bool monotone_mu);
+    void apply_bound_dual_step(double alphad, KktVector &xsl_new, double mu, bool monotone_mu);
 
     // Accumulates the condensed bound curvature onto a primal-diagonal base
     // vector. The two callers that already have a base vector in hand call this
@@ -1915,8 +1914,8 @@ class IpmSolverImpl {
     // L1 norm over a KKT vector's constraint block -- the constraint violation the
     // restoration entry guards, the proximal exit test and the stall detector all
     // measure. One home for the reduction. Takes the READ-ONLY view: it reduces
-    // and never writes, and a KKTVector converts implicitly.
-    double constraint_violation_l1(const ConstKKTVector &v) const;
+    // and never writes, and a KktVector converts implicitly.
+    double constraint_violation_l1(const ConstKktVector &v) const;
 
     // Original-problem infeasibility (∞-norm) for an active NESTED restoration
     // phase, taken from the raw equality/inequality residuals the eval seam saves
@@ -1946,7 +1945,7 @@ class IpmSolverImpl {
     // carries the measured point's BASE primal block for the same reason
     // dual_infeasibility_inf takes one: the comparison this feeds comes from two
     // points, and both must be measured in the same form.
-    double primal_dual_error(KKTVector &xsl, KKTVector &rhs,
+    double primal_dual_error(KktVector &xsl, KktVector &rhs,
                              ConstEigenRef<Eigen::VectorXd> prim_base, double mu) const;
 
     // Nested soft feasibility pre-stage trial. Forms the full
@@ -1963,14 +1962,14 @@ class IpmSolverImpl {
     // --- Convergence and stepping ---
     // The residual formulas shared by the pre-factorization early convergence
     // check and the post-line-search fill_iter_info() call live here ONCE, so
-    // neither site can drift. fill_residual_info() sets every IterateInfo field
+    // neither site can drift. fill_residual_info() sets every IpmIterate field
     // derivable from rhs/xsl alone, and deliberately NOT barr_obj_/mu_ (settled
     // only once the barrier update runs) or p_pivots_ (only real once this
     // iteration's factorization has run).
-    void fill_residual_info(KKTVector &xsl, KKTVector &rhs, double pobj, IterateInfo &iter) const;
-    void fill_iter_info(KKTVector &xsl, KKTVector &rhs, double pobj, double bobj, double mu,
-                        IterateInfo &iter) const;
-    SolveStatus converge_check(std::vector<IterateInfo> &iters);
+    void fill_residual_info(KktVector &xsl, KktVector &rhs, double pobj, IpmIterate &iter) const;
+    void fill_iter_info(KktVector &xsl, KktVector &rhs, double pobj, double bobj, double mu,
+                        IpmIterate &iter) const;
+    SolveStatus converge_check(std::vector<IpmIterate> &iters);
 
     /// @brief Builds ONE IterationEvent from the live iterate and hands it to
     ///        the installed per-iteration callback (M6 W5 T8.6).
@@ -2003,7 +2002,7 @@ class IpmSolverImpl {
     /// @param step_norm  Inf-norm of the primal block of the committed
     ///                   alpha * DXSL that reached this iterate; 0 at the first
     ///                   iterate of a phase.
-    void fire_iteration_event(const IterateInfo &iter, const Eigen::VectorXd &XSL,
+    void fire_iteration_event(const IpmIterate &iter, const Eigen::VectorXd &XSL,
                               const Eigen::VectorXd &RHS, double mu, double step_norm,
                               double prim_obj);
 
@@ -2066,8 +2065,8 @@ class IpmSolverImpl {
     // criterion value and iteration index. The return_best_ / restoration-
     // active guard stays at the call sites, which differ in why they are
     // reached; only the scoring and snapshot live here.
-    void track_best_iterate(const IterateInfo &iter, int i, const VectorXd &XSL,
-                            const VectorXd &RHS, double &BestCriteriaVal, int &BestIter);
+    void track_best_iterate(const IpmIterate &iter, int i, const VectorXd &XSL, const VectorXd &RHS,
+                            double &BestCriteriaVal, int &BestIter);
 
     /// The next never-reused analysis-owner id. Monotonic and process-wide;
     /// see analyzed_owner_id_.
@@ -2113,4 +2112,4 @@ struct IpmSolverAccess {
 
 } // namespace detail
 
-} // namespace hven::solvers
+} // namespace hven

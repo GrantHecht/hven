@@ -26,7 +26,7 @@ namespace hl = hven::linear;
 
 hl::SymmetricFactor::Options to_native_options(const SeamOptions &o) {
     hl::SymmetricFactor::Options n;
-    n.kind = hl::FactorKind::kLDLT;
+    n.kind = hl::FactorKind::kLdlt;
     n.num_threads = o.num_threads;
     n.pivot_perturb_exp = o.pivot_perturb_exp;
     n.max_refinement_iters = o.max_refinement_iters;

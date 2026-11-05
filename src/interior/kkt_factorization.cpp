@@ -15,7 +15,7 @@
 #include <Accelerate/Accelerate.h>
 #endif
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -220,4 +220,4 @@ void KktFactorization::record_failed_factorization(const hven::linear::Factorize
 #endif
 }
 
-} // namespace hven::solvers
+} // namespace hven

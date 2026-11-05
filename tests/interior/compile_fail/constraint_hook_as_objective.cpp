@@ -7,11 +7,11 @@
 // ObjectiveInterface. Its payload cannot be an objective, and storing the handle
 // whole would hand ObjectiveModel a type with neither surface. The expected
 // diagnostic is the authored "hven objective adapter:" static_assert in the
-// default adapter (hven/solver_interface_adapter.h).
+// default adapter (hven/model/solver_interface_adapter.h).
 
 #include "adapter_fixture_functions.h"
 
-hven::solvers::ObjectiveInterface probe_constraint_hook_as_objective() {
+hven::ObjectiveInterface probe_constraint_hook_as_objective() {
     const adapter_fixture::StubConstraintHookOnly f{};
-    return hven::solvers::ObjectiveInterface(f);
+    return hven::ObjectiveInterface(f);
 }

@@ -9,7 +9,7 @@
 ///        its own so that the trace interface can name them without the options
 ///        struct.
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief One phase of an interior-point solve, as `IpmOptions::phases` names it.
 ///
@@ -70,20 +70,32 @@ enum class KktSolveParallelism {
     kSequential,
 };
 
-/// @brief The algorithm mode a phase runs in.
-enum class AlgorithmMode { kOpt, kOptNo, kSoe, kInit };
+/// @brief What an `IpmPhase::kSolve` phase iterates on.
+enum class SolvePhaseMode {
+    /// The optimality iteration, objective included.
+    kOptimize,
+    /// The optimality iteration with the objective dropped (scaled by 0).
+    kOptimizeWithoutObjective,
+    /// The feasibility system ("solve the equations"). The default.
+    kSolveEquations,
+};
 
 /// @brief Barrier-parameter update rule.
 enum class BarrierMode { kProbe, kLoqo };
 
 /// @brief Merit function of the classic line search.
-enum class LineSearchMode { kAugLang, kLang, kL1, kNoLs };
+enum class LineSearchMode { kAugmentedLagrangian, kLagrangian, kL1, kNone };
 
 /// @brief Primal-dual step-length rule.
-enum class PrimalDualStepStrategy { kPrimSlackEqSplitIq, kAllMinimum, kPrimSlackSplitEqIq, kMaxEq };
+enum class PrimalDualStepStrategy {
+    kEqualityMultipliersPrimal,
+    kAllMinimum,
+    kEqualityMultipliersDual,
+    kEqualityMultipliersMaximum
+};
 
 /// @brief Step-acceptance test.
-enum class AcceptanceKind {
+enum class AcceptanceMode {
     /// The fused classic backtracking merit line search.
     kClassicMerit,
     /// The modernized merit family; its penalty rule is `merit_penalty_rule`.
@@ -97,13 +109,13 @@ enum class AcceptanceKind {
 /// @brief Penalty-parameter rule of the modernized merit family.
 enum class MeritPenaltyRule {
     /// Waltz, Morales, Nocedal and Orban (2006), section 3.1.
-    kWmno,
+    kSinglePenalty,
     /// Curtis and Nocedal (2008): a penalty interval.
     kFlexible,
 };
 
 /// @brief Barrier-parameter governor.
-enum class BarrierGovernorKind {
+enum class BarrierGovernorMode {
     /// The free-mode PROBE/LOQO update on its own.
     kClassicAdaptive,
     /// Free mode with a monotone (Fiacco-McCormick) fallback when progress
@@ -142,4 +154,4 @@ enum class BestIterateCriterion {
     kObjective,
 };
 
-} // namespace hven::solvers
+} // namespace hven

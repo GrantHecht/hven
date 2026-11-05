@@ -20,7 +20,7 @@
 #include "hven/detail/model/problem_access.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -171,4 +171,4 @@ void SqpSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     impl().attach_ledger(ledger, std::move(label_prefix));
 }
 
-} // namespace hven::solvers
+} // namespace hven

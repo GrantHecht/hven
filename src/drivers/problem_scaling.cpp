@@ -30,7 +30,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 namespace {
 
 // The rule of section 1.3, for one norm. Factored out because the objective and
@@ -356,4 +356,4 @@ void ColumnScaledModel::eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) c
     model_.eval_values(to_caller(x), f, cE, cI);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

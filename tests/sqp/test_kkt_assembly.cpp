@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_assembly.h>
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 
@@ -32,10 +32,10 @@ TEST(KktAssembly, DimensionsAndRegularization) {
     // free vars = {0,1}; rows = 2 free + 1 eq + 1 working ineq = 4
     EXPECT_EQ(asm_.K.rows(), 4);
     Eigen::MatrixXd Kd = Eigen::MatrixXd(asm_.K).selfadjointView<Eigen::Upper>();
-    EXPECT_DOUBLE_EQ(Kd(0, 0), 1.0 + opts.primal_delta);
-    EXPECT_DOUBLE_EQ(Kd(2, 2), -opts.dual_mu); // eq row regularized
-    EXPECT_DOUBLE_EQ(Kd(3, 3), -opts.dual_mu); // working ineq row regularized
-    EXPECT_DOUBLE_EQ(Kd(0, 2), 1.0);           // Ae entry for free var 0
+    EXPECT_DOUBLE_EQ(Kd(0, 0), 1.0 + opts.primal_regularization);
+    EXPECT_DOUBLE_EQ(Kd(2, 2), -opts.dual_regularization); // eq row regularized
+    EXPECT_DOUBLE_EQ(Kd(3, 3), -opts.dual_regularization); // working ineq row regularized
+    EXPECT_DOUBLE_EQ(Kd(0, 2), 1.0);                       // Ae entry for free var 0
     EXPECT_EQ(asm_.free_of_full.size(), 2u);
 }
 
@@ -68,7 +68,8 @@ TEST(KktAssembly, HessianEliminationShift) {
     EXPECT_EQ(asm_.free_of_full[0], 0);
     ASSERT_EQ(asm_.K.rows(), 1);
     Eigen::MatrixXd Kd = Eigen::MatrixXd(asm_.K).selfadjointView<Eigen::Upper>();
-    EXPECT_DOUBLE_EQ(Kd(0, 0), 2.0 + opts.primal_delta); // H(0,0) + delta only; no fixed-fixed term
+    EXPECT_DOUBLE_EQ(Kd(0, 0),
+                     2.0 + opts.primal_regularization); // H(0,0) + delta only; no fixed-fixed term
 
     ASSERT_EQ(asm_.rhs_shift.size(), 1);
     // rhs_shift(0) = H(0,1) * x_fixed(1) = 3 * 4 = 12.
@@ -183,7 +184,7 @@ TEST(KktAssembly, MirroredHessianEliminationShift) {
     EXPECT_EQ(asm_.free_of_full[0], 1);
     ASSERT_EQ(asm_.K.rows(), 1);
     Eigen::MatrixXd Kd = Eigen::MatrixXd(asm_.K).selfadjointView<Eigen::Upper>();
-    EXPECT_DOUBLE_EQ(Kd(0, 0), 5.0 + opts.primal_delta); // H(1,1) + delta only
+    EXPECT_DOUBLE_EQ(Kd(0, 0), 5.0 + opts.primal_regularization); // H(1,1) + delta only
 
     ASSERT_EQ(asm_.rhs_shift.size(), 1);
     EXPECT_DOUBLE_EQ(asm_.rhs_shift(0), 21.0);

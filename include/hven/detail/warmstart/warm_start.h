@@ -28,7 +28,7 @@
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // THE INTERIOR-POINT CROSSOVER -- `from_interior_point`.
 //
@@ -61,7 +61,7 @@ namespace hven::solvers {
 // judged ACTIVE iff BOTH
 //   lambda_i(j) > dual_tol                       -- the multiplier is
 //                                                   genuinely positive
-//   lambda_i(j) >= kIpActivityFactor
+//   lambda_i(j) >= kIpmActivityFactor
 //                  * max(mu_hat, ||lambda_i||inf * activity_rel_tol)
 //                                                -- and the price is LIVE at
 //                                                   the hand-off's OWN dual
@@ -133,15 +133,15 @@ namespace hven::solvers {
 // the seeded `lambda_i >= 0` clamp applies, the one defence this producer
 // specifically needs (see this header's producer-inventory note).
 //
-// The activity rule's safety factor `nu` (kIpActivityFactor) and the two
-// thresholds (IpCrossoverOptions) are public: warmstart/sqp_warm_start.h.
+// The activity rule's safety factor `nu` (kIpmActivityFactor) and the two
+// thresholds (IpmCrossoverOptions) are public: warmstart/sqp_warm_start.h.
 
 namespace detail {
 
 // The activity threshold of the rule documented above, for ONE dual/residual
 // population (the inequality rows, or one side of the variable bounds):
 //
-//     kIpActivityFactor * max(mu_hat, ||dual||inf * eps_rel)
+//     kIpmActivityFactor * max(mu_hat, ||dual||inf * eps_rel)
 //
 // with `mu_hat` the mean of dual(j)*|residual(j)| over the PRICED entries
 // (dual(j) > 0) and `||dual||inf` the largest price among them. An empty
@@ -177,7 +177,7 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
         return 0.0;
     }
     const double mu_hat = complementarity / static_cast<double>(priced);
-    return kIpActivityFactor * std::max(mu_hat, dual_inf * eps_rel);
+    return kIpmActivityFactor * std::max(mu_hat, dual_inf * eps_rel);
 }
 
 } // namespace detail
@@ -200,7 +200,7 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                                          const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
                                          const Vec &lower, const Vec &upper,
-                                         const IpCrossoverOptions &opts = {});
+                                         const IpmCrossoverOptions &opts = {});
 
 namespace detail {
 
@@ -216,8 +216,8 @@ namespace detail {
 ///         `lower`/`upper` are not at the core's own n.
 SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Vec &upper,
                                const DeclarationKey &structure_key,
-                               const IpCrossoverOptions &opts = {});
+                               const IpmCrossoverOptions &opts = {});
 
 } // namespace detail
 
-} // namespace hven::solvers
+} // namespace hven

@@ -16,7 +16,7 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn_engine.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// Consecutive non-zero-step skips that reset the window (design m7-qn-design.md section 3). A
 /// zero-step skip neither advances nor clears the streak: near a solution every step is zero,
@@ -123,4 +123,4 @@ class QnLiftBridge {
     Tally tally_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

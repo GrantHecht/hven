@@ -12,7 +12,7 @@
 
 #include "support/parametric_families.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Vec;
 
 namespace {
@@ -153,8 +153,7 @@ TEST(Ledger, DriverSolveRecordsWallSeconds) {
     Ledger ledger;
     driver.attach_ledger(&ledger, "wall");
 
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     ASSERT_EQ(ledger.sqp_records().size(), 1u);
@@ -163,8 +162,7 @@ TEST(Ledger, DriverSolveRecordsWallSeconds) {
     // A second solve on the same driver gets its OWN wall_seconds, not the
     // first's carried forward -- the two need not be equal, but both must be
     // populated (still no magnitude asserted on either).
-    const SqpResult sol2 =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult sol2 = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
     ASSERT_EQ(ledger.sqp_records().size(), 2u);
     EXPECT_GT(ledger.sqp_records()[1].wall_seconds, 0.0);

@@ -37,19 +37,19 @@
 
 namespace {
 
+using hven::BackendError;
+using hven::IpmOptions;
+using hven::IpmResult;
+using hven::IpmSolver;
+using hven::IpmStopReason;
+using hven::Problem;
+using hven::SolveStatus;
+using hven::SqpOptions;
+using hven::SqpSolver;
+using hven::SqpStopReason;
+using hven::Verbosity;
 using hven::linear::detail::testing::AnalyzeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
-using hven::solvers::BackendError;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpmResult;
-using hven::solvers::IpmSolver;
-using hven::solvers::IpmStopReason;
-using hven::solvers::Problem;
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolver;
-using hven::solvers::SqpStopReason;
-using hven::solvers::Verbosity;
 using hven_drivers_tests::hs071_start;
 using hven_drivers_tests::Hs071Problem;
 

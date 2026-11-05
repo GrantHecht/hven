@@ -40,7 +40,7 @@
 #include "hven/model/nlp.h"
 
 using hven::ConstEigenRef;
-using hven::solvers::Nlp;
+using hven::Nlp;
 
 // A small bound-bearing problem: minimize 0.5*|x|^2 subject to sum(x) == 3,
 // with a two-sided box on every variable. Bounds are what put the solver on the
@@ -48,7 +48,7 @@ using hven::solvers::Nlp;
 // table is consulted for the solver's own coefficient block, and the scatter
 // reads it unchecked.
 struct EpochGateBoxedProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -103,7 +103,7 @@ Eigen::VectorXd epoch_gate_start_point() {
 // Every location the user pieces scatter through. A re-lay leaves all of them
 // at -1; an analysis fills each one with an offset into the assembly buffer's
 // value array.
-bool epoch_gate_all_locations_unset(hven::solvers::NonLinearProgram &nlp) {
+bool epoch_gate_all_locations_unset(hven::NonLinearProgram &nlp) {
     const auto locations = nlp.get_kkt_locations();
     if (locations.size() == 0) {
         return false;
@@ -111,7 +111,7 @@ bool epoch_gate_all_locations_unset(hven::solvers::NonLinearProgram &nlp) {
     return (locations.array() == -1).all();
 }
 
-bool epoch_gate_no_location_unset(hven::solvers::NonLinearProgram &nlp) {
+bool epoch_gate_no_location_unset(hven::NonLinearProgram &nlp) {
     const auto locations = nlp.get_kkt_locations();
     return locations.size() > 0 && (locations.array() >= 0).all();
 }
@@ -123,21 +123,21 @@ bool epoch_gate_no_location_unset(hven::solvers::NonLinearProgram &nlp) {
 // the treatment call the old gate read reports no change. The re-analysis has
 // to happen anyway, and this is the sequence that proves it does.
 TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = result.x;
     const hven::Index analyses_after_first = result.kkt_analyses_total;
-    const hven::solvers::StructureEpoch epoch_after_first = program->structure_epoch();
+    const hven::StructureEpoch epoch_after_first = program->structure_epoch();
 
     ASSERT_TRUE(epoch_gate_no_location_unset(*program))
         << "a solved program must carry a filled location table";
@@ -160,8 +160,8 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
                                                        solver.options().bound_relax_factor))
         << "the treatment call cannot see a re-lay it did not perform";
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     EXPECT_GT(result.kkt_analyses_total, analyses_after_first)
         << "the moved epoch must have driven a fresh sparsity analysis";
@@ -180,26 +180,26 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
 // solves, so no analysis is redone and the second solve reproduces the first
 // bit for bit.
 TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = result.x;
     const double first_obj = result.f;
-    const Eigen::VectorXd first_eq = hven::solvers::detail::engine_rows(result).lambda_e;
+    const Eigen::VectorXd first_eq = hven::detail::engine_rows(result).lambda_e;
     const hven::Index analyses_after_first = result.kkt_analyses_total;
-    const hven::solvers::StructureEpoch epoch_after_first = program->structure_epoch();
+    const hven::StructureEpoch epoch_after_first = program->structure_epoch();
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     EXPECT_TRUE(program->structure_epoch() == epoch_after_first)
         << "a solve is not a structural event";
@@ -212,9 +212,9 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
         EXPECT_DOUBLE_EQ(second_x[i], first_x[i]);
     }
     EXPECT_DOUBLE_EQ(result.f, first_obj);
-    ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), first_eq.size());
+    ASSERT_EQ(hven::detail::engine_rows(result).lambda_e.size(), first_eq.size());
     for (int i = 0; i < first_eq.size(); i++) {
-        EXPECT_DOUBLE_EQ(hven::solvers::detail::engine_rows(result).lambda_e[i], first_eq[i]);
+        EXPECT_DOUBLE_EQ(hven::detail::engine_rows(result).lambda_e[i], first_eq[i]);
     }
 }
 
@@ -223,17 +223,17 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
 // whole KKT matrix to rediscover it, and the linear layer's own counters are
 // what show that the guard was skipped rather than merely believed skipped.
 TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), epoch_gate_start_point());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     const auto &counters = result.kkt_factor_counters;
     EXPECT_GT(counters.factorize_count, 0) << "the solve must have factorized something";
@@ -248,29 +248,29 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
 // factorization taken there would verify rather than declare. The solve entry
 // closes that span by re-analyzing.
 TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     ASSERT_EQ(result.kkt_factor_counters.pattern_verify_count, 0);
 
     // Nothing re-analyzes here, so the solver is left holding an analysis whose
     // epoch has moved out from under it -- the state the gate has to notice.
     program->negotiate_partition_count(1);
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
         << "a moved epoch must leave the buffer's pattern unvouched-for";
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), x0);
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::solvers::detail::problem_ref(*program)))
+    result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
         << "the solve-entry re-analysis re-establishes the epoch";
 }
 
@@ -282,12 +282,12 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
 // factorization, for the whole call, and a call that does not keeps the skip.
 TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout) {
     const auto with_callback_program =
-        hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver with_callback;
-    hven::solvers::IpmResult with_callback_result;
+        hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver with_callback;
+    hven::IpmResult with_callback_result;
     {
         auto o = with_callback.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         with_callback.set_options(std::move(o));
     }
     int callback_calls = 0;
@@ -299,32 +299,32 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
         return 0;
     });
 
-    with_callback_result = with_callback.solve(
-        hven::solvers::detail::problem_ref(*with_callback_program), epoch_gate_start_point());
-    ASSERT_EQ(with_callback_result.status, hven::solvers::SolveStatus::kOptimal);
+    with_callback_result = with_callback.solve(hven::detail::problem_ref(*with_callback_program),
+                                               epoch_gate_start_point());
+    ASSERT_EQ(with_callback_result.status, hven::SolveStatus::kOptimal);
     ASSERT_GT(callback_calls, 0) << "the callback never ran, so nothing was handed out";
 
     const auto &guarded = with_callback_result.kkt_factor_counters;
     EXPECT_GT(guarded.pattern_verify_count, 0)
         << "a call that hands the matrix out must re-derive the pattern it factorizes";
-    EXPECT_TRUE(with_callback.kkt_pattern_is_analyzed(
-        hven::solvers::detail::problem_ref(*with_callback_program)))
+    EXPECT_TRUE(
+        with_callback.kkt_pattern_is_analyzed(hven::detail::problem_ref(*with_callback_program)))
         << "the epoch itself never moved -- what changed is whether it is taken as the answer";
 
     // The same problem with no callback installed keeps the skip, which is
     // what makes the line the callback and not something the problem did.
     const auto without_callback_program =
-        hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver without_callback;
-    hven::solvers::IpmResult without_callback_result;
+        hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver without_callback;
+    hven::IpmResult without_callback_result;
     {
         auto o = without_callback.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         without_callback.set_options(std::move(o));
     }
     without_callback_result = without_callback.solve(
-        hven::solvers::detail::problem_ref(*without_callback_program), epoch_gate_start_point());
-    ASSERT_EQ(without_callback_result.status, hven::solvers::SolveStatus::kOptimal);
+        hven::detail::problem_ref(*without_callback_program), epoch_gate_start_point());
+    ASSERT_EQ(without_callback_result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(without_callback_result.kkt_factor_counters.pattern_verify_count, 0);
 
     // The guard reads the matrix and decides whether to throw; it feeds
@@ -342,12 +342,12 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
 // decision is taken once at entry and held. The next call, with nothing
 // installed, is the one that skips again.
 TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
@@ -360,14 +360,14 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
         return 0;
     });
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), epoch_gate_start_point());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     const auto counters_after_disarming = result.kkt_factor_counters;
     EXPECT_GT(counters_after_disarming.pattern_verify_count, 0)
         << "the call that handed the matrix out verifies to its end";
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), epoch_gate_start_point());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(result.kkt_factor_counters.pattern_verify_count,
               counters_after_disarming.pattern_verify_count)
         << "the next call has nothing installed, so it takes the skip again";
@@ -383,18 +383,18 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
 // hand-out -- and every factorization after it -- must still verify, exactly
 // as it would have if the callback had been armed from the start.
 TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
     bool armed = false;
     int early_callback_calls = 0;
-    solver.set_iteration_callback([&](const hven::solvers::IterationEvent &) {
+    solver.set_iteration_callback([&](const hven::IterationEvent &) {
         if (!armed) {
             armed = true;
             solver.set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
@@ -405,11 +405,11 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
                 return 0;
             });
         }
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program), epoch_gate_start_point());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    result = solver.solve(hven::detail::problem_ref(*program), epoch_gate_start_point());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     ASSERT_TRUE(armed) << "the late callback never ran, so the early one was never armed";
     ASSERT_GT(early_callback_calls, 0)
         << "the mid-call-armed early callback never ran, so nothing was handed out";
@@ -424,20 +424,19 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     // matrix out and keeps the skip -- isolating that the late callback's
     // mere presence is not what forces verification.
     const auto late_only_program =
-        hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver late_only;
-    hven::solvers::IpmResult late_only_result;
+        hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver late_only;
+    hven::IpmResult late_only_result;
     {
         auto o = late_only.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         late_only.set_options(std::move(o));
     }
-    late_only.set_iteration_callback([](const hven::solvers::IterationEvent &) {
-        return hven::solvers::CallbackAction::kContinue;
-    });
-    late_only_result = late_only.solve(hven::solvers::detail::problem_ref(*late_only_program),
-                                       epoch_gate_start_point());
-    ASSERT_EQ(late_only_result.status, hven::solvers::SolveStatus::kOptimal);
+    late_only.set_iteration_callback(
+        [](const hven::IterationEvent &) { return hven::CallbackAction::kContinue; });
+    late_only_result =
+        late_only.solve(hven::detail::problem_ref(*late_only_program), epoch_gate_start_point());
+    ASSERT_EQ(late_only_result.status, hven::SolveStatus::kOptimal);
     EXPECT_EQ(late_only_result.kkt_factor_counters.pattern_verify_count, 0)
         << "a late callback that never arms an early one never hands the matrix out, and must "
            "keep the skip throughout";
@@ -462,13 +461,12 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
 TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces) {
     constexpr double kScale = 1000.0;
 
-    const auto mutating_program =
-        hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver mutating;
-    hven::solvers::IpmResult mutating_result;
+    const auto mutating_program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver mutating;
+    hven::IpmResult mutating_result;
     {
         auto o = mutating.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         mutating.set_options(std::move(o));
     }
     bool mutating_captured = false;
@@ -495,44 +493,43 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     // always took -- the commit of iteration i's step happens after it either
     // way. So the SECOND call (iteration 1) still carries iteration 0's step:
     // the iterate the mutated factorization actually produced.
-    mutating.set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+    mutating.set_iteration_callback([&](const hven::IterationEvent &ev) {
         ++mutating_late_calls;
         if (mutating_late_calls == 2 && !mutating_captured) {
             mutating_captured = true;
             mutating_first_step = ev.x;
         }
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
-    mutating_result = mutating.solve(hven::solvers::detail::problem_ref(*mutating_program),
-                                     epoch_gate_start_point());
-    ASSERT_EQ(mutating_result.status, hven::solvers::SolveStatus::kOptimal);
+    mutating_result =
+        mutating.solve(hven::detail::problem_ref(*mutating_program), epoch_gate_start_point());
+    ASSERT_EQ(mutating_result.status, hven::SolveStatus::kOptimal);
     ASSERT_TRUE(mutating_captured)
         << "the mutating run's late callback never reached a second iteration, so no "
            "iteration-0-step comparison point exists";
 
-    const auto control_program =
-        hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::IpmSolver control;
-    hven::solvers::IpmResult control_result;
+    const auto control_program = hven::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
+    hven::IpmSolver control;
+    hven::IpmResult control_result;
     {
         auto o = control.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         control.set_options(std::move(o));
     }
     bool control_captured = false;
     Eigen::VectorXd control_first_step;
     int control_late_calls = 0;
-    control.set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+    control.set_iteration_callback([&](const hven::IterationEvent &ev) {
         ++control_late_calls;
         if (control_late_calls == 2 && !control_captured) {
             control_captured = true;
             control_first_step = ev.x;
         }
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
-    control_result = control.solve(hven::solvers::detail::problem_ref(*control_program),
-                                   epoch_gate_start_point());
-    ASSERT_EQ(control_result.status, hven::solvers::SolveStatus::kOptimal);
+    control_result =
+        control.solve(hven::detail::problem_ref(*control_program), epoch_gate_start_point());
+    ASSERT_EQ(control_result.status, hven::SolveStatus::kOptimal);
     ASSERT_TRUE(control_captured)
         << "the control run's late callback never reached a second iteration, so no "
            "iteration-0-step comparison point exists";
@@ -572,7 +569,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
 // before T2: PGX is folded into the Newton right-hand side six lines on, the
 // RHS constraint blocks ARE that side, and XSL is the iterate.
 static_assert(
-    std::is_same_v<hven::solvers::IpmSolver::KktHook,
+    std::is_same_v<hven::IpmSolver::KktHook,
                    std::function<int(int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
@@ -581,17 +578,16 @@ static_assert(
     "matrix argument is a MUTABLE reference. Changing either half changes what a callback "
     "may do to a solve in flight -- see the contract on KktHook and the M6 W5 "
     "migration guide before touching this line.");
-// M6 W5 T8.6: LateCallBackType is GONE, and with it the IterateInfo the old
+// M6 W5 T8.6: LateCallBackType is GONE, and with it the IpmIterate the old
 // pin named. Its replacement is the SHARED callback both engines take, whose
 // signature is pinned here in its place -- one type, one event, and no
 // engine-private record on the public surface any more.
-static_assert(
-    std::is_same_v<hven::solvers::IterationCallback, std::function<hven::solvers::CallbackAction(
-                                                         const hven::solvers::IterationEvent &)>>,
-    "IterationCallback is the ONE per-iteration callback both engines take, over a "
-    "const IterationEvent& in declared space and caller units. Changing it changes both "
-    "engines' public surface at once -- see design section 2.5 and the M6 W5 migration "
-    "guide before touching this line.");
+static_assert(std::is_same_v<hven::IterationCallback,
+                             std::function<hven::CallbackAction(const hven::IterationEvent &)>>,
+              "IterationCallback is the ONE per-iteration callback both engines take, over a "
+              "const IterationEvent& in declared space and caller units. Changing it changes both "
+              "engines' public surface at once -- see design section 2.5 and the M6 W5 migration "
+              "guide before touching this line.");
 
 // An equality-only, bound-free problem that RECORDS what the solver handed it
 // and what it handed back -- the oracle for the three views, which carry the
@@ -609,7 +605,7 @@ static_assert(
 namespace {
 
 struct CallbackOracleProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -684,12 +680,12 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
     constexpr double kObjScale = 3.0;
 
     auto problem = std::make_shared<CallbackOracleProblem>();
-    const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(problem);
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.objective_scale = kObjScale;
         solver.set_options(std::move(o));
     }
@@ -727,9 +723,9 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
         return 0;
     });
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program),
+    result = solver.solve(hven::detail::problem_ref(*program),
                           Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_GT(early_calls, 0) << "the early callback never ran, so nothing was observed";
 }
 
@@ -746,12 +742,12 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
 // test_ipm_warm_start.cpp pins that write where it is not dead.)
 TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     auto problem = std::make_shared<CallbackOracleProblem>();
-    const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::IpmSolver solver;
-    hven::solvers::IpmResult result;
+    const auto program = hven::make_nlp_program(problem);
+    hven::IpmSolver solver;
+    hven::IpmResult result;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -767,15 +763,15 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     // block rather than the raw compound iterate. This problem has no bounds
     // and no fixed variables, so the two are the same numbers and the
     // comparison below stays bit-for-bit.
-    solver.set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+    solver.set_iteration_callback([&](const hven::IterationEvent &ev) {
         late_xsl.emplace_back(ev.x);
         late_lambda_e.emplace_back(ev.lambda);
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
 
-    result = solver.solve(hven::solvers::detail::problem_ref(*program),
+    result = solver.solve(hven::detail::problem_ref(*program),
                           Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0));
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     ASSERT_GE(early_xsl.size(), 2u) << "fewer than two iterations, so there is no clock to check";
     ASSERT_GE(late_xsl.size(), early_xsl.size());
 
@@ -817,7 +813,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
 // ---------------------------------------------------------------------------
 // THE READ-ONLY TWIN NAMES THE SAME BLOCKS AS THE MUTABLE VIEW (M6 W5 T2 fix1).
 //
-// T2's ConstKKTVector re-spells thirteen segment expressions KKTVector already
+// T2's ConstKktVector re-spells thirteen segment expressions KktVector already
 // has (kkt_vector.h argues why it is a second class and not a template). The
 // cost of that choice is an invariant with no compiler behind it: an edit that
 // moves a block in one class and misses the other compiles, and what it breaks
@@ -828,7 +824,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
 // an off-by-one in any one accessor moves an address or a length.
 namespace {
 
-// One accessor pair. `a` is one of KKTVector's two forms, `b` is the twin's.
+// One accessor pair. `a` is one of KktVector's two forms, `b` is the twin's.
 template <class A, class B> void expect_same_block(const A &a, const B &b, const char *what) {
     ASSERT_EQ(a.size(), b.size()) << what << " -- length";
     EXPECT_EQ(static_cast<const double *>(a.data()), static_cast<const double *>(b.data()))
@@ -847,12 +843,12 @@ TEST(KktVectorLayout, TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVector
         storage[k] = 1.0 + static_cast<double>(k);
     }
 
-    hven::solvers::KKTVector mut(storage, kPv, kSv, kEc, kIc);
-    // KKTVector's const-qualified overloads are a third spelling of the same
+    hven::KktVector mut(storage, kPv, kSv, kEc, kIc);
+    // KktVector's const-qualified overloads are a third spelling of the same
     // thirteen expressions, so they are checked too rather than assumed.
-    const hven::solvers::KKTVector &cmut = mut;
+    const hven::KktVector &cmut = mut;
     // Built through the IMPLICIT converting constructor, which this also pins.
-    hven::solvers::ConstKKTVector cst = mut;
+    hven::ConstKktVector cst = mut;
 
     // NON-VACUITY: the reference side is itself the documented layout, so two
     // views agreeing on the same WRONG one cannot satisfy the comparisons.
@@ -865,11 +861,11 @@ TEST(KktVectorLayout, TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVector
     ASSERT_EQ(mut.eq_lmults().data(), storage.data() + kPv + kSv);
     ASSERT_EQ(mut.iq_lmults().data(), storage.data() + kPv + kSv + kEc);
 
-// Each accessor against BOTH of KKTVector's forms; two calls and nothing else.
+// Each accessor against BOTH of KktVector's forms; two calls and nothing else.
 #define HVEN_EXPECT_TWIN(acc)                                                                      \
     do {                                                                                           \
-        expect_same_block(mut.acc(), cst.acc(), "KKTVector::" #acc "() (mutable form)");           \
-        expect_same_block(cmut.acc(), cst.acc(), "KKTVector::" #acc "() (const form)");            \
+        expect_same_block(mut.acc(), cst.acc(), "KktVector::" #acc "() (mutable form)");           \
+        expect_same_block(cmut.acc(), cst.acc(), "KktVector::" #acc "() (const form)");            \
     } while (false)
 
     // Primal/slack segments.
@@ -891,11 +887,11 @@ TEST(KktVectorLayout, TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVector
 #undef HVEN_EXPECT_TWIN
 
     // The thirteenth: full-vector access, a reference and not a segment.
-    EXPECT_EQ(&mut.data(), &cst.data()) << "KKTVector::data() (mutable form)";
-    EXPECT_EQ(&cmut.data(), &cst.data()) << "KKTVector::data() (const form)";
+    EXPECT_EQ(&mut.data(), &cst.data()) << "KktVector::data() (mutable form)";
+    EXPECT_EQ(&cmut.data(), &cst.data()) << "KktVector::data() (const form)";
 
     // The direct constructor is the other way in, and must not diverge from it.
-    const hven::solvers::ConstKKTVector direct(storage, kPv, kSv, kEc, kIc);
-    expect_same_block(direct.primals(), cst.primals(), "ConstKKTVector direct vs converted");
-    expect_same_block(direct.iq_lmults(), cst.iq_lmults(), "ConstKKTVector direct vs converted");
+    const hven::ConstKktVector direct(storage, kPv, kSv, kEc, kIc);
+    expect_same_block(direct.primals(), cst.primals(), "ConstKktVector direct vs converted");
+    expect_same_block(direct.iq_lmults(), cst.iq_lmults(), "ConstKktVector direct vs converted");
 }

@@ -47,12 +47,12 @@
 #include "hven/warmstart/ipm_polish_extension.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
 namespace {
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::ConstVecRef;
 using hven::Index;
 using hven::IndexVecRef;
@@ -62,7 +62,7 @@ using hven::VecRef;
 
 IpmSolver quiet_ipm(FixedVariableTreatment treatment = FixedVariableTreatment::kMakeParameter) {
     IpmOptions options;
-    options.common.verbosity = hven::solvers::Verbosity::kSilent;
+    options.common.verbosity = hven::Verbosity::kSilent;
     options.fixed_variable_treatment = treatment;
     return IpmSolver(options);
 }
@@ -531,8 +531,7 @@ TEST(Problem, AValueOnlyBoundChangeKeepsTheSqpWarmStarts) {
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStart payload = first.warm_start;
     ASSERT_TRUE(!payload.empty());
-    const hven::solvers::detail::SqpWarmState native =
-        SqpWarmAccess::state(first.native_warm_start);
+    const hven::detail::SqpWarmState native = SqpWarmAccess::state(first.native_warm_start);
     ASSERT_TRUE(native.valid);
 
     box->x1_upper = 0.5; // the unconstrained x1 = 2/3 is cut off: the bound is active
@@ -1063,7 +1062,7 @@ static_assert(std::is_copy_constructible_v<SqpWarmStart> &&
                   std::is_nothrow_move_constructible_v<SqpWarmStart>,
               "SqpWarmStart is a copyable, movable handle");
 
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 
 // A seed built from a result's own (x, lambda, z) is that result's warm start where
 // the row map is injective, and always reads back as the same row-space lambda.
@@ -1083,37 +1082,35 @@ void expect_seed_round_trip(const Problem &problem, const Result &r, bool every_
 
     const NlpProblemModel *model = detail::ProblemAccess::nlp_model(problem);
     ASSERT_NE(model, nullptr);
-    const NLPRowClassification &rows = model->rows();
+    const NlpRowClassification &rows = model->rows();
     const Vec &seed_eq = WarmStartAccess::eq(seed);
     const Vec &seed_iq = WarmStartAccess::iq(seed);
     const Vec &warm_eq = WarmStartAccess::eq(r.warm_start);
     const Vec &warm_iq = WarmStartAccess::iq(r.warm_start);
     ASSERT_EQ(seed_eq.size(), warm_eq.size());
     ASSERT_EQ(seed_iq.size(), warm_iq.size());
-    for (std::size_t k = 0; k < rows.kinds_.size(); ++k) {
-        switch (rows.kinds_[k]) {
-        case NLPRowKind::Equality:
-            EXPECT_EQ(seed_eq[rows.eq_row_[k]], warm_eq[rows.eq_row_[k]]) << "row " << k;
+    for (std::size_t k = 0; k < rows.kinds.size(); ++k) {
+        switch (rows.kinds[k]) {
+        case NlpRowKind::kEquality:
+            EXPECT_EQ(seed_eq[rows.eq_row[k]], warm_eq[rows.eq_row[k]]) << "row " << k;
             break;
-        case NLPRowKind::UpperBounded:
-            EXPECT_EQ(seed_iq[rows.iq_upper_row_[k]], warm_iq[rows.iq_upper_row_[k]])
-                << "row " << k;
+        case NlpRowKind::kUpperBounded:
+            EXPECT_EQ(seed_iq[rows.iq_upper_row[k]], warm_iq[rows.iq_upper_row[k]]) << "row " << k;
             break;
-        case NLPRowKind::LowerBounded:
-            EXPECT_EQ(seed_iq[rows.iq_lower_row_[k]], warm_iq[rows.iq_lower_row_[k]])
-                << "row " << k;
+        case NlpRowKind::kLowerBounded:
+            EXPECT_EQ(seed_iq[rows.iq_lower_row[k]], warm_iq[rows.iq_lower_row[k]]) << "row " << k;
             break;
-        case NLPRowKind::Range:
+        case NlpRowKind::kRange:
             // compose is not injective on a range row's two sides: an interior-point
             // pair with both sides live is recovered only as their difference.
             if (every_row_injective) {
-                EXPECT_EQ(seed_iq[rows.iq_upper_row_[k]], warm_iq[rows.iq_upper_row_[k]])
+                EXPECT_EQ(seed_iq[rows.iq_upper_row[k]], warm_iq[rows.iq_upper_row[k]])
                     << "row " << k;
-                EXPECT_EQ(seed_iq[rows.iq_lower_row_[k]], warm_iq[rows.iq_lower_row_[k]])
+                EXPECT_EQ(seed_iq[rows.iq_lower_row[k]], warm_iq[rows.iq_lower_row[k]])
                     << "row " << k;
             }
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             break;
         }
     }
@@ -1306,7 +1303,7 @@ TEST(WarmStartRowSpace, ABracedEmptyThirdArgumentSelectsTheWarmStartOverload) {
 TEST(WarmStartRowSpace, ToSqpWarmStartTakesTheBoundsAndTheKeyFromTheProblem) {
     Problem problem(hs071());
     IpmOptions rough;
-    rough.common.verbosity = hven::solvers::Verbosity::kSilent;
+    rough.common.verbosity = hven::Verbosity::kSilent;
     rough.common.optimality_tol = 1e-3;
     rough.common.feasibility_tol = 1e-3;
     IpmSolver ipm(rough);

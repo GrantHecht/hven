@@ -10,7 +10,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/drivers/ipm_enums.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// WMNO Eq. (3.4)/(3.5): pred(d_z) >= rho_nu*|c|, rho in (0,1); shipped value
 /// rho = 0.1 (Waltz, Morales, Nocedal & Orban, Math. Program. 107, §3.1).
@@ -229,4 +229,4 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     bool retraction_armed_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

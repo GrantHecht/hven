@@ -36,7 +36,7 @@
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // Forward-declared, not included: `drivers/trace.h` is the PUBLIC schema and
 // this header must not pull it in (the cycle it once broke is gone -- the
@@ -695,8 +695,8 @@ class IpqpEscapeLadder {
 
 /// @brief Build the immutable clamp-centred box (IpqpBox's own contract).
 /// @param qp     the subproblem, already validated.
-/// @param radius the EFFECTIVE trust-region radius: `SolveOverrides::tr_radius` resolved
-///               against `QpOptions::tr_radius`; +inf disables the window exactly.
+/// @param radius the EFFECTIVE trust-region radius: `SolveOverrides::trust_region_radius` resolved
+///               against `QpOptions::trust_region_radius`; +inf disables the window exactly.
 /// @throws std::invalid_argument if `radius` is negative or NaN, or if a
 ///         declared bound is NaN, checked here rather than left to Eigen's asserts (NDEBUG
 ///         compiles those out). A CROSSED declared box is NOT a throw -- see `zero_width_index`.
@@ -735,4 +735,4 @@ double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &ove
 bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 
-} // namespace hven::solvers
+} // namespace hven

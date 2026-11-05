@@ -29,7 +29,7 @@
 #include "hven/model/nlp.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace detail {
 
 namespace {
@@ -78,25 +78,25 @@ Index count_absent(const Vec &lower, const Vec &upper, double infinite_bound) {
     return absent;
 }
 
-void count_rows(const std::vector<NLPRowKind> &kinds, ProblemStatistics &stats) {
+void count_rows(const std::vector<NlpRowKind> &kinds, ProblemStatistics &stats) {
     stats.constraints = static_cast<Index>(kinds.size());
     stats.equality_rows = stats.lower_bounded_rows = stats.upper_bounded_rows = 0;
     stats.range_rows = stats.free_rows = 0;
-    for (const NLPRowKind kind : kinds) {
+    for (const NlpRowKind kind : kinds) {
         switch (kind) {
-        case NLPRowKind::Equality:
+        case NlpRowKind::kEquality:
             ++stats.equality_rows;
             break;
-        case NLPRowKind::UpperBounded:
+        case NlpRowKind::kUpperBounded:
             ++stats.upper_bounded_rows;
             break;
-        case NLPRowKind::LowerBounded:
+        case NlpRowKind::kLowerBounded:
             ++stats.lower_bounded_rows;
             break;
-        case NLPRowKind::Range:
+        case NlpRowKind::kRange:
             ++stats.range_rows;
             break;
-        case NLPRowKind::Free:
+        case NlpRowKind::kFree:
             ++stats.free_rows;
             break;
         }
@@ -115,8 +115,8 @@ void count_program(const NonLinearProgram &program, ProblemStatistics &stats) {
     const std::vector<VariableBound> bounds = program.declaration().materialize_variable_bounds();
     Vec lower(static_cast<Index>(bounds.size())), upper(static_cast<Index>(bounds.size()));
     for (std::size_t i = 0; i < bounds.size(); ++i) {
-        lower[static_cast<Index>(i)] = bounds[i].lower_;
-        upper[static_cast<Index>(i)] = bounds[i].upper_;
+        lower[static_cast<Index>(i)] = bounds[i].lower;
+        upper[static_cast<Index>(i)] = bounds[i].upper;
     }
     count_variables(program.primal_vars_, lower, upper, stats, program.infinite_bound_);
     count_split_rows(program.user_equal_cons_, program.inequal_cons_, stats);
@@ -180,9 +180,9 @@ class ProblemState {
         // The bounds AS DECLARED, kept so a solve under another absent-bound
         // threshold can re-lay the pieces with them (the program holds them as
         // its threshold reads them).
-        pieces_bounds_ = pieces.variable_bounds_;
-        pieces_partitions_ = pieces.partition_count_;
-        auto program = std::make_shared<NonLinearProgram>(pieces.partition_count_);
+        pieces_bounds_ = pieces.variable_bounds;
+        pieces_partitions_ = pieces.partition_count;
+        auto program = std::make_shared<NonLinearProgram>(pieces.partition_count);
         program->adopt_declaration(std::move(pieces));
         count_program(*program, statistics_);
         program_ = std::move(program);
@@ -263,7 +263,7 @@ class ProblemState {
             }
             refresh_nlp(infinite_bound);
             if (program_ == nullptr) {
-                auto core = std::make_shared<NLPAdapterCore>(nlp_model_, nlp_->name());
+                auto core = std::make_shared<NlpAdapterCore>(nlp_model_, nlp_->name());
                 program_ = make_nlp_program(core, 1, nlp_model_->infinite_bound());
                 core_ = std::move(core);
             }
@@ -276,7 +276,7 @@ class ProblemState {
             refuse_empty_model_box(infinite_bound);
             if (program_ == nullptr || program_->infinite_bound_ != infinite_bound) {
                 auto core =
-                    std::make_shared<NLPAdapterCore>(std::const_pointer_cast<NlpModel>(model_));
+                    std::make_shared<NlpAdapterCore>(std::const_pointer_cast<NlpModel>(model_));
                 std::shared_ptr<NonLinearProgram> program =
                     make_nlp_program(core, 1, infinite_bound);
                 program_ = std::move(program);
@@ -389,35 +389,35 @@ class ProblemState {
     // those reads no callback.
     DeclarationKey declaration_key() const {
         if (kind_ == Kind::kPieces || kind_ == Kind::kProgram) {
-            return solvers::declaration_key(program_->declaration());
+            return hven::declaration_key(program_->declaration());
         }
         if (kind_ == Kind::kAssembly) {
-            return solvers::declaration_key(bridge_->declaration());
+            return hven::declaration_key(bridge_->declaration());
         }
         AssemblyDeclaration declaration;
-        declaration.primal_vars_ = static_cast<int>(num_variables());
+        declaration.primal_vars = static_cast<int>(num_variables());
         const Vec *lower = nullptr;
         const Vec *upper = nullptr;
         if (kind_ == Kind::kNlp) {
-            declaration.equality_rows_ = nlp_model_->me();
-            declaration.inequality_rows_ = nlp_model_->mi();
+            declaration.equality_rows = nlp_model_->me();
+            declaration.inequality_rows = nlp_model_->mi();
             lower = &nlp_model_->lower();
             upper = &nlp_model_->upper();
         } else {
-            declaration.equality_rows_ = model_->me();
-            declaration.inequality_rows_ = model_->mi();
+            declaration.equality_rows = model_->me();
+            declaration.inequality_rows = model_->mi();
             lower = &model_->lower();
             upper = &model_->upper();
         }
         // The box as the engines read it: an Nlp's is normalized by its
         // transcription, a model's is read here under the last solve's threshold.
-        declaration.variable_bounds_.reserve(static_cast<std::size_t>(declaration.primal_vars_));
-        for (int i = 0; i < declaration.primal_vars_; ++i) {
-            declaration.variable_bounds_.push_back(
+        declaration.variable_bounds.reserve(static_cast<std::size_t>(declaration.primal_vars));
+        for (int i = 0; i < declaration.primal_vars; ++i) {
+            declaration.variable_bounds.push_back(
                 VariableBound{i, normalize_bound((*lower)[i], infinite_bound_),
                               normalize_bound((*upper)[i], infinite_bound_)});
         }
-        return solvers::declaration_key(declaration);
+        return hven::declaration_key(declaration);
     }
 
     // The declared variable bounds as the solve entry sees them.
@@ -446,8 +446,8 @@ class ProblemState {
             lower.resize(static_cast<Index>(bounds.size()));
             upper.resize(static_cast<Index>(bounds.size()));
             for (std::size_t i = 0; i < bounds.size(); ++i) {
-                lower[static_cast<Index>(i)] = bounds[i].lower_;
-                upper[static_cast<Index>(i)] = bounds[i].upper_;
+                lower[static_cast<Index>(i)] = bounds[i].lower;
+                upper[static_cast<Index>(i)] = bounds[i].upper;
             }
             return;
         }
@@ -581,7 +581,7 @@ class ProblemState {
     // The engine's blocks are empty where it could not measure its returned
     // point, and then g is empty. Otherwise g is m long.
     static void map_row_values(const NlpProblemModel &model, const Vec &ce, const Vec &ci, Vec &g) {
-        const NLPRowClassification &rows = model.rows();
+        const NlpRowClassification &rows = model.rows();
         const int m = model.num_declared_rows();
         if (ce.size() != model.me() || ci.size() != model.mi()) {
             g.resize(0);
@@ -591,18 +591,18 @@ class ProblemState {
         const Vec &gu = model.row_upper();
         g.resize(m);
         for (int r = 0; r < m; ++r) {
-            switch (rows.kinds_[static_cast<std::size_t>(r)]) {
-            case NLPRowKind::Equality:
-                g[r] = ce[rows.eq_row_[r]] + gl[r];
+            switch (rows.kinds[static_cast<std::size_t>(r)]) {
+            case NlpRowKind::kEquality:
+                g[r] = ce[rows.eq_row[r]] + gl[r];
                 break;
-            case NLPRowKind::UpperBounded:
-            case NLPRowKind::Range:
-                g[r] = ci[rows.iq_upper_row_[r]] + gu[r];
+            case NlpRowKind::kUpperBounded:
+            case NlpRowKind::kRange:
+                g[r] = ci[rows.iq_upper_row[r]] + gu[r];
                 break;
-            case NLPRowKind::LowerBounded:
-                g[r] = gl[r] - ci[rows.iq_lower_row_[r]];
+            case NlpRowKind::kLowerBounded:
+                g[r] = gl[r] - ci[rows.iq_lower_row[r]];
                 break;
-            case NLPRowKind::Free:
+            case NlpRowKind::kFree:
                 g[r] = std::numeric_limits<double>::quiet_NaN();
                 break;
             }
@@ -731,7 +731,7 @@ class ProblemState {
     void count_nlp() {
         count_variables(dims_.n, nlp_model_->lower(), nlp_model_->upper(), statistics_,
                         nlp_model_->infinite_bound());
-        count_rows(nlp_model_->rows().kinds_, statistics_);
+        count_rows(nlp_model_->rows().kinds, statistics_);
         statistics_.absent_bounds = nlp_model_->absent_bounds();
     }
 
@@ -803,8 +803,8 @@ class ProblemState {
     // Built whole, then committed; the engine re-analyses the new program.
     void relay_pieces(double infinite_bound) {
         AssemblyDeclaration declaration = program_->declaration();
-        declaration.variable_bounds_ = pieces_bounds_;
-        declaration.partition_count_ = pieces_partitions_;
+        declaration.variable_bounds = pieces_bounds_;
+        declaration.partition_count = pieces_partitions_;
         auto program = std::make_shared<NonLinearProgram>(pieces_partitions_);
         program->set_infinite_bound(infinite_bound);
         program->adopt_declaration(std::move(declaration));
@@ -838,7 +838,7 @@ class ProblemState {
     NlpModelAssembly *bridge_ = nullptr;
 
     // The interior-point program: built on first use (kNlp, kModel) or given.
-    std::shared_ptr<NLPAdapterCore> core_;
+    std::shared_ptr<NlpAdapterCore> core_;
     std::shared_ptr<NonLinearProgram> program_;
 
     ProblemStatistics statistics_;
@@ -972,4 +972,4 @@ const ProblemStatistics &Problem::statistics() const noexcept {
 
 Index Problem::partitions() const noexcept { return state_ != nullptr ? state_->partitions() : 0; }
 
-} // namespace hven::solvers
+} // namespace hven

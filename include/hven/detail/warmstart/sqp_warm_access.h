@@ -17,7 +17,7 @@
 #include "hven/detail/warmstart/sqp_warm_state.h"
 #include "hven/warmstart/sqp_warm_start.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 struct SqpWarmAccess {
     /// The cold value: nothing captured (valid() is false). The route a caller
@@ -54,4 +54,4 @@ struct SqpWarmAccess {
     }
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

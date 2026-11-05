@@ -28,7 +28,7 @@
 #include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"
 
-namespace hven::solvers {
+namespace hven {
 
 class IpmSolverImpl;
 class TraceSink;
@@ -169,12 +169,12 @@ class IpmSolver {
     ///         disagree or are not at the declared width, a duplicated,
     ///         unreadable or mis-sized polish extension, or a declaration stamp
     ///         that is not this problem's.
-    /// @throws hven::solvers::EvaluationError if the model throws one at the
+    /// @throws hven::EvaluationError if the model throws one at the
     ///         start point. At a trial point it is a rejected trial, never
     ///         thrown; a non-finite value is treated exactly the same, and at
     ///         the start point ends the solve `kNumericalError` (core/errors.h
     ///         states the whole contract).
-    /// @throws hven::solvers::BackendError if the linear-algebra backend fails
+    /// @throws hven::BackendError if the linear-algebra backend fails
     ///         in a way no status can report.
     /// @throws Any other exception a user callback throws, unchanged. The
     ///         interrupted solve's result is then `last_result()`.
@@ -287,4 +287,4 @@ class IpmSolver {
     std::unique_ptr<IpmSolverImpl> impl_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

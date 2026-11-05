@@ -8,7 +8,7 @@
 
 #include <Eigen/Core>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The finite variable bounds a solve has to honor, split into a lower-bound
 /// list and an upper-bound list and stored as index/value pairs rather than as
@@ -116,4 +116,4 @@ inline constexpr double kFreeModeClipMuCap = 1.0e3;
 /// convergence account and the condensed curvature stay undamped.
 inline constexpr double kKappaD = 1.0e-5;
 
-} // namespace hven::solvers
+} // namespace hven

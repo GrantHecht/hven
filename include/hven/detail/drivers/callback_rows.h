@@ -12,11 +12,11 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 class Problem;
 }
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief [lambda_e; lambda_i] in @p problem's row space; with a null problem
 ///        (an internal route) the plain concatenation. Written into @p scratch.
@@ -38,4 +38,4 @@ template <class Engine> class CallbackRowsScope {
     Engine &engine_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

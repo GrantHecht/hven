@@ -39,7 +39,7 @@
 #include <optional>
 #include <utility>
 
-namespace hven::solvers {
+namespace hven {
 
 void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
@@ -87,15 +87,15 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
     // not folded here is a hole in the hot-handle reuse gate -- see the contract
     // in qp_types.h, and the field-coverage pin in tests/drivers/test_options.cpp
     // that flips each one alone and requires the hash to move.
-    fold_double(opts.primal_delta);
-    fold_double(opts.dual_mu);
-    fold_double(opts.feas_tol);
-    fold_double(opts.opt_tol);
-    fold(static_cast<std::uint64_t>(opts.max_iter.value_or(0)));
-    fold(static_cast<std::uint64_t>(opts.schur_cap));
-    fold_double(opts.schur_cond_max);
-    fold(static_cast<std::uint64_t>(opts.ws_algebra));
-    fold_double(opts.tr_radius);
+    fold_double(opts.primal_regularization);
+    fold_double(opts.dual_regularization);
+    fold_double(opts.feasibility_tol);
+    fold_double(opts.optimality_tol);
+    fold(static_cast<std::uint64_t>(opts.max_iterations.value_or(0)));
+    fold(static_cast<std::uint64_t>(opts.max_schur_border_dimension));
+    fold_double(opts.schur_condition_max);
+    fold(static_cast<std::uint64_t>(opts.working_set_algebra));
+    fold_double(opts.trust_region_radius);
     fold(static_cast<std::uint64_t>(opts.independent_working_set));
     // Folded ONLY when set, so every default-constructed options value hashes exactly as it did
     // before the field existed.
@@ -146,7 +146,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // the value the caller stopped at, via a local copy of the problem
     // with that variable fixed.
     WorkingSet ws(n, mi);
-    const bool tr_enabled = std::isfinite(eff_opts.tr_radius);
+    const bool tr_enabled = std::isfinite(eff_opts.trust_region_radius);
     // A `tr_active` flag means nothing without a radius in force -- with
     // the +inf sentinel there is no trust region for a pin to belong to --
     // so the flags are read only when this solve HAS one.
@@ -247,10 +247,11 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
         double up_eff = up;
         if (tr_enabled) {
             const double c = std::min(std::max(0.0, lo), up);
-            lo_eff = std::max(lo, c - eff_opts.tr_radius);
-            up_eff = std::min(up, c + eff_opts.tr_radius);
+            lo_eff = std::max(lo, c - eff_opts.trust_region_radius);
+            up_eff = std::min(up, c + eff_opts.trust_region_radius);
         }
-        if (eqp.x(i) < lo_eff - eff_opts.feas_tol || eqp.x(i) > up_eff + eff_opts.feas_tol) {
+        if (eqp.x(i) < lo_eff - eff_opts.feasibility_tol ||
+            eqp.x(i) > up_eff + eff_opts.feasibility_tol) {
             return false;
         }
     }
@@ -261,7 +262,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
                 continue; // on the face: driven to equality by the solve itself
             }
             const double row_scale = std::max(1.0, qp.Ai.row(r).cwiseAbs().sum());
-            if (Aix(r) - qp.bi(r) > eff_opts.feas_tol * row_scale) {
+            if (Aix(r) - qp.bi(r) > eff_opts.feasibility_tol * row_scale) {
                 return false;
             }
         }
@@ -293,57 +294,66 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
 
 QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
                                               const SolveOverrides &overrides) {
-    if (std::isnan(overrides.tr_radius) || overrides.tr_radius < 0.0) {
+    if (std::isnan(overrides.trust_region_radius) || overrides.trust_region_radius < 0.0) {
+        throw std::invalid_argument(
+            fmt::format("QpEngine::solve: SolveOverrides.trust_region_radius must be >= 0, or the "
+                        "+inf sentinel "
+                        "for \"use opts_.trust_region_radius\" (qp_types.h) -- got {}",
+                        overrides.trust_region_radius));
+    }
+    if (!std::isfinite(overrides.trust_region_radius) &&
+        (std::isnan(opts.trust_region_radius) || opts.trust_region_radius < 0.0)) {
         throw std::invalid_argument(fmt::format(
-            "QpEngine::solve: SolveOverrides.tr_radius must be >= 0, or the +inf sentinel "
-            "for \"use opts_.tr_radius\" (qp_types.h) -- got {}",
-            overrides.tr_radius));
+            "QpEngine::solve: QpOptions.trust_region_radius must be >= 0, or the +inf value that "
+            "disables the trust region (qp_types.h) -- got {}",
+            opts.trust_region_radius));
     }
-    if (!std::isfinite(overrides.tr_radius) &&
-        (std::isnan(opts.tr_radius) || opts.tr_radius < 0.0)) {
+    if (std::isnan(overrides.primal_regularization)) {
         throw std::invalid_argument(
-            fmt::format("QpEngine::solve: QpOptions.tr_radius must be >= 0, or the +inf value that "
-                        "disables the trust region (qp_types.h) -- got {}",
-                        opts.tr_radius));
+            "QpEngine::solve: SolveOverrides.primal_regularization must not be NaN (negative is "
+            "the "
+            "documented sentinel for \"use opts_.primal_regularization\" -- see qp_types.h)");
     }
-    if (std::isnan(overrides.primal_delta)) {
+    if (std::isnan(overrides.dual_regularization)) {
         throw std::invalid_argument(
-            "QpEngine::solve: SolveOverrides.primal_delta must not be NaN (negative is the "
-            "documented sentinel for \"use opts_.primal_delta\" -- see qp_types.h)");
-    }
-    if (std::isnan(overrides.dual_mu)) {
-        throw std::invalid_argument(
-            "QpEngine::solve: SolveOverrides.dual_mu must not be NaN (negative is the "
-            "documented sentinel for \"use opts_.dual_mu\" -- see qp_types.h)");
+            "QpEngine::solve: SolveOverrides.dual_regularization must not be NaN (negative is the "
+            "documented sentinel for \"use opts_.dual_regularization\" -- see qp_types.h)");
     }
     // The guard on each of these two is the EXACT NEGATION of the
     // corresponding resolution ternary's condition below, so "checked" and
     // "selected" cannot drift apart if a ternary is ever rewritten. (NaN
     // overrides are already rejected above, so `!(x >= 0.0)` is here just
     // the sentinel test `x < 0.0` spelled in the ternary's own terms.)
-    if (!(overrides.primal_delta >= 0.0) &&
-        (std::isnan(opts.primal_delta) || opts.primal_delta < 0.0)) {
+    if (!(overrides.primal_regularization >= 0.0) &&
+        (std::isnan(opts.primal_regularization) || opts.primal_regularization < 0.0)) {
         throw std::invalid_argument(fmt::format(
-            "QpEngine::solve: QpOptions.primal_delta must be >= 0 (0 means no primal "
+            "QpEngine::solve: QpOptions.primal_regularization must be >= 0 (0 means no primal "
             "regularization; negative is SolveOverrides' sentinel, never a stored value "
             "-- qp_types.h) -- got {}",
-            opts.primal_delta));
+            opts.primal_regularization));
     }
-    if (opts.max_iter && *opts.max_iter < 1) {
-        throw std::invalid_argument(fmt::format(
-            "QpEngine::solve: QpOptions.max_iter must be empty or >= 1 -- got {}", *opts.max_iter));
+    if (opts.max_iterations && *opts.max_iterations < 1) {
+        throw std::invalid_argument(
+            fmt::format("QpEngine::solve: QpOptions.max_iterations must be empty or >= 1 -- got {}",
+                        *opts.max_iterations));
     }
-    if (!(overrides.dual_mu >= 0.0) && (std::isnan(opts.dual_mu) || opts.dual_mu < 0.0)) {
+    if (!(overrides.dual_regularization >= 0.0) &&
+        (std::isnan(opts.dual_regularization) || opts.dual_regularization < 0.0)) {
         throw std::invalid_argument(fmt::format(
-            "QpEngine::solve: QpOptions.dual_mu must be >= 0 (0 means no dual "
+            "QpEngine::solve: QpOptions.dual_regularization must be >= 0 (0 means no dual "
             "regularization; negative is SolveOverrides' sentinel, never a stored value "
             "-- qp_types.h) -- got {}",
-            opts.dual_mu));
+            opts.dual_regularization));
     }
     QpOptions eff = opts;
-    eff.tr_radius = std::isfinite(overrides.tr_radius) ? overrides.tr_radius : opts.tr_radius;
-    eff.primal_delta = overrides.primal_delta >= 0.0 ? overrides.primal_delta : opts.primal_delta;
-    eff.dual_mu = overrides.dual_mu >= 0.0 ? overrides.dual_mu : opts.dual_mu;
+    eff.trust_region_radius = std::isfinite(overrides.trust_region_radius)
+                                  ? overrides.trust_region_radius
+                                  : opts.trust_region_radius;
+    eff.primal_regularization = overrides.primal_regularization >= 0.0
+                                    ? overrides.primal_regularization
+                                    : opts.primal_regularization;
+    eff.dual_regularization = overrides.dual_regularization >= 0.0 ? overrides.dual_regularization
+                                                                   : opts.dual_regularization;
     return eff;
 }
 
@@ -377,7 +387,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // come from `seed`, which is independent of `hot`.
     if (!border_valid_ && hot != nullptr && hot->border != nullptr &&
         hot->engine_options_hash == options_hash_ &&
-        opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
         border_ = hot->border;
         border_structural_hash_ = hot->structural_hash;
         border_values_hash_ = hot->values_hash;
@@ -421,7 +431,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // HAPPEN proof is compiled OUT under NDEBUG. primal_delta/dual_mu
     // keep their negative-means-sentinel convention (qp_types.h); only
     // NaN is rejected for them. The SAME domain is enforced on
-    // opts_.tr_radius whenever the +inf sentinel selects it.
+    // opts_.trust_region_radius whenever the +inf sentinel selects it.
     QpOptions eff_opts = resolve_effective_options(opts_, overrides);
 
     qp_in.validate();
@@ -437,7 +447,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // start_center()'s clamp needs a real box regardless of tr_radius.
     bool crossed_bounds = false;
     for (Index i = 0; i < n; ++i) {
-        if (qp_in.lower(i) > qp_in.upper(i) + eff_opts.feas_tol) {
+        if (qp_in.lower(i) > qp_in.upper(i) + eff_opts.feasibility_tol) {
             crossed_bounds = true;
             break;
         }
@@ -458,7 +468,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // is what makes that path bit-identical to a trust-region-free solve.
     std::vector<bool> tr_active(static_cast<std::size_t>(n), false);
     QpProblem tr_problem;
-    const bool tr_enabled = std::isfinite(eff_opts.tr_radius) && !crossed_bounds;
+    const bool tr_enabled = std::isfinite(eff_opts.trust_region_radius) && !crossed_bounds;
     if (tr_enabled) {
         // TODO(perf): this deep-copies H/Ae/Ai/g/be/bi every solve purely
         // to get a place to put lo_eff/up_eff, none of which ever differ
@@ -470,8 +480,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         Vec lo_eff(n);
         Vec up_eff(n);
         for (Index i = 0; i < n; ++i) {
-            lo_eff(i) = std::max(qp_in.lower(i), x(i) - eff_opts.tr_radius);
-            up_eff(i) = std::min(qp_in.upper(i), x(i) + eff_opts.tr_radius);
+            lo_eff(i) = std::max(qp_in.lower(i), x(i) - eff_opts.trust_region_radius);
+            up_eff(i) = std::min(qp_in.upper(i), x(i) + eff_opts.trust_region_radius);
             // start_center() clamped x(i) into [qp_in.lower(i),
             // qp_in.upper(i)] just above, so lo_eff(i) <= x(i) <=
             // up_eff(i) always -- crossed effective bounds cannot happen
@@ -559,7 +569,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // near the end of this function; each hash walks all of H/Ae/Ai.
     std::uint64_t current_structural_hash = 0;
     std::uint64_t current_values_hash = 0;
-    if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
         current_structural_hash = detail::structural_hash(qp);
         current_values_hash = detail::values_hash(qp);
         // Condition (d): the EFFECTIVE (primal_delta, dual_mu) pair this
@@ -580,8 +590,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         const bool reuse_eligible =
             prev_border_valid && current_structural_hash == prev_border_structural_hash &&
             current_values_hash == prev_border_values_hash &&
-            eff_opts.primal_delta == prev_border_effective_delta &&
-            eff_opts.dual_mu == prev_border_effective_mu &&
+            eff_opts.primal_regularization == prev_border_effective_delta &&
+            eff_opts.dual_regularization == prev_border_effective_mu &&
             ws.bound_state() == border_exit_bound_state_ &&
             ws.active_ineq() == border_exit_active_ineq_ &&
             border_->kkt.factor.session_id() == prev_border_kkt_session_id &&
@@ -656,7 +666,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // The cap this solve runs at (detail::effective_qp_max_iter). Resolved
     // off `qp_in` (the caller's problem, real bounds) rather than `qp`
     // (the trust-region-narrowed one), deliberately.
-    const Index eff_max_iter = detail::effective_qp_max_iter(qp_in, opts_.max_iter);
+    const Index eff_max_iter = detail::effective_qp_max_iter(qp_in, opts_.max_iterations);
 
     // Working-set independence: the entry detector runs on the first
     // factorization, and again after each removal it makes; `start_pass`
@@ -837,8 +847,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // pass, and what it writes must not be read as this pass's main verdict.
         walk_obs.snapshot_eqp();
         walk_obs.record().inertia_verdict = static_cast<int>(verdict);
-        walk_obs.record().primal_delta = eff_opts.primal_delta;
-        walk_obs.record().dual_mu = eff_opts.dual_mu;
+        walk_obs.record().primal_delta = eff_opts.primal_regularization;
+        walk_obs.record().dual_mu = eff_opts.dual_regularization;
         walk_obs.record().eqp_row_residual = eqp.row_residual;
         walk_obs.record().eqp_residual_ratio = eqp.residual_ratio;
         walk_obs.record().eqp_residual_iters = eqp.residual_refine_iters;
@@ -883,7 +893,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kSuspectEscalation;
 #endif
-                eff_opts.primal_delta *= detail::kSuspectDeltaFactor;
+                eff_opts.primal_regularization *= detail::kSuspectDeltaFactor;
                 if (border_.use_count() > 1) {
                     border_ = std::make_shared<BorderState>();
                 } else {
@@ -1109,7 +1119,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         last_drop = DropRecord{};
 
         const double x_inf = x.lpNorm<Eigen::Infinity>();
-        const double step_tol = eff_opts.feas_tol * std::max(1.0, x_inf);
+        const double step_tol = eff_opts.feasibility_tol * std::max(1.0, x_inf);
         const double p_inf = p.lpNorm<Eigen::Infinity>();
 
         // THE FREE-BLOCK STATIONARITY RESIDUAL at the iterate this pass started
@@ -1226,9 +1236,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // THE STANDSTILL RETREAT (qp_engine.h): a border-stack pass whose inertia reads kWrong
         // while the iterate carries a structural equality violation qualifies; zero motion on
         // it, or a second consecutive full step (end of pass), retreats.
-        const bool standstill_face = eq_rows_violated && !eliminated_only &&
-                                     opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
-                                     verdict == detail::InertiaVerdict::kWrong;
+        const bool standstill_face =
+            eq_rows_violated && !eliminated_only &&
+            opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+            verdict == detail::InertiaVerdict::kWrong;
         if (zero_motion && standstill_face) {
             eliminated_only = true;
             ++counters.standstill_retreats;
@@ -1287,7 +1298,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // adopted point with nothing to release is, once per solve, the next pass's
                 // iterate (that pass's KKT-point test reads it).
                 const Vec x_before_refine = x;
-                if (eff_opts.dual_mu > 0.0 &&
+                if (eff_opts.dual_regularization > 0.0 &&
                     mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                       eff_opts) &&
                     refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
@@ -1391,7 +1402,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // adopted point satisfies every row and bound, carries its
                 // refined multipliers, and meets the drop test and every gate
                 // below again. See refine_terminal_mu_free.
-                if (worst > 0.0 && eff_opts.independent_working_set && eff_opts.dual_mu > 0.0 &&
+                if (worst > 0.0 && eff_opts.independent_working_set &&
+                    eff_opts.dual_regularization > 0.0 &&
                     mu_footprint_open(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e,
                                       eff_opts) &&
                     refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, eff_opts)) {
@@ -1572,7 +1584,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         double ex_scale = 1.0;
                         (void)detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i,
                                                               ex_scale);
-                        if (exempt_worst > eff_opts.opt_tol * ex_scale) {
+                        if (exempt_worst > eff_opts.optimality_tol * ex_scale) {
                             ++counters.zero_motion_exhausted;
                             status = QpStatus::kNumericalError;
                             break;
@@ -1629,7 +1641,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             walk_obs.record().action =
                                 detail::testing::QpWalkAction::kSuspectEscalation;
 #endif
-                            eff_opts.primal_delta *= detail::kSuspectDeltaFactor;
+                            eff_opts.primal_regularization *= detail::kSuspectDeltaFactor;
                             if (border_.use_count() > 1) {
                                 border_ = std::make_shared<BorderState>();
                             } else {
@@ -1686,7 +1698,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // below is undone (terminal_polish_sign_reverts / _bound_reverts).
                         Vec x_inc, lambda_e_inc, lambda_i_inc, z_inc;
                         bool polish_adopted = false;
-                        if (eff_opts.dual_mu > 0.0 || eff_opts.primal_delta > 0.0) {
+                        if (eff_opts.dual_regularization > 0.0 ||
+                            eff_opts.primal_regularization > 0.0) {
                             if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z, eff_opts)) {
                                 x_inc = x;
                                 lambda_e_inc = lambda_e;
@@ -2164,7 +2177,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // columns are expressed in units of `mu*||lambda_W||_inf` and two
             // derivations of the same quantity can drift.
             b1 = detail::testing::b1_select_blocker(
-                qp, ws, x, Aix, p, eff_opts.dual_mu,
+                qp, ws, x, Aix, p, eff_opts.dual_regularization,
                 detail::testing::b1_working_multiplier_inf(qp, ws, lambda_e, lambda_i),
                 kind == BlockKind::kIneq, block_idx);
             if (b1.switched) {
@@ -2409,8 +2422,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                                : BoundState::kAtLower;
                     const Oriented po = oriented(pi, pidx, side);
                     // An implied blocker's allowance is its members' absorbency (R1).
-                    const double allow =
-                        passed_allow[q] >= 0.0 ? passed_allow[q] : eff_opts.feas_tol * po.scale;
+                    const double allow = passed_allow[q] >= 0.0
+                                             ? passed_allow[q]
+                                             : eff_opts.feasibility_tol * po.scale;
                     if (std::max(0.0, po.cx - po.d + a2 * po.cp) > allow) {
                         within = false;
                     }
@@ -2654,7 +2668,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 const Index dep_rows = qp.me() + detail::testing::qp_walk_ws_size(ws);
                 r.add_a_dot_p = a_dot_p;
-                r.add_leak_bound = eff_opts.dual_mu * lam_inf;
+                r.add_leak_bound = eff_opts.dual_regularization * lam_inf;
                 r.add_round_floor = std::numeric_limits<double>::epsilon() * a_norm * sdir.norm();
                 r.add_dep_rows = dep_rows;
                 // The screen is asked of the set WITH the blocker in it, which
@@ -2922,15 +2936,15 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // factorization, but the working set that produced it was never
     // certified. Reuses current_structural_hash/current_values_hash
     // computed above rather than re-hashing H/Ae/Ai.
-    if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder && status == QpStatus::kOptimal &&
-        !eliminated_only) {
+    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+        status == QpStatus::kOptimal && !eliminated_only) {
         border_structural_hash_ = current_structural_hash;
         border_values_hash_ = current_values_hash;
         // Condition (d): commit the EFFECTIVE pair this solve resolved
         // to, not opts_'s own primal_delta/dual_mu -- see the header
         // contract's HOT-START REUSE note and this function's top.
-        border_effective_delta_ = eff_opts.primal_delta;
-        border_effective_mu_ = eff_opts.dual_mu;
+        border_effective_delta_ = eff_opts.primal_regularization;
+        border_effective_mu_ = eff_opts.dual_regularization;
         border_exit_bound_state_ = ws.bound_state();
         border_exit_active_ineq_ = ws.active_ineq();
         // Condition (e): commit `border_`'s factor's OWN live (session_id,
@@ -3204,9 +3218,9 @@ QpEngine::WorkingRowResidual QpEngine::working_row_residual(const QpProblem &qp,
 }
 
 double QpEngine::row_tolerance(double row_scale, double lambda, const QpOptions &opts) const {
-    return std::max(
-        opts.feas_tol * row_scale,
-        std::min(opts.dual_mu * std::abs(lambda), detail::kInfeasibilityAbsorbTol * row_scale));
+    return std::max(opts.feasibility_tol * row_scale,
+                    std::min(opts.dual_regularization * std::abs(lambda),
+                             detail::kInfeasibilityAbsorbTol * row_scale));
 }
 
 bool QpEngine::violation_is_structural(double v, double row_scale, double lambda,
@@ -3214,7 +3228,7 @@ bool QpEngine::violation_is_structural(double v, double row_scale, double lambda
     if (v <= detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts)) {
         return false; // (a) within tolerance, nothing to explain
     }
-    return v >= detail::kStructuralResidualFrac * opts.dual_mu * std::abs(lambda);
+    return v >= detail::kStructuralResidualFrac * opts.dual_regularization * std::abs(lambda);
 }
 
 double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, const Vec &Aix,
@@ -3473,7 +3487,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     Vec rhs(dim);
     for (Index k = 0; k < n_free; ++k) {
         const Index i = assembly.free_of_full[static_cast<std::size_t>(k)];
-        rhs(k) = -qp.g(i) - assembly.rhs_shift(k) + opts.primal_delta * x(i);
+        rhs(k) = -qp.g(i) - assembly.rhs_shift(k) + opts.primal_regularization * x(i);
     }
     for (Index r = 0; r < me; ++r) {
         rhs(n_free + r) = qp.be(r) - assembly.rhs_shift(n_free + r);
@@ -3486,7 +3500,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     // The DUAL regularization only: the primal delta is the proximal term of the
     // model on this path too (eqp_solve.h's Iterative refinement section).
     Vec reg = Vec::Zero(dim);
-    reg.segment(n_free, me + n_working).setConstant(-opts.dual_mu);
+    reg.segment(n_free, me + n_working).setConstant(-opts.dual_regularization);
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = assembly.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
@@ -3587,7 +3601,7 @@ EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, con
     // iteration re-arms it: the verdict site refuses to reuse a factorization
     // no call of this iteration produced.
     face.factorized = false;
-    if (opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
         return border_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
     }
     return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
@@ -3698,7 +3712,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
     // them anyway is what drove dim() past schur_cap and made the wasted
     // work the dominant cost.
     if (border.latched) {
-        if (detail::latch_still_holds(ws, border, counters, opts.schur_cap)) {
+        if (detail::latch_still_holds(ws, border, counters, opts.max_schur_border_dimension)) {
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         // Bordering may be possible again: a cap latch's pin count fell back to
@@ -3944,7 +3958,7 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, 
         if (shift(row) > 0.0) {
             continue;
         }
-        if (probe.ineq_exempt[sr] || std::abs(lambda_i(row)) > opts.opt_tol) {
+        if (probe.ineq_exempt[sr] || std::abs(lambda_i(row)) > opts.optimality_tol) {
             continue;
         }
         cands.push_back({true, row, probe.ineq_seq[sr]});
@@ -3957,7 +3971,7 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, 
         if (st != BoundState::kAtLower && st != BoundState::kAtUpper) {
             continue;
         }
-        if (probe.bound_exempt[si] || std::abs(z(i)) > opts.opt_tol) {
+        if (probe.bound_exempt[si] || std::abs(z(i)) > opts.optimality_tol) {
             continue;
         }
         cands.push_back({false, i, probe.bound_seq[si]});
@@ -3997,7 +4011,7 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &x_k, 
                     r.bound_gap = qp.upper(c.idx) - qp.lower(c.idx);
                 }
                 r.decision_multiplier = c.is_ineq ? std::abs(lambda_i(c.idx)) : std::abs(z(c.idx));
-                r.decision_tol = opts.opt_tol;
+                r.decision_tol = opts.optimality_tol;
                 r.drop_candidates = static_cast<Index>(cands.size());
             });
 #endif
@@ -4121,7 +4135,7 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
     }
 #endif
     const auto si = static_cast<std::size_t>(i);
-    const double tol = opts_.feas_tol * std::max(1.0, std::abs(x(i)));
+    const double tol = opts_.feasibility_tol * std::max(1.0, std::abs(x(i)));
     // Already sitting on a bound: pin it exactly where it is, so a warm
     // start's own vertex is never disturbed by the repair.
     if (lo_ok && std::abs(x(i) - lo) <= tol) {
@@ -4157,7 +4171,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
         detail::KktFactor local(threads_);
         EliminatedFace local_face;
         QpOptions o = opts;
-        o.dual_mu = mu;
+        o.dual_regularization = mu;
         detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
         try {
             (void)eliminated_candidate(qp, ws, x_k, local, local_face, counters, v, o);
@@ -4173,7 +4187,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
     // eliminated factor at the pass's own mu reads kOk (the border path's K0
     // verdict was the untrustworthy one).
     if (reread == detail::InertiaVerdict::kSuspect &&
-        read(opts.dual_mu) != detail::InertiaVerdict::kOk) {
+        read(opts.dual_regularization) != detail::InertiaVerdict::kOk) {
         reread = detail::InertiaVerdict::kWrong;
     }
     if (reread == detail::InertiaVerdict::kWrong) {
@@ -4213,13 +4227,13 @@ bool QpEngine::mu_footprint_open(const QpProblem &qp, const WorkingSet &ws, cons
     const double xmag = x.lpNorm<Eigen::Infinity>();
     for (Index j = 0; j < qp.me(); ++j) {
         const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-        if (opts.dual_mu * std::abs(lambda_e(j)) > opts.feas_tol * row_scale) {
+        if (opts.dual_regularization * std::abs(lambda_e(j)) > opts.feasibility_tol * row_scale) {
             return true;
         }
     }
     for (const Index j : ws.active_ineq()) {
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-        if (opts.dual_mu * std::abs(lambda_i(j)) > opts.feas_tol * row_scale) {
+        if (opts.dual_regularization * std::abs(lambda_i(j)) > opts.feasibility_tol * row_scale) {
             return true;
         }
     }
@@ -4233,7 +4247,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     const Index n = qp.n();
     const Index me = qp.me();
     QpOptions o = opts;
-    o.dual_mu = 0.0;
+    o.dual_regularization = 0.0;
 
     // The mu-free EQP of the CURRENT face: one factorization (charged by
     // eliminated_candidate) plus solve_eqp's mandatory unregularized step.
@@ -4269,7 +4283,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
         for (Index j = 0; j < me; ++j) {
             const double row_scale =
                 std::max({1.0, std::abs(qp.be(j)), qp.Ae.row(j).cwiseAbs().sum() * xmag});
-            if (std::abs(resid(j)) > opts.feas_tol * row_scale) {
+            if (std::abs(resid(j)) > opts.feasibility_tol * row_scale) {
                 return false;
             }
         }
@@ -4279,7 +4293,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
         for (Index j = 0; j < qp.mi(); ++j) {
             const double row_scale =
                 std::max({1.0, std::abs(qp.bi(j)), qp.Ai.row(j).cwiseAbs().sum() * xmag});
-            if (resid(j) > opts.feas_tol * row_scale) {
+            if (resid(j) > opts.feasibility_tol * row_scale) {
                 return false;
             }
         }
@@ -4289,7 +4303,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
         const double above = r.x(i) - qp.upper(i);
         const double bound = below >= above ? qp.lower(i) : qp.upper(i);
         const double row_scale = std::max({1.0, std::abs(bound), xmag});
-        if (std::max(below, above) > opts.feas_tol * row_scale) {
+        if (std::max(below, above) > opts.feasibility_tol * row_scale) {
             return false;
         }
     }
@@ -4343,8 +4357,8 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     // exactly on both halves (the constant's note carries the measured cost of
     // trading it).
     const double slack = detail::kTerminalPolishWorseFactor;
-    const bool feasible = after.rows <= std::max(opts.feas_tol, before.rows);
-    const bool kkt_point = after.stationarity <= opts.opt_tol;
+    const bool feasible = after.rows <= std::max(opts.feasibility_tol, before.rows);
+    const bool kkt_point = after.stationarity <= opts.optimality_tol;
     const bool no_worse = after.stationarity <= slack * before.stationarity &&
                           after.rows <= before.rows &&
                           after.complementarity <= slack * before.complementarity;
@@ -4371,7 +4385,7 @@ bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, 
     const detail::TerminalKkt now = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
     // (a) THE COMPLEMENTARITY PRODUCT, which is what a consumer reads; the
     // threshold's own note calibrates it.
-    if (!(now.complementarity <= detail::kTerminalPolishComplFactor * opts.feas_tol)) {
+    if (!(now.complementarity <= detail::kTerminalPolishComplFactor * opts.feasibility_tol)) {
         return true;
     }
     // (b) THE STATIONARITY RESIDUAL, relative to its own scale. The KKT-point test
@@ -4381,7 +4395,7 @@ bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, 
     // the driver's own KKT columns, so a point with decades left to gain gets the
     // polish -- which reaches them in ONE solve instead of the extra passes the old
     // walk spent.
-    return !(now.stationarity <= detail::kTerminalPolishStatFactor * opts.opt_tol);
+    return !(now.stationarity <= detail::kTerminalPolishStatFactor * opts.optimality_tol);
 }
 
 bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
@@ -4415,7 +4429,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // it is worth a factorization at a point the walk has certified.
     ++counters.terminal_polish_solves;
     QpOptions o = opts;
-    o.dual_mu = 0.0;
+    o.dual_regularization = 0.0;
 
     // The mu-free EQP of the FINAL face, in a LOCAL factor and a LOCAL face:
     // the pass's own factor and border stack are untouched, and the answer is
@@ -4995,7 +5009,7 @@ bool QpEngine::blocker_implied_by_face(const QpProblem &qp, const WorkingSet &ws
         }
     }
     const double a_norm = is_ineq ? qp.Ai.row(idx).norm() : 1.0;
-    return pick.g + t.rho * a_norm * std::sqrt(free_sq) <= opts.feas_tol * row_scale;
+    return pick.g + t.rho * a_norm * std::sqrt(free_sq) <= opts.feasibility_tol * row_scale;
 }
 
 double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &ws,
@@ -5011,8 +5025,8 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
     const double xmag = x.lpNorm<Eigen::Infinity>();
     const auto footprint = [&](double scale, double lambda) {
         return std::max(
-            opts.feas_tol * scale,
-            std::min(opts.dual_mu * std::abs(lambda),
+            opts.feasibility_tol * scale,
+            std::min(opts.dual_regularization * std::abs(lambda),
                      detail::kInfeasibilityMarginFactor * detail::kInfeasibilityAbsorbTol * scale));
     };
     double leak = 0.0;
@@ -5043,7 +5057,7 @@ double QpEngine::implied_leak_allowance(const QpProblem &qp, const WorkingSet &w
             leak += std::abs(v) * footprint(scale, lambda_i(j));
         }
     }
-    return std::max(opts.feas_tol * row_scale, leak);
+    return std::max(opts.feasibility_tol * row_scale, leak);
 }
 
 bool QpEngine::verify_farkas(const QpProblem &qp, const WorkingSet &ws,
@@ -5478,7 +5492,7 @@ void detail::take_latch(const WorkingSet &ws, BorderState &border, QpCounters &c
     border.latch_rebuilt = rebuilt;
     border.latch_changed_entries = 0;
     const Index pinned = ws.n() - ws.num_free();
-    if (pinned > opts.schur_cap) {
+    if (pinned > opts.max_schur_border_dimension) {
         border.latch_reason = LatchReason::kCap;
         ++counters.border_latches_cap;
         return;
@@ -5499,8 +5513,9 @@ void detail::take_latch(const WorkingSet &ws, BorderState &border, QpCounters &c
     }
     border.latch_rows = ws.active_ineq();
     // Whether this C is only MILDLY past its limit.
-    border.latch_mild = border.schur.has_value() && !border.schur->nearly_singular() &&
-                        border.schur->cond_estimate() <= kLatchMildCondFactor * opts.schur_cond_max;
+    border.latch_mild =
+        border.schur.has_value() && !border.schur->nearly_singular() &&
+        border.schur->cond_estimate() <= kLatchMildCondFactor * opts.schur_condition_max;
     // The culprits: the pins C's two extreme directions live on. Position k of a direction is
     // the k-th border, and every live border is a pin here (the latch is taken only where a
     // rebuild would be a no-op). A direction that cannot be read makes every pin a culprit.
@@ -5631,7 +5646,7 @@ void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderSta
             // mutation. (The add_border side is closed in
             // schur_complement.h: a throwing add leaves the stack as it was.)
             ledger.reserve(ledger.size() + 1);
-            border.schur->add_border(BorderOps::pin_variable(i, n0), -opts.dual_mu);
+            border.schur->add_border(BorderOps::pin_variable(i, n0), -opts.dual_regularization);
             ledger.push_back({BorderLedgerEntry::Kind::kVarPin, i});
             ++counters.schur_updates;
         }
@@ -5652,7 +5667,8 @@ void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderSta
                 continue;
             }
             ledger.reserve(ledger.size() + 1); // see the pin loop above
-            border.schur->add_border(BorderOps::add_ineq_row(qp, row, n0), -opts.dual_mu);
+            border.schur->add_border(BorderOps::add_ineq_row(qp, row, n0),
+                                     -opts.dual_regularization);
             ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, row});
             ++counters.schur_updates;
         }
@@ -5740,7 +5756,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
     using Adeg = detail::testing::QpDegeneracyArmState;
     const bool arm_a_on = Adeg::scaled_drop_on();
     const double arm_a_scale = arm_a_on ? Adeg::drop_scale() : 1.0;
-    const double arm_a_tol = opts_.opt_tol * arm_a_scale;
+    const double arm_a_tol = opts_.optimality_tol * arm_a_scale;
     const Index arm_a_refused_base = Adeg::scaled_candidates_refused;
     double arm_a_pass_max_ratio = 0.0;
 #endif
@@ -5750,7 +5766,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
             continue; // still being driven to feasibility; sign says nothing
         }
         const double viol = -lambda_i(row);
-        if (viol <= opts_.opt_tol || exempt(true, row, viol)) {
+        if (viol <= opts_.optimality_tol || exempt(true, row, viol)) {
             continue;
         }
 #ifdef HVEN_TESTING
@@ -5772,7 +5788,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         } else {
             continue; // kFree has no multiplier, kFixed is not sign-constrained
         }
-        if (viol > opts_.opt_tol && !exempt(false, i, viol)) {
+        if (viol > opts_.optimality_tol && !exempt(false, i, viol)) {
 #ifdef HVEN_TESTING
             if (arm_a_on && !Adeg::admits(viol, arm_a_tol, arm_a_scale)) {
                 arm_a_pass_max_ratio = std::max(arm_a_pass_max_ratio, viol / arm_a_scale);
@@ -5804,7 +5820,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         const double published = Adeg::stat_scale;
         detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
             r.drop_scale = published;
-            r.drop_scaled_tol = opts_.opt_tol * published;
+            r.drop_scaled_tol = opts_.optimality_tol * published;
             r.drop_refused_by_scale = refused_here;
             if (refused_here > 0) {
                 r.drop_max_refused_ratio = arm_a_pass_max_ratio;
@@ -5903,7 +5919,7 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         }
         r.decision_multiplier = pick->violation;
         r.best_multiplier = best_viol;
-        r.decision_tol = opts_.opt_tol;
+        r.decision_tol = opts_.optimality_tol;
         r.drop_candidates = static_cast<Index>(cands.size());
         r.drop_tied = in_window;
 
@@ -6106,7 +6122,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
                                detail::DepFactorView &view) const {
     view = detail::DepFactorView{};
     QpOptions o = opts;
-    o.dual_mu = 0.0;
+    o.dual_regularization = 0.0;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     try {
         (void)eliminated_candidate(qp, ws, x, kkt, face, counters, v, o);
@@ -6127,7 +6143,8 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     // same face with H + sigma I; `view` keeps naming the unshifted factor the add site reads.
     ++counters.saddle_shifted_searches;
     QpOptions os = o;
-    os.primal_delta = o.primal_delta + detail::kSaddleShiftFactor * detail::hessian_scale(qp);
+    os.primal_regularization =
+        o.primal_regularization + detail::kSaddleShiftFactor * detail::hessian_scale(qp);
     detail::KktFactor shifted(threads_);
     EliminatedFace shifted_face;
     try {
@@ -6710,4 +6727,4 @@ double QpEngine::ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec
     return std::min(1.0, best);
 }
 
-} // namespace hven::solvers
+} // namespace hven

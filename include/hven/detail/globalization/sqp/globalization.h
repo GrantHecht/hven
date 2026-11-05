@@ -44,7 +44,7 @@
 #include <hven/drivers/step_verdict.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // THE ALGORITHM (KLV Algorithm 2, optimality-phase branch, transcribed).
 //
@@ -98,8 +98,8 @@ inline constexpr double kFunnelSigma = 1.0e-4;
 
 /// beta and kappa live one level down, in detail::, unlike their five KLV
 /// siblings above: the IPM engine's funnel (detail/globalization/
-/// funnel_acceptance.h) already defines hven::solvers::kFunnelBeta and
-/// hven::solvers::kFunnelKappa WITH A DIFFERENT BETA (0.9999 vs KLV's 0.99),
+/// funnel_acceptance.h) already defines hven::kFunnelBeta and
+/// hven::kFunnelKappa WITH A DIFFERENT BETA (0.9999 vs KLV's 0.99),
 /// so leaving these at namespace scope would be an ODR violation the linker
 /// resolves silently. detail:: nesting is the sanctioned collision mechanism
 /// for the two engines' internal names (never new top-level namespaces); the
@@ -380,7 +380,7 @@ class FunnelStrategy final : public GlobalizationStrategy {
     /// l1 sum) is at most (rows) * feas_tol; a funnel not tightened to that level
     /// keeps the inequality, and one that was is widened to exactly what the
     /// restored point implies -- at most once per restoration entry, and
-    /// `SqpOptions::restoration_max_entries` bounds those. Transcribed UNCONDITIONALLY
+    /// `SqpOptions::max_restoration_entries` bounds those. Transcribed UNCONDITIONALLY
     /// rather than clamped to
     /// min(tau, .) because Eq. (13) is not a clamped rule — a clamp would hide
     /// a caller resuming from outside its own funnel instead of reporting the
@@ -451,4 +451,4 @@ class FunnelStrategy final : public GlobalizationStrategy {
     bool full_step_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -247,13 +247,13 @@ one of those three therefore cannot silently miss the trace.
   point with no subproblem solved. A rolled-back step stays counted in
   `steps_accepted` (and in `qp_failure_steps_accepted` when it was one); it is
   not a `rejected_steps`. Bounded by the radius floor: no rollback is taken where
-  the shrink would cross `tr_min`, nor in the full-step mode, nor where the point
+  the shrink would cross `trust_region_min`, nor in the full-step mode, nor where the point
   was not reached by a commit -- those still end through `nonfinite_subproblems`
   (or the non-finite-iterate exit), which therefore counts only exits.
 
   **`scaled_convergence_refusals` IS THE CALLER-UNIT FEASIBILITY GUARD** (M7 W2
   SCL, appended last after `restoration_feas_out`). On a solve that ran scaled --
-  the row/objective layer (`SqpOptions::enable_scaling`, or `column_scaling ==
+  the row/objective layer (`SqpOptions::row_scaling`, or `column_scaling ==
   kAuto` firing) or the column layer (`SqpOptions::column_scaling`) -- the
   convergence test's two conjuncts are read in the engine's units, so a row the
   row layer shrank by `s_j < 1` passes at `|c_j| <= feas_tol / s_j` and a box
@@ -320,7 +320,7 @@ one of those three therefore cannot silently miss the trace.
     may have started from (`SqpIterate::restoration_seed_used`). The excursion
     being measured is the caller's iterate's.
   * **They are the ENGINE's units** -- the caller's unless
-    `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    `SqpOptions::row_scaling` is on -- the units the resume test is taken
     in, and a record with one half in each space would report a scale factor as
     an excursion.
   * **The resume reading is `restoration_feas_out`, not `h_out`** (M7 W2 SNR).
@@ -408,7 +408,7 @@ one of those three therefore cannot silently miss the trace.
   restoration sub-solve, which runs its own QN instance on the wrapper's x-block.
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
-  restoration, the entry rule (`SqpOptions::restoration_max_entries` and its
+  restoration, the entry rule (`SqpOptions::max_restoration_entries` and its
   progress guard) and a spent budget never enter the phase;
   the non-finite exit entered it and measured nothing, and the driver's rule
   there is that nothing unmeasured may be reported as evidence. Nothing folds
@@ -432,8 +432,8 @@ one of those three therefore cannot silently miss the trace.
 
 ## What the shipped IPM default makes live (M7 W2 D1, 2026-09-18)
 
-`IpmOptions`' defaults moved that day — `acceptance_strategy` `classic_merit`
--> `filter`, `barrier_governor` `classic_adaptive` -> `monitored`, `max_iters`
+`IpmOptions`' defaults moved that day — `acceptance_mode` `classic_merit`
+-> `filter`, `barrier_governor_mode` `classic_adaptive` -> `monitored`, `max_iters`
 500 -> 1000 — as one declared re-derivation event
 (`docs/notes/data/2026-09-m7-w2-d1-ipm-default/`). Nothing in this page's
 contract changes; what changes is which of the interior-point engine's

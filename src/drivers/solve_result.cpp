@@ -19,7 +19,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -221,4 +221,4 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
 
 } // namespace detail
 
-} // namespace hven::solvers
+} // namespace hven

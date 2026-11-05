@@ -4,7 +4,7 @@
 // ipqp_engine.cpp -- the IP-PMM interior-point QP tier's iteration.
 //
 // The header carries the contracts; this file carries the algorithm. Slack form, in
-// KKTVector's block order [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
+// KktVector's block order [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
 // s = bi - Ai x >= 0, lambda_i >= 0, and variable bounds CONDENSED into the (1,1) diagonal:
 //
 //     [ H + rho I + Sigma_b     0        Ae'       Ai'    ]
@@ -52,7 +52,7 @@
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -352,15 +352,16 @@ void ruiz_equilibrate(SpMatRM &k, Vec &d, Vec &work) {
 /// silently cross `lo_eff`/`up_eff` behind an assert a Release build compiles out, and NaN in
 /// either regularizer is absorbable by no downstream arithmetic.
 void validate_overrides(const SolveOverrides &ov) {
-    if (std::isnan(ov.tr_radius) || (ov.tr_radius < 0.0 && !std::isinf(ov.tr_radius))) {
-        throw std::invalid_argument(
-            fmt::format("IpqpEngine::solve: SolveOverrides::tr_radius ({}) must be the +inf "
-                        "sentinel or >= 0",
-                        ov.tr_radius));
+    if (std::isnan(ov.trust_region_radius) ||
+        (ov.trust_region_radius < 0.0 && !std::isinf(ov.trust_region_radius))) {
+        throw std::invalid_argument(fmt::format(
+            "IpqpEngine::solve: SolveOverrides::trust_region_radius ({}) must be the +inf "
+            "sentinel or >= 0",
+            ov.trust_region_radius));
     }
-    if (std::isnan(ov.primal_delta) || std::isnan(ov.dual_mu)) {
+    if (std::isnan(ov.primal_regularization) || std::isnan(ov.dual_regularization)) {
         throw std::invalid_argument(
-            "IpqpEngine::solve: SolveOverrides::primal_delta/dual_mu must not be NaN");
+            "IpqpEngine::solve: SolveOverrides::primal_regularization/dual_mu must not be NaN");
     }
 }
 
@@ -567,8 +568,9 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
 // +inf on the override means "use the engine's own radius"). DECLARED IN THE HEADER since
 // task 6, because the routing chain's pre-solve domain gate builds the same box.
 double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides) {
-    return std::isinf(overrides.tr_radius) && overrides.tr_radius > 0.0 ? opts.tr_radius
-                                                                        : overrides.tr_radius;
+    return std::isinf(overrides.trust_region_radius) && overrides.trust_region_radius > 0.0
+               ? opts.trust_region_radius
+               : overrides.trust_region_radius;
 }
 
 // THE STOPPING RULE (spec 2.3 step 1 / 3.4), and the ONLY statement of it: the QP layer's own
@@ -576,8 +578,8 @@ double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &ove
 // caller reading it back off an IpqpResult reads the same answer the engine acted on.
 bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
                                 const IpqpOptions &iopts) {
-    const double opt_target = opts.opt_tol * iopts.converge_slack;
-    const double feas_target = opts.feas_tol * iopts.converge_slack;
+    const double opt_target = opts.optimality_tol * iopts.converge_slack;
+    const double feas_target = opts.feasibility_tol * iopts.converge_slack;
     return residuals.stationarity <= opt_target && residuals.primal_eq <= feas_target &&
            residuals.primal_iq <= feas_target && residuals.complementarity <= opt_target;
 }
@@ -847,7 +849,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- budgets (spec 3.4) -----------------------------------------------
     //
-    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iter`'s own, taken through the
+    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iterations`'s own, taken through the
     // walk's own helper. BOTH CAPS BIND -- the `min` is the point, so a caller who raises
     // `ipqp_max_iter` alone still gets the hard cap, Amendment C's budget of LAST RESORT.
     //
@@ -2190,8 +2192,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // The two targets, named once for the tests below that also read them (the 6.2 window,
         // 6.3's positive floor, the inner-loop target). The stopping rule itself is the exported
         // predicate, which reads the same two fields.
-        const double opt_target = opts_.opt_tol * iopts.converge_slack;
-        const double feas_target = opts_.feas_tol * iopts.converge_slack;
+        const double opt_target = opts_.optimality_tol * iopts.converge_slack;
+        const double feas_target = opts_.feasibility_tol * iopts.converge_slack;
 
         // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the EXPORTED predicate rather than
         // inline: task 6's routing chain asks the same question of a returned IpqpResult, and two
@@ -2201,7 +2203,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // barrier level is inside the target too, at the warm ENTRY alone -- after a step the
         // point is this solve's. `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const bool untrusted_warm_seed = warm_live && out.counters.ipqp_iters == iters_base &&
-                                         mu_meas > iopts.converge_slack * opts_.opt_tol;
+                                         mu_meas > iopts.converge_slack * opts_.optimality_tol;
         if (!untrusted_warm_seed && ipqp_residuals_meet_target(res, opts_, iopts)) {
             converged = true;
             break;
@@ -3026,4 +3028,4 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

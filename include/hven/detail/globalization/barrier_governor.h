@@ -6,13 +6,13 @@
 #include <Eigen/Core>
 
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 // BarrierMode requires the complete IpmSolver class; see
 // acceptance_strategy.h's include note for why this is a plain,
 // non-circular include (ipm_solver.h does not include this directory back).
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven {
 
 // Forward declaration only: update_barrier takes a GlobalizationMechanism by
 // reference so PROBE's predictor can drive the SAME fraction-to-boundary
@@ -53,8 +53,8 @@ class BarrierGovernor {
     ///   update_barrier_monotone(), which seeds and gates off it directly.
     /// @param XSL Read by LOQO's mu rule and by the common tail (barrier
     ///   objective/dual-gradient at the resulting mu); raw blocks viewed via
-    ///   KKTVector built from SolverContext's dims internally.
-    /// @param current This iteration's in-progress IterateInfo whose residual
+    ///   KktVector built from SolverContext's dims internally.
+    /// @param current This iteration's in-progress IpmIterate whose residual
     ///   fields were just filled by the convergence check — passed explicitly
     ///   because it is NOT yet in the solver's iteration history at this point
     ///   in the loop. Monitored governors read these residuals to decide the
@@ -69,7 +69,7 @@ class BarrierGovernor {
     virtual double update_barrier(BarrierMode barmode, double mu_in, double avgcomp, double mincomp,
                                   Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
                                   Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
-                                  SolverContext &ctx, double &barr_obj, const IterateInfo &current,
+                                  SolverContext &ctx, double &barr_obj, const IpmIterate &current,
                                   bool &mu_event) = 0;
 
     /// @brief Barrier update while a nested l1 feasibility-restoration phase is
@@ -98,7 +98,7 @@ class BarrierGovernor {
     ///   — the acceptance per-subproblem reset trigger).
     /// @return The possibly-advanced mu. Never reached off the nested path.
     double update_barrier_monotone(double mu_in, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                                   SolverContext &ctx, double &barr_obj, const IterateInfo &current,
+                                   SolverContext &ctx, double &barr_obj, const IpmIterate &current,
                                    bool &mu_event);
 
     /// @brief Whether this governor supplies its OWN safeguarded (monotone)
@@ -131,4 +131,4 @@ class BarrierGovernor {
     virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 };
 
-} // namespace hven::solvers
+} // namespace hven

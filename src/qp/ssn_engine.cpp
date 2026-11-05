@@ -47,7 +47,7 @@
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/qp/ssn_engine.h>
 
-namespace hven::solvers {
+namespace hven {
 
 void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
                       SsnResult *out) {
@@ -79,9 +79,11 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
     // Resolved once, exactly like QpEngine::run()'s own resolution. The
     // BASE pair is what the caller asked for; eff_* carries the proximal
     // increment on top of it and is what for_each_entry emits.
-    const double tr_radius = overrides.tr_radius;
-    base_delta_ = overrides.primal_delta < 0.0 ? opts_.primal_delta : overrides.primal_delta;
-    base_mu_ = overrides.dual_mu < 0.0 ? opts_.dual_mu : overrides.dual_mu;
+    const double tr_radius = overrides.trust_region_radius;
+    base_delta_ = overrides.primal_regularization < 0.0 ? opts_.primal_regularization
+                                                        : overrides.primal_regularization;
+    base_mu_ = overrides.dual_regularization < 0.0 ? opts_.dual_regularization
+                                                   : overrides.dual_regularization;
     const bool guarded = sopts.safeguards == SsnSafeguards::kFull;
     prox_sigma_ = guarded ? sopts.prox_sigma_init : 0.0;
     // The ladder's OWN monotone state, which is `prox_sigma_` exactly
@@ -921,17 +923,19 @@ void SsnEngine::discard_deferred_certification() {
 }
 
 void SsnEngine::validate_overrides(const SolveOverrides &o) {
-    if (std::isnan(o.tr_radius) || o.tr_radius < 0.0) {
+    if (std::isnan(o.trust_region_radius) || o.trust_region_radius < 0.0) {
         throw std::invalid_argument(
-            fmt::format("SsnEngine::solve: overrides.tr_radius must be >= 0 (or the +inf "
+            fmt::format("SsnEngine::solve: overrides.trust_region_radius must be >= 0 (or the +inf "
                         "sentinel), got {}",
-                        o.tr_radius));
+                        o.trust_region_radius));
     }
-    if (std::isnan(o.primal_delta)) {
-        throw std::invalid_argument("SsnEngine::solve: overrides.primal_delta must not be NaN");
+    if (std::isnan(o.primal_regularization)) {
+        throw std::invalid_argument(
+            "SsnEngine::solve: overrides.primal_regularization must not be NaN");
     }
-    if (std::isnan(o.dual_mu)) {
-        throw std::invalid_argument("SsnEngine::solve: overrides.dual_mu must not be NaN");
+    if (std::isnan(o.dual_regularization)) {
+        throw std::invalid_argument(
+            "SsnEngine::solve: overrides.dual_regularization must not be NaN");
     }
 }
 
@@ -1572,4 +1576,4 @@ void SsnEngine::select_branch(double s, double lam, double phi, bool hinted, boo
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

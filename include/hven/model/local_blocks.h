@@ -12,7 +12,7 @@
 // over the raw piece protocol (docs/assembly-protocol.md): a local-block piece
 // enters ConstraintInterface or ObjectiveInterface as LocalConstraintBlock<P> or
 // LocalObjectiveBlock<P>, which are ordinary raw-protocol pieces. The two handles'
-// header (model/solver_interface_specs.h) includes this one, so wherever a piece
+// header (model/piece_interfaces.h) includes this one, so wherever a piece
 // can be converted to a handle, this layer is what converts it.
 //
 // A CONSTRAINT piece (an equality row block c(v) = 0, or an inequality row block
@@ -45,8 +45,8 @@
 // - Hessian blocks are read in the LOWER TRIANGLE (row >= col) only; the upper
 //   triangle may be left as it arrives or filled symmetrically.
 // - Optional sparsity patterns trim the blocks. A piece may declare
-//       static constexpr std::array<hven::solvers::BlockEntry, K> kJacobianPattern{...};
-//       static constexpr std::array<hven::solvers::BlockEntry, K> kHessianPattern{...};
+//       static constexpr std::array<hven::BlockEntry, K> kJacobianPattern{...};
+//       static constexpr std::array<hven::BlockEntry, K> kHessianPattern{...};
 //   (or a constexpr C array of BlockEntry) naming the block entries that can be
 //   nonzero. Only those entries are claimed in the KKT matrix and read from the
 //   buffers. Without a pattern the Jacobian is dense and the Hessian is its full
@@ -55,7 +55,7 @@
 //   a compile-time error.
 // - A piece with no second derivatives (a linear constraint, a linear
 //   objective) declares `static constexpr auto kHessianPattern =
-//   hven::solvers::kNoHessian;` and need not provide hessian().
+//   hven::kNoHessian;` and need not provide hessian().
 // - name() is optional (`std::string name() const`); it names the piece in
 //   diagnostics. Without it the piece is named by its kind and sizes. A name()
 //   that is not const, or does not return a string, is a compile-time error.
@@ -64,7 +64,7 @@
 //   threads when the problem is partitioned. State shared between the copies is
 //   held through a std::shared_ptr and must be safe to read concurrently.
 // - Evaluation failure follows the library's contract (core/errors.h): throw
-//   hven::solvers::EvaluationError, or produce a non-finite value, at a point the
+//   hven::EvaluationError, or produce a non-finite value, at a point the
 //   piece cannot evaluate, and the engine treats the trial as rejected.
 // - An application may name one variable more than once; the blocks are summed
 //   into the global derivatives with the multiplicity that implies.
@@ -92,10 +92,10 @@
 #include <Eigen/SparseCore>
 
 #include "hven/core/types.h"
-#include "hven/model/indexing_data.h"
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
+#include "hven/model/solver_indexing_data.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// One entry of a local block: its row and column inside the block.
 struct BlockEntry {
@@ -442,7 +442,7 @@ template <class P> constexpr void diagnose_constraint_piece() {
             static_assert(f, "hven local block: a constraint piece provides void "
                              "hessian(hven::ConstVecRef v, hven::ConstVecRef lambda, "
                              "hven::MatRef H) const, or declares static constexpr auto "
-                             "kHessianPattern = hven::solvers::kNoHessian");
+                             "kHessianPattern = hven::kNoHessian");
         }
     } else {
         static_assert(f, "hven local block: this type is not a local-block constraint piece");
@@ -489,7 +489,7 @@ template <class P> constexpr void diagnose_objective_piece() {
             static_assert(f, "hven local block: an objective piece provides void "
                              "hessian(hven::ConstVecRef v, hven::MatRef H) const, or declares "
                              "static constexpr auto kHessianPattern = "
-                             "hven::solvers::kNoHessian");
+                             "hven::kNoHessian");
         }
     } else {
         static_assert(f, "hven local block: this type is not a local-block objective piece");
@@ -538,11 +538,11 @@ template <class P> struct LocalConstraintBlock {
 
     static_assert(detail::HasJacobianPattern<P> || !detail::NamesJacobianPattern<P>,
                   "hven local block: kJacobianPattern must be a constexpr array of "
-                  "hven::solvers::BlockEntry (std::array or a C array)");
+                  "hven::BlockEntry (std::array or a C array)");
     static_assert(detail::HasHessianPattern<P> || !detail::NamesHessianPattern<P>,
                   "hven local block: kHessianPattern must be a constexpr array of "
-                  "hven::solvers::BlockEntry (std::array or a C array), or "
-                  "hven::solvers::kNoHessian");
+                  "hven::BlockEntry (std::array or a C array), or "
+                  "hven::kNoHessian");
     static_assert(detail::declared_jacobian_in_range<P>(),
                   "hven local block: a kJacobianPattern entry lies outside the kOutputs x "
                   "kInputs block");
@@ -676,9 +676,9 @@ template <class P> struct LocalConstraintBlock {
         if (kHessianCount > 0 && do_jac != do_hess) {
             detail::throw_local_block_split_claim(name());
         }
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_jac) {
                 detail::for_each_jacobian_entry<P>([&](int er, int ec) {
                     const int col = d.v_scatter_loc(ec, V);
@@ -750,7 +750,7 @@ template <class P> struct LocalConstraintBlock {
         double hess_at(int r, int c) const { return hess[c * kIn + r]; }
         void write_values(Eigen::Ref<Eigen::VectorXd> FX, const SolverIndexingData &d,
                           int V) const {
-            const int start = d.inner_constraint_starts_[V];
+            const int start = d.inner_constraint_starts[V];
             for (int j = 0; j < kOut; j++) {
                 FX[start + j] = out[j];
             }
@@ -758,7 +758,7 @@ template <class P> struct LocalConstraintBlock {
         void write_adjoint_gradient(const Eigen::Ref<const Eigen::VectorXd> &L,
                                     Eigen::Ref<Eigen::VectorXd> AGX, const SolverIndexingData &d,
                                     int V) const {
-            const int start = d.inner_gradient_starts_[V];
+            const int start = d.inner_gradient_starts[V];
             detail::for_each_jacobian_entry<P>(
                 [&](int er, int ec) { AGX[start + ec] += L[d.c_loc(er, V)] * jac_at(er, ec); });
         }
@@ -767,11 +767,11 @@ template <class P> struct LocalConstraintBlock {
                               const Eigen::Ref<Eigen::VectorXi> &clashes,
                               std::vector<std::mutex> &locks, const SolverIndexingData &d,
                               int V) const {
-            int slot = d.inner_kkt_starts_[V];
+            int slot = d.inner_kkt_starts[V];
             // The layout sets unique_constraints_ false on a piece copy one of whose
             // rows another partition also writes (mark_shared_constraint_rows); only
             // then can two partitions write one Jacobian entry.
-            const bool check = !d.unique_constraints_;
+            const bool check = !d.unique_constraints;
             detail::for_each_jacobian_entry<P>([&](int er, int ec) {
                 const int col = d.v_scatter_loc(ec, V);
                 if (col >= 0) {
@@ -786,7 +786,7 @@ template <class P> struct LocalConstraintBlock {
                              const Eigen::Ref<Eigen::VectorXi> &clashes,
                              std::vector<std::mutex> &locks, const SolverIndexingData &d,
                              int V) const {
-            int slot = d.inner_kkt_starts_[V] + kJacobianCount;
+            int slot = d.inner_kkt_starts[V] + kJacobianCount;
             detail::for_each_hessian_entry<P>([&](int er, int ec) {
                 const int r = d.v_scatter_loc(er, V);
                 const int c = d.v_scatter_loc(ec, V);
@@ -825,8 +825,8 @@ template <class P> struct LocalObjectiveBlock {
 
     static_assert(detail::HasHessianPattern<P> || !detail::NamesHessianPattern<P>,
                   "hven local block: kHessianPattern must be a constexpr array of "
-                  "hven::solvers::BlockEntry (std::array or a C array), or "
-                  "hven::solvers::kNoHessian");
+                  "hven::BlockEntry (std::array or a C array), or "
+                  "hven::kNoHessian");
     static_assert(detail::declared_hessian_in_range<P>(),
                   "hven local block: a kHessianPattern entry lies outside the kInputs x "
                   "kInputs block");
@@ -898,7 +898,7 @@ template <class P> struct LocalObjectiveBlock {
                     std::fill_n(h, kIn * kIn, 0.0);
                     Eigen::Map<Eigen::MatrixXd> hm(h, kIn, kIn);
                     piece.hessian(Eigen::Map<const Eigen::VectorXd>(v, kIn), hm);
-                    int slot = d.inner_kkt_starts_[V];
+                    int slot = d.inner_kkt_starts[V];
                     detail::for_each_hessian_entry<P>([&](int er, int ec) {
                         const int r = d.v_scatter_loc(er, V);
                         const int c = d.v_scatter_loc(ec, V);
@@ -919,9 +919,9 @@ template <class P> struct LocalObjectiveBlock {
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
                        int &free_slot, int /*con_offset*/, bool /*do_jac*/, bool do_hess,
                        SolverIndexingData &d) {
-        d.inner_kkt_starts_.resize(d.num_appl());
+        d.inner_kkt_starts.resize(d.num_appl());
         for (int V = 0; V < d.num_appl(); V++) {
-            d.inner_kkt_starts_[V] = free_slot;
+            d.inner_kkt_starts[V] = free_slot;
             if (do_hess) {
                 detail::for_each_hessian_entry<P>([&](int er, int ec) {
                     const int r = d.v_scatter_loc(er, V);
@@ -954,7 +954,7 @@ template <class P> struct LocalObjectiveBlock {
         std::fill_n(g, kIn, 0.0);
         Eigen::Map<Eigen::VectorXd> gm(g, kIn);
         piece.gradient(vm, gm);
-        const int start = d.inner_gradient_starts_[V];
+        const int start = d.inner_gradient_starts[V];
         for (int i = 0; i < kIn; i++) {
             GX[start + i] = scale * g[i];
         }
@@ -971,7 +971,7 @@ struct SolverInterfaceAdapter<P> {
 
     static void install_constraint(const P &p, ConstraintInterface &ci) {
         if constexpr (detail::local_piece_storable<P>()) {
-            ci.storage_.emplace<ConstraintModel<LocalConstraintBlock<P>>>(
+            ci.storage.emplace<ConstraintModel<LocalConstraintBlock<P>>>(
                 LocalConstraintBlock<P>{p});
         }
     }
@@ -1000,7 +1000,7 @@ struct SolverInterfaceAdapter<P> {
     }
     static void install_objective(const P &p, ObjectiveInterface &oi) {
         if constexpr (detail::local_piece_storable<P>()) {
-            oi.storage_.emplace<ObjectiveModel<LocalObjectiveBlock<P>>>(LocalObjectiveBlock<P>{p});
+            oi.storage.emplace<ObjectiveModel<LocalObjectiveBlock<P>>>(LocalObjectiveBlock<P>{p});
         }
     }
 };
@@ -1026,4 +1026,4 @@ struct SolverInterfaceAdapter<P> {
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

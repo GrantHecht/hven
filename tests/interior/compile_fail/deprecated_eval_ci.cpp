@@ -13,7 +13,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
 
-hven::Vec probe_deprecated_eval_ci(const hven::solvers::NlpModel &model, const hven::Vec &x) {
+hven::Vec probe_deprecated_eval_ci(const hven::NlpModel &model, const hven::Vec &x) {
     hven::Vec out;
     model.eval_ci_in_place(x, out); // the replacement: not deprecated
     return model.eval_ci(x);        // the deprecated form: THE error

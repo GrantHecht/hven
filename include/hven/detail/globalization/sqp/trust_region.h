@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace hven::solvers {
+namespace hven {
 
 // Trust-region update constants of the SQP driver. Source: Conn, Gould &
 // Toint, "Trust-Region Methods" (MPS-SIAM, 2000), Algorithm BTR and Table
@@ -16,7 +16,7 @@ namespace hven::solvers {
 /// counts as "very successful" and earns a larger radius.
 inline constexpr double kTrGrowThreshold = 0.75;
 /// The expansion factor, applied only when the radius was ACTIVE at the step
-/// and capped at SqpOptions::tr_max.
+/// and capped at SqpOptions::trust_region_max.
 inline constexpr double kTrGrowFactor = 2.0;
 /// The contraction factor, applied on every kReject verdict. COUPLED to
 /// globalization.h's kRestoreMinRejections -- see RADIUS MANAGEMENT.
@@ -61,4 +61,4 @@ inline constexpr double kZeroStepScale = 1e-12;
 /// iterate's -- a real infeasibility reduction, not a funnel-width one.
 inline constexpr double kFailureStepViolationFactor = 0.5;
 
-} // namespace hven::solvers
+} // namespace hven

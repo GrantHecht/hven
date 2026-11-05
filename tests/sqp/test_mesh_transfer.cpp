@@ -72,15 +72,15 @@
 #include "support/parametric_families.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using hven::solvers::test_support::F6PathBoundQuadrature;
-using hven::solvers::test_support::trapezoid_weights;
-using hven::solvers::test_support::uniform_nodes;
+using hven::test_support::F6PathBoundQuadrature;
+using hven::test_support::trapezoid_weights;
+using hven::test_support::uniform_nodes;
 
 namespace {
 
@@ -103,11 +103,11 @@ Mesh uniform_mesh(Index count) {
 // A converged cold solve of F6 on `mesh`, returned as its SqpWarmState. Every
 // test that needs "the answer on this mesh" goes through here so no test
 // compares against an unconverged point by accident.
-hven::solvers::detail::SqpWarmState cold_solve(const Mesh &mesh, SqpResult *out_sol = nullptr) {
+hven::detail::SqpWarmState cold_solve(const Mesh &mesh, SqpResult *out_sol = nullptr) {
     F6PathBoundQuadrature model(mesh.nodes, mesh.weights, kBound);
     SqpOptions opts;
     SqpSolver driver(opts);
-    SqpResult sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     if (out_sol != nullptr) {
         *out_sol = sol;
@@ -169,11 +169,11 @@ TEST(MeshTransfer, TransferredMultipliersMatchFineSolve) {
     const Mesh coarse = uniform_mesh(17);
     const Mesh fine = uniform_mesh(33);
 
-    const hven::solvers::detail::SqpWarmState coarse_ws = cold_solve(coarse);
-    const hven::solvers::detail::SqpWarmState fine_ws = cold_solve(fine);
+    const hven::detail::SqpWarmState coarse_ws = cold_solve(coarse);
+    const hven::detail::SqpWarmState fine_ws = cold_solve(fine);
 
     const MeshTransfer transfer;
-    const hven::solvers::detail::SqpWarmState moved = transfer.transfer(coarse_ws, coarse, fine);
+    const hven::detail::SqpWarmState moved = transfer.transfer(coarse_ws, coarse, fine);
 
     ASSERT_EQ(moved.lambda_i.size(), fine.nodes.size());
     ASSERT_EQ(moved.x.size(), fine.nodes.size());
@@ -227,7 +227,7 @@ TEST(MeshTransfer, TransferredMultipliersMatchFineSolve) {
     EXPECT_EQ(moved.qp_working_set.mi(), fine.nodes.size());
 
     // NEVER MUTATES THE INPUT.
-    const hven::solvers::detail::SqpWarmState untouched = cold_solve(coarse);
+    const hven::detail::SqpWarmState untouched = cold_solve(coarse);
     EXPECT_EQ(coarse_ws.lambda_i, untouched.lambda_i);
     EXPECT_EQ(coarse_ws.x, untouched.x);
 }
@@ -242,9 +242,9 @@ TEST(MeshTransfer, InteriorErrorIsSecondOrder) {
     for (Index coarse_count : {9, 17, 33}) {
         const Mesh coarse = uniform_mesh(coarse_count);
         const Mesh fine = uniform_mesh(2 * coarse_count - 1);
-        const hven::solvers::detail::SqpWarmState moved =
+        const hven::detail::SqpWarmState moved =
             transfer.transfer(cold_solve(coarse), coarse, fine);
-        const hven::solvers::detail::SqpWarmState fine_ws = cold_solve(fine);
+        const hven::detail::SqpWarmState fine_ws = cold_solve(fine);
 
         // Exclude the cells straddling the two junctions: "interior" means at
         // least one COARSE spacing away from either, which is exactly the
@@ -286,7 +286,7 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     from.nodes = uniform_nodes(5);
     from.weights = trapezoid_weights(from.nodes);
 
-    hven::solvers::detail::SqpWarmState ws;
+    hven::detail::SqpWarmState ws;
     ws.valid = true;
     ws.x = Vec::Zero(5);
     ws.ineq_active = {0, 0, 1, 1, 0};
@@ -299,7 +299,7 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     to.weights = trapezoid_weights(to.nodes);
 
     const MeshTransfer transfer;
-    const hven::solvers::detail::SqpWarmState moved = transfer.transfer(ws, from, to);
+    const hven::detail::SqpWarmState moved = transfer.transfer(ws, from, to);
 
     // Derived node by node from the rule:
     //   k=0 (t=0.00) at source node 0; stencil {0,1} = {0,0}      -> 0
@@ -324,7 +324,7 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     Mesh six;
     six.nodes = uniform_nodes(6);
     six.weights = trapezoid_weights(six.nodes);
-    hven::solvers::detail::SqpWarmState wide;
+    hven::detail::SqpWarmState wide;
     wide.valid = true;
     wide.x = Vec::Zero(6);
     wide.ineq_active = {0, 1, 1, 1, 1, 0};
@@ -338,12 +338,12 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     // destination node in either neighbouring cell. The island is therefore
     // erased entirely and the destination QP re-decides it, which is the
     // conservative reading the rule commits to.
-    hven::solvers::detail::SqpWarmState island;
+    hven::detail::SqpWarmState island;
     island.valid = true;
     island.x = Vec::Zero(5);
     island.ineq_active = {0, 0, 1, 0, 0};
     island.qp_working_set = WorkingSet(5, 5);
-    const hven::solvers::detail::SqpWarmState island_moved = transfer.transfer(island, from, to);
+    const hven::detail::SqpWarmState island_moved = transfer.transfer(island, from, to);
     for (std::uint8_t flag : island_moved.ineq_active) {
         EXPECT_EQ(flag, 0) << "a single-node island has no strict interior to inherit";
     }
@@ -352,7 +352,7 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     // POINT-SAMPLING operation, so an active run survives only where a
     // destination node actually lands strictly inside it. Source: 9 nodes with
     // 3..6 active; destination: the 5-node mesh (every other source node).
-    hven::solvers::detail::SqpWarmState fine_ws;
+    hven::detail::SqpWarmState fine_ws;
     fine_ws.valid = true;
     fine_ws.x = Vec::Zero(9);
     fine_ws.ineq_active = {0, 0, 0, 1, 1, 1, 1, 0, 0};
@@ -367,12 +367,12 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
 
     // EDGE CASE 4 -- NO JUNCTION AT ALL: an all-active source transfers
     // wholesale, endpoints included, because no stencil anywhere disagrees.
-    hven::solvers::detail::SqpWarmState all_on;
+    hven::detail::SqpWarmState all_on;
     all_on.valid = true;
     all_on.x = Vec::Zero(5);
     all_on.ineq_active = {1, 1, 1, 1, 1};
     all_on.qp_working_set = WorkingSet(5, 5);
-    const hven::solvers::detail::SqpWarmState all_moved = transfer.transfer(all_on, from, to);
+    const hven::detail::SqpWarmState all_moved = transfer.transfer(all_on, from, to);
     for (std::uint8_t flag : all_moved.ineq_active) {
         EXPECT_EQ(flag, 1);
     }
@@ -380,12 +380,12 @@ TEST(MeshTransfer, ActivityInheritanceRule) {
     // BOUND ACTIVITY follows the identical rule, including the fact that a
     // stencil mixing -1 and +1 is a disagreement and yields FREE. Source
     // bounds: lower, lower, free, upper, upper.
-    hven::solvers::detail::SqpWarmState bounds;
+    hven::detail::SqpWarmState bounds;
     bounds.valid = true;
     bounds.x = Vec::Zero(5);
     bounds.bound_active = {-1, -1, 0, +1, +1};
     bounds.qp_working_set = WorkingSet(5, 5);
-    const hven::solvers::detail::SqpWarmState bounds_moved = transfer.transfer(bounds, from, to);
+    const hven::detail::SqpWarmState bounds_moved = transfer.transfer(bounds, from, to);
     //   k=0 at s0: {s0,s1} = {-1,-1} -> -1
     //   k=1 in (s0,s1): {-1,-1}      -> -1
     //   k=2 at s1: {s0,s1,s2} = {-1,-1,0} -> 0
@@ -423,16 +423,14 @@ TEST(MeshTransfer, WarmSolveOnFineMeshBeatsCold) {
     const Mesh fine = uniform_mesh(33);
 
     const MeshTransfer transfer;
-    const hven::solvers::detail::SqpWarmState moved =
-        transfer.transfer(cold_solve(coarse), coarse, fine);
+    const hven::detail::SqpWarmState moved = transfer.transfer(cold_solve(coarse), coarse, fine);
 
     F6PathBoundQuadrature model(fine.nodes, fine.weights, kBound);
     SqpOptions opts;
     SqpSolver driver(opts);
 
-    const SqpResult cold =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
-    const SqpResult warm = driver.solve(hven::solvers::detail::problem_ref(model), moved.x);
+    const SqpResult cold = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpResult warm = driver.solve(hven::detail::problem_ref(model), moved.x);
 
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
@@ -498,8 +496,7 @@ TEST(MeshTransfer, SeededTransferRidesTheDualsAndCostsFewerMinors) {
     const Mesh fine = uniform_mesh(33);
 
     const MeshTransfer transfer;
-    const hven::solvers::detail::SqpWarmState moved =
-        transfer.transfer(cold_solve(coarse), coarse, fine);
+    const hven::detail::SqpWarmState moved = transfer.transfer(cold_solve(coarse), coarse, fine);
     ASSERT_EQ(moved.structure_hash, 0u) << "a transfer's hash is UNKNOWN, and kSeeded is fine with";
     ASSERT_GT(moved.lambda_i.maxCoeff(), 0.0) << "and it carries live costates to ride in on";
 
@@ -507,11 +504,10 @@ TEST(MeshTransfer, SeededTransferRidesTheDualsAndCostsFewerMinors) {
     SqpOptions opts;
     SqpSolver driver(opts);
 
-    const SqpResult cold =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
-    const SqpResult x_only = driver.solve(hven::solvers::detail::problem_ref(model), moved.x);
-    const SqpResult seeded = driver.solve(hven::solvers::detail::problem_ref(model), moved.x,
-                                          SqpWarmAccess::wrap(moved));
+    const SqpResult cold = driver.solve(hven::detail::problem_ref(model), model.start_point());
+    const SqpResult x_only = driver.solve(hven::detail::problem_ref(model), moved.x);
+    const SqpResult seeded =
+        driver.solve(hven::detail::problem_ref(model), moved.x, SqpWarmAccess::wrap(moved));
 
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     ASSERT_EQ(x_only.status, SolveStatus::kOptimal);
@@ -571,11 +567,11 @@ TEST(MeshTransfer, CoarseningTransferPreservesCostates) {
     coarse.weights = trapezoid_weights(coarse.nodes);
     ASSERT_GT(coarse.weights.maxCoeff() / coarse.weights.minCoeff(), 5.0);
 
-    const hven::solvers::detail::SqpWarmState fine_ws = cold_solve(fine);
-    const hven::solvers::detail::SqpWarmState coarse_ws = cold_solve(coarse);
+    const hven::detail::SqpWarmState fine_ws = cold_solve(fine);
+    const hven::detail::SqpWarmState coarse_ws = cold_solve(coarse);
 
     const MeshTransfer transfer;
-    const hven::solvers::detail::SqpWarmState moved = transfer.transfer(fine_ws, fine, coarse);
+    const hven::detail::SqpWarmState moved = transfer.transfer(fine_ws, fine, coarse);
 
     ASSERT_EQ(moved.lambda_i.size(), coarse.nodes.size());
 
@@ -602,7 +598,7 @@ TEST(MeshTransfer, RejectsMalformedInput) {
     const MeshTransfer transfer;
     const Mesh good = uniform_mesh(5);
 
-    hven::solvers::detail::SqpWarmState ws;
+    hven::detail::SqpWarmState ws;
     ws.valid = true;
     ws.x = Vec::Zero(5);
     ws.lambda_i = Vec::Zero(5);
@@ -651,36 +647,36 @@ TEST(MeshTransfer, RejectsMalformedInput) {
     EXPECT_TRUE(throws_with([&] { transfer.transfer(ws, nan_nodes, good); }, "finite"));
 
     // SqpWarmState vectors must be sized one-per-node (or empty).
-    hven::solvers::detail::SqpWarmState bad_x = ws;
+    hven::detail::SqpWarmState bad_x = ws;
     bad_x.x = Vec::Zero(4);
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_x, good, good); }, "SqpWarmStart::x"));
 
-    hven::solvers::detail::SqpWarmState bad_lam = ws;
+    hven::detail::SqpWarmState bad_lam = ws;
     bad_lam.lambda_i = Vec::Zero(3);
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_lam, good, good); }, "lambda_i"));
 
-    hven::solvers::detail::SqpWarmState bad_act = ws;
+    hven::detail::SqpWarmState bad_act = ws;
     bad_act.ineq_active = {0, 1, 0};
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_act, good, good); }, "ineq_active"));
 
-    hven::solvers::detail::SqpWarmState bad_bound = ws;
+    hven::detail::SqpWarmState bad_bound = ws;
     bad_bound.bound_active = {0, 1, 0, 0, 0, 0};
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_bound, good, good); }, "bound_active"));
 
-    hven::solvers::detail::SqpWarmState bad_wsz = ws;
+    hven::detail::SqpWarmState bad_wsz = ws;
     bad_wsz.qp_working_set = WorkingSet(4, 4);
     EXPECT_TRUE(throws_with([&] { transfer.transfer(bad_wsz, good, good); }, "qp_working_set"));
 
     // A COLD (default-constructed) SqpWarmState carries nothing that may be fed
     // forward -- warm_start.h's own contract -- so transferring one is a
     // caller error rather than a silent no-op.
-    hven::solvers::detail::SqpWarmState cold;
+    hven::detail::SqpWarmState cold;
     EXPECT_TRUE(throws_with([&] { transfer.transfer(cold, good, good); }, "valid"));
 
     // An empty vector is ABSENT, not malformed: F6 has me == 0, so a
     // SqpWarmState from it carries an empty lambda_e, and that must survive a
     // transfer as an empty lambda_e rather than tripping a size check.
-    const hven::solvers::detail::SqpWarmState moved = transfer.transfer(ws, good, good);
+    const hven::detail::SqpWarmState moved = transfer.transfer(ws, good, good);
     EXPECT_EQ(moved.lambda_e.size(), 0);
     EXPECT_EQ(moved.z.size(), 0);
     EXPECT_TRUE(moved.ineq_active.empty());
@@ -694,7 +690,7 @@ TEST(MeshTransfer, RejectsMalformedInput) {
     // Today's driver never emits that shape -- a solve with mi > 0 always
     // populates lambda_i -- so this is the consistency guarantee, pinned here
     // because nothing else could reach it.
-    hven::solvers::detail::SqpWarmState ws_only;
+    hven::detail::SqpWarmState ws_only;
     ws_only.valid = true;
     ws_only.x = Vec::Zero(5);
     ws_only.qp_working_set = WorkingSet(5, 5); // mi() == 5, both vectors empty

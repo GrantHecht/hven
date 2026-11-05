@@ -24,7 +24,7 @@
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
-namespace hven::solvers {
+namespace hven {
 
 class SqpSolverImpl;
 class TraceSink;
@@ -135,12 +135,12 @@ class SqpSolver {
     ///         mis-sized or holds a non-finite or negative bound dual; any block
     ///         is not at the problem's declared dimensions; or the declaration
     ///         stamp is not this problem's.
-    /// @throws hven::solvers::EvaluationError if the model throws one at the
+    /// @throws hven::EvaluationError if the model throws one at the
     ///         start point. At a trial point it is a rejected trial, never
     ///         thrown; a non-finite value is treated exactly the same, and at
     ///         the start point ends the solve `kNumericalError` (core/errors.h
     ///         states the whole contract).
-    /// @throws hven::solvers::BackendError if the linear-algebra backend fails
+    /// @throws hven::BackendError if the linear-algebra backend fails
     ///         in a way no status can report.
     /// @throws Any other exception a user callback throws, unchanged. The
     ///         interrupted solve's result is then `last_result()`.
@@ -325,4 +325,4 @@ std::string sqp_iteration_table_start_level_line(StartLevel level);
 std::string sqp_iteration_table_scaling_line(bool active, double obj, double row_min,
                                              double row_max, double scaled_kkt_residual);
 
-} // namespace hven::solvers
+} // namespace hven

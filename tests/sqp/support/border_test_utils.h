@@ -61,9 +61,9 @@
 
 #include <hven/detail/kkt/bordered_eqp.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
-using hven::solvers::polish_bordered_unregularized;
-using hven::solvers::refine_bordered_solve;
+using hven::polish_bordered_unregularized;
+using hven::refine_bordered_solve;
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

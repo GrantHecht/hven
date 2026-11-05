@@ -37,21 +37,21 @@
 #include "hven/detail/model/nlp_problem_model.h"
 #include "hven/detail/model/non_linear_program.h"
 
+using hven::AssemblyCapability;
+using hven::CandidateFirstOrder;
+using hven::CandidatePoint;
+using hven::CandidateValues;
 using hven::ConstEigenRef;
-using hven::solvers::AssemblyCapability;
-using hven::solvers::CandidateFirstOrder;
-using hven::solvers::CandidatePoint;
-using hven::solvers::CandidateValues;
-using hven::solvers::EvalRequest;
-using hven::solvers::FixedVariableTreatment;
-using hven::solvers::has_capability;
-using hven::solvers::KktScatterView;
-using hven::solvers::Nlp;
-using hven::solvers::NLPAdapterCore;
-using hven::solvers::NonLinearProgram;
-using hven::solvers::RhsArenaView;
-using hven::solvers::RhsLocationTable;
-using hven::solvers::RhsScatterView;
+using hven::EvalRequest;
+using hven::FixedVariableTreatment;
+using hven::has_capability;
+using hven::KktScatterView;
+using hven::Nlp;
+using hven::NlpAdapterCore;
+using hven::NonLinearProgram;
+using hven::RhsArenaView;
+using hven::RhsLocationTable;
+using hven::RhsScatterView;
 
 namespace {
 
@@ -64,7 +64,7 @@ constexpr double kAggPinInf = std::numeric_limits<double>::infinity();
 /// `fix_` pins a variable by giving it equal bounds, which is what drives the
 /// fixed-variable treatments.
 struct AggPinProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -161,7 +161,7 @@ struct AggPinProblem : Nlp {
 /// renumbering moves the set. (For k in 21..39 the wrap does claim both, which
 /// is why the quantifier is that range and not the whole band.)
 struct AggPinWideProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -230,7 +230,7 @@ struct AggPinWideProblem : Nlp {
 /// so getting this wrong locks such a model out of evaluating the block it does
 /// have.
 struct AggPinOneKindProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -286,9 +286,9 @@ struct AggPinOneKindProblem : Nlp {
 };
 
 std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<Nlp> &problem) {
-    auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
-    auto core = std::make_shared<NLPAdapterCore>(model, problem->name());
-    return hven::solvers::make_nlp_program(core);
+    auto model = std::make_shared<hven::NlpProblemModel>(problem);
+    auto core = std::make_shared<NlpAdapterCore>(model, problem->name());
+    return hven::make_nlp_program(core);
 }
 
 std::shared_ptr<NonLinearProgram> agg_pin_build_small() {
@@ -330,15 +330,15 @@ struct AggPinSolverStorage {
 
     RhsScatterView rhs_view(NonLinearProgram &nlp) {
         RhsScatterView rhs;
-        rhs.objective_ = &objective;
-        rhs.objective_gradient_ =
+        rhs.objective = &objective;
+        rhs.objective_gradient =
             RhsArenaView{pgx.data(), static_cast<int>(pgx.size()), &nlp.objective_gradient_table()};
-        rhs.constraint_adjoint_gradient_ = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
-                                                        &nlp.constraint_adjoint_gradient_table()};
-        rhs.equality_residuals_ =
+        rhs.constraint_adjoint_gradient = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
+                                                       &nlp.constraint_adjoint_gradient_table()};
+        rhs.equality_residuals =
             RhsArenaView{fxe.data(), static_cast<int>(fxe.size()), &nlp.equality_residual_table()};
-        rhs.inequality_residuals_ = RhsArenaView{fxi.data(), static_cast<int>(fxi.size()),
-                                                 &nlp.inequality_residual_table()};
+        rhs.inequality_residuals = RhsArenaView{fxi.data(), static_cast<int>(fxi.size()),
+                                                &nlp.inequality_residual_table()};
         return rhs;
     }
 
@@ -445,16 +445,15 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         bool kkt_bearing;
     };
     const std::vector<AggPinShape> shapes = {
-        {"objective only", hven::solvers::kRequestObjectiveOnly, false},
-        {"objective and constraints", hven::solvers::kRequestObjectiveAndConstraints, false},
-        {"objective gradient and constraints",
-         hven::solvers::kRequestObjectiveGradientAndConstraints, false},
-        {"first-order right-hand side", hven::solvers::kRequestFirstOrderRhs, false},
-        {"constraint residuals and Jacobian", hven::solvers::kRequestConstraintResidualsAndJacobian,
-         true},
-        {"first-order KKT", hven::solvers::kRequestFirstOrderKkt, true},
-        {"constraint KKT", hven::solvers::kRequestConstraintKkt, true},
-        {"full KKT", hven::solvers::kRequestFullKkt, true},
+        {"objective only", hven::kRequestObjectiveOnly, false},
+        {"objective and constraints", hven::kRequestObjectiveAndConstraints, false},
+        {"objective gradient and constraints", hven::kRequestObjectiveGradientAndConstraints,
+         false},
+        {"first-order right-hand side", hven::kRequestFirstOrderRhs, false},
+        {"constraint residuals and Jacobian", hven::kRequestConstraintResidualsAndJacobian, true},
+        {"first-order KKT", hven::kRequestFirstOrderKkt, true},
+        {"constraint KKT", hven::kRequestConstraintKkt, true},
+        {"full KKT", hven::kRequestFullKkt, true},
     };
 
     for (const AggPinShape &shape : shapes) {
@@ -462,22 +461,22 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         legacy.reset();
         assembled.reset();
 
-        if (shape.request == hven::solvers::kRequestObjectiveOnly) {
+        if (shape.request == hven::kRequestObjectiveOnly) {
             nlp->eval_obj(scale, x, legacy.objective);
-        } else if (shape.request == hven::solvers::kRequestObjectiveAndConstraints) {
+        } else if (shape.request == hven::kRequestObjectiveAndConstraints) {
             nlp->eval_occ(scale, x, legacy.objective, legacy.fxe, legacy.fxi);
-        } else if (shape.request == hven::solvers::kRequestObjectiveGradientAndConstraints) {
+        } else if (shape.request == hven::kRequestObjectiveGradientAndConstraints) {
             nlp->eval_ogc(scale, x, legacy.objective, legacy.pgx, legacy.fxe, legacy.fxi);
-        } else if (shape.request == hven::solvers::kRequestFirstOrderRhs) {
+        } else if (shape.request == hven::kRequestFirstOrderRhs) {
             nlp->eval_rhs(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi);
-        } else if (shape.request == hven::solvers::kRequestConstraintResidualsAndJacobian) {
+        } else if (shape.request == hven::kRequestConstraintResidualsAndJacobian) {
             nlp->eval_soe(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi, legacy.kkt);
-        } else if (shape.request == hven::solvers::kRequestFirstOrderKkt) {
+        } else if (shape.request == hven::kRequestFirstOrderKkt) {
             nlp->eval_aug(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                           legacy.fxi, legacy.kkt);
-        } else if (shape.request == hven::solvers::kRequestConstraintKkt) {
+        } else if (shape.request == hven::kRequestConstraintKkt) {
             nlp->eval_kkt_no(scale, x, le, li, legacy.objective, legacy.pgx, legacy.agx, legacy.fxe,
                              legacy.fxi, legacy.kkt);
         } else {
@@ -490,14 +489,14 @@ TEST(NlpAggregateEngineContract, EveryRequestReproducesTheEntryPointItReplaces) 
         // mapping table's empty column records.
         RhsScatterView rhs = assembled.rhs_view(*nlp);
         if (!has_request(shape.request, EvalRequest::kObjectiveGradient)) {
-            rhs.objective_gradient_ = RhsArenaView{};
+            rhs.objective_gradient = RhsArenaView{};
         }
         if (!has_request(shape.request, EvalRequest::kConstraintAdjointGradient)) {
-            rhs.constraint_adjoint_gradient_ = RhsArenaView{};
+            rhs.constraint_adjoint_gradient = RhsArenaView{};
         }
         if (!has_request(shape.request, EvalRequest::kConstraintValues)) {
-            rhs.equality_residuals_ = RhsArenaView{};
-            rhs.inequality_residuals_ = RhsArenaView{};
+            rhs.equality_residuals = RhsArenaView{};
+            rhs.inequality_residuals = RhsArenaView{};
         }
         const KktScatterView kkt = shape.kkt_bearing ? assembled.kkt_view(*nlp) : KktScatterView{};
 
@@ -564,7 +563,7 @@ TEST(NlpAggregateEngineContract, ShapesFiveAndSevenLeaveTheirZeroArenasEmpty) {
 TEST(NlpAggregateEngineEpoch, EveryRelayBumpsAndTheBumpPrecedesTheNewStructures) {
     auto nlp = agg_pin_build_small();
     const auto after_transcription = nlp->structure_epoch();
-    EXPECT_NE(after_transcription, hven::solvers::StructureEpoch());
+    EXPECT_NE(after_transcription, hven::StructureEpoch());
 
     // A renegotiation re-lays, so it bumps -- and by the time it returns, the
     // structures it laid are the ones on hand. There is no ordering in which an
@@ -596,7 +595,7 @@ TEST(NlpAggregateEngineEpoch, AnEvaluationNeverRunsUnderAStaleEpoch) {
     const Eigen::VectorXd x = agg_pin_x();
     const Eigen::VectorXd le = agg_pin_le();
     const Eigen::VectorXd li = agg_pin_li();
-    EXPECT_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt,
+    EXPECT_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFullKkt,
                                storage.kkt_view(*nlp), storage.rhs_view(*nlp)),
                  std::invalid_argument);
 }
@@ -695,8 +694,8 @@ TEST(NlpAggregateEngineKey, ABoundThatFixesAVariableKeysDifferentlyFromOneThatDo
     auto unbounded = agg_pin_build(std::make_shared<AggPinProblem>());
     auto fixed = agg_pin_build(fixed_problem);
 
-    EXPECT_NE(unbounded->model_structure_key().bound_digest_,
-              fixed->model_structure_key().bound_digest_);
+    EXPECT_NE(unbounded->model_structure_key().bound_digest,
+              fixed->model_structure_key().bound_digest);
 }
 
 // ---------------------------------------------------------------------------
@@ -756,21 +755,21 @@ TEST(NlpAggregateEngineLayout, ARelayIsFullyVisibleThroughASecondDeclarationRead
     // stream did.
     auto nlp = agg_pin_build_small();
 
-    const hven::solvers::AssemblyDeclaration &before = nlp->declaration();
-    const std::size_t equalities_before = before.equality_constraints_.size();
+    const hven::AssemblyDeclaration &before = nlp->declaration();
+    const std::size_t equalities_before = before.equality_constraints.size();
     const auto key_before = nlp->model_structure_key();
     ASSERT_GT(equalities_before, 0u);
 
     nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
     nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
 
-    const hven::solvers::AssemblyDeclaration &after = nlp->declaration();
-    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
-    EXPECT_EQ(after.equality_constraints_.size(), equalities_before + 1);
-    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
-    EXPECT_EQ(after.inequality_constraints_.size(), nlp->inequality_constraints_.size());
-    EXPECT_EQ(after.primal_vars_, nlp->primal_vars_);
-    EXPECT_EQ(after.equality_rows_, nlp->equal_cons_);
+    const hven::AssemblyDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints.size(), equalities_before + 1);
+    EXPECT_EQ(after.objectives.size(), nlp->objectives_.size());
+    EXPECT_EQ(after.inequality_constraints.size(), nlp->inequality_constraints_.size());
+    EXPECT_EQ(after.primal_vars, nlp->primal_vars_);
+    EXPECT_EQ(after.equality_rows, nlp->equal_cons_);
     EXPECT_NE(nlp->model_structure_key(), key_before);
 }
 
@@ -820,10 +819,10 @@ TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
     // one outcome this setup can produce is what makes the pin catch a change
     // in it; a disjunction would pass either way.
     ASSERT_EQ(nlp->internal_fixed_constraints(), 0);
-    const hven::solvers::AssemblyDeclaration &after = nlp->declaration();
-    EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
-    EXPECT_EQ(after.equality_constraints_.size(), equalities);
-    EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
+    const hven::AssemblyDeclaration &after = nlp->declaration();
+    EXPECT_EQ(after.equality_constraints.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(after.equality_constraints.size(), equalities);
+    EXPECT_EQ(after.objectives.size(), nlp->objectives_.size());
 
     // And the key is not a value invented by the failure: it is the pre-failure
     // key, because nothing re-laid.
@@ -868,7 +867,7 @@ TEST(NlpAggregateEngineLayout, TheMasterListGuardFiresAfterTheCopyIsAlreadyDisch
     // master list and read again. A guard that only checked the owing path
     // would serve the cached copy here and the violation would go unseen.
     auto nlp = agg_pin_build_small();
-    const std::size_t objectives = nlp->declaration().objectives_.size();
+    const std::size_t objectives = nlp->declaration().objectives.size();
     ASSERT_GT(objectives, 0u);
     (void)nlp->model_structure_key();
 
@@ -900,25 +899,25 @@ TEST(NlpAggregateEngineLayout, AnAggregateThatWasNeverLaidIsNotCheckedAgainstALa
     fresh.inequality_constraints_ = laid->inequality_constraints_;
     ASSERT_FALSE(fresh.objectives_.empty());
 
-    const hven::solvers::AssemblyDeclaration *declared = nullptr;
+    const hven::AssemblyDeclaration *declared = nullptr;
     EXPECT_NO_THROW({ declared = &fresh.declaration(); });
     ASSERT_NE(declared, nullptr);
-    EXPECT_TRUE(declared->objectives_.empty());
-    EXPECT_TRUE(declared->equality_constraints_.empty());
-    EXPECT_TRUE(declared->inequality_constraints_.empty());
-    EXPECT_EQ(declared->primal_vars_, 0);
+    EXPECT_TRUE(declared->objectives.empty());
+    EXPECT_TRUE(declared->equality_constraints.empty());
+    EXPECT_TRUE(declared->inequality_constraints.empty());
+    EXPECT_EQ(declared->primal_vars, 0);
 
-    hven::solvers::ModelStructureKey key{};
+    hven::ModelStructureKey key{};
     EXPECT_NO_THROW({ key = fresh.model_structure_key(); });
-    EXPECT_EQ(key, (hven::solvers::ModelStructureKey{0, 0, 0}));
-    EXPECT_EQ(fresh.structure_epoch(), hven::solvers::StructureEpoch{});
+    EXPECT_EQ(key, (hven::ModelStructureKey{0, 0, 0}));
+    EXPECT_EQ(fresh.structure_epoch(), hven::StructureEpoch{});
 }
 
 TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout) {
     // Layout is a function of the declaration and the adopted partition count
     // alone. The evaluation thread budget is neither, so moving it must leave
     // the key, the claim stream and the assembly order untouched.
-    const int restore = hven::utils::get_num_threads();
+    const int restore = hven::detail::get_num_threads();
 
     auto one = agg_pin_build_small();
     one->set_evaluation_threads(1);
@@ -935,7 +934,7 @@ TEST(NlpAggregateEngineLayout, TheEvaluationThreadCountDecidesNoPartOfTheLayout)
     EXPECT_EQ(many->kkt_coeff_rows_, claims_at_one);
     EXPECT_EQ(many->rhs_coeff_rows_, rhs_at_one);
 
-    hven::utils::set_num_threads(restore);
+    hven::detail::set_num_threads(restore);
 }
 
 TEST(NlpAggregateEnginePartitions, ARenegotiationReportsWhatItAdoptedAndRelays) {
@@ -946,14 +945,14 @@ TEST(NlpAggregateEnginePartitions, ARenegotiationReportsWhatItAdoptedAndRelays) 
     EXPECT_GE(adopted, 1);
     EXPECT_LE(adopted, 2);
     EXPECT_EQ(adopted, nlp->num_partitions_);
-    EXPECT_EQ(nlp->model_structure_key().partition_count_, adopted);
+    EXPECT_EQ(nlp->model_structure_key().partition_count, adopted);
     EXPECT_NE(nlp->structure_epoch(), before);
 
     // A count the work cannot support comes down rather than being honoured.
     // Returning the adopted count is what keeps a consumer's key honest.
     auto small = agg_pin_build_small();
     EXPECT_EQ(small->negotiate_partition_count(64), small->num_partitions_);
-    EXPECT_EQ(small->model_structure_key().partition_count_, small->num_partitions_);
+    EXPECT_EQ(small->model_structure_key().partition_count, small->num_partitions_);
 }
 
 TEST(NlpAggregateEnginePartitions, NoClaimIsRenumberedByARenegotiation) {
@@ -995,7 +994,7 @@ TEST(NlpAggregateEnginePartitions, NoClaimIsRenumberedByARenegotiation) {
     // The claim ORDER is partition-dependent even when the claim SET is not,
     // which is why the adopted count is a conjunct of the key rather than
     // something a consumer may assume away.
-    EXPECT_EQ(nlp->model_structure_key().partition_count_, adopted);
+    EXPECT_EQ(nlp->model_structure_key().partition_count, adopted);
 
     // HOW FAR THIS ACTUALLY REACHES, recorded rather than left to be assumed.
     // The pieces this vehicle builds all carry the main-thread policy, so the
@@ -1070,7 +1069,7 @@ TEST(NlpAggregateEngineBinding, TheAnalysisBindsTheTablesAndTheEntryChecksTheVie
     const Eigen::VectorXd le = agg_pin_le();
     const Eigen::VectorXd li = agg_pin_li();
     try {
-        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt, wrong,
+        nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFullKkt, wrong,
                       bound.rhs_view(*nlp));
         FAIL() << "a view naming a different destination must be refused";
     } catch (const std::invalid_argument &error) {
@@ -1146,7 +1145,7 @@ TEST(NlpAggregateEngineCandidate, TheSurfaceIsInDeclarationSpaceWhateverTheTreat
     ASSERT_LT(nlp->reduced_primal_vars(), nlp->primal_vars_);
 
     // Declaration space, not the narrowed one.
-    EXPECT_EQ(nlp->declaration().primal_vars_, nlp->primal_vars_);
+    EXPECT_EQ(nlp->declaration().primal_vars, nlp->primal_vars_);
 
     const Eigen::VectorXd x = agg_pin_x();
     const Eigen::VectorXd le = agg_pin_le();
@@ -1193,12 +1192,12 @@ TEST(NlpAggregateEngineCandidate, TheProbePairsTheEpochWithTheValuesAtThePoint) 
     const auto here = nlp->probe_identity(x);
     EXPECT_EQ(here, nlp->probe_identity(x));
     EXPECT_NE(here, nlp->probe_identity(y));
-    EXPECT_EQ(here.epoch_, nlp->structure_epoch());
+    EXPECT_EQ(here.epoch, nlp->structure_epoch());
 
     nlp->negotiate_partition_count(1);
     const auto after = nlp->probe_identity(x);
-    EXPECT_NE(after.epoch_, here.epoch_);
-    EXPECT_EQ(after.value_digest_, here.value_digest_) << "same point, same values";
+    EXPECT_NE(after.epoch, here.epoch);
+    EXPECT_EQ(after.value_digest, here.value_digest) << "same point, same values";
 }
 
 // ---------------------------------------------------------------------------
@@ -1207,15 +1206,15 @@ TEST(NlpAggregateEngineCandidate, TheProbePairsTheEpochWithTheValuesAtThePoint) 
 
 TEST(NlpAggregateEngineDeclaration, ItDescribesTheStructuresOnHandAndIsStoredState) {
     auto nlp = agg_pin_build_small();
-    const hven::solvers::AssemblyDeclaration &first = nlp->declaration();
+    const hven::AssemblyDeclaration &first = nlp->declaration();
     EXPECT_EQ(&first, &nlp->declaration()) << "stored state, not rebuilt per call";
 
-    EXPECT_EQ(first.primal_vars_, nlp->primal_vars_);
-    EXPECT_EQ(first.equality_rows_, nlp->equal_cons_);
-    EXPECT_EQ(first.inequality_rows_, nlp->inequal_cons_);
-    EXPECT_EQ(first.partition_count_, nlp->num_partitions_);
-    EXPECT_EQ(first.objectives_.size(), nlp->objectives_.size());
-    EXPECT_EQ(first.equality_constraints_.size(), nlp->equality_constraints_.size());
+    EXPECT_EQ(first.primal_vars, nlp->primal_vars_);
+    EXPECT_EQ(first.equality_rows, nlp->equal_cons_);
+    EXPECT_EQ(first.inequality_rows, nlp->inequal_cons_);
+    EXPECT_EQ(first.partition_count, nlp->num_partitions_);
+    EXPECT_EQ(first.objectives.size(), nlp->objectives_.size());
+    EXPECT_EQ(first.equality_constraints.size(), nlp->equality_constraints_.size());
     EXPECT_NO_THROW(first.validate());
 }
 
@@ -1225,18 +1224,18 @@ TEST(NlpAggregateEngineDeclaration, ObjectivePiecesAloneMakeADeclarationPieceSou
     // its constraint pieces and still declares constraint rows is piece-sourced,
     // so the sum conjunct applies and finds nothing claiming those rows.
     auto nlp = agg_pin_build_small();
-    ASSERT_FALSE(nlp->declaration().objectives_.empty());
-    ASSERT_GT(nlp->declaration().equality_rows_, 0);
+    ASSERT_FALSE(nlp->declaration().objectives.empty());
+    ASSERT_GT(nlp->declaration().equality_rows, 0);
 
-    hven::solvers::AssemblyDeclaration declared = nlp->declaration();
-    declared.equality_constraints_.clear();
-    declared.inequality_constraints_.clear();
+    hven::AssemblyDeclaration declared = nlp->declaration();
+    declared.equality_constraints.clear();
+    declared.inequality_constraints.clear();
     EXPECT_THROW(declared.validate(), std::invalid_argument);
 
     // The complement, so the pin is about the rule rather than about clearing
     // lists: drop the objective pieces too and the same declaration carries no
     // pieces at all, which is the vacuous case.
-    declared.objectives_.clear();
+    declared.objectives.clear();
     EXPECT_NO_THROW(declared.validate());
 }
 
@@ -1250,11 +1249,11 @@ TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowS
     // rule is that a refusal names the offender and both numbers, and that is
     // what a caller reads when a sum is wrong.
     auto nlp = agg_pin_build_small();
-    ASSERT_FALSE(nlp->declaration().equality_constraints_.empty());
+    ASSERT_FALSE(nlp->declaration().equality_constraints.empty());
 
-    const int equality_claimed = nlp->declaration().equality_rows_;
-    hven::solvers::AssemblyDeclaration declared = nlp->declaration();
-    declared.equality_rows_ += 1;
+    const int equality_claimed = nlp->declaration().equality_rows;
+    hven::AssemblyDeclaration declared = nlp->declaration();
+    declared.equality_rows += 1;
     try {
         declared.validate();
         FAIL() << "a piece-sourced declaration whose equality rows exceed what its pieces claim "
@@ -1266,9 +1265,9 @@ TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowS
         EXPECT_NE(message.find(std::to_string(equality_claimed + 1)), std::string::npos) << message;
     }
 
-    const int inequality_claimed = nlp->declaration().inequality_rows_;
+    const int inequality_claimed = nlp->declaration().inequality_rows;
     declared = nlp->declaration();
-    declared.inequality_rows_ += 1;
+    declared.inequality_rows += 1;
     try {
         declared.validate();
         FAIL() << "a piece-sourced declaration whose inequality rows exceed what its pieces claim "
@@ -1284,16 +1283,16 @@ TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowS
 
 TEST(NlpAggregateEngineDeclaration, StagingABoundChangesNothingUntilItIsMaterialized) {
     auto nlp = agg_pin_build_small();
-    const std::size_t staged = nlp->declaration().variable_bounds_.size();
+    const std::size_t staged = nlp->declaration().variable_bounds.size();
     const auto key = nlp->model_structure_key();
 
     nlp->set_variable_bound(0, -2.0, 2.0);
-    EXPECT_EQ(nlp->declaration().variable_bounds_.size(), staged)
+    EXPECT_EQ(nlp->declaration().variable_bounds.size(), staged)
         << "a staged declaration is not a structural mutation";
     EXPECT_EQ(nlp->model_structure_key(), key);
 
     nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
-    EXPECT_EQ(nlp->declaration().variable_bounds_.size(), staged + 1);
+    EXPECT_EQ(nlp->declaration().variable_bounds.size(), staged + 1);
 }
 
 TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatterIsNot) {
@@ -1320,7 +1319,7 @@ TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatter
 /// The five trace cells cover this dynamically on live solves; this is the
 /// targeted check that names the block when one of them moves.
 TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
-    namespace views = hven::solvers::detail;
+    namespace views = hven::detail;
 
     auto nlp = agg_pin_build_small();
     const int pv = nlp->reduced_primal_vars_count_;
@@ -1336,21 +1335,20 @@ TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
     const RhsScatterView rhs =
         views::compound_rhs_scatter_view(*nlp, val, GX, AGXS_FX, pv, sv, ec, ic);
 
-    EXPECT_EQ(rhs.objective_, &val);
+    EXPECT_EQ(rhs.objective, &val);
     // The four destinations the legacy entry was handed, as it wrote them.
-    EXPECT_EQ(rhs.objective_gradient_.values_, GX.head(pv).data());
-    EXPECT_EQ(rhs.objective_gradient_.size_, pv);
-    EXPECT_EQ(rhs.objective_gradient_.locations_, &nlp->objective_gradient_table());
-    EXPECT_EQ(rhs.constraint_adjoint_gradient_.values_, AGXS_FX.head(pv).data());
-    EXPECT_EQ(rhs.constraint_adjoint_gradient_.size_, pv);
-    EXPECT_EQ(rhs.constraint_adjoint_gradient_.locations_,
-              &nlp->constraint_adjoint_gradient_table());
-    EXPECT_EQ(rhs.equality_residuals_.values_, AGXS_FX.segment(pv + sv, ec).data());
-    EXPECT_EQ(rhs.equality_residuals_.size_, ec);
-    EXPECT_EQ(rhs.equality_residuals_.locations_, &nlp->equality_residual_table());
-    EXPECT_EQ(rhs.inequality_residuals_.values_, AGXS_FX.tail(ic).data());
-    EXPECT_EQ(rhs.inequality_residuals_.size_, ic);
-    EXPECT_EQ(rhs.inequality_residuals_.locations_, &nlp->inequality_residual_table());
+    EXPECT_EQ(rhs.objective_gradient.values, GX.head(pv).data());
+    EXPECT_EQ(rhs.objective_gradient.size, pv);
+    EXPECT_EQ(rhs.objective_gradient.locations, &nlp->objective_gradient_table());
+    EXPECT_EQ(rhs.constraint_adjoint_gradient.values, AGXS_FX.head(pv).data());
+    EXPECT_EQ(rhs.constraint_adjoint_gradient.size, pv);
+    EXPECT_EQ(rhs.constraint_adjoint_gradient.locations, &nlp->constraint_adjoint_gradient_table());
+    EXPECT_EQ(rhs.equality_residuals.values, AGXS_FX.segment(pv + sv, ec).data());
+    EXPECT_EQ(rhs.equality_residuals.size, ec);
+    EXPECT_EQ(rhs.equality_residuals.locations, &nlp->equality_residual_table());
+    EXPECT_EQ(rhs.inequality_residuals.values, AGXS_FX.tail(ic).data());
+    EXPECT_EQ(rhs.inequality_residuals.size, ic);
+    EXPECT_EQ(rhs.inequality_residuals.locations, &nlp->inequality_residual_table());
 
     // The line-search call site passes one vector as both gradient destinations,
     // so the two arenas alias and the two fills accumulate into one block in
@@ -1358,34 +1356,34 @@ TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
     // of them its own storage would break that.
     const RhsScatterView aliased =
         views::compound_rhs_scatter_view(*nlp, val, AGXS_FX, AGXS_FX, pv, sv, ec, ic);
-    EXPECT_EQ(aliased.objective_gradient_.values_, aliased.constraint_adjoint_gradient_.values_);
+    EXPECT_EQ(aliased.objective_gradient.values, aliased.constraint_adjoint_gradient.values);
 
     // The residual-only builder, at both layouts its call sites use: a standalone
     // [eq | iq] vector, and the compound solver layout.
     Eigen::VectorXd cons = Eigen::VectorXd::Zero(ec + ic);
     const RhsScatterView standalone = views::residual_rhs_scatter_view(
         *nlp, val, cons.data(), cons.data() + (cons.size() - ic), ec, ic);
-    EXPECT_EQ(standalone.objective_, &val);
-    EXPECT_EQ(standalone.equality_residuals_.values_, cons.head(ec).data());
-    EXPECT_EQ(standalone.inequality_residuals_.values_, cons.tail(ic).data());
-    EXPECT_TRUE(standalone.objective_gradient_.empty())
+    EXPECT_EQ(standalone.objective, &val);
+    EXPECT_EQ(standalone.equality_residuals.values, cons.head(ec).data());
+    EXPECT_EQ(standalone.inequality_residuals.values, cons.tail(ic).data());
+    EXPECT_TRUE(standalone.objective_gradient.empty())
         << "a request naming no objective gradient must leave that arena empty";
-    EXPECT_TRUE(standalone.constraint_adjoint_gradient_.empty())
+    EXPECT_TRUE(standalone.constraint_adjoint_gradient.empty())
         << "a request naming no adjoint gradient must leave that arena empty";
 
     Eigen::VectorXd RHS2 = Eigen::VectorXd::Zero(nlp->kkt_dim_);
     const RhsScatterView compound = views::residual_rhs_scatter_view(
         *nlp, val, RHS2.data() + pv + sv, RHS2.data() + (RHS2.size() - ic), ec, ic);
-    EXPECT_EQ(compound.equality_residuals_.values_, RHS2.segment(pv + sv, ec).data());
-    EXPECT_EQ(compound.inequality_residuals_.values_, RHS2.tail(ic).data());
+    EXPECT_EQ(compound.equality_residuals.values, RHS2.segment(pv + sv, ec).data());
+    EXPECT_EQ(compound.inequality_residuals.values, RHS2.tail(ic).data());
 
     // The KKT view names the analysed buffer and the engine's own table.
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
     const KktScatterView kkt_view = views::kkt_scatter_view(*nlp, kkt);
-    EXPECT_EQ(kkt_view.values_, kkt.valuePtr());
-    EXPECT_EQ(kkt_view.locations_, &nlp->kkt_location_table());
-    EXPECT_EQ(kkt_view.values_, nlp->bound_kkt_destination());
+    EXPECT_EQ(kkt_view.values, kkt.valuePtr());
+    EXPECT_EQ(kkt_view.locations, &nlp->kkt_location_table());
+    EXPECT_EQ(kkt_view.values, nlp->bound_kkt_destination());
 
     // On the identity path the declaration-space primal block IS the caller's
     // own vector: no copy, and the scratch stays untouched.
@@ -1425,7 +1423,7 @@ TEST(NlpAggregateEngineBinding, SolverCoefficientBlocksAgainstPieceClaims) {
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
 
-    const hven::solvers::KktLocationTable &pieces = nlp->kkt_location_table();
+    const hven::KktLocationTable &pieces = nlp->kkt_location_table();
     ASSERT_GT(pieces.size(), 0) << "no piece claims: the comparison would be vacuous";
     ASSERT_GT(nlp->num_solver_kkt_elems_, 0)
         << "no solver coefficients: the comparison would be vacuous";
@@ -1508,20 +1506,20 @@ TEST(NlpAggregateEngineBinding, RePatterningTheAnalysedMatrixIsCaughtAsAStaleTab
     Eigen::VectorXd fxi = Eigen::VectorXd::Zero(nlp->inequal_cons_);
     double objective = 0.0;
     RhsScatterView rhs;
-    rhs.objective_ = &objective;
-    rhs.objective_gradient_ =
+    rhs.objective = &objective;
+    rhs.objective_gradient =
         RhsArenaView{pgx.data(), static_cast<int>(pgx.size()), &nlp->objective_gradient_table()};
-    rhs.constraint_adjoint_gradient_ = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
-                                                    &nlp->constraint_adjoint_gradient_table()};
-    rhs.equality_residuals_ =
+    rhs.constraint_adjoint_gradient = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
+                                                   &nlp->constraint_adjoint_gradient_table()};
+    rhs.equality_residuals =
         RhsArenaView{fxe.data(), static_cast<int>(fxe.size()), &nlp->equality_residual_table()};
-    rhs.inequality_residuals_ =
+    rhs.inequality_residuals =
         RhsArenaView{fxi.data(), static_cast<int>(fxi.size()), &nlp->inequality_residual_table()};
 
     KktScatterView now{kkt.valuePtr(), static_cast<int>(kkt.nonZeros()),
                        &nlp->kkt_location_table()};
     try {
-        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt, now, rhs);
+        nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFullKkt, now, rhs);
         FAIL() << "a re-patterned destination must be refused, not written through";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -1548,12 +1546,12 @@ TEST(NlpAggregateEngineKey, StagingABoundThenConfiguringATreatmentDoesNotMoveThe
     nlp->set_variable_bound(0, -3.0, 3.0); // staged; nothing has materialized it
     ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 1.0e-8));
 
-    EXPECT_EQ(nlp->model_structure_key().bound_digest_, laid.bound_digest_)
+    EXPECT_EQ(nlp->model_structure_key().bound_digest, laid.bound_digest)
         << "a staged record reached the key without a re-materialization";
 
     // And it does move once the record is actually laid.
     nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
-    EXPECT_NE(nlp->model_structure_key().bound_digest_, laid.bound_digest_);
+    EXPECT_NE(nlp->model_structure_key().bound_digest, laid.bound_digest);
 }
 
 TEST(NlpAggregateEngineEpoch, AnInvalidStagedRecordCannotBreakARenegotiation) {
@@ -1609,7 +1607,7 @@ void agg_pin_check_one_kind(bool inequality) {
     AggPinSolverStorage storage(*nlp);
     storage.reset();
     EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, none, none},
-                                  hven::solvers::kRequestObjectiveAndConstraints, KktScatterView{},
+                                  hven::kRequestObjectiveAndConstraints, KktScatterView{},
                                   storage.rhs_view(*nlp)));
 
     double reference = 0.0;
@@ -1619,8 +1617,8 @@ void agg_pin_check_one_kind(bool inequality) {
     // And through the off-path values entry, which sizes its blocks from the
     // declaration and so meets the same zero-length block.
     double objective = 0.0;
-    Eigen::VectorXd fxe(nlp->declaration().equality_rows_);
-    Eigen::VectorXd fxi(nlp->declaration().inequality_rows_);
+    Eigen::VectorXd fxe(nlp->declaration().equality_rows);
+    Eigen::VectorXd fxi(nlp->declaration().inequality_rows);
     CandidateValues values{objective, fxe, fxi};
     EXPECT_NO_THROW(nlp->evaluate_candidate_values(CandidatePoint{x, none, none}, values));
     EXPECT_DOUBLE_EQ(objective, reference);
@@ -1671,17 +1669,15 @@ TEST(NlpAggregateEngineContract, AnUnmappedRequestIsRefusedAtTheEngineEntry) {
 namespace {
 
 void agg_pin_expect_supported_set_named(const std::string &message) {
-    const std::pair<const char *, hven::solvers::EvalRequest> supported[] = {
-        {"kRequestObjectiveOnly", hven::solvers::kRequestObjectiveOnly},
-        {"kRequestObjectiveAndConstraints", hven::solvers::kRequestObjectiveAndConstraints},
-        {"kRequestObjectiveGradientAndConstraints",
-         hven::solvers::kRequestObjectiveGradientAndConstraints},
-        {"kRequestFirstOrderRhs", hven::solvers::kRequestFirstOrderRhs},
-        {"kRequestConstraintResidualsAndJacobian",
-         hven::solvers::kRequestConstraintResidualsAndJacobian},
-        {"kRequestFirstOrderKkt", hven::solvers::kRequestFirstOrderKkt},
-        {"kRequestConstraintKkt", hven::solvers::kRequestConstraintKkt},
-        {"kRequestFullKkt", hven::solvers::kRequestFullKkt},
+    const std::pair<const char *, hven::EvalRequest> supported[] = {
+        {"kRequestObjectiveOnly", hven::kRequestObjectiveOnly},
+        {"kRequestObjectiveAndConstraints", hven::kRequestObjectiveAndConstraints},
+        {"kRequestObjectiveGradientAndConstraints", hven::kRequestObjectiveGradientAndConstraints},
+        {"kRequestFirstOrderRhs", hven::kRequestFirstOrderRhs},
+        {"kRequestConstraintResidualsAndJacobian", hven::kRequestConstraintResidualsAndJacobian},
+        {"kRequestFirstOrderKkt", hven::kRequestFirstOrderKkt},
+        {"kRequestConstraintKkt", hven::kRequestConstraintKkt},
+        {"kRequestFullKkt", hven::kRequestFullKkt},
     };
     for (const auto &shape : supported) {
         const std::string rendered =
@@ -1704,16 +1700,15 @@ TEST(NlpAggregateEngineContract, ALegalLagrangianHessianRequestIsRefusedByName) 
     const Eigen::VectorXd li = agg_pin_li();
 
     try {
-        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestLagrangianHessian,
+        nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestLagrangianHessian,
                       storage.kkt_view(*nlp), storage.rhs_view(*nlp));
         FAIL() << "a legal-but-unsupported shape must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find("support"), std::string::npos) << message;
-        EXPECT_NE(
-            message.find(fmt::format(
-                "0x{0:x}", static_cast<std::uint32_t>(hven::solvers::kRequestLagrangianHessian))),
-            std::string::npos)
+        EXPECT_NE(message.find(fmt::format(
+                      "0x{0:x}", static_cast<std::uint32_t>(hven::kRequestLagrangianHessian))),
+                  std::string::npos)
             << message;
         // The refusal names the shape it refused, not only its flag mask: a
         // reader should not have to decode hex against the mapping table to
@@ -1736,16 +1731,15 @@ TEST(NlpAggregateEngineContract, ALegalGradientAndJacobiansRequestIsRefusedByNam
     const Eigen::VectorXd none;
 
     try {
-        nlp->assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestGradientAndJacobians,
+        nlp->assemble(CandidatePoint{x, none, none}, hven::kRequestGradientAndJacobians,
                       storage.kkt_view(*nlp), storage.rhs_view(*nlp));
         FAIL() << "a legal-but-unsupported shape must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find("support"), std::string::npos) << message;
-        EXPECT_NE(
-            message.find(fmt::format("0x{0:x}", static_cast<std::uint32_t>(
-                                                    hven::solvers::kRequestGradientAndJacobians))),
-            std::string::npos)
+        EXPECT_NE(message.find(fmt::format(
+                      "0x{0:x}", static_cast<std::uint32_t>(hven::kRequestGradientAndJacobians))),
+                  std::string::npos)
             << message;
         // The refusal names the shape it refused, not only its flag mask: a
         // reader should not have to decode hex against the mapping table to
@@ -1766,15 +1760,14 @@ TEST(NlpAggregateEngineContract, ALegalConstraintJacobiansOnlyRequestIsRefusedBy
     const Eigen::VectorXd none;
 
     try {
-        nlp->assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestConstraintJacobiansOnly,
+        nlp->assemble(CandidatePoint{x, none, none}, hven::kRequestConstraintJacobiansOnly,
                       storage.kkt_view(*nlp), storage.rhs_view(*nlp));
         FAIL() << "a legal-but-unsupported shape must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find("support"), std::string::npos) << message;
-        EXPECT_NE(message.find(fmt::format(
-                      "0x{0:x}",
-                      static_cast<std::uint32_t>(hven::solvers::kRequestConstraintJacobiansOnly))),
+        EXPECT_NE(message.find(fmt::format("0x{0:x}", static_cast<std::uint32_t>(
+                                                          hven::kRequestConstraintJacobiansOnly))),
                   std::string::npos)
             << message;
         // The refusal names the shape it refused, not only its flag mask: a
@@ -1795,7 +1788,7 @@ TEST(NlpAggregateEngineContract, TheFullKktShapeStillRunsAfterTheExplicitArm) {
     const Eigen::VectorXd le = agg_pin_le();
     const Eigen::VectorXd li = agg_pin_li();
 
-    EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt,
+    EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFullKkt,
                                   storage.kkt_view(*nlp), storage.rhs_view(*nlp)));
     EXPECT_NE(storage.objective, 0.0);
     EXPECT_GT(agg_pin_kkt_values(storage.kkt).cwiseAbs().sum(), 0.0);
@@ -1817,7 +1810,7 @@ TEST(NlpAggregateEngineDeclaration, DeclaredRowIdentitiesSurviveATreatmentReconf
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
 
-    const int declared_rows_before = nlp->declaration().equality_rows_;
+    const int declared_rows_before = nlp->declaration().equality_rows;
     const auto epoch_before = nlp->structure_epoch();
     const auto key_before = nlp->model_structure_key();
 
@@ -1834,7 +1827,7 @@ TEST(NlpAggregateEngineDeclaration, DeclaredRowIdentitiesSurviveATreatmentReconf
     EXPECT_NE(nlp->structure_epoch(), epoch_before);
     EXPECT_NE(nlp->model_structure_key(), key_before);
     EXPECT_EQ(nlp->internal_fixed_constraints(), 1);
-    EXPECT_EQ(nlp->declaration().equality_rows_, declared_rows_before + 1);
+    EXPECT_EQ(nlp->declaration().equality_rows, declared_rows_before + 1);
 
     // Invisible in indexing: every claim the transcription's own pieces held
     // still lands on the row it landed on before, and the new row is appended
@@ -1864,12 +1857,11 @@ TEST(NlpAggregateEngineCandidate, TheScorerExclusionSetIsComputableFromTheDeclar
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
 
-    auto exclusion_set = [](const hven::solvers::AssemblyDeclaration &declaration) {
+    auto exclusion_set = [](const hven::AssemblyDeclaration &declaration) {
         std::vector<int> fixed;
-        for (const hven::solvers::VariableBound &bound :
-             declaration.materialize_variable_bounds()) {
-            if (bound.lower_ == bound.upper_) {
-                fixed.push_back(bound.index_);
+        for (const hven::VariableBound &bound : declaration.materialize_variable_bounds()) {
+            if (bound.lower == bound.upper) {
+                fixed.push_back(bound.index);
             }
         }
         return fixed;
@@ -1923,12 +1915,12 @@ TEST(NlpAggregateEngineContract, AShortGradientViewIsRefusedByTheProvider) {
     ASSERT_GT(laid, 1);
 
     RhsScatterView rhs = storage.rhs_view(*nlp);
-    rhs.objective_gradient_ =
+    rhs.objective_gradient =
         RhsArenaView{storage.pgx.data(), laid - 1, &nlp->objective_gradient_table()};
 
     try {
-        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFirstOrderRhs,
-                      KktScatterView{}, rhs);
+        nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFirstOrderRhs, KktScatterView{},
+                      rhs);
         FAIL() << "a gradient view shorter than the laid width must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -1943,14 +1935,14 @@ TEST(NlpAggregateEngineContract, AShortGradientViewIsRefusedByTheProvider) {
     // The same view at the laid width is accepted, so what was refused is the
     // length and not the arena.
     RhsScatterView correct = storage.rhs_view(*nlp);
-    EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFirstOrderRhs,
+    EXPECT_NO_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFirstOrderRhs,
                                   KktScatterView{}, correct));
 
     // And the adjoint-gradient arena is checked the same way.
     RhsScatterView short_adjoint = storage.rhs_view(*nlp);
-    short_adjoint.constraint_adjoint_gradient_ =
+    short_adjoint.constraint_adjoint_gradient =
         RhsArenaView{storage.agx.data(), laid - 1, &nlp->constraint_adjoint_gradient_table()};
-    EXPECT_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFirstOrderRhs,
+    EXPECT_THROW(nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFirstOrderRhs,
                                KktScatterView{}, short_adjoint),
                  std::invalid_argument);
 }
@@ -1978,14 +1970,14 @@ TEST(NlpAggregateEngineContract, ADoublyInvalidCallReportsTheLaidWidthFirst) {
     Eigen::VectorXd fxi = Eigen::VectorXd::Zero(nlp->inequal_cons_);
     double objective = 0.0;
     RhsScatterView rhs;
-    rhs.objective_ = &objective;
-    rhs.objective_gradient_ =
+    rhs.objective = &objective;
+    rhs.objective_gradient =
         RhsArenaView{pgx.data(), static_cast<int>(pgx.size()), &nlp->objective_gradient_table()};
-    rhs.constraint_adjoint_gradient_ = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
-                                                    &nlp->constraint_adjoint_gradient_table()};
-    rhs.equality_residuals_ =
+    rhs.constraint_adjoint_gradient = RhsArenaView{agx.data(), static_cast<int>(agx.size()),
+                                                   &nlp->constraint_adjoint_gradient_table()};
+    rhs.equality_residuals =
         RhsArenaView{fxe.data(), static_cast<int>(fxe.size()), &nlp->equality_residual_table()};
-    rhs.inequality_residuals_ =
+    rhs.inequality_residuals =
         RhsArenaView{fxi.data(), static_cast<int>(fxi.size()), &nlp->inequality_residual_table()};
 
     const Eigen::VectorXd x = agg_pin_x();
@@ -1993,7 +1985,7 @@ TEST(NlpAggregateEngineContract, ADoublyInvalidCallReportsTheLaidWidthFirst) {
     const Eigen::VectorXd li = Eigen::VectorXd::Zero(nlp->inequal_cons_);
 
     try {
-        nlp->assemble(CandidatePoint{x, le, li}, hven::solvers::kRequestFullKkt, kkt, rhs);
+        nlp->assemble(CandidatePoint{x, le, li}, hven::kRequestFullKkt, kkt, rhs);
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         const std::string message(e.what());

@@ -42,7 +42,7 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -813,7 +813,7 @@ class SsnEngine {
     //
     //     lo_eff = max(lower, x0 - Delta),   up_eff = min(upper, x0 + Delta)
     //
-    // -- qp_types.h's SolveOverrides::tr_radius contract for the walk, applied
+    // -- qp_types.h's SolveOverrides::trust_region_radius contract for the walk, applied
     // here unchanged, including "about the SOLVE'S OWN start point x0" and
     // "computed once, at the top of solve()". A row is marked from_tr iff the
     // trust region is STRICTLY tighter than the real bound on that side (a tie
@@ -1108,4 +1108,4 @@ class SsnEngine {
     double deferred_fb_tol_ = 0.0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

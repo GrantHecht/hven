@@ -17,18 +17,18 @@ here, with the disagreement named.
 ## What a consumer may do
 
 **N solver instances, one per thread, each solving its own `Problem`, each with
-`common.threads = 1`.** Both engines: `hven::solvers::IpmSolver` and
-`hven::solvers::SqpSolver`. The results are the results of the same solves run
+`common.threads = 1`.** Both engines: `hven::IpmSolver` and
+`hven::SqpSolver`. The results are the results of the same solves run
 serially — counters and statuses identically, floating-point measures to within
 last-digit drift (see "How identical" below).
 
 ```cpp
 // One instance, one Problem, one thread. Nothing is shared but the Nlp.
-hven::solvers::IpmOptions opts;
+hven::IpmOptions opts;
 opts.common.threads = 1;
-hven::solvers::IpmSolver solver(opts);
-hven::solvers::Problem problem(nlp);           // std::shared_ptr<hven::solvers::Nlp>
-const hven::solvers::IpmResult r = solver.solve(problem, x0);
+hven::IpmSolver solver(opts);
+hven::Problem problem(nlp);           // std::shared_ptr<hven::Nlp>
+const hven::IpmResult r = solver.solve(problem, x0);
 ```
 
 **The `Problem` rules** (`include/hven/model/problem.h`, M8 AP-2 B2):
@@ -52,7 +52,7 @@ const hven::solvers::IpmResult r = solver.solve(problem, x0);
 applies a **thread-local** MKL override at backend-call scope and undoes it on
 every exit, so an instance pinned to one backend thread does not reach out and
 re-point any other MKL user in the process — see "`MklThreadScope`" below. For
-the interior-point engine, `hven::solvers::ipm_worker_options(base)`
+the interior-point engine, `hven::ipm_worker_options(base)`
 (`include/hven/drivers/ipm_options.h`) is the named preset that
 writes exactly `common.threads = 1` and `common.verbosity = Verbosity::kSilent`
 and nothing else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
@@ -120,10 +120,10 @@ pointer are its own.
 
 ### 1. The interior-point engine's evaluation pool — process-global, confirmed
 
-`hven::utils::thread_pool()` is a function-local `static ThreadPool`
+`hven::detail::thread_pool()` is a function-local `static ThreadPool`
 (`src/interior/utils/thread_pool.cpp:29`) and its width is a namespace-scope
 `std::atomic<int> g_num_threads` (`:10`) that **defaults to
-`std::thread::hardware_concurrency()`, not to 1**. `hven::utils::set_num_threads`
+`std::thread::hardware_concurrency()`, not to 1**. `hven::detail::set_num_threads`
 (`:33-68`) resizes the one pool for the whole process, and the model layer says
 so at the setter a consumer actually sees:
 `NonLinearProgram::set_evaluation_threads` routes straight to it and its comment
@@ -165,7 +165,7 @@ gate is what is asserted.
 
 **What the pin does NOT reach, so that nobody reads more into it.** Partitions
 through this adapter are LAYOUT ONLY, as `make_nlp_program`'s own doc comment
-says: all three pieces are `ThreadingFlags::MainThread`, and
+says: all three pieces are `ThreadingFlags::kMainThread`, and
 `analyze_partitioning` forces every MainThread function into the LAST partition,
 which `parallel_sequence` runs inline on the calling thread. So the user's
 callbacks still evaluate on the dispatching thread. What genuinely goes

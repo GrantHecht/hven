@@ -78,16 +78,16 @@ concept VectorShaped =
 
 } // namespace detail
 
-// Which factorization the engine asks the backend for. kLDLT (symmetric
+// Which factorization the engine asks the backend for. kLdlt (symmetric
 // indefinite) is the workhorse and the only kind implemented today;
 // constructing with any other kind throws std::logic_error until its backend
 // path lands.
 //
-// When kLLT and kLU do land, their inertia obligation is already settled:
+// When kLlt and kLu do land, their inertia obligation is already settled:
 // neither reports one, on either backend, so inertia() and every
 // FactorizeOutcome they produce carry State::kUnavailable. Today that rule is
 // unreachable rather than untrue -- no object of those kinds can be built.
-enum class FactorKind { kLDLT, kLLT, kLU };
+enum class FactorKind { kLdlt, kLlt, kLu };
 
 // What a factorization observed about the matrix's inertia, and how much of
 // that observation is real.
@@ -244,8 +244,8 @@ class SymmetricFactor {
     // backend-parameter escape hatch: a need to reach an unlisted backend
     // parameter is a change to this surface, reviewed as such.
     struct Options {
-        // Which factorization to run. Only kLDLT is implemented today.
-        FactorKind kind = FactorKind::kLDLT;
+        // Which factorization to run. Only kLdlt is implemented today.
+        FactorKind kind = FactorKind::kLdlt;
 
         // Threads for this instance's backend calls. 0 leaves the backend's
         // own default alone. A positive value is applied at call scope and
@@ -738,7 +738,7 @@ class SymmetricFactor {
     // non-empty, stores only its upper triangle, and has every diagonal
     // entry present in its pattern (the backend requires the structural
     // diagonal even where the value is zero). Throws
-    // hven::solvers::BackendError if the backend's symbolic phase itself fails; this instance keeps
+    // hven::BackendError if the backend's symbolic phase itself fails; this instance keeps
     // whatever state it had.
     void analyze(const SpMatRM &A);
 
@@ -965,7 +965,7 @@ class Factorization {
     // Multi-RHS and single-RHS solves, with the same shapes, errors, and
     // ambiguity workaround as SymmetricFactor's own -- except that a session a
     // co-owner's failed factorize() left without numerics is refused with
-    // hven::solvers::BackendError: the holder of a handle saw no outcome to
+    // hven::BackendError: the holder of a handle saw no outcome to
     // check, so the refusal is the backend's failure, not the holder's bug.
     SolveInfo solve(ConstMatRef RHS, MatRef X) const;
 

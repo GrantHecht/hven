@@ -29,7 +29,7 @@
 
 #include <Eigen/Core>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -122,16 +122,16 @@ enum class KktStorage { kUpperTriangle, kFull };
 /// arrays, the next free slot, the row base for this piece's kind, the domains
 /// being claimed, and the storage state the assembled matrix will be in.
 ///
-/// A claiming piece writes `rows_[next_free_]` / `cols_[next_free_]` for each
-/// slot it takes and advances `next_free_` by exactly the count it reported it
+/// A claiming piece writes `rows[next_free]` / `cols[next_free]` for each
+/// slot it takes and advances `next_free` by exactly the count it reported it
 /// would take.
 struct KktClaimSpace {
-    Eigen::Ref<Eigen::VectorXi> rows_; ///< claim slot -> assembled row
-    Eigen::Ref<Eigen::VectorXi> cols_; ///< claim slot -> assembled column
-    int next_free_ = 0;                ///< advanced by each claiming piece
-    int constraint_row_offset_ = 0;    ///< row base for this piece's kind
-    ClaimDomainSet domains_;           ///< which domains are being claimed now
-    KktStorage storage_ = KktStorage::kUpperTriangle;
+    Eigen::Ref<Eigen::VectorXi> rows; ///< claim slot -> assembled row
+    Eigen::Ref<Eigen::VectorXi> cols; ///< claim slot -> assembled column
+    int next_free = 0;                ///< advanced by each claiming piece
+    int constraint_row_offset = 0;    ///< row base for this piece's kind
+    ClaimDomainSet domains;           ///< which domains are being claimed now
+    KktStorage storage = KktStorage::kUpperTriangle;
 };
 
 /// @brief The published, read-only result of the KKT claim pass: claim slot ->
@@ -213,13 +213,11 @@ class KktLocationTable {
 ///
 /// Legally empty for a call whose request names no KKT-bearing output.
 struct KktScatterView {
-    double *values_ = nullptr;
-    int size_ = 0;
-    const KktLocationTable *locations_ = nullptr;
+    double *values = nullptr;
+    int size = 0;
+    const KktLocationTable *locations = nullptr;
 
-    bool empty() const noexcept {
-        return values_ == nullptr || size_ == 0 || locations_ == nullptr;
-    }
+    bool empty() const noexcept { return values == nullptr || size == 0 || locations == nullptr; }
 };
 
 /// @brief The four right-hand-side arrays, each its own claim arena with its
@@ -234,9 +232,9 @@ enum class RhsArena {
 
 /// The setup-time claim cursor for one right-hand-side arena.
 struct RhsClaimSpace {
-    Eigen::Ref<Eigen::VectorXi> rows_; ///< claim slot -> row of the assembled array
-    int next_free_ = 0;                ///< advanced by each claiming piece
-    RhsArena arena_ = RhsArena::kObjectiveGradient;
+    Eigen::Ref<Eigen::VectorXi> rows; ///< claim slot -> row of the assembled array
+    int next_free = 0;                ///< advanced by each claiming piece
+    RhsArena arena = RhsArena::kObjectiveGradient;
 };
 
 /// The published, read-only result of one arena's claim pass: claim slot -> row
@@ -289,24 +287,22 @@ class RhsLocationTable {
 /// storage plus the table addressing it. Legally empty for an arena the request
 /// does not name.
 struct RhsArenaView {
-    double *values_ = nullptr;
-    int size_ = 0;
-    const RhsLocationTable *locations_ = nullptr;
+    double *values = nullptr;
+    int size = 0;
+    const RhsLocationTable *locations = nullptr;
 
-    bool empty() const noexcept {
-        return values_ == nullptr || size_ == 0 || locations_ == nullptr;
-    }
+    bool empty() const noexcept { return values == nullptr || size == 0 || locations == nullptr; }
 };
 
 /// @brief The consumer-owned right-hand-side destination a provider fills: the
 ///        four arenas, plus an explicit out slot for the scalar objective
 ///        value (a value is not a vector of claims, so it gets no arena).
 struct RhsScatterView {
-    RhsArenaView objective_gradient_;
-    RhsArenaView constraint_adjoint_gradient_;
-    RhsArenaView equality_residuals_;
-    RhsArenaView inequality_residuals_;
-    double *objective_ = nullptr;
+    RhsArenaView objective_gradient;
+    RhsArenaView constraint_adjoint_gradient;
+    RhsArenaView equality_residuals;
+    RhsArenaView inequality_residuals;
+    double *objective = nullptr;
 };
 
-} // namespace hven::solvers
+} // namespace hven

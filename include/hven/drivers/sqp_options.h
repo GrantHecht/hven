@@ -31,7 +31,7 @@
 #include <hven/linear/dense_policy.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// The globalization strategy interface `SqpAdvancedOptions::make_strategy`
 /// returns. Its definition is internal; a caller that implements one includes
@@ -115,7 +115,7 @@ enum class IpqpMu0Rule { kFixed, kComplementarity };
 /// a field is out of range whether or not this solve will read it.
 struct IpqpOptions {
     /// Iteration budget for the tier's own Mehrotra loop. Empty (the default)
-    /// derives it from the subproblem's size, as `QpOptions::max_iter` does. An
+    /// derives it from the subproblem's size, as `QpOptions::max_iterations` does. An
     /// engaged value must be >= 1.
     std::optional<Index> max_iterations;
 
@@ -146,7 +146,7 @@ struct IpqpOptions {
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
     /// floor thereafter. Default 1e-12, the interior-point engine's own
-    /// `min_barrier`. Must be finite, > 0, and <= `init_mu`.
+    /// `barrier_min`. Must be finite, > 0, and <= `init_mu`.
     double min_mu = 1e-12;
 
     /// The (rho, delta) proximal regularization schedule's INITIAL values:
@@ -317,10 +317,10 @@ enum class SqpHessianMode { kExact, kLbfgsDamped };
 /// `kOff` never scales a variable. `kAlways` installs the rule's column factors
 /// whenever they are not all 1 (a decision carried by a warm start replaces the
 /// rule, SqpWarmStart::column_factors); the row/objective layer stays as
-/// `SqpOptions::enable_scaling` says. `kAuto` installs them only on a BADLY scaled
+/// `SqpOptions::row_scaling` says. `kAuto` installs them only on a BADLY scaled
 /// problem -- factor spread >= `SqpOptions::column_scaling_threshold` -- and then
-/// engages the row/objective layer for that solve too, whatever `enable_scaling`
-/// says (with the one-sided objective rule when `enable_scaling` is off); below the
+/// engages the row/objective layer for that solve too, whatever `row_scaling`
+/// says (with the one-sided objective rule when `row_scaling` is off); below the
 /// threshold the solve is the `kOff` solve plus the rule's one Jacobian probe.
 enum class SqpColumnScaling { kOff, kAlways, kAuto };
 
@@ -358,10 +358,10 @@ struct SqpAdvancedOptions {
     bool enable_soc = true;
 
     /// Adaptive dual regularization A/B lever: when on, schedules
-    /// SolveOverrides::dual_mu down with the KKT residual instead of leaving
-    /// every subproblem at the engine's fixed QpOptions::dual_mu, which closes
+    /// SolveOverrides::dual_regularization down with the KKT residual instead of leaving
+    /// every subproblem at the engine's fixed QpOptions::dual_regularization, which closes
     /// the fixed-mu accuracy ceiling on a badly scaled active set. Default true;
-    /// false leaves SolveOverrides::dual_mu at its sentinel every major.
+    /// false leaves SolveOverrides::dual_regularization at its sentinel every major.
     /// primal_delta is NOT scheduled by this lever or by anything else.
     bool adaptive_mu = true;
 
@@ -514,7 +514,7 @@ struct SqpAdvancedOptions {
     /// of consecutive failures, not per solve; the run reached is
     /// `SqpCounters::qp_failures_in_a_row_peak` and the total routed
     /// `SqpCounters::qp_failures_routed`. The radius floor still applies to a
-    /// routed failure as to a rejection: a shrink below `tr_min` raises a
+    /// routed failure as to a rejection: a shrink below `trust_region_min` raises a
     /// restoration request at any budget. A failed solve that returned an unusable
     /// iterate ends the solve at any budget. Not a curvature source
     /// (docs/counters.md). A caller who must bound the work per solve bounds it
@@ -529,7 +529,7 @@ struct SqpAdvancedOptions {
     /// arithmetic failed. At true, a subproblem the walk answered with `kMaxIter`
     /// and whose returned iterate is usable is re-solved before it counts as a
     /// failure: the same subproblem and radius, warm from the capped solve's
-    /// working set (never its point), with an explicit `QpOptions::max_iter` of
+    /// working set (never its point), with an explicit `QpOptions::max_iterations` of
     /// twice the cap that solve resolved. If the retry converges the major
     /// proceeds; if it hits the doubled cap too, the ordinary failure routing
     /// runs. Scoped to the walk: a tier exit under `kSsn`/`kIpm` is left alone,
@@ -656,7 +656,8 @@ struct SqpAdvancedOptions {
     SqpRestorationCurvature restoration_curvature = SqpRestorationCurvature::kModelThenRegularized;
 
     /// The number of restoration phases one solve may run. Default 10; must be
-    /// >= 1.
+    /// >= 0; 0 refuses restoration: the first request ends the solve
+    /// kNumericalError, as a refused later request does.
     ///
     /// 1 is the once-per-solve rule: a second restoration request is refused and
     /// the solve ends kNumericalError. Above 1 a later request is serviced, as in
@@ -665,7 +666,7 @@ struct SqpAdvancedOptions {
     /// step since the previous resume. Every phase draws on the same
     /// `common.max_iterations` budget, and each resume re-bases the funnel (KLV
     /// Algorithm 2).
-    Index restoration_max_entries = 10;
+    Index max_restoration_entries = 10;
 };
 
 /// @brief The SQP engine's factorization settings.
@@ -686,11 +687,11 @@ struct SqpLinearOptions {
 /// measures are defined at `SqpKkt` (sqp_solver.h). `common.feasibility_tol` is
 /// also the bound-activity tolerance of the stationarity measure.
 ///
-/// TRUST REGION. `tr_init` is the l-infinity radius the first subproblem is
-/// given; the radius then doubles on a strong accepted step up to `tr_max` and
-/// halves on a rejected one. A +inf `tr_init` means no trust region, and its
-/// first shrink resolves to `tr_max`. `tr_min` is the radius floor, and reaching
-/// it is an event rather than a clamp: a shrink that would go below it enters the
+/// TRUST REGION. `trust_region_initial` is the l-infinity radius the first subproblem is
+/// given; the radius then doubles on a strong accepted step up to `trust_region_max` and
+/// halves on a rejected one. A +inf `trust_region_initial` means no trust region, and its
+/// first shrink resolves to `trust_region_max`. `trust_region_min` is the radius floor, and
+/// reaching it is an event rather than a clamp: a shrink that would go below it enters the
 /// restoration phase instead.
 ///
 /// ITERATIONS. `common.max_iterations` bounds subproblems solved, not accepted
@@ -709,27 +710,28 @@ struct SqpOptions {
     /// region" (SolveOverrides' own sentinel), though an indefinite
     /// subproblem is then generally unbounded and the engine reports
     /// kNumericalError rather than a step. See the TRUST REGION note above.
-    double tr_init = 1.0;
+    double trust_region_initial = 1.0;
 
     /// Ceiling the growth rule expands the radius toward, and the value a
-    /// +inf tr_init's FIRST shrink resolves to (inf/2 is inf, so the shrink
+    /// +inf trust_region_initial's FIRST shrink resolves to (inf/2 is inf, so the shrink
     /// rule needs a finite landing value the first time it fires). Default
-    /// 1e10. Must be >= tr_init, unless tr_init is +inf (then exempt).
-    double tr_max = 1e10;
+    /// 1e10. Must be >= trust_region_initial, unless trust_region_initial is +inf (then exempt).
+    double trust_region_max = 1e10;
 
     /// The radius FLOOR. A shrink that would take the radius below this
     /// value does not clamp and re-solve -- it raises a restoration request
     /// instead (KLV Algorithm 4's "alpha < alpha_min" trigger, in its
     /// trust-region form). Default 1e-10, chosen four orders below the
-    /// default common.optimality_tol/common.feasibility_tol resolution and far below tr_init so
-    /// reaching it is evidence rather than noise -- see the TRUST REGION note above for the
-    /// derivation. Must be > 0 and <= both tr_init and tr_max.
-    double tr_min = 1e-10;
+    /// default common.optimality_tol/common.feasibility_tol resolution and far below
+    /// trust_region_initial so reaching it is evidence rather than noise -- see the TRUST REGION
+    /// note above for the derivation. Must be > 0 and <= both trust_region_initial and
+    /// trust_region_max.
+    double trust_region_min = 1e-10;
 
     /// Copied into the driver's single QpEngine at construction, so
     /// per-solve variation must go through SolveOverrides (sqp_solver.h),
     /// never through this struct -- see qp_types.h's PER-INSTANCE, CONST
-    /// note on QpOptions::tr_radius for why. No default beyond QpOptions'
+    /// note on QpOptions::trust_region_radius for why. No default beyond QpOptions'
     /// own.
     QpOptions qp;
 
@@ -761,7 +763,7 @@ struct SqpOptions {
     /// SCOPE: this lever governs ONLY the main loop's own common.max_iterations exhaustion. It
     /// does not change what happens when the restoration phase runs out of the
     /// shared budget mid-restoration, which stays kMaxIter.
-    bool budget_mode = false;
+    bool return_best_on_max_iterations = false;
 
     // --- Problem scaling ---
 
@@ -783,25 +785,25 @@ struct SqpOptions {
     /// needs each row residual over its row factor to be <= common.feasibility_tol, so its
     /// caller-scale `sqp_feasibility` is within common.feasibility_tol
     /// (SqpCounters::scaled_convergence_refusals counts the refusals).
-    bool enable_scaling = false;
+    bool row_scaling = false;
 
     /// The inf-norm the scaled objective gradient and each scaled Jacobian row
     /// are aimed at. Default 100.0, following IPOPT's
     /// `nlp_scaling_max_gradient` in name and value. Must be finite and > 0.
-    /// Read only when the row layer runs: `enable_scaling`, or column_scaling kAuto's
+    /// Read only when the row layer runs: `row_scaling`, or column_scaling kAuto's
     /// engagement of it.
     double scaling_max_gradient = 100.0;
 
     /// Symmetric clamp on every factor the rule produces: each is confined to
-    /// [1/scaling_factor_limit, scaling_factor_limit]. Default 1e12 -- twelve
+    /// [1/scaling_factor_max, scaling_factor_max]. Default 1e12 -- twelve
     /// orders each way. Must be finite and >= 1. Read when the row layer runs
-    /// (`enable_scaling`, or column_scaling kAuto's engagement) and by the column rule.
+    /// (`row_scaling`, or column_scaling kAuto's engagement) and by the column rule.
     ///
     /// It is what bounds the damage from the rule being TWO-SIDED
     /// (problem_scaling.h): a start point that is genuinely near-stationary has
     /// its objective gradient AMPLIFIED, and without a ceiling that amplification
     /// is unbounded.
-    double scaling_factor_limit = 1e12;
+    double scaling_factor_max = 1e12;
 
     /// The column (variable) layer of problem scaling. When it fires the
     /// engine solves the problem in the variables x~ = x / d, d the power-of-two column
@@ -838,7 +840,7 @@ struct SqpOptions {
     ///
     /// Default kAuto. kAuto's engagement of the row
     /// layer uses the one-sided objective rule (problem_scaling.h,
-    /// `amplify_objective`) unless `enable_scaling` is on.
+    /// `amplify_objective`) unless `row_scaling` is on.
     SqpColumnScaling column_scaling = SqpColumnScaling::kAuto;
 
     /// kAuto's gate: the column factors' spread (max d / min d over columns with
@@ -878,7 +880,7 @@ struct SqpOptions {
 
     /// The L-BFGS window length m (pairs kept) under kLbfgsDamped; read in no other
     /// mode. `validate()` refuses a value below 1.
-    Index qn_memory = 10;
+    Index lbfgs_memory = 10;
 
     /// The dense-arm settings (reserved).
     SqpLinearOptions linear;
@@ -905,15 +907,15 @@ struct SqpOptions {
 ///         `common.max_iterations` outside [0, INT_MAX], an engaged
 ///         `max_factorizations` below 0, an engaged `time_limit_seconds` that is
 ///         not finite and positive, an `infinite_bound` <= 0 or NaN, a negative
-///         `common.threads`, an engaged `qp.max_iter` below 1,
+///         `common.threads`, an engaged `qp.max_iterations` below 1,
 ///         an out-of-range enum (every enum field is checked), a non-positive or
-///         NaN `tr_init`, a `tr_max` below `tr_init` (a +inf `tr_init` is exempt),
-///         a `tr_min` that is non-positive or above either end of the range it
-///         floors, an ill-formed scaling or IPQP field (validated at every
-///         `qp_mode`), a negative, NaN or infinite `restoration_proximity`, a
-///         `restoration_resume_reduction` outside [0, 1) or NaN, a `qn_memory`
+///         NaN `trust_region_initial`, a `trust_region_max` below `trust_region_initial` (a +inf
+///         `trust_region_initial` is exempt), a `trust_region_min` that is non-positive or above
+///         either end of the range it floors, an ill-formed scaling or IPQP field (validated at
+///         every `qp_mode`), a negative, NaN or infinite `restoration_proximity`, a
+///         `restoration_resume_reduction` outside [0, 1) or NaN, a `lbfgs_memory`
 ///         below 1, a negative `qn_full_memory_max`, `kLbfgsDamped` with
-///         `restoration_proximity > 0`, a `restoration_max_entries` below 1, a
+///         `restoration_proximity > 0`, a `max_restoration_entries` below 0, a
 ///         `qp_failure_budget` below 1, or a reserved dense-arm value.
 void validate(const SqpOptions &opts);
 
@@ -937,4 +939,4 @@ SqpOptions sqp_preset(std::string_view name);
 /// @param os The stream, borrowed: this call neither flushes nor closes it.
 void dump_options(const SqpOptions &o, std::ostream &os);
 
-} // namespace hven::solvers
+} // namespace hven

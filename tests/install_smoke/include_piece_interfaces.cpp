@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace hven_install_smoke {
 int standalone_include_solver_interface_specs() { return 1; }

@@ -44,8 +44,8 @@
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
-struct Hs071Problem : hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+struct Hs071Problem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {.n = 4, .m = 2, .jacobian_nonzeros = 8, .hessian_nonzeros = 10};
     }
 
@@ -119,35 +119,35 @@ constexpr double kHs071Optimum = 17.0140172;
 /// @param label  Names the arm in the diagnostics this prints.
 /// @return true when the arm converged to the known optimum.
 template <class Solver>
-bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::VectorXd &x0,
+bool run_once(Solver &solver, hven::Problem &problem, const Eigen::VectorXd &x0,
               const char *label) {
     // (1) options() / set_options: read the value in force, edit it, hand it
     //     back. Print level 10 is silent under the convention both engines now
     //     share.
     auto opts = solver.options();
-    opts.common.verbosity = hven::solvers::Verbosity::kSilent;
+    opts.common.verbosity = hven::Verbosity::kSilent;
     solver.set_options(std::move(opts));
 
     // (2) the per-iteration callback, on both engines, with the same event type
     //     and the same continue/stop verdict.
     long long iterations_seen = 0;
-    solver.set_iteration_callback([&iterations_seen](const hven::solvers::IterationEvent &) {
+    solver.set_iteration_callback([&iterations_seen](const hven::IterationEvent &) {
         ++iterations_seen;
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
 
     // (3) attach_trace and attach_ledger, both public, both the same call.
     std::ostringstream trace;
-    hven::solvers::JsonLinesTraceSink sink(trace);
+    hven::JsonLinesTraceSink sink(trace);
     solver.attach_trace(&sink);
-    hven::solvers::Ledger ledger;
+    hven::Ledger ledger;
     solver.attach_ledger(&ledger, std::string(label));
 
     // (4) the COLD solve, and its result by value.
     const auto cold = solver.solve(problem, x0);
-    if (cold.status != hven::solvers::SolveStatus::kOptimal) {
+    if (cold.status != hven::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: %s did not converge (status %s)\n", label,
-                     hven::solvers::to_string(cold.status));
+                     hven::to_string(cold.status));
         return false;
     }
     if (iterations_seen <= 0) {
@@ -161,7 +161,7 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
 
     // (5) warm_start off the result, and the solve that takes it back -- one
     //     currency, one entry, on both engines.
-    const hven::solvers::WarmStart &payload = cold.warm_start;
+    const hven::WarmStart &payload = cold.warm_start;
     if (payload.empty()) {
         std::fprintf(stderr, "install smoke: %s exported no warm start\n", label);
         return false;
@@ -169,7 +169,7 @@ bool run_once(Solver &solver, hven::solvers::Problem &problem, const Eigen::Vect
     solver.clear_iteration_callback();
     solver.attach_trace(nullptr);
     const auto warm = solver.solve(problem, x0, payload);
-    if (warm.status != hven::solvers::SolveStatus::kOptimal) {
+    if (warm.status != hven::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: %s did not converge from its own warm start\n", label);
         return false;
     }
@@ -196,26 +196,26 @@ struct ShiftedSquare {
 };
 struct SumIsOne {
     static constexpr hven::Index kInputs = 2, kOutputs = 1;
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     void value(hven::ConstVecRef v, hven::VecRef out) const { out[0] = v[0] + v[1] - 1.0; }
     void jacobian(hven::ConstVecRef, hven::MatRef J) const { J << 1.0, 1.0; }
 };
 
 bool solve_pieces_problem() {
-    hven::solvers::AssemblyDeclaration d(2);
+    hven::AssemblyDeclaration d(2);
     d.add_objective(ShiftedSquare{1.0}, (Eigen::MatrixXi(1, 1) << 0).finished());
     d.add_objective(ShiftedSquare{2.0}, (Eigen::MatrixXi(1, 1) << 1).finished());
     d.add_equality(SumIsOne{}, (Eigen::MatrixXi(2, 1) << 0, 1).finished(),
                    (Eigen::MatrixXi(1, 1) << 0).finished());
-    hven::solvers::Problem problem(std::move(d));
-    hven::solvers::IpmSolver ipm;
-    const hven::solvers::IpmResult r = ipm.solve(problem, Eigen::VectorXd::Zero(2));
-    if (r.status != hven::solvers::SolveStatus::kOptimal || std::abs(r.x[0]) > 1e-6 ||
+    hven::Problem problem(std::move(d));
+    hven::IpmSolver ipm;
+    const hven::IpmResult r = ipm.solve(problem, Eigen::VectorXd::Zero(2));
+    if (r.status != hven::SolveStatus::kOptimal || std::abs(r.x[0]) > 1e-6 ||
         std::abs(r.x[1] - 1.0) > 1e-6) {
         std::fprintf(stderr, "install smoke: the pieces problem did not reach (0, 1)\n");
         return false;
     }
-    hven::solvers::SqpSolver sqp;
+    hven::SqpSolver sqp;
     try {
         (void)sqp.solve(problem, Eigen::VectorXd::Zero(2));
     } catch (const std::invalid_argument &) {
@@ -273,6 +273,8 @@ int standalone_include_sizing_specs();
 int standalone_include_threading_flags();
 int standalone_include_parsed_io_flags();
 int standalone_include_type_storage();
+int standalone_include_ipm_iterate();
+int standalone_include_hven();
 } // namespace hven_install_smoke
 
 int main() {
@@ -310,9 +312,11 @@ int main() {
                                hven_install_smoke::standalone_include_sizing_specs() +
                                hven_install_smoke::standalone_include_threading_flags() +
                                hven_install_smoke::standalone_include_parsed_io_flags() +
-                               hven_install_smoke::standalone_include_type_storage();
-    if (standalone_tus != 35) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 35\n",
+                               hven_install_smoke::standalone_include_type_storage() +
+                               hven_install_smoke::standalone_include_ipm_iterate() +
+                               hven_install_smoke::standalone_include_hven();
+    if (standalone_tus != 37) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 37\n",
                      standalone_tus);
         return 1;
     }
@@ -322,13 +326,13 @@ int main() {
 
     // ONE PROBLEM, TWO ENGINES. Both solvers take the same Problem; everything
     // after that is `run_once`, written once.
-    hven::solvers::Problem problem(std::make_shared<Hs071Problem>());
-    hven::solvers::IpmSolver ipm;
+    hven::Problem problem(std::make_shared<Hs071Problem>());
+    hven::IpmSolver ipm;
     if (!run_once(ipm, problem, x0, "IpmSolver")) {
         return 1;
     }
 
-    hven::solvers::SqpSolver sqp;
+    hven::SqpSolver sqp;
     if (!run_once(sqp, problem, x0, "SqpSolver")) {
         return 1;
     }

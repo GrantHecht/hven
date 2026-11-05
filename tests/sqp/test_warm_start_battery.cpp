@@ -286,13 +286,13 @@
 #include "hven/detail/warmstart/sqp_warm_access.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::F1BoxQp;
@@ -531,8 +531,7 @@ CellStats run_cold_grid(Model &model, const std::vector<Vec> &grid, bool full_st
         SqpSolver driver(battery_options(StartLevel::kCold, full_step));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(grid[i]);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         ContinuationStep st;
         st.p = grid[i];
@@ -1610,8 +1609,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 
     // Solve 1: an ordinary cold solve. It builds a subproblem, so its
     // hand-off carries a real structure hash.
-    const SqpResult s1 =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult s1 = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.major_iters, 1) << "F1 is a QP: one subproblem is the whole problem";
     ASSERT_NE(SqpWarmAccess::state(s1.native_warm_start).structure_hash, 0u);
@@ -1619,8 +1617,8 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     // Solve 2: re-solve at the SAME p from that hand-off. It ingests warm and
     // converges before building anything.
     const SqpResult s2 =
-        driver.solve(hven::solvers::detail::problem_ref(model),
-                     SqpWarmAccess::state(s1.native_warm_start).x, s1.native_warm_start);
+        driver.solve(hven::detail::problem_ref(model), SqpWarmAccess::state(s1.native_warm_start).x,
+                     s1.native_warm_start);
     ASSERT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(s2.counters.major_iters, 0) << "already at x*(p): the convergence test fires first";
@@ -1640,8 +1638,8 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     // either. (kWarm exactly, not merely >= kWarm: battery_options caps the
     // level there.)
     const SqpResult s3 =
-        driver.solve(hven::solvers::detail::problem_ref(model),
-                     SqpWarmAccess::state(s2.native_warm_start).x, s2.native_warm_start);
+        driver.solve(hven::detail::problem_ref(model), SqpWarmAccess::state(s2.native_warm_start).x,
+                     s2.native_warm_start);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm)
         << "THE PIN: a zero-major solve's hand-off is accepted by the very next solve";
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -1667,7 +1665,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 // crosses at p_act = 0.5 -- while staying below a REAL, MEASURED WALL: at
 // N = 2000, a COLD start (the family's own flat start_point()) into the
 // active window past roughly p = 0.548 fails kNumericalError under the
-// library's THEN-DEFAULT QpOptions::max_iter = 500 (the last major's QP subproblem
+// library's THEN-DEFAULT QpOptions::max_iterations = 500 (the last major's QP subproblem
 // never gets under tolerance in 500 minors and the driver reports
 // kNumericalError rather than absorbing it with another major) -- measured
 // at p = 0.548..0.9 in steps of 0.005-0.05, EVERY one of which failed except
@@ -1676,7 +1674,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
 // with F7CollocationChain::junction_margin(p)).
 //
 // MARKED CORRECTION, PHASE-6 TASK 4 (M6): that 500 is no longer the library
-// default -- QpOptions::max_iter now defaults to the size-derived sentinel
+// default -- QpOptions::max_iterations now defaults to the size-derived sentinel
 // (qp_types.h), which at N = 2000 resolves to max(500, 5 * (10000 + 2000 + 4000))
 // = 80000. The WALL described above was therefore a property of the old fixed
 // cap, and this cell's own range choice (p: 0.3 -> 0.54) is more conservative
@@ -1992,7 +1990,7 @@ const FailureEconomics &f7_failure_economics_cell() {
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). `cap500` is NEW: it restores,
         // EXPLICITLY, the QP minor cap that was the library default when this
         // cell was pinned, through the escape hatch M6 was required to keep
-        // (qp_types.h's QpOptions::max_iter precedence rule).
+        // (qp_types.h's QpOptions::max_iterations precedence rule).
         //
         // WHY, and it is a RESULT rather than a maintenance chore. Under M6's
         // size-derived default this cell (N = 700 nodes, base = n + mi +
@@ -2020,7 +2018,7 @@ const FailureEconomics &f7_failure_economics_cell() {
         // a third arm would not earn its place beside the smaller version of
         // the same measurement in tests/test_continuation.cpp's arms D and E.
         const auto cap500 = [](SqpOptions o) {
-            o.qp.max_iter = 500;
+            o.qp.max_iterations = 500;
             return o;
         };
         {
@@ -2185,10 +2183,10 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     F7CollocationChain ref_model = make();
     SqpSolver ref_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
     const SqpResult ref =
-        ref_driver.solve(hven::solvers::detail::problem_ref(ref_model), ref_model.start_point());
+        ref_driver.solve(hven::detail::problem_ref(ref_model), ref_model.start_point());
     ASSERT_EQ(ref.status, SolveStatus::kOptimal);
     ASSERT_EQ(ref_model.n(), 500) << "the bridge's sweep_n100 shape";
-    ASSERT_GT(hven::solvers::detail::engine_rows(ref).lambda_i.maxCoeff(), 0.0)
+    ASSERT_GT(hven::detail::engine_rows(ref).lambda_i.maxCoeff(), 0.0)
         << "F7's path window is active at p = 0.9";
     const Index nx = ref_model.n();
 
@@ -2217,7 +2215,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     // number below is unchanged -- the repaired default reads the same 92-row
     // window this fixture always asserted, which is the byte-identity claim
     // the repair was required to make.
-    const IpCrossoverOptions ip_opts;
+    const IpmCrossoverOptions ip_opts;
 
     // MEASURED (MKL Pardiso, clang++ Release, MKL_NUM_THREADS=1). Four IP
     // displacements, three decades apart, so the benefit is not an artifact of
@@ -2273,8 +2271,8 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         const Vec ci_at_ip = ref_model.eval_ci(x_ip);
         Vec slack_i = ci_at_ip;
         for (Index j = 0; j < ref_model.mi(); ++j) {
-            if (hven::solvers::detail::engine_rows(ref).lambda_i(j) > 0.0) {
-                slack_i(j) = -kMu / hven::solvers::detail::engine_rows(ref).lambda_i(j);
+            if (hven::detail::engine_rows(ref).lambda_i(j) > 0.0) {
+                slack_i(j) = -kMu / hven::detail::engine_rows(ref).lambda_i(j);
             }
         }
         // F7's control box is INACTIVE at the optimum by construction
@@ -2284,10 +2282,9 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         const Vec z_lower = Vec::Zero(nx);
         const Vec z_upper = Vec::Zero(nx);
 
-        const hven::solvers::detail::SqpWarmState crossover =
-            from_interior_point(x_ip, hven::solvers::detail::engine_rows(ref).lambda_e,
-                                hven::solvers::detail::engine_rows(ref).lambda_i, slack_i, z_lower,
-                                z_upper, ref_model.lower(), ref_model.upper(), ip_opts);
+        const hven::detail::SqpWarmState crossover = from_interior_point(
+            x_ip, hven::detail::engine_rows(ref).lambda_e, hven::detail::engine_rows(ref).lambda_i,
+            slack_i, z_lower, z_upper, ref_model.lower(), ref_model.upper(), ip_opts);
         ASSERT_TRUE(crossover.valid);
         ASSERT_EQ(crossover.structure_hash, 0u)
             << "no model was hashed -- that is the whole premise";
@@ -2299,14 +2296,13 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         F7CollocationChain cold_model = make();
         SqpSolver cold_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
         const SqpResult cold =
-            cold_driver.solve(hven::solvers::detail::problem_ref(cold_model), crossover.x);
+            cold_driver.solve(hven::detail::problem_ref(cold_model), crossover.x);
 
         // ---- ARM B (kSeeded): the whole object. ----
         F7CollocationChain seeded_model = make();
         SqpSolver seeded_driver(battery_options(StartLevel::kWarm, /*full_step=*/false));
-        const SqpResult seeded =
-            seeded_driver.solve(hven::solvers::detail::problem_ref(seeded_model), crossover.x,
-                                SqpWarmAccess::wrap(crossover));
+        const SqpResult seeded = seeded_driver.solve(hven::detail::problem_ref(seeded_model),
+                                                     crossover.x, SqpWarmAccess::wrap(crossover));
 
         table += fmt::format(
             "  {:8g}  cold     {:6}  {:6}  {:6}  {:6}\n"
@@ -2354,6 +2350,6 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

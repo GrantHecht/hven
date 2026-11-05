@@ -40,7 +40,7 @@
 #include "hven/warmstart/warm_start_data.h"
 
 namespace {
-using hven::solvers::detail::WarmStartAccess;
+using hven::detail::WarmStartAccess;
 } // namespace
 
 namespace hven_interior_tests {
@@ -66,16 +66,16 @@ struct MultiplierSeedHook {
 /// PHASE SEQUENCE a fixture runs is written on the engine's options rather than
 /// chosen by which entry point a caller reaches for.
 struct IpmCase {
-    std::shared_ptr<hven::solvers::NonLinearProgram> program;
-    std::unique_ptr<hven::solvers::IpmSolver> engine;
+    std::shared_ptr<hven::NonLinearProgram> program;
+    std::unique_ptr<hven::IpmSolver> engine;
 };
 
 /// @brief A declared problem, the model it converts to, and the program the
 ///        interior-point engine consumes.
 struct DeclaredRoute {
-    std::shared_ptr<hven::solvers::Nlp> problem;
-    std::shared_ptr<hven::solvers::NlpProblemModel> model;
-    std::shared_ptr<hven::solvers::NonLinearProgram> program;
+    std::shared_ptr<hven::Nlp> problem;
+    std::shared_ptr<hven::NlpProblemModel> model;
+    std::shared_ptr<hven::NonLinearProgram> program;
 };
 
 /// @brief Walks the transcription chain, keeping the model.
@@ -83,14 +83,12 @@ struct DeclaredRoute {
 /// @param num_partitions Requested partition count; LAYOUT ONLY and clamped
 ///        (see make_nlp_program). Read the adopted count off
 ///        `route.program->num_partitions_`.
-inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::Nlp> problem,
-                                int num_partitions = 1) {
+inline DeclaredRoute transcribe(std::shared_ptr<hven::Nlp> problem, int num_partitions = 1) {
     DeclaredRoute route;
     route.problem = std::move(problem);
-    route.model = std::make_shared<hven::solvers::NlpProblemModel>(route.problem);
-    route.program = hven::solvers::make_nlp_program(
-        std::make_shared<hven::solvers::NLPAdapterCore>(route.model, route.problem->name()),
-        num_partitions);
+    route.model = std::make_shared<hven::NlpProblemModel>(route.problem);
+    route.program = hven::make_nlp_program(
+        std::make_shared<hven::NlpAdapterCore>(route.model, route.problem->name()), num_partitions);
     return route;
 }
 
@@ -102,8 +100,7 @@ inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::Nlp> problem,
 /// declaration key -- which is what the payload route requires.
 ///
 /// @throws std::invalid_argument if the hook returns a non-finite value.
-inline std::optional<hven::solvers::WarmStart>
-starting_multiplier_seed(const DeclaredRoute &route) {
+inline std::optional<hven::WarmStart> starting_multiplier_seed(const DeclaredRoute &route) {
     const auto *hook = dynamic_cast<const MultiplierSeedHook *>(route.problem.get());
     Eigen::VectorXd lam = Eigen::VectorXd::Zero(route.model->num_declared_rows());
     if (hook == nullptr || !hook->starting_multipliers(lam)) {
@@ -115,22 +112,20 @@ starting_multiplier_seed(const DeclaredRoute &route) {
     }
     Eigen::VectorXd eqm, iqm;
     route.model->split_user_multipliers(lam, eqm, iqm);
-    hven::solvers::WarmStart seed;
+    hven::WarmStart seed;
     WarmStartAccess::eq(seed) = std::move(eqm);
     WarmStartAccess::iq(seed) = std::move(iqm);
-    WarmStartAccess::key(seed) = hven::solvers::declaration_key(route.program->declaration());
+    WarmStartAccess::key(seed) = hven::declaration_key(route.program->declaration());
     return seed;
 }
 
 /// @brief One solve through the route, applying the problem's own seed when it
 ///        asks for one -- the two lines NLPSolver::run() ran.
-inline hven::solvers::IpmResult solve_declared(hven::solvers::IpmSolver &engine,
-                                               const DeclaredRoute &route,
-                                               const Eigen::VectorXd &x0) {
-    const std::optional<hven::solvers::WarmStart> seed = starting_multiplier_seed(route);
-    return seed.has_value()
-               ? engine.solve(hven::solvers::detail::problem_ref(*route.program), x0, *seed)
-               : engine.solve(hven::solvers::detail::problem_ref(*route.program), x0);
+inline hven::IpmResult solve_declared(hven::IpmSolver &engine, const DeclaredRoute &route,
+                                      const Eigen::VectorXd &x0) {
+    const std::optional<hven::WarmStart> seed = starting_multiplier_seed(route);
+    return seed.has_value() ? engine.solve(hven::detail::problem_ref(*route.program), x0, *seed)
+                            : engine.solve(hven::detail::problem_ref(*route.program), x0);
 }
 
 } // namespace hven_interior_tests

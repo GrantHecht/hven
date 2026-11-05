@@ -33,7 +33,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 // INDEFINITE WITH AN EQUALITY ROW:
 //   min 1/2(x0^2 - x1^2 - 2 x2^2) + 0.5 x0 - 0.5 x2
@@ -218,4 +218,4 @@ inline QpProblem equality_null_space_indefinite_qp(double lam) {
     return qp;
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

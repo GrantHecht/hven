@@ -13,7 +13,7 @@
 
 #include "hven/warmstart/warm_start_data.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 struct WarmStartAccess {
     static Vec &primal(WarmStart &w) noexcept { return w.primal_; }
@@ -32,4 +32,4 @@ struct WarmStartAccess {
     }
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

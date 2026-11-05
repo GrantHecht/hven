@@ -5,7 +5,7 @@
 
 // How a piece type enters hven's two piece handles.
 //
-// ConstraintInterface and ObjectiveInterface (model/solver_interface_specs.h)
+// ConstraintInterface and ObjectiveInterface (model/piece_interfaces.h)
 // are the two type-erased handles the interior-point layout evaluates pieces
 // through. They take a piece by converting constructor, and this header decides
 // WHAT gets stored inside the handle for a given type T.
@@ -65,7 +65,7 @@
 // guard the work they would otherwise do with the same condition they assert
 // on -- so no raw instantiation failure is reached behind a failed check.
 
-namespace hven::solvers {
+namespace hven {
 
 struct ConstraintInterface;
 struct ObjectiveInterface;
@@ -90,10 +90,10 @@ concept ObjectivePackHook =
 /// what the default policy uses for a type without a hook, and it may be
 /// inherited by an explicit specialization:
 ///
-///     template <> struct hven::solvers::SolverInterfaceAdapter<MyFunction>
-///         : hven::solvers::DirectFunctionModel<MyFunction> {};
+///     template <> struct hven::SolverInterfaceAdapter<MyFunction>
+///         : hven::DirectFunctionModel<MyFunction> {};
 ///
-/// The bodies are defined in model/solver_interface_specs.h, after the handle
+/// The bodies are defined in model/piece_interfaces.h, after the handle
 /// definitions they emplace into.
 template <class T> struct DirectFunctionModel {
     static constexpr bool registered = true;
@@ -116,7 +116,7 @@ template <class T> struct SolverInterfaceAdapter {
         static_assert(
             !requires { T::kInputs; },
             "hven local block: a local-block piece reached the default adapter; "
-            "include hven/model/solver_interface_specs.h (or hven/model/pieces.h) "
+            "include hven/model/piece_interfaces.h (or hven/model/pieces.h) "
             "before naming SolverInterfaceAdapter for it");
         if constexpr (ConstraintPackHook<T>) {
             t.pack_into_constraint_interface(ci);
@@ -129,7 +129,7 @@ template <class T> struct SolverInterfaceAdapter {
         static_assert(
             !requires { T::kInputs; },
             "hven local block: a local-block piece reached the default adapter; "
-            "include hven/model/solver_interface_specs.h (or hven/model/pieces.h) "
+            "include hven/model/piece_interfaces.h (or hven/model/pieces.h) "
             "before naming SolverInterfaceAdapter for it");
         if constexpr (ObjectivePackHook<T>) {
             t.pack_into_objective_interface(oi);
@@ -154,8 +154,8 @@ template <class T> struct SolverInterfaceAdapter {
 /// route still answers with an authored message instead of a raw lookup
 /// failure:
 ///
-///     template <> struct hven::solvers::SolverInterfaceAdapter<MyObjective>
-///         : hven::solvers::ConstraintUnsupported<MyObjective> {
+///     template <> struct hven::SolverInterfaceAdapter<MyObjective>
+///         : hven::ConstraintUnsupported<MyObjective> {
 ///         static void install_objective(const MyObjective &t, ObjectiveInterface &oi) { ... }
 ///     };
 template <class T> struct ConstraintUnsupported {
@@ -164,18 +164,18 @@ template <class T> struct ConstraintUnsupported {
     static void install_constraint(const T &, ConstraintInterface &) {
         static_assert(adapter_dependent_false_v<T>,
                       "hven constraint adapter: this type's SolverInterfaceAdapter inherits "
-                      "hven::solvers::ConstraintUnsupported, which declares it an OBJECTIVE "
+                      "hven::ConstraintUnsupported, which declares it an OBJECTIVE "
                       "only. It cannot enter ConstraintInterface. If that is wrong, give its "
                       "adapter an install_constraint (or inherit "
-                      "hven::solvers::DirectFunctionModel<T> to store it directly).");
+                      "hven::DirectFunctionModel<T> to store it directly).");
     }
 };
 
 /// Ready-made half-policy: this type cannot be an objective. Inherit it in a
 /// specialization that defines install_constraint only:
 ///
-///     template <> struct hven::solvers::SolverInterfaceAdapter<MyConstraint>
-///         : hven::solvers::ObjectiveUnsupported<MyConstraint> {
+///     template <> struct hven::SolverInterfaceAdapter<MyConstraint>
+///         : hven::ObjectiveUnsupported<MyConstraint> {
 ///         static void install_constraint(const MyConstraint &t, ConstraintInterface &ci) { ... }
 ///     };
 template <class T> struct ObjectiveUnsupported {
@@ -184,11 +184,11 @@ template <class T> struct ObjectiveUnsupported {
     static void install_objective(const T &, ObjectiveInterface &) {
         static_assert(adapter_dependent_false_v<T>,
                       "hven objective adapter: this type's SolverInterfaceAdapter inherits "
-                      "hven::solvers::ObjectiveUnsupported, which declares it a CONSTRAINT "
+                      "hven::ObjectiveUnsupported, which declares it a CONSTRAINT "
                       "only. It cannot enter ObjectiveInterface. If that is wrong, give its "
                       "adapter an install_objective and give the type the scalar objective "
                       "surface (objective / objective_gradient / objective_gradient_hessian).");
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

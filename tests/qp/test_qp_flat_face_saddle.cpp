@@ -20,13 +20,13 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
-using RideRead = hven::solvers::detail::testing::QpWalkRideOutcome;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Record = hven::detail::testing::QpWalkMinorRecord;
+using RideRead = hven::detail::testing::QpWalkRideOutcome;
 
 namespace {
 
@@ -39,9 +39,9 @@ const char *alg_name(WorkingSetLinearAlgebra alg) {
 
 QpOptions nc2_opts(WorkingSetLinearAlgebra alg, bool independent = true) {
     QpOptions o;
-    o.max_iter = 60;
+    o.max_iterations = 60;
     o.independent_working_set = independent;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return o;
 }
 
@@ -258,7 +258,7 @@ TEST(QpNc2FlatFace, TheNoiseLevelMultiplierIsWithinTheScaledKktTestAndIsNotDropp
             // other vertex is (0, 1, 0), whose objective differs by exactly z1; the
             // KKT-point test's threshold on this LP is opt_tol * ||g||inf = 1e-05.
             const QpOptions o = nc2_opts(alg);
-            EXPECT_LE(std::abs(z1), o.opt_tol * qp.g.lpNorm<Eigen::Infinity>())
+            EXPECT_LE(std::abs(z1), o.optimality_tol * qp.g.lpNorm<Eigen::Infinity>())
                 << "this fixture's multiplier is outside the scaled KKT test; it no longer "
                    "measures what the re-premise says it does";
         }
@@ -308,7 +308,7 @@ void expect_cs(const char *file, WorkingSetLinearAlgebra alg, const char *premis
     const QpDump d = r2_dump(file);
     EXPECT_NE(d.result.find(premise), std::string::npos);
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     Obs::reset();
     Obs::active = true;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
@@ -521,7 +521,7 @@ ObjTally obj_tally(const std::vector<Record> &records) {
 void expect_no_ascent_on(const char *file) {
     const QpDump d = r2_dump(file);
     QpOptions o = d.opts;
-    o.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    o.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
     Obs::reset();
     Obs::active = true;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
@@ -597,7 +597,7 @@ TEST(QpE4ProximalEqp, TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum) {
         SCOPED_TRACE(alg_name(alg));
         const QpDump d = r2_dump("R2_Cs_STEENBRB_qp1.txt");
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         const double f = hven::test_support::qp_dump_objective(d, s.x);
         constexpr double kFClarabel = -1378.22319848;

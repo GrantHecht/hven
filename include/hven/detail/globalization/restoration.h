@@ -14,7 +14,7 @@
 // include (ipm_solver.h does not include this directory back).
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// Near-feasible entry-guard factor, adapted from the unscaled
 /// 1e-1 * constr_viol_tol member of Ipopt's scaled/unscaled entry-guard pair —
@@ -94,7 +94,7 @@ class RestorationStrategy {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
         }
-        if (entries_ >= ctx.opts_.advanced.restoration_max_entries) {
+        if (entries_ >= ctx.opts_.advanced.max_restoration_entries) {
             return false;
         }
         return true;
@@ -340,4 +340,4 @@ class RestorationStrategy {
     int iterations_in_mode_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

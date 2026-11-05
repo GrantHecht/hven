@@ -14,7 +14,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // to_string(SqpStatus) stood here until M6 W5 T8.4, returning the CAPITALISED
 // display names Optimal / MaxIter / Infeasible / NumericalError /
@@ -263,4 +263,4 @@ const char *to_string(StartLevel level) {
     return "Unknown";
 }
 
-} // namespace hven::solvers
+} // namespace hven

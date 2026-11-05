@@ -16,7 +16,7 @@
 #include "hven/model/claim_space.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -36,10 +36,9 @@ int to_declared_count(Index value, const char *what) {
 void claim_matrix(const SpMatRM &matrix, KktClaimSpace &space) {
     for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); ++outer) {
         for (SpMatRM::InnerIterator it(matrix, outer); it; ++it) {
-            space.rows_[space.next_free_] =
-                space.constraint_row_offset_ + static_cast<int>(it.row());
-            space.cols_[space.next_free_] = static_cast<int>(it.col());
-            space.next_free_++;
+            space.rows[space.next_free] = space.constraint_row_offset + static_cast<int>(it.row());
+            space.cols[space.next_free] = static_cast<int>(it.col());
+            space.next_free++;
         }
     }
 }
@@ -68,8 +67,8 @@ void require_upper_triangle(const SpMatRM &hessian) {
 /// Claims one slot per row of an arena, in row order.
 void claim_arena_rows(RhsClaimSpace &space, int rows) {
     for (int row = 0; row < rows; ++row) {
-        space.rows_[space.next_free_] = row;
-        space.next_free_++;
+        space.rows[space.next_free] = row;
+        space.next_free++;
     }
 }
 
@@ -88,27 +87,27 @@ void require_arena(const RhsArenaView &view, int claims, const char *arena) {
     if (claims == 0) {
         return;
     }
-    if (view.size_ != claims) {
+    if (view.size != claims) {
         throw std::invalid_argument(
             fmt::format("assemble: the {0} arena's view is {1} rows, but this provider laid its "
                         "{0} over {2} rows",
-                        arena, view.size_, claims));
+                        arena, view.size, claims));
     }
-    if (view.locations_->size() != claims) {
+    if (view.locations->size() != claims) {
         throw std::invalid_argument(
             fmt::format("assemble: the {0} arena's location table has {1} claim slots, but this "
                         "provider laid {2} claims into that arena",
-                        arena, view.locations_->size(), claims));
+                        arena, view.locations->size(), claims));
     }
 }
 
 /// Rejects a KKT view whose table does not cover this provider's claim stream.
 void require_kkt_table(const KktScatterView &kkt, int claims) {
-    if (kkt.locations_->size() != claims) {
+    if (kkt.locations->size() != claims) {
         throw std::invalid_argument(
             fmt::format("assemble: the KKT location table has {0} claim slots, but this provider "
                         "laid {1} claims",
-                        kkt.locations_->size(), claims));
+                        kkt.locations->size(), claims));
     }
 }
 
@@ -180,7 +179,7 @@ void require_block_size(Eigen::Index actual, int declared, const char *what) {
 void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offset,
                     const Eigen::VectorXi &claim_rows, const Eigen::VectorXi &claim_cols,
                     const char *callback, const KktScatterView &kkt) {
-    int slot = block.start_;
+    int slot = block.start;
     for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); ++outer) {
         for (SpMatRM::InnerIterator it(matrix, outer); it; ++it, ++slot) {
             const int claimed_row = claim_rows[slot] - row_offset;
@@ -195,7 +194,7 @@ void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offs
                     "coordinates, in the same order, as the claim pass recorded",
                     callback, it.row(), it.col(), slot, claimed_row, claimed_col));
             }
-            kkt.values_[kkt.locations_->location(slot)] += it.value();
+            kkt.values[kkt.locations->location(slot)] += it.value();
         }
     }
 }
@@ -203,10 +202,10 @@ void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offs
 /// Sums a vector into an arena through its published table. Claim slot k carries
 /// row k, so the value for a slot is the vector's own entry at that index.
 void scatter_arena(const RhsArenaView &view, const Vec &values) {
-    for (int slot = 0; slot < view.locations_->size(); ++slot) {
-        const int row = view.locations_->location(slot);
+    for (int slot = 0; slot < view.locations->size(); ++slot) {
+        const int row = view.locations->location(slot);
         if (row >= 0) {
-            view.values_[row] += values[slot];
+            view.values[row] += values[slot];
         }
     }
 }
@@ -249,10 +248,10 @@ NlpModelAssembly::NlpModelAssembly(std::shared_ptr<const NlpModel> model, double
 NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) const {
     LaidStructures laid;
 
-    laid.declaration_.primal_vars_ = primal_vars_;
-    laid.declaration_.equality_rows_ = equality_rows_;
-    laid.declaration_.inequality_rows_ = inequality_rows_;
-    laid.declaration_.partition_count_ = partition_count;
+    laid.declaration_.primal_vars = primal_vars_;
+    laid.declaration_.equality_rows = equality_rows_;
+    laid.declaration_.inequality_rows = inequality_rows_;
+    laid.declaration_.partition_count = partition_count;
 
     // The model's bounds, one record per variable, read through the
     // absent-bound rule (absent_bound.h, CommonOptions::infinite_bound): a bound
@@ -264,7 +263,7 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
     const Vec &upper = model_->upper();
     require_block_size(lower.size(), primal_vars_, "lower()");
     require_block_size(upper.size(), primal_vars_, "upper()");
-    laid.declaration_.variable_bounds_.reserve(static_cast<std::size_t>(primal_vars_));
+    laid.declaration_.variable_bounds.reserve(static_cast<std::size_t>(primal_vars_));
     for (int index = 0; index < primal_vars_; ++index) {
         const double lo = detail::normalize_bound(lower[index], infinite_bound_);
         const double up = detail::normalize_bound(upper[index], infinite_bound_);
@@ -279,7 +278,7 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
                 lower[index], upper[index],
                 detail::absent_bound_clause(lower[index], upper[index], infinite_bound_)));
         }
-        laid.declaration_.variable_bounds_.push_back(VariableBound{index, lo, up});
+        laid.declaration_.variable_bounds.push_back(VariableBound{index, lo, up});
     }
 
     // Validated at the contract's own boundary before anything is laid over it,
@@ -338,20 +337,20 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
     KktClaimSpace space{laid.kkt_claim_rows_, laid.kkt_claim_cols_,      0, 0,
                         ClaimDomainSet(),     KktStorage::kUpperTriangle};
 
-    space.domains_ = ClaimDomain::kHessian;
-    space.constraint_row_offset_ = 0;
-    laid.hessian_ = ClaimBlock{space.next_free_, hessian_claims};
+    space.domains = ClaimDomain::kHessian;
+    space.constraint_row_offset = 0;
+    laid.hessian_ = ClaimBlock{space.next_free, hessian_claims};
     require_upper_triangle(hessian);
     claim_matrix(hessian, space);
 
-    space.domains_ = ClaimDomain::kEqualityJacobian;
-    space.constraint_row_offset_ = primal_vars_;
-    laid.equality_jacobian_ = ClaimBlock{space.next_free_, equality_claims};
+    space.domains = ClaimDomain::kEqualityJacobian;
+    space.constraint_row_offset = primal_vars_;
+    laid.equality_jacobian_ = ClaimBlock{space.next_free, equality_claims};
     claim_matrix(equality_jacobian, space);
 
-    space.domains_ = ClaimDomain::kInequalityJacobian;
-    space.constraint_row_offset_ = primal_vars_ + equality_rows_;
-    laid.inequality_jacobian_ = ClaimBlock{space.next_free_, inequality_claims};
+    space.domains = ClaimDomain::kInequalityJacobian;
+    space.constraint_row_offset = primal_vars_ + equality_rows_;
+    laid.inequality_jacobian_ = ClaimBlock{space.next_free, inequality_claims};
     claim_matrix(inequality_jacobian, space);
 
     // The four right-hand-side arenas. One serial piece claims each arena whole,
@@ -377,10 +376,10 @@ NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) cons
     // Each conjunct through its one public builder. materialize_variable_bounds
     // runs inside the bound digest, so a bound history that does not describe a
     // problem fails here, before anything is committed.
-    laid.key_.claim_digest_ =
+    laid.key_.claim_digest =
         claim_stream_digest(laid.declaration_, laid.kkt_claim_rows_, laid.kkt_claim_cols_);
-    laid.key_.partition_count_ = partition_count;
-    laid.key_.bound_digest_ = materialized_bound_digest(laid.declaration_);
+    laid.key_.partition_count = partition_count;
+    laid.key_.bound_digest = materialized_bound_digest(laid.declaration_);
 
     return laid;
 }
@@ -416,10 +415,10 @@ void NlpModelAssembly::set_evaluation_threads(int n) {
 }
 
 const Vec &NlpModelAssembly::stage_point(const CandidatePoint &point, bool with_multipliers) {
-    x_scratch_ = point.x_;
+    x_scratch_ = point.x;
     if (with_multipliers) {
-        equality_multiplier_scratch_ = point.equality_multipliers_;
-        inequality_multiplier_scratch_ = point.inequality_multipliers_;
+        equality_multiplier_scratch_ = point.equality_multipliers;
+        inequality_multiplier_scratch_ = point.inequality_multipliers;
     }
     return x_scratch_;
 }
@@ -462,14 +461,14 @@ void NlpModelAssembly::evaluate_jacobians(const Vec &x) {
         model_->eval_jac_e_in_place(x, equality_jacobian_scratch_);
         require_matrix_dimensions(equality_jacobian_scratch_, equality_rows_, primal_vars_,
                                   "eval_jac_e");
-        require_claimed_nonzeros(equality_jacobian_scratch_, laid_.equality_jacobian_.count_,
+        require_claimed_nonzeros(equality_jacobian_scratch_, laid_.equality_jacobian_.count,
                                  "eval_jac_e");
     }
     if (inequality_rows_ > 0) {
         model_->eval_jac_i_in_place(x, inequality_jacobian_scratch_);
         require_matrix_dimensions(inequality_jacobian_scratch_, inequality_rows_, primal_vars_,
                                   "eval_jac_i");
-        require_claimed_nonzeros(inequality_jacobian_scratch_, laid_.inequality_jacobian_.count_,
+        require_claimed_nonzeros(inequality_jacobian_scratch_, laid_.inequality_jacobian_.count,
                                  "eval_jac_i");
     }
 }
@@ -504,22 +503,21 @@ void NlpModelAssembly::assemble_impl(const CandidatePoint &point, EvalRequest re
     // contract knows a length, that length; what it cannot see is whether a
     // table describes this provider's claims.
     if (want_gradient) {
-        require_arena(rhs.objective_gradient_, primal_vars_, "objective gradient");
+        require_arena(rhs.objective_gradient, primal_vars_, "objective gradient");
     }
     if (want_adjoint_gradient) {
-        require_arena(rhs.constraint_adjoint_gradient_, primal_vars_,
-                      "constraint adjoint gradient");
+        require_arena(rhs.constraint_adjoint_gradient, primal_vars_, "constraint adjoint gradient");
     }
     if (want_constraints) {
-        require_arena(rhs.equality_residuals_, equality_rows_, "equality residual");
-        require_arena(rhs.inequality_residuals_, inequality_rows_, "inequality residual");
+        require_arena(rhs.equality_residuals, equality_rows_, "equality residual");
+        require_arena(rhs.inequality_residuals, inequality_rows_, "inequality residual");
     }
     if (want_jacobian || want_hessian) {
         require_kkt_table(kkt, static_cast<int>(laid_.kkt_claim_rows_.size()));
     }
 
     const Vec &x = this->stage_point(point, want_adjoint_gradient || want_hessian);
-    const double scale = point.objective_scale_;
+    const double scale = point.objective_scale;
 
     // The model evaluators this request needs, and no others. The values half
     // splits three ways: both value kinds together go through eval_values, which
@@ -551,29 +549,29 @@ void NlpModelAssembly::assemble_impl(const CandidatePoint &point, EvalRequest re
                                    equality_multiplier_scratch_, inequality_multiplier_scratch_,
                                    hessian_scratch_);
         require_matrix_dimensions(hessian_scratch_, primal_vars_, primal_vars_, "eval_hess");
-        require_claimed_nonzeros(hessian_scratch_, laid_.hessian_.count_, "eval_hess");
+        require_claimed_nonzeros(hessian_scratch_, laid_.hessian_.count, "eval_hess");
     }
 
     // Accumulated into, never assigned: the consumer owns its storage and its
     // initial state.
     if (want_objective) {
-        *rhs.objective_ += scale * objective;
+        *rhs.objective += scale * objective;
     }
     if (want_gradient) {
         gradient_scratch_ *= scale;
-        scatter_arena(rhs.objective_gradient_, gradient_scratch_);
+        scatter_arena(rhs.objective_gradient, gradient_scratch_);
     }
     if (want_constraints) {
         if (equality_rows_ > 0) {
-            scatter_arena(rhs.equality_residuals_, equality_residual_scratch_);
+            scatter_arena(rhs.equality_residuals, equality_residual_scratch_);
         }
         if (inequality_rows_ > 0) {
-            scatter_arena(rhs.inequality_residuals_, inequality_residual_scratch_);
+            scatter_arena(rhs.inequality_residuals, inequality_residual_scratch_);
         }
     }
     if (want_adjoint_gradient) {
         this->compose_adjoint_gradient();
-        scatter_arena(rhs.constraint_adjoint_gradient_, adjoint_scratch_);
+        scatter_arena(rhs.constraint_adjoint_gradient, adjoint_scratch_);
     }
     if (want_jacobian) {
         // Row-gated for the same reason the evaluation is: a block with rows and
@@ -602,9 +600,9 @@ void NlpModelAssembly::evaluate_candidate_values_impl(const CandidatePoint &poin
 
     // Assigned, per the candidate surface's own discipline: a scorer holds a
     // scratch buffer and wants the values at a point, not a running sum.
-    out.objective_ = point.objective_scale_ * objective;
-    out.equality_residuals_ = equality_residual_scratch_;
-    out.inequality_residuals_ = inequality_residual_scratch_;
+    out.objective = point.objective_scale * objective;
+    out.equality_residuals = equality_residual_scratch_;
+    out.inequality_residuals = inequality_residual_scratch_;
 }
 
 void NlpModelAssembly::evaluate_candidate_first_order_impl(const CandidatePoint &point,
@@ -613,17 +611,17 @@ void NlpModelAssembly::evaluate_candidate_first_order_impl(const CandidatePoint 
 
     double objective = 0.0;
     this->evaluate_values(x, objective);
-    out.values_.objective_ = point.objective_scale_ * objective;
-    out.values_.equality_residuals_ = equality_residual_scratch_;
-    out.values_.inequality_residuals_ = inequality_residual_scratch_;
+    out.values.objective = point.objective_scale * objective;
+    out.values.equality_residuals = equality_residual_scratch_;
+    out.values.inequality_residuals = inequality_residual_scratch_;
 
     model_->eval_grad_in_place(x, gradient_scratch_);
     require_block_size(gradient_scratch_.size(), primal_vars_, "eval_grad");
-    out.objective_gradient_ = point.objective_scale_ * gradient_scratch_;
+    out.objective_gradient = point.objective_scale * gradient_scratch_;
 
     this->evaluate_jacobians(x);
     this->compose_adjoint_gradient();
-    out.constraint_adjoint_gradient_ = adjoint_scratch_;
+    out.constraint_adjoint_gradient = adjoint_scratch_;
 }
 
 IdentityProbe NlpModelAssembly::probe_identity(ConstVecRef x) {
@@ -638,4 +636,4 @@ IdentityProbe NlpModelAssembly::probe_identity(ConstVecRef x) {
     return IdentityProbe{this->structure_epoch(), candidate_value_digest(values)};
 }
 
-} // namespace hven::solvers
+} // namespace hven

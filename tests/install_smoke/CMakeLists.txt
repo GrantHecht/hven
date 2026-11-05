@@ -45,6 +45,10 @@ find_package(hven REQUIRED)
 # the options header now) and the six new public headers of the options break
 # joined -- ipm_options, sqp_options, ipm_enums, ipm_phase_report, step_verdict
 # and linear/dense_policy -- 19 -> 24.
+#
+# M8 AP-2 B8: three raw-protocol headers took the names of what they declare
+# (solver_indexing_data, sizable_spec, piece_interfaces), and the umbrella
+# hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
@@ -71,16 +75,18 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_compiler.cpp
     include_pieces.cpp
     include_local_blocks.cpp
-    include_solver_interface_specs.cpp
+    include_piece_interfaces.cpp
     include_solver_interface_adapter.cpp
-    include_indexing_data.cpp
+    include_solver_indexing_data.cpp
     include_objective_function.cpp
     include_constraint_function.cpp
     include_solver_function_base.cpp
-    include_sizing_specs.cpp
+    include_sizable_spec.cpp
     include_threading_flags.cpp
     include_parsed_io_flags.cpp
-    include_type_storage.cpp)
+    include_type_storage.cpp
+    include_ipm_iterate.cpp
+    include_hven.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
 target_link_libraries(hven_install_smoke PRIVATE hven::hven)

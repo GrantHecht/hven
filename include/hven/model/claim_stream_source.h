@@ -25,12 +25,12 @@
 
 #include "hven/model/nlp_assembly.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief One contiguous run of claim slots, as [start, start + count).
 struct ClaimBlock {
-    int start_ = 0;
-    int count_ = 0;
+    int start = 0;
+    int count = 0;
 
     friend bool operator==(const ClaimBlock &, const ClaimBlock &) = default;
 };
@@ -168,4 +168,4 @@ class ClaimStreamSource : public NlpAssembly {
     virtual Eigen::Ref<const Eigen::VectorXi> objective_gradient_claim_rows() const = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

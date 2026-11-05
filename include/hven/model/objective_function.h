@@ -20,27 +20,27 @@
 
 #include "hven/model/solver_function_base.h"
 
-namespace hven::solvers {
+namespace hven {
 
 struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
     ObjectiveFunction() {}
 
     ObjectiveFunction(const ObjectiveInterface &f, const MatrixXi &vindex) {
-        this->function_ = f;
-        this->index_data_ = SolverIndexingData(f.input_rows(), vindex);
+        this->function = f;
+        this->index_data = SolverIndexingData(f.input_rows(), vindex);
     }
     ObjectiveFunction(const ObjectiveInterface &f, const SolverIndexingData &data) {
-        this->function_ = f;
-        this->index_data_ = data;
+        this->function = f;
+        this->index_data = data;
     }
 
     /// @brief Partitions multiple calls to this function into separate
     /// ObjectiveFunction instances that will be called on multiple threads.
     std::vector<ObjectiveFunction> thread_split(int Thr) const {
-        std::vector<SolverIndexingData> idat = this->index_data_.thread_split(Thr);
+        std::vector<SolverIndexingData> idat = this->index_data.thread_split(Thr);
         std::vector<ObjectiveFunction> split(idat.size());
         for (int i = 0; i < idat.size(); i++) {
-            split[i] = ObjectiveFunction(this->function_, idat[i]);
+            split[i] = ObjectiveFunction(this->function, idat[i]);
         }
         return split;
     }
@@ -48,14 +48,14 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
     /// @brief Calls the type-erased function's .objective method, passing
     /// through the solver's arguments and the indexing data.
     void objective(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X, double &Val) const {
-        this->function_.objective(ObjScale, X, Val, this->index_data_);
+        this->function.objective(ObjScale, X, Val, this->index_data);
     }
 
     /// @brief Calls the type-erased function's .objective_gradient method,
     /// passing through the solver's arguments and the indexing data.
     void objective_gradient(double ObjScale, const Eigen::Ref<const Eigen::VectorXd> &X,
                             double &Val, Eigen::Ref<Eigen::VectorXd> GX) const {
-        this->function_.objective_gradient(ObjScale, X, Val, GX, this->index_data_);
+        this->function.objective_gradient(ObjScale, X, Val, GX, this->index_data);
     }
 
     /// @brief Calls the type-erased function's .objective_gradient_hessian
@@ -66,9 +66,9 @@ struct ObjectiveFunction : SolverFunctionBase<ObjectiveInterface> {
                                     Eigen::Ref<Eigen::VectorXi> KKTLocations,
                                     Eigen::Ref<Eigen::VectorXi> KKTClashes,
                                     std::vector<std::mutex> &KKTLocks) {
-        this->function_.objective_gradient_hessian(ObjScale, X, Val, GX, KKTmat, KKTLocations,
-                                                   KKTClashes, KKTLocks, this->index_data_);
+        this->function.objective_gradient_hessian(ObjScale, X, Val, GX, KKTmat, KKTLocations,
+                                                  KKTClashes, KKTLocks, this->index_data);
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

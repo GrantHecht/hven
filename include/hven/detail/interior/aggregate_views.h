@@ -20,7 +20,7 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/model/non_linear_program.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief The empty multiplier block a values-only candidate point carries.
 ///
@@ -78,14 +78,14 @@ inline RhsScatterView compound_rhs_scatter_view(NonLinearProgram &nlp, double &v
                                                 int primal_vars, int slack_vars, int equal_cons,
                                                 int inequal_cons) {
     RhsScatterView rhs;
-    rhs.objective_ = &val;
-    rhs.objective_gradient_ = RhsArenaView{gx.data(), primal_vars, &nlp.objective_gradient_table()};
-    rhs.constraint_adjoint_gradient_ =
+    rhs.objective = &val;
+    rhs.objective_gradient = RhsArenaView{gx.data(), primal_vars, &nlp.objective_gradient_table()};
+    rhs.constraint_adjoint_gradient =
         RhsArenaView{agxs_fx.data(), primal_vars, &nlp.constraint_adjoint_gradient_table()};
-    rhs.equality_residuals_ = RhsArenaView{agxs_fx.data() + primal_vars + slack_vars, equal_cons,
-                                           &nlp.equality_residual_table()};
-    rhs.inequality_residuals_ = RhsArenaView{agxs_fx.data() + (agxs_fx.size() - inequal_cons),
-                                             inequal_cons, &nlp.inequality_residual_table()};
+    rhs.equality_residuals = RhsArenaView{agxs_fx.data() + primal_vars + slack_vars, equal_cons,
+                                          &nlp.equality_residual_table()};
+    rhs.inequality_residuals = RhsArenaView{agxs_fx.data() + (agxs_fx.size() - inequal_cons),
+                                            inequal_cons, &nlp.inequality_residual_table()};
     return rhs;
 }
 
@@ -105,10 +105,9 @@ inline RhsScatterView residual_rhs_scatter_view(NonLinearProgram &nlp, double &v
                                                 double *eq_residuals, double *iq_residuals,
                                                 int equal_cons, int inequal_cons) {
     RhsScatterView rhs;
-    rhs.objective_ = &val;
-    rhs.equality_residuals_ =
-        RhsArenaView{eq_residuals, equal_cons, &nlp.equality_residual_table()};
-    rhs.inequality_residuals_ =
+    rhs.objective = &val;
+    rhs.equality_residuals = RhsArenaView{eq_residuals, equal_cons, &nlp.equality_residual_table()};
+    rhs.inequality_residuals =
         RhsArenaView{iq_residuals, inequal_cons, &nlp.inequality_residual_table()};
     return rhs;
 }
@@ -127,4 +126,4 @@ inline KktScatterView kkt_scatter_view(NonLinearProgram &nlp,
                           &nlp.kkt_location_table()};
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

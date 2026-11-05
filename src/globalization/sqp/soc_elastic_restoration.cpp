@@ -17,7 +17,7 @@
 // definition they depend on and fail to compile.
 #include <hven/detail/drivers/sqp_solver_impl.h>
 
-namespace hven::solvers {
+namespace hven {
 
 QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const NlpEval &ev_trial,
                                const Vec &p, const std::vector<bool> &ineq_active) {
@@ -576,7 +576,7 @@ SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &l
         // proximity term's exact curvature summed in when that term is on.
         const double mu = std::min(1.0, curvature_violation(original_x(y)));
         // mu is not weighted by obj_scale: it models h's curvature, not the objective's,
-        // and the phase's sub-solve runs unscaled (enable_scaling = false), so no factor is owed.
+        // and the phase's sub-solve runs unscaled (row_scaling = false), so no factor is owed.
         const double w = zeta_ > 0.0 ? mu + obj_scale * zeta_ : mu;
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(nx_));
@@ -690,4 +690,4 @@ double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda
     return r.lpNorm<Eigen::Infinity>();
 }
 
-} // namespace hven::solvers
+} // namespace hven

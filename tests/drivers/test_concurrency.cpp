@@ -31,7 +31,7 @@
 // WHAT THE FIRST PIN AVOIDS, AND WHY THAT IS NOT A DODGE. The ruling names
 // three process-global exceptions; `docs/concurrency.md` names them as audited.
 // The one that could reach those cells is the interior-point engine's
-// EVALUATION POOL (`hven::utils::set_num_threads`,
+// EVALUATION POOL (`hven::detail::set_num_threads`,
 // src/interior/utils/thread_pool.cpp), which is process-global by design. Those
 // cells avoid it BY CONSTRUCTION rather than by arrangement: `make_nlp_program`
 // defaults to one partition, and `parallel_sequence`
@@ -58,7 +58,7 @@
 // WHAT THAT SECOND PIN DOES AND DOES NOT EXERCISE, stated here so nobody reads
 // more into it than it measured. `make_nlp_program`'s own doc comment says
 // PARTITIONS THROUGH THIS ADAPTER ARE LAYOUT ONLY: all three pieces are
-// ThreadingFlags::MainThread, and analyze_partitioning forces every MainThread
+// ThreadingFlags::kMainThread, and analyze_partitioning forces every MainThread
 // function into the LAST partition, which parallel_sequence runs INLINE on the
 // calling thread. So the user's eval_f / eval_jac / eval_hess still run on the
 // dispatching thread. What genuinely goes concurrent is the DISPATCH ITSELF --
@@ -179,14 +179,14 @@ bool within_gate(double a, double b) {
 // than asserted afterwards.
 // ---------------------------------------------------------------------------
 
-void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading &out) {
+void push_shared_result_columns(const hven::SolveResult &r, CellReading &out) {
     out.exact.push_back({"status", static_cast<long long>(r.status)});
     out.exact.push_back({"iterations", static_cast<long long>(r.iterations)});
     out.exact.push_back({"x_size", static_cast<long long>(r.x.size())});
     out.exact.push_back(
-        {"ce_size", static_cast<long long>(hven::solvers::detail::engine_rows(r).ce.size())});
+        {"ce_size", static_cast<long long>(hven::detail::engine_rows(r).ce.size())});
     out.exact.push_back(
-        {"ci_size", static_cast<long long>(hven::solvers::detail::engine_rows(r).ci.size())});
+        {"ci_size", static_cast<long long>(hven::detail::engine_rows(r).ci.size())});
 
     out.measures.push_back({"f", r.f});
     out.measures.push_back({"stationarity", r.stationarity});
@@ -198,16 +198,16 @@ void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading
 }
 
 CellReading run_sqp_cell(int hs_number) {
-    const auto p = hven::solvers::test_support::make_hs(hs_number);
+    const auto p = hven::test_support::make_hs(hs_number);
 
-    hven::solvers::SqpOptions o;
+    hven::SqpOptions o;
     o.common.threads = 1; // THE PIN: one backend thread per instance.
     o.common.verbosity =
-        hven::solvers::Verbosity::kSilent; // Silent: a console table is process-wide output.
-    hven::solvers::SqpSolver driver(o);
+        hven::Verbosity::kSilent; // Silent: a console table is process-wide output.
+    hven::SqpSolver driver(o);
 
-    const hven::solvers::SqpResult r =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), p.model->start_point());
+    const hven::SqpResult r =
+        driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point());
 
     CellReading out;
     out.cell = "sqp/hs" + std::to_string(hs_number);
@@ -232,8 +232,8 @@ CellReading run_sqp_cell(int hs_number) {
 // thread -- the first test needs it to be 1 (the pool is never reached) and the
 // second needs it to be >= 2 (the pool is reached from both threads at once), and
 // both read it from the same place.
-void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
-                             const hven::solvers::IpmResult &r, CellReading &out) {
+void push_ipm_result_columns(const hven::NonLinearProgram &program, const hven::IpmResult &r,
+                             CellReading &out) {
     out.exact.push_back({"partitions", static_cast<long long>(program.num_partitions_)});
     out.exact.push_back({"phases", static_cast<long long>(r.phases.size())});
     out.exact.push_back(
@@ -254,20 +254,19 @@ void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
 }
 
 CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
-    hven::solvers::IpmOptions o;
+    hven::IpmOptions o;
     o.common.threads = 1; // THE PIN.
     o.common.verbosity =
-        hven::solvers::Verbosity::kSilent; // Silent -- this engine's default is 0, i.e. loud.
-    hven::solvers::IpmSolver solver(o);
+        hven::Verbosity::kSilent; // Silent -- this engine's default is 0, i.e. loud.
+    hven::IpmSolver solver(o);
 
     // ONE PARTITION, the default: THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE
     // EVALUATION POOL. parallel_sequence runs inline whenever nparts <= 1, so
     // the process-global pool is never dispatched to by these cells (constructed
     // or not is a test-order fact; see the header).
     const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const hven::solvers::IpmResult r =
-        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
+        hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm/" + label;
@@ -462,7 +461,7 @@ void assert_readings_match(const std::vector<CellReading> &serial,
 void assert_cells_are_not_vacuous(const std::vector<CellReading> &serial) {
     for (const CellReading &s : serial) {
         ASSERT_EQ(s.exact[0].name, "status");
-        ASSERT_EQ(s.exact[0].value, static_cast<long long>(hven::solvers::SolveStatus::kOptimal))
+        ASSERT_EQ(s.exact[0].value, static_cast<long long>(hven::SolveStatus::kOptimal))
             << "PREMISE: cell " << s.cell << " must actually converge";
         ASSERT_EQ(s.exact[1].name, "iterations");
         ASSERT_GT(s.exact[1].value, 0) << "PREMISE: cell " << s.cell << " must actually iterate";
@@ -519,8 +518,8 @@ inline constexpr double kChainInf = std::numeric_limits<double>::infinity();
 inline constexpr double kChainPairSum = 2.5;
 inline constexpr double kChainBallCap = 4.0;
 
-class PartitionedChainProblem final : public hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+class PartitionedChainProblem final : public hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -647,22 +646,21 @@ const std::vector<FanOutCell> &fanout_cells() {
 }
 
 CellReading run_fanout_cell(const FanOutCell &cell) {
-    hven::solvers::IpmOptions o;
+    hven::IpmOptions o;
     o.common.threads = 1; // THE PIN, unchanged: one backend thread per instance.
     o.common.verbosity =
-        hven::solvers::Verbosity::kSilent; // Silent: a console table is process-wide output.
-    hven::solvers::IpmSolver solver(o);
+        hven::Verbosity::kSilent; // Silent: a console table is process-wide output.
+    hven::IpmSolver solver(o);
 
     // THROUGH THE PUBLIC ENTRY, with a count above 1 that the layout ACTUALLY
     // ADOPTS -- which is what puts every eval_kkt / eval_aug / eval_soe of this
     // solve through parallel_sequence's pool arm rather than its inline one.
-    const auto program = hven::solvers::make_nlp_program(
+    const auto program = hven::make_nlp_program(
         std::make_shared<PartitionedChainProblem>(cell.pairs, cell.target_shift),
         cell.requested_partitions);
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(2 * cell.pairs, 1.25);
-    const hven::solvers::IpmResult r =
-        solver.solve(hven::solvers::detail::problem_ref(*program), x0);
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm-fanout/" + cell.label;
@@ -681,7 +679,7 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     // The process-global evaluation-pool width, read before anything runs. It
     // is never set by this test and must be unmoved by every solve in it --
     // see this file's header on why these cells stay clear of the pool.
-    const int pool_width_before = hven::utils::get_num_threads();
+    const int pool_width_before = hven::detail::get_num_threads();
 
     // ---------------------------------------------------------------------
     // (1) THE SERIAL RUN, FIRST, IN THIS PROCESS. Same cells, same order.
@@ -703,7 +701,7 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     std::vector<CellReading> concurrent(kCellCount);
     run_on_threads(kCellCount, [&concurrent](int i) { concurrent[i] = run_cell(i); });
 
-    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+    EXPECT_EQ(hven::detail::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
 
     // ---------------------------------------------------------------------
@@ -763,7 +761,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     // The process-global evaluation-pool width, read before anything runs. This
     // test NEVER sets it -- setting it would pin the process rather than
     // exercise the contract -- and it must be unmoved at the end.
-    const int pool_width_before = hven::utils::get_num_threads();
+    const int pool_width_before = hven::detail::get_num_threads();
     ::testing::Test::RecordProperty("evaluation_pool_width", pool_width_before);
     std::cout << "[ PREMISE  ] process-global evaluation-pool width: " << pool_width_before << "\n";
 
@@ -788,7 +786,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     {
         const std::thread::id caller = std::this_thread::get_id();
         std::vector<std::thread::id> ran_on(2);
-        hven::utils::parallel_sequence(2, [&ran_on](int i) {
+        hven::detail::parallel_sequence(2, [&ran_on](int i) {
             ran_on[static_cast<std::size_t>(i)] = std::this_thread::get_id();
         });
         ASSERT_NE(ran_on[0], caller)
@@ -846,7 +844,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
             run_fanout_cell(cells[static_cast<std::size_t>(i)]);
     });
 
-    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+    EXPECT_EQ(hven::detail::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
 
     // ---------------------------------------------------------------------

@@ -24,7 +24,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief max(feasibility_e, feasibility_i), NaN if either is NaN.
 inline double combine_feasibility(double feasibility_e, double feasibility_i) noexcept {
@@ -138,4 +138,4 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
                                            const Vec &lower, const Vec &upper,
                                            const std::vector<Index> &excluded_coordinates);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

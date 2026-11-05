@@ -26,8 +26,9 @@
 // CHOICE. Read this before "simplifying" any predicate in this file.
 //
 // Every check is written as the NEGATION of the acceptance condition --
-// `!(kkt_tol > 0.0)`, `!(tr_init > 0.0)`, `!(tr_max >= tr_init)`,
-// `!(tr_min <= tr_init)` -- because that is the form that rejects NaN. A NaN
+// `!(kkt_tol > 0.0)`, `!(trust_region_initial > 0.0)`, `!(trust_region_max >=
+// trust_region_initial)`,
+// `!(trust_region_min <= trust_region_initial)` -- because that is the form that rejects NaN. A NaN
 // compares false against everything, so `!(x > 0.0)` is TRUE for NaN and the
 // option is rejected, whereas the "obvious" complement `x <= 0.0` is FALSE for
 // NaN and would let a NaN tolerance or a NaN radius through into the solve.
@@ -75,7 +76,7 @@
 #include <hven/drivers/sqp_options.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -94,57 +95,60 @@ template <typename E> void enum_in_range(E v, E last, const char *name) {
 void validate(const SqpOptions &opts) {
     // This engine's floors: no iterations and the backend's own thread default are legal.
     detail::validate_common_options(opts.common, {.max_iterations = 0, .threads = 0});
-    if (opts.qp.max_iter && *opts.qp.max_iter < 1) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: qp.max_iter ({}) must be empty or >= 1", *opts.qp.max_iter));
-    }
-    if (!(opts.tr_init > 0.0)) { // catches NaN, negatives and exactly 0
+    if (opts.qp.max_iterations && *opts.qp.max_iterations < 1) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
-            "pin every step to zero and stall until max_iter)",
-            opts.tr_init));
+            "SqpSolver: qp.max_iterations ({}) must be empty or >= 1", *opts.qp.max_iterations));
     }
-    // tr_max caps the growth rule, so a
+    if (!(opts.trust_region_initial > 0.0)) { // catches NaN, negatives and exactly 0
+        throw std::invalid_argument(fmt::format("SqpSolver: trust_region_initial ({}) must be > 0 "
+                                                "(use +inf for no trust region; 0 would "
+                                                "pin every step to zero and stall until max_iter)",
+                                                opts.trust_region_initial));
+    }
+    // trust_region_max caps the growth rule, so a
     // ceiling below the floor would be a contradiction rather than an
     // ignored field: it would silently mean "the radius may never grow,
     // and the very first subproblem already violates the cap".
     //
-    // tr_init == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
-    // that value there is no starting radius for tr_max to be a ceiling
-    // ON. It is NOT exempt from tr_max MATTERING: the
-    // FIRST rejection lands the radius on tr_max (see sqp_solver.h's RADIUS
+    // trust_region_initial == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
+    // that value there is no starting radius for trust_region_max to be a ceiling
+    // ON. It is NOT exempt from trust_region_max MATTERING: the
+    // FIRST rejection lands the radius on trust_region_max (see sqp_solver.h's RADIUS
     // MANAGEMENT), so the pair is meaningful after all -- what +inf now means
-    // is "unbounded until the method finds it needs a bound, then tr_max".
+    // is "unbounded until the method finds it needs a bound, then trust_region_max".
     // The growth rule is still skipped while the radius is +inf
-    // (min(+inf*2, tr_max) would REDUCE it, which no growth rule may do).
-    if (!std::isinf(opts.tr_init) && !(opts.tr_max >= opts.tr_init)) { // catches NaN too
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_max ({}) must be >= tr_init ({}); it is the ceiling "
-                        "the trust-region growth rule expands toward",
-                        opts.tr_max, opts.tr_init));
+    // (min(+inf*2, trust_region_max) would REDUCE it, which no growth rule may do).
+    if (!std::isinf(opts.trust_region_initial) &&
+        !(opts.trust_region_max >= opts.trust_region_initial)) { // catches NaN too
+        throw std::invalid_argument(fmt::format("SqpSolver: trust_region_max ({}) must be >= "
+                                                "trust_region_initial ({}); it is the ceiling "
+                                                "the trust-region growth rule expands toward",
+                                                opts.trust_region_max, opts.trust_region_initial));
     }
     // THE FLOOR. It must be positive (0 would make it
     // unreachable, since the radius only ever halves, and the restoration
     // trigger it exists to arm would be dead), and it must not exceed
-    // either end of the range it floors -- tr_min > tr_init would put the
+    // either end of the range it floors -- trust_region_min > trust_region_initial would put the
     // FIRST subproblem below the floor, i.e. request restoration before
-    // the solve has tried anything, and tr_min > tr_max would do the same
-    // to the radius a +inf tr_init lands on. Both forms catch NaN.
-    if (!(opts.tr_min > 0.0)) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_min ({}) must be > 0; it is the radius floor whose crossing "
-                        "raises a restoration request, and 0 can never be crossed by halving",
-                        opts.tr_min));
+    // the solve has tried anything, and trust_region_min > trust_region_max would do the same
+    // to the radius a +inf trust_region_initial lands on. Both forms catch NaN.
+    if (!(opts.trust_region_min > 0.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: trust_region_min ({}) must be > 0; it is the radius floor whose crossing "
+            "raises a restoration request, and 0 can never be crossed by halving",
+            opts.trust_region_min));
     }
-    if (!(opts.tr_min <= opts.tr_init) || !(opts.tr_min <= opts.tr_max)) {
+    if (!(opts.trust_region_min <= opts.trust_region_initial) ||
+        !(opts.trust_region_min <= opts.trust_region_max)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_min ({}) must be <= both tr_init ({}) and tr_max ({}); "
+            fmt::format("SqpSolver: trust_region_min ({}) must be <= both trust_region_initial "
+                        "({}) and trust_region_max ({}); "
                         "a floor above the starting radius requests restoration before the "
                         "first trial is judged",
-                        opts.tr_min, opts.tr_init, opts.tr_max));
+                        opts.trust_region_min, opts.trust_region_initial, opts.trust_region_max));
     }
     // THE PROBLEM-SCALING RULE'S TWO PARAMETERS (M6 W0.2). Validated
-    // UNCONDITIONALLY, not under `if (opts.enable_scaling)`: an options object
+    // UNCONDITIONALLY, not under `if (opts.row_scaling)`: an options object
     // is a value a caller may flip a bool on later, and a rule that is
     // nonsensical the moment the toggle moves was already nonsensical when it
     // was set. Both forms catch NaN, for this file's banner's reason.
@@ -154,11 +158,11 @@ void validate(const SqpOptions &opts) {
             "the scaled objective gradient and each scaled Jacobian row are aimed at",
             opts.scaling_max_gradient));
     }
-    if (!(opts.scaling_factor_limit >= 1.0) || std::isinf(opts.scaling_factor_limit)) {
+    if (!(opts.scaling_factor_max >= 1.0) || std::isinf(opts.scaling_factor_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: scaling_factor_limit ({}) must be finite and >= 1; it clamps every "
+            "SqpSolver: scaling_factor_max ({}) must be finite and >= 1; it clamps every "
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
-            opts.scaling_factor_limit));
+            opts.scaling_factor_max));
     }
     // THE COLUMN LAYER (M7 W2 SCL), validated unconditionally for the same reason.
     enum_in_range(opts.column_scaling, SqpColumnScaling::kAuto, "column_scaling");
@@ -405,9 +409,10 @@ void validate(const SqpOptions &opts) {
     // window must hold a pair; and the restoration wrapper's exact zeta D^2 term has
     // no QN split shipped (ruling C30 AMEND-7), so the combination is refused.
     enum_in_range(opts.hessian_mode, SqpHessianMode::kLbfgsDamped, "hessian_mode");
-    if (!(opts.qn_memory >= 1)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: qn_memory ({}) must be >= 1 (the L-BFGS window length)", opts.qn_memory));
+    if (!(opts.lbfgs_memory >= 1)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: lbfgs_memory ({}) must be >= 1 (the L-BFGS window length)",
+                        opts.lbfgs_memory));
     }
     if (opts.hessian_mode == SqpHessianMode::kLbfgsDamped &&
         opts.advanced.restoration_proximity > 0.0) {
@@ -427,11 +432,10 @@ void validate(const SqpOptions &opts) {
     // THE RESTORATION PHASE'S CURVATURE AND ENTRY COUNT (M7 W2 RST).
     enum_in_range(opts.advanced.restoration_curvature,
                   SqpRestorationCurvature::kModelThenRegularized, "advanced.restoration_curvature");
-    if (!(opts.advanced.restoration_max_entries >= 1)) {
-        throw std::invalid_argument(fmt::format("SqpSolver: advanced.restoration_max_entries ({}) "
-                                                "must be >= 1 (1 = one restoration phase "
-                                                "per solve)",
-                                                opts.advanced.restoration_max_entries));
+    if (!(opts.advanced.max_restoration_entries >= 0)) {
+        throw std::invalid_argument(fmt::format("SqpSolver: advanced.max_restoration_entries ({}) "
+                                                "must be >= 0 (0 refuses restoration)",
+                                                opts.advanced.max_restoration_entries));
     }
 
     // THE DENSE ARM IS NAMED, NOT WIRED: any other value would be a setting that
@@ -668,30 +672,31 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_int(os, "common.threads", c.threads);
     kv_str(os, "common.start_level", enum_name(c.start_level));
     kv_dbl(os, "common.infinite_bound", c.infinite_bound);
-    kv_dbl(os, "tr_init", o.tr_init);
-    kv_dbl(os, "tr_max", o.tr_max);
-    kv_dbl(os, "tr_min", o.tr_min);
-    kv_dbl(os, "qp.primal_delta", o.qp.primal_delta);
-    kv_dbl(os, "qp.dual_mu", o.qp.dual_mu);
-    kv_dbl(os, "qp.feas_tol", o.qp.feas_tol);
-    kv_dbl(os, "qp.opt_tol", o.qp.opt_tol);
-    kv_opt_int(os, "qp.max_iter", o.qp.max_iter);
-    kv_int(os, "qp.schur_cap", static_cast<long long>(o.qp.schur_cap));
-    kv_dbl(os, "qp.schur_cond_max", o.qp.schur_cond_max);
-    kv_str(os, "qp.ws_algebra", enum_name(o.qp.ws_algebra));
-    kv_dbl(os, "qp.tr_radius", o.qp.tr_radius);
+    kv_dbl(os, "trust_region_initial", o.trust_region_initial);
+    kv_dbl(os, "trust_region_max", o.trust_region_max);
+    kv_dbl(os, "trust_region_min", o.trust_region_min);
+    kv_dbl(os, "qp.primal_regularization", o.qp.primal_regularization);
+    kv_dbl(os, "qp.dual_regularization", o.qp.dual_regularization);
+    kv_dbl(os, "qp.feasibility_tol", o.qp.feasibility_tol);
+    kv_dbl(os, "qp.optimality_tol", o.qp.optimality_tol);
+    kv_opt_int(os, "qp.max_iterations", o.qp.max_iterations);
+    kv_int(os, "qp.max_schur_border_dimension",
+           static_cast<long long>(o.qp.max_schur_border_dimension));
+    kv_dbl(os, "qp.schur_condition_max", o.qp.schur_condition_max);
+    kv_str(os, "qp.working_set_algebra", enum_name(o.qp.working_set_algebra));
+    kv_dbl(os, "qp.trust_region_radius", o.qp.trust_region_radius);
     kv_bool(os, "qp.independent_working_set", o.qp.independent_working_set);
     kv_bool(os, "qp.hessian_known_convex", o.qp.hessian_known_convex);
     kv_str(os, "qp_mode", enum_name(o.qp_mode));
-    kv_bool(os, "budget_mode", o.budget_mode);
-    kv_bool(os, "enable_scaling", o.enable_scaling);
+    kv_bool(os, "return_best_on_max_iterations", o.return_best_on_max_iterations);
+    kv_bool(os, "row_scaling", o.row_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
-    kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
+    kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);
     kv_str(os, "column_scaling", enum_name(o.column_scaling));
     kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
     kv_bool(os, "project_start_point", o.project_start_point);
     kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
-    kv_int(os, "qn_memory", static_cast<long long>(o.qn_memory));
+    kv_int(os, "lbfgs_memory", static_cast<long long>(o.lbfgs_memory));
     kv_str(os, "linear.dense_factorization", enum_name(o.linear.dense_factorization));
     kv_opt_int(os, "linear.dense_max_dimension", o.linear.dense_max_dimension);
     const SqpAdvancedOptions &a = o.advanced;
@@ -747,8 +752,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "advanced.qn_nonlinear_only", a.qn_nonlinear_only);
     kv_int(os, "advanced.qn_full_memory_max", static_cast<long long>(a.qn_full_memory_max));
     kv_str(os, "advanced.restoration_curvature", enum_name(a.restoration_curvature));
-    kv_int(os, "advanced.restoration_max_entries",
-           static_cast<long long>(a.restoration_max_entries));
+    kv_int(os, "advanced.max_restoration_entries",
+           static_cast<long long>(a.max_restoration_entries));
 }
 
-} // namespace hven::solvers
+} // namespace hven

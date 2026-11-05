@@ -21,9 +21,9 @@ int standalone_include_seeding() {
     // -- the floor strictly below the SQP band, the band strictly below the
     // cap -- so a future "tidy-up" that collapses them to one number fails
     // here rather than silently retuning two engines to each other.
-    constexpr double floor_value = hven::solvers::kSeededIqMultFloor;
-    constexpr double cap = hven::solvers::kSeededMultInitMax;
-    constexpr double band = hven::solvers::kSeededDualClampTol;
+    constexpr double floor_value = hven::kSeededIqMultFloor;
+    constexpr double cap = hven::kSeededMultInitMax;
+    constexpr double band = hven::kSeededDualClampTol;
     static_assert(floor_value < band, "the IPM floor and the SQP band are distinct policies");
     static_assert(band < cap, "the SQP band and the IPM cap are distinct policies");
     return (floor_value > 0.0 && cap > 0.0 && band > 0.0) ? 1 : 0;

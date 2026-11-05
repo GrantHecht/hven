@@ -44,7 +44,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 struct SqpResult;
 
@@ -56,14 +56,14 @@ struct SqpWarmAccess;
 /// @brief The activity rule's safety factor `nu` for the interior-point
 ///        crossover, NOT an option: one decade of margin over the larger of the
 ///        two scales the rule compares against. Its product with the default
-///        `IpCrossoverOptions::activity_rel_tol` is 1e-3.
-inline constexpr double kIpActivityFactor = 10.0;
+///        `IpmCrossoverOptions::activity_rel_tol` is 1e-3.
+inline constexpr double kIpmActivityFactor = 10.0;
 
 /// @brief The interior-point crossover's two thresholds (see
 ///        `to_sqp_warm_start`).
-struct IpCrossoverOptions {
+struct IpmCrossoverOptions {
     /// eps_rel: how far below the LARGEST price a live price may sit, as a
-    /// fraction. 1e-4 against kIpActivityFactor = 10 puts the floor three decades
+    /// fraction. 1e-4 against kIpmActivityFactor = 10 puts the floor three decades
     /// below the largest inequality price -- measured on F7 at N = 100 as the
     /// widest separation available between genuinely-active and barrier-noise
     /// prices on that family.
@@ -99,4 +99,4 @@ class SqpWarmStart {
     std::shared_ptr<const detail::SqpWarmState> state_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

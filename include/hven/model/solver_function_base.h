@@ -19,11 +19,11 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/indexing_data.h"
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
+#include "hven/model/solver_indexing_data.h"
 #include "hven/model/threading_flags.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 // The cold throw path of set_thread_mode's check (src/model/validation_errors.cpp).
@@ -38,8 +38,8 @@ template <class FuncType> struct SolverFunctionBase {
     using MatrixXi = Eigen::MatrixXi;
     using VectorXi = Eigen::VectorXi;
 
-    FuncType function_;
-    SolverIndexingData index_data_;
+    FuncType function;
+    SolverIndexingData index_data;
 
     SolverFunctionBase() {}
 
@@ -59,14 +59,10 @@ template <class FuncType> struct SolverFunctionBase {
     /// sees it, so a non-additive piece breaks the claim stream and never
     /// quietly moves a layout.
     int num_kkt_elements(bool dojac, bool dohess) {
-        return this->function_.num_kkt_elements(dojac, dohess) * this->index_data_.num_appl();
+        return this->function.num_kkt_elements(dojac, dohess) * this->index_data.num_appl();
     }
-    int num_con_eles() const {
-        return this->function_.output_rows() * this->index_data_.num_appl();
-    }
-    int num_grad_eles() const {
-        return this->function_.input_rows() * this->index_data_.num_appl();
-    }
+    int num_con_eles() const { return this->function.output_rows() * this->index_data.num_appl(); }
+    int num_grad_eles() const { return this->function.input_rows() * this->index_data.num_appl(); }
     ThreadingFlags get_thread_mode() const { return this->thread_mode_; }
 
     /// @brief Sets the thread assignment policy this piece is laid out under.
@@ -81,21 +77,21 @@ template <class FuncType> struct SolverFunctionBase {
     /// carries the new mode, never by writing the piece on hand.
     void set_thread_mode(ThreadingFlags mode) {
         if (this->thread_mode_laid_) {
-            detail::throw_thread_mode_laid(this->function_.name(),
+            detail::throw_thread_mode_laid(this->function.name(),
                                            static_cast<int>(this->thread_mode_));
         }
         this->thread_mode_ = mode;
     }
     void get_kkt_space(Eigen::Ref<VectorXi> KKTrows, Eigen::Ref<VectorXi> KKTcols, int &freeloc,
                        int conoffset, bool dojac, bool dohess) {
-        this->function_.get_kkt_space(KKTrows, KKTcols, freeloc, conoffset, dojac, dohess,
-                                      this->index_data_);
+        this->function.get_kkt_space(KKTrows, KKTcols, freeloc, conoffset, dojac, dohess,
+                                     this->index_data);
     }
     void get_gradient_space(Eigen::Ref<VectorXi> GXrows, int &freeloc) {
-        this->index_data_.get_gradient_space(GXrows, freeloc);
+        this->index_data.get_gradient_space(GXrows, freeloc);
     }
     void get_constraint_space(Eigen::Ref<VectorXi> FXrows, int &freeloc) {
-        this->index_data_.get_constraint_space(FXrows, freeloc);
+        this->index_data.get_constraint_space(FXrows, freeloc);
     }
 
   private:
@@ -125,7 +121,7 @@ template <class FuncType> struct SolverFunctionBase {
 
     friend struct NonLinearProgram;
 
-    ThreadingFlags thread_mode_ = ThreadingFlags::ByApplication;
+    ThreadingFlags thread_mode_ = ThreadingFlags::kByApplication;
 
     /// Whether a layout has been laid over this piece. Set by the lay, cleared
     /// on the copies handed out as declaration data, and what makes the mode
@@ -134,4 +130,4 @@ template <class FuncType> struct SolverFunctionBase {
     bool thread_mode_laid_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

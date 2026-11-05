@@ -30,15 +30,15 @@
 
 #include "support/claim_corpus.h"
 
+using hven::ClaimBlock;
+using hven::FixedVariableTreatment;
+using hven::NonLinearProgram;
 using hven::model_tests::build_corpus;
 using hven::model_tests::corpus_cases;
 using hven::model_tests::CorpusCase;
 using hven::model_tests::expand_partition_offsets;
 using hven::model_tests::reference_restatement;
 using hven::model_tests::ReferenceStream;
-using hven::solvers::ClaimBlock;
-using hven::solvers::FixedVariableTreatment;
-using hven::solvers::NonLinearProgram;
 
 namespace {
 
@@ -84,7 +84,7 @@ void expect_offset_table_well_formed(Eigen::Ref<const Eigen::VectorXi> offsets,
     SCOPED_TRACE(domain);
     ASSERT_EQ(offsets.size(), partitions + 1);
     EXPECT_EQ(offsets[0], 0);
-    EXPECT_EQ(offsets[partitions], block.count_);
+    EXPECT_EQ(offsets[partitions], block.count);
     for (int at = 1; at <= partitions; at++) {
         EXPECT_LE(offsets[at - 1], offsets[at]) << "offset " << at << " goes backwards";
     }
@@ -113,10 +113,10 @@ TEST(ClaimStreamRestatement, TheThreeBlocksPartitionTheArenaInDomainOrder) {
         const ClaimBlock equality = nlp->equality_jacobian_claims();
         const ClaimBlock inequality = nlp->inequality_jacobian_claims();
 
-        EXPECT_EQ(hessian.start_, 0);
-        EXPECT_EQ(equality.start_, hessian.start_ + hessian.count_);
-        EXPECT_EQ(inequality.start_, equality.start_ + equality.count_);
-        EXPECT_EQ(inequality.start_ + inequality.count_, nlp->kkt_claim_rows().size());
+        EXPECT_EQ(hessian.start, 0);
+        EXPECT_EQ(equality.start, hessian.start + hessian.count);
+        EXPECT_EQ(inequality.start, equality.start + equality.count);
+        EXPECT_EQ(inequality.start + inequality.count, nlp->kkt_claim_rows().size());
         EXPECT_EQ(nlp->kkt_claim_rows().size(), nlp->kkt_claim_cols().size());
 
         // Every published slot is one of the laid slots, and there are exactly
@@ -159,24 +159,24 @@ TEST(ClaimStreamRestatement, TheClaimConventionHoldsSlotForSlot) {
         const int claim_dim = equality_end + nlp->inequal_cons_;
 
         const ClaimBlock hessian = nlp->hessian_claims();
-        for (int at = 0; at < hessian.count_; at++) {
-            const int slot = hessian.start_ + at;
+        for (int at = 0; at < hessian.count; at++) {
+            const int slot = hessian.start + at;
             EXPECT_GE(rows[slot], 0);
             EXPECT_LT(rows[slot], primal);
             EXPECT_LT(cols[slot], primal);
             EXPECT_LE(rows[slot], cols[slot]) << "Hessian slot " << slot << " is not upper";
         }
         const ClaimBlock equality = nlp->equality_jacobian_claims();
-        for (int at = 0; at < equality.count_; at++) {
-            const int slot = equality.start_ + at;
+        for (int at = 0; at < equality.count; at++) {
+            const int slot = equality.start + at;
             EXPECT_GE(rows[slot], primal);
             EXPECT_LT(rows[slot], equality_end);
             EXPECT_GE(cols[slot], 0);
             EXPECT_LT(cols[slot], primal);
         }
         const ClaimBlock inequality = nlp->inequality_jacobian_claims();
-        for (int at = 0; at < inequality.count_; at++) {
-            const int slot = inequality.start_ + at;
+        for (int at = 0; at < inequality.count; at++) {
+            const int slot = inequality.start + at;
             EXPECT_GE(rows[slot], equality_end);
             EXPECT_LT(rows[slot], claim_dim);
             EXPECT_GE(cols[slot], 0);
@@ -206,7 +206,7 @@ TEST(ClaimStreamRestatement, PublishingTheStreamMovesNoRawArray) {
         const Eigen::VectorXi parts_before = nlp->kkt_coeff_part_ids_;
         const Eigen::VectorXi locations_before = nlp->kkt_locations_;
         const Eigen::VectorXi rhs_rows_before = nlp->rhs_coeff_rows_;
-        const std::uint64_t digest_before = nlp->model_structure_key().claim_digest_;
+        const std::uint64_t digest_before = nlp->model_structure_key().claim_digest;
 
         // Everything the new surface offers, read once.
         (void)nlp->kkt_claim_rows();
@@ -225,7 +225,7 @@ TEST(ClaimStreamRestatement, PublishingTheStreamMovesNoRawArray) {
         EXPECT_EQ(parts_before, nlp->kkt_coeff_part_ids_);
         EXPECT_EQ(locations_before, nlp->kkt_locations_);
         EXPECT_EQ(rhs_rows_before, nlp->rhs_coeff_rows_);
-        EXPECT_EQ(digest_before, nlp->model_structure_key().claim_digest_);
+        EXPECT_EQ(digest_before, nlp->model_structure_key().claim_digest);
     }
 }
 
@@ -238,17 +238,17 @@ TEST(ClaimStreamRestatement, TheClaimDigestStillHashesTheRawSlotsInEmissionOrder
         SCOPED_TRACE(corpus_case.name_);
         auto nlp = build_corpus(corpus_case);
 
-        const std::uint64_t over_raw = hven::solvers::claim_stream_digest(
+        const std::uint64_t over_raw = hven::claim_stream_digest(
             nlp->declaration(), nlp->kkt_coeff_rows_.head(nlp->num_user_kkt_elems_),
             nlp->kkt_coeff_cols_.head(nlp->num_user_kkt_elems_));
-        EXPECT_EQ(nlp->model_structure_key().claim_digest_, over_raw);
+        EXPECT_EQ(nlp->model_structure_key().claim_digest, over_raw);
 
         // And the restated stream is a DIFFERENT sequence wherever the layout
         // actually permutes anything -- which is the reason the header sentence
         // had to name one of the two orders.
-        const std::uint64_t over_restated = hven::solvers::claim_stream_digest(
+        const std::uint64_t over_restated = hven::claim_stream_digest(
             nlp->declaration(), nlp->kkt_claim_rows(), nlp->kkt_claim_cols());
-        if (nlp->hessian_claims().count_ > 0 && nlp->equality_jacobian_claims().count_ > 0) {
+        if (nlp->hessian_claims().count > 0 && nlp->equality_jacobian_claims().count > 0) {
             EXPECT_NE(over_raw, over_restated);
         }
     }
@@ -320,8 +320,8 @@ TEST(ClaimStreamRestatement, APartitionRenegotiationRestatesAgainstTheNewOrder) 
     fixture.inequality_pieces_ = 2;
     fixture.applications_ = 600;
     fixture.requested_partitions_ = 1;
-    fixture.equality_mode_ = hven::solvers::ThreadingFlags::RoundRobin;
-    fixture.inequality_mode_ = hven::solvers::ThreadingFlags::RoundRobin;
+    fixture.equality_mode_ = hven::ThreadingFlags::kRoundRobin;
+    fixture.inequality_mode_ = hven::ThreadingFlags::kRoundRobin;
 
     auto nlp = build_corpus(fixture);
     ASSERT_EQ(nlp->num_partitions_, 1);

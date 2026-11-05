@@ -35,22 +35,22 @@
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/nlp.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// How one declared constraint row is realized in the native model's row spaces.
-enum class NLPRowKind { Equality, UpperBounded, LowerBounded, Range, Free };
+enum class NlpRowKind { kEquality, kUpperBounded, kLowerBounded, kRange, kFree };
 
 /// Setup-time classification of the declared constraint rows against their
 /// bounds: which native rows each declared row becomes, in declaration order.
 /// A Range row (two finite, unequal bounds) becomes two inequality rows, the
 /// upper part first, then the negated lower part.
-struct NLPRowClassification {
-    std::vector<NLPRowKind> kinds_; ///< one entry per declared row
-    Eigen::VectorXi eq_row_;        ///< declared row -> equality row, -1 if none
-    Eigen::VectorXi iq_upper_row_;  ///< declared row -> inequality row (upper part), -1
-    Eigen::VectorXi iq_lower_row_;  ///< declared row -> inequality row (negated lower), -1
-    int num_eq_ = 0;
-    int num_iq_ = 0;
+struct NlpRowClassification {
+    std::vector<NlpRowKind> kinds; ///< one entry per declared row
+    Eigen::VectorXi eq_row;        ///< declared row -> equality row, -1 if none
+    Eigen::VectorXi iq_upper_row;  ///< declared row -> inequality row (upper part), -1
+    Eigen::VectorXi iq_lower_row;  ///< declared row -> inequality row (negated lower), -1
+    int num_eq = 0;
+    int num_iq = 0;
 
     /// @brief Classifies every declared row against its bound pair.
     /// @param gl Declared lower bounds, one per row.
@@ -58,7 +58,7 @@ struct NLPRowClassification {
     /// @return The classification, with the native row numbering assigned.
     /// @throws std::invalid_argument on mismatched sizes, a NaN bound, an
     ///         inverted pair, or an equality declared at infinity.
-    static NLPRowClassification classify(ConstEigenRef<Eigen::VectorXd> gl,
+    static NlpRowClassification classify(ConstEigenRef<Eigen::VectorXd> gl,
                                          ConstEigenRef<Eigen::VectorXd> gu);
 };
 
@@ -168,8 +168,8 @@ class NlpProblemModel final : public NlpModel {
     const Vec &raw_row_upper() const { return raw_g_upper_; }
 
     Index n() const override { return n_; }
-    Index me() const override { return rows_.num_eq_; }
-    Index mi() const override { return rows_.num_iq_; }
+    Index me() const override { return rows_.num_eq; }
+    Index mi() const override { return rows_.num_iq; }
     /// @brief The problem's own has_hessian(); eval_hess refuses a problem that
     ///        answers false (std::logic_error: no engine path calls it then).
     bool has_hessian() const override { return problem_->has_hessian(); }
@@ -308,7 +308,7 @@ class NlpProblemModel final : public NlpModel {
     void invalidate_cache() const;
 
     /// @brief The row classification decided at construction.
-    const NLPRowClassification &rows() const { return rows_; }
+    const NlpRowClassification &rows() const { return rows_; }
     /// @brief The number of constraint rows the problem declared.
     int num_declared_rows() const { return m_; }
 
@@ -383,7 +383,7 @@ class NlpProblemModel final : public NlpModel {
     Vec g_lower_, g_upper_; ///< declared row bounds, normalized (absent_bound.h)
     Vec raw_x_lower_, raw_x_upper_, raw_g_lower_, raw_g_upper_; ///< as declared
     Vec upd_x_lower_, upd_x_upper_, upd_g_lower_, upd_g_upper_; ///< update_bounds scratch
-    NLPRowClassification rows_;
+    NlpRowClassification rows_;
     Eigen::VectorXi jac_rows_, jac_cols_;   ///< declared Jacobian structure
     Eigen::VectorXi hess_rows_, hess_cols_; ///< declared Hessian structure, lower triangle
 
@@ -412,4 +412,4 @@ class NlpProblemModel final : public NlpModel {
     mutable Vec grad_, ce_, ci_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -18,7 +18,7 @@
 
 #include "hven/model/parsed_io_flags.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 // The cold throw paths of SolverIndexingData's checks (src/model/validation_errors.cpp):
@@ -50,33 +50,33 @@ struct SolverIndexingData {
     using MatrixXi = Eigen::MatrixXi;
     using VectorXi = Eigen::VectorXi;
 
-    int input_size_ = 0;
-    int output_size_ = 0;
-    int num_funcappl_ = 0;
+    int input_size = 0;
+    int output_size = 0;
+    int num_funcappl = 0;
 
-    bool vindex_init_ = false;
-    bool cindex_init_ = false;
+    bool vindex_init = false;
+    bool cindex_init = false;
 
     /// Whether this copy's rows are written by its own partition only. Set by
     /// the layout on every partition copy (NonLinearProgram::
     /// mark_shared_constraint_rows): false when another partition also names one
     /// of its rows, and then the Jacobian scatter locks a contested column
     /// (docs/assembly-protocol.md §5). True on one partition.
-    bool unique_constraints_ = true;
+    bool unique_constraints = true;
 
     /// @brief Matrix whose columns contain the ordered indices of the
     /// variables forwarded to the constraint or objective function.
-    MatrixXi v_index_;
+    MatrixXi v_index;
 
     /// @brief Matrix whose columns contain the ordered constraint-output
-    /// indices corresponding to each column of v_index_. Empty for objective
+    /// indices corresponding to each column of v_index. Empty for objective
     /// functions.
-    MatrixXi c_index_;
+    MatrixXi c_index;
 
     /// @brief Where this function's outputs go in the SOLVER's variable space,
     /// when that differs from the problem's own variable space.
     ///
-    /// v_index_ above is the function's INPUT map: which entries of the primal
+    /// v_index above is the function's INPUT map: which entries of the primal
     /// vector its arguments are gathered from. It always addresses the full
     /// problem space and is never rewritten -- a function always reads the same
     /// variables it was declared over.
@@ -84,93 +84,93 @@ struct SolverIndexingData {
     /// This is the OUTPUT map: which KKT column, and which gradient row, each of
     /// those arguments corresponds to once the solver has eliminated the
     /// variables whose bounds fix them. Entry (i, V) is the solver-space index
-    /// of the same variable v_index_(i, V) names, or -1 when that variable has
+    /// of the same variable v_index(i, V) names, or -1 when that variable has
     /// been eliminated and the corresponding outputs have nowhere to go.
     ///
     /// Empty on the identity path: with nothing eliminated, the solver's space
-    /// IS the problem's space and v_index_ serves as both maps, so no second
+    /// IS the problem's space and v_index serves as both maps, so no second
     /// table is built and no copy is made. Derived state -- always regenerated
-    /// from v_index_, never edited in place, so repeated configuration cannot
+    /// from v_index, never edited in place, so repeated configuration cannot
     /// compound.
-    MatrixXi v_out_index_;
+    MatrixXi v_out_index;
 
-    /// True while v_out_index_ is live, i.e. the output map differs from the
+    /// True while v_out_index is live, i.e. the output map differs from the
     /// input map. THE flag the KKT scatters hoist their branch on: false selects
     /// the untouched original loops, and it is false for every function on every
     /// problem with no bound-fixed variables. Setup-time emitters read
     /// v_scatter_loc(), which dispatches on the same flag.
-    bool v_out_reduced_ = false;
+    bool v_out_reduced = false;
 
-    /// @brief Per column of v_index_: whether its indices are sorted and
+    /// @brief Per column of v_index: whether its indices are sorted and
     /// contiguous (e.g. 10,11,12,...).
-    std::vector<ParsedIOFlags> v_index_continuity_;
+    std::vector<ParsedIoFlags> v_index_continuity;
 
-    /// @brief Per column of c_index_: whether its indices are sorted and
+    /// @brief Per column of c_index: whether its indices are sorted and
     /// contiguous (e.g. 10,11,12,...).
-    std::vector<ParsedIOFlags> c_index_continuity_;
+    std::vector<ParsedIoFlags> c_index_continuity;
 
     /// @brief Start of the memory region where the engine sums the constraint
     /// output of the i-th application of this function.
-    VectorXi inner_constraint_starts_;
+    VectorXi inner_constraint_starts;
 
     /// @brief Start of the memory region where the engine sums the gradient
     /// output of the i-th application of this function.
-    VectorXi inner_gradient_starts_;
+    VectorXi inner_gradient_starts;
 
     /// @brief Start of the memory region holding the locations where the
     /// derivatives of the i-th application are summed into the global KKT
     /// matrix.
-    VectorXi inner_kkt_starts_;
+    VectorXi inner_kkt_starts;
 
     SolverIndexingData() {}
     SolverIndexingData(int irr, int orr, const MatrixXi &vindex, const MatrixXi &cindex)
-        : input_size_(irr), output_size_(orr) {
+        : input_size(irr), output_size(orr) {
         this->set_v_index_c_index(vindex, cindex);
     }
 
-    SolverIndexingData(int irr, const MatrixXi &vindex) : input_size_(irr), output_size_(1) {
+    SolverIndexingData(int irr, const MatrixXi &vindex) : input_size(irr), output_size(1) {
         this->set_v_index(vindex);
     }
 
     /// @brief Installs the solver-space output map. @p vout must have the same
-    /// shape as v_index_; -1 entries mark eliminated variables. Regenerated
-    /// wholesale by the caller from v_index_ on every configuration, so this
+    /// shape as v_index; -1 entries mark eliminated variables. Regenerated
+    /// wholesale by the caller from v_index on every configuration, so this
     /// never has to undo a previous mapping.
     void set_output_v_index(const MatrixXi &vout) {
-        if (vout.rows() != this->v_index_.rows() || vout.cols() != this->v_index_.cols()) {
-            detail::throw_output_v_index_shape(this->v_index_.rows(), this->v_index_.cols(),
+        if (vout.rows() != this->v_index.rows() || vout.cols() != this->v_index.cols()) {
+            detail::throw_output_v_index_shape(this->v_index.rows(), this->v_index.cols(),
                                                vout.rows(), vout.cols());
         }
-        this->v_out_index_ = vout;
-        this->v_out_reduced_ = true;
+        this->v_out_index = vout;
+        this->v_out_reduced = true;
     }
 
     /// Drops the output map, returning this function to the identity path where
-    /// v_index_ is both maps.
+    /// v_index is both maps.
     void clear_output_v_index() {
-        this->v_out_index_.resize(0, 0);
-        this->v_out_reduced_ = false;
+        this->v_out_index.resize(0, 0);
+        this->v_out_reduced = false;
     }
 
-    /// Solver-space output index, valid only while v_out_reduced_ is true --
+    /// Solver-space output index, valid only while v_out_reduced is true --
     /// which is exactly when the KKT scatters take their reduced loop.
-    inline int v_out_loc(int loc, int col) const { return this->v_out_index_(loc, col); }
+    inline int v_out_loc(int loc, int col) const { return this->v_out_index(loc, col); }
 
     /// Output index for setup-time emitters (KKT/gradient location tables),
     /// which run once per configuration and can afford the dispatch: the
     /// solver-space index when an output map is live, the problem-space index
     /// otherwise. Returns -1 for an eliminated variable.
     inline int v_scatter_loc(int loc, int col) const {
-        return this->v_out_reduced_ ? this->v_out_index_(loc, col) : this->v_index_(loc, col);
+        return this->v_out_reduced ? this->v_out_index(loc, col) : this->v_index(loc, col);
     }
 
     void get_gradient_space(Eigen::Ref<VectorXi> GXrows, int &freeloc) {
-        this->inner_gradient_starts_.resize(this->num_appl());
+        this->inner_gradient_starts.resize(this->num_appl());
         for (int V = 0; V < this->num_appl(); V++) {
-            this->inner_gradient_starts_[V] = freeloc;
-            for (int i = 0; i < this->input_size_; i++) {
+            this->inner_gradient_starts[V] = freeloc;
+            for (int i = 0; i < this->input_size; i++) {
                 // -1 for an eliminated variable: the claim stays the same size
-                // (the function still writes input_size_ gradient values into
+                // (the function still writes input_size gradient values into
                 // it) but that value has no row to be summed into, and the RHS
                 // fill skips it.
                 GXrows[freeloc] = this->v_scatter_loc(i, V);
@@ -179,10 +179,10 @@ struct SolverIndexingData {
         }
     }
     void get_constraint_space(Eigen::Ref<VectorXi> FXrows, int &freeloc) {
-        this->inner_constraint_starts_.resize(this->num_appl());
+        this->inner_constraint_starts.resize(this->num_appl());
         for (int V = 0; V < this->num_appl(); V++) {
-            this->inner_constraint_starts_[V] = freeloc;
-            for (int j = 0; j < this->output_size_; j++) {
+            this->inner_constraint_starts[V] = freeloc;
+            for (int j = 0; j < this->output_size; j++) {
                 FXrows[freeloc] = this->c_loc(j, V);
                 freeloc++;
             }
@@ -196,7 +196,7 @@ struct SolverIndexingData {
         std::vector<SolverIndexingData> split;
         split.reserve(Threads);
 
-        int cols = this->num_funcappl_;
+        int cols = this->num_funcappl;
         int colpThr = cols / Threads;
         int rempThr = cols % Threads;
 
@@ -209,61 +209,61 @@ struct SolverIndexingData {
         else
             range = rempThr;
         for (int i = 0; i < range; i++) {
-            if (this->cindex_init_) {
-                split.emplace_back(SolverIndexingData(this->input_size_, this->output_size_,
-                                                      this->v_index_.middleCols(start, perThr[i]),
-                                                      this->c_index_.middleCols(start, perThr[i])));
+            if (this->cindex_init) {
+                split.emplace_back(SolverIndexingData(this->input_size, this->output_size,
+                                                      this->v_index.middleCols(start, perThr[i]),
+                                                      this->c_index.middleCols(start, perThr[i])));
             } else {
-                split.emplace_back(SolverIndexingData(this->input_size_,
-                                                      this->v_index_.middleCols(start, perThr[i])));
+                split.emplace_back(SolverIndexingData(this->input_size,
+                                                      this->v_index.middleCols(start, perThr[i])));
             }
-            split.back().unique_constraints_ = this->unique_constraints_;
+            split.back().unique_constraints = this->unique_constraints;
             start += perThr[i];
         }
         return split;
     }
 
     void set_v_index(const MatrixXi &vt) {
-        if (vt.rows() != this->input_size_)
-            detail::throw_v_index_rows(this->input_size_, vt.rows());
-        this->v_index_ = vt;
-        this->vindex_init_ = true;
-        this->num_funcappl_ = this->v_index_.cols();
-        this->v_index_continuity_.resize(this->v_index_.cols());
-        for (int i = 0; i < this->v_index_.cols(); i++) {
-            this->v_index_continuity_[i] = this->check_continuity(this->v_index_.col(i));
+        if (vt.rows() != this->input_size)
+            detail::throw_v_index_rows(this->input_size, vt.rows());
+        this->v_index = vt;
+        this->vindex_init = true;
+        this->num_funcappl = this->v_index.cols();
+        this->v_index_continuity.resize(this->v_index.cols());
+        for (int i = 0; i < this->v_index.cols(); i++) {
+            this->v_index_continuity[i] = this->check_continuity(this->v_index.col(i));
         }
     }
     void set_c_index(const MatrixXi &ct) {
-        if (ct.rows() != this->output_size_)
-            detail::throw_c_index_rows(this->output_size_, ct.rows());
-        this->c_index_ = ct;
-        this->c_index_continuity_.resize(this->c_index_.cols());
-        this->cindex_init_ = true;
+        if (ct.rows() != this->output_size)
+            detail::throw_c_index_rows(this->output_size, ct.rows());
+        this->c_index = ct;
+        this->c_index_continuity.resize(this->c_index.cols());
+        this->cindex_init = true;
 
-        for (int i = 0; i < this->c_index_.cols(); i++) {
-            this->c_index_continuity_[i] = this->check_continuity(this->c_index_.col(i));
+        for (int i = 0; i < this->c_index.cols(); i++) {
+            this->c_index_continuity[i] = this->check_continuity(this->c_index.col(i));
         }
     }
-    const MatrixXi &get_v_index() const { return this->v_index_; }
-    const MatrixXi &get_c_index() const { return this->c_index_; }
+    const MatrixXi &get_v_index() const { return this->v_index; }
+    const MatrixXi &get_c_index() const { return this->c_index; }
     void set_v_index_c_index(const MatrixXi &vt, const MatrixXi &ct) {
         this->set_v_index(vt);
         this->set_c_index(ct);
     }
-    inline int num_appl() const { return this->num_funcappl_; }
-    inline int c_loc(int loc, int col) const { return this->c_index_(loc, col); }
-    inline int v_loc(int loc, int col) const { return this->v_index_(loc, col); }
+    inline int num_appl() const { return this->num_funcappl; }
+    inline int c_loc(int loc, int col) const { return this->c_index(loc, col); }
+    inline int v_loc(int loc, int col) const { return this->v_index(loc, col); }
 
-    static ParsedIOFlags check_continuity(const Eigen::VectorXi &ix) {
+    static ParsedIoFlags check_continuity(const Eigen::VectorXi &ix) {
         int s = 0;
         for (int i = 0; i < (ix.size() - 1); i++) {
             s = ix[i + 1] - ix[i] - 1;
             if (s != 0)
-                return ParsedIOFlags::NotContiguous;
+                return ParsedIoFlags::kNotContiguous;
         }
-        return ParsedIOFlags::Contiguous;
+        return ParsedIoFlags::kContiguous;
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven

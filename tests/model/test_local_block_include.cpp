@@ -12,7 +12,7 @@
 
 #include <typeinfo>
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace {
 
@@ -20,7 +20,7 @@ struct IncludeOrderDefect {
     static constexpr hven::Index kInputs = 2, kOutputs = 1;
     void value(hven::ConstVecRef v, hven::VecRef out) const { out[0] = v[1] - v[0]; }
     void jacobian(hven::ConstVecRef, hven::MatRef J) const { J << -1.0, 1.0; }
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
 };
 
 struct IncludeOrderTerm {
@@ -31,22 +31,22 @@ struct IncludeOrderTerm {
 };
 
 TEST(LocalBlockIncludeOrder, TheHandlesHeaderAloneTakesTheLocalBlockRoute) {
-    using hven::solvers::ConstraintModel;
-    using hven::solvers::LocalConstraintBlock;
-    using hven::solvers::LocalObjectiveBlock;
-    using hven::solvers::ObjectiveModel;
+    using hven::ConstraintModel;
+    using hven::LocalConstraintBlock;
+    using hven::LocalObjectiveBlock;
+    using hven::ObjectiveModel;
 
-    const hven::solvers::ConstraintInterface ci(IncludeOrderDefect{});
-    const auto &stored_constraint = ci.storage_.get();
+    const hven::ConstraintInterface ci(IncludeOrderDefect{});
+    const auto &stored_constraint = ci.storage.get();
     EXPECT_EQ(typeid(stored_constraint),
               typeid(ConstraintModel<LocalConstraintBlock<IncludeOrderDefect>>));
     EXPECT_EQ(ci.num_kkt_elements(true, true), 2);
 
-    const hven::solvers::ObjectiveInterface oi(IncludeOrderTerm{});
-    const auto &stored_objective = oi.storage_.get();
+    const hven::ObjectiveInterface oi(IncludeOrderTerm{});
+    const auto &stored_objective = oi.storage.get();
     EXPECT_EQ(typeid(stored_objective),
               typeid(ObjectiveModel<LocalObjectiveBlock<IncludeOrderTerm>>));
-    EXPECT_TRUE(hven::solvers::SolverInterfaceAdapter<IncludeOrderDefect>::registered);
+    EXPECT_TRUE(hven::SolverInterfaceAdapter<IncludeOrderDefect>::registered);
 }
 
 } // namespace

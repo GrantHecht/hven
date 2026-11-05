@@ -79,7 +79,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // detail::kMaxBorderRefineSteps and detail::kBorderRefineRelFloor -- the
 // budget and floor this file's refinement loop runs on -- live in eqp_solve.h
@@ -118,7 +118,7 @@ inline Vec bordered_regularization(Index n0, Index var_count, const std::vector<
                                    const QpOptions &opts) {
     const Index m = static_cast<Index>(border_d.size());
     Vec reg = Vec::Zero(n0 + m);
-    reg.segment(var_count, n0 - var_count).setConstant(-opts.dual_mu);
+    reg.segment(var_count, n0 - var_count).setConstant(-opts.dual_regularization);
     for (Index i = 0; i < m; ++i) {
         reg(n0 + i) = border_d[static_cast<std::size_t>(i)];
     }
@@ -425,11 +425,11 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
     // The rhs of the face's own exact system: the bordered rhs with the proximal
     // term removed from the variable rows it was added to.
     Vec rhs0 = rhs;
-    rhs0.head(var_count) -= opts.primal_delta * x_k.head(var_count);
+    rhs0.head(var_count) -= opts.primal_regularization * x_k.head(var_count);
     // Everything bordered_regularization reports, PLUS the primal delta on the
     // variable rows -- K0 carries it there and here it IS an error to back out.
     Vec reg = bordered_regularization(n0, var_count, border_d, opts);
-    reg.head(var_count).array() += opts.primal_delta;
+    reg.head(var_count).array() += opts.primal_regularization;
     const auto residual_of = [&](const Vec &ss) {
         return Vec(bordered_regularized_residual(K0, var_count, border_v, border_d, rhs0, ss) +
                    reg.cwiseProduct(ss));
@@ -503,7 +503,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
     //     -- same x to 1e-8, different `bound_state`. So: unmasked, per variable,
     //     for the reason each variable gives, and the cross-algebra battery and
     //     corpus are the check.
-    sys.rhs.head(n) += opts.primal_delta * x_k;
+    sys.rhs.head(n) += opts.primal_regularization * x_k;
     for (Index r = 0; r < me; ++r) {
         sys.rhs(n + r) = qp.be(r);
     }
@@ -519,7 +519,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
         switch (e.kind) {
         case BorderLedgerEntry::Kind::kVarPin:
             sys.border_v.push_back(BorderOps::pin_variable(e.target, n0));
-            sys.border_d.push_back(-opts.dual_mu);
+            sys.border_d.push_back(-opts.dual_regularization);
             sys.rhs(n0 + b) =
                 pinned_value(qp, bound_state[static_cast<std::size_t>(e.target)], e.target);
             break;
@@ -531,7 +531,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
             break;
         case BorderLedgerEntry::Kind::kIneqRow:
             sys.border_v.push_back(BorderOps::add_ineq_row(qp, e.target, n0));
-            sys.border_d.push_back(-opts.dual_mu);
+            sys.border_d.push_back(-opts.dual_regularization);
             sys.rhs(n0 + b) = qp.bi(e.target);
             break;
         }
@@ -562,7 +562,7 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
             ax += it.value() * x(it.col());
         }
         const double row_scale = std::max({1.0, std::abs(qp.be(j)), row_norm1 * xmag});
-        if (!(std::abs(ax - qp.be(j)) <= opts.feas_tol * row_scale)) {
+        if (!(std::abs(ax - qp.be(j)) <= opts.feasibility_tol * row_scale)) {
             return false;
         }
     }
@@ -578,7 +578,7 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // the same meaning, as solve_eqp's; eqp_solve.h states the system both solve.
 //
 // Throws whatever SchurComplement::solve throws -- notably
-// hven::solvers::BackendError on an exactly singular Schur complement, which the caller is expected
+// hven::BackendError on an exactly singular Schur complement, which the caller is expected
 // to have ruled out via needs_refactorization() first.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
@@ -612,8 +612,9 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         if (nc == 0) {
             return 0.0;
         }
-        const double scale = std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                                      opts.dual_mu * ss.segment(n, nc).lpNorm<Eigen::Infinity>());
+        const double scale =
+            std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
+                     opts.dual_regularization * ss.segment(n, nc).lpNorm<Eigen::Infinity>());
         return r.segment(n, nc).lpNorm<Eigen::Infinity>() / scale;
     };
     Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, sol);
@@ -641,7 +642,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     BorderedResolution resolution;
     resolution.x_k = &x_k;
     resolution.bound_state = &bound_state;
-    resolution.step_tol = opts.feas_tol * std::max(1.0, x_k.lpNorm<Eigen::Infinity>());
+    resolution.step_tol = opts.feasibility_tol * std::max(1.0, x_k.lpNorm<Eigen::Infinity>());
     BorderedRefineOutcome outcome;
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
@@ -693,4 +694,4 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     return res;
 }
 
-} // namespace hven::solvers
+} // namespace hven

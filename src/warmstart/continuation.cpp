@@ -11,7 +11,7 @@
 #include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/sqp_warm_access.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace continuation_detail {
 
@@ -369,4 +369,4 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -68,12 +68,12 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Ac = hven::solvers::detail::testing::QpAntiCycleArmState;
-using Arm = hven::solvers::detail::testing::QpAntiCycleArm;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Ac = hven::detail::testing::QpAntiCycleArmState;
+using Arm = hven::detail::testing::QpAntiCycleArm;
 
 namespace {
 
@@ -468,7 +468,7 @@ struct ArmGuard {
 QpOptions capped(Index cap) {
     QpOptions opts;
     if (cap > 0) {
-        opts.max_iter = cap;
+        opts.max_iterations = cap;
     }
     // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
     // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
@@ -622,7 +622,7 @@ TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerived
     // `src/qp/qp_engine.cpp` ties the two literals together with a
     // `static_assert`, and this is the same fact asserted from outside, where
     // a reader of the fixtures can see it.
-    EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::solvers::detail::kEngineDenomTol);
+    EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::detail::kEngineDenomTol);
     EXPECT_DOUBLE_EQ(Ac::params.reset_nontrivial, 3.7e-11);
     // And `begin_minor()` is inert unless ARM E is armed.
     EXPECT_FALSE(Ac::begin_minor());
@@ -930,8 +930,8 @@ TEST(QpAntiCyclingArm, ArmingOnOneThreadIsInvisibleOnAnother) {
 
 namespace {
 
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
 
 /// A QP in the engine's own terms: a dense symmetric `H` given in full (the
 /// INDEFINITE Hessians below are not `M Mᵀ` and cannot be written through
@@ -1229,9 +1229,9 @@ namespace {
 
 QpOptions e2_opts(WorkingSetLinearAlgebra alg, Index cap = kCycleCap) {
     QpOptions o;
-    o.max_iter = cap;
+    o.max_iterations = cap;
     o.independent_working_set = true;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return o;
 }
 
@@ -1401,7 +1401,7 @@ TEST(QpE2WorkingSet, TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum)
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-2;
+        o.dual_regularization = 1e-2;
         const QpSolution s = plain_solve(qp, o);
         std::printf("[ qc8 ] doubled-row %s status=%d x=(%.15g, %.15g, %.15g) implied=%ld "
                     "minors=%ld\n",
@@ -1507,7 +1507,7 @@ TEST(QpE2WorkingSet, TheBorderNoLongerNeedsItsRetreatAndStillEndsOptimal) {
     Index retreat_records = 0;
     for (const auto &r : Obs::records) {
         retreat_records +=
-            r.action == hven::solvers::detail::testing::QpWalkAction::kEliminatedRetreat ? 1 : 0;
+            r.action == hven::detail::testing::QpWalkAction::kEliminatedRetreat ? 1 : 0;
     }
     Obs::active = false;
     Obs::reset();
@@ -1998,7 +1998,7 @@ QpDump e2d4_dump(const char *name) {
 
 QpSolution e2d4_solve(const QpDump &d, WorkingSetLinearAlgebra alg) {
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return hven::test_support::solve_qp_dump(d, o);
 }
 
@@ -2464,7 +2464,7 @@ TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
 
 namespace {
 
-using RideRead = hven::solvers::detail::testing::QpWalkRideOutcome;
+using RideRead = hven::detail::testing::QpWalkRideOutcome;
 
 /// min 1/2 (x0^2 + x1^2) - 1/8 x2^2 + 1/2 x0 x2 - 0.4 x1 + 2.25 x2 subject to
 /// x0 <= 0, x1 <= 0, x0 + x1 <= 0 (a DEPENDENT third row), x0, x1 in [-10, 10],
@@ -2508,7 +2508,7 @@ QpSolution declined_ride_seed() {
 
 struct RideWalk {
     QpSolution solution;
-    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> records;
+    std::vector<hven::detail::testing::QpWalkMinorRecord> records;
 };
 
 RideWalk declined_ride_walk(const QpOptions &o) {
@@ -2551,7 +2551,7 @@ TEST(QpE2WorkingSet, TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint)
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-5;
+        o.dual_regularization = 1e-5;
         const RideWalk w = declined_ride_walk(o);
         const QpSolution &s = w.solution;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
@@ -2567,14 +2567,14 @@ TEST(QpE2WorkingSet, TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint)
         // exchange: no pass may add back the bound the drop released at zero motion.
         for (const auto &r : w.records) {
             EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
-                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block == hven::detail::testing::QpWalkBlock::kBound &&
                          r.block_index == 2 && r.alpha == 0.0)
                 << "the released bound re-entered at alpha 0";
         }
     }
     // The option-off walk (no dependency test) reaches the same optimum, unchanged.
     QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
-    off.dual_mu = 1e-5;
+    off.dual_regularization = 1e-5;
     off.independent_working_set = false;
     const RideWalk w_off = declined_ride_walk(off);
     EXPECT_EQ(static_cast<int>(w_off.solution.status), static_cast<int>(QpStatus::kOptimal));
@@ -2605,7 +2605,7 @@ TEST(QpE2WorkingSet, TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFoot
     for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-4;
+        o.dual_regularization = 1e-4;
         const RideWalk w = declined_ride_walk(o);
         EXPECT_EQ(w.solution.counters.ride_declines_fallthrough_blocked, 0)
             << "the null-space veto fired: the rows' dual_mu footprint has returned";
@@ -2613,13 +2613,13 @@ TEST(QpE2WorkingSet, TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFoot
         for (const auto &r : w.records) {
             EXPECT_NE(r.ride_outcome, RideRead::kNullspaceVeto);
             EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
-                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block == hven::detail::testing::QpWalkBlock::kBound &&
                          r.block_index == 2 && r.alpha == 0.0)
                 << "the released bound re-entered at alpha 0";
         }
     }
     QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
-    off.dual_mu = 1e-4;
+    off.dual_regularization = 1e-4;
     off.independent_working_set = false;
     const RideWalk w_off = declined_ride_walk(off);
     // The option-off CONTRAST is gone with the veto: there is no vetoed pass for the

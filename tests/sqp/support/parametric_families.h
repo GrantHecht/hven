@@ -99,7 +99,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 // The analytic active set at a parameter value, in exactly warm_start.h's
 // encoding so a test can compare it against a solve's SqpWarmState field for
@@ -116,7 +116,7 @@ namespace parametric_detail {
 
 // "Effectively infinite" bound, matching qp_problem.h/hs_problems.h. Named
 // distinctly from hs_problems.h's detail::kInf on purpose: both headers live
-// in namespace hven::solvers::test_support and a constexpr at namespace scope
+// in namespace hven::test_support and a constexpr at namespace scope
 // would be a redefinition in any TU that included both.
 constexpr double kParamInf = 1e20;
 
@@ -1535,4 +1535,4 @@ class F6PathBoundQuadrature : public ParametricNlpModel {
     Vec upper_ = Vec::Constant(nodes_.size(), parametric_detail::kParamInf);
 };
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

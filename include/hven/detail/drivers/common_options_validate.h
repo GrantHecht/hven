@@ -9,7 +9,7 @@
 #include <hven/core/types.h>
 #include <hven/drivers/common_options.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief The bounds on which the two engines differ.
 struct CommonOptionsFloors {
@@ -28,4 +28,4 @@ struct CommonOptionsFloors {
 /// @throws std::invalid_argument
 void validate_common_options(const CommonOptions &c, CommonOptionsFloors floors);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

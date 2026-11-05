@@ -183,7 +183,7 @@
 // PHASE-5 TASK 9 ADDITION -- --dump-solution, THE CROSS-SOLVER REFEREE HOOK.
 //
 // Task 9 puts this SQP engine head to head with the IPM engine (now
-// hven::solvers::IpmSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
+// hven::IpmSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
 // both solvers must land on x*(p) = ( y*(t_k) ; u*(t_k) )_k with
 // y*(t) = min(p(1 + sin pi t), R) e, or the comparison is between two
 // different problems. Checking that needs the CONVERGED POINT, which the CSV
@@ -247,29 +247,29 @@
 
 namespace {
 
+using hven::ContinuationOptions;
+using hven::ContinuationResult;
+using hven::ContinuationStep;
 using hven::Index;
+using hven::Ledger;
+using hven::ParametricNlpModel;
+using hven::QpMode;
+using hven::QpOptions;
+using hven::QpStatus;
+using hven::run_continuation;
+using hven::SolveRecord;
+using hven::SolveStatus;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::SqpSolveRecord;
+using hven::StartLevel;
 using hven::Vec;
-using hven::solvers::ContinuationOptions;
-using hven::solvers::ContinuationResult;
-using hven::solvers::ContinuationStep;
-using hven::solvers::Ledger;
-using hven::solvers::ParametricNlpModel;
-using hven::solvers::QpMode;
-using hven::solvers::QpOptions;
-using hven::solvers::QpStatus;
-using hven::solvers::run_continuation;
-using hven::solvers::SolveRecord;
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::SqpSolveRecord;
-using hven::solvers::StartLevel;
-using hven::solvers::WorkingSetLinearAlgebra;
-using hven::solvers::detail::SqpWarmState;
-using hven::solvers::test_support::F3SpringChain;
-using hven::solvers::test_support::F7CollocationChain;
-using hven::solvers::test_support::peak_rss_mib;
+using hven::WorkingSetLinearAlgebra;
+using hven::detail::SqpWarmState;
+using hven::test_support::F3SpringChain;
+using hven::test_support::F7CollocationChain;
+using hven::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_bench --family F3|F7 --n <int> --arm cold|warm|pred|hot "
@@ -360,7 +360,7 @@ constexpr const char *kUsage =
 // reads exactly as it did before the Task-3 fix-round dedupe -- this file's own
 // kUsage is the only thing they add.
 [[noreturn]] void throw_usage(const std::string &detail) {
-    hven::solvers::bench_cli::throw_usage(kUsage, detail);
+    hven::bench_cli::throw_usage(kUsage, detail);
 }
 
 // ---------------------------------------------------------------------
@@ -520,8 +520,7 @@ void run_cold(ParametricNlpModel &model, const std::string &family, Index n, dou
         SqpSolver driver(bench_options(StartLevel::kCold, tuning));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         rows.push_back(
             Row{family, n, "cold", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -535,14 +534,14 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
     const std::vector<double> grid = linspace(p0, p1, sweep);
     SqpSolver driver(bench_options(StartLevel::kHot, tuning));
     driver.attach_ledger(&ledger, "hot");
-    hven::solvers::detail::SqpWarmState warm; // default-constructed: valid == false, i.e. cold
+    hven::detail::SqpWarmState warm; // default-constructed: valid == false, i.e. cold
     for (std::size_t i = 0; i < grid.size(); ++i) {
         model.set_parameters(Vec::Constant(1, grid[i]));
         const SqpResult sol =
-            (i == 0) ? driver.solve(hven::solvers::detail::problem_ref(model), model.start_point())
-                     : driver.solve(hven::solvers::detail::problem_ref(model), warm.x,
-                                    hven::solvers::detail::SqpWarmAccess::wrap(warm));
-        warm = hven::solvers::detail::SqpWarmAccess::state(sol.native_warm_start);
+            (i == 0) ? driver.solve(hven::detail::problem_ref(model), model.start_point())
+                     : driver.solve(hven::detail::problem_ref(model), warm.x,
+                                    hven::detail::SqpWarmAccess::wrap(warm));
+        warm = hven::detail::SqpWarmAccess::state(sol.native_warm_start);
         rows.push_back(
             Row{family, n, "hot", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -774,11 +773,11 @@ struct Args {
 };
 
 double parse_double(const std::string &flag, const std::string &value) {
-    return hven::solvers::bench_cli::parse_double(kUsage, flag, value);
+    return hven::bench_cli::parse_double(kUsage, flag, value);
 }
 
 long long parse_ll(const std::string &flag, const std::string &value) {
-    return hven::solvers::bench_cli::parse_ll(kUsage, flag, value);
+    return hven::bench_cli::parse_ll(kUsage, flag, value);
 }
 
 Args parse_args(int argc, char **argv) {
@@ -902,10 +901,10 @@ int main(int argc, char **argv) {
             tuning.max_iter = *args.max_iter;
         }
         if (args.qp_max_iter) {
-            tuning.qp.max_iter = *args.qp_max_iter;
+            tuning.qp.max_iterations = *args.qp_max_iter;
         }
         if (args.schur_cap) {
-            tuning.qp.schur_cap = *args.schur_cap;
+            tuning.qp.max_schur_border_dimension = *args.schur_cap;
         }
         if (args.probe_budget) {
             tuning.controller.probe_budget = static_cast<int>(*args.probe_budget);
@@ -917,9 +916,9 @@ int main(int argc, char **argv) {
             tuning.qp_mode = (*args.qp_mode == "ssn") ? QpMode::kSsn : QpMode::kWalk;
         }
         if (args.ws_algebra) {
-            tuning.qp.ws_algebra = (*args.ws_algebra == "refactorize")
-                                       ? WorkingSetLinearAlgebra::kRefactorize
-                                       : WorkingSetLinearAlgebra::kSchurBorder;
+            tuning.qp.working_set_algebra = (*args.ws_algebra == "refactorize")
+                                                ? WorkingSetLinearAlgebra::kRefactorize
+                                                : WorkingSetLinearAlgebra::kSchurBorder;
         }
 
         SolutionDump dump;
@@ -963,12 +962,12 @@ int main(int argc, char **argv) {
                 throw_usage(fmt::format("--dump-solution: the '{}' arm produced no solve to dump",
                                         *args.arm));
             }
-            std::ofstream dump_out = hven::solvers::bench_cli::open_output_or_throw(
+            std::ofstream dump_out = hven::bench_cli::open_output_or_throw(
                 kUsage, "--dump-solution", *args.dump_solution);
-            hven::solvers::bench_cli::write_solution_dump(
-                dump_out, *args.family, static_cast<long long>(n), *args.arm, dump.p,
-                to_string(dump.status), dump.f, dump.x.data(),
-                static_cast<std::size_t>(dump.x.size()));
+            hven::bench_cli::write_solution_dump(dump_out, *args.family, static_cast<long long>(n),
+                                                 *args.arm, dump.p, to_string(dump.status), dump.f,
+                                                 dump.x.data(),
+                                                 static_cast<std::size_t>(dump.x.size()));
             fmt::print("wrote solution dump ({} component(s), p = {:.17g}, status {}) to {}\n",
                        dump.x.size(), dump.p, to_string(dump.status), *args.dump_solution);
         }

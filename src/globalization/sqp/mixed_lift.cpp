@@ -14,7 +14,7 @@
 
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -338,4 +338,4 @@ Vec MixedLift::unlift_equality_multipliers(const Vec &lambda_e) const {
     return lambda_e.head(me_orig_);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

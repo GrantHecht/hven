@@ -7,7 +7,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -52,4 +52,4 @@ void Nlp::eval_hessian(ConstVecRef /*x*/, double /*obj_factor*/, ConstVecRef /*l
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

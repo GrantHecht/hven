@@ -28,7 +28,7 @@
 namespace {
 
 using namespace hven;
-using namespace hven::solvers;
+using namespace hven;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate|--families|\n"
@@ -379,7 +379,7 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number, sqp_status_name(sol.status),
@@ -398,7 +398,7 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         {"two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
     for (Fixture &f : fixtures) {
         QpOptions qopts;
-        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
         const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
@@ -501,7 +501,7 @@ int run_ladder(std::ostream &os) {
     fixtures.push_back({"saddle", test_support::saddle_qp()});
     for (Fixture &f : fixtures) {
         QpOptions qopts;
-        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
         const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
@@ -536,8 +536,7 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
         o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{},{},{},{},{},{}\n", engine, nodes, model.n(), fnum(p),
@@ -587,18 +586,18 @@ int main(int argc, char **argv) {
             } else if (a == "--mu-floor") {
                 g_mu_floor = true;
             } else if (a == "--mu") {
-                mu = hven::solvers::bench_cli::parse_double(kUsage, "--mu", next("--mu"));
+                mu = hven::bench_cli::parse_double(kUsage, "--mu", next("--mu"));
             } else if (a == "--hard-cap") {
                 hard_cap = static_cast<Index>(
-                    hven::solvers::bench_cli::parse_ll(kUsage, "--hard-cap", next("--hard-cap")));
+                    hven::bench_cli::parse_ll(kUsage, "--hard-cap", next("--hard-cap")));
             } else if (a == "--p") {
-                p_window = hven::solvers::bench_cli::parse_double(kUsage, "--p", next("--p"));
+                p_window = hven::bench_cli::parse_double(kUsage, "--p", next("--p"));
             } else if (a == "--converge-slack") {
-                converge_slack = hven::solvers::bench_cli::parse_double(kUsage, "--converge-slack",
-                                                                        next("--converge-slack"));
+                converge_slack = hven::bench_cli::parse_double(kUsage, "--converge-slack",
+                                                               next("--converge-slack"));
                 g_converge_slack = converge_slack;
             } else if (a == "--ladder-skip-after") {
-                g_skip_after = static_cast<Index>(hven::solvers::bench_cli::parse_ll(
+                g_skip_after = static_cast<Index>(hven::bench_cli::parse_ll(
                     kUsage, "--ladder-skip-after", next("--ladder-skip-after")));
                 if (g_skip_after < 0) {
                     throw std::invalid_argument(
@@ -606,7 +605,7 @@ int main(int argc, char **argv) {
                 }
             } else if (a == "--nodes") {
                 nodes = static_cast<Index>(
-                    hven::solvers::bench_cli::parse_ll(kUsage, "--nodes", next("--nodes")));
+                    hven::bench_cli::parse_ll(kUsage, "--nodes", next("--nodes")));
             } else if (a == "--sizes") {
                 std::string spec = next("--sizes");
                 std::size_t pos = 0;
@@ -614,8 +613,8 @@ int main(int argc, char **argv) {
                     const std::size_t comma = spec.find(',', pos);
                     const std::string tok = spec.substr(pos, comma - pos);
                     if (!tok.empty()) {
-                        sizes.push_back(static_cast<Index>(
-                            hven::solvers::bench_cli::parse_ll(kUsage, "--sizes", tok)));
+                        sizes.push_back(
+                            static_cast<Index>(hven::bench_cli::parse_ll(kUsage, "--sizes", tok)));
                     }
                     if (comma == std::string::npos) {
                         break;
@@ -630,7 +629,7 @@ int main(int argc, char **argv) {
             std::fputs(kUsage, stderr);
             return 2;
         }
-        std::ofstream os = hven::solvers::bench_cli::open_output_or_throw(kUsage, "--out", out);
+        std::ofstream os = hven::bench_cli::open_output_or_throw(kUsage, "--out", out);
         if (mode == "regen") {
             return run_regen(os, sizes);
         }

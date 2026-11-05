@@ -42,7 +42,7 @@
 #include "hven/model/nlp_assembly.h"
 #include "hven/model/objective_function.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// Smallest per-partition KKT element count worth dispatching for. Below it the
 /// thread-dispatch overhead dominates the work, so the partition count is capped
@@ -774,7 +774,7 @@ struct NonLinearProgram : public NlpAssembly {
             }
         };
 
-        hven::utils::parallel_blocks(this->num_solver_kkt_elems_, FillOp, this->num_partitions_);
+        hven::detail::parallel_blocks(this->num_solver_kkt_elems_, FillOp, this->num_partitions_);
     }
 
     void assign_kkt_slack_hessian(const Eigen::Ref<const Eigen::VectorXd> &slhs,
@@ -1072,8 +1072,8 @@ struct NonLinearProgram : public NlpAssembly {
     /// Setting it through one aggregate sets it for every aggregate in the
     /// process. Said plainly here because an aggregate-scoped setter otherwise
     /// implies a per-aggregate budget this provider does not have.
-    int evaluation_threads() const override { return hven::utils::get_num_threads(); }
-    void set_evaluation_threads(int n) override { hven::utils::set_num_threads(n); }
+    int evaluation_threads() const override { return hven::detail::get_num_threads(); }
+    void set_evaluation_threads(int n) override { hven::detail::set_num_threads(n); }
 
     /// @brief The three conjuncts of the LAST LAY: the claim digest, the
     ///        adopted partition count, and the bound digest.
@@ -1696,4 +1696,4 @@ struct NonLinearProgram : public NlpAssembly {
     bool ever_laid_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

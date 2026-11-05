@@ -32,7 +32,7 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::test_support::QpDump;
 
 namespace {
@@ -52,7 +52,7 @@ void expect_certified(const char *file, WorkingSetLinearAlgebra alg, double f_re
     ASSERT_NE(d.result.find("status=1"), std::string::npos) << d.result;
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
 
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);

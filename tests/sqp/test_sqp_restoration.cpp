@@ -61,15 +61,15 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::test_support::assert_gradient;
-using hven::solvers::test_support::assert_hessian;
-using hven::solvers::test_support::assert_jacobians;
-using hven::solvers::test_support::HsProblem;
-using hven::solvers::test_support::make_hs;
+using hven::test_support::assert_gradient;
+using hven::test_support::assert_hessian;
+using hven::test_support::assert_jacobians;
+using hven::test_support::HsProblem;
+using hven::test_support::make_hs;
 
 namespace {
 
@@ -444,11 +444,11 @@ SubgradientCertificate check_certificate(const NlpModel &model, const SqpResult 
     Vec r = Vec::Zero(model.n());
     if (model.me() > 0) {
         r += Eigen::MatrixXd(model.eval_jac_e(sol.x)).transpose() *
-             hven::solvers::detail::engine_rows(sol).lambda_e;
+             hven::detail::engine_rows(sol).lambda_e;
     }
     if (model.mi() > 0) {
         r += Eigen::MatrixXd(model.eval_jac_i(sol.x)).transpose() *
-             hven::solvers::detail::engine_rows(sol).lambda_i;
+             hven::detail::engine_rows(sol).lambda_i;
     }
     r -= sol.z;
     c.stationarity = r.lpNorm<Eigen::Infinity>();
@@ -457,13 +457,12 @@ SubgradientCertificate check_certificate(const NlpModel &model, const SqpResult 
         const Vec ce = model.eval_ce(sol.x);
         for (Index i = 0; i < model.me(); ++i) {
             c.h += std::abs(ce(i));
-            c.selector = std::max(
-                c.selector, std::abs(hven::solvers::detail::engine_rows(sol).lambda_e(i)) - 1.0);
+            c.selector =
+                std::max(c.selector, std::abs(hven::detail::engine_rows(sol).lambda_e(i)) - 1.0);
             if (std::abs(ce(i)) > row_tol) {
                 const double want = ce(i) > 0.0 ? 1.0 : -1.0;
-                c.sign_error =
-                    std::max(c.sign_error,
-                             std::abs(hven::solvers::detail::engine_rows(sol).lambda_e(i) - want));
+                c.sign_error = std::max(
+                    c.sign_error, std::abs(hven::detail::engine_rows(sol).lambda_e(i) - want));
             }
         }
     }
@@ -471,13 +470,12 @@ SubgradientCertificate check_certificate(const NlpModel &model, const SqpResult 
         const Vec ci = model.eval_ci(sol.x);
         for (Index j = 0; j < model.mi(); ++j) {
             c.h += std::max(0.0, ci(j));
-            c.selector = std::max(
-                c.selector, std::max(-hven::solvers::detail::engine_rows(sol).lambda_i(j),
-                                     hven::solvers::detail::engine_rows(sol).lambda_i(j) - 1.0));
+            c.selector =
+                std::max(c.selector, std::max(-hven::detail::engine_rows(sol).lambda_i(j),
+                                              hven::detail::engine_rows(sol).lambda_i(j) - 1.0));
             if (ci(j) > row_tol) {
-                c.sign_error =
-                    std::max(c.sign_error,
-                             std::abs(hven::solvers::detail::engine_rows(sol).lambda_i(j) - 1.0));
+                c.sign_error = std::max(c.sign_error,
+                                        std::abs(hven::detail::engine_rows(sol).lambda_i(j) - 1.0));
             }
         }
     }
@@ -1182,10 +1180,9 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
         InfeasibleCircleLineModel model;
         SqpOptions opts;
         opts.common.max_iterations = 200; // observed need: 7 (border), 65 (refactorize)
-        opts.qp.ws_algebra = algebra;
+        opts.qp.working_set_algebra = algebra;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified)
@@ -1228,15 +1225,15 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
         // that could not have come out right by accident. (It is interior by a
         // wide margin, |lambda_e(0)| = 0.707 against the bound of 1, so this
         // is a genuine interior selector and not a saturated one.)
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).lambda_e(0), t, 1e-5);
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).lambda_e(1), -1.0, 1e-5);
+        EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(0), t, 1e-5);
+        EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(1), -1.0, 1e-5);
 
         ::testing::Test::RecordProperty(
             "certificate",
             fmt::format("h={:.10g} stat={:.3g} le=({:.10g},{:.10g}) majors={}+{}", c.h,
-                        c.stationarity, hven::solvers::detail::engine_rows(sol).lambda_e(0),
-                        hven::solvers::detail::engine_rows(sol).lambda_e(1),
-                        sol.counters.major_iters, sol.counters.restoration_iters));
+                        c.stationarity, hven::detail::engine_rows(sol).lambda_e(0),
+                        hven::detail::engine_rows(sol).lambda_e(1), sol.counters.major_iters,
+                        sol.counters.restoration_iters));
     }
 }
 
@@ -1278,8 +1275,7 @@ TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidua
         opts.common.max_iterations = 200;
         opts.advanced.restoration_proximity = arm.zeta;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible)
             << "the STATUS is not what the term moves -- the flag is";
@@ -1372,19 +1368,18 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         // x0 + x1 = 2.25, the same point.
         opts.qp.independent_working_set = false;
         opts.common.max_iterations = 2;
-        opts.qp.ws_algebra = algebra;
+        opts.qp.working_set_algebra = algebra;
         // M7 W2 R2: the restoration-route fixtures on this family pin the
         // pre-R2 ROUTE, so the failed-subproblem step is off (see
         // SqpDriverRestorationSeed.TheFailedStepKeepsTheCertifiedAnswer for the default).
         opts.advanced.qp_failure_step = false;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
         // The multipliers the NEXT subproblem would be built from are zero,
         // which is what makes that subproblem's Hessian 2*lambda_e(0)*I == 0
         // and its optimum a face rather than a point.
-        EXPECT_EQ(hven::solvers::detail::engine_rows(sol).lambda_e(0), 0.0)
+        EXPECT_EQ(hven::detail::engine_rows(sol).lambda_e(0), 0.0)
             << "an open elastic relaxation carries no multipliers";
 #else
         // Off the reference build the cap can land mid-restoration (origin divergence D14:
@@ -1395,9 +1390,9 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
             std::string("algebra_divergence_lambda_e0_") +
                 (algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize"),
             fmt::format("lambda_e0={:.17g} restoration_entries={}",
-                        hven::solvers::detail::engine_rows(sol).lambda_e(0),
+                        hven::detail::engine_rows(sol).lambda_e(0),
                         sol.counters.restoration_entries));
-        EXPECT_TRUE(hven::solvers::detail::engine_rows(sol).lambda_e(0) == 0.0 ||
+        EXPECT_TRUE(hven::detail::engine_rows(sol).lambda_e(0) == 0.0 ||
                     sol.counters.restoration_entries >= 1)
             << "lambda_e(0) is neither the open relaxation's 0 nor a restoration multiplier";
 #endif
@@ -1458,10 +1453,9 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.common.max_iterations = 200;
-        opts.qp.ws_algebra = algebra;
+        opts.qp.working_set_algebra = algebra;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -1481,7 +1475,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
 // THE OBSERVABLE MECHANISM, all four parts asserted rather than inferred from
 // the status: restoration was entered, the funnel was RE-BASED (once, through
 // resume_from_restoration and not through a second reset), the radius was
-// restarted at the documented fraction of tr_init, and the trial that raised
+// restarted at the documented fraction of trust_region_initial, and the trial that raised
 // the request was the fifth consecutive rejection at the start point -- i.e.
 // the funnel's own signature, at the re-derived gate.
 TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
@@ -1490,15 +1484,14 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
         StalledValleyModel model;
         SqpOptions opts;
-        opts.tr_init = 8.0; // the radius schedule in the fixture comment
+        opts.trust_region_initial = 8.0; // the radius schedule in the fixture comment
         opts.common.max_iterations = 60;
-        opts.qp.ws_algebra = algebra;
+        opts.qp.working_set_algebra = algebra;
         FunnelLog log;
         record_funnel_into(opts, &log);
 
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_FALSE(sol.infeasibility_certified) << "a RECOVERED solve certifies nothing";
@@ -1508,7 +1501,7 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         EXPECT_NEAR(sol.x(0), 4.99999975e-7, 1e-11);
         EXPECT_NEAR(sol.x(1), -2.49999975e-10, 1e-13);
         EXPECT_NEAR(sol.f, -2.5e-9, 1e-11);
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).lambda_e(0), 10.0, 1e-6);
+        EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(0), 10.0, 1e-6);
         EXPECT_LE(sol.history.back().kkt_residual, opts.common.optimality_tol);
 
         // THE STALL, and that it is the FUNNEL's signature that broke it: five
@@ -1543,9 +1536,10 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         EXPECT_NEAR(log.width_after_resume[0], 50.0, 1e-9)
             << "Eq. (13) at h ~ 0: tau_+ = 0.5*h + 0.5*100";
 
-        // THE RADIUS RESTARTED AT THE DOCUMENTED FRACTION of tr_init, at the
+        // THE RADIUS RESTARTED AT THE DOCUMENTED FRACTION of trust_region_initial, at the
         // first row after the request.
-        EXPECT_DOUBLE_EQ(sol.history[5].tr_radius, kRestoreRadiusFactor * opts.tr_init);
+        EXPECT_DOUBLE_EQ(sol.history[5].tr_radius,
+                         kRestoreRadiusFactor * opts.trust_region_initial);
         // And the restored iterate really is a different (feasible) point.
         EXPECT_LE(sol.history[5].violation_l1, opts.common.feasibility_tol);
         EXPECT_GT(sol.history[4].violation_l1, opts.common.feasibility_tol);
@@ -1580,7 +1574,7 @@ TEST(SqpDriverRestoration, RestorationIsIdleOnCleanProblems) {
     }
     {
         SqpOptions o;
-        o.tr_init = 10.0;
+        o.trust_region_initial = 10.0;
         o.common.optimality_tol = 1e-8;
         o.common.feasibility_tol = 1e-8;
         cases.push_back({7, o});
@@ -1594,7 +1588,7 @@ TEST(SqpDriverRestoration, RestorationIsIdleOnCleanProblems) {
         record_funnel_into(opts, &log);
         SqpSolver driver(opts);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_FALSE(sol.infeasibility_certified);
         EXPECT_EQ(sol.counters.restoration_iters, 0);
@@ -1640,16 +1634,15 @@ class RunawayValleyModel : public StalledValleyModel {
 TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     RunawayValleyModel model;
     SqpOptions opts;
-    opts.tr_init = 8.0;
+    opts.trust_region_initial = 8.0;
     opts.common.max_iterations = 60;
-    // THE ONCE-PER-SOLVE RULE, which this test pins, is `restoration_max_entries = 1`
+    // THE ONCE-PER-SOLVE RULE, which this test pins, is `max_restoration_entries = 1`
     // since M7 W2 RST (SqpDriverRestorationEntries covers the cap above one).
-    opts.advanced.restoration_max_entries = 1;
+    opts.advanced.max_restoration_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // The first request is serviced and the solve genuinely resumes...
     EXPECT_EQ(log.resumes.size(), 1u);
@@ -1711,7 +1704,7 @@ TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(feasibility), feasibility.start_point());
+        driver.solve(hven::detail::problem_ref(feasibility), feasibility.start_point());
 
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol.counters.major_iters, 1) << "one subproblem to price the multipliers, no more";
@@ -1722,7 +1715,7 @@ TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
     EXPECT_EQ(log.judged, 0) << "the strategy is bypassed, per Algorithm 2's ordering";
     // The multipliers the accepted zero step delivered are what certify it:
     // stationarity in the slack sp forces lambda_e = -1 = sign(cE) at x0 = 1.
-    EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).lambda_e(0), -1.0, 1e-9);
+    EXPECT_NEAR(hven::detail::engine_rows(sol).lambda_e(0), -1.0, 1e-9);
     EXPECT_LE(sol.history.back().stationarity, opts.common.optimality_tol);
 }
 
@@ -1736,8 +1729,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
     BoxBlockedEqualityModel model;
     SqpOptions opts;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);
@@ -1776,8 +1768,7 @@ TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPri
     BoxBlockedEqualityModel model;
     SqpOptions opts;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(sol.infeasibility_certified);
@@ -1787,20 +1778,18 @@ TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPri
     // INDEPENDENTLY, from the model itself at exactly the vectors this call
     // returns. A test may evaluate; a solve may not.
     const NlpEval ev = eval_nlp(model, sol.x);
-    const hven::solvers::detail::DeclaredDiagnostics d =
-        hven::solvers::detail::compute_declared_diagnostics(
-            sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-            hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev.grad, ev.Je, ev.Ji, ev.ce,
-            ev.ci, model.lower(), model.upper(), {});
+    const hven::detail::DeclaredDiagnostics d = hven::detail::compute_declared_diagnostics(
+        sol.x, hven::detail::engine_rows(sol).lambda_e, hven::detail::engine_rows(sol).lambda_i,
+        sol.z, ev.grad, ev.Je, ev.Ji, ev.ce, ev.ci, model.lower(), model.upper(), {});
     EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
-    EXPECT_NEAR(d.feasibility_e, hven::solvers::detail::engine_rows(sol).feasibility_e, 1e-9);
-    EXPECT_NEAR(d.feasibility_i, hven::solvers::detail::engine_rows(sol).feasibility_i, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::detail::engine_rows(sol).feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, hven::detail::engine_rows(sol).feasibility_i, 1e-9);
     EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
     // And the numbers themselves, hand-derived above: the price the caller gets
     // back does NOT close the declared stationarity at this point, and it must
     // not be made to look as though it does.
     EXPECT_NEAR(sol.stationarity, 1.0, 1e-6);
-    EXPECT_NEAR(hven::solvers::detail::engine_rows(sol).feasibility_e, 4.0, 1e-6);
+    EXPECT_NEAR(hven::detail::engine_rows(sol).feasibility_e, 4.0, 1e-6);
 }
 
 // THE SAME EXHAUSTION IN THE OTHER TWO MODES (W2 T4, owner ruling Q-O3): the
@@ -1813,8 +1802,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
         SqpOptions opts;
         opts.qp_mode = mode;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
@@ -1841,15 +1829,15 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
 // model from an OFF-DIAGONAL start, where the funnel's own signature never
 // fires (its conjuncts fail: the trial usually does reduce h, so (d) is false)
 // and the solve instead grinds the radius down. When the next halving would
-// cross tr_min the driver enters restoration, which then certifies -- so the
+// cross trust_region_min the driver enters restoration, which then certifies -- so the
 // floor is what turns an otherwise budget-bound grind into a verdict.
 //
 // THREE THINGS ARE ASSERTED AND THEY ARE THE WHOLE CLAIM:
 //   (1) the STRATEGY's last verdict is kReject, i.e. the funnel did NOT ask
 //       for restoration -- the floor escalated an ordinary rejection;
-//   (2) no radius ever goes below tr_min, and the last one is the smallest
+//   (2) no radius ever goes below trust_region_min, and the last one is the smallest
 //       value above it, so the floor was reached exactly and not overshot;
-//   (3) tr_min is a REAL KNOB: raising it by six orders of magnitude reaches
+//   (3) trust_region_min is a REAL KNOB: raising it by six orders of magnitude reaches
 //       the same verdict at the same point in 20 fewer majors.
 // RE-PREMISED AND RENAMED AT M7 W2 E4 FIX ROUND 2 (ruling E4-19's class; old name
 // `FloorRaisesTheRestorationRequest`), and this is the SECOND time this fixture's
@@ -1893,15 +1881,14 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
     std::vector<Run> runs{{1e-5}, {1e-2}};
 
     for (Run &run : runs) {
-        SCOPED_TRACE(fmt::format("tr_min {:g}", run.tr_min));
+        SCOPED_TRACE(fmt::format("trust_region_min {:g}", run.tr_min));
         InfeasibleCircleLineModel model(1.0, 0.0);
         SqpOptions opts;
-        opts.tr_min = run.tr_min;
+        opts.trust_region_min = run.tr_min;
         FunnelLog log;
         record_funnel_into(opts, &log);
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         run.majors = sol.counters.major_iters;
         ASSERT_FALSE(sol.history.empty());
         run.last_radius = sol.history.back().tr_radius;
@@ -1930,17 +1917,17 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
                         log.resumes.size(), run.last_radius));
 #endif
 
-        // (2) THE FLOOR HELD, AND WAS REACHED. Every radius is >= tr_min, and
+        // (2) THE FLOOR HELD, AND WAS REACHED. Every radius is >= trust_region_min, and
         // the last one is within one halving of it -- which is exactly the
         // condition the driver escalates on (the NEXT shrink would cross).
         for (const SqpIterate &h : sol.history) {
-            EXPECT_GE(h.tr_radius, opts.tr_min) << "trial " << h.trial;
+            EXPECT_GE(h.tr_radius, opts.trust_region_min) << "trial " << h.trial;
         }
 #if HVEN_TEST_ROUTE_REFERENCE
         // RE-DERIVED, AND THE SENSE IS REVERSED: the request is raised WELL ABOVE the
         // floor, because it is route (2)'s and not route (3)'s. Asserted as the
         // negation so that a grind back down to the floor fails here.
-        EXPECT_GE(run.last_radius * 0.5, opts.tr_min)
+        EXPECT_GE(run.last_radius * 0.5, opts.trust_region_min)
             << "the radius reached the floor again: route (3) is back and this fixture's "
                "original read-out can be reinstated";
         EXPECT_EQ(run.last_radius, 1.0) << "the radius never shrank at all";
@@ -1959,32 +1946,32 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         EXPECT_LE(c.selector, 1e-9);
     }
 
-    // (3) tr_min IS INERT ON THIS MODEL NOW, which is the same statement as "the
+    // (3) trust_region_min IS INERT ON THIS MODEL NOW, which is the same statement as "the
     // floor is not the trigger" read from the knob's end: three orders of magnitude
-    // of tr_min buy nothing because no halving ever happens. RE-DERIVED from
+    // of trust_region_min buy nothing because no halving ever happens. RE-DERIVED from
     // `LT`/`GT` (20 majors saved at the higher floor) to equality, so that a knob
     // that starts biting again fails here.
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_EQ(runs[1].majors, runs[0].majors) << "tr_min moved the trajectory: the floor is a "
+    EXPECT_EQ(runs[1].majors, runs[0].majors) << "trust_region_min moved the trajectory: the floor is a "
                                                  "trigger again on this model";
     EXPECT_EQ(runs[1].last_radius, runs[0].last_radius);
 #endif
     ::testing::Test::RecordProperty(
         "floor_knob",
-        fmt::format("tr_min=1e-10 -> {} majors (last delta {:.3g}); tr_min=1e-4 -> "
+        fmt::format("trust_region_min=1e-10 -> {} majors (last delta {:.3g}); trust_region_min=1e-4 -> "
                     "{} majors (last delta {:.3g})",
                     runs[0].majors, runs[0].last_radius, runs[1].majors, runs[1].last_radius));
 }
 
 // THE +inf DEGENERACY, fixed and measured against what it replaced. Task 6
-// carried this forward as a known defect: at tr_init = +inf a rejection could
+// carried this forward as a known defect: at trust_region_initial = +inf a rejection could
 // not shrink the radius (inf/2 is inf), so a solve that ever rejected rejected
 // forever. MEASURED ON THIS FIXTURE SET before the fix (Task 9's own
-// re-measurement, tr_max = 10, max_iter = 60):
+// re-measurement, trust_region_max = 10, max_iter = 60):
 //     HS1  kMaxIter, 59 of 60 trials rejected, f = 8.97 against f* = 0
 //     HS5  kMaxIter, 59 of 60 trials rejected, f = -1.02 against f* = -1.913
 //     HS7  kNumericalError after 2 majors
-// With the first shrink landing on tr_max, all three converge to their cited
+// With the first shrink landing on trust_region_max, all three converge to their cited
 // f*. The three problems that never reject (HS3/HS6/HS76) are unaffected and
 // are included to pin that: their radius stays +inf for the whole solve, which
 // is what "no trust region" is supposed to mean.
@@ -1998,12 +1985,12 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
         SCOPED_TRACE(fmt::format("HS{}", c.number));
         const HsProblem p = make_hs(c.number);
         SqpOptions opts;
-        opts.tr_init = std::numeric_limits<double>::infinity();
-        opts.tr_max = 10.0;
+        opts.trust_region_initial = std::numeric_limits<double>::infinity();
+        opts.trust_region_max = 10.0;
         opts.common.max_iterations = 60;
         SqpSolver driver(opts);
         const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6);
@@ -2015,13 +2002,13 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
         EXPECT_EQ(ever_finite, c.rejects)
             << "a solve that never rejects must never materialize a radius";
         if (c.rejects) {
-            // The FIRST finite radius is tr_max itself, never tr_max/2 and
+            // The FIRST finite radius is trust_region_max itself, never trust_region_max/2 and
             // never some other large constant.
             const auto it =
                 std::find_if(sol.history.begin(), sol.history.end(),
                              [](const SqpIterate &h) { return std::isfinite(h.tr_radius); });
             ASSERT_NE(it, sol.history.end());
-            EXPECT_DOUBLE_EQ(it->tr_radius, opts.tr_max);
+            EXPECT_DOUBLE_EQ(it->tr_radius, opts.trust_region_max);
         }
     }
 }
@@ -2031,29 +2018,29 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
 TEST(SqpDriverRadius, RejectsUnusableFloors) {
     {
         SqpOptions opts;
-        opts.tr_min = 0.0;
+        opts.trust_region_min = 0.0;
         EXPECT_THROW(SqpSolver{opts}, std::invalid_argument);
     }
     {
         SqpOptions opts;
-        opts.tr_min = -1.0;
+        opts.trust_region_min = -1.0;
         EXPECT_THROW(SqpSolver{opts}, std::invalid_argument);
     }
     {
         SqpOptions opts;
-        opts.tr_min = std::numeric_limits<double>::quiet_NaN();
+        opts.trust_region_min = std::numeric_limits<double>::quiet_NaN();
         EXPECT_THROW(SqpSolver{opts}, std::invalid_argument);
     }
     {
-        SqpOptions opts; // tr_init = 1.0
-        opts.tr_min = 2.0;
+        SqpOptions opts; // trust_region_initial = 1.0
+        opts.trust_region_min = 2.0;
         EXPECT_THROW(SqpSolver{opts}, std::invalid_argument);
     }
     {
-        SqpOptions opts; // a +inf tr_init still has to clear tr_max
-        opts.tr_init = std::numeric_limits<double>::infinity();
-        opts.tr_max = 1.0;
-        opts.tr_min = 2.0;
+        SqpOptions opts; // a +inf trust_region_initial still has to clear trust_region_max
+        opts.trust_region_initial = std::numeric_limits<double>::infinity();
+        opts.trust_region_max = 1.0;
+        opts.trust_region_min = 2.0;
         EXPECT_THROW(SqpSolver{opts}, std::invalid_argument);
     }
     { // and the default triple is admissible
@@ -2330,7 +2317,7 @@ TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
         opts.common.max_iterations = 200;
         ASSERT_TRUE(opts.advanced.qp_failure_step);
         const SqpResult sol =
-            SqpSolver(opts).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+            SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -2352,8 +2339,7 @@ TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
     opts.common.max_iterations = 200;
     opts.advanced.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // RE-PREMISED (see the family note above): 1 -> 0, the candidate is offered and
     // the guard refuses it because it no longer measures better.
@@ -2395,11 +2381,10 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
         opts.qp.independent_working_set = false;
         opts.common.max_iterations = 200;
-        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
         opts.qp_mode = mode;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         // RE-PREMISED (the family note): 1 -> 0 in all three modes. The mutation
         // evidence this pin rested on (a `qp_mode == kWalk` gate leaves the OTHER
@@ -2434,11 +2419,10 @@ TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAn
         SqpOptions opts;
         ASSERT_TRUE(opts.qp.independent_working_set);
         opts.common.max_iterations = 200;
-        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
         opts.qp_mode = mode;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -2463,11 +2447,10 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         // Scaling is what makes the ROUTE config-stable on this knife-edge
         // fixture (measured: kRestore in both configs with it, kReject in Debug
         // without); the seeding rule itself is the same at either site.
-        opts.enable_scaling = true;
+        opts.row_scaling = true;
         opts.advanced.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         // RE-PREMISED (the family note): 1 -> 0. THE SITE IS STILL THE LADDER'S
         // EXHAUSTION, which is this fixture's actual subject, and it is asserted
@@ -2507,8 +2490,7 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     opts.common.max_iterations = 200;
     opts.advanced.qp_failure_step = false; // M7 W2 R2: the pre-R2 route (see the family's note)
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // M7 W2 QC-8 (declared mover, Debug only): 0 -> 1. The implied blocker changes one of
     // this model's walk QPs under Debug's rounding, and Debug's trajectory then reaches the
@@ -2548,8 +2530,7 @@ TEST(SqpDriverRestorationSeed, AZeroElasticStepIsNotACandidate) {
         SqpOptions opts;
         opts.qp_mode = mode;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(0, seeded_rows(sol));
         // WHAT THE ZERO-STEP CHECK BUYS is not the refusal (a candidate equal to
@@ -2570,8 +2551,7 @@ TEST(SqpDriverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
     SqpOptions opts;
     opts.common.max_iterations = 60;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(0, seeded_rows(sol));
     // THE COUNT IS THE PIN: discriminating on the measured h instead of on the
@@ -2603,10 +2583,9 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
         opts.qp.independent_working_set = false;
         opts.common.max_iterations = 200;
-        opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        opts.qp.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         const bool refused_signature =
             sol.status == SolveStatus::kInfeasible && sol.infeasibility_certified &&
@@ -2672,10 +2651,9 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
 TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts;
-    opts.tr_min = 1e-5;
+    opts.trust_region_min = 1e-5;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // RE-PREMISED (the family note): 1 -> 0. The FLOOR'S OWN SIGNATURE -- a
     // kReject verdict on the requesting row, where the ladder's exhaustion writes
@@ -2726,10 +2704,9 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         opts.qp.independent_working_set = false;
         opts.common.max_iterations = 60;
         opts.qp_mode = mode;
-        opts.enable_scaling = true;
+        opts.row_scaling = true;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         // THE FIXTURE'S PREMISE, asserted rather than assumed: scaling ran and
         // the row factors are NON-UNIFORM by two orders.
@@ -2789,14 +2766,13 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     opts.advanced.equality_basis = false;
     opts.common.max_iterations = 200;
-    opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    opts.qp.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
     // The PARTITION below counts row reads; the column rule's start-point Jacobian
     // probe (default kAuto since M7 W2 SCW) is a counted query with none, pinned in
     // test_column_scaling.cpp.
     opts.column_scaling = SqpColumnScaling::kOff;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // THE TAKE SURVIVES HERE -- this is the one fixture of the family whose
     // candidate still measures better -- so the in-place upgrade still happens and
@@ -2844,15 +2820,15 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDef
     opts.qp.independent_working_set = false;
     opts.advanced.equality_basis = false;
     opts.common.max_iterations = 200;
-    opts.qp.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    opts.qp.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
     SeedCountingModel off_model(2.0, 2.0);
     SqpOptions off = opts;
     off.column_scaling = SqpColumnScaling::kOff;
-    const SqpResult a = SqpSolver(off).solve(hven::solvers::detail::problem_ref(off_model),
-                                             (off_model).start_point());
+    const SqpResult a =
+        SqpSolver(off).solve(hven::detail::problem_ref(off_model), (off_model).start_point());
     SeedCountingModel model(2.0, 2.0);
     const SqpResult b =
-        SqpSolver(opts).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_FALSE(b.scaling.columns_active) << "fixture premise: below the gate";
     // That a candidate was TAKEN is the route (see the sibling above); the probe's accounting
     // below is bookkeeping that holds with or without a take.
@@ -2889,13 +2865,12 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceUnderTheDef
 TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     StalledValleyModel model;
     SqpOptions opts;
-    opts.tr_init = 8.0; // SqpDriverRestoration.RestorationRecoversAndResumes' options
+    opts.trust_region_initial = 8.0; // SqpDriverRestoration.RestorationRecoversAndResumes' options
     opts.common.max_iterations = 60;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: exactly one RESUME";
@@ -2948,8 +2923,7 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     SqpOptions opts;
     opts.common.max_iterations = 200;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(sol.infeasibility_certified) << "fixture premise: the CERTIFIED terminal arm";
@@ -2981,14 +2955,14 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
 TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
     RunawayValleyModel model;
     SqpOptions opts;
-    opts.tr_init = 8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
+    opts.trust_region_initial =
+        8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
     opts.common.max_iterations = 60;
-    opts.advanced.restoration_max_entries = 1;
+    opts.advanced.max_restoration_entries = 1;
     FunnelLog log;
     record_funnel_into(opts, &log);
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // kNumericalError since the M7 W2 ladder round (L1): a refused request is never
     // spelled kInfeasible.
@@ -3017,7 +2991,7 @@ TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
     opts.common.max_iterations = 60;
     SqpSolver driver(opts);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.restoration_iters, 0) << "fixture premise: the phase never ran";
@@ -3068,7 +3042,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     roomy.advanced.qp_failure_step =
         false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
     const SqpResult converged =
-        SqpSolver(roomy).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        SqpSolver(roomy).solve(hven::detail::problem_ref(model), (model).start_point());
     // The fixture premise (the phase ran) is the route: asserted on the reference build; off it
     // the sub-status block is skipped, with the route recorded, when the phase did not run.
 #if HVEN_TEST_ROUTE_REFERENCE
@@ -3104,7 +3078,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     cramped.common.max_iterations = 5;
     cramped.advanced.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off =
-        SqpSolver(cramped).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        SqpSolver(cramped).solve(hven::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(cut_off.counters.restoration_entries, 1)
         << "fixture premise: the phase RAN and was measured on this budget too";
@@ -3184,10 +3158,10 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     SqpOptions refused;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     refused.advanced.equality_basis = false;
-    refused.tr_init = 8.0;
+    refused.trust_region_initial = 8.0;
     refused.common.max_iterations = 5;
-    const SqpResult never_ran = SqpSolver(refused).solve(
-        hven::solvers::detail::problem_ref(valley_refused), (valley_refused).start_point());
+    const SqpResult never_ran = SqpSolver(refused).solve(hven::detail::problem_ref(valley_refused),
+                                                         (valley_refused).start_point());
     // The fixture premises of each arm are the route: asserted on the reference build; off it
     // an arm whose premise does not hold records the route and ends the test (the arms below
     // compare against each other, so they need all three).
@@ -3222,10 +3196,10 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     SqpOptions resumed;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     resumed.advanced.equality_basis = false;
-    resumed.tr_init = 8.0;
+    resumed.trust_region_initial = 8.0;
     resumed.common.max_iterations = 10;
     const SqpResult sub_optimal = SqpSolver(resumed).solve(
-        hven::solvers::detail::problem_ref(valley_resumed), (valley_resumed).start_point());
+        hven::detail::problem_ref(valley_resumed), (valley_resumed).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(sub_optimal.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_optimal.counters.restoration_entries, 1);
@@ -3268,8 +3242,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
     // failed-subproblem step this budget ends before the request is raised.
     cramped.advanced.qp_failure_step = false;
-    const SqpResult sub_cut_off = SqpSolver(cramped).solve(
-        hven::solvers::detail::problem_ref(circle), (circle).start_point());
+    const SqpResult sub_cut_off =
+        SqpSolver(cramped).solve(hven::detail::problem_ref(circle), (circle).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
     ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
@@ -3379,8 +3353,7 @@ TEST(RestorationResumeReductionOption, ACertifyingSubSolveKeepsItsCertificate) {
     opts.common.max_iterations = 200;
     opts.advanced.restoration_resume_reduction = 0.999;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.counters.restoration_entries, 1);
     // THE PREMISE: the entry cut h below the fraction, so only the guard refuses it.
     ASSERT_LE(sol.counters.restoration_h_out, 0.999 * sol.counters.restoration_h_in);
@@ -3548,8 +3521,7 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
     opts.common.optimality_tol = kCancellationKktTol;
     opts.advanced.restoration_proximity = kCancellationZeta;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kInfeasible, sol.status);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
@@ -3609,8 +3581,7 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
     opts.advanced.qp_failure_step =
         false; // M7 W2 R2: the pre-R2 route (see the seed family's note)
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // END TO END: the REAL guard fired, on the row that raised the request.
     // RE-PREMISED (M7 W2 E4 fix round 2, ruling E4-21(b); see the seed family's note
@@ -3841,11 +3812,10 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     opts.advanced.equality_basis = false;
     opts.common.max_iterations = 60;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     opts.advanced.restoration_proximity = 0.0; // EXPLICIT: this is the field's OFF value
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // THE FIXTURE'S PREMISE: scaling RAN, and the factors are not all 1.
     ASSERT_TRUE(sol.scaling.active) << "an unscaled solve would test nothing here";
@@ -3897,10 +3867,10 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
 //   * THE REQUEST IS AT MAJOR 0, at the start point, so `x_k` is known at
 //     design time and is asserted against the S5 record rather than recovered
 //     by search.
-//   * THE OFFER IS THE REJECTED TRIAL AT THE FULL RADIUS. `tr_min` is raised to
-//     5 against a `tr_init` of 8, so the FIRST rejection crosses the floor
+//   * THE OFFER IS THE REJECTED TRIAL AT THE FULL RADIUS. `trust_region_min` is raised to
+//     5 against a `trust_region_initial` of 8, so the FIRST rejection crosses the floor
 //     (8 * kTrShrinkFactor = 4 < 5) and the radius never collapses: the
-//     candidate the guard is handed is the major-0 trial, `tr_init` away from
+//     candidate the guard is handed is the major-0 trial, `trust_region_initial` away from
 //     `x_k` in x1 and 2.06 away in x0.
 //   * THE TRIAL MEASURES BETTER AND IS STILL REFUSED, which is what makes the
 //     guard fire on it. `h` falls (1.65 -> 0.425, so the guard takes it) while
@@ -3949,7 +3919,7 @@ constexpr double kCentreWrongCentreMargin = 100.0;
 //     pred_df    = -g^T p = 8        (>= 0.999 * 1.65^2 = 2.7198: f-TYPE)
 //     actual_df  = 0 - 4088 = -4088  (< 1e-4 * 8: Eq. (11) REFUSES)
 //   so the verdict is kReject, rejections_at_iterate becomes 1, and
-//   shrink_hits_floor(8) is true because 8 * 0.5 = 4 < tr_min = 5. The floor
+//   shrink_hits_floor(8) is true because 8 * 0.5 = 4 < trust_region_min = 5. The floor
 //   site raises the request and offers the trial it just refused.
 //
 // THE RESTORATION PHASE, hand-derived the same way. The wrapper minimizes
@@ -4044,12 +4014,11 @@ TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNot
     opts.common.max_iterations = 200;
     // THE FLOOR, RAISED: this is what makes the offered candidate O(1) from the
     // requesting iterate instead of a collapsed radius away from it.
-    opts.tr_init = 8.0;
-    opts.tr_min = 5.0;
+    opts.trust_region_initial = 8.0;
+    opts.trust_region_min = 5.0;
     opts.advanced.restoration_proximity = kCentreZeta;
     SqpSolver driver(opts);
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     // THE PREMISE THAT MAKES THE TWO CENTRES DISTINGUISHABLE AT ALL: the guard
     // FIRED, so the wrapper's construction point is NOT the requesting iterate,
@@ -4087,7 +4056,7 @@ TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNot
     // proximity gradient is added back to it.
     Vec s = -sol.z;
     s += Eigen::MatrixXd(plain.eval_jac_e(sol.x)).transpose() *
-         hven::solvers::detail::engine_rows(sol).lambda_e;
+         hven::detail::engine_rows(sol).lambda_e;
     const auto wrapper_residual = [&](const Vec &centre) {
         double r = 0.0;
         for (Index i = 0; i < sol.x.size(); ++i) {
@@ -4424,7 +4393,7 @@ TEST(RestorationModelRegularized, OffIsTheWrapperThatShips) {
 }
 
 // =========================================================================
-// THE ENTRY RULE (M7 W2 RST; SqpOptions::restoration_max_entries). A later
+// THE ENTRY RULE (M7 W2 RST; SqpOptions::max_restoration_entries). A later
 // restoration request is serviced below the cap and only after the main loop
 // has accepted a step since the previous resume. RunawayValleyModel is the
 // fixture the once-per-solve rule was written for: restoration recovers a
@@ -4434,17 +4403,16 @@ TEST(RestorationModelRegularized, OffIsTheWrapperThatShips) {
 
 TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
     for (const Index cap : {Index{1}, Index{2}, Index{3}}) {
-        SCOPED_TRACE(fmt::format("restoration_max_entries = {}", cap));
+        SCOPED_TRACE(fmt::format("max_restoration_entries = {}", cap));
         RunawayValleyModel model;
         SqpOptions opts;
-        opts.tr_init = 8.0;
+        opts.trust_region_initial = 8.0;
         opts.common.max_iterations = 200;
-        opts.advanced.restoration_max_entries = cap;
+        opts.advanced.max_restoration_entries = cap;
         FunnelLog log;
         record_funnel_into(opts, &log);
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         // The first phase resumes and the loop makes progress before asking again; the
         // second request is refused at a cap of one and serviced above it. On this
         // fixture the second phase itself ends without a point inside feas_tol (its
@@ -4470,9 +4438,8 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         if (sol.status == SolveStatus::kOptimal) {
             // A kOptimal on the valley is a KKT point of the NLP, checked against the model
             // itself (the objective is not convex here, so no objective comparison).
-            const hven::solvers::test_support::NlpKktResidual chk =
-                hven::solvers::test_support::self_check_kkt(model, sol,
-                                                            opts.common.feasibility_tol);
+            const hven::test_support::NlpKktResidual chk =
+                hven::test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
             EXPECT_LE(chk.stationarity, 10.0 * opts.common.optimality_tol);
             EXPECT_LE(chk.primal, 10.0 * opts.common.feasibility_tol);
             EXPECT_LE(chk.dual_sign, 1e-9);
@@ -4526,13 +4493,13 @@ class SteepRunawayValleyModel final : public RunawayValleyModel {
 TEST(SqpDriverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItFound) {
     SteepRunawayValleyModel model;
     SqpOptions opts;
-    opts.tr_init = 8.0;
+    opts.trust_region_initial = 8.0;
     opts.common.max_iterations = 300;
-    ASSERT_EQ(opts.advanced.restoration_max_entries, 10);
+    ASSERT_EQ(opts.advanced.max_restoration_entries, 10);
     FunnelLog log;
     record_funnel_into(opts, &log);
     const SqpResult sol =
-        SqpSolver(opts).solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        SqpSolver(opts).solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.counters.restoration_entries, 2);
     ASSERT_EQ(log.resumes.size(), 2u) << "both phases resumed";
     ASSERT_EQ(log.resets.size(), 1u) << "and neither through reset()";
@@ -4549,21 +4516,23 @@ TEST(SqpDriverRestorationEntries, TheSecondResumeReBasesTheFunnelFromTheWidthItF
     EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "OBSERVED. MKL, clang++, Release.";
 }
 
-TEST(RestorationEntriesOption, RefusesFewerThanOnePhaseByNameAndValue) {
+TEST(RestorationEntriesOption, RefusesANegativeCountByNameAndValue) {
     SqpOptions o;
-    for (const Index bad : {Index{0}, Index{-1}}) {
-        o.advanced.restoration_max_entries = bad;
+    for (const Index bad : {Index{-1}, Index{-7}}) {
+        o.advanced.max_restoration_entries = bad;
         try {
             SqpSolver driver(o);
             FAIL() << "accepted " << bad;
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("restoration_max_entries"), std::string::npos)
+            EXPECT_NE(std::string(e.what()).find("max_restoration_entries"), std::string::npos)
                 << e.what();
             EXPECT_NE(std::string(e.what()).find(fmt::format("({})", bad)), std::string::npos)
                 << e.what();
         }
     }
-    o.advanced.restoration_max_entries = 1;
+    o.advanced.max_restoration_entries = 0; // the IPM's floor: 0 refuses restoration
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.advanced.max_restoration_entries = 1;
     EXPECT_NO_THROW(SqpSolver{o});
     o.advanced.restoration_curvature = static_cast<SqpRestorationCurvature>(3);
     try {
@@ -4575,18 +4544,32 @@ TEST(RestorationEntriesOption, RefusesFewerThanOnePhaseByNameAndValue) {
     }
 }
 
+TEST(SqpDriverRestorationEntries, ACapOfZeroRefusesTheFirstRequest) {
+    RunawayValleyModel model;
+    SqpOptions opts;
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 200;
+    opts.advanced.max_restoration_entries = 0;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    EXPECT_EQ(sol.counters.restoration_entries, 0);
+    EXPECT_EQ(sol.counters.restoration_iters, 0);
+    EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(driver.last_stop_reason(), SqpStopReason::kRestorationRefused);
+}
+
 TEST(RestorationEntriesOption, BothFieldsCarryADumpLineInDeclarationPosition) {
     SqpOptions o;
     o.advanced.restoration_curvature = SqpRestorationCurvature::kModel;
-    o.advanced.restoration_max_entries = 3;
+    o.advanced.max_restoration_entries = 3;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
     EXPECT_NE(text.find("restoration_curvature = kModel\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("restoration_max_entries = 3\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("max_restoration_entries = 3\n"), std::string::npos) << text;
     EXPECT_LT(text.find("qn_full_memory_max"), text.find("restoration_curvature"));
-    EXPECT_LT(text.find("restoration_curvature"), text.find("restoration_max_entries"));
-    EXPECT_LT(text.find("restoration_max_entries"), std::string::npos)
+    EXPECT_LT(text.find("restoration_curvature"), text.find("max_restoration_entries"));
+    EXPECT_LT(text.find("max_restoration_entries"), std::string::npos)
         << "the common block is first since M8 AP-2 B3";
     o.advanced.restoration_curvature = SqpRestorationCurvature::kRegularized;
     std::ostringstream os2;
@@ -4606,8 +4589,7 @@ TEST(SqpDriverRestorationCurvature, CertifiesTheSameInfeasibleNlpWithNoConstrain
         opts.common.max_iterations = 200;
         opts.advanced.restoration_curvature = curvature;
         SqpSolver driver(opts);
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
@@ -4634,7 +4616,7 @@ TEST(SqpDriverRestorationExcursion, AWorkLimitBindingInsideTheSubSolvePropagates
     opts.common.max_iterations = 200;
     opts.advanced.qp_failure_step = false;
     const auto solve = [&](const SqpOptions &o) {
-        return SqpSolver(o).solve(hven::solvers::detail::problem_ref(model), model.start_point());
+        return SqpSolver(o).solve(hven::detail::problem_ref(model), model.start_point());
     };
     const SqpResult free_run = solve(opts);
 #if HVEN_TEST_ROUTE_REFERENCE

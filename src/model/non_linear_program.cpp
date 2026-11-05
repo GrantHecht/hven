@@ -19,7 +19,7 @@
 
 #include "hven/detail/interior/utils/timer.h"
 #include "hven/detail/model/non_linear_program.h"
-#include "hven/model/indexing_data.h"
+#include "hven/model/solver_indexing_data.h"
 
 namespace {
 
@@ -48,8 +48,8 @@ int variable_bound_structure(double lower, double upper) {
 
 } // namespace
 
-void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
-                                                 const ClaimDomainCounts &counts, ClaimArena &out) {
+void hven::detail::restate_claim_stream(const RawClaimLayout &raw, const ClaimDomainCounts &counts,
+                                        ClaimArena &out) {
     // ---- What the inputs have to be before a single slot is read -----------
     //
     // Eigen's own bounds asserts are compiled out under NDEBUG, so every index
@@ -222,13 +222,12 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
     // used to be reached through a reference chosen by a conditional, which
     // forces all three to memory for the whole walk; the equality and inequality
     // segments below are separate loops for exactly that reason.
-    const int hessian_end = out.hessian_.start_ + out.hessian_.count_;
-    const int equality_end_slot = out.equality_jacobian_.start_ + out.equality_jacobian_.count_;
-    const int inequality_end_slot =
-        out.inequality_jacobian_.start_ + out.inequality_jacobian_.count_;
-    int cursor_hessian = out.hessian_.start_;
-    int cursor_equality = out.equality_jacobian_.start_;
-    int cursor_inequality = out.inequality_jacobian_.start_;
+    const int hessian_end = out.hessian_.start + out.hessian_.count;
+    const int equality_end_slot = out.equality_jacobian_.start + out.equality_jacobian_.count;
+    const int inequality_end_slot = out.inequality_jacobian_.start + out.inequality_jacobian_.count;
+    int cursor_hessian = out.hessian_.start;
+    int cursor_equality = out.equality_jacobian_.start;
+    int cursor_inequality = out.inequality_jacobian_.start;
 
     const auto refuse_overrun = [](int have, const char *domain) {
         throw std::logic_error(fmt::format(
@@ -253,9 +252,9 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
     for (int partition = 0; partition < partitions; partition++) {
         // Sampled BEFORE this partition's slots are written, which is what makes
         // the entry the offset of the run that is about to start.
-        offsets_hessian[partition] = cursor_hessian - out.hessian_.start_;
-        offsets_equality[partition] = cursor_equality - out.equality_jacobian_.start_;
-        offsets_inequality[partition] = cursor_inequality - out.inequality_jacobian_.start_;
+        offsets_hessian[partition] = cursor_hessian - out.hessian_.start;
+        offsets_equality[partition] = cursor_equality - out.equality_jacobian_.start;
+        offsets_inequality[partition] = cursor_inequality - out.inequality_jacobian_.start;
 
         const int objective_end = raw.segment_marks_[3 * partition + 1];
         const int equality_end = raw.segment_marks_[3 * partition + 2];
@@ -274,7 +273,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
                     slot, row, primal));
             }
             if (cursor_hessian >= hessian_end) {
-                refuse_overrun(out.hessian_.count_, "Hessian");
+                refuse_overrun(out.hessian_.count, "Hessian");
             }
             out_rows[cursor_hessian] = std::min(row, col);
             out_cols[cursor_hessian] = std::max(row, col);
@@ -293,7 +292,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
             const int col = cols_read[slot];
             if (row < primal) {
                 if (cursor_hessian >= hessian_end) {
-                    refuse_overrun(out.hessian_.count_, "Hessian");
+                    refuse_overrun(out.hessian_.count, "Hessian");
                 }
                 out_rows[cursor_hessian] = std::min(row, col);
                 out_cols[cursor_hessian] = std::max(row, col);
@@ -308,7 +307,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
                 refuse_band(slot, claim_row, equality_base, inequality_base, false);
             }
             if (cursor_equality >= equality_end_slot) {
-                refuse_overrun(out.equality_jacobian_.count_, "equality Jacobian");
+                refuse_overrun(out.equality_jacobian_.count, "equality Jacobian");
             }
             out_rows[cursor_equality] = claim_row;
             out_cols[cursor_equality] = col;
@@ -319,7 +318,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
             const int col = cols_read[slot];
             if (row < primal) {
                 if (cursor_hessian >= hessian_end) {
-                    refuse_overrun(out.hessian_.count_, "Hessian");
+                    refuse_overrun(out.hessian_.count, "Hessian");
                 }
                 out_rows[cursor_hessian] = std::min(row, col);
                 out_cols[cursor_hessian] = std::max(row, col);
@@ -334,7 +333,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
                 refuse_band(slot, claim_row, inequality_base, claim_dim, true);
             }
             if (cursor_inequality >= inequality_end_slot) {
-                refuse_overrun(out.inequality_jacobian_.count_, "inequality Jacobian");
+                refuse_overrun(out.inequality_jacobian_.count, "inequality Jacobian");
             }
             out_rows[cursor_inequality] = claim_row;
             out_cols[cursor_inequality] = col;
@@ -342,9 +341,9 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
         }
     }
 
-    offsets_hessian[partitions] = out.hessian_.count_;
-    offsets_equality[partitions] = out.equality_jacobian_.count_;
-    offsets_inequality[partitions] = out.inequality_jacobian_.count_;
+    offsets_hessian[partitions] = out.hessian_.count;
+    offsets_equality[partitions] = out.equality_jacobian_.count;
+    offsets_inequality[partitions] = out.inequality_jacobian_.count;
 
     // THE COUNTS ARE CHECKED IN BOTH DIRECTIONS. The per-slot guards above catch
     // a domain that overruns its run; this catches one that comes up short,
@@ -356,9 +355,9 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
             "restate_claim_stream: the laid slots classify as {0} Hessian / {1} equality Jacobian "
             "/ {2} inequality Jacobian claims, but the element counts report {3} / {4} / {5}; "
             "num_kkt_elements is not additive in its two flags at some piece of this layout",
-            cursor_hessian - out.hessian_.start_, cursor_equality - out.equality_jacobian_.start_,
-            cursor_inequality - out.inequality_jacobian_.start_, out.hessian_.count_,
-            out.equality_jacobian_.count_, out.inequality_jacobian_.count_));
+            cursor_hessian - out.hessian_.start, cursor_equality - out.equality_jacobian_.start,
+            cursor_inequality - out.inequality_jacobian_.start, out.hessian_.count,
+            out.equality_jacobian_.count, out.inequality_jacobian_.count));
     }
 
     // The objective-gradient rows, carried over verbatim -- every one of them
@@ -372,7 +371,7 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
     }
 }
 
-void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
+void hven::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     // FIRST, before anything below mutates a master list or can throw: the
     // discard just below truncates equality_constraints_, the invariant check
     // after it throws, and the bound materialization further down throws on an
@@ -447,7 +446,7 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     this->rebuild_structures();
 }
 
-void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration declaration) {
+void hven::NonLinearProgram::adopt_declaration(AssemblyDeclaration declaration) {
     // FIRST, and before a single member of this problem is written. Every
     // refusal this entry can make is the declaration's own -- the dimensions,
     // the piece sums, the bounds, and the shape of the fixing-row tail this
@@ -464,20 +463,20 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
     // nothing claims, and the defect would surface much later as a structurally
     // singular factorization with nothing pointing back here. Refused before
     // anything moves.
-    const bool has_pieces = !declaration.objectives_.empty() ||
-                            !declaration.equality_constraints_.empty() ||
-                            !declaration.inequality_constraints_.empty();
-    if (!has_pieces && (declaration.equality_rows_ != 0 || declaration.inequality_rows_ != 0)) {
+    const bool has_pieces = !declaration.objectives.empty() ||
+                            !declaration.equality_constraints.empty() ||
+                            !declaration.inequality_constraints.empty();
+    if (!has_pieces && (declaration.equality_rows != 0 || declaration.inequality_rows != 0)) {
         throw std::invalid_argument(fmt::format(
             "NonLinearProgram::adopt_declaration: the declaration carries no pieces but declares "
             "{0} equality and {1} inequality rows; this entry lays a problem out of its pieces, so "
             "those rows would be laid with nothing to claim or evaluate them. A declaration from a "
             "provider that is not a piece collection is not adoptable here",
-            declaration.equality_rows_, declaration.inequality_rows_));
+            declaration.equality_rows, declaration.inequality_rows));
     }
 
-    const int fixing_rows = declaration.fixing_rows_;
-    const int user_equality_rows = declaration.equality_rows_ - fixing_rows;
+    const int fixing_rows = declaration.fixing_rows;
+    const int user_equality_rows = declaration.equality_rows - fixing_rows;
 
     // The split runs on the DECLARATION, which is this call's own copy, and so
     // still touches nothing of the problem's. The declared internal fixing rows
@@ -489,7 +488,7 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
     // lay a row space nothing declared.
     std::vector<ConstraintFunction> internal_rows;
     if (fixing_rows > 0) {
-        auto &declared = declaration.equality_constraints_;
+        auto &declared = declaration.equality_constraints;
         const std::size_t first = declared.size() - static_cast<std::size_t>(fixing_rows);
         internal_rows.reserve(static_cast<std::size_t>(fixing_rows));
         for (std::size_t k = first; k < declared.size(); k++) {
@@ -499,7 +498,7 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
             // dimensions were edited would otherwise splice these pieces back
             // over user rows, or past the end of the row space, and scatter into
             // constraint rows that belong to something else.
-            const auto &constraint_index = declared[k].index_data_.get_c_index();
+            const auto &constraint_index = declared[k].index_data.get_c_index();
             if (constraint_index.size() != 1) {
                 throw std::invalid_argument(fmt::format(
                     "NonLinearProgram::adopt_declaration: declared internal fixing row {0} names "
@@ -508,14 +507,13 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
             }
             const int constraint_row = constraint_index(0, 0);
             if (constraint_row < user_equality_rows ||
-                constraint_row >= declaration.equality_rows_) {
+                constraint_row >= declaration.equality_rows) {
                 throw std::invalid_argument(fmt::format(
                     "NonLinearProgram::adopt_declaration: declared internal fixing row {0} writes "
                     "equality row {1}, outside the [{2}, {3}) band the declaration's {4} fixing "
                     "rows occupy; a treatment appends its rows after every row a transcription "
                     "declared",
-                    k, constraint_row, user_equality_rows, declaration.equality_rows_,
-                    fixing_rows));
+                    k, constraint_row, user_equality_rows, declaration.equality_rows, fixing_rows));
             }
             internal_rows.push_back(std::move(declared[k]));
         }
@@ -538,9 +536,9 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
     // ever moves.
     this->declaration_generation_++;
 
-    this->objectives_ = std::move(declaration.objectives_);
-    this->equality_constraints_ = std::move(declaration.equality_constraints_);
-    this->inequality_constraints_ = std::move(declaration.inequality_constraints_);
+    this->objectives_ = std::move(declaration.objectives);
+    this->equality_constraints_ = std::move(declaration.equality_constraints);
+    this->inequality_constraints_ = std::move(declaration.inequality_constraints);
     this->internal_fixed_cons_ = 0;
     this->user_equal_cons_ = 0;
     this->equal_cons_ = 0;
@@ -550,15 +548,15 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
     // is what keeps the bound conjunct of the structural key equal across the
     // round trip.
     this->clear_variable_bounds();
-    for (const VariableBound &bound : declaration.variable_bounds_) {
-        this->set_variable_bound(bound.index_, bound.lower_, bound.upper_);
+    for (const VariableBound &bound : declaration.variable_bounds) {
+        this->set_variable_bound(bound.index, bound.lower, bound.upper);
     }
 
     // A REQUEST. make_nlp's cap may bring it down, and declaration() then
     // reports the count that was adopted.
-    this->num_partitions_ = declaration.partition_count_;
+    this->num_partitions_ = declaration.partition_count;
 
-    this->make_nlp(declaration.primal_vars_, user_equality_rows, declaration.inequality_rows_);
+    this->make_nlp(declaration.primal_vars, user_equality_rows, declaration.inequality_rows);
 
     if (fixing_rows > 0) {
         // The same chain the treatment runs after its own install: the set of
@@ -570,7 +568,7 @@ void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration decl
     }
 }
 
-void hven::solvers::NonLinearProgram::rebuild_structures() {
+void hven::NonLinearProgram::rebuild_structures() {
     // THE ONE ROUTINE THAT RE-LAYS, and therefore the one place a structural
     // event is recorded. Every path that changes the assembled claim structure
     // -- a (re)transcription, either treatment path that eliminates or restores
@@ -653,13 +651,12 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     this->bump_structure_epoch();
 }
 
-hven::solvers::NonLinearProgram::ClaimStamp
-hven::solvers::NonLinearProgram::current_claim_stamp() const {
+hven::NonLinearProgram::ClaimStamp hven::NonLinearProgram::current_claim_stamp() const {
     return ClaimStamp{this->declaration_generation_, this->num_user_kkt_elems_,
                       this->num_pgx_elems_, this->laid_partition_count_};
 }
 
-void hven::solvers::NonLinearProgram::maintain_claim_stream() {
+void hven::NonLinearProgram::maintain_claim_stream() {
     const ClaimStamp current = this->current_claim_stamp();
 
     // THE RETAIN PATH, and the definition of an elimination-only re-lay: the
@@ -694,7 +691,7 @@ void hven::solvers::NonLinearProgram::maintain_claim_stream() {
     this->claim_stream_epoch_.bump();
 }
 
-bool hven::solvers::NonLinearProgram::master_lists_hold_an_unlaid_piece() const {
+bool hven::NonLinearProgram::master_lists_hold_an_unlaid_piece() const {
     // A piece a lay partitioned carries the lay marker; a piece a caller wrote
     // into a master list afterwards does not, because the marker is set only by
     // the lay and is cleared on every copy handed out as declaration data. That
@@ -721,7 +718,7 @@ bool hven::solvers::NonLinearProgram::master_lists_hold_an_unlaid_piece() const 
            any_unlaid(this->inequality_constraints_);
 }
 
-void hven::solvers::NonLinearProgram::restate_claim_stream() {
+void hven::NonLinearProgram::restate_claim_stream() {
     const detail::RawClaimLayout raw{
         this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
         this->kkt_coeff_cols_.head(this->num_user_kkt_elems_),
@@ -748,7 +745,7 @@ void hven::solvers::NonLinearProgram::restate_claim_stream() {
     this->claim_arena_.swap(this->claim_arena_spare_);
 }
 
-void hven::solvers::NonLinearProgram::drop_claim_stream() {
+void hven::NonLinearProgram::drop_claim_stream() {
     const bool was_published = this->claim_stream_valid_;
     this->claim_arena_.clear();
     this->claim_stream_valid_ = false;
@@ -758,7 +755,7 @@ void hven::solvers::NonLinearProgram::drop_claim_stream() {
     }
 }
 
-void hven::solvers::NonLinearProgram::require_claim_stream() const {
+void hven::NonLinearProgram::require_claim_stream() const {
     // TWO CONJUNCTS, and the second is not redundant: the flag records the
     // DECISION and the arena records the STORAGE, and a state where they
     // disagree is one no accessor should serve views out of. Cheap enough to
@@ -794,8 +791,7 @@ void hven::solvers::NonLinearProgram::require_claim_stream() const {
         this->primal_vars_ - this->reduced_primal_vars_count_, this->primal_vars_));
 }
 
-hven::solvers::ClaimStreamDimensions
-hven::solvers::NonLinearProgram::claim_stream_dimensions() const {
+hven::ClaimStreamDimensions hven::NonLinearProgram::claim_stream_dimensions() const {
     // THROUGH THE SAME GUARD AS THE VIEWS, and for the same reason: widths for a
     // stream that is not published would be a statement about nothing. The
     // arena's own accessor answers an empty arena with zeros; this one refuses
@@ -804,56 +800,54 @@ hven::solvers::NonLinearProgram::claim_stream_dimensions() const {
     return this->claim_arena_.claim_stream_dimensions();
 }
 
-Eigen::Ref<const Eigen::VectorXi> hven::solvers::NonLinearProgram::kkt_claim_rows() const {
+Eigen::Ref<const Eigen::VectorXi> hven::NonLinearProgram::kkt_claim_rows() const {
     this->require_claim_stream();
     return this->claim_arena_.rows();
 }
 
-Eigen::Ref<const Eigen::VectorXi> hven::solvers::NonLinearProgram::kkt_claim_cols() const {
+Eigen::Ref<const Eigen::VectorXi> hven::NonLinearProgram::kkt_claim_cols() const {
     this->require_claim_stream();
     return this->claim_arena_.cols();
 }
 
-Eigen::Ref<const Eigen::VectorXi>
-hven::solvers::NonLinearProgram::objective_gradient_claim_rows() const {
+Eigen::Ref<const Eigen::VectorXi> hven::NonLinearProgram::objective_gradient_claim_rows() const {
     this->require_claim_stream();
     return this->claim_arena_.gradient_rows();
 }
 
-hven::solvers::ClaimBlock hven::solvers::NonLinearProgram::hessian_claims() const {
+hven::ClaimBlock hven::NonLinearProgram::hessian_claims() const {
     this->require_claim_stream();
     return this->claim_arena_.hessian();
 }
 
-hven::solvers::ClaimBlock hven::solvers::NonLinearProgram::equality_jacobian_claims() const {
+hven::ClaimBlock hven::NonLinearProgram::equality_jacobian_claims() const {
     this->require_claim_stream();
     return this->claim_arena_.equality_jacobian();
 }
 
-hven::solvers::ClaimBlock hven::solvers::NonLinearProgram::inequality_jacobian_claims() const {
+hven::ClaimBlock hven::NonLinearProgram::inequality_jacobian_claims() const {
     this->require_claim_stream();
     return this->claim_arena_.inequality_jacobian();
 }
 
-Eigen::Ref<const Eigen::VectorXi>
-hven::solvers::NonLinearProgram::hessian_claim_partition_offsets() const {
+Eigen::Ref<const Eigen::VectorXi> hven::NonLinearProgram::hessian_claim_partition_offsets() const {
     this->require_claim_stream();
     return this->claim_arena_.hessian_offsets();
 }
 
 Eigen::Ref<const Eigen::VectorXi>
-hven::solvers::NonLinearProgram::equality_jacobian_claim_partition_offsets() const {
+hven::NonLinearProgram::equality_jacobian_claim_partition_offsets() const {
     this->require_claim_stream();
     return this->claim_arena_.equality_offsets();
 }
 
 Eigen::Ref<const Eigen::VectorXi>
-hven::solvers::NonLinearProgram::inequality_jacobian_claim_partition_offsets() const {
+hven::NonLinearProgram::inequality_jacobian_claim_partition_offsets() const {
     this->require_claim_stream();
     return this->claim_arena_.inequality_offsets();
 }
 
-void hven::solvers::NonLinearProgram::freeze_laid_thread_modes() {
+void hven::NonLinearProgram::freeze_laid_thread_modes() {
     freeze_thread_modes(this->objectives_);
     freeze_thread_modes(this->equality_constraints_);
     freeze_thread_modes(this->inequality_constraints_);
@@ -874,18 +868,18 @@ void hven::solvers::NonLinearProgram::freeze_laid_thread_modes() {
     }
 }
 
-void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
-    this->declaration_.primal_vars_ = this->primal_vars_;
-    this->declaration_.equality_rows_ = this->equal_cons_;
-    this->declaration_.inequality_rows_ = this->inequal_cons_;
-    this->declaration_.partition_count_ = this->num_partitions_;
+void hven::NonLinearProgram::capture_laid_dimensions() {
+    this->declaration_.primal_vars = this->primal_vars_;
+    this->declaration_.equality_rows = this->equal_cons_;
+    this->declaration_.inequality_rows = this->inequal_cons_;
+    this->declaration_.partition_count = this->num_partitions_;
 
     // How many of those equality rows are the internal ones a fixed-variable
     // treatment appended. Written HERE and nowhere else: a declaration that
     // carries its own fixing-row count is self-describing, so the adoption
     // entry subtracts a property of the declaration rather than of whichever
     // problem happens to receive it.
-    this->declaration_.fixing_rows_ = this->equal_cons_ - this->user_equal_cons_;
+    this->declaration_.fixing_rows = this->equal_cons_ - this->user_equal_cons_;
 
     // The sizes the deferred piece copy will be checked against. Captured here,
     // with the other scalars, because here is where "as laid" is decided.
@@ -934,7 +928,7 @@ void hven::solvers::NonLinearProgram::capture_laid_dimensions() {
 // over half-replaced arrays. The next read re-derives it, and
 // require_master_lists_unmoved() refuses that read if the master lists moved in
 // the meantime.
-void hven::solvers::NonLinearProgram::invalidate_laid_state() {
+void hven::NonLinearProgram::invalidate_laid_state() {
     this->declaration_bounds_pending_ = true;
     this->declaration_pieces_pending_ = true;
     this->claim_digest_pending_ = true;
@@ -946,15 +940,15 @@ void hven::solvers::NonLinearProgram::invalidate_laid_state() {
     // holding a reference to EMPTY rather than stale, so a retained reference
     // cannot be mistaken for a live one. clear() keeps the capacity, so the
     // next materialization refills the same buffers.
-    this->declaration_.objectives_.clear();
-    this->declaration_.equality_constraints_.clear();
-    this->declaration_.inequality_constraints_.clear();
-    this->declaration_.variable_bounds_.clear();
+    this->declaration_.objectives.clear();
+    this->declaration_.equality_constraints.clear();
+    this->declaration_.inequality_constraints.clear();
+    this->declaration_.variable_bounds.clear();
     this->claim_digest_ = 0;
     this->bound_digest_ = 0;
 }
 
-void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
+void hven::NonLinearProgram::materialize_declaration_bounds() const {
     if (!this->declaration_bounds_pending_) {
         return;
     }
@@ -963,18 +957,18 @@ void hven::solvers::NonLinearProgram::materialize_declaration_bounds() const {
     // since the last materialization describes a problem these structures were
     // not laid for: folding it in here would move the structural key of a layout
     // nothing re-laid.
-    this->declaration_.variable_bounds_.clear();
-    this->declaration_.variable_bounds_.reserve(this->laid_variable_bounds_.size());
+    this->declaration_.variable_bounds.clear();
+    this->declaration_.variable_bounds.reserve(this->laid_variable_bounds_.size());
     for (const auto &stage : this->laid_variable_bounds_) {
-        this->declaration_.variable_bounds_.push_back(
+        this->declaration_.variable_bounds.push_back(
             VariableBound{stage.index_, stage.lower_, stage.upper_});
     }
 
     this->declaration_bounds_pending_ = false;
 }
 
-int hven::solvers::NonLinearProgram::shared_row_overcount(
-    const std::vector<ConstraintFunction> &pieces, int declared_rows, const char *which) {
+int hven::NonLinearProgram::shared_row_overcount(const std::vector<ConstraintFunction> &pieces,
+                                                 int declared_rows, const char *which) {
     // At 64 bits and narrowed once, checked -- the same discipline the
     // declaration's own piece sum uses, and for the same reason: an unchecked
     // narrowing would wrap into an excess the validation then balances against,
@@ -1006,14 +1000,14 @@ int hven::solvers::NonLinearProgram::shared_row_overcount(
     return static_cast<int>(overcount);
 }
 
-void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
+void hven::NonLinearProgram::materialize_declaration_pieces() const {
     if (!this->declaration_pieces_pending_) {
         return;
     }
 
-    this->declaration_.objectives_ = this->objectives_;
-    this->declaration_.equality_constraints_ = this->equality_constraints_;
-    this->declaration_.inequality_constraints_ = this->inequality_constraints_;
+    this->declaration_.objectives = this->objectives_;
+    this->declaration_.equality_constraints = this->equality_constraints_;
+    this->declaration_.inequality_constraints = this->inequality_constraints_;
 
     // THE ROUND TRIP'S OTHER HALF. capture_laid_dimensions wrote the row
     // SPACES; the excess the pieces claim over them is a fact about the pieces
@@ -1024,11 +1018,11 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     // declaration in the first place. Computed once per lay -- this whole
     // routine runs only on the first read after one -- so the evaluation path
     // that reaches declaration() pays nothing for it.
-    this->declaration_.equality_shared_row_overcount_ = shared_row_overcount(
-        this->declaration_.equality_constraints_, this->declaration_.equality_rows_, "equality");
-    this->declaration_.inequality_shared_row_overcount_ =
-        shared_row_overcount(this->declaration_.inequality_constraints_,
-                             this->declaration_.inequality_rows_, "inequality");
+    this->declaration_.equality_shared_row_overcount = shared_row_overcount(
+        this->declaration_.equality_constraints, this->declaration_.equality_rows, "equality");
+    this->declaration_.inequality_shared_row_overcount =
+        shared_row_overcount(this->declaration_.inequality_constraints,
+                             this->declaration_.inequality_rows, "inequality");
 
     // COPIES rather than views because an AssemblyDeclaration is a value over
     // its pieces -- which is what makes a layout a pure function of the
@@ -1038,14 +1032,14 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
     // declaration: that is the one route a consumer has to change one, by
     // re-declaring and adopting. The pieces the layout itself holds stay
     // frozen; only these copies are thawed.
-    thaw_thread_modes(this->declaration_.objectives_);
-    thaw_thread_modes(this->declaration_.equality_constraints_);
-    thaw_thread_modes(this->declaration_.inequality_constraints_);
+    thaw_thread_modes(this->declaration_.objectives);
+    thaw_thread_modes(this->declaration_.equality_constraints);
+    thaw_thread_modes(this->declaration_.inequality_constraints);
 
     this->declaration_pieces_pending_ = false;
 }
 
-void hven::solvers::NonLinearProgram::require_master_lists_unmoved() const {
+void hven::NonLinearProgram::require_master_lists_unmoved() const {
     // Nothing to disagree with before the first lay: the pieces a front end has
     // pushed have not been laid over yet, and declaration() reports the empty
     // declaration there by design.
@@ -1075,7 +1069,7 @@ void hven::solvers::NonLinearProgram::require_master_lists_unmoved() const {
           this->laid_inequality_pieces_);
 }
 
-std::uint64_t hven::solvers::NonLinearProgram::claim_digest() const {
+std::uint64_t hven::NonLinearProgram::claim_digest() const {
     if (this->claim_digest_pending_) {
         this->claim_digest_ = claim_stream_digest(
             this->declaration_, this->kkt_coeff_rows_.head(this->num_user_kkt_elems_),
@@ -1085,7 +1079,7 @@ std::uint64_t hven::solvers::NonLinearProgram::claim_digest() const {
     return this->claim_digest_;
 }
 
-std::uint64_t hven::solvers::NonLinearProgram::bound_digest() const {
+std::uint64_t hven::NonLinearProgram::bound_digest() const {
     if (this->bound_digest_pending_) {
         // The bound conjunct is taken over the declaration's records, so the
         // one part of the declaration it needs is materialized first. The
@@ -1099,7 +1093,7 @@ std::uint64_t hven::solvers::NonLinearProgram::bound_digest() const {
     return this->bound_digest_;
 }
 
-void hven::solvers::NonLinearProgram::publish_location_tables() {
+void hven::NonLinearProgram::publish_location_tables() {
     // Views over the arrays every scatter already addresses. The KKT table's
     // clash marks are published over the whole kkt_clashes_ array: a slot's
     // canonical column is min(row, col), which for a Jacobian element is its
@@ -1118,7 +1112,7 @@ void hven::solvers::NonLinearProgram::publish_location_tables() {
     this->icon_table_ = RhsLocationTable(rhs_rows + this->icon_data_start_, this->num_icon_elems_);
 }
 
-int hven::solvers::NonLinearProgram::negotiate_partition_count(int requested) {
+int hven::NonLinearProgram::negotiate_partition_count(int requested) {
     // Refused, not clamped. Capping a request the work cannot support is this
     // method's job and is reported honestly through the return value; a request
     // for zero or fewer partitions names no partitioning at all, and quietly
@@ -1151,12 +1145,12 @@ int hven::solvers::NonLinearProgram::negotiate_partition_count(int requested) {
     return this->num_partitions_;
 }
 
-void hven::solvers::NonLinearProgram::refresh_function_partitions() {
+void hven::NonLinearProgram::refresh_function_partitions() {
     this->count_elems();
     this->analyze_partitioning();
 }
 
-void hven::solvers::NonLinearProgram::install_fixed_variable_rows() {
+void hven::NonLinearProgram::install_fixed_variable_rows() {
     const int count = static_cast<int>(this->fixed_idx_.size());
 
     // Built into a local first, spliced onto the master list only once every row
@@ -1183,8 +1177,7 @@ void hven::solvers::NonLinearProgram::install_fixed_variable_rows() {
     this->splice_fixed_variable_rows(std::move(rows));
 }
 
-void hven::solvers::NonLinearProgram::splice_fixed_variable_rows(
-    std::vector<ConstraintFunction> rows) {
+void hven::NonLinearProgram::splice_fixed_variable_rows(std::vector<ConstraintFunction> rows) {
     const int count = static_cast<int>(rows.size());
     const std::size_t before = this->equality_constraints_.size();
     try {
@@ -1210,7 +1203,7 @@ void hven::solvers::NonLinearProgram::splice_fixed_variable_rows(
     this->declaration_generation_++;
 }
 
-void hven::solvers::NonLinearProgram::discard_fixed_variable_rows() {
+void hven::NonLinearProgram::discard_fixed_variable_rows() {
     if (this->internal_fixed_cons_ <= 0) {
         return;
     }
@@ -1233,10 +1226,10 @@ void hven::solvers::NonLinearProgram::discard_fixed_variable_rows() {
     this->declaration_generation_++;
 }
 
-void hven::solvers::NonLinearProgram::clear_function_output_maps() {
+void hven::NonLinearProgram::clear_function_output_maps() {
     auto clear_all = [](auto &funcs) {
         for (auto &func : funcs) {
-            func.index_data_.clear_output_v_index();
+            func.index_data.clear_output_v_index();
         }
     };
     for (int i = 0; i < static_cast<int>(this->part_obj_.size()); i++) {
@@ -1250,12 +1243,12 @@ void hven::solvers::NonLinearProgram::clear_function_output_maps() {
     }
 }
 
-void hven::solvers::NonLinearProgram::install_function_output_maps() {
+void hven::NonLinearProgram::install_function_output_maps() {
     // Always regenerated from the pristine input map, never edited in place, so
     // repeated configuration cannot compound a previous remapping.
     auto install = [&](auto &funcs) {
         for (auto &func : funcs) {
-            const Eigen::MatrixXi &v_in = func.index_data_.get_v_index();
+            const Eigen::MatrixXi &v_in = func.index_data.get_v_index();
             Eigen::MatrixXi v_out(v_in.rows(), v_in.cols());
             for (int col = 0; col < v_in.cols(); col++) {
                 for (int row = 0; row < v_in.rows(); row++) {
@@ -1269,7 +1262,7 @@ void hven::solvers::NonLinearProgram::install_function_output_maps() {
                     v_out(row, col) = this->full_to_reduced_[global];
                 }
             }
-            func.index_data_.set_output_v_index(v_out);
+            func.index_data.set_output_v_index(v_out);
         }
     };
     for (int i = 0; i < static_cast<int>(this->part_obj_.size()); i++) {
@@ -1283,8 +1276,8 @@ void hven::solvers::NonLinearProgram::install_function_output_maps() {
     }
 }
 
-bool hven::solvers::NonLinearProgram::update_variable_bound_values(
-    ConstEigenRef<VectorXd> declared_lower, ConstEigenRef<VectorXd> declared_upper) {
+bool hven::NonLinearProgram::update_variable_bound_values(ConstEigenRef<VectorXd> declared_lower,
+                                                          ConstEigenRef<VectorXd> declared_upper) {
     const int n = this->primal_vars_;
     if (this->x_lower_.size() != n || this->x_upper_.size() != n) {
         throw std::invalid_argument(
@@ -1396,7 +1389,7 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(
     return true;
 }
 
-void hven::solvers::NonLinearProgram::materialize_variable_bounds() {
+void hven::NonLinearProgram::materialize_variable_bounds() {
     constexpr double kInf = std::numeric_limits<double>::infinity();
 
     // Any re-materialization invalidates a previous classification, whether the
@@ -1458,7 +1451,7 @@ void hven::solvers::NonLinearProgram::materialize_variable_bounds() {
     this->laid_variable_bounds_ = this->staged_variable_bounds_;
 }
 
-void hven::solvers::NonLinearProgram::count_elems() {
+void hven::NonLinearProgram::count_elems() {
     int nkkt = 0;
 
     int npgx = 0;
@@ -1512,7 +1505,7 @@ void hven::solvers::NonLinearProgram::count_elems() {
     this->claim_domain_counts_ = detail::ClaimDomainCounts{nhess, neqjac, niqjac};
 }
 
-void hven::solvers::NonLinearProgram::analyze_partitioning() {
+void hven::NonLinearProgram::analyze_partitioning() {
     // Loops over the master list of objectives and constraints and assigns
     // them to num_partitions_ work partitions. Each partition's work is
     // dispatched as a single task to the global thread pool.
@@ -1529,11 +1522,11 @@ void hven::solvers::NonLinearProgram::analyze_partitioning() {
     auto analyzeOP = [&](auto &SourceFuncs, auto &TargetPartFuncs) {
         for (auto &func : SourceFuncs) {
             if (func.get_thread_mode() ==
-                ThreadingFlags::MainThread) { // Force to last partition — parallel_sequence runs
-                                              // the last index inline on the calling thread, so
-                                              // MainThread functions stay safe.
+                ThreadingFlags::kMainThread) { // Force to last partition — parallel_sequence runs
+                                               // the last index inline on the calling thread, so
+                                               // MainThread functions stay safe.
                 TargetPartFuncs.back().push_back(func);
-            } else if (func.get_thread_mode() == ThreadingFlags::RoundRobin) {
+            } else if (func.get_thread_mode() == ThreadingFlags::kRoundRobin) {
                 TargetPartFuncs[rrPart].push_back(func);
                 rrPart++;
                 if (rrPart > (this->num_partitions_ - 1))
@@ -1557,7 +1550,7 @@ void hven::solvers::NonLinearProgram::analyze_partitioning() {
     analyzeOP(this->inequality_constraints_, this->part_iq_);
 }
 
-void hven::solvers::NonLinearProgram::get_mat_space() {
+void hven::NonLinearProgram::get_mat_space() {
     // Loops over all constraints and objectives on each partition and has each
     // claim its own portion of kkt_coeff_cols_/kkt_coeff_rows_, tagging each
     // element with the partition that will operate on it; from that, calculates
@@ -1567,7 +1560,7 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     // Canonical-column locking protocol: every KKT scatter site
     // (DenseFunctionBase::kkt_fill_all and ::kkt_fill_hess) locks each
     // element's mutex on the slot's canonical column --
-    // hven::solvers::kkt_canonical_lock_col(row, col), the smaller endpoint,
+    // hven::kkt_canonical_lock_col(row, col), the smaller endpoint,
     // which is the same endpoint analyze_sparsity stores the physical slot
     // under. The clash detection below marks contested columns with that SAME
     // shared keying function, so cross-partition claimants of one physical slot
@@ -1610,14 +1603,14 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     const int iqoffset = this->reduced_primal_vars_count_ + this->slack_vars_ + this->equal_cons_;
 
     auto claim = [&](auto &pieces, ClaimDomainSet domains, int row_offset) {
-        space.domains_ = domains;
-        space.constraint_row_offset_ = row_offset;
+        space.domains = domains;
+        space.constraint_row_offset = row_offset;
         const bool jacobian = domains.contains(ClaimDomain::kEqualityJacobian) ||
                               domains.contains(ClaimDomain::kInequalityJacobian);
         const bool hessian = domains.contains(ClaimDomain::kHessian);
         for (auto &piece : pieces) {
-            piece.get_kkt_space(space.rows_, space.cols_, space.next_free_,
-                                space.constraint_row_offset_, jacobian, hessian);
+            piece.get_kkt_space(space.rows, space.cols, space.next_free,
+                                space.constraint_row_offset, jacobian, hessian);
         }
     };
 
@@ -1639,21 +1632,21 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     this->mark_shared_constraint_rows();
 
     for (int i = 0; i < this->num_partitions_; i++) {
-        int kkstart = space.next_free_;
+        int kkstart = space.next_free;
         this->claim_segment_marks_[3 * i] = kkstart;
 
         claim(this->part_obj_[i], objective_domains, 0);
-        this->claim_segment_marks_[3 * i + 1] = space.next_free_;
+        this->claim_segment_marks_[3 * i + 1] = space.next_free;
         claim(this->part_eq_[i], equality_domains, eqoffset);
-        this->claim_segment_marks_[3 * i + 2] = space.next_free_;
+        this->claim_segment_marks_[3 * i + 2] = space.next_free;
         claim(this->part_iq_[i], inequality_domains, iqoffset);
 
-        int kklen = space.next_free_ - kkstart;
+        int kklen = space.next_free - kkstart;
 
         this->kkt_coeff_part_ids_.segment(kkstart, kklen).setConstant(i);
     }
 
-    this->claim_segment_marks_[3 * this->num_partitions_] = space.next_free_;
+    this->claim_segment_marks_[3 * this->num_partitions_] = space.next_free;
 
     // Mark a KKT column contested iff >= 2 partitions write a slot whose CANONICAL column
     // (kkt_canonical_lock_col(row, col), the smaller endpoint) is that column -- the same
@@ -1693,7 +1686,7 @@ void hven::solvers::NonLinearProgram::get_mat_space() {
     this->kkt_locks_.swap(kktemp);
 }
 
-void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
+void hven::NonLinearProgram::mark_shared_constraint_rows() {
     // THE JACOBIAN HALF OF THE LOCK PROTOCOL. A Jacobian entry (row, variable)
     // is written by every application that names both, and two such
     // applications in DIFFERENT partitions write one double concurrently. That
@@ -1712,7 +1705,7 @@ void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
         if (this->num_partitions_ <= 1) {
             for (auto &part : parts) {
                 for (auto &func : part) {
-                    func.index_data_.unique_constraints_ = true;
+                    func.index_data.unique_constraints = true;
                 }
             }
             return;
@@ -1732,9 +1725,9 @@ void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
         };
         for (int p = 0; p < static_cast<int>(parts.size()); p++) {
             for (const auto &func : parts[p]) {
-                const SolverIndexingData &data = func.index_data_;
+                const SolverIndexingData &data = func.index_data;
                 for (int V = 0; V < data.num_appl(); V++) {
-                    for (int j = 0; j < data.output_size_; j++) {
+                    for (int j = 0; j < data.output_size; j++) {
                         int &o = owner[row_at(data, j, V)];
                         if (o == kUnowned) {
                             o = p;
@@ -1747,17 +1740,17 @@ void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
         }
         for (auto &part : parts) {
             for (auto &func : part) {
-                SolverIndexingData &data = func.index_data_;
+                SolverIndexingData &data = func.index_data;
                 bool shared = false;
                 for (int V = 0; V < data.num_appl() && !shared; V++) {
-                    for (int j = 0; j < data.output_size_; j++) {
+                    for (int j = 0; j < data.output_size; j++) {
                         if (owner[row_at(data, j, V)] == kShared) {
                             shared = true;
                             break;
                         }
                     }
                 }
-                data.unique_constraints_ = !shared;
+                data.unique_constraints = !shared;
             }
         }
     };
@@ -1765,7 +1758,7 @@ void hven::solvers::NonLinearProgram::mark_shared_constraint_rows() {
     mark(this->part_iq_, this->inequal_cons_, "inequality");
 }
 
-void hven::solvers::NonLinearProgram::get_rhs_space() {
+void hven::NonLinearProgram::get_rhs_space() {
     int PGXfreeloc = 0;
     int AGXfreeloc = 0;
     int FXEfreeloc = 0;
@@ -1786,7 +1779,7 @@ void hven::solvers::NonLinearProgram::get_rhs_space() {
     }
 }
 
-void hven::solvers::NonLinearProgram::set_mat_dimensions() {
+void hven::NonLinearProgram::set_mat_dimensions() {
     // Sized over the space the solver actually factorizes: the full variable
     // space until a configuration eliminates bound-fixed variables from it.
     this->kkt_dim_ = this->reduced_primal_vars_count_ + this->slack_vars_ + this->equal_cons_ +
@@ -1818,7 +1811,7 @@ void hven::solvers::NonLinearProgram::set_mat_dimensions() {
     this->solver_coeffs_ = Eigen::VectorXd::Constant(this->num_solver_kkt_elems_, 0);
 }
 
-void hven::solvers::NonLinearProgram::set_rhs_dimensions() {
+void hven::NonLinearProgram::set_rhs_dimensions() {
     this->num_rhs_elems_ =
         this->num_pgx_elems_ + this->num_agx_elems_ + this->num_econ_elems_ + this->num_icon_elems_;
 
@@ -1831,7 +1824,7 @@ void hven::solvers::NonLinearProgram::set_rhs_dimensions() {
     this->rhs_coeff_rows_ = Eigen::VectorXi::Constant(this->num_rhs_elems_, -1);
 }
 
-void hven::solvers::NonLinearProgram::finalize_data() {
+void hven::NonLinearProgram::finalize_data() {
     // Solver-owned elements sit at fixed offsets in the space being factorized,
     // so every offset here counts from the solver's primal width.
     const int pv = this->reduced_primal_vars_count_;
@@ -1858,7 +1851,7 @@ void hven::solvers::NonLinearProgram::finalize_data() {
     }
 }
 
-void hven::solvers::NonLinearProgram::analyze_sparsity(
+void hven::NonLinearProgram::analyze_sparsity(
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // IpmSolver requires that only the upper triangular part of a CSR
     // matrix be filled. get_mat_space calculates the non-zeros of the lower
@@ -1908,7 +1901,7 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
             kktvec[i] = Eigen::Triplet<double>(std::min(row, col), std::max(row, col), 1.0);
         }
     };
-    hven::utils::parallel_blocks(this->num_kkt_elems_, TripFillOP, this->num_partitions_);
+    hven::detail::parallel_blocks(this->num_kkt_elems_, TripFillOP, this->num_partitions_);
 
     KKTmat.setFromTriplets(kktvec.begin(), kktvec.end());
     KKTmat.makeCompressed();
@@ -1939,7 +1932,7 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
         }
     };
 
-    hven::utils::parallel_blocks(this->num_kkt_elems_, FindOP, this->num_partitions_);
+    hven::detail::parallel_blocks(this->num_kkt_elems_, FindOP, this->num_partitions_);
 
     // kkt_locations_ now holds offsets into THIS matrix's value array and no
     // other's. The address of that array is captured HERE, as a VALUE, after
@@ -1956,8 +1949,8 @@ void hven::solvers::NonLinearProgram::analyze_sparsity(
     this->analyzed_kkt_matrix_ = &KKTmat;
 }
 
-bool hven::solvers::NonLinearProgram::configure_variable_treatment(FixedVariableTreatment treatment,
-                                                                   double bound_relax_factor) {
+bool hven::NonLinearProgram::configure_variable_treatment(FixedVariableTreatment treatment,
+                                                          double bound_relax_factor) {
 
     // Written as a switch with no default label, like
     // fixed_variable_treatment_name, so that adding a treatment to the enum makes
@@ -2347,8 +2340,8 @@ bool hven::solvers::NonLinearProgram::configure_variable_treatment(FixedVariable
     return true;
 }
 
-void hven::solvers::NonLinearProgram::gather_reduced_x(ConstEigenRef<VectorXd> x_full,
-                                                       EigenRef<VectorXd> x_reduced) const {
+void hven::NonLinearProgram::gather_reduced_x(ConstEigenRef<VectorXd> x_full,
+                                              EigenRef<VectorXd> x_reduced) const {
     if (x_full.size() != this->primal_vars_ ||
         x_reduced.size() != this->reduced_primal_vars_count_) {
         throw std::invalid_argument(fmt::format(
@@ -2365,8 +2358,8 @@ void hven::solvers::NonLinearProgram::gather_reduced_x(ConstEigenRef<VectorXd> x
     }
 }
 
-void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_reduced,
-                                                     EigenRef<VectorXd> x_full) const {
+void hven::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_reduced,
+                                            EigenRef<VectorXd> x_full) const {
     if (x_full.size() != this->primal_vars_ ||
         x_reduced.size() != this->reduced_primal_vars_count_) {
         throw std::invalid_argument(fmt::format(
@@ -2400,11 +2393,9 @@ void hven::solvers::NonLinearProgram::scatter_full_x(ConstEigenRef<VectorXd> x_r
 //
 // A pass evaluates nothing its entry does not.
 
-void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
-                                                           ConstEigenRef<VectorXd> Xf,
-                                                           ConstEigenRef<VectorXd> LE,
-                                                           ConstEigenRef<VectorXd> LI,
-                                                           double &val) {
+void hven::NonLinearProgram::first_order_rhs_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                                  ConstEigenRef<VectorXd> LE,
+                                                  ConstEigenRef<VectorXd> LI, double &val) {
     ++evaluation_tally_.objective;
     ++evaluation_tally_.gradient;
     ++evaluation_tally_.constraints;
@@ -2423,13 +2414,14 @@ void hven::solvers::NonLinearProgram::first_order_rhs_pass(double ObjScale,
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, RHSevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, RHSevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::objective_gradient_constraints_pass(
-    double ObjScale, ConstEigenRef<VectorXd> Xf, double &val) {
+void hven::NonLinearProgram::objective_gradient_constraints_pass(double ObjScale,
+                                                                 ConstEigenRef<VectorXd> Xf,
+                                                                 double &val) {
     ++evaluation_tally_.objective;
     ++evaluation_tally_.gradient;
     ++evaluation_tally_.constraints;
@@ -2447,14 +2439,13 @@ void hven::solvers::NonLinearProgram::objective_gradient_constraints_pass(
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, OGCevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, OGCevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::objective_constraints_pass(double ObjScale,
-                                                                 ConstEigenRef<VectorXd> Xf,
-                                                                 double &val) {
+void hven::NonLinearProgram::objective_constraints_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                                        double &val) {
     ++evaluation_tally_.objective;
     ++evaluation_tally_.constraints;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
@@ -2471,13 +2462,13 @@ void hven::solvers::NonLinearProgram::objective_constraints_pass(double ObjScale
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, OGCevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, OGCevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
-                                                     double &val) {
+void hven::NonLinearProgram::objective_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                            double &val) {
     ++evaluation_tally_.objective;
     this->vals_scratch_.assign(this->num_partitions_, 0.0);
 
@@ -2488,14 +2479,15 @@ void hven::solvers::NonLinearProgram::objective_pass(double ObjScale, ConstEigen
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, OGCevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, OGCevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::full_kkt_pass(
-    double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::NonLinearProgram::full_kkt_pass(double ObjScale, ConstEigenRef<VectorXd> Xf,
+                                           ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                           double &val,
+                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     ++evaluation_tally_.objective;
     ++evaluation_tally_.gradient;
     ++evaluation_tally_.constraints;
@@ -2522,12 +2514,12 @@ void hven::solvers::NonLinearProgram::full_kkt_pass(
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, KKTevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, KKTevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
 
-void hven::solvers::NonLinearProgram::constraint_kkt_pass(
+void hven::NonLinearProgram::constraint_kkt_pass(
     ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     ++evaluation_tally_.constraints;
@@ -2546,10 +2538,10 @@ void hven::solvers::NonLinearProgram::constraint_kkt_pass(
                 this->kkt_clashes_, this->kkt_locks_);
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, KKTevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, KKTevalOP);
 }
 
-void hven::solvers::NonLinearProgram::constraint_jacobian_pass(
+void hven::NonLinearProgram::constraint_jacobian_pass(
     ConstEigenRef<VectorXd> Xf, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     ++evaluation_tally_.constraints;
     ++evaluation_tally_.jacobian;
@@ -2564,10 +2556,10 @@ void hven::solvers::NonLinearProgram::constraint_jacobian_pass(
                                      this->kkt_clashes_, this->kkt_locks_);
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, SOEevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, SOEevalOP);
 }
 
-void hven::solvers::NonLinearProgram::first_order_kkt_pass(
+void hven::NonLinearProgram::first_order_kkt_pass(
     double ObjScale, ConstEigenRef<VectorXd> Xf, ConstEigenRef<VectorXd> LE,
     ConstEigenRef<VectorXd> LI, double &val, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     ++evaluation_tally_.objective;
@@ -2592,7 +2584,7 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
         this->vals_scratch_[thrnum] = localVal;
     };
 
-    hven::utils::parallel_sequence(this->num_partitions_, SOEevalOP);
+    hven::detail::parallel_sequence(this->num_partitions_, SOEevalOP);
     for (int i = 0; i < this->num_partitions_; i++)
         val += this->vals_scratch_[i];
 }
@@ -2607,42 +2599,39 @@ void hven::solvers::NonLinearProgram::first_order_kkt_pass(
 // is why eliminated variables' contributions to constraint values and to the
 // surviving variables' derivatives need no handling of their own.
 
-void hven::solvers::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
-                                               ConstEigenRef<VectorXd> LE,
-                                               ConstEigenRef<VectorXd> LI, double &val,
-                                               EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-                                               EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
+void hven::NonLinearProgram::eval_rhs(double ObjScale, ConstEigenRef<VectorXd> X,
+                                      ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                      double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+                                      EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
     this->first_order_rhs_pass(ObjScale, this->primal_view(X), LE, LI, val);
     this->fill_rhs(PGX, AGX, FXE, FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_ogc(double ObjScale, ConstEigenRef<VectorXd> X,
-                                               double &val, EigenRef<VectorXd> PGX,
-                                               EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
+void hven::NonLinearProgram::eval_ogc(double ObjScale, ConstEigenRef<VectorXd> X, double &val,
+                                      EigenRef<VectorXd> PGX, EigenRef<VectorXd> FXE,
+                                      EigenRef<VectorXd> FXI) {
     this->objective_gradient_constraints_pass(ObjScale, this->primal_view(X), val);
     this->fill_pgx(PGX);
     this->fill_fxe(FXE);
     this->fill_fxi(FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_occ(double ObjScale, ConstEigenRef<VectorXd> X,
-                                               double &val, EigenRef<VectorXd> FXE,
-                                               EigenRef<VectorXd> FXI) {
+void hven::NonLinearProgram::eval_occ(double ObjScale, ConstEigenRef<VectorXd> X, double &val,
+                                      EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI) {
     this->objective_constraints_pass(ObjScale, this->primal_view(X), val);
     this->fill_fxe(FXE);
     this->fill_fxi(FXI);
 }
 
-void hven::solvers::NonLinearProgram::eval_obj(double ObjScale, ConstEigenRef<VectorXd> X,
-                                               double &val) {
+void hven::NonLinearProgram::eval_obj(double ObjScale, ConstEigenRef<VectorXd> X, double &val) {
     this->objective_pass(ObjScale, this->primal_view(X), val);
 }
 
-void hven::solvers::NonLinearProgram::eval_kkt(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::NonLinearProgram::eval_kkt(double ObjScale, ConstEigenRef<VectorXd> X,
+                                      ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                      double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+                                      EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->full_kkt_pass(ObjScale, this->primal_view(X), LE, LI, val, KKTmat);
 
     // NOTE: fill_solver_coeffs internally calls parallel_blocks, creating a nested
@@ -2650,16 +2639,17 @@ void hven::solvers::NonLinearProgram::eval_kkt(
     // thread (not a pool worker), so the pool absorbs all tasks without deadlock, and
     // (2) fill_rhs and fill_solver_coeffs operate on disjoint data (RHS vectors vs. KKT
     // matrix entries), so concurrent execution requires no synchronization.
-    hven::utils::parallel_task(
+    hven::detail::parallel_task(
         this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
-void hven::solvers::NonLinearProgram::eval_kkt_no(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::NonLinearProgram::eval_kkt_no(double ObjScale, ConstEigenRef<VectorXd> X,
+                                         ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                         double &val, EigenRef<VectorXd> PGX,
+                                         EigenRef<VectorXd> AGX, EigenRef<VectorXd> FXE,
+                                         EigenRef<VectorXd> FXI,
+                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // No-objective mode: ObjScale and val are unused but kept in the signature
     // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
     (void)ObjScale;
@@ -2668,16 +2658,16 @@ void hven::solvers::NonLinearProgram::eval_kkt_no(
     this->constraint_kkt_pass(this->primal_view(X), LE, LI, KKTmat);
 
     // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
-    hven::utils::parallel_task(
+    hven::detail::parallel_task(
         this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
-void hven::solvers::NonLinearProgram::eval_soe(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::NonLinearProgram::eval_soe(double ObjScale, ConstEigenRef<VectorXd> X,
+                                      ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                      double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+                                      EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // Constraint-only mode: ObjScale and val are unused but kept in the signature
     // for API consistency with eval_kkt/eval_aug (polymorphic dispatch via evalNLP).
     (void)ObjScale;
@@ -2686,26 +2676,26 @@ void hven::solvers::NonLinearProgram::eval_soe(
     this->constraint_jacobian_pass(this->primal_view(X), KKTmat);
 
     // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
-    hven::utils::parallel_task(
+    hven::detail::parallel_task(
         this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
-void hven::solvers::NonLinearProgram::eval_aug(
-    double ObjScale, ConstEigenRef<VectorXd> X, ConstEigenRef<VectorXd> LE,
-    ConstEigenRef<VectorXd> LI, double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
-    EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::NonLinearProgram::eval_aug(double ObjScale, ConstEigenRef<VectorXd> X,
+                                      ConstEigenRef<VectorXd> LE, ConstEigenRef<VectorXd> LI,
+                                      double &val, EigenRef<VectorXd> PGX, EigenRef<VectorXd> AGX,
+                                      EigenRef<VectorXd> FXE, EigenRef<VectorXd> FXI,
+                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->first_order_kkt_pass(ObjScale, this->primal_view(X), LE, LI, val, KKTmat);
 
     // NOTE: nested dispatch from inline arm — see comment in eval_kkt.
-    hven::utils::parallel_task(
+    hven::detail::parallel_task(
         this->num_partitions_, [&] { this->fill_rhs(PGX, AGX, FXE, FXI); },
         [&] { this->fill_solver_coeffs(KKTmat); });
 }
 
-Eigen::Ref<const hven::solvers::NonLinearProgram::VectorXd>
-hven::solvers::NonLinearProgram::declaration_view(ConstEigenRef<VectorXd> x) {
+Eigen::Ref<const hven::NonLinearProgram::VectorXd>
+hven::NonLinearProgram::declaration_view(ConstEigenRef<VectorXd> x) {
     if (!this->fixed_reduction_active_) {
         return x;
     }
@@ -2726,8 +2716,8 @@ namespace {
 /// location table IS the engine's own row table for that arena, so this is the
 /// same fill the eval_ entries do, into storage the consumer published instead
 /// of a vector it passed.
-inline Eigen::Map<Eigen::VectorXd> arena_vector(const hven::solvers::RhsArenaView &arena) {
-    return Eigen::Map<Eigen::VectorXd>(arena.values_, arena.size_);
+inline Eigen::Map<Eigen::VectorXd> arena_vector(const hven::RhsArenaView &arena) {
+    return Eigen::Map<Eigen::VectorXd>(arena.values, arena.size);
 }
 
 /// The provider's half of the destination checks, for the arenas the entry can
@@ -2743,14 +2733,13 @@ inline Eigen::Map<Eigen::VectorXd> arena_vector(const hven::solvers::RhsArenaVie
 ///
 /// One comparison per named arena, at this hook's entry, before anything is
 /// evaluated.
-void require_laid_width(const hven::solvers::RhsArenaView &view, int laid_width,
-                        const char *arena) {
-    if (view.size_ != laid_width) {
+void require_laid_width(const hven::RhsArenaView &view, int laid_width, const char *arena) {
+    if (view.size != laid_width) {
         throw std::invalid_argument(fmt::format(
             "assemble: the {0} arena's view is {1} rows, but this provider laid its {0} over {2} "
             "rows. Claims scatter through the published table by row, so a view of any other "
             "length is addressed off its end.",
-            arena, view.size_, laid_width));
+            arena, view.size, laid_width));
     }
 }
 
@@ -2775,8 +2764,8 @@ namespace {
 ///
 /// @param request the shape to name.
 /// @return the enumerator's spelling.
-const char *refused_shape_name(hven::solvers::EvalRequest request) {
-    using namespace hven::solvers;
+const char *refused_shape_name(hven::EvalRequest request) {
+    using namespace hven;
     if (request == kRequestObjectiveOnly) {
         return "kRequestObjectiveOnly";
     }
@@ -2815,9 +2804,8 @@ const char *refused_shape_name(hven::solvers::EvalRequest request) {
 
 } // namespace
 
-void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
-                                                    EvalRequest request, KktScatterView kkt,
-                                                    RhsScatterView rhs) {
+void hven::NonLinearProgram::assemble_impl(const CandidatePoint &point, EvalRequest request,
+                                           KktScatterView kkt, RhsScatterView rhs) {
     // The laid-width half of the destination checks, which is this provider's
     // to make: the entry established that a named gradient arena HAS storage
     // and a table, and could establish no more than that, because the width
@@ -2828,11 +2816,11 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     // this provider's is read -- which is what require_laid_width's own
     // contract says it is for.
     if (has_request(request, EvalRequest::kObjectiveGradient)) {
-        require_laid_width(rhs.objective_gradient_, this->reduced_primal_vars_count_,
+        require_laid_width(rhs.objective_gradient, this->reduced_primal_vars_count_,
                            "objective gradient");
     }
     if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        require_laid_width(rhs.constraint_adjoint_gradient_, this->reduced_primal_vars_count_,
+        require_laid_width(rhs.constraint_adjoint_gradient, this->reduced_primal_vars_count_,
                            "constraint adjoint gradient");
     }
 
@@ -2862,8 +2850,8 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     // now. The identity check itself deliberately never comes through here.
     Eigen::SparseMatrix<double, Eigen::RowMajor> *mat = this->analyzed_kkt_matrix_;
 
-    const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x_);
-    const double scale = point.objective_scale_;
+    const Eigen::Ref<const VectorXd> Xf = this->declaration_view(point.x);
+    const double scale = point.objective_scale;
 
     // The eight interior-owned shapes, in the mapping table's order. Every arm
     // runs exactly the pass its legacy counterpart ran and fills exactly the
@@ -2874,23 +2862,23 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     // served the full-KKT pass for any legal-but-unsupported shape -- silent
     // over-evaluation, the defect class the refusal exists to prevent.
     if (request == kRequestObjectiveOnly) {
-        this->objective_pass(scale, Xf, *rhs.objective_);
+        this->objective_pass(scale, Xf, *rhs.objective);
     } else if (request == kRequestObjectiveAndConstraints) {
-        this->objective_constraints_pass(scale, Xf, *rhs.objective_);
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->objective_constraints_pass(scale, Xf, *rhs.objective);
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestObjectiveGradientAndConstraints) {
-        this->objective_gradient_constraints_pass(scale, Xf, *rhs.objective_);
-        this->fill_pgx(arena_vector(rhs.objective_gradient_));
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->objective_gradient_constraints_pass(scale, Xf, *rhs.objective);
+        this->fill_pgx(arena_vector(rhs.objective_gradient));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestFirstOrderRhs) {
-        this->first_order_rhs_pass(scale, Xf, point.equality_multipliers_,
-                                   point.inequality_multipliers_, *rhs.objective_);
-        this->fill_pgx(arena_vector(rhs.objective_gradient_));
-        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->first_order_rhs_pass(scale, Xf, point.equality_multipliers,
+                                   point.inequality_multipliers, *rhs.objective);
+        this->fill_pgx(arena_vector(rhs.objective_gradient));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestConstraintResidualsAndJacobian) {
         this->constraint_jacobian_pass(Xf, *mat);
         // Neither gradient arena is filled. The legacy shape passed both
@@ -2898,30 +2886,30 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
         // no objective piece runs, and the Jacobian entry produces no adjoint
         // gradient at all -- so declining to write them is observationally
         // identical, which is what lets the request leave them empty.
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestFirstOrderKkt) {
-        this->first_order_kkt_pass(scale, Xf, point.equality_multipliers_,
-                                   point.inequality_multipliers_, *rhs.objective_, *mat);
-        this->fill_pgx(arena_vector(rhs.objective_gradient_));
-        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->first_order_kkt_pass(scale, Xf, point.equality_multipliers,
+                                   point.inequality_multipliers, *rhs.objective, *mat);
+        this->fill_pgx(arena_vector(rhs.objective_gradient));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestConstraintKkt) {
-        this->constraint_kkt_pass(Xf, point.equality_multipliers_, point.inequality_multipliers_,
+        this->constraint_kkt_pass(Xf, point.equality_multipliers, point.inequality_multipliers,
                                   *mat);
         // The objective gradient arena is the identically-zero one here; the
         // adjoint gradient this shape genuinely produces.
-        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else if (request == kRequestFullKkt) {
-        this->full_kkt_pass(scale, Xf, point.equality_multipliers_, point.inequality_multipliers_,
-                            *rhs.objective_, *mat);
-        this->fill_pgx(arena_vector(rhs.objective_gradient_));
-        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient_));
-        this->fill_fxe(arena_vector(rhs.equality_residuals_));
-        this->fill_fxi(arena_vector(rhs.inequality_residuals_));
+        this->full_kkt_pass(scale, Xf, point.equality_multipliers, point.inequality_multipliers,
+                            *rhs.objective, *mat);
+        this->fill_pgx(arena_vector(rhs.objective_gradient));
+        this->fill_agx(arena_vector(rhs.constraint_adjoint_gradient));
+        this->fill_fxe(arena_vector(rhs.equality_residuals));
+        this->fill_fxi(arena_vector(rhs.inequality_residuals));
     } else {
         // request is legal (assemble() validated it) but not one of this
         // provider's eight shapes -- rows 9-11 are the SQP driver's, served by
@@ -2957,44 +2945,43 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     static_cast<void>(kkt);
 }
 
-void hven::solvers::NonLinearProgram::evaluate_candidate_values_impl(const CandidatePoint &point,
-                                                                     CandidateValues out) {
+void hven::NonLinearProgram::evaluate_candidate_values_impl(const CandidatePoint &point,
+                                                            CandidateValues out) {
     // ASSIGNS, per the candidate surface's own discipline: the caller holds a
     // scratch buffer and wants the values at a point, not a running sum. The
     // pass accumulates into the provider's own claim slots, as it always does;
     // the caller's blocks are zeroed here and then filled, so what they hold on
     // return is this evaluation and nothing else.
     double objective = 0.0;
-    this->objective_constraints_pass(point.objective_scale_, this->declaration_view(point.x_),
+    this->objective_constraints_pass(point.objective_scale, this->declaration_view(point.x),
                                      objective);
-    out.objective_ = objective;
+    out.objective = objective;
 
-    out.equality_residuals_.setZero();
-    out.inequality_residuals_.setZero();
-    this->fill_fxe(out.equality_residuals_);
-    this->fill_fxi(out.inequality_residuals_);
+    out.equality_residuals.setZero();
+    out.inequality_residuals.setZero();
+    this->fill_fxe(out.equality_residuals);
+    this->fill_fxi(out.inequality_residuals);
 }
 
-void hven::solvers::NonLinearProgram::evaluate_candidate_first_order_impl(
-    const CandidatePoint &point, CandidateFirstOrder out) {
+void hven::NonLinearProgram::evaluate_candidate_first_order_impl(const CandidatePoint &point,
+                                                                 CandidateFirstOrder out) {
     double objective = 0.0;
-    this->first_order_rhs_pass(point.objective_scale_, this->declaration_view(point.x_),
-                               point.equality_multipliers_, point.inequality_multipliers_,
-                               objective);
-    out.values_.objective_ = objective;
+    this->first_order_rhs_pass(point.objective_scale, this->declaration_view(point.x),
+                               point.equality_multipliers, point.inequality_multipliers, objective);
+    out.values.objective = objective;
 
-    out.values_.equality_residuals_.setZero();
-    out.values_.inequality_residuals_.setZero();
-    this->fill_fxe(out.values_.equality_residuals_);
-    this->fill_fxi(out.values_.inequality_residuals_);
+    out.values.equality_residuals.setZero();
+    out.values.inequality_residuals.setZero();
+    this->fill_fxe(out.values.equality_residuals);
+    this->fill_fxi(out.values.inequality_residuals);
 
-    out.objective_gradient_.setZero();
-    out.constraint_adjoint_gradient_.setZero();
+    out.objective_gradient.setZero();
+    out.constraint_adjoint_gradient.setZero();
     if (!this->fixed_reduction_active_) {
         // The solver's primal space IS the declared one, so the fills write the
         // caller's blocks directly.
-        this->fill_pgx(out.objective_gradient_);
-        this->fill_agx(out.constraint_adjoint_gradient_);
+        this->fill_pgx(out.objective_gradient);
+        this->fill_agx(out.constraint_adjoint_gradient);
         return;
     }
 
@@ -3015,18 +3002,18 @@ void hven::solvers::NonLinearProgram::evaluate_candidate_first_order_impl(
     this->candidate_gradient_scratch_.setZero();
     this->fill_pgx(this->candidate_gradient_scratch_);
     for (int i = 0; i < reduced; i++) {
-        out.objective_gradient_[this->reduced_to_full_[i]] = this->candidate_gradient_scratch_[i];
+        out.objective_gradient[this->reduced_to_full_[i]] = this->candidate_gradient_scratch_[i];
     }
 
     this->candidate_gradient_scratch_.setZero();
     this->fill_agx(this->candidate_gradient_scratch_);
     for (int i = 0; i < reduced; i++) {
-        out.constraint_adjoint_gradient_[this->reduced_to_full_[i]] =
+        out.constraint_adjoint_gradient[this->reduced_to_full_[i]] =
             this->candidate_gradient_scratch_[i];
     }
 }
 
-hven::solvers::IdentityProbe hven::solvers::NonLinearProgram::probe_identity(ConstVecRef x) {
+hven::IdentityProbe hven::NonLinearProgram::probe_identity(ConstVecRef x) {
     // A values evaluation plus a hash, routed through the public entry so it
     // inherits that entry's validation rather than repeating it.
     this->probe_equality_scratch_.setZero(this->equal_cons_);
@@ -3041,9 +3028,9 @@ hven::solvers::IdentityProbe hven::solvers::NonLinearProgram::probe_identity(Con
     return IdentityProbe{this->structure_epoch(), candidate_value_digest(values)};
 }
 
-void hven::solvers::NonLinearProgram::nlp_test(const Eigen::VectorXd &x, int n,
-                                               std::shared_ptr<NonLinearProgram> nlp1,
-                                               std::shared_ptr<NonLinearProgram> nlp2) {
+void hven::NonLinearProgram::nlp_test(const Eigen::VectorXd &x, int n,
+                                      std::shared_ptr<NonLinearProgram> nlp1,
+                                      std::shared_ptr<NonLinearProgram> nlp2) {
     using std::cout;
     using std::endl;
 
@@ -3087,11 +3074,11 @@ void hven::solvers::NonLinearProgram::nlp_test(const Eigen::VectorXd &x, int n,
     double v1 = 0;
     double v2 = 0;
 
-    hven::utils::Timer t1;
-    hven::utils::Timer t2;
+    hven::detail::Timer t1;
+    hven::detail::Timer t2;
 
-    hven::utils::Timer t3;
-    hven::utils::Timer t4;
+    hven::detail::Timer t3;
+    hven::detail::Timer t4;
 
     cout << nlp1->kkt_locations_.minCoeff() << endl;
     // nlp2->kkt_clashes_.setConstant(-1);

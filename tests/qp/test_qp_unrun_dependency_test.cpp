@@ -26,13 +26,13 @@
 
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
+using Record = hven::detail::testing::QpWalkMinorRecord;
 
 // ===========================================================================
 // A 4-variable synthetic whose FIRST pass reaches the add site with no factor, and whose
@@ -85,9 +85,9 @@ class QpE2Fix7Unrun : public ::testing::TestWithParam<WorkingSetLinearAlgebra> {
 TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
     const QpProblem qp = unrun_synthetic();
     QpOptions o;
-    o.ws_algebra = GetParam();
+    o.working_set_algebra = GetParam();
     o.independent_working_set = true;
-    o.max_iter = 100;
+    o.max_iterations = 100;
 
     Obs::reset();
     Obs::active = true;
@@ -190,7 +190,7 @@ void expect_acopr118(const char *file, WorkingSetLinearAlgebra alg, double f_ref
     EXPECT_NE(d.result.find("status=3"), std::string::npos);
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
 
     Obs::reset();
@@ -336,9 +336,9 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
     for (const bool independent : {true, false}) {
         SCOPED_TRACE(independent ? "independent_working_set" : "option off");
         QpOptions o;
-        o.ws_algebra = GetParam();
+        o.working_set_algebra = GetParam();
         o.independent_working_set = independent;
-        o.max_iter = 500;
+        o.max_iterations = 500;
         Obs::reset();
         Obs::active = true;
         const QpEngine engine(o);

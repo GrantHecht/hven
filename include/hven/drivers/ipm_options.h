@@ -32,7 +32,7 @@
 #include <hven/drivers/ipm_enums.h>
 #include <hven/linear/dense_policy.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The KKT factorization's settings.
 struct IpmLinearOptions {
@@ -111,12 +111,12 @@ struct IpmTerminationOptions {
 /// combinations of the first nine.
 struct IpmAdvancedOptions {
     /// Default `kFilter`, which `validate()` requires to run above
-    /// `BarrierGovernorKind::kMonitored` unless `never_monotone` is set.
-    AcceptanceKind acceptance_strategy = AcceptanceKind::kFilter;
-    /// Read only under `AcceptanceKind::kMerit`. Default `kWmno`.
-    MeritPenaltyRule merit_penalty_rule = MeritPenaltyRule::kWmno;
+    /// `BarrierGovernorMode::kMonitored` unless `never_monotone` is set.
+    AcceptanceMode acceptance_mode = AcceptanceMode::kFilter;
+    /// Read only under `AcceptanceMode::kMerit`. Default `kSinglePenalty`.
+    MeritPenaltyRule merit_penalty_rule = MeritPenaltyRule::kSinglePenalty;
     /// Default `kMonitored`.
-    BarrierGovernorKind barrier_governor = BarrierGovernorKind::kMonitored;
+    BarrierGovernorMode barrier_governor_mode = BarrierGovernorMode::kMonitored;
     /// Accept a funnel or filter test over `kClassicAdaptive` without the
     /// monotone safeguard. Contradicts `kMonitored`, which `validate()` refuses.
     /// Default false.
@@ -130,32 +130,33 @@ struct IpmAdvancedOptions {
     Index max_second_order_corrections = 0;
     /// Further backtracking trials on the same direction once the classic
     /// ladder rejects and SOC is exhausted. Default 0 (off). Must be >= 0.
-    Index line_search_extended_backtracks = 0;
+    Index max_extended_backtracks = 0;
     /// The watchdog (Chamberlain, Powell, Lemarechal and Pedersen 1982).
     /// Default false.
     bool watchdog = false;
 
     /// Restoration entries allowed per phase. Default 2. Must be >= 0; 0
     /// refuses restoration.
-    Index restoration_max_entries = 2;
+    Index max_restoration_entries = 2;
     /// Classic backtracking trials per rejected step. Default 2. Must be >= 0.
-    Index line_search_max_backtracks = 2;
+    Index max_line_search_backtracks = 2;
     /// The divisor applied to the step on each backtrack. Default 2. Must be
     /// finite and > 1.
     double backtrack_divisor = 2.0;
 
-    /// The algorithm mode of an `IpmPhase::kSolve` phase. Default `kSoe`.
-    AlgorithmMode solve_phase_mode = AlgorithmMode::kSoe;
+    /// What an `IpmPhase::kSolve` phase iterates on. Default `kSolveEquations`.
+    SolvePhaseMode solve_phase_mode = SolvePhaseMode::kSolveEquations;
     /// Barrier update in the optimality phase. Default `kLoqo`.
     BarrierMode optimize_barrier_mode = BarrierMode::kLoqo;
     /// Barrier update in the feasibility phase. Default `kLoqo`.
     BarrierMode solve_barrier_mode = BarrierMode::kLoqo;
-    /// Merit function in the optimality phase. Default `kAugLang`.
-    LineSearchMode optimize_line_search_mode = LineSearchMode::kAugLang;
-    /// Merit function in the feasibility phase. Default `kNoLs`.
-    LineSearchMode solve_line_search_mode = LineSearchMode::kNoLs;
-    /// Default `kPrimSlackEqSplitIq`.
-    PrimalDualStepStrategy primal_dual_step_strategy = PrimalDualStepStrategy::kPrimSlackEqSplitIq;
+    /// Merit function in the optimality phase. Default `kAugmentedLagrangian`.
+    LineSearchMode optimize_line_search_mode = LineSearchMode::kAugmentedLagrangian;
+    /// Merit function in the feasibility phase. Default `kNone`.
+    LineSearchMode solve_line_search_mode = LineSearchMode::kNone;
+    /// Default `kEqualityMultipliersPrimal`.
+    PrimalDualStepStrategy primal_dual_step_strategy =
+        PrimalDualStepStrategy::kEqualityMultipliersPrimal;
 
     /// The inertia correction's first Hessian shift. Default 1e-5. Must be
     /// finite and > 0.
@@ -166,7 +167,7 @@ struct IpmAdvancedOptions {
     double inertia_correction_decrease = 0.333333;
     /// Correction attempts per factorization. Default 15. Must be >= 0; 0
     /// disables the ladder.
-    Index inertia_correction_max_attempts = 15;
+    Index max_inertia_correction_attempts = 15;
     /// Skip the unperturbed factorization attempt, past iteration 6 and on 3 of
     /// every 4 iterations, while the last four iterations all needed Hessian
     /// perturbation. Saves a factorization known to fail on a persistently
@@ -195,12 +196,12 @@ struct IpmOptions {
     IpmTerminationOptions termination;
 
     /// Initial barrier parameter. Default 1e-3. Must lie in
-    /// [`min_barrier`, `max_barrier`].
-    double initial_barrier = 1.0e-3;
+    /// [`barrier_min`, `barrier_max`].
+    double barrier_initial = 1.0e-3;
     /// Default 100. Must be finite and > 0.
-    double max_barrier = 100.0;
-    /// Default 1e-12. Must be finite, > 0 and <= `max_barrier`.
-    double min_barrier = 1.0e-12;
+    double barrier_max = 100.0;
+    /// Default 1e-12. Must be finite, > 0 and <= `barrier_max`.
+    double barrier_min = 1.0e-12;
 
     /// Fraction-to-boundary factor. Default 0.99. Must be in (0, 1).
     double fraction_to_boundary = 0.99;
@@ -226,11 +227,11 @@ struct IpmOptions {
     double objective_scale = 1.0;
 
     /// Return the best-scoring iterate seen instead of the last, scored by
-    /// `best_criterion`, except on an interrupted exit, which returns the point
+    /// `best_iterate_criterion`, except on an interrupted exit, which returns the point
     /// the callback was shown. Default false.
     bool return_best = false;
     /// Default `kEquality`.
-    BestIterateCriterion best_criterion = BestIterateCriterion::kEquality;
+    BestIterateCriterion best_iterate_criterion = BestIterateCriterion::kEquality;
 
     /// Wide console table layout. Default false.
     bool wide_console = false;
@@ -251,7 +252,7 @@ inline double effective_complementarity_tol(const IpmOptions &o) noexcept {
 /// @brief Validates a whole IpmOptions value.
 ///
 /// Every per-field condition stated on the fields above, the cross-field
-/// orderings (`min_barrier <= initial_barrier <= max_barrier`; each convergence
+/// orderings (`barrier_min <= barrier_initial <= barrier_max`; each convergence
 /// tolerance <= its acceptable tolerance <= its divergence tolerance), the two
 /// governor guards (`kFunnel`/`kFilter` over `kClassicAdaptive` without
 /// `never_monotone`; `never_monotone` with `kMonitored`), every enum in range,
@@ -262,7 +263,7 @@ void validate(const IpmOptions &o);
 
 /// @brief Returns a default IpmOptions with a named globalization preset applied.
 ///
-/// Assigns exactly the first nine `advanced` fields (acceptance_strategy through
+/// Assigns exactly the first nine `advanced` fields (acceptance_mode through
 /// watchdog) and leaves every other field at its default.
 ///
 /// @throws std::invalid_argument, listing every valid name, if `name` is unknown.
@@ -290,4 +291,4 @@ void dump_options(const IpmOptions &o, std::ostream &os);
 ///        silent output. Every other field is carried through untouched.
 IpmOptions ipm_worker_options(IpmOptions base);
 
-} // namespace hven::solvers
+} // namespace hven

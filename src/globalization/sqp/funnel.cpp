@@ -13,7 +13,7 @@
 
 #include <hven/detail/globalization/sqp/globalization.h>
 
-namespace hven::solvers {
+namespace hven {
 
 void FunnelStrategy::reset(double h0) {
     if (!(h0 >= 0.0) || !std::isfinite(h0)) { // the !(>=) form also catches NaN
@@ -121,4 +121,4 @@ void FunnelStrategy::resume_from_restoration(double h_restored) {
     full_step_ = false;
 }
 
-} // namespace hven::solvers
+} // namespace hven

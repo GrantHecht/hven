@@ -82,7 +82,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 constexpr double kDepTol = 1e-6;
 constexpr double kDepUndecidable = 1e-3;
@@ -361,4 +361,4 @@ struct RankRepair {
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
                        const QpOptions &opts, int threads, double block_cap = kRankBlockCap);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

@@ -273,7 +273,7 @@
 
 #include "support/scale_problems.h"
 
-namespace hven::solvers::snopt_bridge {
+namespace hven::snopt_bridge {
 
 // SNOPT's default Infinite bound size (guide section 7.3, p.63). Identical to
 // parametric_families.h's kParamInf, which is what makes the box transcription
@@ -901,4 +901,4 @@ class SnoptF7Driver {
     long long stop_calls_ = 0;
 };
 
-} // namespace hven::solvers::snopt_bridge
+} // namespace hven::snopt_bridge

@@ -18,7 +18,7 @@
 
 #include "hven/model/nlp.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 class CountingNlp final : public Nlp {
   public:
@@ -74,4 +74,4 @@ class CountingNlp final : public Nlp {
     mutable Tally tally_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

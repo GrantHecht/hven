@@ -15,9 +15,9 @@
 #include "hven/core/solver_status.h"
 #include "hven/core/types.h"
 
-namespace hven::solvers {
+namespace hven {
 
-// This header defines no type alias: code in hven::solvers that says `Index`
+// This header defines no type alias: code in hven that says `Index`
 // resolves to hven::Index by ordinary enclosing-namespace lookup -- same
 // spelling at every call site, one type, one vocabulary. The identity pin
 // below is the compile-time proof that this is sound on every supported
@@ -117,15 +117,15 @@ struct QpOptions {
     /// otherwise): a NaN burned the entire minor budget returning a NaN
     /// iterate; a negative produced spurious failures up to a confident
     /// kInfeasible on a feasible subproblem.
-    double primal_delta = 1e-8;
+    double primal_regularization = 1e-8;
 
     /// Dual regularization magnitude, baked onto the regularized (2,2) block so
     /// an over-determined working set stays solvable. Same domain, same
-    /// validation, same 0-is-real caveat as primal_delta; its footprint is
+    /// validation, same 0-is-real caveat as primal_regularization; its footprint is
     /// dual_mu*|lambda| on a row residual (qp_engine.h's row_tolerance).
-    double dual_mu = 1e-8;
-    double feas_tol = 1e-9;
-    double opt_tol = 1e-9;
+    double dual_regularization = 1e-8;
+    double feasibility_tol = 1e-9;
+    double optimality_tol = 1e-9;
 
     /// Minor-iteration cap for ONE QP solve. Empty (the default) derives the cap
     /// from the subproblem's own size,
@@ -138,10 +138,10 @@ struct QpOptions {
     /// demand. A capped subproblem is an honest failure (QpStatus::kMaxIter with
     /// minor_iters == the effective cap); raising the cap only stops refusing
     /// subproblems that were going to finish.
-    std::optional<Index> max_iter;
-    Index schur_cap = 128;
-    double schur_cond_max = 1e9;
-    WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    std::optional<Index> max_iterations;
+    Index max_schur_border_dimension = 128;
+    double schur_condition_max = 1e9;
+    WorkingSetLinearAlgebra working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
 
     /// l-infinity trust-region radius Delta, applied about the SOLVE'S OWN
     /// start point x0 (there is no separate configurable center — see
@@ -156,7 +156,7 @@ struct QpOptions {
     /// PER-INSTANCE, CONST: fixed for the lifetime of the owning QpEngine and
     /// cannot vary across solve() calls THROUGH THIS FIELD. A caller needing a
     /// different radius per call (a shrink-retry loop) uses
-    /// SolveOverrides::tr_radius instead, which never touches this field — so
+    /// SolveOverrides::trust_region_radius instead, which never touches this field — so
     /// one QpEngine serves a whole retry loop keeping its hot-start K0/border
     /// reuse across it. Unlike primal_delta/dual_mu, tr_radius never joins the
     /// reuse key: bounds never enter K0.
@@ -165,7 +165,7 @@ struct QpOptions {
     /// +inf — never negative (it would silently cross lo_eff/up_eff behind an
     /// assert a Release build compiles out), never NaN (read as "disabled", a
     /// meaning only +inf has).
-    double tr_radius = std::numeric_limits<double>::infinity();
+    double trust_region_radius = std::numeric_limits<double>::infinity();
 
     /// Keep the walk's working set linearly independent (qp/ws_independence.h).
     /// false is the pre-E2 walk.
@@ -236,7 +236,7 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
 /// caller needing tr_radius genuinely disabled on an engine whose opts_
 /// carries a finite radius must construct those opts_ with tr_radius = +inf —
 /// there is no way to request "+inf, overriding finite opts_" through the
-/// override, the same single-sentinel tradeoff QpOptions::tr_radius itself
+/// override, the same single-sentinel tradeoff QpOptions::trust_region_radius itself
 /// makes.
 ///
 /// REUSE-KEY CONSEQUENCE (see qp_engine.h's HOT-START REUSE note): the
@@ -254,9 +254,10 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
 /// primal_delta/dual_mu keep the negative-means-sentinel convention; NaN is
 /// rejected for both.
 struct SolveOverrides {
-    double tr_radius = std::numeric_limits<double>::infinity(); ///< +inf = use opts_.tr_radius.
-    double primal_delta = -1.0;                                 ///< <0 = use opts_.primal_delta.
-    double dual_mu = -1.0;                                      ///< <0 = use opts_.dual_mu.
+    double trust_region_radius =
+        std::numeric_limits<double>::infinity(); ///< +inf = use opts_.tr_radius.
+    double primal_regularization = -1.0;         ///< <0 = use opts_.primal_delta.
+    double dual_regularization = -1.0;           ///< <0 = use opts_.dual_mu.
 };
 
-} // namespace hven::solvers
+} // namespace hven

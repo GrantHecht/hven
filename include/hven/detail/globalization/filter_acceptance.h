@@ -10,7 +10,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// (18a) constraint-violation margin gamma_theta (WB Eq. (18a); Ipopt option
 /// "gamma_theta" = 1e-5).
@@ -276,4 +276,4 @@ class FilterAcceptance final : public SwitchingAcceptance {
     double restoration_constraint_tol_ = IpmOptions{}.common.feasibility_tol;
 };
 
-} // namespace hven::solvers
+} // namespace hven

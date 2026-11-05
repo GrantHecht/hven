@@ -11,9 +11,9 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// kappa_soc — required per-correction reduction factor in the constraint
 /// violation (Wächter & Biegler 2006, §2.4): a correction is worth continuing
@@ -31,7 +31,7 @@ inline constexpr int kSocRecommendedMaxCorrections = 4;
 /// index 0) was the one rejected AND that trial did not reduce the constraint
 /// violation relative to the current iterate. A negative theta means "no
 /// infeasibility reading available" (the LANG merit variant records none;
-/// -1 is IterateInfo's unset sentinel), in which case SOC conservatively does
+/// -1 is IpmIterate's unset sentinel), in which case SOC conservatively does
 /// not trigger.
 ///
 /// @param current_infeasibility Must be the SAME quantity
@@ -46,10 +46,10 @@ inline constexpr int kSocRecommendedMaxCorrections = 4;
 /// current_infeasibility is not tolerance-zeroed. The zeroing can only SHRINK
 /// the trial-side theta, making the trigger HARDER to satisfy — the asymmetry
 /// suppresses SOC near feasibility and can never spuriously fire it.
-inline bool soc_should_trigger(const IterateInfo &citer, double current_infeasibility) {
-    if (citer.first_rejection_iter_ != 0)
+inline bool soc_should_trigger(const IpmIterate &citer, double current_infeasibility) {
+    if (citer.first_rejection_iter != 0)
         return false;
-    const double trial_infeasibility = citer.theta_at_first_rejection_;
+    const double trial_infeasibility = citer.theta_at_first_rejection;
     if (trial_infeasibility < 0.0)
         return false;
     return trial_infeasibility >= current_infeasibility;
@@ -143,7 +143,7 @@ class SocRecovery : public RecoveryChain {
   public:
     SocRecovery() = default;
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
                             GlobalizationMechanism &mechanism, LineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
@@ -166,4 +166,4 @@ class SocRecovery : public RecoveryChain {
                                 Eigen::VectorXd &xsl2_scratch, Eigen::VectorXd &cons_out);
 };
 
-} // namespace hven::solvers
+} // namespace hven

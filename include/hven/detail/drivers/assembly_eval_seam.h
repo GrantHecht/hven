@@ -62,7 +62,7 @@
 #include <hven/model/claim_stream_source.h>
 #include <hven/model/structure_identity.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The driver's evaluation moments, served from an NlpAssembly.
 ///
@@ -324,7 +324,7 @@ class AssemblyEvalSeam {
     // THE INSTALLED FACTORS, inactive by default. Every apply site is behind
     // `scaling_.active`, so a seam that was never given factors runs the
     // arithmetic it has always run -- which is what makes the shipped default
-    // (SqpOptions::enable_scaling == false) cost nothing at all.
+    // (SqpOptions::row_scaling == false) cost nothing at all.
     detail::ProblemScaling scaling_;
 
     ClaimStreamSource *aggregate_ = nullptr;
@@ -366,4 +366,4 @@ class AssemblyEvalSeam {
     StructureEpoch epoch_at_lay_{};
 };
 
-} // namespace hven::solvers
+} // namespace hven

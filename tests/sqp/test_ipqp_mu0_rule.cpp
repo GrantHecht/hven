@@ -22,7 +22,7 @@
 
 #include "support/indefinite_fixtures.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -121,7 +121,7 @@ QpProblem free_qp() {
 
 QpOptions untrusted_region() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -472,4 +472,4 @@ TEST(IpqpMuResidualFloor, AWarmKillReAnchorsAtTheColdRestart) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

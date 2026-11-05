@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @brief Insertion-ordered flat map backed by a `std::vector` of key-value pairs.
 ///
@@ -102,4 +102,4 @@ template <typename Key, typename Value> class FlatMap {
     const_iterator end() const { return data_.end(); }
 };
 
-} // namespace hven::utils
+} // namespace hven::detail

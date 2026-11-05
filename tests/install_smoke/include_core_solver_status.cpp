@@ -21,10 +21,10 @@ int standalone_include_core_solver_status() {
     // the severity fold are the surface a consumer reaches for, and a header
     // that declared them without defining what they need would compile above
     // and fail here.
-    const hven::solvers::SolveStatus s = hven::solvers::SolveStatus::kOptimal;
-    const hven::solvers::IpmStopReason r = hven::solvers::IpmStopReason::kIterationCap;
-    return (hven::solvers::to_string(s) != nullptr && hven::solvers::to_string(r) != nullptr &&
-            hven::solvers::severity(s) >= 0)
+    const hven::SolveStatus s = hven::SolveStatus::kOptimal;
+    const hven::IpmStopReason r = hven::IpmStopReason::kIterationCap;
+    return (hven::to_string(s) != nullptr && hven::to_string(r) != nullptr &&
+            hven::severity(s) >= 0)
                ? 1
                : 0;
 }

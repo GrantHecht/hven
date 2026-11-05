@@ -9,7 +9,7 @@
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // The two public readers of the opaque SqpWarmStart (warmstart/sqp_warm_start.h).
 bool SqpWarmStart::valid() const noexcept { return state_ != nullptr && state_->valid; }
@@ -19,7 +19,7 @@ const Vec &SqpWarmStart::x() const noexcept { return detail::SqpWarmAccess::stat
 detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                                          const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
                                          const Vec &lower, const Vec &upper,
-                                         const IpCrossoverOptions &opts) {
+                                         const IpmCrossoverOptions &opts) {
     const Index n = x.size();
     const Index mi = lambda_i.size();
     if (slack_i.size() != mi) {
@@ -129,4 +129,4 @@ detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, cons
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

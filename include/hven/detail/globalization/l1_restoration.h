@@ -12,7 +12,7 @@
 #include "hven/detail/globalization/restoration.h"
 #include "hven/detail/globalization/solver_context.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// Penalty parameter rho of the elastic objective; Ipopt option
 /// "resto_penalty_parameter" default 1e3.
@@ -264,4 +264,4 @@ class NestedL1Restoration final : public RestorationStrategy {
     int recenter_calls_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

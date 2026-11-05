@@ -19,7 +19,7 @@
 #include "hven/detail/drivers/result_message.h"
 #include "hven/detail/model/problem_access.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -153,4 +153,4 @@ void IpmSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     impl().attach_ledger(ledger, std::move(label_prefix));
 }
 
-} // namespace hven::solvers
+} // namespace hven

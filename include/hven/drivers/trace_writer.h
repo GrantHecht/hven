@@ -31,7 +31,7 @@
 #include <hven/core/types.h>
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Writes one JSON object per line to a caller-owned `std::ostream`.
 ///
@@ -187,4 +187,4 @@ class JsonLinesTraceSink final : public TraceSink {
     bool failed_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven

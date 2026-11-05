@@ -26,7 +26,7 @@
 
 #include <hven/detail/drivers/equality_basis.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 namespace {
 
 using Arc = std::pair<Index, Index>;
@@ -841,4 +841,4 @@ TEST(EqualityBasis, GroupBytesAreTheGroupsValues) {
 }
 
 } // namespace
-} // namespace hven::solvers::detail
+} // namespace hven::detail

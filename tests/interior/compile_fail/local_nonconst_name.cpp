@@ -9,18 +9,18 @@
 
 #include <string>
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace {
 struct NonConstName {
     static constexpr hven::Index kInputs = 1;
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     std::string name() { return "mutable name"; }
     double value(hven::ConstVecRef v) const { return v[0]; }
     void gradient(hven::ConstVecRef, hven::VecRef g) const { g[0] = 1.0; }
 };
 } // namespace
 
-hven::solvers::ObjectiveInterface probe_local_nonconst_name() {
-    return hven::solvers::ObjectiveInterface(NonConstName{});
+hven::ObjectiveInterface probe_local_nonconst_name() {
+    return hven::ObjectiveInterface(NonConstName{});
 }

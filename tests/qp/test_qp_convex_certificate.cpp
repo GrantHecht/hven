@@ -30,7 +30,7 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -71,7 +71,7 @@ void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra a
     EXPECT_NEAR(objective(d.qp, d.x_final), f_star, 1e-8 * std::max(1.0, std::abs(f_star)));
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     const double f = objective(d.qp, s.x);
@@ -181,7 +181,7 @@ TEST(QpNc4ConvexCertificate, TheOptionOffWalkTakesNoCertificate) {
     const QpDump d = load("C10_STEENBRB_qp3.txt");
     for (const auto alg : {kBorder, kRefactorize}) {
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         o.independent_working_set = false;
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         std::printf("[ nc4 ] option-off %s status=%d minors=%ld\n", alg_name(alg),

@@ -93,7 +93,7 @@ void DenseSymmetricFactor::factorize(ConstMatRef A) { factorize(A, Triangle::kUp
 void DenseSymmetricFactor::factorize(ConstMatRef A, Triangle triangle) {
     const int info = factorize_core(A, triangle, "factorize");
     if (info != 0) {
-        throw hven::solvers::BackendError(fmt::format(
+        throw hven::BackendError(fmt::format(
             "DenseSymmetricFactor::factorize: LAPACKE_dsytrf failed, info={} ({})", info,
             info < 0 ? "illegal argument value" : "matrix is exactly singular (zero pivot)"));
     }
@@ -105,7 +105,7 @@ DenseFactorizeOutcome DenseSymmetricFactor::try_factorize(ConstMatRef A, Triangl
         // A bug in this class's own call, not a property of A: still a
         // throw here, exactly as in factorize(). Only info > 0 -- exact
         // singularity, a fact ABOUT A -- is demoted to an outcome.
-        throw hven::solvers::BackendError(
+        throw hven::BackendError(
             fmt::format("DenseSymmetricFactor::try_factorize: LAPACKE_dsytrf failed, info={} "
                         "(illegal argument value)",
                         info));
@@ -239,7 +239,7 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     const auto info = static_cast<int>(LAPACKE_dsytrs(LAPACK_COL_MAJOR, uplo, n, nrhs,
                                                       factors_.data(), n, ipiv_.data(), target, n));
     if (info != 0) {
-        throw hven::solvers::BackendError(
+        throw hven::BackendError(
             fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
     }
 

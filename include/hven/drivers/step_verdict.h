@@ -7,7 +7,7 @@
 /// @brief The SQP globalization's verdict on one trial step, as a history row
 ///        reports it (`SqpIterate::verdict`).
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The four outcomes of KLV Algorithm 2's optimality branch.
 enum class StepVerdict {
@@ -36,4 +36,4 @@ enum class StepVerdict {
     kRestore
 };
 
-} // namespace hven::solvers
+} // namespace hven

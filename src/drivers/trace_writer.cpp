@@ -30,7 +30,7 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace_writer.h>
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 // --- rule 3: numbers ------------------------------------------------------
@@ -639,16 +639,16 @@ static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent
 
 // --- the `ipm.iter` record and the `ipm.solve` pair (W4 T4) ---------------
 //
-// 28 is `IterateInfo`'s own declared field count. The record is serialized in
-// DECLARATION ORDER with the trailing underscores dropped, so a field added
+// 28 is `IpmIterate`'s own declared field count. The record is serialized in
+// DECLARATION ORDER, each field under its own name, so a field added
 // there stops the build here until it gets a key.
 //
 // 27 OF THE 28 ARE KEYS. `p_pivots_observed_` is the ABSENCE PREDICATE for
 // `p_pivots` and carries no key of its own -- the same shape the counters
 // tables' `absent` column has (fix round 1, R2).
-constexpr std::size_t kIterateInfoFieldCount = 28;
-static_assert(::hven::detail::kAggregateArity<IterateInfo> == kIterateInfoFieldCount,
-              "IterateInfo's field count moved: give the new field a key in "
+constexpr std::size_t kIpmIterateFieldCount = 28;
+static_assert(::hven::detail::kAggregateArity<IpmIterate> == kIpmIterateFieldCount,
+              "IpmIterate's field count moved: give the new field a key in "
               "JsonLinesTraceSink::on_ipm_iter (in DECLARATION order, ahead of `phase`) -- or, "
               "if it is an absence PREDICATE like p_pivots_observed_, wire it to the field it "
               "gates -- re-derive the ipm.iter golden lines, and then update this count.");
@@ -1021,48 +1021,48 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
 }
 
 void JsonLinesTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
-    const IterateInfo &r = event.iterate;
+    const IpmIterate &r = event.iterate;
     std::string b;
     bool first = true;
-    key_index(b, first, "iter", r.iter_);
-    key_double(b, first, "mu", r.mu_);
-    key_double(b, first, "prim_obj", r.prim_obj_);
-    key_double(b, first, "barr_obj", r.barr_obj_);
-    key_double(b, first, "kkt_inf", r.kkt_inf_);
-    key_double(b, first, "barr_inf", r.barr_inf_);
-    key_double(b, first, "econ_inf", r.econ_inf_);
-    key_double(b, first, "icon_inf", r.icon_inf_);
-    key_double(b, first, "pen_par1", r.pen_par1_);
-    key_double(b, first, "pen_par2", r.pen_par2_);
-    key_index(b, first, "ls_iters", r.ls_iters_);
-    key_double(b, first, "alpha_p", r.alpha_p_);
-    key_double(b, first, "alpha_d", r.alpha_d_);
-    key_double(b, first, "alpha_t", r.alpha_t_);
-    key_double(b, first, "h_pert", r.h_pert_);
+    key_index(b, first, "iter", r.iter);
+    key_double(b, first, "mu", r.mu);
+    key_double(b, first, "prim_obj", r.prim_obj);
+    key_double(b, first, "barr_obj", r.barr_obj);
+    key_double(b, first, "kkt_inf", r.kkt_inf);
+    key_double(b, first, "barr_inf", r.barr_inf);
+    key_double(b, first, "econ_inf", r.econ_inf);
+    key_double(b, first, "icon_inf", r.icon_inf);
+    key_double(b, first, "pen_par1", r.pen_par1);
+    key_double(b, first, "pen_par2", r.pen_par2);
+    key_index(b, first, "ls_iters", r.ls_iters);
+    key_double(b, first, "alpha_p", r.alpha_p);
+    key_double(b, first, "alpha_d", r.alpha_d);
+    key_double(b, first, "alpha_t", r.alpha_t);
+    key_double(b, first, "h_pert", r.h_pert);
     // Rule 5, SENTINEL: -1 is "the Newton direction was non-finite, so no
     // inertia ladder ran", not a step count of -1 (fix round 1, R1).
-    key_value(b, first, "h_facs", static_cast<Index>(r.h_facs_), r.h_facs_ < 0);
-    key_double(b, first, "h_pert_cum", r.h_pert_cum_);
+    key_value(b, first, "h_facs", static_cast<Index>(r.h_facs), r.h_facs < 0);
+    key_double(b, first, "h_pert_cum", r.h_pert_cum);
     // Rule 5, SENTINEL ONE OF TWO: negative is "proximal mode off", not a shift
     // of -1. The classic path writes it on every iteration.
-    key_value(b, first, "prox_reg_primal", r.prox_reg_primal_, r.prox_reg_primal_ < 0.0);
-    key_value(b, first, "prox_reg_dual", r.prox_reg_dual_, r.prox_reg_dual_ < 0.0);
+    key_value(b, first, "prox_reg_primal", r.prox_reg_primal, r.prox_reg_primal < 0.0);
+    key_value(b, first, "prox_reg_dual", r.prox_reg_dual, r.prox_reg_dual < 0.0);
     // Rule 5, ABSENCE: the projection substitutes 0 for a backend that reports
     // no perturbed-pivot count, and an unfactorized record never had one.
     // Repeating that 0 fabricates an Apple value -- CLAUDE.md section 6.
-    key_value(b, first, "p_pivots", static_cast<Index>(r.p_pivots_), !r.p_pivots_observed_);
-    key_double(b, first, "max_e_mult", r.max_e_mult_);
-    key_double(b, first, "max_i_mult", r.max_i_mult_);
-    key_double(b, first, "merit_val", r.merit_val_);
-    key_bool(b, first, "accepted", r.accepted_);
+    key_value(b, first, "p_pivots", static_cast<Index>(r.p_pivots), !r.p_pivots_observed);
+    key_double(b, first, "max_e_mult", r.max_e_mult);
+    key_double(b, first, "max_i_mult", r.max_i_mult);
+    key_double(b, first, "merit_val", r.merit_val);
+    key_bool(b, first, "accepted", r.accepted);
     // Rule 5, SENTINEL TWO OF TWO -- a DIFFERENT absence: "no rejection was
     // recorded this line search", which is why the doc names the meaning per
     // field rather than saying "-1 is null" once.
-    key_value(b, first, "first_rejection_iter", static_cast<Index>(r.first_rejection_iter_),
-              r.first_rejection_iter_ < 0);
-    key_value(b, first, "theta_at_first_rejection", r.theta_at_first_rejection_,
-              r.theta_at_first_rejection_ < 0.0);
-    key_index(b, first, "eval_exceptions", r.eval_exceptions_);
+    key_value(b, first, "first_rejection_iter", static_cast<Index>(r.first_rejection_iter),
+              r.first_rejection_iter < 0);
+    key_value(b, first, "theta_at_first_rejection", r.theta_at_first_rejection,
+              r.theta_at_first_rejection < 0.0);
+    key_index(b, first, "eval_exceptions", r.eval_exceptions);
     key_index(b, first, "phase", event.phase);
     write_line("ipm.iter", b);
 }
@@ -1132,7 +1132,7 @@ void JsonLinesTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
 void JsonLinesTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) {
     std::string b;
     bool first = true;
-    key_index(b, first, "iter", event.iterate.iter_);
+    key_index(b, first, "iter", event.iterate.iter);
     key_index(b, first, "phase", event.phase);
     key_double(b, first, "theta", event.theta);
     key_double(b, first, "threshold", event.threshold);
@@ -1197,13 +1197,13 @@ void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) 
     std::string b;
     bool first = true;
     key_index(b, first, "phase", event.phase);
-    key_index(b, first, "iter", event.iterate.iter_);
+    key_index(b, first, "iter", event.iterate.iter);
     key_bool(b, first, "best_substituted", event.best_substituted);
-    key_double(b, first, "prim_obj", event.iterate.prim_obj_);
-    key_double(b, first, "kkt_inf", event.iterate.kkt_inf_);
-    key_double(b, first, "barr_inf", event.iterate.barr_inf_);
-    key_double(b, first, "econ_inf", event.iterate.econ_inf_);
-    key_double(b, first, "icon_inf", event.iterate.icon_inf_);
+    key_double(b, first, "prim_obj", event.iterate.prim_obj);
+    key_double(b, first, "kkt_inf", event.iterate.kkt_inf);
+    key_double(b, first, "barr_inf", event.iterate.barr_inf);
+    key_double(b, first, "econ_inf", event.iterate.econ_inf);
+    key_double(b, first, "icon_inf", event.iterate.icon_inf);
     key_enum(b, first, "last_kkt_info", to_json(event.last_kkt_info));
     // Rule 7: every `_s` below is wall-clock and informational.
     key_double(b, first, "total_s", event.total_s);
@@ -1242,4 +1242,4 @@ void JsonLinesTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
     write_line("ipm.message", b);
 }
 
-} // namespace hven::solvers
+} // namespace hven

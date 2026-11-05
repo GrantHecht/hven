@@ -7,7 +7,7 @@
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 // The MIXED LIFT of a quasi-Newton Hessian into a QP the engines already solve (design
 // m7-qn-design.md section 2; rulings C30 BLOCKING-1/BLOCKING-2, AMEND-6/8/9).
@@ -121,4 +121,4 @@ class MixedLift {
     Index n_orig_ = 0, n_struct_ = 0, me_orig_ = 0, r_plus_ = 0, r_minus_ = 0;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

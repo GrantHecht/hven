@@ -47,7 +47,7 @@
 #include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Forward-declared, not included (M6 W5 T8.7 fix1, the lane's M4): only
 /// two `unique_ptr` members name these types here, and including
@@ -338,7 +338,7 @@ double predicted_decrease(const QpProblem &qp, const Vec &p);
 bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, Index &rows,
                       Index &bounds);
 
-} // namespace hven::solvers
+} // namespace hven
 
 // Included HERE rather than in the top block: these headers consume NlpEval,
 // defined above, and must not include this one back. The position is load
@@ -348,7 +348,7 @@ bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, In
 #include <hven/detail/globalization/sqp/restoration.h>
 #include <hven/detail/globalization/sqp/soc.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief evaluate_kkt over a SEAM's dimensions and materialized box -- the
 ///        entry the driver's major loop uses.
@@ -559,7 +559,7 @@ struct ElasticSeedSource {
 ///               leaves `rho0_ceiling_hit` false. Otherwise the first rung is
 ///               rho_0 = max(kElasticRhoInit, min(evidence-priced start,
 ///               kElasticRhoMax / kElasticRhoFactor,
-///               kElasticRhoDualMuSafety / opts.qp.dual_mu)), and either cap
+///               kElasticRhoDualMuSafety / opts.qp.dual_regularization)), and either cap
 ///               binding sets `rho0_ceiling_hit`. A non-finite or non-positive
 ///               dual_mu disables that cap. The margin binds the first rung
 ///               only: the ladder still climbs to kElasticRhoMax.
@@ -633,7 +633,7 @@ QpSolution certified_feasibility_fallback(
 // (sqp_solver_types.h). The schedule is mu_k = clamp(kAdaptiveMuKappa *
 // ||KKT residual||^1.5, kAdaptiveMuMin, kAdaptiveMuMax), quantized to the
 // nearest decade and read at the PREVIOUS major's measurement; the first major
-// uses the ceiling. Disabled, the driver never touches SolveOverrides::dual_mu.
+// uses the ceiling. Disabled, the driver never touches SolveOverrides::dual_regularization.
 // See docs/notes/2026-09-header-prose-archive.md §sqp_solver.h.
 
 /// @brief kappa_mu in the adaptive dual-regularization schedule above; named
@@ -642,7 +642,7 @@ inline constexpr double kAdaptiveMuKappa = 1.0;
 /// @brief Floor of the schedule's dual regularization.
 inline constexpr double kAdaptiveMuMin = 1e-12;
 /// @brief Ceiling of the schedule's dual regularization; equals
-///        QpOptions::dual_mu's own default.
+///        QpOptions::dual_regularization's own default.
 inline constexpr double kAdaptiveMuMax = 1e-8;
 
 // --- The seeded dual clamp --------------------------------------------------
@@ -672,10 +672,10 @@ class SqpSolverImpl {
     /// @param opts The options; validated here.
     /// @throws std::invalid_argument on an option validate rejects:
     ///         a non-positive or NaN kkt_tol/feas_tol, a negative max_iter, a
-    ///         non-positive or NaN tr_init (0 is rejected outright; +inf is legal
-    ///         and means no trust region), a tr_max below tr_init unless tr_init
-    ///         is +inf, or a tr_min that is non-positive or above tr_init or
-    ///         tr_max.
+    ///         non-positive or NaN trust_region_initial (0 is rejected outright; +inf is legal
+    ///         and means no trust region), a trust_region_max below trust_region_initial unless
+    ///         trust_region_initial is +inf, or a trust_region_min that is non-positive or above
+    ///         trust_region_initial or trust_region_max.
     ///
     /// DEFINED IN THE .cpp (M6 W5 T8.7 fix1), like the destructor and for the
     /// same reason: a constructor instantiates the `unique_ptr` members'
@@ -853,7 +853,7 @@ class SqpSolverImpl {
     /// CURRENT iterate and reports kInterrupted. Precedence at that exit is
     /// converged > interrupted > probe-exhausted > cap: a stop on a CONVERGED
     /// row reports kOptimal (converged beats stop), and under
-    /// SqpOptions::budget_mode an interrupt takes the ordinary exit rather than
+    /// SqpOptions::return_best_on_max_iterations an interrupt takes the ordinary exit rather than
     /// the budget-best one, exactly as a probe-budget stop does. A stop
     /// returned INSIDE a restoration sub-solve latches on this driver too, so
     /// no further top-level major runs whichever way that phase returns.
@@ -1634,13 +1634,13 @@ class SqpSolverImpl {
 
     // The two halves of the shrink rule, kept as one pair so the floor test and
     // the shrink itself can never disagree about what the next radius is. A +inf
-    // radius does NOT hit the floor -- its next value is tr_max.
+    // radius does NOT hit the floor -- its next value is trust_region_max.
     bool shrink_hits_floor(double delta) const;
     double shrunk_radius(double delta) const;
 
     // The radius the main loop resumes at after a restoration, and the floor under
     // the radius the restoration phase itself is given: a fraction of the caller's
-    // own starting radius, +inf resolved to tr_max, never below the floor.
+    // own starting radius, +inf resolved to trust_region_max, never below the floor.
     double restoration_restart_radius() const;
 
     // The SSN engine, constructed on first use. `opts_.qp` is the SAME QpOptions
@@ -1694,7 +1694,7 @@ class SqpSolverImpl {
 
     // THE CAP-RETRY'S OWN WALK ENGINE (M7 W2 M1), constructed on first use and
     // only under `qp_cap_retry`, and A SECOND QpEngine INSTANCE for one reason:
-    // `QpOptions::max_iter` is read from the engine's OWN options copy, fixed at
+    // `QpOptions::max_iterations` is read from the engine's OWN options copy, fixed at
     // its construction, and `SolveOverrides` carries no per-solve cap. So the
     // only way to re-solve a capped subproblem at a raised cap without inventing
     // a new entry point is an engine whose options say so -- exactly the
@@ -1705,7 +1705,7 @@ class SqpSolverImpl {
     // engine seam, no new overload.
     //
     // `cap` IS THE ABSOLUTE CAP THE RETRY IS GIVEN (a positive value, which
-    // `QpOptions::max_iter`'s own precedence rule makes win outright over the
+    // `QpOptions::max_iterations`'s own precedence rule makes win outright over the
     // size-derived sentinel). The instance is rebuilt if a later retry asks for
     // a different one; within a solve it never does, because the derivation
     // reads dimensions that do not change between majors.
@@ -1814,7 +1814,7 @@ class SqpSolverImpl {
                      bool multipliers_are_caller_scale = false);
 
     /// @brief Computes this solve's scaling factors and installs them on @p seam,
-    ///        or leaves the seam unscaled when `opts_.enable_scaling` is false.
+    ///        or leaves the seam unscaled when `opts_.row_scaling` is false.
     ///
     /// Called after solve_impl's argument validation and before the major loop,
     /// so a mis-sized or non-finite x0 is still refused as it always was. Costs
@@ -1871,7 +1871,7 @@ class SqpSolverImpl {
     // events (depth 0, and the first n entries at depth 1) map x and z through it.
     // `column_caller_seam_` is the caller's seam, which map_column_scaled_answer
     // re-measures on. `force_row_scaling_` is kAuto's engagement of the row/objective
-    // layer (install_solve_scaling reads it beside enable_scaling).
+    // layer (install_solve_scaling reads it beside row_scaling).
     // `column_probe_evals_` is the rule's Jacobian probe, charged to `evals_values`
     // by solve_impl before its emission (also when the gate did not fire). The
     // restoration sub-solve is a different SqpSolver object and sees none of them.
@@ -2175,4 +2175,4 @@ struct SqpSolverAccess {
 
 } // namespace detail
 
-} // namespace hven::solvers
+} // namespace hven

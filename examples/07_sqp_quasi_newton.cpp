@@ -19,13 +19,11 @@
 #include <cstdio>
 #include <memory>
 
-#include "hven/drivers/sqp_solver.h"
-#include "hven/model/nlp.h"
-#include "hven/model/problem.h"
+#include <hven/hven.h>
 
 namespace {
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::ConstVecRef;
 using hven::IndexVecRef;
 using hven::kInfinity;
@@ -98,7 +96,7 @@ int main() {
     Problem first_order(std::make_shared<BallFirstOrder>());
     SqpOptions qn;
     qn.hessian_mode = SqpHessianMode::kLbfgsDamped;
-    qn.qn_memory = 10; // L-BFGS window (default 10; shown for the knob)
+    qn.lbfgs_memory = 10; // L-BFGS window (default 10; shown for the knob)
     SqpSolver qn_solver(qn);
     const SqpResult r_qn = qn_solver.solve(first_order, x0);
 

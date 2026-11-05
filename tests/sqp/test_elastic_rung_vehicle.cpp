@@ -39,10 +39,10 @@
 
 #include "support/elastic_rung_vehicle.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
-using hven::solvers::test_support::F7InconsistentChain;
+using hven::test_support::F7InconsistentChain;
 
 // The sizes step 2a measures. RELEASE SWEEPS ALL FOUR; DEBUG SWEEPS THE TWO
 // SMALL ONES, and that split is declared rather than quiet: the cost this cell
@@ -274,7 +274,7 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 
 // =====================================================================
 // HAZARD 2's PIN (M7 W0 T3 design section viii): THE TIER RUNG IS IMMUNE TO
-// `QpOptions::tr_radius`.
+// `QpOptions::trust_region_radius`.
 //
 // THE HAZARD. The walk ignores a trust-region override at this call site -- the
 // window is already folded into the elastic box, and the ladder passes a DEFAULT
@@ -289,10 +289,10 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 // THE FIX is that the driver builds its elastic tier engine from a `QpOptions`
 // copy carrying `tr_radius = +inf`, whatever the caller set.
 //
-// THE PIN. `opts.qp.tr_radius` is set to the driver's own `tr_init`, which leaves
-// the ELASTIC BOX identical -- the driver folds `min(delta, qp.tr_radius)` into it
-// and `delta` starts at `tr_init`, so the min is unchanged at the first major --
-// while an UNFIXED tier engine would additionally clamp every slack at `tr_init`.
+// THE PIN. `opts.qp.trust_region_radius` is set to the driver's own `trust_region_initial`, which
+// leaves the ELASTIC BOX identical -- the driver folds `min(delta, qp.trust_region_radius)` into it
+// and `delta` starts at `trust_region_initial`, so the min is unchanged at the first major --
+// while an UNFIXED tier engine would additionally clamp every slack at `trust_region_initial`.
 // Identical ladder counters therefore mean the radius never reached the rung.
 // Without the fix this test fails: the tier sees a windowed elastic QP.
 // =====================================================================
@@ -300,19 +300,18 @@ TEST(M7T3ElasticRungVehicle, TheTierRungIsImmuneToTheDriversTrustRegionRadius) {
     auto run = [](double qp_tr_radius) {
         F7InconsistentChain model(100);
         SqpOptions o = vehicle_options(ElasticRungEngine::kTier);
-        o.qp.tr_radius = qp_tr_radius;
+        o.qp.trust_region_radius = qp_tr_radius;
         SqpSolver driver(o);
         RungSink sink;
         Ledger ledger;
         driver.attach_trace(&sink);
         driver.attach_ledger(&ledger, "m7t3hz2");
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         return std::make_pair(read_rungs(sink, ledger, sol.counters), sol.counters);
     };
     const SqpOptions probe;
     const auto unwindowed = run(std::numeric_limits<double>::infinity());
-    const auto windowed = run(probe.tr_init);
+    const auto windowed = run(probe.trust_region_initial);
 
     ASSERT_GE(unwindowed.first.rungs, 1) << "fixture premise: the ladder ran";
     ASSERT_EQ(unwindowed.first.tier_rungs, unwindowed.first.rungs)
@@ -376,7 +375,7 @@ TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothE
 
             const auto t0 = std::chrono::steady_clock::now();
             const SqpResult sol =
-                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+                driver.solve(hven::detail::problem_ref(model), (model).start_point());
             const double wall =
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
@@ -430,4 +429,4 @@ TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothE
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

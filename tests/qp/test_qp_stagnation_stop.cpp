@@ -40,7 +40,7 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::test_support::QpDump;
 
 namespace {
@@ -59,7 +59,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
 
     QpOptions o = d.opts;
     if (alg != nullptr) {
-        o.ws_algebra = *alg;
+        o.working_set_algebra = *alg;
     }
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
 
@@ -69,7 +69,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
     const double eq_cap = (d.qp.Ae * d.x_final - d.qp.be).lpNorm<Eigen::Infinity>();
     std::printf("[ snx ] %s alg=%d status=%d minors=%ld facts=%ld stagnation_drops=%ld "
                 "stagnation_stops=%ld f=%.15g f_cap=%.15g eq=%.3e eq_cap=%.3e\n",
-                file, static_cast<int>(o.ws_algebra), static_cast<int>(s.status),
+                file, static_cast<int>(o.working_set_algebra), static_cast<int>(s.status),
                 static_cast<long>(s.counters.minor_iters),
                 static_cast<long>(s.counters.factorizations),
                 static_cast<long>(s.counters.stagnation_drops),
@@ -88,7 +88,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
 #if HVEN_TEST_ROUTE_REFERENCE
     // The reading answered the idle run: a drop, a stop, or both.
     EXPECT_GE(s.counters.stagnation_drops + s.counters.stagnation_stops, 1);
-    EXPECT_LE(s.counters.stagnation_drops, hven::solvers::detail::kStagnationDropBudget);
+    EXPECT_LE(s.counters.stagnation_drops, hven::detail::kStagnationDropBudget);
     EXPECT_LE(s.counters.stagnation_stops, 1);
     EXPECT_LT(s.counters.minor_iters, 3000) << "the reading ends the idle run, not the cap";
     // A stop is the cap's own status; a walk the drops carried on finishes by its own exits. A
@@ -117,7 +117,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
     // (invariants, not rule-fired checks), a stop is the cap's own status, and, if kOptimal,
     // the battery below.
     hven::test_support::record_off_reference_route(
-        std::string(file) + "_alg" + std::to_string(static_cast<int>(o.ws_algebra)),
+        std::string(file) + "_alg" + std::to_string(static_cast<int>(o.working_set_algebra)),
         "status=" + std::to_string(static_cast<int>(s.status)) +
             " minors=" + std::to_string(s.counters.minor_iters) +
             " facts=" + std::to_string(s.counters.factorizations) +
@@ -126,7 +126,7 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
             " terminal_polish_solves=" + std::to_string(s.counters.terminal_polish_solves) +
             " f=" + std::to_string(f) + " f_cap=" + std::to_string(f_cap) +
             " eq=" + std::to_string(eq) + " eq_cap=" + std::to_string(eq_cap));
-    EXPECT_LE(s.counters.stagnation_drops, hven::solvers::detail::kStagnationDropBudget);
+    EXPECT_LE(s.counters.stagnation_drops, hven::detail::kStagnationDropBudget);
     EXPECT_LE(s.counters.stagnation_stops, 1);
     if (s.counters.stagnation_stops == 1) {
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
@@ -141,8 +141,8 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
     }
     // Inside the box: the stop moves nothing.
     for (hven::Index i = 0; i < d.qp.n(); ++i) {
-        ASSERT_GE(s.x(i), std::max(d.qp.lower(i), -d.overrides.tr_radius) - 1e-12) << i;
-        ASSERT_LE(s.x(i), std::min(d.qp.upper(i), d.overrides.tr_radius) + 1e-12) << i;
+        ASSERT_GE(s.x(i), std::max(d.qp.lower(i), -d.overrides.trust_region_radius) - 1e-12) << i;
+        ASSERT_LE(s.x(i), std::min(d.qp.upper(i), d.overrides.trust_region_radius) + 1e-12) << i;
     }
 }
 
@@ -168,7 +168,7 @@ TEST(QpStagnationStop, TheOptionOffWalkNeverStops) {
                                                       "/SNX_BRITGAS_resto_qp27.txt");
     QpOptions o = d.opts;
     o.independent_working_set = false;
-    o.max_iter = 400;
+    o.max_iterations = 400;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     std::printf("[ snx ] option-off status=%d minors=%ld stagnation_stops=%ld\n",
                 static_cast<int>(s.status), static_cast<long>(s.counters.minor_iters),
@@ -181,9 +181,9 @@ TEST(QpStagnationStop, TheOptionOffWalkNeverStops) {
 
 namespace {
 
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Record = hven::detail::testing::QpWalkMinorRecord;
 
 struct Walk {
     QpSolution solution;
@@ -248,10 +248,10 @@ struct Contracting {
 
 Contracting contracting_row(double rate, double row_bound) {
     Contracting c;
-    c.o.max_iter = 3000;
+    c.o.max_iterations = 3000;
     const double a = 1e-6;
     const double rho = std::sqrt(rate);
-    c.o.dual_mu = 2.0 * a * a * rho / (1.0 - rho) / c.o.primal_delta;
+    c.o.dual_regularization = 2.0 * a * a * rho / (1.0 - rho) / c.o.primal_regularization;
     c.qp = free_problem(2);
     Eigen::MatrixXd Ae(1, 2);
     Ae << a, a;
@@ -340,8 +340,8 @@ TEST(QpStagnationStop, AReadingWithNothingToDropOnItsRowsEndsTheWalk) {
     qp.be = hven::Vec::Constant(1, 0.0);
     qp.g(1) = 1e-8;
     QpOptions o;
-    o.max_iter = 400;
-    o.primal_delta = 1.0;
+    o.max_iterations = 400;
+    o.primal_regularization = 1.0;
     const Walk w = observed(qp, o);
     print_walk("idle on the row", w);
     const QpSolution &s = w.solution;
@@ -367,8 +367,8 @@ TEST(QpStagnationStop, TheMuFreeResumeIsSpentOncePerSolve) {
     qp.g(0) = 1.0;
     qp.g(1) = 1.0 + 1e-8;
     QpOptions o;
-    o.max_iter = 400;
-    o.primal_delta = 1.0;
+    o.max_iterations = 400;
+    o.primal_regularization = 1.0;
     const Walk w = observed(qp, o);
     print_walk("idle on a priced row", w);
     const QpSolution &s = w.solution;
@@ -396,14 +396,14 @@ TEST(QpStagnationStop, AResidualHalvingBelowTheFloorIsNotProgress) {
     qp.be = hven::Vec::Constant(1, 1e-11);
     qp.g(1) = 1e-8;
     QpOptions o;
-    o.max_iter = 400;
-    o.primal_delta = 1.0;
+    o.max_iterations = 400;
+    o.primal_regularization = 1.0;
     const double rho = std::sqrt(0.5);
-    o.dual_mu = a * a * rho / (1.0 - rho) / o.primal_delta;
+    o.dual_regularization = a * a * rho / (1.0 - rho) / o.primal_regularization;
     const Walk w = observed(qp, o);
     print_walk("halving below the floor", w);
     ASSERT_GE(w.records.size(), 4U);
-    EXPECT_LT(w.records[0].active_res_inf, o.feas_tol);
+    EXPECT_LT(w.records[0].active_res_inf, o.feasibility_tol);
     for (std::size_t k = 1; k < 4; ++k) {
         EXPECT_LT(w.records[k].active_res_inf, 0.75 * w.records[k - 1].active_res_inf) << k;
     }
@@ -428,9 +428,9 @@ TEST(QpStagnationStop, AStuckRunOffItsRowsEndsTheWalk) {
     qp.lower = hven::Vec::Constant(1, -1.0);
     qp.upper = hven::Vec::Constant(1, 1.0);
     QpOptions o;
-    o.max_iter = 400;
-    o.primal_delta = 1.0;
-    o.dual_mu = 1e-2;
+    o.max_iterations = 400;
+    o.primal_regularization = 1.0;
+    o.dual_regularization = 1e-2;
     const Walk w = observed(qp, o);
     print_walk("stuck off its rows", w);
     const QpSolution &s = w.solution;

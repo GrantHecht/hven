@@ -153,4 +153,19 @@ FOUND_PAIRS="$(
 ${FOUND_PAIRS}"
 echo "-- no public header includes a detail/ header"
 
+# The umbrella <hven/hven.h> includes every public header (M8 B8): a public header it
+# does not name is a header no "#include <hven/hven.h>" consumer can see.
+[ -f "${INCLUDE_ROOT}/hven.h" ] || fail "no umbrella header at ${INCLUDE_ROOT}/hven.h"
+MISSING_FROM_UMBRELLA="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -name '*.h' -not -path '*/detail/*' -not -path './hven.h' | sed 's|^\./||' |
+        LC_ALL=C sort | while IFS= read -r header; do
+            grep -qE "^#include <hven/${header}>\$" hven.h || echo "${header}"
+        done
+)"
+[ -z "${MISSING_FROM_UMBRELLA}" ] \
+    || fail "public header(s) the umbrella hven.h does not include:
+${MISSING_FROM_UMBRELLA}"
+echo "-- the umbrella hven.h includes every public header"
+
 echo "== export contract OK for platform=${PLATFORM}, align=${ALIGN_VALUE}"

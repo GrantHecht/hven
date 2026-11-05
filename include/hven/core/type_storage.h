@@ -3,7 +3,7 @@
 
 // General-purpose SBO container with value semantics: the storage behind this
 // library's erased function handles (ConstraintInterface / ObjectiveInterface,
-// see model/solver_interface_specs.h), available to any consumer
+// see model/piece_interfaces.h), available to any consumer
 // handle built on the same clone_into convention.
 
 #pragma once
@@ -15,7 +15,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace hven::utils {
+namespace hven {
 
 /// @brief Type-erasing SBO (small-buffer-optimised) container with value semantics.
 ///
@@ -35,9 +35,9 @@ namespace hven::utils {
 ///                 this are allocated on the heap.
 template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     static constexpr std::size_t SBO_ALIGN = alignof(std::max_align_t);
-    enum class Kind : uint8_t { Empty, Inline, Heap };
+    enum class Kind : uint8_t { kEmpty, kInline, kHeap };
 
-    Kind kind_ = Kind::Empty;
+    Kind kind_ = Kind::kEmpty;
     // Inline only: move-constructs the Model at `src` into raw `dst`, then destroys `src`.
     void (*relocate_)(void *dst, void *src) noexcept = nullptr;
     union {
@@ -49,27 +49,27 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     const C *inline_ptr() const noexcept { return reinterpret_cast<const C *>(buf_); }
 
     void destroy() noexcept {
-        if (kind_ == Kind::Inline) {
+        if (kind_ == Kind::kInline) {
             inline_ptr()->~C();
-        } else if (kind_ == Kind::Heap) {
+        } else if (kind_ == Kind::kHeap) {
             delete ptr_;
         }
-        kind_ = Kind::Empty;
+        kind_ = Kind::kEmpty;
         relocate_ = nullptr;
     }
 
     // Take over `o`'s contents; *this must be empty.
     void take(TypeStorage &o) noexcept {
-        assert(kind_ == Kind::Empty);
-        if (o.kind_ == Kind::Inline) {
+        assert(kind_ == Kind::kEmpty);
+        if (o.kind_ == Kind::kInline) {
             o.relocate_(buf_, o.buf_);
             relocate_ = o.relocate_;
-        } else if (o.kind_ == Kind::Heap) {
+        } else if (o.kind_ == Kind::kHeap) {
             ptr_ = o.ptr_;
             o.ptr_ = nullptr;
         }
         kind_ = o.kind_;
-        o.kind_ = Kind::Empty;
+        o.kind_ = Kind::kEmpty;
     }
 
   public:
@@ -95,15 +95,15 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
                 ::new (dst) Model(std::move(*m));
                 m->~Model();
             };
-            kind_ = Kind::Inline;
+            kind_ = Kind::kInline;
         } else {
             ptr_ = new Model(std::move(obj));
-            kind_ = Kind::Heap;
+            kind_ = Kind::kHeap;
         }
     }
 
     /// @brief Deep-copy constructor — invokes `clone_into` on the stored object.
-    TypeStorage(const TypeStorage &o) : kind_(Kind::Empty) {
+    TypeStorage(const TypeStorage &o) : kind_(Kind::kEmpty) {
         if (!o.empty()) {
             o.get().clone_into(*this);
         }
@@ -111,7 +111,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
 
     /// @brief Move constructor — relocates inline storage via the Model's move constructor,
     /// steals the pointer for heap storage.
-    TypeStorage(TypeStorage &&o) noexcept : kind_(Kind::Empty) { take(o); }
+    TypeStorage(TypeStorage &&o) noexcept : kind_(Kind::kEmpty) { take(o); }
 
     /// @brief Copy-assignment operator — destroys current contents, then deep-copies via
     /// `clone_into`.
@@ -137,13 +137,13 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     ~TypeStorage() { destroy(); }
 
     /// @brief Returns true if no object is currently stored.
-    [[nodiscard]] bool empty() const noexcept { return kind_ == Kind::Empty; }
+    [[nodiscard]] bool empty() const noexcept { return kind_ == Kind::kEmpty; }
 
     /// @brief Return a const reference to the stored object.
     ///
     /// Behaviour is undefined if `empty()` is true.
     const C &get() const noexcept {
-        if (kind_ == Kind::Inline) {
+        if (kind_ == Kind::kInline) {
             return *inline_ptr();
         }
         return *ptr_;
@@ -153,7 +153,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
     ///
     /// Behaviour is undefined if `empty()` is true.
     C &get() noexcept {
-        if (kind_ == Kind::Inline) {
+        if (kind_ == Kind::kInline) {
             return *inline_ptr();
         }
         return *ptr_;
@@ -161,7 +161,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
 
     /// @brief Return a const pointer to the stored object, or `nullptr` if empty.
     const C *get_ptr() const noexcept {
-        if (kind_ == Kind::Inline) {
+        if (kind_ == Kind::kInline) {
             return inline_ptr();
         }
         return ptr_;
@@ -169,7 +169,7 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
 
     /// @brief Return a mutable pointer to the stored object, or `nullptr` if empty.
     C *get_ptr() noexcept {
-        if (kind_ == Kind::Inline) {
+        if (kind_ == Kind::kInline) {
             return inline_ptr();
         }
         return ptr_;
@@ -181,4 +181,4 @@ template <typename C, std::size_t SBO_CAP = 128> class TypeStorage {
 template <typename C, std::size_t N>
 concept TypeStorageBase = requires(const C &c, TypeStorage<C, N> &s) { c.clone_into(s); };
 
-} // namespace hven::utils
+} // namespace hven

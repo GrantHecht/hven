@@ -21,7 +21,7 @@
 
 #include "support/hs_problems.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 // --- fixture helpers, repeated from test_ipqp_engine.cpp / test_ipqp_
@@ -88,7 +88,7 @@ QpProblem box_qp(double lo, double up) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = std::numeric_limits<double>::infinity();
+    o.trust_region_radius = std::numeric_limits<double>::infinity();
     return o;
 }
 
@@ -536,7 +536,7 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         const SqpResult s =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const IpqpCounters &c = s.counters.ipqp;
         refine_accepted += c.ipqp_refine_accepted;
         to_ssn += c.ipqp_to_ssn;
@@ -726,8 +726,7 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         BoundActiveOnlyModel model;
-        const SqpResult s =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
@@ -745,8 +744,7 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         RowActiveOnlyModel model;
-        const SqpResult s =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
@@ -773,7 +771,7 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         const SqpResult s =
-            driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         disproved += s.counters.ipqp_suspicion_disproved;
         rung_b += s.counters.ipqp_fallback_rung_b;
         from_escape += s.counters.elastic_from_ipqp_escape;
@@ -802,4 +800,4 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

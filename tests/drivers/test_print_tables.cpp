@@ -31,13 +31,13 @@
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/drivers/trace.h>
 
+using hven::census_variable_bounds;
 using hven::Index;
+using hven::PredictorOutcome;
+using hven::StepVerdict;
+using hven::to_string;
+using hven::VariableBoundCensus;
 using hven::Vec;
-using hven::solvers::census_variable_bounds;
-using hven::solvers::PredictorOutcome;
-using hven::solvers::StepVerdict;
-using hven::solvers::to_string;
-using hven::solvers::VariableBoundCensus;
 
 namespace {
 

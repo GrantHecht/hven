@@ -7,7 +7,7 @@
 // (v, H): a constraint piece's Hessian takes the multipliers. The expected
 // diagnostic is the one authored "hven local block:" message saying so.
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace {
 struct WrongHessian {
@@ -18,6 +18,6 @@ struct WrongHessian {
 };
 } // namespace
 
-hven::solvers::ConstraintInterface probe_local_constraint_hessian_signature() {
-    return hven::solvers::ConstraintInterface(WrongHessian{});
+hven::ConstraintInterface probe_local_constraint_hessian_signature() {
+    return hven::ConstraintInterface(WrongHessian{});
 }

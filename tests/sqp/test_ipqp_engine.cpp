@@ -22,7 +22,7 @@
 
 #include "support/ipqp_test_support.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -132,7 +132,7 @@ QpProblem free_scalar_qp(double c) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -236,14 +236,14 @@ TEST(IpqpDomainGateTest, AZeroRadiusRetryDeclines) {
     const QpProblem qp = box_qp(-1.0, 1.0);
     IpqpEngine engine(tight_opts());
     SolveOverrides ov;
-    ov.tr_radius = 0.0;
+    ov.trust_region_radius = 0.0;
     const IpqpResult r = engine.solve(qp, nullptr, IpqpOptions{}, ov);
     EXPECT_TRUE(r.declined_pinned);
     EXPECT_EQ(r.counters.ipqp_declined_pinned, 1);
 
     // MUTATION NON-VACUITY: the same engine, the same problem, a positive
     // radius -- the gate must NOT fire.
-    ov.tr_radius = 0.5;
+    ov.trust_region_radius = 0.5;
     const IpqpResult ok = engine.solve(qp, nullptr, IpqpOptions{}, ov);
     EXPECT_FALSE(ok.declined_pinned);
     EXPECT_EQ(ok.counters.ipqp_declined_pinned, 0);
@@ -304,7 +304,7 @@ TEST(IpqpConvergenceTest, BothRowBlocksAgreeWithTheWalk) {
 TEST(IpqpConvergenceTest, ATrustRegionWindowIsHonouredAndAgreesWithTheWalk) {
     const QpProblem qp = box_qp(-10.0, 10.0);
     QpOptions o = tight_opts();
-    o.tr_radius = 0.5;
+    o.trust_region_radius = 0.5;
     QpEngine walk(o);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
@@ -508,7 +508,7 @@ TEST(IpqpLadderTest, TheFinalReadCatchesASaddleTheLadderWouldOtherwiseCertify) {
     // the target, so this is a CERTIFYING exit that was then downgraded, not a
     // solve that fell over.
     EXPECT_LE(r.counters.ipqp_iters, 10);
-    EXPECT_LE(r.residuals.worst(), tight_opts().opt_tol * IpqpOptions{}.converge_slack);
+    EXPECT_LE(r.residuals.worst(), tight_opts().optimality_tol * IpqpOptions{}.converge_slack);
     EXPECT_NEAR(r.x(0), 0.0, 1e-9);
     EXPECT_NEAR(r.x(1), 0.0, 1e-9);
 
@@ -919,8 +919,8 @@ TEST(IpqpRuizTest, TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPri
     EXPECT_GT(std::abs(got.x(1) - ref.x(1)), 1e-2);
     // ... and the certificate is honest about WHY: every relative residual is
     // inside the target the tier was asked for.
-    EXPECT_LE(got.residuals.stationarity, o.opt_tol * IpqpOptions{}.converge_slack);
-    EXPECT_LE(got.residuals.primal_iq, o.feas_tol * IpqpOptions{}.converge_slack);
+    EXPECT_LE(got.residuals.stationarity, o.optimality_tol * IpqpOptions{}.converge_slack);
+    EXPECT_LE(got.residuals.primal_iq, o.feasibility_tol * IpqpOptions{}.converge_slack);
 }
 
 // ---------------------------------------------------------------------------
@@ -957,7 +957,7 @@ TEST(IpqpFaceTest, AnActiveBoundIsClassifiedActiveAndAnInactiveOneInactive) {
 TEST(IpqpFaceTest, ATrustRegionPinIsReportedThroughTrActiveAndNotThroughBoundState) {
     const QpProblem qp = box_qp(-10.0, 10.0);
     QpOptions o = tight_opts();
-    o.tr_radius = 0.5;
+    o.trust_region_radius = 0.5;
     IpqpEngine tier(o);
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
@@ -979,7 +979,7 @@ TEST(IpqpFaceTest, AFreeVariableCarriesExactlyZeroAndAnAbsentBoundIsNeverPriced)
     // pair at every index, and the optimum (1, 2) is strictly inside the real box.
     const QpProblem qp = box_qp(-10.0, 10.0);
     QpOptions o = tight_opts();
-    o.tr_radius = 20.0; // finite, but wide enough not to pin anything
+    o.trust_region_radius = 20.0; // finite, but wide enough not to pin anything
     IpqpEngine tier(o);
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
@@ -1010,7 +1010,7 @@ TEST(IpqpFaceTest, AnAbsentRealBoundIsNeverPricedEvenWhenTheTrustRegionSuppliesO
     // an absent bound, which is how this defect first surfaced.
     const QpProblem qp = box_qp(-1e20, 0.5);
     QpOptions o = tight_opts();
-    o.tr_radius = 1.0;
+    o.trust_region_radius = 1.0;
     IpqpEngine tier(o);
     const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
@@ -1055,7 +1055,7 @@ TEST(IpqpBoundaryTest, MalformedOptionsAndOverridesAreRefused) {
     EXPECT_THROW(tier.solve(qp, nullptr, bad3, SolveOverrides{}), std::invalid_argument);
 
     SolveOverrides ov;
-    ov.tr_radius = -1.0;
+    ov.trust_region_radius = -1.0;
     EXPECT_THROW(tier.solve(qp, nullptr, IpqpOptions{}, ov), std::invalid_argument);
 
     QpProblem malformed = qp;
@@ -1093,7 +1093,7 @@ TEST(IpqpBoundaryTest, TheLedgerRecordsOneRowPerSolveAndNoneForAThrow) {
     // the solve loop, but it returns NORMALLY, and the contract is one row per
     // non-throwing solve -- a decline that consumed no label would stop the count.
     SolveOverrides pinned;
-    pinned.tr_radius = 0.0;
+    pinned.trust_region_radius = 0.0;
     const IpqpResult declined = tier.solve(qp, nullptr, IpqpOptions{}, pinned);
     ASSERT_TRUE(declined.declined_pinned);
     ASSERT_EQ(ledger.records().size(), 3u);
@@ -1192,4 +1192,4 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     EXPECT_GE(r.rho, IpqpOptions{}.reg_floor);
 }
 
-} // namespace hven::solvers
+} // namespace hven

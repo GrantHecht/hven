@@ -22,7 +22,7 @@
 #include <hven/drivers/trace.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 /// Asserts the five-way escape census sums to `ipqp_escapes` (plan section 7
 /// note b: escape-COUNT only -- the dropped stall-reason sub-counters play no
@@ -228,7 +228,7 @@ inline IpqpResult w2_escaped(const QpProblem &qp,
                              double radius = std::numeric_limits<double>::infinity(),
                              TraceSink *sink = nullptr) {
     QpOptions qopts;
-    qopts.tr_radius = radius;
+    qopts.trust_region_radius = radius;
     IpqpEngine tier(qopts);
     if (sink != nullptr) {
         tier.attach_trace(sink);
@@ -236,4 +236,4 @@ inline IpqpResult w2_escaped(const QpProblem &qp,
     return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

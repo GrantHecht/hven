@@ -52,12 +52,12 @@
 
 namespace {
 
-using hven::solvers::FilterAcceptance;
-using hven::solvers::kFilterGammaPhi;
-using hven::solvers::kFilterGammaTheta;
-using hven::solvers::kFilterMaxResets;
-using hven::solvers::kFilterResetTrigger;
-using hven::solvers::kKappaResto;
+using hven::FilterAcceptance;
+using hven::kFilterGammaPhi;
+using hven::kFilterGammaTheta;
+using hven::kFilterMaxResets;
+using hven::kFilterResetTrigger;
+using hven::kKappaResto;
 using TychoTest::pm;
 
 // Priming: run the FIRST is_iterate_acceptable() so the base captures θ₀ and

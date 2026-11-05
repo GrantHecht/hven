@@ -53,7 +53,7 @@
 
 #include <hven/detail/model/nlp_model.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 namespace detail {
 
@@ -2361,4 +2361,4 @@ inline HsProblem make_hs(int number) {
     }
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

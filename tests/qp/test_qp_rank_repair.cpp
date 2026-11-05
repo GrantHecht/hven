@@ -41,7 +41,7 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::test_support::QpDump;
 
@@ -53,7 +53,7 @@ constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
 QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     EXPECT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     std::printf(
@@ -268,8 +268,8 @@ TEST(QpRdvRankRepair, YorknetQp5Refactorize) { expect_yorknet_qp5(kRefactorize);
 // rank_repair_releases counter, and their number equals rank_repairs. (YORKNET qp5's repair is
 // the cheapest of the three to reach.)
 TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
-    using Obs = hven::solvers::detail::testing::QpWalkObserver;
-    using Action = hven::solvers::detail::testing::QpWalkAction;
+    using Obs = hven::detail::testing::QpWalkObserver;
+    using Action = hven::detail::testing::QpWalkAction;
     Obs::reset();
     Obs::active = true;
     QpDump d;

@@ -420,7 +420,7 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 /// Which degeneracy arm is armed on this thread. `kOff` is the default and is
 /// production behaviour EXACTLY: every hook site in `src/qp/qp_engine.cpp`
@@ -1783,6 +1783,6 @@ inline double b1_passed_over_violation(const QpProblem &qp, const Vec &x_new, co
 // the minimal intervention that tests the causal claim -- that dependent adds
 // drive the drop/re-add recurrence -- and it needs none of the above.
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

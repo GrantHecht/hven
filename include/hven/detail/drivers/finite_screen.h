@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief True when none of the @p count values at @p values is NaN or infinite.
 inline bool all_finite(const double *values, std::size_t count) noexcept {
@@ -45,4 +45,4 @@ inline bool is_finite(double value) noexcept { return all_finite(&value, 1); }
 ///        thrown EvaluationError does.
 [[noreturn]] void throw_non_finite_trial(const char *quantity);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

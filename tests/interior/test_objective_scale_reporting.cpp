@@ -31,8 +31,8 @@
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
 using hven::ConstEigenRef;
-using hven::solvers::IpmSolver;
-using hven::solvers::Nlp;
+using hven::IpmSolver;
+using hven::Nlp;
 using hven_interior_tests::solve_declared;
 using hven_interior_tests::transcribe;
 
@@ -42,7 +42,7 @@ using hven_interior_tests::transcribe;
 // so a scale leaking into a report is a difference from a NUMBER rather than a
 // difference between two runs.
 struct ObjScaleBoxedProblem : Nlp, hven_interior_tests::MultiplierSeedHook {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -103,7 +103,7 @@ struct ObjScaleBoxedProblem : Nlp, hven_interior_tests::MultiplierSeedHook {
 // solution is a real active one (1.0 on the caller's scale) rather than a
 // vanishing residual.
 struct ObjScaleActiveBoundProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -160,18 +160,18 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
         IpmSolver solver;
         {
             auto o = solver.options();
-            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.common.verbosity = hven::Verbosity::kSilent;
             o.objective_scale = scale;
             solver.set_options(std::move(o));
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-        const hven::solvers::IpmResult result = solve_declared(solver, route, x0);
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
+        const hven::IpmResult result = solve_declared(solver, route, x0);
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal) << "scale " << scale;
 
         EXPECT_NEAR(result.f, 1.125, kObjScaleTol) << "scale " << scale;
-        ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 1);
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol)
+        ASSERT_EQ(hven::detail::engine_rows(result).lambda_e.size(), 1);
+        EXPECT_NEAR(hven::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol)
             << "scale " << scale;
 
         // The control: the minimizer never depended on the scale, and still
@@ -188,14 +188,14 @@ TEST(ObjectiveScaleReporting, AnActiveBoundMultiplierDoesNotMoveWithTheScale) {
         IpmSolver solver;
         {
             auto o = solver.options();
-            o.common.verbosity = hven::solvers::Verbosity::kSilent;
+            o.common.verbosity = hven::Verbosity::kSilent;
             o.objective_scale = scale;
             solver.set_options(std::move(o));
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleActiveBoundProblem::kN, 0.6);
-        const hven::solvers::IpmResult result = solve_declared(solver, route, x0);
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
+        const hven::IpmResult result = solve_declared(solver, route, x0);
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal) << "scale " << scale;
 
         ASSERT_EQ(result.z.size(), ObjScaleActiveBoundProblem::kN);
         // x0 sits on its lower bound, and the bound multiplier that holds it
@@ -215,7 +215,7 @@ double obj_scale_installed_seed(double scale) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.objective_scale = scale;
         solver.set_options(std::move(o));
     }
@@ -237,7 +237,7 @@ double obj_scale_installed_seed(double scale) {
     });
 
     EXPECT_EQ(solve_declared(solver, route, Eigen::VectorXd::Constant(primal_vars, 0.6)).status,
-              hven::solvers::SolveStatus::kOptimal)
+              hven::SolveStatus::kOptimal)
         << "scale " << scale;
     EXPECT_TRUE(seen) << "the early callback never ran, so nothing was observed";
     return installed;
@@ -262,7 +262,7 @@ TEST(ObjectiveScaleReporting, ASeededMultiplierIsInstalledOnTheSolversScale) {
 // A problem with no constraint rows at all, used to show that a solver reused
 // across shapes reports the shape it just solved.
 struct ObjScaleUnconstrainedProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -316,7 +316,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
 
@@ -325,9 +325,9 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
         o.objective_scale = scale;
         return o;
     };
-    EXPECT_THROW(hven::solvers::validate(with_scale(-1.0)), std::invalid_argument);
-    EXPECT_THROW(hven::solvers::validate(with_scale(0.0)), std::invalid_argument);
-    EXPECT_THROW(hven::solvers::validate(with_scale(-1e-12)), std::invalid_argument);
+    EXPECT_THROW(hven::validate(with_scale(-1.0)), std::invalid_argument);
+    EXPECT_THROW(hven::validate(with_scale(0.0)), std::invalid_argument);
+    EXPECT_THROW(hven::validate(with_scale(-1e-12)), std::invalid_argument);
     EXPECT_NO_THROW(solver.set_options(with_scale(2.0)));
 
     // The refusal names the value, so the reader is not left to guess which
@@ -349,7 +349,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     // usable and still running at the scale it accepted.
     EXPECT_EQ(solver.options().objective_scale, 2.0);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-    EXPECT_EQ(solve_declared(solver, route, x0).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solve_declared(solver, route, x0).status, hven::SolveStatus::kOptimal);
 }
 
 // The reported constraint blocks describe the problem the call just solved,
@@ -361,42 +361,40 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.objective_scale = 2.0;
         solver.set_options(std::move(o));
     }
 
-    const hven::solvers::IpmResult boxed =
+    const hven::IpmResult boxed =
         solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
-    ASSERT_EQ(boxed.status, hven::solvers::SolveStatus::kOptimal);
-    ASSERT_EQ(hven::solvers::detail::engine_rows(boxed).lambda_e.size(), 1);
-    const double constrained_eq = hven::solvers::detail::engine_rows(boxed).lambda_e[0];
+    ASSERT_EQ(boxed.status, hven::SolveStatus::kOptimal);
+    ASSERT_EQ(hven::detail::engine_rows(boxed).lambda_e.size(), 1);
+    const double constrained_eq = hven::detail::engine_rows(boxed).lambda_e[0];
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol);
 
     // The SAME engine, at the same scale, pointed at a program with no
     // constraint rows at all.
     const auto unconstrained =
-        hven::solvers::make_nlp_program(std::make_shared<ObjScaleUnconstrainedProblem>());
+        hven::make_nlp_program(std::make_shared<ObjScaleUnconstrainedProblem>());
 
     // THE SAME ENGINE, THE OTHER PROGRAM -- expressed by handing the other
     // program to solve() rather than by re-attaching (M6 W5 T8.4).
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleUnconstrainedProblem::kN, 0.6);
-    const hven::solvers::IpmResult first =
-        solver.solve(hven::solvers::detail::problem_ref(*unconstrained), x0);
-    ASSERT_EQ(first.status, hven::solvers::SolveStatus::kOptimal);
+    const hven::IpmResult first = solver.solve(hven::detail::problem_ref(*unconstrained), x0);
+    ASSERT_EQ(first.status, hven::SolveStatus::kOptimal);
 
-    EXPECT_EQ(hven::solvers::detail::engine_rows(first).lambda_e.size(), 0)
+    EXPECT_EQ(hven::detail::engine_rows(first).lambda_e.size(), 0)
         << "there are no equality rows, so there is no equality multiplier block";
-    EXPECT_EQ(hven::solvers::detail::engine_rows(first).lambda_i.size(), 0);
-    EXPECT_EQ(hven::solvers::detail::engine_rows(first).ce.size(), 0);
-    EXPECT_EQ(hven::solvers::detail::engine_rows(first).ci.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(first).lambda_i.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(first).ce.size(), 0);
+    EXPECT_EQ(hven::detail::engine_rows(first).ci.size(), 0);
 
     // And a second call still reports nothing, rather than a block that has
     // been divided by the scale one more time.
-    const hven::solvers::IpmResult second =
-        solver.solve(hven::solvers::detail::problem_ref(*unconstrained), x0);
-    ASSERT_EQ(second.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_EQ(hven::solvers::detail::engine_rows(second).lambda_e.size(), 0);
+    const hven::IpmResult second = solver.solve(hven::detail::problem_ref(*unconstrained), x0);
+    ASSERT_EQ(second.status, hven::SolveStatus::kOptimal);
+    EXPECT_EQ(hven::detail::engine_rows(second).lambda_e.size(), 0);
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol) << "the first call's value is not in doubt";
 }
 
@@ -410,7 +408,7 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.verbosity = hven::solvers::Verbosity::kSilent;
+        o.common.verbosity = hven::Verbosity::kSilent;
         o.objective_scale = 2.0;
         solver.set_options(std::move(o));
     }
@@ -434,17 +432,17 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
         return 0;
     });
 
-    hven::solvers::IpmResult result =
+    hven::IpmResult result =
         solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     ASSERT_TRUE(attempted) << "the callback never ran, so nothing was attempted under the call";
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
 
     // Reported on the entry scale of 2, which is what every phase evaluated
     // at -- and the refusal left that scale in force.
     EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
-    ASSERT_EQ(hven::solvers::detail::engine_rows(result).lambda_e.size(), 1);
-    EXPECT_NEAR(hven::solvers::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol);
+    ASSERT_EQ(hven::detail::engine_rows(result).lambda_e.size(), 1);
+    EXPECT_NEAR(hven::detail::engine_rows(result).lambda_e[0], -0.75, kObjScaleTol);
     EXPECT_EQ(solver.options().objective_scale, 2.0);
 
     // Between calls the replacement goes through, and the next call runs at 4
@@ -458,6 +456,6 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     }
     result =
         solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
 }

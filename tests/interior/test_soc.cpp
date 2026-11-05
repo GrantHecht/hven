@@ -47,7 +47,7 @@
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 #include "hven/model/nlp.h"
 
 #include <gtest/gtest.h>
@@ -64,25 +64,25 @@
 
 namespace {
 
+using hven::AcceptanceStrategy;
+using hven::GlobalizationMechanism;
 using hven::Index;
+using hven::IpmIterate;
+using hven::IpmSolver;
+using hven::KktFactorization;
+using hven::kRecoveryDepthUnresolved;
+using hven::kSocRecommendedMaxCorrections;
+using hven::kSocViolationDecrease;
+using hven::NonLinearProgram;
+using hven::ProgressMeasures;
+using hven::RecoveryChain;
+using hven::soc_run_loop;
+using hven::soc_should_continue;
+using hven::soc_should_trigger;
+using hven::SocCorrectionOutcome;
+using hven::SocRecovery;
+using hven::SolverContext;
 using hven::SpMatRM;
-using hven::solvers::AcceptanceStrategy;
-using hven::solvers::GlobalizationMechanism;
-using hven::solvers::IpmSolver;
-using hven::solvers::IterateInfo;
-using hven::solvers::KktFactorization;
-using hven::solvers::kRecoveryDepthUnresolved;
-using hven::solvers::kSocRecommendedMaxCorrections;
-using hven::solvers::kSocViolationDecrease;
-using hven::solvers::NonLinearProgram;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::RecoveryChain;
-using hven::solvers::soc_run_loop;
-using hven::solvers::soc_should_continue;
-using hven::solvers::soc_should_trigger;
-using hven::solvers::SocCorrectionOutcome;
-using hven::solvers::SocRecovery;
-using hven::solvers::SolverContext;
 using TychoTest::InertSolverContext;
 
 using Action = RecoveryChain::Action;
@@ -93,10 +93,10 @@ constexpr double kSocInf = std::numeric_limits<double>::infinity();
 // soc_should_trigger / soc_should_continue — pure predicates.
 ///////////////////////////////////////////////////////////////////////////////
 
-IterateInfo soc_rejected_at(int rejection_iter, double theta) {
-    IterateInfo it;
-    it.first_rejection_iter_ = rejection_iter;
-    it.theta_at_first_rejection_ = theta;
+IpmIterate soc_rejected_at(int rejection_iter, double theta) {
+    IpmIterate it;
+    it.first_rejection_iter = rejection_iter;
+    it.theta_at_first_rejection = theta;
     return it;
 }
 
@@ -112,7 +112,7 @@ TEST(SocTrigger, FiresOnlyOnANonImprovingFirstTrialRejection) {
     // Refusal 1: the first trial was ACCEPTED and a later rung was rejected,
     // so the step being corrected is not the full one SOC is written for.
     EXPECT_FALSE(soc_should_trigger(soc_rejected_at(1, 4.0), 3.0));
-    // Refusal 2: no infeasibility reading (IterateInfo's -1 sentinel; the LANG
+    // Refusal 2: no infeasibility reading (IpmIterate's -1 sentinel; the LANG
     // merit variant records none).
     EXPECT_FALSE(soc_should_trigger(soc_rejected_at(0, -1.0), 3.0));
     // Refusal 3: the trial DID cut the violation, so the rejection was not the
@@ -216,8 +216,8 @@ TEST(SocRunLoop, AStagnatingViolationStopsBelowTheCap) {
 // told to throw on its Nth call, which is how the four trial-evaluation catch
 // arms are reached: call 1 is the correction SEED, call 2 the accumulation
 // point after the first rejected correction.
-struct SocTrialProblem : hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+struct SocTrialProblem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -268,8 +268,7 @@ struct SocTrialProblem : hven::solvers::Nlp {
             if (throw_unknown_) {
                 throw 42; // NOLINT(hicpp-exception-baseclass) -- a foreign, non-std exception
             }
-            throw hven::solvers::EvaluationError(
-                "SocTrialProblem: constraints refused at this point");
+            throw hven::EvaluationError("SocTrialProblem: constraints refused at this point");
         }
         g[0] = x[0] + x[1];
         if (!equality_only_) {
@@ -329,13 +328,13 @@ struct SocScriptedVerdict {
     bool accepted;
     double alpha_soc;
     /// The corrected trial's own infeasibility, stamped onto the fresh
-    /// IterateInfo the link hands the mechanism. Only read when !accepted; a
+    /// IpmIterate the link hands the mechanism. Only read when !accepted; a
     /// negative value is the "no reading available" sentinel.
     double theta;
 };
 
 // Scripted mechanism: records the corrected direction it is handed, stamps the
-// scripted verdict onto the trial IterateInfo, and reports the scripted step
+// scripted verdict onto the trial IpmIterate, and reports the scripted step
 // length. max_primal_dual_step writes the fraction-to-boundary lengths the
 // correction is supposed to overwrite, so the restore-on-decline behaviour is
 // observable.
@@ -344,10 +343,10 @@ class SocScriptedMechanism : public GlobalizationMechanism {
     explicit SocScriptedMechanism(std::vector<SocScriptedVerdict> verdicts)
         : verdicts_(std::move(verdicts)) {}
 
-    double compute_step(hven::solvers::LineSearchMode, double, double, double, double,
+    double compute_step(hven::LineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
-                        const std::vector<IterateInfo> &, SolverContext &) override {
+                        AcceptanceStrategy &, double &, double &, IpmIterate &,
+                        const std::vector<IpmIterate> &, SolverContext &) override {
         ADD_FAILURE() << "SocRecovery drives run_acceptance_backtrack, never compute_step";
         return 1.0;
     }
@@ -359,21 +358,21 @@ class SocScriptedMechanism : public GlobalizationMechanism {
         alphad = kScaledAlphaD;
     }
 
-    double run_acceptance_backtrack(hven::solvers::LineSearchMode, double, double, double, double,
+    double run_acceptance_backtrack(hven::LineSearchMode, double, double, double, double,
                                     Eigen::VectorXd &, Eigen::VectorXd &DXSL, Eigen::VectorXd &,
                                     Eigen::VectorXd &, Eigen::VectorXd &, AcceptanceStrategy &,
-                                    IterateInfo &Citer, const std::vector<IterateInfo> &,
+                                    IpmIterate &Citer, const std::vector<IpmIterate> &,
                                     SolverContext &) override {
         recorded_dxsl_.push_back(DXSL);
         const SocScriptedVerdict verdict = verdicts_.at(static_cast<std::size_t>(calls_));
         ++calls_;
-        Citer.accepted_ = verdict.accepted;
+        Citer.accepted = verdict.accepted;
         if (verdict.accepted) {
-            Citer.ls_iters_ = kAcceptedLsIters;
-            Citer.merit_val_ = kAcceptedMerit;
+            Citer.ls_iters = kAcceptedLsIters;
+            Citer.merit_val = kAcceptedMerit;
         } else {
-            Citer.first_rejection_iter_ = 0;
-            Citer.theta_at_first_rejection_ = verdict.theta;
+            Citer.first_rejection_iter = 0;
+            Citer.theta_at_first_rejection = verdict.theta;
         }
         return verdict.alpha_soc;
     }
@@ -403,11 +402,11 @@ struct SocDrive {
     std::shared_ptr<NonLinearProgram> program_;
     SpMatRM analyzed_pattern_;
     InertSolverContext inert_;
-    hven::solvers::EvalErrorLog errors_;
+    hven::EvalErrorLog errors_;
 
     Eigen::VectorXd xsl_, dxsl_, xsl2_, rhs_, rhs2_;
-    IterateInfo citer_;
-    std::vector<IterateInfo> iters_;
+    IpmIterate citer_;
+    std::vector<IpmIterate> iters_;
 
     double alpha_ = 1.0;
     double alphap_ = kEntryAlphaP;
@@ -430,7 +429,7 @@ struct SocDrive {
     explicit SocDrive(int max_soc, bool equality_only = false, double primal0 = 0.5,
                       double primal1 = 0.5) {
         problem_->equality_only_ = equality_only;
-        program_ = hven::solvers::make_nlp_program(problem_);
+        program_ = hven::make_nlp_program(problem_);
 
         // The engine lays the KKT pattern before it evaluates; do the same so
         // the residual assemble below runs against an analysed program.
@@ -449,7 +448,7 @@ struct SocDrive {
         // The correction's own factor: the identity at the KKT dimension, so
         // solve() is exact and the corrected direction is -rhs_soc.
         KktFactorization::Options factor_opts;
-        factor_opts.kind = hven::linear::FactorKind::kLDLT;
+        factor_opts.kind = hven::linear::FactorKind::kLdlt;
         factor_opts.num_threads = 1;
         inert_.kkt_solver_.reconfigure(factor_opts);
         inert_.kkt_solver_.matrix() = soc_identity(program_->kkt_dim_);
@@ -467,8 +466,8 @@ struct SocDrive {
         // A first-trial rejection whose violation did not improve on the
         // current point's: the trigger's one firing case. RHS's constraint
         // block is the current measure (squared L2 on the classic path).
-        citer_.first_rejection_iter_ = 0;
-        citer_.theta_at_first_rejection_ = 10.0;
+        citer_.first_rejection_iter = 0;
+        citer_.theta_at_first_rejection = 10.0;
     }
 
     static SpMatRM soc_identity(int n) {
@@ -487,7 +486,7 @@ struct SocDrive {
                GlobalizationMechanism &mechanism) {
         SolverContext ctx = inert_.ctx();
         return soc.on_step_rejected(citer_, iters_, ctx, acceptance, mechanism,
-                                    hven::solvers::LineSearchMode::kAugLang, /*obj_scale=*/1.0,
+                                    hven::LineSearchMode::kAugmentedLagrangian, /*obj_scale=*/1.0,
                                     /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, xsl_, dxsl_,
                                     xsl2_, rhs_, rhs2_, alpha_, alphap_, alphad_, soc_steps_,
                                     resolved_depth_, watchdog_activations_);
@@ -514,7 +513,7 @@ TEST(SocRecovery, DisabledDeclinesWithoutEvaluatingAnything) {
 // the case SOC corrects, so the link declines before the seed evaluation.
 TEST(SocRecovery, ATriggerRefusalCostsNoEvaluation) {
     SocDrive drive(kSocRecommendedMaxCorrections);
-    drive.citer_.first_rejection_iter_ = 1; // not the first trial
+    drive.citer_.first_rejection_iter = 1; // not the first trial
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({});
     SocRecovery soc;
@@ -550,9 +549,9 @@ TEST(SocRecovery, AnAcceptedCorrectionCommitsTheCorrectedStep) {
     EXPECT_FALSE(drive.dxsl_.isApprox(rejected_dxsl));
     EXPECT_DOUBLE_EQ(drive.alpha_, 0.6);
 
-    EXPECT_TRUE(drive.citer_.accepted_);
-    EXPECT_EQ(drive.citer_.ls_iters_, SocScriptedMechanism::kAcceptedLsIters);
-    EXPECT_DOUBLE_EQ(drive.citer_.merit_val_, SocScriptedMechanism::kAcceptedMerit);
+    EXPECT_TRUE(drive.citer_.accepted);
+    EXPECT_EQ(drive.citer_.ls_iters, SocScriptedMechanism::kAcceptedLsIters);
+    EXPECT_DOUBLE_EQ(drive.citer_.merit_val, SocScriptedMechanism::kAcceptedMerit);
 
     // Kept, not restored: the accepted corrected step's own lengths.
     EXPECT_DOUBLE_EQ(drive.alphap_, SocScriptedMechanism::kScaledAlphaP);

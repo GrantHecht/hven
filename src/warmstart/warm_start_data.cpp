@@ -65,7 +65,7 @@
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/model/problem.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -225,8 +225,8 @@ std::vector<std::byte> serialize(const WarmStart &data) {
     append_vector(out, detail::WarmStartAccess::iq(data));
     append_vector(out, detail::WarmStartAccess::bound(data));
 
-    append_u64(out, detail::WarmStartAccess::key(data).declaration_digest_);
-    append_u64(out, detail::WarmStartAccess::key(data).bound_digest_);
+    append_u64(out, detail::WarmStartAccess::key(data).declaration_digest);
+    append_u64(out, detail::WarmStartAccess::key(data).bound_digest);
 
     append_u64(out, static_cast<std::uint64_t>(detail::WarmStartAccess::extensions(data).size()));
     for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
@@ -285,9 +285,9 @@ WarmStart deserialize(std::span<const std::byte> bytes) {
     detail::WarmStartAccess::iq(data) = reader.read_vector("the inequality-multiplier block");
     detail::WarmStartAccess::bound(data) = reader.read_vector("the bound-multiplier block");
 
-    detail::WarmStartAccess::key(data).declaration_digest_ =
+    detail::WarmStartAccess::key(data).declaration_digest =
         reader.read_u64("the stamp's declaration digest");
-    detail::WarmStartAccess::key(data).bound_digest_ = reader.read_u64("the stamp's bound digest");
+    detail::WarmStartAccess::key(data).bound_digest = reader.read_u64("the stamp's bound digest");
 
     const std::uint64_t extension_count =
         reader.read_length("the extension list", kMinExtensionSize);
@@ -386,4 +386,4 @@ WarmStart WarmStart::seed(const Problem &problem, ConstVecRef x, ConstVecRef lam
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -22,16 +22,16 @@
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/structure_identity.h"
 
+using hven::AssemblyDeclaration;
+using hven::claim_stream_digest;
 using hven::Fnv1a;
-using hven::solvers::AssemblyDeclaration;
-using hven::solvers::claim_stream_digest;
-using hven::solvers::materialized_bound_digest;
-using hven::solvers::ModelStructureKey;
-using hven::solvers::VariableBound;
+using hven::materialized_bound_digest;
+using hven::ModelStructureKey;
+using hven::VariableBound;
 // The stream primitives are internal on purpose -- the builders above are the
 // public paths. These tests reach past that to keep the primitives themselves
 // under test; nothing outside this file should.
-using hven::solvers::detail::feed_variable_bound;
+using hven::detail::feed_variable_bound;
 
 namespace {
 
@@ -39,9 +39,9 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 
 ModelStructureKey make_key(std::uint64_t claims, int partitions, std::uint64_t bounds) {
     ModelStructureKey key;
-    key.claim_digest_ = claims;
-    key.partition_count_ = partitions;
-    key.bound_digest_ = bounds;
+    key.claim_digest = claims;
+    key.partition_count = partitions;
+    key.bound_digest = bounds;
     return key;
 }
 
@@ -54,9 +54,9 @@ std::uint64_t digest_of(const VariableBound &bound) {
 /// A declaration at the given dimensions, with no bounds.
 AssemblyDeclaration sized(int primal_vars, int equality_rows, int inequality_rows) {
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = primal_vars;
-    declaration.equality_rows_ = equality_rows;
-    declaration.inequality_rows_ = inequality_rows;
+    declaration.primal_vars = primal_vars;
+    declaration.equality_rows = equality_rows;
+    declaration.inequality_rows = inequality_rows;
     return declaration;
 }
 
@@ -81,8 +81,8 @@ struct ClaimStream {
 /// in declaration order.
 AssemblyDeclaration bounded(int primal_vars, std::initializer_list<VariableBound> records) {
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = primal_vars;
-    declaration.variable_bounds_.assign(records.begin(), records.end());
+    declaration.primal_vars = primal_vars;
+    declaration.variable_bounds.assign(records.begin(), records.end());
     return declaration;
 }
 
@@ -100,9 +100,9 @@ TEST(ModelStructureKeyTest, EqualFieldsCompareEqual) {
 
 TEST(ModelStructureKeyTest, DefaultsToAKeyOfNothing) {
     const ModelStructureKey key;
-    EXPECT_EQ(key.claim_digest_, 0u);
-    EXPECT_EQ(key.partition_count_, 0);
-    EXPECT_EQ(key.bound_digest_, 0u);
+    EXPECT_EQ(key.claim_digest, 0u);
+    EXPECT_EQ(key.partition_count, 0);
+    EXPECT_EQ(key.bound_digest, 0u);
 }
 
 TEST(ModelStructureKeyTest, PartitionCountIsAConjunct) {
@@ -127,8 +127,8 @@ TEST(ModelStructureKeyTest, DigestIsStableAcrossCalls) {
 
 TEST(ModelStructureKeyTest, TheFoldedDigestIsNotAnyOneConjunct) {
     const ModelStructureKey key = make_key(11, 2, 33);
-    EXPECT_NE(key.digest(), key.claim_digest_);
-    EXPECT_NE(key.digest(), key.bound_digest_);
+    EXPECT_NE(key.digest(), key.claim_digest);
+    EXPECT_NE(key.digest(), key.bound_digest);
 }
 
 TEST(ClaimStreamDigest, OrderIsSignificant) {

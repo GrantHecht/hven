@@ -11,7 +11,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief THE SECTION 6.2 STALL ESCAPE'S EVIDENCE BLOCK.
 ///
@@ -120,4 +120,4 @@ struct IpqpInfeasibilityEvidence {
     double least_infeasible_mu = 0.0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

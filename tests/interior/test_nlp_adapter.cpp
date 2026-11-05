@@ -15,20 +15,20 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::Nlp;
-using hven::solvers::NLPAdapterCore;
-using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPRowClassification;
-using hven::solvers::NLPRowKind;
+using hven::Nlp;
+using hven::NlpAdapterCore;
+using hven::NlpProblemModel;
+using hven::NlpRowClassification;
+using hven::NlpRowKind;
 
 namespace {
 
 /// The whole route a declared problem takes to the engine: the triplet-to-
 /// native conversion, then the piece host over the model it produced. Every
 /// test below builds through this, because nothing else builds at all.
-std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<Nlp> &problem) {
+std::shared_ptr<NlpAdapterCore> adapter_host(const std::shared_ptr<Nlp> &problem) {
     auto model = std::make_shared<NlpProblemModel>(problem);
-    return std::make_shared<NLPAdapterCore>(model, problem->name());
+    return std::make_shared<NlpAdapterCore>(model, problem->name());
 }
 
 } // namespace
@@ -36,7 +36,7 @@ std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<Nlp> &problem
 // Minimal configurable problem for validation tests. Field defaults describe a
 // valid 2-var, 2-con problem; individual tests break one field at a time.
 struct AdapterValProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -77,34 +77,34 @@ TEST(NLPRowClassificationTest, ClassifiesAllRowKindsAndCounts) {
     Eigen::VectorXd gl(5), gu(5);
     gl << 3.0, -kInf, 1.0, 1.0, -kInf;
     gu << 3.0, 2.0, kInf, 4.0, kInf;
-    auto rc = NLPRowClassification::classify(gl, gu);
-    EXPECT_EQ(rc.kinds_[0], NLPRowKind::Equality);
-    EXPECT_EQ(rc.kinds_[1], NLPRowKind::UpperBounded);
-    EXPECT_EQ(rc.kinds_[2], NLPRowKind::LowerBounded);
-    EXPECT_EQ(rc.kinds_[3], NLPRowKind::Range);
-    EXPECT_EQ(rc.kinds_[4], NLPRowKind::Free);
-    EXPECT_EQ(rc.num_eq_, 1);
-    EXPECT_EQ(rc.num_iq_, 4); // upper + lower + range(2)
-    EXPECT_EQ(rc.eq_row_[0], 0);
-    EXPECT_EQ(rc.iq_upper_row_[1], 0);
-    EXPECT_EQ(rc.iq_lower_row_[2], 1);
-    EXPECT_EQ(rc.iq_upper_row_[3], 2); // range: upper first,
-    EXPECT_EQ(rc.iq_lower_row_[3], 3); // then negated lower
-    EXPECT_EQ(rc.eq_row_[1], -1);
-    EXPECT_EQ(rc.iq_upper_row_[0], -1);
+    auto rc = NlpRowClassification::classify(gl, gu);
+    EXPECT_EQ(rc.kinds[0], NlpRowKind::kEquality);
+    EXPECT_EQ(rc.kinds[1], NlpRowKind::kUpperBounded);
+    EXPECT_EQ(rc.kinds[2], NlpRowKind::kLowerBounded);
+    EXPECT_EQ(rc.kinds[3], NlpRowKind::kRange);
+    EXPECT_EQ(rc.kinds[4], NlpRowKind::kFree);
+    EXPECT_EQ(rc.num_eq, 1);
+    EXPECT_EQ(rc.num_iq, 4); // upper + lower + range(2)
+    EXPECT_EQ(rc.eq_row[0], 0);
+    EXPECT_EQ(rc.iq_upper_row[1], 0);
+    EXPECT_EQ(rc.iq_lower_row[2], 1);
+    EXPECT_EQ(rc.iq_upper_row[3], 2); // range: upper first,
+    EXPECT_EQ(rc.iq_lower_row[3], 3); // then negated lower
+    EXPECT_EQ(rc.eq_row[1], -1);
+    EXPECT_EQ(rc.iq_upper_row[0], -1);
 }
 
 TEST(NLPRowClassificationTest, RejectsInvertedAndNaNAndInfiniteEqualityBounds) {
     Eigen::VectorXd gl(1), gu(1);
     gl << 2.0;
     gu << 1.0;
-    EXPECT_THROW(NLPRowClassification::classify(gl, gu), std::invalid_argument);
+    EXPECT_THROW(NlpRowClassification::classify(gl, gu), std::invalid_argument);
     gl << std::numeric_limits<double>::quiet_NaN();
     gu << 1.0;
-    EXPECT_THROW(NLPRowClassification::classify(gl, gu), std::invalid_argument);
+    EXPECT_THROW(NlpRowClassification::classify(gl, gu), std::invalid_argument);
     gl << kInf;
     gu << kInf; // "equality at infinity"
-    EXPECT_THROW(NLPRowClassification::classify(gl, gu), std::invalid_argument);
+    EXPECT_THROW(NlpRowClassification::classify(gl, gu), std::invalid_argument);
 }
 
 TEST(NLPAdapterCoreTest, ValidSetupPopulatesTables) {
@@ -114,7 +114,7 @@ TEST(NLPAdapterCoreTest, ValidSetupPopulatesTables) {
     EXPECT_EQ(core->num_iq_, 1);
     EXPECT_EQ(core->eq_jac_.size(), 2u); // row 0 slots
     EXPECT_EQ(core->iq_jac_.size(), 2u); // row 1 slots
-    EXPECT_EQ(core->hess_owner_, NLPAdapterCore::HessOwner::IqPiece);
+    EXPECT_EQ(core->hess_owner_, NlpAdapterCore::HessOwner::kInequalityPiece);
 }
 
 TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
@@ -157,7 +157,7 @@ TEST(NLPAdapterCoreTest, RejectsBadSizesAndStructures) {
         p.xu_[1] = -kInf;
     });
     EXPECT_THROW(NlpProblemModel{nullptr}, std::invalid_argument);
-    EXPECT_THROW(NLPAdapterCore{nullptr}, std::invalid_argument);
+    EXPECT_THROW(NlpAdapterCore{nullptr}, std::invalid_argument);
 
     // THE CONTROL, and the reason the check is `lo == up && !isfinite(lo)`
     // rather than a blanket equality test: fixing a variable at a FINITE value
@@ -175,7 +175,7 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
     auto p = std::make_shared<AdapterValProblem>();
     p->gl_ << 0.0, 0.0;
     p->gu_ << 0.0, 0.0; // both rows equality
-    EXPECT_EQ(adapter_host(p)->hess_owner_, NLPAdapterCore::HessOwner::EqPiece);
+    EXPECT_EQ(adapter_host(p)->hess_owner_, NlpAdapterCore::HessOwner::kEqualityPiece);
     auto q = std::make_shared<AdapterValProblem>();
     q->m_ = 0;
     q->jnnz_ = 0;
@@ -183,7 +183,7 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
     q->gu_.resize(0);
     q->jr_.resize(0);
     q->jc_.resize(0);
-    EXPECT_EQ(adapter_host(q)->hess_owner_, NLPAdapterCore::HessOwner::Objective);
+    EXPECT_EQ(adapter_host(q)->hess_owner_, NlpAdapterCore::HessOwner::kObjective);
 }
 
 // Assembly test problem (n=2): f = x0^2 + x1^2; rows: x0 + 2*x1 = 4 (equality),
@@ -191,7 +191,7 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
 // adapter). The Hessian structure carries a duplicate (0, 0) slot to prove
 // duplicate slots are summed rather than overwritten.
 struct AsmTestProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -263,7 +263,7 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     prob->n_eval_jac_ = 0;
     prob->n_eval_hess_ = 0;
 
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -344,7 +344,7 @@ TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
     // only at the later record.
     auto prob = std::make_shared<AsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -405,7 +405,7 @@ TEST(NLPAdapterAssemblyTest, ShortNonEmptyEqualityMultiplierBlockIsRefusedBefore
     auto core = adapter_host(prob);
     ASSERT_EQ(core->num_eq_, 2);
     ASSERT_EQ(core->num_iq_, 1);
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -438,7 +438,7 @@ TEST(NLPAdapterAssemblyTest, ShortNonEmptyEqualityMultiplierBlockIsRefusedBefore
 TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     auto prob = std::make_shared<AsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto nlp = hven::make_nlp_program(core);
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
 
@@ -487,7 +487,7 @@ struct ThrowingJacAsmTestProblem : AsmTestProblem {
 TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
     auto prob = std::make_shared<ThrowingJacAsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -532,7 +532,7 @@ TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
 // is Range-kind and splits into two solver inequality rows sharing the one
 // declared Jacobian slot (upper: x0 - 3, lower: 1 - x0).
 struct RangeAsmTestProblem : Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 
@@ -572,9 +572,9 @@ struct RangeAsmTestProblem : Nlp {
 TEST(NLPAdapterAssemblyTest, RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian) {
     auto prob = std::make_shared<RangeAsmTestProblem>();
     auto model = std::make_shared<NlpProblemModel>(prob);
-    ASSERT_EQ(model->rows().kinds_[0], NLPRowKind::Range);
-    auto core = std::make_shared<NLPAdapterCore>(model, prob->name());
-    auto nlp = hven::solvers::make_nlp_program(core);
+    ASSERT_EQ(model->rows().kinds[0], NlpRowKind::kRange);
+    auto core = std::make_shared<NlpAdapterCore>(model, prob->name());
+    auto nlp = hven::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);

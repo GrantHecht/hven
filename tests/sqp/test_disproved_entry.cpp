@@ -43,7 +43,7 @@
 
 #include "support/disproved_entry_vehicle.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::disproved_entry_model;
@@ -148,7 +148,7 @@ CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
     CellRun out;
     SqpSolver driver(opts);
     driver.attach_trace(&out.trace);
-    out.sol = driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    out.sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     return out;
 }
 
@@ -171,15 +171,15 @@ TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSub
 
     // (ii) The vehicle's own "inside every window" premise. Its header claims the
     //      consistent witness (x_k = target, s = 0) is inside EVERY window the
-    //      driver can build, i.e. |target| < tr_init <= box. `disproved_entry_qp`
+    //      driver can build, i.e. |target| < trust_region_initial <= box. `disproved_entry_qp`
     //      validates only the second half -- it cannot see the DRIVER's radius --
     //      so the first half is pinned here, against the default `run_cell` leaves
     //      alone. Without it the tier's suspicion could become TRUE inside the
     //      window and the disproval below would be about nothing.
     const DisprovedEntryCell cell;
-    EXPECT_LT(std::abs(cell.target), SqpOptions{}.tr_init)
+    EXPECT_LT(std::abs(cell.target), SqpOptions{}.trust_region_initial)
         << "the witness must be reachable inside the FIRST subproblem's window";
-    EXPECT_LE(SqpOptions{}.tr_init, cell.box)
+    EXPECT_LE(SqpOptions{}.trust_region_initial, cell.box)
         << "... and the window must not exceed the box the vehicle validates against";
 
     const CellRun r =
@@ -362,8 +362,7 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
             SqpSolver driver(opts);
             const test_support::QpAsNlpModel model = disproved_entry_model(quiet);
             counters[arm] =
-                driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point())
-                    .counters;
+                driver.solve(hven::detail::problem_ref(model), (model).start_point()).counters;
         }
         EXPECT_EQ(counters[0].ipqp_suspicion_disproved, 0)
             << "premise: this cell disproves nothing";
@@ -421,4 +420,4 @@ TEST(M7T4DisprovedEntry, TheReseedMeasuredOff) { measure_state(/*reseed=*/false)
 TEST(M7T4DisprovedEntry, TheReseedMeasuredOn) { measure_state(/*reseed=*/true); }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

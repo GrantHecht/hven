@@ -14,9 +14,9 @@
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/bound_set.h"
-#include "hven/drivers/ipm_iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// Watchdog constants (Chamberlain, Powell, Lemaréchal & Pedersen 1982;
 /// values per the reference interior-point implementation in
@@ -54,7 +54,7 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
   public:
     ExtendedBacktrackRecovery() = default;
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
                             GlobalizationMechanism &mechanism, LineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
@@ -195,7 +195,7 @@ class WatchdogRecovery : public RecoveryChain {
             throw std::invalid_argument("WatchdogRecovery: inner recovery chain must not be null");
     }
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
                             GlobalizationMechanism &mechanism, LineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
@@ -245,7 +245,7 @@ class ChainedRecovery : public RecoveryChain {
     ChainedRecovery(std::unique_ptr<RecoveryChain> soc, std::unique_ptr<RecoveryChain> extended)
         : soc_(std::move(soc)), extended_(std::move(extended)) {}
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
                             GlobalizationMechanism &mechanism, LineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
@@ -275,4 +275,4 @@ class ChainedRecovery : public RecoveryChain {
     std::unique_ptr<RecoveryChain> extended_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

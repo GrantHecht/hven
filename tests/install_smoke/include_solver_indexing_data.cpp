@@ -5,8 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-#include "hven/model/sizing_specs.h"
+#include "hven/model/solver_indexing_data.h"
 
 namespace hven_install_smoke {
-int standalone_include_sizing_specs() { return 1; }
+int standalone_include_indexing_data() { return 1; }
 } // namespace hven_install_smoke

@@ -24,7 +24,7 @@
 #include "hven/core/types.h"
 #include "hven/linear/symmetric_factor.h"
 
-namespace hven::solvers {
+namespace hven {
 
 class KktFactorization {
   public:
@@ -221,4 +221,4 @@ class KktFactorization {
     int factor_flops_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -19,21 +19,21 @@ namespace {
 /// including a wholly default one, because there is nothing to write. This fake
 /// declares rows of both kinds so it never meets that case, but it is the
 /// reference implementation of this contract and a filler copied from it would.
-void fill_arena(const hven::solvers::RhsArenaView &view) {
-    if (view.locations_ == nullptr) {
+void fill_arena(const hven::RhsArenaView &view) {
+    if (view.locations == nullptr) {
         return; // a legally empty arena: nothing declared, nothing to write
     }
-    for (int slot = 0; slot < view.locations_->size(); ++slot) {
-        const int row = view.locations_->location(slot);
+    for (int slot = 0; slot < view.locations->size(); ++slot) {
+        const int row = view.locations->location(slot);
         if (row >= 0) {
-            view.values_[row] += kFillMarker;
+            view.values[row] += kFillMarker;
         }
     }
 }
 
 void fill_kkt(const KktScatterView &kkt) {
-    for (int slot = 0; slot < kkt.locations_->size(); ++slot) {
-        kkt.values_[kkt.locations_->location(slot)] += kFillMarker;
+    for (int slot = 0; slot < kkt.locations->size(); ++slot) {
+        kkt.values[kkt.locations->location(slot)] += kFillMarker;
     }
 }
 
@@ -42,9 +42,9 @@ void fill_kkt(const KktScatterView &kkt) {
 void FakeAggregate::rekey() {
     // Both conjuncts through their one public builder each; the third is the
     // adopted partition count.
-    key_.claim_digest_ = hven::solvers::claim_stream_digest(declaration_, claim_rows_, claim_cols_);
-    key_.partition_count_ = adopted_partitions_;
-    key_.bound_digest_ = hven::solvers::materialized_bound_digest(declaration_);
+    key_.claim_digest = hven::claim_stream_digest(declaration_, claim_rows_, claim_cols_);
+    key_.partition_count = adopted_partitions_;
+    key_.bound_digest = hven::materialized_bound_digest(declaration_);
 }
 
 void FakeAggregate::assemble_impl(const CandidatePoint &point, EvalRequest request,
@@ -56,18 +56,18 @@ void FakeAggregate::assemble_impl(const CandidatePoint &point, EvalRequest reque
     (void)point;
     this->record_evaluation();
 
-    if (hven::solvers::has_request(request, EvalRequest::kObjectiveValue)) {
-        *rhs.objective_ += kFillMarker;
+    if (hven::has_request(request, EvalRequest::kObjectiveValue)) {
+        *rhs.objective += kFillMarker;
     }
-    if (hven::solvers::has_request(request, EvalRequest::kObjectiveGradient)) {
-        fill_arena(rhs.objective_gradient_);
+    if (hven::has_request(request, EvalRequest::kObjectiveGradient)) {
+        fill_arena(rhs.objective_gradient);
     }
-    if (hven::solvers::has_request(request, EvalRequest::kConstraintValues)) {
-        fill_arena(rhs.equality_residuals_);
-        fill_arena(rhs.inequality_residuals_);
+    if (hven::has_request(request, EvalRequest::kConstraintValues)) {
+        fill_arena(rhs.equality_residuals);
+        fill_arena(rhs.inequality_residuals);
     }
-    if (hven::solvers::has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        fill_arena(rhs.constraint_adjoint_gradient_);
+    if (hven::has_request(request, EvalRequest::kConstraintAdjointGradient)) {
+        fill_arena(rhs.constraint_adjoint_gradient);
     }
     constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
                                         EvalRequest::kConstraintJacobian |
@@ -81,16 +81,16 @@ void FakeAggregate::evaluate_candidate_values_impl(const CandidatePoint &point,
                                                    CandidateValues out) {
     this->record_evaluation();
     values_calls_++;
-    out.objective_ = static_cast<double>(point.x_.sum());
-    out.equality_residuals_.setConstant(kFillMarker);
-    out.inequality_residuals_.setConstant(kFillMarker);
+    out.objective = static_cast<double>(point.x.sum());
+    out.equality_residuals.setConstant(kFillMarker);
+    out.inequality_residuals.setConstant(kFillMarker);
 }
 
 void FakeAggregate::evaluate_candidate_first_order_impl(const CandidatePoint &point,
                                                         CandidateFirstOrder out) {
-    this->evaluate_candidate_values_impl(point, out.values_);
-    out.objective_gradient_.setConstant(kFillMarker);
-    out.constraint_adjoint_gradient_.setConstant(kFillMarker);
+    this->evaluate_candidate_values_impl(point, out.values);
+    out.objective_gradient.setConstant(kFillMarker);
+    out.constraint_adjoint_gradient.setConstant(kFillMarker);
 }
 
 IdentityProbe FakeAggregate::probe_identity(ConstVecRef x) {
@@ -100,7 +100,7 @@ IdentityProbe FakeAggregate::probe_identity(ConstVecRef x) {
     CandidateValues values{objective, equality, inequality};
     const CandidatePoint point{x, empty_multipliers_, empty_multipliers_};
     this->evaluate_candidate_values(point, values);
-    return IdentityProbe{this->structure_epoch(), hven::solvers::candidate_value_digest(values)};
+    return IdentityProbe{this->structure_epoch(), hven::candidate_value_digest(values)};
 }
 
 } // namespace hven::model_tests

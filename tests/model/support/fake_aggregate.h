@@ -27,20 +27,20 @@
 
 namespace hven::model_tests {
 
+using hven::AssemblyCapability;
+using hven::AssemblyDeclaration;
+using hven::CandidateFirstOrder;
+using hven::CandidatePoint;
+using hven::CandidateValues;
 using hven::ConstVecRef;
+using hven::EvalRequest;
+using hven::IdentityProbe;
+using hven::KktScatterView;
+using hven::ModelStructureKey;
+using hven::NlpAssembly;
+using hven::RhsScatterView;
+using hven::StructureEpoch;
 using hven::Vec;
-using hven::solvers::AssemblyCapability;
-using hven::solvers::AssemblyDeclaration;
-using hven::solvers::CandidateFirstOrder;
-using hven::solvers::CandidatePoint;
-using hven::solvers::CandidateValues;
-using hven::solvers::EvalRequest;
-using hven::solvers::IdentityProbe;
-using hven::solvers::KktScatterView;
-using hven::solvers::ModelStructureKey;
-using hven::solvers::NlpAssembly;
-using hven::solvers::RhsScatterView;
-using hven::solvers::StructureEpoch;
 
 /// The marker every filled slot receives. Distinct from the sentinel a test
 /// pre-fills its buffers with, so "this arena was written" is observable.
@@ -57,10 +57,10 @@ class FakeAggregate final : public NlpAssembly {
     static constexpr int kMaxPartitions = 3;
 
     FakeAggregate() {
-        declaration_.primal_vars_ = kPrimalVars;
-        declaration_.equality_rows_ = kEqualityRows;
-        declaration_.inequality_rows_ = kInequalityRows;
-        declaration_.partition_count_ = adopted_partitions_;
+        declaration_.primal_vars = kPrimalVars;
+        declaration_.equality_rows = kEqualityRows;
+        declaration_.inequality_rows = kInequalityRows;
+        declaration_.partition_count = adopted_partitions_;
         // A claim stream in the shape a claim arena holds one: two index
         // arrays, filled in claim order.
         claim_rows_.resize(4);
@@ -84,7 +84,7 @@ class FakeAggregate final : public NlpAssembly {
         }
         const int adopted = std::min(requested, kMaxPartitions);
         adopted_partitions_ = adopted;
-        declaration_.partition_count_ = adopted;
+        declaration_.partition_count = adopted;
         // A renegotiation re-lays the arenas even when the claim structure is
         // untouched -- claim ORDER moves, so a consumer's slot-indexed state is
         // stale. The re-lay bumps.
@@ -131,7 +131,7 @@ class FakeAggregate final : public NlpAssembly {
     /// changes what the layout will be -- possibly only through the
     /// intersection, which is the case worth pinning -- so it re-lays.
     void declare_variable_bound(int index, double lower, double upper) {
-        declaration_.variable_bounds_.push_back(hven::solvers::VariableBound{index, lower, upper});
+        declaration_.variable_bounds.push_back(hven::VariableBound{index, lower, upper});
         this->relay_structures();
     }
 

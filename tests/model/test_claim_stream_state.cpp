@@ -39,18 +39,18 @@
 
 #include "support/claim_corpus.h"
 
+using hven::AssemblyDeclaration;
+using hven::ClaimBlock;
+using hven::ClaimStreamDimensions;
+using hven::FixedVariableTreatment;
+using hven::NonLinearProgram;
+using hven::StructureEpoch;
+using hven::ThreadingFlags;
 using hven::model_tests::build_corpus;
 using hven::model_tests::corpus_constraint;
 using hven::model_tests::CorpusCase;
 using hven::model_tests::CorpusConstraintPiece;
 using hven::model_tests::reference_restatement;
-using hven::solvers::AssemblyDeclaration;
-using hven::solvers::ClaimBlock;
-using hven::solvers::ClaimStreamDimensions;
-using hven::solvers::FixedVariableTreatment;
-using hven::solvers::NonLinearProgram;
-using hven::solvers::StructureEpoch;
-using hven::solvers::ThreadingFlags;
 
 namespace {
 
@@ -74,8 +74,8 @@ CorpusCase wide_case() {
     fixture.inequality_pieces_ = 2;
     fixture.applications_ = 600;
     fixture.requested_partitions_ = 1;
-    fixture.equality_mode_ = ThreadingFlags::RoundRobin;
-    fixture.inequality_mode_ = ThreadingFlags::RoundRobin;
+    fixture.equality_mode_ = ThreadingFlags::kRoundRobin;
+    fixture.inequality_mode_ = ThreadingFlags::kRoundRobin;
     fixture.fixed_variables_ = {2};
     return fixture;
 }
@@ -141,14 +141,14 @@ TEST(ClaimStreamState, APartitionRenegotiationRebuildsAndBumpsBothEpochs) {
 TEST(ClaimStreamState, AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved) {
     auto nlp = build_corpus(state_case());
     const StructureEpoch claim_before = nlp->claim_stream_epoch();
-    const int equality_claims_before = nlp->equality_jacobian_claims().count_;
+    const int equality_claims_before = nlp->equality_jacobian_claims().count;
 
     ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
 
     EXPECT_NE(nlp->claim_stream_epoch(), claim_before);
     // One internal equality row per fixed variable, each claiming one Jacobian
     // slot: the equality domain grew by exactly the fixed count.
-    EXPECT_EQ(nlp->equality_jacobian_claims().count_,
+    EXPECT_EQ(nlp->equality_jacobian_claims().count,
               equality_claims_before + static_cast<int>(state_case().fixed_variables_.size()));
 }
 
@@ -204,8 +204,8 @@ TEST(ClaimStreamState, APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream) {
     CorpusConstraintPiece swapped;
     swapped.owns_hessian_ = true;
     swapped.kind_ = "corpus_swapped";
-    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(std::move(swapped)), v_index, c_index);
+    nlp->equality_constraints_[0] =
+        hven::ConstraintFunction(hven::ConstraintInterface(std::move(swapped)), v_index, c_index);
 
     nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
 
@@ -222,7 +222,7 @@ TEST(ClaimStreamState, AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds)
     ASSERT_GT(source->internal_fixed_constraints(), 0);
 
     AssemblyDeclaration declaration = source->declaration();
-    ASSERT_GT(declaration.fixing_rows_, 0);
+    ASSERT_GT(declaration.fixing_rows, 0);
 
     auto target = std::make_shared<NonLinearProgram>(1);
     const StructureEpoch claim_before = target->claim_stream_epoch();
@@ -233,7 +233,7 @@ TEST(ClaimStreamState, AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds)
     // more claims in it. Both differ from what was published before them, so
     // both restate -- charged honestly rather than hidden.
     EXPECT_EQ(target->claim_stream_epoch().value(), claim_before.value() + 2);
-    EXPECT_EQ(target->equality_jacobian_claims().count_, source->equality_jacobian_claims().count_);
+    EXPECT_EQ(target->equality_jacobian_claims().count, source->equality_jacobian_claims().count);
 }
 
 // ---------------------------------------------------------------------------
@@ -321,10 +321,10 @@ struct NonAdditivePiece {
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
-                       hven::solvers::SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(data.num_appl());
+                       hven::SolverIndexingData &data) {
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int appl = 0; appl < data.num_appl(); appl++) {
-            data.inner_kkt_starts_[appl] = freeloc;
+            data.inner_kkt_starts[appl] = freeloc;
             const int first = data.v_scatter_loc(0, appl);
             const int second = data.v_scatter_loc(1, appl);
             if (dojac) {
@@ -347,35 +347,34 @@ struct NonAdditivePiece {
     }
 
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
-                     const hven::solvers::SolverIndexingData &) const {}
+                     const hven::SolverIndexingData &) const {}
     void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
                                      const Eigen::Ref<const Eigen::VectorXd> &,
                                      Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
-                                     const hven::solvers::SolverIndexingData &) const {}
+                                     const hven::SolverIndexingData &) const {}
     void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
                               Eigen::Ref<Eigen::VectorXd>,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                               Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
-                              std::vector<std::mutex> &,
-                              const hven::solvers::SolverIndexingData &) const {}
+                              std::vector<std::mutex> &, const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient_adjointhessian(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
 };
 
-namespace hven::solvers {
+namespace hven {
 template <>
 struct SolverInterfaceAdapter<NonAdditivePiece> : DirectFunctionModel<NonAdditivePiece> {};
-} // namespace hven::solvers
+} // namespace hven
 
 /// Whether the piece below refuses its next claim pass. A file-scope flag rather
 /// than piece state because the partitioner hands every piece out by value, so
@@ -402,13 +401,13 @@ struct RelayRefusingPiece {
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
                        int &freeloc, int conoffset, bool dojac, bool,
-                       hven::solvers::SolverIndexingData &data) {
+                       hven::SolverIndexingData &data) {
         if (g_refuse_next_claim_pass) {
             throw std::runtime_error("RelayRefusingPiece: refusing this claim pass");
         }
-        data.inner_kkt_starts_.resize(data.num_appl());
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int appl = 0; appl < data.num_appl(); appl++) {
-            data.inner_kkt_starts_[appl] = freeloc;
+            data.inner_kkt_starts[appl] = freeloc;
             if (!dojac) {
                 continue;
             }
@@ -423,35 +422,34 @@ struct RelayRefusingPiece {
     }
 
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
-                     const hven::solvers::SolverIndexingData &) const {}
+                     const hven::SolverIndexingData &) const {}
     void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
                                      const Eigen::Ref<const Eigen::VectorXd> &,
                                      Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
-                                     const hven::solvers::SolverIndexingData &) const {}
+                                     const hven::SolverIndexingData &) const {}
     void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
                               Eigen::Ref<Eigen::VectorXd>,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                               Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
-                              std::vector<std::mutex> &,
-                              const hven::solvers::SolverIndexingData &) const {}
+                              std::vector<std::mutex> &, const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient_adjointhessian(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
 };
 
-namespace hven::solvers {
+namespace hven {
 template <>
 struct SolverInterfaceAdapter<RelayRefusingPiece> : DirectFunctionModel<RelayRefusingPiece> {};
-} // namespace hven::solvers
+} // namespace hven
 
 TEST(ClaimStreamState, ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding) {
     CorpusCase fixture = state_case();
@@ -470,8 +468,8 @@ TEST(ClaimStreamState, ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding
         v_index(1, appl) = 2 * appl + 1;
         c_index(0, appl) = appl;
     }
-    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(NonAdditivePiece{}), v_index, c_index);
+    nlp->equality_constraints_[0] =
+        hven::ConstraintFunction(hven::ConstraintInterface(NonAdditivePiece{}), v_index, c_index);
 
     // The raw rebuild succeeds -- the piece claims a consistent set of slots --
     // and the restatement then refuses, because the counts it was sized from do
@@ -525,8 +523,8 @@ TEST(ClaimStreamState, ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst)
         v_index(1, appl) = 2 * appl + 1;
         c_index(0, appl) = appl;
     }
-    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(NonAdditivePiece{}), v_index, c_index);
+    nlp->equality_constraints_[0] =
+        hven::ConstraintFunction(hven::ConstraintInterface(NonAdditivePiece{}), v_index, c_index);
 
     const int wider = nlp->primal_vars_ + 3;
     EXPECT_THROW(nlp->make_nlp(wider, nlp->user_equal_cons_, nlp->inequal_cons_),
@@ -565,16 +563,15 @@ TEST(ClaimStreamState, ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst)
 
 namespace {
 
-using hven::solvers::detail::ClaimDomainCounts;
-using hven::solvers::detail::RawClaimLayout;
+using hven::detail::ClaimDomainCounts;
+using hven::detail::RawClaimLayout;
 
 /// Builds into a fresh arena and returns it, so the refusal cases below read as
 /// one call. The production caller passes its SPARE arena instead, which is what
 /// makes an equal-width rebuild allocation-free -- pinned separately.
-hven::solvers::detail::ClaimArena restated(const RawClaimLayout &raw,
-                                           const ClaimDomainCounts &counts) {
-    hven::solvers::detail::ClaimArena arena;
-    hven::solvers::detail::restate_claim_stream(raw, counts, arena);
+hven::detail::ClaimArena restated(const RawClaimLayout &raw, const ClaimDomainCounts &counts) {
+    hven::detail::ClaimArena arena;
+    hven::detail::restate_claim_stream(raw, counts, arena);
     return arena;
 }
 
@@ -798,8 +795,8 @@ TEST(ClaimStreamState, APieceWrittenIntoAMasterListWithoutARelayIsNotRetainedAcr
     CorpusConstraintPiece swapped;
     swapped.owns_hessian_ = true;
     swapped.kind_ = "corpus_smuggled";
-    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(std::move(swapped)), v_index, c_index);
+    nlp->equality_constraints_[0] =
+        hven::ConstraintFunction(hven::ConstraintInterface(std::move(swapped)), v_index, c_index);
 
     // NO make_nlp. A renegotiation to the count already in force re-lays
     // unconditionally, which is the shortest route to rebuild_structures.
@@ -829,8 +826,8 @@ TEST(ClaimStreamState, AFirstLayThatCannotRestateSaysThatAndNotSomethingAboutEli
         v_index(1, appl) = 2 * appl + 1;
         c_index(0, appl) = appl;
     }
-    nlp->equality_constraints_.push_back(hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(NonAdditivePiece{}), v_index, c_index));
+    nlp->equality_constraints_.push_back(
+        hven::ConstraintFunction(hven::ConstraintInterface(NonAdditivePiece{}), v_index, c_index));
     for (int i = 0; i < 2 * kApplications; i++) {
         nlp->set_variable_bound(i, -1.0, 1.0);
     }
@@ -871,8 +868,8 @@ TEST(ClaimStreamState, ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed) {
 
     g_refuse_next_claim_pass = false;
     auto nlp = std::make_shared<NonLinearProgram>(1);
-    nlp->equality_constraints_.push_back(hven::solvers::ConstraintFunction(
-        hven::solvers::ConstraintInterface(RelayRefusingPiece{}), v_index, c_index));
+    nlp->equality_constraints_.push_back(hven::ConstraintFunction(
+        hven::ConstraintInterface(RelayRefusingPiece{}), v_index, c_index));
     for (int i = 0; i < 2 * kApplications; i++) {
         nlp->set_variable_bound(i, -1.0, 1.0);
     }
@@ -893,15 +890,15 @@ TEST(ClaimStreamState, ARefusedRelayLeavesTheLayoutReportingItselfUnanalysed) {
 
     std::vector<double> values(static_cast<std::size_t>(std::max(nlp->num_user_kkt_elems_, 1)),
                                0.0);
-    const hven::solvers::KktScatterView kkt_view{values.data(), static_cast<int>(values.size()),
-                                                 &nlp->kkt_location_table()};
+    const hven::KktScatterView kkt_view{values.data(), static_cast<int>(values.size()),
+                                        &nlp->kkt_location_table()};
     const hven::Vec x = hven::Vec::Zero(nlp->primal_vars_);
     const hven::Vec no_multipliers = hven::Vec::Zero(0);
-    const hven::solvers::CandidatePoint point{x, no_multipliers, no_multipliers, 1.0};
+    const hven::CandidatePoint point{x, no_multipliers, no_multipliers, 1.0};
 
     try {
-        nlp->assemble(point, hven::solvers::EvalRequest::kConstraintJacobian, kkt_view,
-                      hven::solvers::RhsScatterView{});
+        nlp->assemble(point, hven::EvalRequest::kConstraintJacobian, kkt_view,
+                      hven::RhsScatterView{});
         FAIL() << "a KKT-bearing assemble against an un-analysed layout must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();

@@ -27,7 +27,7 @@
 #include "hven/warmstart/sqp_warm_start.h"
 #include "hven/warmstart/warm_start_data.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The tag naming this extension. Compared byte-for-byte, never parsed.
 inline constexpr std::string_view kIpmPolishTag = "hven.ipm.polish.v1";
@@ -35,8 +35,8 @@ inline constexpr std::string_view kIpmPolishTag = "hven.ipm.polish.v1";
 /// @brief The interior-point polish hand-off: the invertible bound-dual pair,
 ///        the inequality values, and the barrier level they were taken at.
 ///
-/// Every block is stated in DECLARED space at declared widths -- `z_lower_` and
-/// `z_upper_` at n, `iq_values_` at mi -- and on the caller's own objective
+/// Every block is stated in DECLARED space at declared widths -- `z_lower` and
+/// `z_upper` at n, `iq_values` at mi -- and on the caller's own objective
 /// scale. Nothing in this component checks a block against a problem: that
 /// check belongs to whichever engine stages or bridges the value. The `>= 0`
 /// on the two price blocks is part of the contract, not a convention: both
@@ -46,17 +46,17 @@ struct IpmPolishData {
     /// crossover and the NLP engine refuse it; the SQP driver's IPQP tier
     /// adopts it as initial STATE only, through spec 5.3's clamp.
     /// `.superpowers/w1-t7-report.md` FIX ROUND 2.
-    double mu_ = 0.0;
+    double mu = 0.0;
     /// n, >= 0: prices lower(i) <= x(i). 0 where that side is not finite, where
     /// a fixed-variable treatment eliminated the variable, or where the side is
     /// unpriced.
-    Eigen::VectorXd z_lower_;
+    Eigen::VectorXd z_lower;
     /// n, >= 0: prices x(i) <= upper(i); 0 in the same three cases.
-    Eigen::VectorXd z_upper_;
+    Eigen::VectorXd z_upper;
     /// mi, cI(x) at the exported point in THIS PROJECT's sign convention
     /// (cI(x) <= 0 at a feasible point) -- the `slack_i` from_interior_point
     /// takes, not an interior-point method's own non-negative s.
-    Eigen::VectorXd iq_values_;
+    Eigen::VectorXd iq_values;
 
     friend bool operator==(const IpmPolishData &, const IpmPolishData &) = default;
 };
@@ -71,10 +71,10 @@ struct IpmPolishData {
 /// PAYLOAD (the currency's framing is outside it):
 ///
 ///   0   magic, 8 bytes: 'H' 'V' 'E' 'N' 'I' 'P' 'P' 0x00
-///   8   mu_, f64
-///   16  z_lower_:   u64 count, then count f64
-///       z_upper_:   u64 count, then count f64
-///       iq_values_: u64 count, then count f64
+///   8   mu, f64
+///   16  z_lower:   u64 count, then count f64
+///       z_upper:   u64 count, then count f64
+///       iq_values: u64 count, then count f64
 ///
 /// @param polish The value to encode.
 /// @return The payload bytes, to be carried under `kIpmPolishTag`.
@@ -108,7 +108,7 @@ const WarmExtension *find_ipm_polish(const WarmStart &data);
 ///        Both routes resolve at most `StartLevel::kSeeded`.
 ///
 /// A validate-then-forward: the core's primal, equality and inequality blocks and
-/// the extension's `iq_values_`/`z_lower_`/`z_upper_` are handed to
+/// the extension's `iq_values`/`z_lower`/`z_upper` are handed to
 /// `from_interior_point` as `x`, `lambda_e`, `lambda_i`, `slack_i`, `z_lower`,
 /// `z_upper`, with the problem's own bounds. Every sign convention, activity rule
 /// and ingest semantic is that function's, in detail/warmstart/warm_start.h. Read
@@ -134,6 +134,6 @@ const WarmExtension *find_ipm_polish(const WarmStart &data);
 ///         offset-naming refusal), or if the extension's block widths disagree
 ///         with the core's.
 SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
-                               const IpCrossoverOptions &opts = {});
+                               const IpmCrossoverOptions &opts = {});
 
-} // namespace hven::solvers
+} // namespace hven

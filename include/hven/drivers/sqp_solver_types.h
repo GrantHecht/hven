@@ -26,7 +26,7 @@
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/sqp_warm_start.h>
 
-namespace hven::solvers {
+namespace hven {
 
 // The full-step-first warm rule's two constants. Both are watchdog thresholds:
 // they bound how long the driver may keep taking undamped steps under
@@ -106,7 +106,7 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// kReject verdict is wrong in both directions.
 ///
 /// Every scale-carrying column IS ON THE CALLER'S SCALE, whether or not the solve
-/// ran with `SqpOptions::enable_scaling` on. The number a scaled solve's
+/// ran with `SqpOptions::row_scaling` on. The number a scaled solve's
 /// convergence test gated on is `SqpScalingReport::scaled_kkt_residual`.
 struct SqpIterate {
     /// @brief 0-based index of THIS ROW (== subproblem index).
@@ -133,16 +133,16 @@ struct SqpIterate {
     /// monotonically tightening width) is checkable from the history alone.
     double violation_l1 = 0.0;
     /// The l-infinity trust-region radius THIS subproblem was solved at,
-    /// i.e. the SolveOverrides::tr_radius the driver passed. On a
+    /// i.e. the SolveOverrides::trust_region_radius the driver passed. On a
     /// stopped-AT-iterate row it is the radius the next subproblem would
     /// have been given.
     double tr_radius = 0.0;
-    /// The SolveOverrides::dual_mu THIS subproblem was solved at (the MAIN
+    /// The SolveOverrides::dual_regularization THIS subproblem was solved at (the MAIN
     /// trial's QP -- a subsequent SOC/elastic re-solve on the same row uses
     /// its own separate override, per sqp_solver.h's ADAPTIVE DUAL
     /// REGULARIZATION note, so it is not what this field describes there).
     /// Meaningful iff qp_solved; 0.0 on a stopped-AT-iterate row, like the
-    /// other qp_* fields. Always opts.qp.dual_mu (the engine default) when
+    /// other qp_* fields. Always opts.qp.dual_regularization (the engine default) when
     /// SqpOptions::adaptive_mu is false -- byte-identical across the whole
     /// history.
     double mu = 0.0;
@@ -346,7 +346,7 @@ struct SqpIterate {
 /// and the sub-solve runs unscaled by design. An INACTIVE report is the identity,
 /// field for field, so a reader never has to branch on `active`.
 struct SqpScalingReport {
-    /// True when the ROW/OBJECTIVE layer ran, i.e. `SqpOptions::enable_scaling` was
+    /// True when the ROW/OBJECTIVE layer ran, i.e. `SqpOptions::row_scaling` was
     /// on -- or `column_scaling == kAuto` fired, which engages it -- and factors were
     /// installed.
     bool active = false;
@@ -364,7 +364,7 @@ struct SqpScalingReport {
     /// CALLER's scale. On a solve that ran in neither layer the two are the same
     /// number by construction; on a column-scaled one (`columns_active`) this is
     /// the residual in the scaled variables x~, whichever row layer ran. On a
-    /// scaled one their difference is exactly the gap SqpOptions::enable_scaling
+    /// scaled one their difference is exactly the gap SqpOptions::row_scaling
     /// discloses, and reporting both is what makes it computable. NaN whenever
     /// SqpResult::kkt_residual is NaN, for the same reason: nothing was measured.
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
@@ -573,4 +573,4 @@ struct SqpResult : SolveResult {
     SqpWarmStart native_warm_start{SqpWarmStart::Cold{}};
 };
 
-} // namespace hven::solvers
+} // namespace hven

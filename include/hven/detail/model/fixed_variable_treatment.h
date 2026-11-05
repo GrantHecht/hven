@@ -9,7 +9,7 @@
 
 #include "hven/drivers/ipm_enums.h"
 
-namespace hven::solvers {
+namespace hven {
 
 /// Snake-case name for a treatment, for diagnostics and error messages.
 inline const char *fixed_variable_treatment_name(FixedVariableTreatment treatment) {
@@ -35,4 +35,4 @@ inline constexpr double kDefaultBoundRelaxFactor = 1.0e-8;
 /// a caller would set.
 inline constexpr double kMaxBoundRelaxFactor = 1.0e-2;
 
-} // namespace hven::solvers
+} // namespace hven

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_calls.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::linear::SymmetricFactor;

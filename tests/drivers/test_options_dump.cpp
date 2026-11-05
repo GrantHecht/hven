@@ -43,11 +43,11 @@
 
 namespace {
 
-using hven::solvers::CommonOptions;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpqpOptions;
-using hven::solvers::QpOptions;
-using hven::solvers::SqpOptions;
+using hven::CommonOptions;
+using hven::IpmOptions;
+using hven::IpqpOptions;
+using hven::QpOptions;
+using hven::SqpOptions;
 
 // ---------------------------------------------------------------------------
 // Axis 1: the declared field counts, pinned at compile time.
@@ -57,10 +57,10 @@ using hven::solvers::SqpOptions;
 // SqpOptions' 45 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
 // added `qp_failure_step`; 33 before M7 W2 P1E added `elastic_witness_start`,
 // `elastic_last_optimal_rung` and `restoration_resume_reduction`; 36 before M7 QN
-// stage 3 added `hessian_mode`, `qn_memory` and `qn_update_on_reject`; 39 before the
+// stage 3 added `hessian_mode`, `lbfgs_memory` and `qn_update_on_reject`; 39 before the
 // M7 QN quality round added `qn_nonlinear_only` and `qn_full_memory_max`; 41 before M7 W2
 // SCL added `column_scaling` and `column_scaling_threshold`; 43 before M7 W2 RST added
-// `restoration_curvature` and `restoration_max_entries`).
+// `restoration_curvature` and `max_restoration_entries`).
 //
 // IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
 // detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
@@ -97,14 +97,13 @@ static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
               "dump_options(const IpmOptions&, std::ostream&) "
               "(src/drivers/ipm_options.cpp), in its declaration position, then move "
               "kIpmOptionsFields and kIpmDumpLines here together.");
-static_assert(::hven::detail::kAggregateArity<hven::solvers::IpmLinearOptions> ==
-                  kIpmLinearOptionsFields,
+static_assert(::hven::detail::kAggregateArity<hven::IpmLinearOptions> == kIpmLinearOptionsFields,
               "IpmLinearOptions gained or lost a field: it is flattened under `linear.`.");
-static_assert(::hven::detail::kAggregateArity<hven::solvers::IpmTerminationOptions> ==
+static_assert(::hven::detail::kAggregateArity<hven::IpmTerminationOptions> ==
                   kIpmTerminationOptionsFields,
               "IpmTerminationOptions gained or lost a field: it is flattened under "
               "`termination.`.");
-static_assert(::hven::detail::kAggregateArity<hven::solvers::IpmAdvancedOptions> ==
+static_assert(::hven::detail::kAggregateArity<hven::IpmAdvancedOptions> ==
                   kIpmAdvancedOptionsFields,
               "IpmAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
 static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
@@ -112,10 +111,9 @@ static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
               "dump_options(const SqpOptions&, std::ostream&) "
               "(src/drivers/sqp_options.cpp), in its declaration position, then move "
               "kSqpOptionsFields and kSqpDumpLines here together.");
-static_assert(::hven::detail::kAggregateArity<hven::solvers::SqpLinearOptions> ==
-                  kSqpLinearOptionsFields,
+static_assert(::hven::detail::kAggregateArity<hven::SqpLinearOptions> == kSqpLinearOptionsFields,
               "SqpLinearOptions gained or lost a field: it is flattened under `linear.`.");
-static_assert(::hven::detail::kAggregateArity<hven::solvers::SqpAdvancedOptions> ==
+static_assert(::hven::detail::kAggregateArity<hven::SqpAdvancedOptions> ==
                   kSqpAdvancedOptionsFields,
               "SqpAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
 static_assert(::hven::detail::kAggregateArity<IpqpOptions> == kIpqpOptionsFields,
@@ -143,16 +141,16 @@ static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(hven::solvers::IpmLinearOptions) == 48,
+static_assert(sizeof(hven::IpmLinearOptions) == 48,
               "IpmLinearOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::solvers::IpmTerminationOptions) == 88,
+static_assert(sizeof(hven::IpmTerminationOptions) == 88,
               "IpmTerminationOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::solvers::IpmAdvancedOptions) == 144,
+static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
               "IpmAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(SqpOptions) == 600, "SqpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::solvers::SqpLinearOptions) == 24,
+static_assert(sizeof(hven::SqpLinearOptions) == 24,
               "SqpLinearOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(hven::solvers::SqpAdvancedOptions) == 328,
+static_assert(sizeof(hven::SqpAdvancedOptions) == 328,
               "SqpAdvancedOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
@@ -186,13 +184,13 @@ int count_lines(const std::string &text) {
 
 std::string dump_to_string(const IpmOptions &o) {
     std::ostringstream os;
-    hven::solvers::dump_options(o, os);
+    hven::dump_options(o, os);
     return os.str();
 }
 
 std::string dump_to_string(const SqpOptions &o) {
     std::ostringstream os;
-    hven::solvers::dump_options(o, os);
+    hven::dump_options(o, os);
     return os.str();
 }
 
@@ -244,15 +242,15 @@ TEST(OptionsDump, EnumsPrintEnumeratorNames) {
     EXPECT_TRUE(has_line(sqp, "qp_mode = kWalk")) << sqp;
     EXPECT_TRUE(has_line(sqp, "advanced.elastic_rung_engine = kWalk")) << sqp;
     EXPECT_TRUE(has_line(sqp, "hessian_mode = kExact")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qn_memory = 10")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "lbfgs_memory = 10")) << sqp;
     EXPECT_TRUE(has_line(sqp, "advanced.qn_update_on_reject = false")) << sqp;
     EXPECT_TRUE(has_line(sqp, "advanced.qn_nonlinear_only = false")) << sqp;
     EXPECT_TRUE(has_line(sqp, "advanced.qn_full_memory_max = 400")) << sqp;
     EXPECT_TRUE(has_line(sqp, "common.start_level = kWarm")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qp.ws_algebra = kSchurBorder")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "qp.working_set_algebra = kSchurBorder")) << sqp;
 
     const std::string ipm = dump_to_string(IpmOptions{});
-    EXPECT_TRUE(has_line(ipm, "advanced.solve_phase_mode = kSoe")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "advanced.solve_phase_mode = kSolveEquations")) << ipm;
     EXPECT_TRUE(has_line(ipm, "advanced.optimize_barrier_mode = kLoqo")) << ipm;
     EXPECT_TRUE(has_line(ipm, "advanced.restoration_mode = kOff")) << ipm;
     EXPECT_TRUE(has_line(ipm, "linear.dense_factorization = kNever")) << ipm;
@@ -369,7 +367,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
     {
         std::ostringstream os;
         poison(os);
-        hven::solvers::dump_options(IpmOptions{}, os);
+        hven::dump_options(IpmOptions{}, os);
         EXPECT_EQ(os.str(), dump_to_string(IpmOptions{}));
         EXPECT_EQ(os.width(), 40) << "an unformatted write does not consume width(); a formatted "
                                      "insertion would have reset it to 0";
@@ -377,7 +375,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
     {
         std::ostringstream os;
         poison(os);
-        hven::solvers::dump_options(SqpOptions{}, os);
+        hven::dump_options(SqpOptions{}, os);
         EXPECT_EQ(os.str(), dump_to_string(SqpOptions{}));
         EXPECT_EQ(os.width(), 40);
     }
@@ -388,7 +386,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
 TEST(OptionsDump, WritesIntoAStreamTheCallerIsAlreadyUsing) {
     std::ostringstream os;
     os << "prologue\n";
-    hven::solvers::dump_options(SqpOptions{}, os);
+    hven::dump_options(SqpOptions{}, os);
     os << "epilogue\n";
     const std::string expected = "prologue\n" + dump_to_string(SqpOptions{}) + "epilogue\n";
     EXPECT_EQ(os.str(), expected);
@@ -399,8 +397,8 @@ TEST(OptionsDump, WritesIntoAStreamTheCallerIsAlreadyUsing) {
 TEST(OptionsDump, ReadsTheValueItWasGiven) {
     IpmOptions o;
     o.common.threads = 7;
-    o.advanced.restoration_mode = hven::solvers::RestorationMode::kL1Nested;
-    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    o.advanced.restoration_mode = hven::RestorationMode::kL1Nested;
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
     const std::string text = dump_to_string(o);
     EXPECT_TRUE(has_line(text, "common.threads = 7")) << text;
     EXPECT_TRUE(has_line(text, "advanced.restoration_mode = kL1Nested")) << text;

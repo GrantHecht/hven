@@ -54,7 +54,7 @@
 #include "hven/core/pattern_hash.h"
 #include "hven/model/assembly_declaration.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -70,18 +70,18 @@ namespace detail {
 ///        digest of its variable-bound structure.
 ///
 /// Each conjunct has one public builder and no other way in:
-/// `claim_digest_` is computed by claim_stream_digest, `bound_digest_` by
-/// materialized_bound_digest, and `partition_count_` is the count
+/// `claim_digest` is computed by claim_stream_digest, `bound_digest` by
+/// materialized_bound_digest, and `partition_count` is the count
 /// NlpAssembly::negotiate_partition_count actually adopted. Filling a field
 /// from anything else is how a key stops answering the question it exists for.
 ///
-/// `partition_count_` is deliberately explicit though the claim stream is
+/// `partition_count` is deliberately explicit though the claim stream is
 /// already partition-sensitive: an inspectable field where an order-sensitivity
 /// is not.
 struct ModelStructureKey {
-    std::uint64_t claim_digest_ = 0;
-    int partition_count_ = 0;
-    std::uint64_t bound_digest_ = 0;
+    std::uint64_t claim_digest = 0;
+    int partition_count = 0;
+    std::uint64_t bound_digest = 0;
 
     friend bool operator==(const ModelStructureKey &, const ModelStructureKey &) = default;
 
@@ -90,9 +90,9 @@ struct ModelStructureKey {
     ///        folded digests is weaker than comparing keys -- prefer `==`.
     std::uint64_t digest() const noexcept {
         Fnv1a hash;
-        hash.feed_index(static_cast<std::int64_t>(claim_digest_));
-        hash.feed_index(static_cast<std::int64_t>(partition_count_));
-        hash.feed_index(static_cast<std::int64_t>(bound_digest_));
+        hash.feed_index(static_cast<std::int64_t>(claim_digest));
+        hash.feed_index(static_cast<std::int64_t>(partition_count));
+        hash.feed_index(static_cast<std::int64_t>(bound_digest));
         return hash.value();
     }
 };
@@ -108,10 +108,10 @@ struct ModelStructureKey {
 /// declared, never what a provider or a policy decided.
 struct DeclarationKey {
     /// The declared problem's mathematical identity: declaration_identity_digest.
-    std::uint64_t declaration_digest_ = 0;
+    std::uint64_t declaration_digest = 0;
     /// The declared bound structure: materialized_bound_digest, the same
     /// builder ModelStructureKey's own bound conjunct uses.
-    std::uint64_t bound_digest_ = 0;
+    std::uint64_t bound_digest = 0;
 
     friend bool operator==(const DeclarationKey &, const DeclarationKey &) = default;
 
@@ -120,8 +120,8 @@ struct DeclarationKey {
     ///        digests is weaker than comparing keys -- prefer `==`.
     std::uint64_t digest() const noexcept {
         Fnv1a hash;
-        hash.feed_index(static_cast<std::int64_t>(declaration_digest_));
-        hash.feed_index(static_cast<std::int64_t>(bound_digest_));
+        hash.feed_index(static_cast<std::int64_t>(declaration_digest));
+        hash.feed_index(static_cast<std::int64_t>(bound_digest));
         return hash.value();
     }
 };
@@ -184,16 +184,16 @@ constexpr void feed_claims(Fnv1a &hash, const int *rows, const int *cols,
 constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noexcept {
     constexpr double kInf = std::numeric_limits<double>::infinity();
     std::int64_t structure = 0;
-    if (bound.lower_ > -kInf && bound.lower_ < kInf) {
+    if (bound.lower > -kInf && bound.lower < kInf) {
         structure |= 1;
     }
-    if (bound.upper_ > -kInf && bound.upper_ < kInf) {
+    if (bound.upper > -kInf && bound.upper < kInf) {
         structure |= 2;
     }
-    if (bound.lower_ == bound.upper_) {
+    if (bound.lower == bound.upper) {
         structure |= 4;
     }
-    hash.feed_index(bound.index_);
+    hash.feed_index(bound.index);
     hash.feed_index(structure);
 }
 
@@ -219,8 +219,8 @@ inline std::uint64_t claim_stream_digest(const AssemblyDeclaration &declaration,
     }
 
     Fnv1a hash;
-    detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_,
-                            declaration.inequality_rows_);
+    detail::feed_dimensions(hash, declaration.primal_vars, declaration.equality_rows,
+                            declaration.inequality_rows);
     detail::feed_claims(hash, claim_rows.data(), claim_cols.data(),
                         static_cast<std::size_t>(claim_rows.size()));
     return hash.value();
@@ -247,7 +247,7 @@ inline std::uint64_t materialized_bound_digest(const AssemblyDeclaration &declar
 ///        variables, USER equality rows, and inequality rows -- through the
 ///        same self-delimiting preamble claim_stream_digest opens with.
 ///
-/// The equality count fed is `equality_rows_ - fixing_rows_`: the internal rows
+/// The equality count fed is `equality_rows - fixing_rows`: the internal rows
 /// a MakeConstraint treatment appends are the TREATMENT's rows, not the
 /// declaration's.
 ///
@@ -261,8 +261,8 @@ inline std::uint64_t materialized_bound_digest(const AssemblyDeclaration &declar
 ///
 /// @param declaration the declared problem.
 /// @return the digest.
-/// @throws std::invalid_argument if `fixing_rows_` is negative or exceeds
-///         `equality_rows_` -- a fixing-row count that is not a legal split of
+/// @throws std::invalid_argument if `fixing_rows` is negative or exceeds
+///         `equality_rows` -- a fixing-row count that is not a legal split of
 ///         the equality row space is one this function cannot read, and
 ///         guessing at the split would key two different problems the same.
 std::uint64_t declaration_identity_digest(const AssemblyDeclaration &declaration);
@@ -333,16 +333,16 @@ class StructureEpochCounter {
 /// @brief A cheap two-part answer: is this the same structure, and is this the
 ///        same point?
 ///
-/// `value_digest_` is a digest of the candidate VALUES at the probed point (see
+/// `value_digest` is a digest of the candidate VALUES at the probed point (see
 /// candidate_value_digest in model/candidate_point.h). It is bitwise over the
 /// value bytes, and it is only ever compared against another probe taken in the
 /// same process by the same binary: it is not a portable pin, and it is never
 /// compared against a digest taken over assembled matrices.
 struct IdentityProbe {
-    StructureEpoch epoch_;
-    std::uint64_t value_digest_ = 0;
+    StructureEpoch epoch;
+    std::uint64_t value_digest = 0;
 
     friend bool operator==(const IdentityProbe &, const IdentityProbe &) = default;
 };
 
-} // namespace hven::solvers
+} // namespace hven

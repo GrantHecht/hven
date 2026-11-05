@@ -5,11 +5,11 @@
 
 #include <hven/detail/kkt/kkt_calls.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using namespace hven::solvers::detail;
+using namespace hven::detail;
 
 namespace {
 
@@ -46,7 +46,7 @@ SpMatRM make_kkt3_different_pattern() {
 TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
     const hven::linear::SymmetricFactor::Options o = sqp_kkt_options();
 
-    EXPECT_EQ(o.kind, hven::linear::FactorKind::kLDLT);
+    EXPECT_EQ(o.kind, hven::linear::FactorKind::kLdlt);
     EXPECT_EQ(o.num_threads, 0) << "the default argument is the pre-T8.8 hard-coded value";
     EXPECT_FALSE(o.pivot_perturb_exp.has_value());
     EXPECT_FALSE(o.max_refinement_iters.has_value());

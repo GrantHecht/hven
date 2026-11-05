@@ -9,7 +9,7 @@
 
 #include <hven/core/solver_status.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief Resolves ONE interior-point phase's raw verdict against the stop
 ///        reason recorded for the same phase.
@@ -39,4 +39,4 @@ namespace hven::solvers {
 /// @throws std::invalid_argument if @p reason is not one of the seven.
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason);
 
-} // namespace hven::solvers
+} // namespace hven

@@ -1,6 +1,6 @@
 # hven machine-trace schema v0
 
-The JSON-lines event stream `hven::solvers::JsonLinesTraceSink` writes
+The JSON-lines event stream `hven::JsonLinesTraceSink` writes
 (`include/hven/drivers/trace_writer.h`, `src/drivers/trace_writer.cpp`). **This
 document is the schema.** M7's heuristics and M8's human trace read it, and
 `docs/notes/2026-08-m6-w1-ipqp-spec.md` §7's block is superseded by reference.
@@ -24,7 +24,7 @@ The first four keys are always these, in this order:
 | `v` | integer | schema version. **0** for the whole of M6. |
 | `ev` | string | the event name, from §3's table. |
 | `seq` | integer | **per SINK**, not per solve: a monotone counter starting at 1, so a reader can prove it saw every line. Two solves on one sink share one numbering. |
-| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; every restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. One restoration entry runs ONE sub-solve, or TWO under the phase's curvature switch (`SqpOptions::restoration_curvature`; `restoration_curvature_switches`): two depth-1 `sqp.solve` pairs back to back, the second's `iteration` restarting at 0. A solve may run several entries (`SqpOptions::restoration_max_entries`). |
+| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; every restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. One restoration entry runs ONE sub-solve, or TWO under the phase's curvature switch (`SqpOptions::restoration_curvature`; `restoration_curvature_switches`): two depth-1 `sqp.solve` pairs back to back, the second's `iteration` restarting at 0. A solve may run several entries (`SqpOptions::max_restoration_entries`). |
 
 `seq` and `depth` are **sink-owned**: no event struct carries either. `depth`
 moves on `sqp.solve` begin/end only; the `ipm.solve` pair does **not** move it
@@ -123,7 +123,7 @@ nesting stuck open.
 | `vars_ranged` | integer | both finite and NOT equal |
 | `vars_fixed` | integer | both finite and equal (a zero-width box) |
 | `qp_mode` | string `ipqp\|walk\|ssn` | the SETTING, not an outcome |
-| `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.ws_algebra` |
+| `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.working_set_algebra` |
 | `absent_bounds` | integer | **M8 B7.** finite declared bound values the solve's `CommonOptions::infinite_bound` read as ABSENT (`b >= infinite_bound` is +inf, `b <= -infinite_bound` is -inf): variable sides (once per side of the box as laid, however many declarations named it), plus an Nlp problem's row sides -- on every route, a pre-laid program or a bridge counting its model's values too (B7 riders). The census above is taken AFTER the threshold, so a variable declared `[-1e20, 1e20]` counts in `vars_free` at the default threshold. 0 under `infinite_bound = kInfinity` |
 
 **The five-way census is over VARIABLES, exhaustive and disjoint**: the five
@@ -430,8 +430,8 @@ for the whole.
 
 ### 4.14 `ipm.iter`
 
-`IterateInfo`'s own fields in declaration order with the trailing underscores
-dropped, plus one trailing key.
+`IpmIterate`'s own fields in declaration order, each under its own name,
+plus one trailing key.
 
 `iter`, `mu`, `prim_obj`, `barr_obj`, `kkt_inf`, `barr_inf`, `econ_inf`,
 `icon_inf`, `pen_par1`, `pen_par2`, `ls_iters`, `alpha_p`, `alpha_d`, `alpha_t`,
@@ -441,9 +441,9 @@ dropped, plus one trailing key.
 
 `h_facs` is **inertia-ladder STEPS, not factorizations** — the count of
 perturbation steps that iteration's factorization took, 0 when it needed none.
-(`IterateInfo` carries no doc comment for it; this is its first definition.)
+(`IpmIterate` carries no doc comment for it; this is its first definition.)
 
-`phase` is additive (M6 W4 T4) and is the IPM's own `major`: `IterateInfo::iter_`
+`phase` is additive (M6 W4 T4) and is the IPM's own `major`: `IpmIterate::iter`
 restarts at 0 in every phase, so on a multi-phase entry point it is not a key on
 its own.
 
@@ -461,7 +461,7 @@ them loses the distinction:
 
 `p_pivots` deserves its own sentence. The solver's own bookkeeping projects an
 absent backend count to the integer 0 (`.value_or(0)`); the stream must not
-repeat that fabrication, so `IterateInfo::p_pivots_observed_` is the predicate
+repeat that fabrication, so `IpmIterate::p_pivots_observed` is the predicate
 and it carries no key of its own.
 
 **BOTH LATE-CALLBACK SITES EMIT**, immediately before the callback, so the late
@@ -568,9 +568,9 @@ this line's row need not be the previous one: under `return_best` the selected
 row is an EARLIER row of the phase, and even for the terminal row an
 `ipm.message` can sit between the two. A reader joins on the pair.
 
-**NO `selected_iter` KEY.** The phase loop stamps each row's `iter_` with the
+**NO `selected_iter` KEY.** The phase loop stamps each row's `iter` with the
 loop counter and pushes exactly one row per iteration, so a row's INDEX in the
-phase's history and its `iter_` are the same number; the key existed on the
+phase's history and its `iter` are the same number; the key existed on the
 record T8.7b first shipped and was dropped at T8.7b fix1, before the record left
 the branch (the lane's M4).
 
@@ -726,7 +726,7 @@ FIRST `double`s IN THE DIRECT BLOCK.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the entry rule -- `SqpOptions::restoration_max_entries` and its progress guard -- and no budget) and the non-finite exit move nothing |
+| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the entry rule -- `SqpOptions::max_restoration_entries` and its progress guard -- and no budget) and the non-finite exit move nothing |
 | `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
 | `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED. Not the resume test's reading since M7 W2 SNR (that is `restoration_feas_out`, the inf-norm); as an l1 sum it bounds the rows' inf-norm from above, so `restoration_h_out <= feas_tol` on an in-box point implies the entry resumed, not conversely |
 | `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
@@ -863,7 +863,7 @@ group; `SqpOptions::hessian_mode`).
 | `qn_skipped_conditioning` | integer | `SqpCounters::qn_skipped_conditioning` | pairs skipped: conditioning after damping. Folded |
 | `qn_rank_dropped` | integer | `SqpCounters::qn_rank_dropped` | pairs evicted early by the rank test. Folded |
 | `qn_resets_consecutive_skips` | integer | `SqpCounters::qn_resets_consecutive_skips` | window resets after consecutive non-zero-step skips. Folded |
-| `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `tr_min`. Folded |
+| `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `trust_region_min`. Folded |
 | `qn_resets_restoration_resume` | integer | `SqpCounters::qn_resets_restoration_resume` | window resets at a restoration resume. Folded |
 | `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the model held: under the shipped default (carried dimension at most `SqpOptions::qn_full_memory_max`, 400) the carrier is full-memory dense BFGS with no window and this is the pair count since the last reset; above it, the L-BFGS window's depth. Max-folded |
 | `qn_lift_rank_peak` | integer | `SqpCounters::qn_lift_rank_peak` | widest mixed lift (`r+ + r-`) any subproblem carried. Max-folded |

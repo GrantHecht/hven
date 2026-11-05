@@ -857,11 +857,11 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
-// THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iter (qp_types.h)
+// THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iterations (qp_types.h)
 // defaults to the sentinel 0, meaning "derive the cap from this subproblem's
 // size"; a positive value is an explicit absolute cap and wins outright.
 //
@@ -892,7 +892,7 @@ inline Index derived_qp_max_iter(Index base) {
     return std::max(kQpMaxIterFloor, kQpMaxIterCoeff * base);
 }
 
-// The cap this solve actually runs at: an engaged QpOptions::max_iter wins
+// The cap this solve actually runs at: an engaged QpOptions::max_iterations wins
 // outright; an empty one derives from size.
 inline Index effective_qp_max_iter(const QpProblem &qp, std::optional<Index> requested) {
     return requested ? *requested : derived_qp_max_iter(qp_cap_base(qp));
@@ -920,7 +920,7 @@ constexpr double kInfeasibilityAbsorbTol = 1e-6;
 // still admitting genuinely large physical-scale solutions.
 constexpr double kUnboundedArtifactFactor = 0.1;
 inline double unbounded_artifact_scale(const QpOptions &opts) {
-    return kUnboundedArtifactFactor / opts.primal_delta;
+    return kUnboundedArtifactFactor / opts.primal_regularization;
 }
 // Multiple of a row's tolerance a violation must clear before it is even
 // considered as evidence of infeasibility (condition (a); see
@@ -1279,7 +1279,7 @@ inline double free_block_stationarity(const QpProblem &qp, const Vec &x, const W
 // routes it to the escalation ladder. `residual > tol` would instead certify
 // kOptimal on a NaN.
 inline bool free_block_is_stationary(double residual, double scale, const QpOptions &opts) {
-    return residual <= opts.opt_tol * scale;
+    return residual <= opts.optimality_tol * scale;
 }
 
 // THE DUAL SIGN READ (M7 W2 SDL; RDV-5): the largest WRONG-SIGNED multiplier of
@@ -1316,7 +1316,7 @@ inline double worst_wrong_sign(const QpProblem &qp, const WorkingSet &ws, const 
 // The certificate's SIGN HALF decision: dual feasible within the KKT-point
 // test's own relative tolerance. Written as `<=` so a NaN refuses.
 inline bool dual_signs_hold(double wrong_sign, double scale, const QpOptions &opts) {
-    return wrong_sign <= opts.opt_tol * scale;
+    return wrong_sign <= opts.optimality_tol * scale;
 }
 
 // THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
@@ -2282,7 +2282,7 @@ class QpEngine {
     /// @param opts          The effective options; `(primal_delta, dual_mu)` are
     ///                      fixed across one iteration.
     /// @return True iff the refined point was adopted.
-    /// @throws hven::solvers::BackendError propagated from `factorize_checked` on a miss,
+    /// @throws hven::BackendError propagated from `factorize_checked` on a miss,
     ///         and from the hit branch's `solve_vec`; the attempted
     ///         factorization stays charged.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
@@ -2990,4 +2990,4 @@ class QpEngine {
     mutable std::uint64_t border_kkt_epoch_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven

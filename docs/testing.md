@@ -486,7 +486,7 @@ boundary carries everything else, so the boundary is where it stays.
 
 `hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
 the linear layer, and it is the first use of it outside `linear/`. It declares
-four `static inline` structs under `hven::solvers::detail::testing`, entirely
+four `static inline` structs under `hven::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
 - `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
@@ -539,7 +539,7 @@ the LINEAR LAYER's seam — everything in it lives in
 `hven::linear::detail::testing` and is consumed by the two backend adapter TUs.
 This one is consumed by `src/qp/ipqp_engine.cpp` and is about the tier's own
 reading of an already-computed factorization, not about a backend call. A
-`hven::solvers` injector inside a `hven::linear` header would make the linear
+`hven` injector inside a `hven::linear` header would make the linear
 layer's seam header depend on a consumer above it. The CONVENTION is the shared
 thing, and it is followed exactly.
 
@@ -736,7 +736,7 @@ exist.
 `QpEngine`'s primal active-set walk, and it is the READ-ONLY variant of it
 throughout — there is no injector in this file and nothing in it can change a
 decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
-`hven::solvers::detail::testing`:
+`hven::detail::testing`:
 
 - `QpWalkObserver` — `active`, `solves`, `capture_solve`, `max_records`,
   `truncated`, `allocation_failed`, `records`, plus the per-solve block
@@ -814,7 +814,7 @@ decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
 instrument is the per-SOLVE `Ledger` record — one `QpCounters` per subproblem —
 so the finest public granularity is the subproblem and never the minor. M7 W2
 M3a addendum F read exactly that instrument on STEENBRB and YORKNET at
-`tr_init = inf` and found the first QP spending its whole iteration cap (4680
+`trust_region_initial = inf` and found the first QP spending its whole iteration cap (4680
 and 2560 minors) in what the counters describe as long degenerate active-set
 churn. Its formal verdict was MIXED and **cycling proper — a working set
 revisited — was not shown**, because SIX different mechanisms produce those same
@@ -1015,7 +1015,7 @@ no session file is touched.
 ## A fifth seam, in the SQP driver: the equality basis (M7 W2 E1b)
 
 `hven/detail/drivers/equality_basis_testing.h` declares
-`hven::solvers::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
+`hven::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
 with three knobs read at three guarded points in `src/drivers/sqp_solver.cpp` (an
 Apache-2.0 file this repository wrote; no deviation):
 
@@ -1053,7 +1053,7 @@ That makes FOUR targets defining `HVEN_TESTING`; the property that matters, no
 ## A sixth seam, in the SQP driver: the ladder (M7 W2 ladder round)
 
 `hven/detail/drivers/ladder_testing.h` declares
-`hven::solvers::detail::testing::SqpLadderSeam`, `#ifdef HVEN_TESTING` only, read at
+`hven::detail::testing::SqpLadderSeam`, `#ifdef HVEN_TESTING` only, read at
 one guarded point in `src/drivers/sqp_solver.cpp`'s `run_major`, just above the
 elastic tier's entry test (an Apache-2.0 file this repository wrote; no deviation).
 It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems the

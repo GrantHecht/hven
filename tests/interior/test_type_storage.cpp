@@ -14,15 +14,15 @@
 #include <utility>
 #include <vector>
 
-#include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/core/type_storage.h"
+#include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace type_storage_test {
 
 struct Base;
-using Storage = hven::utils::TypeStorage<Base>;
+using Storage = hven::TypeStorage<Base>;
 
 struct Base {
     virtual ~Base() = default;
@@ -98,9 +98,9 @@ static_assert(std::is_nothrow_move_assignable_v<Storage>);
     static_assert(std::is_nothrow_move_constructible_v<M>, "must stay in the inline buffer");      \
     static_assert(sizeof(M) <= 128, "must stay in the inline buffer");                             \
     static_assert(alignof(M) <= alignof(std::max_align_t), "must stay in the inline buffer")
-HVEN_PIN_INLINE(hven::solvers::ObjectiveModel<hven::solvers::NLPObjectivePiece>);
-HVEN_PIN_INLINE(hven::solvers::ConstraintModel<hven::solvers::NLPConstraintPiece>);
-HVEN_PIN_INLINE(hven::solvers::ConstraintModel<hven::solvers::FixedVariableRow>);
+HVEN_PIN_INLINE(hven::ObjectiveModel<hven::NlpObjectivePiece>);
+HVEN_PIN_INLINE(hven::ConstraintModel<hven::NlpConstraintPiece>);
+HVEN_PIN_INLINE(hven::ConstraintModel<hven::FixedVariableRow>);
 #undef HVEN_PIN_INLINE
 
 const std::string kShort = "short";

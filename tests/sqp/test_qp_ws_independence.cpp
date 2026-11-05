@@ -16,7 +16,7 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ws_independence.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -42,7 +42,7 @@ QpProblem make_qp(const Eigen::MatrixXd &H, const Vec &g, const Eigen::MatrixXd 
 
 QpOptions opts_for(WorkingSetLinearAlgebra alg, bool on = true) {
     QpOptions o;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     o.independent_working_set = on;
     return o;
 }
@@ -350,7 +350,7 @@ TEST(WsIndependenceCalibration, RefinedStatisticSeparates) {
             const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3),
                                          Eigen::MatrixXd(0, 3), Vec(0), Ai, bi, -10.0, 10.0);
             QpOptions o;
-            o.dual_mu = mu;
+            o.dual_regularization = mu;
             WorkingSet ws(3, 2);
             ws.add_ineq(0);
             detail::KktFactor kkt;
@@ -395,11 +395,11 @@ struct BorderedView {
         bi << scale, 1.0;
         qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Eigen::MatrixXd(0, 3), Vec(0),
                      Ai, bi, -10.0, 10.0);
-        o.dual_mu = mu;
+        o.dual_regularization = mu;
         k0 = assemble_kkt_full(qp, ws, o);
         detail::factorize_checked(kkt0, k0.K);
         schur.emplace(kkt0, o);
-        schur->add_border(BorderOps::add_ineq_row(qp, 0, k0.K.rows()), -o.dual_mu);
+        schur->add_border(BorderOps::add_ineq_row(qp, 0, k0.K.rows()), -o.dual_regularization);
         ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, 0});
         ws.add_ineq(0);
     }
@@ -456,7 +456,7 @@ struct RowsView {
     RowsView(QpProblem problem, double mu, const std::vector<Index> &k0_in,
              const std::vector<Index> &border_rows, bool on_border)
         : qp(std::move(problem)), ws(qp.n(), qp.mi()), bordered(on_border) {
-        o.dual_mu = mu;
+        o.dual_regularization = mu;
         for (const Index r : k0_in) {
             ws.add_ineq(r);
         }
@@ -472,7 +472,7 @@ struct RowsView {
         detail::factorize_checked(kkt, k0.K);
         schur.emplace(kkt, o);
         for (const Index r : border_rows) {
-            schur->add_border(BorderOps::add_ineq_row(qp, r, k0.K.rows()), -o.dual_mu);
+            schur->add_border(BorderOps::add_ineq_row(qp, r, k0.K.rows()), -o.dual_regularization);
             ledger.push_back({BorderLedgerEntry::Kind::kIneqRow, r});
             ws.add_ineq(r);
         }
@@ -934,7 +934,7 @@ TEST(WsRankRepair, ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale) 
     qp.lower(2) = 1e4;
     qp.upper(2) = 2e4;
     QpOptions o;
-    o.feas_tol = 1e-5;
+    o.feasibility_tol = 1e-5;
     WorkingSet ws(3, 1);
     ws.add_ineq(0);
     ws.bound_state()[2] = BoundState::kAtLower;

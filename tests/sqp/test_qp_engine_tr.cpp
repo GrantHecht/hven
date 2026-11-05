@@ -32,7 +32,7 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 
@@ -161,18 +161,18 @@ QpProblem shrink_retry_qp() {
 // std::numeric_limits<double>::infinity() explicitly -- the header
 // contract's BIT-IDENTICAL OFF PATH claim.
 TEST(QpEngineTr, TrOffIsBitIdenticalDefault) {
-    EXPECT_EQ(QpOptions{}.tr_radius, std::numeric_limits<double>::infinity());
+    EXPECT_EQ(QpOptions{}.trust_region_radius, std::numeric_limits<double>::infinity());
 
     const QpProblem qp = simple_box_qp();
     for (const auto algebra : kBothModes) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions default_opts;
-        default_opts.ws_algebra = algebra;
+        default_opts.working_set_algebra = algebra;
 
         QpOptions explicit_inf_opts;
-        explicit_inf_opts.ws_algebra = algebra;
-        explicit_inf_opts.tr_radius = std::numeric_limits<double>::infinity();
+        explicit_inf_opts.working_set_algebra = algebra;
+        explicit_inf_opts.trust_region_radius = std::numeric_limits<double>::infinity();
 
         QpEngine eng_default{default_opts};
         QpEngine eng_explicit{explicit_inf_opts};
@@ -202,8 +202,8 @@ TEST(QpEngineTr, TrClampsTheStep) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
-        opts.tr_radius = 1.0;
+        opts.working_set_algebra = algebra;
+        opts.trust_region_radius = 1.0;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
 
@@ -232,8 +232,8 @@ TEST(QpEngineTr, TrInsideRealBounds) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
-        opts.tr_radius = 1.0;
+        opts.working_set_algebra = algebra;
+        opts.trust_region_radius = 1.0;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
 
@@ -273,8 +273,8 @@ TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions cold_opts;
-        cold_opts.ws_algebra = algebra;
-        cold_opts.tr_radius = 1.0;
+        cold_opts.working_set_algebra = algebra;
+        cold_opts.trust_region_radius = 1.0;
         QpEngine cold_eng{cold_opts};
         const QpSolution cold = cold_eng.solve(qp);
 
@@ -287,8 +287,8 @@ TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
         expect_all_free_and_untracked(cold, 2);
 
         QpOptions warm_opts;
-        warm_opts.ws_algebra = algebra;
-        warm_opts.tr_radius = 5.0;
+        warm_opts.working_set_algebra = algebra;
+        warm_opts.trust_region_radius = 5.0;
         QpEngine warm_eng{warm_opts};
         const QpSolution warm = warm_eng.solve(qp, cold);
 
@@ -334,8 +334,8 @@ TEST(QpEngineTr, IndefiniteInteractionWithSaddleBox) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
-        opts.tr_radius = 0.5;
+        opts.working_set_algebra = algebra;
+        opts.trust_region_radius = 0.5;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
 
@@ -383,8 +383,8 @@ TEST(QpEngineTr, SameInstanceWarmSolveWithShiftedTrWindow) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
-        opts.tr_radius = 1.0;
+        opts.working_set_algebra = algebra;
+        opts.trust_region_radius = 1.0;
         QpEngine eng{opts}; // ONE instance for both solves below.
 
         const QpSolution cold = eng.solve(qp);
@@ -529,11 +529,11 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
+        opts.working_set_algebra = algebra;
         QpEngine eng{opts}; // ONE instance for both retry radii.
 
         SolveOverrides cold_overrides;
-        cold_overrides.tr_radius = 1.0;
+        cold_overrides.trust_region_radius = 1.0;
         const QpSolution cold = eng.solve(qp, cold_overrides);
 
         ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -545,7 +545,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
         EXPECT_EQ(cold.bound_state[1], BoundState::kFree);
 
         SolveOverrides warm_overrides;
-        warm_overrides.tr_radius = 0.5;
+        warm_overrides.trust_region_radius = 0.5;
         const QpSolution warm = eng.solve(qp, warm_overrides); // SAME cold x0 = (0,0), no seed.
 
         ASSERT_EQ(warm.status, QpStatus::kOptimal);
@@ -584,12 +584,12 @@ TEST(QpEngineTr, OverridesResolveCorrectlyUnderRefactorizeMode) {
     const QpSolution oracle = solve_dense_oracle(qp);
 
     QpOptions opts;
-    opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
     QpEngine eng{opts};
 
     SolveOverrides overrides;
-    overrides.primal_delta = 1e-6;
-    overrides.dual_mu = 1e-6;
+    overrides.primal_regularization = 1e-6;
+    overrides.dual_regularization = 1e-6;
     const QpSolution sol = eng.solve(qp, overrides);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
@@ -620,8 +620,8 @@ TEST(QpEngineTr, PlainOverloadsForwardDefaultOverridesByteIdentically) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
-        opts.tr_radius = 1.0;
+        opts.working_set_algebra = algebra;
+        opts.trust_region_radius = 1.0;
 
         QpEngine plain_eng{opts};
         QpEngine overrides_eng{opts};
@@ -673,7 +673,7 @@ TEST(QpEngineTr, OverrideValidationRejectsNegativeRadius) {
     QpEngine eng{QpOptions{}};
 
     SolveOverrides bad;
-    bad.tr_radius = -0.5;
+    bad.trust_region_radius = -0.5;
 
     EXPECT_THROW(eng.solve(qp, bad), std::invalid_argument);
 
@@ -697,15 +697,15 @@ TEST(QpEngineTr, OverrideValidationRejectsNaN) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     SolveOverrides nan_radius;
-    nan_radius.tr_radius = nan;
+    nan_radius.trust_region_radius = nan;
     EXPECT_THROW(eng.solve(qp, nan_radius), std::invalid_argument);
 
     SolveOverrides nan_delta;
-    nan_delta.primal_delta = nan;
+    nan_delta.primal_regularization = nan;
     EXPECT_THROW(eng.solve(qp, nan_delta), std::invalid_argument);
 
     SolveOverrides nan_mu;
-    nan_mu.dual_mu = nan;
+    nan_mu.dual_regularization = nan;
     EXPECT_THROW(eng.solve(qp, nan_mu), std::invalid_argument);
 }
 
@@ -727,7 +727,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads) {
     qp.upper = Vec::Constant(2, 2.0);
 
     QpOptions bad_opts;
-    bad_opts.tr_radius = -0.5;
+    bad_opts.trust_region_radius = -0.5;
     QpEngine eng{bad_opts};
 
     EXPECT_THROW(eng.solve(qp), std::invalid_argument);
@@ -749,7 +749,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads) {
         eng.solve(qp);
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("QpOptions.tr_radius"), std::string::npos);
+        EXPECT_NE(std::string(e.what()).find("QpOptions.trust_region_radius"), std::string::npos);
     }
 }
 
@@ -757,7 +757,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNaNOnPlainOverloads) {
     const QpProblem qp = unconstrained_quadratic_qp();
 
     QpOptions nan_opts;
-    nan_opts.tr_radius = std::numeric_limits<double>::quiet_NaN();
+    nan_opts.trust_region_radius = std::numeric_limits<double>::quiet_NaN();
     QpEngine eng{nan_opts};
 
     EXPECT_THROW(eng.solve(qp), std::invalid_argument);
@@ -779,7 +779,7 @@ TEST(QpEngineTr, StoredRadiusValidationLeavesWellFormedRadiiUntouched) {
         SCOPED_TRACE(radius);
 
         QpOptions opts;
-        opts.tr_radius = radius;
+        opts.trust_region_radius = radius;
         QpEngine eng{opts};
 
         const QpSolution sol = eng.solve(qp);
@@ -810,12 +810,12 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
         SCOPED_TRACE(bad);
 
         QpOptions bad_delta;
-        bad_delta.primal_delta = bad;
+        bad_delta.primal_regularization = bad;
         QpEngine delta_eng{bad_delta};
         EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
 
         QpOptions bad_mu;
-        bad_mu.dual_mu = bad;
+        bad_mu.dual_regularization = bad;
         QpEngine mu_eng{bad_mu};
         EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
     }
@@ -824,25 +824,25 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
     // QpOptions -- a caller who passed no override must not be pointed at
     // SolveOverrides, whose negative value is a legitimate sentinel.
     QpOptions bad_delta;
-    bad_delta.primal_delta = -1.0;
+    bad_delta.primal_regularization = -1.0;
     QpEngine delta_eng{bad_delta};
     try {
         delta_eng.solve(qp);
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         const std::string what = e.what();
-        EXPECT_NE(what.find("QpOptions.primal_delta"), std::string::npos);
+        EXPECT_NE(what.find("QpOptions.primal_regularization"), std::string::npos);
     }
 
     QpOptions bad_mu;
-    bad_mu.dual_mu = -1.0;
+    bad_mu.dual_regularization = -1.0;
     QpEngine mu_eng{bad_mu};
     try {
         mu_eng.solve(qp);
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         const std::string what = e.what();
-        EXPECT_NE(what.find("QpOptions.dual_mu"), std::string::npos);
+        EXPECT_NE(what.find("QpOptions.dual_regularization"), std::string::npos);
     }
 }
 
@@ -851,12 +851,12 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNaNOnPlainOverloads) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     QpOptions nan_delta;
-    nan_delta.primal_delta = nan;
+    nan_delta.primal_regularization = nan;
     QpEngine delta_eng{nan_delta};
     EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
 
     QpOptions nan_mu;
-    nan_mu.dual_mu = nan;
+    nan_mu.dual_regularization = nan;
     QpEngine mu_eng{nan_mu};
     EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
 }
@@ -870,13 +870,13 @@ TEST(QpEngineTr, StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt) {
     const QpProblem qp = simple_box_qp();
 
     QpOptions bad_both;
-    bad_both.primal_delta = -1.0;
-    bad_both.dual_mu = std::numeric_limits<double>::quiet_NaN();
+    bad_both.primal_regularization = -1.0;
+    bad_both.dual_regularization = std::numeric_limits<double>::quiet_NaN();
     QpEngine eng{bad_both};
 
     SolveOverrides good;
-    good.primal_delta = 1e-8;
-    good.dual_mu = 1e-8;
+    good.primal_regularization = 1e-8;
+    good.dual_regularization = 1e-8;
 
     const QpSolution sol = eng.solve(qp, good);
     EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -897,12 +897,12 @@ TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) 
         SCOPED_TRACE(good);
 
         QpOptions delta_opts;
-        delta_opts.primal_delta = good;
+        delta_opts.primal_regularization = good;
         const QpSolution by_delta = QpEngine{delta_opts}.solve(qp);
         EXPECT_EQ(by_delta.status, QpStatus::kOptimal);
 
         QpOptions mu_opts;
-        mu_opts.dual_mu = good;
+        mu_opts.dual_regularization = good;
         const QpSolution by_mu = QpEngine{mu_opts}.solve(qp);
         EXPECT_EQ(by_mu.status, QpStatus::kOptimal);
     }
@@ -920,8 +920,8 @@ TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) 
     // rightly failed. Counters are what the neutrality claim is about and
     // counters are what is pinned exactly.
     QpOptions zero_opts;
-    zero_opts.primal_delta = 0.0;
-    zero_opts.dual_mu = 0.0;
+    zero_opts.primal_regularization = 0.0;
+    zero_opts.dual_regularization = 0.0;
     const QpSolution zeroed = QpEngine{zero_opts}.solve(qp);
     EXPECT_EQ(zeroed.status, baseline.status);
     EXPECT_EQ(zeroed.counters.minor_iters, baseline.counters.minor_iters);
@@ -977,11 +977,11 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
+        opts.working_set_algebra = algebra;
         QpEngine eng{opts};
 
         SolveOverrides cold_overrides;
-        cold_overrides.tr_radius = 1.0;
+        cold_overrides.trust_region_radius = 1.0;
         const QpSolution cold = eng.solve(qp, cold_overrides);
 
         ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -993,7 +993,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
         EXPECT_FALSE(cold.tr_active[1]);
 
         SolveOverrides warm_overrides;
-        warm_overrides.tr_radius = 0.5;
+        warm_overrides.trust_region_radius = 0.5;
         const QpSolution warm =
             eng.solve(qp, cold, warm_overrides); // chained, ordinary warm-start.
 
@@ -1052,7 +1052,7 @@ TEST(QpEngineTr, SeededOppositeBoundPinDoesNotRecenterTheWindow) {
         SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
-        opts.ws_algebra = algebra;
+        opts.working_set_algebra = algebra;
         QpEngine eng{opts};
 
         const QpSolution far = eng.solve(qp); // no radius: straight to the real bound
@@ -1066,7 +1066,7 @@ TEST(QpEngineTr, SeededOppositeBoundPinDoesNotRecenterTheWindow) {
             QpSolution seed = far;
             seed.x.setZero(); // the SQP driver's TR-centering discipline
             SolveOverrides overrides;
-            overrides.tr_radius = radius;
+            overrides.trust_region_radius = radius;
             const QpSolution warm = eng.solve(qp, seed, overrides);
 
             ASSERT_EQ(warm.status, QpStatus::kOptimal) << "radius " << radius;

@@ -34,12 +34,12 @@
 namespace hven::test_support {
 
 struct QpDump {
-    solvers::QpProblem qp;
-    solvers::QpOptions opts;
+    hven::QpProblem qp;
+    hven::QpOptions opts;
     int threads = 0;
-    solvers::SolveOverrides overrides;
+    hven::SolveOverrides overrides;
     bool has_seed = false;
-    solvers::QpSolution seed;
+    hven::QpSolution seed;
     std::string result; // the in-cell outcome line, verbatim
     Vec x_final;        // the in-cell solve's final iterate
 };
@@ -77,20 +77,20 @@ inline QpDump load_qp_dump(const std::string &path) {
             if (t.size() != 11) {
                 throw std::runtime_error("load_qp_dump: bad opts line in " + path);
             }
-            d.opts.primal_delta = num(t[0]);
-            d.opts.dual_mu = num(t[1]);
-            d.opts.feas_tol = num(t[2]);
-            d.opts.opt_tol = num(t[3]);
+            d.opts.primal_regularization = num(t[0]);
+            d.opts.dual_regularization = num(t[1]);
+            d.opts.feasibility_tol = num(t[2]);
+            d.opts.optimality_tol = num(t[3]);
             // The dump records the derived cap as 0 (or less): that is "empty" now.
             if (const long cap = std::stol(t[4]); cap > 0) {
-                d.opts.max_iter = cap;
+                d.opts.max_iterations = cap;
             }
-            d.opts.schur_cap = std::stol(t[5]);
-            d.opts.schur_cond_max = num(t[6]);
-            d.opts.ws_algebra = std::stoi(t[7]) == 0
-                                    ? solvers::WorkingSetLinearAlgebra::kRefactorize
-                                    : solvers::WorkingSetLinearAlgebra::kSchurBorder;
-            d.opts.tr_radius = num(t[8]);
+            d.opts.max_schur_border_dimension = std::stol(t[5]);
+            d.opts.schur_condition_max = num(t[6]);
+            d.opts.working_set_algebra = std::stoi(t[7]) == 0
+                                             ? hven::WorkingSetLinearAlgebra::kRefactorize
+                                             : hven::WorkingSetLinearAlgebra::kSchurBorder;
+            d.opts.trust_region_radius = num(t[8]);
             d.opts.independent_working_set = std::stoi(t[9]) != 0;
             d.threads = std::stoi(t[10]);
             continue;
@@ -98,9 +98,9 @@ inline QpDump load_qp_dump(const std::string &path) {
         if (key == "overrides") {
             std::string a, b, c;
             is >> a >> b >> c;
-            d.overrides.tr_radius = num(a);
-            d.overrides.primal_delta = num(b);
-            d.overrides.dual_mu = num(c);
+            d.overrides.trust_region_radius = num(a);
+            d.overrides.primal_regularization = num(b);
+            d.overrides.dual_regularization = num(c);
             continue;
         }
         if (key == "warm") {
@@ -174,7 +174,7 @@ inline QpDump load_qp_dump(const std::string &path) {
     if (d.has_seed) {
         d.seed.x = vec["seed_x"];
         for (const long b : ivec["seed_bound_state"]) {
-            d.seed.bound_state.push_back(static_cast<solvers::BoundState>(b));
+            d.seed.bound_state.push_back(static_cast<hven::BoundState>(b));
         }
         for (const long a : ivec["seed_ineq_active"]) {
             d.seed.ineq_active.push_back(a != 0);
@@ -184,8 +184,8 @@ inline QpDump load_qp_dump(const std::string &path) {
 }
 
 /// Re-solve the dump on a fresh engine, with the dumped options except those the caller changed.
-inline solvers::QpSolution solve_qp_dump(const QpDump &d, const solvers::QpOptions &opts) {
-    const solvers::QpEngine engine(opts, d.threads);
+inline hven::QpSolution solve_qp_dump(const QpDump &d, const hven::QpOptions &opts) {
+    const hven::QpEngine engine(opts, d.threads);
     return d.has_seed ? engine.solve(d.qp, d.seed, d.overrides) : engine.solve(d.qp, d.overrides);
 }
 
@@ -207,14 +207,15 @@ struct QpDumpKkt {
     double scale = 1.0;
 };
 
-inline QpDumpKkt qp_dump_kkt(const QpDump &d, const solvers::QpSolution &s) {
-    const solvers::QpProblem &qp = d.qp;
+inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::QpSolution &s) {
+    const hven::QpProblem &qp = d.qp;
     const Index n = qp.n();
     QpDumpKkt k;
     Vec lo = qp.lower;
     Vec up = qp.upper;
-    const double tr =
-        std::isfinite(d.overrides.tr_radius) ? d.overrides.tr_radius : d.opts.tr_radius;
+    const double tr = std::isfinite(d.overrides.trust_region_radius)
+                          ? d.overrides.trust_region_radius
+                          : d.opts.trust_region_radius;
     if (std::isfinite(tr)) {
         Vec x0 = d.has_seed ? d.seed.x : Vec::Zero(n);
         for (Index i = 0; i < n; ++i) {

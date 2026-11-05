@@ -20,7 +20,7 @@
 
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 class WorkingSet {
   public:
@@ -80,4 +80,4 @@ class WorkingSet {
     std::vector<Index> active_ineq_; // sorted, unique
 };
 
-} // namespace hven::solvers
+} // namespace hven

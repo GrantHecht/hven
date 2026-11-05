@@ -12,7 +12,7 @@
 #include "hven/drivers/sqp_options.h"
 #include "hven/drivers/sqp_solver_types.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -213,4 +213,4 @@ std::string describe_exception(const std::exception_ptr &error) noexcept {
     }
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

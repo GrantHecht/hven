@@ -399,7 +399,7 @@
 
 #include "parametric_families.h"
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 #if defined(__linux__)
 // Peak resident set size in MiB, from /proc/self/status's VmHWM. INFORMATIONAL
@@ -1131,4 +1131,4 @@ class F7CollocationChain : public ParametricNlpModel {
     Vec data_g_;  // (F7-G), n entries
 };
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

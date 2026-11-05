@@ -23,11 +23,11 @@
 // COMPATIBILITY, AND ITS END: the two IPM values were also reachable as static
 // members of the solver class -- `InteriorPointSolver::kSeededIqMultFloor` and
 // `::kSeededMultInitMax` -- until M6 W5 T8.10 swept the call sites and DROPPED
-// those aliases. `hven::solvers::kSeededIqMultFloor` and `::kSeededMultInitMax`
-// are the only names for them now. `hven::solvers::kSeededDualClampTol` was
+// those aliases. `hven::kSeededIqMultFloor` and `::kSeededMultInitMax`
+// are the only names for them now. `hven::kSeededDualClampTol` was
 // already at this namespace scope and is simply defined here.
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief IPM. Floor applied to seeded INEQUALITY multipliers when they are
 ///        installed.
@@ -57,4 +57,4 @@ inline constexpr double kSeededMultInitMax = 1.0e6;
 /// not the IPM's floor and does not move with it.
 inline constexpr double kSeededDualClampTol = 1e-6;
 
-} // namespace hven::solvers
+} // namespace hven

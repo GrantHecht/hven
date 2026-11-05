@@ -48,11 +48,11 @@
 #error "HVEN_SQP_SOLVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"
 #endif
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
-using ::hven::solvers::test_support::HsProblem;
-using ::hven::solvers::test_support::make_hs;
+using ::hven::test_support::HsProblem;
+using ::hven::test_support::make_hs;
 
 // ===========================================================================
 // (i) THE COUNT IDENTITIES
@@ -112,7 +112,7 @@ SiteRun run_cell(int hs, QpMode mode) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(*p.model), (*p.model).start_point());
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     SiteRun r;
     r.sites = site_census(os.str());
@@ -691,4 +691,4 @@ TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

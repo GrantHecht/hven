@@ -42,17 +42,17 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
-using Route = hven::solvers::detail::testing::QpWalkDropRoute;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
-using EqpPath = hven::solvers::detail::testing::QpWalkEqpPath;
-using InertiaState = hven::solvers::detail::testing::QpWalkInertiaState;
-using RideOutcome = hven::solvers::detail::testing::QpWalkRideOutcome;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
+using Route = hven::detail::testing::QpWalkDropRoute;
+using Record = hven::detail::testing::QpWalkMinorRecord;
+using EqpPath = hven::detail::testing::QpWalkEqpPath;
+using InertiaState = hven::detail::testing::QpWalkInertiaState;
+using RideOutcome = hven::detail::testing::QpWalkRideOutcome;
 
 namespace {
 
@@ -1240,8 +1240,8 @@ TEST(QpWalkSeam, TheRegularizationAndResidualsAreRecordedOnEveryPass) {
         for (const Record &r : Obs::records) {
             SCOPED_TRACE(r.minor);
             // The EFFECTIVE pair, which §4b's suspect ladder can only raise.
-            EXPECT_GE(r.primal_delta, defaults.primal_delta);
-            EXPECT_EQ(defaults.dual_mu, r.dual_mu);
+            EXPECT_GE(r.primal_delta, defaults.primal_regularization);
+            EXPECT_EQ(defaults.dual_regularization, r.dual_mu);
             // Residual norms: finite, non-negative, and a scale of at least 1
             // by free_block_stationarity's own construction.
             EXPECT_FALSE(std::isnan(r.stat_free_inf));
@@ -1257,8 +1257,8 @@ TEST(QpWalkSeam, TheRegularizationAndResidualsAreRecordedOnEveryPass) {
 // --- (3) THE SIGNATURE ---------------------------------------------------
 
 TEST(QpWalkSeam, TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive) {
-    using hven::solvers::detail::testing::qp_walk_ws_signature;
-    using hven::solvers::detail::testing::qp_walk_ws_size;
+    using hven::detail::testing::qp_walk_ws_signature;
+    using hven::detail::testing::qp_walk_ws_size;
 
     WorkingSet a(4, 3);
     a.add_ineq(2);

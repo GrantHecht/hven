@@ -26,16 +26,15 @@
 #include <cstdio>
 #include <stdexcept>
 
-#include "hven/drivers/ipm_solver.h"
-#include "hven/model/pieces.h"
+#include <hven/hven.h>
 
 namespace {
 
+using hven::BlockEntry;
 using hven::ConstVecRef;
 using hven::Index;
 using hven::MatRef;
 using hven::VecRef;
-using hven::solvers::BlockEntry;
 
 // y_{i+1} - y_i - h*(u_i - y_i^2): inputs (y_i, y_{i+1}, u_i), one row.
 struct Defect {
@@ -62,12 +61,12 @@ struct Boundary {
     double a, b;
     static constexpr Index kInputs = 2, kOutputs = 2;
     static constexpr std::array<BlockEntry, 2> kJacobianPattern{{{0, 0}, {1, 1}}};
-    static constexpr auto kHessianPattern = hven::solvers::kNoHessian;
+    static constexpr auto kHessianPattern = hven::kNoHessian;
     void value(ConstVecRef v, VecRef out) const { out << v[0] - a, v[1] - b; }
     void jacobian(ConstVecRef, MatRef J) const { J(0, 0) = J(1, 1) = 1.0; }
 };
 
-hven::solvers::Problem make_chain(int steps, int partitions) {
+hven::Problem make_chain(int steps, int partitions) {
     const double h = 1.0 / steps;
     const int u0 = steps + 1; // y_0..y_N, then u_0..u_{N-1}
     Eigen::MatrixXi y_idx(1, steps), u_idx(1, steps), defect_vars(3, steps), defect_rows(1, steps);
@@ -80,14 +79,14 @@ hven::solvers::Problem make_chain(int steps, int partitions) {
     const Eigen::MatrixXi boundary_vars = (Eigen::MatrixXi(2, 1) << 0, steps).finished();
     const Eigen::MatrixXi boundary_rows = (Eigen::MatrixXi(2, 1) << steps, steps + 1).finished();
 
-    hven::solvers::AssemblyDeclaration d(2 * steps + 1);
+    hven::AssemblyDeclaration d(2 * steps + 1);
     d.add_objective(Quadratic{h, 0.0}, u_idx);
     d.add_objective(Quadratic{h, 0.3}, y_idx);
     d.add_equality(Defect{h}, defect_vars, defect_rows);
     d.add_equality(Boundary{0.0, 0.5}, boundary_vars, boundary_rows);
     d.set_bounds(u0, u0 + steps - 1, -2.0, 2.0);
     d.set_partitions(partitions);
-    return hven::solvers::Problem(std::move(d));
+    return hven::Problem(std::move(d));
 }
 
 } // namespace
@@ -100,11 +99,11 @@ int main() {
         x0[i] = 0.5 * i / steps; // straight line from y_0 = 0 to y_N = 0.5
     }
 
-    hven::solvers::IpmResult results[2];
+    hven::IpmResult results[2];
     Index adopted[2] = {0, 0};
     for (int k = 0; k < 2; k++) {
-        hven::solvers::Problem chain = make_chain(steps, k == 0 ? 1 : 4);
-        results[k] = hven::solvers::IpmSolver{}.solve(chain, x0);
+        hven::Problem chain = make_chain(steps, k == 0 ? 1 : 4);
+        results[k] = hven::IpmSolver{}.solve(chain, x0);
         adopted[k] = chain.partitions();
         const auto &r = results[k];
         std::printf("%d partition(s) requested: adopted=%lld status=%-8s iterations=%3lld "
@@ -122,8 +121,8 @@ int main() {
         f_check += h * u * u + h * (y - 0.3) * (y - 0.3);
         worst_defect = std::max(worst_defect, std::abs(yn - y - h * (u - y * y)));
     }
-    const bool ok = results[0].status == hven::solvers::SolveStatus::kOptimal &&
-                    results[1].status == hven::solvers::SolveStatus::kOptimal && adopted[1] > 1 &&
+    const bool ok = results[0].status == hven::SolveStatus::kOptimal &&
+                    results[1].status == hven::SolveStatus::kOptimal && adopted[1] > 1 &&
                     std::abs(f_check - results[0].f) < 1e-9 && worst_defect < 1e-8 &&
                     std::abs(results[0].f - results[1].f) < 1e-8 &&
                     (results[0].x - results[1].x).lpNorm<Eigen::Infinity>() < 1e-6;

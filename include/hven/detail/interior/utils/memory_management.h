@@ -26,9 +26,7 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/tuple_iterator.h"
 
-namespace hven::utils {
-
-namespace detail {
+namespace hven::detail {
 
 /// Number of Scalar elements needed to reach EIGEN_MAX_ALIGN_BYTES alignment.
 template <class Scalar>
@@ -205,8 +203,6 @@ template <class... TempSpecs> struct ExactTempPack {
     std::tuple<typename std::remove_cvref_t<TempSpecs>::ExactTempType...> data;
     ExactTempPack() {}
 };
-
-} // namespace detail
 
 /// @brief Descriptor for a single temporary matrix allocation by `BumpAllocator`.
 ///
@@ -467,4 +463,4 @@ struct BumpAllocator {
     }
 };
 
-} // namespace hven::utils
+} // namespace hven::detail

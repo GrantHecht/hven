@@ -83,7 +83,7 @@
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace detail {
 
@@ -276,7 +276,7 @@ class SchurComplement {
     }
 
     // rhs_full sized K0.rows() + dim(); returns [x0; y] of the same size.
-    // Throws hven::solvers::BackendError if C's last factorization found an
+    // Throws hven::BackendError if C's last factorization found an
     // exact zero pivot (see factor_c()) -- needs_refactorization() would
     // already be true in that case, so this is a belt-and-suspenders guard
     // against a caller ignoring it, and the QP engine's border path reads it
@@ -382,8 +382,9 @@ class SchurComplement {
     // caller must stop
     // bordering this factorization and take a different path.
     bool needs_refactorization() const {
-        return (dim() > 0 && !evidence_usable()) || nearly_singular() || dim() > opts_.schur_cap ||
-               cond_estimate() > opts_.schur_cond_max;
+        return (dim() > 0 && !evidence_usable()) || nearly_singular() ||
+               dim() > opts_.max_schur_border_dimension ||
+               cond_estimate() > opts_.schur_condition_max;
     }
 
     // True iff C's smallest |block eigenvalue| has collapsed to a negligible
@@ -657,4 +658,4 @@ class SchurComplement {
     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -21,14 +21,12 @@ int standalone_include_sqp_warm_start() {
     // copyable and movable, and a value taken from an installed solve reads through
     // valid() and x(). An invalid handle cannot be built from the public surface,
     // so the readers are named without being called.
-    static_assert(!std::is_default_constructible_v<hven::solvers::SqpWarmStart>);
-    static_assert(std::is_copy_constructible_v<hven::solvers::SqpWarmStart>);
-    static_assert(std::is_nothrow_move_constructible_v<hven::solvers::SqpWarmStart>);
-    bool (hven::solvers::SqpWarmStart::*valid)() const noexcept =
-        &hven::solvers::SqpWarmStart::valid;
-    const hven::Vec &(hven::solvers::SqpWarmStart::*x)() const noexcept =
-        &hven::solvers::SqpWarmStart::x;
-    const hven::solvers::IpCrossoverOptions options;
+    static_assert(!std::is_default_constructible_v<hven::SqpWarmStart>);
+    static_assert(std::is_copy_constructible_v<hven::SqpWarmStart>);
+    static_assert(std::is_nothrow_move_constructible_v<hven::SqpWarmStart>);
+    bool (hven::SqpWarmStart::*valid)() const noexcept = &hven::SqpWarmStart::valid;
+    const hven::Vec &(hven::SqpWarmStart::*x)() const noexcept = &hven::SqpWarmStart::x;
+    const hven::IpmCrossoverOptions options;
     return (valid != nullptr && x != nullptr && options.dual_tol > 0.0) ? 1 : 0;
 }
 } // namespace hven_install_smoke

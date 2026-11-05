@@ -41,7 +41,7 @@
 #include "hven/detail/warmstart/warm_start.h"
 #include "hven/detail/warmstart/warm_start_access.h"
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -144,16 +144,16 @@ std::string hex_dump(std::span<const std::byte> bytes) {
 std::vector<std::byte> serialize_ipm_polish(const IpmPolishData &polish) {
     std::vector<std::byte> out;
     out.reserve(kMagicSize + kDoubleSize + 3 * 8 +
-                static_cast<std::size_t>(polish.z_lower_.size() + polish.z_upper_.size() +
-                                         polish.iq_values_.size()) *
+                static_cast<std::size_t>(polish.z_lower.size() + polish.z_upper.size() +
+                                         polish.iq_values.size()) *
                     kDoubleSize);
     for (const unsigned char byte : kMagic) {
         out.push_back(static_cast<std::byte>(byte));
     }
-    append_double(out, polish.mu_);
-    append_vector(out, polish.z_lower_);
-    append_vector(out, polish.z_upper_);
-    append_vector(out, polish.iq_values_);
+    append_double(out, polish.mu);
+    append_vector(out, polish.z_lower);
+    append_vector(out, polish.z_upper);
+    append_vector(out, polish.iq_values);
     return out;
 }
 
@@ -171,10 +171,10 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes) {
     }
 
     IpmPolishData polish;
-    polish.mu_ = reader.read_double("the barrier parameter");
-    polish.z_lower_ = reader.read_vector("the lower-bound multiplier block");
-    polish.z_upper_ = reader.read_vector("the upper-bound multiplier block");
-    polish.iq_values_ = reader.read_vector("the inequality-value block");
+    polish.mu = reader.read_double("the barrier parameter");
+    polish.z_lower = reader.read_vector("the lower-bound multiplier block");
+    polish.z_upper = reader.read_vector("the upper-bound multiplier block");
+    polish.iq_values = reader.read_vector("the inequality-value block");
 
     if (reader.remaining() != 0) {
         throw std::invalid_argument(
@@ -208,7 +208,7 @@ namespace detail {
 
 SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Vec &upper,
                                const DeclarationKey &structure_key,
-                               const IpCrossoverOptions &opts) {
+                               const IpmCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
         // A CORE-ONLY VALUE CANNOT BE BRIDGED, and the refusal is why this
@@ -254,11 +254,11 @@ SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Ve
                             what, held, expected_name, expected, kIpmPolishTag));
         }
     };
-    check("the extension's lower-bound multiplier block", polish.z_lower_.size(), n,
+    check("the extension's lower-bound multiplier block", polish.z_lower.size(), n,
           "the core's primal width n");
-    check("the extension's upper-bound multiplier block", polish.z_upper_.size(), n,
+    check("the extension's upper-bound multiplier block", polish.z_upper.size(), n,
           "the core's primal width n");
-    check("the extension's inequality-value block", polish.iq_values_.size(), mi,
+    check("the extension's inequality-value block", polish.iq_values.size(), mi,
           "the core's inequality width mi");
     check("the lower-bound vector", lower.size(), n, "the core's primal width n");
     check("the upper-bound vector", upper.size(), n, "the core's primal width n");
@@ -269,14 +269,14 @@ SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Ve
     // from_interior_point.
     return from_interior_point(detail::WarmStartAccess::primal(data),
                                detail::WarmStartAccess::eq(data), detail::WarmStartAccess::iq(data),
-                               polish.iq_values_, polish.z_lower_, polish.z_upper_, lower, upper,
+                               polish.iq_values, polish.z_lower, polish.z_upper, lower, upper,
                                opts);
 }
 
 } // namespace detail
 
 SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
-                               const IpCrossoverOptions &opts) {
+                               const IpmCrossoverOptions &opts) {
     Vec lower;
     Vec upper;
     detail::ProblemAccess::variable_bounds(problem, lower, upper);
@@ -284,4 +284,4 @@ SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
         warm, lower, upper, detail::ProblemAccess::declaration_key(problem), opts));
 }
 
-} // namespace hven::solvers
+} // namespace hven

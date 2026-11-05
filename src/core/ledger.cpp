@@ -12,7 +12,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 StartLevelHistogram Ledger::level_histogram() const {
     StartLevelHistogram h;
@@ -104,4 +104,4 @@ std::string Ledger::ipm_summary_table() const {
     return result;
 }
 
-} // namespace hven::solvers
+} // namespace hven

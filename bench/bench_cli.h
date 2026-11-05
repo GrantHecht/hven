@@ -37,7 +37,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::bench_cli {
+namespace hven::bench_cli {
 
 // Throw std::invalid_argument carrying `detail` followed by `usage`. The
 // [[noreturn]] is load-bearing at both call sites: it is what lets the parse
@@ -147,7 +147,7 @@ struct QpDumpV2 {
     long long n_flag = 0;
     long long major = 0;
     double p = 0.0;
-    hven::solvers::QpProblem qp;
+    hven::QpProblem qp;
     hven::Vec lambda_e, lambda_i, z;
 };
 
@@ -363,4 +363,4 @@ inline QpDumpV2 read_qp_dump_v2(std::istream &is) {
     return d;
 }
 
-} // namespace hven::solvers::bench_cli
+} // namespace hven::bench_cli

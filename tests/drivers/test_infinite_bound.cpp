@@ -51,7 +51,7 @@
 
 namespace {
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::ConstVecRef;
 using hven::Index;
 using hven::IndexVecRef;
@@ -59,7 +59,7 @@ using hven::kInfinity;
 using hven::MatRef;
 using hven::Vec;
 using hven::VecRef;
-using hven::solvers::detail::ProblemAccess;
+using hven::detail::ProblemAccess;
 
 constexpr double kThr = 1e20; // CommonOptions{}.infinite_bound
 
@@ -758,7 +758,7 @@ TEST(InfiniteBound, ThePiecesCountIsOncePerSideOfTheMaterialisedBox) {
 // R5: a value update counts the same box the same way as the first lay.
 TEST(InfiniteBound, AValueUpdateCountsAsTheFirstLayDoes) {
     auto inner = std::make_shared<NlpProblemModel>(large_finite(), kInfinity);
-    auto core = std::make_shared<NLPAdapterCore>(std::make_shared<VerbatimBox>(inner), "verbatim");
+    auto core = std::make_shared<NlpAdapterCore>(std::make_shared<VerbatimBox>(inner), "verbatim");
     const std::shared_ptr<NonLinearProgram> program = make_nlp_program(core);
     // The four variable sides at or beyond 1e20 (the model, under kInfinity, read
     // none as absent itself).

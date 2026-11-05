@@ -10,7 +10,7 @@
 
 #include <memory>
 
-#include "hven/model/solver_interface_specs.h"
+#include "hven/model/piece_interfaces.h"
 
 namespace {
 struct MoveOnly {
@@ -22,7 +22,7 @@ struct MoveOnly {
 };
 } // namespace
 
-hven::solvers::ObjectiveInterface probe_local_not_copyable() {
+hven::ObjectiveInterface probe_local_not_copyable() {
     const MoveOnly piece;
-    return hven::solvers::ObjectiveInterface(piece);
+    return hven::ObjectiveInterface(piece);
 }

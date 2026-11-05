@@ -12,7 +12,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @brief Compute the factorial of an integer in [0, 12].
 /// @param i  Integer in [0, 12].
@@ -54,4 +54,4 @@ inline int factorial_div(int i, int j) {
         return 0;
     }
 }
-} // namespace hven::utils
+} // namespace hven::detail

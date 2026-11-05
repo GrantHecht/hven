@@ -42,14 +42,14 @@
 #include "support/hs_problems.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
-using hven::solvers::detail::ProblemScaling;
-using hven::solvers::detail::ScalingRule;
+using hven::detail::ProblemScaling;
+using hven::detail::ScalingRule;
 
 // ===========================================================================
 // THE ACCEPTANCE MODEL, copied field for field from test_b1_gate.cpp's
@@ -465,14 +465,13 @@ TEST(ProblemScalingRule, RowExtremesFoldOverBothBlocksAndDefaultToIdentity) {
 
 TEST(ProblemScalingOffPath, TheDefaultIsOffAndReportsTheIdentity) {
     const SqpOptions defaults;
-    EXPECT_FALSE(defaults.enable_scaling) << "THE SHIPPED DEFAULT; flipping it is an M8 decision";
+    EXPECT_FALSE(defaults.row_scaling) << "THE SHIPPED DEFAULT; flipping it is an M8 decision";
     EXPECT_DOUBLE_EQ(100.0, defaults.scaling_max_gradient);
-    EXPECT_DOUBLE_EQ(1e12, defaults.scaling_factor_limit);
+    EXPECT_DOUBLE_EQ(1e12, defaults.scaling_factor_max);
 
     UnevenRowModel model;
     SqpSolver driver{SqpOptions{}};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_FALSE(sol.scaling.active);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.obj);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max);
@@ -489,16 +488,14 @@ TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
     // rather than about intent.
     UnevenRowModel model;
     SqpSolver base{SqpOptions{}};
-    const SqpResult a =
-        base.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult a = base.solve(hven::detail::problem_ref(model), (model).start_point());
 
     SqpOptions tuned;
     tuned.scaling_max_gradient = 3.0;
-    tuned.scaling_factor_limit = 5.0;
-    ASSERT_FALSE(tuned.enable_scaling);
+    tuned.scaling_factor_max = 5.0;
+    ASSERT_FALSE(tuned.row_scaling);
     SqpSolver other{tuned};
-    const SqpResult b =
-        other.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult b = other.solve(hven::detail::problem_ref(model), (model).start_point());
 
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
@@ -511,10 +508,10 @@ TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
     EXPECT_DOUBLE_EQ(a.convergence.complementarity, b.convergence.complementarity);
     ASSERT_EQ(a.x.size(), b.x.size());
     EXPECT_TRUE(a.x.isApprox(b.x, 0.0)) << "EXACT equality, not approximate";
-    EXPECT_TRUE(hven::solvers::detail::engine_rows(a).lambda_e.isApprox(
-        hven::solvers::detail::engine_rows(b).lambda_e, 0.0));
-    EXPECT_TRUE(hven::solvers::detail::engine_rows(a).lambda_i.isApprox(
-        hven::solvers::detail::engine_rows(b).lambda_i, 0.0));
+    EXPECT_TRUE(
+        hven::detail::engine_rows(a).lambda_e.isApprox(hven::detail::engine_rows(b).lambda_e, 0.0));
+    EXPECT_TRUE(
+        hven::detail::engine_rows(a).lambda_i.isApprox(hven::detail::engine_rows(b).lambda_i, 0.0));
     EXPECT_TRUE(a.z.isApprox(b.z, 0.0));
 }
 
@@ -530,11 +527,11 @@ TEST(ProblemScalingOptions, TheRuleIsValidatedAtTheBoundary) {
     EXPECT_THROW(validate(o), std::invalid_argument);
 
     SqpOptions p;
-    p.scaling_factor_limit = 0.5;
+    p.scaling_factor_max = 0.5;
     EXPECT_THROW(validate(p), std::invalid_argument) << "a limit below 1 inverts [1/L, L]";
-    p.scaling_factor_limit = std::numeric_limits<double>::quiet_NaN();
+    p.scaling_factor_max = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(validate(p), std::invalid_argument);
-    p.scaling_factor_limit = 1.0;
+    p.scaling_factor_max = 1.0;
     EXPECT_NO_THROW(validate(p)) << "exactly 1 is the identity clamp, and is legal";
 }
 
@@ -548,14 +545,12 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
     SqpOptions off;
     off.common.max_iterations = 60;
     SqpSolver cold_off{off};
-    const SqpResult before =
-        cold_off.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult before = cold_off.solve(hven::detail::problem_ref(model), model.start_point());
 
     SqpOptions on = off;
-    on.enable_scaling = true;
+    on.row_scaling = true;
     SqpSolver cold_on{on};
-    const SqpResult after =
-        cold_on.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult after = cold_on.solve(hven::detail::problem_ref(model), model.start_point());
 
     // THE MEASUREMENT, printed so the record carries it rather than only the
     // verdict.
@@ -580,8 +575,8 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
     EXPECT_NEAR(model.f_star(), after.f, 1e-3 * std::abs(model.f_star()));
     // The row is active, so its price is the objective's own scale -- reported
     // on the CALLER's scale, i.e. ~S, not ~1.
-    ASSERT_EQ(1, hven::solvers::detail::engine_rows(after).lambda_i.size());
-    EXPECT_NEAR(1e12, hven::solvers::detail::engine_rows(after).lambda_i(0), 1e-3 * 1e12);
+    ASSERT_EQ(1, hven::detail::engine_rows(after).lambda_i.size());
+    EXPECT_NEAR(1e12, hven::detail::engine_rows(after).lambda_i(0), 1e-3 * 1e12);
 }
 
 TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell) {
@@ -592,10 +587,9 @@ TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell)
     ScaledDualModel model(1e12, 5e-7);
     SqpOptions on;
     on.common.max_iterations = 60;
-    on.enable_scaling = true;
+    on.row_scaling = true;
     SqpSolver driver{on};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max) << "already row-equilibrated, and left alone";
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_min);
     EXPECT_DOUBLE_EQ(1.0e-10, sol.scaling.obj) << "100 / 1e12";
@@ -609,14 +603,12 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
     test_support::Hs25Model model;
 
     SqpSolver off{SqpOptions{}};
-    const SqpResult before =
-        off.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult before = off.solve(hven::detail::problem_ref(model), model.start_point());
 
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver on{opts};
-    const SqpResult after =
-        on.solve(hven::solvers::detail::problem_ref(model), model.start_point());
+    const SqpResult after = on.solve(hven::detail::problem_ref(model), model.start_point());
 
     std::printf("[ W0.2 ] HS25 OFF: status=%d majors=%lld f=%.15g kkt=%.6g\n",
                 static_cast<int>(before.status),
@@ -669,10 +661,9 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
 TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     UnevenRowModel model;
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
@@ -688,9 +679,9 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     // THE FOUR RESIDUALS, against an INDEPENDENT measurement of the caller's own
     // problem at the returned multipliers -- the model-taking evaluate_kkt,
     // which knows nothing about the seam or its factors.
-    const SqpKkt independent = evaluate_kkt(
-        model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-        hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
+    const SqpKkt independent =
+        evaluate_kkt(model, sol.x, hven::detail::engine_rows(sol).lambda_e,
+                     hven::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(independent.stationarity, sol.convergence.stationarity);
     EXPECT_DOUBLE_EQ(independent.feasibility, sol.convergence.feasibility);
     EXPECT_DOUBLE_EQ(independent.complementarity, sol.convergence.complementarity);
@@ -717,31 +708,29 @@ TEST(ProblemScalingRoundTrip, TheMultipliersAreTheCallersNotTheEngines) {
     // export forgot its map, this is where the sf/s_j factor would show.
     UnevenRowModel model;
     SqpSolver off{SqpOptions{}};
-    const SqpResult a = off.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), (model).start_point());
 
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver on{opts};
-    const SqpResult b = on.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult b = on.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kOptimal, a.status);
     ASSERT_EQ(SolveStatus::kOptimal, b.status);
     EXPECT_NEAR(a.f, b.f, 1e-9 * std::max(1.0, std::abs(a.f)));
-    ASSERT_EQ(hven::solvers::detail::engine_rows(a).lambda_e.size(),
-              hven::solvers::detail::engine_rows(b).lambda_e.size());
-    for (Index i = 0; i < hven::solvers::detail::engine_rows(a).lambda_e.size(); ++i) {
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(a).lambda_e(i),
-                    hven::solvers::detail::engine_rows(b).lambda_e(i),
-                    1e-8 *
-                        std::max(1.0, std::abs(hven::solvers::detail::engine_rows(a).lambda_e(i))));
+    ASSERT_EQ(hven::detail::engine_rows(a).lambda_e.size(),
+              hven::detail::engine_rows(b).lambda_e.size());
+    for (Index i = 0; i < hven::detail::engine_rows(a).lambda_e.size(); ++i) {
+        EXPECT_NEAR(hven::detail::engine_rows(a).lambda_e(i),
+                    hven::detail::engine_rows(b).lambda_e(i),
+                    1e-8 * std::max(1.0, std::abs(hven::detail::engine_rows(a).lambda_e(i))));
     }
-    ASSERT_EQ(hven::solvers::detail::engine_rows(a).lambda_i.size(),
-              hven::solvers::detail::engine_rows(b).lambda_i.size());
-    for (Index i = 0; i < hven::solvers::detail::engine_rows(a).lambda_i.size(); ++i) {
-        EXPECT_NEAR(hven::solvers::detail::engine_rows(a).lambda_i(i),
-                    hven::solvers::detail::engine_rows(b).lambda_i(i),
-                    1e-8 *
-                        std::max(1.0, std::abs(hven::solvers::detail::engine_rows(a).lambda_i(i))));
+    ASSERT_EQ(hven::detail::engine_rows(a).lambda_i.size(),
+              hven::detail::engine_rows(b).lambda_i.size());
+    for (Index i = 0; i < hven::detail::engine_rows(a).lambda_i.size(); ++i) {
+        EXPECT_NEAR(hven::detail::engine_rows(a).lambda_i(i),
+                    hven::detail::engine_rows(b).lambda_i(i),
+                    1e-8 * std::max(1.0, std::abs(hven::detail::engine_rows(a).lambda_i(i))));
     }
 }
 
@@ -753,10 +742,9 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     UnevenRowModel model;
 
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver scaled{opts};
-    const SqpResult first =
-        scaled.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult first = scaled.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.scaling.active);
     ASSERT_TRUE(SqpWarmAccess::state(first.native_warm_start).valid);
@@ -767,9 +755,8 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     SqpOptions warm_opts;
     warm_opts.common.start_level = StartLevel::kWarm;
     SqpSolver consumer{warm_opts};
-    const SqpResult second =
-        consumer.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                       first.native_warm_start, SolveBudget{});
+    const SqpResult second = consumer.solve(hven::detail::problem_ref(model), model.start_point(),
+                                            first.native_warm_start, SolveBudget{});
 
     EXPECT_NE(StartLevel::kCold, second.counters.start_level_used)
         << "the currency was ACCEPTED, which is only true if it arrived in the caller's units";
@@ -777,8 +764,7 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     EXPECT_FALSE(second.scaling.active);
 
     SqpSolver reference{SqpOptions{}};
-    const SqpResult cold =
-        reference.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult cold = reference.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_NEAR(cold.f, second.f, 1e-9 * std::max(1.0, std::abs(cold.f)));
     ASSERT_EQ(cold.x.size(), second.x.size());
     for (Index i = 0; i < cold.x.size(); ++i) {
@@ -794,10 +780,9 @@ TEST(ProblemScalingWarmStart, AScaledExportDropsTheScaledSpaceStateItCannotMap) 
     // survives, because no variable was scaled.
     UnevenRowModel model;
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).valid);
     EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).funnel_width);
     EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).primal_delta);
@@ -819,20 +804,19 @@ TEST(ProblemScalingWarmStart, TheExportedCurrencyIsTheSolutionsOwnMultipliers) {
     UnevenRowModel model;
     for (const bool scaled : {false, true}) {
         SqpOptions opts;
-        opts.enable_scaling = scaled;
+        opts.row_scaling = scaled;
         SqpSolver driver{opts};
-        const SqpResult sol =
-            driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).valid) << "scaled=" << scaled;
-        ASSERT_EQ(hven::solvers::detail::engine_rows(sol).lambda_e.size(),
+        ASSERT_EQ(hven::detail::engine_rows(sol).lambda_e.size(),
                   SqpWarmAccess::state(sol.native_warm_start).lambda_e.size());
         EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start)
-                        .lambda_e.isApprox(hven::solvers::detail::engine_rows(sol).lambda_e, 0.0))
+                        .lambda_e.isApprox(hven::detail::engine_rows(sol).lambda_e, 0.0))
             << "equality prices, EXACTLY, scaled=" << scaled;
-        ASSERT_EQ(hven::solvers::detail::engine_rows(sol).lambda_i.size(),
+        ASSERT_EQ(hven::detail::engine_rows(sol).lambda_i.size(),
                   SqpWarmAccess::state(sol.native_warm_start).lambda_i.size());
         EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start)
-                        .lambda_i.isApprox(hven::solvers::detail::engine_rows(sol).lambda_i, 0.0))
+                        .lambda_i.isApprox(hven::detail::engine_rows(sol).lambda_i, 0.0))
             << "inequality prices, EXACTLY, scaled=" << scaled;
         ASSERT_EQ(sol.z.size(), SqpWarmAccess::state(sol.native_warm_start).z.size());
         EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start).z.isApprox(sol.z, 0.0))
@@ -850,10 +834,10 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     ScaledDualModel model(1e12, 5e-7);
     SqpOptions opts;
     opts.common.max_iterations = 60;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     opts.common.start_level = StartLevel::kWarm;
 
-    hven::solvers::detail::SqpWarmState seed;
+    hven::detail::SqpWarmState seed;
     seed.x = Vec::Constant(1, model.x_star());
     seed.lambda_e = Vec(0);
     seed.lambda_i = Vec::Constant(1, 1e12); // the TRUE caller-scale price
@@ -865,12 +849,11 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     seed.valid = true;
 
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), model.start_point(),
-                     SqpWarmAccess::wrap(seed), SolveBudget{});
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       SqpWarmAccess::wrap(seed), SolveBudget{});
     EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_NEAR(model.x_star(), sol.x(0), 1e-9);
-    EXPECT_NEAR(1e12, hven::solvers::detail::engine_rows(sol).lambda_i(0), 1e-3 * 1e12)
+    EXPECT_NEAR(1e12, hven::detail::engine_rows(sol).lambda_i(0), 1e-3 * 1e12)
         << "and it comes back on the caller's scale";
 }
 
@@ -886,10 +869,9 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
 TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     ScaledUnevenModel model;
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
@@ -933,8 +915,7 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
     // trailer says so in one word.
     ScaledUnevenModel model;
     SqpSolver driver{SqpOptions{}};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_FALSE(sol.scaling.active);
@@ -951,10 +932,9 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
 TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     NonFiniteRowModel model;
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kNumericalError, sol.status)
         << "the fixture must reach the non-finite-iterate exit for this pin to mean anything";
@@ -975,7 +955,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     // The residual columns stay NaN, which is what "nothing was measured" reads
     // as; the multipliers stay cleared, which the map leaves cleared.
     EXPECT_TRUE(std::isnan(sol.convergence.kkt_residual));
-    EXPECT_TRUE(hven::solvers::detail::engine_rows(sol).lambda_i.isZero(0.0));
+    EXPECT_TRUE(hven::detail::engine_rows(sol).lambda_i.isZero(0.0));
 
     // AND THE CURRENCY DROP IS THE ONE `finish` APPLIES (fix round 2). This
     // exit builds its own SqpWarmState rather than routing through that boundary,
@@ -1010,14 +990,14 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     SqpOptions off_opts;
     off_opts.common.max_iterations = 200;
     SqpSolver off{off_opts};
-    const SqpResult a = off.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(SolveStatus::kInfeasible, a.status);
     ASSERT_TRUE(a.infeasibility_certified);
 
     SqpOptions on_opts = off_opts;
-    on_opts.enable_scaling = true;
+    on_opts.row_scaling = true;
     SqpSolver on{on_opts};
-    const SqpResult b = on.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult b = on.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_TRUE(b.scaling.active);
     EXPECT_DOUBLE_EQ(100.0, b.scaling.obj) << "grad f is (1,1) everywhere: the full two-sided lift";
@@ -1032,13 +1012,13 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     // all, and it is exactly the property a spurious 1/sf preserves while a
     // spurious sf destroys. Pinned against the unscaled solve's own answer.
     const double t = 1.0 / std::sqrt(2.0);
-    EXPECT_NEAR(t, hven::solvers::detail::engine_rows(b).lambda_e(0), 1e-5);
-    EXPECT_NEAR(-1.0, hven::solvers::detail::engine_rows(b).lambda_e(1), 1e-5);
-    EXPECT_NEAR(hven::solvers::detail::engine_rows(a).lambda_e(0),
-                hven::solvers::detail::engine_rows(b).lambda_e(0), 1e-5);
-    EXPECT_NEAR(hven::solvers::detail::engine_rows(a).lambda_e(1),
-                hven::solvers::detail::engine_rows(b).lambda_e(1), 1e-5);
-    EXPECT_LE(hven::solvers::detail::engine_rows(b).lambda_e.cwiseAbs().maxCoeff(), 1.0 + 1e-9)
+    EXPECT_NEAR(t, hven::detail::engine_rows(b).lambda_e(0), 1e-5);
+    EXPECT_NEAR(-1.0, hven::detail::engine_rows(b).lambda_e(1), 1e-5);
+    EXPECT_NEAR(hven::detail::engine_rows(a).lambda_e(0), hven::detail::engine_rows(b).lambda_e(0),
+                1e-5);
+    EXPECT_NEAR(hven::detail::engine_rows(a).lambda_e(1), hven::detail::engine_rows(b).lambda_e(1),
+                1e-5);
+    EXPECT_LE(hven::detail::engine_rows(b).lambda_e.cwiseAbs().maxCoeff(), 1.0 + 1e-9)
         << "a selector outside [-1, 1] is not a subgradient of h";
 
     // AND THE POINT, AND THE CALLER-SCALE RE-MEASUREMENT AT IT. The four
@@ -1046,9 +1026,9 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     // multipliers, so an independent measurement must reproduce them.
     EXPECT_NEAR(t, b.x(0), 1e-5);
     EXPECT_NEAR(t, b.x(1), 1e-5);
-    const SqpKkt independent = evaluate_kkt(
-        model, b.x, hven::solvers::detail::engine_rows(b).lambda_e,
-        hven::solvers::detail::engine_rows(b).lambda_i, off_opts.common.feasibility_tol);
+    const SqpKkt independent =
+        evaluate_kkt(model, b.x, hven::detail::engine_rows(b).lambda_e,
+                     hven::detail::engine_rows(b).lambda_i, off_opts.common.feasibility_tol);
     EXPECT_DOUBLE_EQ(independent.stationarity, b.convergence.stationarity);
     EXPECT_DOUBLE_EQ(independent.feasibility, b.convergence.feasibility);
     EXPECT_DOUBLE_EQ(independent.residual(), b.convergence.kkt_residual);
@@ -1138,10 +1118,9 @@ TEST(ProblemScalingSeam, AnUnscaledSeamStillAcceptsARowCountChange) {
 TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) {
     ScaledBoundActiveModel model;
     SqpOptions opts;
-    opts.enable_scaling = true;
+    opts.row_scaling = true;
     SqpSolver driver{opts};
-    const SqpResult sol =
-        driver.solve(hven::solvers::detail::problem_ref(model), (model).start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
@@ -1150,9 +1129,9 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     ASSERT_EQ(2, sol.z.size());
     EXPECT_NEAR(-1.16e6, sol.z(1), 1e-3) << "the hand-derived bound price, on the CALLER's scale";
 
-    const SqpKkt independent = evaluate_kkt(
-        model, sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-        hven::solvers::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
+    const SqpKkt independent =
+        evaluate_kkt(model, sol.x, hven::detail::engine_rows(sol).lambda_e,
+                     hven::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
     // EXACT: the same fold, on the same model, at the same point and the same
     // multipliers. A divide-back of the engine's own vector is a DIFFERENT
     // computation -- sf*grad and (s_j*Ji)^T*lambda~ summed and then divided --
@@ -1171,16 +1150,14 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     // computation over the model at exactly the returned vectors reproduces
     // them.
     const NlpEval ev_at_solution = eval_nlp(model, sol.x);
-    const hven::solvers::detail::DeclaredDiagnostics d =
-        hven::solvers::detail::compute_declared_diagnostics(
-            sol.x, hven::solvers::detail::engine_rows(sol).lambda_e,
-            hven::solvers::detail::engine_rows(sol).lambda_i, sol.z, ev_at_solution.grad,
-            ev_at_solution.Je, ev_at_solution.Ji, ev_at_solution.ce, ev_at_solution.ci,
-            model.lower(), model.upper(), {});
+    const hven::detail::DeclaredDiagnostics d = hven::detail::compute_declared_diagnostics(
+        sol.x, hven::detail::engine_rows(sol).lambda_e, hven::detail::engine_rows(sol).lambda_i,
+        sol.z, ev_at_solution.grad, ev_at_solution.Je, ev_at_solution.Ji, ev_at_solution.ce,
+        ev_at_solution.ci, model.lower(), model.upper(), {});
     EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
-    EXPECT_NEAR(d.feasibility_e, hven::solvers::detail::engine_rows(sol).feasibility_e, 1e-9);
-    EXPECT_NEAR(d.feasibility_i, hven::solvers::detail::engine_rows(sol).feasibility_i, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, hven::detail::engine_rows(sol).feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, hven::detail::engine_rows(sol).feasibility_i, 1e-9);
     EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -16,7 +16,7 @@
 #include <hven/core/start_level.h>
 #include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief How much a solve writes to the console (stdout).
 ///
@@ -96,7 +96,7 @@ struct CommonOptions {
     /// On Apple the count is stored and applied to nothing (UNOBSERVED).
     ///
     /// This is not the interior-point engine's evaluation-pool thread count (a
-    /// separate process-global setting, `utils::set_num_threads`).
+    /// separate process-global setting, `detail::set_num_threads`).
     int threads = 0;
 
     /// The ceiling on how much of an offered warm start a solve will trust. A
@@ -151,4 +151,4 @@ struct CommonOptions {
     double infinite_bound = 1e20;
 };
 
-} // namespace hven::solvers
+} // namespace hven

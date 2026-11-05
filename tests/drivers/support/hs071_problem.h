@@ -27,8 +27,8 @@ namespace hven_drivers_tests {
 
 inline constexpr double kHs071Inf = std::numeric_limits<double>::infinity();
 
-struct Hs071Problem final : hven::solvers::Nlp {
-    hven::solvers::NlpDimensions dimensions() const override {
+struct Hs071Problem final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
         return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
     }
 

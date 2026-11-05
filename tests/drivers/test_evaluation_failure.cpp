@@ -53,24 +53,24 @@
 
 namespace {
 
+using hven::BackendError;
+using hven::CallbackAction;
+using hven::Error;
+using hven::EvaluationError;
 using hven::Index;
-using hven::solvers::BackendError;
-using hven::solvers::CallbackAction;
-using hven::solvers::Error;
-using hven::solvers::EvaluationError;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpmResult;
-using hven::solvers::IpmSolver;
-using hven::solvers::IpmStopReason;
-using hven::solvers::IterationEvent;
-using hven::solvers::Problem;
-using hven::solvers::SolveResult;
-using hven::solvers::SolveStatus;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::SqpStopReason;
-using hven::solvers::Verbosity;
+using hven::IpmOptions;
+using hven::IpmResult;
+using hven::IpmSolver;
+using hven::IpmStopReason;
+using hven::IterationEvent;
+using hven::Problem;
+using hven::SolveResult;
+using hven::SolveStatus;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::SqpStopReason;
+using hven::Verbosity;
 using hven_drivers_tests::hs071_start;
 using hven_drivers_tests::Hs071Problem;
 
@@ -145,7 +145,7 @@ constexpr int kNonStdToken = 42;
 // calls with a nonzero (+1) or zero (-1) objective factor; the interior-point
 // engine's feasibility modes evaluate the Hessian with a zero one. `fix_x0`
 // fixes x0 at 1, its value at the optimum.
-class FaultyHs071 final : public hven::solvers::Nlp {
+class FaultyHs071 final : public hven::Nlp {
   public:
     Callback where = Callback::kObjective;
     Fault fault = Fault::kNone;
@@ -161,7 +161,7 @@ class FaultyHs071 final : public hven::solvers::Nlp {
     mutable long calls = 0;
     mutable long fired = 0;
 
-    hven::solvers::NlpDimensions dimensions() const override { return base_.dimensions(); }
+    hven::NlpDimensions dimensions() const override { return base_.dimensions(); }
     void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         base_.bounds(xl, xu, gl, gu);
         if (fix_x0) {
@@ -603,10 +603,10 @@ TEST(ForeignException, ANonStdExceptionPropagatesAsThrownOnBothEngines) {
 // used before B5 -- is no longer absorbed. It propagates, as it always did on the
 // SQP engine.
 TEST(ForeignException, TheInteriorPointEngineNoLongerAbsorbsAStandardException) {
-    struct DomainErrorHs071 final : hven::solvers::Nlp {
+    struct DomainErrorHs071 final : hven::Nlp {
         Hs071Problem base;
         mutable long calls = 0;
-        hven::solvers::NlpDimensions dimensions() const override { return base.dimensions(); }
+        hven::NlpDimensions dimensions() const override { return base.dimensions(); }
         void bounds(hven::VecRef a, hven::VecRef b, hven::VecRef c, hven::VecRef d) const override {
             base.bounds(a, b, c, d);
         }
@@ -733,7 +733,7 @@ TEST(ExceptionContract, AnAbsorbedEvaluationErrorLeavesTheSolverReusable) {
 // faults on the fire_at-th call with a ZERO objective factor (the interior-point
 // engine's restoration modes evaluate it so); `throw_armed` makes the next
 // objective or constraint evaluation throw the foreign Sentinel.
-class FaultyInfeasible final : public hven::solvers::Nlp {
+class FaultyInfeasible final : public hven::Nlp {
   public:
     Fault fault = Fault::kNone;
     long fire_at = 0;
@@ -744,7 +744,7 @@ class FaultyInfeasible final : public hven::solvers::Nlp {
     // point of the violation, where a restoration sub-solve ends (0: never).
     double nan_f_radius = 0.0;
 
-    hven::solvers::NlpDimensions dimensions() const override { return {2, 1, 2, 2}; }
+    hven::NlpDimensions dimensions() const override { return {2, 1, 2, 2}; }
     void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         const double inf = std::numeric_limits<double>::infinity();
         xl << -inf, -inf;
@@ -807,8 +807,8 @@ Eigen::VectorXd infeasible_start() {
 
 IpmOptions restoring_ipm() {
     IpmOptions o = quiet_ipm();
-    o.advanced.restoration_mode = hven::solvers::RestorationMode::kL1Nested;
-    o.advanced.restoration_max_entries = 1;
+    o.advanced.restoration_mode = hven::RestorationMode::kL1Nested;
+    o.advanced.max_restoration_entries = 1;
     return o;
 }
 
@@ -836,7 +836,7 @@ TEST(RiderRollback, AChainOfRollbacksReachesTheCapFloorAndEndsAtTheFailedPoint) 
     ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
-    const Index max_rollbacks = quiet_ipm().advanced.line_search_max_backtracks;
+    const Index max_rollbacks = quiet_ipm().advanced.max_line_search_backtracks;
     EXPECT_GE(r.nonfinite_step_rollbacks, 2) << "a CHAIN of rollbacks, not one";
     EXPECT_LE(r.nonfinite_step_rollbacks, max_rollbacks)
         << "each rollback divides the cap by at least backtrack_divisor";
@@ -904,9 +904,9 @@ TEST(RiderRollback, AFailureWhileRestorationIsActiveIsNeverRolledBack) {
 
 // Arms the model's next Hessian evaluation when the second phase begins: its
 // first evaluation is that phase's first iterate.
-struct PhaseTwoArmingSink final : hven::solvers::TraceSink {
+struct PhaseTwoArmingSink final : hven::TraceSink {
     std::shared_ptr<FaultyHs071> nlp;
-    void on_ipm_phase_begin(const hven::solvers::IpmPhaseTraceEvent &event) override {
+    void on_ipm_phase_begin(const hven::IpmPhaseTraceEvent &event) override {
         if (event.phase == 1) {
             nlp->fire_at = nlp->calls + 1;
         }
@@ -923,7 +923,7 @@ TEST(RiderRollback, AFailureAtAPhasesFirstIterateEndsTheSolveWithoutARollback) {
     nlp->fire_at = std::numeric_limits<long>::max();
     Problem problem(nlp);
     IpmOptions o = quiet_ipm();
-    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
     IpmSolver solver(o);
     PhaseTwoArmingSink sink;
     sink.nlp = nlp;
@@ -1049,8 +1049,7 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
                 }
                 return CallbackAction::kContinue;
             },
-            hven::solvers::IterationPayload::kScalars,
-            hven::solvers::CallbackScope::kIncludeRestoration);
+            hven::IterationPayload::kScalars, hven::CallbackScope::kIncludeRestoration);
         expect_sentinel(solver, [&] { (void)solver.solve(problem, infeasible_start()); });
         EXPECT_EQ(nlp->fired, 1) << "the restoration sub-solve never ran";
         EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kException);
@@ -1058,10 +1057,10 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
 }
 
 // A sink that throws on its third iteration line.
-struct ThrowingSink final : hven::solvers::TraceSink {
+struct ThrowingSink final : hven::TraceSink {
     int calls = 0;
-    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &) override { tick(); }
-    void on_sqp_major(const hven::solvers::SqpMajorTraceEvent &) override { tick(); }
+    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { tick(); }
+    void on_sqp_major(const hven::SqpMajorTraceEvent &) override { tick(); }
     void tick() {
         if (++calls == 3) {
             throw Sentinel(kSentinelToken);
@@ -1117,7 +1116,7 @@ TEST(RiderForeignException, ThrownByTheKktHookPropagatesUnchanged) {
 
 // --- the thread pool's policy: a foreign exception from ANY lane wins -----------
 
-void store_thrown(hven::utils::detail::DispatchContext &ctx, const std::function<void()> &f) {
+void store_thrown(hven::detail::DispatchContext &ctx, const std::function<void()> &f) {
     try {
         f();
     } catch (...) {
@@ -1139,34 +1138,34 @@ TEST(RiderThreadPool, AForeignExceptionFromAnyLaneIsRethrownOverAnEvaluationErro
     const auto foreign = [] { throw Sentinel(kSentinelToken); };
     {
         SCOPED_TRACE("pool lanes: evaluation error first, foreign second");
-        hven::utils::detail::DispatchContext ctx(0);
+        hven::detail::DispatchContext ctx(0);
         store_thrown(ctx, eval);
         store_thrown(ctx, foreign);
         EXPECT_THROW(ctx.rethrow_if_exception(), Sentinel);
     }
     {
         SCOPED_TRACE("pool lane an evaluation error, the calling thread's lane foreign");
-        hven::utils::detail::DispatchContext ctx(0);
+        hven::detail::DispatchContext ctx(0);
         store_thrown(ctx, eval);
         EXPECT_THROW(ctx.rethrow_if_exception(thrown(foreign)), Sentinel);
     }
     {
         SCOPED_TRACE("a full set of pool evaluation errors cannot hide the inline foreign one");
-        hven::utils::detail::DispatchContext ctx(0);
-        for (int k = 0; k < hven::utils::detail::DispatchContext::kMaxCaptured + 3; ++k) {
+        hven::detail::DispatchContext ctx(0);
+        for (int k = 0; k < hven::detail::DispatchContext::kMaxCaptured + 3; ++k) {
             store_thrown(ctx, eval);
         }
         EXPECT_THROW(ctx.rethrow_if_exception(thrown(foreign)), Sentinel);
     }
     {
         SCOPED_TRACE("only evaluation errors: one of them, unchanged");
-        hven::utils::detail::DispatchContext ctx(0);
+        hven::detail::DispatchContext ctx(0);
         store_thrown(ctx, eval);
         EXPECT_THROW(ctx.rethrow_if_exception(thrown(eval)), EvaluationError);
     }
     {
         SCOPED_TRACE("nothing thrown: nothing rethrown");
-        hven::utils::detail::DispatchContext ctx(0);
+        hven::detail::DispatchContext ctx(0);
         EXPECT_NO_THROW(ctx.rethrow_if_exception());
     }
 }
@@ -1242,7 +1241,7 @@ TEST(RiderInterrupted, AFixedVariableUnderMakeConstraintIsReportedInTheDeclaredS
     nlp->fire_at = kFireAt;
     Problem problem(nlp);
     IpmOptions o = quiet_ipm();
-    o.fixed_variable_treatment = hven::solvers::FixedVariableTreatment::kMakeConstraint;
+    o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
     IpmSolver solver(o);
     EXPECT_THROW((void)solver.solve(problem, hs071_start()), Sentinel);
     ASSERT_EQ(nlp->fired, 1);

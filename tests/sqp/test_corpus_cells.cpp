@@ -44,7 +44,7 @@
 #include "hven/detail/warmstart/sqp_warm_access.h"
 
 namespace {
-using hven::solvers::detail::SqpWarmAccess;
+using hven::detail::SqpWarmAccess;
 } // namespace
 
 #ifndef HVEN_SQP_CORPUS_BINARY
@@ -68,7 +68,7 @@ using hven::solvers::detail::SqpWarmAccess;
 
 namespace {
 
-using namespace hven::solvers::corpus;
+using namespace hven::corpus;
 
 // A tiny, hand-built cell -- NOT from the production census -- for the
 // producer/determinism tests below. N = 12, p0 = 0.80/p = 0.85: both inside
@@ -239,15 +239,15 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
     detail::EngineConfig walk_cfg;
     detail::EngineConfig ssn_cfg;
-    ssn_cfg.qp_mode = hven::solvers::QpMode::kSsn;
-    const hven::solvers::SqpOptions w = detail::options_for_cell(cell, walk_cfg);
-    const hven::solvers::SqpOptions s = detail::options_for_cell(cell, ssn_cfg);
-    EXPECT_EQ(w.qp_mode, hven::solvers::QpMode::kWalk);
-    EXPECT_EQ(s.qp_mode, hven::solvers::QpMode::kSsn);
+    ssn_cfg.qp_mode = hven::QpMode::kSsn;
+    const hven::SqpOptions w = detail::options_for_cell(cell, walk_cfg);
+    const hven::SqpOptions s = detail::options_for_cell(cell, ssn_cfg);
+    EXPECT_EQ(w.qp_mode, hven::QpMode::kWalk);
+    EXPECT_EQ(s.qp_mode, hven::QpMode::kSsn);
     EXPECT_EQ(w.common.optimality_tol, s.common.optimality_tol);
     EXPECT_EQ(w.common.feasibility_tol, s.common.feasibility_tol);
     EXPECT_EQ(w.common.max_iterations, s.common.max_iterations);
-    EXPECT_EQ(w.qp.max_iter, s.qp.max_iter);
+    EXPECT_EQ(w.qp.max_iterations, s.qp.max_iterations);
     EXPECT_EQ(w.advanced.adaptive_mu, s.advanced.adaptive_mu);
     EXPECT_EQ(w.advanced.warm_full_step, s.advanced.warm_full_step);
     EXPECT_EQ(w.advanced.ssn_prox_carry, s.advanced.ssn_prox_carry)
@@ -290,7 +290,7 @@ TEST(CorpusCellsRunner, ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn)
     detail::EngineConfig levers;
     levers.score_model_surface = true;
     const CorpusRow row = run_cell(cell, "walk", {}, levers);
-    ASSERT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(row.status, hven::SolveStatus::kOptimal);
     EXPECT_GE(row.ms_stationarity, 0.0);
     EXPECT_GE(row.ms_complementarity, 0.0);
     EXPECT_GE(row.ms_primal, 0.0);
@@ -384,7 +384,7 @@ TEST(CorpusCellsRunner, AnEscapeIsReportedFromTheDriversOwnCounterAndDragsTheWal
     const CorpusRow ssn = run_cell(cell, "ssn");
     EXPECT_EQ(ssn.escapes, 1) << "one subproblem handed off to the walk";
     EXPECT_GT(ssn.qp_minors, 0) << "and the walk really re-solved it";
-    EXPECT_EQ(ssn.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(ssn.status, hven::SolveStatus::kOptimal);
     // PHASE-7 TASK 6b (docket D6): and the row now carries WHY, not just how
     // many. The census partitions `escapes` exactly -- the property
     // bench_corpus.cpp's reader enforces on every artifact row it scores.
@@ -407,22 +407,22 @@ TEST(CorpusCellsRunner, TheKktCheckRecordsTheRowsOwnScaleDenominators) {
     // `record_kkt_check` is therefore driven DIRECTLY on a hand-built solution
     // carrying a large multiplier and a large primal, which is exactly the
     // regime the relative rule exists for.
-    hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
+    hven::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpResult sol;
+    hven::SqpResult sol;
     sol.x = hven::Vec::Constant(model.n(), 3.0);
-    hven::solvers::detail::engine_rows(sol).lambda_e = hven::Vec::Zero(model.me());
-    hven::solvers::detail::engine_rows(sol).lambda_i = hven::Vec::Zero(model.mi());
+    hven::detail::engine_rows(sol).lambda_e = hven::Vec::Zero(model.me());
+    hven::detail::engine_rows(sol).lambda_i = hven::Vec::Zero(model.mi());
     sol.z = hven::Vec::Zero(model.n());
     ASSERT_GT(model.mi(), 0);
-    hven::solvers::detail::engine_rows(sol).lambda_i(0) = 1.0e6;
+    hven::detail::engine_rows(sol).lambda_i(0) = 1.0e6;
     CorpusRow row{};
     detail::record_kkt_check(model, sol, detail::kFeasTol, row);
     EXPECT_DOUBLE_EQ(row.dual_scale, 1.0e6) << "the DUAL denominator is max(1, ||lambda||inf, "
                                                "||z||inf) off the returned solution";
     EXPECT_DOUBLE_EQ(row.x_scale, 3.0) << "the PRIMAL denominator is max(1, ||x||inf)";
     EXPECT_EQ(row.neg_ineq_duals, 0);
-    hven::solvers::detail::engine_rows(sol).lambda_i(1) = -2.0;
+    hven::detail::engine_rows(sol).lambda_i(1) = -2.0;
     detail::record_kkt_check(model, sol, detail::kFeasTol, row);
     EXPECT_EQ(row.neg_ineq_duals, 1);
     EXPECT_DOUBLE_EQ(row.kkt_dual_sign, 2.0);
@@ -436,7 +436,7 @@ TEST(CorpusCellsRunner, EveryRowCarriesAModelLevelKktCheckUnderBothEngines) {
     for (const char *engine : {"walk", "ssn"}) {
         SCOPED_TRACE(engine);
         const CorpusRow row = run_cell(tiny_cell(StartTaxonomy::kNeutralCold), engine);
-        ASSERT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
+        ASSERT_EQ(row.status, hven::SolveStatus::kOptimal);
         EXPECT_GE(row.kkt_stationarity, 0.0);
         EXPECT_GE(row.kkt_primal, 0.0);
         EXPECT_GE(row.kkt_dual_sign, 0.0);
@@ -510,10 +510,9 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // Checked against a solve run directly here, so a mutation that (say)
     // pushed the whole-solve sum, or included stopped-AT-iterate rows, is
     // caught.
-    hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
+    hven::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpSolver driver(
-        detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
+    hven::SqpSolver driver(detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
     const auto sol = detail::budgeted_solve(driver, model, model.start_point());
 
     std::vector<int> expected;
@@ -562,7 +561,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     //   (b) the ACTIVITY HINT is still EXACT -- from_interior_point infers
     //       activity from the dual/slack pair alone, so displacing the primal
     //       does not degrade it.
-    hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
+    hven::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
     const hven::Vec x_star = model.x_star(0.85);
     const hven::Vec x0 = detail::physics_informed_start(model, 0.85);
@@ -572,9 +571,9 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     const detail::IpIterate it =
         detail::f7_ip_iterate(model, 0.85, detail::crossover_mu_for_n(12), x0);
     EXPECT_EQ(it.x, x0) << "the iterate carries the physics-informed primal, not x*";
-    const hven::solvers::detail::SqpWarmState crossover = hven::solvers::from_interior_point(
+    const hven::detail::SqpWarmState crossover = hven::from_interior_point(
         it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper, model.lower(),
-        model.upper(), hven::solvers::IpCrossoverOptions{});
+        model.upper(), hven::IpmCrossoverOptions{});
 
     const auto analytic = model.active_set(0.85);
     ASSERT_EQ(crossover.ineq_active.size(), analytic.ineq_active.size());
@@ -585,7 +584,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
 
     const CorpusRow row =
         run_cell(tiny_cell(StartTaxonomy::kActivityOnly, /*use_p0=*/false), "walk");
-    EXPECT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(row.status, hven::SolveStatus::kOptimal);
     EXPECT_FALSE(row.qp_factorizations.empty())
         << "a crossover cell must build at least one QP -- measuring nothing is the defect this "
            "test exists against";
@@ -600,8 +599,8 @@ TEST(CorpusCellsRunner, ActivityOnlyResolvesInFarLessWorkThanItsMatchedPhysicsCo
         run_cell(tiny_cell(StartTaxonomy::kActivityOnly, /*use_p0=*/false), "walk");
     const CorpusRow control =
         run_cell(tiny_cell(StartTaxonomy::kPhysicsInformed, /*use_p0=*/false), "walk");
-    EXPECT_EQ(hinted.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_EQ(control.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(hinted.status, hven::SolveStatus::kOptimal);
+    EXPECT_EQ(control.status, hven::SolveStatus::kOptimal);
     EXPECT_LE(hinted.qp_minors, control.qp_minors)
         << "hinted=" << hinted.qp_minors << " control=" << control.qp_minors;
 }
@@ -616,8 +615,8 @@ TEST(CorpusCellsRunner, FullWarmProducerBeatsNeutralColdOnMinors) {
     const CorpusRow warm = run_cell(tiny_cell(StartTaxonomy::kFullWarm), "walk");
     const CorpusRow cold =
         run_cell(tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false), "walk");
-    EXPECT_EQ(warm.status, hven::solvers::SolveStatus::kOptimal);
-    EXPECT_EQ(cold.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(warm.status, hven::SolveStatus::kOptimal);
+    EXPECT_EQ(cold.status, hven::SolveStatus::kOptimal);
     EXPECT_LE(warm.qp_minors, cold.qp_minors)
         << "warm=" << warm.qp_minors << " cold=" << cold.qp_minors;
 }
@@ -629,7 +628,7 @@ TEST(CorpusCellsRunner, CorruptedProducerStillResolvesWarmAndConverges) {
     // corpus row is how much EXTRA work it costs, which this test does not
     // need to pin (that is what the baseline CSV is for).
     const CorpusRow row = run_cell(tiny_cell(StartTaxonomy::kCorrupted), "walk");
-    EXPECT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(row.status, hven::SolveStatus::kOptimal);
 }
 
 TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
@@ -637,9 +636,9 @@ TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
     // was ever built) -- the -1.0 sentinel this file's own last_kkt_residual
     // documents, tested directly rather than by hunting for a real F7 cell
     // that happens to converge at major_iters == 0.
-    hven::solvers::SqpResult sol;
+    hven::SqpResult sol;
     ASSERT_TRUE(sol.history.empty());
-    EXPECT_DOUBLE_EQ(hven::solvers::corpus::detail::last_kkt_residual(sol), -1.0);
+    EXPECT_DOUBLE_EQ(hven::corpus::detail::last_kkt_residual(sol), -1.0);
 }
 
 // =============================================================================
@@ -654,13 +653,13 @@ TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     // way detail::make_model does, so a mutation that (say) fed the wrong x or
     // nonzero initial multipliers is caught.
     const CorpusCell cell = tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false);
-    hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p, 1.0);
+    hven::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p, 1.0);
     model.set_parameters(hven::Vec::Constant(1, cell.p));
     const hven::Vec x0 = model.start_point();
-    const hven::solvers::QpProblem expected = hven::solvers::build_subproblem(
-        model, x0, hven::Vec::Zero(model.me()), hven::Vec::Zero(model.mi()));
+    const hven::QpProblem expected =
+        hven::build_subproblem(model, x0, hven::Vec::Zero(model.me()), hven::Vec::Zero(model.mi()));
 
-    const hven::solvers::QpProblem actual = detail::first_qp_for_cell(cell);
+    const hven::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_EQ(actual.n(), expected.n());
     EXPECT_EQ(actual.me(), expected.me());
     EXPECT_EQ(actual.mi(), expected.mi());
@@ -681,19 +680,19 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     // on ITS output, so a mutation that (say) dropped the warm duals back to
     // zero, or reused the setup's own p rather than the target's, is caught.
     const CorpusCell cell = tiny_cell(StartTaxonomy::kFullWarm);
-    hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p0, 1.0);
+    hven::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p0, 1.0);
     model.set_parameters(hven::Vec::Constant(1, cell.p0));
-    hven::solvers::SqpSolver driver(detail::options_for_cell(cell));
+    hven::SqpSolver driver(detail::options_for_cell(cell));
     const auto seed = detail::budgeted_solve(driver, model, model.start_point());
-    ASSERT_EQ(seed.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(seed.status, hven::SolveStatus::kOptimal);
 
     model.set_parameters(hven::Vec::Constant(1, cell.p));
-    const hven::solvers::QpProblem expected =
-        hven::solvers::build_subproblem(model, SqpWarmAccess::state(seed.native_warm_start).x,
-                                        SqpWarmAccess::state(seed.native_warm_start).lambda_e,
-                                        SqpWarmAccess::state(seed.native_warm_start).lambda_i);
+    const hven::QpProblem expected =
+        hven::build_subproblem(model, SqpWarmAccess::state(seed.native_warm_start).x,
+                               SqpWarmAccess::state(seed.native_warm_start).lambda_e,
+                               SqpWarmAccess::state(seed.native_warm_start).lambda_i);
 
-    const hven::solvers::QpProblem actual = detail::first_qp_for_cell(cell);
+    const hven::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_TRUE(actual.g.isApprox(expected.g, 0.0));
     EXPECT_TRUE(actual.be.isApprox(expected.be, 0.0));
     EXPECT_TRUE(actual.bi.isApprox(expected.bi, 0.0));
@@ -713,8 +712,7 @@ TEST(CorpusCellsRunner, FirstQpForCellFiresSetupCompleteExactlyOnceOnEveryTaxono
           StartTaxonomy::kActivityOnly, StartTaxonomy::kFullWarm}) {
         SCOPED_TRACE(to_string(t));
         int calls = 0;
-        const hven::solvers::QpProblem qp =
-            detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
+        const hven::QpProblem qp = detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
         EXPECT_EQ(calls, 1);
         EXPECT_GT(qp.n(), 0);
     }
@@ -734,7 +732,7 @@ TEST(CorpusCellsRunner, FirstQpForCellUnrecognisedTaxonomyThrows) {
 // The committed, uncontended, single-threaded reference runtimes the band's
 // rule R1 is defined over -- docs/notes/2026-07-30-scale-study-cold.md Sec.
 // 4.2's Arm B table, kNeutralCold (the hardest taxonomy at every N here),
-// p = 0.85, qp.max_iter = 20000 where capped. Duplicated here ON PURPOSE: if
+// p = 0.85, qp.max_iterations = 20000 where capped. Duplicated here ON PURPOSE: if
 // someone lowers a tier, this table is what fails, and it names the note the
 // number came from.
 struct BudgetReference {
@@ -820,24 +818,24 @@ TEST(CorpusCellsRunner, MinorBudgetConstantIsFiftyThousand) {
     // forwards it): on a tiny fixture a budget of 50000 and a budget of 0
     // (unbounded) are behaviourally indistinguishable, so a solve-based
     // comparison alone cannot catch a mutation to the DEFAULT.
-    EXPECT_EQ(hven::solvers::corpus::detail::kMinorBudget, 50000);
+    EXPECT_EQ(hven::corpus::detail::kMinorBudget, 50000);
 }
 
 TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget) {
-    hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
+    hven::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpOptions opts;
+    hven::SqpOptions opts;
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
 
-    hven::solvers::SqpSolver driver_a(opts);
-    const auto direct = driver_a.solve(
-        hven::solvers::detail::problem_ref(model), model.start_point(),
-        SqpWarmAccess::wrap(hven::solvers::detail::SqpWarmState{}),
-        hven::solvers::SolveBudget{.minor_budget = hven::solvers::corpus::detail::kMinorBudget});
-    hven::solvers::SqpSolver driver_b(opts);
+    hven::SqpSolver driver_a(opts);
+    const auto direct =
+        driver_a.solve(hven::detail::problem_ref(model), model.start_point(),
+                       SqpWarmAccess::wrap(hven::detail::SqpWarmState{}),
+                       hven::SolveBudget{.minor_budget = hven::corpus::detail::kMinorBudget});
+    hven::SqpSolver driver_b(opts);
     const auto via_helper =
-        hven::solvers::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
+        hven::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
 
     EXPECT_EQ(direct.status, via_helper.status);
     EXPECT_EQ(direct.counters.qp_minor_iters, via_helper.counters.qp_minor_iters);
@@ -851,18 +849,18 @@ TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // relabel) with probe_budget_stops == 1 --
     // sqp_solver_types.h's own documented contract -- rather than run to completion
     // or hang.
-    hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
+    hven::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpOptions opts;
+    hven::SqpOptions opts;
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 10;
-    hven::solvers::SqpSolver driver(opts);
+    hven::SqpSolver driver(opts);
 
-    const auto sol = hven::solvers::corpus::detail::budgeted_solve(
-        driver, model, model.start_point(), hven::solvers::detail::SqpWarmState{}, /*budget=*/1);
+    const auto sol = hven::corpus::detail::budgeted_solve(
+        driver, model, model.start_point(), hven::detail::SqpWarmState{}, /*budget=*/1);
 
-    EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kWorkLimit);
+    EXPECT_EQ(sol.status, hven::SolveStatus::kWorkLimit);
     EXPECT_EQ(sol.counters.probe_budget_stops, 1);
     EXPECT_GE(sol.counters.qp_minor_iters, 1)
         << "the budget was crossed, not skipped -- some real work was still done";
@@ -1167,11 +1165,11 @@ TEST(CorpusCellsRunner, TheFastCellsEqualitySplitNeverRunsTheSparseQr) {
     const CorpusCell *cell = find_cell("f7_n5000_bound_neutral");
     ASSERT_NE(cell, nullptr);
     F7CollocationChain model = detail::make_model(*cell);
-    hven::solvers::SqpOptions opts = detail::options_for_cell(*cell);
+    hven::SqpOptions opts = detail::options_for_cell(*cell);
     opts.advanced.equality_basis = true;
-    hven::solvers::SqpSolver driver(opts);
-    const hven::solvers::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
-    ASSERT_EQ(sol.status, hven::solvers::SolveStatus::kOptimal);
+    hven::SqpSolver driver(opts);
+    const hven::SqpResult sol = detail::budgeted_solve(driver, model, model.start_point());
+    ASSERT_EQ(sol.status, hven::SolveStatus::kOptimal);
     EXPECT_TRUE(sol.equality_basis.computed);
     // One split, full rank certified at t_lo (AMENDMENT 1: the chain has Gram
     // eigenvalues in [t_lo, t_hi)): 2 factorizations, measured.
@@ -1925,7 +1923,7 @@ TEST(CorpusRunnerProcess, DumpQpWritesAParseableTripletFileMatchingTheCellsFirst
 
     const CorpusCell *cell = find_cell("f7_n1000_bound_neutral");
     ASSERT_NE(cell, nullptr);
-    const hven::solvers::QpProblem expected = detail::first_qp_for_cell(*cell);
+    const hven::QpProblem expected = detail::first_qp_for_cell(*cell);
 
     EXPECT_EQ(parsed.n, expected.n());
     EXPECT_EQ(parsed.me, expected.me());
@@ -2105,7 +2103,7 @@ CorpusOutcome finished(const CorpusCell *cell, std::vector<int> per_qp, int esca
     CorpusOutcome o;
     o.cell = cell;
     o.row.cell_id = cell->id;
-    o.row.status = hven::solvers::SolveStatus::kOptimal;
+    o.row.status = hven::SolveStatus::kOptimal;
     o.row.escapes = escapes;
     o.row.qp_factorizations = std::move(per_qp);
     for (const int f : o.row.qp_factorizations) {
@@ -2330,8 +2328,7 @@ TEST(CorpusGatePopulation, G4ExcludesDegenerateCellsAndChargesADnfAsAllEscaping)
 namespace kkt_gate_test {
 
 CorpusRow row_with(double stat, double primal, double sign, double comp, double dual_scale = 1.0,
-                   double x_scale = 1.0,
-                   hven::solvers::SolveStatus status = hven::solvers::SolveStatus::kOptimal) {
+                   double x_scale = 1.0, hven::SolveStatus status = hven::SolveStatus::kOptimal) {
     CorpusRow r{};
     r.cell_id = "fixture";
     r.status = status;
@@ -2442,16 +2439,16 @@ TEST(CorpusKktGate, OnlyRowsThatCLAIMOptimalAreJudged) {
     // W1. An honest failure exit claims nothing about the point it returns;
     // re-checking it would manufacture wrong answers out of honest errors.
     using namespace kkt_gate_test;
-    for (const hven::solvers::SolveStatus st :
-         {hven::solvers::SolveStatus::kMaxIter, hven::solvers::SolveStatus::kNumericalError,
-          hven::solvers::SolveStatus::kInfeasible, hven::solvers::SolveStatus::kWorkLimit}) {
+    for (const hven::SolveStatus st :
+         {hven::SolveStatus::kMaxIter, hven::SolveStatus::kNumericalError,
+          hven::SolveStatus::kInfeasible, hven::SolveStatus::kWorkLimit}) {
         EXPECT_EQ(kkt_gate_verdict(row_with(1e3, 1e3, 1e3, 1e3, 1.0, 1.0, st)),
                   KktVerdict::kUnchecked);
     }
     // And a row with NO recorded check (a Task-1-era 14-column artifact) is
     // unchecked, never wrong: absence of evidence is not evidence.
     CorpusRow bare{};
-    bare.status = hven::solvers::SolveStatus::kOptimal;
+    bare.status = hven::SolveStatus::kOptimal;
     EXPECT_EQ(kkt_gate_verdict(bare), KktVerdict::kUnchecked);
 }
 
@@ -2463,7 +2460,7 @@ TEST(CorpusGatePopulation, AWrongAnswerRowIsChargedTheWorstCaseExactlyAsADnfIs) 
     const CorpusCell *c =
         make_cell(5000, ConstraintFamily::kPathInterface, StartTaxonomy::kFullWarm);
     CorpusOutcome good = finished(c, {1, 1, 1});
-    good.row.status = hven::solvers::SolveStatus::kOptimal;
+    good.row.status = hven::SolveStatus::kOptimal;
     good.row.kkt_stationarity = 1e-10;
     good.row.kkt_primal = 1e-10;
     good.row.kkt_dual_sign = 0.0;
@@ -2794,7 +2791,7 @@ std::vector<std::string> interior_artifact_violations(const Artifact &art) {
         const std::string key = r.count("cell_id") != 0 ? r.at("cell_id") : std::string("<none>");
         const std::string treatment =
             r.count("fixed_treatment") != 0 ? r.at("fixed_treatment") : std::string("<none>");
-        // The leg writes hven::solvers::SolveStatus' own spellings
+        // The leg writes hven::SolveStatus' own spellings
         // (crossover_legs.h::flag_string), not the SolveStatus names.
         const std::string status = r.count("status") != 0 ? r.at("status") : std::string("<none>");
         const std::string reason =
@@ -3277,8 +3274,8 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
 // no floating-point arithmetic produces it. `wall_s` is excluded outright: it
 // is informational (CLAUDE.md §7) and the leg's own comparator excludes it too.
 TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
-    namespace corpus = hven::solvers::corpus;
-    using hven::solvers::FixedVariableTreatment;
+    namespace corpus = hven::corpus;
+    using hven::FixedVariableTreatment;
 
     const corpus::InteriorLevers levers;
     const corpus::InteriorRow routed = corpus::run_interior_single_row(
@@ -3729,7 +3726,7 @@ TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
 
     // AND THE DIRECTION OF THE MOVE: every one of the four stops throwing.
     for (const std::string &cid : d0) {
-        EXPECT_NE(by_id.at(cid)[6], std::string(hven::solvers::corpus::kEngineErrorStatusString))
+        EXPECT_NE(by_id.at(cid)[6], std::string(hven::corpus::kEngineErrorStatusString))
             << cid << " must no longer be an engine_error";
     }
     // ...and no cell that used to answer stopped answering, nor vice versa
@@ -3824,7 +3821,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // into the default path and turned an Optimal cell into a
         // NumericalError one would have passed every assertion below. It costs
         // nothing to compare: the runner already prints it into column 6.
-        EXPECT_EQ(std::string(hven::solvers::corpus::legacy_status_string(row.status)), w[6]);
+        EXPECT_EQ(std::string(hven::corpus::legacy_status_string(row.status)), w[6]);
         // The INTEGER columns, by name and by index into the schema-37 header,
         // compared exactly. The float columns (12, 15-20) are compared through
         // their own printed form below, because that is the form the artifact

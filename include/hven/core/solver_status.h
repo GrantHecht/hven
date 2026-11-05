@@ -16,7 +16,7 @@
 
 #include <type_traits>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The verdict on ONE QP subproblem solve.
 enum class QpStatus {
@@ -49,7 +49,7 @@ enum class QpStatus {
 ///
 /// A solve that exhausts its major-iteration cap reports kMaxIter;
 /// SolveResult::returned_best_iterate says whether the point returned is the
-/// best iterate (SqpOptions::budget_mode) rather than the last one reached.
+/// best iterate (SqpOptions::return_best_on_max_iterations) rather than the last one reached.
 ///
 /// A non-finite evaluation the solve cannot recover from is kNumericalError. The
 /// interior-point engine with IpmOptions::return_best on returns its best
@@ -338,7 +338,7 @@ const char *to_string(SqpStopReason reason);
 /// @throws std::invalid_argument if @p status is not one of the ten.
 int severity(SolveStatus status);
 
-// hven::solvers::SqpStatus -- the SQP engine's own five-value verdict enum --
+// hven::SqpStatus -- the SQP engine's own five-value verdict enum --
 // was REMOVED in M6 W5 T8.4. Its five enumerators ARE the first five of
 // SolveStatus above, under the same names, so the substitution was textual.
 // Its display strings were the CAPITALISED Optimal / MaxIter / Infeasible /
@@ -347,4 +347,4 @@ int severity(SolveStatus status);
 // artifacts are pinned to those bytes -- bench-local, as
 // corpus::legacy_status_string.
 
-} // namespace hven::solvers
+} // namespace hven

@@ -9,7 +9,7 @@
 // and Debug differ in the last bits (-O0 vs -O2 contraction), so each is pinned
 // against its own. Never edited by hand; a move is a declared re-derivation.
 
-namespace hven::solvers::e1b_golden {
+namespace hven::e1b_golden {
 
 inline constexpr const char *kOffGoldenRelease = R"GOLDEN(kWalk status 0
 kWalk counters 2 6 2 2 0 0
@@ -39,4 +39,4 @@ kIpm x 3fe901571ed3c507 3fe9d26de7dfd51d 3fe8d116c90c1016 3fcbfaa384b0ebe3 3fde5
 kIpm lambda_e bfb42e698e9b6a69 bfc308ec25ff508d bfc0862f2632a22b 3fd6d328396edbf5 c003ebffe1bb5961 bfd7bc6565489750 3fdb94bf023a4285 3ff7ccc551269d7f 3fee2a481cac4308 bfc308ec25ff508d
 )GOLDEN";
 
-} // namespace hven::solvers::e1b_golden
+} // namespace hven::e1b_golden

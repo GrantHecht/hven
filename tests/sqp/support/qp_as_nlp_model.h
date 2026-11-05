@@ -15,7 +15,7 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 /// @brief A `QpProblem` presented as an `NlpModel`, so a QP fixture's OWN
 ///        active set is what the driver's first subproblem reports.
@@ -63,4 +63,4 @@ class QpAsNlpModel final : public NlpModel {
     Vec x0_;
 };
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

@@ -55,7 +55,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief The base of every runtime failure hven raises.
 class Error : public std::runtime_error {
@@ -80,4 +80,4 @@ class BackendError : public Error {
     using Error::Error;
 };
 
-} // namespace hven::solvers
+} // namespace hven

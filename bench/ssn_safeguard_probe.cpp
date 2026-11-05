@@ -162,10 +162,10 @@
 
 #include "support/ssn_fixtures.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 namespace {
 

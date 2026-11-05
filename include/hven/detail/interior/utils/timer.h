@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @brief Simple wall-clock timer with start/stop/reset semantics.
 ///
@@ -109,4 +109,4 @@ class Timer {
     std::chrono::duration<long double> accumulated_;
 };
 
-} // namespace hven::utils
+} // namespace hven::detail
