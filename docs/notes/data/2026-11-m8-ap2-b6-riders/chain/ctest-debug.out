@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-04T17:49:12-05:00
+	2131 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	1810 - PiecesLocalBlocks.AWidePieceSolvesOnFourPartitions (Failed)
+Errors while running CTest
+rc=8
+FOREGROUND_END 2026-11-04T17:56:56-05:00

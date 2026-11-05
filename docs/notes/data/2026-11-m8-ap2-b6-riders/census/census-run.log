@@ -1,0 +1,79 @@
+=== walk census: parallel-tiered v1 (T1 6-wide pinned / T2 solo / T3 5-wide full-budget) ===
+binary   : /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/armBbin/hven_sqp_corpus
+baseline : /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+topology : 8 physical cores; representatives (one sibling each): 0,1,2,3,4,5,6,7
+tier assignment (from frozen baseline /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv)
+  T2 wall-sensitive SOLO : non-dnf cells with wall_s >= 1800s, plus f7_n10000_path_physics
+  T3 deep-DNF 5-wide      : baseline status dnf_*, full budget each
+  T1 remainder 6-wide     : everything else
+  counts: T1=42  T2=3  T3=12  (total 57)
+  tier cell                             base_status    base_wall_s
+  T1   f7_n5000_path_activity           Optimal        794.793
+  T1   f7_n5000_path_physics            Optimal        592.315
+  T1   f7_n1000_path_corrupted          Optimal        452.004
+  T1   f7_n1000_path_neutral            Optimal        181.256
+  T1   f7_n800_path_neutral             Optimal        127.603
+  T1   f7_n825_path_neutral_control     Optimal        118.477
+  T1   f7_n750_path_neutral_control     Optimal        109.259
+  T1   f7_n2000_path_physics            Optimal        73.050
+  T1   f7_n2000_path_activity           Optimal        65.571
+  T1   f7_n2000_path_warm               Optimal        44.085
+  T1   f7_n800_path_corrupted           Optimal        30.413
+  T1   f7_n1000_path_physics            Optimal        14.554
+  T1   f7_n800_path_physics             Optimal        9.296
+  T1   f7_n1000_path_activity           Optimal        8.497
+  T1   f7_n800_path_activity            Optimal        4.878
+  T1   f7_n20000_bound_neutral          Optimal        1.301
+  T1   f7_n20000_bound_corrupted        Optimal        1.162
+  T1   f7_n20000_bound_physics          Optimal        1.162
+  T1   f7_n20000_bound_warm             Optimal        1.162
+  T1   f7_n20000_bound_activity         Optimal        1.160
+  T1   f7_n10000_bound_neutral          Optimal        0.630
+  T1   f7_n10000_bound_corrupted        Optimal        0.565
+  T1   f7_n10000_bound_warm             Optimal        0.563
+  T1   f7_n10000_bound_activity         Optimal        0.560
+  T1   f7_n10000_bound_physics          Optimal        0.559
+  T1   f7_n5000_bound_neutral           Optimal        0.310
+  T1   f7_n5000_bound_physics           Optimal        0.277
+  T1   f7_n5000_bound_corrupted         Optimal        0.276
+  T1   f7_n5000_bound_activity          Optimal        0.274
+  T1   f7_n5000_bound_warm              Optimal        0.274
+  T1   f7_n1000_path_warm               Optimal        0.230
+  T1   f7_n2000_bound_neutral           Optimal        0.124
+  T1   f7_n800_path_warm                Optimal        0.114
+  T1   f7_n2000_bound_physics           Optimal        0.111
+  T1   f7_n2000_bound_activity          Optimal        0.110
+  T1   f7_n2000_bound_corrupted         Optimal        0.109
+  T1   f7_n2000_bound_warm              Optimal        0.108
+  T1   f7_n1000_bound_neutral           Optimal        0.061
+  T1   f7_n1000_bound_activity          Optimal        0.054
+  T1   f7_n1000_bound_corrupted         Optimal        0.054
+  T1   f7_n1000_bound_physics           Optimal        0.054
+  T1   f7_n1000_bound_warm              Optimal        0.053
+  T2   f7_n10000_path_physics           dnf_budget     3600.000
+  T2   f7_n2000_path_corrupted          WorkLimit      1946.434
+  T2   f7_n2000_path_neutral            WorkLimit      1881.027
+  T3   f7_n10000_path_activity          dnf_budget     3600.000
+  T3   f7_n10000_path_corrupted         dnf_setup      3600.000
+  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+  T3   f7_n10000_path_warm              dnf_setup      3600.000
+  T3   f7_n20000_path_activity          dnf_budget     3600.000
+  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+  T3   f7_n20000_path_physics           dnf_budget     3600.000
+  T3   f7_n20000_path_warm              dnf_setup      3600.000
+  T3   f7_n5000_path_corrupted          dnf_setup      3600.000
+  T3   f7_n5000_path_neutral            dnf_budget     3600.000
+  T3   f7_n5000_path_warm               dnf_setup      3600.000
+--- tier 1: 42 cells, 6 worker(s), started 23:02:00Z ---
+--- tier 1: complete 23:34:28Z ---
+--- tier 2: 3 cells, 1 worker(s), started 23:34:28Z ---
+--- tier 2: complete 02:06:08Z ---
+--- tier 3: 12 cells, 5 worker(s), started 02:06:08Z ---
+--- tier 3: complete 05:06:08Z ---
+merging 57 row files
+merge+score exit: 0
+compare exit: 0
+57 baseline cells, 57 fresh cells, 0 mismatches
+serial-confirm list: 0 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/census-run/serial_confirm_list.txt
+=== census done (merge_rc=0 compare_rc=0 rows=57/57) ===
