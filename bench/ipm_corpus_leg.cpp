@@ -511,6 +511,21 @@ std::vector<IpmPhase> phases_for(InteriorVariant::Entry entry) {
 // rows' second solver is configured identically to the first). Does not
 // transcribe: the caller does that, because it is the step after which the
 // program exists.
+// THE PRE-EVENT ABSENT-BOUND PIN (M8 B7), a declared probe and never a product
+// path, in the shape of the D1 pin below. B7 made CommonOptions::infinite_bound
+// live at 1e20, so the F7 cells' +/-1e20 free-state bounds are ABSENT to the
+// interior-point engine where every finite value was a real bound before. With
+// HVEN_LEG_PRE_B7_INFINITE_BOUND set in the environment, this leg solves under
+// infinite_bound = kInfinity and lays its program under it -- "every finite value
+// is a real bound", the pre-B7 reading -- so its rows are the pre-event rows and a
+// runtime gate can hold counter identity against a pre-B7 binary. The environment
+// reaches every child process the leg spawns.
+double interior_leg_infinite_bound() {
+    return std::getenv("HVEN_LEG_PRE_B7_INFINITE_BOUND") != nullptr
+               ? hven::kInfinity
+               : CommonOptions{}.infinite_bound;
+}
+
 void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
     // One options value, built here and handed over once. Every lever and every
@@ -548,6 +563,7 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
         o.common.max_iterations = 500;
     }
 
+    o.common.infinite_bound = interior_leg_infinite_bound();
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
     o.common.verbosity = levers.verbosity;
@@ -639,7 +655,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
         ConfiguredSolve configured{
             public_route ? std::make_unique<Problem>(problem)
                          : std::make_unique<Problem>(hven::solvers::detail::problem_from_program(
-                               hven::solvers::make_nlp_program(problem, requested_partitions))),
+                               hven::solvers::make_nlp_program(problem, requested_partitions,
+                                                               interior_leg_infinite_bound()))),
             std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
         return configured;

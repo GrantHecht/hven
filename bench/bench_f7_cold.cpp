@@ -348,8 +348,8 @@ int main(int argc, char **argv) {
         // through the same helper the engine uses.
         Index bounded = 0;
         for (Index i = 0; i < model.n(); ++i) {
-            if (model.lower()(i) > -hven::solvers::detail::kEngineInfBound ||
-                model.upper()(i) < hven::solvers::detail::kEngineInfBound) {
+            if (model.lower()(i) > -opts.common.infinite_bound ||
+                model.upper()(i) < opts.common.infinite_bound) {
                 ++bounded;
             }
         }
