@@ -173,11 +173,12 @@
 //     per sweep; such a field could only ever have been inert. The per-step
 //     solver configuration is the DRIVER's, set by the caller when
 //     constructing it.
-//   - NO PredictorOptions FIELD. predict() is called with its defaults. This
-//     is a genuine (small) limitation rather than an impossibility -- unlike
-//     solve_options, such a field WOULD work -- and it is left out only
-//     because no caller needs to retune fd_step_scale mid-sweep. Adding it
-//     later is source-compatible.
+//   - NO PredictorOptions FIELD. predict() is called with its defaults, except
+//     PredictorOptions::infinite_bound, which is the driver's own
+//     common.infinite_bound. This is a genuine (small) limitation rather than
+//     an impossibility -- unlike solve_options, such a field WOULD work -- and
+//     it is left out only because no caller needs to retune fd_step_scale
+//     mid-sweep. Adding it later is source-compatible.
 //   - NO ITERATION CAP. See TERMINATION IS GUARANTEED above.
 
 #include <algorithm>

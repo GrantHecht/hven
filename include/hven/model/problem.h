@@ -29,7 +29,10 @@ struct ProblemAccess;
 ///
 /// "Finite" is as CommonOptions::infinite_bound reads it: a bound at or beyond
 /// the threshold is absent (see that option), and absent_bounds counts the finite
-/// declared values the threshold made absent, variable and row sides together.
+/// declared values the threshold made absent, variable and row sides together:
+/// once per side of the box as laid (a variable side declared more than once
+/// counts once, and not at all where another declaration narrows it to a finite
+/// value), on every route, the internal ones included.
 /// The census is the one of the last solve entry's threshold (the default
 /// threshold, 1e20, before the first solve).
 struct ProblemStatistics {

@@ -758,23 +758,41 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 
 } // namespace detail
 
+namespace {
+
+// The model-taking helpers' threshold, validated at their boundary as the
+// options validate common.infinite_bound.
+void require_infinite_bound(double infinite_bound, const char *who) {
+    if (!(infinite_bound > 0.0)) {
+        throw std::invalid_argument(fmt::format(
+            "{}: infinite_bound must be > 0 (kInfinity is legal), got {}", who, infinite_bound));
+    }
+}
+
+} // namespace
+
 SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x, const Vec &lambda_e,
-                    const Vec &lambda_i, double bound_tol) {
+                    const Vec &lambda_i, double bound_tol, double infinite_bound) {
+    require_infinite_bound(infinite_bound, "evaluate_kkt");
     Vec lower = model.lower();
     Vec upper = model.upper();
-    detail::normalize_bounds(lower, detail::kDefaultInfiniteBound);
-    detail::normalize_bounds(upper, detail::kDefaultInfiniteBound);
+    detail::normalize_bounds(lower, infinite_bound);
+    detail::normalize_bounds(upper, infinite_bound);
     return detail::evaluate_kkt_over(model.n(), model.me(), model.mi(), lower, upper, ev, x,
                                      lambda_e, lambda_i, bound_tol);
 }
 
 SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                    double bound_tol) {
-    return evaluate_kkt(model, eval_nlp(model, x), x, lambda_e, lambda_i, bound_tol);
+                    double bound_tol, double infinite_bound) {
+    require_infinite_bound(infinite_bound, "evaluate_kkt");
+    return evaluate_kkt(model, eval_nlp(model, x), x, lambda_e, lambda_i, bound_tol,
+                        infinite_bound);
 }
 
 QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
-                           const Vec &lambda_e, const Vec &lambda_i, double obj_scale) {
+                           const Vec &lambda_e, const Vec &lambda_i, double obj_scale,
+                           double infinite_bound) {
+    require_infinite_bound(infinite_bound, "build_subproblem");
     QpProblem qp;
     // H is taken from the provider-laid arena here; the arena is ONE source of the engine's
     // current Hessian (M9 constraint: nothing assumes H's sparsity is fixed by the model;
@@ -794,8 +812,8 @@ QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &
 
     qp.lower = model.lower();
     qp.upper = model.upper();
-    detail::normalize_bounds(qp.lower, detail::kDefaultInfiniteBound);
-    detail::normalize_bounds(qp.upper, detail::kDefaultInfiniteBound);
+    detail::normalize_bounds(qp.lower, infinite_bound);
+    detail::normalize_bounds(qp.upper, infinite_bound);
     qp.lower -= x;
     qp.upper -= x;
     qp.infinite_bound = std::numeric_limits<double>::infinity();
@@ -803,8 +821,10 @@ QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &
 }
 
 QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec &lambda_e,
-                           const Vec &lambda_i, double obj_scale) {
-    return build_subproblem(model, eval_nlp(model, x), x, lambda_e, lambda_i, obj_scale);
+                           const Vec &lambda_i, double obj_scale, double infinite_bound) {
+    require_infinite_bound(infinite_bound, "build_subproblem");
+    return build_subproblem(model, eval_nlp(model, x), x, lambda_e, lambda_i, obj_scale,
+                            infinite_bound);
 }
 
 double predicted_decrease(const QpProblem &qp, const Vec &p) {
@@ -5715,8 +5735,11 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     const bool regularize_on_failure =
         opts_.advanced.restoration_curvature == SqpRestorationCurvature::kModelThenRegularized &&
         opts_.hessian_mode == SqpHessianMode::kExact;
+    // The wrapper reads the model's box under the bridge's threshold (M8 B7): its
+    // centre and start clamps see what the engine sees.
     const RestorationModel feasibility(resto_base, *x_start, resto_ev, st.x,
-                                       opts_.advanced.restoration_proximity, regularized);
+                                       opts_.advanced.restoration_proximity, regularized,
+                                       bridge.infinite_bound());
     SqpOptions ropts = opts_;
     // THE PHASE READS ITS WRAPPER'S BOX UNDER THIS SOLVE'S BRIDGE THRESHOLD (M8 B7):
     // the wrapper repeats `bridge.model()`'s box, which the bridge read under its own
@@ -6146,7 +6169,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             ++st.out.counters.evals_full;
             if (ev_switch.all_finite && jacobian_values_finite(ev_switch)) {
                 regularized_restart.emplace(resto_base, x_switch, ev_switch, st.x,
-                                            opts_.advanced.restoration_proximity, true);
+                                            opts_.advanced.restoration_proximity, true,
+                                            bridge.infinite_bound());
                 rs = run_phase(*regularized_restart, left, false);
                 fold_phase(rs, *regularized_restart);
                 phase_wrapper = &*regularized_restart;

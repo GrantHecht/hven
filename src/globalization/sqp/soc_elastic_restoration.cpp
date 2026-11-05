@@ -262,7 +262,7 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
 
 RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
                                    const Vec &x_centre, double proximity,
-                                   bool regularized_curvature)
+                                   bool regularized_curvature, double infinite_bound)
     : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()),
       regularized_(regularized_curvature) {
     if (x_entry.size() != nx_) {
@@ -287,7 +287,22 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
                         "the requesting iterate the proximity term is centred on",
                         x_centre.size(), nx_));
     }
+    if (!(infinite_bound > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: infinite_bound ({}) must be > 0 (kInfinity is legal)",
+                        infinite_bound));
+    }
     n_ = nx_ + 2 * me_ + mi_;
+
+    // THE MODEL'S BOX AS THE ENGINE READS IT (M8 B7), for the two clamps below:
+    // through the absent-bound rule at the parent bridge's threshold, so a bound
+    // absent to the engine never clamps the centre or the start. The wrapper's
+    // own box repeats the model's as declared, like every NlpModel box; the
+    // sub-solve's bridge reads it under the same threshold.
+    Vec box_lower = model.lower();
+    Vec box_upper = model.upper();
+    detail::normalize_bounds(box_lower, infinite_bound);
+    detail::normalize_bounds(box_upper, infinite_bound);
 
     // COMPUTED ONCE, FROM DATA ALREADY IN HAND, and only when the term is on:
     // at the shipped OFF nothing is stored and nothing is copied. d_i =
@@ -300,7 +315,7 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
         zeta_ = proximity;
         // THE CENTRE IS CLAMPED INTO THE BOX (M7 W2 ladder, L2), like the start
         // below: a term pulling x toward an out-of-box point would pull it out.
-        centre_ = x_centre.cwiseMax(model.lower()).cwiseMin(model.upper());
+        centre_ = x_centre.cwiseMax(box_lower).cwiseMin(box_upper);
         d_ = Vec::Ones(nx_);
         for (Index i = 0; i < nx_; ++i) {
             const double a = std::abs(centre_(i));
@@ -339,8 +354,8 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     // sub-solve's first QP box-infeasible. Only then are the rows re-evaluated,
     // once, at the clamped point; the sigmas stay the entry's. An in-box entry
     // takes the original arithmetic, with no model call.
-    const Vec &lo = model.lower();
-    const Vec &up = model.upper();
+    const Vec &lo = box_lower;
+    const Vec &up = box_upper;
     for (Index i = 0; i < nx_; ++i) {
         if (x_entry(i) < lo(i) || x_entry(i) > up(i)) {
             ++start_clamps_;

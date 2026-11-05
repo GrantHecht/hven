@@ -29,6 +29,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/types.h>
+#include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 
 namespace hven::solvers {
@@ -145,8 +146,14 @@ class RestorationModel final : public NlpModel {
     /// SqpOptions::restoration_curvature == kRegularized). False is the wrapper above,
     /// to the byte. True replaces the constraint curvature `eval_hess` returns with
     /// the Levenberg-Marquardt model of the class note's REGULARIZED CURVATURE.
+    /// @param infinite_bound The absent-bound threshold the model's box is read
+    /// under for the centre and start clamps (the parent bridge's,
+    /// NlpModelAssembly::infinite_bound(); > 0): a bound at or beyond it is the
+    /// infinity of its sign there, as to the engine, and clamps nothing. The
+    /// wrapper's own box repeats the model's as declared.
     RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
-                     const Vec &x_centre, double proximity, bool regularized_curvature);
+                     const Vec &x_centre, double proximity, bool regularized_curvature,
+                     double infinite_bound = detail::kDefaultInfiniteBound);
 
     Index n() const override;
     Index me() const override;

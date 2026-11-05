@@ -249,7 +249,11 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
                 // factorization (M6 W5 T8.8): a sweep run at common.threads = k
                 // must not silently take its one homotopy factorization at the
                 // backend's default while every solve around it runs at k.
-                seed = predict(model, warm_cur, Vec(p_next - p_cur), PredictorOptions{}, &outcome,
+                // And its absent-bound threshold (M8 B7): the predictor reads the
+                // model's box as the solves around it do.
+                PredictorOptions popts;
+                popts.infinite_bound = driver.options().common.infinite_bound;
+                seed = predict(model, warm_cur, Vec(p_next - p_cur), popts, &outcome,
                                /*reached_t=*/nullptr, driver.options().common.threads);
                 reported = outcome;
                 ++out.predictor_calls;

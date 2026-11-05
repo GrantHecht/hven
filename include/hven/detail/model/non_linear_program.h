@@ -22,6 +22,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
@@ -265,13 +266,6 @@ struct NonLinearProgram : public NlpAssembly {
     VectorXd x_lower_;
     VectorXd x_upper_;
 
-    /// @brief Stages a bound declaration for primal variable global_index.
-    ///
-    /// Repeated declarations on the same index are intersected (tightest wins)
-    /// when make_nlp materializes x_lower_/x_upper_: l = max(l_prev, l_new),
-    /// u = min(u_prev, u_new). A declaration with both bounds infinite leaves
-    /// the variable unbounded and is a no-op.
-    ///
     /// THE ABSENT-BOUND RULE'S THRESHOLD (CommonOptions::infinite_bound;
     /// detail/model/absent_bound.h). Every bound this program stages or adopts is
     /// read through it: a value at or beyond it is the infinity of its sign, so
@@ -281,15 +275,26 @@ struct NonLinearProgram : public NlpAssembly {
     /// under another threshold builds another program.
     double infinite_bound_ = detail::kDefaultInfiniteBound;
 
-    /// How many finite declared bound values set_variable_bound (or the last
-    /// update_variable_bound_values) read as absent. Reset by
-    /// clear_variable_bounds().
+    /// How many sides of the MATERIALIZED box are absent because a declared
+    /// finite value was read as an infinity: counted once per (variable, side),
+    /// however many records declared that side, and only where the side is
+    /// infinite after the tightest-wins merge (a side another record narrowed to
+    /// a finite value is not absent). Written by materialize_variable_bounds()
+    /// and update_variable_bound_values() (one declared pair per variable, so the
+    /// same count); 0 before the first lay and after clear_variable_bounds().
     Index absent_bounds_ = 0;
+
+    /// The staged records' absent sides, for absent_bounds_: (variable, sides),
+    /// bit 0 the lower side and bit 1 the upper, one entry per staged
+    /// declaration that read a finite value as an infinity. Cleared with the
+    /// records.
+    std::vector<std::pair<int, unsigned char>> staged_absent_sides_;
 
     /// How many finite bound values the program's SOURCE read as absent before
     /// handing its bounds here (an Nlp's NlpProblemModel, rows included). Set by
-    /// the Problem at each interior-point solve entry; reported with
-    /// absent_bounds_ in the solve-begin trace event.
+    /// make_nlp_program from its model and re-set by the Problem at each
+    /// interior-point solve entry; reported with absent_bounds_ in the census
+    /// and the solve-begin trace event.
     Index source_absent_bounds_ = 0;
 
     /// @brief Sets the absent-bound threshold before any bound is staged.
@@ -338,7 +343,12 @@ struct NonLinearProgram : public NlpAssembly {
                 global_index, lower, upper,
                 detail::absent_bound_clause(lower, upper, this->infinite_bound_)));
         }
-        this->absent_bounds_ += absent;
+        if (absent > 0) {
+            const auto sides = static_cast<unsigned char>(
+                (detail::reads_as_absent(lower, this->infinite_bound_) ? 1U : 0U) |
+                (detail::reads_as_absent(upper, this->infinite_bound_) ? 2U : 0U));
+            this->staged_absent_sides_.emplace_back(global_index, sides);
+        }
         constexpr double kInf = std::numeric_limits<double>::infinity();
         if (lo == -kInf && up == kInf) {
             return;
@@ -350,6 +360,7 @@ struct NonLinearProgram : public NlpAssembly {
     /// vectors. The next make_nlp call starts from an unbounded problem.
     void clear_variable_bounds() {
         this->staged_variable_bounds_.clear();
+        this->staged_absent_sides_.clear();
         this->x_lower_.resize(0);
         this->x_upper_.resize(0);
         this->absent_bounds_ = 0;

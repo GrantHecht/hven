@@ -124,7 +124,7 @@ nesting stuck open.
 | `vars_fixed` | integer | both finite and equal (a zero-width box) |
 | `qp_mode` | string `ipqp\|walk\|ssn` | the SETTING, not an outcome |
 | `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.ws_algebra` |
-| `absent_bounds` | integer | **M8 B7.** finite declared bound values the solve's `CommonOptions::infinite_bound` read as ABSENT (`b >= infinite_bound` is +inf, `b <= -infinite_bound` is -inf): variable sides, plus an Nlp problem's row sides. The census above is taken AFTER the threshold, so a variable declared `[-1e20, 1e20]` counts in `vars_free` at the default threshold. 0 under `infinite_bound = kInfinity` |
+| `absent_bounds` | integer | **M8 B7.** finite declared bound values the solve's `CommonOptions::infinite_bound` read as ABSENT (`b >= infinite_bound` is +inf, `b <= -infinite_bound` is -inf): variable sides (once per side of the box as laid, however many declarations named it), plus an Nlp problem's row sides -- on every route, a pre-laid program or a bridge counting its model's values too (B7 riders). The census above is taken AFTER the threshold, so a variable declared `[-1e20, 1e20]` counts in `vars_free` at the default threshold. 0 under `infinite_bound = kInfinity` |
 
 **The five-way census is over VARIABLES, exhaustive and disjoint**: the five
 counts sum to `n`. There is **no row-kind census** on this contract and none is

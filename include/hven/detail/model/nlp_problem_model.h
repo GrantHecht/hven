@@ -23,6 +23,7 @@
 // consumer's behaviour.
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <Eigen/Core>
@@ -63,12 +64,14 @@ struct NLPRowClassification {
 
 /// @brief The triplet-shaped convenience problem, as a native model.
 ///
-/// Bounds are verbatim in both directions. Nothing here rescales, clips, or
-/// reinterprets a declared bound: -inf / +inf mean unbounded on that side, and
-/// every finite value is a real bound however large. lower() and upper() hand
-/// back exactly what Nlp::bounds declared, and the constraint-row
-/// bounds enter the residuals as the shifts they are. Nlp's own
-/// migration note states what this differs from.
+/// Bounds are read through the absent-bound rule and nothing else. A declared
+/// bound at or beyond the construction's infinite_bound is the infinity of its
+/// sign (absent_bound.h); every other value is a real bound, kept verbatim --
+/// nothing here rescales or clips one. lower(), upper(), row_lower() and
+/// row_upper() hand back the bounds as the rule read them (raw_lower() and its
+/// siblings the values Nlp::bounds declared), and the constraint-row bounds
+/// enter the residuals as the shifts they are. Under infinite_bound = +inf the
+/// rule is the identity and every finite value is a real bound however large.
 ///
 /// Row conversion. A declared row's kind decides its native rows and the sign
 /// each carries, so that every inequality reads cI(x) <= 0:
@@ -154,6 +157,9 @@ class NlpProblemModel final : public NlpModel {
     /// @brief How many finite declared bound values (variable and row sides) the
     ///        last read took as absent.
     Index absent_bounds() const override { return absent_bounds_; }
+    /// @brief infinite_bound(): this model read its variable and row bounds under
+    ///        it (the row split depends on it).
+    std::optional<double> source_infinite_bound() const override { return infinite_bound_; }
     /// @brief The declared bounds as last read, before the rule (the values a
     ///        per-solve re-read is compared against).
     const Vec &raw_lower() const { return raw_x_lower_; }

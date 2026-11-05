@@ -121,6 +121,7 @@
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/kkt/schur_complement.h>
+#include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
@@ -160,6 +161,14 @@ struct PredictorOptions {
     // not a constant.
     // See docs/notes/2026-09-header-prose-archive.md §predictor.h.
     Index max_activity_rounds = 4;
+
+    // The absent-bound threshold the model's box is read under
+    // (CommonOptions::infinite_bound; detail/model/absent_bound.h): a bound at or
+    // beyond it is the infinity of its sign here as it is to the engine, so the
+    // predictor never pins or fixes at a bound the solve does not have. Pass the
+    // solving driver's common.infinite_bound (the continuation does). Must be
+    // > 0; +inf reads every finite value as a real bound.
+    double infinite_bound = detail::kDefaultInfiniteBound;
 };
 
 // WHICH PATH predict() TOOK -- because TWO of the three paths return the
@@ -289,7 +298,8 @@ struct PredictorBreakpoint {
 };
 
 // The model quantities predict() needs at ONE parameter value, all at the
-// warm start's own x and multipliers.
+// warm start's own x and multipliers; the box as the absent-bound rule reads it
+// at `infinite_bound` (an absent side is an infinity, as to the engine).
 struct ModelSample {
     Vec grad_lagrangian; // grad f + Je^T lambda_e + Ji^T lambda_i (NOT including -z)
     Vec ce, ci;
@@ -297,7 +307,7 @@ struct ModelSample {
 };
 
 inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &lambda_e,
-                                const Vec &lambda_i) {
+                                const Vec &lambda_i, double infinite_bound) {
     ModelSample s;
     model.eval_grad_in_place(x, s.grad_lagrangian);
     if (model.me() > 0) {
@@ -314,6 +324,8 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
     model.eval_ci_in_place(x, s.ci);
     s.lower = model.lower();
     s.upper = model.upper();
+    detail::normalize_bounds(s.lower, infinite_bound);
+    detail::normalize_bounds(s.upper, infinite_bound);
     return s;
 }
 
@@ -406,6 +418,12 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
             fmt::format("predict: PredictorOptions::fd_step_scale is {}, must be finite and > 0",
                         opts.fd_step_scale));
     }
+    if (!(opts.infinite_bound > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("predict: PredictorOptions::infinite_bound is {}, must be > 0 (kInfinity "
+                        "is legal)",
+                        opts.infinite_bound));
+    }
     if (opts.max_activity_rounds < 0) {
         throw std::invalid_argument(fmt::format(
             "predict: PredictorOptions::max_activity_rounds is {}, must be >= 0 (0 means "
@@ -466,8 +484,8 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
         predictor_detail::ParameterRestorer restore_params(model, p_base);
 
         const Vec &x = warm.x;
-        const predictor_detail::ModelSample base =
-            predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
+        const predictor_detail::ModelSample base = predictor_detail::sample_model(
+            model, x, warm.lambda_e, warm.lambda_i, opts.infinite_bound);
         SpMatRM H;
         model.eval_hess_in_place(x, 1.0, warm.lambda_e, warm.lambda_i, H);
         H.makeCompressed();
@@ -483,8 +501,8 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
                          std::max(1.0, p_base.norm());
         const Vec p_probe = p_base + (h / dp_norm) * dp;
         model.set_parameters(p_probe);
-        const predictor_detail::ModelSample probe =
-            predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
+        const predictor_detail::ModelSample probe = predictor_detail::sample_model(
+            model, x, warm.lambda_e, warm.lambda_i, opts.infinite_bound);
         // Restore EXPLICITLY here rather than leaving it to restore_params: every
         // line below reads a model that must be back at p, and the RAII object is
         // the backstop for the throwing paths, not the mechanism.

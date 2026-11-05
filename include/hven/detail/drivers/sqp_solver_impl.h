@@ -29,6 +29,7 @@
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
 #include <hven/detail/globalization/sqp/qn_models.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
+#include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/nlp_model_assembly.h>
 #include <hven/detail/qp/ipqp_engine.h>
@@ -242,9 +243,9 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 /// @brief Measures (x, lambda_e, lambda_i) against the model, reusing an
 ///        evaluation already taken at the SAME x.
 ///
-/// The model's box is read through the absent-bound rule at the DEFAULT
-/// threshold (detail::kDefaultInfiniteBound, CommonOptions{}.infinite_bound), so
-/// this measures the problem an SqpSolver at its default options solves.
+/// The model's box is read through the absent-bound rule at @p infinite_bound
+/// (by default CommonOptions{}.infinite_bound), so this measures the problem an
+/// SqpSolver whose common.infinite_bound is that value solves.
 /// @param model     The problem.
 /// @param ev        An evaluation at `x`.
 /// @param x         The iterate.
@@ -252,9 +253,13 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 /// @param lambda_i  Inequality multipliers, size model.mi().
 /// @param bound_tol Geometric bound-activity tolerance (the driver passes
 ///                  SqpOptions::feas_tol).
+/// @param infinite_bound The absent-bound threshold; > 0 (+inf: every finite
+///                  value is a real bound).
 /// @return The measurement; every residual is NaN when SqpKkt::finite is false.
+/// @throws std::invalid_argument if @p infinite_bound is not > 0.
 SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x, const Vec &lambda_e,
-                    const Vec &lambda_i, double bound_tol);
+                    const Vec &lambda_i, double bound_tol,
+                    double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief Convenience overload that evaluates the model itself; it costs one
 ///        extra model evaluation, so the driver never uses it.
@@ -263,18 +268,21 @@ SqpKkt evaluate_kkt(const NlpModel &model, const NlpEval &ev, const Vec &x, cons
 /// @param lambda_e  Equality multipliers.
 /// @param lambda_i  Inequality multipliers.
 /// @param bound_tol Geometric bound-activity tolerance.
+/// @param infinite_bound The absent-bound threshold, as the overload above.
 /// @return The measurement.
 /// @throws std::invalid_argument through eval_nlp, on a mis-sized `x` or a
-///         callback return whose shape contradicts the declared dimensions.
+///         callback return whose shape contradicts the declared dimensions; and
+///         as the overload above.
 SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                    double bound_tol);
+                    double bound_tol, double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief Builds the SQP subproblem at `x`, in the step variable p, from an
 ///        evaluation already taken at that x.
 ///
-/// The model's box is read through the absent-bound rule at the DEFAULT
-/// threshold, and the subproblem is stamped QpProblem::infinite_bound = +inf --
-/// the subproblem the engine's own seam builds at its default options.
+/// The model's box is read through the absent-bound rule at @p infinite_bound
+/// (by default CommonOptions{}.infinite_bound), and the subproblem is stamped
+/// QpProblem::infinite_bound = +inf -- the subproblem the engine's own seam
+/// builds at common.infinite_bound = @p infinite_bound.
 /// @param model     The problem.
 /// @param ev        An evaluation at `x`; must be finite (the caller's
 ///                  obligation, not checked here).
@@ -282,13 +290,17 @@ SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, co
 /// @param lambda_e  Equality multipliers the Hessian is formed at.
 /// @param lambda_i  Inequality multipliers the Hessian is formed at.
 /// @param obj_scale Objective scale applied to the gradient and the Hessian.
+/// @param infinite_bound The absent-bound threshold; > 0 (+inf: every finite
+///                  value is a real bound).
 /// @return The pure linearization: min (obj_scale*grad f)^T p + 1/2 p^T W p
 ///         subject to Je p = -cE(x), Ji p <= -cI(x), l - x <= p <= u - x, with
 ///         W the exact Lagrangian Hessian. No trust region is folded into the
 ///         box, and the solved QpSolution's multipliers are the NLP's with no
 ///         sign flip.
+/// @throws std::invalid_argument if @p infinite_bound is not > 0.
 QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
-                           const Vec &lambda_e, const Vec &lambda_i, double obj_scale = 1.0);
+                           const Vec &lambda_e, const Vec &lambda_i, double obj_scale = 1.0,
+                           double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief Convenience overload that evaluates the model itself; it costs one
 ///        extra model evaluation, so the driver never uses it.
@@ -297,11 +309,14 @@ QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &
 /// @param lambda_e  Equality multipliers.
 /// @param lambda_i  Inequality multipliers.
 /// @param obj_scale Objective scale.
+/// @param infinite_bound The absent-bound threshold, as the overload above.
 /// @return The subproblem.
 /// @throws std::invalid_argument through eval_nlp, on a mis-sized `x` or a
-///         callback return whose shape contradicts the declared dimensions.
+///         callback return whose shape contradicts the declared dimensions; and
+///         as the overload above.
 QpProblem build_subproblem(const NlpModel &model, const Vec &x, const Vec &lambda_e,
-                           const Vec &lambda_i, double obj_scale = 1.0);
+                           const Vec &lambda_i, double obj_scale = 1.0,
+                           double infinite_bound = detail::kDefaultInfiniteBound);
 
 /// @brief The QP model's predicted objective decrease along a step.
 /// @param qp The subproblem the step came from.

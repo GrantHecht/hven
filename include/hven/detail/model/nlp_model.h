@@ -54,6 +54,8 @@
 // failure detectable from inside the engine, which is why it is stated here
 // as a requirement on the model instead.
 
+#include <optional>
+
 #include <Eigen/SparseCore>
 
 #include <hven/core/compiler.h>
@@ -200,7 +202,8 @@ class NlpModel {
     ///        interior-point engine), so at the default threshold a bound of
     ///        +/-1e20 is absent. The model-taking free helpers of
     ///        sqp_solver_impl.h (evaluate_kkt, build_subproblem) read this box
-    ///        verbatim.
+    ///        through the same rule, at the threshold they are passed (by
+    ///        default CommonOptions{}.infinite_bound).
     virtual const Vec &lower() const = 0;
     /// @brief Variable upper bounds, size n(); same convention as lower().
     virtual const Vec &upper() const = 0;
@@ -210,6 +213,16 @@ class NlpModel {
     ///        variable and row bounds); 0 for a model that reports its box
     ///        verbatim.
     virtual Index absent_bounds() const { return 0; }
+
+    /// @brief The absent-bound threshold this model itself read its declaration
+    ///        under, or nullopt (the default) for a model that reports its box
+    ///        verbatim. A model that answers a threshold has applied the rule to
+    ///        bounds no engine re-reads -- NlpProblemModel's constraint-row bounds
+    ///        decide its row split -- so a Problem wrapping it
+    ///        (detail::problem_from_model) refuses by name a solve under any other
+    ///        CommonOptions::infinite_bound, as it refuses a pre-laid program or
+    ///        bridge.
+    virtual std::optional<double> source_infinite_bound() const { return std::nullopt; }
 
     /// @brief The model's suggested starting point, size n().
     virtual Vec start_point() const = 0;

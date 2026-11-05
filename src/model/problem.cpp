@@ -6,6 +6,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -208,7 +209,9 @@ class ProblemState {
         count_variables(bridge.model().n(), bridge.model().lower(), bridge.model().upper(),
                         statistics_, infinite_bound_);
         count_split_rows(bridge.model().me(), bridge.model().mi(), statistics_);
-        statistics_.absent_bounds = bridge.absent_bounds();
+        // The bridge's own count and its model's (an NlpProblemModel's row and
+        // variable values): the sqp.solve.begin event's sum.
+        statistics_.absent_bounds = bridge.absent_bounds() + bridge.model().absent_bounds();
     }
 
     Index num_variables() const noexcept {
@@ -267,19 +270,21 @@ class ProblemState {
             program_->source_absent_bounds_ = nlp_model_->absent_bounds();
             return *program_;
         case Kind::kModel:
-            adopt_model_threshold(infinite_bound);
-            if (program_ != nullptr && program_->infinite_bound_ != infinite_bound) {
-                program_.reset();
-                core_.reset();
-            }
-            if (program_ == nullptr) {
+            // Every refusal first, and the program built whole before anything is
+            // committed: a refused solve leaves the Problem as it was.
+            refuse_model_threshold("IpmSolver", infinite_bound);
+            refuse_empty_model_box(infinite_bound);
+            if (program_ == nullptr || program_->infinite_bound_ != infinite_bound) {
                 auto core =
                     std::make_shared<NLPAdapterCore>(std::const_pointer_cast<NlpModel>(model_));
-                program_ = make_nlp_program(core, 1, infinite_bound);
+                std::shared_ptr<NonLinearProgram> program =
+                    make_nlp_program(core, 1, infinite_bound);
+                program_ = std::move(program);
                 core_ = std::move(core);
             } else {
                 core_->invalidate_cache();
             }
+            adopt_model_threshold(infinite_bound);
             program_->source_absent_bounds_ = model_->absent_bounds();
             return *program_;
         case Kind::kPieces:
@@ -324,6 +329,10 @@ class ProblemState {
             refresh_nlp(infinite_bound);
             return SqpTarget{nlp_model_.get(), nullptr};
         case Kind::kModel:
+            // Refused here, before the threshold is adopted, rather than by the
+            // engine's bridge after it: a refused solve leaves the Problem as it was.
+            refuse_model_threshold("SqpSolver", infinite_bound);
+            refuse_empty_model_box(infinite_bound);
             adopt_model_threshold(infinite_bound);
             return SqpTarget{model_.get(), nullptr};
         case Kind::kAssembly:
@@ -736,9 +745,52 @@ class ProblemState {
             model_->absent_bounds();
     }
 
+    // A model that read its own declaration under a threshold (NlpModel::
+    // source_infinite_bound: an NlpProblemModel, whose row bounds decide its row
+    // split) is solved under that threshold alone: the engines would re-read its
+    // variable box under the solve's and its rows not at all.
+    void refuse_model_threshold(const char *engine, double infinite_bound) const {
+        const std::optional<double> own = model_->source_infinite_bound();
+        if (own.has_value() && *own != infinite_bound) {
+            throw std::invalid_argument(fmt::format(
+                "{}: this Problem wraps a model that read its own declaration under "
+                "infinite_bound = {} (its constraint-row bounds included, which no engine "
+                "re-reads), and this solve's common.infinite_bound is {}. Build the model under "
+                "{} (NlpProblemModel(nlp, {})) or solve it under {}",
+                engine, *own, infinite_bound, infinite_bound, infinite_bound, *own));
+        }
+    }
+
+    // The engines' own refusal of a pair the threshold empties (a lower bound
+    // read as +inf, an upper as -inf, a variable fixed at an infinity), made here
+    // so it precedes every commit. Only where the rule changed a value: a pair
+    // already empty as declared, or a box of the wrong length, is the engines'
+    // to refuse in their own words.
+    void refuse_empty_model_box(double infinite_bound) const {
+        const Vec &lower = model_->lower();
+        const Vec &upper = model_->upper();
+        if (lower.size() != model_->n() || upper.size() != model_->n()) {
+            return;
+        }
+        for (Index i = 0; i < lower.size(); ++i) {
+            if (!reads_as_absent(lower[i], infinite_bound) &&
+                !reads_as_absent(upper[i], infinite_bound)) {
+                continue;
+            }
+            const double lo = normalize_bound(lower[i], infinite_bound);
+            const double up = normalize_bound(upper[i], infinite_bound);
+            if (lo > up || (lo == up && !std::isfinite(lo))) {
+                throw std::invalid_argument(fmt::format(
+                    "Problem: variable {} has no interval (lower={}, upper={}){}", i, lower[i],
+                    upper[i], absent_bound_clause(lower[i], upper[i], infinite_bound)));
+            }
+        }
+    }
+
     // A model problem's threshold is the solve's: the engines read the model's
     // box through it (the SQP's bridge, the interior-point program), and the
-    // census and the declaration key follow it.
+    // census and the declaration key follow it. Called once every refusal has
+    // been made.
     void adopt_model_threshold(double infinite_bound) {
         if (infinite_bound != infinite_bound_) {
             infinite_bound_ = infinite_bound;

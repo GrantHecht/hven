@@ -1300,8 +1300,8 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(
     // check and write below is on these.
     VectorXd lower_read = declared_lower;
     VectorXd upper_read = declared_upper;
-    const Index absent = detail::normalize_bounds(lower_read, this->infinite_bound_) +
-                         detail::normalize_bounds(upper_read, this->infinite_bound_);
+    detail::normalize_bounds(lower_read, this->infinite_bound_);
+    detail::normalize_bounds(upper_read, this->infinite_bound_);
     const VectorXd &lower = lower_read;
     const VectorXd &upper = upper_read;
     // Every refusal before anything is written.
@@ -1344,6 +1344,19 @@ bool hven::solvers::NonLinearProgram::update_variable_bound_values(
         }
     }
     this->laid_variable_bounds_ = this->staged_variable_bounds_;
+    // One declared pair per variable, so each absent side is counted once, as
+    // materialize_variable_bounds() counts it (the read side is an infinity).
+    this->staged_absent_sides_.clear();
+    Index absent = 0;
+    for (int i = 0; i < n; i++) {
+        const bool lo_absent = detail::reads_as_absent(declared_lower[i], this->infinite_bound_);
+        const bool up_absent = detail::reads_as_absent(declared_upper[i], this->infinite_bound_);
+        if (lo_absent || up_absent) {
+            this->staged_absent_sides_.emplace_back(
+                i, static_cast<unsigned char>((lo_absent ? 1U : 0U) | (up_absent ? 2U : 0U)));
+            absent += (lo_absent ? 1 : 0) + (up_absent ? 1 : 0);
+        }
+    }
     this->absent_bounds_ = absent;
     // The declaration's records re-materialize from the laid snapshot on their
     // next read; the bound digest is recomputed with them and is unchanged, since
@@ -1412,6 +1425,27 @@ void hven::solvers::NonLinearProgram::materialize_variable_bounds() {
                             stage.index_, lower, upper));
         }
     }
+
+    // The absent sides of the box just materialized, once per (variable, side):
+    // a side counts where some record declared a finite value the threshold read
+    // as an infinity AND the merge left it infinite. A record that names no
+    // variable in range is a no-op declaration (both sides absent, never staged)
+    // and counts nothing.
+    Index absent = 0;
+    if (!this->staged_absent_sides_.empty()) {
+        std::vector<unsigned char> sides(static_cast<std::size_t>(this->primal_vars_), 0);
+        for (const auto &[index, mask] : this->staged_absent_sides_) {
+            if (index >= 0 && index < this->primal_vars_) {
+                sides[static_cast<std::size_t>(index)] |= mask;
+            }
+        }
+        for (int i = 0; i < this->primal_vars_; i++) {
+            const unsigned char mask = sides[static_cast<std::size_t>(i)];
+            absent += ((mask & 1U) != 0 && this->x_lower_[i] == -kInf) ? 1 : 0;
+            absent += ((mask & 2U) != 0 && this->x_upper_[i] == kInf) ? 1 : 0;
+        }
+    }
+    this->absent_bounds_ = absent;
 
     // The records this layout is materialized from, snapshotted at the one point
     // where they have just been proved to describe a problem: every index is in

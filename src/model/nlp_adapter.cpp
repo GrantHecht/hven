@@ -356,6 +356,13 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         }
     }
 
+    // The values the core's model itself read as absent before handing its box
+    // here (an Nlp's NlpProblemModel, its row bounds included): the program's
+    // own count sees only what the model left finite, so the source's count is
+    // carried beside it for the census and the ipm.solve.begin event. A Problem
+    // re-sets it at each solve entry; a pre-laid program has it from here.
+    nlp->source_absent_bounds_ = core->model_->absent_bounds();
+
     // make_nlp lays the problem out and CLAMPS num_partitions_ to what the
     // element count supports, so the program a caller gets back already
     // reports the ADOPTED count on its public num_partitions_ member.
