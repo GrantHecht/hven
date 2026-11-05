@@ -464,8 +464,8 @@ TEST(InfiniteBound, AThresholdThatEmptiesAPairRefusesTheSolveAndLeavesTheProblem
     p->xl[0] = 1e15; // real at the default; +infinity under 1e10 (shortest form below)
     Problem problem(p);
     const ProblemStatistics before = problem.statistics();
-    IpmSolver small = quiet_ipm(1e10);
-    expect_refusal([&] { small.solve(problem, start()); },
+    IpmSolver small_ipm = quiet_ipm(1e10);
+    expect_refusal([&] { small_ipm.solve(problem, start()); },
                    {"variable 0", "infinite_bound = 10000000000", "fixed at infinity"});
     SqpSolver small_sqp = quiet_sqp(QpMode::kWalk, 1e10);
     expect_refusal([&] { small_sqp.solve(problem, start()); }, {"variable 0", "fixed at infinity"});
@@ -813,8 +813,8 @@ TEST(InfiniteBound, ARefusedModelSolveLeavesTheProblemAsItWas) {
     const ProblemStatistics before = problem.statistics();
     const DeclarationKey key = ProblemAccess::declaration_key(problem);
 
-    IpmSolver small = quiet_ipm(1e10);
-    expect_refusal([&] { small.solve(problem, start()); },
+    IpmSolver small_ipm = quiet_ipm(1e10);
+    expect_refusal([&] { small_ipm.solve(problem, start()); },
                    {"variable 0 has no interval", "infinite_bound = 10000000000"});
     SqpSolver small_sqp = quiet_sqp(QpMode::kWalk, 1e10);
     expect_refusal([&] { small_sqp.solve(problem, start()); },
@@ -881,11 +881,11 @@ TEST(InfiniteBound, TheModelTakingHelpersReadTheBoxUnderTheirThreshold) {
     EXPECT_EQ(at_small.infinite_bound, kInfinity);
 
     // A point beyond the 2e6 bound is box-infeasible only where the bound is real.
-    Vec far = x;
-    far[0] = 3e6;
-    far[1] = -3e6; // keeps row 0 (x0 + x1 >= -10) satisfied
-    EXPECT_GE(evaluate_kkt(model, far, le, li, 1e-8).feasibility, 1e6);
-    EXPECT_EQ(evaluate_kkt(model, far, le, li, 1e-8, 1e6).feasibility, 0.0);
+    Vec far_x = x;
+    far_x[0] = 3e6;
+    far_x[1] = -3e6; // keeps row 0 (x0 + x1 >= -10) satisfied
+    EXPECT_GE(evaluate_kkt(model, far_x, le, li, 1e-8).feasibility, 1e6);
+    EXPECT_EQ(evaluate_kkt(model, far_x, le, li, 1e-8, 1e6).feasibility, 0.0);
 
     EXPECT_THROW(build_subproblem(model, x, le, li, 1.0, 0.0), std::invalid_argument);
     EXPECT_THROW(evaluate_kkt(model, x, le, li, 1e-8, std::numeric_limits<double>::quiet_NaN()),
