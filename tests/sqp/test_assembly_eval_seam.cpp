@@ -477,8 +477,16 @@ TEST(AggregateEvalSeamIdentity, LaysTheDeclarationsDimensionsAndBounds) {
         EXPECT_EQ(seam.n(), fixture.model_->n());
         EXPECT_EQ(seam.me(), fixture.model_->me());
         EXPECT_EQ(seam.mi(), fixture.model_->mi());
-        expect_same_vector(seam.lower(), fixture.model_->lower(), "lower");
-        expect_same_vector(seam.upper(), fixture.model_->upper(), "upper");
+        // The box as the absent-bound rule reads it at the default threshold
+        // (M8 B7): a model bound at or beyond 1e20 is laid as an infinity.
+        Vec lower = fixture.model_->lower();
+        Vec upper = fixture.model_->upper();
+        hven::solvers::detail::normalize_bounds(lower,
+                                                hven::solvers::detail::kDefaultInfiniteBound);
+        hven::solvers::detail::normalize_bounds(upper,
+                                                hven::solvers::detail::kDefaultInfiniteBound);
+        expect_same_vector(seam.lower(), lower, "lower");
+        expect_same_vector(seam.upper(), upper, "upper");
         EXPECT_EQ(&seam.aggregate(), &aggregate);
         EXPECT_EQ(seam.epoch(), aggregate.structure_epoch());
     }

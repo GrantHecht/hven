@@ -708,7 +708,7 @@ class RowActiveOnlyModel : public NlpModel {
         return j;
     }
     const Vec &lower() const override {
-        static const Vec l = vec({-1e20, -1e20}); // "no bound", ipqp_math.h's kIpqpInfBound
+        static const Vec l = vec({-1e20, -1e20}); // "no bound" at the default infinite_bound
         return l;
     }
     const Vec &upper() const override {

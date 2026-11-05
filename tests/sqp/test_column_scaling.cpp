@@ -417,8 +417,16 @@ TEST(ColumnScaledModel, EveryEvaluationIsTheCallersReparametrized) {
     EXPECT_EQ(base.eval_f(x), f);
     EXPECT_TRUE(vce.isApprox(ce, 0.0));
 
-    EXPECT_TRUE(m.lower().isApprox(Vec(base.lower().cwiseQuotient(d)), 0.0));
-    EXPECT_TRUE(m.upper().isApprox(Vec(base.upper().cwiseQuotient(d)), 0.0));
+    // The box as the absent-bound rule reads it at the default threshold (M8 B7),
+    // divided by d: an absent side is an infinity and stays one.
+    Vec lower_read = base.lower();
+    Vec upper_read = base.upper();
+    hven::solvers::detail::normalize_bounds(lower_read,
+                                            hven::solvers::detail::kDefaultInfiniteBound);
+    hven::solvers::detail::normalize_bounds(upper_read,
+                                            hven::solvers::detail::kDefaultInfiniteBound);
+    EXPECT_TRUE(m.lower().cwiseEqual(Vec(lower_read.cwiseQuotient(d))).all());
+    EXPECT_TRUE(m.upper().cwiseEqual(Vec(upper_read.cwiseQuotient(d))).all());
     EXPECT_TRUE(m.start_point().isApprox(xs, 0.0));
     HVEN_SUPPRESS_DEPRECATED_BEGIN
     EXPECT_TRUE(m.eval_grad(xs).isApprox(gs, 0.0));

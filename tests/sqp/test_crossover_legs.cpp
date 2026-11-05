@@ -118,8 +118,18 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     ASSERT_EQ(converted.n(), model->n());
     ASSERT_EQ(converted.me(), model->me());
     ASSERT_EQ(converted.mi(), model->mi());
-    EXPECT_EQ(converted.lower(), model->lower());
-    EXPECT_EQ(converted.upper(), model->upper());
+    // Read verbatim, then through the absent-bound rule at the default threshold
+    // (M8 B7): the model's +/-1e20 free states are absent, and laid as infinities.
+    EXPECT_EQ(converted.raw_lower(), model->lower());
+    EXPECT_EQ(converted.raw_upper(), model->upper());
+    Vec lower_read = model->lower();
+    Vec upper_read = model->upper();
+    hven::solvers::detail::normalize_bounds(lower_read,
+                                            hven::solvers::detail::kDefaultInfiniteBound);
+    hven::solvers::detail::normalize_bounds(upper_read,
+                                            hven::solvers::detail::kDefaultInfiniteBound);
+    EXPECT_EQ(converted.lower(), lower_read);
+    EXPECT_EQ(converted.upper(), upper_read);
 
     const Vec x = probe_point(*model);
     EXPECT_DOUBLE_EQ(converted.eval_f(x), model->eval_f(x));

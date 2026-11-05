@@ -94,7 +94,7 @@ QpProblem tighter_real_bound_on_x0_qp() {
 // Same objective again, but with FINITE, loose real bounds (+/-100) on both
 // variables -- loose enough that tr_radius in {1, 5} below always binds
 // first, but finite enough that start_point()'s seed-ingestion guard
-// (`up < kEngineInfBound`) cannot itself suppress a wrongly-carried-over
+// (`up < QpProblem::infinite_bound`) cannot itself suppress a wrongly-carried-over
 // TR pin the way it trivially would under +/-1e20 bounds. This is what makes
 // (d) below a real trap for a seed-ingestion bug, not just a restatement of
 // an unrelated guard.

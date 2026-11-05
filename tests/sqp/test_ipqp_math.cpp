@@ -31,7 +31,8 @@ using hven::solvers::BoundSet;
 
 namespace ip = hven::solvers::detail;
 
-constexpr double kInf = 1e20;
+// An absent side, as the tier's box builder writes one (make_ipqp_box): an infinity.
+constexpr double kInf = std::numeric_limits<double>::infinity();
 
 // The fixture: four variables covering every bound class the tier can meet -- 0 two-sided (no
 // damping), 1 lower-only (damped low), 2 upper-only (damped high), 3 free (no barrier term).
@@ -400,23 +401,22 @@ TEST(IpqpMathTest, TheTwoReductionsComposeIntoOneUnionAggregate) {
 }
 
 // ---------------------------------------------------------------------------
-// The absent-bound sentinel.
+// The absent side (M8 B7: the tier's cutoff is the subproblem's own
+// QpProblem::infinite_bound, applied once by make_ipqp_box).
 // ---------------------------------------------------------------------------
 
-TEST(IpqpMathTest, TheAbsentBoundSentinelMatchesTheEnginesOwn) {
-    EXPECT_EQ(ip::kIpqpInfBound, 1e20);
-    // The header claims identity with BOTH engines' own restatements, so both
-    // are pinned: a change to either would otherwise drift silently, which is
-    // the whole failure mode a restated constant has.
-    EXPECT_EQ(ip::kIpqpInfBound, ip::kEngineInfBound);
-    EXPECT_EQ(ip::kIpqpInfBound, ip::kSsnInfBound);
+TEST(IpqpMathTest, TheKernelsReadAnAbsentSideAsAnInfinityAlone) {
     EXPECT_EQ(ip::kIpqpKappaD, hven::solvers::kKappaD);
 
-    // At the sentinel exactly, and beyond it, a bound is ABSENT.
-    EXPECT_FALSE(ip::ipqp_has_lower(-1e20));
-    EXPECT_FALSE(ip::ipqp_has_lower(-std::numeric_limits<double>::infinity()));
-    EXPECT_FALSE(ip::ipqp_has_upper(1e20));
-    EXPECT_FALSE(ip::ipqp_has_upper(std::numeric_limits<double>::infinity()));
+    // An infinity is ABSENT; every finite value is a bound at kernel level,
+    // however large -- the box builder has already mapped what the subproblem's
+    // cutoff reads as absent to an infinity.
+    EXPECT_FALSE(ip::ipqp_has_lower(-kInf));
+    EXPECT_FALSE(ip::ipqp_has_upper(kInf));
+    EXPECT_TRUE(ip::ipqp_has_lower(-1e20));
+    EXPECT_TRUE(ip::ipqp_has_upper(1e20));
+    EXPECT_TRUE(ip::ipqp_has_lower(-std::numeric_limits<double>::max()));
+    EXPECT_TRUE(ip::ipqp_has_upper(std::numeric_limits<double>::max()));
     EXPECT_TRUE(ip::ipqp_has_lower(-1e19));
     EXPECT_TRUE(ip::ipqp_has_upper(1e19));
 }
@@ -429,7 +429,7 @@ TEST(IpqpMathTest, TheCriticalConeSigmaDropsWeaklyActiveSidesAndNothingElse) {
     // FOUR INDICES, ONE PER REGIME (`weak_scale = 1e-3`): 0 strongly active low (gap 1e-9, z 2.0,
     // multiplier test fails -> KEPT); 1 weakly active low (gap 1e-6, z 1e-6, both below ->
     // DROPPED); 2 inactive (gap 5.0 -> KEPT); 3 mixed -- the rule is PER SIDE, lower survives.
-    const double kInfB = ip::kIpqpInfBound;
+    const double kInfB = std::numeric_limits<double>::infinity();
     hven::Vec x(4), l(4), u(4), zl(4), zu(4);
     x << 1.0e-9, 1.0e-6, 5.0, 1.0e-9;
     l << 0.0, 0.0, 0.0, 0.0;

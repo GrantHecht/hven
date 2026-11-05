@@ -367,9 +367,14 @@ TEST(NlpProblemModelTest, TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle)
     }
 }
 
-TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded) {
+// M8 B7: at the default CommonOptions::infinite_bound (1e20) these bounds are
+// ABSENT (tests/drivers/test_infinite_bound.cpp pins that side); with the
+// threshold at infinity every finite value is a real bound, which is what this
+// test pins -- the pre-B7 convention, now an explicit setting.
+TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsUnderAnInfiniteThreshold) {
     auto problem = std::make_shared<NpmLargeBoundProblem>();
-    NlpProblemModel model(problem);
+    NlpProblemModel model(problem, kNpmInf);
+    EXPECT_EQ(model.absent_bounds(), 0);
 
     // Variable bounds, verbatim in both directions.
     EXPECT_DOUBLE_EQ(model.lower()[0], -1e20);
@@ -395,8 +400,8 @@ TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded)
     EXPECT_DOUBLE_EQ(ci[1], -1e20 - 2.0);
 
     // And the host stages variable 0's bounds while leaving variable 1 free.
-    auto core = std::make_shared<NLPAdapterCore>(std::make_shared<NlpProblemModel>(problem),
-                                                 problem->name());
+    auto core = std::make_shared<NLPAdapterCore>(
+        std::make_shared<NlpProblemModel>(problem, kNpmInf), problem->name());
     EXPECT_DOUBLE_EQ(core->x_lower_[0], -1e20);
     EXPECT_DOUBLE_EQ(core->x_upper_[0], 1e20);
     EXPECT_EQ(core->x_lower_[1], -kNpmInf);
@@ -565,7 +570,9 @@ TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
     auto bad = [](auto mutate) {
         auto problem = std::make_shared<NpmLargeBoundProblem>();
         mutate(*problem);
-        EXPECT_THROW(NlpProblemModel{problem}, std::invalid_argument);
+        // Under an infinite threshold: the fixture's rows sit at 1e20, which the
+        // default threshold reads as an equality at infinity.
+        EXPECT_THROW((NlpProblemModel{problem, kNpmInf}), std::invalid_argument);
     };
     bad([](NpmLargeBoundProblem &p) { p.xl_[0] = std::numeric_limits<double>::quiet_NaN(); });
     bad([](NpmLargeBoundProblem &p) { p.xu_[1] = std::numeric_limits<double>::quiet_NaN(); });
@@ -587,8 +594,8 @@ TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
     auto fixed_finite = std::make_shared<NpmLargeBoundProblem>();
     fixed_finite->xl_[0] = 2.0;
     fixed_finite->xu_[0] = 2.0;
-    EXPECT_NO_THROW(NlpProblemModel{fixed_finite});
-    EXPECT_NO_THROW(NlpProblemModel{std::make_shared<NpmLargeBoundProblem>()});
+    EXPECT_NO_THROW((NlpProblemModel{fixed_finite, kNpmInf}));
+    EXPECT_NO_THROW((NlpProblemModel{std::make_shared<NpmLargeBoundProblem>(), kNpmInf}));
 }
 
 namespace {

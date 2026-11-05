@@ -667,8 +667,9 @@ TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     EXPECT_TRUE(actual.g.isApprox(expected.g, 0.0)) << "g must match bit-for-bit";
     EXPECT_TRUE(actual.be.isApprox(expected.be, 0.0)) << "be must match bit-for-bit";
     EXPECT_TRUE(actual.bi.isApprox(expected.bi, 0.0)) << "bi must match bit-for-bit";
-    EXPECT_TRUE(actual.lower.isApprox(expected.lower, 0.0)) << "lower must match bit-for-bit";
-    EXPECT_TRUE(actual.upper.isApprox(expected.upper, 0.0)) << "upper must match bit-for-bit";
+    // Exact equality, not isApprox: an absent side is an infinity (M8 B7).
+    EXPECT_TRUE(actual.lower.cwiseEqual(expected.lower).all()) << "lower must match bit-for-bit";
+    EXPECT_TRUE(actual.upper.cwiseEqual(expected.upper).all()) << "upper must match bit-for-bit";
     EXPECT_EQ(actual.H.nonZeros(), expected.H.nonZeros());
     EXPECT_TRUE(actual.H.isApprox(expected.H, 0.0)) << "H must match bit-for-bit";
 }

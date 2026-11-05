@@ -829,7 +829,7 @@ TEST(QpEngine, RunawayWithActiveRowClearsItsMultipliers) {
 
 TEST(QpEngine, EffectivelyInfiniteBoundsStillDetectTheRunaway) {
     // A hand-written "effectively infinite" bound of 1e18 is nowhere near
-    // kEngineInfBound (1e20), but the artifact at 2e8 can never legitimately
+    // QpProblem::infinite_bound (1e20 by default), but the artifact at 2e8 can never legitimately
     // reach it -- the solve would have pinned the variable there first. The
     // runaway test must therefore treat any bound beyond
     // unbounded_artifact_scale() as non-constraining.

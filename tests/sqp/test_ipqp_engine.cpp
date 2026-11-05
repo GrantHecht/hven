@@ -170,11 +170,14 @@ TEST(IpqpBoxTest, TheCentreIsRefineOnFacesOwnClampedOrigin) {
 TEST(IpqpBoxTest, AnInfiniteRadiusReproducesTheDeclaredBoxExactly) {
     const QpProblem qp = box_qp(-1e20, 5.0);
     const IpqpBox box = make_ipqp_box(qp, kInf);
-    EXPECT_DOUBLE_EQ(box.lo_eff(0), qp.lower(0));
+    // -1e20 is ABSENT under the problem's default cutoff (QpProblem::infinite_bound),
+    // and the box writes an absent side as an infinity (M8 B7); a real side is
+    // reproduced exactly.
+    EXPECT_EQ(box.lo_eff(0), -std::numeric_limits<double>::infinity());
     EXPECT_DOUBLE_EQ(box.up_eff(0), qp.upper(0));
 
     const IpqpBounds b = make_ipqp_bounds(box);
-    EXPECT_EQ(b.num_lower, 0); // -1e20 is the ABSENT sentinel, not a bound.
+    EXPECT_EQ(b.num_lower, 0); // -1e20 is ABSENT, not a bound.
     EXPECT_EQ(b.num_upper, 2);
     EXPECT_TRUE(b.in_domain());
 }

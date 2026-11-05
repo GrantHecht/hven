@@ -40,6 +40,9 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # AP-2 B3: the work and time limits, the minor-budget label, the new
     # validation refusals and silent-by-default, on both engines.
     test_limits.cpp
+    # AP-2 B7: the absent-bound threshold (CommonOptions::infinite_bound) on both
+    # engines, the Nlp and pieces routes and the QP tier.
+    test_infinite_bound.cpp
     test_print_tables.cpp
     # AP-2 B2: one problem type -- Problem on both engines, the per-solve re-read,
     # the refusals by name, lambda and g in the problem's row space.

@@ -445,8 +445,14 @@ TEST(SqpDriverContract, BuildSubproblemLinearizesTheModel) {
     // failed the norm bound. Equality comparisons carry no arithmetic to
     // reassociate.
     for (Index i = 0; i < qp.n(); ++i) {
-        EXPECT_EQ(qp.lower(i), m.lower()(i) - x(i)) << "lower, entry " << i;
-        EXPECT_EQ(qp.upper(i), m.upper()(i) - x(i)) << "upper, entry " << i;
+        // The box as the absent-bound rule reads it at the default threshold
+        // (M8 B7): HS76's +1e20 upper bounds are absent, i.e. +inf.
+        using hven::solvers::detail::kDefaultInfiniteBound;
+        using hven::solvers::detail::normalize_bound;
+        EXPECT_EQ(qp.lower(i), normalize_bound(m.lower()(i), kDefaultInfiniteBound) - x(i))
+            << "lower, entry " << i;
+        EXPECT_EQ(qp.upper(i), normalize_bound(m.upper()(i), kDefaultInfiniteBound) - x(i))
+            << "upper, entry " << i;
     }
     for (Index i = 0; i < qp.n(); ++i) {
         EXPECT_DOUBLE_EQ(qp.lower(i), -0.5); // l = 0, x = 0.5

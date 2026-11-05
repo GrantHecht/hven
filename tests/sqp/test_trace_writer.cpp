@@ -3177,6 +3177,9 @@ SqpSolveBeginTraceEvent golden_begin() {
     e.vars_fixed = 7;
     e.qp_mode = IpqpTraceQpMode::kSsn;
     e.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    // M8 B7: the count of declared bound values the absent-bound threshold read
+    // as absent, appended last (a declared additive trailing key).
+    e.absent_bounds = 8;
     return e;
 }
 
@@ -3209,7 +3212,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveBegin) {
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.begin\",\"seq\":1,\"depth\":0,\"n\":11,\"me\":3,\"mi\":5"
               ",\"vars_free\":1,\"vars_lower_only\":2,\"vars_upper_only\":4,\"vars_ranged\":6,\"var"
-              "s_fixed\":7,\"qp_mode\":\"ssn\",\"ws_algebra\":\"refactorize\"}\n");
+              "s_fixed\":7,\"qp_mode\":\"ssn\",\"ws_algebra\":\"refactorize\",\"absent_bou"
+              "nds\":8}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
@@ -4071,6 +4075,9 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     e.kkt_dim = 23;
     e.kkt_nnz = 101;
     e.internal_fixed_rows = 3;
+    // RE-DERIVED AT M8 B7, which appended `absent_bounds` (the declared bound
+    // values the absent-bound threshold read as absent), last on the line.
+    e.absent_bounds = 11;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_solve_begin(e);
@@ -4084,7 +4091,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
               "egularization\",\"restoration_mode\":\"l1_nested\",\"acc_kkt_tol\":5.0000000"
               "000000004e-06,\"acc_econ_tol\":6.0000000000000002e-06,\"acc_icon_tol\":6.999"
               "9999999999999e-06,\"acc_bar_tol\":7.9999999999999996e-06,\"wide_console\":tr"
-              "ue,\"kkt_dim\":23,\"kkt_nnz\":101,\"internal_fixed_rows\":3}\n");
+              "ue,\"kkt_dim\":23,\"kkt_nnz\":101,\"internal_fixed_rows\":3,\"absent_bou"
+              "nds\":11}\n");
     // The pair moves NO depth: this driver nests no driver of its own.
     EXPECT_EQ(sink.depth(), 0);
 }
