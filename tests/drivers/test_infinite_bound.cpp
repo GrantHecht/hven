@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <iostream>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -49,6 +50,7 @@
 #include "hven/model/pieces.h"
 #include "hven/model/problem.h"
 
+#include "../common_support/console_capture.h"
 #include "../common_support/route_reference.h"
 
 namespace {
@@ -129,14 +131,36 @@ Vec start() { return Vec{{1.0, 1.0, 0.0}}; }
 /// still shows. Returns whether the solve converged; the caller guards what is downstream of a
 /// converged solve on it. REGISTERED ITEM: huge real bounds give a zero/1e-43 slack diagonal
 /// in the barrier KKT; off-reference backend diverges; engine fix pending Mac evidence.
-bool ipm_converged_on_huge_real_bounds(SolveStatus status) {
+bool ipm_converged_on_huge_real_bounds(SolveStatus status, Problem &problem, double threshold) {
 #if HVEN_TEST_ROUTE_REFERENCE
+    (void)problem;
+    (void)threshold;
     EXPECT_EQ(status, SolveStatus::kOptimal);
 #else
     EXPECT_TRUE(status == SolveStatus::kOptimal || status == SolveStatus::kDiverging)
         << static_cast<int>(status);
     hven::test_support::record_off_reference_route("huge_real_bounds_ipm",
                                                    std::to_string(static_cast<int>(status)));
+    if (status != SolveStatus::kOptimal) {
+        // Diagnostic for the off-reference CI log: re-run once with the iteration table and
+        // print it, so which kDiverging path fired, and when, is readable. Greppable tag.
+        std::string table;
+        try {
+            hven::testing::StdoutCapture capture;
+            IpmOptions o;
+            o.common.verbosity = Verbosity::kIterations;
+            o.common.infinite_bound = threshold;
+            IpmSolver verbose(o);
+            (void)verbose.solve(problem, start());
+            table = capture.text();
+        } catch (const std::exception &e) {
+            table += std::string("rerun threw: ") + e.what();
+        }
+        const auto *info = ::testing::UnitTest::GetInstance()->current_test_info();
+        std::cerr << "HVEN-HUGE-BOUND-DIAG " << (info != nullptr ? info->name() : "?")
+                  << " status=" << static_cast<int>(status) << "\n"
+                  << table << "\nHVEN-HUGE-BOUND-DIAG-END" << std::endl;
+    }
 #endif
     return status == SolveStatus::kOptimal;
 }
@@ -335,7 +359,7 @@ TEST(InfiniteBound, UnderKInfinityEveryFiniteValueIsARealBound) {
     Problem problem(large_finite());
     IpmSolver ipm = quiet_ipm(kInfinity);
     const IpmResult r = ipm.solve(problem, start());
-    const bool converged = ipm_converged_on_huge_real_bounds(r.status);
+    const bool converged = ipm_converged_on_huge_real_bounds(r.status, problem, kInfinity);
     if (converged) {
         EXPECT_NEAR(r.x[0], 3.0, 1e-5);
         EXPECT_NEAR(r.x[2], 0.5, 1e-5);
@@ -409,7 +433,7 @@ TEST(InfiniteBound, AChangedThresholdReLaysTheProblemOnBothEngines) {
     // a new program, analysed once.
     IpmSolver ipm_inf = quiet_ipm(kInfinity);
     const IpmResult r2 = ipm_inf.solve(problem, start());
-    const bool converged2 = ipm_converged_on_huge_real_bounds(r2.status);
+    const bool converged2 = ipm_converged_on_huge_real_bounds(r2.status, problem, kInfinity);
     EXPECT_EQ(r2.kkt_analyses_this_call, 1);
     // A new program: a laid program's threshold is fixed (set_infinite_bound).
     EXPECT_EQ(ProblemAccess::built_ipm_program(problem)->infinite_bound_, kInfinity);
@@ -554,7 +578,7 @@ TEST(InfiniteBound, TheInternalModelRouteReadsTheBoxOnBothEngines) {
         IpmSolver ia = quiet_ipm();
         IpmSolver ib = quiet_ipm();
         const IpmResult ra = ia.solve(a, start());
-        if (ipm_converged_on_huge_real_bounds(ra.status))
+        if (ipm_converged_on_huge_real_bounds(ra.status, a, kThr))
             expect_same_solve(ra, ib.solve(b, start()));
         EXPECT_EQ(ProblemAccess::built_ipm_program(a)->variable_bound_set().lower_idx_.size(), 1);
     }
@@ -816,7 +840,8 @@ TEST(InfiniteBound, AModelReadUnderAnotherThresholdIsRefusedByName) {
     EXPECT_EQ(problem.statistics().free_variables, before.free_variables);
     EXPECT_EQ(ProblemAccess::declaration_key(problem), key);
     // Under its own threshold it solves on both engines.
-    ipm_converged_on_huge_real_bounds(quiet_ipm(kInfinity).solve(problem, start()).status);
+    ipm_converged_on_huge_real_bounds(quiet_ipm(kInfinity).solve(problem, start()).status, problem,
+                                      kInfinity);
     EXPECT_EQ(quiet_sqp(QpMode::kWalk, kInfinity).solve(problem, start()).status,
               SolveStatus::kOptimal);
 }
