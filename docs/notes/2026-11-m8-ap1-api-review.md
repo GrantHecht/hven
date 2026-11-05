@@ -1023,6 +1023,9 @@ group-specific obligations follow.
 entry: a short release note naming each group and its one-line "before → after". There is no
 migration guide (C201 amendment). The AP-3 examples are tycho's catch-up reference.
 
+**B8's record** (added at B8): the naming rules and the complete old → new table are
+`2026-11-m8-ap2-b8-naming.md`.
+
 **If M8 runs long inside the break:** B7, then B6, then B5 can be held to the next window
 without touching the others. That would be the next milestone's single window, under the
 one-window rule. B1-B4 and B8 are the break.
