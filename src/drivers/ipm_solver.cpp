@@ -464,6 +464,14 @@ void hven::detail::IpmSolverImpl::barrier_hessian(
         if (this->hp_scratch_[i] < 0.0) {
             this->hp_scratch_[i] = mu / (S[i] * S[i]);
         }
+        // A far pair's curvature is zero to working precision; a subnormal one
+        // (s near the top of the double range) is written as exactly zero, the
+        // equality-row saddle every backend pivots, so the assembled matrix does
+        // not depend on the platform's denormal mode.
+        if (S[i] >= detail::kFarSlackWidth &&
+            this->hp_scratch_[i] < std::numeric_limits<double>::min()) {
+            this->hp_scratch_[i] = 0.0;
+        }
     }
     this->nlp_->assign_kkt_slack_hessian(this->hp_scratch_, KKTmat);
 }
@@ -3886,6 +3894,17 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         this->kkt_sol_.solve(RHS, DXSL);
         DXSL = -DXSL;
         bool GoodStep = std::isfinite(DXSL.squaredNorm());
+
+        // Far slack pairs take their multiplier step from their own complementarity
+        // equation (barrier_math.h, kFarSlackWidth). First, so every consumer below
+        // -- the bound and elastic recoveries, fraction-to-boundary, the commit --
+        // reads the recovered step. Untouched below the width.
+        if (GoodStep && this->inequal_cons_ > 0) {
+            KktVector v_dxsl_far = kkt_view(DXSL);
+            detail::recover_far_slack_multiplier_steps(v_xsl.slacks(), v_xsl.iq_lmults(),
+                                                       v_rhs.dual_grad(), v_dxsl_far.slacks(),
+                                                       v_dxsl_far.iq_lmults());
+        }
 
         // Bound-multiplier Newton step, recovered from the primal step the
         // condensed system just produced. Taken here, on the RAW solution, before

@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -33,6 +34,7 @@
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/drivers/sqp_solver_impl.h"
 #include "hven/detail/globalization/sqp/restoration.h"
+#include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/model/make_nlp_program.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/detail/model/nlp_model_assembly.h"
@@ -127,43 +129,32 @@ std::shared_ptr<Shifted> large_finite() {
 
 Vec start() { return Vec{{1.0, 1.0, 0.0}}; }
 
-/// The status of an interior-point solve of large_finite() under kInfinity (huge real bounds).
-/// Reference build: exactly kOptimal. Off it: kOptimal or kDiverging, so a NEW failure mode
-/// still shows. Returns whether the solve converged; the caller guards what is downstream of a
-/// converged solve on it. REGISTERED ITEM: huge real bounds give a zero/1e-43 slack diagonal
-/// in the barrier KKT; off-reference backend diverges; engine fix pending Mac evidence.
-bool ipm_converged_on_huge_real_bounds(SolveStatus status, Problem &problem, double threshold) {
-#if HVEN_TEST_ROUTE_REFERENCE
-    (void)problem;
-    (void)threshold;
-    EXPECT_EQ(status, SolveStatus::kOptimal);
-#else
-    EXPECT_TRUE(status == SolveStatus::kOptimal || status == SolveStatus::kDiverging)
-        << static_cast<int>(status);
-    hven::test_support::record_off_reference_route("huge_real_bounds_ipm",
-                                                   std::to_string(static_cast<int>(status)));
-    if (status != SolveStatus::kOptimal) {
-        // Diagnostic for the off-reference CI log: re-run once with the iteration table and
-        // print it, so which kDiverging path fired, and when, is readable. Greppable tag.
-        std::string table;
-        try {
-            hven::testing::StdoutCapture capture;
-            IpmOptions o;
-            o.common.verbosity = Verbosity::kIterations;
-            o.common.infinite_bound = threshold;
-            IpmSolver verbose(o);
-            (void)verbose.solve(problem, start());
-            table = capture.text();
-        } catch (const std::exception &e) {
-            table += std::string("rerun threw: ") + e.what();
-        }
-        const auto *info = ::testing::UnitTest::GetInstance()->current_test_info();
-        std::cerr << "HVEN-HUGE-BOUND-DIAG " << (info != nullptr ? info->name() : "?")
-                  << " status=" << static_cast<int>(status) << "\n"
-                  << table << "\nHVEN-HUGE-BOUND-DIAG-END" << std::endl;
+/// An interior-point solve of large_finite() under kInfinity (huge real bounds) reaches
+/// kOptimal on every backend: a far slack pair takes its multiplier step from its own
+/// complementarity equation (barrier_math.h, kFarSlackWidth), and a bound at the top of the
+/// double range relaxes to it, not past it. On a failure the solve is re-run once with its
+/// iteration table on stderr (tag HVEN-HUGE-BOUND-DIAG), which ctest prints for a failing
+/// test -- the one way the table of a macOS/Accelerate run is readable from CI.
+void expect_huge_real_bounds_ipm_optimal(SolveStatus status, Problem &problem, double threshold) {
+    EXPECT_EQ(status, SolveStatus::kOptimal) << static_cast<int>(status);
+    if (status == SolveStatus::kOptimal)
+        return;
+    std::string table;
+    try {
+        hven::testing::StdoutCapture capture;
+        IpmOptions o;
+        o.common.verbosity = Verbosity::kIterations;
+        o.common.infinite_bound = threshold;
+        IpmSolver verbose(o);
+        (void)verbose.solve(problem, start());
+        table = capture.text();
+    } catch (const std::exception &e) {
+        table += std::string("rerun threw: ") + e.what();
     }
-#endif
-    return status == SolveStatus::kOptimal;
+    const auto *info = ::testing::UnitTest::GetInstance()->current_test_info();
+    std::cerr << "HVEN-HUGE-BOUND-DIAG " << (info != nullptr ? info->name() : "?")
+              << " status=" << static_cast<int>(status) << "\n"
+              << table << "\nHVEN-HUGE-BOUND-DIAG-END" << std::endl;
 }
 
 bool same_bits(const Vec &a, const Vec &b) {
@@ -360,11 +351,9 @@ TEST(InfiniteBound, UnderKInfinityEveryFiniteValueIsARealBound) {
     Problem problem(large_finite());
     IpmSolver ipm = quiet_ipm(kInfinity);
     const IpmResult r = ipm.solve(problem, start());
-    const bool converged = ipm_converged_on_huge_real_bounds(r.status, problem, kInfinity);
-    if (converged) {
-        EXPECT_NEAR(r.x[0], 3.0, 1e-5);
-        EXPECT_NEAR(r.x[2], 0.5, 1e-5);
-    }
+    expect_huge_real_bounds_ipm_optimal(r.status, problem, kInfinity);
+    EXPECT_NEAR(r.x[0], 3.0, 1e-5);
+    EXPECT_NEAR(r.x[2], 0.5, 1e-5);
     const ProblemStatistics &s = problem.statistics();
     EXPECT_EQ(s.absent_bounds, 0);
     EXPECT_EQ(s.boxed_variables, 3);
@@ -373,8 +362,7 @@ TEST(InfiniteBound, UnderKInfinityEveryFiniteValueIsARealBound) {
     const BoundSet &bounds = ProblemAccess::built_ipm_program(problem)->variable_bound_set();
     EXPECT_EQ(bounds.lower_idx_.size(), 3);
     EXPECT_EQ(bounds.upper_idx_.size(), 3);
-    if (converged)
-        EXPECT_FALSE(std::isnan(r.g[1])); // row 1 is a range now, and measured
+    EXPECT_FALSE(std::isnan(r.g[1])); // row 1 is a range now, and measured
 
     SqpSolver sqp = quiet_sqp(QpMode::kWalk, kInfinity);
     const SqpResult rs = sqp.solve(problem, start());
@@ -434,18 +422,16 @@ TEST(InfiniteBound, AChangedThresholdReLaysTheProblemOnBothEngines) {
     // a new program, analysed once.
     IpmSolver ipm_inf = quiet_ipm(kInfinity);
     const IpmResult r2 = ipm_inf.solve(problem, start());
-    const bool converged2 = ipm_converged_on_huge_real_bounds(r2.status, problem, kInfinity);
+    expect_huge_real_bounds_ipm_optimal(r2.status, problem, kInfinity);
     EXPECT_EQ(r2.kkt_analyses_this_call, 1);
     // A new program: a laid program's threshold is fixed (set_infinite_bound).
     EXPECT_EQ(ProblemAccess::built_ipm_program(problem)->infinite_bound_, kInfinity);
     EXPECT_EQ(problem.statistics().free_rows, 0);
-    if (converged2) {
-        EXPECT_FALSE(std::isnan(r2.g[1]));
-        // The re-laid solve is a fresh Problem's under kInfinity, bit for bit.
-        Problem fresh_inf(large_finite());
-        IpmSolver ipm_fresh_inf = quiet_ipm(kInfinity);
-        expect_same_solve(r2, ipm_fresh_inf.solve(fresh_inf, start()));
-    }
+    EXPECT_FALSE(std::isnan(r2.g[1]));
+    // The re-laid solve is a fresh Problem's under kInfinity, bit for bit.
+    Problem fresh_inf(large_finite());
+    IpmSolver ipm_fresh_inf = quiet_ipm(kInfinity);
+    expect_same_solve(r2, ipm_fresh_inf.solve(fresh_inf, start()));
 
     // The SQP half: the re-laid Problem's solve under kInfinity is a fresh
     // Problem's, bit for bit, counters included.
@@ -579,8 +565,8 @@ TEST(InfiniteBound, TheInternalModelRouteReadsTheBoxOnBothEngines) {
         IpmSolver ia = quiet_ipm();
         IpmSolver ib = quiet_ipm();
         const IpmResult ra = ia.solve(a, start());
-        if (ipm_converged_on_huge_real_bounds(ra.status, a, kThr))
-            expect_same_solve(ra, ib.solve(b, start()));
+        expect_huge_real_bounds_ipm_optimal(ra.status, a, kThr);
+        expect_same_solve(ra, ib.solve(b, start()));
         EXPECT_EQ(ProblemAccess::built_ipm_program(a)->variable_bound_set().lower_idx_.size(), 1);
     }
 }
@@ -841,8 +827,8 @@ TEST(InfiniteBound, AModelReadUnderAnotherThresholdIsRefusedByName) {
     EXPECT_EQ(problem.statistics().free_variables, before.free_variables);
     EXPECT_EQ(ProblemAccess::declaration_key(problem), key);
     // Under its own threshold it solves on both engines.
-    ipm_converged_on_huge_real_bounds(quiet_ipm(kInfinity).solve(problem, start()).status, problem,
-                                      kInfinity);
+    expect_huge_real_bounds_ipm_optimal(quiet_ipm(kInfinity).solve(problem, start()).status,
+                                        problem, kInfinity);
     EXPECT_EQ(quiet_sqp(QpMode::kWalk, kInfinity).solve(problem, start()).status,
               SolveStatus::kOptimal);
 }
@@ -1036,6 +1022,185 @@ TEST(InfiniteBound, ThePredictorReadsTheBoxUnderItsThreshold) {
     PredictorOptions bad;
     bad.infinite_bound = 0.0;
     EXPECT_THROW(predict(model, warm, dp, bad), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------------------
+// Huge real bounds on the interior-point engine (M8 PF-HB). A real bound of huge
+// magnitude gives a slack pair whose KKT-solved multiplier step carries rounding
+// noise that s * lambda amplifies past the barrier parameter; the far pair takes
+// its step from its own complementarity equation instead. A bound at the top of the
+// double range relaxes to it, not to an infinity.
+// ---------------------------------------------------------------------------
+
+/// The reference: the same problem with every huge side an infinity.
+IpmResult reference_ipm_solve(std::vector<double> *mus = nullptr) {
+    Problem problem(std::make_shared<Shifted>());
+    IpmSolver ipm = quiet_ipm();
+    if (mus != nullptr) {
+        ipm.set_iteration_callback([mus](const IterationEvent &ev) {
+            if (ev.mu.has_value())
+                mus->push_back(*ev.mu);
+            return CallbackAction::kContinue;
+        });
+    }
+    return ipm.solve(problem, start());
+}
+
+/// The iteration count of a huge-real-bound solve against the reference's: exactly it on
+/// the reference build; within two iterations of it elsewhere, and the count recorded.
+void expect_reference_iterations(Index iterations, Index reference, const std::string &key) {
+#if HVEN_TEST_ROUTE_REFERENCE
+    (void)key;
+    EXPECT_EQ(iterations, reference);
+#else
+    EXPECT_LE(iterations, reference + 2);
+    hven::test_support::record_off_reference_route(key, std::to_string(iterations) + " vs " +
+                                                            std::to_string(reference));
+#endif
+}
+
+TEST(HugeRealBound, TheFarWidthIsTheReciprocalSquareRootOfEpsilon) {
+    EXPECT_EQ(kFarSlackWidth, std::ldexp(1.0, 26));
+    EXPECT_EQ(kFarSlackWidth, 1.0 / std::sqrt(std::numeric_limits<double>::epsilon()));
+}
+
+TEST(HugeRealBound, OnlyAFarPairsMultiplierStepIsRecovered) {
+    const double below = std::nextafter(kFarSlackWidth, 0.0);
+    const double dmax = std::numeric_limits<double>::max();
+    const Vec s{{1.0, below, kFarSlackWidth, 1e20, dmax}};
+    const Vec l{{0.5, 3e-9, 2e-9, 1e-21, 5e-310}};
+    const Vec rhs{{0.25, -1e-10, 1e-10, 4e-22, 1e-300}};
+    const Vec ds{{0.75, -2.0, 3.0, -4.0, 5.0}};
+    const Vec solved{{0.125, 7e-16, 7e-16, 1.5e-16, -2e-16}}; // what a KKT solve returned
+    Vec dl = solved;
+    recover_far_slack_multiplier_steps(s, l, rhs, ds, dl);
+    // Below the width: the solved step, bit for bit.
+    EXPECT_EQ(std::memcmp(&dl[0], &solved[0], sizeof(double)), 0);
+    EXPECT_EQ(std::memcmp(&dl[1], &solved[1], sizeof(double)), 0);
+    // At and beyond it: the pair's own linearized complementarity, -R - (lambda/s) ds.
+    for (Index i = 2; i < s.size(); ++i) {
+        const double expected = -rhs[i] - (l[i] / s[i]) * ds[i];
+        EXPECT_EQ(std::memcmp(&dl[i], &expected, sizeof(double)), 0) << i;
+        EXPECT_TRUE(std::isfinite(dl[i])) << i;
+    }
+}
+
+TEST(HugeRealBound, TheSlackDiagonalsStayFiniteAndNeverSubnormal) {
+    // large_finite() (a side at DBL_MAX: lambda/s underflows to zero outright), then a row
+    // side at 1e160, whose lambda/s ~ mu/s^2 lands in the subnormal range: written as an
+    // exact zero, the equality-row saddle every backend pivots, whatever the platform's
+    // denormal mode.
+    auto subnormal = std::make_shared<Shifted>();
+    subnormal->gu[0] = 1e160;
+    for (const std::shared_ptr<Shifted> &p : {large_finite(), subnormal}) {
+        Problem problem(p);
+        IpmSolver ipm = quiet_ipm(kInfinity);
+        int calls = 0;
+        int zero_diagonals = 0;
+        ipm.set_kkt_hook([&](int, double, const Eigen::Ref<const Eigen::VectorXd> &xsl, double,
+                             const Eigen::Ref<const Eigen::VectorXd> &,
+                             const Eigen::Ref<const Eigen::VectorXd> &,
+                             Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) {
+            ++calls;
+            // Reduced layout: 3 primals, then one slack per inequality side, no equalities,
+            // one multiplier per slack.
+            const Index slacks = (xsl.size() - 3) / 2;
+            for (int k = 0; k < kkt.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(kkt, k); it;
+                     ++it)
+                    EXPECT_TRUE(std::isfinite(it.value())) << it.row() << "," << it.col();
+            }
+            for (Index r = 3; r < 3 + slacks; ++r) {
+                const double d = kkt.coeff(r, r);
+                EXPECT_TRUE(d == 0.0 || std::fpclassify(d) == FP_NORMAL) << r << ": " << d;
+                zero_diagonals += d == 0.0 ? 1 : 0;
+            }
+            return 0;
+        });
+        const IpmResult r = ipm.solve(problem, start());
+        expect_huge_real_bounds_ipm_optimal(r.status, problem, kInfinity);
+        EXPECT_GT(calls, 0);
+        EXPECT_GT(zero_diagonals, 0);
+    }
+}
+
+TEST(HugeRealBound, HugeRealBoundsCostNoIterationsAndKeepTheBarrierParameterDown) {
+    std::vector<double> ref_mus;
+    const IpmResult ref = reference_ipm_solve(&ref_mus);
+    ASSERT_EQ(ref.status, SolveStatus::kOptimal);
+    ASSERT_FALSE(ref_mus.empty());
+
+    Problem problem(large_finite());
+    IpmSolver ipm = quiet_ipm(kInfinity);
+    std::vector<double> mus;
+    ipm.set_iteration_callback([&mus](const IterationEvent &ev) {
+        if (ev.mu.has_value())
+            mus.push_back(*ev.mu);
+        return CallbackAction::kContinue;
+    });
+    const IpmResult r = ipm.solve(problem, start());
+    expect_huge_real_bounds_ipm_optimal(r.status, problem, kInfinity);
+    EXPECT_NEAR(r.x[0], 3.0, 1e-5);
+    EXPECT_NEAR(r.x[1], -4.0, 1e-5);
+    EXPECT_NEAR(r.x[2], 0.5, 1e-5);
+    expect_reference_iterations(r.iterations, ref.iterations, "huge_real_bounds_iterations");
+    // The noise this fix removes drove the free-mode oracle to barrier_max (1e2) again and
+    // again; the far pairs now sit on their central path.
+    ASSERT_FALSE(mus.empty());
+    const double ref_max = *std::max_element(ref_mus.begin(), ref_mus.end());
+    const double max_mu = *std::max_element(mus.begin(), mus.end());
+    EXPECT_LE(max_mu, 10.0 * ref_max) << "reference max mu " << ref_max;
+    EXPECT_LT(max_mu, IpmOptions{}.barrier_max);
+}
+
+TEST(HugeRealBound, ARealRowBoundOfAnyMagnitudeCostsNoIterations) {
+    const IpmResult ref = reference_ipm_solve();
+    ASSERT_EQ(ref.status, SolveStatus::kOptimal);
+    // Row 0's upper side real at growing magnitude, its lower side (-10) inactive: before the
+    // fix the cost grew from 1e14 on (7, 10, 14, 18, 46, 76 iterations against 6).
+    const double dmax = std::numeric_limits<double>::max();
+    for (const double upper : {1e8, 1e14, 1e16, 1e18, 7.9e19, 1e25, dmax}) {
+        SCOPED_TRACE(upper);
+        auto p = std::make_shared<Shifted>();
+        p->gu[0] = upper;
+        Problem problem(p);
+        IpmSolver ipm = quiet_ipm(kInfinity);
+        const IpmResult r = ipm.solve(problem, start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(r.x[0], 3.0, 1e-5);
+        EXPECT_NEAR(r.x[1], -4.0, 1e-5);
+        expect_reference_iterations(r.iterations, ref.iterations, "huge_real_row_iterations");
+    }
+}
+
+TEST(HugeRealBound, ABoundAtTheTopOfTheDoubleRangeRelaxesToItNotPastIt) {
+    const IpmResult ref = reference_ipm_solve();
+    ASSERT_EQ(ref.status, SolveStatus::kOptimal);
+    const double dmax = std::numeric_limits<double>::max();
+    // x1 boxed by the whole double range, then bounded above only (the damped one-sided case).
+    for (const bool two_sided : {true, false}) {
+        SCOPED_TRACE(two_sided);
+        auto p = std::make_shared<Shifted>();
+        p->xl[1] = two_sided ? std::numeric_limits<double>::lowest() : -kInfinity;
+        p->xu[1] = dmax;
+        Problem problem(p);
+        IpmSolver ipm = quiet_ipm(kInfinity);
+        const IpmResult r = ipm.solve(problem, start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal); // kDiverging after one iteration before
+        EXPECT_NEAR(r.x[1], -4.0, 1e-5);
+        expect_reference_iterations(r.iterations, ref.iterations, "top_of_range_bound_iterations");
+        const BoundSet &b = ProblemAccess::built_ipm_program(problem)->variable_bound_set();
+        for (Index k = 0; k < b.upper_idx_.size(); ++k) {
+            EXPECT_TRUE(std::isfinite(b.upper_val_[k]));
+            if (b.upper_idx_[k] == 1)
+                EXPECT_EQ(b.upper_val_[k], dmax);
+        }
+        for (Index k = 0; k < b.lower_idx_.size(); ++k) {
+            EXPECT_TRUE(std::isfinite(b.lower_val_[k]));
+            if (b.lower_idx_[k] == 1)
+                EXPECT_EQ(b.lower_val_[k], std::numeric_limits<double>::lowest());
+        }
+    }
 }
 
 } // namespace

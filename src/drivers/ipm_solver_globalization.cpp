@@ -1240,6 +1240,14 @@ double ClassicAdaptiveGovernor::update_barrier(
         // arithmetic is unchanged and no kkt_dim_-sized temporary appears.
         ctx.kkt_solver_.solve(RHS, DXSL);
         DXSL = -DXSL;
+        // The affine probe's far slack pairs: the same recovery as the real step
+        // (barrier_math.h, kFarSlackWidth), against the affine slack rows (R = LI).
+        if (ctx.inequal_cons_ > 0) {
+            KktVector v_dxsl = kkt_view(DXSL, ctx);
+            detail::recover_far_slack_multiplier_steps(v_xsl.slacks(), v_xsl.iq_lmults(),
+                                                       v_rhs.dual_grad(), v_dxsl.slacks(),
+                                                       v_dxsl.iq_lmults());
+        }
         mechanism.max_primal_dual_step(XSL, DXSL, ctx.opts_.fraction_to_boundary, alphap, alphad,
                                        ctx);
         Temp = XSL + DXSL;
@@ -1445,6 +1453,16 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         dxsl_soc = -dxsl_soc;
         if (!std::isfinite(dxsl_soc.squaredNorm()))
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
+        // Far slack pairs: the same multiplier recovery as the main step
+        // (barrier_math.h, kFarSlackWidth); the corrected RHS keeps its slack rows.
+        if (ctx.inequal_cons_ > 0) {
+            const int pv = ctx.primal_vars_;
+            const int sv = ctx.slack_vars_;
+            const int ic = ctx.inequal_cons_;
+            detail::recover_far_slack_multiplier_steps(XSL.segment(pv, sv), XSL.tail(ic),
+                                                       rhs_soc.segment(pv, sv),
+                                                       dxsl_soc.segment(pv, sv), dxsl_soc.tail(ic));
+        }
 
         // Fraction-to-boundary scale the corrected direction, exactly as the
         // main step path scales DXSL before its backtrack (mechanism's shared

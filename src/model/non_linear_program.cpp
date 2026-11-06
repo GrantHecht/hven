@@ -31,12 +31,17 @@ namespace {
 }
 
 /// A finite bound moved out by the relax factor times max(1, |bound|) -- the one
-/// rule every recorded bound gets, at classification and at a value update.
+/// rule every recorded bound gets, at classification and at a value update. The
+/// move saturates at the largest finite double: a real bound near it (possible
+/// under infinite_bound = infinity) would otherwise relax to an infinity and turn
+/// its barrier distance, and so the step, non-finite.
 double relaxed_lower(double lower, double factor) {
-    return lower - factor * std::max(1.0, std::abs(lower));
+    return std::max(lower - factor * std::max(1.0, std::abs(lower)),
+                    std::numeric_limits<double>::lowest());
 }
 double relaxed_upper(double upper, double factor) {
-    return upper + factor * std::max(1.0, std::abs(upper));
+    return std::min(upper + factor * std::max(1.0, std::abs(upper)),
+                    std::numeric_limits<double>::max());
 }
 
 /// What a layout depends on in a variable's bound pair: which sides are finite,
