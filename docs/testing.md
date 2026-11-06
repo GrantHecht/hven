@@ -428,7 +428,7 @@ before the session's own `solve()` is called, and both read the count
 through `FactorSession::config()` — ordinary, unconditional, non-test-gated
 session API. Only the recording is `HVEN_TESTING`-gated.
 
-It exists for `SymmetricFactor::set_num_threads`, whose contract is that a
+It exists for `SymmetricFactor::set_threads`, whose contract is that a
 mid-life thread change reaches SUBSEQUENT backend calls without rebuilding
 the session or dropping the symbolic analysis. The second half of that is
 plain public-API coverage (`test_symmetric_factor.cpp`'s
@@ -976,8 +976,8 @@ the same terms as the walk observer above: declared entirely under
 `#ifdef HVEN_TESTING`, included only from inside `qp_walk_trace.h`'s own
 `#ifdef HVEN_TESTING` block, per-thread, and exercised only by
 `hven_qp_walk_seam_tests`. `QpCertificateSeam` holds an `armed` switch, the
-presented `x` and `z`, a `presentations` count and the effective `dual_mu` /
-`feas_tol` the certificate ran under; `qp_certificate_present` is its one hook.
+presented `x` and `z`, a `presentations` count and the effective `dual_regularization` /
+`feasibility_tol` the certificate ran under; `qp_certificate_present` is its one hook.
 
 **Where, and what it replaces.** One call in `src/qp/qp_engine.cpp`, on the
 would-be-`kOptimal` branch, immediately before the certificate's BOUND HALF (E4)
@@ -998,10 +998,10 @@ existing test. The fixtures
 box QP with one bound violated by an exact `v`, and assert the verdict for `v`
 inside the margin, on it, past it, below and at the residue floor, and far
 outside, on the lower and the upper side, on both working-set algebras and at two
-`dual_mu`. Each case asserts that the seam fired exactly once.
+`dual_regularization`. Each case asserts that the seam fired exactly once.
 The sign half (M7 W2 SDL, RDV-5) is asserted through the same hook
 (`QpCertificateSign.*`): a lower pin presented at `z = -1.25e12`, an upper pin
-wrong-signed, a NaN, and both sides of the `opt_tol * scale` tolerance; with the
+wrong-signed, a NaN, and both sides of the `optimality_tol * scale` tolerance; with the
 sign half removed, every refusal case comes back `kOptimal` with the presented `z`.
 
 **Cost to the production build.** The hook sits below the TU's one `assert()`,
@@ -1022,7 +1022,7 @@ Apache-2.0 file this repository wrote; no deviation):
 - `disable_hand_off` — the zero-step hand-off at a suspected inconsistency does
   nothing. It is `SqpEqualityBasis.F9`'s negative control
   (`SqpEqualityBasisSeam.T6DisabledHandOffRunsF9ToMaxIter`: 100/100 majors and
-  `kMaxIter` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
+  `kIterationLimit` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
   hand-off's doing.
 - `prox_lift_forward_tol` — when positive, an SSN prox-centre lift is accepted only
   if its own (not injected) inflated a-posteriori estimate is `≤` this times
@@ -1205,14 +1205,14 @@ each option answers):
 
 - `Options::matrix_scaling`, `Options::pivot_strategy`,
   `Options::factorization_algorithm`, `Options::solve_parallelism`,
-  `Options::cnr_threads`, `Options::collect_factor_mflops`: Pardiso-only.
+  `Options::conditional_reproducibility_threads`, `Options::collect_factor_mflops`: Pardiso-only.
   Any non-default value THROWS `std::invalid_argument` at construction on
   Accelerate, under `#if defined(__APPLE__)`; on MKL, under `#else`, a
   non-default value BY ITSELF (against otherwise-default sibling options)
   does NOT throw — but `matrix_scaling`, `cnr_threads`, and
   `factorization_algorithm` each carry a further requirement on other
   options that DOES throw when unmet, detailed next.
-- `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
+- `Options::accelerate_zero_tol`: the inverse case — Accelerate's
   OWN option. A present value does NOT throw under
   `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under
   `#else` (MKL has no zeroTolerance concept for it to override).
@@ -1602,7 +1602,7 @@ in practice. Every recorded row carries the mechanism and the value it pinned
 to.
 
 **On Accelerate the native arm pins nothing, and records that.** hven's
-Accelerate session stores `Options::num_threads` so `adopt()` can round-trip
+Accelerate session stores `Options::threads` so `adopt()` can round-trip
 the options faithfully and applies it to no backend call — the surface calls
 per-instance thread control best-effort-absent on this backend rather than
 fabricating one. The arm therefore reports mechanism `absent`, value `0`, and

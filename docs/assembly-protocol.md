@@ -53,7 +53,7 @@ hven::Problem problem(std::move(d));
   it as `AssemblyDeclaration(n)`.
 - **Partitions.** `set_partitions(k)` asks the interior-point layout for `k` evaluation
   partitions. The layout may clamp the request down, never up: it adopts at most one partition
-  per 1000 claimed KKT elements, and at least one. `Problem::partitions()` reports the count
+  per 1000 claimed KKT elements, and at least one. `Problem::num_partitions()` reports the count
   adopted. Partitions are evaluated concurrently (§6).
 
 The raw route writes the same fields directly: `objectives`, `equality_constraints` and
@@ -163,7 +163,7 @@ slot and writing each slot's coordinates into `rows[slot]`, `cols[slot]`:
   orientation, or `(-1, -1)` when either is negative.
 
 `d.v_scatter_loc(i, V)` is the input's column in the space the engine factorizes; it is `-1` for a
-variable the engine eliminated (a fixed variable under `FixedVariableTreatment::kMakeParameter`).
+variable the engine eliminated (a fixed variable under `IpmFixedVariableTreatment::kMakeParameter`).
 An eliminated slot is still claimed, so the scatter's cursor stays in lockstep with the claims,
 and it names no matrix entry. Constraint pieces are claimed with `do_jac` and `do_hess` both true
 and the block's `con_offset`; objective pieces with `do_hess` only. Two claims may name one

@@ -180,7 +180,7 @@ registered for M7.
 
 **A pieces problem is the route that does evaluate concurrently.** A `Problem` built from an
 `AssemblyDeclaration` asks for its partitions with `AssemblyDeclaration::set_partitions(k)`, the
-layout clamps the request down by the same rule (`Problem::partitions()` reports the count
+layout clamps the request down by the same rule (`Problem::num_partitions()` reports the count
 adopted), and each adopted partition evaluates its share of the pieces' applications on a pool
 worker -- the last on the calling thread. A piece is therefore called concurrently through its
 `const` members, on disjoint applications, and must be safe to call that way; each partition
@@ -218,7 +218,7 @@ worker, and do not resize the pool while any solve is running.
 MKL's conditional-numerical-reproducibility mode is the reason the measures above
 are gated, and the ruling names it as a process-global exception. **Verified at
 source, hven's own CNR knob is per instance, not process-global.**
-`SymmetricFactor::Options::cnr_threads` is carried into that session's own
+`SymmetricFactor::Options::conditional_reproducibility_threads` is carried into that session's own
 `iparm[33]` (`src/linear/pardiso_session.cpp:313-322`) and `iparm_` is a member
 of the session; it is off by default (0 means "leave `iparm[33]` alone"), and on
 Accelerate it is refused outright as a Pardiso-only option
@@ -251,7 +251,7 @@ Either way the promise `MklThreadScope` keeps on MKL — apply for this call, pu
 back what was there — is **not kept on Apple**, which is why the SQP engine
 deliberately does not mirror the driver-level call
 (`include/hven/drivers/common_options.h:47-54`) and why
-`SymmetricFactor::set_num_threads` on Accelerate stores a count and applies it to
+`SymmetricFactor::set_threads` on Accelerate stores a count and applies it to
 nothing.
 
 **No value on this page was measured on Apple hardware.** Everything in this

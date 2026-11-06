@@ -108,9 +108,9 @@ believe. This table says only what exists, where, and how many.
 131 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
 two nested groups' 61, which it carries whole. (130 and 60 until M7 W2 A3, which
 appended `ipqp_ladder_zero_trial_skips`, the fire counter of
-`IpqpOptions::ipqp_ladder_skip_after`, last in `IpqpCounters`; 127 and 57 until M7 W2 A2, which
-appended the three fire counters of `IpqpOptions::ipqp_mu0_rule` and
-`ipqp_mu_residual_floor` -- `ipqp_mu0_derived`, `ipqp_mu0_fallbacks` and
+`IpqpOptions::ladder_skip_after`, last in `IpqpCounters`; 127 and 57 until M7 W2 A2, which
+appended the three fire counters of `IpqpOptions::barrier_initial_rule` and
+`IpqpOptions::barrier_residual_floor` -- `ipqp_mu0_derived`, `ipqp_mu0_fallbacks` and
 `ipqp_mu_floor_binds` -- last in `IpqpCounters`; 115 and 38 until M7 W2 M4, which
 appended `start_point_clamps`; 116 and 39 until M7 W2 M1, which appended the
 five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
