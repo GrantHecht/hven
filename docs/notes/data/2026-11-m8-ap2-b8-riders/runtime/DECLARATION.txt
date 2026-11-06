@@ -1,0 +1,30 @@
+M8 AP-2 B8 RIDERS -- runtime neutrality gate -- DECLARATION
+(B8's instrument, ../../2026-11-m8-ap2-b8/runtime/, re-pointed for the riders; committed before the first leg;
+never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b8/runtime/DECLARATION.txt, whose criteria are taken VERBATIM; only the arms, the
+paths and the group's name change. run_all.sh and runtime_leg.sh are B8's with the build directory (build-b8 ->
+build-b8r), the evidence directory, arm A's sha256 and the comments' arm A replaced. analyze_r5.py is B8's except
+its one repository-root line's COMMENT (b8-riders/runtime/ is five levels below the root, as b8/runtime/ was --
+checked by ../legs/chain1.sh's pre-flight); the code is byte for byte. The fixture is copied byte for byte.
+
+ARMS
+  A  cf164dcf (origin/m8: B7 landed + the C241 test-only fix): build-b8r/armAbin/hven_sqp_corpus, the corpus
+     binary of ../legs/prebuild.sh's Release build of cf164dcf's `git archive` export (build-b8r/armA-src at
+     build-b8r/armA), made BEFORE ANY RIDER EDIT with ../legs/build.sh's flags; sha256
+     d2c9a99f14396554fc8753f102a316004f731b4333d55d9fc12ff5b3aeb90515.
+  B  the riders' code head fe2125e0: build-b8r/rel/bench/hven_sqp_corpus (a fresh configure and build at the head,
+     ../legs/build.sh) copied by run_all.sh to build-b8r/armBbin/, sha256 99daeaf80252f475f51361b085d68781dbc071cb0da002c8d7d5647b4118728a.
+     run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B), core 2,
+band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter identity as the STOP
+condition: exactly as the source declaration. Both arms at the defaults in every mode.
+WHAT THE ARMS DIFFER BY, for the reader of the ratios: arm A predates B8, so B8 (names; the SQP restoration entry
+test re-associated, equal for every cap >= 1; the kSolve phase's mode mapped once per phase) and the riders (names;
+IpmOptions 8 bytes longer on MKL builds: IpmLinearOptions::accelerate_zero_tol declared everywhere, so every member
+after it, and every struct embedding IpmOptions, moves by 8 -- P13 step 2 is the instruction-level account) are both
+in B/A. No algorithm changes.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a hven_bench_cell`
+empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux
+7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows UNOBSERVED.

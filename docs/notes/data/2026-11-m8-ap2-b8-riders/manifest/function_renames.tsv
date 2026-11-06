@@ -1,0 +1,14 @@
+# demangled-name rewrites for the renamed FUNCTIONS (member_manifest.tsv rows that are functions, the two WarmStart byte-form functions, the moved to_string overload, two test accessors) and for the gtest classes of a suite named for a renamed type (IpqpMu0Rule -> IpqpBarrierInitialRule); regex<TAB>replacement
+\bhven::linear::SymmetricFactor::set_num_threads\(	hven::linear::SymmetricFactor::set_threads(
+\bhven::linear::DenseSymmetricFactor::set_num_threads\(	hven::linear::DenseSymmetricFactor::set_threads(
+\bhven::linear::DenseSymmetricFactor::num_threads\(	hven::linear::DenseSymmetricFactor::threads(
+\bhven::IpmTiming::misc\(	hven::IpmTiming::other_seconds(
+\bhven::Problem::partitions\(	hven::Problem::num_partitions(
+\bhven::SqpSolver::ssn_tier_num_threads\(	hven::SqpSolver::ssn_tier_threads(
+\bhven::SqpSolver::ipqp_tier_num_threads\(	hven::SqpSolver::ipqp_tier_threads(
+\bhven::serialize\((hven::WarmStart const&)\)	hven::serialize_warm_start(\1)
+\bhven::deserialize\((std::span<std::byte const)	hven::deserialize_warm_start(\1
+\bhven::to_string\((hven::detail::PredictorOutcome)\)	hven::detail::to_string(\1)
+\bhven::QpEngineTestAccess::	hven::detail::QpEngineTestAccess::
+\bhven::AggregateEvalSeamTestAccess::	hven::detail::AggregateEvalSeamTestAccess::
+\bIpqpMu0Rule_(\w+_Test)\b	IpqpBarrierInitialRule_\1
