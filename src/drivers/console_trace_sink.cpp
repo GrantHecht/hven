@@ -81,7 +81,7 @@ int print_level_of(Verbosity v) {
 
 // --- the colour bands -------------------------------------------------------
 
-fmt::text_style ipm_residual_color(double value, double target, double acceptable) {
+fmt::text_style detail::ipm_residual_color(double value, double target, double acceptable) {
     constexpr double kFloor = 1e-300;
     auto level1 = std::log(std::max(target, kFloor));
     auto level3 = std::log(std::max(acceptable, kFloor));
