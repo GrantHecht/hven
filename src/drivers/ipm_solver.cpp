@@ -211,12 +211,12 @@ void hven::detail::IpmSolverImpl::set_qp_params() {
     // ran was deliberately not carried across. A request for refinement would
     // therefore do nothing at all, which is exactly the silent drop the
     // rejection above exists to prevent.
-    if (opts_.linear.refinement_steps != 0) {
+    if (opts_.linear.max_refinement_steps != 0) {
         throw std::invalid_argument(fmt::format(
             "hven interior-point solver: linear.max_refinement_steps = {} cannot be applied -- the "
             "sparse linear surface performs no "
             "iterative refinement on this backend, so a nonzero cap would be inert",
-            opts_.linear.refinement_steps));
+            opts_.linear.max_refinement_steps));
     }
 
     opts.accelerate_zero_tol = opts_.linear.accelerate_zero_tol;

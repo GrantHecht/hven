@@ -108,7 +108,7 @@ TEST(KktPartialSolve, GateClosesOnPerturbedPivots) {
     const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
     ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
 #ifdef USE_ACCELERATE_SPARSE
-    ASSERT_EQ(outcome.inertia.n_zero, 1); // precondition: the zero-pivot trust signal
+    ASSERT_EQ(outcome.inertia.zero, 1); // precondition: the zero-pivot trust signal
 #else
     ASSERT_TRUE(outcome.inertia.perturbed_pivots.has_value());
     ASSERT_EQ(*outcome.inertia.perturbed_pivots, 1); // precondition for this pin

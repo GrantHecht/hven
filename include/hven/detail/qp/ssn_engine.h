@@ -723,7 +723,7 @@ class SsnEngine {
     /// The LIVE factor's own thread count, read through to the backend session
     /// (SymmetricFactor::num_threads()) rather than a stored copy -- a boundary
     /// observation of the factor this tier actually solves through.
-    int num_threads() const noexcept { return kkt_.factor.num_threads(); }
+    int num_threads() const noexcept { return kkt_.factor.threads(); }
 
     // Solve `qp` from `start`. `out` must be non-null and is fully overwritten.
     //

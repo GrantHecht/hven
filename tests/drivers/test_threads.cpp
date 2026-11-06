@@ -307,7 +307,7 @@ int driver_k0_num_threads(const SqpResult &sol) {
     if (SqpWarmAccess::state(sol.sqp_warm_start).hot == nullptr) {
         return -1;
     }
-    return SqpWarmAccess::state(sol.sqp_warm_start).hot->border->kkt.factor.num_threads();
+    return SqpWarmAccess::state(sol.sqp_warm_start).hot->border->kkt.factor.threads();
 }
 
 // ---------------------------------------------------------------------------
@@ -633,7 +633,7 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     EXPECT_EQ(ipqp.num_threads(), 0) << "the IPQP tier's KKT factorization";
 
     const hven::detail::KktFactor defaulted;
-    EXPECT_EQ(defaulted.factor.num_threads(), 0);
+    EXPECT_EQ(defaulted.factor.threads(), 0);
 
     // THE HOT HANDLE IS A WALK-TIER OBJECT. It carries the `BorderState` the
     // walk engine solved through, so it exists only on a solve that ran the

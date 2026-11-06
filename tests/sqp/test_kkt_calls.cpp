@@ -104,10 +104,10 @@ TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
 // the backend session), not the options struct that configured it.
 TEST(KktFactor, IsConstructedAtTheThreadCountItIsGiven) {
     const detail::KktFactor two(2);
-    EXPECT_EQ(two.factor.num_threads(), 2);
+    EXPECT_EQ(two.factor.threads(), 2);
 
     const detail::KktFactor defaulted;
-    EXPECT_EQ(defaulted.factor.num_threads(), 0)
+    EXPECT_EQ(defaulted.factor.threads(), 0)
         << "the default argument is the backend default -- the pre-T8.8 behaviour bit for bit";
 }
 

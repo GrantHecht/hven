@@ -593,10 +593,10 @@ TEST(QpEngineIndefinite, InertiaGateRefusesPerturbedFactorization) {
 // rule; on MKL only the perturbed-pivot count flags it while the sign
 // counts impersonate a healthy (3, 1).
 #ifdef USE_ACCELERATE_SPARSE
-        ASSERT_EQ(e.n_pos, 2); // honest: the zero pivot is in the zero bucket
-        ASSERT_EQ(e.n_neg, 1);
+        ASSERT_EQ(e.positive, 2); // honest: the zero pivot is in the zero bucket
+        ASSERT_EQ(e.negative, 1);
         ASSERT_FALSE(e.zero_is_derived);
-        ASSERT_EQ(e.n_zero, 1);
+        ASSERT_EQ(e.zero, 1);
 #else
         ASSERT_TRUE(e.perturbed_pivots.has_value());
         ASSERT_EQ(*e.perturbed_pivots, 1);
@@ -698,7 +698,7 @@ TEST(QpEngineIndefinite, SuspectStallIsNotCertifiedOptimal) {
         detail::KktFactor kkt;
         const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
 #ifdef USE_ACCELERATE_SPARSE
-        ASSERT_EQ(e.n_zero, 1);
+        ASSERT_EQ(e.zero, 1);
 #else
         ASSERT_TRUE(e.perturbed_pivots.has_value());
         ASSERT_EQ(*e.perturbed_pivots, 1);
@@ -887,7 +887,7 @@ TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     detail::KktFactor kkt;
     const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, K).inertia;
 #ifdef USE_ACCELERATE_SPARSE
-    ASSERT_EQ(e.n_zero, 1);
+    ASSERT_EQ(e.zero, 1);
 #else
     ASSERT_TRUE(e.perturbed_pivots.has_value());
     ASSERT_EQ(*e.perturbed_pivots, 1);

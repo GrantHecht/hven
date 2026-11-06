@@ -316,7 +316,7 @@ TEST_P(InteriorPointTrace, P6_RefinementStepEvidence) {
     // Asserting ABSENCE below is itself the fabrication guard for that
     // backend.
 #if defined(__APPLE__)
-    EXPECT_FALSE(info.refinement_iters.has_value())
+    EXPECT_FALSE(info.refinement_steps.has_value())
         << "Accelerate has no refinement-step counter; a present value here would be a "
            "fabrication, not evidence";
 #else

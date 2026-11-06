@@ -588,7 +588,7 @@ void SymmetricFactor::set_threads(int num_threads) {
     }
 }
 
-int SymmetricFactor::num_threads() const noexcept {
+int SymmetricFactor::threads() const noexcept {
     // Read THROUGH to the session rather than reporting `opts_`, whose copy
     // goes stale the moment a CO-OWNER of this session moves the count (the
     // setter above writes both, but it writes only ITS OWN engine's `opts_`).

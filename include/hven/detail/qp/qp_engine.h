@@ -1739,7 +1739,7 @@ class QpEngine {
     // observable at the boundary. After a hot handle is adopted, `border_`
     // is the PRODUCING engine's BorderState -- adoption requires an equal
     // options fingerprint, which folds `threads`, so the answer still agrees.
-    int num_threads() const noexcept { return border_->kkt.factor.num_threads(); }
+    int num_threads() const noexcept { return border_->kkt.factor.threads(); }
 
     // The thread count this engine was BUILT with -- the value hashed into
     // options_hash_. Distinct from num_threads() above; see it.

@@ -204,7 +204,7 @@ TEST(SymmetricFactorThreadCount, ANegativeCountIsRejectedAndLeavesTheCountAlone)
     SymmetricFactor factor{opts};
 
     EXPECT_THROW(factor.set_threads(-1), std::invalid_argument);
-    EXPECT_EQ(factor.num_threads(), 1);
+    EXPECT_EQ(factor.threads(), 1);
 }
 
 // The whole point of the setter: it moves a value the backend reads per
@@ -227,7 +227,7 @@ TEST(SymmetricFactorThreadCount, ANewCountCostsNoAnalysisNoSessionAndNoEpoch) {
 
     factor.set_threads(2);
 
-    EXPECT_EQ(factor.num_threads(), 2);
+    EXPECT_EQ(factor.threads(), 2);
     EXPECT_EQ(factor.counters().analyze_count, 1);
     EXPECT_EQ(factor.session_id(), session_before);
     EXPECT_EQ(factor.epoch(), epoch_before);
@@ -258,7 +258,7 @@ TEST(SymmetricFactorThreadCount, AdoptReportsTheCountSetAfterTheAnalysis) {
     factor.set_threads(3);
 
     const SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
-    EXPECT_EQ(adopted.num_threads(), 3)
+    EXPECT_EQ(adopted.threads(), 3)
         << "adopt() reads the session's CURRENT count, so a co-owner's later set is what an "
            "adopter receives";
 }
@@ -286,22 +286,22 @@ TEST(SymmetricFactorThreadCount, AnAdoptedEngineTracksACoOwnersLaterSet) {
     ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
 
     SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
-    ASSERT_EQ(adopted.num_threads(), 1) << "the two agree at adopt() time";
+    ASSERT_EQ(adopted.threads(), 1) << "the two agree at adopt() time";
 
     factor.set_threads(4); // moved by a co-owner, on the SHARED session
 
-    EXPECT_EQ(adopted.num_threads(), 4)
+    EXPECT_EQ(adopted.threads(), 4)
         << "the adopter's next call runs at the session's current count, so that is what it "
            "reports";
-    EXPECT_EQ(factor.num_threads(), 4);
+    EXPECT_EQ(factor.threads(), 4);
 
     // The documented consequence of the read-through, pinned so it cannot
     // change silently: analyze() forks a FRESH session from this engine's own
     // Options, so the adopter stops tracking the count it never agreed to.
     adopted.analyze(A);
-    EXPECT_EQ(adopted.num_threads(), 1)
+    EXPECT_EQ(adopted.threads(), 1)
         << "a re-analysis puts the engine back on its own Options' count";
-    EXPECT_EQ(factor.num_threads(), 4) << "and leaves the co-owner's session alone";
+    EXPECT_EQ(factor.threads(), 4) << "and leaves the co-owner's session alone";
 }
 
 // collect_factor_mflops's costly opt-in is genuinely MKL-only now: it

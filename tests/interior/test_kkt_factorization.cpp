@@ -386,7 +386,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     hven::IpmSolver solver;
     {
         auto o = solver.options();
-        o.linear.refinement_steps = 2;
+        o.linear.max_refinement_steps = 2;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not

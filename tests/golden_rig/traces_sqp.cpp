@@ -540,7 +540,7 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     // exists to avoid -- add the same native-arm gate here if that happens.
     if (caps.reports_refinement_iters) {
 #if defined(__APPLE__)
-        EXPECT_FALSE(info.refinement_iters.has_value())
+        EXPECT_FALSE(info.refinement_steps.has_value())
             << "Accelerate has no refinement-step counter; a present value here would be a "
                "fabrication, not evidence";
 #else

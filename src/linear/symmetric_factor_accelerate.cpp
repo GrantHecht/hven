@@ -167,9 +167,9 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     // Only kLdlt reaches here -- the constructor rejects the kinds whose
     // backend paths have not landed. SparseFactorizationLDLTTPP is what
     // detail::FactorSession::analyze() actually asks Accelerate for.
-    cfg.num_threads = opts.num_threads;
-    cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
-    cfg.max_refinement_iters = opts.max_refinement_iters;
+    cfg.num_threads = opts.threads;
+    cfg.pivot_perturb_exp = opts.pivot_perturbation_exponent;
+    cfg.max_refinement_iters = opts.max_refinement_steps;
     cfg.ordering = accelerate_ordering_code(opts.ordering);
     // matrix_scaling, pivot_strategy, factorization_algorithm,
     // solve_parallelism, cnr_threads and collect_factor_mflops are all
@@ -275,9 +275,9 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
     }
 
     evidence.state = InertiaEvidence::State::kObserved;
-    evidence.n_pos = n_pos;
-    evidence.n_neg = n_neg;
-    evidence.n_zero = n_zero;
+    evidence.positive = n_pos;
+    evidence.negative = n_neg;
+    evidence.zero = n_zero;
     evidence.zero_is_derived = false; // native 3-way report, not derived by subtraction
     evidence.perturbed_pivots = std::nullopt;
     return evidence;
@@ -397,21 +397,21 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "SymmetricFactor: decomposition {} is not a Decomposition value (kLdlt is the one)",
             static_cast<int>(opts_.decomposition)));
     }
-    validate_num_threads(opts_.num_threads, "SymmetricFactor");
+    validate_num_threads(opts_.threads, "SymmetricFactor");
     // A present value is validated; std::nullopt is the don't-write state
     // (on this backend: Apple's own documented defaults -- see the two
     // options' doc comments) and needs no range check.
-    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
+    if (opts_.pivot_perturbation_exponent.has_value() && *opts_.pivot_perturbation_exponent < 0) {
         throw std::invalid_argument(fmt::format(
             "SymmetricFactor: pivot_perturbation_exponent must be >= 0 (or std::nullopt to "
             "leave the backend's own default in force), got {}",
-            *opts_.pivot_perturb_exp));
+            *opts_.pivot_perturbation_exponent));
     }
-    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
+    if (opts_.max_refinement_steps.has_value() && *opts_.max_refinement_steps < 0) {
         throw std::invalid_argument(
             fmt::format("SymmetricFactor: max_refinement_steps must be >= 0 (or std::nullopt to "
                         "leave the backend's own default in force), got {}",
-                        *opts_.max_refinement_iters));
+                        *opts_.max_refinement_steps));
     }
     if (opts_.conditional_reproducibility_threads < 0) {
         throw std::invalid_argument(
@@ -524,13 +524,13 @@ void SymmetricFactor::set_threads(int num_threads) {
     // value honest -- `opts_` is what a later analyze() builds a session
     // from, the session's copy is what adopt() round-trips back into Options
     // -- and the two must not disagree about a value a caller has set.
-    opts_.num_threads = num_threads;
+    opts_.threads = num_threads;
     if (session_) {
         session_->set_num_threads(num_threads);
     }
 }
 
-int SymmetricFactor::num_threads() const noexcept {
+int SymmetricFactor::threads() const noexcept {
     // Read THROUGH to the session rather than reporting `opts_`: `opts_` is
     // only THIS engine's copy, and a co-owner's set_num_threads() moves the
     // session's without touching it.
@@ -540,7 +540,7 @@ int SymmetricFactor::num_threads() const noexcept {
     // backend call (Options::threads' own BEST-EFFORT-ABSENT contract).
     // Reading it back faithfully is the whole of this backend's obligation to
     // it, and is exactly what this preserves.
-    return session_ ? session_->config().num_threads : opts_.num_threads;
+    return session_ ? session_->config().num_threads : opts_.threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
@@ -728,9 +728,9 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // one on a factorization that has already been computed.
     Options opts;
     opts.decomposition = Decomposition::kLdlt;
-    opts.num_threads = cfg.num_threads;
-    opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
-    opts.max_refinement_iters = cfg.max_refinement_iters;
+    opts.threads = cfg.num_threads;
+    opts.pivot_perturbation_exponent = cfg.pivot_perturb_exp;
+    opts.max_refinement_steps = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
     opts.accelerate_zero_tol = cfg.zero_tolerance_override;
 

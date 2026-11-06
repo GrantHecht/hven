@@ -720,7 +720,7 @@ class SymmetricFactor {
     // constructor was given as moved by set_threads(). A later analyze()
     // resets what this reports: it forks a fresh session from this engine's own
     // Options.
-    int num_threads() const noexcept;
+    int threads() const noexcept;
 
     // --- lifecycle ---
 

@@ -83,7 +83,7 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
         // is measured natively.
         EXPECT_FALSE(e.perturbed_pivots.has_value()) << "eps=" << eps;
         EXPECT_FALSE(e.zero_is_derived) << "eps=" << eps;
-        EXPECT_EQ(e.n_zero, 0) << "eps=" << eps;
+        EXPECT_EQ(e.zero, 0) << "eps=" << eps;
 #else
         ASSERT_TRUE(e.perturbed_pivots.has_value()) << "eps=" << eps;
         EXPECT_EQ(*e.perturbed_pivots, 0) << "eps=" << eps;
@@ -135,10 +135,10 @@ TEST(InertiaProbe, ExactlySingular) {
 // fabricated as positive the way Pardiso's perturbation does. Same trust
 // signal (a nonzero zero class), honest sign counts.
 #ifdef USE_ACCELERATE_SPARSE
-    EXPECT_EQ(e.n_pos, 1);
-    EXPECT_EQ(e.n_neg, 1);
+    EXPECT_EQ(e.positive, 1);
+    EXPECT_EQ(e.negative, 1);
     EXPECT_FALSE(e.zero_is_derived);
-    EXPECT_EQ(e.n_zero, 1);
+    EXPECT_EQ(e.zero, 1);
     EXPECT_FALSE(e.perturbed_pivots.has_value());
 #else
     EXPECT_EQ(e.positive, 2);

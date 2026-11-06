@@ -1079,9 +1079,9 @@ TEST(AccelerateInertiaQueryFaultInjection, QueryFailureReportsKQueryFailedWithIn
     }
 
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kQueryFailed);
-    EXPECT_EQ(evidence.n_pos, -1);
-    EXPECT_EQ(evidence.n_neg, -1);
-    EXPECT_EQ(evidence.n_zero, -1);
+    EXPECT_EQ(evidence.positive, -1);
+    EXPECT_EQ(evidence.negative, -1);
+    EXPECT_EQ(evidence.zero, -1);
     EXPECT_FALSE(evidence.perturbed_pivots.has_value())
         << "must stay absent, not zero-filled, alongside the failed query";
 
