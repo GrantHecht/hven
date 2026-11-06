@@ -100,7 +100,7 @@ TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
 // temporary, the verdict-refine fallback, the SSN tier's persistent factor and
 // the parametric predictor's one factorization).
 //
-// It reads the LIVE factor (`SymmetricFactor::num_threads()` reads through to
+// It reads the LIVE factor (`SymmetricFactor::threads()` reads through to
 // the backend session), not the options struct that configured it.
 TEST(KktFactor, IsConstructedAtTheThreadCountItIsGiven) {
     const detail::KktFactor two(2);

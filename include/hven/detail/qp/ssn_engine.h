@@ -721,7 +721,7 @@ class SsnEngine {
     const QpOptions &options() const { return opts_; }
 
     /// The LIVE factor's own thread count, read through to the backend session
-    /// (SymmetricFactor::num_threads()) rather than a stored copy -- a boundary
+    /// (SymmetricFactor::threads()) rather than a stored copy -- a boundary
     /// observation of the factor this tier actually solves through.
     int num_threads() const noexcept { return kkt_.factor.threads(); }
 

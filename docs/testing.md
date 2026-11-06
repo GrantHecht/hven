@@ -436,7 +436,7 @@ plain public-API coverage (`test_symmetric_factor.cpp`'s
 epoch, analyze counter, and a working refactorize/solve after the setter).
 The first half has no public observable at all — a thread count is licensed
 to reassociate arithmetic, not to change a result, and MKL exposes no query
-for the thread-local override in force. `SymmetricFactor::num_threads()` does
+for the thread-local override in force. `SymmetricFactor::threads()` does
 read a live session's STORED count back (it reads through to the session, so
 a co-owner's `set_num_threads` is visible through it), but a count that is
 stored is not a count that was APPLIED: nothing outside reports what a backend
