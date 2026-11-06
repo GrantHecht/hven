@@ -443,7 +443,7 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     stamp(os, "mu-sweep",
           option_stamp(opts_at(mus[0])) +
               "# ipqp_init_mu above is the FIRST level only; the mu column is authoritative.\n"
-              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpSolver under kIpqp;\n"
+              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpSolver under kIpm;\n"
               "# indefinite = tier-direct nonconvex QP fixture.\n");
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
 
