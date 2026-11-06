@@ -509,6 +509,7 @@ reading `docs/notes/data/2026-11-m8-ap2-b8/manifest/` and `docs/notes/data/2026-
 | `SqpSolver` | `ssn_tier_num_threads()` | `ssn_tier_threads()` |
 | `SqpSolver` | `ipqp_tier_num_threads()` | `ipqp_tier_threads()` |
 | `IpmCrossoverOptions` | `activity_rel_tol` | `activity_relative_tol` |
+| `linear::SymmetricFactor` | `num_threads()` | `threads()` |
 | (free function) | `serialize(const WarmStart &)` | `serialize_warm_start(const WarmStart &)` |
 | (free function) | `deserialize(std::span<const std::byte>)` | `deserialize_warm_start(std::span<const std::byte>)` |
 | `IpmLinearOptions` | `accelerate_zero_tol` declared only under `USE_ACCELERATE_SPARSE` | declared on every platform (validated everywhere, ignored on MKL) |
