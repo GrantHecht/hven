@@ -12,6 +12,8 @@
 
 #include "hven/core/pattern_hash.h"
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {

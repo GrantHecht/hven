@@ -16,7 +16,7 @@
 // declaration, so this interface adds no accessor for them -- but a provider
 // that RETAINS a published stream across a re-lay can hold a stream stated in
 // dimensions its declaration no longer reports, and such a provider publishes
-// the widths it was built against itself (M6 W6 T5; NonLinearProgram::
+// the widths it was built against itself (NonLinearProgram::
 // claim_stream_dimensions(), returning the ClaimStreamDimensions below). No
 // virtual is added here: a provider that rebuilds its stream at every lay has
 // nothing to say that its declaration does not already say.

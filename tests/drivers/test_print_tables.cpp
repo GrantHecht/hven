@@ -33,11 +33,11 @@
 
 using hven::census_variable_bounds;
 using hven::Index;
-using hven::PredictorOutcome;
 using hven::StepVerdict;
 using hven::to_string;
 using hven::VariableBoundCensus;
 using hven::Vec;
+using hven::detail::PredictorOutcome;
 
 namespace {
 
@@ -77,8 +77,8 @@ TEST(PrintTables, PredictorOutcomeFallbackBelongsToNoDeclaredValue) {
 
 // The same, for the step verdict the iteration table prints in its own column.
 TEST(PrintTables, StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem) {
-    EXPECT_STREQ(to_string(StepVerdict::kAcceptF), "AcceptF");
-    EXPECT_STREQ(to_string(StepVerdict::kAcceptH), "AcceptH");
+    EXPECT_STREQ(to_string(StepVerdict::kAcceptObjectiveStep), "AcceptF");
+    EXPECT_STREQ(to_string(StepVerdict::kAcceptFeasibilityStep), "AcceptH");
     EXPECT_STREQ(to_string(StepVerdict::kReject), "Reject");
     EXPECT_STREQ(to_string(StepVerdict::kRestore), "Restore");
     EXPECT_STREQ(to_string(static_cast<StepVerdict>(99)), "?");

@@ -15,6 +15,7 @@
 #include "support/border_test_utils.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 

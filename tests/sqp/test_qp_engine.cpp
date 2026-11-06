@@ -14,6 +14,7 @@
 #include "support/dense_oracle.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
@@ -896,12 +897,11 @@ TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
     // where a widened tolerance would first certify a contradiction kOptimal. The a = 1e-3
     // cell was pinned kOptimal (the footprint miss); since E2 fix6 both algebras certify it
     // kInfeasible exactly through the grey re-read (above).
-    for (const WorkingSetLinearAlgebra alg :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (const QpWorkingSetAlgebra alg :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = alg;
-        SCOPED_TRACE(alg == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder"
-                                                                  : "kRefactorize");
+        SCOPED_TRACE(alg == QpWorkingSetAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize");
         EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
                   QpStatus::kInfeasible);
         EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
@@ -921,7 +921,7 @@ TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
     opts.dual_regularization = std::numeric_limits<double>::infinity();
     // MEASURED, and it is neither kInfeasible nor kOptimal on either: an infinite
     // dual_mu poisons the factorization long before the classification. RE-DERIVED AT
-    // M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kNumericalError on both.
+    // M7 W2 E4 FIX ROUND 2 (a declared mover): kIterationLimit -> kNumericalError on both.
     // The walk used to exhaust its budget against a poisoned factor; E4's EQP-SITE
     // RESIDUAL CHECK sees the poisoned answer immediately -- it does not solve its own
     // system -- escalates the suspect ladder three rungs, and a non-finite answer then
@@ -1055,12 +1055,11 @@ TEST(QpEngine, RandomizedWithEqualityRowAgainstOracle) {
         ASSERT_GT(std::abs(qp.be(0)), 1e-9);
 
         for (const auto algebra :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
             QpOptions opts;
             opts.working_set_algebra = algebra;
             const auto sol = QpEngine{opts}.solve(qp);
-            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
-                                                                          : "refactorize");
+            SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
             ASSERT_EQ(sol.status, QpStatus::kOptimal);
             EXPECT_LT((sol.x - oracle.x).norm(), 1e-7);
@@ -1091,7 +1090,7 @@ TEST(QpEngine, MaxIterBudgetIsReported) {
     QpOptions opts;
     opts.max_iterations = 1;
     const auto sol = QpEngine{opts}.solve(all_bounds_active_qp());
-    EXPECT_EQ(sol.status, QpStatus::kMaxIter);
+    EXPECT_EQ(sol.status, QpStatus::kIterationLimit);
     EXPECT_EQ(sol.counters.minor_iters, 1);
 }
 
@@ -1108,7 +1107,7 @@ TEST(QpEngine, MaxIterBudgetIsReported) {
 // z(1882) = +0.173 on a variable reported kFree with tr_active false):
 // `price()` writes z only at pinned indices, but it runs at the TOP of a
 // minor iteration and the working set is mutated afterwards. A converging
-// exit always re-prices after the last mutation; a kMaxIter exit does not,
+// exit always re-prices after the last mutation; a kIterationLimit exit does not,
 // so a bound the drop rule released on the final minor leaves its price
 // behind. Latent under kWalk (nothing reads QpSolution::z there -- see
 // sqp_solver.h), FATAL under kSsn (ssn_start_from_qp_seed copies the field
@@ -1123,7 +1122,7 @@ TEST(QpEngine, MaxIterBudgetIsReported) {
 // AND IT PINS BOTH HALVES, which is why it is written with two variables
 // rather than one: the freed index must lose its price, and the still-pinned
 // index must KEEP its price. The second half is what distinguishes this
-// repair from docket D0's option 2 ("zero z on kMaxIter"), which would also
+// repair from docket D0's option 2 ("zero z on kIterationLimit"), which would also
 // pass the first half while discarding a price that is still meaningful.
 TEST(QpEngineExportInvariant, AFreeVariableCarriesNoBoundPriceAtACappedExit) {
     // min 1/2||x||^2 - 0.5*(x0 + x1) over [0, 10]^2. Unconstrained optimum
@@ -1153,7 +1152,7 @@ TEST(QpEngineExportInvariant, AFreeVariableCarriesNoBoundPriceAtACappedExit) {
     opts.max_iterations = 1;
     const auto sol = QpEngine{opts}.solve(qp, seed);
 
-    ASSERT_EQ(sol.status, QpStatus::kMaxIter) << "the fixture must reach the capped exit";
+    ASSERT_EQ(sol.status, QpStatus::kIterationLimit) << "the fixture must reach the capped exit";
     ASSERT_EQ(sol.counters.minor_iters, 1);
     // The mechanism actually happened: exactly one of the two seeded pins was
     // released by the drop rule on that single minor.
@@ -1187,7 +1186,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
         {"infeasible_bounds", infeasible_bounds_qp()},
         {"infeasible_equality", infeasible_with_equality_qp()},
     };
-    // Caps of 1 and 2 force a kMaxIter exit mid-solve; 0 stands for the
+    // Caps of 1 and 2 force a kIterationLimit exit mid-solve; 0 stands for the
     // default (empty), which derives a cap large enough that these fixtures all
     // solve out -- so the loop covers both the capped and the converged sides.
     for (const Index cap : {Index{1}, Index{2}, Index{0}}) {
@@ -1253,12 +1252,12 @@ TEST(QpEngineSizeDerivedCap, AnExplicitCapWinsOutrightAndTheSentinelDerives) {
     // Empty (the default) derives.
     EXPECT_EQ(detail::effective_qp_max_iter(qp, std::nullopt), detail::derived_qp_max_iter(base));
 
-    // And the engine honours it end to end: a cap of 1 still reports kMaxIter
+    // And the engine honours it end to end: a cap of 1 still reports kIterationLimit
     // after exactly one minor, on a problem whose derived cap is 500.
     QpOptions opts;
     opts.max_iterations = 1;
     const auto capped = QpEngine{opts}.solve(qp);
-    EXPECT_EQ(capped.status, QpStatus::kMaxIter);
+    EXPECT_EQ(capped.status, QpStatus::kIterationLimit);
     EXPECT_EQ(capped.counters.minor_iters, 1);
 
     // The default sentinel solves the same problem to optimality.
@@ -1320,7 +1319,7 @@ TEST(QpEngineFaceRefine, AnExactFaceSolveLandsOnTheAnalyticEqpAnswer) {
 
     QpSolution out;
     QpEngine engine{QpOptions{}};
-    ASSERT_TRUE(engine.refine_on_face(qp, face, SolveOverrides{}, out));
+    ASSERT_TRUE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
 
     EXPECT_NEAR(0.0, out.x(0), 1e-12);
     EXPECT_NEAR(1.0, out.x(1), 1e-12);
@@ -1347,7 +1346,7 @@ TEST(QpEngineFaceRefine, AFaceThatLeavesTheBoxIsRefusedAndTheCallerKeepsItsAnswe
 
     QpSolution out;
     QpEngine engine{QpOptions{}};
-    EXPECT_FALSE(engine.refine_on_face(qp, face, SolveOverrides{}, out));
+    EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
 
     EXPECT_EQ(face.x, out.x) << "REFUSED means UNCHANGED -- the caller's certificate stands";
     EXPECT_EQ(1, out.counters.factorizations)
@@ -1367,7 +1366,7 @@ TEST(QpEngineFaceRefine, AnOverDeterminedFaceIsRefusedWithoutFactorizing) {
 
     QpSolution out;
     QpEngine engine{QpOptions{}};
-    EXPECT_FALSE(engine.refine_on_face(qp, face, SolveOverrides{}, out));
+    EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
     EXPECT_EQ(0, out.counters.factorizations);
 }
 
@@ -1383,7 +1382,7 @@ TEST(QpEngineFaceRefine, AFullyPinnedFaceIsRefusedAndCostsNothing) {
 
     QpSolution out;
     QpEngine engine{QpOptions{}};
-    EXPECT_FALSE(engine.refine_on_face(qp, face, SolveOverrides{}, out));
+    EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
     EXPECT_EQ(0, out.counters.factorizations);
 }
 
@@ -1405,7 +1404,7 @@ TEST(QpEngineFaceRefine, ATrustRegionPinIsHonouredAsPartOfTheFaceAndPricesNothin
     QpSolution face = face_of(at, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{true});
     face.tr_active[1] = true;
 
-    SolveOverrides overrides;
+    QpSolveOverrides overrides;
     overrides.trust_region_radius = 0.5;
 
     QpSolution out;
@@ -1420,7 +1419,7 @@ TEST(QpEngineFaceRefine, ATrustRegionPinIsHonouredAsPartOfTheFaceAndPricesNothin
     // which is what makes the assertion above about the RADIUS rather than
     // about arithmetic that would have happened anyway.
     QpSolution wide;
-    ASSERT_TRUE(engine.refine_on_face(qp, face, SolveOverrides{}, wide));
+    ASSERT_TRUE(engine.refine_on_face(qp, face, QpSolveOverrides{}, wide));
     EXPECT_GT(std::abs(wide.x(1) - 0.5), 0.1);
 }
 
@@ -1460,7 +1459,7 @@ TEST(QpEngineFaceRefine, AFaceThatViolatesARowItLeftOffIsRefused) {
     QpSolution refused;
     EXPECT_FALSE(engine.refine_on_face(
         qp, face_of(at, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{true, false}),
-        SolveOverrides{}, refused))
+        QpSolveOverrides{}, refused))
         << "the omitted row is violated by 0.3 at the face's own answer";
     EXPECT_EQ(1, refused.counters.factorizations) << "a gate refusal has already paid";
     EXPECT_EQ(at, refused.x);
@@ -1468,7 +1467,7 @@ TEST(QpEngineFaceRefine, AFaceThatViolatesARowItLeftOffIsRefused) {
     QpSolution taken;
     ASSERT_TRUE(engine.refine_on_face(
         qp, face_of(at, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{true, true}),
-        SolveOverrides{}, taken))
+        QpSolveOverrides{}, taken))
         << "the COMPLETE face is accepted, so the refusal above is about the row and not about "
            "this fixture";
     EXPECT_NEAR(0.2, taken.x(0), 1e-12);
@@ -1513,7 +1512,7 @@ TEST(QpEngineFaceRefine, AnIndefiniteFaceIsRefusedByTheInertiaGate) {
 
     QpSolution out;
     QpEngine engine{QpOptions{}};
-    EXPECT_FALSE(engine.refine_on_face(qp, face, SolveOverrides{}, out))
+    EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out))
         << "expected inertia (2, 0); this face's free block is (1, 1)";
     EXPECT_EQ(1, out.counters.factorizations)
         << "the verdict is READ FROM the factorization, so it cannot be refused before paying";

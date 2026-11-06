@@ -31,8 +31,8 @@
 #include "support/claim_corpus.h"
 
 using hven::ClaimBlock;
-using hven::FixedVariableTreatment;
-using hven::NonLinearProgram;
+using hven::IpmFixedVariableTreatment;
+using hven::detail::NonLinearProgram;
 using hven::model_tests::build_corpus;
 using hven::model_tests::corpus_cases;
 using hven::model_tests::CorpusCase;
@@ -279,7 +279,7 @@ TEST(ClaimStreamRestatement, AnEliminationOnlyRelayLeavesTheDeclarationSpaceStre
     expect_stream_matches_reference(*nlp, before);
 
     const int *rows_data = nlp->kkt_claim_rows().data();
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
     ASSERT_TRUE(nlp->is_reduced());
 
     // The layout now names coordinates in the reduced space and carries the
@@ -302,8 +302,8 @@ TEST(ClaimStreamRestatement, AnEliminationOnlyRelayLeavesTheDeclarationSpaceStre
 
 TEST(ClaimStreamRestatement, AMakeConstraintSwitchRestatesAgainstTheNewRowSpace) {
     auto nlp = build_corpus(elimination_case());
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_FALSE(nlp->is_reduced());
 
     // The treatment appended one internal equality row per fixed variable, so

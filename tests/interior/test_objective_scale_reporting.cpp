@@ -30,9 +30,9 @@
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
-using hven::ConstEigenRef;
 using hven::IpmSolver;
 using hven::Nlp;
+using hven::detail::ConstEigenRef;
 using hven_interior_tests::solve_declared;
 using hven_interior_tests::transcribe;
 
@@ -223,9 +223,9 @@ double obj_scale_installed_seed(double scale) {
     double installed = 0.0;
     bool seen = false;
     const int primal_vars = ObjScaleBoxedProblem::kN;
-    solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
+    solver.set_kkt_hook([&](int iteration, double, hven::detail::ConstEigenRef<Eigen::VectorXd> xsl,
+                            double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
                             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         if (iteration == 0 && !seen) {
             // No slack variables on this problem, so the equality
@@ -376,7 +376,7 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     // The SAME engine, at the same scale, pointed at a program with no
     // constraint rows at all.
     const auto unconstrained =
-        hven::make_nlp_program(std::make_shared<ObjScaleUnconstrainedProblem>());
+        hven::detail::make_nlp_program(std::make_shared<ObjScaleUnconstrainedProblem>());
 
     // THE SAME ENGINE, THE OTHER PROGRAM -- expressed by handing the other
     // program to solve() rather than by re-attaching (M6 W5 T8.4).
@@ -415,9 +415,9 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
 
     bool attempted = false;
     bool refused = false;
-    solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
+    solver.set_kkt_hook([&](int iteration, double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                            double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
                             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         if (iteration == 0 && !attempted) {
             auto o = solver.options();

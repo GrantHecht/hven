@@ -53,6 +53,7 @@ using hven::detail::SqpWarmAccess;
 namespace {
 
 using namespace hven;
+using namespace hven::detail;
 using hven::ConstVecRef;
 using hven::Index;
 using hven::IndexVecRef;
@@ -60,7 +61,8 @@ using hven::kInfinity;
 using hven::Vec;
 using hven::VecRef;
 
-IpmSolver quiet_ipm(FixedVariableTreatment treatment = FixedVariableTreatment::kMakeParameter) {
+IpmSolver
+quiet_ipm(IpmFixedVariableTreatment treatment = IpmFixedVariableTreatment::kMakeParameter) {
     IpmOptions options;
     options.common.verbosity = hven::Verbosity::kSilent;
     options.fixed_variable_treatment = treatment;
@@ -431,7 +433,7 @@ TEST(Problem, ReportsTheUserRowSpaceUnderMakeConstraintWithAFixedVariable) {
     const auto box = std::make_shared<Box3>();
     box->x1_lower = box->x1_upper = 0.25;
     Problem problem(box);
-    IpmSolver ipm = quiet_ipm(FixedVariableTreatment::kMakeConstraint);
+    IpmSolver ipm = quiet_ipm(IpmFixedVariableTreatment::kMakeConstraint);
     const IpmResult r = ipm.solve(problem, Vec::Constant(3, 0.5));
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_EQ(r.g.size(), 1);
@@ -447,7 +449,7 @@ TEST(Problem, SeedKeyMatchesTheExportKeyUnderMakeConstraintWithAFixedVariable) {
     const auto box = std::make_shared<Box3>();
     box->x1_lower = box->x1_upper = 0.25;
     Problem problem(box);
-    IpmSolver ipm = quiet_ipm(FixedVariableTreatment::kMakeConstraint);
+    IpmSolver ipm = quiet_ipm(IpmFixedVariableTreatment::kMakeConstraint);
     const IpmResult r = ipm.solve(problem, Vec::Constant(3, 0.5));
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_FALSE(r.warm_start.empty());
@@ -463,9 +465,9 @@ TEST(Problem, SeedKeyMatchesTheExportKeyUnderMakeConstraintWithAFixedVariable) {
 // barrier terms; the only thing skipped is re-deriving that ordering.
 TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
     const Vec x0 = Vec::Constant(3, 0.5);
-    for (const FixedVariableTreatment treatment :
-         {FixedVariableTreatment::kMakeParameter, FixedVariableTreatment::kMakeConstraint,
-          FixedVariableTreatment::kRelaxBounds}) {
+    for (const IpmFixedVariableTreatment treatment :
+         {IpmFixedVariableTreatment::kMakeParameter, IpmFixedVariableTreatment::kMakeConstraint,
+          IpmFixedVariableTreatment::kRelaxBounds}) {
         SCOPED_TRACE(static_cast<int>(treatment));
         const auto box = std::make_shared<Box3>();
         Problem problem(box);
@@ -510,9 +512,9 @@ TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
         const IpmResult refixed = ipm.solve(problem, x0);
         ASSERT_EQ(refixed.status, SolveStatus::kOptimal);
         EXPECT_EQ(refixed.kkt_analyses_this_call,
-                  treatment == FixedVariableTreatment::kMakeConstraint ? 1 : 0);
+                  treatment == IpmFixedVariableTreatment::kMakeConstraint ? 1 : 0);
         expect_reference(refixed, 0.75, 0.75);
-        if (treatment == FixedVariableTreatment::kMakeParameter) {
+        if (treatment == IpmFixedVariableTreatment::kMakeParameter) {
             EXPECT_EQ(refixed.x[1], 0.75);
         }
         EXPECT_EQ(problem.statistics().fixed_variables, 1);
@@ -531,7 +533,7 @@ TEST(Problem, AValueOnlyBoundChangeKeepsTheSqpWarmStarts) {
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStart payload = first.warm_start;
     ASSERT_TRUE(!payload.empty());
-    const hven::detail::SqpWarmState native = SqpWarmAccess::state(first.native_warm_start);
+    const hven::detail::SqpWarmState native = SqpWarmAccess::state(first.sqp_warm_start);
     ASSERT_TRUE(native.valid);
 
     box->x1_upper = 0.5; // the unconstrained x1 = 2/3 is cut off: the bound is active
@@ -1008,7 +1010,7 @@ TEST(Problem, ConstructionValidatesAndCountsTheDeclaration) {
     Problem problem(hs071());
     EXPECT_EQ(problem.num_variables(), 4);
     EXPECT_EQ(problem.num_constraints(), 2);
-    EXPECT_EQ(problem.partitions(), 1);
+    EXPECT_EQ(problem.num_partitions(), 1);
     const ProblemStatistics &s = problem.statistics();
     EXPECT_EQ(s.variables, 4);
     EXPECT_EQ(s.boxed_variables, 4);
@@ -1291,9 +1293,9 @@ TEST(WarmStartRowSpace, ABracedEmptyThirdArgumentSelectsTheWarmStartOverload) {
     SqpSolver native = quiet_sqp();
     Problem d(hs071());
     const SqpResult native_first = native.solve(d, hs071_start());
-    ASSERT_TRUE(native_first.native_warm_start.valid());
-    EXPECT_EQ(native_first.native_warm_start.x().size(), 4);
-    const SqpResult native_second = native.solve(d, hs071_start(), native_first.native_warm_start);
+    ASSERT_TRUE(native_first.sqp_warm_start.valid());
+    EXPECT_EQ(native_first.sqp_warm_start.x().size(), 4);
+    const SqpResult native_second = native.solve(d, hs071_start(), native_first.sqp_warm_start);
     EXPECT_EQ(native_second.status, SolveStatus::kOptimal);
     EXPECT_GT(native_second.counters.start_level_used, StartLevel::kSeeded);
 }

@@ -61,7 +61,7 @@
 #include <hven/core/compiler.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // The driver-facing NLP. IMPLEMENTER PRECONDITION: eval_hess/eval_jac_e/
 // eval_jac_i return an x-INDEPENDENT sparsity pattern, and eval_hess's is
@@ -289,4 +289,4 @@ class ParametricNlpModel : public NlpModel {
     virtual Vec parameters() const = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

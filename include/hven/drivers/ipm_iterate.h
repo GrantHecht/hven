@@ -37,8 +37,8 @@ struct IpmIterate {
     // `h_pert_cum` and the two proximal shifts below are what the classic inertia
     // ladder and the proximal mode did to THIS iteration's KKT diagonal -- the IPM's
     // counterpart of the IPQP ladder counters in core/solver_counters.h.
-    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    // the model's second derivative -- a first-order mode re-derives or re-labels it).
+    // CURVATURE SOURCE: exact model Hessian (the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode would re-derive or re-label it).
     double h_pert = 0;
     /// Inertia-ladder steps this iteration's factorization took; 0 when none
     /// were needed. SENTINEL -1: the Newton direction came back non-finite, so

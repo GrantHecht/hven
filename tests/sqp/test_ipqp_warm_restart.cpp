@@ -150,25 +150,25 @@ TEST(IpqpWarmRestart, AMalformedSeedIsRefusedAtTheBoundary) {
     // A block at the wrong width.
     IpqpSeed wrong_width = seed_for(qp);
     wrong_width.zl = vec({1.0, 2.0});
-    EXPECT_THROW(tier.solve(qp, &wrong_width, IpqpOptions{}, SolveOverrides{}),
+    EXPECT_THROW(tier.solve(qp, &wrong_width, IpqpOptions{}, QpSolveOverrides{}),
                  std::invalid_argument);
 
     // A non-finite component.
     IpqpSeed not_finite = seed_for(qp);
     not_finite.x = vec({std::numeric_limits<double>::quiet_NaN()});
-    EXPECT_THROW(tier.solve(qp, &not_finite, IpqpOptions{}, SolveOverrides{}),
+    EXPECT_THROW(tier.solve(qp, &not_finite, IpqpOptions{}, QpSolveOverrides{}),
                  std::invalid_argument);
 
     // A non-finite payload mu. The DRIVER degrades this cold (plan section 7
     // note (f)); a seed that reached the engine carrying one is a caller error.
     IpqpSeed bad_mu = seed_for(qp);
     bad_mu.mu = std::numeric_limits<double>::infinity();
-    EXPECT_THROW(tier.solve(qp, &bad_mu, IpqpOptions{}, SolveOverrides{}), std::invalid_argument);
+    EXPECT_THROW(tier.solve(qp, &bad_mu, IpqpOptions{}, QpSolveOverrides{}), std::invalid_argument);
 
     // A seed labelled COLD. A cold solve is a null seed, not a labelled one.
     IpqpSeed cold_label = seed_for(qp);
     cold_label.grade = IpqpRestartGrade::kCold;
-    EXPECT_THROW(tier.solve(qp, &cold_label, IpqpOptions{}, SolveOverrides{}),
+    EXPECT_THROW(tier.solve(qp, &cold_label, IpqpOptions{}, QpSolveOverrides{}),
                  std::invalid_argument);
 
     // AND THE SAME SEED, WELL FORMED, IS ACCEPTED -- so the four refusals above
@@ -177,7 +177,7 @@ TEST(IpqpWarmRestart, AMalformedSeedIsRefusedAtTheBoundary) {
     good.zl = vec({1.0e-3});
     good.zu = vec({1.0e-3});
     good.mu = 1.0e-3;
-    const IpqpResult r = tier.solve(qp, &good, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &good, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kFullWarm);
 }
@@ -185,7 +185,7 @@ TEST(IpqpWarmRestart, AMalformedSeedIsRefusedAtTheBoundary) {
 TEST(IpqpWarmRestart, AColdSolveReportsTheColdGradeAndTouchesNoWarmCounter) {
     const QpProblem qp = interior_qp();
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kCold);
     EXPECT_EQ(r.counters.ipqp_restart_repairs, 0);
     EXPECT_DOUBLE_EQ(r.counters.ipqp_restart_shift_max, 0.0);
@@ -204,7 +204,7 @@ TEST(IpqpWarmRestart, TheFullGradeCarriesTheTwoSidedSplitUnflattened) {
     const QpProblem qp = interior_qp();
     const IpqpSeed seed = centred_full_seed();
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &seed, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     ASSERT_EQ(r.counters.ipqp_iters, 0) << "the seed already meets the target, so nothing moved";
@@ -223,7 +223,7 @@ TEST(IpqpWarmRestart, TheBaseGradeConvergesButLosesTheSplit) {
     const QpProblem qp = interior_qp();
     const IpqpSeed seed = centred_base_seed();
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &seed, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kBaseWarm);
@@ -252,21 +252,21 @@ TEST(IpqpWarmRestart, ThePayloadMuIsAdoptedOnlyWhenItRaisesTheMeasuredFloor) {
     // binds: `max(mu_meas, kappa * mu_payload)` takes the payload term.
     IpqpSeed raises = centred_full_seed();
     raises.mu = 1.0e-4;
-    const IpqpResult r = tier.solve(qp, &raises, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &raises, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_mu_adopted, 1);
 
     // The same payload with adoption DISABLED (`kappa = 0`, a documented
     // reading of the field): the clamp reads the measured floor only.
     IpqpOptions off;
-    off.mu_adopt_factor = 0.0;
-    const IpqpResult r_off = tier.solve(qp, &raises, off, SolveOverrides{});
+    off.barrier_adoption_factor = 0.0;
+    const IpqpResult r_off = tier.solve(qp, &raises, off, QpSolveOverrides{});
     EXPECT_EQ(r_off.counters.ipqp_mu_adopted, 0);
 
     // And a payload BELOW the measured floor never lowers it, so nothing is
     // adopted even at the default factor.
     IpqpSeed lower = centred_full_seed();
     lower.mu = 1.0e-15;
-    const IpqpResult r_low = tier.solve(qp, &lower, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r_low = tier.solve(qp, &lower, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r_low.counters.ipqp_mu_adopted, 0);
 }
 
@@ -277,12 +277,12 @@ TEST(IpqpWarmRestart, ThePayloadMuCanNeverRaiseMuAboveTheColdDefault) {
     huge.mu = 1.0e6;
 
     IpqpOptions o;
-    o.init_mu = 1.0e-3;
-    const IpqpResult r = tier.solve(qp, &huge, o, SolveOverrides{});
+    o.barrier_initial = 1.0e-3;
+    const IpqpResult r = tier.solve(qp, &huge, o, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     // The clamp's ceiling is the cold default, so an absurd payload cannot
     // make this solve start looser than a cold one would have.
-    EXPECT_LE(r.mu, o.init_mu);
+    EXPECT_LE(r.mu, o.barrier_initial);
 }
 
 // ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     const QpProblem qp = stale_qp();
     IpqpEngine tier(tight_opts());
 
-    const IpqpResult cold = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult cold = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
     // The stale seed: a point from the far corner of the box, priced as if the
@@ -308,9 +308,9 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     stale.mu = 1.0e-9;
 
     IpqpOptions killed;
-    killed.warm_iter_budget = 1;
+    killed.max_warm_iterations = 1;
     IpqpEngine killed_tier(tight_opts());
-    const IpqpResult r = killed_tier.solve(qp, &stale, killed, SolveOverrides{});
+    const IpqpResult r = killed_tier.solve(qp, &stale, killed, QpSolveOverrides{});
 
     EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1) << "the kill fired, exactly once";
     EXPECT_EQ(r.status, QpStatus::kOptimal) << "and the cold restart recovered the answer";
@@ -324,7 +324,7 @@ TEST(IpqpWarmRestart, AStaleSeedIsAbandonedAtTheClampedBudgetAndColdRecovers) {
     // NON-VACUITY: the SAME seed under the shipped budget is not abandoned, so
     // the kill above is about the budget and not about the seed.
     IpqpEngine patient(tight_opts());
-    const IpqpResult ok = patient.solve(qp, &stale, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ok = patient.solve(qp, &stale, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(ok.counters.ipqp_warm_restart_abandoned, 0);
     EXPECT_EQ(ok.status, QpStatus::kOptimal);
 }
@@ -341,23 +341,23 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
     stale.mu = 1.0e-9;
 
     IpqpOptions clamped;
-    clamped.warm_iter_budget = 1000; // far above the cap below
-    clamped.hard_iteration_cap = 2;
+    clamped.max_warm_iterations = 1000; // far above the cap below
+    clamped.hard_max_iterations = 2;
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &stale, clamped, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &stale, clamped, QpSolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1)
         << "the clamped warm budget equals the iteration budget, and the kill still fires";
     // AND THE COLD ATTEMPT RAN: its own budget re-based at the kill, so the
     // solve took more iterations than the single clamped budget allows.
-    EXPECT_GT(r.counters.ipqp_iters, clamped.hard_iteration_cap);
+    EXPECT_GT(r.counters.ipqp_iters, clamped.hard_max_iterations);
 
     // NON-VACUITY: a COLD solve under the same cap escapes on budget, so the
     // extra iterations above are the restart's and not the cap's slack.
     IpqpEngine cold_tier(tight_opts());
-    const IpqpResult c = cold_tier.solve(qp, nullptr, clamped, SolveOverrides{});
+    const IpqpResult c = cold_tier.solve(qp, nullptr, clamped, QpSolveOverrides{});
     EXPECT_EQ(c.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(c.counters.ipqp_warm_restart_abandoned, 0);
-    EXPECT_LE(c.counters.ipqp_iters, clamped.hard_iteration_cap);
+    EXPECT_LE(c.counters.ipqp_iters, clamped.hard_max_iterations);
 }
 
 // THE BUDGETS ARE PER ATTEMPT, not a shared pool: section 5.5 makes a SECOND overrun an ordinary
@@ -366,7 +366,7 @@ TEST(IpqpWarmRestart, TheWarmBudgetIsClampedButStillPreemptsTheOrdinaryEscape) {
 TEST(IpqpWarmRestart, TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder) {
     const QpProblem qp = stale_qp();
     IpqpEngine measure(tight_opts());
-    const IpqpResult cold = measure.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult cold = measure.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
     ASSERT_GT(cold.counters.ipqp_iters, 0);
 
@@ -377,10 +377,10 @@ TEST(IpqpWarmRestart, TheColdRestartGetsTheOrdinaryBudgetAndNotItsRemainder) {
     stale.mu = 1.0e-9;
 
     IpqpOptions o;
-    o.warm_iter_budget = 1;
-    o.hard_iteration_cap = cold.counters.ipqp_iters; // exactly what cold needs
+    o.max_warm_iterations = 1;
+    o.hard_max_iterations = cold.counters.ipqp_iters; // exactly what cold needs
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &stale, o, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &stale, o, QpSolveOverrides{});
 
     EXPECT_EQ(r.counters.ipqp_warm_restart_abandoned, 1);
     EXPECT_EQ(r.status, QpStatus::kOptimal)
@@ -403,12 +403,12 @@ TEST(IpqpWarmRestart, AZeroWarmBudgetKillsBeforeTheFirstStepAndRunsTheColdTrajec
     stale.mu = 1.0e-9;
 
     IpqpOptions zero;
-    zero.warm_iter_budget = 0;
+    zero.max_warm_iterations = 0;
     IpqpEngine warm_tier(tight_opts());
-    const IpqpResult w = warm_tier.solve(qp, &stale, zero, SolveOverrides{});
+    const IpqpResult w = warm_tier.solve(qp, &stale, zero, QpSolveOverrides{});
 
     IpqpEngine cold_tier(tight_opts());
-    const IpqpResult c = cold_tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult c = cold_tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(w.counters.ipqp_warm_restart_abandoned, 1);
     EXPECT_EQ(w.counters.ipqp_iters, c.counters.ipqp_iters);
@@ -427,7 +427,7 @@ TEST(IpqpWarmRestart, TheCarryIsArmedByASolveAndSpentByTheNextOne) {
     IpqpEngine tier(tight_opts());
 
     EXPECT_EQ(tier.warm_carry(), nullptr) << "a fresh engine carries nothing";
-    const IpqpResult first = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult first = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(first.status, QpStatus::kOptimal);
     ASSERT_NE(tier.warm_carry(), nullptr);
     EXPECT_EQ(tier.warm_carry()->x, first.x) << "the carry IS the state the solve finished at";
@@ -437,7 +437,7 @@ TEST(IpqpWarmRestart, TheCarryIsArmedByASolveAndSpentByTheNextOne) {
 
     // Re-solving the SAME subproblem from the carry costs strictly less: the
     // carry is a converged point of exactly this problem.
-    const IpqpResult second = tier.solve(qp, tier.warm_carry(), IpqpOptions{}, SolveOverrides{});
+    const IpqpResult second = tier.solve(qp, tier.warm_carry(), IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(second.status, QpStatus::kOptimal);
     EXPECT_LT(second.counters.ipqp_iters, first.counters.ipqp_iters);
 
@@ -450,7 +450,7 @@ TEST(IpqpWarmRestart, TheCarryIsArmedByASolveAndSpentByTheNextOne) {
 // subproblem is the reachable case -- the tier returns before it has a workspace at all.
 TEST(IpqpWarmRestart, ASolveThatProducedNothingLeavesThePreviousCarryStanding) {
     IpqpEngine tier(tight_opts());
-    const IpqpResult first = tier.solve(stale_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult first = tier.solve(stale_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(first.status, QpStatus::kOptimal);
     ASSERT_NE(tier.warm_carry(), nullptr);
     const Vec carried = tier.warm_carry()->x;
@@ -459,7 +459,7 @@ TEST(IpqpWarmRestart, ASolveThatProducedNothingLeavesThePreviousCarryStanding) {
     QpProblem pinned = stale_qp();
     pinned.lower = vec({1.0, 1.0});
     pinned.upper = vec({1.0, 5.0});
-    const IpqpResult declined = tier.solve(pinned, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult declined = tier.solve(pinned, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_TRUE(declined.declined_pinned);
 
     ASSERT_NE(tier.warm_carry(), nullptr);
@@ -485,7 +485,7 @@ TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
     IpqpOptions off;
     off.warm_repair = false;
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &absent_slack, off, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &absent_slack, off, QpSolveOverrides{});
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kCold) << "the seed was degraded, not consumed";
     EXPECT_EQ(r.status, QpStatus::kOptimal) << "and the cold solve is a real solve";
     EXPECT_TRUE(r.x.allFinite());
@@ -495,13 +495,13 @@ TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
     // NON-VACUITY, the same payload with the repair ON: the absent slack is
     // recomputed from `bi - Ai x` and the seed IS consumed, at its own grade.
     IpqpEngine repaired(tight_opts());
-    const IpqpResult ok = repaired.solve(qp, &absent_slack, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ok = repaired.solve(qp, &absent_slack, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(ok.restart_grade, IpqpRestartGrade::kFullWarm);
     EXPECT_EQ(ok.status, QpStatus::kOptimal);
     // ... and the DEGRADED run really ran the cold path: same iterate, bitwise,
     // as a solve that was never handed a seed at all.
     IpqpEngine plain(tight_opts());
-    const IpqpResult c = plain.solve(qp, nullptr, off, SolveOverrides{});
+    const IpqpResult c = plain.solve(qp, nullptr, off, QpSolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_iters, c.counters.ipqp_iters);
     EXPECT_EQ(r.x, c.x);
     EXPECT_EQ(r.zl, c.zl);
@@ -515,7 +515,7 @@ TEST(IpqpWarmRestart, RepairOffDegradesADefectiveSeedColdInsteadOfConsumingIt) {
     clean.s = vec({1.0});
     clean.mu = 1.0e-3;
     IpqpEngine unrepaired(tight_opts());
-    const IpqpResult u = unrepaired.solve(qp, &clean, off, SolveOverrides{});
+    const IpqpResult u = unrepaired.solve(qp, &clean, off, QpSolveOverrides{});
     EXPECT_EQ(u.restart_grade, IpqpRestartGrade::kFullWarm);
     EXPECT_EQ(u.counters.ipqp_restart_repairs, 0) << "the repair did not run";
 }
@@ -535,7 +535,7 @@ TEST(IpqpWarmRestart, AdoptionIsCountedOnTheRepairOffBranchToo) {
     IpqpOptions off;
     off.warm_repair = false;
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &clean, off, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &clean, off, QpSolveOverrides{});
     ASSERT_EQ(r.restart_grade, IpqpRestartGrade::kFullWarm) << "the seed must be consumed";
     EXPECT_EQ(r.counters.ipqp_mu_adopted, 1);
 
@@ -544,7 +544,7 @@ TEST(IpqpWarmRestart, AdoptionIsCountedOnTheRepairOffBranchToo) {
     IpqpSeed low = clean;
     low.mu = 1.0e-15;
     IpqpEngine tier2(tight_opts());
-    const IpqpResult t = tier2.solve(qp, &low, off, SolveOverrides{});
+    const IpqpResult t = tier2.solve(qp, &low, off, QpSolveOverrides{});
     ASSERT_EQ(t.restart_grade, IpqpRestartGrade::kFullWarm);
     EXPECT_EQ(t.counters.ipqp_mu_adopted, 0);
 }
@@ -564,7 +564,7 @@ TEST(IpqpWarmRestart, AHighBarrierSeedIsNotTrustedAtIterationZero) {
     high.grade = IpqpRestartGrade::kFullWarm;
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &high, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &high, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_GT(r.counters.ipqp_iters, 0)
         << "an untrusted warm seed may not be adopted as converged before it takes a step";
     EXPECT_EQ(r.status, QpStatus::kOptimal);
@@ -573,7 +573,7 @@ TEST(IpqpWarmRestart, AHighBarrierSeedIsNotTrustedAtIterationZero) {
     // trusted and finishes at iteration zero.
     const IpqpSeed trusted = centred_full_seed();
     IpqpEngine tier2(tight_opts());
-    const IpqpResult t = tier2.solve(qp, &trusted, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult t = tier2.solve(qp, &trusted, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(t.counters.ipqp_iters, 0);
 }
 
@@ -585,7 +585,7 @@ TEST(IpqpWarmRestart, TheBoxClampCountsAsARepair) {
     outside.x = vec({-5.0}); // outside the declared box entirely
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &outside, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &outside, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.counters.ipqp_restart_repairs, 1);
     EXPECT_GT(r.counters.ipqp_restart_shift_max, 3.0)
@@ -594,7 +594,7 @@ TEST(IpqpWarmRestart, TheBoxClampCountsAsARepair) {
     // NON-VACUITY: the same seed already inside the box pays no clamp.
     const IpqpSeed inside = centred_full_seed();
     IpqpEngine tier2(tight_opts());
-    const IpqpResult t = tier2.solve(qp, &inside, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult t = tier2.solve(qp, &inside, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(t.counters.ipqp_restart_repairs, 0);
 }
 
@@ -612,8 +612,8 @@ TEST(IpqpWarmRestart, TheSameSeedTwiceProducesBitIdenticalResults) {
 
     IpqpEngine a(tight_opts());
     IpqpEngine b(tight_opts());
-    const IpqpResult ra = a.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
-    const IpqpResult rb = b.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ra = a.solve(qp, &seed, IpqpOptions{}, QpSolveOverrides{});
+    const IpqpResult rb = b.solve(qp, &seed, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_EQ(ra.status, QpStatus::kOptimal);
     EXPECT_EQ(ra.counters.ipqp_iters, rb.counters.ipqp_iters);
@@ -639,7 +639,7 @@ TEST(IpqpWarmRestart, TheRepairClampsAWrongSignedPriceAndRecordsItsLargestShift)
     bad.mu = 1.0e-3;
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, &bad, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, &bad, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.counters.ipqp_restart_repairs, 1);
     EXPECT_GE(r.counters.ipqp_restart_shift_max, 5.0)
@@ -652,7 +652,7 @@ TEST(IpqpWarmRestart, TheRepairClampsAWrongSignedPriceAndRecordsItsLargestShift)
     fine.zu = vec({1.0e-3, 1.0e-3});
     fine.mu = 5.0e-3;
     IpqpEngine tier2(tight_opts());
-    const IpqpResult ok = tier2.solve(qp, &fine, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ok = tier2.solve(qp, &fine, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(ok.counters.ipqp_restart_repairs, 0);
     EXPECT_DOUBLE_EQ(ok.counters.ipqp_restart_shift_max, 0.0);
 }
@@ -668,8 +668,8 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
     const auto solve_continuation = [](Index warm_budget) {
         test_support::F3SpringChain model(20, 0.5, 0.25);
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
-        o.advanced.ipqp.warm_iter_budget = warm_budget;
+        o.qp_mode = QpMode::kIpqp;
+        o.advanced.ipqp.max_warm_iterations = warm_budget;
         SqpSolver driver(o);
 
         // The FREE-branch solve, and its currency.
@@ -693,7 +693,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
 
     // NON-VACUITY: at the shipped budget the same continuation is not
     // abandoned, so the row above is about the budget and not about the cell.
-    const SqpResult patient = solve_continuation(IpqpOptions{}.warm_iter_budget);
+    const SqpResult patient = solve_continuation(IpqpOptions{}.max_warm_iterations);
     EXPECT_EQ(patient.status, SolveStatus::kOptimal);
     EXPECT_EQ(patient.counters.ipqp.ipqp_warm_restart_abandoned, 0);
 

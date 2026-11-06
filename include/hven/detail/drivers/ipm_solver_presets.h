@@ -16,7 +16,7 @@
 // field and dump line by dump line.
 //
 // Every preset assigns exactly the same nine globalization fields (the full
-// set IpmSolver::apply_preset() touches): acceptance_strategy_,
+// set IpmSolver::apply_preset() touches): acceptance_mode_,
 // merit_penalty_rule_, barrier_governor_, never_monotone_, restoration_mode_,
 // inertia_mode_, max_soc_, ls_extended_iters_, watchdog_. No other Settings
 // field (tolerances, iteration caps, QP parameters, ...) is read or written by
@@ -35,17 +35,17 @@
 
 #include "hven/drivers/ipm_options.h"
 
-namespace hven {
+namespace hven::detail {
 
 // The nine globalization fields a preset assigns, exactly mirroring the
 // IpmOptions members of the same names.
 struct InteriorPointSolverPresetFields {
-    AcceptanceMode acceptance_strategy_;
-    MeritPenaltyRule merit_penalty_rule_;
-    BarrierGovernorMode barrier_governor_;
+    IpmAcceptanceMode acceptance_mode_;
+    IpmMeritPenaltyRule merit_penalty_rule_;
+    IpmBarrierGovernorMode barrier_governor_;
     bool never_monotone_;
-    RestorationMode restoration_mode_;
-    InertiaMode inertia_mode_;
+    IpmRestorationMode restoration_mode_;
+    IpmInertiaMode inertia_mode_;
     Index max_soc_;
     Index ls_extended_iters_;
     bool watchdog_;
@@ -64,12 +64,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // meaning, and with max_iters = 500 written on it, it reconstructs the old
     // default path bit-identically.
     {"classic", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceMode::kClassicMerit,
-        /*merit_penalty_rule_=*/MeritPenaltyRule::kSinglePenalty,
-        /*barrier_governor_=*/BarrierGovernorMode::kClassicAdaptive,
+        /*acceptance_mode_=*/IpmAcceptanceMode::kClassicMerit,
+        /*merit_penalty_rule_=*/IpmMeritPenaltyRule::kSinglePenalty,
+        /*barrier_governor_=*/IpmBarrierGovernorMode::kClassicAdaptive,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationMode::kOff,
-        /*inertia_mode_=*/InertiaMode::kClassic,
+        /*restoration_mode_=*/IpmRestorationMode::kOff,
+        /*inertia_mode_=*/IpmInertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -78,12 +78,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // restoration. Solved 12 of 17, at +31% aggregate iterations with median
     // parity; worst tail +609% (DionysusLowThrust).
     {"filter_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceMode::kFilter,
-        /*merit_penalty_rule_=*/MeritPenaltyRule::kSinglePenalty,
-        /*barrier_governor_=*/BarrierGovernorMode::kMonitored,
+        /*acceptance_mode_=*/IpmAcceptanceMode::kFilter,
+        /*merit_penalty_rule_=*/IpmMeritPenaltyRule::kSinglePenalty,
+        /*barrier_governor_=*/IpmBarrierGovernorMode::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationMode::kL1Nested,
-        /*inertia_mode_=*/InertiaMode::kClassic,
+        /*restoration_mode_=*/IpmRestorationMode::kL1Nested,
+        /*inertia_mode_=*/IpmInertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -94,12 +94,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // the highest aggregate cost (+42%) and the flattest worst-case tail
     // (+100%, OptimalDocking).
     {"soc_recovery_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceMode::kClassicMerit,
-        /*merit_penalty_rule_=*/MeritPenaltyRule::kSinglePenalty,
-        /*barrier_governor_=*/BarrierGovernorMode::kMonitored,
+        /*acceptance_mode_=*/IpmAcceptanceMode::kClassicMerit,
+        /*merit_penalty_rule_=*/IpmMeritPenaltyRule::kSinglePenalty,
+        /*barrier_governor_=*/IpmBarrierGovernorMode::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationMode::kL1Nested,
-        /*inertia_mode_=*/InertiaMode::kProximalRegularization,
+        /*restoration_mode_=*/IpmRestorationMode::kL1Nested,
+        /*inertia_mode_=*/IpmInertiaMode::kProximalRegularization,
         /*max_soc_=*/4,
         /*ls_extended_iters_=*/2,
         /*watchdog_=*/true,
@@ -109,12 +109,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // (no l1 machinery). Solved 12 of 17, at the lowest aggregate cost (+27%);
     // worst tail +219% (MinimumTimeToClimb).
     {"soc_proximal", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceMode::kClassicMerit,
-        /*merit_penalty_rule_=*/MeritPenaltyRule::kSinglePenalty,
-        /*barrier_governor_=*/BarrierGovernorMode::kMonitored,
+        /*acceptance_mode_=*/IpmAcceptanceMode::kClassicMerit,
+        /*merit_penalty_rule_=*/IpmMeritPenaltyRule::kSinglePenalty,
+        /*barrier_governor_=*/IpmBarrierGovernorMode::kMonitored,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationMode::kProximalSwitch,
-        /*inertia_mode_=*/InertiaMode::kProximalRegularization,
+        /*restoration_mode_=*/IpmRestorationMode::kProximalSwitch,
+        /*inertia_mode_=*/IpmInertiaMode::kProximalRegularization,
         /*max_soc_=*/4,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -125,12 +125,12 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
     // wrong-basin guess it is the call shape, not the acceptance mechanism,
     // that decides the outcome.
     {"merit_l1", InteriorPointSolverPresetFields{
-        /*acceptance_strategy_=*/AcceptanceMode::kMerit,
-        /*merit_penalty_rule_=*/MeritPenaltyRule::kSinglePenalty,
-        /*barrier_governor_=*/BarrierGovernorMode::kClassicAdaptive,
+        /*acceptance_mode_=*/IpmAcceptanceMode::kMerit,
+        /*merit_penalty_rule_=*/IpmMeritPenaltyRule::kSinglePenalty,
+        /*barrier_governor_=*/IpmBarrierGovernorMode::kClassicAdaptive,
         /*never_monotone_=*/false,
-        /*restoration_mode_=*/RestorationMode::kL1Nested,
-        /*inertia_mode_=*/InertiaMode::kClassic,
+        /*restoration_mode_=*/IpmRestorationMode::kL1Nested,
+        /*inertia_mode_=*/IpmInertiaMode::kClassic,
         /*max_soc_=*/0,
         /*ls_extended_iters_=*/0,
         /*watchdog_=*/false,
@@ -138,4 +138,4 @@ inline constexpr std::array<InteriorPointSolverPresetEntry, 5> kInteriorPointSol
 }};
 // clang-format on
 
-} // namespace hven
+} // namespace hven::detail

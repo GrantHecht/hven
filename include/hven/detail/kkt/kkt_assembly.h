@@ -84,15 +84,13 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 struct KktAssembly {
     SpMatRM K;                       // (n_free + me + n_working) square, upper triangle stored
     std::vector<Index> free_of_full; // free-index -> full-variable-index map, increasing
     Vec rhs_shift;                   // see header comment above; same row layout as K
 };
-
-namespace detail {
 
 // Shared triplet-build core for assemble_kkt (eliminate_bounds = true) and
 // assemble_kkt_full (eliminate_bounds = false). When eliminate_bounds is
@@ -263,8 +261,6 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
     return KktAssembly{std::move(K), std::move(free_of_full), std::move(rhs_shift)};
 }
 
-} // namespace detail
-
 inline KktAssembly assemble_kkt(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts) {
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/true, "assemble_kkt");
 }
@@ -280,4 +276,4 @@ inline KktAssembly assemble_kkt_full(const QpProblem &qp, const WorkingSet &ws,
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/false, "assemble_kkt_full");
 }
 
-} // namespace hven
+} // namespace hven::detail

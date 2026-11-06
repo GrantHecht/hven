@@ -49,22 +49,25 @@ struct IpmConvergence {
 /// correctness, not timings. Measured on std::chrono::steady_clock.
 struct IpmTiming {
     /// Total wall-clock time of the call.
-    double total = 0;
+    double total_seconds = 0;
     /// Setup/preprocessing time.
-    double pre = 0;
+    double preprocessing_seconds = 0;
     /// NLP evaluation callback time.
-    double func = 0;
+    double evaluation_seconds = 0;
     /// KKT assembly/factorization/solve time.
-    double kkt = 0;
+    double kkt_seconds = 0;
     /// Printing time.
-    double print = 0;
+    double print_seconds = 0;
     /// Solver-initialization time (measured before the main timer starts).
-    double solver_init = 0;
+    double solver_initialization_seconds = 0;
 
     /// Total minus all categorized components (excluding `solver_init`, which
     /// is measured before the main timer starts): callback time, step
     /// application, convergence checks and the like.
-    double misc() const { return total - pre - kkt - func - print; }
+    double other_seconds() const {
+        return total_seconds - preprocessing_seconds - kkt_seconds - evaluation_seconds -
+               print_seconds;
+    }
 };
 
 /// @brief What one interior-point solve produced.
@@ -91,7 +94,7 @@ struct IpmResult : SolveResult {
     Index payload_ignored = 0;
 
     /// @brief Steps REJECTED AFTER THE FACT because the point they reached could
-    ///        not be evaluated (M8 B5): the model returned a non-finite value, or
+    ///        not be evaluated: the model returned a non-finite value, or
     ///        threw EvaluationError, in the evaluation of that point's
     ///        derivatives. Each one restored the previous iterate and shortened
     ///        the next step.
@@ -117,7 +120,7 @@ struct IpmResult : SolveResult {
     /// never substitutes. Overwritten unconditionally at the start of every
     /// call. Recorded here because it decides whether the internal fixing rows
     /// below exist.
-    FixedVariableTreatment fixed_variable_treatment = FixedVariableTreatment::kMakeParameter;
+    IpmFixedVariableTreatment fixed_variable_treatment = IpmFixedVariableTreatment::kMakeParameter;
 
     // --- The treatment's own rows, reported rather than dropped ---
     //
@@ -148,7 +151,7 @@ struct IpmResult : SolveResult {
 
     // --- Factorization stats ---
     /// @brief Memory reported by the last factorization.
-    Index factor_mem = 0;
+    Index factor_memory = 0;
     /// @brief Flops reported by the last factorization.
     Index factor_flops = 0;
 
@@ -157,7 +160,7 @@ struct IpmResult : SolveResult {
     /// constraint evaluation and one back-substitution on the live
     /// factorization). Always 0 when SOC is off
     /// (advanced.max_second_order_corrections == 0).
-    Index soc_steps_taken = 0;
+    Index second_order_corrections = 0;
 
     /// Number of times the watchdog armed across the whole solve (Chamberlain,
     /// Powell, Lemarechal & Pedersen 1982). Always 0 when the watchdog is off
@@ -194,26 +197,26 @@ struct IpmResult : SolveResult {
 
     /// Number of iterations spent in monotone mode; nullopt unless the governor
     /// is kMonitored.
-    std::optional<Index> last_monotone_iters;
+    std::optional<Index> last_monotone_iterations;
 
     /// Number of times feasibility restoration was entered; nullopt when no
     /// restoration strategy is constructed. Write-only diagnostics.
-    std::optional<Index> last_feas_rest_entries;
+    std::optional<Index> last_feasibility_restoration_entries;
 
     /// Number of iterations spent in restoration mode; nullopt when no
     /// restoration strategy is constructed. Write-only diagnostics.
-    std::optional<Index> last_feas_rest_iters;
+    std::optional<Index> last_feasibility_restoration_iterations;
 
     /// Proximal primal-dual regularization shifts at the LAST FACTORIZED
     /// ITERATION of the last phase: the persistent primal base shift rho_k added
     /// to the Hessian diagonal. nullopt unless advanced.inertia_mode ==
     /// kProximalRegularization, and when a phase converged before its first
     /// factorization.
-    std::optional<double> last_prox_reg_primal;
+    std::optional<double> last_proximal_regularization_primal;
     /// The barrier-scaled dual shift delta_c subtracted from the constraint-row
     /// diagonals (0.0 when suppressed inside a nested l1 phase), on the same
     /// nullopt rules.
-    std::optional<double> last_prox_reg_dual;
+    std::optional<double> last_proximal_regularization_dual;
 
     /// The last non-Success status observed from the KKT factorization within
     /// the CURRENT phase (per phase, never an earlier phase's). Purely

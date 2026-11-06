@@ -24,7 +24,7 @@ namespace hven {
 struct IpqpStallEvidence {
     bool fired = false;
 
-    /// Accepted steps in the closed window (`IpqpOptions::ipqp_stall_window`).
+    /// Accepted steps in the closed window (`IpqpOptions::stall_window`).
     Index window = 0;
 
     /// CONJUNCT (i): `mu(window start) / mu(window end)`, the barrier's ACROSS-WINDOW
@@ -91,7 +91,7 @@ struct IpqpInfeasibilityEvidence {
     /// `>= detail::kSsnDualStepGrowth`; 0 on the standing route.
     double dual_step_growth = 0.0;
 
-    // --- optional Farkas corroboration (IpqpOptions::ipqp_farkas_gate) -----
+    // --- optional Farkas corroboration (IpqpOptions::farkas_gate) -----
 
     /// True iff the Farkas test (one matvec plus O(m), no factorization) on the window's
     /// normalized dual INCREMENT corroborated the signature. **IT NEVER CERTIFIES** (6.3): a
@@ -108,7 +108,7 @@ struct IpqpInfeasibilityEvidence {
     Vec least_infeasible_x;
     double least_infeasible_primal = 0.0; ///< That point's own primal residual.
 
-    /// THAT SAME POINT'S SLACKS AND DUALS -- `s` and `lambda_i` (mi), `zl`/`zu` (n). W2's
+    /// THAT SAME POINT'S SLACKS AND DUALS -- `s` and `lambda_i` (mi), `zl`/`zu` (n). The
     /// working-set seed classifies the point with spec 2.3 item 2's RATIO rule, which needs both
     /// sides of every pair; empty exactly when `least_infeasible_x` is.
     Vec least_infeasible_s;

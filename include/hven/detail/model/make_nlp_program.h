@@ -17,10 +17,13 @@
 #include "hven/detail/model/absent_bound.h"
 
 namespace hven {
+class Nlp;
+} // namespace hven
+
+namespace hven::detail {
 
 struct NonLinearProgram;
 struct NlpAdapterCore;
-class Nlp;
 
 /// @brief Builds the NonLinearProgram for an adapter core.
 /// @param core The host whose patterns and bounds the program is laid over.
@@ -81,4 +84,4 @@ std::shared_ptr<NonLinearProgram>
 make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions = 1,
                  double infinite_bound = detail::kDefaultInfiniteBound);
 
-} // namespace hven
+} // namespace hven::detail

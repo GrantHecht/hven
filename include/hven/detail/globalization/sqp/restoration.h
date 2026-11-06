@@ -32,7 +32,7 @@
 #include <hven/detail/model/absent_bound.h>
 #include <hven/detail/model/nlp_model.h>
 
-namespace hven {
+namespace hven::detail {
 
 /// The fraction of trust_region_initial the trust region restarts at when the main loop
 /// resumes from restoration: one order of magnitude is the conservative reading
@@ -341,4 +341,4 @@ bool feasibility_subsolve_certifies(double proximity, double kkt_tol, const Vec 
     return subgradient_certificate_residual_inf(ev, lambda_e, lambda_i, z) <= kkt_tol;
 }
 
-} // namespace hven
+} // namespace hven::detail

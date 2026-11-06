@@ -38,11 +38,11 @@
 namespace {
 
 using hven::IpmSolver;
-using hven::kNearFeasibleGuardFactor;
-using hven::kRestoProximityWeight;
-using hven::ProgressMeasures;
-using hven::ProximalSwitchRestoration;
-using hven::SolverContext;
+using hven::detail::kNearFeasibleGuardFactor;
+using hven::detail::kRestoProximityWeight;
+using hven::detail::ProgressMeasures;
+using hven::detail::ProximalSwitchRestoration;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // -----------------------------------------------------------------------------
@@ -350,8 +350,8 @@ TEST(ProxRestoDiagnostics, NeverEnteredReportsZeroZero) {
     // Constructed but never entered: 0/0 is the correct report (only the
     // interface's default no-op / "no strategy at all" path uses the -1
     // sentinel -- see restoration.h).
-    EXPECT_EQ(result.last_feas_rest_entries, 0);
-    EXPECT_EQ(result.last_feas_rest_iters, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 0);
 }
 
 TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -370,8 +370,8 @@ TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
 
     hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 2);
-    EXPECT_EQ(result.last_feas_rest_iters, 4);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 2);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 4);
 }
 
 } // namespace

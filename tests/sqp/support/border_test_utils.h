@@ -63,7 +63,7 @@
 
 namespace hven::test_support {
 
-using hven::polish_bordered_unregularized;
-using hven::refine_bordered_solve;
+using hven::detail::polish_bordered_unregularized;
+using hven::detail::refine_bordered_solve;
 
 } // namespace hven::test_support

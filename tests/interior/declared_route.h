@@ -37,7 +37,7 @@
 #include "hven/drivers/ipm_solver.h"
 #include "hven/model/nlp.h"
 #include "hven/model/structure_identity.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace {
 using hven::detail::WarmStartAccess;
@@ -66,7 +66,7 @@ struct MultiplierSeedHook {
 /// PHASE SEQUENCE a fixture runs is written on the engine's options rather than
 /// chosen by which entry point a caller reaches for.
 struct IpmCase {
-    std::shared_ptr<hven::NonLinearProgram> program;
+    std::shared_ptr<hven::detail::NonLinearProgram> program;
     std::unique_ptr<hven::IpmSolver> engine;
 };
 
@@ -74,8 +74,8 @@ struct IpmCase {
 ///        interior-point engine consumes.
 struct DeclaredRoute {
     std::shared_ptr<hven::Nlp> problem;
-    std::shared_ptr<hven::NlpProblemModel> model;
-    std::shared_ptr<hven::NonLinearProgram> program;
+    std::shared_ptr<hven::detail::NlpProblemModel> model;
+    std::shared_ptr<hven::detail::NonLinearProgram> program;
 };
 
 /// @brief Walks the transcription chain, keeping the model.
@@ -86,9 +86,10 @@ struct DeclaredRoute {
 inline DeclaredRoute transcribe(std::shared_ptr<hven::Nlp> problem, int num_partitions = 1) {
     DeclaredRoute route;
     route.problem = std::move(problem);
-    route.model = std::make_shared<hven::NlpProblemModel>(route.problem);
-    route.program = hven::make_nlp_program(
-        std::make_shared<hven::NlpAdapterCore>(route.model, route.problem->name()), num_partitions);
+    route.model = std::make_shared<hven::detail::NlpProblemModel>(route.problem);
+    route.program = hven::detail::make_nlp_program(
+        std::make_shared<hven::detail::NlpAdapterCore>(route.model, route.problem->name()),
+        num_partitions);
     return route;
 }
 

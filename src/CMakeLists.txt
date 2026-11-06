@@ -237,7 +237,7 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
-# The warm-start currency (include/hven/warmstart/warm_start_data.h). Its own
+# The warm-start currency (include/hven/warmstart/warm_start.h). Its own
 # block rather than part of the engine blocks above, because it is neither
 # engine's: WarmStart is the value a consumer holds BETWEEN solves, and the
 # component names no engine type and includes no engine header. Its TU carries
@@ -528,7 +528,7 @@ endif()
 # 43 as of drivers/solve_result.cpp (M6 W5 T8.4): the shared declared
 # diagnostics' one definition. Stays OUT on the same unmeasured-default footing
 # as the fourteen above. It includes its own header (core/types.h,
-# warmstart/warm_start_data.h), fmt/format.h and
+# warmstart/warm_start.h), fmt/format.h and
 # three standard headers -- a different set in a different order from the one
 # src/hven_pch.h prefixes.
 #

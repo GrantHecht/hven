@@ -14,12 +14,12 @@ namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
 } // namespace
 
-using hven::ConstEigenRef;
 using hven::Nlp;
-using hven::NlpAdapterCore;
-using hven::NlpProblemModel;
-using hven::NlpRowClassification;
-using hven::NlpRowKind;
+using hven::detail::ConstEigenRef;
+using hven::detail::NlpAdapterCore;
+using hven::detail::NlpProblemModel;
+using hven::detail::NlpRowClassification;
+using hven::detail::NlpRowKind;
 
 namespace {
 
@@ -263,7 +263,7 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     prob->n_eval_jac_ = 0;
     prob->n_eval_hess_ = 0;
 
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -344,7 +344,7 @@ TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
     // only at the later record.
     auto prob = std::make_shared<AsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -405,7 +405,7 @@ TEST(NLPAdapterAssemblyTest, ShortNonEmptyEqualityMultiplierBlockIsRefusedBefore
     auto core = adapter_host(prob);
     ASSERT_EQ(core->num_eq_, 2);
     ASSERT_EQ(core->num_iq_, 1);
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -438,7 +438,7 @@ TEST(NLPAdapterAssemblyTest, ShortNonEmptyEqualityMultiplierBlockIsRefusedBefore
 TEST(NLPAdapterAssemblyTest, NoObjectiveChainUsesZeroObjFactorConsumeOnce) {
     auto prob = std::make_shared<AsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
 
@@ -487,7 +487,7 @@ struct ThrowingJacAsmTestProblem : AsmTestProblem {
 TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
     auto prob = std::make_shared<ThrowingJacAsmTestProblem>();
     auto core = adapter_host(prob);
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
@@ -574,7 +574,7 @@ TEST(NLPAdapterAssemblyTest, RangeRowScattersDuplicatedJacobianAndComposedLambda
     auto model = std::make_shared<NlpProblemModel>(prob);
     ASSERT_EQ(model->rows().kinds[0], NlpRowKind::kRange);
     auto core = std::make_shared<NlpAdapterCore>(model, prob->name());
-    auto nlp = hven::make_nlp_program(core);
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);

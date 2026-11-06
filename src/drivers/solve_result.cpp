@@ -52,9 +52,10 @@ void validate(const SolveBudget &budget) {
             fmt::format("SolveBudget::max_iterations must be empty or in [1, {}], got {}",
                         std::numeric_limits<int>::max(), *budget.max_iterations));
     }
-    if (budget.minor_budget && *budget.minor_budget < 1) {
-        throw std::invalid_argument(fmt::format(
-            "SolveBudget::minor_budget must be empty or >= 1, got {}", *budget.minor_budget));
+    if (budget.max_minor_iterations && *budget.max_minor_iterations < 1) {
+        throw std::invalid_argument(
+            fmt::format("SolveBudget::minor_budget must be empty or >= 1, got {}",
+                        *budget.max_minor_iterations));
     }
 }
 

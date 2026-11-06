@@ -113,12 +113,12 @@ ConsoleTraceSink::~ConsoleTraceSink() = default;
 
 // The eight QP-tier events. Named parameters would be unused; the bodies are
 // empty on purpose and the header says why.
-void ConsoleTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &) {}
-void ConsoleTraceSink::on_ipqp_reg(const IpqpTraceRegEvent &) {}
-void ConsoleTraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &) {}
-void ConsoleTraceSink::on_ipqp_route(const IpqpTraceRouteEvent &) {}
-void ConsoleTraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &) {}
-void ConsoleTraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &) {}
+void ConsoleTraceSink::on_ipqp_iter(const IpqpIterTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_reg(const IpqpRegTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_route(const IpqpRouteTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &) {}
 void ConsoleTraceSink::on_qp_mode(const QpModeTraceEvent &) {}
 void ConsoleTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) {}
 
@@ -429,9 +429,9 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
 
     // THE VERDICT LINE, on the RESOLVED status (M6 W5 T8.7b). The old chain
     // keyed on `alg_impl`'s RAW exit code, which was printed before
-    // `resolve_ipm_phase_status` ran; resolution only ever rewrites kMaxIter,
+    // `resolve_ipm_phase_status` ran; resolution only ever rewrites kIterationLimit,
     // into kStalled or kInterrupted, and all three take the branch the raw
-    // kMaxIter took. Same bytes, one key, and the three door fixtures pin it.
+    // kIterationLimit took. Same bytes, one key, and the three door fixtures pin it.
     const SolveStatus status = event.report.status;
     if (status == SolveStatus::kOptimal) {
         fmt::print(out_, fmt::fg(fmt::color::lime_green), "\nOptimal Solution Found\n");
@@ -439,7 +439,7 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
         fmt::print(out_, fmt::fg(fmt::color::yellow), "\nAcceptable Solution Found\n");
     } else if (status == SolveStatus::kDiverging) {
         fmt::print(out_, fmt::fg(fmt::color::dark_red), "\nSolution Diverging\n");
-    } else if (status == SolveStatus::kMaxIter || status == SolveStatus::kStalled ||
+    } else if (status == SolveStatus::kIterationLimit || status == SolveStatus::kStalled ||
                status == SolveStatus::kInterrupted) {
         fmt::print(out_, fmt::fg(fmt::color::red), "\nNo Solution Found\n");
     } else if (status == SolveStatus::kWorkLimit) {
@@ -645,12 +645,12 @@ FanOutTraceSink::~FanOutTraceSink() = default;
 // differ only in a method name and a parameter type, where a hand-written copy
 // would be twenty chances to forward to the wrong half. `HVEN_`-prefixed per
 // CLAUDE.md section 4 and #undef'd immediately below.
-HVEN_FANOUT_FORWARD(on_ipqp_iter, IpqpTraceIterEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_reg, IpqpTraceRegEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_restart, IpqpTraceRestartEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_route, IpqpTraceRouteEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_certify, IpqpTraceCertifyEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_escape, IpqpTraceEscapeEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_iter, IpqpIterTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_reg, IpqpRegTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_restart, IpqpRestartTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_route, IpqpRouteTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_certify, IpqpCertifyTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_escape, IpqpEscapeTraceEvent)
 HVEN_FANOUT_FORWARD(on_qp_mode, QpModeTraceEvent)
 HVEN_FANOUT_FORWARD(on_fallback_verdict, SqpFallbackVerdictTraceEvent)
 HVEN_FANOUT_FORWARD(on_sqp_major, SqpMajorTraceEvent)

@@ -247,16 +247,12 @@
 
 namespace {
 
-using hven::ContinuationOptions;
-using hven::ContinuationResult;
-using hven::ContinuationStep;
 using hven::Index;
 using hven::Ledger;
-using hven::ParametricNlpModel;
 using hven::QpMode;
 using hven::QpOptions;
 using hven::QpStatus;
-using hven::run_continuation;
+using hven::QpWorkingSetAlgebra;
 using hven::SolveRecord;
 using hven::SolveStatus;
 using hven::SqpOptions;
@@ -265,7 +261,11 @@ using hven::SqpSolver;
 using hven::SqpSolveRecord;
 using hven::StartLevel;
 using hven::Vec;
-using hven::WorkingSetLinearAlgebra;
+using hven::detail::ContinuationOptions;
+using hven::detail::ContinuationResult;
+using hven::detail::ContinuationStep;
+using hven::detail::ParametricNlpModel;
+using hven::detail::run_continuation;
 using hven::detail::SqpWarmState;
 using hven::test_support::F3SpringChain;
 using hven::test_support::F7CollocationChain;
@@ -405,7 +405,7 @@ const char *qp_status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "Optimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "MaxIter";
     case QpStatus::kInfeasible:
         return "Infeasible";
@@ -503,7 +503,7 @@ SqpOptions bench_options(StartLevel level, const Tuning &tuning) {
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = tuning.max_iter;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
     opts.advanced.warm_full_step = true;
     opts.qp = tuning.qp;
@@ -541,7 +541,7 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
             (i == 0) ? driver.solve(hven::detail::problem_ref(model), model.start_point())
                      : driver.solve(hven::detail::problem_ref(model), warm.x,
                                     hven::detail::SqpWarmAccess::wrap(warm));
-        warm = hven::detail::SqpWarmAccess::state(sol.native_warm_start);
+        warm = hven::detail::SqpWarmAccess::state(sol.sqp_warm_start);
         rows.push_back(
             Row{family, n, "hot", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -673,7 +673,7 @@ bool run_self_check() {
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kWarm;
     opts.advanced.warm_full_step = true;
 
@@ -917,8 +917,8 @@ int main(int argc, char **argv) {
         }
         if (args.ws_algebra) {
             tuning.qp.working_set_algebra = (*args.ws_algebra == "refactorize")
-                                                ? WorkingSetLinearAlgebra::kRefactorize
-                                                : WorkingSetLinearAlgebra::kSchurBorder;
+                                                ? QpWorkingSetAlgebra::kRefactorize
+                                                : QpWorkingSetAlgebra::kSchurBorder;
         }
 
         SolutionDump dump;

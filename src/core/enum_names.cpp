@@ -32,7 +32,7 @@ const char *to_string(SolveStatus status) {
         return "optimal";
     case SolveStatus::kAcceptable:
         return "acceptable";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return "max_iter";
     case SolveStatus::kInfeasible:
         return "infeasible";
@@ -66,7 +66,7 @@ const char *to_string(RestorationSubStatus status) {
         return "optimal";
     case RestorationSubStatus::kAcceptable:
         return "acceptable";
-    case RestorationSubStatus::kMaxIter:
+    case RestorationSubStatus::kIterationLimit:
         return "max_iter";
     case RestorationSubStatus::kInfeasible:
         return "infeasible";
@@ -97,8 +97,8 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status) {
         return RestorationSubStatus::kOptimal;
     case SolveStatus::kAcceptable:
         return RestorationSubStatus::kAcceptable;
-    case SolveStatus::kMaxIter:
-        return RestorationSubStatus::kMaxIter;
+    case SolveStatus::kIterationLimit:
+        return RestorationSubStatus::kIterationLimit;
     case SolveStatus::kInfeasible:
         return RestorationSubStatus::kInfeasible;
     case SolveStatus::kStalled:
@@ -122,7 +122,7 @@ const char *to_string(IpmStopReason reason) {
     switch (reason) {
     case IpmStopReason::kNone:
         return "none";
-    case IpmStopReason::kIterationCap:
+    case IpmStopReason::kIterationLimit:
         return "iteration_cap";
     case IpmStopReason::kRestorationLocallyInfeasible:
         return "restoration_locally_infeasible";
@@ -230,7 +230,7 @@ int severity(SolveStatus status) {
         return 1;
     case SolveStatus::kInterrupted:
         return 2;
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return 3;
     case SolveStatus::kWorkLimit:
         return 4;

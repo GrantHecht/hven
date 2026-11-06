@@ -28,6 +28,7 @@
 #include "../qp/support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -301,7 +302,7 @@ TEST(SqpElasticWitnessStart, SawpathMajor0RungSolvesFromItsWitness) {
     // Re-premised (declared correctness move, 77dbf843 dead-end rank repair, ruling C58): the
     // shipped seed used to end status != kOptimal, off its rows by > 1e-3. Now, Release: kOptimal,
     // off_rows 2.41e-13 (43 minors). Debug: the repair is taken but rounding leads the walk into
-    // the known downstream two-pass cycle and the minor cap ends it (kMaxIter, 6830 minors,
+    // the known downstream two-pass cycle and the minor cap ends it (kIterationLimit, 6830 minors,
     // off_rows 7.6e-13) -- so Debug asserts only "repaired, no dead-end exit, no false
     // certificate", as tests/qp/test_qp_rank_repair.cpp does for this fixture's sister.
     expect_rung_before_after("SAWPATH", -376.225617384, 1e-3, false, true);

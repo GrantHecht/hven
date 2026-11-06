@@ -95,6 +95,7 @@
 #include "support/hs_sweeps.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using namespace hven::test_support;
@@ -106,10 +107,10 @@ SqpOptions cold_options(Index max_iter) {
     opts.common.optimality_tol = 1e-6;
     opts.common.feasibility_tol = 1e-6;
     opts.common.max_iterations = max_iter;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kCold;
     opts.advanced.warm_full_step = false;
-    opts.advanced.enable_soc = false;
+    opts.advanced.second_order_correction = false;
     return opts;
 }
 

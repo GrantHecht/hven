@@ -3,12 +3,12 @@
 
 #pragma once
 
-// trace.h -- the machine-trace schema v0 (spec section 7, :733-749), plus W2's
-// driver-side `fallback.verdict` and W4 T2's whole-solve events. The event
+// trace.h -- the machine-trace schema v0 (spec section 7, :733-749), plus the
+// driver-side `fallback.verdict` and the whole-solve events. The event
 // structs + the sink interface; `v`/`ev`/`seq`/`depth` are the serializer's
 // envelope, not carried on any struct here.
 //
-// PUBLIC since M6 W5 T4: a harness consumes the writer (`trace_writer.h`) and
+// PUBLIC: a harness consumes the writer (`json_lines_trace_sink.h`) and
 // these events, so the schema is not a `detail/` header. `IpqpTraceSink` is
 // `TraceSink` here; the `Ipqp*` EVENT prefixes are unchanged.
 
@@ -38,30 +38,29 @@ namespace hven {
 /// as a value.
 inline constexpr double kAbsentDouble = std::numeric_limits<double>::quiet_NaN();
 
-enum class IpqpTraceRegDir { kDown, kUp };
+enum class IpqpTraceRegDirection { kDown, kUp };
 enum class IpqpTraceRegReason { kAccept, kInertia, kStall, kFloor };
 enum class IpqpTraceRestartGrade { kCold, kBase, kFull };
-enum class IpqpTraceRouteTo { kRefine, kSsn, kWalk };
+enum class IpqpTraceRouteTarget { kRefine, kSsn, kWalk };
 enum class IpqpTraceFinalInertia { kOk, kWrong, kUnreadable };
 enum class IpqpTraceEscapeReason { kBudget, kStall, kIndefinite, kNumerical, kInfeasibleSuspect };
 /// Which KERNEL solved one subproblem (schema `qp.mode`). `kIpqp` is the
-/// interior-point tier; M6 W4 T2 added the other two so the walk and the SSN
-/// arms name themselves in the stream instead of being read off by absence.
-enum class IpqpTraceQpMode { kIpqp, kWalk, kSsn };
-enum class IpqpTraceOutcome { kOptimal, kRouted, kEscaped };
-/// WHICH CALL SITE ran this kernel (schema `qp.mode`'s `site`, M6 W4 T5).
+/// interior-point tier; the walk and the SSN arms name themselves in the
+/// stream rather than being read off by absence.
+enum class QpTraceMode { kIpqp, kWalk, kSsn };
+enum class QpTraceOutcome { kOptimal, kRouted, kEscaped };
+/// WHICH CALL SITE ran this kernel (schema `qp.mode`'s `site`).
 ///
 /// NAMED WITHOUT THIS HEADER'S `IpqpTrace` PREFIX, deliberately and as the ODD
-/// ONE OUT today: W5's registered rename moves this interface out of
-/// `detail/qp/` and drops that prefix, so this is the target spelling arriving
-/// early rather than an oversight. Registered with that rename.
+/// ONE OUT: the prefix is dropped on purpose, because this is the
+/// target spelling for the interface.
 ///
 /// `kDispatch` is the major's own dispatch -- the walk invocation, the kSsn arm,
-/// and the kIpm arm's routing chain -- and is the only site whose count is one
+/// and the kIpqp arm's routing chain -- and is the only site whose count is one
 /// per major. The other four run INSIDE a dispatch arm that has already written
 /// its line, so a stream is read as "one dispatch line per major, plus whatever
 /// the arm then paid".
-enum class QpModeSite {
+enum class QpTraceModeSite {
     kDispatch,
     kSsnWarmGrade,
     kFallbackRungB,
@@ -71,7 +70,7 @@ enum class QpModeSite {
 };
 
 /// @brief One completed predictor+corrector pair (schema `ipqp.iter`).
-struct IpqpTraceIterEvent {
+struct IpqpIterTraceEvent {
     Index solve = 0; ///< This engine instance's own per-attach solve counter.
     Index major = 0; ///< The SQP major this subproblem belongs to (driver-set).
     Index it = 0;    ///< 1-based iteration index within this solve.
@@ -91,12 +90,12 @@ struct IpqpTraceIterEvent {
     /// Perturbed-pivot count; absent when the backend does not report one
     /// (Accelerate), never zero-filled.
     std::optional<Index> perturbed;
-    std::string facts; ///< Opaque, undefined by spec v0; always empty from W1.
+    std::string facts; ///< Opaque, undefined by spec v0; always empty.
 };
 
 /// @brief One (rho, delta) schedule move (schema `ipqp.reg`).
-struct IpqpTraceRegEvent {
-    IpqpTraceRegDir dir = IpqpTraceRegDir::kUp;
+struct IpqpRegTraceEvent {
+    IpqpTraceRegDirection dir = IpqpTraceRegDirection::kUp;
     double rho = 0.0;
     double delta = 0.0;
     IpqpTraceRegReason reason = IpqpTraceRegReason::kInertia;
@@ -105,7 +104,7 @@ struct IpqpTraceRegEvent {
 /// @brief The section 5 warm restart this solve started from (schema `ipqp.restart`).
 /// `shift_p`/`shift_d` are the SAY shift's own `delta_p`/`delta_d` (`warm_start_from`),
 /// 0.0 when that shift never ran. See `.superpowers/w1-t8-report.md`.
-struct IpqpTraceRestartEvent {
+struct IpqpRestartTraceEvent {
     IpqpTraceRestartGrade grade = IpqpTraceRestartGrade::kCold;
     bool repaired = false;
     double shift_p = 0.0;
@@ -117,10 +116,10 @@ struct IpqpTraceRestartEvent {
 };
 
 /// @brief The section 2.3 routing chain's destination for this subproblem
-/// (schema `ipqp.route`). Driver-emitted (sqp_solver.cpp's kIpm arm): the
+/// (schema `ipqp.route`). Driver-emitted (sqp_solver.cpp's kIpqp arm): the
 /// engine itself has no notion of refine/ssn/walk.
-struct IpqpTraceRouteEvent {
-    IpqpTraceRouteTo to = IpqpTraceRouteTo::kWalk;
+struct IpqpRouteTraceEvent {
+    IpqpTraceRouteTarget to = IpqpTraceRouteTarget::kWalk;
     Index uncertain = 0;   ///< ipqp_face_uncertain for this subproblem.
     Index face_rows = 0;   ///< Active inequality rows in the identified face.
     Index face_bounds = 0; ///< Active bound sides in the identified face.
@@ -129,12 +128,12 @@ struct IpqpTraceRouteEvent {
 /// @brief The section 2.2 item 4 certification read's outcome (schema
 /// `ipqp.certify`). Emitted only when a read was actually attempted --
 /// `ipqp_final_inertia_read` values 0/1/2, never the "not performed" value 3.
-struct IpqpTraceCertifyEvent {
+struct IpqpCertifyTraceEvent {
     IpqpTraceFinalInertia final_inertia = IpqpTraceFinalInertia::kOk;
     bool downgraded = false;
 };
 
-/// @brief The schema's single `evidence` object (R2), nesting the two typed
+/// @brief The schema's single `evidence` object, nesting the two typed
 /// blocks `IpqpResult` already carries. `stall.fired` iff `reason==kStall`,
 /// `infeasibility.fired` iff `reason==kInfeasibleSuspect`.
 struct IpqpTraceEscapeEvidence {
@@ -143,25 +142,24 @@ struct IpqpTraceEscapeEvidence {
 };
 
 /// @brief One tier escape (schema `ipqp.escape`).
-struct IpqpTraceEscapeEvent {
+struct IpqpEscapeTraceEvent {
     IpqpTraceEscapeReason reason = IpqpTraceEscapeReason::kBudget;
     IpqpTraceEscapeEvidence evidence;
 };
 
 /// @brief ONE KERNEL INVOCATION on one subproblem (schema `qp.mode`),
-/// driver-emitted. W4 T2(b) made the three DISPATCH arms write it; M6 W4 T5
-/// (settler ruling) made EVERY kernel call site in the driver write it, tagged
+/// driver-emitted. EVERY kernel call site in the driver writes it, tagged
 /// by `site`, so the stream reconciles against invocation counts rather than
 /// against majors alone.
 ///
-/// THE SIX SITES, and what each one costs a reader (`QpModeSite`):
+/// THE SIX SITES, and what each one costs a reader (`QpTraceModeSite`):
 ///
 ///   * `kDispatch` -- the major's own dispatch: the walk invocation, the kSsn
-///     arm, and the kIpm arm's routing chain. ONE PER MAJOR THAT SOLVED A QP; a
+///     arm, and the kIpqp arm's routing chain. ONE PER MAJOR THAT SOLVED A QP; a
 ///     hand-off between ARMS writes two, the handing arm's and its successor's,
 ///     so the chain a major walked is readable.
 ///   * `kSsnWarmGrade` -- `route_through_ssn_warm_grade`'s SSN kernel call, NOT
-///     a walk, made once per subproblem the kIpm chain routes to the grade.
+///     a walk, made once per subproblem the kIpqp chain routes to the grade.
 ///   * `kFallbackRungB` -- `certified_feasibility_fallback`'s cold walk, at both
 ///     of its return sites (the evidence never fired; rung A was declined).
 ///   * `kElasticRung` -- `run_elastic_ladder`'s walk on the elastic QP, ONCE PER
@@ -170,8 +168,8 @@ struct IpqpTraceEscapeEvent {
 ///     the reason the count identity for this site is written against
 ///     `elastic_activations + elastic_escalations` rather than against majors.
 ///   * `kSocResolve` -- the second-order correction's walk re-solve.
-///   * `kCapRetry` -- the cap retry's walk re-solve (M7 W2 M1), made once per
-///     capped subproblem under `SqpOptions::qp_cap_retry` and NEVER at that
+///   * `kCapRetry` -- the cap retry's walk re-solve, made once per
+///     capped subproblem under `SqpAdvancedOptions::qp_iteration_limit_retry` and NEVER at that
 ///     toggle's default: it is the same subproblem at the same radius on an
 ///     engine whose `QpOptions::max_iterations` is twice the cap, so its line's
 ///     `iters` is the retry's own minor count. `== SqpCounters::qp_cap_retries`.
@@ -184,7 +182,7 @@ struct IpqpTraceEscapeEvent {
 ///
 /// THE OUTCOME MAP, per mode, is the driver's and is stated here because the
 /// three kernels report three different objects:
-///   * `kWalk` -- `QpStatus::kOptimal` is `kOptimal`; kMaxIter, kInfeasible and
+///   * `kWalk` -- `QpStatus::kOptimal` is `kOptimal`; kIterationLimit, kInfeasible and
 ///     kNumericalError are all `kEscaped`. The walk has no successor kernel, so
 ///     nothing it exits with is a route; a kInfeasible walk hands to the
 ///     ELASTIC tier, which is the same kernel again.
@@ -192,40 +190,40 @@ struct IpqpTraceEscapeEvent {
 ///     (engine escape or the trust-region gate's refusal) is `kRouted`, since
 ///     the walk re-solves the subproblem. `kEscaped` is UNREACHABLE in both SSN
 ///     sites today: no SSN exit ends a subproblem.
-///   * `kIpqp` -- unchanged (W2): `kOptimal` on the refine route, `kRouted` to
+///   * `kIpqp`: `kOptimal` on the refine route, `kRouted` to
 ///     the SSN warm grade, `kEscaped` on a genuine escape to the walk.
 /// `iters` is the invocation's own minor count.
 struct QpModeTraceEvent {
-    IpqpTraceQpMode mode = IpqpTraceQpMode::kIpqp;
-    IpqpTraceOutcome outcome = IpqpTraceOutcome::kOptimal;
-    std::string facts; ///< Opaque, undefined by spec v0; always empty from W1.
+    QpTraceMode mode = QpTraceMode::kIpqp;
+    QpTraceOutcome outcome = QpTraceOutcome::kOptimal;
+    std::string facts; ///< Opaque, undefined by spec v0; always empty.
     Index iters = 0;
-    /// THE TRAILING KEY (M6 W4 T5), and it is trailing because `qp.mode` is one
+    /// THE TRAILING KEY, and it is trailing because `qp.mode` is one
     /// of the events plan section 2 rule 6 freezes: a frozen event's golden line
     /// moves only by a declared additive TRAILING key, never otherwise.
-    QpModeSite site = QpModeSite::kDispatch;
+    QpTraceModeSite site = QpTraceModeSite::kDispatch;
 };
 
 /// @brief The certified fallback's own outcome for one escaped subproblem (schema
-/// `fallback.verdict`, M6 W2 T5), driver-emitted in the kIpm arm beside `ipqp.escape`. The first
+/// `fallback.verdict`), driver-emitted in the kIpqp arm beside `ipqp.escape`. The first
 /// four values are `SqpCounters`' four-way ENTRY partition: kDisproved and kRungB carry counters
 /// of their own, kRelaxed and kExhausted are the rung-A-owned pair told apart by the returned
 /// status. kUnfired is OUTSIDE that partition and charges nothing -- it is its own value (fix
 /// round 1) so that summing the stream by `verdict` reproduces the counters without also
 /// filtering on `entered_rung_a`.
-enum class SqpFallbackVerdict { kDisproved, kRelaxed, kExhausted, kRungB, kUnfired };
+enum class SqpTraceFallbackVerdict { kDisproved, kRelaxed, kExhausted, kRungB, kUnfired };
 
 /// @brief One entry into `certified_feasibility_fallback` (schema `fallback.verdict`).
 /// An entry whose evidence never FIRED reports `entered_rung_a == false` with `verdict ==
-/// kUnfired`: it ran W1's cold walk directly and charges no counter in the partition.
+/// kUnfired`: it ran the cold walk directly and charges no counter in the partition.
 struct SqpFallbackVerdictTraceEvent {
     bool entered_rung_a = false;
-    SqpFallbackVerdict verdict = SqpFallbackVerdict::kUnfired;
+    SqpTraceFallbackVerdict verdict = SqpTraceFallbackVerdict::kUnfired;
     /// The LAST rung-A attempt's first-rung penalty -- the RETRY's when `floor_retry`, since the
     /// retry replaces the declined attempt. Absent -- not zero-filled -- with no rung A.
     std::optional<double> rho_0;
-    /// THIS ENTRY's placement was CLAMPED (headroom or dual_mu), including a clamp whose ladder
-    /// was then declined and retried at the floor -- where `rho_0` is the floor's.
+    /// THIS ENTRY's placement was CLAMPED (headroom or dual_regularization), including a clamp
+    /// whose ladder was then declined and retried at the floor -- where `rho_0` is the floor's.
     bool rho0_ceiling_hit = false;
     bool floor_retry = false; ///< A declined rung A above the floor was re-run once at it.
     /// The reported ladder's own stopping rung's counts; 0 with no rung A. A CLASSIFICATION, not
@@ -234,7 +232,7 @@ struct SqpFallbackVerdictTraceEvent {
     Index qp_factorizations = 0;
 };
 
-/// @brief One exported `SqpResult::history` row (schema `sqp.major`, M6 W4 T2).
+/// @brief One exported `SqpResult::history` row (schema `sqp.major`).
 ///
 /// THE ROW IS HELD BY REFERENCE, not copied into a second struct: the serializer
 /// writes `SqpIterate`'s own fields in DECLARATION ORDER, so a field added to
@@ -255,13 +253,13 @@ struct SqpMajorTraceEvent {
     /// `qp.mode`'s: that event records a DISPATCH DECISION, this field records
     /// an outcome.
     ///
-    /// They agree at kWalk and kSsn. Under kIpm they DIFFER on exactly the
+    /// They agree at kWalk and kSsn. Under kIpqp they DIFFER on exactly the
     /// majors the tier routes to the SSN warm grade: the row reads `ssn` (the
     /// grade produced the step) while the major's DISPATCH line reads `ipqp`
-    /// with `outcome` `routed`. Since M6 W4 T5 the grade does write an `ssn`
+    /// with `outcome` `routed`. The grade does write an `ssn`
     /// `qp.mode` line of its own, at `site` `ssn_warm_grade` -- so the two
     /// readings are reconciled by the `site` key, not by absence. A kernel that
-    /// runs INSIDE the kIpm arm -- the fallback's rung B, either elastic
+    /// runs INSIDE the kIpqp arm -- the fallback's rung B, either elastic
     /// ladder, the SOC re-solve -- leaves the ROW's reading at `ipqp`, because
     /// no other ARM owned the major, and writes its own non-dispatch line.
     ///
@@ -270,13 +268,13 @@ struct SqpMajorTraceEvent {
     /// apart. Such a row is the solve's stopped-AT row or a `rolled_back` row
     /// (an iterate the solve stood on and left without a subproblem); the
     /// latter may appear mid-history, several per solve.
-    IpqpTraceQpMode mode = IpqpTraceQpMode::kWalk;
+    QpTraceMode mode = QpTraceMode::kWalk;
 };
 
 /// @brief The variable box's own five-way census: exhaustive and disjoint over
 /// the n variables, and the SAME reading for both engines' `begin` line.
 ///
-/// ONE COPY, NOT TWO (M6 W4 T4): `sqp.solve.begin` and `ipm.solve.begin` both
+/// ONE COPY, NOT TWO: `sqp.solve.begin` and `ipm.solve.begin` both
 /// report this census, so it is computed here rather than once per driver --
 /// otherwise "free" could come to mean two different things in one stream.
 struct VariableBoundCensus {
@@ -299,12 +297,12 @@ struct VariableBoundCensus {
 ///         is neither `n` nor 0.
 VariableBoundCensus census_variable_bounds(const Vec &lower, const Vec &upper, Index n);
 
-/// @brief The solve's opening line (schema `sqp.solve.begin`, M6 W4 T2).
+/// @brief The solve's opening line (schema `sqp.solve.begin`).
 ///
 /// THE ROW COUNTS ARE THE SPLIT FORM'S OWN: `NlpModel` carries `eval_ce` (= 0)
 /// and `eval_ci` (<= 0) with `me()`/`mi()` and has NO row bounds, so there is no
-/// five-kind row census to derive here and none is invented (settler ruling,
-/// 2026-09-04). `lower()`/`upper()` are on VARIABLES, and the five counts below
+/// five-kind row census to derive here and none is invented.
+/// `lower()`/`upper()` are on VARIABLES, and the five counts below
 /// are that box's own census -- exhaustive and disjoint over the n variables.
 struct SqpSolveBeginTraceEvent {
     Index n = 0;
@@ -312,18 +310,18 @@ struct SqpSolveBeginTraceEvent {
     Index mi = 0; ///< Inequality rows (`eval_ci`).
     /// Both sides infinite.
     Index vars_free = 0;
-    Index vars_lower_only = 0;                        ///< Finite lower, infinite upper.
-    Index vars_upper_only = 0;                        ///< Infinite lower, finite upper.
-    Index vars_ranged = 0;                            ///< Both finite and NOT equal.
-    Index vars_fixed = 0;                             ///< Both finite and equal (a zero-width box).
-    IpqpTraceQpMode qp_mode = IpqpTraceQpMode::kWalk; ///< The SETTING, not an outcome.
-    WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    Index vars_lower_only = 0;                ///< Finite lower, infinite upper.
+    Index vars_upper_only = 0;                ///< Infinite lower, finite upper.
+    Index vars_ranged = 0;                    ///< Both finite and NOT equal.
+    Index vars_fixed = 0;                     ///< Both finite and equal (a zero-width box).
+    QpTraceMode qp_mode = QpTraceMode::kWalk; ///< The SETTING, not an outcome.
+    QpWorkingSetAlgebra ws_algebra = QpWorkingSetAlgebra::kSchurBorder;
     /// Finite declared bound values read as absent (CommonOptions::infinite_bound):
     /// variable sides, plus an Nlp's row sides. The census above is taken after.
     Index absent_bounds = 0;
 };
 
-/// @brief The solve's closing line (schema `sqp.solve.end`, M6 W4 T2).
+/// @brief The solve's closing line (schema `sqp.solve.end`).
 ///
 /// THE COUNTERS ARE HELD BY REFERENCE and serialized through
 /// `solver_counters.h`'s three field tables, so the object is generated from the
@@ -335,33 +333,31 @@ struct SqpSolveEndTraceEvent {
     Index majors = 0; ///< `SqpCounters::major_iters`, the currency's own count.
     const SqpCounters &counters;
 
-    // --- THE SCALING BLOCK (M6 W5 T8.7) ---
+    // --- THE SCALING BLOCK ---
     //
     // `SqpResult::scaling`'s own five values, flat and in its own field
     // order. They are on the END event because the factors are settled by the
     // time the solve closes and because the console's trailer -- the
-    // `Scaling:` line `format_iteration_table` writes -- has no other source:
-    // no event carried them before this task, so a console pinned against
-    // that function could not have reproduced its last line.
+    // `Scaling:` line `format_iteration_table` writes -- has no other source.
     //
     // AFTER `counters`, which is a REFERENCE and therefore has no default
     // member initializer: every one of these does, so the three-argument
     // brace initialization every existing emit site writes still compiles.
-    bool scaling_active = false; ///< `SqpResult::Scaling::active`.
-    double obj_scale = 1.0;      ///< `::obj`; 1.0 when scaling is off.
+    bool scaling_active = false; ///< `SqpScalingReport::active`.
+    double obj_scale = 1.0;      ///< `::objective`; 1.0 when scaling is off.
     double row_scale_min = 1.0;  ///< `::row_min`.
     double row_scale_max = 1.0;  ///< `::row_max`.
     /// `::scaled_kkt_residual` -- the number the convergence test gated on,
     /// which is NOT in the caller-scale table above it.
     double scaled_kkt_residual = 0.0;
-    /// `::columns_active` (M7 W2 SCW): did the COLUMN layer fire on this solve.
+    /// `::columns_active`: did the COLUMN layer fire on this solve.
     bool columns_active = false;
-    /// `::col_spread`: the column factors' spread the rule computed, fired or not;
+    /// `::column_spread`: the column factors' spread the rule computed, fired or not;
     /// 1.0 when the rule did not run.
     double col_spread = 1.0;
 };
 
-/// @brief One interior-point iteration record (schema `ipm.iter`, M6 W4 T4).
+/// @brief One interior-point iteration record (schema `ipm.iter`).
 ///
 /// THE RECORD IS HELD BY REFERENCE, exactly as `sqp.major` holds its row: the
 /// serializer writes `IpmIterate`'s own fields in DECLARATION ORDER, each under
@@ -382,7 +378,7 @@ struct SqpSolveEndTraceEvent {
 /// `XSL`/`RHS` -- the two vectors the callback also receives -- are NOT carried:
 /// schema v0 has no vector-valued field anywhere.
 ///
-/// THE ABSENCE CONTRACT, PER FIELD (plan section 2 rule 5; fix round 1 R3).
+/// THE ABSENCE CONTRACT, PER FIELD (plan section 2 rule 5).
 /// Six keys can read `null`, for FIVE different reasons, and a reader that
 /// collapses them to one loses the distinction:
 ///
@@ -415,7 +411,7 @@ struct IpmIterTraceEvent {
 };
 
 /// @brief The interior-point solve's opening line (schema `ipm.solve.begin`,
-/// M6 W4 T4), written once per public entry point.
+/// written once per public entry point.
 ///
 /// THE CENSUS IS THE DECLARED BOX'S, shared with `sqp.solve.begin` through
 /// `census_variable_bounds`. `n` is the caller's own variable count and
@@ -449,10 +445,10 @@ struct IpmSolveBeginTraceEvent {
     double bar_tol = 0.0;    ///< Settings::bar_tol_.
     double init_mu = 0.0;    ///< Settings::init_mu_, the barrier start.
     double obj_scale = 1.0;  ///< Settings::obj_scale_, captured for this call.
-    InertiaMode inertia_mode = InertiaMode::kClassic;
-    RestorationMode restoration_mode = RestorationMode::kOff;
+    IpmInertiaMode inertia_mode = IpmInertiaMode::kClassic;
+    IpmRestorationMode restoration_mode = IpmRestorationMode::kOff;
 
-    // --- WHAT THE CONSOLE TABLE NEEDS AND NOTHING ELSE CARRIED (M6 W5 T8.7) ---
+    // --- WHAT THE CONSOLE TABLE NEEDS AND NOTHING ELSE CARRIED ---
     //
     // Eight fields, added in ONE step so this event's golden line moves ONCE.
     //
@@ -488,14 +484,12 @@ struct IpmSolveBeginTraceEvent {
 };
 
 /// @brief The row the restoration-locally-infeasible door hands back (schema
-/// `ipm.restoration_exit_row`, M6 W5 T8.7).
+/// `ipm.restoration_exit_row`).
 ///
 /// ONE OF THE FOUR EXIT DOORS carries information no other line does: a
 /// feasibility restoration that CONVERGED to a point that is still infeasible.
-/// Design section 2.6 asked for that door to get "its own emit" because at the
-/// time it printed a row without passing either `ipm.iter` site. That premise
-/// no longer holds -- M6 W5 T8.6 fix1 gave the door its own `ipm.iter` line, so
-/// the ROW is on the stream already and the console renders it from there.
+/// The door has its own `ipm.iter` line, so the ROW is on the stream already
+/// and the console renders it from there.
 ///
 /// WHAT THIS EVENT ADDS is the door's IDENTITY and its two numbers: which of
 /// the four NOTCONVERGED exits this row is, the infeasibility measured at it,
@@ -518,7 +512,7 @@ struct IpmRestorationExitRowTraceEvent {
 };
 
 /// @brief One phase of an interior-point solve opening or closing (schema
-/// `ipm.phase.begin` / `ipm.phase.end`, M6 W5 T8.7b).
+/// `ipm.phase.begin` / `ipm.phase.end`).
 ///
 /// ONE STRUCT, TWO EVENTS: the two lines carry exactly the same three facts and
 /// differ only in which end of the phase they mark, so a second struct would be
@@ -546,7 +540,7 @@ struct IpmPhaseTraceEvent {
 };
 
 /// @brief One KKT-matrix analysis or re-initialization (schema
-/// `ipm.kkt_analysis`, M6 W5 T8.7b).
+/// `ipm.kkt_analysis`).
 ///
 /// ONE EVENT FOR BOTH HALVES of what the console prints. `init_impl` wrote a
 /// `Beginning: KKT-Matrix Analysis` line before the factorization and the size,
@@ -592,7 +586,7 @@ struct IpmKktAnalysisTraceEvent {
     double analysis_time_s = 0.0;
 };
 
-/// @brief One phase's exit statistics (schema `ipm.phase.exit`, M6 W5 T8.7b).
+/// @brief One phase's exit statistics (schema `ipm.phase.exit`).
 ///
 /// THE REPORT IS EMBEDDED, NOT MIRRORED. `IpmPhaseReport` is what `solve()`
 /// returns for this phase, and this event carries THAT OBJECT rather than a
@@ -608,9 +602,9 @@ struct IpmKktAnalysisTraceEvent {
 /// THE STATUS IS THE RESOLVED ONE (`report.status`), which is a DECLARED change
 /// of key and not of bytes. The old verdict line keyed on `alg_impl`'s RAW exit
 /// code, printed before `resolve_ipm_phase_status` ran; resolution only ever
-/// rewrites `kMaxIter`, into `kStalled` or `kInterrupted`, and the console
+/// rewrites `kIterationLimit`, into `kStalled` or `kInterrupted`, and the console
 /// prints `No Solution Found` for all three -- which is the branch the raw
-/// `kMaxIter` took. The three door fixtures pin that equality.
+/// `kIterationLimit` took. The three door fixtures pin that equality.
 ///
 /// THE SELECTED ROW IS BORROWED, on `ipm.iter`'s own convention: the five
 /// values the block prints are read off it and the record's other keys are not
@@ -619,11 +613,10 @@ struct IpmKktAnalysisTraceEvent {
 /// RAW: the restoration-contamination NaN rule that governs the iteration
 /// CALLBACK's `f` does not apply to this block and never did.
 ///
-/// THE ROW'S INDEX IN THE HISTORY IS NOT CARRIED, and there is nothing to carry
-/// (M6 W5 T8.7b fix1, the lane's M4): the phase loop stamps `Citer.iter = i`
-/// and pushes exactly one row per iteration, so a row's index in the history IS
-/// its `iter`. A `selected_iter` key beside `iter` would have been the same
-/// number under a second name, and it is dropped before the record freezes.
+/// THE ROW'S INDEX IN THE HISTORY IS NOT CARRIED, and there is nothing to carry:
+/// the phase loop stamps `Citer.iter = i` and pushes exactly one row per
+/// iteration, so a row's index in the history IS its `iter`. A `selected_iter`
+/// key beside `iter` would be the same number under a second name.
 /// The join to the selected row's `ipm.iter` line is (`phase`, `iter`).
 struct IpmPhaseExitTraceEvent {
     /// This phase's report, the object `IpmResult::phases[phase]` holds. Valid
@@ -636,7 +629,7 @@ struct IpmPhaseExitTraceEvent {
     /// True when `return_best` substituted the best iterate for the last one.
     bool best_substituted = false;
     /// The last non-Success factorization status observed during THIS PHASE
-    /// (M6 W5 T8.7b fix1, the lane's M1): `alg_impl` resets
+    /// `alg_impl` resets
     /// `IpmResult::last_kkt_info` to `Eigen::Success` once per phase, so this
     /// is a per-phase fact and not a per-call one. Named rather than raw.
     /// The console prints a line for it only when it is not `kSuccess`.
@@ -657,12 +650,11 @@ struct IpmPhaseExitTraceEvent {
 };
 
 /// @brief One diagnostic message the interior-point engine emitted (schema
-/// `ipm.message`, M6 W5 T8.7b).
+/// `ipm.message`).
 ///
-/// THE NINE `fmt::print` SITES THAT REMAINED after M6 W5 T8.7, as events. The
-/// console renders each at the tier its `print_level` guard used to apply, so
-/// the bytes are unchanged; what is new is that a caller's own sink now
-/// receives the fact instead of losing it to stdout.
+/// THE NINE DIAGNOSTIC MESSAGES, as events. The console renders each at the
+/// tier `print_level` selects; a caller's own sink receives the fact instead
+/// of losing it to stdout.
 ///
 /// THE PAYLOAD IS PER KIND, and the slots a kind does not use are ABSENCES --
 /// `-1` on an `Index`, NaN on a `double` -- which the serializer writes as
@@ -700,7 +692,7 @@ struct IpmMessageTraceEvent {
     ///
     /// ON `factorization_hard_error` THE VOCABULARY IS `Eigen::ComputationInfo`
     /// -- `0` success, `1` numerical_issue, `2` no_convergence, `3`
-    /// invalid_input (M6 W5 T8.7b fix1, the lane's M2). The raw integer is kept
+    /// invalid_input. The raw integer is kept
     /// rather than the named `IpmKktFactorStatus` beside it because the console
     /// prints that integer to reproduce the old bytes (`info={}`), and one
     /// fact under two spellings on one line is worse than one named here and in
@@ -714,8 +706,7 @@ struct IpmMessageTraceEvent {
     Index expected_n = -1; ///< `inertia_exhausted`: expected negative count.
 };
 
-/// @brief The interior-point solve's closing line (schema `ipm.solve.end`,
-/// M6 W4 T4).
+/// @brief The interior-point solve's closing line (schema `ipm.solve.end`).
 ///
 /// EVERY `_s` FIELD IS WALL-CLOCK AND INFORMATIONAL (plan section 2 rule 7,
 /// CLAUDE.md section 7): no pin reads one. They are the driver's own
@@ -725,7 +716,7 @@ struct IpmMessageTraceEvent {
 /// Written on the entry point's single normal return; a call that leaves by an
 /// exception writes its `begin` and no `end`.
 struct IpmSolveEndTraceEvent {
-    SolveStatus status = SolveStatus::kMaxIter;
+    SolveStatus status = SolveStatus::kIterationLimit;
     Index iters = 0; ///< `IpmResult::iterations`, summed over the phases.
     double total_time_s = 0.0;
     double pre_time_s = 0.0;
@@ -747,12 +738,12 @@ struct IpmSolveEndTraceEvent {
 class TraceSink {
   public:
     virtual ~TraceSink();
-    virtual void on_ipqp_iter(const IpqpTraceIterEvent &event);
-    virtual void on_ipqp_reg(const IpqpTraceRegEvent &event);
-    virtual void on_ipqp_restart(const IpqpTraceRestartEvent &event);
-    virtual void on_ipqp_route(const IpqpTraceRouteEvent &event);
-    virtual void on_ipqp_certify(const IpqpTraceCertifyEvent &event);
-    virtual void on_ipqp_escape(const IpqpTraceEscapeEvent &event);
+    virtual void on_ipqp_iter(const IpqpIterTraceEvent &event);
+    virtual void on_ipqp_reg(const IpqpRegTraceEvent &event);
+    virtual void on_ipqp_restart(const IpqpRestartTraceEvent &event);
+    virtual void on_ipqp_route(const IpqpRouteTraceEvent &event);
+    virtual void on_ipqp_certify(const IpqpCertifyTraceEvent &event);
+    virtual void on_ipqp_escape(const IpqpEscapeTraceEvent &event);
     virtual void on_qp_mode(const QpModeTraceEvent &event);
     virtual void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event);
 

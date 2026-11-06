@@ -473,7 +473,7 @@ TEST(ProblemScalingOffPath, TheDefaultIsOffAndReportsTheIdentity) {
     SqpSolver driver{SqpOptions{}};
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_FALSE(sol.scaling.active);
-    EXPECT_DOUBLE_EQ(1.0, sol.scaling.obj);
+    EXPECT_DOUBLE_EQ(1.0, sol.scaling.objective);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_min);
     // On an unscaled solve the two residuals are the SAME measurement, not two
@@ -562,7 +562,7 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
                 "sf=%.6g\n",
                 static_cast<int>(after.status), static_cast<long long>(after.counters.major_iters),
                 after.f, after.convergence.kkt_residual, after.scaling.scaled_kkt_residual,
-                after.scaling.obj);
+                after.scaling.objective);
 
     // THE PIN. The instance the fixture banner in test_b1_gate.cpp records as
     // running out of majors converges here.
@@ -592,7 +592,7 @@ TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell)
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max) << "already row-equilibrated, and left alone";
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_min);
-    EXPECT_DOUBLE_EQ(1.0e-10, sol.scaling.obj) << "100 / 1e12";
+    EXPECT_DOUBLE_EQ(1.0e-10, sol.scaling.objective) << "100 / 1e12";
 }
 
 // ===========================================================================
@@ -618,7 +618,7 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
                 "sf=%.6g\n",
                 static_cast<int>(after.status), static_cast<long long>(after.counters.major_iters),
                 after.f, after.convergence.kkt_residual, after.scaling.scaled_kkt_residual,
-                after.scaling.obj);
+                after.scaling.objective);
 
     // WHAT IS ASSERTED, and it is deliberately NOT "it converges to f* = 0".
     //
@@ -641,7 +641,7 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
     // The battery's own pin on this row is untouched, because the battery runs
     // at the shipped default and the shipped default is OFF.
     EXPECT_TRUE(after.scaling.active);
-    EXPECT_GT(after.scaling.obj, 1.0) << "the two-sided objective rule, scaling UP";
+    EXPECT_GT(after.scaling.objective, 1.0) << "the two-sided objective rule, scaling UP";
     EXPECT_EQ(0, before.counters.major_iters) << "the excused row, unscaled: certified at x0";
     EXPECT_EQ(SolveStatus::kOptimal, before.status);
 
@@ -747,7 +747,7 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     const SqpResult first = scaled.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.scaling.active);
-    ASSERT_TRUE(SqpWarmAccess::state(first.native_warm_start).valid);
+    ASSERT_TRUE(SqpWarmAccess::state(first.sqp_warm_start).valid);
 
     // THE HAND-OFF: a warm start built by a SCALED solve, ingested by an
     // UNSCALED one. It must be accepted (not silently degraded to cold) and it
@@ -756,7 +756,7 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     warm_opts.common.start_level = StartLevel::kWarm;
     SqpSolver consumer{warm_opts};
     const SqpResult second = consumer.solve(hven::detail::problem_ref(model), model.start_point(),
-                                            first.native_warm_start, SolveBudget{});
+                                            first.sqp_warm_start, SolveBudget{});
 
     EXPECT_NE(StartLevel::kCold, second.counters.start_level_used)
         << "the currency was ACCEPTED, which is only true if it arrived in the caller's units";
@@ -783,14 +783,14 @@ TEST(ProblemScalingWarmStart, AScaledExportDropsTheScaledSpaceStateItCannotMap) 
     opts.row_scaling = true;
     SqpSolver driver{opts};
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
-    ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).valid);
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).funnel_width);
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).primal_delta);
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).dual_mu);
-    EXPECT_EQ(nullptr, SqpWarmAccess::state(sol.native_warm_start).hot);
-    EXPECT_FALSE(SqpWarmAccess::state(sol.native_warm_start).has_prox_center);
-    EXPECT_EQ(0, SqpWarmAccess::state(sol.native_warm_start).prox_center_x.size());
-    EXPECT_GE(SqpWarmAccess::state(sol.native_warm_start).tr_radius, 0.0)
+    ASSERT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).valid);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).funnel_width);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).primal_delta);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).dual_mu);
+    EXPECT_EQ(nullptr, SqpWarmAccess::state(sol.sqp_warm_start).hot);
+    EXPECT_FALSE(SqpWarmAccess::state(sol.sqp_warm_start).has_prox_center);
+    EXPECT_EQ(0, SqpWarmAccess::state(sol.sqp_warm_start).prox_center_x.size());
+    EXPECT_GE(SqpWarmAccess::state(sol.sqp_warm_start).tr_radius, 0.0)
         << "an x-space radius, carried unchanged";
 }
 
@@ -807,21 +807,21 @@ TEST(ProblemScalingWarmStart, TheExportedCurrencyIsTheSolutionsOwnMultipliers) {
         opts.row_scaling = scaled;
         SqpSolver driver{opts};
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
-        ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).valid) << "scaled=" << scaled;
+        ASSERT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).valid) << "scaled=" << scaled;
         ASSERT_EQ(hven::detail::engine_rows(sol).lambda_e.size(),
-                  SqpWarmAccess::state(sol.native_warm_start).lambda_e.size());
-        EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start)
+                  SqpWarmAccess::state(sol.sqp_warm_start).lambda_e.size());
+        EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start)
                         .lambda_e.isApprox(hven::detail::engine_rows(sol).lambda_e, 0.0))
             << "equality prices, EXACTLY, scaled=" << scaled;
         ASSERT_EQ(hven::detail::engine_rows(sol).lambda_i.size(),
-                  SqpWarmAccess::state(sol.native_warm_start).lambda_i.size());
-        EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start)
+                  SqpWarmAccess::state(sol.sqp_warm_start).lambda_i.size());
+        EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start)
                         .lambda_i.isApprox(hven::detail::engine_rows(sol).lambda_i, 0.0))
             << "inequality prices, EXACTLY, scaled=" << scaled;
-        ASSERT_EQ(sol.z.size(), SqpWarmAccess::state(sol.native_warm_start).z.size());
-        EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start).z.isApprox(sol.z, 0.0))
+        ASSERT_EQ(sol.z.size(), SqpWarmAccess::state(sol.sqp_warm_start).z.size());
+        EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).z.isApprox(sol.z, 0.0))
             << "bound prices, EXACTLY, scaled=" << scaled;
-        EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start).x.isApprox(sol.x, 0.0))
+        EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).x.isApprox(sol.x, 0.0))
             << "scaled=" << scaled;
     }
 }
@@ -878,7 +878,7 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     ASSERT_FALSE(sol.history.empty());
     // Both halves of the map are live on this fixture, which is what makes the
     // columns below distinguishable from their engine-scale selves.
-    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.obj);
+    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.objective);
     EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.row_min);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max);
 
@@ -941,7 +941,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     // THE REPORT IS WRITTEN. Before the fix this exit left it default-
     // constructed, so a scaled solve claimed `active == false` about itself.
     EXPECT_TRUE(sol.scaling.active);
-    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.obj) << "100 / |grad f(x0)|inf = 100 / 1e6";
+    EXPECT_DOUBLE_EQ(1.0e-4, sol.scaling.objective) << "100 / |grad f(x0)|inf = 100 / 1e6";
     EXPECT_TRUE(std::isnan(sol.scaling.scaled_kkt_residual))
         << "nothing was measured at this point, in either space";
 
@@ -964,14 +964,14 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     // a dual_mu set in the SCALED subproblem's units under field names whose
     // contract says caller-scale. Benign while `valid` is false, which it is
     // here; pinned anyway, because "no consumer looks today" is not a contract.
-    EXPECT_FALSE(SqpWarmAccess::state(sol.native_warm_start).valid)
+    EXPECT_FALSE(SqpWarmAccess::state(sol.sqp_warm_start).valid)
         << "the unevaluable exit hands back a COLD object";
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).funnel_width);
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).primal_delta);
-    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.native_warm_start).dual_mu);
-    EXPECT_EQ(nullptr, SqpWarmAccess::state(sol.native_warm_start).hot);
-    EXPECT_FALSE(SqpWarmAccess::state(sol.native_warm_start).has_prox_center);
-    EXPECT_EQ(0, SqpWarmAccess::state(sol.native_warm_start).prox_center_x.size());
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).funnel_width);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).primal_delta);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).dual_mu);
+    EXPECT_EQ(nullptr, SqpWarmAccess::state(sol.sqp_warm_start).hot);
+    EXPECT_FALSE(SqpWarmAccess::state(sol.sqp_warm_start).has_prox_center);
+    EXPECT_EQ(0, SqpWarmAccess::state(sol.sqp_warm_start).prox_center_x.size());
 }
 
 // ===========================================================================
@@ -1000,7 +1000,8 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     const SqpResult b = on.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_TRUE(b.scaling.active);
-    EXPECT_DOUBLE_EQ(100.0, b.scaling.obj) << "grad f is (1,1) everywhere: the full two-sided lift";
+    EXPECT_DOUBLE_EQ(100.0, b.scaling.objective)
+        << "grad f is (1,1) everywhere: the full two-sided lift";
     EXPECT_DOUBLE_EQ(1.0, b.scaling.row_min) << "the row rule never amplifies";
     EXPECT_DOUBLE_EQ(1.0, b.scaling.row_max);
     ASSERT_EQ(SolveStatus::kInfeasible, b.status)

@@ -16,6 +16,8 @@
 #include "hven/model/claim_space.h"
 #include "hven/model/structure_identity.h"
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {

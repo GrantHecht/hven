@@ -26,6 +26,8 @@
 
 #include "scale_problems.h"
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 /// E1's own bound-arc parameter: the pattern every constructed cell is cut

@@ -147,7 +147,7 @@ struct QpDumpV2 {
     long long n_flag = 0;
     long long major = 0;
     double p = 0.0;
-    hven::QpProblem qp;
+    hven::detail::QpProblem qp;
     hven::Vec lambda_e, lambda_i, z;
 };
 

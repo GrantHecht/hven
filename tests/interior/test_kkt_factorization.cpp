@@ -25,8 +25,8 @@
 
 namespace {
 
-using hven::KktFactorization;
 using hven::SpMatRM;
+using hven::detail::KktFactorization;
 
 // Upper triangle of a symmetric matrix, in the row-major CSR convention the
 // factor requires: a structural diagonal in every row, nothing below it.
@@ -43,8 +43,8 @@ std::vector<Eigen::Triplet<double>> indefinite_2x2() { return {{0, 0, 2.0}, {1, 
 
 KktFactorization::Options mkl_like_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLdlt;
-    opts.num_threads = 1;
+    opts.decomposition = hven::linear::Decomposition::kLdlt;
+    opts.threads = 1;
     return opts;
 }
 
@@ -170,7 +170,7 @@ TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
     kkt.compute();
 
     KktFactorization::Options opts = mkl_like_options();
-    opts.pivot_perturb_exp = 10;
+    opts.pivot_perturbation_exponent = 10;
     kkt.reconfigure(opts);
 
     // The options are baked into the session the symbolic lives in, so the new
@@ -231,9 +231,9 @@ TEST(KktFactorizationTest, InertiaEvidenceIsUnavailableBeforeAnyFactorization) {
     // inertia: nothing has been observed, and the accessor says so.
     const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kUnavailable);
-    EXPECT_LT(ev.n_pos, 0);
-    EXPECT_LT(ev.n_neg, 0);
-    EXPECT_LT(ev.n_zero, 0);
+    EXPECT_LT(ev.positive, 0);
+    EXPECT_LT(ev.negative, 0);
+    EXPECT_LT(ev.zero, 0);
     EXPECT_FALSE(ev.perturbed_pivots.has_value());
 }
 
@@ -244,11 +244,11 @@ TEST(KktFactorizationTest, InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfu
 
     const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
     ASSERT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(ev.n_pos, kkt.peigs());
-    EXPECT_EQ(ev.n_neg, kkt.neigs());
+    EXPECT_EQ(ev.positive, kkt.peigs());
+    EXPECT_EQ(ev.negative, kkt.neigs());
     // The three counts partition the dimension, whichever backend produced
     // them -- derived on one, reported natively on the other.
-    EXPECT_EQ(ev.n_pos + ev.n_neg + ev.n_zero, kkt.matrix().rows());
+    EXPECT_EQ(ev.positive + ev.negative + ev.zero, kkt.matrix().rows());
 
 #if defined(USE_ACCELERATE_SPARSE)
     // Accelerate reports all three counts natively and keeps no
@@ -273,16 +273,16 @@ TEST(KktFactorizationTest, InertiaEvidenceFollowsTheLastFactorization) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
     kkt.compute();
-    ASSERT_EQ(kkt.inertia_evidence().n_pos, 1);
-    ASSERT_EQ(kkt.inertia_evidence().n_neg, 1);
+    ASSERT_EQ(kkt.inertia_evidence().positive, 1);
+    ASSERT_EQ(kkt.inertia_evidence().negative, 1);
 
     kkt.matrix().coeffRef(1, 1) = 5.0;
     kkt.refactorize();
 
-    EXPECT_EQ(kkt.inertia_evidence().n_pos, 2);
-    EXPECT_EQ(kkt.inertia_evidence().n_neg, 0);
-    EXPECT_EQ(kkt.inertia_evidence().n_pos, kkt.peigs());
-    EXPECT_EQ(kkt.inertia_evidence().n_neg, kkt.neigs());
+    EXPECT_EQ(kkt.inertia_evidence().positive, 2);
+    EXPECT_EQ(kkt.inertia_evidence().negative, 0);
+    EXPECT_EQ(kkt.inertia_evidence().positive, kkt.peigs());
+    EXPECT_EQ(kkt.inertia_evidence().negative, kkt.neigs());
 }
 
 TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
@@ -354,7 +354,7 @@ struct KktConfigRejectProblem : hven::Nlp {
 // left behind -- so the second solve below (the one that matters) runs
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
-    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
     hven::IpmSolver solver;
     {
         auto o = solver.options();
@@ -382,7 +382,7 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // performs no refinement, where the engine's previous interface ran its own
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
-    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
     hven::IpmSolver solver;
     {
         auto o = solver.options();
@@ -402,11 +402,11 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
 // the undocumented ones this enum also carries are not passed through as raw
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
-    const auto program = hven::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
     hven::IpmSolver solver;
     // M8 AP-2 B3: refused at validate(), by name, before any solve.
     auto o = solver.options();
-    o.linear.pivoting = static_cast<hven::KktPivoting>(13);
+    o.linear.pivot_strategy = static_cast<hven::IpmPivotStrategy>(13);
     EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
     (void)program;
 }

@@ -14,6 +14,8 @@
 
 #include "hven/detail/model/absent_bound.h"
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {

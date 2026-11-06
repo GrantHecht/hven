@@ -25,9 +25,9 @@
 
 namespace {
 
-using hven::BoundDualState;
-using hven::BoundSet;
 using hven::Index;
+using hven::detail::BoundDualState;
+using hven::detail::BoundSet;
 
 namespace ip = hven::detail;
 
@@ -406,7 +406,7 @@ TEST(IpqpMathTest, TheTwoReductionsComposeIntoOneUnionAggregate) {
 // ---------------------------------------------------------------------------
 
 TEST(IpqpMathTest, TheKernelsReadAnAbsentSideAsAnInfinityAlone) {
-    EXPECT_EQ(ip::kIpqpKappaD, hven::kKappaD);
+    EXPECT_EQ(ip::kIpqpKappaD, hven::detail::kKappaD);
 
     // An infinity is ABSENT; every finite value is a bound at kernel level,
     // however large -- the box builder has already mapped what the subproblem's

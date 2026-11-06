@@ -7,13 +7,13 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/drivers/ipm_iterate.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// kappa_soc — required per-correction reduction factor in the constraint
 /// violation (Wächter & Biegler 2006, §2.4): a correction is worth continuing
@@ -145,7 +145,7 @@ class SocRecovery : public RecoveryChain {
 
     Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
@@ -166,4 +166,4 @@ class SocRecovery : public RecoveryChain {
                                 Eigen::VectorXd &xsl2_scratch, Eigen::VectorXd &cons_out);
 };
 
-} // namespace hven
+} // namespace hven::detail

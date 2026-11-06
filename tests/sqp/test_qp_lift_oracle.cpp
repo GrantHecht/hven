@@ -47,6 +47,8 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 
+using namespace hven::detail;
+
 namespace hven {
 namespace {
 
@@ -223,14 +225,14 @@ Out solve_mode(Mode m, const QpProblem &qp, double radius, bool known_convex,
                const Vec *start_x = nullptr, const QpSolution *seed = nullptr) {
     QpOptions o;
     o.hessian_known_convex = known_convex;
-    SolveOverrides ov;
+    QpSolveOverrides ov;
     ov.trust_region_radius = radius;
     Out out;
     switch (m) {
     case Mode::kWalkBorder:
     case Mode::kWalkRefactorize: {
-        o.working_set_algebra = m == Mode::kWalkBorder ? WorkingSetLinearAlgebra::kSchurBorder
-                                                       : WorkingSetLinearAlgebra::kRefactorize;
+        o.working_set_algebra = m == Mode::kWalkBorder ? QpWorkingSetAlgebra::kSchurBorder
+                                                       : QpWorkingSetAlgebra::kRefactorize;
         QpEngine eng(o);
         const QpSolution s = seed != nullptr ? eng.solve(qp, *seed, ov) : eng.solve(qp, ov);
         out.status = s.status;

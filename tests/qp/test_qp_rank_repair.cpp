@@ -42,15 +42,16 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
     o.working_set_algebra = alg;
@@ -114,7 +115,7 @@ constexpr double kYorknetQp1Oracle = 1696529.7293693814;
 constexpr double kSawpathQp1Oracle = -376.225617384;
 constexpr double kSawpathQp1Band = 0.1;
 
-void expect_yorknet_qp1(WorkingSetLinearAlgebra alg) {
+void expect_yorknet_qp1(QpWorkingSetAlgebra alg) {
     QpDump d;
     const QpSolution s = solve_fixture("C11_YORKNET_qp1.txt", alg, d);
     // The premise: in-cell, this convex feasible subproblem ended kNumericalError (468 minors).
@@ -208,7 +209,7 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
     EXPECT_GE(s.counters.rank_repairs, 1);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
-    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kMaxIter)
+    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kIterationLimit)
         << static_cast<int>(s.status);
 #ifdef NDEBUG
     // Release: the repaired walk REACHES its KKT point.
@@ -223,7 +224,7 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
     }
 }
 
-void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
+void expect_sawpath_qp1(QpWorkingSetAlgebra alg) {
     QpDump d;
     const QpSolution s = solve_fixture("C11_SAWPATH_qp1.txt", alg, d);
     print_walk("SAWPATH qp1", d, s);
@@ -238,7 +239,7 @@ void expect_sawpath_qp1(WorkingSetLinearAlgebra alg) {
     }
 }
 
-void expect_yorknet_qp5(WorkingSetLinearAlgebra alg) {
+void expect_yorknet_qp5(QpWorkingSetAlgebra alg) {
     QpDump d;
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", alg, d);
     print_walk("YORKNET qp5", d, s);

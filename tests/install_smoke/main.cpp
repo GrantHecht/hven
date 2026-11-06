@@ -33,13 +33,13 @@
 #include "hven/core/ledger.h"
 #include "hven/core/solver_status.h"
 #include "hven/drivers/ipm_solver.h"
+#include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/sqp_solver.h"
-#include "hven/drivers/trace_writer.h"
+#include "hven/hven.h"
 #include "hven/model/nlp.h"
-#include "hven/model/pieces.h"
 #include "hven/model/problem.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -238,7 +238,7 @@ bool solve_pieces_problem() {
 // none odr-uses anything its header declares, so the link proves the objects link, nothing about
 // exports.
 namespace hven_install_smoke {
-int standalone_include_trace_writer();
+int standalone_include_json_lines_trace_sink();
 int standalone_include_trace();
 int standalone_include_ipqp_evidence();
 int standalone_include_nlp_problem();
@@ -261,7 +261,6 @@ int standalone_include_sqp_warm_start();
 int standalone_include_seeding();
 int standalone_include_console_trace_sink();
 int standalone_include_compiler();
-int standalone_include_pieces();
 int standalone_include_local_blocks();
 int standalone_include_solver_interface_specs();
 int standalone_include_solver_interface_adapter();
@@ -278,7 +277,7 @@ int standalone_include_hven();
 } // namespace hven_install_smoke
 
 int main() {
-    const int standalone_tus = hven_install_smoke::standalone_include_trace_writer() +
+    const int standalone_tus = hven_install_smoke::standalone_include_json_lines_trace_sink() +
                                hven_install_smoke::standalone_include_trace() +
                                hven_install_smoke::standalone_include_ipqp_evidence() +
                                hven_install_smoke::standalone_include_nlp_problem() +
@@ -301,7 +300,6 @@ int main() {
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler() +
-                               hven_install_smoke::standalone_include_pieces() +
                                hven_install_smoke::standalone_include_local_blocks() +
                                hven_install_smoke::standalone_include_solver_interface_specs() +
                                hven_install_smoke::standalone_include_solver_interface_adapter() +
@@ -315,8 +313,8 @@ int main() {
                                hven_install_smoke::standalone_include_type_storage() +
                                hven_install_smoke::standalone_include_ipm_iterate() +
                                hven_install_smoke::standalone_include_hven();
-    if (standalone_tus != 37) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 37\n",
+    if (standalone_tus != 36) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 36\n",
                      standalone_tus);
         return 1;
     }

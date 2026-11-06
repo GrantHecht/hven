@@ -66,7 +66,7 @@ struct ProblemStatistics {
 ///   fixed): adopted in place. Nothing is re-laid and the interior-point engine does
 ///   not re-analyse (IpmResult::kkt_analyses_this_call == 0); a WarmStart taken
 ///   before still matches. The one exception: under
-///   FixedVariableTreatment::kMakeConstraint a moved fixing value re-installs that
+///   IpmFixedVariableTreatment::kMakeConstraint a moved fixing value re-installs that
 ///   treatment's fixing rows, which re-analyses (counted).
 /// - A change in which variables are fixed, or in which bounds are finite: the
 ///   interior-point transcription is re-laid and re-analysed (counted), and a
@@ -131,7 +131,7 @@ class Problem {
     /// @brief The evaluation-partition count the interior-point layout adopts.
     ///        A requested count may be clamped down (one partition per 1000 KKT
     ///        elements at most); this is the adopted one. 1 for an Nlp problem.
-    Index partitions() const noexcept;
+    Index num_partitions() const noexcept;
 
   private:
     friend struct detail::ProblemAccess;

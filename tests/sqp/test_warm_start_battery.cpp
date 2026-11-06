@@ -478,7 +478,7 @@ SqpOptions battery_options(StartLevel level, bool full_step) {
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
     opts.advanced.warm_full_step = full_step;
     return opts;
@@ -1612,34 +1612,32 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     const SqpResult s1 = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.major_iters, 1) << "F1 is a QP: one subproblem is the whole problem";
-    ASSERT_NE(SqpWarmAccess::state(s1.native_warm_start).structure_hash, 0u);
+    ASSERT_NE(SqpWarmAccess::state(s1.sqp_warm_start).structure_hash, 0u);
 
     // Solve 2: re-solve at the SAME p from that hand-off. It ingests warm and
     // converges before building anything.
-    const SqpResult s2 =
-        driver.solve(hven::detail::problem_ref(model), SqpWarmAccess::state(s1.native_warm_start).x,
-                     s1.native_warm_start);
+    const SqpResult s2 = driver.solve(hven::detail::problem_ref(model),
+                                      SqpWarmAccess::state(s1.sqp_warm_start).x, s1.sqp_warm_start);
     ASSERT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(s2.counters.major_iters, 0) << "already at x*(p): the convergence test fires first";
 
     // THE REPAIR: solve 2 built nothing, and its hand-off is still hash-valid,
     // with the SAME hash the subproblem-building solve 1 emitted.
-    EXPECT_NE(SqpWarmAccess::state(s2.native_warm_start).structure_hash, 0u)
+    EXPECT_NE(SqpWarmAccess::state(s2.sqp_warm_start).structure_hash, 0u)
         << "make_warm_start probes the model when qp_built is false -- see this test's own note";
-    EXPECT_EQ(SqpWarmAccess::state(s2.native_warm_start).structure_hash,
-              SqpWarmAccess::state(s1.native_warm_start).structure_hash)
+    EXPECT_EQ(SqpWarmAccess::state(s2.sqp_warm_start).structure_hash,
+              SqpWarmAccess::state(s1.sqp_warm_start).structure_hash)
         << "the probe hashes the SAME model's H/Ae/Ai pattern, so it cannot differ from the "
            "hash a built subproblem produces";
-    EXPECT_TRUE(SqpWarmAccess::state(s2.native_warm_start).valid);
+    EXPECT_TRUE(SqpWarmAccess::state(s2.sqp_warm_start).valid);
 
     // ...so solve 3, offered it, resolves warm -- nothing about the model, the
     // point or the options changed, and now nothing about the hand-off does
     // either. (kWarm exactly, not merely >= kWarm: battery_options caps the
     // level there.)
-    const SqpResult s3 =
-        driver.solve(hven::detail::problem_ref(model), SqpWarmAccess::state(s2.native_warm_start).x,
-                     s2.native_warm_start);
+    const SqpResult s3 = driver.solve(hven::detail::problem_ref(model),
+                                      SqpWarmAccess::state(s2.sqp_warm_start).x, s2.sqp_warm_start);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm)
         << "THE PIN: a zero-major solve's hand-off is accepted by the very next solve";
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -2257,7 +2255,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     std::string table =
         fmt::format("crossover chain, F7 N={} nx={} p={} mu={} activity_rel_tol={}\n"
                     "  |dx|inf   arm      level   majors  minors  fact\n",
-                    kNodes, nx, kP, kMu, ip_opts.activity_rel_tol);
+                    kNodes, nx, kP, kMu, ip_opts.activity_relative_tol);
 
     for (const Row &want : expected) {
         SCOPED_TRACE(fmt::format("IP displacement {:g}", want.eps));

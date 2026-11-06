@@ -173,7 +173,7 @@ void validate(const SqpOptions &opts) {
             "below 1",
             opts.column_scaling_threshold));
     }
-    // THE kIpm TIER'S OWN OPTIONS (M6 W1 task 1). Validated UNCONDITIONALLY,
+    // THE kIpqp TIER'S OWN OPTIONS. Validated UNCONDITIONALLY,
     // exactly like the scaling fields just above and for the same reason: an
     // options object is a value whose qp_mode a caller may set later, so a
     // nonsensical IpqpOptions field was already nonsensical when it was set.
@@ -182,106 +182,126 @@ void validate(const SqpOptions &opts) {
     // negation-of-acceptance idiom's NaN-rejection reason does not apply to
     // them; every `double` field below uses that idiom, for this file's own
     // reason.
-    if (opts.advanced.ipqp.hard_iteration_cap <= 0) {
+    if (opts.advanced.ipqp.hard_max_iterations <= 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.hard_iteration_cap ({}) must be > 0; it is the budget of "
+            "SqpSolver: advanced.ipqp.hard_max_iterations ({}) must be > 0; it is the budget of "
             "last "
             "resort and, unlike max_iterations, carries no size-derived sentinel reading",
-            opts.advanced.ipqp.hard_iteration_cap));
+            opts.advanced.ipqp.hard_max_iterations));
     }
-    if (!(opts.advanced.ipqp.min_mu > 0.0) || std::isinf(opts.advanced.ipqp.min_mu)) {
+    if (!(opts.advanced.ipqp.barrier_min > 0.0) || std::isinf(opts.advanced.ipqp.barrier_min)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.barrier_min ({}) must be finite and > 0; it is the "
+            "floor of the mu_0 clamp and the tier's own barrier-decay floor",
+            opts.advanced.ipqp.barrier_min));
+    }
+    if (!(opts.advanced.ipqp.barrier_initial > 0.0) ||
+        std::isinf(opts.advanced.ipqp.barrier_initial)) {
+        throw std::invalid_argument(fmt::format("SqpSolver: advanced.ipqp.barrier_initial ({}) "
+                                                "must be finite and > 0; it is the cold starting "
+                                                "mu and the ceiling of the mu_0 clamp",
+                                                opts.advanced.ipqp.barrier_initial));
+    }
+    if (!(opts.advanced.ipqp.barrier_min <= opts.advanced.ipqp.barrier_initial)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: advanced.ipqp.min_mu ({}) must be finite and > 0; it is the "
-                        "floor of the mu_0 clamp and the tier's own barrier-decay floor",
-                        opts.advanced.ipqp.min_mu));
+            fmt::format("SqpSolver: advanced.ipqp.barrier_min ({}) must be <= "
+                        "advanced.ipqp.barrier_initial ({}); the mu_0 "
+                        "clamp's band [min_mu, init_mu] is otherwise inverted",
+                        opts.advanced.ipqp.barrier_min, opts.advanced.ipqp.barrier_initial));
     }
-    if (!(opts.advanced.ipqp.init_mu > 0.0) || std::isinf(opts.advanced.ipqp.init_mu)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.init_mu ({}) must be finite and > 0; it is the cold starting "
-            "mu and the ceiling of the mu_0 clamp",
-            opts.advanced.ipqp.init_mu));
-    }
-    if (!(opts.advanced.ipqp.min_mu <= opts.advanced.ipqp.init_mu)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.min_mu ({}) must be <= advanced.ipqp.init_mu ({}); the mu_0 "
-            "clamp's band [min_mu, init_mu] is otherwise inverted",
-            opts.advanced.ipqp.min_mu, opts.advanced.ipqp.init_mu));
-    }
-    if (!(opts.advanced.ipqp.reg_floor > 0.0) || std::isinf(opts.advanced.ipqp.reg_floor)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.reg_floor ({}) must be finite and > 0; it is the absolute "
-            "floor the (rho, delta) ladder's gated decrease may never cross",
-            opts.advanced.ipqp.reg_floor));
-    }
-    if (!(opts.advanced.ipqp.reg_max >= opts.advanced.ipqp.reg_floor) ||
-        std::isinf(opts.advanced.ipqp.reg_max)) {
+    if (!(opts.advanced.ipqp.regularization_min > 0.0) ||
+        std::isinf(opts.advanced.ipqp.regularization_min)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: advanced.ipqp.reg_max ({}) must be finite and >= "
-                        "advanced.ipqp.reg_floor ({}); "
-                        "it is the ceiling the (rho, delta) ladder's growth may never cross",
-                        opts.advanced.ipqp.reg_max, opts.advanced.ipqp.reg_floor));
+            fmt::format("SqpSolver: advanced.ipqp.regularization_min ({}) must be finite and > 0; "
+                        "it is the absolute "
+                        "floor the (rho, delta) ladder's gated decrease may never cross",
+                        opts.advanced.ipqp.regularization_min));
     }
-    if (!(opts.advanced.ipqp.rho_init >= opts.advanced.ipqp.reg_floor) ||
-        !(opts.advanced.ipqp.rho_init <= opts.advanced.ipqp.reg_max)) {
+    if (!(opts.advanced.ipqp.regularization_max >= opts.advanced.ipqp.regularization_min) ||
+        std::isinf(opts.advanced.ipqp.regularization_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.rho_init ({}) must lie in [reg_floor ({}), reg_max "
+            "SqpSolver: advanced.ipqp.regularization_max ({}) must be finite and >= "
+            "advanced.ipqp.regularization_min ({}); "
+            "it is the ceiling the (rho, delta) ladder's growth may never cross",
+            opts.advanced.ipqp.regularization_max, opts.advanced.ipqp.regularization_min));
+    }
+    if (!(opts.advanced.ipqp.primal_regularization_initial >=
+          opts.advanced.ipqp.regularization_min) ||
+        !(opts.advanced.ipqp.primal_regularization_initial <=
+          opts.advanced.ipqp.regularization_max)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.primal_regularization_initial ({}) must lie in "
+            "[regularization_min ({}), regularization_max "
             "({})]; the starting value of a quantity the ladder only ever moves within that "
             "band must itself start inside it",
-            opts.advanced.ipqp.rho_init, opts.advanced.ipqp.reg_floor, opts.advanced.ipqp.reg_max));
+            opts.advanced.ipqp.primal_regularization_initial, opts.advanced.ipqp.regularization_min,
+            opts.advanced.ipqp.regularization_max));
     }
-    if (!(opts.advanced.ipqp.delta_init > 0.0) ||
-        !(opts.advanced.ipqp.delta_init <= opts.advanced.ipqp.reg_max)) {
+    if (!(opts.advanced.ipqp.dual_regularization_initial > 0.0) ||
+        !(opts.advanced.ipqp.dual_regularization_initial <=
+          opts.advanced.ipqp.regularization_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.delta_init ({}) must lie in (0, reg_max ({})]; unlike "
-            "rho_init it is NOT tied to reg_floor -- spec section 2.2's monotone "
+            "SqpSolver: advanced.ipqp.dual_regularization_initial ({}) must lie in (0, "
+            "regularization_max ({})]; unlike "
+            "primal_regularization_initial it is NOT tied to regularization_min -- spec section "
+            "2.2's monotone "
             "floor is stated for rho only",
-            opts.advanced.ipqp.delta_init, opts.advanced.ipqp.reg_max));
+            opts.advanced.ipqp.dual_regularization_initial, opts.advanced.ipqp.regularization_max));
     }
-    if (!(opts.advanced.ipqp.reg_decrease > 0.0) || !(opts.advanced.ipqp.reg_decrease < 1.0)) {
+    if (!(opts.advanced.ipqp.regularization_decrease > 0.0) ||
+        !(opts.advanced.ipqp.regularization_decrease < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.reg_decrease ({}) must lie strictly in (0, 1); it is a "
+            "SqpSolver: advanced.ipqp.regularization_decrease ({}) must lie strictly in (0, 1); it "
+            "is a "
             "gated multiplicative decrease -- 0 would collapse the regularization in one "
             "gated step and >= 1 would never decrease it",
-            opts.advanced.ipqp.reg_decrease));
+            opts.advanced.ipqp.regularization_decrease));
     }
-    if (!(opts.advanced.ipqp.tau > 0.0) || !(opts.advanced.ipqp.tau < 1.0)) {
+    if (!(opts.advanced.ipqp.fraction_to_boundary > 0.0) ||
+        !(opts.advanced.ipqp.fraction_to_boundary < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.tau ({}) must lie strictly in (0, 1); it is the "
+            "SqpSolver: advanced.ipqp.fraction_to_boundary ({}) must lie strictly in (0, 1); it is "
+            "the "
             "fraction-to-boundary parameter -- 0 permits no step and >= 1 permits stepping "
             "onto or past a bound",
-            opts.advanced.ipqp.tau));
+            opts.advanced.ipqp.fraction_to_boundary));
     }
-    if (!(opts.advanced.ipqp.face_kappa > 0.0) || !(opts.advanced.ipqp.face_kappa < 1.0)) {
+    if (!(opts.advanced.ipqp.face_ratio_threshold > 0.0) ||
+        !(opts.advanced.ipqp.face_ratio_threshold < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.face_kappa ({}) must lie strictly in (0, 1); a non-positive "
+            "SqpSolver: advanced.ipqp.face_ratio_threshold ({}) must lie strictly in (0, 1); a "
+            "non-positive "
             "ratio-rule threshold can never classify a row active, and at kappa >= 1 the active "
             "test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) can no longer "
             "partition: at kappa == 1 an exact tie (s_j == z_j) satisfies NEITHER strict "
             "inequality (both tests false, so every tie becomes UNCERTAIN with no genuine "
             "margin), and above 1 the two tests can both fire on the same pair (a contradictory "
             "active-AND-inactive verdict)",
-            opts.advanced.ipqp.face_kappa));
+            opts.advanced.ipqp.face_ratio_threshold));
     }
-    if (!(opts.advanced.ipqp.converge_slack >= 1.0) ||
-        std::isinf(opts.advanced.ipqp.converge_slack)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.converge_slack ({}) must be finite and >= 1; a slack below "
-            "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
-            "inverting the two-tier division of labor",
-            opts.advanced.ipqp.converge_slack));
+    if (!(opts.advanced.ipqp.convergence_slack >= 1.0) ||
+        std::isinf(opts.advanced.ipqp.convergence_slack)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.convergence_slack ({}) must be finite and >= 1; "
+                        "a slack below "
+                        "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
+                        "inverting the two-tier division of labor",
+                        opts.advanced.ipqp.convergence_slack));
     }
-    if (opts.advanced.ipqp.warm_iter_budget < 0) {
+    if (opts.advanced.ipqp.max_warm_iterations < 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.warm_iter_budget ({}) must be >= 0; 0 is legal (every warm "
+            "SqpSolver: advanced.ipqp.max_warm_iterations ({}) must be >= 0; 0 is legal (every "
+            "warm "
             "restart is killed on its first iteration) but a negative budget is not a count",
-            opts.advanced.ipqp.warm_iter_budget));
+            opts.advanced.ipqp.max_warm_iterations));
     }
-    if (!(opts.advanced.ipqp.mu_adopt_factor >= 0.0) ||
-        std::isinf(opts.advanced.ipqp.mu_adopt_factor)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.mu_adopt_factor ({}) must be finite and >= 0; 0 is a legal, "
-            "deliberate reading (adoption disabled), a negative one is not",
-            opts.advanced.ipqp.mu_adopt_factor));
+    if (!(opts.advanced.ipqp.barrier_adoption_factor >= 0.0) ||
+        std::isinf(opts.advanced.ipqp.barrier_adoption_factor)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.barrier_adoption_factor ({}) must be finite and "
+                        ">= 0; 0 is a legal, "
+                        "deliberate reading (adoption disabled), a negative one is not",
+                        opts.advanced.ipqp.barrier_adoption_factor));
     }
     if (opts.advanced.ipqp.stall_window <= 0) {
         throw std::invalid_argument(fmt::format(
@@ -289,16 +309,17 @@ void validate(const SqpOptions &opts) {
             "never accumulate the whole-window evidence the early-stall test is built on",
             opts.advanced.ipqp.stall_window));
     }
-    if (opts.advanced.ipqp.retire_after <= 0) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.ipqp.retire_after ({}) must be > 0; retiring \"after zero "
-            "consecutive escapes\" is not a count, it disables the tier outright",
-            opts.advanced.ipqp.retire_after));
+    if (opts.advanced.ipqp.max_consecutive_escapes <= 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.max_consecutive_escapes ({}) must be > 0; "
+                        "retiring \"after zero "
+                        "consecutive escapes\" is not a count, it disables the tier outright",
+                        opts.advanced.ipqp.max_consecutive_escapes));
     }
     // A2 (M7-37): the two shipped values only; any out-of-range cast is refused by name.
     // `mu_residual_floor` is a bool: it has no refusable value and therefore no predicate.
-    enum_in_range(opts.advanced.ipqp.mu0_rule, IpqpMu0Rule::kComplementarity,
-                  "advanced.ipqp.mu0_rule");
+    enum_in_range(opts.advanced.ipqp.barrier_initial_rule, IpqpBarrierInitialRule::kComplementarity,
+                  "advanced.ipqp.barrier_initial_rule");
     // The two size-derived budgets: empty derives them; an engaged value is a count.
     if (opts.advanced.ipqp.max_iterations && *opts.advanced.ipqp.max_iterations < 1) {
         throw std::invalid_argument(fmt::format(
@@ -320,20 +341,18 @@ void validate(const SqpOptions &opts) {
     }
     // Every enum field is checked against its enumerators: a value outside them
     // is a reachable input through a plain aggregate field.
-    enum_in_range(opts.qp_mode, QpMode::kIpm, "qp_mode");
-    enum_in_range(opts.advanced.elastic_rung_engine, ElasticRungEngine::kTier,
+    enum_in_range(opts.qp_mode, QpMode::kIpqp, "qp_mode");
+    enum_in_range(opts.advanced.elastic_rung_engine, SqpElasticRungEngine::kTier,
                   "advanced.elastic_rung_engine");
     enum_in_range(opts.advanced.ssn_sigma_rule, SsnSigmaRule::kResidualAlways,
                   "advanced.ssn_sigma_rule");
     enum_in_range(opts.advanced.ssn_hint_rule, SsnHintRule::kWatchdog, "advanced.ssn_hint_rule");
     enum_in_range(opts.advanced.ssn_infeasibility_rule, SsnInfeasibilityRule::kFarkasGated,
                   "advanced.ssn_infeasibility_rule");
-    // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
-    // The routing chain it was waiting on now dispatches the mode
-    // (sqp_solver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
+    // kIpqp is a reachable mode (sqp_solver.cpp's THE QP KERNEL DISPATCH), so
     // nothing here refuses it. The IpqpOptions predicates above are validated
-    // UNCONDITIONALLY, at every mode, exactly as they were: a field is
-    // out of range whether or not this solve will read it.
+    // UNCONDITIONALLY, at every mode: a field is out of range whether or not
+    // this solve will read it.
 
     // THE START-POINT PROJECTION (M7 W2 M4), in declaration position.
     //
@@ -357,14 +376,15 @@ void validate(const SqpOptions &opts) {
     // retry this engine has always taken, i.e. silently change the shipped
     // behaviour through a value rather than through the field's own meaning,
     // and a negative is not a count at all.
-    if (!(opts.advanced.qp_failure_budget >= 1)) {
+    if (!(opts.advanced.max_consecutive_qp_failures >= 1)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.qp_failure_budget ({}) must be >= 1; it is the number of "
+            "SqpSolver: advanced.max_consecutive_qp_failures ({}) must be >= 1; it is the number "
+            "of "
             "CONSECUTIVE "
             "subproblem failures the driver may route at one iterate, and 1 is the shipped "
             "behaviour (route the first, end the solve on the second). 0 would refuse the "
             "first retry, which is a behaviour change spelled as a budget",
-            opts.advanced.qp_failure_budget));
+            opts.advanced.max_consecutive_qp_failures));
     }
 
     // THE CAP RETRY (M7 W2 M1), in declaration position and on
@@ -422,10 +442,11 @@ void validate(const SqpOptions &opts) {
             "use restoration_proximity = 0",
             opts.advanced.restoration_proximity));
     }
-    if (!(opts.advanced.qn_full_memory_max >= 0)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: advanced.qn_full_memory_max ({}) must be >= 0 (0 = never full memory)",
-            opts.advanced.qn_full_memory_max));
+    if (!(opts.advanced.max_lbfgs_full_memory_dimension >= 0)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.max_lbfgs_full_memory_dimension ({}) must be >= 0 (0 "
+                        "= never full memory)",
+                        opts.advanced.max_lbfgs_full_memory_dimension));
     }
     // `qn_update_on_reject` and `qn_nonlinear_only` are BOOLs with no refusable value.
 
@@ -446,9 +467,9 @@ void validate(const SqpOptions &opts) {
             "is not available yet; only DensePolicy::kNever is accepted",
             static_cast<int>(opts.linear.dense_factorization)));
     }
-    if (opts.linear.dense_max_dimension) {
+    if (opts.linear.max_dense_dimension) {
         throw std::invalid_argument(
-            "SqpSolver: linear.dense_max_dimension is reserved: the dense factorization arm is "
+            "SqpSolver: linear.max_dense_dimension is reserved: the dense factorization arm is "
             "not available yet; leave it empty");
     }
 }
@@ -529,16 +550,16 @@ const char *enum_name(QpMode v) {
         return "kWalk";
     case QpMode::kSsn:
         return "kSsn";
-    case QpMode::kIpm:
-        return "kIpm";
+    case QpMode::kIpqp:
+        return "kIpqp";
     }
     return "unknown";
 }
-const char *enum_name(ElasticRungEngine v) {
+const char *enum_name(SqpElasticRungEngine v) {
     switch (v) {
-    case ElasticRungEngine::kWalk:
+    case SqpElasticRungEngine::kWalk:
         return "kWalk";
-    case ElasticRungEngine::kTier:
+    case SqpElasticRungEngine::kTier:
         return "kTier";
     }
     return "unknown";
@@ -574,11 +595,11 @@ const char *enum_name(SqpColumnScaling v) {
     }
     return "unknown";
 }
-const char *enum_name(IpqpMu0Rule v) {
+const char *enum_name(IpqpBarrierInitialRule v) {
     switch (v) {
-    case IpqpMu0Rule::kFixed:
+    case IpqpBarrierInitialRule::kFixed:
         return "kFixed";
-    case IpqpMu0Rule::kComplementarity:
+    case IpqpBarrierInitialRule::kComplementarity:
         return "kComplementarity";
     }
     return "unknown";
@@ -612,11 +633,11 @@ const char *enum_name(SsnInfeasibilityRule v) {
     }
     return "unknown";
 }
-const char *enum_name(WorkingSetLinearAlgebra v) {
+const char *enum_name(QpWorkingSetAlgebra v) {
     switch (v) {
-    case WorkingSetLinearAlgebra::kRefactorize:
+    case QpWorkingSetAlgebra::kRefactorize:
         return "kRefactorize";
-    case WorkingSetLinearAlgebra::kSchurBorder:
+    case QpWorkingSetAlgebra::kSchurBorder:
         return "kSchurBorder";
     }
     return "unknown";
@@ -698,10 +719,10 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
     kv_int(os, "lbfgs_memory", static_cast<long long>(o.lbfgs_memory));
     kv_str(os, "linear.dense_factorization", enum_name(o.linear.dense_factorization));
-    kv_opt_int(os, "linear.dense_max_dimension", o.linear.dense_max_dimension);
+    kv_opt_int(os, "linear.max_dense_dimension", o.linear.max_dense_dimension);
     const SqpAdvancedOptions &a = o.advanced;
-    kv_bool(os, "advanced.enable_soc", a.enable_soc);
-    kv_bool(os, "advanced.adaptive_mu", a.adaptive_mu);
+    kv_bool(os, "advanced.second_order_correction", a.second_order_correction);
+    kv_bool(os, "advanced.adaptive_dual_regularization", a.adaptive_dual_regularization);
     // A CALLABLE, not a configuration: see the declaration's note.
     kv_str(os, "advanced.make_strategy", a.make_strategy ? "set" : "unset");
     kv_bool(os, "advanced.warm_full_step", a.warm_full_step);
@@ -711,46 +732,49 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "advanced.ipqp_reseed_after_disproval", a.ipqp_reseed_after_disproval);
     const IpqpOptions &q = a.ipqp;
     kv_opt_int(os, "advanced.ipqp.max_iterations", q.max_iterations);
-    kv_int(os, "advanced.ipqp.hard_iteration_cap", static_cast<long long>(q.hard_iteration_cap));
+    kv_int(os, "advanced.ipqp.hard_max_iterations", static_cast<long long>(q.hard_max_iterations));
     kv_opt_int(os, "advanced.ipqp.max_factorizations", q.max_factorizations);
-    kv_dbl(os, "advanced.ipqp.init_mu", q.init_mu);
-    kv_dbl(os, "advanced.ipqp.min_mu", q.min_mu);
-    kv_dbl(os, "advanced.ipqp.rho_init", q.rho_init);
-    kv_dbl(os, "advanced.ipqp.delta_init", q.delta_init);
-    kv_dbl(os, "advanced.ipqp.reg_floor", q.reg_floor);
-    kv_dbl(os, "advanced.ipqp.reg_max", q.reg_max);
-    kv_dbl(os, "advanced.ipqp.reg_decrease", q.reg_decrease);
-    kv_dbl(os, "advanced.ipqp.tau", q.tau);
-    kv_dbl(os, "advanced.ipqp.face_kappa", q.face_kappa);
-    kv_dbl(os, "advanced.ipqp.converge_slack", q.converge_slack);
-    kv_bool(os, "advanced.ipqp.ruiz", q.ruiz);
+    kv_dbl(os, "advanced.ipqp.barrier_initial", q.barrier_initial);
+    kv_dbl(os, "advanced.ipqp.barrier_min", q.barrier_min);
+    kv_dbl(os, "advanced.ipqp.primal_regularization_initial", q.primal_regularization_initial);
+    kv_dbl(os, "advanced.ipqp.dual_regularization_initial", q.dual_regularization_initial);
+    kv_dbl(os, "advanced.ipqp.regularization_min", q.regularization_min);
+    kv_dbl(os, "advanced.ipqp.regularization_max", q.regularization_max);
+    kv_dbl(os, "advanced.ipqp.regularization_decrease", q.regularization_decrease);
+    kv_dbl(os, "advanced.ipqp.fraction_to_boundary", q.fraction_to_boundary);
+    kv_dbl(os, "advanced.ipqp.face_ratio_threshold", q.face_ratio_threshold);
+    kv_dbl(os, "advanced.ipqp.convergence_slack", q.convergence_slack);
+    kv_bool(os, "advanced.ipqp.ruiz_equilibration", q.ruiz_equilibration);
     kv_bool(os, "advanced.ipqp.warm_repair", q.warm_repair);
-    kv_int(os, "advanced.ipqp.warm_iter_budget", static_cast<long long>(q.warm_iter_budget));
-    kv_dbl(os, "advanced.ipqp.mu_adopt_factor", q.mu_adopt_factor);
+    kv_int(os, "advanced.ipqp.max_warm_iterations", static_cast<long long>(q.max_warm_iterations));
+    kv_dbl(os, "advanced.ipqp.barrier_adoption_factor", q.barrier_adoption_factor);
     kv_int(os, "advanced.ipqp.stall_window", static_cast<long long>(q.stall_window));
-    kv_int(os, "advanced.ipqp.retire_after", static_cast<long long>(q.retire_after));
+    kv_int(os, "advanced.ipqp.max_consecutive_escapes",
+           static_cast<long long>(q.max_consecutive_escapes));
     kv_bool(os, "advanced.ipqp.farkas_gate", q.farkas_gate);
-    kv_bool(os, "advanced.ipqp.hoist_symbolic", q.hoist_symbolic);
+    kv_bool(os, "advanced.ipqp.hoist_symbolic_analysis", q.hoist_symbolic_analysis);
     kv_bool(os, "advanced.ipqp.require_final_inertia", q.require_final_inertia);
-    kv_str(os, "advanced.ipqp.mu0_rule", enum_name(q.mu0_rule));
-    kv_bool(os, "advanced.ipqp.mu_residual_floor", q.mu_residual_floor);
+    kv_str(os, "advanced.ipqp.barrier_initial_rule", enum_name(q.barrier_initial_rule));
+    kv_bool(os, "advanced.ipqp.barrier_residual_floor", q.barrier_residual_floor);
     kv_int(os, "advanced.ipqp.ladder_skip_after", static_cast<long long>(q.ladder_skip_after));
-    kv_bool(os, "advanced.ssn_prox_carry", a.ssn_prox_carry);
+    kv_bool(os, "advanced.ssn_proximal_carry", a.ssn_proximal_carry);
     kv_bool(os, "advanced.ssn_certify_from_face", a.ssn_certify_from_face);
     kv_str(os, "advanced.ssn_sigma_rule", enum_name(a.ssn_sigma_rule));
     kv_str(os, "advanced.ssn_hint_rule", enum_name(a.ssn_hint_rule));
     kv_str(os, "advanced.ssn_infeasibility_rule", enum_name(a.ssn_infeasibility_rule));
-    kv_int(os, "advanced.qp_failure_budget", static_cast<long long>(a.qp_failure_budget));
-    kv_bool(os, "advanced.qp_cap_retry", a.qp_cap_retry);
+    kv_int(os, "advanced.max_consecutive_qp_failures",
+           static_cast<long long>(a.max_consecutive_qp_failures));
+    kv_bool(os, "advanced.qp_iteration_limit_retry", a.qp_iteration_limit_retry);
     kv_bool(os, "advanced.qp_failure_step", a.qp_failure_step);
     kv_dbl(os, "advanced.restoration_proximity", a.restoration_proximity);
     kv_bool(os, "advanced.equality_basis", a.equality_basis);
     kv_bool(os, "advanced.elastic_witness_start", a.elastic_witness_start);
     kv_bool(os, "advanced.elastic_last_optimal_rung", a.elastic_last_optimal_rung);
     kv_dbl(os, "advanced.restoration_resume_reduction", a.restoration_resume_reduction);
-    kv_bool(os, "advanced.qn_update_on_reject", a.qn_update_on_reject);
-    kv_bool(os, "advanced.qn_nonlinear_only", a.qn_nonlinear_only);
-    kv_int(os, "advanced.qn_full_memory_max", static_cast<long long>(a.qn_full_memory_max));
+    kv_bool(os, "advanced.lbfgs_update_on_reject", a.lbfgs_update_on_reject);
+    kv_bool(os, "advanced.lbfgs_nonlinear_only", a.lbfgs_nonlinear_only);
+    kv_int(os, "advanced.max_lbfgs_full_memory_dimension",
+           static_cast<long long>(a.max_lbfgs_full_memory_dimension));
     kv_str(os, "advanced.restoration_curvature", enum_name(a.restoration_curvature));
     kv_int(os, "advanced.max_restoration_entries",
            static_cast<long long>(a.max_restoration_entries));

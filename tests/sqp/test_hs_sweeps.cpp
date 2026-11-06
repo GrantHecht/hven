@@ -442,10 +442,10 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     opts.common.optimality_tol = 1e-6;
     opts.common.feasibility_tol = 1e-6;
     opts.common.max_iterations = max_iter;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
     opts.advanced.warm_full_step = full_step;
-    opts.advanced.enable_soc = enable_soc;
+    opts.advanced.second_order_correction = enable_soc;
     // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
     // the full-step mode by design -- the full-step funnel accepts every trial
     // unjudged -- so with it on the KD lever would differ in TWO things, not one.
@@ -552,9 +552,8 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
         SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
         const SqpResult sol =
-            have_prev
-                ? driver.solve(hven::detail::problem_ref(*model), prev.x, prev.native_warm_start)
-                : driver.solve(hven::detail::problem_ref(*model), model->start_point());
+            have_prev ? driver.solve(hven::detail::problem_ref(*model), prev.x, prev.sqp_warm_start)
+                      : driver.solve(hven::detail::problem_ref(*model), model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -1118,7 +1117,7 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
-    // 23/30. The shipped `SqpOptions::qp_failure_budget` moved from 1 to 3 on
+    // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
     // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
     // HS15's warm arm is the one cell in this corpus that routes a subproblem
     // failure at all: two more failures are now routed at the iterate that used
@@ -1593,7 +1592,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     opts.common.optimality_tol = 1e-6;
     opts.common.feasibility_tol = 1e-6;
     opts.common.max_iterations = 60;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kWarm;
 
     // --- solve at p = 0: the published HS10, solved from its own start point.
@@ -1616,7 +1615,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
     SqpSolver d1(opts);
-    const SqpResult s1 = d1.solve(hven::detail::problem_ref(*model), s0.x, s0.native_warm_start);
+    const SqpResult s1 = d1.solve(hven::detail::problem_ref(*model), s0.x, s0.sqp_warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.

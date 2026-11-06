@@ -21,6 +21,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using Obs = hven::detail::testing::QpWalkObserver;
@@ -30,14 +31,14 @@ using RideRead = hven::detail::testing::QpWalkRideOutcome;
 
 namespace {
 
-constexpr std::array<WorkingSetLinearAlgebra, 2> kAlgebras = {
-    WorkingSetLinearAlgebra::kRefactorize, WorkingSetLinearAlgebra::kSchurBorder};
+constexpr std::array<QpWorkingSetAlgebra, 2> kAlgebras = {QpWorkingSetAlgebra::kRefactorize,
+                                                          QpWorkingSetAlgebra::kSchurBorder};
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+const char *alg_name(QpWorkingSetAlgebra alg) {
+    return alg == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize";
 }
 
-QpOptions nc2_opts(WorkingSetLinearAlgebra alg, bool independent = true) {
+QpOptions nc2_opts(QpWorkingSetAlgebra alg, bool independent = true) {
     QpOptions o;
     o.max_iterations = 60;
     o.independent_working_set = independent;
@@ -143,7 +144,7 @@ QpSolution flat_ray_seed() {
 TEST(QpNc2FlatFace, AWrongSignedDropOnAnLpFaceRidesTheRayToItsBlocker) {
     const QpProblem qp = flat_ray_lp();
     const QpSolution seed = flat_ray_seed();
-    for (const WorkingSetLinearAlgebra alg : kAlgebras) {
+    for (const QpWorkingSetAlgebra alg : kAlgebras) {
         SCOPED_TRACE(alg_name(alg));
         const Walk w = observed(qp, &seed, nc2_opts(alg));
         const QpSolution &s = w.solution;
@@ -236,7 +237,7 @@ TEST(QpNc2FlatFace, TheNoiseLevelMultiplierIsWithinTheScaledKktTestAndIsNotDropp
     // tolerance it was asked for and not an error. Plus the descent invariant and
     // the absence of the veto, so a returning veto fails here.
     const QpSolution seed = flat_ray_seed();
-    for (const WorkingSetLinearAlgebra alg : kAlgebras) {
+    for (const QpWorkingSetAlgebra alg : kAlgebras) {
         SCOPED_TRACE(alg_name(alg));
         for (const double z1 : {-2e-9, -2e-8}) {
             const QpProblem qp = noise_lp(z1);
@@ -303,8 +304,8 @@ constexpr bool kDebugBuild = true;
 //   - zero_motion_exhausted == 0: a drop undone on a sign veto is a NOISE drop by the mark's own
 //     test here (the multiplier is below the residual the two slopes disclose), so it does not
 //     count toward exhaustion and the base exit is unreachable.
-void expect_cs(const char *file, WorkingSetLinearAlgebra alg, const char *premise,
-               double f_clarabel, QpStatus release_status, QpStatus debug_status) {
+void expect_cs(const char *file, QpWorkingSetAlgebra alg, const char *premise, double f_clarabel,
+               QpStatus release_status, QpStatus debug_status) {
     const QpDump d = r2_dump(file);
     EXPECT_NE(d.result.find(premise), std::string::npos);
     QpOptions o = d.opts;
@@ -359,9 +360,9 @@ void expect_cs(const char *file, WorkingSetLinearAlgebra alg, const char *premis
         // 1e-6 relative, a decade above the 1.1e-7 (Release) / 9.5e-8 (Debug) measured, because
         // where the walk stops inside its budget is exactly the rounding-sensitive part.
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
 #else
-        EXPECT_TRUE(s.status == QpStatus::kMaxIter || s.status == QpStatus::kNumericalError)
+        EXPECT_TRUE(s.status == QpStatus::kIterationLimit || s.status == QpStatus::kNumericalError)
             << static_cast<int>(s.status);
 #endif
         EXPECT_LE(std::abs(f - f_clarabel), 1e-6 * std::abs(f_clarabel));
@@ -382,7 +383,7 @@ void expect_cs(const char *file, WorkingSetLinearAlgebra alg, const char *premis
 } // namespace
 
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeRefactorize) {
-    expect_cs("R2_Cs_STEENBRB_qp2.txt", WorkingSetLinearAlgebra::kRefactorize, "status=3",
+    expect_cs("R2_Cs_STEENBRB_qp2.txt", QpWorkingSetAlgebra::kRefactorize, "status=3",
               -192.000444927, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
@@ -398,41 +399,41 @@ TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder) {
         GTEST_SKIP() << "Debug border on this dump costs 745 s, over M6's 600 s per-fixture "
                         "budget; asserted in Release and, under refactorize, in Debug";
     }
-    expect_cs("R2_Cs_STEENBRB_qp2.txt", WorkingSetLinearAlgebra::kSchurBorder, "status=3",
+    expect_cs("R2_Cs_STEENBRB_qp2.txt", QpWorkingSetAlgebra::kSchurBorder, "status=3",
               -192.000444927, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
 // `QpStatus` RE-DERIVED for qp3 at M7 W2 E4 fix round 2 (a declared mover, and the
-// good direction): NC2 fix round 1 measured kMaxIter in both configurations and
+// good direction): NC2 fix round 1 measured kIterationLimit in both configurations and
 // asserted the capped cell's honest half -- the walk reaches the optimum's
 // OBJECTIVE and cannot certify it inside its budget. The E4 walk CERTIFIES it:
 // kOptimal at 2915 minors with f = -384.00031719 against Clarabel's -384.000315772,
 // 3.7e-09 relative, so the `expect_cs` branch that runs is the optimal one and the
 // full KKT read-out above applies instead of the objective-only bound.
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize) {
-    expect_cs("R2_Cs_STEENBRB_qp3.txt", WorkingSetLinearAlgebra::kRefactorize, "status=1",
+    expect_cs("R2_Cs_STEENBRB_qp3.txt", QpWorkingSetAlgebra::kRefactorize, "status=1",
               -384.000315772, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder) {
-    expect_cs("R2_Cs_STEENBRB_qp3.txt", WorkingSetLinearAlgebra::kSchurBorder, "status=1",
+    expect_cs("R2_Cs_STEENBRB_qp3.txt", QpWorkingSetAlgebra::kSchurBorder, "status=1",
               -384.000315772, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
 // qp4's DEBUG status RE-DERIVED at M7 W2 E4 fix round 2 (a declared mover, and the
-// good direction, exactly as qp3's above): NC2 fix round 1 measured kMaxIter in Debug
+// good direction, exactly as qp3's above): NC2 fix round 1 measured kIterationLimit in Debug
 // and kOptimal in Release; Debug now CERTIFIES too, at 533 minors with
 // f = -192.000158957 against Clarabel's -192.000158557 -- 2.1e-09 relative, on BOTH
 // algebras. So the two configurations agree on this cell and `expect_cs` takes its
 // optimal branch in both, which means the full KKT read-out applies where Debug had
 // only the objective bound.
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize) {
-    expect_cs("R2_Cs_STEENBRB_qp4.txt", WorkingSetLinearAlgebra::kRefactorize, "status=3",
+    expect_cs("R2_Cs_STEENBRB_qp4.txt", QpWorkingSetAlgebra::kRefactorize, "status=3",
               -192.000158557, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder) {
-    expect_cs("R2_Cs_STEENBRB_qp4.txt", WorkingSetLinearAlgebra::kSchurBorder, "status=3",
+    expect_cs("R2_Cs_STEENBRB_qp4.txt", QpWorkingSetAlgebra::kSchurBorder, "status=3",
               -192.000158557, QpStatus::kOptimal, QpStatus::kOptimal);
 }
 
@@ -521,7 +522,7 @@ ObjTally obj_tally(const std::vector<Record> &records) {
 void expect_no_ascent_on(const char *file) {
     const QpDump d = r2_dump(file);
     QpOptions o = d.opts;
-    o.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     Obs::reset();
     Obs::active = true;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
@@ -568,7 +569,7 @@ TEST(QpE4ProximalEqp, NoOrdinaryStepAscendsItsOwnObjectiveOnSteenbrbQp4) {
 
 TEST(QpE4ProximalEqp, NoOrdinaryStepAscendsItsOwnObjectiveOnTheFlatRayLp) {
     const QpSolution seed = flat_ray_seed();
-    for (const WorkingSetLinearAlgebra alg : kAlgebras) {
+    for (const QpWorkingSetAlgebra alg : kAlgebras) {
         SCOPED_TRACE(alg_name(alg));
         const Walk w = observed(flat_ray_lp(), &seed, nc2_opts(alg));
         const ObjTally t = obj_tally(w.records);
@@ -593,7 +594,7 @@ TEST(QpE4ProximalEqp, TheSteenbrbRestorationLpQp1ReachesTheClarabelOptimum) {
     // closer than the base's point and on the correct side of it by rounding. The
     // dump is added to tests/qp/fixtures/e2-d4/ at this round (the same bytes as the
     // R2 evidence's own, which is where the other three R2 fixtures came from).
-    for (const WorkingSetLinearAlgebra alg : kAlgebras) {
+    for (const QpWorkingSetAlgebra alg : kAlgebras) {
         SCOPED_TRACE(alg_name(alg));
         const QpDump d = r2_dump("R2_Cs_STEENBRB_qp1.txt");
         QpOptions o = d.opts;

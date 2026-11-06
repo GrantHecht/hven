@@ -46,10 +46,10 @@ SpMatRM make_kkt3_different_pattern() {
 TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
     const hven::linear::SymmetricFactor::Options o = sqp_kkt_options();
 
-    EXPECT_EQ(o.kind, hven::linear::FactorKind::kLdlt);
-    EXPECT_EQ(o.num_threads, 0) << "the default argument is the pre-T8.8 hard-coded value";
-    EXPECT_FALSE(o.pivot_perturb_exp.has_value());
-    EXPECT_FALSE(o.max_refinement_iters.has_value());
+    EXPECT_EQ(o.decomposition, hven::linear::Decomposition::kLdlt);
+    EXPECT_EQ(o.threads, 0) << "the default argument is the pre-T8.8 hard-coded value";
+    EXPECT_FALSE(o.pivot_perturbation_exponent.has_value());
+    EXPECT_FALSE(o.max_refinement_steps.has_value());
     EXPECT_EQ(o.ordering, hven::linear::SymmetricFactor::Options::Ordering::kBackendDefault);
     EXPECT_FALSE(o.weighted_matching);
     EXPECT_FALSE(o.matrix_scaling);
@@ -59,9 +59,9 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
               hven::linear::SymmetricFactor::Options::FactorizationAlgorithm::kBackendDefault);
     EXPECT_EQ(o.solve_parallelism,
               hven::linear::SymmetricFactor::Options::SolveParallelism::kBackendDefault);
-    EXPECT_EQ(o.cnr_threads, 0);
+    EXPECT_EQ(o.conditional_reproducibility_threads, 0);
     EXPECT_FALSE(o.collect_factor_mflops);
-    EXPECT_FALSE(o.accelerate_zero_tolerance.has_value());
+    EXPECT_FALSE(o.accelerate_zero_tol.has_value());
 }
 
 // The other half of the moved pin (M6 W5 T8.8): the count handed in is the
@@ -76,21 +76,22 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
 // the temporaries are ever to be OBSERVED rather than argued.
 TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
     const hven::linear::SymmetricFactor::Options two = sqp_kkt_options(2);
-    EXPECT_EQ(two.num_threads, 2);
+    EXPECT_EQ(two.threads, 2);
 
     const hven::linear::SymmetricFactor::Options zero = sqp_kkt_options(0);
-    EXPECT_EQ(zero.num_threads, 0);
+    EXPECT_EQ(zero.threads, 0);
 
     // Nothing but the thread count moves: the two option sets differ in one
     // field, checked on the ones the SQP deliberately pins above.
-    EXPECT_EQ(two.kind, zero.kind);
+    EXPECT_EQ(two.decomposition, zero.decomposition);
     EXPECT_EQ(two.ordering, zero.ordering);
     EXPECT_EQ(two.pivot_strategy, zero.pivot_strategy);
     EXPECT_EQ(two.factorization_algorithm, zero.factorization_algorithm);
     EXPECT_EQ(two.solve_parallelism, zero.solve_parallelism);
-    EXPECT_EQ(two.cnr_threads, zero.cnr_threads);
-    EXPECT_EQ(two.pivot_perturb_exp.has_value(), zero.pivot_perturb_exp.has_value());
-    EXPECT_EQ(two.max_refinement_iters.has_value(), zero.max_refinement_iters.has_value());
+    EXPECT_EQ(two.conditional_reproducibility_threads, zero.conditional_reproducibility_threads);
+    EXPECT_EQ(two.pivot_perturbation_exponent.has_value(),
+              zero.pivot_perturbation_exponent.has_value());
+    EXPECT_EQ(two.max_refinement_steps.has_value(), zero.max_refinement_steps.has_value());
 }
 
 // The KktFactor constructor is the single point every walk/SSN-tier factor is
@@ -202,7 +203,7 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     // followed (its K2 is this test's changed_pattern, entry for entry).
     const hven::linear::InertiaEvidence after_pattern_change = k.factor.inertia();
     ASSERT_EQ(after_pattern_change.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(after_pattern_change.n_neg, 1);
+    EXPECT_EQ(after_pattern_change.negative, 1);
 
     EXPECT_EQ(symbolic_analyses, 2);
     EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
@@ -242,7 +243,7 @@ TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
     ASSERT_NO_THROW(factorize_checked(k, K));
     const hven::linear::InertiaEvidence ev = k.factor.inertia();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(ev.n_zero, 0);
+    EXPECT_EQ(ev.zero, 0);
     EXPECT_GT(ev.perturbed_pivots.value_or(0), 0);
 #endif
 }

@@ -5,13 +5,13 @@
 
 // warm_start_access.h -- the library's door into WarmStart's engine-split blocks.
 //
-// WarmStart (warmstart/warm_start_data.h) keeps its four blocks, its stamp and
+// WarmStart (warmstart/warm_start.h) keeps its four blocks, its stamp and
 // its extensions private: a consumer reads the primal point, z and the stamp,
 // and reads or builds the multipliers in the problem's ROW SPACE. The engines,
 // the byte form and the crossover work in the engine split (equality block,
 // inequality block), declared space, and reach it here.
 
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace hven::detail {
 

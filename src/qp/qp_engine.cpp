@@ -39,6 +39,8 @@
 #include <optional>
 #include <utility>
 
+using namespace hven::detail;
+
 namespace hven {
 
 void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
@@ -48,24 +50,24 @@ void QpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp) const {
-    return run(qp, nullptr, false, SolveOverrides{});
+    return run(qp, nullptr, false, QpSolveOverrides{});
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed) const {
-    return run(qp, &seed, true, SolveOverrides{});
+    return run(qp, &seed, true, QpSolveOverrides{});
 }
 
-QpSolution QpEngine::solve(const QpProblem &qp, const SolveOverrides &overrides) const {
+QpSolution QpEngine::solve(const QpProblem &qp, const QpSolveOverrides &overrides) const {
     return run(qp, nullptr, false, overrides);
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed,
-                           const SolveOverrides &overrides) const {
+                           const QpSolveOverrides &overrides) const {
     return run(qp, &seed, true, overrides);
 }
 
 QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed,
-                           const SolveOverrides &overrides,
+                           const QpSolveOverrides &overrides,
                            const std::shared_ptr<const HotState> &hot) const {
     return run(qp, &seed, true, overrides, hot);
 }
@@ -119,7 +121,7 @@ std::shared_ptr<const HotState> QpEngine::hot_state() const {
 }
 
 bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
-                              const SolveOverrides &overrides, QpSolution &out) const {
+                              const QpSolveOverrides &overrides, QpSolution &out) const {
     out = face;
     out.counters = QpCounters{};
 
@@ -293,7 +295,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
 }
 
 QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
-                                              const SolveOverrides &overrides) {
+                                              const QpSolveOverrides &overrides) {
     if (std::isnan(overrides.trust_region_radius) || overrides.trust_region_radius < 0.0) {
         throw std::invalid_argument(
             fmt::format("QpEngine::solve: SolveOverrides.trust_region_radius must be >= 0, or the "
@@ -358,7 +360,7 @@ QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
 }
 
 QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
-                         const SolveOverrides &overrides,
+                         const QpSolveOverrides &overrides,
                          const std::shared_ptr<const HotState> &hot) const {
     // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmState::hot, opaque) is a
     // snapshot possibly produced by a DIFFERENT QpEngine instance's
@@ -387,7 +389,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // come from `seed`, which is independent of `hot`.
     if (!border_valid_ && hot != nullptr && hot->border != nullptr &&
         hot->engine_options_hash == options_hash_ &&
-        opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder) {
         border_ = hot->border;
         border_structural_hash_ = hot->structural_hash;
         border_values_hash_ = hot->values_hash;
@@ -420,7 +422,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     const std::uint64_t prev_border_kkt_epoch = border_kkt_epoch_;
     border_valid_ = false;
 
-    // Resolve this solve's SolveOverrides against opts_ ONCE, into the
+    // Resolve this solve's QpSolveOverrides against opts_ ONCE, into the
     // effective values every tr_radius/primal_delta/dual_mu read site
     // below consults from here on. `eff_opts` is opts_ verbatim except
     // for these three fields.
@@ -569,7 +571,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // near the end of this function; each hash walks all of H/Ae/Ai.
     std::uint64_t current_structural_hash = 0;
     std::uint64_t current_values_hash = 0;
-    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+    if (opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder) {
         current_structural_hash = detail::structural_hash(qp);
         current_values_hash = detail::values_hash(qp);
         // Condition (d): the EFFECTIVE (primal_delta, dual_mu) pair this
@@ -700,7 +702,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     Index stagnation_drops_left = detail::kStagnationDropBudget;
     bool stagnation_resume_spent = false;
 
-    QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
+    QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kIterationLimit;
 #ifdef HVEN_TESTING
     // M7 W2 M5's DEGENERACY ARMS (qp_degeneracy_arm.h). Clears the published
     // stationarity scale so this solve's first drop can never be judged
@@ -1238,7 +1240,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // it, or a second consecutive full step (end of pass), retreats.
         const bool standstill_face =
             eq_rows_violated && !eliminated_only &&
-            opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+            opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder &&
             verdict == detail::InertiaVerdict::kWrong;
         if (zero_motion && standstill_face) {
             eliminated_only = true;
@@ -2886,10 +2888,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             }
         }
         // THE STAGNATION READING (qp_engine.h): an idle run of full steps on a fixed working set
-        // hands the next pass to the drop rule, or, with the drops spent, ends the walk kMaxIter
-        // here, at the iterate the step just reached. A ride never reaches this line (every ride
-        // branch above ends its pass), so "no ride" holds by construction. f_now costs one H
-        // mat-vec per qualifying pass.
+        // hands the next pass to the drop rule, or, with the drops spent, ends the walk
+        // kIterationLimit here, at the iterate the step just reached. A ride never reaches this
+        // line (every ride branch above ends its pass), so "no ride" holds by construction. f_now
+        // costs one H mat-vec per qualifying pass.
         if (eff_opts.independent_working_set && kind == BlockKind::kNone && !ride_blocked &&
             alpha >= 1.0 && ws.active_ineq().size() == working_rows_before_refresh) {
             const double f_now =
@@ -2931,12 +2933,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
 
     // Commit the hot-start reuse cache iff this solve reached a genuine KKT
-    // point (INVALIDATION POLICY). kMaxIter/kInfeasible/kNumericalError
+    // point (INVALIDATION POLICY). kIterationLimit/kInfeasible/kNumericalError
     // all leave border_valid_ false: border_ may still hold a good K0
     // factorization, but the working set that produced it was never
     // certified. Reuses current_structural_hash/current_values_hash
     // computed above rather than re-hashing H/Ae/Ai.
-    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder &&
+    if (opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder &&
         status == QpStatus::kOptimal && !eliminated_only) {
         border_structural_hash_ = current_structural_hash;
         border_values_hash_ = current_values_hash;
@@ -2974,13 +2976,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // but it runs at the TOP of a minor iteration while the working set
     // can still be mutated afterward (drop_worst, the zero-multiplier
     // probe, the ratio test). On a converging exit the last mutation is
-    // always followed by another `price()`; on a `kMaxIter` exit it is
+    // always followed by another `price()`; on a `kIterationLimit` exit it is
     // not. Re-imposing the rule at the point of export rather than
     // re-labelling `bound_state` is the direction that ADDS no
     // information -- it cannot invent activity -- and `bound_state` is
     // read far more widely.
     //
-    // UNCONDITIONAL rather than `if (status == kMaxIter)`: the invariant
+    // UNCONDITIONAL rather than `if (status == kIterationLimit)`: the invariant
     // is a property of the EXPORT, not of a status. Runs BEFORE section
     // 6's TR exclusion, which only clears MORE of `z`.
     for (Index i = 0; i < n; ++i) {
@@ -3601,7 +3603,7 @@ EqpResult QpEngine::eqp_candidate(const QpProblem &qp, const WorkingSet &ws, con
     // iteration re-arms it: the verdict site refuses to reuse a factorization
     // no call of this iteration produced.
     face.factorized = false;
-    if (opts_.working_set_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+    if (opts_.working_set_algebra == QpWorkingSetAlgebra::kSchurBorder) {
         return border_candidate(qp, ws, x_k, kkt, face, border, counters, verdict, opts);
     }
     return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
@@ -3744,7 +3746,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
         const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
         k0_untrusted = e.state != hven::linear::InertiaEvidence::State::kObserved ||
                        (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) ||
-                       (!e.zero_is_derived && e.n_zero != 0);
+                       (!e.zero_is_derived && e.zero != 0);
     }
     if (!border.schur.has_value() || k0_untrusted) {
         rebuild_k0(qp, ws, border, counters, opts); // the seed working set's K0
@@ -5569,7 +5571,7 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     // Constructed AFTER the factorization: add_border caches K0^-1 v
     // against whatever `border.kkt` currently holds. SchurComplement reads
     // only schur_cap/schur_cond_max from `opts` -- both unaffected by
-    // SolveOverrides -- so passing `opts` rather than opts_ changes
+    // QpSolveOverrides -- so passing `opts` rather than opts_ changes
     // nothing observable; it keeps one consistent options value.
     // The dense border factor takes this engine's thread count too (M6 W5
     // T8.8), so the walk's Schur updates run at the width the sparse factors

@@ -79,7 +79,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // detail::kMaxBorderRefineSteps and detail::kBorderRefineRelFloor -- the
 // budget and floor this file's refinement loop runs on -- live in eqp_solve.h
@@ -108,7 +108,7 @@ namespace hven {
 // WHAT THAT DOES AND DOES NOT EXPLAIN, measured both ways on the 51-dump corpus:
 // the two forms give the SAME 51 rows on both algebras, so the four certified
 // `ACOPP57_def` cells the border path LOST in E4's first round (kOptimal in 8
-// minors -> kMaxIter at 1795, terminal stationarity 1.25e-07 against the
+// minors -> kIterationLimit at 1795, terminal stationarity 1.25e-07 against the
 // eliminated path's 1.02e-14 on the same face) were NOT this rule's doing -- they
 // were the border path's own accuracy on that face, amplified by the proximal
 // step's 1/delta, and fix round 1's unregularized polish recovered them (kOptimal
@@ -694,4 +694,4 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     return res;
 }
 
-} // namespace hven
+} // namespace hven::detail

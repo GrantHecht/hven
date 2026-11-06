@@ -534,7 +534,7 @@
 //        kNumericalError (certificate_bound_refusals) -- never kInfeasible: x off
 //        its box is a pass-over leak of the walk's own, the box alone is feasible,
 //        and an infeasible QP is the verified Farkas certificate's to prove (SDL-4).
-//    kMaxIter once eff_max_iter major iterations have been spent. A fourth
+//    kIterationLimit once eff_max_iter major iterations have been spent. A fourth
 //    kNumericalError exit bypasses this classification: 4c's ride, no blocker.
 //
 //    ORDERING IS LOAD-BEARING: the drop rule is consulted BEFORE infeasibility
@@ -619,7 +619,7 @@
 //
 //    Per-solve radius variation. tr_radius lives on QpOptions, which is
 //    per-instance const, but every solve() overload also takes a
-//    `const SolveOverrides &` resolved ONCE at the top of run(); every read site
+//    `const QpSolveOverrides &` resolved ONCE at the top of run(); every read site
 //    consults those effective values. A shrink-radius retry loop therefore
 //    shares one QpEngine across every retry radius and keeps hot-start reuse
 //    wherever the ordinary conditions allow.
@@ -642,7 +642,7 @@
 //    rather than assume it is inherited.
 //
 //    ONE-WAY GUARANTEE: a PINNED index's z is the price the last price() call
-//    computed, which on a kMaxIter exit may be one working set stale. `kFixed`
+//    computed, which on a kIterationLimit exit may be one working set stale. `kFixed`
 //    is silently outside this invariant.
 //
 // --- Degeneracy ---
@@ -770,15 +770,15 @@
 // classification. With nothing to drop, a residual the dual_mu footprint explains is first
 // re-solved mu-free (refine_terminal_mu_free, as at the terminal classification) and the drop rule
 // asked again on the refined multipliers; an adopted point with nothing to drop is, once per solve,
-// the next pass's iterate, and with that resume spent ends the walk kMaxIter at the adopted point
-// (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs the
-// refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
-// kMaxIter at the iterate it stands on (an adopted one included) -- the minor cap's status, point
-// and multipliers, reached early -- if that iterate meets its working rows, or if its residual is
-// not below the run's best over the idle steps, or if that best, extrapolated, cannot bring the
-// rows to their floor within the minors left (the cap's status either way); a run that can takes
-// the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with the budget
-// spent, the next reading ends the walk kMaxIter at once. It certifies nothing.
+// the next pass's iterate, and with that resume spent ends the walk kIterationLimit at the adopted
+// point (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs
+// the refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
+// kIterationLimit at the iterate it stands on (an adopted one included) -- the minor cap's status,
+// point and multipliers, reached early -- if that iterate meets its working rows, or if its
+// residual is not below the run's best over the idle steps, or if that best, extrapolated, cannot
+// bring the rows to their floor within the minors left (the cap's status either way); a run that
+// can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
+// the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -857,9 +857,7 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
-
-namespace detail {
+namespace hven::detail {
 
 // THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iterations (qp_types.h)
 // defaults to the sentinel 0, meaning "derive the cap from this subproblem's
@@ -1108,8 +1106,8 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
     if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
         return InertiaVerdict::kSuspect;
     }
-    const Index pos = static_cast<Index>(e.n_pos);
-    const Index neg = static_cast<Index>(e.n_neg);
+    const Index pos = static_cast<Index>(e.positive);
+    const Index neg = static_cast<Index>(e.negative);
     if (pos + neg != expected_pos + expected_neg) {
         return InertiaVerdict::kSuspect;
     }
@@ -1513,8 +1511,6 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
     return h;
 }
 
-} // namespace detail
-
 // Border mode's entire persistent state (unused under kRefactorize): the one
 // full-variable K0 the loop keeps factorized, the working rows built INTO it,
 // and the live border stack that carries it from that working set to the
@@ -1578,8 +1574,6 @@ struct BorderState {
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
 
-namespace detail {
-
 // THE LATCH AND ITS REASON (section 4). Free functions of the border state alone, so the rule
 // is readable -- and testable -- without a walk around it.
 //
@@ -1619,8 +1613,6 @@ bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &co
 // exactly singular C). Counted border_latches_cap / border_latches_conditioning.
 void take_latch(const WorkingSet &ws, BorderState &border, QpCounters &counters,
                 const QpOptions &opts, bool rebuilt);
-
-} // namespace detail
 
 // The face the elimination path'S `kkt` CURRENTLY HOLDS. Captured where
 // solve_eqp factorizes, read at the verdict site so the face refinement can
@@ -1772,8 +1764,8 @@ class QpEngine {
     void adopt_solve_counter(Index n) noexcept { solve_counter_ = n; }
 
     // Cold start from clamp(0, l, u) with an empty working set. Forwards a
-    // default-constructed SolveOverrides, which resolves to every opts_
-    // value unchanged -- see qp_types.h's SolveOverrides and the header
+    // default-constructed QpSolveOverrides, which resolves to every opts_
+    // value unchanged -- see qp_types.h's QpSolveOverrides and the header
     // contract's PER-SOLVE RADIUS VARIATION note.
     QpSolution solve(const QpProblem &qp) const;
 
@@ -1782,14 +1774,14 @@ class QpEngine {
     QpSolution solve(const QpProblem &qp, const QpSolution &seed) const;
 
     // Cold start with a per-solve override of tr_radius/primal_delta/
-    // dual_mu (see qp_types.h's SolveOverrides). Resolved once, at the top of
+    // dual_mu (see qp_types.h's QpSolveOverrides). Resolved once, at the top of
     // run(), into the effective values every read site in qp_engine.cpp actually
     // consults.
-    QpSolution solve(const QpProblem &qp, const SolveOverrides &overrides) const;
+    QpSolution solve(const QpProblem &qp, const QpSolveOverrides &overrides) const;
 
     // Warm start with a per-solve override, combining both of the above.
     QpSolution solve(const QpProblem &qp, const QpSolution &seed,
-                     const SolveOverrides &overrides) const;
+                     const QpSolveOverrides &overrides) const;
 
     // Warm start with a per-solve override AND a hot handle
     // (SqpWarmState::hot) from a PRIOR solve -- typically on a DIFFERENT
@@ -1800,7 +1792,7 @@ class QpEngine {
     // reuse-eligibility conditions (a)-(e) are the ONLY gate on whether
     // adopting it skips a factorization, and a mismatch silently costs the
     // ordinary rebuild.
-    QpSolution solve(const QpProblem &qp, const QpSolution &seed, const SolveOverrides &overrides,
+    QpSolution solve(const QpProblem &qp, const QpSolution &seed, const QpSolveOverrides &overrides,
                      const std::shared_ptr<const HotState> &hot) const;
 
     // A shared, opaque snapshot of this engine's CURRENTLY valid border-mode
@@ -1849,7 +1841,7 @@ class QpEngine {
     // site zeroes `seed.x` first. This function takes no centre parameter and
     // does NOT validate that assumption.
     bool refine_on_face(const QpProblem &qp_in, const QpSolution &face,
-                        const SolveOverrides &overrides, QpSolution &out) const;
+                        const QpSolveOverrides &overrides, QpSolution &out) const;
 
   private:
     // R5's PIN TAKEN DIRECTLY: probe_inertia is private, and the test that
@@ -1857,14 +1849,14 @@ class QpEngine {
     // in the test -- assembly_eval_seam.h's convention, no shipped surface.
     friend struct QpEngineTestAccess;
 
-    /// @brief Resolve one call's SolveOverrides against `opts` into the
+    /// @brief Resolve one call's QpSolveOverrides against `opts` into the
     ///     effective tr_radius/primal_delta/dual_mu values every read site in
     ///     qp_engine.cpp consults from that point on. Shared with run() so
     ///     refine_on_face() cannot resolve them differently.
     /// @param opts the engine's QpOptions; every other field (feas_tol,
     ///     opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra) is
     ///     carried through unchanged.
-    /// @param overrides per-solve overrides (qp_types.h's SolveOverrides
+    /// @param overrides per-solve overrides (qp_types.h's QpSolveOverrides
     ///     sentinel convention: tr_radius disables at +inf; primal_delta/
     ///     dual_mu are overridden only by a value >= 0, and 0 is what
     ///     disables the regularization -- a negative override means "use
@@ -1878,7 +1870,7 @@ class QpEngine {
     ///     sentinel, if the corresponding stored opts field is NaN or
     ///     negative. The domain enforced throughout is NOT NaN and >= 0.
     static QpOptions resolve_effective_options(const QpOptions &opts,
-                                               const SolveOverrides &overrides);
+                                               const QpSolveOverrides &overrides);
 
     // What the ratio test found blocking, or kNone.
     enum class BlockKind { kNone, kIneq, kBound };
@@ -1988,7 +1980,7 @@ class QpEngine {
     };
 
     QpSolution run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
-                   const SolveOverrides &overrides,
+                   const QpSolveOverrides &overrides,
                    const std::shared_ptr<const HotState> &hot = nullptr) const;
 
     // Step 1a: the START CENTER -- the clamped seed primal, plus kFixed
@@ -2032,7 +2024,7 @@ class QpEngine {
     // The allowance is CAPPED (kInfeasibilityAbsorbTol) so it cannot absorb a
     // genuine contradiction -- see row_tolerance().
     // `opts` is the EFFECTIVE options this solve resolved (run()'s
-    // `eff_opts`), since dual_mu can vary per solve via SolveOverrides.
+    // `eff_opts`), since dual_mu can vary per solve via QpSolveOverrides.
 
     // OBSERVATION ONLY. Which constraints this solve has EVER admitted, so
     // QpCounters::distinct_{ineq,bound}_added can report re-discovery
@@ -2181,7 +2173,7 @@ class QpEngine {
     // check, which reads that system, had nothing to say -- and opened the
     // equality row by 0.5, after which the walk spent its whole iteration cap
     // taking full steps on an UNCHANGING working set with the row open,
-    // reporting kMaxIter at a point that is no local minimizer. The base walk's
+    // reporting kIterationLimit at a point that is no local minimizer. The base walk's
     // absolute centring prices that face's multipliers at O(primal_delta), so
     // it never saw this.
     //
@@ -2943,7 +2935,7 @@ class QpEngine {
 
     // const: nothing may mutate opts_ after construction; every field it holds
     // is this engine instance's DEFAULT for that field, resolved against a
-    // solve()'s own SolveOverrides at the top of run() (`eff_opts`) rather
+    // solve()'s own QpSolveOverrides at the top of run() (`eff_opts`) rather
     // than read directly by most of the engine.
     const QpOptions opts_;
     Ledger *ledger_ = nullptr;
@@ -2990,4 +2982,4 @@ class QpEngine {
     mutable std::uint64_t border_kkt_epoch_ = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

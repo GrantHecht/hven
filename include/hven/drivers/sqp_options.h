@@ -36,13 +36,15 @@ namespace hven {
 /// The globalization strategy interface `SqpAdvancedOptions::make_strategy`
 /// returns. Its definition is internal; a caller that implements one includes
 /// the internal header that declares it.
+namespace detail {
 class GlobalizationStrategy;
+} // namespace detail
 
 /// @brief Which kernel solves each SQP subproblem.
 ///
 /// kWalk is the primal active-set walk (qp_engine.h): one working-set change per
 /// minor iteration. kSsn is the semismooth-Newton kernel (ssn_engine.h), whose
-/// step changes the whole implied active set at once. kIpm is the interior-point
+/// step changes the whole implied active set at once. kIpqp is the interior-point
 /// tier (detail/qp/ipqp_engine.h), which acquires the active set from an interior
 /// start and hands a converged iterate to the tier-3 exact face refinement.
 ///
@@ -50,7 +52,7 @@ class GlobalizationStrategy;
 enum class QpMode {
     kWalk,
     kSsn,
-    kIpm,
+    kIpqp,
 };
 
 // Declared HERE rather than in ssn_engine.h for the same reason QpMode is:
@@ -100,10 +102,10 @@ enum class SsnInfeasibilityRule {
 };
 
 /// @brief How the IPQP tier's solve-entry cold start sets `mu_0`; see
-/// `IpqpOptions::mu0_rule`.
-enum class IpqpMu0Rule { kFixed, kComplementarity };
+/// `IpqpOptions::barrier_initial_rule`.
+enum class IpqpBarrierInitialRule { kFixed, kComplementarity };
 
-/// @brief The kIpm tier's own settings.
+/// @brief The kIpqp tier's own settings.
 ///
 /// Declared HERE for the same reason QpMode and the three Ssn*Rule enums are:
 /// SqpOptions carries this struct as `ipqp`, and sqp_solver_types.h is the header the
@@ -125,55 +127,55 @@ struct IpqpOptions {
     /// iteration count. Default 60. Must be > 0. PER ATTEMPT, not per
     /// subproblem: the warm-kill re-bases both caps at the cold restart, so an
     /// abandoned attempt may total up to twice this value.
-    Index hard_iteration_cap = 60;
+    Index hard_max_iterations = 60;
 
     /// Factorization budget for the tier, enforced BEFORE EVERY factorization --
     /// ladder rungs and the final inertia read included, not merely once per
     /// iteration. Empty (the default) is 3 x the tier's EFFECTIVE ITERATION
-    /// BUDGET, `min(effective max_iterations, hard_iteration_cap)`, so 180 at the
+    /// BUDGET, `min(effective max_iterations, hard_max_iterations)`, so 180 at the
     /// shipped defaults. An engaged value must be >= 1. PER ATTEMPT, for the
-    /// reason `hard_iteration_cap` is, and every factorization is charged to the
+    /// reason `hard_max_iterations` is, and every factorization is charged to the
     /// driver's probe budget either way.
     std::optional<Index> max_factorizations;
 
     /// The cold starting barrier parameter, and the ceiling of the warm-restart
-    /// clamp `mu_0 = clamp(max(mu_meas, kappa_mu * mu_payload), min_mu,
-    /// init_mu)` -- a setting in both readings, never overwritten by payload
+    /// clamp `mu_0 = clamp(max(mu_meas, kappa_mu * mu_payload), barrier_min,
+    /// barrier_initial)` -- a setting in both readings, never overwritten by payload
     /// evidence, only clamped against it. Default 1e-2, Ruiz-scaled. Must be
-    /// finite, > 0, and >= `min_mu`, since the clamp band is otherwise
+    /// finite, > 0, and >= `barrier_min`, since the clamp band is otherwise
     /// inverted.
-    double init_mu = 1e-2;
+    double barrier_initial = 1e-2;
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
     /// floor thereafter. Default 1e-12, the interior-point engine's own
-    /// `barrier_min`. Must be finite, > 0, and <= `init_mu`.
-    double min_mu = 1e-12;
+    /// `barrier_min`. Must be finite, > 0, and <= `barrier_initial`.
+    double barrier_min = 1e-12;
 
     /// The (rho, delta) proximal regularization schedule's INITIAL values:
-    /// `rho_0 = rho_init`, `delta_0 = delta_init`. `rho`/`delta`
-    /// themselves enter the regularized KKT matrix's diagonal blocks (`H + rho I`
-    /// on the primal block, `-delta I` on each dual block); it is the PROXIMAL
-    /// CENTERING terms that enter the right-hand side. Default 8.0 each.
+    /// `rho_0 = primal_regularization_initial`, `delta_0 = dual_regularization_initial`.
+    /// `rho`/`delta` themselves enter the regularized KKT matrix's diagonal blocks (`H + rho I` on
+    /// the primal block, `-delta I` on each dual block); it is the PROXIMAL CENTERING terms that
+    /// enter the right-hand side. Default 8.0 each.
     ///
-    /// `rho_init` must be finite and lie in `[reg_floor,
-    /// reg_max]`: the starting value of a quantity the ladder only ever
+    /// `primal_regularization_initial` must be finite and lie in `[regularization_min,
+    /// regularization_max]`: the starting value of a quantity the ladder only ever
     /// moves within that band must itself start inside it.
-    double rho_init = 8.0;
-    /// The dual-block counterpart of `rho_init`, same schedule, on a
-    /// RELAXED band: it need only be finite and in `(0, reg_max]` --
+    double primal_regularization_initial = 8.0;
+    /// The dual-block counterpart of `primal_regularization_initial`, same schedule, on a
+    /// RELAXED band: it need only be finite and in `(0, regularization_max]` --
     /// positive, since a non-positive delta would not regularize the dual block
     /// at all, and no larger than the ceiling every regularized quantity in this
     /// schedule shares. Default 8.0.
-    double delta_init = 8.0;
+    double dual_regularization_initial = 8.0;
 
     /// The absolute floor the (rho, delta) ladder's GATED decrease may never
     /// cross (Cipolla-Gondzio eq. 19). Default 1e-10. Must be finite and > 0.
-    double reg_floor = 1e-10;
+    double regularization_min = 1e-10;
 
     /// The ceiling the (rho, delta) ladder's inertia-demanded growth may
     /// never cross; the tier inherits SSN's relative cap-slack exhaustion guard
-    /// with it. Default 1e6. Must be finite and >= `reg_floor`.
-    double reg_max = 1e6;
+    /// with it. Default 1e6. Must be finite and >= `regularization_min`.
+    double regularization_max = 1e6;
 
     /// The (rho, delta) ladder's GATED decrease factor: applied only after
     /// the regularized residuals have contracted by the required amount
@@ -182,14 +184,14 @@ struct IpqpOptions {
     /// value by, so it must lie strictly inside (0, 1): 0 would collapse the
     /// regularization in one gated step and >= 1 would never decrease it.
     /// Default 0.1.
-    double reg_decrease = 0.1;
+    double regularization_decrease = 0.1;
 
     /// The fraction-to-boundary parameter (`tau`/`bfrac`) both the affine
     /// and corrector steps are clipped by. A standard IPM
     /// literature constant, meaningful only strictly inside (0, 1): 0 would
     /// permit no step at all and >= 1 would permit stepping onto or past a
     /// bound. Default 0.995.
-    double tau = 0.995;
+    double fraction_to_boundary = 0.995;
 
     /// The RATIO threshold `kappa` of the face-classification rule: row `j` is
     /// active iff `s_j < kappa * z_j` and INACTIVE iff `z_j < kappa * s_j` --
@@ -198,19 +200,19 @@ struct IpqpOptions {
     /// non-positive kappa can never classify anything active, and at kappa >= 1
     /// the two tests stop being mutually exclusive, leaving no room for the
     /// routing chain's UNCERTAIN class.
-    double face_kappa = 1e-2;
+    double face_ratio_threshold = 1e-2;
 
-    /// The barrier-phase convergence target's SLACK factor: the tier converges to `converge_slack
-    /// x` the QP layer's own relative tolerances, deliberately LOOSER than the 1e-10 tier-3 exact
-    /// refinement owns the last two decades of. Default 100. Must be finite and >= 1 -- a slack
-    /// below 1 would ask the barrier phase for MORE accuracy than tier 3's own finish, inverting
-    /// the division of labor the two-tier design rests on.
-    double converge_slack = 1e2;
+    /// The barrier-phase convergence target's SLACK factor: the tier converges to
+    /// `convergence_slack x` the QP layer's own relative tolerances, deliberately LOOSER than the
+    /// 1e-10 tier-3 exact refinement owns the last two decades of. Default 100. Must be finite and
+    /// >= 1 -- a slack below 1 would ask the barrier phase for MORE accuracy than tier 3's own
+    /// finish, inverting the division of labor the two-tier design rests on.
+    double convergence_slack = 1e2;
 
     /// Ruiz equilibration inside the tier, unscaled on export.
     /// Default true. A plain A/B lever; every asserted pin is on unscaled
     /// quantities either way.
-    bool ruiz = true;
+    bool ruiz_equilibration = true;
 
     /// The warm-seed repair: strict-positivity clamps plus the
     /// two-scalar `(delta_p, delta_d)` shift, applied before a warm restart
@@ -221,19 +223,19 @@ struct IpqpOptions {
 
     /// The warm-kill rule's iteration budget: a warm-started solve overrunning
     /// this many iterations is restarted COLD exactly once. The effective budget
-    /// IS CLAMPED at `min(warm_iter_budget, effective max_iterations)`, so a
+    /// IS CLAMPED at `min(max_warm_iterations, effective max_iterations)`, so a
     /// caller-chosen value larger than the solve's own iteration budget can never
     /// become the binding limit. Default 15. Must be >= 0 (0 is legal: every warm
     /// restart is killed on its first iteration).
-    Index warm_iter_budget = 15;
+    Index max_warm_iterations = 15;
 
     /// `kappa_mu` in the `mu_0` clamp rule: `mu_0 =
-    /// clamp(max(mu_meas, mu_adopt_factor * mu_payload), min_mu,
-    /// init_mu)`. 0 DISABLES ADOPTION (the clamp then reads only
+    /// clamp(max(mu_meas, barrier_adoption_factor * mu_payload), barrier_min,
+    /// barrier_initial)`. 0 DISABLES ADOPTION (the clamp then reads only
     /// `mu_meas`), which is a deliberate, documented reading of this field
     /// rather than a degenerate one, so it stays legal. Default 1.0. Must be
     /// finite and >= 0.
-    double mu_adopt_factor = 1.0;
+    double barrier_adoption_factor = 1.0;
 
     /// The early-stall detector's window width in ACCEPTED
     /// iterations, an order of magnitude above the local regime so that no
@@ -248,7 +250,7 @@ struct IpqpOptions {
     /// Must be > 0 -- retiring "after zero consecutive escapes" is not a
     /// count, it is disabling the tier outright, which this field does not
     /// exist to express.
-    Index retire_after = 3;
+    Index max_consecutive_escapes = 3;
 
     /// Optional Farkas corroboration of an infeasible-suspect
     /// escape: one matvec plus O(m), no factorization. It may ARM the
@@ -259,7 +261,7 @@ struct IpqpOptions {
     /// tier hoists its analysis/verify work across majors whose
     /// `AssemblyEvalSeam::epoch()` is unchanged.
     /// Default true; false forces a fresh symbolic pass every major.
-    bool hoist_symbolic = true;
+    bool hoist_symbolic_analysis = true;
 
     /// The required final unregularized inertia read: when
     /// true, a certifying exit pays one extra
@@ -273,17 +275,17 @@ struct IpqpOptions {
     bool require_final_inertia = true;
 
     /// How the solve-entry cold start sets `mu_0`. kFixed (default): every pair at
-    /// `init_mu`. kComplementarity: `mu_0` is derived from one affine-scaling solve; it
-    /// fires only when the derived value lies in `[min_mu, init_mu]`, on a cold
+    /// `barrier_initial`. kComplementarity: `mu_0` is derived from one affine-scaling solve; it
+    /// fires only when the derived value lies in `[barrier_min, barrier_initial]`, on a cold
     /// solve-entry only, otherwise kFixed. The estimate is charged to the factorization budget.
     /// Counters: `ipqp_mu0_derived`, `ipqp_mu0_fallbacks`.
-    IpqpMu0Rule mu0_rule = IpqpMu0Rule::kFixed;
+    IpqpBarrierInitialRule barrier_initial_rule = IpqpBarrierInitialRule::kFixed;
 
     /// The residual-proportional `mu` floor. Default false: the corrector
-    /// target is `clamp(sigma * mu, min_mu, init_mu)`. True: `sigma * mu` is first
+    /// target is `clamp(sigma * mu, barrier_min, barrier_initial)`. True: `sigma * mu` is first
     /// raised to `mu_s * r / max(1, r_s)`, `r` the unregularized relative residual and
     /// `(mu_s, r_s)` the attempt's first iterate. Counter: `ipqp_mu_floor_binds`.
-    bool mu_residual_floor = false;
+    bool barrier_residual_floor = false;
 
     /// The inertia ladder's zero trial is skipped once this many CONSECUTIVE iterations have
     /// needed a modification (after Wachter-Biegler 2006). Once skipped it is not re-offered
@@ -300,7 +302,7 @@ struct IpqpOptions {
 /// `kWalk` is the shipped active-set ladder, hot-chained rung to rung; `kTier`
 /// solves each rung with the interior-point kernel on a DEDICATED engine
 /// instance.
-enum class ElasticRungEngine { kWalk, kTier };
+enum class SqpElasticRungEngine { kWalk, kTier };
 
 /// @brief The curvature source of the SQP subproblems.
 ///
@@ -355,15 +357,15 @@ struct SqpAdvancedOptions {
     /// project's cheap edge over Uno, which omits SOC entirely). Default
     /// true. Set false to recover exact non-SOC behaviour. The mechanism is
     /// described at sqp_solver.h's SECOND-ORDER CORRECTION note.
-    bool enable_soc = true;
+    bool second_order_correction = true;
 
     /// Adaptive dual regularization A/B lever: when on, schedules
-    /// SolveOverrides::dual_regularization down with the KKT residual instead of leaving
+    /// QpSolveOverrides::dual_regularization down with the KKT residual instead of leaving
     /// every subproblem at the engine's fixed QpOptions::dual_regularization, which closes
     /// the fixed-mu accuracy ceiling on a badly scaled active set. Default true;
-    /// false leaves SolveOverrides::dual_regularization at its sentinel every major.
-    /// primal_delta is NOT scheduled by this lever or by anything else.
-    bool adaptive_mu = true;
+    /// false leaves QpSolveOverrides::dual_regularization at its sentinel every major.
+    /// primal_regularization is NOT scheduled by this lever or by anything else.
+    bool adaptive_dual_regularization = true;
 
     /// Factory for the globalization strategy, called ONCE PER solve() call;
     /// must return a non-null, freshly resettable GlobalizationStrategy
@@ -371,7 +373,7 @@ struct SqpAdvancedOptions {
     /// throws std::invalid_argument. Default (empty std::function) means
     /// FunnelStrategy, KLV's funnel and this project's default
     /// globalization. Two solves never share strategy state.
-    std::function<std::unique_ptr<GlobalizationStrategy>()> make_strategy;
+    std::function<std::unique_ptr<detail::GlobalizationStrategy>()> make_strategy;
 
     /// The full-step-first warm rule: when on, a solve whose warm-start level
     /// resolved to kWarm or above -- never a cold one, and never the 2-argument
@@ -381,8 +383,8 @@ struct SqpAdvancedOptions {
     /// kWarmResidualGrowthMax majors in a row, or kWarmFullStepWindow majors pass
     /// without a new best. Default true.
     ///
-    /// An A/B lever exactly like enable_soc and adaptive_mu: set false and every
-    /// warm solve behaves precisely as with the mode off.
+    /// An A/B lever exactly like second_order_correction and adaptive_dual_regularization: set
+    /// false and every warm solve behaves precisely as with the mode off.
     ///
     /// IT CANNOT AFFECT a cold solve, a solve whose `warm` failed to resolve, or
     /// a solve running a caller-supplied strategy that is not a FunnelStrategy --
@@ -437,7 +439,7 @@ struct SqpAdvancedOptions {
     /// interior-point kernel on a dedicated `IpqpEngine`, leaving the primary
     /// tier's one-analysis-per-solve hoist untouched. Independent of `qp_mode`:
     /// the ladder is reachable in every mode.
-    ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
+    SqpElasticRungEngine elastic_rung_engine = SqpElasticRungEngine::kWalk;
 
     /// On a disproval, the fallback's certified solution seeds the tier's next
     /// entry. The escape drops the tier's cross-major carry; when the elastic
@@ -450,11 +452,11 @@ struct SqpAdvancedOptions {
     /// Default false.
     bool ipqp_reseed_after_disproval = false;
 
-    /// The kIpm tier's own settings, forwarded verbatim onto the tier exactly
+    /// The kIpqp tier's own settings, forwarded verbatim onto the tier exactly
     /// as the SSN levers below are forwarded onto SsnOptions. Inert at
-    /// `qp_mode != QpMode::kIpm` and read on every subproblem at kIpm -- see
-    /// QpMode::kIpm and IpqpOptions' own doc comments. The one field the
-    /// driver narrows rather than forwards is `hoist_symbolic`; see
+    /// `qp_mode != QpMode::kIpqp` and read on every subproblem at kIpqp -- see
+    /// QpMode::kIpqp and IpqpOptions' own doc comments. The one field the
+    /// driver narrows rather than forwards is `hoist_symbolic_analysis`; see
     /// `SqpSolver::ipqp_options`.
     IpqpOptions ipqp;
 
@@ -465,7 +467,7 @@ struct SqpAdvancedOptions {
     /// side is unconditional and this flag does not touch it, so a caller can
     /// read the carry without first turning it on. Inert in both directions under
     /// `qp_mode == QpMode::kWalk`. Default false.
-    bool ssn_prox_carry = false;
+    bool ssn_proximal_carry = false;
 
     /// Read the certifying exit'S Second-order evidence off the face-EQP
     /// Factorization the tier-3 Refinement already pays for.
@@ -519,32 +521,32 @@ struct SqpAdvancedOptions {
     /// iterate ends the solve at any budget. Not a curvature source
     /// (docs/counters.md). A caller who must bound the work per solve bounds it
     /// with `common.max_iterations` and the QP's own cap.
-    Index qp_failure_budget = 3;
+    Index max_consecutive_qp_failures = 3;
 
     /// Re-solve a subproblem that spent its whole minor budget, once, at twice the
     /// cap. Default false: the retry is never attempted and no second engine is
     /// built.
     ///
-    /// `QpStatus::kMaxIter` means the subproblem ran out of minors, not that its
-    /// arithmetic failed. At true, a subproblem the walk answered with `kMaxIter`
+    /// `QpStatus::kIterationLimit` means the subproblem ran out of minors, not that its
+    /// arithmetic failed. At true, a subproblem the walk answered with `kIterationLimit`
     /// and whose returned iterate is usable is re-solved before it counts as a
     /// failure: the same subproblem and radius, warm from the capped solve's
     /// working set (never its point), with an explicit `QpOptions::max_iterations` of
     /// twice the cap that solve resolved. If the retry converges the major
     /// proceeds; if it hits the doubled cap too, the ordinary failure routing
-    /// runs. Scoped to the walk: a tier exit under `kSsn`/`kIpm` is left alone,
+    /// runs. Scoped to the walk: a tier exit under `kSsn`/`kIpqp` is left alone,
     /// those tiers carry their own budgets. A retry that does not help costs one
     /// more walk of at most the doubled cap plus its engine's first
     /// factorization, folded into `qp_minor_iters` and `factorizations`;
     /// `SqpCounters::qp_cap_retries` and `qp_maxiter_exits` report it. Not a
     /// curvature source (docs/counters.md).
-    bool qp_cap_retry = false;
+    bool qp_iteration_limit_retry = false;
 
     /// At true, a failed WALK subproblem's usable iterate p != 0 is judged by the
     /// unchanged strategy as a trial step when it predicts a decrease or halves a
     /// violation above `common.feasibility_tol`. Accepted: taken with the
     /// multipliers kept (the failed solve's are not trusted), no radius growth, no
-    /// SOC. Rejected: routed, not charged to `qp_failure_budget`. Certifies
+    /// SOC. Rejected: routed, not charged to `max_consecutive_qp_failures`. Certifies
     /// nothing: the KKT test runs on every major as usual. Not consulted in the
     /// full-step mode. False routes every failure without taking its step.
     /// Default true.
@@ -599,7 +601,7 @@ struct SqpAdvancedOptions {
     /// The sufficient-reduction resume, a fraction in [0, 1); 0 = off (default).
     /// At k > 0 the restoration phase also resumes at a point with
     /// `h_r <= k * restoration_h_in` and its box held, when the sub-solve certified
-    /// nothing (kNumericalError, or a kOptimal inside QC-1's no-claim margin).
+    /// nothing (kNumericalError, or a kOptimal inside the no-claim margin).
     /// The funnel restoration exit (KLV Sec. 3) rather than feasibility; such an
     /// entry is counted in `SqpCounters::restoration_reduction_resumes`. `validate()`
     /// refuses a value outside [0, 1) and a NaN.
@@ -608,22 +610,22 @@ struct SqpAdvancedOptions {
     /// Under kLbfgsDamped, also offer the pair of a REJECTED trial (one extra
     /// gradient/Jacobian evaluation per rejection). False (default) offers accepted
     /// pairs only.
-    bool qn_update_on_reject = false;
+    bool lbfgs_update_on_reject = false;
 
     /// Under kLbfgsDamped, let B act on the NONLINEAR variables only -- those the model's
     /// declared Lagrangian-Hessian pattern touches -- with zero curvature on the rest, as
     /// every Lagrangian Hessian has there (Gill, Murray & Saunders, SIAM Review 47 (2005),
     /// section 2). Falls back to every variable when the pattern touches all of them or
     /// none. Read in no other mode.
-    bool qn_nonlinear_only = false;
+    bool lbfgs_nonlinear_only = false;
 
     /// Under kLbfgsDamped, a FULL-MEMORY damped BFGS B (dense, every pair kept) replaces
     /// the L-BFGS window whenever the quasi-Newton dimension -- the nonlinear variables
-    /// under `qn_nonlinear_only`, else every structural variable -- is at most this; it
+    /// under `lbfgs_nonlinear_only`, else every structural variable -- is at most this; it
     /// enters the QP as a dense block of H, with no lift, and is Oren-Luenberger
     /// self-scaled (qn_models.h). 0 = never. Default 400. Read in no other mode. `validate()`
     /// refuses a negative value.
-    Index qn_full_memory_max = 400;
+    Index max_lbfgs_full_memory_dimension = 400;
 
     /// The curvature the restoration phase's QPs carry; see SqpRestorationCurvature.
     ///
@@ -646,7 +648,7 @@ struct SqpAdvancedOptions {
     /// switches to kRegularized, from the point it stands at, on the first of two
     /// triggers inside its sub-solve (`SqpCounters::restoration_curvature_switches`):
     ///   1. a walk subproblem's answer (the elastic tier's, where that tier took
-    ///      the subproblem) is kMaxIter or kNumericalError;
+    ///      the subproblem) is kIterationLimit or kNumericalError;
     ///   2. the elastic tier is exhausted and raises the nested restoration
     ///      request, which is never serviced inside a phase.
     /// The switch restarts the phase only when budget remains and the model is
@@ -655,9 +657,10 @@ struct SqpAdvancedOptions {
     /// kModel: that phase's quasi-Newton model is convex by construction.
     SqpRestorationCurvature restoration_curvature = SqpRestorationCurvature::kModelThenRegularized;
 
-    /// The number of restoration phases one solve may run. Default 10; must be
-    /// >= 0; 0 refuses restoration: the first request ends the solve
-    /// kNumericalError, as a refused later request does.
+    /// Restoration entries allowed per SOLVE (the interior-point engine's
+    /// `max_restoration_entries` counts per phase). Default 10; must be >= 0; 0
+    /// refuses restoration: the first request ends the solve kNumericalError, as
+    /// a refused later request does.
     ///
     /// 1 is the once-per-solve rule: a second restoration request is refused and
     /// the solve ends kNumericalError. Above 1 a later request is serviced, as in
@@ -677,7 +680,7 @@ struct SqpLinearOptions {
     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
     /// empty uses the library's rule. RESERVED: `validate()` accepts only the
     /// empty value until the arm is wired.
-    std::optional<Index> dense_max_dimension;
+    std::optional<Index> max_dense_dimension;
 };
 
 /// @brief Driver options for the whole SQP solve.
@@ -707,7 +710,7 @@ struct SqpOptions {
 
     /// The l-infinity trust-region radius the FIRST subproblem of a solve is
     /// given. Default 1.0. Must be > 0; +inf is legal and means "no trust
-    /// region" (SolveOverrides' own sentinel), though an indefinite
+    /// region" (QpSolveOverrides' own sentinel), though an indefinite
     /// subproblem is then generally unbounded and the engine reports
     /// kNumericalError rather than a step. See the TRUST REGION note above.
     double trust_region_initial = 1.0;
@@ -729,7 +732,7 @@ struct SqpOptions {
     double trust_region_min = 1e-10;
 
     /// Copied into the driver's single QpEngine at construction, so
-    /// per-solve variation must go through SolveOverrides (sqp_solver.h),
+    /// per-solve variation must go through QpSolveOverrides (sqp_solver.h),
     /// never through this struct -- see qp_types.h's PER-INSTANCE, CONST
     /// note on QpOptions::trust_region_radius for why. No default beyond QpOptions'
     /// own.
@@ -737,12 +740,12 @@ struct SqpOptions {
 
     /// Which QP kernel the driver's subproblems go through. kWalk is the shipped
     /// primal active-set walk (qp_engine.h) and is the default; kSsn selects the
-    /// semismooth-Newton kernel (ssn_engine.h); kIpm selects the interior-point
-    /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpm's own doc comment above.
+    /// semismooth-Newton kernel (ssn_engine.h); kIpqp selects the interior-point
+    /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpqp's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
 
     /// BUDGETED MODE: when true, a solve that exhausts common.max_iterations in the MAIN
-    /// optimality loop reports SolveStatus::kMaxIter with returned_best_iterate set,
+    /// optimality loop reports SolveStatus::kIterationLimit with returned_best_iterate set,
     /// and x/lambda_e/lambda_i/z/f are the Best iterate this solve visited by the
     /// funnel's own ordering -- feasibility first: min h(x), tie-break min f --
     /// rather than the last iterate reached. warm_start is populated from that
@@ -757,12 +760,12 @@ struct SqpOptions {
     /// residual at a large violation is a worse hand-off than a feasible point
     /// with a mediocre objective.
     ///
-    /// Default false: a solve that exhausts the cap reports kMaxIter at the last
+    /// Default false: a solve that exhausts the cap reports kIterationLimit at the last
     /// iterate.
     ///
     /// SCOPE: this lever governs ONLY the main loop's own common.max_iterations exhaustion. It
     /// does not change what happens when the restoration phase runs out of the
-    /// shared budget mid-restoration, which stays kMaxIter.
+    /// shared budget mid-restoration, which stays kIterationLimit.
     bool return_best_on_max_iterations = false;
 
     // --- Problem scaling ---
@@ -914,9 +917,9 @@ struct SqpOptions {
 ///         either end of the range it floors, an ill-formed scaling or IPQP field (validated at
 ///         every `qp_mode`), a negative, NaN or infinite `restoration_proximity`, a
 ///         `restoration_resume_reduction` outside [0, 1) or NaN, a `lbfgs_memory`
-///         below 1, a negative `qn_full_memory_max`, `kLbfgsDamped` with
+///         below 1, a negative `max_lbfgs_full_memory_dimension`, `kLbfgsDamped` with
 ///         `restoration_proximity > 0`, a `max_restoration_entries` below 0, a
-///         `qp_failure_budget` below 1, or a reserved dense-arm value.
+///         `max_consecutive_qp_failures` below 1, or a reserved dense-arm value.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.

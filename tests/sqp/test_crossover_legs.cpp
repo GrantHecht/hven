@@ -38,7 +38,7 @@
 #include <hven/drivers/ipm_solver.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "../../bench/crossover_legs.h"
 #include "../common_support/route_reference.h"
@@ -57,9 +57,6 @@ namespace {
 
 using hven::declaration_key;
 using hven::Index;
-using hven::NlpModel;
-using hven::NlpModelAssembly;
-using hven::NlpProblemModel;
 using hven::SolveStatus;
 using hven::SpMatRM;
 using hven::SqpOptions;
@@ -71,6 +68,9 @@ using hven::WarmStart;
 using hven::corpus::CorpusCell;
 using hven::corpus::StartTaxonomy;
 using hven::crossover::ModelAsNlpProblem;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
+using hven::detail::NlpProblemModel;
 using hven::test_support::F7CollocationChain;
 
 // A collocation chain small enough for a test to solve on both engines, at the
@@ -244,7 +244,7 @@ TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
     const auto model = crossover_model();
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
 
-    const auto ipm_program = hven::make_nlp_program(declared);
+    const auto ipm_program = hven::detail::make_nlp_program(declared);
 
     const auto converted = std::make_shared<NlpProblemModel>(declared);
     NlpModelAssembly bridge(converted);
@@ -264,7 +264,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const auto converted = std::make_shared<NlpProblemModel>(declared);
     const Vec x0 = model->start_point();
 
-    const auto ipm_program = hven::make_nlp_program(declared);
+    const auto ipm_program = hven::detail::make_nlp_program(declared);
     hven::IpmSolver ipm;
     {
         auto o = ipm.options();
@@ -288,7 +288,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     SqpOptions opts;
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
 
     // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
     // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
@@ -550,19 +550,19 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "partition_gate");
     const Vec x0 = model->start_point();
 
-    const auto one = hven::make_nlp_program(declared, 1);
-    const auto two = hven::make_nlp_program(declared, 2);
+    const auto one = hven::detail::make_nlp_program(declared, 1);
+    const auto two = hven::detail::make_nlp_program(declared, 2);
     fmt::print(stderr, "T89-PARTS user_kkt_elems={} adopted(1)={} adopted(2)={} pool={}\n",
                two->num_user_kkt_elems_, one->num_partitions_, two->num_partitions_,
                hven::detail::get_num_threads());
-    ASSERT_GE(two->num_user_kkt_elems_, 2 * hven::kMinKktElementsPerPartition)
+    ASSERT_GE(two->num_user_kkt_elems_, 2 * hven::detail::kMinKktElementsPerPartition)
         << "fixture premise: the clamp would otherwise make the two-partition arm a "
            "one-partition arm under a two-partition name";
     EXPECT_EQ(one->num_partitions_, 1);
     EXPECT_EQ(two->num_partitions_, 2) << "the ADOPTED count, read off the program";
     EXPECT_EQ(two->declaration().partition_count, two->num_partitions_);
 
-    const auto solve_it = [&](hven::NonLinearProgram &program) {
+    const auto solve_it = [&](hven::detail::NonLinearProgram &program) {
         hven::IpmSolver ipm;
         auto o = ipm.options();
         o.common.verbosity = hven::Verbosity::kSilent;

@@ -76,6 +76,7 @@
 #include <hven/detail/qp/qp_engine.h>
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using Obs = hven::detail::testing::QpWalkObserver;
@@ -535,7 +536,7 @@ TEST(QpDegeneracyArm, TheOffWalkOnTheScaleCarrierFixtureTakesNoNoiseDropAndTermi
     const Walk off = observed_walk(qp, cycling_opts());
 
     // RE-PREMISED (see the note above). This test used to assert the recurrence:
-    // kMaxIter at the cap, a periodic tail longer than 8, and zero motion over
+    // kIterationLimit at the cap, a periodic tail longer than 8, and zero motion over
     // it. MEASURED at E4 fix round 2: kOptimal, tail 2, period 1 -- ordinary
     // termination -- because the noise-level drop that drove the recurrence is
     // never made. What is asserted now is exactly that, so a regression back into
@@ -918,7 +919,7 @@ TEST(QpDegeneracyArm, ArmB1IsInertOnTheFixtureThatNoLongerCycles) {
     const QpOptions opts = cycling_opts();
 
     // RE-PREMISED (E4-19; see the note at the head of the arms section). This
-    // test used to open by ASSERTING M4's recurrence -- kMaxIter at the cap,
+    // test used to open by ASSERTING M4's recurrence -- kIterationLimit at the cap,
     // period 2, a tail longer than 100, zero motion over it -- and then that arm
     // B1 ENDED it. The E4 walk does not cycle here: the OFF walk reads kOptimal
     // and the pass-over the arm's conversion rested on is never reached. What is
@@ -1099,8 +1100,8 @@ TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
     qp.lower = Vec::Zero(n);
     qp.upper = Vec::Constant(n, 2.0);
 
-    for (const WorkingSetLinearAlgebra algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (const QpWorkingSetAlgebra algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         for (const double mu : {1e-8, 1e-4}) {
             QpOptions opts = cycling_opts();
             opts.working_set_algebra = algebra;
@@ -1175,8 +1176,8 @@ enum class CertSide : int { kLower = 0, kUpper = 1 };
 
 const char *cert_side_name(CertSide side) { return side == CertSide::kLower ? "lower" : "upper"; }
 
-const char *cert_algebra_name(WorkingSetLinearAlgebra a) {
-    return a == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize";
+const char *cert_algebra_name(QpWorkingSetAlgebra a) {
+    return a == QpWorkingSetAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize";
 }
 
 /// The pair a fixture presents: the analytic optimum and its multipliers,
@@ -1260,8 +1261,8 @@ TEST(QpDegeneracyArm, CertificateSeamIsInertUnarmedOnTheFixtureQp) {
     // unarmed, the certificate is handed nothing, and the solve certifies the
     // analytic optimum ON both bounds, exactly.
     const QpProblem qp = certificate_box_qp();
-    for (const WorkingSetLinearAlgebra algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (const QpWorkingSetAlgebra algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         for (const double mu : {1e-8, 1e-4}) {
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
@@ -1291,8 +1292,8 @@ TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructura
     // where dual_mu * |z| = 5e-4 is capped at kInfeasibilityAbsorbTol. A
     // predicate that refused any positive v fails every case here.
     const QpProblem qp = certificate_box_qp();
-    for (const WorkingSetLinearAlgebra algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (const QpWorkingSetAlgebra algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         for (const double mu : {1e-8, 1e-4}) {
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
@@ -1323,8 +1324,8 @@ TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargi
     // Plus a far-outside point (100x the larger threshold) in both. Both
     // sides, both algebras.
     const QpProblem qp = certificate_box_qp();
-    for (const WorkingSetLinearAlgebra algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (const QpWorkingSetAlgebra algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         for (const double mu : {1e-8, 1e-4}) {
             SCOPED_TRACE(::testing::Message()
                          << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);

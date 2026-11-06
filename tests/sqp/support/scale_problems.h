@@ -399,6 +399,8 @@
 
 #include "parametric_families.h"
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 #if defined(__linux__)

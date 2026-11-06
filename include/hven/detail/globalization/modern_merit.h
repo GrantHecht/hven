@@ -6,11 +6,11 @@
 #include <limits>
 #include <stdexcept>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/drivers/ipm_enums.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// WMNO Eq. (3.4)/(3.5): pred(d_z) >= rho_nu*|c|, rho in (0,1); shipped value
 /// rho = 0.1 (Waltz, Morales, Nocedal & Orban, Math. Program. 107, §3.1).
@@ -49,7 +49,7 @@ inline constexpr double kSufficientInfeasibilityDecreaseRatio = 0.9;
 /// @brief Modernized merit family (WMNO single-penalty / flexible interval),
 /// driven through the GENERIC AcceptanceStrategy path — a second acceptance
 /// strategy alongside ClassicMeritAcceptance, which it neither edits nor
-/// replaces. Opt-in via Settings::acceptance_strategy_; the default classic
+/// replaces. Opt-in via Settings::acceptance_mode_; the default classic
 /// path stays bit-identical.
 ///
 /// Formulation. Both rules use the standard interior-point merit
@@ -103,13 +103,13 @@ inline constexpr double kSufficientInfeasibilityDecreaseRatio = 0.9;
 class ModernMeritAcceptance : public AcceptanceStrategy {
   public:
     /// @brief Constructs with the penalty rule and a fresh state.
-    explicit ModernMeritAcceptance(MeritPenaltyRule rule) : rule_(rule) { reset(); }
+    explicit ModernMeritAcceptance(IpmMeritPenaltyRule rule) : rule_(rule) { reset(); }
 
     /// @brief The generic acceptance test (formulation above). Pure in its
     /// ProgressMeasures arguments plus the penalty state; may mutate the
     /// penalty state per the update rules. step_length is accepted and
     /// ignored: the penalty math is steplength-independent.
-    /// @throws std::logic_error On an unknown MeritPenaltyRule value.
+    /// @throws std::logic_error On an unknown IpmMeritPenaltyRule value.
     bool is_iterate_acceptable(const ProgressMeasures &current, const ProgressMeasures &trial,
                                const ProgressMeasures &predicted_reduction,
                                double objective_multiplier, double step_length) override;
@@ -187,7 +187,7 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     bool accept_flexible(const ProgressMeasures &current, const ProgressMeasures &trial,
                          const ProgressMeasures &pred);
 
-    MeritPenaltyRule rule_;
+    IpmMeritPenaltyRule rule_;
 
     /// Per-solve penalty state (reset() clears to the kInit* constants).
     double nu_ = kWmnoInitPenalty; ///< WMNO single penalty ν.
@@ -229,4 +229,4 @@ class ModernMeritAcceptance : public AcceptanceStrategy {
     bool retraction_armed_ = false;
 };
 
-} // namespace hven
+} // namespace hven::detail

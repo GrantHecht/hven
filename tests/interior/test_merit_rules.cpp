@@ -5,7 +5,7 @@
 // Unit tests for the modernized merit penalty rules (ModernMeritAcceptance).
 //
 // ModernMeritAcceptance is the opt-in modernized merit family
-// (Settings::acceptance_strategy_ == merit), the first consumer of the GENERIC
+// (Settings::acceptance_mode_ == merit), the first consumer of the GENERIC
 // AcceptanceStrategy surface. Its judgment (is_iterate_acceptable) is pure
 // arithmetic on a ProgressMeasures triple plus the per-solve penalty state, so
 // it truth-tables in isolation — no solver, no NLP eval (the mechanism owns
@@ -40,13 +40,13 @@
 
 namespace {
 
-using hven::kFlexInitPiL;
-using hven::kFlexInitPiU;
-using hven::kSufficientInfeasibilityDecreaseRatio;
-using hven::kWmnoInitPenalty;
-using hven::MeritPenaltyRule;
-using hven::ModernMeritAcceptance;
-using hven::ProgressMeasures;
+using hven::IpmMeritPenaltyRule;
+using hven::detail::kFlexInitPiL;
+using hven::detail::kFlexInitPiU;
+using hven::detail::kSufficientInfeasibilityDecreaseRatio;
+using hven::detail::kWmnoInitPenalty;
+using hven::detail::ModernMeritAcceptance;
+using hven::detail::ProgressMeasures;
 using TychoTest::pm;
 
 // ===========================================================================
@@ -58,7 +58,7 @@ using TychoTest::pm;
 //   merit(cur,1)=10+2=12; merit(tri,1)=5+1=6; ared=6; pred_π=3+1·2=5; η·pred=5e-8.
 //   6 ≥ 5e-8 ⇒ ACCEPT.
 TEST(WmnoRule, DescentAcceptsPenaltyUnchanged) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     const bool ok =
         a.is_iterate_acceptable(pm(2.0, 10.0, 0.0), pm(1.0, 5.0, 0.0), pm(2.0, 3.0, 0.0), 1.0, 1.0);
     EXPECT_TRUE(ok);
@@ -70,7 +70,7 @@ TEST(WmnoRule, DescentAcceptsPenaltyUnchanged) {
 //   merit(cur,11)=10+11=21; merit(tri,11)=12+5.5=17.5; ared=3.5; pred_π=−9+11=2.
 //   3.5 ≥ 2e-8 ⇒ ACCEPT.
 TEST(WmnoRule, PenaltyBumpThenAccept) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     const bool ok = a.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(0.5, 12.0, 0.0),
                                             pm(1.0, -9.0, 0.0), 1.0, 1.0);
     EXPECT_TRUE(ok);
@@ -82,7 +82,7 @@ TEST(WmnoRule, PenaltyBumpThenAccept) {
 //   merit(cur,1)=11; merit(tri,1)=13; ared=−2; pred_π=5; η·pred=5e-8.
 //   −2 ≥ 5e-8 is false ⇒ REJECT.
 TEST(WmnoRule, MeritIncreaseRejects) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     const bool ok = a.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(1.0, 12.0, 0.0),
                                             pm(2.0, 3.0, 0.0), 1.0, 1.0);
     EXPECT_FALSE(ok);
@@ -92,7 +92,7 @@ TEST(WmnoRule, MeritIncreaseRejects) {
 // Feasible current (m_θ = 0 ⇒ τ undefined): WMNO "c(z)=0 ⇒ ν⁺=ν" — no update.
 //   pred_π = m_f + ν·0 = −9; ared = 10−8 = 2 ≥ η·(−9) ⇒ ACCEPT; ν stays 1.
 TEST(WmnoRule, FeasibleCurrentNoPenaltyUpdate) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     const bool ok = a.is_iterate_acceptable(pm(0.0, 10.0, 0.0), pm(0.0, 8.0, 0.0),
                                             pm(0.0, -9.0, 0.0), 1.0, 1.0);
     EXPECT_TRUE(ok);
@@ -102,7 +102,7 @@ TEST(WmnoRule, FeasibleCurrentNoPenaltyUpdate) {
 // Penalty trajectory across iterations is monotone non-decreasing (Eq. 3.6):
 //   ν₀=1;  τ=10 ⇒ 11;  τ=5 (< 11) ⇒ 11 (no decrease);  τ=20 ⇒ 21.
 TEST(WmnoRule, PenaltyTrajectoryMonotone) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     const ProgressMeasures cur = pm(1.0, 1.0, 0.0);
     const ProgressMeasures tri = pm(1.0, 1.0, 0.0);
 
@@ -130,7 +130,7 @@ TEST(WmnoRule, PenaltyTrajectoryMonotone) {
 //   π_l update: denom = 2−1 = 1 > 0; r = (12−10)/1 = 2;
 //     bump = max(0.1·(2 − 1e-8), 1e-8) = 0.2; π_l = min(1e8, 1e-8 + 0.2) ≈ 0.2.
 TEST(FlexRule, RegionIIAcceptsAndRaisesPiL) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kFlexible);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kFlexible);
     const bool ok = a.is_iterate_acceptable(pm(2.0, 10.0, 0.0), pm(1.0, 12.0, 0.0),
                                             pm(2.0, 3.0, 0.0), 1.0, 1.0);
     EXPECT_TRUE(ok);
@@ -141,7 +141,7 @@ TEST(FlexRule, RegionIIAcceptsAndRaisesPiL) {
 // Region III (objective ↓, infeasibility ↑): accepted at π_l ⇒ π_l KEPT (Eq. 3.10).
 //   accept_l: ared_l = 10.00000001−5.00000002 = 5.0 ≥ η·pred_l ⇒ YES ⇒ keep π_l.
 TEST(FlexRule, ObjectiveDecreaseAcceptsKeepsPiL) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kFlexible);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kFlexible);
     const bool ok =
         a.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(2.0, 5.0, 0.0), pm(1.0, 3.0, 0.0), 1.0, 1.0);
     EXPECT_TRUE(ok);
@@ -152,7 +152,7 @@ TEST(FlexRule, ObjectiveDecreaseAcceptsKeepsPiL) {
 // Region I (both objective ↑ and infeasibility ↑): rejected at both endpoints.
 //   accept_l: ared_l = −2.0 < η·pred_l ⇒ NO;  accept_u: ared_u ≈ −1e8 ⇒ NO ⇒ REJECT.
 TEST(FlexRule, BothWorseRejects) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kFlexible);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kFlexible);
     const bool ok = a.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(2.0, 12.0, 0.0),
                                             pm(1.0, 3.0, 0.0), 1.0, 1.0);
     EXPECT_FALSE(ok);
@@ -163,7 +163,7 @@ TEST(FlexRule, BothWorseRejects) {
 // π_u update branch (Eq. 3.9): when χ > π_u, raise π_u to χ + ε.
 //   pred = {m_θ=1, m_f=−1.8e8}: χ = 1.8e8/(0.9·1) = 2e8 > π_u₀=1e8 ⇒ π_u = 2e8 + ε.
 TEST(FlexRule, PiUpperRaisedWhenChiExceeds) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kFlexible);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kFlexible);
     a.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(0.5, 10.0, 0.0), pm(1.0, -1.8e8, 0.0), 1.0, 1.0);
     EXPECT_NEAR(a.flex_pi_u(), 2.0e8, 10.0);
 }
@@ -173,14 +173,14 @@ TEST(FlexRule, PiUpperRaisedWhenChiExceeds) {
 // ===========================================================================
 TEST(ModernMerit, ResetClearsPenaltyState) {
     // WMNO: bump ν to 11, then reset back to ν₀.
-    ModernMeritAcceptance w(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance w(IpmMeritPenaltyRule::kSinglePenalty);
     w.is_iterate_acceptable(pm(1.0, 10.0, 0.0), pm(0.5, 12.0, 0.0), pm(1.0, -9.0, 0.0), 1.0, 1.0);
     ASSERT_DOUBLE_EQ(w.wmno_penalty(), 11.0);
     w.reset();
     EXPECT_DOUBLE_EQ(w.wmno_penalty(), kWmnoInitPenalty);
 
     // Flexible: raise π_l to ≈0.2, then reset the whole interval.
-    ModernMeritAcceptance f(MeritPenaltyRule::kFlexible);
+    ModernMeritAcceptance f(IpmMeritPenaltyRule::kFlexible);
     f.is_iterate_acceptable(pm(2.0, 10.0, 0.0), pm(1.0, 12.0, 0.0), pm(2.0, 3.0, 0.0), 1.0, 1.0);
     ASSERT_NEAR(f.flex_pi_l(), 0.2, 1e-6);
     f.reset();
@@ -204,7 +204,7 @@ TEST(ModernMerit, ResetClearsPenaltyState) {
 //   reject:   cur(θ=10,f=10), tri(θ=1,f=100), pred(m_θ=2,m_f=3): ared=20−101=−81
 //     < η·pred ⇒ REJECT ⇒ tracker UNCHANGED at 3 (the min() runs only on accept).
 TEST(ModernMeritRestoration, SmallestKnownTracksAcceptsNotRejects) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     EXPECT_TRUE(std::isinf(a.smallest_known_infeasibility()));
 
     ASSERT_TRUE(a.is_iterate_acceptable(pm(8.0, 10.0, 0.0), pm(5.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
@@ -223,7 +223,7 @@ TEST(ModernMeritRestoration, SmallestKnownTracksAcceptsNotRejects) {
 // Exit boundary at 0.9·smallest. Prime the tracker to 3.0 (one descent accept
 // with θ_trial = 3.0), so threshold = 0.9·3 = 2.7.
 TEST(ModernMeritRestoration, ExitBoundaryAtRatioTimesSmallestKnown) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));
     ASSERT_DOUBLE_EQ(a.smallest_known_infeasibility(), 3.0);
@@ -238,7 +238,7 @@ TEST(ModernMeritRestoration, ExitBoundaryAtRatioTimesSmallestKnown) {
 // The `reference` argument is ignored: two very different references give the
 // same verdict for the same trial (only the trial + tracker matter).
 TEST(ModernMeritRestoration, ReferenceArgumentIgnored) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));   // smallest=3
     const ProgressMeasures trial = pm(2.6, 0.0, 0.0); // ≤ 2.7 ⇒ pass
@@ -252,7 +252,7 @@ TEST(ModernMeritRestoration, ReferenceArgumentIgnored) {
 // reset() re-bases the tracker to +∞ (a μ-event mid-restoration): the exit test
 // then trivially passes any finite trial until the next accept re-seeds it.
 TEST(ModernMeritRestoration, ResetReBasesTrackerToInfinity) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));
     ASSERT_DOUBLE_EQ(a.smallest_known_infeasibility(), 3.0);
@@ -266,7 +266,7 @@ TEST(ModernMeritRestoration, ResetReBasesTrackerToInfinity) {
 // The modern strategy drives the GENERIC compute_step path, not the fused
 // classic one.
 TEST(ModernMerit, DrivesGenericPath) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     EXPECT_FALSE(a.drives_classic_path());
 }
 
@@ -289,7 +289,7 @@ void ModernMeritBumpAccept(ModernMeritAcceptance &a) {
 // Entry stashes the optimality-phase state and reinitializes fresh working
 // state; feasibility-phase accepts touch only the working copy; exit restores.
 TEST(ModernMeritRestoration, StashFreezeRestore) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ModernMeritBumpAccept(a); // ν=11, smallest=0.5
     ASSERT_DOUBLE_EQ(a.wmno_penalty(), 11.0);
     ASSERT_DOUBLE_EQ(a.smallest_known_infeasibility(), 0.5);
@@ -323,7 +323,7 @@ TEST(ModernMeritRestoration, StashFreezeRestore) {
 // working tracker down to 1; the exit threshold must be 0.9·3 = 2.7 (stashed),
 // not 0.9·1 = 0.9 (live). A trial θ=2.6 passes against 2.7 but would fail 0.9.
 TEST(ModernMeritRestoration, ExitTestReadsStashedTrackerInPhase) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));     // smallest=3
     a.notify_switch_to_feasibility(pm(6.0, 10.0, 0.0)); // stash 3
@@ -342,7 +342,7 @@ TEST(ModernMeritRestoration, ExitTestReadsStashedTrackerInPhase) {
 // reset() mid-phase (μ-event) clears WORKING state only; the stash + flag
 // survive so the exit test still consults the frozen tracker.
 TEST(ModernMeritRestoration, ResetMidPhasePreservesStash) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));     // smallest=3
     a.notify_switch_to_feasibility(pm(6.0, 10.0, 0.0)); // stash 3
@@ -358,7 +358,7 @@ TEST(ModernMeritRestoration, ResetMidPhasePreservesStash) {
 
 // reset() OUTSIDE the phase drops the stash defensively (full per-phase clear).
 TEST(ModernMeritRestoration, ResetOutsidePhaseDropsStash) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     ASSERT_TRUE(a.is_iterate_acceptable(pm(6.0, 10.0, 0.0), pm(3.0, 4.0, 0.0), pm(3.0, 6.0, 0.0),
                                         1.0, 1.0));
     a.notify_switch_to_feasibility(pm(6.0, 10.0, 0.0));
@@ -374,7 +374,7 @@ TEST(ModernMeritRestoration, ResetOutsidePhaseDropsStash) {
 // optimality-phase accept leaves the stash at +∞, so the exit test's
 // 0.9·(+∞) = +∞ passes any finite trial at the first check.
 TEST(ModernMeritRestoration, EntryBeforeAnyAcceptStashesInfinity) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     a.notify_switch_to_feasibility(pm(9.0, 1.0, 0.0));
     EXPECT_TRUE(std::isinf(a.stashed_smallest_known_infeasibility()));
     EXPECT_TRUE(a.is_infeasibility_sufficiently_reduced(pm(1.0, 0.0, 0.0), pm(1.0e6, 0.0, 0.0)));
@@ -383,13 +383,13 @@ TEST(ModernMeritRestoration, EntryBeforeAnyAcceptStashesInfinity) {
 // Throw guards on mis-ordered transitions (T6): a second entry without an
 // intervening exit, and an exit without a preceding entry, both throw.
 TEST(ModernMeritRestoration, DoubleEntryThrows) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     a.notify_switch_to_feasibility(pm(9.0, 1.0, 0.0));
     EXPECT_THROW(a.notify_switch_to_feasibility(pm(9.0, 1.0, 0.0)), std::logic_error);
 }
 
 TEST(ModernMeritRestoration, ExitWithoutEntryThrows) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     EXPECT_THROW(a.notify_switch_to_optimality(pm(1.0, 5.0, 0.0)), std::logic_error);
 }
 

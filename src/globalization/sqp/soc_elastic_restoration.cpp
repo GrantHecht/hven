@@ -17,10 +17,13 @@
 // definition they depend on and fail to compile.
 #include <hven/detail/drivers/sqp_solver_impl.h>
 
+using namespace hven::detail;
+
 namespace hven {
 
-QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const NlpEval &ev_trial,
-                               const Vec &p, const std::vector<bool> &ineq_active) {
+QpProblem detail::build_soc_subproblem(const QpProblem &qp, const NlpEval &ev,
+                                       const NlpEval &ev_trial, const Vec &p,
+                                       const std::vector<bool> &ineq_active) {
     QpProblem soc_qp = qp;
     if (qp.me() > 0) {
         const Vec residual_e = ev_trial.ce - ev.ce - qp.Ae * p;
@@ -53,7 +56,8 @@ Vec ElasticQp::slack_violations(const Vec &x_aug) const {
     return slacks(x_aug).cwiseProduct(slack_scale);
 }
 
-ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho, double tol) {
+ElasticQp detail::build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho,
+                                           double tol) {
     const Index n = qp.n();
     const Index me = qp.me();
     const Index mi = qp.mi();
@@ -161,7 +165,7 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
     return e;
 }
 
-QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
+QpSolution detail::elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     const Index n2 = e.qp.n();
     QpSolution s;
     s.status = QpStatus::kOptimal;
@@ -179,7 +183,8 @@ QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     return s;
 }
 
-void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSolution &seed) {
+void detail::place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp,
+                                           QpSolution &seed) {
     const Index n = e.n_orig;
     const Index n2 = e.qp.n();
     if (seed.x.size() != n2 || static_cast<Index>(seed.bound_state.size()) != n2 || qp.n() != n) {
@@ -212,8 +217,8 @@ void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSo
     }
 }
 
-QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
-                           bool carry_multipliers) {
+QpSolution detail::elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
+                                   bool carry_multipliers) {
     const Index n = e.n_orig;
     QpSolution out;
     out.status = aug.status;
@@ -678,8 +683,8 @@ Vec RestorationModel::start_point() const { return start_; }
 // It is the quantity tests/sqp/test_sqp_restoration.cpp's `check_certificate`
 // recomputes from the model, which is what makes that helper an independent
 // oracle rather than a restatement.
-double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
-                                            const Vec &lambda_i, const Vec &z) {
+double detail::subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
+                                                    const Vec &lambda_i, const Vec &z) {
     Vec r = -z;
     if (ev.Je.rows() > 0) {
         r += ev.Je.transpose() * lambda_e;

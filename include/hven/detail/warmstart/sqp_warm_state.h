@@ -127,7 +127,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // Opaque hot-start handle; fully defined in qp_engine.h, right next to
 // QpEngine's own border-mode reuse state. Forward-declared here only so
@@ -137,8 +137,6 @@ namespace hven {
 // fine to store, copy and destroy; only CONSTRUCTING or DEREFERENCING one
 // needs the full definition, and nothing in this header does either.
 struct HotState;
-
-namespace detail {
 
 // One solve's exit state, in the shape a later solve's warm-start machinery
 // consumes. See this header's own note above for the sign conventions and
@@ -193,7 +191,7 @@ struct SqpWarmState {
     double tr_radius = -1.0;
 
     // The EFFECTIVE primal_delta/dual_mu the last subproblem was solved with
-    // (qp_types.h's SolveOverrides resolution, not its sentinel) -- -1 is
+    // (qp_types.h's QpSolveOverrides resolution, not its sentinel) -- -1 is
     // this struct's own "never populated" default and is otherwise never a
     // valid regularization value (both are physically positive constants).
     double primal_delta = -1.0, dual_mu = -1.0;
@@ -314,6 +312,4 @@ struct SqpWarmState {
     Vec column_factors;
 };
 
-} // namespace detail
-
-} // namespace hven
+} // namespace hven::detail

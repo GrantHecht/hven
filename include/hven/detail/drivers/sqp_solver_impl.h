@@ -45,9 +45,14 @@
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 namespace hven {
+class ConsoleTraceSink;
+class FanOutTraceSink;
+} // namespace hven
+
+namespace hven::detail {
 
 /// @brief Forward-declared, not included (M6 W5 T8.7 fix1, the lane's M4): only
 /// two `unique_ptr` members name these types here, and including
@@ -58,11 +63,7 @@ namespace hven {
 /// needs the owner's destructor (and any `reset()`) where the type is complete, which is why
 /// `~SqpSolver` is declared below and DEFINED in src/drivers/sqp_solver.cpp; both sink classes are
 /// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
-class ConsoleTraceSink;
-class FanOutTraceSink;
-namespace detail {
 class EqualityBasis;
-} // namespace detail
 
 /// @brief One model evaluation at one point: the five quantities a major
 ///        iteration reads, taken together so nothing is evaluated twice.
@@ -208,8 +209,6 @@ DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const Sqp
                                                     const Vec &lo, const Vec &up,
                                                     bool duals_describe_the_measurement = true);
 
-namespace detail {
-
 /// @brief The arithmetic of evaluate_kkt, over the five quantities it reads off
 ///        its first argument. Evaluates nothing: every model quantity arrives
 ///        in @p ev, and both public entries forward here.
@@ -237,8 +236,6 @@ SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &
 SqpKkt evaluate_kkt_over(Index n, Index me, Index mi, const Vec &lo, const Vec &up,
                          const NlpEval &ev, const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                          const Vec &bound_tol);
-
-} // namespace detail
 
 /// @brief Measures (x, lambda_e, lambda_i) against the model, reusing an
 ///        evaluation already taken at the SAME x.
@@ -338,7 +335,7 @@ double predicted_decrease(const QpProblem &qp, const Vec &p);
 bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, Index &rows,
                       Index &bounds);
 
-} // namespace hven
+} // namespace hven::detail
 
 // Included HERE rather than in the top block: these headers consume NlpEval,
 // defined above, and must not include this one back. The position is load
@@ -348,7 +345,7 @@ bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, In
 #include <hven/detail/globalization/sqp/restoration.h>
 #include <hven/detail/globalization/sqp/soc.h>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief evaluate_kkt over a SEAM's dimensions and materialized box -- the
 ///        entry the driver's major loop uses.
@@ -369,7 +366,7 @@ SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &
 /// @param qs        Its result.
 /// @param bound_tol Bound-activity tolerance, applied as a band OUTSIDE each
 ///                  bound (the driver passes SqpOptions::feas_tol).
-/// @return True only for a kNumericalError or kMaxIter exit whose `x` is
+/// @return True only for a kNumericalError or kIterationLimit exit whose `x` is
 ///         correctly sized, finite and inside the box; false for kOptimal and
 ///         kInfeasible, which are answers rather than failures.
 bool qp_failure_is_retryable(const QpProblem &qp, const QpSolution &qs, double bound_tol);
@@ -622,7 +619,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @throws std::invalid_argument if `window` is negative or NaN.
 QpSolution certified_feasibility_fallback(
     QpEngine &engine, const QpProblem &qp, const NlpEval &ev, const QpSolution *seed,
-    const IpqpInfeasibilityEvidence &evidence, const SolveOverrides &overrides,
+    const IpqpInfeasibilityEvidence &evidence, const QpSolveOverrides &overrides,
     const SqpOptions &opts, double window, SqpCounters &out, SqpIterate &row,
     std::optional<ElasticLadderReport> &fallback_report, SqpFallbackVerdictTraceEvent &verdict,
     TraceSink *sink = nullptr, IpqpEngine *tier = nullptr, detail::QnLiftBridge *qn = nullptr);
@@ -633,7 +630,7 @@ QpSolution certified_feasibility_fallback(
 // (sqp_solver_types.h). The schedule is mu_k = clamp(kAdaptiveMuKappa *
 // ||KKT residual||^1.5, kAdaptiveMuMin, kAdaptiveMuMax), quantized to the
 // nearest decade and read at the PREVIOUS major's measurement; the first major
-// uses the ceiling. Disabled, the driver never touches SolveOverrides::dual_regularization.
+// uses the ceiling. Disabled, the driver never touches QpSolveOverrides::dual_regularization.
 // See docs/notes/2026-09-header-prose-archive.md §sqp_solver.h.
 
 /// @brief kappa_mu in the adaptive dual-regularization schedule above; named
@@ -827,7 +824,7 @@ class SqpSolverImpl {
     ///
     /// @param sink The sink, or nullptr. Forwarded to the internal IpqpEngine;
     ///             this driver additionally emits `ipqp.route` and `qp.mode`
-    ///             itself, in the kIpm dispatch arm.
+    ///             itself, in the kIpqp dispatch arm.
     /// @throws std::logic_error if a solve is in flight on this driver.
     void attach_trace(TraceSink *sink);
 
@@ -1105,7 +1102,7 @@ class SqpSolverImpl {
     /// @param model  The problem; wrapped in a bridge built here.
     /// @param x0     The starting point.
     /// @param budget The caller's work ceiling, on exactly the terms the
-    ///               warm-start overload below states: `minor_budget` is the
+    ///               warm-start overload below states: `max_minor_iterations` is the
     ///               probe budget and `max_iterations`, when non-zero, gives
     ///               an effective major cap of min(it, SqpOptions::max_iter)
     ///               that governs the exit conjunction, the restoration
@@ -1154,8 +1151,8 @@ class SqpSolverImpl {
     ///                     kSeeded and still contributes its values, and a failed
     ///                     ingest gate degrades to kCold.
     /// @param budget      The caller's work ceiling (M6 W5 T8.4; this argument
-    ///                     was `Index minor_budget` before).
-    ///                     `budget.minor_budget` is that probe budget verbatim:
+    ///                     was `Index max_minor_iterations` before).
+    ///                     `budget.max_minor_iterations` is that probe budget verbatim:
     ///                     empty (the default) is no budget, and an engaged value
     ///                     stops the solve at the top of the first major that
     ///                     finds qp_minor_iters >= it without having converged,
@@ -1214,8 +1211,8 @@ class SqpSolverImpl {
     //   * IDENTITY = the block lengths and the `DeclarationKey` stamp, checked
     //     at solve entry against the problem this call binds, both
     //     `std::invalid_argument`, IN EVERY `SqpOptions::qp_mode` -- kWalk,
-    //     kSsn AND kIpm alike (M6 W5 T8.5, owner ruling; M5 ruling 4's
-    //     mode-local cold grade under kIpm is RETIRED).
+    //     kSsn AND kIpqp alike (M6 W5 T8.5, owner ruling; M5 ruling 4's
+    //     mode-local cold grade under kIpqp is RETIRED).
     //   * PATTERN = the structural hash of the assembled QP matrices. A payload
     //     never saw a model and so always carries hash 0: the level a payload
     //     resolves to is CAPPED AT kSeeded, by construction, never by refusal.
@@ -1307,7 +1304,7 @@ class SqpSolverImpl {
 
     // THE PAYLOAD'S ONE INGEST, shared by both bridge-taking payload overloads:
     // the against-the-problem checks (block lengths, then the declaration
-    // stamp, both refusing in EVERY qp_mode), the kIpm tier seed, and the
+    // stamp, both refusing in EVERY qp_mode), the kIpqp tier seed, and the
     // translation of the declared-space currency into the native `SqpWarmState`
     // the rest of this engine speaks. `x0` is read for the MULTIPLIERS-ONLY
     // form, whose `primal_` is empty and whose start is therefore the call's
@@ -1336,7 +1333,8 @@ class SqpSolverImpl {
     ///                     it.
     /// @param x0           The start point.
     /// @param warm         The ingested warm start.
-    /// @param budget `budget.minor_budget <= 0` means no probe budget; the 4-argument `solve()`
+    /// @param budget `budget.max_minor_iterations <= 0` means no probe budget; the 4-argument
+    /// `solve()`
     ///                     carries that contract.
     /// @return The assembled solution.
     SqpResult solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
@@ -1396,7 +1394,7 @@ class SqpSolverImpl {
     ///           SSN exit.
     void route_through_ssn_tier(SolveState &st, MajorState &mj);
 
-    /// @brief The kIpm dispatch arm -- the interior-point routing chain.
+    /// @brief The kIpqp dispatch arm -- the interior-point routing chain.
     /// @param st              The solve-scope state.
     /// @param mj              This major's routing bundle.
     /// @param seam            The evaluation seam, for the symbolic hoist's epoch.
@@ -1411,13 +1409,13 @@ class SqpSolverImpl {
     /// This major's row and its `row_qp_mode` are on `mj`, not parameters. It
     /// emits every one of its own trace lines before returning.
     void route_through_ipqp_tier(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam, Index iter,
-                                 bool tr_shrink_retry, const SolveOverrides &overrides);
+                                 bool tr_shrink_retry, const QpSolveOverrides &overrides);
 
     /// @brief The walk invocation -- the one shared successor of the dispatch,
     ///        reached from the kWalk arm, an IPQP retirement, an IPQP domain
     ///        decline, or an SSN hand-off.
     ///
-    /// Not the elastic ladder's walk, which runs inside the kIpm arm with
+    /// Not the elastic ladder's walk, which runs inside the kIpqp arm with
     /// `walk_owns_this_qp` false and stays there.
     ///
     /// @param st        The solve-scope state.
@@ -1427,7 +1425,7 @@ class SqpSolverImpl {
     /// @param offer_hot True to offer the retained hot handle to the walk.
     /// @param use_crash True to seed the first working set from the crash basis.
     void solve_with_walk(SolveState &st, MajorState &mj, const detail::SqpWarmState &warm,
-                         const SolveOverrides &overrides, bool offer_hot, bool use_crash);
+                         const QpSolveOverrides &overrides, bool offer_hot, bool use_crash);
 
     /// @brief The subproblem at the current iterate under SqpHessianMode::kLbfgsDamped (M7
     ///        QN stage 3): no eval_hess; H = sigma I on the structural block, the rest of B
@@ -1458,7 +1456,7 @@ class SqpSolverImpl {
         /// The non-finite-KKT exit, which assembled `st.out` by hand: the
         /// caller checks and MOVES it, bypassing `finish`.
         kFinishManual,
-        /// The ordinary terminal exit -- kOptimal or kMaxIter by
+        /// The ordinary terminal exit -- kOptimal or kIterationLimit by
         /// `mj.converged` -- reporting the current iterate.
         kFinishCurrent,
         /// Budgeted mode's best-by-(h, f) iterate from `st.mb`.
@@ -1677,7 +1675,7 @@ class SqpSolverImpl {
     //     dimension, and the dispatch's size check would then drop it cold.
     //
     // ITS `QpOptions` CARRY `tr_radius = +inf`, deliberately and not as a
-    // default: the tier RESOLVES the `+inf` SolveOverrides sentinel to its own
+    // default: the tier RESOLVES the `+inf` QpSolveOverrides sentinel to its own
     // `opts.tr_radius` and then windows EVERY column, slacks included -- which
     // the walk rung is immune to by construction (it passes a default override
     // precisely so the slacks are not capped) and a tier rung is not. The
@@ -1688,14 +1686,14 @@ class SqpSolverImpl {
 
     // The toggle, resolved: `nullptr` at kWalk (and nothing constructed), the
     // elastic tier engine at kTier. Both of the ladder's call sites go through
-    // this, so one reading of `elastic_rung_engine` serves the kIpm arm's
+    // this, so one reading of `elastic_rung_engine` serves the kIpqp arm's
     // certified fallback and the walk route's own kInfeasible consumer alike.
     IpqpEngine *elastic_rung_tier();
 
     // THE CAP-RETRY'S OWN WALK ENGINE (M7 W2 M1), constructed on first use and
-    // only under `qp_cap_retry`, and A SECOND QpEngine INSTANCE for one reason:
+    // only under `qp_iteration_limit_retry`, and A SECOND QpEngine INSTANCE for one reason:
     // `QpOptions::max_iterations` is read from the engine's OWN options copy, fixed at
-    // its construction, and `SolveOverrides` carries no per-solve cap. So the
+    // its construction, and `QpSolveOverrides` carries no per-solve cap. So the
     // only way to re-solve a capped subproblem at a raised cap without inventing
     // a new entry point is an engine whose options say so -- exactly the
     // construction `elastic_ipqp_engine()` uses for its own one changed field.
@@ -1710,7 +1708,7 @@ class SqpSolverImpl {
     // a different one; within a solve it never does, because the derivation
     // reads dimensions that do not change between majors.
     //
-    // AT THE SHIPPED DEFAULT (`qp_cap_retry == false`) THIS IS NEVER CALLED and
+    // AT THE SHIPPED DEFAULT (`qp_iteration_limit_retry == false`) THIS IS NEVER CALLED and
     // nothing is constructed -- no second backend session, exactly as the
     // elastic rung's toggle promises at ITS default.
     QpEngine &cap_retry_engine(Index cap);
@@ -1959,17 +1957,17 @@ class SqpSolverImpl {
     // current solve writes to", never as "the composition".
     TraceSink *ipqp_trace_ = nullptr;
 
-    // The two driver-owned emit sites: `ipqp.route` and `qp.mode`, the kIpm
+    // The two driver-owned emit sites: `ipqp.route` and `qp.mode`, the kIpqp
     // dispatch arm's own facts.
-    void emit_trace_route(const IpqpTraceRouteEvent &event) const;
+    void emit_trace_route(const IpqpRouteTraceEvent &event) const;
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
     void emit_trace_sqp_major(const SqpMajorTraceEvent &event) const;
-    // The NEXT kIpm subproblem's seed, and the tier's one staging slot. Two
+    // The NEXT kIpqp subproblem's seed, and the tier's one staging slot. Two
     // writers: the staged currency's unflattened zL/zU/mu at solve entry (the
     // FIRST subproblem's seed), and, under `ipqp_reseed_after_disproval`, rung
     // A's certified solution on a disproval (M7 W0 T4). Empty when nothing is
-    // staged, the mode is not kIpm, or the grade came out cold. Spent at the
+    // staged, the mode is not kIpqp, or the grade came out cold. Spent at the
     // next tier entry, whenever that is.
     std::optional<IpqpSeed> ipqp_staged_seed_;
     // The proximal level to EXPORT on this solve's SqpWarmState, and the point it was
@@ -2164,8 +2162,6 @@ class SqpSolverImpl {
     std::chrono::steady_clock::time_point entry_time_{};
 };
 
-namespace detail {
-
 /// Reaches the implementation behind a public SqpSolver. For tests that need
 /// state no public method exposes; befriended by SqpSolver.
 struct SqpSolverAccess {
@@ -2173,6 +2169,4 @@ struct SqpSolverAccess {
     static const SqpSolverImpl &impl(const SqpSolver &solver) { return solver.impl(); }
 };
 
-} // namespace detail
-
-} // namespace hven
+} // namespace hven::detail

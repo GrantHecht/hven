@@ -28,6 +28,7 @@
 namespace {
 
 using namespace hven;
+using namespace hven::detail;
 using namespace hven;
 
 constexpr const char *kUsage =
@@ -82,16 +83,16 @@ std::string fnum(double v) { return fmt::format("{:.6e}", v); }
 
 // The A2 and A3 levers, set once from argv and applied to EVERY IpqpOptions this binary
 // builds. A negative A3 value means "not given": the field keeps its default.
-IpqpMu0Rule g_mu0_rule = IpqpMu0Rule::kFixed;
+IpqpBarrierInitialRule g_mu0_rule = IpqpBarrierInitialRule::kFixed;
 bool g_mu_floor = false;
 double g_converge_slack = -1.0;
 Index g_skip_after = -1;
 
 void apply_a2_levers(IpqpOptions &o) {
-    o.mu0_rule = g_mu0_rule;
-    o.mu_residual_floor = g_mu_floor;
+    o.barrier_initial_rule = g_mu0_rule;
+    o.barrier_residual_floor = g_mu_floor;
     if (g_converge_slack > 0.0) {
-        o.converge_slack = g_converge_slack;
+        o.convergence_slack = g_converge_slack;
     }
     if (g_skip_after >= 0) {
         o.ladder_skip_after = g_skip_after;
@@ -110,17 +111,19 @@ std::string option_stamp(const IpqpOptions &o) {
                        "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / "
                        "false / 3;\n"
                        "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
-                       fnum(o.init_mu), fnum(o.converge_slack), o.hard_iteration_cap,
+                       fnum(o.barrier_initial), fnum(o.convergence_slack), o.hard_max_iterations,
                        o.max_iterations.value_or(0), o.max_factorizations.value_or(0),
-                       o.mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity" : "kFixed",
-                       o.mu_residual_floor ? "true" : "false", o.ladder_skip_after);
+                       o.barrier_initial_rule == IpqpBarrierInitialRule::kComplementarity
+                           ? "kComplementarity"
+                           : "kFixed",
+                       o.barrier_residual_floor ? "true" : "false", o.ladder_skip_after);
 }
 
 const char *status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "optimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "max_iter";
     case QpStatus::kInfeasible:
         return "infeasible";
@@ -225,13 +228,13 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
     IpqpOptions iopts;
     apply_a2_levers(iopts);
     if (mu > 0.0) {
-        iopts.init_mu = mu;
+        iopts.barrier_initial = mu;
     }
     if (converge_slack > 0.0) {
-        iopts.converge_slack = converge_slack;
+        iopts.convergence_slack = converge_slack;
     }
     if (hard_cap > 0) {
-        iopts.hard_iteration_cap = hard_cap;
+        iopts.hard_max_iterations = hard_cap;
         iopts.max_iterations = hard_cap;
         iopts.max_factorizations = 4 * hard_cap;
     }
@@ -373,7 +376,7 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
     for (const int number : {10, 24, 33}) {
         const test_support::HsProblem p = test_support::make_hs(number);
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
+        o.qp_mode = QpMode::kIpqp;
         o.common.max_iterations = 60;
         o.advanced.ipqp = iopts;
         SqpSolver driver(o);
@@ -401,7 +404,7 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
-        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, QpSolveOverrides{});
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},indefinite,{},{},{},{}\n", fnum(mu), f.name, status_name(r.status),
@@ -429,9 +432,9 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     const auto opts_at = [&](double mu) {
         IpqpOptions o;
         apply_a2_levers(o);
-        o.init_mu = mu;
+        o.barrier_initial = mu;
         if (hard_cap > 0) {
-            o.hard_iteration_cap = hard_cap;
+            o.hard_max_iterations = hard_cap;
             o.max_iterations = hard_cap;
             o.max_factorizations = 4 * hard_cap;
         }
@@ -440,7 +443,7 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     stamp(os, "mu-sweep",
           option_stamp(opts_at(mus[0])) +
               "# ipqp_init_mu above is the FIRST level only; the mu column is authoritative.\n"
-              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpSolver under kIpm;\n"
+              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpSolver under kIpqp;\n"
               "# indefinite = tier-direct nonconvex QP fixture.\n");
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
 
@@ -472,7 +475,7 @@ int run_families(std::ostream &os) {
     apply_a2_levers(iopts);
     stamp(os, "families", option_stamp(iopts));
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
-    emit_families(os, iopts.init_mu, iopts);
+    emit_families(os, iopts.barrier_initial, iopts);
     return 0;
 }
 
@@ -504,7 +507,7 @@ int run_ladder(std::ostream &os) {
         qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
-        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, QpSolveOverrides{});
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{}\n", f.name, status_name(r.status),
@@ -533,7 +536,7 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
         model.set_parameters(Vec::Constant(1, p));
         SqpOptions o;
         o.common.max_iterations = 60;
-        o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
+        o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpqp : QpMode::kWalk;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -576,9 +579,9 @@ int main(int argc, char **argv) {
             } else if (a == "--mu0-rule") {
                 const std::string v = next("--mu0-rule");
                 if (v == "kFixed") {
-                    g_mu0_rule = IpqpMu0Rule::kFixed;
+                    g_mu0_rule = IpqpBarrierInitialRule::kFixed;
                 } else if (v == "kComplementarity") {
-                    g_mu0_rule = IpqpMu0Rule::kComplementarity;
+                    g_mu0_rule = IpqpBarrierInitialRule::kComplementarity;
                 } else {
                     throw std::invalid_argument(fmt::format(
                         "{}: --mu0-rule must be kFixed or kComplementarity, got '{}'", kUsage, v));

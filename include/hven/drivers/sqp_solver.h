@@ -22,15 +22,15 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/problem.h>
 #include <hven/warmstart/sqp_warm_start.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 namespace hven {
 
-class SqpSolverImpl;
 class TraceSink;
 class Ledger;
 
 namespace detail {
+class SqpSolverImpl;
 struct SqpSolverAccess;
 } // namespace detail
 
@@ -78,11 +78,11 @@ class SqpSolver {
     /// The thread count in force on the SSN tier's live factor, or -1 when this
     /// solver has not built that tier yet. The tier engines are built lazily at
     /// first use, so a solver that has not run in that tier reads -1.
-    int ssn_tier_num_threads() const;
+    int ssn_tier_threads() const;
 
     /// The thread count in force on the IPQP tier's live KKT factorization, or
     /// -1 when this solver has not built that tier yet.
-    int ipqp_tier_num_threads() const;
+    int ipqp_tier_threads() const;
 
     /// Solves `problem` from `x0`, optionally starting from a warm start.
     ///
@@ -110,9 +110,9 @@ class SqpSolver {
     /// @param problem The problem; borrowed.
     /// @param x0      The start point, used whenever `warm` does not supply one.
     /// @param warm    The warm start; read, never retained.
-    /// @param budget  `minor_budget` is the probe budget: empty is no budget, and
+    /// @param budget  `max_minor_iterations` is the probe budget: empty is no budget, and
     ///                an engaged value stops the solve at the top of the first
-    ///                major that finds `qp_minor_iters >= minor_budget` without
+    ///                major that finds `qp_minor_iters >= max_minor_iterations` without
     ///                having converged, reporting `kWorkLimit` and counting the
     ///                stop in `counters.probe_budget_stops`. Convergence always
     ///                wins, and under `kSsn` the budget also charges the SSN and
@@ -275,10 +275,10 @@ class SqpSolver {
   private:
     friend struct detail::SqpSolverAccess;
 
-    SqpSolverImpl &impl();
-    const SqpSolverImpl &impl() const;
+    detail::SqpSolverImpl &impl();
+    const detail::SqpSolverImpl &impl() const;
 
-    std::unique_ptr<SqpSolverImpl> impl_;
+    std::unique_ptr<detail::SqpSolverImpl> impl_;
 };
 
 // Defined in src/drivers/sqp_print.cpp alongside format_iteration_table.

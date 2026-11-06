@@ -14,6 +14,8 @@
 #include "hven/detail/model/non_linear_program.h"
 #include "hven/model/nlp.h"
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {
@@ -95,8 +97,9 @@ void require_upper_triangle(const SpMatRM &hessian, const std::string &name) {
 
 } // namespace
 
-void nlp_require_claimed_pattern(const SpMatRM &matrix, const std::vector<NlpCoordinate> &recorded,
-                                 const char *what, const std::string &name) {
+void detail::nlp_require_claimed_pattern(const SpMatRM &matrix,
+                                         const std::vector<NlpCoordinate> &recorded,
+                                         const char *what, const std::string &name) {
     // Compressed first, because the pairing this function certifies is between
     // stored value k and recorded coordinate k.
     require_compressed(matrix, what, name);
@@ -312,8 +315,9 @@ void NlpAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
     nlp_require_claimed_pattern(this->hessian(), hess_, "eval_hess", name_);
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NlpAdapterCore> &core,
-                                                   int num_partitions, double infinite_bound) {
+std::shared_ptr<NonLinearProgram>
+detail::make_nlp_program(const std::shared_ptr<NlpAdapterCore> &core, int num_partitions,
+                         double infinite_bound) {
     if (num_partitions < 1) {
         throw std::invalid_argument(fmt::format(
             "make_nlp_program: a partition count must be at least 1 (got {})", num_partitions));
@@ -370,8 +374,8 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NlpAdap
     return nlp;
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions,
-                                                   double infinite_bound) {
+std::shared_ptr<NonLinearProgram>
+detail::make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions, double infinite_bound) {
     if (problem == nullptr) {
         throw std::invalid_argument("make_nlp_program: the problem pointer is null");
     }

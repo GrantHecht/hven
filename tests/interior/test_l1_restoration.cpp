@@ -37,16 +37,16 @@
 
 namespace {
 
-using hven::ElasticSlackInit;
 using hven::IpmSolver;
-using hven::kBoundMultResetThreshold;
-using hven::kNearFeasibleGuardFactor;
-using hven::kRestoPenaltyParameter;
-using hven::kRestoProximityWeight;
-using hven::l1_elastic_slack_init;
-using hven::NestedL1Restoration;
-using hven::ProgressMeasures;
-using hven::SolverContext;
+using hven::detail::ElasticSlackInit;
+using hven::detail::kBoundMultResetThreshold;
+using hven::detail::kNearFeasibleGuardFactor;
+using hven::detail::kRestoPenaltyParameter;
+using hven::detail::kRestoProximityWeight;
+using hven::detail::l1_elastic_slack_init;
+using hven::detail::NestedL1Restoration;
+using hven::detail::ProgressMeasures;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // =============================================================================
@@ -764,8 +764,8 @@ TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
     hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 0);
-    EXPECT_EQ(result.last_feas_rest_iters, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 0);
 }
 
 TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -787,8 +787,8 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
 
     hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 2);
-    EXPECT_EQ(result.last_feas_rest_iters, 4);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 2);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 4);
 }
 
 // Reference the reset-threshold constant so the header's declaration is

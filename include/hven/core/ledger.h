@@ -177,7 +177,7 @@ struct IpmSolveRecord {
     /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
     ///        THIS call (the engine's own per-call counter).
     Index analyses = 0;
-    /// @brief IpmResult::soc_steps_taken. 0 when SOC is off.
+    /// @brief IpmResult::second_order_corrections. 0 when SOC is off.
     Index soc_steps_taken = 0;
     /// @brief IpmResult::watchdog_activations. 0 when the watchdog is off.
     Index watchdog_activations = 0;

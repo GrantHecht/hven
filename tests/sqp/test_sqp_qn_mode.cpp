@@ -58,7 +58,7 @@ SqpOptions qn_options() {
     o.common.max_iterations = 300;
     // The L-BFGS window and its lift, which these stage-3 tests pin; the shipped full-memory
     // default is the `shipped` row of the variant battery below.
-    o.advanced.qn_full_memory_max = 0;
+    o.advanced.max_lbfgs_full_memory_dimension = 0;
     return o;
 }
 
@@ -208,9 +208,9 @@ TEST(SqpQnOptions, DefaultsAreTheExactMode) {
     const SqpOptions o;
     EXPECT_EQ(o.hessian_mode, SqpHessianMode::kExact);
     EXPECT_EQ(o.lbfgs_memory, 10);
-    EXPECT_FALSE(o.advanced.qn_update_on_reject);
-    EXPECT_FALSE(o.advanced.qn_nonlinear_only);
-    EXPECT_EQ(o.advanced.qn_full_memory_max, 400);
+    EXPECT_FALSE(o.advanced.lbfgs_update_on_reject);
+    EXPECT_FALSE(o.advanced.lbfgs_nonlinear_only);
+    EXPECT_EQ(o.advanced.max_lbfgs_full_memory_dimension, 400);
 }
 
 TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
@@ -224,9 +224,9 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
     o.lbfgs_memory = -3;
     EXPECT_THROW(validate(o), std::invalid_argument);
     o = qn_options();
-    o.advanced.qn_full_memory_max = -1;
+    o.advanced.max_lbfgs_full_memory_dimension = -1;
     EXPECT_THROW(validate(o), std::invalid_argument);
-    o.advanced.qn_full_memory_max = 0; // never
+    o.advanced.max_lbfgs_full_memory_dimension = 0; // never
     EXPECT_NO_THROW(validate(o));
     o = qn_options();
     o.advanced.restoration_proximity = 1e-3; // the exact zeta D^2 split is not shipped under QN
@@ -244,17 +244,18 @@ TEST(SqpQnOptions, ValidationRefusesTheIllFormedSettings) {
 TEST(SqpQnOptions, DumpNamesTheFiveFields) {
     SqpOptions o = qn_options();
     o.lbfgs_memory = 7;
-    o.advanced.qn_update_on_reject = true;
-    o.advanced.qn_nonlinear_only = true;
-    o.advanced.qn_full_memory_max = 250;
+    o.advanced.lbfgs_update_on_reject = true;
+    o.advanced.lbfgs_nonlinear_only = true;
+    o.advanced.max_lbfgs_full_memory_dimension = 250;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
     EXPECT_NE(text.find("\nhessian_mode = kLbfgsDamped\n"), std::string::npos) << text;
     EXPECT_NE(text.find("\nlbfgs_memory = 7\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nadvanced.qn_update_on_reject = true\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nadvanced.qn_nonlinear_only = true\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("\nadvanced.qn_full_memory_max = 250\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.lbfgs_update_on_reject = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.lbfgs_nonlinear_only = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("\nadvanced.max_lbfgs_full_memory_dimension = 250\n"), std::string::npos)
+        << text;
 }
 
 // ===========================================================================
@@ -325,8 +326,8 @@ TEST_P(SqpQnVariantHs, ConvergesWithoutAHessianCall) {
     test_support::HsProblem p = make_hs(hc.number);
     HessCountingModel model(p.model.get());
     SqpOptions o = qn_options();
-    o.advanced.qn_nonlinear_only = v.nonlinear_only;
-    o.advanced.qn_full_memory_max = v.full_memory_max;
+    o.advanced.lbfgs_nonlinear_only = v.nonlinear_only;
+    o.advanced.max_lbfgs_full_memory_dimension = v.full_memory_max;
     SqpSolver driver(o);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     SCOPED_TRACE(fmt::format("HS{} {}: status {} majors {} f {:.12g} f* {:.12g}", hc.number, v.name,
@@ -355,7 +356,7 @@ INSTANTIATE_TEST_SUITE_P(Battery, SqpQnVariantHs,
 // R3: the masked carrier is pinned at the driver. The fixture is HS6 with a Hessian that declares
 // only the (x1, x1) entry (x2 enters linearly, so the pattern is exact; the stock HS6 model
 // declares a structural zero at (x2, x2), which puts x2 in the pattern and leaves the
-// restriction a no-op there). qn_nonlinear_only then builds MaskedQnModel over x1 alone
+// restriction a no-op there). lbfgs_nonlinear_only then builds MaskedQnModel over x1 alone
 // (carried dimension 1); the default carries both. kExact reports 0.
 class Hs6LinearX2Model : public HessCountingModel {
   public:
@@ -374,8 +375,8 @@ TEST(SqpQnVariants, TheNonlinearOnlyRestrictionBuildsTheMaskedCarrierAtTheExpect
         test_support::HsProblem p = make_hs(6);
         Hs6LinearX2Model model(p.model.get());
         SqpOptions o = qn_options();
-        o.advanced.qn_nonlinear_only = nonlinear_only;
-        o.advanced.qn_full_memory_max = full_memory_max;
+        o.advanced.lbfgs_nonlinear_only = nonlinear_only;
+        o.advanced.max_lbfgs_full_memory_dimension = full_memory_max;
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -416,7 +417,7 @@ TEST(SqpQnExact, TheCounterIsTheDriversShareOfTheModelsCalls) {
 
 // Every QP kernel runs the lifted subproblems.
 TEST(SqpQnModes, EveryQpModeConvergesWithoutAHessianCall) {
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         for (const int number : {6, 45, 76}) {
             SCOPED_TRACE(fmt::format("mode {} HS{}", static_cast<int>(mode), number));
             test_support::HsProblem p = make_hs(number);
@@ -434,7 +435,7 @@ TEST(SqpQnModes, EveryQpModeConvergesWithoutAHessianCall) {
             // silently fell back to the walk would pass every line above.
             if (mode == QpMode::kSsn) {
                 EXPECT_GT(sol.counters.ssn.ssn_iters, 0);
-            } else if (mode == QpMode::kIpm) {
+            } else if (mode == QpMode::kIpqp) {
                 EXPECT_GT(sol.counters.ipqp.ipqp_iters, 0);
             }
         }
@@ -506,7 +507,7 @@ TEST(SqpQnModes, AnElasticActivatingSolveConvergesWithoutAHessianCall) {
 
 TEST(SqpQnModes, BothWorkingSetAlgebrasAndTheScaledSolveConverge) {
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         for (const bool scaled : {false, true}) {
             SCOPED_TRACE(fmt::format("algebra {} scaled {}", static_cast<int>(algebra), scaled));
             test_support::HsProblem p = make_hs(39);
@@ -549,10 +550,10 @@ TEST(SqpQnPairs, UpdateOnRejectOffersTheRejectedTrials) {
     SqpOptions o = qn_options();
     o.common.optimality_tol = 1e-8;
     o.common.feasibility_tol = 1e-8;
-    o.advanced.enable_soc = false; // rejections stay rejections
+    o.advanced.second_order_correction = false; // rejections stay rejections
     const SqpResult base =
         SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
-    o.advanced.qn_update_on_reject = true;
+    o.advanced.lbfgs_update_on_reject = true;
     const SqpResult abl =
         SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(base.status, SolveStatus::kOptimal);
@@ -602,8 +603,8 @@ TEST(SqpQnPairs, FiveNonZeroStepSkipsResetAndZeroStepSkipsDoNotCount) {
 
 TEST(SqpQnRestoration, TheSubSolveRunsItsOwnInstanceWithoutAHessianCall) {
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         InfeasibleCircleLineModel inner;
         HessCountingModel model(&inner);
         SqpOptions o = qn_options();
@@ -681,11 +682,11 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
     SqpSolver driver(qn_options());
     const SqpResult first = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_TRUE(SqpWarmAccess::state(first.native_warm_start).valid);
-    ASSERT_NE(SqpWarmAccess::state(first.native_warm_start).structure_hash, 0u);
+    ASSERT_TRUE(SqpWarmAccess::state(first.sqp_warm_start).valid);
+    ASSERT_NE(SqpWarmAccess::state(first.sqp_warm_start).structure_hash, 0u);
     const Index calls_before = model.n_hess;
-    const SqpResult second = driver.solve(hven::detail::problem_ref(model), model.start_point(),
-                                          first.native_warm_start);
+    const SqpResult second =
+        driver.solve(hven::detail::problem_ref(model), model.start_point(), first.sqp_warm_start);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
     EXPECT_EQ(model.n_hess - calls_before, 1) << "only the lay walk: the probe made no call";
     EXPECT_EQ(second.counters.eval_hess_calls, 0);
@@ -697,7 +698,7 @@ TEST(SqpQnWarmStart, TheProbeMakesNoHessianCallAndMatchesTheQnStructure) {
     const SqpResult ex = exact.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(ex.status, SolveStatus::kOptimal);
     const SqpResult cross = driver.solve(hven::detail::problem_ref(*p.model),
-                                         p.model->start_point(), ex.native_warm_start);
+                                         p.model->start_point(), ex.sqp_warm_start);
     EXPECT_EQ(cross.status, SolveStatus::kOptimal);
     EXPECT_EQ(cross.counters.start_level_used, StartLevel::kSeeded);
 }
@@ -807,7 +808,7 @@ TEST(SqpQnBridge, TheCacheServesTheSameLiftAndPredictedDecreaseReadsB) {
     EXPECT_NEAR(bridge.predicted_decrease(qp, p), -(qp.g.dot(p) + 0.5 * p.dot(B * p)), 1e-12);
     // A walk solve through the bridge returns the unlifted sizes.
     const QpEngine engine(QpOptions{});
-    SolveOverrides ov;
+    QpSolveOverrides ov;
     ov.trust_region_radius = 1.0;
     const QpSolution qs = bridge.solve(engine, qp, ov);
     ASSERT_EQ(qs.status, QpStatus::kOptimal);

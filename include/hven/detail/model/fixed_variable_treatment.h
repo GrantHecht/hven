@@ -9,16 +9,16 @@
 
 #include "hven/drivers/ipm_enums.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Snake-case name for a treatment, for diagnostics and error messages.
-inline const char *fixed_variable_treatment_name(FixedVariableTreatment treatment) {
+inline const char *fixed_variable_treatment_name(IpmFixedVariableTreatment treatment) {
     switch (treatment) {
-    case FixedVariableTreatment::kMakeParameter:
+    case IpmFixedVariableTreatment::kMakeParameter:
         return "make_parameter";
-    case FixedVariableTreatment::kMakeConstraint:
+    case IpmFixedVariableTreatment::kMakeConstraint:
         return "make_constraint";
-    case FixedVariableTreatment::kRelaxBounds:
+    case IpmFixedVariableTreatment::kRelaxBounds:
         return "relax_bounds";
     }
     return "unknown";
@@ -35,4 +35,4 @@ inline constexpr double kDefaultBoundRelaxFactor = 1.0e-8;
 /// a caller would set.
 inline constexpr double kMaxBoundRelaxFactor = 1.0e-2;
 
-} // namespace hven
+} // namespace hven::detail

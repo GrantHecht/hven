@@ -83,9 +83,7 @@
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
-
-namespace detail {
+namespace hven::detail {
 
 // Relative floor beneath which C's smallest |block eigenvalue| counts as
 // numerically singular, even though the dense factorization completed
@@ -106,8 +104,6 @@ constexpr double kSchurSingularEigFrac = 1e-12;
 // extreme directions could live on, and an unconverged direction only widens that set.
 constexpr int kConditionDirectionSteps = 2;
 
-} // namespace detail
-
 class SchurComplement {
   public:
     /// @param kkt     The sparse K0 factor this complement borders.
@@ -123,12 +119,12 @@ class SchurComplement {
     ///                 own default alone.
     SchurComplement(detail::KktFactor &kkt, const QpOptions &opts, int threads = 0)
         : kkt_(kkt), opts_(opts) {
-        factor_.set_num_threads(threads);
+        factor_.set_threads(threads);
     }
 
     /// The DENSE border factor's live thread count -- a boundary observation
     /// of the one factor path the sparse surface does not cover.
-    int num_threads() const noexcept { return factor_.num_threads(); }
+    int num_threads() const noexcept { return factor_.threads(); }
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
     // one K0 solve (to cache K0^-1 v), the O(dim() * n0) dots of the new row
@@ -658,4 +654,4 @@ class SchurComplement {
     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
 };
 
-} // namespace hven
+} // namespace hven::detail

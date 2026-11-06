@@ -30,16 +30,16 @@
 
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/model/structure_identity.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace {
 using hven::detail::WarmStartAccess;
 } // namespace
 
 using hven::DeclarationKey;
-using hven::deserialize;
+using hven::deserialize_warm_start;
 using hven::kWarmStartFormatVersion;
-using hven::serialize;
+using hven::serialize_warm_start;
 using hven::WarmExtension;
 using hven::WarmStart;
 
@@ -110,7 +110,7 @@ WarmStart make_populated() {
 /// checks fail rather than pass vacuously.
 std::string refusal_message(std::span<const std::byte> bytes) {
     try {
-        const WarmStart decoded = deserialize(bytes);
+        const WarmStart decoded = deserialize_warm_start(bytes);
         ADD_FAILURE() << "deserialize accepted an input it was expected to refuse (" << bytes.size()
                       << " bytes)";
         return {};
@@ -431,15 +431,15 @@ TEST(WarmStartValue, EqualityIsExactSoANaNPayloadIsUnequalToItself) {
 
 TEST(WarmStartSerialization, RoundTripsAPopulatedValue) {
     const WarmStart original = make_populated();
-    const std::vector<std::byte> bytes = serialize(original);
-    const WarmStart decoded = deserialize(bytes);
+    const std::vector<std::byte> bytes = serialize_warm_start(original);
+    const WarmStart decoded = deserialize_warm_start(bytes);
     EXPECT_EQ(original, decoded);
 }
 
 TEST(WarmStartSerialization, RoundTripsADefaultConstructedValue) {
     const WarmStart original;
-    const std::vector<std::byte> bytes = serialize(original);
-    const WarmStart decoded = deserialize(bytes);
+    const std::vector<std::byte> bytes = serialize_warm_start(original);
+    const WarmStart decoded = deserialize_warm_start(bytes);
     EXPECT_EQ(original, decoded);
     EXPECT_EQ(WarmStartAccess::primal(decoded).size(), 0);
     EXPECT_TRUE(WarmStartAccess::extensions(decoded).empty());
@@ -451,13 +451,13 @@ TEST(WarmStartSerialization, RoundTripsEmptyBlocksWithAPopulatedStamp) {
     // all-zero value are both real keys the byte form has to carry unchanged.
     WarmStart original;
     WarmStartAccess::key(original) = DeclarationKey{0xFFFFFFFFFFFFFFFFULL, 0ULL};
-    WarmStart decoded = deserialize(serialize(original));
+    WarmStart decoded = deserialize_warm_start(serialize_warm_start(original));
     EXPECT_EQ(original, decoded);
     EXPECT_EQ(WarmStartAccess::key(decoded).declaration_digest, 0xFFFFFFFFFFFFFFFFULL);
     EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest, 0ULL);
 
     WarmStartAccess::key(original) = DeclarationKey{0ULL, 0x8000000000000000ULL};
-    decoded = deserialize(serialize(original));
+    decoded = deserialize_warm_start(serialize_warm_start(original));
     EXPECT_EQ(original, decoded);
     EXPECT_EQ(WarmStartAccess::key(decoded).bound_digest, 0x8000000000000000ULL);
 }
@@ -476,7 +476,7 @@ TEST(WarmStartSerialization, RoundTripsSpecialDoublesBitExactly) {
     // bit pattern, not over any decimal rendering of it.
     WarmStartAccess::bound(original) = vector_of({0.1, 1.0 / 3.0, 0x1.fffffffffffffp+1023});
 
-    const WarmStart decoded = deserialize(serialize(original));
+    const WarmStart decoded = deserialize_warm_start(serialize_warm_start(original));
     EXPECT_TRUE(bitwise_equal(original, decoded));
     EXPECT_TRUE(std::isnan(WarmStartAccess::primal(decoded)[0]));
     EXPECT_TRUE(std::signbit(WarmStartAccess::eq(decoded)[1]));
@@ -491,7 +491,7 @@ TEST(WarmStartSerialization, RoundTripsAwkwardExtensionsInOrder) {
         WarmExtension{"hven.ipm.polish.v1", {}},
         WarmExtension{"", bytes_of({0xFF})},
     };
-    const WarmStart decoded = deserialize(serialize(original));
+    const WarmStart decoded = deserialize_warm_start(serialize_warm_start(original));
     EXPECT_EQ(original, decoded);
     ASSERT_EQ(WarmStartAccess::extensions(decoded).size(), 4U);
     EXPECT_EQ(WarmStartAccess::extensions(decoded)[1].tag.size(), 8U);
@@ -501,9 +501,10 @@ TEST(WarmStartSerialization, RoundTripsAwkwardExtensionsInOrder) {
 TEST(WarmStartSerialization, TheEncodingIsAFunctionOfTheValueAlone) {
     const WarmStart original = make_populated();
     const WarmStart copy = original;
-    EXPECT_EQ(serialize(original), serialize(original));
-    EXPECT_EQ(serialize(original), serialize(copy));
-    EXPECT_EQ(serialize(deserialize(serialize(original))), serialize(original));
+    EXPECT_EQ(serialize_warm_start(original), serialize_warm_start(original));
+    EXPECT_EQ(serialize_warm_start(original), serialize_warm_start(copy));
+    EXPECT_EQ(serialize_warm_start(deserialize_warm_start(serialize_warm_start(original))),
+              serialize_warm_start(original));
 }
 
 // ---------------------------------------------------------------------------
@@ -514,7 +515,7 @@ TEST(WarmStartSerialization, FrozenByteLayout) {
     const std::vector<std::byte> expected = frozen_bytes();
     ASSERT_EQ(expected.size(), kFrozenSize);
 
-    const std::vector<std::byte> actual = serialize(frozen_value());
+    const std::vector<std::byte> actual = serialize_warm_start(frozen_value());
     ASSERT_EQ(actual.size(), expected.size())
         << "the encoding's length moved: the layout in "
            "src/warmstart/warm_start_data.cpp and this hand-stated pin disagree";
@@ -525,7 +526,7 @@ TEST(WarmStartSerialization, FrozenByteLayout) {
 
 TEST(WarmStartSerialization, DecodesTheFrozenBytesBackToTheFrozenValue) {
     const std::vector<std::byte> bytes = frozen_bytes();
-    const WarmStart decoded = deserialize(bytes);
+    const WarmStart decoded = deserialize_warm_start(bytes);
     EXPECT_EQ(decoded, frozen_value());
     // +0.0 and -0.0 compare equal, so the pin above is what proves the sign
     // survived; this asserts it here too rather than leaving it to `==`.
@@ -674,7 +675,7 @@ TEST_P(WarmStartTruncation, RefusesAndNamesWhereItRanOut) {
     ASSERT_LT(prefix, bytes.size());
 
     const std::string message = refusal_message(std::span<const std::byte>(bytes.data(), prefix));
-    EXPECT_TRUE(mentions(message, "deserialize(WarmStart)")) << message;
+    EXPECT_TRUE(mentions(message, "deserialize_warm_start")) << message;
     EXPECT_TRUE(mentions(message, "byte offset")) << message;
     // Either the read ran off the end ("the input ends at byte N") or a length
     // field could not be honoured by what remained ("in an N-byte input"); both

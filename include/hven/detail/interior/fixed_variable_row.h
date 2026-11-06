@@ -25,7 +25,7 @@
 #include "hven/model/solver_interface_adapter.h"
 #include "hven/model/threading_flags.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The residual x - value as a solver constraint: one variable in, one
 /// constraint row out, per application.
@@ -183,8 +183,13 @@ struct FixedVariableRow {
 // A plain value type, not an erased handle, so it is stored as itself: one
 // erasure, one virtual dispatch per solver call. Registered here, beside the
 // definition, per the placement rule in hven/model/solver_interface_adapter.h.
+} // namespace hven::detail
+
 template <>
-struct SolverInterfaceAdapter<FixedVariableRow> : DirectFunctionModel<FixedVariableRow> {};
+struct hven::SolverInterfaceAdapter<hven::detail::FixedVariableRow>
+    : hven::DirectFunctionModel<hven::detail::FixedVariableRow> {};
+
+namespace hven::detail {
 
 /// @brief Builds one internal equality row pinning primal variable @p index
 /// to @p value and writing constraint row @p row, addressed over the problem's
@@ -221,4 +226,4 @@ inline ConstraintFunction make_fixed_variable_row(int index, double value, int r
     return fix_row;
 }
 
-} // namespace hven
+} // namespace hven::detail

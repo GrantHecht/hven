@@ -25,9 +25,9 @@
 namespace {
 
 using hven::Index;
-using hven::IpqpKktLayout;
-using hven::KktFactorization;
 using hven::SpMatRM;
+using hven::detail::IpqpKktLayout;
+using hven::detail::KktFactorization;
 
 SpMatRM sparse_from(Index rows, Index cols, const std::vector<Eigen::Triplet<double>> &entries) {
     SpMatRM m(rows, cols);
@@ -339,8 +339,8 @@ constexpr double kDelta = 1.0;
 
 KktFactorization::Options factor_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLdlt;
-    opts.num_threads = 1;
+    opts.decomposition = hven::linear::Decomposition::kLdlt;
+    opts.threads = 1;
     return opts;
 }
 
@@ -377,7 +377,7 @@ TEST(IpqpKktLayoutTest, TheAssembledSystemFactorizesToTheSpecifiedInertiaTarget)
     EXPECT_EQ(kkt.neigs(), f.me + f.mi);
     const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(ev.n_zero, 0);
+    EXPECT_EQ(ev.zero, 0);
 }
 
 // MUTATION NON-VACUITY for the diagonal slot table: a value written through a recorded primal

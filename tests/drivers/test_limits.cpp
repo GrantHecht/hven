@@ -7,7 +7,7 @@
 //    kWorkLimit at an iteration boundary; the time limit (time_limit_seconds)
 //    with kTimeLimit. Both empty by default, and an empty or never-binding
 //    limit is the unlimited solve, bit for bit.
-//  * The SQP minor budget (SolveBudget::minor_budget) reports kWorkLimit.
+//  * The SQP minor budget (SolveBudget::max_minor_iterations) reports kWorkLimit.
 //  * Each refused value is refused by name: CommonOptions' new fields at
 //    validate(), a SolveBudget member below 1 at solve entry, the reserved
 //    dense-arm values on both engines.
@@ -143,8 +143,8 @@ template <typename Options> void refuses_the_common_values() {
         o.linear.dense_factorization = hven::linear::DensePolicy::kAuto;
         expect_refused(o, "linear.dense_factorization");
         Options d;
-        d.linear.dense_max_dimension = 50;
-        expect_refused(d, "linear.dense_max_dimension");
+        d.linear.max_dense_dimension = 50;
+        expect_refused(d, "linear.max_dense_dimension");
     }
 }
 
@@ -199,14 +199,14 @@ TEST(Limits, AnEngagedQpMaxIterBelowOneIsRefused) {
 
 TEST(Limits, RelaxBoundsNeedsAPositiveRelaxFactor) {
     IpmOptions o;
-    o.fixed_variable_treatment = hven::FixedVariableTreatment::kRelaxBounds;
+    o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kRelaxBounds;
     o.bound_relax_factor = 0.0;
     expect_refused(o, "bound_relax_factor");
     o.bound_relax_factor = kNaN;
     expect_refused(o, "bound_relax_factor");
     o.bound_relax_factor = 1e-8;
     EXPECT_NO_THROW(hven::validate(o));
-    o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeParameter;
+    o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeParameter;
     o.bound_relax_factor = 0.0; // legal for the other treatments
     EXPECT_NO_THROW(hven::validate(o));
 }
@@ -229,19 +229,19 @@ TEST(Limits, IpmValidateRefusesTheTerminationAndLinearValues) {
     }
     {
         IpmOptions o;
-        o.linear.parallel_solve = static_cast<hven::KktSolveParallelism>(2);
-        expect_refused(o, "linear.parallel_solve");
+        o.linear.solve_parallelism = static_cast<hven::IpmSolveParallelism>(2);
+        expect_refused(o, "linear.solve_parallelism");
     }
     {
         IpmOptions o;
-        o.advanced.acceptance_mode = static_cast<hven::AcceptanceMode>(9);
+        o.advanced.acceptance_mode = static_cast<hven::IpmAcceptanceMode>(9);
         expect_refused(o, "advanced.acceptance_mode");
     }
 }
 
 TEST(Limits, ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines) {
     const SolveBudget no_iterations{.max_iterations = 0};
-    const SolveBudget no_minors{.minor_budget = 0};
+    const SolveBudget no_minors{.max_minor_iterations = 0};
     for (const SolveBudget &b : {no_iterations, no_minors}) {
         EXPECT_THROW(ipm_solve(IpmOptions{}, b), std::invalid_argument);
         EXPECT_THROW(sqp_solve(SqpOptions{}, b), std::invalid_argument);
@@ -254,7 +254,7 @@ TEST(Limits, ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines) {
     EXPECT_THROW(sqp_solve(SqpOptions{}, too_many), std::invalid_argument);
     EXPECT_NO_THROW(hven::validate(SolveBudget{.max_iterations = std::numeric_limits<int>::max()}));
     EXPECT_NO_THROW(hven::validate(SolveBudget{}));
-    EXPECT_NO_THROW(hven::validate(SolveBudget{.max_iterations = 1, .minor_budget = 1}));
+    EXPECT_NO_THROW(hven::validate(SolveBudget{.max_iterations = 1, .max_minor_iterations = 1}));
 }
 
 // ---------------------------------------------------------------------------
@@ -348,9 +348,9 @@ TEST(Limits, ANeverBindingSqpLimitIsTheUnlimitedSolveBitForBit) {
 }
 
 // The SQP minor budget is a work ceiling and reports kWorkLimit (owner decision
-// 5's relabel; it reported kMaxIter before M8 AP-2 B3). The point is unchanged.
+// 5's relabel; it reported kIterationLimit before M8 AP-2 B3). The point is unchanged.
 TEST(Limits, TheSqpMinorBudgetReportsWorkLimit) {
-    const SqpResult r = sqp_solve(SqpOptions{}, SolveBudget{.minor_budget = 1});
+    const SqpResult r = sqp_solve(SqpOptions{}, SolveBudget{.max_minor_iterations = 1});
     EXPECT_EQ(r.status, SolveStatus::kWorkLimit);
     EXPECT_EQ(r.counters.probe_budget_stops, 1);
 }
@@ -450,7 +450,7 @@ TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
 // does substitute at some iteration count on this problem, so the comparison below
 // can tell.
 TEST(Limits, ALimitExitIgnoresReturnBest) {
-    constexpr auto kCriterion = hven::BestIterateCriterion::kObjective;
+    constexpr auto kCriterion = hven::IpmBestIterateCriterion::kObjective;
     bool substitution_seen = false;
     for (hven::Index cap = 1; cap <= 8; ++cap) {
         IpmOptions plain;
@@ -460,7 +460,8 @@ TEST(Limits, ALimitExitIgnoresReturnBest) {
         best.return_best = true;
         const IpmResult a = ipm_solve(plain);
         const IpmResult b = ipm_solve(best);
-        if (a.status == SolveStatus::kMaxIter && (a.x - b.x).lpNorm<Eigen::Infinity>() > 0.0) {
+        if (a.status == SolveStatus::kIterationLimit &&
+            (a.x - b.x).lpNorm<Eigen::Infinity>() > 0.0) {
             substitution_seen = true;
         }
     }
@@ -545,8 +546,8 @@ TEST(Limits, AnIpmCapAndLimitTieReportsTheLimit) {
     IpmOptions capped;
     capped.common.max_iterations = 3;
     const IpmResult cap_only = ipm_solve(capped);
-    ASSERT_EQ(cap_only.status, SolveStatus::kMaxIter);
-    ASSERT_EQ(cap_only.phases[0].stop_reason, hven::IpmStopReason::kIterationCap);
+    ASSERT_EQ(cap_only.status, SolveStatus::kIterationLimit);
+    ASSERT_EQ(cap_only.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
     const hven::Index spent = cap_only.kkt_factor_counters.factorize_count;
 
     IpmOptions tie = capped;
@@ -563,8 +564,8 @@ TEST(Limits, AnIpmCapAndLimitTieReportsTheLimit) {
     IpmOptions loose = capped;
     loose.common.max_factorizations = spent + 1;
     const IpmResult not_tied = ipm_solve(loose);
-    EXPECT_EQ(not_tied.status, SolveStatus::kMaxIter);
-    EXPECT_EQ(not_tied.phases[0].stop_reason, hven::IpmStopReason::kIterationCap);
+    EXPECT_EQ(not_tied.status, SolveStatus::kIterationLimit);
+    EXPECT_EQ(not_tied.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
 
     // A tie in the first phase of a sequence also ends the sequence.
     IpmOptions two_phase = tie;

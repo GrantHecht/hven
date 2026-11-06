@@ -44,9 +44,9 @@
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/sqp_solver.h"
+#include "hven/hven.h"
 #include "hven/model/nlp.h"
-#include "hven/model/pieces.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace pieces_test {
 
@@ -58,12 +58,12 @@ using hven::IpmOptions;
 using hven::IpmResult;
 using hven::IpmSolver;
 using hven::MatRef;
-using hven::NonLinearProgram;
 using hven::Problem;
 using hven::SolveStatus;
 using hven::Vec;
 using hven::VecRef;
 using hven::Verbosity;
+using hven::detail::NonLinearProgram;
 using hven::detail::ProblemAccess;
 using Vx = Eigen::VectorXd;
 using Vi = Eigen::VectorXi;
@@ -464,9 +464,9 @@ TEST(PiecesExample4, BothFormsAgree) {
         EXPECT_LE(std::abs(a.f - b.f), 1e-10 * std::max(1.0, std::abs(a.f)));
         EXPECT_LE((a.x - b.x).lpNorm<Eigen::Infinity>(), 1e-8);
         EXPECT_EQ(a.iterations, b.iterations);
-        EXPECT_EQ(raw_problem.partitions(), local_problem.partitions());
+        EXPECT_EQ(raw_problem.num_partitions(), local_problem.num_partitions());
         if (partitions > 1) {
-            EXPECT_GT(local_problem.partitions(), 1);
+            EXPECT_GT(local_problem.num_partitions(), 1);
         }
 
         EXPECT_EQ(claim_multiset(raw_problem), claim_multiset(local_problem));
@@ -845,7 +845,7 @@ void expect_program_matches(Problem &problem, const Chain &chain, unsigned seed)
 TEST(PiecesLocalBlocks, AssemblyMatchesTheDenseReferenceOnOnePartition) {
     const TestChain chain(6);
     Problem problem(chain.declaration(1));
-    EXPECT_EQ(problem.partitions(), 1);
+    EXPECT_EQ(problem.num_partitions(), 1);
     for (unsigned seed : {1u, 4u, 9u}) {
         SCOPED_TRACE(seed);
         expect_program_matches(problem, chain, seed);
@@ -858,7 +858,7 @@ TEST(PiecesLocalBlocks, AssemblyMatchesTheDenseReferenceOnSeveralPartitions) {
     const TestChain chain(400);
     Problem problem(chain.declaration(3));
     ProblemAccess::ipm_program(problem);
-    EXPECT_GT(problem.partitions(), 1);
+    EXPECT_GT(problem.num_partitions(), 1);
     for (unsigned seed : {2u, 7u}) {
         SCOPED_TRACE(seed);
         expect_program_matches(problem, chain, seed);
@@ -1439,7 +1439,7 @@ TEST(PiecesSharedEntries, TheLayoutMarksTheCopiesThatShareARow) {
     const SharedChain chain(2000);
     Problem four(chain.declaration(4));
     ProblemAccess::ipm_program(four);
-    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(four.num_partitions(), 4);
     const LaidFlags f4 = laid_flags(four);
     EXPECT_GT(f4.eq_shared, 0);
     EXPECT_EQ(f4.iq_shared, 0);
@@ -1447,7 +1447,7 @@ TEST(PiecesSharedEntries, TheLayoutMarksTheCopiesThatShareARow) {
 
     Problem one(chain.declaration(1));
     ProblemAccess::ipm_program(one);
-    ASSERT_EQ(one.partitions(), 1);
+    ASSERT_EQ(one.num_partitions(), 1);
     const LaidFlags f1 = laid_flags(one);
     EXPECT_EQ(f1.eq_shared, 0);
     EXPECT_EQ(f1.iq_shared, 0);
@@ -1463,7 +1463,7 @@ TEST(PiecesSharedEntries, TheLayoutMarksTheCopiesThatShareARow) {
     d.set_partitions(4);
     Problem unshared(std::move(d));
     ProblemAccess::ipm_program(unshared);
-    ASSERT_GT(unshared.partitions(), 1);
+    ASSERT_GT(unshared.num_partitions(), 1);
     const LaidFlags fu = laid_flags(unshared);
     EXPECT_EQ(fu.eq_shared + fu.iq_shared, 0);
 }
@@ -1479,7 +1479,7 @@ TEST(PiecesSharedEntries, AssemblyIsExactAtFourPartitions) {
     const SharedChain small(600);
     Problem p(small.declaration(4));
     ProblemAccess::ipm_program(p);
-    ASSERT_EQ(p.partitions(), 4);
+    ASSERT_EQ(p.num_partitions(), 4);
     for (unsigned seed : {3u, 8u}) {
         SCOPED_TRACE(seed);
         expect_program_matches(p, small, seed);
@@ -1489,9 +1489,9 @@ TEST(PiecesSharedEntries, AssemblyIsExactAtFourPartitions) {
     Problem one(chain.declaration(1));
     Problem four(chain.declaration(4));
     ProblemAccess::ipm_program(one);
-    ASSERT_EQ(one.partitions(), 1);
+    ASSERT_EQ(one.num_partitions(), 1);
     ProblemAccess::ipm_program(four);
-    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(four.num_partitions(), 4);
     const Vx x = test_point(chain.n, 5);
     const Vx le = test_point(chain.me, 6), li = test_point(chain.mi, 7);
     const SpMatRM ref = assembled_kkt(one, x, le, li);
@@ -1530,7 +1530,7 @@ TEST(PiecesSharedEntries, ASharedEntryDeclarationSolvesIdenticallyAtOneAndFourPa
     const Vx x0 = Vx::Constant(chain.n, 0.4);
     const IpmResult a = ipm_one.solve(one, x0);
     const IpmResult b = ipm_four.solve(four, x0);
-    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(four.num_partitions(), 4);
     ASSERT_EQ(a.status, SolveStatus::kOptimal);
     EXPECT_EQ(b.status, a.status);
     EXPECT_EQ(b.iterations, a.iterations);
@@ -1540,7 +1540,7 @@ TEST(PiecesSharedEntries, ASharedEntryDeclarationSolvesIdenticallyAtOneAndFourPa
 
 // ---------------------------------------------------------------------------
 // Eliminated variables at four partitions (C236 R5): fixed controls are
-// eliminated (FixedVariableTreatment::kMakeParameter, the default), and the
+// eliminated (IpmFixedVariableTreatment::kMakeParameter, the default), and the
 // partitioned layout claims, scatters and solves through the -1 slots. The
 // same problem at one partition, and with the fixed controls kept as
 // constraint rows (kMakeConstraint), reaches the same point.
@@ -1564,7 +1564,7 @@ TEST(PiecesLocalBlocks, EliminatedVariablesAtFourPartitions) {
     };
     IpmOptions constraint_options;
     constraint_options.common.verbosity = Verbosity::kSilent;
-    constraint_options.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
+    constraint_options.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
 
     Problem one(declaration(1));
     Problem four(declaration(4));
@@ -1576,7 +1576,7 @@ TEST(PiecesLocalBlocks, EliminatedVariablesAtFourPartitions) {
     const IpmResult a = ipm_one.solve(one, x0);
     const IpmResult b = ipm_four.solve(four, x0);
     const IpmResult c = ipm_rows.solve(rows, x0);
-    ASSERT_EQ(four.partitions(), 4);
+    ASSERT_EQ(four.num_partitions(), 4);
     ASSERT_EQ(a.status, SolveStatus::kOptimal);
     ASSERT_EQ(b.status, SolveStatus::kOptimal);
     ASSERT_EQ(c.status, SolveStatus::kOptimal);
@@ -1674,7 +1674,7 @@ TEST(PiecesLocalBlocks, AWidePieceAssemblesOnFourPartitions) {
     const WideChain chain;
     Problem problem(chain.declaration(4));
     ProblemAccess::ipm_program(problem);
-    ASSERT_EQ(problem.partitions(), 4);
+    ASSERT_EQ(problem.num_partitions(), 4);
     expect_program_matches(problem, chain, 4);
 }
 
@@ -1684,7 +1684,7 @@ TEST(PiecesLocalBlocks, AWidePieceSolvesOnFourPartitions) {
     Problem problem(chain.declaration(4));
     IpmSolver ipm = quiet_ipm();
     const IpmResult r = ipm.solve(problem, Vx::Zero(kApps * kWide));
-    ASSERT_EQ(problem.partitions(), 4);
+    ASSERT_EQ(problem.num_partitions(), 4);
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     // The square system fixes the point: every block's residual is inside the
     // engine's feasibility tolerance (the criterion the solve converged on; a

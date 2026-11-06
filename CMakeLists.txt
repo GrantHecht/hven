@@ -494,20 +494,17 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 
 # The engine's two build-supplied sizing knobs.
 #
-# HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
-# -- include/hven/drivers/ipm_options.h, in the IpmOptions::common default
-# member initializer -- so a consumer that includes it without the definition
-# would fail on an undefined identifier inside a header it did not write.
-# (M6 W5 T1: it was two headers until the folded init_partitions moved out of
-# the public model/nlp_solver.h into src/model/nlp_solver.cpp; M6 W5 T8.9
-# retired both.) Carried as a usage requirement, linking hven::hven is all a
-# consumer has to do.
+# HVEN_DEFAULT_IPM_THREADS, the interior-point engine's default factorization
+# thread count, is PUBLIC: include/hven/drivers/ipm_options.h reads it in the
+# IpmOptions::common default member initializer (with an #ifndef fallback of the
+# same value for a consumer that includes the header without this target), and
+# src/drivers/solver_init.cpp sizes the Accelerate thread pool from it.
 #
 # HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is
 # src/interior/utils/memory_management.cpp, an hven source, and nothing in
 # any header names it.
 target_compile_definitions(hven
-    PUBLIC HVEN_DEFAULT_QP_THREADS=8
+    PUBLIC HVEN_DEFAULT_IPM_THREADS=8
     PRIVATE HVEN_DEFAULT_ARENA_SIZE=256)
 
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).

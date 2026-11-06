@@ -11,13 +11,13 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/drivers/ipm_iterate.h"
 // The complete IpmSolver class is required here (classic_line_search
-// takes its nested LineSearchMode by value, and a nested enum cannot be
+// takes its nested IpmLineSearchMode by value, and a nested enum cannot be
 // forward-declared independently of its enclosing class). This include is
 // deliberately one-directional: ipm_solver.h does not include back
 // into this directory.
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief Relative infeasibility-reduction floor for leaving feasibility
 /// restoration: a trial's constraint violation must fall to
@@ -122,7 +122,7 @@ class AcceptanceStrategy {
     /// Returns the accepted step-length alpha.
     /// @throws std::logic_error Always, in the default body: reaching it means
     ///   a non-classic strategy was driven through the classic path.
-    virtual double classic_line_search(LineSearchMode lsmode, double obj_scale, double mu,
+    virtual double classic_line_search(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                        double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                        Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                        Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
@@ -143,4 +143,4 @@ class AcceptanceStrategy {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail

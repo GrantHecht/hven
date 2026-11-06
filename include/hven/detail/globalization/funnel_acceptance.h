@@ -9,7 +9,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// (init) absolute floor tau-bar (KLV Eq. (9); reference option "funnel_ubd" = 1.0).
 inline constexpr double kFunnelInitialUpperBound = 1.0;
@@ -31,7 +31,7 @@ inline constexpr double kFunnelKappa = 0.5;
 /// step then tightens tau. This class supplies ONLY the funnel-specific
 /// membership + H-type verdicts and the width bookkeeping through the base's
 /// hooks; theta_min/theta_max ceiling, switching condition, and F-type Armijo
-/// live in SwitchingAcceptance. Opt-in via Settings::acceptance_strategy_ ==
+/// live in SwitchingAcceptance. Opt-in via Settings::acceptance_mode_ ==
 /// funnel; the default classic path stays bit-identical.
 ///
 /// ProgressMeasures mapping: current/trial .infeasibility = h(x) at z_k /
@@ -176,4 +176,4 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     bool in_feasibility_phase_ = false;
 };
 
-} // namespace hven
+} // namespace hven::detail

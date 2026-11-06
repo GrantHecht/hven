@@ -64,18 +64,6 @@ namespace hven::linear {
 
 namespace {
 
-const char *kind_name(FactorKind kind) {
-    switch (kind) {
-    case FactorKind::kLdlt:
-        return "kLdlt";
-    case FactorKind::kLlt:
-        return "kLlt";
-    case FactorKind::kLu:
-        return "kLu";
-    }
-    return "unknown";
-}
-
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
 // SparseOrderMTMetis EXISTS at compile time, not that the RUNNING host
@@ -158,7 +146,7 @@ SymmetricFactor::Options::Ordering accelerate_ordering_of(SparseOrder_t code) {
                     static_cast<int>(code)));
 }
 
-// The thread-count rule, applied by the constructor to Options::num_threads
+// The thread-count rule, applied by the constructor to Options::threads
 // and again by the live setter -- one function so the two cannot drift into
 // accepting different values. `where` is the entry point the message names,
 // which is the only thing that differs between the two callers. The rule is
@@ -191,7 +179,7 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     // precedent. factor_size_bytes similarly needs no config field at all:
     // it is always collected (see FactorSession::factor_size_bytes()'s own
     // doc comment), with nothing to gate.
-    cfg.zero_tolerance_override = opts.accelerate_zero_tolerance;
+    cfg.zero_tolerance_override = opts.accelerate_zero_tol;
     return cfg;
 }
 
@@ -404,32 +392,32 @@ detail::SubfactorPhase accelerate_phase_of(SymmetricFactor::SolvePhase phase) {
 // SymmetricFactor
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
-    if (opts_.kind != FactorKind::kLdlt) {
-        throw std::logic_error(
-            fmt::format("SymmetricFactor: FactorKind::{} is not yet implemented -- only kLdlt has "
-                        "a backend path today",
-                        kind_name(opts_.kind)));
+    if (opts_.decomposition != Decomposition::kLdlt) {
+        throw std::logic_error(fmt::format(
+            "SymmetricFactor: decomposition {} is not a Decomposition value (kLdlt is the one)",
+            static_cast<int>(opts_.decomposition)));
     }
     validate_num_threads(opts_.num_threads, "SymmetricFactor");
     // A present value is validated; std::nullopt is the don't-write state
     // (on this backend: Apple's own documented defaults -- see the two
     // options' doc comments) and needs no range check.
     if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
-                        "leave the backend's own default in force), got {}",
-                        *opts_.pivot_perturb_exp));
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor: pivot_perturbation_exponent must be >= 0 (or std::nullopt to "
+            "leave the backend's own default in force), got {}",
+            *opts_.pivot_perturb_exp));
     }
     if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
+            fmt::format("SymmetricFactor: max_refinement_steps must be >= 0 (or std::nullopt to "
                         "leave the backend's own default in force), got {}",
                         *opts_.max_refinement_iters));
     }
-    if (opts_.cnr_threads < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
-            opts_.cnr_threads));
+    if (opts_.conditional_reproducibility_threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: conditional_reproducibility_threads must be >= 0 (0 "
+                        "means CNR mode is off), got {}",
+                        opts_.conditional_reproducibility_threads));
     }
 
     // weighted_matching is a Pardiso-only concept (it configures iparm[12],
@@ -487,11 +475,12 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // cnr_threads: Pardiso-only -- Accelerate has no CNR reproducibility
     // concept, and this is a guarantee a silent no-op would misrepresent
     // (see the option's own doc comment).
-    if (opts_.cnr_threads > 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: Options::cnr_threads is a Pardiso-only option and has no {} "
-            "equivalent -- requires 0 on this backend, got {}",
-            kBackendName, opts_.cnr_threads));
+    if (opts_.conditional_reproducibility_threads > 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::conditional_reproducibility_threads is a "
+                        "Pardiso-only option and has no {} "
+                        "equivalent -- requires 0 on this backend, got {}",
+                        kBackendName, opts_.conditional_reproducibility_threads));
     }
     // collect_factor_mflops: Pardiso-only -- Accelerate reports no
     // factorization-cost estimate under any configuration (see
@@ -508,15 +497,14 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         kBackendName));
     }
 
-    // accelerate_zero_tolerance is this backend's own knob (checked for
+    // accelerate_zero_tol is this backend's own knob (checked for
     // validity here, symmetrically with how MKL's own throw for it lives in
     // its own adapter file's constructor).
-    if (opts_.accelerate_zero_tolerance.has_value()) {
-        const double value = *opts_.accelerate_zero_tolerance;
+    if (opts_.accelerate_zero_tol.has_value()) {
+        const double value = *opts_.accelerate_zero_tol;
         if (!(value > 0.0) || !std::isfinite(value)) {
             throw std::invalid_argument(fmt::format(
-                "SymmetricFactor: accelerate_zero_tolerance must be finite and > 0, got {}",
-                value));
+                "SymmetricFactor: accelerate_zero_tol must be finite and > 0, got {}", value));
         }
     }
 }
@@ -525,12 +513,12 @@ SymmetricFactor::~SymmetricFactor() = default;
 SymmetricFactor::SymmetricFactor(SymmetricFactor &&) noexcept = default;
 SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = default;
 
-void SymmetricFactor::set_num_threads(int num_threads) {
+void SymmetricFactor::set_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this engine
     // exactly as it was.
-    validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
+    validate_num_threads(num_threads, "SymmetricFactor::set_threads");
 
-    // BEST-EFFORT-ABSENT, per Options::num_threads' own contract: this
+    // BEST-EFFORT-ABSENT, per Options::threads' own contract: this
     // backend has no per-instance thread control, so the count is stored and
     // applied to nothing. Storing it in BOTH places is what keeps the stored
     // value honest -- `opts_` is what a later analyze() builds a session
@@ -549,7 +537,7 @@ int SymmetricFactor::num_threads() const noexcept {
     //
     // What the count GOVERNS here is nothing: Accelerate exposes no
     // per-instance thread control, so the value is stored and applied to no
-    // backend call (Options::num_threads' own BEST-EFFORT-ABSENT contract).
+    // backend call (Options::threads' own BEST-EFFORT-ABSENT contract).
     // Reading it back faithfully is the whole of this backend's obligation to
     // it, and is exactly what this preserves.
     return session_ ? session_->config().num_threads : opts_.num_threads;
@@ -739,12 +727,12 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // configuration that session was built with rather than imposing a new
     // one on a factorization that has already been computed.
     Options opts;
-    opts.kind = FactorKind::kLdlt;
+    opts.decomposition = Decomposition::kLdlt;
     opts.num_threads = cfg.num_threads;
     opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
     opts.max_refinement_iters = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
-    opts.accelerate_zero_tolerance = cfg.zero_tolerance_override;
+    opts.accelerate_zero_tol = cfg.zero_tolerance_override;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;

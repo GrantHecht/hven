@@ -7,7 +7,7 @@
 // value, and the options of the interior-point crossover that builds one.
 //
 // TWO IDENTITIES, ONE PROTOCOL. The shared, cross-engine currency is
-// `warmstart/warm_start_data.h::WarmStart` -- a declared-space PAYLOAD both
+// `warmstart/warm_start.h::WarmStart` -- a declared-space PAYLOAD both
 // engines accept through `solve(problem, x0, const WarmStart &, SolveBudget)`,
 // whose identity stamp REFUSES a foreign problem in every mode. This header
 // carries the OTHER identity: the SQP's native object, which is not a payload,
@@ -23,7 +23,7 @@
 // OPAQUE. The value holds a shared handle to the engine's state and nothing
 // else, so the state can grow (a serialized form among other things) without
 // breaking a consumer. A consumer obtains one from a result
-// (`SqpResult::native_warm_start`), from `to_sqp_warm_start`
+// (`SqpResult::sqp_warm_start`), from `to_sqp_warm_start`
 // (warmstart/ipm_polish_extension.h), or by copying another; it passes it back to
 // the native solve entry. It is cheap to copy (the copies share one immutable
 // state). It declares NO default constructor, so a braced `{}` third argument to
@@ -56,7 +56,7 @@ struct SqpWarmAccess;
 /// @brief The activity rule's safety factor `nu` for the interior-point
 ///        crossover, NOT an option: one decade of margin over the larger of the
 ///        two scales the rule compares against. Its product with the default
-///        `IpmCrossoverOptions::activity_rel_tol` is 1e-3.
+///        `IpmCrossoverOptions::activity_relative_tol` is 1e-3.
 inline constexpr double kIpmActivityFactor = 10.0;
 
 /// @brief The interior-point crossover's two thresholds (see
@@ -67,7 +67,7 @@ struct IpmCrossoverOptions {
     /// below the largest inequality price -- measured on F7 at N = 100 as the
     /// widest separation available between genuinely-active and barrier-noise
     /// prices on that family.
-    double activity_rel_tol = 1e-4;
+    double activity_relative_tol = 1e-4;
     /// Absolute "is this multiplier zero?" floor.
     double dual_tol = 1e-6;
 };

@@ -20,7 +20,7 @@
 
 #include "hven/core/types.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The one-time pattern layout of the interior-point QP tier's KKT
 /// matrix, plus the per-iteration scatter plan that refills it without
@@ -175,4 +175,4 @@ class IpqpKktLayout {
     bool has_structure_ = false;
 };
 
-} // namespace hven
+} // namespace hven::detail

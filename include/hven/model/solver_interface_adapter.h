@@ -116,7 +116,7 @@ template <class T> struct SolverInterfaceAdapter {
         static_assert(
             !requires { T::kInputs; },
             "hven local block: a local-block piece reached the default adapter; "
-            "include hven/model/piece_interfaces.h (or hven/model/pieces.h) "
+            "include hven/model/piece_interfaces.h "
             "before naming SolverInterfaceAdapter for it");
         if constexpr (ConstraintPackHook<T>) {
             t.pack_into_constraint_interface(ci);
@@ -129,7 +129,7 @@ template <class T> struct SolverInterfaceAdapter {
         static_assert(
             !requires { T::kInputs; },
             "hven local block: a local-block piece reached the default adapter; "
-            "include hven/model/piece_interfaces.h (or hven/model/pieces.h) "
+            "include hven/model/piece_interfaces.h "
             "before naming SolverInterfaceAdapter for it");
         if constexpr (ObjectivePackHook<T>) {
             t.pack_into_objective_interface(oi);

@@ -73,7 +73,7 @@
 //       re-solves AT THE SAME p from the hand-off budgeted mode returns,
 //       rather than shrinking dp. The control arm is the identical driver
 //       budget with return_best_on_max_iterations off, where the same exhaustions arrive as
-//       kMaxIter and the retry moves the proposal back instead.
+//       kIterationLimit and the retry moves the proposal back instead.
 //
 //   (j)/(k) FIX ROUND 1, the two Medium findings, both pinned on SolvedStartF2
 //       -- a fixture with max_iter = 0 whose cold solve converges at zero
@@ -680,7 +680,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
 // (i) BUDGET EXHAUSTION IS A CONTINUE, NOT A SHRINK -- continuation.h's own
 //     design decision, and the one status the loop treats as neither success
 //     nor failure. Same starved driver as (f), with return_best_on_max_iterations ON, so the
-//     identical exhaustions arrive as best-iterate kMaxIter (returned_best_iterate).
+//     identical exhaustions arrive as best-iterate kIterationLimit (returned_best_iterate).
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions budgeted = sweep_options();
@@ -703,7 +703,8 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     // hand-off, which is why no new prediction is made for it.
     Index exhausted = 0, continued = 0;
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
-        if (res.steps[i].status != SolveStatus::kMaxIter || !res.steps[i].returned_best_iterate) {
+        if (res.steps[i].status != SolveStatus::kIterationLimit ||
+            !res.steps[i].returned_best_iterate) {
             continue;
         }
         ++exhausted;
@@ -732,7 +733,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
                             << trajectory(res);
 
     // The control that makes the decision visible AS a decision: with
-    // return_best_on_max_iterations OFF the identical driver budget produces kMaxIter, an
+    // return_best_on_max_iterations OFF the identical driver budget produces kIterationLimit, an
     // ordinary failure, and the retry moves the proposal BACK -- so the two
     // arms take measurably different routes to p1.
     SqpOptions plain = budgeted;
@@ -872,7 +873,7 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     // change these run lengths.
     std::vector<std::pair<double, Index>> chains; // (p, consecutive attempts)
     for (std::size_t i = 1; i < res.steps.size(); ++i) {
-        EXPECT_TRUE(res.steps[i].status == SolveStatus::kMaxIter &&
+        EXPECT_TRUE(res.steps[i].status == SolveStatus::kIterationLimit &&
                     res.steps[i].returned_best_iterate)
             << "step " << i << " is not an exhaustion:\n"
             << trajectory(res);
@@ -989,7 +990,7 @@ TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
 // case where every recorded step is a failure -- both used to come back 0.
 TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     // (a) THE DIRECT FAILURE. max_iter = 0 with return_best_on_max_iterations off reports
-    // kMaxIter at p0, so the sweep records one step and returns.
+    // kIterationLimit at p0, so the sweep records one step and returns.
     {
         SqpOptions starved = sweep_options();
         starved.common.max_iterations = 0;
@@ -1068,7 +1069,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     for (const ContinuationStep &st : res.steps) {
         EXPECT_EQ(st.p(0), 0.6) << "a cold continuation moved p:\n" << trajectory(res);
         EXPECT_EQ(st.dp, 0.0);
-        EXPECT_EQ(st.status, SolveStatus::kMaxIter) << trajectory(res);
+        EXPECT_EQ(st.status, SolveStatus::kIterationLimit) << trajectory(res);
         EXPECT_TRUE(st.returned_best_iterate) << trajectory(res);
         EXPECT_FALSE(st.predictor_outcome.has_value()) << "nothing is predicted at p0";
     }
@@ -1076,7 +1077,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     EXPECT_TRUE(res.final_warm.valid) << "the last hand-off is still safe to feed forward";
 
     // The CONTROL: the same starved driver with return_best_on_max_iterations OFF reports
-    // kMaxIter, which is an ordinary failure, and the sweep stops after one
+    // kIterationLimit, which is an ordinary failure, and the sweep stops after one
     // step -- so the four-step trajectory above is the budget rule and not
     // merely "a failing cold solve retries".
     SqpOptions plain = starved;
@@ -1087,7 +1088,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
         run_continuation(model_plain, p_vec(0.6), p_vec(1.0), driver_plain);
     EXPECT_FALSE(plain_res.reached_p1);
     EXPECT_EQ(plain_res.steps.size(), 1u) << trajectory(plain_res);
-    EXPECT_EQ(plain_res.steps.front().status, SolveStatus::kMaxIter);
+    EXPECT_EQ(plain_res.steps.front().status, SolveStatus::kIterationLimit);
 }
 
 // =============================================================================
@@ -1129,7 +1130,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         opts.common.optimality_tol = 1e-8;
         opts.common.feasibility_tol = 1e-8;
         opts.common.max_iterations = 100;
-        opts.advanced.adaptive_mu = false;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
         opts.advanced.warm_full_step = true;
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). This line is NEW and it
@@ -1159,7 +1160,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // "cap-pinned" number below and the M6-vs-OFF minor comparisons with
         // them. This fixture is about the PROBE BUDGET, not about the routing
         // gate, so it writes the gate out at the value it was pinned against.
-        opts.advanced.qp_failure_budget = 1;
+        opts.advanced.max_consecutive_qp_failures = 1;
         return opts;
     };
     const auto make_continuation_options = [](int probe_budget) {
@@ -1279,7 +1280,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part
     // 4). Budgeted mode's own exhaustion status means "continue at the SAME
     // parameter value from this hand-off"; a probe-budget stop means the
-    // opposite. So a probe stop keeps the ordinary kMaxIter status even with
+    // opposite. So a probe stop keeps the ordinary kIterationLimit status even with
     // budgeted mode on, and this loop shrinks rather than continuing --
     // asserted here because the branch is otherwise unreachable in a suite
     // whose every other continuation fixture runs with return_best_on_max_iterations off.
@@ -1435,7 +1436,7 @@ TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
         opts.common.optimality_tol = 1e-8;
         opts.common.feasibility_tol = 1e-8;
         opts.common.max_iterations = 100;
-        opts.advanced.adaptive_mu = false;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
         opts.advanced.warm_full_step = true;
         ContinuationOptions copts;
@@ -1497,7 +1498,7 @@ TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
         opts.common.optimality_tol = 1e-8;
         opts.common.feasibility_tol = 1e-8;
         opts.common.max_iterations = 100;
-        opts.advanced.adaptive_mu = false;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
         opts.advanced.warm_full_step = true;
         ContinuationOptions copts;

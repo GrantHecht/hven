@@ -20,6 +20,8 @@
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 #include <hven/detail/globalization/sqp/qn_models.h>
 
+using namespace hven::detail;
+
 namespace hven {
 namespace {
 

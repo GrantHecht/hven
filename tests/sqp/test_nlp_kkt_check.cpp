@@ -47,10 +47,10 @@
 namespace {
 
 using hven::Index;
-using hven::NlpModel;
 using hven::SpMatRM;
 using hven::SqpResult;
 using hven::Vec;
+using hven::detail::NlpModel;
 using hven::test_support::NlpKktResidual;
 using hven::test_support::self_check_kkt;
 

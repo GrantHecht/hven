@@ -294,7 +294,7 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
     engine_border.attach_ledger(&ledger, "border");
 
     QpOptions refactorize_opts;
-    refactorize_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    refactorize_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpEngine engine_refactorize{refactorize_opts};
     engine_refactorize.attach_ledger(&ledger, "refactorize");
 
@@ -870,7 +870,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         opts.common.optimality_tol = 1e-8;
         opts.common.feasibility_tol = 1e-8;
         opts.common.max_iterations = 10;
-        opts.advanced.adaptive_mu = false;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.advanced.warm_full_step = true;
         opts.qp.max_iterations = 20000;
         opts.qp_mode = QpMode::kSsn;
@@ -883,7 +883,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         model.set_parameters(Vec::Constant(1, kP));
         const SqpResult hop =
             driver.solve(hven::detail::problem_ref(model),
-                         SqpWarmAccess::state(setup.native_warm_start).x, setup.native_warm_start);
+                         SqpWarmAccess::state(setup.sqp_warm_start).x, setup.sqp_warm_start);
         EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
@@ -895,9 +895,9 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
             ASSERT_GT(hven::detail::engine_rows(*sol).lambda_i.size(), 0);
             EXPECT_GE(hven::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(SqpWarmAccess::state(sol->native_warm_start).lambda_i.size(),
+            ASSERT_EQ(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.size(),
                       hven::detail::engine_rows(*sol).lambda_i.size());
-            EXPECT_GE(SqpWarmAccess::state(sol->native_warm_start).lambda_i.minCoeff(), 0.0)
+            EXPECT_GE(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             // (c) EVERY SWEPT MAGNITUDE IS BELOW THE DISCLOSED SCALE. The
@@ -957,10 +957,10 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // M6 W1 TASK 6 -- THE THIRD PRODUCER, WITH A MUTATION PARTNER.
 //
 // THE R6 REGISTRATION'S MISSING HALF (fix round 1, reviewer C7b). The
-// driver-level kIpm export pins run on the HS battery, where NOTHING prices
+// driver-level kIpqp export pins run on the HS battery, where NOTHING prices
 // negative under any kernel -- so they pass on a build that bypassed the
 // capture and the sweep entirely. This test supplies the case that does not:
-// the SAME F7 family, at the SAME weight class, solved through the kIpm chain,
+// the SAME F7 family, at the SAME weight class, solved through the kIpqp chain,
 // really does hand `SqpSolver::finish` a negative inequality price, and the
 // single sign sweep at that one export boundary is what repairs it.
 //
@@ -972,7 +972,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // though its own barrier duals never reach the export.
 //
 // NO WARM HOP HERE, unlike the kSsn test above, and the difference is
-// measured rather than assumed: under kIpm it is the solve at p0 that produces
+// measured rather than assumed: under kIpqp it is the solve at p0 that produces
 // the negative price. The hop adds ~140 s of Debug runtime and sweeps nothing.
 //
 // THE BAND WAS RE-DERIVED AT T7 AND AGAIN AT T10b (declared, section 7). Task 6's
@@ -1001,10 +1001,10 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
         opts.common.optimality_tol = 1e-8;
         opts.common.feasibility_tol = 1e-8;
         opts.common.max_iterations = 10;
-        opts.advanced.adaptive_mu = false;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.advanced.warm_full_step = true;
         opts.qp.max_iterations = 20000;
-        opts.qp_mode = QpMode::kIpm;
+        opts.qp_mode = QpMode::kIpqp;
         SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
@@ -1017,9 +1017,9 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
             ASSERT_GT(hven::detail::engine_rows(*sol).lambda_i.size(), 0);
             EXPECT_GE(hven::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(SqpWarmAccess::state(sol->native_warm_start).lambda_i.size(),
+            ASSERT_EQ(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.size(),
                       hven::detail::engine_rows(*sol).lambda_i.size());
-            EXPECT_GE(SqpWarmAccess::state(sol->native_warm_start).lambda_i.minCoeff(), 0.0)
+            EXPECT_GE(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             swept_over_the_band += sol->counters.ssn.ssn_sign_swept;
@@ -1044,7 +1044,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t_band0).count()));
 
     // NOT VACUOUS, and this is the assertion the whole test exists for: a
-    // build that bypassed kIpm's export capture or its sweep fails HERE, where
+    // build that bypassed kIpqp's export capture or its sweep fails HERE, where
     // the HS-battery pins cannot.
     EXPECT_GT(swept_over_the_band, 0)
         << "no negative face price was produced anywhere in the band under kIpm, so the third "

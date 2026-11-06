@@ -31,6 +31,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -411,12 +412,12 @@ TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
         1e3; // the pinned pair's C (~5e5) severely past it, K0's pivots clean
 
     QpOptions ref_opts = opts;
-    ref_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     const QpSolution ref = QpEngine{ref_opts}.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
     QpOptions bor_opts = opts;
-    bor_opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     const QpSolution bor = QpEngine{bor_opts}.solve(qp);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
     EXPECT_LT((bor.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-8);
@@ -441,7 +442,7 @@ TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
 TEST(QpLatchReason, TheWalkRecordsACapLatchAsBefore) {
     const QpProblem qp = singular_pair_then_arrivals_qp();
     QpOptions opts;
-    opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     opts.max_schur_border_dimension = 1;
     const QpSolution s = QpEngine{opts}.solve(qp);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
@@ -464,7 +465,7 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
         std::string(HVEN_QP_E2D4_FIXTURES) + "/RLA_BRITGAS_qp0.txt");
     ASSERT_NE(d.result.find("status=2 minors=508 facts=1024"), std::string::npos) << d.result;
     QpOptions o = d.opts;
-    ASSERT_EQ(o.working_set_algebra, WorkingSetLinearAlgebra::kSchurBorder);
+    ASSERT_EQ(o.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder);
     o.max_iterations = kMinors;
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     const QpCounters &c = s.counters;
@@ -479,7 +480,7 @@ TEST(QpLatchReason, BritgasMainSubproblemHoldsItsConditioningLatch) {
     // The endpoint at kMinors, identical at 0e3554c6 and with the riders: status and counters
     // exact (Release and Debug agree); the objective of the unconverged iterate to 1e-4 (Release
     // 0.2429181, Debug 0.2429209), so no residual-class value is pinned.
-    EXPECT_EQ(s.status, QpStatus::kMaxIter);
+    EXPECT_EQ(s.status, QpStatus::kIterationLimit);
     EXPECT_EQ(c.minor_iters, kMinors);
     EXPECT_NEAR(hven::test_support::qp_dump_objective(d, s.x), 0.24292, 1e-4);
     EXPECT_EQ(c.factorizations, 166);

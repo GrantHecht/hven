@@ -18,8 +18,8 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <iostream>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -44,10 +44,10 @@
 #include "hven/detail/warmstart/predictor.h"
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "hven/drivers/ipm_solver.h"
+#include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/sqp_solver.h"
-#include "hven/drivers/trace_writer.h"
+#include "hven/hven.h"
 #include "hven/model/nlp.h"
-#include "hven/model/pieces.h"
 #include "hven/model/problem.h"
 
 #include "../common_support/console_capture.h"
@@ -56,6 +56,7 @@
 namespace {
 
 using namespace hven;
+using namespace hven::detail;
 using hven::ConstVecRef;
 using hven::Index;
 using hven::IndexVecRef;
@@ -279,7 +280,7 @@ TEST(InfiniteBound, AnNlpAtTheThresholdSolvesBitIdenticallyToItsInfinitiesOnTheI
 }
 
 TEST(InfiniteBound, AnNlpAtTheThresholdSolvesBitIdenticallyToItsInfinitiesInEverySqpMode) {
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
         Problem inf_problem(std::make_shared<Shifted>());
         Problem big_problem(large_finite());
@@ -567,7 +568,7 @@ TEST(InfiniteBound, TheInternalModelRouteReadsTheBoxOnBothEngines) {
         Problem a = detail::problem_from_model(raw_model);
         Problem b = detail::problem_from_model(ref_model);
         EXPECT_EQ(a.statistics().absent_bounds, 4); // the four variable sides
-        for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
             SCOPED_TRACE(static_cast<int>(mode));
             SqpSolver sa = quiet_sqp(mode);
             SqpSolver sb = quiet_sqp(mode);
@@ -1015,7 +1016,7 @@ TEST(InfiniteBound, ThePredictorReadsTheBoxUnderItsThreshold) {
     SqpSolver sqp(o);
     const SqpResult sol = sqp.solve(detail::problem_ref(model), model.start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const detail::SqpWarmState warm = detail::SqpWarmAccess::state(sol.native_warm_start);
+    const detail::SqpWarmState warm = detail::SqpWarmAccess::state(sol.sqp_warm_start);
     ASSERT_EQ(warm.bound_active[0], 0);
     const Vec dp = Vec::Constant(1, 1e6);
 

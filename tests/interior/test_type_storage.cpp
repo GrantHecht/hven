@@ -98,9 +98,9 @@ static_assert(std::is_nothrow_move_assignable_v<Storage>);
     static_assert(std::is_nothrow_move_constructible_v<M>, "must stay in the inline buffer");      \
     static_assert(sizeof(M) <= 128, "must stay in the inline buffer");                             \
     static_assert(alignof(M) <= alignof(std::max_align_t), "must stay in the inline buffer")
-HVEN_PIN_INLINE(hven::ObjectiveModel<hven::NlpObjectivePiece>);
-HVEN_PIN_INLINE(hven::ConstraintModel<hven::NlpConstraintPiece>);
-HVEN_PIN_INLINE(hven::ConstraintModel<hven::FixedVariableRow>);
+HVEN_PIN_INLINE(hven::ObjectiveModel<hven::detail::NlpObjectivePiece>);
+HVEN_PIN_INLINE(hven::ConstraintModel<hven::detail::NlpConstraintPiece>);
+HVEN_PIN_INLINE(hven::ConstraintModel<hven::detail::FixedVariableRow>);
 #undef HVEN_PIN_INLINE
 
 const std::string kShort = "short";

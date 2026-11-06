@@ -76,6 +76,8 @@
 
 #include <hven/core/compiler.h>
 
+using namespace hven::detail;
+
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 

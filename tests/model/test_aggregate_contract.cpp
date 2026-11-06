@@ -85,17 +85,18 @@ static_assert(!AssemblyPiece<ContractProbeSizedOnly, ContractProbeIndexData>,
 
 // The pieces that exist today satisfy the concept unchanged -- the concept
 // states the contract they already meet, it does not impose a new one.
-static_assert(AssemblyPiece<hven::NlpObjectivePiece, hven::SolverIndexingData>);
-static_assert(AssemblyPiece<hven::NlpConstraintPiece, hven::SolverIndexingData>);
-static_assert(ObjectiveAssemblyPiece<hven::NlpObjectivePiece, hven::SolverIndexingData>);
-static_assert(ConstraintAssemblyPiece<hven::NlpConstraintPiece, hven::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
+static_assert(ObjectiveAssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>);
+static_assert(ConstraintAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
 
 // The objective-kind concept is exactly what the seam that stores an objective
 // forwards: the piece surface and the three scalar methods, no constraint surface
 // (AP-2 B6, friction #19). A constraint piece has the constraint surface and not
 // the objective one, and fails the objective-kind concept for that reason alone.
-static_assert(!ObjectiveAssemblyPiece<hven::NlpConstraintPiece, hven::SolverIndexingData>);
-static_assert(!hven::ObjectiveAssemblySurface<hven::NlpConstraintPiece, hven::SolverIndexingData>);
+static_assert(!ObjectiveAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
+static_assert(
+    !hven::ObjectiveAssemblySurface<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
 static_assert(!ObjectiveAssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
 
 /// The piece surface and the scalar objective surface, with no constraint surface
@@ -135,19 +136,21 @@ TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
     // regression in them is reported as a named failure rather than only as a
     // build break.
     EXPECT_TRUE((AssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>));
-    EXPECT_TRUE((AssemblyPiece<hven::NlpObjectivePiece, hven::SolverIndexingData>));
-    EXPECT_TRUE((AssemblyPiece<hven::NlpConstraintPiece, hven::SolverIndexingData>));
+    EXPECT_TRUE((AssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>));
+    EXPECT_TRUE((AssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>));
 }
 
 TEST(AggregatePieceConcept, TheObjectiveKindCarriesNoConstraintSurface) {
-    EXPECT_TRUE((ObjectiveAssemblyPiece<hven::NlpObjectivePiece, hven::SolverIndexingData>));
+    EXPECT_TRUE(
+        (ObjectiveAssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>));
     EXPECT_TRUE((
         hven::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
     EXPECT_TRUE(
         (ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
     EXPECT_FALSE(
         (ConstraintAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
-    EXPECT_FALSE((ObjectiveAssemblyPiece<hven::NlpConstraintPiece, hven::SolverIndexingData>));
+    EXPECT_FALSE(
+        (ObjectiveAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>));
 }
 
 // ---------------------------------------------------------------------------
@@ -1139,13 +1142,13 @@ namespace {
 
 using hven::ConstraintFunction;
 using hven::ConstraintInterface;
-using hven::FixedVariableRow;
-using hven::FixedVariableTreatment;
+using hven::IpmFixedVariableTreatment;
 using hven::ModelStructureKey;
-using hven::NonLinearProgram;
 using hven::ObjectiveFunction;
 using hven::ObjectiveInterface;
 using hven::ThreadingFlags;
+using hven::detail::FixedVariableRow;
+using hven::detail::NonLinearProgram;
 
 /// Applications per piece, and pieces. The product is the KKT element count,
 /// which has to clear kMinKktElementsPerPartition per partition or the lay's
@@ -1346,7 +1349,8 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     // carries objective, equality and inequality pieces with their own thread
     // modes -- not over the equality list alone.
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(
+        source->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     const AssemblyDeclaration declaration = source->declaration();
@@ -1572,7 +1576,7 @@ TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
     // trusted, so the shape check cannot tell this from a real fixing row; the
     // row it writes can.
     AssemblyDeclaration mislabelled = before_declaration;
-    mislabelled.equality_constraints.push_back(hven::make_fixed_variable_row(0, 0.0, 0));
+    mislabelled.equality_constraints.push_back(hven::detail::make_fixed_variable_row(0, 0.0, 0));
     mislabelled.equality_rows = kAdoptRows + 1;
     mislabelled.fixing_rows = 1;
     EXPECT_NO_THROW(mislabelled.validate());
@@ -1592,7 +1596,8 @@ TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
 
 TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried) {
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(
+        source->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     NonLinearProgram adopted(1);
@@ -1606,7 +1611,8 @@ TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried)
     // The next configuration discards them and derives its own from the bounds
     // the adoption replayed -- landing on the same row space, with the user
     // pieces untouched.
-    EXPECT_TRUE(adopted.configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    EXPECT_TRUE(
+        adopted.configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     EXPECT_EQ(adopted.internal_fixed_constraints(), 1);
     ASSERT_EQ(adopted.fixed_variable_indices().size(), 1);
     EXPECT_EQ(adopted.fixed_variable_indices()[0], 7);

@@ -169,10 +169,10 @@
 namespace {
 
 using hven::Index;
+using hven::QpWorkingSetAlgebra;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
-using hven::WorkingSetLinearAlgebra;
 using hven::test_support::F7CollocationChain;
 using hven::test_support::peak_rss_mib;
 
@@ -256,9 +256,8 @@ int main(int argc, char **argv) {
             if (ws != "border" && ws != "refactorize") {
                 throw_usage(fmt::format("ws_algebra: '{}' is not one of border|refactorize", ws));
             }
-            opts.qp.working_set_algebra = (ws == "refactorize")
-                                              ? WorkingSetLinearAlgebra::kRefactorize
-                                              : WorkingSetLinearAlgebra::kSchurBorder;
+            opts.qp.working_set_algebra = (ws == "refactorize") ? QpWorkingSetAlgebra::kRefactorize
+                                                                : QpWorkingSetAlgebra::kSchurBorder;
         }
         if (argc > 6) {
             const double v = parse_double("qp_opt_tol", argv[6]);

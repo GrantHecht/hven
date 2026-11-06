@@ -14,6 +14,8 @@
 
 #include "support/ipqp_test_support.h"
 
+using namespace hven::detail;
+
 namespace hven {
 namespace {
 

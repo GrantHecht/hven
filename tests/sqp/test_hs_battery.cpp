@@ -229,7 +229,7 @@ std::vector<Expect> refactorize_table() {
     return t;
 }
 
-SqpOptions options_for(const Expect &e, WorkingSetLinearAlgebra alg) {
+SqpOptions options_for(const Expect &e, QpWorkingSetAlgebra alg) {
     SqpOptions opts;
     opts.common.max_iterations = e.max_iter;
     opts.qp.working_set_algebra = alg;
@@ -240,7 +240,7 @@ const char *status_name(SolveStatus s) {
     switch (s) {
     case SolveStatus::kOptimal:
         return "kOptimal";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return "kMaxIter";
     case SolveStatus::kInfeasible:
         return "kInfeasible";
@@ -266,7 +266,7 @@ void record_row(const Expect &e, const char *tag, const SqpResult &sol, const Nl
 }
 
 // Runs one table entry and asserts everything the battery claims about it.
-void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
+void check_one(const Expect &e, QpWorkingSetAlgebra alg, const char *tag) {
     SCOPED_TRACE(::testing::Message() << "HS" << e.number << " (" << tag << " mode)");
     // THE Expect EXCUSAL INVARIANT, ENFORCED: a null excuse must pair with
     // kUseCitedFStar (NaN) -- the row asserts the CITED f* -- and a non-null
@@ -300,7 +300,7 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
     // THE KKT SELF-CHECK, and it applies at a kOptimal exit only. Every row in
     // these tables is kOptimal today (Task 11b closed the one that was not), so
     // the guard is currently unconditional in effect; it is kept conditional
-    // because a row that legitimately exits kInfeasible or kMaxIter returns the
+    // because a row that legitimately exits kInfeasible or kIterationLimit returns the
     // iterate the loop stopped at, and asserting a clean KKT quadruple there
     // would be asserting away exactly what the status is reporting.
     if (sol.status == SolveStatus::kOptimal) {
@@ -335,8 +335,7 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
 
 // Solves every problem in one mode and returns the statuses, for the
 // divergence comparison.
-std::vector<SolveStatus> statuses_in(WorkingSetLinearAlgebra alg,
-                                     const std::vector<Expect> &table) {
+std::vector<SolveStatus> statuses_in(QpWorkingSetAlgebra alg, const std::vector<Expect> &table) {
     std::vector<SolveStatus> out;
     for (const Expect &e : table) {
         const HsProblem p = make_hs(e.number);
@@ -356,7 +355,7 @@ std::vector<SolveStatus> statuses_in(WorkingSetLinearAlgebra alg,
 TEST(HsBattery, BorderMode) {
     const auto t0 = std::chrono::steady_clock::now();
     for (const Expect &e : border_table()) {
-        check_one(e, WorkingSetLinearAlgebra::kSchurBorder, "border");
+        check_one(e, QpWorkingSetAlgebra::kSchurBorder, "border");
     }
     const double secs =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
@@ -369,7 +368,7 @@ TEST(HsBattery, BorderMode) {
 
 TEST(HsBattery, RefactorizeMode) {
     for (const Expect &e : refactorize_table()) {
-        check_one(e, WorkingSetLinearAlgebra::kRefactorize, "refactorize");
+        check_one(e, QpWorkingSetAlgebra::kRefactorize, "refactorize");
     }
 }
 
@@ -390,8 +389,8 @@ TEST(HsBattery, RefactorizeMode) {
 // regression test for that fix.
 TEST(HsBattery, ModeStatusDivergenceIsEmpty) {
     const std::vector<Expect> bt = border_table();
-    const std::vector<SolveStatus> border = statuses_in(WorkingSetLinearAlgebra::kSchurBorder, bt);
-    const std::vector<SolveStatus> refac = statuses_in(WorkingSetLinearAlgebra::kRefactorize, bt);
+    const std::vector<SolveStatus> border = statuses_in(QpWorkingSetAlgebra::kSchurBorder, bt);
+    const std::vector<SolveStatus> refac = statuses_in(QpWorkingSetAlgebra::kRefactorize, bt);
     ASSERT_EQ(border.size(), refac.size());
 
     std::vector<int> diverged;
@@ -467,19 +466,19 @@ TEST(HsBattery, BorderModeFalseInfeasible) {
     qp.validate();
 
     QpOptions refac_opts;
-    refac_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    refac_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     refac_opts.trust_region_radius = 1.0;
     QpEngine refac(refac_opts);
     const QpSolution good = refac.solve(qp);
 
     QpOptions border_opts;
-    border_opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    border_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     border_opts.trust_region_radius = 1.0;
     QpEngine border(border_opts);
     const QpSolution bor = border.solve(qp);
 
     // THE ORACLE HALF: kRefactorize is this project's equivalence oracle
-    // (qp_types.h's WorkingSetLinearAlgebra note), and it gets this right.
+    // (qp_types.h's QpWorkingSetAlgebra note), and it gets this right.
     ASSERT_EQ(good.status, QpStatus::kOptimal);
     EXPECT_LT(std::abs((qp.Ae * good.x)(0) - qp.be(0)), 1e-12)
         << "the oracle's answer must satisfy the one equality row";
@@ -550,7 +549,7 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     qp.validate();
 
     QpOptions border_opts;
-    border_opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    border_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     border_opts.trust_region_radius = 1.0;
     const QpSolution bor = QpEngine{border_opts}.solve(qp);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
@@ -598,7 +597,7 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
         << "solve_eqp has no iterated loop, so it takes no EXTRA refinement steps";
 
     QpOptions refac_opts;
-    refac_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    refac_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     refac_opts.trust_region_radius = 1.0;
     const QpSolution refac = QpEngine{refac_opts}.solve(qp);
     ASSERT_EQ(refac.status, QpStatus::kOptimal);
@@ -631,7 +630,7 @@ TEST(HsBattery, SocIsRareAndUnprofitableAcrossTheBattery) {
     Index total_attempts = 0, total_applied = 0, problems_attempting = 0;
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
-        SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
+        SqpSolver driver(options_for(e, QpWorkingSetAlgebra::kSchurBorder));
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const Index applied = std::count_if(sol.history.begin(), sol.history.end(),
@@ -686,7 +685,7 @@ TEST(HsBattery, EveryElasticActivationRunsTheRhoLadderToItsCeiling) {
     Index problems_activating = 0, total_activations = 0;
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
-        SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
+        SqpSolver driver(options_for(e, QpWorkingSetAlgebra::kSchurBorder));
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         if (sol.counters.elastic_activations == 0) {
@@ -719,7 +718,7 @@ TEST(HsBattery, EveryElasticActivationRunsTheRhoLadderToItsCeiling) {
 }
 
 // TASK 10's ADAPTIVE mu SCHEDULE vs. THE SOC/ELASTIC RE-SOLVES (carry item
-// 6): those re-solves build their own default-mu SolveOverrides, so a major
+// 6): those re-solves build their own default-mu QpSolveOverrides, so a major
 // whose main QP is solved at a SCHEDULED mu and whose SOC/elastic re-solve
 // runs at the ENGINE DEFAULT is a mismatch waiting to happen.
 //
@@ -747,8 +746,9 @@ TEST(HsBattery, AdaptiveMuNeverSharesAMajorWithSocOrElastic) {
     Index rows_off_default = 0, overlapping_rows = 0, non_final_rows = 0;
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
-        const SqpOptions opts = options_for(e, WorkingSetLinearAlgebra::kSchurBorder);
-        ASSERT_TRUE(opts.advanced.adaptive_mu) << "the lever under measurement must be ON";
+        const SqpOptions opts = options_for(e, QpWorkingSetAlgebra::kSchurBorder);
+        ASSERT_TRUE(opts.advanced.adaptive_dual_regularization)
+            << "the lever under measurement must be ON";
         SqpSolver driver(opts);
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
@@ -826,7 +826,7 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
     Index feasible_starts = 0, with_excursions = 0;
     for (const Expect &e : refactorize_table()) {
         const HsProblem p = make_hs(e.number);
-        SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kRefactorize));
+        SqpSolver driver(options_for(e, QpWorkingSetAlgebra::kRefactorize));
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         if (sol.history.empty() || sol.history.front().violation_l1 > kExcursion) {
@@ -871,10 +871,9 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
 // was never a certificate to make. The kInfeasible arm below is kept as a
 // standing guard on that distinction.
 TEST(HsBattery, NoBatteryProblemEverCertifiesInfeasibility) {
-    for (auto alg :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+    for (auto alg : {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         const std::vector<Expect> table =
-            alg == WorkingSetLinearAlgebra::kSchurBorder ? border_table() : refactorize_table();
+            alg == QpWorkingSetAlgebra::kSchurBorder ? border_table() : refactorize_table();
         for (const Expect &e : table) {
             SCOPED_TRACE(::testing::Message() << "HS" << e.number);
             const HsProblem p = make_hs(e.number);
@@ -901,7 +900,7 @@ TEST(HsBattery, AggregateCostIsRecordedAndBounded) {
     Index majors = 0, minors = 0, facts = 0, accepted = 0, rejected = 0;
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
-        SqpSolver driver(options_for(e, WorkingSetLinearAlgebra::kSchurBorder));
+        SqpSolver driver(options_for(e, QpWorkingSetAlgebra::kSchurBorder));
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         majors += sol.counters.major_iters;
@@ -966,7 +965,7 @@ TEST(HsBattery, CrashBasisIsANullResultOnTheBatteryWithTwoBoundSeededExceptions)
 
     for (const Expect &e : border_table()) {
         const HsProblem p = make_hs(e.number);
-        SqpOptions off_opts = options_for(e, WorkingSetLinearAlgebra::kSchurBorder);
+        SqpOptions off_opts = options_for(e, QpWorkingSetAlgebra::kSchurBorder);
         SqpOptions on_opts = off_opts;
         on_opts.advanced.crash_basis = true;
 

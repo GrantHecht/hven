@@ -182,12 +182,12 @@ struct CountingSink : TraceSink {
             shared->push_back(tag + ":" + name);
         }
     }
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override { note("ipqp.iter"); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override { note("ipqp.reg"); }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override { note("ipqp.restart"); }
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override { note("ipqp.route"); }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override { note("ipqp.certify"); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override { note("ipqp.escape"); }
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override { note("ipqp.iter"); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override { note("ipqp.reg"); }
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override { note("ipqp.restart"); }
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override { note("ipqp.route"); }
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override { note("ipqp.certify"); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override { note("ipqp.escape"); }
     void on_qp_mode(const QpModeTraceEvent &) override { note("qp.mode"); }
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {
         note("fallback.verdict");
@@ -455,10 +455,10 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
 
     IpmPhaseReport opt_report;
     opt_report.phase = IpmPhase::kOptimize;
-    opt_report.status = SolveStatus::kMaxIter;
+    opt_report.status = SolveStatus::kIterationLimit;
     opt_report.iterations = 6;
     opt_report.phase_seconds = 0.0078125;
-    opt_report.stop_reason = IpmStopReason::kIterationCap;
+    opt_report.stop_reason = IpmStopReason::kIterationLimit;
     opt_report.ran = true;
     IpmPhaseExitTraceEvent opt_exit{opt_report, rows[5]};
     opt_exit.phase = 0;
@@ -524,7 +524,7 @@ TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseWide) {
 
 TEST(ConsoleSink, TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound) {
     // THE KEY CHANGE, ISOLATED. The old verdict line keyed on `alg_impl`'s RAW
-    // exit code and printed `No Solution Found` for kMaxIter; the event carries
+    // exit code and printed `No Solution Found` for kIterationLimit; the event carries
     // the RESOLVED status, which at three doors is kStalled or kInterrupted
     // instead. All three must render the same bytes, or the transcript moves at
     // exactly those doors.
@@ -544,7 +544,7 @@ TEST(ConsoleSink, TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFoun
         std::fclose(f);
         return out;
     };
-    const std::string max_iter = verdict_of(SolveStatus::kMaxIter);
+    const std::string max_iter = verdict_of(SolveStatus::kIterationLimit);
     EXPECT_NE(max_iter.find("No Solution Found"), std::string::npos);
     EXPECT_EQ(verdict_of(SolveStatus::kStalled), max_iter);
     EXPECT_EQ(verdict_of(SolveStatus::kInterrupted), max_iter);
@@ -640,7 +640,7 @@ SqpIterate make_row(Index trial, double f, bool solved, bool wd) {
     r.kkt_residual = 1e-2 / double(trial + 1);
     r.violation_l1 = 3e-3 / double(trial + 1);
     r.tr_radius = 1.0 / double(trial + 1);
-    r.verdict = solved ? StepVerdict::kAcceptF : StepVerdict::kReject;
+    r.verdict = solved ? StepVerdict::kAcceptObjectiveStep : StepVerdict::kReject;
     r.qp_minor_iters = 3 * (trial + 1);
     r.qp_factorizations = trial + 1;
     r.watchdog_restored = wd;
@@ -653,7 +653,7 @@ SqpResult make_solution() {
     sol.status = SolveStatus::kOptimal;
     sol.counters.start_level_used = StartLevel::kWarm;
     sol.scaling.active = true;
-    sol.scaling.obj = 0.25;
+    sol.scaling.objective = 0.25;
     sol.scaling.row_min = 0.5;
     sol.scaling.row_max = 4.0;
     sol.scaling.scaled_kkt_residual = 7.5e-9;
@@ -671,11 +671,12 @@ TEST(ConsoleSink, TheSqpTableIsByteIdenticalToFormatIterationTable) {
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     for (std::size_t i = 0; i < sol.history.size(); ++i) {
         sink.on_sqp_major(
-            SqpMajorTraceEvent{sol.history[i], static_cast<Index>(i), IpqpTraceQpMode::kWalk});
+            SqpMajorTraceEvent{sol.history[i], static_cast<Index>(i), QpTraceMode::kWalk});
     }
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{
-        sol.status, sol.counters.major_iters, sol.counters, sol.scaling.active, sol.scaling.obj,
-        sol.scaling.row_min, sol.scaling.row_max, sol.scaling.scaled_kkt_residual});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, sol.counters.major_iters, sol.counters,
+                                                sol.scaling.active, sol.scaling.objective,
+                                                sol.scaling.row_min, sol.scaling.row_max,
+                                                sol.scaling.scaled_kkt_residual});
     EXPECT_EQ(read_all(f), format_iteration_table(sol));
     std::fclose(f);
 }
@@ -686,19 +687,20 @@ TEST(ConsoleSink, TheSqpTableRendersOnlyDepthZeroMajors) {
     ASSERT_NE(f, nullptr);
     ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
+    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, QpTraceMode::kWalk});
     // A nested solve: its begin, its rows, its end. None of it renders.
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     EXPECT_EQ(sink.sqp_depth(), 1);
-    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[1], 0, IpqpTraceQpMode::kWalk});
-    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[2], 1, IpqpTraceQpMode::kWalk});
+    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[1], 0, QpTraceMode::kWalk});
+    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[2], 1, QpTraceMode::kWalk});
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, 2, sol.counters});
     EXPECT_EQ(sink.sqp_depth(), 0);
-    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[1], 1, IpqpTraceQpMode::kWalk});
-    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[2], 2, IpqpTraceQpMode::kWalk});
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{
-        sol.status, sol.counters.major_iters, sol.counters, sol.scaling.active, sol.scaling.obj,
-        sol.scaling.row_min, sol.scaling.row_max, sol.scaling.scaled_kkt_residual});
+    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[1], 1, QpTraceMode::kWalk});
+    sink.on_sqp_major(SqpMajorTraceEvent{sol.history[2], 2, QpTraceMode::kWalk});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, sol.counters.major_iters, sol.counters,
+                                                sol.scaling.active, sol.scaling.objective,
+                                                sol.scaling.row_min, sol.scaling.row_max,
+                                                sol.scaling.scaled_kkt_residual});
     EXPECT_EQ(read_all(f), format_iteration_table(sol));
     std::fclose(f);
 }
@@ -711,7 +713,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     ASSERT_NE(f1, nullptr);
     ConsoleTraceSink one(ConsoleTraceSink::Format{false, hven::Verbosity::kSummary}, f1);
     one.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    one.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
+    one.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, QpTraceMode::kWalk});
     one.on_sqp_solve_end(
         SqpSolveEndTraceEvent{sol.status, 3, sol.counters, true, 0.25, 0.5, 4.0, 7.5e-9});
     const std::string at1 = read_all(f1);
@@ -726,7 +728,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     ASSERT_NE(f2, nullptr);
     ConsoleTraceSink two(ConsoleTraceSink::Format{false, hven::Verbosity::kWarnings}, f2);
     two.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    two.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
+    two.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, QpTraceMode::kWalk});
     two.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, 3, sol.counters});
     EXPECT_EQ(read_all(f2), sqp_iteration_table_status_line(sol.status));
     std::fclose(f2);
@@ -737,7 +739,7 @@ TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
     ASSERT_NE(f3, nullptr);
     ConsoleTraceSink three(ConsoleTraceSink::Format{false, hven::Verbosity::kSilent}, f3);
     three.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    three.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, IpqpTraceQpMode::kWalk});
+    three.on_sqp_major(SqpMajorTraceEvent{sol.history[0], 0, QpTraceMode::kWalk});
     three.on_sqp_solve_end(SqpSolveEndTraceEvent{sol.status, 3, sol.counters});
     EXPECT_EQ(read_all(f3), "");
     std::fclose(f3);
@@ -747,12 +749,12 @@ TEST(ConsoleSink, TheEightQpTierEventsRenderNothing) {
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
     ConsoleTraceSink sink(ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
-    sink.on_ipqp_iter(IpqpTraceIterEvent{});
-    sink.on_ipqp_reg(IpqpTraceRegEvent{});
-    sink.on_ipqp_restart(IpqpTraceRestartEvent{});
-    sink.on_ipqp_route(IpqpTraceRouteEvent{});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.on_ipqp_escape(IpqpTraceEscapeEvent{});
+    sink.on_ipqp_iter(IpqpIterTraceEvent{});
+    sink.on_ipqp_reg(IpqpRegTraceEvent{});
+    sink.on_ipqp_restart(IpqpRestartTraceEvent{});
+    sink.on_ipqp_route(IpqpRouteTraceEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
+    sink.on_ipqp_escape(IpqpEscapeTraceEvent{});
     sink.on_qp_mode(QpModeTraceEvent{});
     sink.on_fallback_verdict(SqpFallbackVerdictTraceEvent{});
     EXPECT_EQ(read_all(f), "");
@@ -776,15 +778,15 @@ TEST(FanOut, ForwardsEveryEventToBothHalvesFirstThenSecond) {
     const SqpCounters counters;
     const IpmIterate row;
     const SqpIterate sqp_row;
-    fan.on_ipqp_iter(IpqpTraceIterEvent{});
-    fan.on_ipqp_reg(IpqpTraceRegEvent{});
-    fan.on_ipqp_restart(IpqpTraceRestartEvent{});
-    fan.on_ipqp_route(IpqpTraceRouteEvent{});
-    fan.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    fan.on_ipqp_escape(IpqpTraceEscapeEvent{});
+    fan.on_ipqp_iter(IpqpIterTraceEvent{});
+    fan.on_ipqp_reg(IpqpRegTraceEvent{});
+    fan.on_ipqp_restart(IpqpRestartTraceEvent{});
+    fan.on_ipqp_route(IpqpRouteTraceEvent{});
+    fan.on_ipqp_certify(IpqpCertifyTraceEvent{});
+    fan.on_ipqp_escape(IpqpEscapeTraceEvent{});
     fan.on_qp_mode(QpModeTraceEvent{});
     fan.on_fallback_verdict(SqpFallbackVerdictTraceEvent{});
-    fan.on_sqp_major(SqpMajorTraceEvent{sqp_row, 0, IpqpTraceQpMode::kWalk});
+    fan.on_sqp_major(SqpMajorTraceEvent{sqp_row, 0, QpTraceMode::kWalk});
     fan.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     fan.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     fan.on_ipm_iter(IpmIterTraceEvent{row, 0});

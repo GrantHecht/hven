@@ -35,6 +35,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using hven::test_support::QpDump;
@@ -44,12 +45,10 @@ using Record = hven::detail::testing::QpWalkMinorRecord;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == kBorder ? "border" : "refactorize";
-}
+const char *alg_name(QpWorkingSetAlgebra alg) { return alg == kBorder ? "border" : "refactorize"; }
 
 double objective(const QpProblem &qp, const Vec &x) {
     return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
@@ -171,7 +170,7 @@ void expect_saddle_passes_descend(const std::vector<Record> &records, const QpCo
 // THE ELASTIC SADDLES. Premise (the dump's own result line): in-cell kNumericalError at the
 // dead end. Expected: kOptimal strictly below the saddle's objective, the KKT battery, a
 // positive-definite reduced Hessian on the final face, and at least one saddle exit taken.
-void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
+void expect_saddle_left(const char *file, QpWorkingSetAlgebra alg) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     ASSERT_NE(d.result.find("status=3"), std::string::npos) << d.result;
@@ -237,7 +236,7 @@ void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
 // THE MISSES, which must stay misses: no ride without a VERIFIED direction.
 //   STEENBRE qp2's final face carries Z'HZ = -249.9 against a Hessian of norm 6.2e15: -4e-14 of
 //   hessian_scale, below curvature_tol, so not a negative curvature the engine can resolve.
-void expect_no_ride(const char *file, WorkingSetLinearAlgebra alg) {
+void expect_no_ride(const char *file, QpWorkingSetAlgebra alg) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     ASSERT_NE(d.result.find("site=1335"), std::string::npos) << d.result;

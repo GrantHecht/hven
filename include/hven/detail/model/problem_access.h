@@ -19,14 +19,15 @@
 #include "hven/model/structure_identity.h"
 
 namespace hven {
+struct SolveResult;
+} // namespace hven
+
+namespace hven::detail {
 
 struct NonLinearProgram;
 class NlpModel;
 class NlpModelAssembly;
 class NlpProblemModel;
-struct SolveResult;
-
-namespace detail {
 
 /// @brief A Problem over an interior-point program; the SQP refuses it.
 Problem problem_from_program(std::shared_ptr<NonLinearProgram> program);
@@ -156,5 +157,4 @@ struct ProblemAccess {
     static const NlpProblemModel *nlp_model(const Problem &problem) noexcept;
 };
 
-} // namespace detail
-} // namespace hven
+} // namespace hven::detail

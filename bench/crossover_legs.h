@@ -74,9 +74,11 @@
 #include <hven/model/nlp.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "corpus_cells.h"
+
+using namespace hven::detail;
 
 namespace hven::crossover {
 
@@ -418,7 +420,7 @@ struct IpmLegRow {
     /// False until this leg actually finished; a leg that never ran reports
     /// `absent`, never a default value -- see margins_row.
     bool ran = false;
-    hven::SolveStatus flag = hven::SolveStatus::kMaxIter;
+    hven::SolveStatus flag = hven::SolveStatus::kIterationLimit;
     int iters = -1;
     Index analyses = -1;
     Index factorizations = -1;
@@ -607,7 +609,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // the one-call make_nlp_program, the phase sequence is a field, and the
         // program is an argument of the solve. The TIMED WINDOW is unchanged --
         // it brackets the solve only, and the transcription runs above `t0`.
-        const auto ipm_program = hven::make_nlp_program(declared);
+        const auto ipm_program = hven::detail::make_nlp_program(declared);
         hven::IpmSolver ipm;
         hven::IpmOptions ipm_opts = ipm.options();
         ipm_opts.common.verbosity = opts.ipm_verbosity;
@@ -817,7 +819,7 @@ inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
     }
     const auto solve = [&](SqpSolver &driver, const Vec &x0,
                            const hven::detail::SqpWarmState &warm = hven::detail::SqpWarmState{}) {
-        const SolveBudget budget{.minor_budget = kMinorBudget};
+        const SolveBudget budget{.max_minor_iterations = kMinorBudget};
         // The native route, always (a cold state included): the handle is made
         // in detail, the public type has no default.
         const SqpWarmStart native = hven::detail::SqpWarmAccess::wrap(warm);

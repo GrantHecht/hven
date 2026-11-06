@@ -104,7 +104,7 @@ int main() {
     for (int k = 0; k < 2; k++) {
         hven::Problem chain = make_chain(steps, k == 0 ? 1 : 4);
         results[k] = hven::IpmSolver{}.solve(chain, x0);
-        adopted[k] = chain.partitions();
+        adopted[k] = chain.num_partitions();
         const auto &r = results[k];
         std::printf("%d partition(s) requested: adopted=%lld status=%-8s iterations=%3lld "
                     "f=%.9f |c|=%.1e\n",

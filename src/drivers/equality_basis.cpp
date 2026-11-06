@@ -220,8 +220,8 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
         ++tally.perturbation_unobserved;
     }
     if (out.status != linear::FactorizeOutcome::Status::kOk ||
-        in.state != linear::InertiaEvidence::State::kObserved || in.n_zero != 0 || in.n_pos < 0 ||
-        in.n_neg < 0 || in.n_pos + in.n_neg != m ||
+        in.state != linear::InertiaEvidence::State::kObserved || in.zero != 0 || in.positive < 0 ||
+        in.negative < 0 || in.positive + in.negative != m ||
         (in.perturbed_pivots.has_value() && *in.perturbed_pivots != 0)) {
         return -1;
     }
@@ -242,7 +242,7 @@ Index certified_negatives(linear::SymmetricFactor &factor, GramOperator &gram, d
         rn > kProbeBackwardFactor * static_cast<double>(m) * kEps * scale) {
         return -1;
     }
-    return in.n_neg;
+    return in.negative;
 }
 
 // THE FACTORIZATION SEAM: the only place the split's linear algebra lives.
@@ -344,8 +344,8 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
     out.shift_hi = t_hi;
 
     linear::SymmetricFactor::Options opts;
-    opts.num_threads = 1;
-    opts.pivot_perturb_exp = tol.gram_pivot_perturb_exp;
+    opts.threads = 1;
+    opts.pivot_perturbation_exponent = tol.gram_pivot_perturb_exp;
     linear::SymmetricFactor factor(opts);
     try {
         factor.analyze(gram.upper());
@@ -953,7 +953,7 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
         b.k_gamma = nu_w / (1.0 - nu_w);
         b.k_inflate = 1.0 + 4.0 * static_cast<double>(w + nk + 2) * (0.5 * kEps);
         linear::SymmetricFactor::Options kopts;
-        kopts.num_threads = 1;
+        kopts.threads = 1;
         b.k_factor = std::make_unique<linear::SymmetricFactor>(kopts);
         bool clean = false;
         try {
@@ -961,8 +961,8 @@ void EqualityBasis::compute(const SpMatRM &Je, const Vec &lower, const Vec &uppe
             const linear::FactorizeOutcome fo = b.k_factor->factorize(b.k_upper);
             const linear::InertiaEvidence &in = fo.inertia;
             clean = fo.status == linear::FactorizeOutcome::Status::kOk &&
-                    in.state == linear::InertiaEvidence::State::kObserved && in.n_zero == 0 &&
-                    in.n_pos == nb && in.n_neg == nd &&
+                    in.state == linear::InertiaEvidence::State::kObserved && in.zero == 0 &&
+                    in.positive == nb && in.negative == nd &&
                     (!in.perturbed_pivots.has_value() || *in.perturbed_pivots == 0);
         } catch (const std::runtime_error &) {
             clean = false;

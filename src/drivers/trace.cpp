@@ -17,12 +17,12 @@ TraceSink::~TraceSink() = default;
 
 // Every event's default is EMPTY: a sink overrides the events it wants, and an
 // event added later is ignored by a sink that predates it.
-void TraceSink::on_ipqp_iter(const IpqpTraceIterEvent &) {}
-void TraceSink::on_ipqp_reg(const IpqpTraceRegEvent &) {}
-void TraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &) {}
-void TraceSink::on_ipqp_route(const IpqpTraceRouteEvent &) {}
-void TraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &) {}
-void TraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &) {}
+void TraceSink::on_ipqp_iter(const IpqpIterTraceEvent &) {}
+void TraceSink::on_ipqp_reg(const IpqpRegTraceEvent &) {}
+void TraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &) {}
+void TraceSink::on_ipqp_route(const IpqpRouteTraceEvent &) {}
+void TraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &) {}
+void TraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &) {}
 void TraceSink::on_qp_mode(const QpModeTraceEvent &) {}
 void TraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) {}
 void TraceSink::on_sqp_major(const SqpMajorTraceEvent &) {}

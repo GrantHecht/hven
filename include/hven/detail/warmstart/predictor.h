@@ -128,7 +128,7 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // Tuning for predict().
 struct PredictorOptions {
@@ -1087,4 +1087,4 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
     }
 }
 
-} // namespace hven
+} // namespace hven::detail

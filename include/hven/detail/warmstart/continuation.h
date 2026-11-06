@@ -23,7 +23,7 @@
 // THE LOOP
 //
 //   1. Solve COLD at p0. If that fails there is no path to follow: return
-//      immediately with reached_p1 == false. A budget exhaustion (kMaxIter with
+//      immediately with reached_p1 == false. A budget exhaustion (kIterationLimit with
 //      returned_best_iterate) there is not a failure but a continue, under the SAME rule and cap
 //      every later parameter value gets -- see BUDGET EXHAUSTION below.
 //   2. Repeat: propose p_next = p_cur + dp * direction, CLAMPED at p1
@@ -34,7 +34,7 @@
 //      start otherwise -- re-pose the model at p_next and solve warm.
 //        - kOptimal: accept. p_cur := p_next, the warm start advances, and dp
 //          GROWS by `grow` (capped at dp_max) if the step cost <= target_majors.
-//        - kMaxIter with returned_best_iterate: see BUDGET EXHAUSTION below -- neither.
+//        - kIterationLimit with returned_best_iterate: see BUDGET EXHAUSTION below -- neither.
 //        - anything else: reject. dp SHRINKS by `shrink` and the step is
 //          retried from the LAST GOOD warm start, at the last good p. Below
 //          dp_min the run fails.
@@ -74,11 +74,10 @@
 // treats as neither success nor failure.
 //
 // When the caller's driver runs with SqpOptions::return_best_on_max_iterations, a solve that
-// exhausts max_iter reports kMaxIter with returned_best_iterate set and returns THE BEST ITERATE IT
-// VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the
-// tie-break) rather than the last one reached -- a hand-off designed for this
-// loop. The honest reading of it is "the step was too expensive for one
-// budget slice", not "the step was too long".
+// exhausts max_iter reports kIterationLimit with returned_best_iterate set and returns THE BEST
+// ITERATE IT VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the tie-break)
+// rather than the last one reached -- a hand-off designed for this loop. The honest reading of it
+// is "the step was too expensive for one budget slice", not "the step was too long".
 //
 // This loop therefore RE-SOLVES AT THE SAME p_next, seeded by the returned
 // warm start, rather than shrinking dp and moving p_next back. Shrinking
@@ -106,7 +105,7 @@
 //
 // With return_best_on_max_iterations OFF (the default) none of this is reachable:
 // returned_best_iterate is NEVER set then, and every
-// max_iter exhaustion arrives as kMaxIter, which is an ordinary failure here.
+// max_iter exhaustion arrives as kIterationLimit, which is an ordinary failure here.
 //
 // ---------------------------------------------------------------------
 // RETRY ECONOMICS -- what a REJECTED proposal costs, a different question
@@ -196,7 +195,7 @@
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // How the sweep proposes and re-sizes its parameter steps. Every field is a
 // CALLER-VISIBLE POLICY: none of them changes what a converged step means,
@@ -242,7 +241,7 @@ struct ContinuationOptions {
     // Each proposal's FIRST solve is given a minor budget of
     // probe_budget * (minors the last converged step cost). A solve that
     // reaches a major having spent that many minors without converging is
-    // ABANDONED -- the driver returns kMaxIter with
+    // ABANDONED -- the driver returns kIterationLimit with
     // SqpCounters::probe_budget_stops == 1 -- and this loop treats that
     // exactly as any other failed proposal: shrink, retry from the last good
     // warm start. It is a FAILED-PROPOSAL DETECTOR rather than a step-length
@@ -310,7 +309,7 @@ struct ContinuationStep {
     // sequence, not off this field.
     double dp = 0.0;
     SolveStatus status = SolveStatus::kOptimal;
-    // SqpResult::returned_best_iterate of this solve: with kMaxIter, a budget
+    // SqpResult::returned_best_iterate of this solve: with kIterationLimit, a budget
     // exhaustion.
     bool returned_best_iterate = false;
     // The driver's own counters for this one solve; ContinuationResult::
@@ -379,7 +378,7 @@ struct ContinuationResult {
     //                         were free.
     //   proposals_full_cost   attempts that failed on their own terms, having
     //                         been allowed to run to whatever exit the driver
-    //                         chose (kNumericalError, kMaxIter, kInfeasible,
+    //                         chose (kNumericalError, kIterationLimit, kInfeasible,
     //                         a demoted budget-exhaustion chain, ...). With
     //                         the probe budget off this is every failure, and
     //                         proposals_abandoned is identically 0.
@@ -467,4 +466,4 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, const Vec &p1,
                                     SqpSolver &driver, const ContinuationOptions &opts = {});
 
-} // namespace hven
+} // namespace hven::detail

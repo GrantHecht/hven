@@ -20,6 +20,8 @@
 
 #include <fmt/format.h>
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {

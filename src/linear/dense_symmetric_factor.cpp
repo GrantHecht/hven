@@ -80,7 +80,7 @@ int DenseSymmetricFactor::factorize_core(ConstMatRef A, Triangle triangle, const
     // APPLIED FOR THIS CALL AND UNDONE AFTER IT (M6 W5 T8.8). The scope is a
     // no-op at 0, which is the default and every pre-T8.8 caller's value, so
     // the emitted call is what it always was unless a count was asked for.
-    const detail::MklThreadScope threads(num_threads_);
+    const detail::MklThreadScope threads(threads_);
     const auto info =
         static_cast<int>(LAPACKE_dsytrf(LAPACK_COL_MAJOR, uplo, static_cast<lapack_int>(n),
                                         factors_.data(), static_cast<lapack_int>(n), ipiv_.data()));
@@ -235,7 +235,7 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     const char uplo = uplo_char(triangle_, "solve");
 
     // The same call-scoped bracket the factorization runs under; see there.
-    const detail::MklThreadScope threads(num_threads_);
+    const detail::MklThreadScope threads(threads_);
     const auto info = static_cast<int>(LAPACKE_dsytrs(LAPACK_COL_MAJOR, uplo, n, nrhs,
                                                       factors_.data(), n, ipiv_.data(), target, n));
     if (info != 0) {
@@ -254,19 +254,19 @@ Index DenseSymmetricFactor::dim() const noexcept { return dim_; }
 
 Triangle DenseSymmetricFactor::triangle() const noexcept { return triangle_; }
 
-void DenseSymmetricFactor::set_num_threads(int num_threads) {
+void DenseSymmetricFactor::set_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this factor
-    // exactly as it was -- SymmetricFactor::set_num_threads's own shape, and
+    // exactly as it was -- SymmetricFactor::set_threads's own shape, and
     // its own message vocabulary, so the two surfaces read the same.
     if (num_threads < 0) {
         throw std::invalid_argument(
-            fmt::format("DenseSymmetricFactor::set_num_threads: thread count is {}, must be >= 0 "
+            fmt::format("DenseSymmetricFactor::set_threads: thread count is {}, must be >= 0 "
                         "(0 leaves the backend's own default alone)",
                         num_threads));
     }
-    num_threads_ = num_threads;
+    threads_ = num_threads;
 }
 
-int DenseSymmetricFactor::num_threads() const noexcept { return num_threads_; }
+int DenseSymmetricFactor::threads() const noexcept { return threads_; }
 
 } // namespace hven::linear

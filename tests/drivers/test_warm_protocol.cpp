@@ -15,7 +15,7 @@
 //
 //       IDENTITY MISMATCH REFUSES -- block lengths, then the stamp, both
 //       `std::invalid_argument`, on both engines, and on the SQP in EVERY
-//       `qp_mode` including kIpm (M5 ruling 4's mode-local cold grade retired).
+//       `qp_mode` including kIpqp (M5 ruling 4's mode-local cold grade retired).
 //       PATTERN MISMATCH DEGRADES -- a payload never saw a model, so it carries
 //       structure hash 0 and caps at kSeeded by construction. (That cap is the
 //       SQP's; the interior-point engine applies a WHOLE payload at a kWarm
@@ -67,12 +67,12 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/drivers/trace_writer.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "hven/detail/warmstart/warm_start_access.h"
@@ -90,14 +90,14 @@ namespace {
 
 using hven::declaration_key;
 using hven::kIpmPolishTag;
-using hven::NlpModelAssembly;
-using hven::NlpProblemModel;
 using hven::SolveStatus;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
 using hven::StartLevel;
 using hven::WarmStart;
+using hven::detail::NlpModelAssembly;
+using hven::detail::NlpProblemModel;
 using hven::detail::SqpWarmState;
 using Vec = Eigen::VectorXd;
 
@@ -124,8 +124,12 @@ struct ThreeVarProblem final : hven::Nlp {
         gu << 3.0;
     }
     double eval_f(hven::ConstVecRef x) const override { return 0.5 * x.squaredNorm(); }
-    void eval_grad_f(hven::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override { g = x; }
-    void eval_g(hven::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override { g[0] = x.sum(); }
+    void eval_grad_f(hven::detail::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override {
+        g = x;
+    }
+    void eval_g(hven::detail::ConstEigenRef<Vec> x, Eigen::Ref<Vec> g) const override {
+        g[0] = x.sum();
+    }
     void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0;
         c << 0, 1, 2;
@@ -134,9 +138,11 @@ struct ThreeVarProblem final : hven::Nlp {
         r << 0, 1, 2;
         c << 0, 1, 2;
     }
-    void eval_jacobian(hven::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override { v.setOnes(); }
-    void eval_hessian(hven::ConstEigenRef<Vec>, double obj_factor, hven::ConstEigenRef<Vec>,
-                      Eigen::Ref<Vec> v) const override {
+    void eval_jacobian(hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override {
+        v.setOnes();
+    }
+    void eval_hessian(hven::detail::ConstEigenRef<Vec>, double obj_factor,
+                      hven::detail::ConstEigenRef<Vec>, Eigen::Ref<Vec> v) const override {
         v.setConstant(obj_factor);
     }
     std::string name() const override { return "WarmProtocolThreeVar"; }
@@ -167,13 +173,13 @@ hven::IpmOptions quiet_ipm(const hven::IpmSolver &solver) {
 // produced.
 struct Hs071Export {
     std::shared_ptr<hven::Nlp> problem;
-    std::shared_ptr<hven::NonLinearProgram> program;
+    std::shared_ptr<hven::detail::NonLinearProgram> program;
     hven::IpmSolver ipm;
     WarmStart payload;
 
     Hs071Export()
         : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
-          program(hven::make_nlp_program(problem)) {
+          program(hven::detail::make_nlp_program(problem)) {
         ipm.set_options(quiet_ipm(ipm));
         const hven::IpmResult r = ipm.solve(hven::detail::problem_ref(*program), hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
@@ -296,7 +302,7 @@ void expect_same_reported_numbers(const hven::IpmResult &a, const hven::IpmResul
     EXPECT_TRUE(bits_equal("econ_inf", a.convergence.equality, b.convergence.equality));
     EXPECT_TRUE(bits_equal("icon_inf", a.convergence.inequality, b.convergence.inequality));
 
-    EXPECT_EQ(a.soc_steps_taken, b.soc_steps_taken);
+    EXPECT_EQ(a.second_order_corrections, b.second_order_corrections);
     EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
     EXPECT_EQ(a.recovery_depth_histogram, b.recovery_depth_histogram);
 
@@ -304,11 +310,11 @@ void expect_same_reported_numbers(const hven::IpmResult &a, const hven::IpmResul
     EXPECT_EQ(a.last_filter_size, b.last_filter_size);
     EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
     EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
-    EXPECT_EQ(a.last_monotone_iters, b.last_monotone_iters);
-    EXPECT_EQ(a.last_feas_rest_entries, b.last_feas_rest_entries);
-    EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
-    EXPECT_EQ(a.last_prox_reg_primal, b.last_prox_reg_primal);
-    EXPECT_EQ(a.last_prox_reg_dual, b.last_prox_reg_dual);
+    EXPECT_EQ(a.last_monotone_iterations, b.last_monotone_iterations);
+    EXPECT_EQ(a.last_feasibility_restoration_entries, b.last_feasibility_restoration_entries);
+    EXPECT_EQ(a.last_feasibility_restoration_iterations, b.last_feasibility_restoration_iterations);
+    EXPECT_EQ(a.last_proximal_regularization_primal, b.last_proximal_regularization_primal);
+    EXPECT_EQ(a.last_proximal_regularization_dual, b.last_proximal_regularization_dual);
     EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
     EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
 
@@ -356,7 +362,7 @@ TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
 
     // --- The interior-point engine ---
     const auto three = std::make_shared<ThreeVarProblem>();
-    const auto ipm_program = hven::make_nlp_program(three);
+    const auto ipm_program = hven::detail::make_nlp_program(three);
     hven::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     EXPECT_THROW(
@@ -365,12 +371,12 @@ TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
 
     // --- The SQP engine, in EVERY mode ---
     //
-    // THE POINT OF THE LOOP (M6 W5 T8.5, owner ruling). Before this task kIpm
+    // THE POINT OF THE LOOP (M6 W5 T8.5, owner ruling). Before this task kIpqp
     // COLD-GRADED exactly this case where kWalk and kSsn threw, so the answer to
     // "is this payload this problem's?" depended on which QP kernel the driver
     // was configured for. It does not any more.
     SqpView view(three);
-    for (const hven::QpMode mode : {hven::QpMode::kWalk, hven::QpMode::kSsn, hven::QpMode::kIpm}) {
+    for (const hven::QpMode mode : {hven::QpMode::kWalk, hven::QpMode::kSsn, hven::QpMode::kIpqp}) {
         SqpSolver driver{quiet_sqp(mode)};
         EXPECT_THROW((void)driver.solve(hven::detail::problem_ref(*view.bridge),
                                         view.model->start_point(), exported.payload),
@@ -401,7 +407,7 @@ TEST(WarmProtocol, KIpmModeNoLongerColdGradesAMismatch) {
 
     const std::string walk = message_for(hven::QpMode::kWalk);
     const std::string ssn = message_for(hven::QpMode::kSsn);
-    const std::string ipm = message_for(hven::QpMode::kIpm);
+    const std::string ipm = message_for(hven::QpMode::kIpqp);
 
     ASSERT_FALSE(walk.empty()) << "the kWalk refusal is the reference, and it must fire";
     EXPECT_EQ(walk, ssn);
@@ -425,11 +431,11 @@ TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
     const Vec x0 = hs071_start();
 
     // ACROSS ALL THREE QP MODES (M6 W5 T8.5 fix round 1). The empty-primal form
-    // takes a MODE-SPECIFIC bypass on the way in -- under kIpm `consume_payload`
+    // takes a MODE-SPECIFIC bypass on the way in -- under kIpqp `consume_payload`
     // additionally skips `build_ipqp_staged_seed`, leaving that tier's staged
     // seed empty -- so pinning the seed under kWalk alone left the bypass this
     // task added undefended in two of the three modes.
-    for (const hven::QpMode mode : {hven::QpMode::kWalk, hven::QpMode::kSsn, hven::QpMode::kIpm}) {
+    for (const hven::QpMode mode : {hven::QpMode::kWalk, hven::QpMode::kSsn, hven::QpMode::kIpqp}) {
         SCOPED_TRACE("qp_mode ordinal " + std::to_string(static_cast<int>(mode)));
 
         SqpView view(exported.problem);
@@ -534,7 +540,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // (z_lower, z_upper) pair the barrier holds, and the pair that would have
     // travelled in the extension describes the exporter's point.
     {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         const hven::IpmResult r =
@@ -544,7 +550,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
         EXPECT_EQ(r.payload_ignored, 0) << "the seed was applied, not ignored";
     }
     {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         const hven::IpmResult r =
@@ -580,7 +586,7 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
         }
     }
     {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         try {
@@ -616,14 +622,14 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
     SqpSolver producer{quiet_sqp()};
     const SqpResult first = producer.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(first.native_warm_start).structure_hash, 0u)
+    ASSERT_NE(SqpWarmAccess::state(first.sqp_warm_start).structure_hash, 0u)
         << "a native object from a real solve carries a real hash, or this pin measures nothing";
 
     // A DELIBERATELY WRONG HASH on an otherwise perfect object, against the very
     // problem it came from: the values are usable, the provenance claim is not.
     // The native route has no stamp to refuse against, so the ladder does the
     // work -- kSeeded, never a throw.
-    hven::detail::SqpWarmState stale = SqpWarmAccess::state(first.native_warm_start);
+    hven::detail::SqpWarmState stale = SqpWarmAccess::state(first.sqp_warm_start);
     stale.structure_hash = 0x1;
     stale.hot.reset();
 
@@ -636,7 +642,7 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
 
     // AND THE MATCHING OBJECT REACHES kWarm, so "kSeeded" above is the
     // degradation and not the ceiling this route always hits.
-    hven::detail::SqpWarmState matching = SqpWarmAccess::state(first.native_warm_start);
+    hven::detail::SqpWarmState matching = SqpWarmAccess::state(first.sqp_warm_start);
     matching.hot.reset();
     SqpSolver warm_consumer{quiet_sqp()};
     const SqpResult warm = warm_consumer.solve(hven::detail::problem_ref(*view.bridge),
@@ -652,7 +658,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
     const SqpResult first = producer.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
 
-    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(first.native_warm_start);
+    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(first.sqp_warm_start);
     poisoned.hot.reset();
     poisoned.x(0) = std::numeric_limits<double>::quiet_NaN();
 
@@ -678,10 +684,10 @@ TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
     SqpSolver producer{quiet_sqp()};
     const SqpResult first = producer.solve(hven::detail::problem_ref(*view.bridge), hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
-    ASSERT_GT(SqpWarmAccess::state(first.native_warm_start).lambda_i.size(), 0);
+    ASSERT_GT(SqpWarmAccess::state(first.sqp_warm_start).lambda_i.size(), 0);
 
     const auto run_with_price = [&](double price) {
-        hven::detail::SqpWarmState w = SqpWarmAccess::state(first.native_warm_start);
+        hven::detail::SqpWarmState w = SqpWarmAccess::state(first.sqp_warm_start);
         w.hot.reset();
         // Hash 0: the seeded ladder is where the clamp lives, so the object has
         // to resolve kSeeded before the band can be read at all.
@@ -722,7 +728,7 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     const Hs071Export exported;
 
     const auto solve_at = [&](StartLevel ceiling, const WarmStart *payload) {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         hven::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
@@ -755,7 +761,7 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     // IDENTITY IS STILL CHECKED AT THIS RUNG. A foreign payload under a kCold
     // ceiling is refused, not quietly discarded.
     const auto three = std::make_shared<ThreeVarProblem>();
-    const auto other_program = hven::make_nlp_program(three);
+    const auto other_program = hven::detail::make_nlp_program(three);
     hven::IpmSolver other;
     hven::IpmOptions o = quiet_ipm(other);
     o.common.start_level = StartLevel::kCold;
@@ -799,7 +805,7 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
 
     for (const StartLevel ceiling :
          {StartLevel::kCold, StartLevel::kSeeded, StartLevel::kWarm, StartLevel::kHot}) {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         hven::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
@@ -813,7 +819,7 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
     // And the SAME payload with its stamp untouched is accepted, so the throws
     // above are about the stamp and not about anything else this test built.
     {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         hven::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = StartLevel::kCold;
@@ -834,7 +840,7 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
     ASSERT_NE(hven::find_ipm_polish(exported.payload), nullptr);
 
     const auto solve_at = [&](StartLevel ceiling) {
-        const auto ipm_program = hven::make_nlp_program(exported.problem);
+        const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
         hven::IpmSolver ipm;
         hven::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
@@ -996,7 +1002,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     const auto &problem = exported.problem;
 
     // --- (1) THE SEEDLESS CALL. If this file compiles, the entry exists. ---
-    const auto program = hven::make_nlp_program(problem);
+    const auto program = hven::detail::make_nlp_program(problem);
     hven::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     const hven::IpmResult out = ipm.solve(hven::detail::problem_ref(*program), hs071_start());
@@ -1016,7 +1022,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     // default supplied explicitly, and this comparison pins exactly that and
     // nothing more: supplying the default changes no number. It is NOT evidence
     // about the payload overload; (3) and (4) below are.
-    const auto other_program = hven::make_nlp_program(problem);
+    const auto other_program = hven::detail::make_nlp_program(problem);
     hven::IpmSolver other;
     other.set_options(quiet_ipm(other));
     const hven::IpmResult explicit_default = other.solve(hven::detail::problem_ref(*other_program),
@@ -1028,7 +1034,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     // A tiny helper so each arm below is one line and the two arities of the
     // payload overload differ ONLY in whether the budget is spelled.
     const auto solve_with_payload = [&](const WarmStart &w, bool spell_the_budget) {
-        const auto p = hven::make_nlp_program(problem);
+        const auto p = hven::detail::make_nlp_program(problem);
         hven::IpmSolver s;
         s.set_options(quiet_ipm(s));
         return spell_the_budget
@@ -1123,7 +1129,7 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
     // The SQP produces no extensions, so this is the core-only shape.
     EXPECT_TRUE(WarmStartAccess::extensions(back).empty());
 
-    const auto ipm_program = hven::make_nlp_program(exported.problem);
+    const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
     hven::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     const hven::IpmResult returned =

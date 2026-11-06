@@ -10,11 +10,11 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
 // IpmResult lives in drivers/ipm_solver_types.h; see
-// acceptance_strategy.h's include note for why this is a plain, non-circular
+// acceptance_mode.h's include note for why this is a plain, non-circular
 // include (ipm_solver.h does not include this directory back).
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Near-feasible entry-guard factor, adapted from the unscaled
 /// 1e-1 * constr_viol_tol member of Ipopt's scaled/unscaled entry-guard pair —
@@ -114,8 +114,8 @@ class RestorationStrategy {
     /// constructed, so this is never reached on that path and the
     /// corresponding IpmResult fields stay nullopt.
     void append_diagnostics(IpmResult &result) const {
-        result.last_feas_rest_entries = entries_;
-        result.last_feas_rest_iters = iterations_in_mode_;
+        result.last_feasibility_restoration_entries = entries_;
+        result.last_feasibility_restoration_iterations = iterations_in_mode_;
     }
 
     // -------------------------------------------------------------------------
@@ -340,4 +340,4 @@ class RestorationStrategy {
     int iterations_in_mode_ = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

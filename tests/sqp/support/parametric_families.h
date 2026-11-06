@@ -99,6 +99,8 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 // The analytic active set at a parameter value, in exactly warm_start.h's

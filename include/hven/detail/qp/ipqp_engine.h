@@ -36,19 +36,18 @@
 #include <hven/qp/ipqp_evidence.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
-
 // Forward-declared, not included: `drivers/trace.h` is the PUBLIC schema and
-// this header must not pull it in (the cycle it once broke is gone -- the
-// evidence blocks moved to `ipqp_evidence.h`); a pointer/const-ref suffices.
+// this header must not pull it in; a pointer/const-ref suffices.
+namespace hven {
 class TraceSink;
-struct IpqpTraceIterEvent;
-struct IpqpTraceRegEvent;
-struct IpqpTraceRestartEvent;
-struct IpqpTraceCertifyEvent;
-struct IpqpTraceEscapeEvent;
+struct IpqpIterTraceEvent;
+struct IpqpRegTraceEvent;
+struct IpqpRestartTraceEvent;
+struct IpqpCertifyTraceEvent;
+struct IpqpEscapeTraceEvent;
+} // namespace hven
 
-namespace detail {
+namespace hven::detail {
 
 // ===========================================================================
 // The inertia ladder: Wachter-Biegler 2006 Algorithm IC, with two declared
@@ -199,8 +198,6 @@ inline constexpr double kIpqpStallMuFactor = 2.0;
 /// Spec 6.2 states the value (`1e-2`). A WHOLE-WINDOW property by construction -- "never
 /// abort on one tiny-alpha iteration" -- so one healthy step in the window disarms it.
 inline constexpr double kIpqpStallAlpha = 1.0e-2;
-
-} // namespace detail
 
 /// @brief Why a tier solve stopped without a standing certificate.
 ///
@@ -564,12 +561,12 @@ class IpqpEngine {
     ///                  VALIDATED here and then deliberately unused.
     ///
     /// @throws std::invalid_argument for CALLER errors -- a malformed
-    ///         `QpProblem`, an out-of-range `IpqpOptions` or `SolveOverrides`
+    ///         `QpProblem`, an out-of-range `IpqpOptions` or `QpSolveOverrides`
     ///         field, a seed whose blocks are wrongly sized or non-finite. A
     ///         solve that cannot make progress reports a status and an `IpqpEscape` and does
     ///         NOT throw; that separation is `SsnEngine::solve`'s and is kept exactly.
     IpqpResult solve(const QpProblem &qp, const IpqpSeed *seed, const IpqpOptions &iopts,
-                     const SolveOverrides &overrides);
+                     const QpSolveOverrides &overrides);
 
     /// @brief THE CROSS-MAJOR CARRY (spec 5.1 flow (b)): the state the last solve on this
     /// instance finished at, or `nullptr` when none is armed. Engine-internal currency the
@@ -611,11 +608,11 @@ class IpqpEngine {
 
     // Five named private emit sites, each a no-op when unattached.
     // `ipqp.route`/`qp.mode` are the driver's own -- see attach_trace's doc.
-    void emit_trace_iter(const IpqpTraceIterEvent &event) const;
-    void emit_trace_reg(const IpqpTraceRegEvent &event) const;
-    void emit_trace_restart(const IpqpTraceRestartEvent &event) const;
-    void emit_trace_certify(const IpqpTraceCertifyEvent &event) const;
-    void emit_trace_escape(const IpqpTraceEscapeEvent &event) const;
+    void emit_trace_iter(const IpqpIterTraceEvent &event) const;
+    void emit_trace_reg(const IpqpRegTraceEvent &event) const;
+    void emit_trace_restart(const IpqpRestartTraceEvent &event) const;
+    void emit_trace_certify(const IpqpCertifyTraceEvent &event) const;
+    void emit_trace_escape(const IpqpEscapeTraceEvent &event) const;
 };
 
 /// @brief What one tier outcome is, in the section 6.1 ladder's own currency.
@@ -695,7 +692,8 @@ class IpqpEscapeLadder {
 
 /// @brief Build the immutable clamp-centred box (IpqpBox's own contract).
 /// @param qp     the subproblem, already validated.
-/// @param radius the EFFECTIVE trust-region radius: `SolveOverrides::trust_region_radius` resolved
+/// @param radius the EFFECTIVE trust-region radius: `QpSolveOverrides::trust_region_radius`
+/// resolved
 ///               against `QpOptions::trust_region_radius`; +inf disables the window exactly.
 /// @throws std::invalid_argument if `radius` is negative or NaN, or if a
 ///         declared bound is NaN, checked here rather than left to Eigen's asserts (NDEBUG
@@ -716,7 +714,7 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box);
 /// @param opts      the engine's own options.
 /// @param overrides this call's overrides.
 /// @return the effective radius; +inf disables the window exactly.
-double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides);
+double ipqp_effective_tr_radius(const QpOptions &opts, const QpSolveOverrides &overrides);
 
 /// @brief The tier's stopping rule as a predicate on a residual block.
 ///
@@ -735,4 +733,4 @@ double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &ove
 bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 
-} // namespace hven
+} // namespace hven::detail

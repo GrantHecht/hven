@@ -104,12 +104,12 @@ class ConsoleTraceSink final : public TraceSink {
     const Format &format() const { return fmt_; }
 
     // --- The QP-tier events: nothing is rendered for any of them. ---
-    void on_ipqp_iter(const IpqpTraceIterEvent &event) override;
-    void on_ipqp_reg(const IpqpTraceRegEvent &event) override;
-    void on_ipqp_restart(const IpqpTraceRestartEvent &event) override;
-    void on_ipqp_route(const IpqpTraceRouteEvent &event) override;
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &event) override;
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override;
+    void on_ipqp_iter(const IpqpIterTraceEvent &event) override;
+    void on_ipqp_reg(const IpqpRegTraceEvent &event) override;
+    void on_ipqp_restart(const IpqpRestartTraceEvent &event) override;
+    void on_ipqp_route(const IpqpRouteTraceEvent &event) override;
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &event) override;
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override;
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
 
@@ -213,12 +213,12 @@ class FanOutTraceSink final : public TraceSink {
     /// @brief The sink this fan-out forwards to SECOND.
     TraceSink *second() const { return second_; }
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &event) override;
-    void on_ipqp_reg(const IpqpTraceRegEvent &event) override;
-    void on_ipqp_restart(const IpqpTraceRestartEvent &event) override;
-    void on_ipqp_route(const IpqpTraceRouteEvent &event) override;
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &event) override;
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override;
+    void on_ipqp_iter(const IpqpIterTraceEvent &event) override;
+    void on_ipqp_reg(const IpqpRegTraceEvent &event) override;
+    void on_ipqp_restart(const IpqpRestartTraceEvent &event) override;
+    void on_ipqp_route(const IpqpRouteTraceEvent &event) override;
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &event) override;
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override;
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
     void on_sqp_major(const SqpMajorTraceEvent &event) override;

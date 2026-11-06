@@ -55,7 +55,7 @@
 // Dependency-ordered.
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/barrier_governor.h"
@@ -80,6 +80,8 @@
 // public header only forward-declares IpmPolishData -- see its note there.
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/warmstart/ipm_polish_extension.h"
+
+using namespace hven::detail;
 
 // clang-format on
 
@@ -108,22 +110,22 @@ namespace {
 
 using LinearOptions = hven::linear::SymmetricFactor::Options;
 
-// Fill-in reordering. Exhaustive, so a value outside KktOrdering' three
+// Fill-in reordering. Exhaustive, so a value outside IpmOrdering' three
 // cases is rejected here rather than reaching a backend parameter slot as an
 // unvalidated int. Requested explicitly on both backends: Accelerate's own
 // default is AMD, so leaving the ordering unstated there would silently change
 // which method runs, not merely its cost.
-LinearOptions::Ordering linear_ordering_of(hven::KktOrdering mode) {
-    using KktOrdering = hven::KktOrdering;
+LinearOptions::Ordering linear_ordering_of(hven::IpmOrdering mode) {
+    using IpmOrdering = hven::IpmOrdering;
     switch (mode) {
-    case KktOrdering::kMinimumDegree:
+    case IpmOrdering::kMinimumDegree:
         return LinearOptions::Ordering::kMinimumDegree;
-    case KktOrdering::kNestedDissection:
+    case IpmOrdering::kNestedDissection:
         // Serial METIS: faster than the parallel variant at all tested scales
         // (up to ~5400 primal variables) due to per-call thread coordination
         // overhead.
         return LinearOptions::Ordering::kNestedDissection;
-    case KktOrdering::kParallelNestedDissection:
+    case IpmOrdering::kParallelNestedDissection:
         // The parallel nested-dissection variant. Currently slower than serial
         // at tested scales; retained for tracking backend improvements. The
         // linear layer downgrades it at runtime on a host that lacks it.
@@ -134,33 +136,34 @@ LinearOptions::Ordering linear_ordering_of(hven::KktOrdering mode) {
 }
 
 // Pivoting strategy for symmetric indefinite matrices.
-LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::KktPivoting mode) {
-    using KktPivoting = hven::KktPivoting;
+LinearOptions::PivotStrategy linear_pivot_strategy_of(hven::IpmPivotStrategy mode) {
+    using IpmPivotStrategy = hven::IpmPivotStrategy;
     switch (mode) {
-    case KktPivoting::kOneByOne:
+    case IpmPivotStrategy::kOneByOne:
         return LinearOptions::PivotStrategy::kOneByOne;
-    case KktPivoting::kTwoByTwo:
+    case IpmPivotStrategy::kTwoByTwo:
         return LinearOptions::PivotStrategy::kTwoByTwo;
     }
     throw std::invalid_argument(fmt::format(
-        "hven interior-point solver: unknown linear.pivoting ({})", static_cast<int>(mode)));
+        "hven interior-point solver: unknown linear.pivot_strategy ({})", static_cast<int>(mode)));
 }
 
-LinearOptions::SolveParallelism linear_solve_parallelism_of(hven::KktSolveParallelism mode) {
-    using KktSolveParallelism = hven::KktSolveParallelism;
+LinearOptions::SolveParallelism linear_solve_parallelism_of(hven::IpmSolveParallelism mode) {
+    using IpmSolveParallelism = hven::IpmSolveParallelism;
     switch (mode) {
-    case KktSolveParallelism::kAdaptive:
+    case IpmSolveParallelism::kAdaptivePartitioning:
         return LinearOptions::SolveParallelism::kAdaptivePartitioning;
-    case KktSolveParallelism::kSequential:
+    case IpmSolveParallelism::kSequential:
         return LinearOptions::SolveParallelism::kSequential;
     }
-    throw std::invalid_argument(fmt::format(
-        "hven interior-point solver: unknown linear.parallel_solve ({})", static_cast<int>(mode)));
+    throw std::invalid_argument(
+        fmt::format("hven interior-point solver: unknown linear.solve_parallelism ({})",
+                    static_cast<int>(mode)));
 }
 
 } // namespace
 
-hven::IpmStopReason hven::IpmSolverImpl::limit_reached() const {
+hven::IpmStopReason hven::detail::IpmSolverImpl::limit_reached() const {
     const CommonOptions &c = this->opts_.common;
     if (c.max_factorizations &&
         this->lifetime_factorize_count() - this->limit_factorize_base_ >= *c.max_factorizations) {
@@ -177,20 +180,20 @@ hven::IpmStopReason hven::IpmSolverImpl::limit_reached() const {
 // The label for a phase that stopped on its iteration cap: a work or time limit
 // reached at the same boundary takes it instead, and ends the solve's phase
 // sequence.
-hven::IpmStopReason hven::IpmSolverImpl::cap_or_limit_reason() {
+hven::IpmStopReason hven::detail::IpmSolverImpl::cap_or_limit_reason() {
     const IpmStopReason limit = this->limit_reached();
     if (limit == IpmStopReason::kNone)
-        return IpmStopReason::kIterationCap;
+        return IpmStopReason::kIterationLimit;
     this->limit_stop_ = true;
     return limit;
 }
 
-void hven::IpmSolverImpl::set_qp_params() {
+void hven::detail::IpmSolverImpl::set_qp_params() {
     LinearOptions opts;
-    opts.kind = hven::linear::FactorKind::kLdlt;
-    opts.num_threads = opts_.common.threads;
-    opts.pivot_perturb_exp = opts_.linear.pivot_perturbation;
-    opts.max_refinement_iters = opts_.linear.refinement_steps;
+    opts.decomposition = hven::linear::Decomposition::kLdlt;
+    opts.threads = opts_.common.threads;
+    opts.pivot_perturbation_exponent = opts_.linear.pivot_perturbation_exponent;
+    opts.max_refinement_steps = opts_.linear.max_refinement_steps;
     opts.ordering = linear_ordering_of(opts_.linear.ordering);
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -210,20 +213,21 @@ void hven::IpmSolverImpl::set_qp_params() {
     // rejection above exists to prevent.
     if (opts_.linear.refinement_steps != 0) {
         throw std::invalid_argument(fmt::format(
-            "hven interior-point solver: linear.refinement_steps = {} cannot be applied -- the "
+            "hven interior-point solver: linear.max_refinement_steps = {} cannot be applied -- the "
             "sparse linear surface performs no "
             "iterative refinement on this backend, so a nonzero cap would be inert",
             opts_.linear.refinement_steps));
     }
 
-    opts.accelerate_zero_tolerance = opts_.linear.accelerate_zero_tolerance;
+    opts.accelerate_zero_tol = opts_.linear.accelerate_zero_tol;
 #else
-    opts.weighted_matching = opts_.linear.matching != 0;
-    opts.matrix_scaling = opts_.linear.scaling != 0;
-    opts.pivot_strategy = linear_pivot_strategy_of(opts_.linear.pivoting);
+    opts.weighted_matching = opts_.linear.weighted_matching != 0;
+    opts.matrix_scaling = opts_.linear.matrix_scaling != 0;
+    opts.pivot_strategy = linear_pivot_strategy_of(opts_.linear.pivot_strategy);
     opts.factorization_algorithm = LinearOptions::FactorizationAlgorithm::kClassic;
-    opts.solve_parallelism = linear_solve_parallelism_of(opts_.linear.parallel_solve);
-    opts.cnr_threads = opts_.linear.conditional_reproducibility ? opts_.common.threads : 0;
+    opts.solve_parallelism = linear_solve_parallelism_of(opts_.linear.solve_parallelism);
+    opts.conditional_reproducibility_threads =
+        opts_.linear.conditional_reproducibility ? opts_.common.threads : 0;
     // The factorization-cost estimate is read unconditionally after every
     // numeric factorization and reported in the exit statistics, so the report
     // is requested unconditionally too.
@@ -253,7 +257,7 @@ void hven::IpmSolverImpl::set_qp_params() {
 
 // KKT matrix analysis
 
-bool hven::IpmSolverImpl::claim_kkt_analysis() {
+bool hven::detail::IpmSolverImpl::claim_kkt_analysis() {
     bool docompute = true;
     if (this->qp_analyzed_ && !(opts_.linear.force_analysis)) {
         docompute = false;
@@ -284,7 +288,7 @@ bool hven::IpmSolverImpl::claim_kkt_analysis() {
 // once per emit (below, at all SIX emit sites -- the four row sites, the begin
 // block and the end block) closes what a re-entrant call could still have done
 // between the null check and the call, or between two emits of one pair.
-void hven::IpmSolverImpl::attach_trace(TraceSink *sink) {
+void hven::detail::IpmSolverImpl::attach_trace(TraceSink *sink) {
     if (this->solve_in_flight_) {
         throw std::logic_error(
             "IpmSolver::attach_trace: a solve is in flight on this solver; the trace "
@@ -297,7 +301,7 @@ void hven::IpmSolverImpl::attach_trace(TraceSink *sink) {
 // THE SQP DRIVER'S OWN attach_ledger, in shape and in every rule -- see the
 // contract on the declaration. The counter is reset here and advanced only
 // where a record is actually written (the two public solve() overloads).
-void hven::IpmSolverImpl::attach_ledger(Ledger *ledger, std::string label_prefix) {
+void hven::detail::IpmSolverImpl::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
     label_prefix_ = std::move(label_prefix);
     solve_counter_ = 0;
@@ -307,7 +311,8 @@ void hven::IpmSolverImpl::attach_ledger(Ledger *ledger, std::string label_prefix
 // list, and neither the phase loop nor `run_phase_sequence` writes a record --
 // the record's `wall_seconds` is the ENTRY clock's, which only the public
 // overload holds, and `phases_run` is read off the finished result.
-void hven::IpmSolverImpl::record_solve(const IpmResult &result, Index factorize_count_at_entry) {
+void hven::detail::IpmSolverImpl::record_solve(const IpmResult &result,
+                                               Index factorize_count_at_entry) {
     if (this->ledger_ == nullptr) {
         return;
     }
@@ -320,7 +325,7 @@ void hven::IpmSolverImpl::record_solve(const IpmResult &result, Index factorize_
         ran += phase.ran ? 1 : 0;
     }
     rec.phases_run = ran;
-    rec.total_time = result.timing.total;
+    rec.total_time = result.timing.total_seconds;
     // A PER-CALL DELTA, not a total: on a solver reused for a second solve a
     // running total would charge this record for the first call's work too.
     //
@@ -343,7 +348,7 @@ void hven::IpmSolverImpl::record_solve(const IpmResult &result, Index factorize_
     rec.factorizations = this->lifetime_factorize_count() - factorize_count_at_entry;
     // Already per call -- the engine's own counter, not a delta.
     rec.analyses = result.kkt_analyses_this_call;
-    rec.soc_steps_taken = result.soc_steps_taken;
+    rec.soc_steps_taken = result.second_order_corrections;
     rec.watchdog_activations = result.watchdog_activations;
     rec.wall_seconds = result.wall_seconds;
     this->ledger_->record(std::move(rec));
@@ -361,18 +366,18 @@ void hven::IpmSolverImpl::record_solve(const IpmResult &result, Index factorize_
 
 // Barrier math helpers
 
-void hven::IpmSolverImpl::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
-                                             Eigen::Ref<Eigen::VectorXd> FXI) const {
+void hven::detail::IpmSolverImpl::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
+                                                     Eigen::Ref<Eigen::VectorXd> FXI) const {
     detail::apply_reset_slacks(S, FXI, this->slack_vars_, opts_.advanced.negative_slack_reset);
 }
 
 // max_step_to_boundary lives on BacktrackingLineSearch
 // (src/drivers/ipm_solver_globalization.cpp).
 
-void hven::IpmSolverImpl::complementarity(Eigen::Ref<Eigen::VectorXd> X,
-                                          Eigen::Ref<Eigen::VectorXd> S,
-                                          Eigen::Ref<Eigen::VectorXd> LI, double &avgcomp,
-                                          double &mincomp, double &maxcomp) const {
+void hven::detail::IpmSolverImpl::complementarity(Eigen::Ref<Eigen::VectorXd> X,
+                                                  Eigen::Ref<Eigen::VectorXd> S,
+                                                  Eigen::Ref<Eigen::VectorXd> LI, double &avgcomp,
+                                                  double &mincomp, double &maxcomp) const {
     // Keep the exact Eigen .sum()/minCoeff()/maxCoeff() reduction expressions
     // over the slack pairs unchanged. avgcomp feeds mu (see mpc_mu/loqo_mu call
     // sites), so a hand-fused loop that reorders the sum could perturb the
@@ -407,15 +412,16 @@ void hven::IpmSolverImpl::complementarity(Eigen::Ref<Eigen::VectorXd> X,
                                               avgcomp, mincomp, maxcomp);
 }
 
-int hven::IpmSolverImpl::complementarity_pair_count(int slack_count) const {
+int hven::detail::IpmSolverImpl::complementarity_pair_count(int slack_count) const {
     if (!this->bounds_)
         return slack_count;
     return slack_count + static_cast<int>(this->bounds_->lower_idx_.size()) +
            static_cast<int>(this->bounds_->upper_idx_.size());
 }
 
-void hven::IpmSolverImpl::augment_complementarity_nested(double &avgcomp, double &mincomp,
-                                                         double &maxcomp, int base_count) const {
+void hven::detail::IpmSolverImpl::augment_complementarity_nested(double &avgcomp, double &mincomp,
+                                                                 double &maxcomp,
+                                                                 int base_count) const {
     // Off the nested restoration path this is a pure no-op: the aggregates keep
     // the exact values complementarity() produced, so the default/proximal
     // barrier machinery is byte-identical (the CBWR gate depends on it).
@@ -449,9 +455,9 @@ void hven::IpmSolverImpl::augment_complementarity_nested(double &avgcomp, double
     }
 }
 
-void hven::IpmSolverImpl::barrier_hessian(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                          Eigen::Ref<Eigen::VectorXd> S,
-                                          Eigen::Ref<Eigen::VectorXd> LI, double mu) {
+void hven::detail::IpmSolverImpl::barrier_hessian(
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, Eigen::Ref<Eigen::VectorXd> S,
+    Eigen::Ref<Eigen::VectorXd> LI, double mu) {
     this->hp_scratch_.resize(S.size());
     this->hp_scratch_ = LI.cwiseQuotient(S);
     for (int i = 0; i < this->inequal_cons_; i++) {
@@ -469,7 +475,8 @@ void hven::IpmSolverImpl::barrier_hessian(Eigen::SparseMatrix<double, Eigen::Row
 // Native variable-bound helpers. Every one is a no-op when bounds_ is null,
 // which is the whole story on a problem that declares no variable bounds.
 
-void hven::IpmSolverImpl::push_initial_point_interior(EigenRef<Eigen::VectorXd> x, double mu0) {
+void hven::detail::IpmSolverImpl::push_initial_point_interior(EigenRef<Eigen::VectorXd> x,
+                                                              double mu0) {
     this->bound_duals_ = BoundDualState{};
     if (!this->bounds_)
         return;
@@ -539,9 +546,9 @@ void hven::IpmSolverImpl::push_initial_point_interior(EigenRef<Eigen::VectorXd> 
     }
 }
 
-void hven::IpmSolverImpl::compute_bound_dual_direction(ConstEigenRef<Eigen::VectorXd> x,
-                                                       ConstEigenRef<Eigen::VectorXd> dx,
-                                                       double mu) {
+void hven::detail::IpmSolverImpl::compute_bound_dual_direction(ConstEigenRef<Eigen::VectorXd> x,
+                                                               ConstEigenRef<Eigen::VectorXd> dx,
+                                                               double mu) {
     if (!this->bounds_)
         return;
     const BoundSet &b = *this->bounds_;
@@ -563,8 +570,8 @@ void hven::IpmSolverImpl::compute_bound_dual_direction(ConstEigenRef<Eigen::Vect
     }
 }
 
-void hven::IpmSolverImpl::apply_bound_dual_step(double alphad, KktVector &xsl_new, double mu,
-                                                bool monotone_mu) {
+void hven::detail::IpmSolverImpl::apply_bound_dual_step(double alphad, KktVector &xsl_new,
+                                                        double mu, bool monotone_mu) {
     if (!this->bounds_)
         return;
     const BoundSet &b = *this->bounds_;
@@ -658,15 +665,15 @@ void hven::IpmSolverImpl::apply_bound_dual_step(double alphad, KktVector &xsl_ne
     this->bound_duals_.dz_upper_.setZero();
 }
 
-void hven::IpmSolverImpl::add_bound_sigma(ConstEigenRef<Eigen::VectorXd> x,
-                                          EigenRef<Eigen::VectorXd> diag) const {
+void hven::detail::IpmSolverImpl::add_bound_sigma(ConstEigenRef<Eigen::VectorXd> x,
+                                                  EigenRef<Eigen::VectorXd> diag) const {
     if (!this->bounds_)
         return;
     detail::accumulate_bound_sigma(x, *this->bounds_, this->bound_duals_, diag);
 }
 
-void hven::IpmSolverImpl::install_primal_diags_with_sigma(ConstEigenRef<Eigen::VectorXd> x,
-                                                          double base) {
+void hven::detail::IpmSolverImpl::install_primal_diags_with_sigma(ConstEigenRef<Eigen::VectorXd> x,
+                                                                  double base) {
     if (!this->bounds_) {
         this->nlp_->set_primal_diags(base);
         return;
@@ -676,7 +683,8 @@ void hven::IpmSolverImpl::install_primal_diags_with_sigma(ConstEigenRef<Eigen::V
     this->nlp_->set_primal_diags(this->bound_sigma_scratch_);
 }
 
-double hven::IpmSolverImpl::dual_infeasibility_inf(ConstEigenRef<Eigen::VectorXd> prim_base) const {
+double hven::detail::IpmSolverImpl::dual_infeasibility_inf(
+    ConstEigenRef<Eigen::VectorXd> prim_base) const {
     if (!this->bounds_)
         return prim_base.lpNorm<Eigen::Infinity>();
     this->bound_resid_scratch_ = prim_base;
@@ -687,10 +695,10 @@ double hven::IpmSolverImpl::dual_infeasibility_inf(ConstEigenRef<Eigen::VectorXd
 
 // NLP eval dispatch methods
 
-void hven::IpmSolverImpl::assemble_dispatch(EvalRequest request, double obj_scale,
-                                            ConstEigenRef<VectorXd> XSL, double &val,
-                                            EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                            Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::detail::IpmSolverImpl::assemble_dispatch(
+    EvalRequest request, double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
+    EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     constexpr EvalRequest kKktBearing = EvalRequest::kObjectiveHessian |
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
@@ -726,8 +734,8 @@ void hven::IpmSolverImpl::assemble_dispatch(EvalRequest request, double obj_scal
     this->nlp_->fill_solver_coeffs(KKTmat);
 }
 
-void hven::IpmSolverImpl::assemble_objective(double obj_scale, ConstEigenRef<VectorXd> primals,
-                                             double &val) {
+void hven::detail::IpmSolverImpl::assemble_objective(double obj_scale,
+                                                     ConstEigenRef<VectorXd> primals, double &val) {
     RhsScatterView rhs;
     rhs.objective = &val;
     // A values-only request reads no multipliers, so both blocks are empty.
@@ -738,30 +746,33 @@ void hven::IpmSolverImpl::assemble_objective(double obj_scale, ConstEigenRef<Vec
         kRequestObjectiveOnly, KktScatterView{}, rhs);
 }
 
-void hven::IpmSolverImpl::eval_kkt(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                   EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::detail::IpmSolverImpl::eval_kkt(double obj_scale, ConstEigenRef<VectorXd> XSL,
+                                           double &val, EigenRef<VectorXd> GX,
+                                           EigenRef<VectorXd> AGXS_FX,
+                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->assemble_dispatch(kRequestFullKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::IpmSolverImpl::eval_kkt_no(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                      EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::detail::IpmSolverImpl::eval_kkt_no(
+    double obj_scale, ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
+    EigenRef<VectorXd> AGXS_FX, Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // No-objective mode: this request names no objective output, so obj_scale
     // and val are unused. Both stay in the signature to keep one shape across
     // the four wrappers.
     this->assemble_dispatch(kRequestConstraintKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::IpmSolverImpl::eval_aug(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                   EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::detail::IpmSolverImpl::eval_aug(double obj_scale, ConstEigenRef<VectorXd> XSL,
+                                           double &val, EigenRef<VectorXd> GX,
+                                           EigenRef<VectorXd> AGXS_FX,
+                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     this->assemble_dispatch(kRequestFirstOrderKkt, obj_scale, XSL, val, GX, AGXS_FX, KKTmat);
 }
 
-void hven::IpmSolverImpl::eval_soe(double obj_scale, ConstEigenRef<VectorXd> XSL, double &val,
-                                   EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
-                                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
+void hven::detail::IpmSolverImpl::eval_soe(double obj_scale, ConstEigenRef<VectorXd> XSL,
+                                           double &val, EigenRef<VectorXd> GX,
+                                           EigenRef<VectorXd> AGXS_FX,
+                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
     // Constraint-only mode, as eval_kkt_no above: neither obj_scale nor val is
     // read by this request.
     this->assemble_dispatch(kRequestConstraintResidualsAndJacobian, obj_scale, XSL, val, GX,
@@ -770,10 +781,10 @@ void hven::IpmSolverImpl::eval_soe(double obj_scale, ConstEigenRef<VectorXd> XSL
 
 // Solver initialization and NLP setup
 
-void hven::IpmSolverImpl::ensure_solver_initialized() {
-    double initMs = ::hven::ensure_solver_initialized();
+void hven::detail::IpmSolverImpl::ensure_solver_initialized() {
+    double initMs = ::hven::detail::ensure_solver_initialized();
     if (initMs > 0.0) {
-        this->result_.timing.solver_init = initMs / 1000.0;
+        this->result_.timing.solver_initialization_seconds = initMs / 1000.0;
         // THE NOTICE IS AN EVENT (M6 W5 T8.7b, brief section 5 A1). It used to be a
         // direct print, and it is not construction-time: this function is
         // called from `run_phase_sequence`, INSIDE the solve, after
@@ -801,7 +812,7 @@ void hven::IpmSolverImpl::ensure_solver_initialized() {
 // where the default constructor has always applied it -- a count written after
 // construction (set_qp_threads() before M6 W5 T8.3, set_options() after it) is
 // the caller's explicit word and is taken verbatim, as it always was.
-hven::IpmSolverImpl::IpmSolverImpl(IpmOptions opts) : opts_(std::move(opts)) {
+hven::detail::IpmSolverImpl::IpmSolverImpl(IpmOptions opts) : opts_(std::move(opts)) {
     hven::validate(this->opts_);
     opts_.common.threads = std::min(opts_.common.threads, hven::detail::get_core_count());
 }
@@ -837,7 +848,7 @@ hven::IpmSolverImpl::IpmSolverImpl(IpmOptions opts) : opts_(std::move(opts)) {
 // any program re-runs set_qp_params() and re-analyses. Nothing is refused,
 // nothing is silently ignored, and every other field goes on taking effect on
 // the next solve exactly as before.
-void hven::IpmSolverImpl::set_options(IpmOptions o) {
+void hven::detail::IpmSolverImpl::set_options(IpmOptions o) {
     if (this->solve_in_flight_)
         throw std::logic_error(
             "IpmSolver::set_options: a solve is in flight on this solver; options may "
@@ -845,14 +856,15 @@ void hven::IpmSolverImpl::set_options(IpmOptions o) {
     hven::validate(o);
     const bool transcription_field_moved =
         o.linear.ordering != opts_.linear.ordering ||
-        o.linear.pivot_perturbation != opts_.linear.pivot_perturbation ||
-        o.linear.refinement_steps != opts_.linear.refinement_steps ||
-        o.linear.matching != opts_.linear.matching || o.linear.scaling != opts_.linear.scaling ||
-        o.linear.pivoting != opts_.linear.pivoting ||
-        o.linear.parallel_solve != opts_.linear.parallel_solve ||
+        o.linear.pivot_perturbation_exponent != opts_.linear.pivot_perturbation_exponent ||
+        o.linear.max_refinement_steps != opts_.linear.max_refinement_steps ||
+        o.linear.weighted_matching != opts_.linear.weighted_matching ||
+        o.linear.matrix_scaling != opts_.linear.matrix_scaling ||
+        o.linear.pivot_strategy != opts_.linear.pivot_strategy ||
+        o.linear.solve_parallelism != opts_.linear.solve_parallelism ||
         o.linear.conditional_reproducibility != opts_.linear.conditional_reproducibility
 #ifdef USE_ACCELERATE_SPARSE
-        || o.linear.accelerate_zero_tolerance != opts_.linear.accelerate_zero_tolerance
+        || o.linear.accelerate_zero_tol != opts_.linear.accelerate_zero_tol
 #endif
         ;
     if (transcription_field_moved) {
@@ -861,7 +873,7 @@ void hven::IpmSolverImpl::set_options(IpmOptions o) {
     this->opts_ = std::move(o);
 }
 
-hven::IpmSolverImpl::~IpmSolverImpl() = default;
+hven::detail::IpmSolverImpl::~IpmSolverImpl() = default;
 
 // Re-reads the problem dimensions from the NLP. The primal width is the SOLVER's
 // -- the NLP's variable count minus whatever the fixed-variable treatment
@@ -871,7 +883,7 @@ hven::IpmSolverImpl::~IpmSolverImpl() = default;
 // initial guess must have and what a returned solution is expanded back to.
 // Called by set_nlp and again at solve entry whenever a configuration changed
 // the reduction.
-void hven::IpmSolverImpl::refresh_nlp_dimensions() {
+void hven::detail::IpmSolverImpl::refresh_nlp_dimensions() {
     this->full_primal_vars_ = this->nlp_->primal_vars_;
     this->primal_vars_ = this->nlp_->reduced_primal_vars();
     this->equal_cons_ = this->nlp_->equal_cons_;
@@ -896,7 +908,7 @@ void hven::IpmSolverImpl::refresh_nlp_dimensions() {
 // of the KKT sparsity pattern.
 //
 // PRECONDITION: nlp_ is bound (the entry binds it before calling).
-void hven::IpmSolverImpl::transcribe_bound_program() {
+void hven::detail::IpmSolverImpl::transcribe_bound_program() {
     // Any bound set this solver was pointing at belonged to the previous
     // program, and the multipliers indexed it. The next configuration step
     // re-reads both. result_.z is reset alongside them so a solver reused
@@ -935,7 +947,7 @@ void hven::IpmSolverImpl::transcribe_bound_program() {
     this->analyze_kkt_sparsity();
 }
 
-void hven::IpmSolverImpl::analyze_kkt_sparsity() {
+void hven::detail::IpmSolverImpl::analyze_kkt_sparsity() {
     this->nlp_->analyze_sparsity(this->kkt_sol_.matrix());
 
     // Read AFTER the lay, not before: analyze_sparsity does not bump the
@@ -968,7 +980,7 @@ void hven::IpmSolverImpl::analyze_kkt_sparsity() {
     this->qp_analyzed_ = false;
 }
 
-void hven::IpmSolverImpl::clear_reported_constraint_blocks() {
+void hven::detail::IpmSolverImpl::clear_reported_constraint_blocks() {
     hven::detail::engine_rows(this->result_).lambda_e.resize(0);
     hven::detail::engine_rows(this->result_).lambda_i.resize(0);
     hven::detail::engine_rows(this->result_).ce.resize(0);
@@ -981,7 +993,7 @@ void hven::IpmSolverImpl::clear_reported_constraint_blocks() {
 // treatment the analysis was laid under -- never an address, because there is
 // no retained address to compare and a new program may sit where an old one
 // did.
-bool hven::IpmSolverImpl::kkt_pattern_is_analyzed(const NonLinearProgram &model) const {
+bool hven::detail::IpmSolverImpl::kkt_pattern_is_analyzed(const NonLinearProgram &model) const {
     return this->analysis_matches(model) && !this->qp_params_dirty_;
 }
 
@@ -991,7 +1003,7 @@ bool hven::IpmSolverImpl::kkt_pattern_is_analyzed(const NonLinearProgram &model)
 // (which must be transcribed) from "the same program under stale backend
 // options" (which must be re-transcribed too, but for a different reason worth
 // keeping separable).
-bool hven::IpmSolverImpl::analysis_matches(const NonLinearProgram &model) const {
+bool hven::detail::IpmSolverImpl::analysis_matches(const NonLinearProgram &model) const {
     // THE FOURTH CONJUNCT IS AN OWNER ID, NOT AN ADDRESS (M6 W5 T8.4 fix1).
     // T8.4 compared `model.bound_kkt_destination()` against this solver's
     // captured value-array address, which answers "did I lay this program's
@@ -1015,7 +1027,8 @@ bool hven::IpmSolverImpl::analysis_matches(const NonLinearProgram &model) const 
            model.analyzed_owner_id() == this->analyzed_owner_id_;
 }
 
-hven::KktFactorization::PatternCheck hven::IpmSolverImpl::kkt_pattern_check() const {
+hven::detail::KktFactorization::PatternCheck
+hven::detail::IpmSolverImpl::kkt_pattern_check() const {
     // A CALL THAT HANDS THE MATRIX OUT VERIFIES FROM THAT POINT ON. The early
     // callback receives the assembly buffer by mutable reference, and an edit
     // made there is not a model event: it changes the buffer's pattern without
@@ -1085,7 +1098,7 @@ hven::KktFactorization::PatternCheck hven::IpmSolverImpl::kkt_pattern_check() co
 // kkt_dim_, and every component reads the updated values through its reference.
 // A component that copied them here would be left describing a problem that no
 // longer exists.
-void hven::IpmSolverImpl::rebuild_globalization_components() {
+void hven::detail::IpmSolverImpl::rebuild_globalization_components() {
     // (Re)build the optional feasibility-restoration mode-switch FIRST, so the
     // ClassicMeritAcceptance SolverContext below captures a valid (or null)
     // restoration_ pointer. Default (off) leaves it null — no RestorationStrategy
@@ -1101,9 +1114,9 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
     // FeasibilitySwitchRecovery and alg_impl's restoration-active branches
     // rely on to end a restoration episode — so restoration_mode_ composes
     // with all four unconditionally, by construction.
-    if (this->opts_.advanced.restoration_mode == RestorationMode::kProximalSwitch) {
+    if (this->opts_.advanced.restoration_mode == IpmRestorationMode::kProximalSwitch) {
         this->restoration_ = std::make_unique<ProximalSwitchRestoration>();
-    } else if (this->opts_.advanced.restoration_mode == RestorationMode::kL1Nested) {
+    } else if (this->opts_.advanced.restoration_mode == IpmRestorationMode::kL1Nested) {
         this->restoration_ = std::make_unique<NestedL1Restoration>();
     } else {
         this->restoration_.reset();
@@ -1111,18 +1124,18 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
 
     // (Re)build the step-acceptance strategy. Default (classic_merit) builds
     // ClassicMeritAcceptance wired to a SolverContext view of this solver.
-    // Opting in (acceptance_strategy_ == merit/funnel/filter) builds the
+    // Opting in (acceptance_mode_ == merit/funnel/filter) builds the
     // corresponding strategy instead — all three drive through the GENERIC
     // compute_step path and carry no SolverContext (the mechanism owns
     // trial-point eval); merit's penalty state is seeded from
     // merit_penalty_rule_, while funnel/filter are default-constructed and
     // derive their bounds lazily from the first iterate they see each phase.
-    if (this->opts_.advanced.acceptance_mode == AcceptanceMode::kMerit) {
+    if (this->opts_.advanced.acceptance_mode == IpmAcceptanceMode::kMerit) {
         this->acceptance_ =
             std::make_unique<ModernMeritAcceptance>(this->opts_.advanced.merit_penalty_rule);
-    } else if (this->opts_.advanced.acceptance_mode == AcceptanceMode::kFunnel) {
+    } else if (this->opts_.advanced.acceptance_mode == IpmAcceptanceMode::kFunnel) {
         this->acceptance_ = std::make_unique<FunnelAcceptance>();
-    } else if (this->opts_.advanced.acceptance_mode == AcceptanceMode::kFilter) {
+    } else if (this->opts_.advanced.acceptance_mode == IpmAcceptanceMode::kFilter) {
         // HARD CONTRACT: seed the restoration-exit constraint-tolerance floor
         // from the live settings tolerance. FilterAcceptance's exit test
         // (is_infeasibility_sufficiently_reduced) floors the relative
@@ -1161,7 +1174,7 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
     // own monotone-mode bookkeeping (the KKT-error reference window, current
     // mode, current monotone mu) as private state, cleared by reset() at each
     // phase boundary like every other governor's phase-change hook.
-    if (this->opts_.advanced.barrier_governor_mode == BarrierGovernorMode::kMonitored) {
+    if (this->opts_.advanced.barrier_governor_mode == IpmBarrierGovernorMode::kMonitored) {
         this->governor_ = std::make_unique<MonitoredBarrierGovernor>();
     } else {
         this->governor_ = std::make_unique<ClassicAdaptiveGovernor>();
@@ -1210,7 +1223,7 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
     // branch inside it is driven by restoration_->is_nested(), so this wrap
     // condition itself does not need to distinguish the two modes). Off by
     // default, so the recovery chain is unchanged on the default path.
-    if (this->opts_.advanced.restoration_mode != RestorationMode::kOff) {
+    if (this->opts_.advanced.restoration_mode != IpmRestorationMode::kOff) {
         this->recovery_ = std::make_unique<FeasibilitySwitchRecovery>(std::move(this->recovery_));
     }
 }
@@ -1222,7 +1235,7 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
 
 // fill_residual_info() deliberately excludes barr_obj_/mu_/p_pivots_. barr_obj_ is only
 // evaluated by the caller AFTER the barrier-parameter update block (barrier_objective()
-// runs on the just-updated `mu`); for BarrierMode::kProbe that update itself needs the
+// runs on the just-updated `mu`); for IpmBarrierMode::kProbe that update itself needs the
 // KKT solve (mpc_mu() consumes the predictor DXSL). p_pivots_ similarly only reflects a
 // real value once this iteration's factor_impl() has run. All three are therefore NOT
 // "residuals" in the sense converge_check()/return_best_/print_exit_stats consume them
@@ -1235,8 +1248,8 @@ void hven::IpmSolverImpl::rebuild_globalization_components() {
 // iteration (RHS's prim_grad()/eq_cons()/iq_cons()/all_cons() blocks and XSL's
 // slacks()/iq_lmults()/eq_lmults() are not written again until `XSL += alpha*DXSL`,
 // which only executes strictly after this iteration's earliest possible break).
-void hven::IpmSolverImpl::fill_residual_info(KktVector &xsl, KktVector &rhs, double pobj,
-                                             IpmIterate &iter) const {
+void hven::detail::IpmSolverImpl::fill_residual_info(KktVector &xsl, KktVector &rhs, double pobj,
+                                                     IpmIterate &iter) const {
 
     iter.prim_obj = pobj;
     // The z-FORM dual infeasibility. On a problem without variable bounds this
@@ -1279,8 +1292,8 @@ void hven::IpmSolverImpl::fill_residual_info(KktVector &xsl, KktVector &rhs, dou
     }
 }
 
-void hven::IpmSolverImpl::fill_iter_info(KktVector &xsl, KktVector &rhs, double pobj, double bobj,
-                                         double mu, IpmIterate &iter) const {
+void hven::detail::IpmSolverImpl::fill_iter_info(KktVector &xsl, KktVector &rhs, double pobj,
+                                                 double bobj, double mu, IpmIterate &iter) const {
     this->fill_residual_info(xsl, rhs, pobj, iter);
     iter.barr_obj = bobj;
     iter.mu = mu;
@@ -1291,11 +1304,11 @@ void hven::IpmSolverImpl::fill_iter_info(KktVector &xsl, KktVector &rhs, double 
     iter.p_pivots_observed = this->kkt_sol_.inertia_evidence().perturbed_pivots.has_value();
 }
 
-void hven::IpmSolverImpl::eval_nlp(AlgorithmMode algmode, double obj_scale,
-                                   ConstEigenRef<VectorXd> XSL, double &val, EigenRef<VectorXd> GX,
-                                   EigenRef<VectorXd> AGXS_FX,
-                                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
-                                   double mu) {
+void hven::detail::IpmSolverImpl::eval_nlp(AlgorithmMode algmode, double obj_scale,
+                                           ConstEigenRef<VectorXd> XSL, double &val,
+                                           EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
+                                           Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
+                                           double mu) {
     std::fill_n(KKTmat.valuePtr(), KKTmat.nonZeros(), 0.0);
 
     // Feasibility-restoration evaluation seam. Dead on the default path
@@ -1433,7 +1446,7 @@ void hven::IpmSolverImpl::eval_nlp(AlgorithmMode algmode, double obj_scale,
 // once at the live primals, matching the non-OPT obj_val_ eval pattern below
 // (zero the accumulator, then let the objective-value request accumulate into
 // it).
-hven::ProgressMeasures hven::IpmSolverImpl::build_restoration_exit_measures(
+hven::detail::ProgressMeasures hven::detail::IpmSolverImpl::build_restoration_exit_measures(
     double obj_scale, double infeasibility, ConstEigenRef<VectorXd> primals, double barr_obj) {
     ProgressMeasures measures;
     measures.infeasibility = infeasibility;
@@ -1447,9 +1460,10 @@ hven::ProgressMeasures hven::IpmSolverImpl::build_restoration_exit_measures(
 // kSwitchToFeasibility case. Dead on the default path (only reached with
 // restoration_ non-null). Factors the entry sub-steps once so the proximal and
 // nested families do not duplicate the notify/recovery-reset scaffolding.
-void hven::IpmSolverImpl::enter_feasibility_restoration(Eigen::VectorXd &XSL,
-                                                        const Eigen::VectorXd &RHS, double prim_obj,
-                                                        double barr_obj, double &mu) {
+void hven::detail::IpmSolverImpl::enter_feasibility_restoration(Eigen::VectorXd &XSL,
+                                                                const Eigen::VectorXd &RHS,
+                                                                double prim_obj, double barr_obj,
+                                                                double &mu) {
     KktVector v_xsl = kkt_view(XSL);
     // RHS is read five times below and written never, so it is viewed through
     // the READ-ONLY twin (M6 W5 T2). XSL keeps the mutable view: the entry
@@ -1524,10 +1538,11 @@ void hven::IpmSolverImpl::enter_feasibility_restoration(Eigen::VectorXd &XSL,
 
 // Restoration-entry dispatch: one owner of the note_dispatch / entry /
 // reset_window ordering. See the declaration in ipm_solver.h.
-void hven::IpmSolverImpl::dispatch_restoration_entry(Eigen::VectorXd &XSL,
-                                                     const Eigen::VectorXd &RHS, double prim_obj,
-                                                     double barr_obj, double &mu, double theta,
-                                                     FeasibilityStallDetector &feas_stall) {
+void hven::detail::IpmSolverImpl::dispatch_restoration_entry(Eigen::VectorXd &XSL,
+                                                             const Eigen::VectorXd &RHS,
+                                                             double prim_obj, double barr_obj,
+                                                             double &mu, double theta,
+                                                             FeasibilityStallDetector &feas_stall) {
     // A stage resumed after an episode restarts its stall window, and this entry
     // becomes the handback the stall exit measures net progress against.
     feas_stall.note_dispatch(theta);
@@ -1537,8 +1552,8 @@ void hven::IpmSolverImpl::dispatch_restoration_entry(Eigen::VectorXd &XSL,
 
 // Restoration-exit protocol. See the declaration in ipm_solver.h for why this order
 // is load-bearing.
-void hven::IpmSolverImpl::leave_restoration(const ProgressMeasures &measures,
-                                            bool restore_stashed_mu, double &mu) {
+void hven::detail::IpmSolverImpl::leave_restoration(const ProgressMeasures &measures,
+                                                    bool restore_stashed_mu, double &mu) {
     if (restore_stashed_mu) {
         mu = this->stashed_mu_;
         this->governor_->reset();
@@ -1552,9 +1567,10 @@ void hven::IpmSolverImpl::leave_restoration(const ProgressMeasures &measures,
 // MinC_1NrmRestorationPhase::PerformRestoration, strict order). Dead on the
 // default path. Shared byte-for-byte by the κ_resto ratchet exit and the
 // near-feasible stall exit.
-void hven::IpmSolverImpl::exit_feasibility_restoration_nested(Eigen::VectorXd &XSL,
-                                                              double obj_scale, double theta_orig,
-                                                              double barr_obj, double &mu) {
+void hven::detail::IpmSolverImpl::exit_feasibility_restoration_nested(Eigen::VectorXd &XSL,
+                                                                      double obj_scale,
+                                                                      double theta_orig,
+                                                                      double barr_obj, double &mu) {
     KktVector v_xsl = kkt_view(XSL);
 
     // (1) The phase's final x/s are already in XSL — kept as both current and
@@ -1671,20 +1687,20 @@ void hven::IpmSolverImpl::exit_feasibility_restoration_nested(Eigen::VectorXd &X
 // Per-iteration κ_resto ratchet: the original-problem infeasibility must fall to
 // at most max(kKappaResto · previous-iteration value, econ_tol_) (Ipopt
 // RestoConvCheck::CheckConvergence's orig_inf_pr_max, single-tolerance floor).
-bool hven::IpmSolverImpl::resto_ratchet_passes(double theta_orig) const {
+bool hven::detail::IpmSolverImpl::resto_ratchet_passes(double theta_orig) const {
     return theta_orig <=
            std::max(kKappaResto * this->resto_theta_orig_prev_, opts_.common.feasibility_tol);
 }
 
 // ‖c‖₁ over a KKT vector's constraint block. See the declaration in ipm_solver.h.
-double hven::IpmSolverImpl::constraint_violation_l1(const ConstKktVector &v) const {
+double hven::detail::IpmSolverImpl::constraint_violation_l1(const ConstKktVector &v) const {
     return v.all_cons().template lpNorm<1>();
 }
 
 // Original-problem infeasibility (∞-norm) from the nested restoration eval
 // seam's saved raw residuals. Two separate reductions, deliberately not fused;
 // see the declaration in ipm_solver.h.
-double hven::IpmSolverImpl::original_infeasibility_inf() const {
+double hven::detail::IpmSolverImpl::original_infeasibility_inf() const {
     double theta_orig = 0.0;
     if (this->equal_cons_ > 0)
         theta_orig =
@@ -1701,7 +1717,7 @@ double hven::IpmSolverImpl::original_infeasibility_inf() const {
 // zero primal/dual step, so an unbounded retry could stall). Reads the raw
 // residuals the eval seam saved this iteration (resto_ec_/ic_scratch_) and
 // re-solves the elastic pairs in closed form at the current phase μ.
-bool hven::IpmSolverImpl::try_recenter_elastics(double mu) {
+bool hven::detail::IpmSolverImpl::try_recenter_elastics(double mu) {
     if (this->resto_recentered_)
         return false; // budget already consumed this failure run — fall through.
     this->restoration_->recenter_elastics(mu, this->resto_ec_scratch_, this->resto_ic_scratch_);
@@ -1711,9 +1727,9 @@ bool hven::IpmSolverImpl::try_recenter_elastics(double mu) {
 
 // Primal-dual system error at μ: the ∞-norm of the full KKT residual. See the
 // declaration in ipm_solver.h for the Ipopt mapping. Dead on the default path.
-double hven::IpmSolverImpl::primal_dual_error(KktVector &xsl, KktVector &rhs,
-                                              ConstEigenRef<Eigen::VectorXd> prim_base,
-                                              double mu) const {
+double hven::detail::IpmSolverImpl::primal_dual_error(KktVector &xsl, KktVector &rhs,
+                                                      ConstEigenRef<Eigen::VectorXd> prim_base,
+                                                      double mu) const {
     double err = 0.0;
     if (this->primal_vars_ > 0)
         err = std::max(err, this->dual_infeasibility_inf(prim_base));
@@ -1733,11 +1749,9 @@ double hven::IpmSolverImpl::primal_dual_error(KktVector &xsl, KktVector &rhs,
 // Nested soft feasibility pre-stage trial. See the declaration in ipm_solver.h. Dead
 // on the default path (only reached with a nested restoration strategy, via the
 // kSoftFeasibilityStep recovery action; restoration is NOT yet active here).
-bool hven::IpmSolverImpl::try_soft_feasibility_step(AlgorithmMode algmode, double obj_scale,
-                                                    double mu, Eigen::VectorXd &XSL,
-                                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                                    Eigen::VectorXd &GX) {
+bool hven::detail::IpmSolverImpl::try_soft_feasibility_step(
+    AlgorithmMode algmode, double obj_scale, double mu, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, Eigen::VectorXd &GX) {
     KktVector v_xsl = kkt_view(XSL);
     KktVector v_rhs = kkt_view(RHS);
     // Current point: the live RHS already carries the full stationarity (the
@@ -1799,7 +1813,7 @@ bool hven::IpmSolverImpl::try_soft_feasibility_step(AlgorithmMode algmode, doubl
     return trial_pd <= kSoftRestoPdErrorReductionFactor * curr_pd;
 }
 
-hven::SolveStatus hven::IpmSolverImpl::converge_check(std::vector<IpmIterate> &iters) {
+hven::SolveStatus hven::detail::IpmSolverImpl::converge_check(std::vector<IpmIterate> &iters) {
     assert(!iters.empty() && "converge_check called with empty iteration history");
     SolveStatus Flag = SolveStatus::kOptimal;
     IpmIterate last = iters.back();
@@ -1883,7 +1897,7 @@ hven::SolveStatus hven::IpmSolverImpl::converge_check(std::vector<IpmIterate> &i
             return Flag;
         }
     }
-    Flag = SolveStatus::kMaxIter;
+    Flag = SolveStatus::kIterationLimit;
     return Flag;
 }
 
@@ -1891,9 +1905,10 @@ hven::SolveStatus hven::IpmSolverImpl::converge_check(std::vector<IpmIterate> &i
 // inertia (more negative eigenvalues than expected from the constraint block),
 // perturb the primal diagonal by increasing amounts until correct inertia is
 // achieved or max_refac_ attempts are exhausted.
-int hven::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt, double incpurt0,
-                                     double incpurt, double &finalpert, double &cumpert,
-                                     double base_prox, double dual_shift, bool &exhausted) {
+int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt,
+                                             double incpurt0, double incpurt, double &finalpert,
+                                             double &cumpert, double base_prox, double dual_shift,
+                                             bool &exhausted) {
     auto Inertia = [&]() {
         return this->kkt_sol_.neigs() - (this->equal_cons_ + this->inequal_cons_);
     };
@@ -1997,10 +2012,10 @@ int hven::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt, do
     // would be bypassed on ~3 of every 4 iterations, defeating its purpose).
     // Proximal applies delta_c itself (see its branch below) and never
     // consults the latch.
-    if (opts_.advanced.inertia_mode != InertiaMode::kProximalRegularization && this->dc_latched_)
+    if (opts_.advanced.inertia_mode != IpmInertiaMode::kProximalRegularization && this->dc_latched_)
         EngageDualReg();
 
-    if (opts_.advanced.inertia_mode == InertiaMode::kProximalRegularization) {
+    if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization) {
         // Proximal primal-dual base shift. The persistent primal shift base_prox
         // (ρ_k, decayed across iterations by alg_impl) is added to the (1,1)
         // Hessian-block diagonal, and the barrier-scaled dual shift dual_shift
@@ -2100,26 +2115,26 @@ int hven::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt, do
 // recycled ADDRESS cannot offer. Atomic because two solvers may analyse at
 // once; relaxed because nothing is published through this counter -- only its
 // uniqueness is used.
-std::uint64_t hven::IpmSolverImpl::next_owner_id() {
+std::uint64_t hven::detail::IpmSolverImpl::next_owner_id() {
     static std::atomic<std::uint64_t> counter{0};
     return counter.fetch_add(1, std::memory_order_relaxed) + 1;
 }
 
-void hven::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int i, const VectorXd &XSL,
-                                             const VectorXd &RHS, double &BestCriteriaVal,
-                                             int &BestIter) {
+void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int i,
+                                                     const VectorXd &XSL, const VectorXd &RHS,
+                                                     double &BestCriteriaVal, int &BestIter) {
     double critval;
     switch (opts_.best_iterate_criterion) {
-    case BestIterateCriterion::kEquality:
+    case IpmBestIterateCriterion::kEquality:
         critval = iter.econ_inf;
         break;
-    case BestIterateCriterion::kInequality:
+    case IpmBestIterateCriterion::kInequality:
         critval = iter.icon_inf;
         break;
-    case BestIterateCriterion::kKkt:
+    case IpmBestIterateCriterion::kKkt:
         critval = iter.kkt_inf;
         break;
-    case BestIterateCriterion::kObjective:
+    case IpmBestIterateCriterion::kObjective:
         critval = iter.prim_obj;
         break;
     default:
@@ -2159,7 +2174,8 @@ void hven::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int i, cons
 // same statements in the same order -- and the interior leg's 41 rows and U0's
 // `ipm` arm are what prove it.
 // ---------------------------------------------------------------------------
-hven::detail::DeclaredDiagnostics hven::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
+hven::detail::DeclaredDiagnostics
+hven::detail::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
     const Eigen::VectorXd &x_declared, const Eigen::VectorXd &lambda_i,
     const Eigen::VectorXd &z_declared, const Eigen::VectorXd &grad_lag_reduced,
     const Eigen::VectorXd &fixed_lambda, const Eigen::VectorXd &ce_declared,
@@ -2248,9 +2264,10 @@ hven::detail::DeclaredDiagnostics hven::IpmSolverImpl::declared_diagnostics_from
 // separate. This comment claims nothing more.
 // See IpmSolver::set_iteration_callback.
 // ---------------------------------------------------------------------------
-void hven::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter, const Eigen::VectorXd &XSL,
-                                               const Eigen::VectorXd &RHS, double mu,
-                                               double step_norm, double prim_obj) {
+void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
+                                                       const Eigen::VectorXd &XSL,
+                                                       const Eigen::VectorXd &RHS, double mu,
+                                                       double step_norm, double prim_obj) {
     if (!this->iteration_callback_) {
         return;
     }
@@ -2465,7 +2482,7 @@ void hven::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter, const Eig
     }
 }
 
-void hven::IpmSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
+void hven::detail::IpmSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
     if (!this->pending_callback_.has_value()) {
         return;
     }
@@ -2487,7 +2504,7 @@ void hven::IpmSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) 
     this->pending_callback_at_entry_ = false;
 }
 
-void hven::IpmSolverImpl::apply_pending_kkt_hook(bool at_solve_entry) {
+void hven::detail::IpmSolverImpl::apply_pending_kkt_hook(bool at_solve_entry) {
     if (!this->pending_kkt_hook_.has_value()) {
         return;
     }
@@ -2503,7 +2520,7 @@ void hven::IpmSolverImpl::apply_pending_kkt_hook(bool at_solve_entry) {
     this->kkt_hook_ = std::move(next);
 }
 
-void hven::IpmSolverImpl::emit_message(const IpmMessageTraceEvent &event) {
+void hven::detail::IpmSolverImpl::emit_message(const IpmMessageTraceEvent &event) {
     if (TraceSink *const sink = this->trace_; sink != nullptr) {
         sink->on_ipm_message(event);
     }
@@ -2532,9 +2549,9 @@ static hven::IpmKktFactorStatus ipm_kkt_factor_status(Eigen::ComputationInfo inf
     return hven::IpmKktFactorStatus::kInvalidInput;
 }
 
-Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode barmode,
-                                              LineSearchMode lsmode, double obj_scale, double MuI,
-                                              Eigen::Ref<Eigen::VectorXd> xsl) {
+Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, IpmBarrierMode barmode,
+                                                      IpmLineSearchMode lsmode, double obj_scale,
+                                                      double MuI, Eigen::Ref<Eigen::VectorXd> xsl) {
     Eigen::VectorXd XSL = xsl;
     Eigen::VectorXd RHS(this->kkt_dim_);
     Eigen::VectorXd DXSL(this->kkt_dim_);
@@ -2645,7 +2662,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
     // warm-start memory (one alg_impl call = one phase; NOT reset at restoration
     // episode entry/exit, which run in-phase). Initialized at the
     // Cipolla–Gondzio floor; dead (never read) on the classic path.
-    double rho_k = hven::kProxRegFloor;
+    double rho_k = hven::detail::kProxRegFloor;
     // Last shifts actually applied at a factorization this phase (sentinel -1
     // until the first factorized iteration). The convergence probe appended to
     // `iters` on a converged exit never factorizes, so the trailing history
@@ -2654,7 +2671,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
     double last_prox_dual = -1.0;
     std::vector<IpmIterate> iters;
     iters.reserve(this->effective_max_iters_);
-    SolveStatus ExitCode = SolveStatus::kMaxIter;
+    SolveStatus ExitCode = SolveStatus::kIterationLimit;
 
     // THE POINT AN EXCEPTION INTERRUPTS (M8 B5). An exception that escapes this
     // phase -- a user callback's own, never an EvaluationError at a trial point,
@@ -3003,7 +3020,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         // residual converge_check() consumes is now
         // fully determined -- kkt_inf_ reads prim_grad() (just updated above; the
         // barrier writes later this iteration target the *disjoint* dual_grad()
-        // block, see hven::KktVector::prim_grad()/dual_grad()
+        // block, see hven::detail::KktVector::prim_grad()/dual_grad()
         // (include/hven/detail/interior/kkt_vector.h) for their segment
         // boundaries), econ_inf_/icon_inf_ read eq_cons()/iq_cons() (set by
         // eval_nlp + apply_reset_slacks above, before this point), and barr_inf_ is
@@ -3099,7 +3116,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
                     locally_infeasible = true;
                     locally_infeasible_theta = theta_orig;
                     locally_infeasible_threshold = resto_failure_threshold;
-                } else if (PreExitCode == SolveStatus::kMaxIter) {
+                } else if (PreExitCode == SolveStatus::kIterationLimit) {
                     // κ_resto ratchet (per-iteration, vs the previous iteration's
                     // value) AND the acceptance-strategy exit test (vs the frozen
                     // entry reference): both must pass to leave the phase. The ratchet
@@ -3195,7 +3212,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
                     locally_infeasible_threshold = resto_failure_threshold;
                 }
 
-                if (PreExitCode == SolveStatus::kMaxIter) {
+                if (PreExitCode == SolveStatus::kIterationLimit) {
                     // Subproblem not converged: has infeasibility fallen enough,
                     // relative to the restoration entry point, to leave restoration?
                     // Runs from an accepted feasibility-mode iterate; at the entry
@@ -3256,7 +3273,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
                 }
                 iters.back().mu = mu;
                 QPtimer.stop();
-                ExitCode = SolveStatus::kMaxIter;
+                ExitCode = SolveStatus::kIterationLimit;
                 // The first of the two labelled NOTCONVERGED doors; see
                 // last_stop_reason(). A store into a member nothing else reads.
                 this->last_stop_reason_ = IpmStopReason::kRestorationLocallyInfeasible;
@@ -3617,12 +3634,12 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         // NO return_best SUBSTITUTION, unlike the two NOTCONVERGED exits below:
         // a stop is a caller's decision about a POINT it has just been shown,
         // and handing back a different iterate than the one it stopped on would
-        // make the event a lie. The verdict is kMaxIter + kInterrupted, which
+        // make the event a lie. The verdict is kIterationLimit + kInterrupted, which
         // resolve_ipm_phase_status maps to kInterrupted.
         if (this->interrupt_requested_) {
             iters.back().mu = mu;
             QPtimer.stop();
-            ExitCode = SolveStatus::kMaxIter;
+            ExitCode = SolveStatus::kIterationLimit;
             this->last_stop_reason_ = IpmStopReason::kInterrupted;
             this->result_.status = ExitCode;
             // The row this event belongs to, so the trace still has one line per
@@ -3652,7 +3669,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         if (const IpmStopReason limit = this->limit_reached(); limit != IpmStopReason::kNone) {
             iters.back().mu = mu;
             QPtimer.stop();
-            ExitCode = SolveStatus::kMaxIter;
+            ExitCode = SolveStatus::kIterationLimit;
             this->last_stop_reason_ = limit;
             this->limit_stop_ = true;
             this->result_.status = ExitCode;
@@ -3703,8 +3720,8 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         const bool dc_suppressed = this->restoration_ && this->restoration_->is_active() &&
                                    this->restoration_->is_nested();
         double base_prox = 0.0;
-        double dual_shift = dc_suppressed ? 0.0 : hven::dual_regularization(mu);
-        if (opts_.advanced.inertia_mode == InertiaMode::kProximalRegularization)
+        double dual_shift = dc_suppressed ? 0.0 : hven::detail::dual_regularization(mu);
+        if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization)
             base_prox = rho_k;
 
         bool kkt_exhausted = false;
@@ -3722,7 +3739,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         Citer.h_pert = nhpert;
         Citer.h_pert_cum = nhpert_cum;
 
-        if (opts_.advanced.inertia_mode == InertiaMode::kProximalRegularization) {
+        if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization) {
             // Record the shifts applied this iteration (sentinel -1 on the
             // classic path), then decay the persistent primal base shift toward
             // its floor. If the base attempt sufficed (h_facs_ == 0) the implicit
@@ -3735,7 +3752,8 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
             last_prox_primal = base_prox;
             last_prox_dual = dual_shift;
             double applied_total = (Citer.h_facs > 0) ? (rho_k + nhpert) : rho_k;
-            rho_k = hven::prox_reg_decay(applied_total, opts_.advanced.inertia_correction_decrease);
+            rho_k = hven::detail::prox_reg_decay(applied_total,
+                                                 opts_.advanced.inertia_correction_decrease);
         }
 
         // Update barrier parameter and compute search direction. The whole
@@ -4072,7 +4090,8 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
             const RecoveryChain::Action recovery_action = this->recovery_->on_step_rejected(
                 Citer, iters, ctx, *acceptance_, *mechanism_, lsmode, obj_scale * lsobjscale,
                 step_mu, prim_obj, barr_obj, XSL, DXSL, Temp, RHS, RHS2, alpha, alphap, alphad,
-                this->result_.soc_steps_taken, resolved_depth, this->result_.watchdog_activations);
+                this->result_.second_order_corrections, resolved_depth,
+                this->result_.watchdog_activations);
             switch (recovery_action) {
             case RecoveryChain::Action::kAcceptAsIs:
                 // No link resolved the ordinary rejection: take the step
@@ -4321,7 +4340,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
         // (the !GoodStep override above is mutually exclusive with it) and
         // because an acceptable iterate is finite and inside the divergence
         // thresholds (validate() enforces acc <= div).
-        if (exit_at_acceptable && ExitCode == SolveStatus::kMaxIter)
+        if (exit_at_acceptable && ExitCode == SolveStatus::kIterationLimit)
             ExitCode = SolveStatus::kAcceptable;
 
         // SINGULAR_KKT is decisive: an inertia-correction failure is a
@@ -4361,7 +4380,7 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
             // A limit reached at this same boundary wins the tie, as on the SQP
             // engine: the label is the limit's and the sequence ends. With both
             // limits empty limit_reached() reads nothing.
-            if (i == (this->effective_max_iters_ - 1) && ExitCode == SolveStatus::kMaxIter &&
+            if (i == (this->effective_max_iters_ - 1) && ExitCode == SolveStatus::kIterationLimit &&
                 this->last_stop_reason_ == IpmStopReason::kNone) {
                 this->last_stop_reason_ = this->cap_or_limit_reason();
             }
@@ -4564,9 +4583,9 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
     // factorization (no shift was ever applied). Same last-phase-wins
     // semantics as the other diagnostic fields: a multi-phase call ends with
     // the LAST phase's alg_impl call's values.
-    if (opts_.advanced.inertia_mode == InertiaMode::kProximalRegularization) {
-        this->result_.last_prox_reg_primal = last_prox_primal;
-        this->result_.last_prox_reg_dual = last_prox_dual;
+    if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization) {
+        this->result_.last_proximal_regularization_primal = last_prox_primal;
+        this->result_.last_proximal_regularization_dual = last_prox_dual;
     }
 
     // THE ONE INPUT THE SHARED DECLARED DIAGNOSTICS NEED that only a phase
@@ -4630,10 +4649,10 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
     double nlptime = double(Funtimer.count<std::chrono::microseconds>()) / 1000000.0;
     double tottime = double(Runtimer.count<std::chrono::microseconds>()) / 1000000.0;
 
-    this->result_.timing.func += nlptime;
-    this->result_.timing.kkt += qptime;
+    this->result_.timing.evaluation_seconds += nlptime;
+    this->result_.timing.kkt_seconds += qptime;
     double printtime = double(Printtimer.count<std::chrono::microseconds>()) / 1000000.0;
-    this->result_.timing.print += printtime;
+    this->result_.timing.print_seconds += printtime;
 
     // Print exit statistics
     assert(!iters.empty());
@@ -4696,8 +4715,8 @@ Eigen::VectorXd hven::IpmSolverImpl::alg_impl(AlgorithmMode algmode, BarrierMode
     return XSL;
 }
 
-Eigen::VectorXd hven::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double mu,
-                                               bool docompute) {
+Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double mu,
+                                                       bool docompute) {
 
     hven::detail::Timer kktt;
     kktt.start();
@@ -4751,7 +4770,8 @@ Eigen::VectorXd hven::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double 
         if (docompute)
             this->qp_analyzed_ = false;
         kktt.stop();
-        this->result_.timing.pre += double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
+        this->result_.timing.preprocessing_seconds +=
+            double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
         XSL.tail(this->equal_cons_ + this->inequal_cons_).setZero();
         if (this->inequal_cons_ > 0) {
             XSL.segment(this->primal_vars_, this->slack_vars_).setConstant(opts_.bound_push);
@@ -4794,10 +4814,10 @@ Eigen::VectorXd hven::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double 
     kktt.stop();
 
     double pretime = double(kktt.count<std::chrono::microseconds>()) / 1000000.0;
-    this->result_.timing.pre += pretime;
+    this->result_.timing.preprocessing_seconds += pretime;
 
     this->result_.factor_flops = this->kkt_sol_.factor_flops();
-    this->result_.factor_mem = this->kkt_sol_.factor_mem();
+    this->result_.factor_memory = this->kkt_sol_.factor_mem();
 
     // ONE EVENT, BOTH HALVES (M6 W5 T8.7b). The console renders the
     // `Beginning` line, the size and FLOPs lines, the analysis time and the
@@ -4812,7 +4832,7 @@ Eigen::VectorXd hven::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double 
         IpmKktAnalysisTraceEvent analysis;
         analysis.kkt_dim = this->kkt_dim_;
         analysis.nnz = this->kkt_sol_.matrix().nonZeros();
-        analysis.factor_mem = this->result_.factor_mem;
+        analysis.factor_mem = this->result_.factor_memory;
         analysis.factor_flops = this->result_.factor_flops;
         analysis.docompute = docompute;
         analysis.analysis_time_s = pretime;
@@ -4854,8 +4874,8 @@ Eigen::VectorXd hven::IpmSolverImpl::init_impl(const Eigen::VectorXd &x, double 
     return XSL;
 }
 
-void hven::IpmSolverImpl::validate_staged_multipliers(const Eigen::VectorXd &eq_mults,
-                                                      const Eigen::VectorXd &iq_mults) {
+void hven::detail::IpmSolverImpl::validate_staged_multipliers(const Eigen::VectorXd &eq_mults,
+                                                              const Eigen::VectorXd &iq_mults) {
     // eq_mults is accepted at either of two sizes: the problem's user-facing
     // equality row count (the common case -- what a caller building on
     // the retired starting_multipliers() or hand-transcribing their own rows
@@ -4880,9 +4900,9 @@ void hven::IpmSolverImpl::validate_staged_multipliers(const Eigen::VectorXd &eq_
     }
 }
 
-void hven::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
-                                                   const Eigen::VectorXd &eq_mults,
-                                                   const Eigen::VectorXd &iq_mults) {
+void hven::detail::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
+                                                           const Eigen::VectorXd &eq_mults,
+                                                           const Eigen::VectorXd &iq_mults) {
     // Install-only: validate_staged_multipliers() (always called first, at
     // run_phase_sequence entry) has already rejected a mis-sized or
     // non-finite seed, so eq_mults/iq_mults are known-good here. A seed sized
@@ -4904,8 +4924,8 @@ void hven::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
     KktVector v_xsl = kkt_view(XSL);
     if (this->equal_cons_ > 0) {
         Eigen::VectorXd clamped_eq = (scale == 1.0 ? eq_mults : Eigen::VectorXd(eq_mults * scale))
-                                         .cwiseMax(-kSeededMultInitMax)
-                                         .cwiseMin(kSeededMultInitMax);
+                                         .cwiseMax(-kSeededMultiplierMax)
+                                         .cwiseMin(kSeededMultiplierMax);
         if (eq_mults.size() == this->equal_cons_) {
             v_xsl.eq_lmults() = clamped_eq;
         } else {
@@ -4917,7 +4937,8 @@ void hven::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
     }
     for (int i = 0; i < this->inequal_cons_; i++) {
         const double seeded = scale == 1.0 ? iq_mults[i] : iq_mults[i] * scale;
-        v_xsl.iq_lmults()[i] = std::clamp(seeded, kSeededIqMultFloor, kSeededMultInitMax);
+        v_xsl.iq_lmults()[i] =
+            std::clamp(seeded, kSeededInequalityMultiplierFloor, kSeededMultiplierMax);
     }
 }
 
@@ -4928,8 +4949,8 @@ void hven::IpmSolverImpl::apply_staged_multipliers(Eigen::VectorXd &XSL,
 // entry and whose against-the-problem checks are in run_phase_sequence.
 // completed_warm_/solve_completed_ survive as the capture's own state.
 
-void hven::IpmSolverImpl::validate_warm_start_dimensions(const WarmStart &data,
-                                                         const char *entry) const {
+void hven::detail::IpmSolverImpl::validate_warm_start_dimensions(const WarmStart &data,
+                                                                 const char *entry) const {
     // Off the program, not off this solver's cached dimensions: those are
     // refreshed at set_nlp() and at solve entry, so between a re-lay and the
     // next solve they describe the previous layout.
@@ -4964,8 +4985,8 @@ void hven::IpmSolverImpl::validate_warm_start_dimensions(const WarmStart &data,
 
 // THE PAYLOAD'S OWN CONSISTENCY, checkable with no program in hand -- which is
 // what makes it the half that still runs at the staging call (M6 W5 T8.4).
-void hven::IpmSolverImpl::validate_warm_start_finiteness(const WarmStart &data,
-                                                         const char *entry) const {
+void hven::detail::IpmSolverImpl::validate_warm_start_finiteness(const WarmStart &data,
+                                                                 const char *entry) const {
     const auto check_finite = [&](const char *block, const Eigen::VectorXd &v) {
         if (!v.allFinite()) {
             throw std::invalid_argument(
@@ -4981,7 +5002,7 @@ void hven::IpmSolverImpl::validate_warm_start_finiteness(const WarmStart &data,
     check_finite("bound_lmults_", detail::WarmStartAccess::bound(data));
 }
 
-void hven::IpmSolverImpl::capture_completed_warm_start() {
+void hven::detail::IpmSolverImpl::capture_completed_warm_start() {
     // Defensive but deliberately not fatal. Every check below is an
     // internal-consistency check on state this class itself wrote, and this
     // call sits one line before a completed solve's return: throwing would
@@ -5003,7 +5024,7 @@ void hven::IpmSolverImpl::capture_completed_warm_start() {
     // As of this solve: read here rather than at export, so a re-lay between
     // the two cannot stamp these blocks with a key they were never taken
     // under. The declaration key and not the layout key -- warmstart/
-    // warm_start_data.h's stamp note carries the argument.
+    // warm_start.h's stamp note carries the argument.
     //
     // Guarded like every check below because it is the one statement here that
     // calls out, and both halves can refuse (declaration_key over its
@@ -5121,8 +5142,8 @@ void hven::IpmSolverImpl::capture_completed_warm_start() {
     this->solve_completed_ = true;
 }
 
-bool hven::IpmSolverImpl::build_polish_extension(const Eigen::VectorXd &iq_values,
-                                                 WarmExtension &out) const {
+bool hven::detail::IpmSolverImpl::build_polish_extension(const Eigen::VectorXd &iq_values,
+                                                         WarmExtension &out) const {
     const BoundSet &b = *this->bounds_;
     const auto nl = static_cast<Eigen::Index>(b.lower_idx_.size());
     const auto nu = static_cast<Eigen::Index>(b.upper_idx_.size());
@@ -5187,7 +5208,8 @@ bool hven::IpmSolverImpl::build_polish_extension(const Eigen::VectorXd &iq_value
     return true;
 }
 
-void hven::IpmSolverImpl::validate_staged_polish(const WarmStart &data, const char *entry) const {
+void hven::detail::IpmSolverImpl::validate_staged_polish(const WarmStart &data,
+                                                         const char *entry) const {
     // Null when the value simply does not carry the tag -- the ordinary
     // core-only hand-off; a throw means a duplicated one. Wrapped so that
     // every refusal this entry emits opens with the entry's own name, and a
@@ -5271,7 +5293,7 @@ void hven::IpmSolverImpl::validate_staged_polish(const WarmStart &data, const ch
     //
     // AGAINST THE APPLICATION-TIME CLAMP, which stays: staging refuses a
     // corrupt SIGN, the clamp handles MAGNITUDE. apply_polish_bound_duals
-    // floors what it seeds at kSeededIqMultFloor because a price at or below
+    // floors what it seeds at kSeededInequalityMultiplierFloor because a price at or below
     // zero puts the first iterate outside the interior, and an unpriced side's
     // legitimate exported 0.0 lands there on the ordinary path. Without this
     // refusal that same floor would quietly absorb a wrong-sign value as
@@ -5296,7 +5318,7 @@ void hven::IpmSolverImpl::validate_staged_polish(const WarmStart &data, const ch
     check_nonnegative("the upper-bound multiplier block", polish.z_upper);
 }
 
-void hven::IpmSolverImpl::apply_polish_bound_duals(const IpmPolishData &polish) {
+void hven::detail::IpmSolverImpl::apply_polish_bound_duals(const IpmPolishData &polish) {
     const BoundSet &b = *this->bounds_;
     const auto nl = static_cast<Eigen::Index>(b.lower_idx_.size());
     const auto nu = static_cast<Eigen::Index>(b.upper_idx_.size());
@@ -5322,12 +5344,12 @@ void hven::IpmSolverImpl::apply_polish_bound_duals(const IpmPolishData &polish) 
 
     // The same three steps a staged constraint-multiplier seed takes: multiply
     // this call's objective scale back in (the barrier works on the scaled
-    // problem); floor at kSeededIqMultFloor, because a seed at or below zero
+    // problem); floor at kSeededInequalityMultiplierFloor, because a seed at or below zero
     // puts the first iterate outside the interior and an unpriced side's
     // exported 0.0 lands here, so the floor is load-bearing on the ordinary
     // path -- a MAGNITUDE guard over legitimate near-zero entries, never a
     // repair of a wrong sign, which validate_staged_polish has already refused
-    // by the time anything reaches here; ceiling at kSeededMultInitMax rather
+    // by the time anything reaches here; ceiling at kSeededMultiplierMax rather
     // than push_initial_point_interior's kBoundMultInitCap, because that cap keeps
     // the formula mu0/d from exploding at a tiny distance, while this is a
     // measured multiplier a converged solve reported.
@@ -5365,14 +5387,14 @@ void hven::IpmSolverImpl::apply_polish_bound_duals(const IpmPolishData &polish) 
             const Eigen::Index i = declared_idx[k];
             const double staged = scale == 1.0 ? declared[i] : declared[i] * scale;
             z[static_cast<Eigen::Index>(k)] =
-                std::clamp(staged, kSeededIqMultFloor, kSeededMultInitMax);
+                std::clamp(staged, kSeededInequalityMultiplierFloor, kSeededMultiplierMax);
         }
     };
     seed(lower_declared, polish.z_lower, this->bound_duals_.z_lower_);
     seed(upper_declared, polish.z_upper, this->bound_duals_.z_upper_);
 }
 
-void hven::IpmSolverImpl::unscale_reported_outputs() {
+void hven::detail::IpmSolverImpl::unscale_reported_outputs() {
     // The solver minimizes obj_scale * f subject to the constraints, so its
     // Lagrangian is L = s*f + lambda_e^T cE + lambda_i^T cI - z, and every
     // quantity that stands in a stationarity relation with the objective
@@ -5419,20 +5441,22 @@ void hven::IpmSolverImpl::unscale_reported_outputs() {
 // not, and a leading solve has no preceding phase to be conditional on.
 namespace {
 // The public kSolve-phase mode as the engine's internal iteration mode.
-hven::AlgorithmMode to_algorithm_mode(hven::SolvePhaseMode m) {
+hven::detail::AlgorithmMode to_algorithm_mode(hven::IpmSolvePhaseMode m) {
     switch (m) {
-    case hven::SolvePhaseMode::kOptimize:
-        return hven::AlgorithmMode::kOpt;
-    case hven::SolvePhaseMode::kOptimizeWithoutObjective:
-        return hven::AlgorithmMode::kOptNo;
-    case hven::SolvePhaseMode::kSolveEquations:
-        return hven::AlgorithmMode::kSoe;
+    case hven::IpmSolvePhaseMode::kOptimize:
+        return hven::detail::AlgorithmMode::kOpt;
+    case hven::IpmSolvePhaseMode::kOptimizeWithoutObjective:
+        return hven::detail::AlgorithmMode::kOptNo;
+    case hven::IpmSolvePhaseMode::kSolveEquations:
+        return hven::detail::AlgorithmMode::kSoe;
     }
-    return hven::AlgorithmMode::kSoe; // unreachable: validate() refuses an out-of-range value
+    return hven::detail::AlgorithmMode::kSoe; // unreachable: validate() refuses an out-of-range
+                                              // value
 }
 } // namespace
 
-std::vector<hven::IpmSolverImpl::PhaseStep> hven::IpmSolverImpl::phase_steps() const {
+std::vector<hven::detail::IpmSolverImpl::PhaseStep>
+hven::detail::IpmSolverImpl::phase_steps() const {
     std::vector<PhaseStep> steps;
     steps.reserve(opts_.phases.size());
     for (std::size_t i = 0; i < opts_.phases.size(); ++i) {
@@ -5454,11 +5478,11 @@ std::vector<hven::IpmSolverImpl::PhaseStep> hven::IpmSolverImpl::phase_steps() c
     return steps;
 }
 
-hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
-                                                        const Eigen::VectorXd &x,
-                                                        const std::vector<PhaseStep> &steps,
-                                                        SolveBudget budget,
-                                                        const WarmStart *payload) {
+hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
+                                                                const Eigen::VectorXd &x,
+                                                                const std::vector<PhaseStep> &steps,
+                                                                SolveBudget budget,
+                                                                const WarmStart *payload) {
     // THE INTERRUPTED-RESULT STATE (M8 B5), cleared first so a call refused
     // below leaves no result of a previous call standing as this one's.
     this->interrupted_result_ready_ = false;
@@ -5822,7 +5846,7 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
     if (payload != nullptr) {
         // The declaration key, not the layout key: what is compared is the
         // problem the caller transcribed, the only thing a value crossing
-        // engines or treatments can be held to (warmstart/warm_start_data.h).
+        // engines or treatments can be held to (warmstart/warm_start.h).
         // Read off the program's declaration, which at this point in the call
         // is the declaration this solve lays under.
         const DeclarationKey live = declaration_key(this->nlp_->declaration());
@@ -6152,11 +6176,11 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
         // reason was already phase-scoped and the verdict was not, so a later
         // phase that left without assigning one reported the EARLIER phase's
         // answer beside this phase's reason. Reset together, they cannot
-        // disagree. kMaxIter is the "ran out of iterations with nothing better
+        // disagree. kIterationLimit is the "ran out of iterations with nothing better
         // to say" verdict -- what alg_impl's own local ExitCode starts at --
         // so a phase that somehow assigned nothing still reports something
         // true about itself rather than something true about its predecessor.
-        this->result_.status = SolveStatus::kMaxIter;
+        this->result_.status = SolveStatus::kIterationLimit;
         const Index iters_before_phase = this->result_.iterations;
         hven::detail::Timer phase_timer;
         phase_timer.start();
@@ -6189,9 +6213,9 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
         // is where `print_exit_stats()` printed from inside `alg_impl`.
         //
         // THE STATUS IS THE RESOLVED ONE. The old verdict line keyed on
-        // `alg_impl`'s raw exit code; resolution only ever rewrites kMaxIter,
+        // `alg_impl`'s raw exit code; resolution only ever rewrites kIterationLimit,
         // into kStalled or kInterrupted, and the console prints
-        // `No Solution Found` for all three -- the branch the raw kMaxIter
+        // `No Solution Found` for all three -- the branch the raw kIterationLimit
         // took. Same bytes, one key.
         if (TraceSink *const sink = this->trace_; sink != nullptr) {
             const IpmPhaseReport &report =
@@ -6299,7 +6323,7 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
     this->in_phase_loop_ = false;
     t.stop();
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
-    this->result_.timing.total = tottime / 1000.0;
+    this->result_.timing.total_seconds = tottime / 1000.0;
 
     // THE TIMING SUMMARY, THE TOTAL, THE "Finished:" LINE AND THE CLOSING RULE
     // are the console sink's now (M6 W5 T8.7), rendered from `ipm.solve.end` at
@@ -6360,13 +6384,13 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
         IpmSolveEndTraceEvent end_event;
         end_event.status = result_.status;
         end_event.iters = result_.iterations;
-        end_event.total_time_s = result_.timing.total;
-        end_event.pre_time_s = result_.timing.pre;
-        end_event.func_time_s = result_.timing.func;
-        end_event.kkt_time_s = result_.timing.kkt;
-        end_event.print_time_s = result_.timing.print;
-        end_event.solver_init_time_s = result_.timing.solver_init;
-        end_event.misc_time_s = result_.timing.misc();
+        end_event.total_time_s = result_.timing.total_seconds;
+        end_event.pre_time_s = result_.timing.preprocessing_seconds;
+        end_event.func_time_s = result_.timing.evaluation_seconds;
+        end_event.kkt_time_s = result_.timing.kkt_seconds;
+        end_event.print_time_s = result_.timing.print_seconds;
+        end_event.solver_init_time_s = result_.timing.solver_initialization_seconds;
+        end_event.misc_time_s = result_.timing.other_seconds();
         sink->on_ipm_solve_end(end_event);
     }
 
@@ -6394,8 +6418,8 @@ hven::IpmResult hven::IpmSolverImpl::run_phase_sequence(NonLinearProgram &model,
 // The conditional trailing solve those last two carried is not a property of
 // the entry any more: phase_steps() derives it from the sequence, so any
 // sequence a caller writes gets the same rule.
-hven::IpmResult hven::IpmSolverImpl::solve(NonLinearProgram &model, const Eigen::VectorXd &x0,
-                                           SolveBudget budget) {
+hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
+                                                   const Eigen::VectorXd &x0, SolveBudget budget) {
     // ARGUMENT VALIDATION AT THE PUBLIC BOUNDARY (M6 W5 T8.4 fix1). It used to
     // sit inside run_phase_sequence, after the transcription, and read this
     // solver's cached full_primal_vars_; here it reads the PROGRAM's own
@@ -6459,8 +6483,9 @@ hven::IpmResult hven::IpmSolverImpl::solve(NonLinearProgram &model, const Eigen:
 // without knowing which problem the value will meet; the AGAINST-THE-PROBLEM
 // checks (block lengths, then the declaration stamp) run inside
 // run_phase_sequence, where a program is bound.
-hven::IpmResult hven::IpmSolverImpl::solve(NonLinearProgram &model, const Eigen::VectorXd &x0,
-                                           const WarmStart &warm, SolveBudget budget) {
+hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
+                                                   const Eigen::VectorXd &x0, const WarmStart &warm,
+                                                   SolveBudget budget) {
     if (x0.size() != static_cast<Eigen::Index>(model.primal_vars_)) {
         throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
                                                 "elements, expected {} primal variables",
@@ -6518,7 +6543,7 @@ hven::IpmResult hven::IpmSolverImpl::solve(NonLinearProgram &model, const Eigen:
 // result of a solve an exception interrupted is finished by the same code as a
 // returned one. Called with the engine bound, after the objective-scale and
 // reinsertion seams.
-void hven::IpmSolverImpl::finish_declared_result(Index analyses_before) {
+void hven::detail::IpmSolverImpl::finish_declared_result(Index analyses_before) {
     const Index n = this->full_primal_vars_;
     const Index user_eq = this->nlp_->user_equal_cons_;
     const Index fixing_rows = hven::detail::engine_rows(this->result_).lambda_e.size() - user_eq;
@@ -6694,8 +6719,8 @@ void hven::IpmSolverImpl::finish_declared_result(Index analyses_before) {
 // matrix values (constraint Jacobian and Lagrangian Hessian) and the
 // right-hand side (constraint values, J'lambda) one evaluation wrote. About one
 // instruction per value; the first non-finite block is named.
-const char *hven::IpmSolverImpl::nonfinite_quantity(double f, const Eigen::VectorXd &grad,
-                                                    const Eigen::VectorXd &rhs) const {
+const char *hven::detail::IpmSolverImpl::nonfinite_quantity(double f, const Eigen::VectorXd &grad,
+                                                            const Eigen::VectorXd &rhs) const {
     const auto &kkt = this->kkt_sol_.matrix();
     const bool f_ok = detail::is_finite(f);
     const bool grad_ok = detail::all_finite(grad);
@@ -6719,8 +6744,8 @@ const char *hven::IpmSolverImpl::nonfinite_quantity(double f, const Eigen::Vecto
 // unmeasured -- the exception may have arrived mid-evaluation, so no evaluation
 // at this point is trusted. noexcept by construction: a failure here leaves the
 // handle's fallback (the start point, no iterations) in place.
-void hven::IpmSolverImpl::record_interrupted_point(const Eigen::VectorXd &xsl,
-                                                   Index rows) noexcept {
+void hven::detail::IpmSolverImpl::record_interrupted_point(const Eigen::VectorXd &xsl,
+                                                           Index rows) noexcept {
     try {
         const int pv = this->primal_vars_;
         const int sv = this->slack_vars_;
@@ -6756,7 +6781,7 @@ void hven::IpmSolverImpl::record_interrupted_point(const Eigen::VectorXd &xsl,
 
 // Called from run_phase_sequence's finisher while an exception unwinds the
 // call, with the program still bound. noexcept by construction, as above.
-void hven::IpmSolverImpl::finish_interrupted_result() noexcept {
+void hven::detail::IpmSolverImpl::finish_interrupted_result() noexcept {
     try {
         const bool have_point =
             this->interrupted_point_recorded_ ||
@@ -6787,7 +6812,7 @@ void hven::IpmSolverImpl::finish_interrupted_result() noexcept {
     }
 }
 
-hven::IpmResult hven::IpmSolverImpl::take_interrupted_result() {
+hven::IpmResult hven::detail::IpmSolverImpl::take_interrupted_result() {
     IpmResult out;
     if (this->interrupted_result_ready_) {
         this->interrupted_result_ready_ = false;

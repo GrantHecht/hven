@@ -7,12 +7,12 @@
 
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/drivers/ipm_iterate.h"
-// BarrierMode requires the complete IpmSolver class; see
-// acceptance_strategy.h's include note for why this is a plain,
+// IpmBarrierMode requires the complete IpmSolver class; see
+// acceptance_mode.h's include note for why this is a plain,
 // non-circular include (ipm_solver.h does not include this directory back).
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 // Forward declaration only: update_barrier takes a GlobalizationMechanism by
 // reference so PROBE's predictor can drive the SAME fraction-to-boundary
@@ -66,11 +66,11 @@ class BarrierGovernor {
     ///   Free-mode oracles never set it, so the caller's reset branch stays
     ///   dead and the default path remains bit-identical.
     /// @return The new (already-clamped) mu.
-    virtual double update_barrier(BarrierMode barmode, double mu_in, double avgcomp, double mincomp,
-                                  Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
-                                  Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
-                                  SolverContext &ctx, double &barr_obj, const IpmIterate &current,
-                                  bool &mu_event) = 0;
+    virtual double update_barrier(IpmBarrierMode barmode, double mu_in, double avgcomp,
+                                  double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
+                                  Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+                                  GlobalizationMechanism &mechanism, SolverContext &ctx,
+                                  double &barr_obj, const IpmIterate &current, bool &mu_event) = 0;
 
     /// @brief Barrier update while a nested l1 feasibility-restoration phase is
     /// active, for governors WITHOUT their own monotone safeguard. Shared,
@@ -131,4 +131,4 @@ class BarrierGovernor {
     virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 };
 
-} // namespace hven
+} // namespace hven::detail

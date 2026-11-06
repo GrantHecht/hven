@@ -67,13 +67,13 @@ struct Reader : TraceSink {
     double first_primal_improvement = 0.0;
     double first_primal_end = 0.0;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
 
-    void on_ipqp_restart(const IpqpTraceRestartEvent &event) override {
+    void on_ipqp_restart(const IpqpRestartTraceEvent &event) override {
         switch (event.grade) {
         case IpqpTraceRestartGrade::kCold:
             ++cold;
@@ -87,7 +87,7 @@ struct Reader : TraceSink {
         }
     }
 
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override {
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override {
         if (event.reason != IpqpTraceEscapeReason::kInfeasibleSuspect) {
             ++other_escapes;
             return;
@@ -102,19 +102,19 @@ struct Reader : TraceSink {
 
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override {
         switch (event.verdict) {
-        case SqpFallbackVerdict::kDisproved:
+        case SqpTraceFallbackVerdict::kDisproved:
             ++disproved;
             break;
-        case SqpFallbackVerdict::kRelaxed:
+        case SqpTraceFallbackVerdict::kRelaxed:
             ++relaxed;
             break;
-        case SqpFallbackVerdict::kExhausted:
+        case SqpTraceFallbackVerdict::kExhausted:
             ++exhausted;
             break;
-        case SqpFallbackVerdict::kRungB:
+        case SqpTraceFallbackVerdict::kRungB:
             ++rung_b;
             break;
-        case SqpFallbackVerdict::kUnfired:
+        case SqpTraceFallbackVerdict::kUnfired:
             break;
         }
     }
@@ -132,15 +132,15 @@ struct CellRun {
 /// `ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold` quietly
 /// passing at a threshold that is no longer shipped. The premise test asserts
 /// what the pins assume it to be.
-const Index kShippedRetireAfter = IpqpOptions{}.retire_after;
+const Index kShippedRetireAfter = IpqpOptions{}.max_consecutive_escapes;
 
 /// One solve of the shipped cell. `max_iter`, `retire_after` and `reseed` are the
 /// only knobs any test below turns; everything else is the shipped default.
 CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = max_iter;
-    opts.advanced.ipqp.retire_after = retire_after;
+    opts.advanced.ipqp.max_consecutive_escapes = retire_after;
     opts.advanced.ipqp_reseed_after_disproval = reseed;
     opts.common.threads = 1;
 
@@ -301,7 +301,7 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     EXPECT_EQ(off.trace.base + off.trace.full, 0);
     EXPECT_EQ(off.sol.counters.ipqp_suspicion_disproved, 3);
     EXPECT_EQ(off.sol.counters.ipqp.ipqp_tier_retired_after, 3);
-    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kOptimal on
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): kIterationLimit -> kOptimal on
     // the OFF arm. `max_iter = 3` is the fixture's own budget and the point of the cell
     // is the three cold entries and the three disproved suspicions above -- all four of
     // which are unchanged -- while the solve's terminal status at that budget is not
@@ -355,7 +355,7 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
         SqpCounters counters[2];
         for (int arm = 0; arm < 2; ++arm) {
             SqpOptions opts;
-            opts.qp_mode = QpMode::kIpm;
+            opts.qp_mode = QpMode::kIpqp;
             opts.common.max_iterations = max_iter;
             opts.advanced.ipqp_reseed_after_disproval = arm == 1;
             opts.common.threads = 1;
@@ -388,11 +388,12 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
 /// `perf stat` pass can price the two arms in separate processes rather than
 /// one process running both (CLAUDE.md section 7's instruction line).
 void measure_state(bool reseed) {
-    std::fputs("state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,"
-               "rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,"
-               "qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,"
-               "elastic_escalations,f\n",
-               stdout);
+    std::fputs(
+        "state,max_iter,max_consecutive_escapes,status,majors,escapes,suspect,disproved,relaxed,"
+        "rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,"
+        "qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,"
+        "elastic_escalations,f\n",
+        stdout);
     for (const Index max_iter : {1, 2, 3, 6}) {
         const CellRun r = run_cell(max_iter, /*retire_after=*/kShippedRetireAfter, reseed);
         ASSERT_GE(r.sol.counters.ipqp_suspicion_disproved, 1)

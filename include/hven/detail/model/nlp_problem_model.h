@@ -35,7 +35,7 @@
 #include "hven/detail/model/nlp_model.h"
 #include "hven/model/nlp.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// How one declared constraint row is realized in the native model's row spaces.
 enum class NlpRowKind { kEquality, kUpperBounded, kLowerBounded, kRange, kFree };
@@ -412,4 +412,4 @@ class NlpProblemModel final : public NlpModel {
     mutable Vec grad_, ce_, ci_;
 };
 
-} // namespace hven
+} // namespace hven::detail

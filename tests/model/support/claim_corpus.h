@@ -277,8 +277,8 @@ inline hven::ObjectiveFunction corpus_objective(const CorpusCase &c, int first_v
 }
 
 /// @brief Lays one corpus case and returns the program.
-inline std::shared_ptr<hven::NonLinearProgram> build_corpus(const CorpusCase &c) {
-    auto nlp = std::make_shared<hven::NonLinearProgram>(c.requested_partitions_);
+inline std::shared_ptr<hven::detail::NonLinearProgram> build_corpus(const CorpusCase &c) {
+    auto nlp = std::make_shared<hven::detail::NonLinearProgram>(c.requested_partitions_);
 
     const int primal = corpus_primal_vars(c);
     int next_variable = 0;
@@ -470,7 +470,7 @@ struct ReferenceStream {
 /// forward walk of the emission order and then concatenated, so partition-major
 /// order within each run follows from the partition ids being monotone in
 /// emission order rather than from any ordering step here.
-inline ReferenceStream reference_restatement(const hven::NonLinearProgram &nlp) {
+inline ReferenceStream reference_restatement(const hven::detail::NonLinearProgram &nlp) {
     const int primal = nlp.primal_vars_;
     const int slack = nlp.slack_vars_;
     const int equality_end = primal + slack + nlp.equal_cons_;
@@ -532,7 +532,7 @@ inline ReferenceStream reference_restatement(const hven::NonLinearProgram &nlp) 
 /// @brief The published partition-offset tables, expanded back to one partition
 ///        id per published slot -- the form the reference carries, and the form
 ///        a consumer would have to reconstruct.
-inline std::vector<int> expand_partition_offsets(const hven::NonLinearProgram &nlp) {
+inline std::vector<int> expand_partition_offsets(const hven::detail::NonLinearProgram &nlp) {
     std::vector<int> per_slot(static_cast<std::size_t>(nlp.kkt_claim_rows().size()), -1);
     const auto expand = [&per_slot](const hven::ClaimBlock &block,
                                     Eigen::Ref<const Eigen::VectorXi> offsets) {

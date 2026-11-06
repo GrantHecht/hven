@@ -53,10 +53,10 @@
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/drivers/ipm_solver_types.h"
 
-using hven::AcceptanceMode;
-using hven::BarrierGovernorMode;
-using hven::InteriorPointSolverPresetFields;
+using hven::IpmAcceptanceMode;
+using hven::IpmBarrierGovernorMode;
 using hven::IpmOptions;
+using hven::detail::InteriorPointSolverPresetFields;
 
 namespace {
 
@@ -109,7 +109,7 @@ std::vector<std::string> lines_of(const std::string &text) {
 
 // Field-by-field comparison against an expected InteriorPointSolverPresetFields value.
 void PresetGateExpectFieldsMatch(const IpmOptions &s, const InteriorPointSolverPresetFields &f) {
-    EXPECT_EQ(s.advanced.acceptance_mode, f.acceptance_strategy_);
+    EXPECT_EQ(s.advanced.acceptance_mode, f.acceptance_mode_);
     EXPECT_EQ(s.advanced.merit_penalty_rule, f.merit_penalty_rule_);
     EXPECT_EQ(s.advanced.barrier_governor_mode, f.barrier_governor_);
     EXPECT_EQ(s.advanced.never_monotone, f.never_monotone_);
@@ -133,17 +133,17 @@ TEST(InteriorPointSolverPresetsTest,
 
     // The two that moved, asserted in both directions so a future revert of
     // either side fails here rather than passing quietly.
-    EXPECT_EQ(classic.advanced.acceptance_mode, AcceptanceMode::kClassicMerit);
-    EXPECT_EQ(fresh.advanced.acceptance_mode, AcceptanceMode::kFilter);
-    EXPECT_EQ(classic.advanced.barrier_governor_mode, BarrierGovernorMode::kClassicAdaptive);
-    EXPECT_EQ(fresh.advanced.barrier_governor_mode, BarrierGovernorMode::kMonitored);
+    EXPECT_EQ(classic.advanced.acceptance_mode, IpmAcceptanceMode::kClassicMerit);
+    EXPECT_EQ(fresh.advanced.acceptance_mode, IpmAcceptanceMode::kFilter);
+    EXPECT_EQ(classic.advanced.barrier_governor_mode, IpmBarrierGovernorMode::kClassicAdaptive);
+    EXPECT_EQ(fresh.advanced.barrier_governor_mode, IpmBarrierGovernorMode::kMonitored);
 
     // The other seven preset fields are untouched by the event: take the
     // default's nine, put the two pre-event values back, and the whole preset
     // must match. If a tenth field ever drifts, this fails.
     InteriorPointSolverPresetFields fresh_as_fields = preset_fields_of(fresh);
-    fresh_as_fields.acceptance_strategy_ = AcceptanceMode::kClassicMerit;
-    fresh_as_fields.barrier_governor_ = BarrierGovernorMode::kClassicAdaptive;
+    fresh_as_fields.acceptance_mode_ = IpmAcceptanceMode::kClassicMerit;
+    fresh_as_fields.barrier_governor_ = IpmBarrierGovernorMode::kClassicAdaptive;
     PresetGateExpectFieldsMatch(classic, fresh_as_fields);
 }
 

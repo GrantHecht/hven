@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief Latched trial-evaluation failure state for one solve call.
 ///
@@ -32,4 +32,4 @@ struct EvalErrorLog {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail

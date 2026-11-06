@@ -41,15 +41,15 @@
 
 namespace {
 
-using hven::AcceptanceStrategy;
-using hven::BarrierGovernor;
-using hven::GlobalizationMechanism;
 using hven::IpmIterate;
 using hven::IpmSolver;
-using hven::kAdaptiveMuKktErrorRedFact;
-using hven::kBarrierTolFactor;
-using hven::MonitoredBarrierGovernor;
-using hven::SolverContext;
+using hven::detail::AcceptanceStrategy;
+using hven::detail::BarrierGovernor;
+using hven::detail::GlobalizationMechanism;
+using hven::detail::kAdaptiveMuKktErrorRedFact;
+using hven::detail::kBarrierTolFactor;
+using hven::detail::MonitoredBarrierGovernor;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // Build an IpmIterate carrying only the residual scalars the monitor reads.
@@ -79,7 +79,7 @@ class MonGovFakeDelegate : public BarrierGovernor {
     double return_mu = 12345.0;
     double set_barr_obj = 678.0;
 
-    double update_barrier(hven::BarrierMode, double mu_in, double avgcomp, double mincomp,
+    double update_barrier(hven::IpmBarrierMode, double mu_in, double avgcomp, double mincomp,
                           Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                           Eigen::VectorXd &, GlobalizationMechanism &, SolverContext &,
                           double &barr_obj, const IpmIterate &, bool &mu_event) override {
@@ -97,7 +97,7 @@ class MonGovFakeDelegate : public BarrierGovernor {
 // Inert mechanism — the fake delegate ignores it, so its body must never run.
 class MonGovUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(hven::LineSearchMode, double, double, double, double, Eigen::VectorXd &,
+    double compute_step(hven::IpmLineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         AcceptanceStrategy &, double &, double &, IpmIterate &,
                         const std::vector<IpmIterate> &, SolverContext &) override {
@@ -365,7 +365,7 @@ TEST(MonGovDelegation, FreeModeForwardsToDelegateVerbatim) {
     const auto current = MonGovUniform(1.0);
     double barr_obj = -1.0;
     bool mu_event = false;
-    const double mu = g.update_barrier(hven::BarrierMode::kLoqo, /*mu_in=*/0.007,
+    const double mu = g.update_barrier(hven::IpmBarrierMode::kLoqo, /*mu_in=*/0.007,
                                        /*avgcomp=*/0.55, /*mincomp=*/0.11, XSL, RHS, DXSL, Temp,
                                        mechanism, ctx, barr_obj, current, mu_event);
     EXPECT_EQ(fake->calls, 1);
@@ -412,8 +412,8 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IpmIterate current1 = MonGovIterate(0.0, 0.0, 0.9, 0.0);
     double barr_obj1 = 0.0;
     bool event1 = false;
-    g.update_barrier(hven::BarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
-                     ctx, barr_obj1, current1, event1);
+    g.update_barrier(hven::IpmBarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+                     mechanism, ctx, barr_obj1, current1, event1);
     EXPECT_FALSE(event1);
     EXPECT_FALSE(g.in_monotone_mode());
     EXPECT_EQ(fake->calls, 1);
@@ -430,8 +430,8 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IpmIterate current2 = MonGovIterate(0.0, 0.0, 1.0, 0.0);
     double barr_obj2 = 0.0;
     bool event2 = false;
-    g.update_barrier(hven::BarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
-                     ctx, barr_obj2, current2, event2);
+    g.update_barrier(hven::IpmBarrierMode::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+                     mechanism, ctx, barr_obj2, current2, event2);
     EXPECT_TRUE(event2);
     EXPECT_TRUE(g.in_monotone_mode());
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.01); // handoff_mu(0.0125, ...) = 0.8*0.0125.
@@ -460,8 +460,8 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // monotone_mu_ = handoff_mu(0.0125, ...) = 0.8*0.0125 = 0.01.
     double barr_obj = 0.0;
     bool event = false;
-    g.update_barrier(hven::BarrierMode::kLoqo, 0.01, /*avgcomp=*/0.0125, 0.0, XSL, RHS, DXSL, Temp,
-                     mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
+    g.update_barrier(hven::IpmBarrierMode::kLoqo, 0.01, /*avgcomp=*/0.0125, 0.0, XSL, RHS, DXSL,
+                     Temp, mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
     ASSERT_TRUE(g.in_monotone_mode());
     ASSERT_DOUBLE_EQ(g.monotone_mu(), 0.01);
     ASSERT_TRUE(event);
@@ -471,7 +471,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // > 0.1 -> gate blocks -> NO advance, NO mu_event.
     event = false;
     const double mu_after_hold = g.update_barrier(
-        hven::BarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
+        hven::IpmBarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
         ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.2), event);
     EXPECT_FALSE(event);
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.01);
@@ -487,7 +487,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // then clamped to [1e-12, 100] (inert).
     event = false;
     const double mu_after_advance = g.update_barrier(
-        hven::BarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
+        hven::IpmBarrierMode::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp, mechanism,
         ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.05), event);
     EXPECT_TRUE(event); // advance on exactly this call, not the previous hold.
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.001);
@@ -639,7 +639,7 @@ TEST(MonGovMonotoneSchedule, EveryGovernorRunsTheSameSharedSchedule) {
     SolverContext classic_ctx = classic_drive.inert_.ctx();
 
     MonitoredBarrierGovernor monitored;
-    hven::ClassicAdaptiveGovernor classic;
+    hven::detail::ClassicAdaptiveGovernor classic;
     const IpmIterate current = MonGovUniform(0.5);
 
     const double mu_monitored = monitored.update_barrier_monotone(

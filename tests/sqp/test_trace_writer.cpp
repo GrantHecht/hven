@@ -13,7 +13,7 @@
 //         BIT-EQUAL, so "17 significant digits" is a fact and not a claim.
 //
 //   (iii) WHOLE SOLVE: the stream's line count by `ev` equals the currency the
-//         solve reported, on real HS cells at kIpm.
+//         solve reported, on real HS cells at kIpqp.
 //
 //   (iv)  NULL SINK: attaching the writer to a walk-arm solve moves no counter
 //         and writes no line.
@@ -46,7 +46,7 @@
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/trace_writer.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 
 // The portable stdout capture both console suites share (M6 W5 T8.7 fix1,
 // astra's I2): this file used to carry its own copy, which included <unistd.h>
@@ -166,8 +166,8 @@ std::string event_name(const std::string &line) {
 // Hand-filled events -- the golden lines' own inputs
 // ===========================================================================
 
-IpqpTraceIterEvent golden_iter_present() {
-    IpqpTraceIterEvent e;
+IpqpIterTraceEvent golden_iter_present() {
+    IpqpIterTraceEvent e;
     e.solve = 3;
     e.major = 7;
     e.it = 2;
@@ -189,8 +189,8 @@ IpqpTraceIterEvent golden_iter_present() {
     return e;
 }
 
-IpqpTraceIterEvent golden_iter_absent() {
-    IpqpTraceIterEvent e;
+IpqpIterTraceEvent golden_iter_absent() {
+    IpqpIterTraceEvent e;
     e.solve = 1;
     e.major = 0;
     e.it = 1;
@@ -201,8 +201,8 @@ IpqpTraceIterEvent golden_iter_absent() {
     return e;
 }
 
-IpqpTraceEscapeEvent golden_escape() {
-    IpqpTraceEscapeEvent e;
+IpqpEscapeTraceEvent golden_escape() {
+    IpqpEscapeTraceEvent e;
     e.reason = IpqpTraceEscapeReason::kInfeasibleSuspect;
     e.evidence.stall.fired = false;
     e.evidence.stall.window = 0;
@@ -267,8 +267,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpIterWithBothOptionalsAbsentAndTheThreeNon
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpqpReg) {
-    IpqpTraceRegEvent e;
-    e.dir = IpqpTraceRegDir::kDown;
+    IpqpRegTraceEvent e;
+    e.dir = IpqpTraceRegDirection::kDown;
     e.rho = 100.0;
     e.delta = 0.001;
     e.reason = IpqpTraceRegReason::kStall;
@@ -280,7 +280,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpReg) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpqpRestart) {
-    IpqpTraceRestartEvent e;
+    IpqpRestartTraceEvent e;
     e.grade = IpqpTraceRestartGrade::kFull;
     e.repaired = true;
     e.shift_p = 0.25;
@@ -299,8 +299,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpRestart) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpqpRoute) {
-    IpqpTraceRouteEvent e;
-    e.to = IpqpTraceRouteTo::kSsn;
+    IpqpRouteTraceEvent e;
+    e.to = IpqpTraceRouteTarget::kSsn;
     e.uncertain = 3;
     e.face_rows = 4;
     e.face_bounds = 2;
@@ -312,7 +312,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpRoute) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpqpCertify) {
-    IpqpTraceCertifyEvent e;
+    IpqpCertifyTraceEvent e;
     e.final_inertia = IpqpTraceFinalInertia::kWrong;
     e.downgraded = true;
     std::ostringstream os;
@@ -347,8 +347,8 @@ TEST(JsonLinesTraceSink, GoldenLineQpMode) {
     // Rule 6 as clarified in docs/trace-schema-v0.md: a frozen event's golden
     // line moves only by a declared additive TRAILING key, never otherwise.
     QpModeTraceEvent e;
-    e.mode = IpqpTraceQpMode::kIpqp;
-    e.outcome = IpqpTraceOutcome::kEscaped;
+    e.mode = QpTraceMode::kIpqp;
+    e.outcome = QpTraceOutcome::kEscaped;
     e.iters = 12;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -365,10 +365,10 @@ TEST(JsonLinesTraceSink, GoldenLineQpModeAtANonDispatchSite) {
     //
     // This one differs in every field, so a hard-coded `dispatch` fails here.
     QpModeTraceEvent e;
-    e.mode = IpqpTraceQpMode::kWalk;
-    e.outcome = IpqpTraceOutcome::kOptimal;
+    e.mode = QpTraceMode::kWalk;
+    e.outcome = QpTraceOutcome::kOptimal;
     e.iters = 3;
-    e.site = QpModeSite::kElasticRung;
+    e.site = QpTraceModeSite::kElasticRung;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_qp_mode(e);
@@ -380,7 +380,7 @@ TEST(JsonLinesTraceSink, GoldenLineQpModeAtANonDispatchSite) {
 TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictWithAPlacement) {
     SqpFallbackVerdictTraceEvent e;
     e.entered_rung_a = true;
-    e.verdict = SqpFallbackVerdict::kRungB;
+    e.verdict = SqpTraceFallbackVerdict::kRungB;
     e.rho_0 = 1e6;
     e.rho0_ceiling_hit = true;
     e.floor_retry = true;
@@ -432,11 +432,11 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictUnfiredWritesRhoZeroAsNull) {
 /// spelling the sink can produce.
 const char *const kUnspelled = "\"UNSPELLED\"";
 
-const char *spec_spelling(IpqpTraceRegDir v) {
+const char *spec_spelling(IpqpTraceRegDirection v) {
     switch (v) {
-    case IpqpTraceRegDir::kDown:
+    case IpqpTraceRegDirection::kDown:
         return "\"down\"";
-    case IpqpTraceRegDir::kUp:
+    case IpqpTraceRegDirection::kUp:
         return "\"up\"";
     }
     return kUnspelled;
@@ -468,13 +468,13 @@ const char *spec_spelling(IpqpTraceRestartGrade v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(IpqpTraceRouteTo v) {
+const char *spec_spelling(IpqpTraceRouteTarget v) {
     switch (v) {
-    case IpqpTraceRouteTo::kRefine:
+    case IpqpTraceRouteTarget::kRefine:
         return "\"refine\"";
-    case IpqpTraceRouteTo::kSsn:
+    case IpqpTraceRouteTarget::kSsn:
         return "\"ssn\"";
-    case IpqpTraceRouteTo::kWalk:
+    case IpqpTraceRouteTarget::kWalk:
         return "\"walk\"";
     }
     return kUnspelled;
@@ -508,32 +508,32 @@ const char *spec_spelling(IpqpTraceEscapeReason v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(IpqpTraceQpMode v) {
+const char *spec_spelling(QpTraceMode v) {
     switch (v) {
-    case IpqpTraceQpMode::kIpqp:
+    case QpTraceMode::kIpqp:
         return "\"ipqp\"";
-    case IpqpTraceQpMode::kWalk:
+    case QpTraceMode::kWalk:
         return "\"walk\"";
-    case IpqpTraceQpMode::kSsn:
+    case QpTraceMode::kSsn:
         return "\"ssn\"";
     }
     return kUnspelled;
 }
 
 /// M6 W4 T5's fifth alphabet on `qp.mode`.
-const char *spec_spelling(QpModeSite v) {
+const char *spec_spelling(QpTraceModeSite v) {
     switch (v) {
-    case QpModeSite::kDispatch:
+    case QpTraceModeSite::kDispatch:
         return "\"dispatch\"";
-    case QpModeSite::kSsnWarmGrade:
+    case QpTraceModeSite::kSsnWarmGrade:
         return "\"ssn_warm_grade\"";
-    case QpModeSite::kFallbackRungB:
+    case QpTraceModeSite::kFallbackRungB:
         return "\"fallback_rung_b\"";
-    case QpModeSite::kElasticRung:
+    case QpTraceModeSite::kElasticRung:
         return "\"elastic_rung\"";
-    case QpModeSite::kSocResolve:
+    case QpTraceModeSite::kSocResolve:
         return "\"soc_resolve\"";
-    case QpModeSite::kCapRetry:
+    case QpTraceModeSite::kCapRetry:
         return "\"cap_retry\"";
     }
     return kUnspelled;
@@ -543,7 +543,7 @@ const char *spec_spelling(QpStatus v) {
     switch (v) {
     case QpStatus::kOptimal:
         return "\"optimal\"";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "\"max_iter\"";
     case QpStatus::kInfeasible:
         return "\"infeasible\"";
@@ -558,11 +558,11 @@ const char *spec_spelling(QpStatus v) {
 // used -- spells the five SQP-reachable values identically, so the two folded
 // into one.
 
-const char *spec_spelling(WorkingSetLinearAlgebra v) {
+const char *spec_spelling(QpWorkingSetAlgebra v) {
     switch (v) {
-    case WorkingSetLinearAlgebra::kRefactorize:
+    case QpWorkingSetAlgebra::kRefactorize:
         return "\"refactorize\"";
-    case WorkingSetLinearAlgebra::kSchurBorder:
+    case QpWorkingSetAlgebra::kSchurBorder:
         return "\"schur_border\"";
     }
     return kUnspelled;
@@ -584,9 +584,9 @@ const char *spec_spelling(StartLevel v) {
 
 const char *spec_spelling(StepVerdict v) {
     switch (v) {
-    case StepVerdict::kAcceptF:
+    case StepVerdict::kAcceptObjectiveStep:
         return "\"accept_f\"";
-    case StepVerdict::kAcceptH:
+    case StepVerdict::kAcceptFeasibilityStep:
         return "\"accept_h\"";
     case StepVerdict::kReject:
         return "\"reject\"";
@@ -596,29 +596,29 @@ const char *spec_spelling(StepVerdict v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(IpqpTraceOutcome v) {
+const char *spec_spelling(QpTraceOutcome v) {
     switch (v) {
-    case IpqpTraceOutcome::kOptimal:
+    case QpTraceOutcome::kOptimal:
         return "\"optimal\"";
-    case IpqpTraceOutcome::kRouted:
+    case QpTraceOutcome::kRouted:
         return "\"routed\"";
-    case IpqpTraceOutcome::kEscaped:
+    case QpTraceOutcome::kEscaped:
         return "\"escaped\"";
     }
     return kUnspelled;
 }
 
-const char *spec_spelling(SqpFallbackVerdict v) {
+const char *spec_spelling(SqpTraceFallbackVerdict v) {
     switch (v) {
-    case SqpFallbackVerdict::kDisproved:
+    case SqpTraceFallbackVerdict::kDisproved:
         return "\"disproved\"";
-    case SqpFallbackVerdict::kRelaxed:
+    case SqpTraceFallbackVerdict::kRelaxed:
         return "\"relaxed\"";
-    case SqpFallbackVerdict::kExhausted:
+    case SqpTraceFallbackVerdict::kExhausted:
         return "\"exhausted\"";
-    case SqpFallbackVerdict::kRungB:
+    case SqpTraceFallbackVerdict::kRungB:
         return "\"rung_b\"";
-    case SqpFallbackVerdict::kUnfired:
+    case SqpTraceFallbackVerdict::kUnfired:
         return "\"unfired\"";
     }
     return kUnspelled;
@@ -635,7 +635,7 @@ const char *spec_spelling(hven::SolveStatus v) {
         return "\"optimal\"";
     case hven::SolveStatus::kAcceptable:
         return "\"acceptable\"";
-    case hven::SolveStatus::kMaxIter:
+    case hven::SolveStatus::kIterationLimit:
         return "\"max_iter\"";
     case hven::SolveStatus::kWorkLimit:
         return "\"work_limit\"";
@@ -668,7 +668,7 @@ const char *spec_spelling(hven::RestorationSubStatus v) {
         return "\"optimal\"";
     case hven::RestorationSubStatus::kAcceptable:
         return "\"acceptable\"";
-    case hven::RestorationSubStatus::kMaxIter:
+    case hven::RestorationSubStatus::kIterationLimit:
         return "\"max_iter\"";
     case hven::RestorationSubStatus::kWorkLimit:
         return "\"work_limit\"";
@@ -688,11 +688,11 @@ const char *spec_spelling(hven::RestorationSubStatus v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(InertiaMode v) {
+const char *spec_spelling(IpmInertiaMode v) {
     switch (v) {
-    case InertiaMode::kClassic:
+    case IpmInertiaMode::kClassic:
         return "\"classic\"";
-    case InertiaMode::kProximalRegularization:
+    case IpmInertiaMode::kProximalRegularization:
         return "\"proximal_regularization\"";
     }
     return kUnspelled;
@@ -715,7 +715,7 @@ const char *spec_spelling(IpmStopReason v) {
     switch (v) {
     case IpmStopReason::kNone:
         return "\"none\"";
-    case IpmStopReason::kIterationCap:
+    case IpmStopReason::kIterationLimit:
         return "\"iteration_cap\"";
     case IpmStopReason::kRestorationLocallyInfeasible:
         return "\"restoration_locally_infeasible\"";
@@ -777,13 +777,13 @@ const char *spec_spelling(IpmMessageKind v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(RestorationMode v) {
+const char *spec_spelling(IpmRestorationMode v) {
     switch (v) {
-    case RestorationMode::kOff:
+    case IpmRestorationMode::kOff:
         return "\"off\"";
-    case RestorationMode::kProximalSwitch:
+    case IpmRestorationMode::kProximalSwitch:
         return "\"proximal_switch\"";
-    case RestorationMode::kL1Nested:
+    case IpmRestorationMode::kL1Nested:
         return "\"l1_nested\"";
     }
     return kUnspelled;
@@ -803,25 +803,25 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     // the existing ones (which the switch would still cover) also fails.
     //
     // BUMP THE COUNT AND ADD A CASE ABOVE WHEN YOU ADD A SPELLING.
-    static_assert(static_cast<int>(IpqpTraceRegDir::kUp) == 2 - 1, "2 dir spellings");
+    static_assert(static_cast<int>(IpqpTraceRegDirection::kUp) == 2 - 1, "2 dir spellings");
     static_assert(static_cast<int>(IpqpTraceRegReason::kFloor) == 4 - 1, "4 reg reasons");
     static_assert(static_cast<int>(IpqpTraceRestartGrade::kFull) == 3 - 1, "3 grades");
-    static_assert(static_cast<int>(IpqpTraceRouteTo::kWalk) == 3 - 1, "3 route destinations");
+    static_assert(static_cast<int>(IpqpTraceRouteTarget::kWalk) == 3 - 1, "3 route destinations");
     static_assert(static_cast<int>(IpqpTraceFinalInertia::kUnreadable) == 3 - 1, "3 readings");
     static_assert(static_cast<int>(IpqpTraceEscapeReason::kInfeasibleSuspect) == 5 - 1,
                   "5 escape reasons");
-    static_assert(static_cast<int>(IpqpTraceQpMode::kSsn) == 3 - 1, "3 QP modes");
+    static_assert(static_cast<int>(QpTraceMode::kSsn) == 3 - 1, "3 QP modes");
     static_assert(static_cast<int>(QpStatus::kNumericalError) == 4 - 1, "4 QP statuses");
     static_assert(static_cast<int>(StepVerdict::kRestore) == 4 - 1, "4 step verdicts");
     static_assert(static_cast<int>(SolveStatus::kInterrupted) == 9 - 1, "9 solve statuses");
-    static_assert(static_cast<int>(WorkingSetLinearAlgebra::kSchurBorder) == 2 - 1,
+    static_assert(static_cast<int>(QpWorkingSetAlgebra::kSchurBorder) == 2 - 1,
                   "2 working-set algebras");
     static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
-    static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
-    static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
-    static_assert(static_cast<int>(InertiaMode::kProximalRegularization) == 2 - 1,
+    static_assert(static_cast<int>(QpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
+    static_assert(static_cast<int>(SqpTraceFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
+    static_assert(static_cast<int>(IpmInertiaMode::kProximalRegularization) == 2 - 1,
                   "2 inertia modes");
-    static_assert(static_cast<int>(RestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
+    static_assert(static_cast<int>(IpmRestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
     static_assert(static_cast<int>(IpmStopReason::kException) == 11 - 1, "11 stop reasons");
@@ -830,19 +830,19 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpmMessageKind::kInterruptSkippingPhases) == 9 - 1,
                   "9 message kinds");
 
-    const auto reg_dir = [](IpqpTraceRegDir d) {
-        IpqpTraceRegEvent e;
+    const auto reg_dir = [](IpqpTraceRegDirection d) {
+        IpqpRegTraceEvent e;
         e.dir = d;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_reg(e);
         EXPECT_EQ(raw_field(os.str(), "dir"), spec_spelling(d));
     };
-    reg_dir(IpqpTraceRegDir::kDown);
-    reg_dir(IpqpTraceRegDir::kUp);
+    reg_dir(IpqpTraceRegDirection::kDown);
+    reg_dir(IpqpTraceRegDirection::kUp);
 
     const auto reg_reason = [](IpqpTraceRegReason r) {
-        IpqpTraceRegEvent e;
+        IpqpRegTraceEvent e;
         e.reason = r;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
@@ -855,7 +855,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     reg_reason(IpqpTraceRegReason::kFloor);
 
     const auto grade = [](IpqpTraceRestartGrade g) {
-        IpqpTraceRestartEvent e;
+        IpqpRestartTraceEvent e;
         e.grade = g;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
@@ -866,20 +866,20 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     grade(IpqpTraceRestartGrade::kBase);
     grade(IpqpTraceRestartGrade::kCold);
 
-    const auto route = [](IpqpTraceRouteTo t) {
-        IpqpTraceRouteEvent e;
+    const auto route = [](IpqpTraceRouteTarget t) {
+        IpqpRouteTraceEvent e;
         e.to = t;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_ipqp_route(e);
         EXPECT_EQ(raw_field(os.str(), "to"), spec_spelling(t));
     };
-    route(IpqpTraceRouteTo::kRefine);
-    route(IpqpTraceRouteTo::kSsn);
-    route(IpqpTraceRouteTo::kWalk);
+    route(IpqpTraceRouteTarget::kRefine);
+    route(IpqpTraceRouteTarget::kSsn);
+    route(IpqpTraceRouteTarget::kWalk);
 
     const auto certify = [](IpqpTraceFinalInertia f) {
-        IpqpTraceCertifyEvent e;
+        IpqpCertifyTraceEvent e;
         e.final_inertia = f;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
@@ -891,7 +891,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     certify(IpqpTraceFinalInertia::kUnreadable);
 
     const auto escape = [](IpqpTraceEscapeReason r) {
-        IpqpTraceEscapeEvent e;
+        IpqpEscapeTraceEvent e;
         e.reason = r;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
@@ -904,7 +904,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     escape(IpqpTraceEscapeReason::kNumerical);
     escape(IpqpTraceEscapeReason::kInfeasibleSuspect);
 
-    const auto outcome = [](IpqpTraceOutcome o) {
+    const auto outcome = [](QpTraceOutcome o) {
         QpModeTraceEvent e;
         e.outcome = o;
         std::ostringstream os;
@@ -913,12 +913,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         EXPECT_EQ(raw_field(os.str(), "outcome"), spec_spelling(o));
         EXPECT_EQ(raw_field(os.str(), "mode"), spec_spelling(e.mode));
     };
-    outcome(IpqpTraceOutcome::kOptimal);
-    outcome(IpqpTraceOutcome::kRouted);
-    outcome(IpqpTraceOutcome::kEscaped);
+    outcome(QpTraceOutcome::kOptimal);
+    outcome(QpTraceOutcome::kRouted);
+    outcome(QpTraceOutcome::kEscaped);
 
     // W4 T5's `site`, on the same event.
-    const auto site = [](QpModeSite v) {
+    const auto site = [](QpTraceModeSite v) {
         QpModeTraceEvent e;
         e.site = v;
         std::ostringstream os;
@@ -926,13 +926,13 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_qp_mode(e);
         EXPECT_EQ(raw_field(os.str(), "site"), spec_spelling(v));
     };
-    site(QpModeSite::kDispatch);
-    site(QpModeSite::kSsnWarmGrade);
-    site(QpModeSite::kFallbackRungB);
-    site(QpModeSite::kElasticRung);
-    site(QpModeSite::kSocResolve);
+    site(QpTraceModeSite::kDispatch);
+    site(QpTraceModeSite::kSsnWarmGrade);
+    site(QpTraceModeSite::kFallbackRungB);
+    site(QpTraceModeSite::kElasticRung);
+    site(QpTraceModeSite::kSocResolve);
 
-    const auto verdict = [](SqpFallbackVerdict v) {
+    const auto verdict = [](SqpTraceFallbackVerdict v) {
         SqpFallbackVerdictTraceEvent e;
         e.verdict = v;
         std::ostringstream os;
@@ -940,35 +940,35 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_fallback_verdict(e);
         EXPECT_EQ(raw_field(os.str(), "verdict"), spec_spelling(v));
     };
-    verdict(SqpFallbackVerdict::kDisproved);
-    verdict(SqpFallbackVerdict::kRelaxed);
-    verdict(SqpFallbackVerdict::kExhausted);
-    verdict(SqpFallbackVerdict::kRungB);
-    verdict(SqpFallbackVerdict::kUnfired);
+    verdict(SqpTraceFallbackVerdict::kDisproved);
+    verdict(SqpTraceFallbackVerdict::kRelaxed);
+    verdict(SqpTraceFallbackVerdict::kExhausted);
+    verdict(SqpTraceFallbackVerdict::kRungB);
+    verdict(SqpTraceFallbackVerdict::kUnfired);
 
     // W4 T2's three added alphabets, driven through `sqp.major`: the two new
     // QP modes, and the two DRIVER enums the row carries.
-    const auto major_mode = [](IpqpTraceQpMode m) {
+    const auto major_mode = [](QpTraceMode m) {
         const SqpIterate r;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_sqp_major(SqpMajorTraceEvent{r, 0, m});
         EXPECT_EQ(raw_field(os.str(), "mode"), spec_spelling(m));
     };
-    major_mode(IpqpTraceQpMode::kIpqp);
-    major_mode(IpqpTraceQpMode::kWalk);
-    major_mode(IpqpTraceQpMode::kSsn);
+    major_mode(QpTraceMode::kIpqp);
+    major_mode(QpTraceMode::kWalk);
+    major_mode(QpTraceMode::kSsn);
 
     const auto qp_status = [](QpStatus q) {
         SqpIterate r;
         r.qp_status = q;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
-        s.on_sqp_major(SqpMajorTraceEvent{r, 0, IpqpTraceQpMode::kWalk});
+        s.on_sqp_major(SqpMajorTraceEvent{r, 0, QpTraceMode::kWalk});
         EXPECT_EQ(raw_field(os.str(), "qp_status"), spec_spelling(q));
     };
     qp_status(QpStatus::kOptimal);
-    qp_status(QpStatus::kMaxIter);
+    qp_status(QpStatus::kIterationLimit);
     qp_status(QpStatus::kInfeasible);
     qp_status(QpStatus::kNumericalError);
 
@@ -977,11 +977,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         r.verdict = v;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
-        s.on_sqp_major(SqpMajorTraceEvent{r, 0, IpqpTraceQpMode::kWalk});
+        s.on_sqp_major(SqpMajorTraceEvent{r, 0, QpTraceMode::kWalk});
         EXPECT_EQ(raw_field(os.str(), "verdict"), spec_spelling(v));
     };
-    step_verdict(StepVerdict::kAcceptF);
-    step_verdict(StepVerdict::kAcceptH);
+    step_verdict(StepVerdict::kAcceptObjectiveStep);
+    step_verdict(StepVerdict::kAcceptFeasibilityStep);
     step_verdict(StepVerdict::kReject);
     step_verdict(StepVerdict::kRestore);
 
@@ -995,12 +995,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
     };
     solve_status(SolveStatus::kOptimal);
-    solve_status(SolveStatus::kMaxIter);
+    solve_status(SolveStatus::kIterationLimit);
     solve_status(SolveStatus::kInfeasible);
     solve_status(SolveStatus::kNumericalError);
     solve_status(SolveStatus::kWorkLimit);
 
-    const auto ws_algebra = [](WorkingSetLinearAlgebra a) {
+    const auto ws_algebra = [](QpWorkingSetAlgebra a) {
         SqpSolveBeginTraceEvent e;
         e.ws_algebra = a;
         std::ostringstream os;
@@ -1008,8 +1008,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_sqp_solve_begin(e);
         EXPECT_EQ(raw_field(os.str(), "ws_algebra"), spec_spelling(a));
     };
-    ws_algebra(WorkingSetLinearAlgebra::kRefactorize);
-    ws_algebra(WorkingSetLinearAlgebra::kSchurBorder);
+    ws_algebra(QpWorkingSetAlgebra::kRefactorize);
+    ws_algebra(QpWorkingSetAlgebra::kSchurBorder);
 
     const auto start_level = [](StartLevel lv) {
         SqpCounters counters;
@@ -1040,7 +1040,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         EXPECT_EQ(raw_field(os.str(), "stop_reason"), spec_spelling(v));
     };
     stop_reason(IpmStopReason::kNone);
-    stop_reason(IpmStopReason::kIterationCap);
+    stop_reason(IpmStopReason::kIterationLimit);
     stop_reason(IpmStopReason::kRestorationLocallyInfeasible);
     stop_reason(IpmStopReason::kStageStalled);
     stop_reason(IpmStopReason::kInterrupted);
@@ -1104,7 +1104,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     sub_status(hven::RestorationSubStatus::kNotRun);
     sub_status(hven::RestorationSubStatus::kOptimal);
     sub_status(hven::RestorationSubStatus::kAcceptable);
-    sub_status(hven::RestorationSubStatus::kMaxIter);
+    sub_status(hven::RestorationSubStatus::kIterationLimit);
     sub_status(hven::RestorationSubStatus::kInfeasible);
     sub_status(hven::RestorationSubStatus::kStalled);
     sub_status(hven::RestorationSubStatus::kDiverging);
@@ -1124,11 +1124,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     };
     ipm_status(hven::SolveStatus::kOptimal);
     ipm_status(hven::SolveStatus::kAcceptable);
-    ipm_status(hven::SolveStatus::kMaxIter);
+    ipm_status(hven::SolveStatus::kIterationLimit);
     ipm_status(hven::SolveStatus::kDiverging);
     ipm_status(hven::SolveStatus::kNumericalError);
 
-    const auto inertia_mode = [](InertiaMode m) {
+    const auto inertia_mode = [](IpmInertiaMode m) {
         IpmSolveBeginTraceEvent e;
         e.inertia_mode = m;
         std::ostringstream os;
@@ -1136,10 +1136,10 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_begin(e);
         EXPECT_EQ(raw_field(os.str(), "inertia_mode"), spec_spelling(m));
     };
-    inertia_mode(InertiaMode::kClassic);
-    inertia_mode(InertiaMode::kProximalRegularization);
+    inertia_mode(IpmInertiaMode::kClassic);
+    inertia_mode(IpmInertiaMode::kProximalRegularization);
 
-    const auto restoration_mode = [](RestorationMode m) {
+    const auto restoration_mode = [](IpmRestorationMode m) {
         IpmSolveBeginTraceEvent e;
         e.restoration_mode = m;
         std::ostringstream os;
@@ -1147,13 +1147,13 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_begin(e);
         EXPECT_EQ(raw_field(os.str(), "restoration_mode"), spec_spelling(m));
     };
-    restoration_mode(RestorationMode::kOff);
-    restoration_mode(RestorationMode::kProximalSwitch);
-    restoration_mode(RestorationMode::kL1Nested);
+    restoration_mode(IpmRestorationMode::kOff);
+    restoration_mode(IpmRestorationMode::kProximalSwitch);
+    restoration_mode(IpmRestorationMode::kL1Nested);
 }
 
 TEST(JsonLinesTraceSink, StringEscapingIsRfc8259AndUtf8PassesThrough) {
-    IpqpTraceIterEvent e;
+    IpqpIterTraceEvent e;
     e.facts = std::string("\x01\x1f") + "\b\f\r\t" + "\xc3\xa9" + "ok";
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -1172,11 +1172,11 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
     const SqpCounters counters;
     EXPECT_EQ(sink.depth(), 0);
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_EQ(lines.size(), 7u);
@@ -1192,7 +1192,7 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
     // unbalanced POP cannot fabricate a negative depth. Through the begin/end
     // path the same statement is that a stray `end` leaves depth at 0, not -1.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     const std::vector<std::string> after = split_lines(os.str());
     ASSERT_EQ(after.size(), 9u);
     EXPECT_EQ(raw_field(after[7], "depth"), "0") << after[7];
@@ -1207,7 +1207,7 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
 TEST(JsonLinesTraceSink, RoundTripIsBitExactOnTheHardDoubles) {
     // The five the brief names, plus a NaN and both infinities, carried on one
     // event so a single line covers the whole numeric contract.
-    IpqpTraceIterEvent e;
+    IpqpIterTraceEvent e;
     e.mu = -0.0;
     e.rho = 4.9406564584124654e-324;
     e.delta = 0.1;
@@ -1236,7 +1236,7 @@ TEST(JsonLinesTraceSink, RoundTripIsBitExactOnTheHardDoubles) {
 
 TEST(JsonLinesTraceSink, RoundTripReadsEveryGoldenLineBackBitEqual) {
     {
-        const IpqpTraceIterEvent e = golden_iter_present();
+        const IpqpIterTraceEvent e = golden_iter_present();
         std::ostringstream os;
         JsonLinesTraceSink sink(os);
         sink.on_ipqp_iter(e);
@@ -1255,7 +1255,7 @@ TEST(JsonLinesTraceSink, RoundTripReadsEveryGoldenLineBackBitEqual) {
         EXPECT_EQ(raw_field(l, "facts"), "\"a\\\"b\\\\c\\nd\"");
     }
     {
-        const IpqpTraceIterEvent e = golden_iter_absent();
+        const IpqpIterTraceEvent e = golden_iter_absent();
         std::ostringstream os;
         JsonLinesTraceSink sink(os);
         sink.on_ipqp_iter(e);
@@ -1268,7 +1268,7 @@ TEST(JsonLinesTraceSink, RoundTripReadsEveryGoldenLineBackBitEqual) {
         EXPECT_EQ(raw_field(l, "perturbed"), "null");
     }
     {
-        IpqpTraceRestartEvent e;
+        IpqpRestartTraceEvent e;
         e.shift_p = 0.25;
         e.shift_d = 0.125;
         e.mu0 = 0.1;
@@ -1283,7 +1283,7 @@ TEST(JsonLinesTraceSink, RoundTripReadsEveryGoldenLineBackBitEqual) {
         expect_double_field(l, "mu_payload", e.mu_payload);
     }
     {
-        IpqpTraceRegEvent e;
+        IpqpRegTraceEvent e;
         e.rho = 100.0;
         e.delta = 0.001;
         std::ostringstream os;
@@ -1304,7 +1304,7 @@ TEST(JsonLinesTraceSink, RoundTripReadsEveryGoldenLineBackBitEqual) {
 }
 
 TEST(JsonLinesTraceSink, RoundTripReachesInsideTheNestedEvidenceObject) {
-    const IpqpTraceEscapeEvent e = golden_escape();
+    const IpqpEscapeTraceEvent e = golden_escape();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipqp_escape(e);
@@ -1352,27 +1352,27 @@ class TeeSink final : public TraceSink {
     Index iters = 0, regs = 0, restarts = 0, routes = 0;
     Index certifies = 0, escapes = 0, modes = 0, fallbacks = 0;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override {
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override {
         ++iters;
         json_.on_ipqp_iter(e);
     }
-    void on_ipqp_reg(const IpqpTraceRegEvent &e) override {
+    void on_ipqp_reg(const IpqpRegTraceEvent &e) override {
         ++regs;
         json_.on_ipqp_reg(e);
     }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &e) override {
+    void on_ipqp_restart(const IpqpRestartTraceEvent &e) override {
         ++restarts;
         json_.on_ipqp_restart(e);
     }
-    void on_ipqp_route(const IpqpTraceRouteEvent &e) override {
+    void on_ipqp_route(const IpqpRouteTraceEvent &e) override {
         ++routes;
         json_.on_ipqp_route(e);
     }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override {
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &e) override {
         ++certifies;
         json_.on_ipqp_certify(e);
     }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override {
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &e) override {
         ++escapes;
         json_.on_ipqp_escape(e);
     }
@@ -1420,7 +1420,7 @@ TEST(JsonLinesTraceSink, WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKI
     };
     for (const Leg leg : {Leg{11, 0, 2}, Leg{38, 1, 0}}) {
         SqpOptions opts;
-        opts.qp_mode = QpMode::kIpm;
+        opts.qp_mode = QpMode::kIpqp;
         opts.common.max_iterations = 60;
         const HsProblem p = make_hs(leg.hs);
         SqpSolver driver(opts);
@@ -1552,7 +1552,7 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
 
 TEST(JsonLinesTraceSink, GoldenLineIpqpRestartSecondBoolSignature) {
     // Catches the repaired <-> adopted swap: (T,T) vs (T,F), with abandoned (F,F).
-    IpqpTraceRestartEvent e;
+    IpqpRestartTraceEvent e;
     e.grade = IpqpTraceRestartGrade::kBase;
     e.repaired = true;
     e.shift_p = 1.0;
@@ -1575,7 +1575,7 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictClampedWithoutARetry) {
     // rho0_ceiling_hit <-> floor_retry swap, and both against entered_rung_a.
     SqpFallbackVerdictTraceEvent e;
     e.entered_rung_a = true;
-    e.verdict = SqpFallbackVerdict::kDisproved;
+    e.verdict = SqpTraceFallbackVerdict::kDisproved;
     e.rho_0 = 250.0;
     e.rho0_ceiling_hit = true;
     e.floor_retry = false;
@@ -1595,7 +1595,7 @@ TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictRetriedAtTheFloorWithoutAClamp
     // the value here rather than an arbitrary one.
     SqpFallbackVerdictTraceEvent e;
     e.entered_rung_a = true;
-    e.verdict = SqpFallbackVerdict::kExhausted;
+    e.verdict = SqpTraceFallbackVerdict::kExhausted;
     e.rho_0 = kElasticRhoInit;
     e.rho0_ceiling_hit = false;
     e.floor_retry = true;
@@ -1614,7 +1614,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeStallBranch) {
     // The `stall.fired == true` branch, which round 1 never reached. Across the
     // three escape lines: stall.fired (F,T,F), infeasibility.fired (T,F,T),
     // exhaustion_route (F,F,T), farkas_corroborated (T,F,F) -- all distinct.
-    IpqpTraceEscapeEvent e;
+    IpqpEscapeTraceEvent e;
     e.reason = IpqpTraceEscapeReason::kStall;
     e.evidence.stall.fired = true;
     e.evidence.stall.window = 2;
@@ -1639,7 +1639,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeStallBranch) {
 TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeExhaustionRouteWithoutFarkas) {
     // The exhaustion route with the Farkas gate off -- the two zeroed Farkas
     // scalars are the gate's own convention, not an absence.
-    IpqpTraceEscapeEvent e;
+    IpqpEscapeTraceEvent e;
     e.reason = IpqpTraceEscapeReason::kInfeasibleSuspect;
     IpqpInfeasibilityEvidence &i = e.evidence.infeasibility;
     i.fired = true;
@@ -1717,18 +1717,18 @@ TEST(JsonLinesTraceSink, FailedIsStickyAndSeqKeepsAdvancingPastTheFailure) {
     {
         std::ostringstream ok;
         JsonLinesTraceSink sink(ok);
-        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
         EXPECT_FALSE(sink.failed());
         EXPECT_EQ(sink.lines_written(), 1);
     }
     FailAfterBuf buf(20); // shorter than one line, so the first write fails
     std::ostream out(&buf);
     JsonLinesTraceSink sink(out);
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     EXPECT_TRUE(sink.failed());
     EXPECT_EQ(sink.lines_written(), 1);
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     EXPECT_TRUE(sink.failed()) << "sticky: it never reads back false";
     EXPECT_EQ(sink.lines_written(), 3) << "seq advances, so the gap counts the lost lines";
     EXPECT_LT(count_lines(buf.taken), sink.lines_written());
@@ -1739,7 +1739,7 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
     // completes and its counters are the bare solve's, byte for byte, while the
     // artifact is short and `failed()` says so.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
 
@@ -1771,7 +1771,7 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     // &)` would already swallow `std::ios_base::failure` if an emit site ever
     // moved inside its try, and THIS PIN is the only thing that would notice.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     FailAfterBuf buf(4096);
@@ -1823,7 +1823,7 @@ TEST(JsonLinesTraceSink, FlushSyncsOnceAndDestructionSyncsOnceMore) {
     std::string after_flush;
     {
         JsonLinesTraceSink sink(out);
-        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
         EXPECT_EQ(buf.syncs, 0) << "the sink does not flush per line";
         sink.flush();
         EXPECT_EQ(buf.syncs, 1);
@@ -1841,7 +1841,7 @@ TEST(JsonLinesTraceSink, UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThr
     buf.fail_sync = true;
     std::ostream out(&buf);
     JsonLinesTraceSink sink(out);
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     EXPECT_FALSE(sink.failed()) << "the WRITE succeeded; only the flush will fail";
     EXPECT_NO_THROW(sink.flush());
     EXPECT_TRUE(sink.failed()) << "a flush failure reads exactly like a write failure";
@@ -1855,7 +1855,7 @@ TEST(JsonLinesTraceSink, UnderAnArmedMaskFlushThrows) {
     std::ostream out(&buf);
     out.exceptions(std::ios::badbit);
     JsonLinesTraceSink sink(out);
-    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
     EXPECT_THROW(sink.flush(), std::ios_base::failure);
     EXPECT_EQ(buf.syncs, 1);
     // The sink is destroyed at the end of this test. Its flush finds the stream
@@ -1875,7 +1875,7 @@ TEST(JsonLinesTraceSink, UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed) 
     out.exceptions(std::ios::badbit);
     {
         JsonLinesTraceSink sink(out);
-        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        sink.on_ipqp_certify(IpqpCertifyTraceEvent{});
         ASSERT_TRUE(out.good()) << "non-vacuous: the write itself succeeded";
         buf.fail_sync = true;
     }
@@ -1892,7 +1892,7 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
     // the question the brief actually asks: attaching a sink to the arm where it
     // formats every event moves no counter either.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
 
@@ -1925,7 +1925,7 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     // subtraction is never exercised there. HERE every walk route IS a decline,
     // so the stream carries ZERO entries against a positive `ipqp_to_walk`.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     PinnedVariableModel model(true);
     SqpSolver driver(opts);
@@ -1988,7 +1988,7 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
 
     SqpCounters out;
     const NlpEval nlp_ev;
-    const SolveOverrides overrides;
+    const QpSolveOverrides overrides;
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     for (const Entry &e : entries) {
@@ -2039,14 +2039,14 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
 
 /// The `mode` token back as its enumerator -- the pin compares through
 /// `spec_spelling`, so this is the inverse the comparison needs.
-IpqpTraceQpMode mode_of_token(const std::string &token) {
+QpTraceMode mode_of_token(const std::string &token) {
     if (token == "\"ipqp\"") {
-        return IpqpTraceQpMode::kIpqp;
+        return QpTraceMode::kIpqp;
     }
     if (token == "\"ssn\"") {
-        return IpqpTraceQpMode::kSsn;
+        return QpTraceMode::kSsn;
     }
-    return IpqpTraceQpMode::kWalk;
+    return QpTraceMode::kWalk;
 }
 
 // ===========================================================================
@@ -2083,11 +2083,11 @@ SqpIterate golden_major_a() {
     r.qp_solved = false;
     r.ipqp_least_infeasible_primal = 3.25;
     r.ipqp_farkas_corroborated = true;
-    r.qp_status = QpStatus::kMaxIter;
+    r.qp_status = QpStatus::kIterationLimit;
     r.qp_minor_iters = 9;
     r.qp_factorizations = 3;
     r.tr_binding = false;
-    r.verdict = StepVerdict::kAcceptF;
+    r.verdict = StepVerdict::kAcceptObjectiveStep;
     r.soc_applied = true;
     r.elastic_applied = false;
     r.elastic_rho0_ceiling_hit = true;
@@ -2160,7 +2160,7 @@ SqpIterate golden_major_c() {
     r.qp_minor_iters = 21;
     r.qp_factorizations = 13;
     r.tr_binding = false;
-    r.verdict = StepVerdict::kAcceptH;
+    r.verdict = StepVerdict::kAcceptFeasibilityStep;
     r.soc_applied = false;
     r.elastic_applied = true;
     r.elastic_rho0_ceiling_hit = true;
@@ -2212,7 +2212,7 @@ SqpIterate golden_major_d() {
     return r;
 }
 
-std::string major_line(const SqpIterate &row, Index major, IpqpTraceQpMode mode) {
+std::string major_line(const SqpIterate &row, Index major, QpTraceMode mode) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_sqp_major(SqpMajorTraceEvent{row, major, mode});
@@ -2220,7 +2220,7 @@ std::string major_line(const SqpIterate &row, Index major, IpqpTraceQpMode mode)
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode) {
-    EXPECT_EQ(major_line(golden_major_a(), 4, IpqpTraceQpMode::kWalk),
+    EXPECT_EQ(major_line(golden_major_a(), 4, QpTraceMode::kWalk),
               "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":4,\"f\":-2.5,"
               "\"stationarity\":9.9999999999999995e-08,\"feasibility\":0.25,\"complementarity\":0."
               "125,\"kkt_residual\":0.5,\"violation_l1\":1.5,\"tr_radius\":2,\"mu\":1e-08,\"step_"
@@ -2235,7 +2235,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorFirstBoolSignatureAndTheWalkMode) {
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndTheSsnMode) {
     EXPECT_EQ(
-        major_line(golden_major_b(), 0, IpqpTraceQpMode::kSsn),
+        major_line(golden_major_b(), 0, QpTraceMode::kSsn),
         "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":0,\"f\":0.10000000000000001,"
         "\"stationarity\":-0,\"feasibility\":\"nan\",\"complementarity\":\"inf\",\"kkt_residual\":"
         "\"-inf\",\"violation_l1\":1e-300,\"tr_radius\":1.7976931348623157e+308,\"mu\":4."
@@ -2250,7 +2250,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorSecondBoolSignatureTheHardDoublesAndT
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
     EXPECT_EQ(
-        major_line(golden_major_c(), 11, IpqpTraceQpMode::kIpqp),
+        major_line(golden_major_c(), 11, QpTraceMode::kIpqp),
         "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":11,\"f\":1234.5,"
         "\"stationarity\":9.9999999999999998e-13,\"feasibility\":6.25,\"complementarity\":7.5,"
         "\"kkt_residual\":8.75,\"violation_l1\":9,\"tr_radius\":0.03125,\"mu\":9.9999999999999995e-"
@@ -2266,7 +2266,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorThirdBoolSignatureAndTheIpqpMode) {
 
 TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
     EXPECT_EQ(
-        major_line(golden_major_d(), 2, IpqpTraceQpMode::kWalk),
+        major_line(golden_major_d(), 2, QpTraceMode::kWalk),
         "{\"v\":0,\"ev\":\"sqp.major\",\"seq\":1,\"depth\":0,\"trial\":2,\"f\":3,\"stationarity\":"
         "4,\"feasibility\":5,\"complementarity\":6,\"kkt_residual\":7,\"violation_l1\":8,\"tr_"
         "radius\":9,\"mu\":10,\"step_norm\":11,\"qp_solved\":true,\"ipqp_least_infeasible_primal\":"
@@ -2288,7 +2288,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpMajorEveryBoolTrue) {
 /// complete: a field added to `SqpIterate` moves the arity and fails HERE as
 /// well as at the writer, so the pin cannot silently stop covering the row.
 void expect_major_line_is_row(const std::string &line, const SqpIterate &r, Index major,
-                              IpqpTraceQpMode mode) {
+                              QpTraceMode mode) {
     static_assert(::hven::detail::kAggregateArity<SqpIterate> == 30,
                   "SqpIterate gained a field: compare it below, and in the writer's own key list.");
     EXPECT_EQ(raw_field(line, "trial"), std::to_string(r.trial)) << line;
@@ -2340,12 +2340,12 @@ std::vector<std::string> major_lines(const std::string &stream) {
 
 TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell) {
     // TWO ARMS, because `mode` is the field that differs: HS24 at kWalk reports
-    // "walk" on every row, HS38 at kIpm reports whichever arm owned the QP.
+    // "walk" on every row, HS38 at kIpqp reports whichever arm owned the QP.
     struct Leg {
         int hs;
         QpMode mode;
     };
-    for (const Leg leg : {Leg{24, QpMode::kWalk}, Leg{38, QpMode::kIpm}}) {
+    for (const Leg leg : {Leg{24, QpMode::kWalk}, Leg{38, QpMode::kIpqp}}) {
         SqpOptions opts;
         opts.qp_mode = leg.mode;
         opts.common.max_iterations = 60;
@@ -2393,7 +2393,7 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
     for (std::size_t i = 0; i < rows.size(); ++i) {
         SCOPED_TRACE("row " + std::to_string(i));
         expect_major_line_is_row(rows[i], sol.history[i], static_cast<Index>(i),
-                                 IpqpTraceQpMode::kWalk);
+                                 QpTraceMode::kWalk);
     }
 }
 
@@ -2484,7 +2484,7 @@ TEST(JsonLinesTraceSink, QpModeOnAnSsnCellCountsTheArmAndItsHandOffs) {
 }
 
 TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWalk) {
-    // TWO LEGS, because the kIpm arm reaches the walk two different ways and
+    // TWO LEGS, because the kIpqp arm reaches the walk two different ways and
     // only ONE of them is a dispatch-level invocation.
     //
     // HS38 ESCAPES, and an escape is serviced by `certified_feasibility_fallback`,
@@ -2502,7 +2502,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
     // and the dispatch's own walk runs and writes its line.
     {
         SqpOptions opts;
-        opts.qp_mode = QpMode::kIpm;
+        opts.qp_mode = QpMode::kIpqp;
         opts.common.max_iterations = 60;
         const HsProblem p = make_hs(38);
         SqpSolver driver(opts);
@@ -2538,7 +2538,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
     {
         PinnedVariableModel model(true);
         SqpOptions opts;
-        opts.qp_mode = QpMode::kIpm;
+        opts.qp_mode = QpMode::kIpqp;
         opts.common.max_iterations = 60;
         SqpSolver driver(opts);
         std::ostringstream os;
@@ -2718,7 +2718,7 @@ std::string only_line(const std::string &stream, const char *ev, const char *dep
 
 TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
@@ -2731,7 +2731,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
     const std::string end = only_line(os.str(), "sqp.solve.end");
     ASSERT_FALSE(end.empty());
     EXPECT_EQ(raw_field(end, "majors"), std::to_string(sol.counters.major_iters));
-    // A kIpm cell so the two NESTED aggregates are not all-zero: HS38 escapes.
+    // A kIpqp cell so the two NESTED aggregates are not all-zero: HS38 escapes.
     ASSERT_GT(sol.counters.ipqp.ipqp_iters, 0);
     expect_end_line_counters(end, sol.counters);
 
@@ -2822,7 +2822,7 @@ TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
     // DEPTH 0 ONLY. A nested restoration sub-solve writes its own lines into
     // the same stream at depth 1, and they belong to its own brackets.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
@@ -2961,7 +2961,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         driver.attach_trace(&json);
         const SqpResult sol =
             driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
-        ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
+        ASSERT_EQ(sol.status, SolveStatus::kIterationLimit);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"max_iter\"");
         EXPECT_EQ(json.depth(), 0);
     }
@@ -3168,8 +3168,8 @@ SqpSolveBeginTraceEvent golden_begin() {
     e.vars_upper_only = 4;
     e.vars_ranged = 6;
     e.vars_fixed = 7;
-    e.qp_mode = IpqpTraceQpMode::kSsn;
-    e.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    e.qp_mode = QpTraceMode::kSsn;
+    e.ws_algebra = QpWorkingSetAlgebra::kRefactorize;
     // M8 B7: the count of declared bound values the absent-bound threshold read
     // as absent, appended last (a declared additive trailing key).
     e.absent_bounds = 8;
@@ -3502,7 +3502,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLoca
     // A read of a moved-from local becomes visible here the day a counter stops
     // being trivially copyable -- the failure the old shape could not pin.
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(38);
     SqpSolver driver(opts);
@@ -3752,13 +3752,13 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
     // FIX ROUND 1, R4. `sqp.major.mode` is the arm that produced the ROW's
     // step; `qp.mode` is the DISPATCH record.
     //
-    // They agree at kWalk and kSsn, and differ under kIpm on the majors routed
+    // They agree at kWalk and kSsn, and differ under kIpqp on the majors routed
     // to the SSN warm grade -- not the kSsn arm, and writing no line.
     //
-    // HS3 at kIpm is the cell that exhibits it (the same cell
+    // HS3 at kIpqp is the cell that exhibits it (the same cell
     // test_ipqp_trace.cpp uses for the `to_ssn` row).
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
+    opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     const HsProblem p = make_hs(3);
     SqpSolver driver(opts);
@@ -4045,8 +4045,8 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     e.bar_tol = 4e-6;
     e.init_mu = 0.001;
     e.obj_scale = 2.5;
-    e.inertia_mode = InertiaMode::kProximalRegularization;
-    e.restoration_mode = RestorationMode::kL1Nested;
+    e.inertia_mode = IpmInertiaMode::kProximalRegularization;
+    e.restoration_mode = IpmRestorationMode::kL1Nested;
     // RE-DERIVED AT M6 W5 T8.7, which appended EIGHT fields in one step so this
     // line moves once: the four ACCEPTABLE tolerances and `wide_console` (what
     // a sink needs to render the interior-point iteration table) and the three
@@ -4376,12 +4376,12 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     IpmPhaseReport report;
     sink.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
     sink.on_ipm_kkt_analysis(IpmKktAnalysisTraceEvent{});
-    for (const IpmStopReason reason : {IpmStopReason::kNone, IpmStopReason::kIterationCap,
+    for (const IpmStopReason reason : {IpmStopReason::kNone, IpmStopReason::kIterationLimit,
                                        IpmStopReason::kRestorationLocallyInfeasible,
                                        IpmStopReason::kStageStalled, IpmStopReason::kInterrupted}) {
         report.stop_reason = reason;
         for (const SolveStatus st :
-             {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kMaxIter,
+             {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kIterationLimit,
               SolveStatus::kInfeasible, SolveStatus::kStalled, SolveStatus::kDiverging,
               SolveStatus::kNumericalError, SolveStatus::kInterrupted}) {
             report.status = st;
@@ -4432,12 +4432,12 @@ using hven::testing::StdoutCapture;
 /// Counts every event, by name, without rendering anything.
 struct EventTally : TraceSink {
     std::vector<std::string> seen;
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override { seen.push_back("ipqp.iter"); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override { seen.push_back("ipqp.reg"); }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override { seen.push_back("ipqp.restart"); }
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override { seen.push_back("ipqp.route"); }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override { seen.push_back("ipqp.certify"); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override { seen.push_back("ipqp.escape"); }
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override { seen.push_back("ipqp.iter"); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override { seen.push_back("ipqp.reg"); }
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override { seen.push_back("ipqp.restart"); }
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override { seen.push_back("ipqp.route"); }
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override { seen.push_back("ipqp.certify"); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override { seen.push_back("ipqp.escape"); }
     void on_qp_mode(const QpModeTraceEvent &) override { seen.push_back("qp.mode"); }
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {
         seen.push_back("fallback.verdict");
@@ -4530,7 +4530,7 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
     auto run = [](hven::Verbosity print_level, bool attach_first) {
         HsProblem p = make_hs(38);
         SqpOptions opts;
-        opts.qp_mode = QpMode::kIpm;
+        opts.qp_mode = QpMode::kIpqp;
         opts.common.max_iterations = 60;
         opts.common.verbosity = print_level;
         EventTally tally;

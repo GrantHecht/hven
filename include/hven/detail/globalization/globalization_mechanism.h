@@ -8,14 +8,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/drivers/ipm_iterate.h"
-// LineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
-// requires the complete IpmSolver class; see acceptance_strategy.h's include note.
+// IpmLineSearchMode (forwarded to AcceptanceStrategy::classic_line_search)
+// requires the complete IpmSolver class; see acceptance_mode.h's include note.
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief Owns the fraction-to-boundary + backtracking sequence for one step
 /// proposal, then dispatches acceptance.
@@ -38,7 +38,7 @@ class GlobalizationMechanism {
     /// gate.
     ///
     /// XSL/DXSL/XSL2/RHS/RHS2 are raw Eigen::VectorXd blocks viewed via
-    /// hven::KktVector internally. bfrac and the step strategy are
+    /// hven::detail::KktVector internally. bfrac and the step strategy are
     /// read from ctx.settings_ (persistent settings, not per-call transients).
     /// lsmode/obj_scale/mu/prim_obj/barr_obj are forwarded verbatim to the
     /// acceptance strategy once scaling has been applied.
@@ -46,12 +46,12 @@ class GlobalizationMechanism {
     /// @param alphap Out: fraction-to-boundary primal step.
     /// @param alphad Out: fraction-to-boundary dual step.
     /// @return Final backtracked alpha.
-    virtual double compute_step(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
-                                double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                                Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                AcceptanceStrategy &acceptance, double &alphap, double &alphad,
-                                IpmIterate &Citer, const std::vector<IpmIterate> &iters,
-                                SolverContext &ctx) = 0;
+    virtual double compute_step(IpmLineSearchMode lsmode, double obj_scale, double mu,
+                                double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+                                double &alphap, double &alphad, IpmIterate &Citer,
+                                const std::vector<IpmIterate> &iters, SolverContext &ctx) = 0;
 
     /// @brief Fraction-to-boundary primal/dual step scaling alone — the first
     /// half of compute_step without the acceptance backtrack. MUTATES DXSL in
@@ -81,7 +81,7 @@ class GlobalizationMechanism {
     /// which owns the trial-point evaluation.
     /// @throws std::logic_error Always, in the default body: a mechanism that
     ///   hosts a generic driving path must override it.
-    virtual double run_acceptance_backtrack(LineSearchMode lsmode, double obj_scale, double mu,
+    virtual double run_acceptance_backtrack(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                             double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                             Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
@@ -113,4 +113,4 @@ class GlobalizationMechanism {
     virtual void reset() = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

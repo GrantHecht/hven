@@ -72,7 +72,7 @@ using hven::detail::SqpWarmAccess;
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven {
+namespace hven::detail {
 
 /// The permutation-corruption hook the falsification battery needs, declared as
 /// a friend by the seam and defined ONLY here. Nothing in the shipped class can
@@ -102,23 +102,23 @@ struct AggregateEvalSeamTestAccess {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail
 
 namespace {
 
-using hven::AggregateEvalSeamTestAccess;
-using hven::AssemblyEvalSeam;
-using hven::build_subproblem;
-using hven::eval_nlp;
-using hven::eval_nlp_values;
 using hven::Index;
-using hven::NlpEval;
-using hven::NlpModel;
-using hven::NlpModelAssembly;
-using hven::QpProblem;
 using hven::SpMatRM;
-using hven::upgrade_to_full;
 using hven::Vec;
+using hven::detail::AggregateEvalSeamTestAccess;
+using hven::detail::AssemblyEvalSeam;
+using hven::detail::build_subproblem;
+using hven::detail::eval_nlp;
+using hven::detail::eval_nlp_values;
+using hven::detail::NlpEval;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
+using hven::detail::QpProblem;
+using hven::detail::upgrade_to_full;
 // The driver-entry battery at the end of this file.
 using hven::SolveStatus;
 using hven::SqpCounters;
@@ -1175,8 +1175,8 @@ void expect_same_solution(const SqpResult &bridge, const SqpResult &model, const
     expect_bit_equal(bridge.z, model.z, "z");
     expect_same_history(bridge.history, model.history, tag + " history");
     expect_same_counters(bridge.counters, model.counters, tag + " counters");
-    expect_same_warm_start(SqpWarmAccess::state(bridge.native_warm_start),
-                           SqpWarmAccess::state(model.native_warm_start), tag + " warm_start");
+    expect_same_warm_start(SqpWarmAccess::state(bridge.sqp_warm_start),
+                           SqpWarmAccess::state(model.sqp_warm_start), tag + " warm_start");
 }
 
 /// One family, both entries, cold arm. The two models are separate instances of
@@ -1213,16 +1213,16 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
     SqpOptions opts;
     SqpSolver model_driver{opts};
     const SqpResult model_seed = model_driver.solve(hven::detail::problem_ref(*model_side), x0);
-    ASSERT_TRUE(SqpWarmAccess::state(model_seed.native_warm_start).valid) << tag;
-    const SqpResult via_model = model_driver.solve(hven::detail::problem_ref(*model_side), x0,
-                                                   model_seed.native_warm_start);
+    ASSERT_TRUE(SqpWarmAccess::state(model_seed.sqp_warm_start).valid) << tag;
+    const SqpResult via_model =
+        model_driver.solve(hven::detail::problem_ref(*model_side), x0, model_seed.sqp_warm_start);
 
     NlpModelAssembly bridge{bridge_side};
     SqpSolver bridge_driver{opts};
     const SqpResult bridge_seed = bridge_driver.solve(hven::detail::problem_ref(bridge), x0);
-    ASSERT_TRUE(SqpWarmAccess::state(bridge_seed.native_warm_start).valid) << tag;
+    ASSERT_TRUE(SqpWarmAccess::state(bridge_seed.sqp_warm_start).valid) << tag;
     const SqpResult via_bridge =
-        bridge_driver.solve(hven::detail::problem_ref(bridge), x0, bridge_seed.native_warm_start);
+        bridge_driver.solve(hven::detail::problem_ref(bridge), x0, bridge_seed.sqp_warm_start);
 
     // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
     // that is not redundant with the cold battery: those two solves are what
@@ -1232,9 +1232,8 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
     // from different places, and the hot handle each offers would be the only
     // trace, compared here by presence rather than by content.
     expect_same_solution(bridge_seed, model_seed, tag + " seed solve");
-    expect_same_warm_start(SqpWarmAccess::state(bridge_seed.native_warm_start),
-                           SqpWarmAccess::state(model_seed.native_warm_start),
-                           tag + " seed hand-off");
+    expect_same_warm_start(SqpWarmAccess::state(bridge_seed.sqp_warm_start),
+                           SqpWarmAccess::state(model_seed.sqp_warm_start), tag + " seed hand-off");
     // AND THE WARM ARM MUST ACTUALLY INGEST, or this is a second cold pin.
     ASSERT_NE(via_model.counters.start_level_used, StartLevel::kCold) << tag;
     expect_same_solution(via_bridge, via_model, tag + " warm");

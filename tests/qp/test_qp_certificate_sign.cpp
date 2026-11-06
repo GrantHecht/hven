@@ -45,6 +45,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
@@ -85,7 +86,7 @@ QpProblem sign_box_qp() {
 
 constexpr double kScale = 5.0;
 
-QpOptions sign_opts(WorkingSetLinearAlgebra alg) {
+QpOptions sign_opts(QpWorkingSetAlgebra alg) {
     QpOptions o;
     o.working_set_algebra = alg;
     return o;
@@ -119,8 +120,8 @@ void expect_certified(const QpSolution &s, double z0, double z1) {
     EXPECT_EQ(s.z(1), z1);
 }
 
-constexpr WorkingSetLinearAlgebra kAlgebras[] = {WorkingSetLinearAlgebra::kSchurBorder,
-                                                 WorkingSetLinearAlgebra::kRefactorize};
+constexpr QpWorkingSetAlgebra kAlgebras[] = {QpWorkingSetAlgebra::kSchurBorder,
+                                             QpWorkingSetAlgebra::kRefactorize};
 
 } // namespace
 
@@ -156,7 +157,7 @@ TEST(QpCertificateSign, UpperPinWithWrongSignIsRefused) {
 
 TEST(QpCertificateSign, NanMultiplierIsRefused) {
     SignSeamGuard guard;
-    expect_refused(present(sign_box_qp(), sign_opts(WorkingSetLinearAlgebra::kRefactorize),
+    expect_refused(present(sign_box_qp(), sign_opts(QpWorkingSetAlgebra::kRefactorize),
                            std::numeric_limits<double>::quiet_NaN(), -5.0));
 }
 
@@ -284,7 +285,7 @@ QpProblem polish_qp() {
     return qp;
 }
 
-QpOptions polish_opts(WorkingSetLinearAlgebra alg) {
+QpOptions polish_opts(QpWorkingSetAlgebra alg) {
     QpOptions o;
     o.working_set_algebra = alg;
     o.dual_regularization = 1e-4;
@@ -413,7 +414,7 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
                     static_cast<long>(s.counters.certificate_bound_refusals));
         // Never a false kInfeasible on this feasible convex QP.
         EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
             // The border walk reaches the certificate, the polish flips a sign, and the
             // incumbent fallback is taken: the incumbent stands off its box (SDL-4).
             EXPECT_GE(s.counters.terminal_polish_sign_reverts, 1);
@@ -505,7 +506,7 @@ struct RowHalfRun {
     double row_res = 0.0;
 };
 
-RowHalfRun run_row_half(const hven::test_support::QpDump &d, WorkingSetLinearAlgebra alg) {
+RowHalfRun run_row_half(const hven::test_support::QpDump &d, QpWorkingSetAlgebra alg) {
     QpOptions o = d.opts;
     o.working_set_algebra = alg;
     RowHalfRun r;
@@ -519,7 +520,7 @@ RowHalfRun run_row_half(const hven::test_support::QpDump &d, WorkingSetLinearAlg
     return r;
 }
 
-void print_row_half(const char *name, WorkingSetLinearAlgebra alg, const RowHalfRun &r) {
+void print_row_half(const char *name, QpWorkingSetAlgebra alg, const RowHalfRun &r) {
     std::printf("[ sdl6 ] %s alg=%d status=%d minors=%ld row_refusals=%ld tfc=%ld eq_res=%.3e "
                 "row_res=%.3e\n",
                 name, static_cast<int>(alg), static_cast<int>(r.s.status),

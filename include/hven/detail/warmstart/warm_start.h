@@ -8,7 +8,7 @@
 // The SQP's native warm-start state lives in detail/warmstart/sqp_warm_state.h as
 // `SqpWarmState`, behind the opaque public handle `SqpWarmStart`
 // (warmstart/sqp_warm_start.h); the shared payload is `WarmStart`
-// (warmstart/warm_start_data.h). This header is the crossover that builds a state
+// (warmstart/warm_start.h). This header is the crossover that builds a state
 // from an interior-point-style iterate.
 
 #include <algorithm>
@@ -26,9 +26,9 @@
 #include <hven/model/structure_identity.h>
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/sqp_warm_start.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
-namespace hven {
+namespace hven::detail {
 
 // THE INTERIOR-POINT CROSSOVER -- `from_interior_point`.
 //
@@ -62,7 +62,7 @@ namespace hven {
 //   lambda_i(j) > dual_tol                       -- the multiplier is
 //                                                   genuinely positive
 //   lambda_i(j) >= kIpmActivityFactor
-//                  * max(mu_hat, ||lambda_i||inf * activity_rel_tol)
+//                  * max(mu_hat, ||lambda_i||inf * activity_relative_tol)
 //                                                -- and the price is LIVE at
 //                                                   the hand-off's OWN dual
 //                                                   scale
@@ -136,8 +136,6 @@ namespace hven {
 // The activity rule's safety factor `nu` (kIpmActivityFactor) and the two
 // thresholds (IpmCrossoverOptions) are public: warmstart/sqp_warm_start.h.
 
-namespace detail {
-
 // The activity threshold of the rule documented above, for ONE dual/residual
 // population (the inequality rows, or one side of the variable bounds):
 //
@@ -180,8 +178,6 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
     return kIpmActivityFactor * std::max(mu_hat, dual_inf * eps_rel);
 }
 
-} // namespace detail
-
 /// @brief Builds a SqpWarmState from an interior-point-style primal-dual point.
 ///
 /// See this header's own note immediately above for the sign convention
@@ -202,8 +198,6 @@ detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, cons
                                          const Vec &lower, const Vec &upper,
                                          const IpmCrossoverOptions &opts = {});
 
-namespace detail {
-
 /// @brief The crossover from a payload, over caller-supplied bounds and key: the
 ///        body behind the public `to_sqp_warm_start(warm, problem)` and the
 ///        engine's own payload ingest.
@@ -218,6 +212,4 @@ SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Ve
                                const DeclarationKey &structure_key,
                                const IpmCrossoverOptions &opts = {});
 
-} // namespace detail
-
-} // namespace hven
+} // namespace hven::detail

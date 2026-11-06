@@ -34,7 +34,7 @@
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/ipm_polish_extension.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace {
 using hven::detail::WarmStartAccess;
@@ -43,12 +43,12 @@ using hven::detail::WarmStartAccess;
 using hven::DeclarationKey;
 using hven::deserialize_ipm_polish;
 using hven::find_ipm_polish;
-using hven::from_interior_point;
 using hven::IpmPolishData;
 using hven::kIpmPolishTag;
 using hven::serialize_ipm_polish;
 using hven::WarmExtension;
 using hven::WarmStart;
+using hven::detail::from_interior_point;
 using hven::detail::SqpWarmState;
 
 namespace {

@@ -23,7 +23,7 @@
 #include "progress_measures_test_utils.h"
 
 #include "hven/detail/drivers/result_access.h"
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/filter_acceptance.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
 #include "hven/drivers/ipm_solver.h"
@@ -34,12 +34,12 @@
 
 namespace {
 
-using hven::AcceptanceStrategy;
-using hven::FilterAcceptance;
-using hven::FunnelAcceptance;
 using hven::IpmSolver;
-using hven::kFunnelInfeasibilityFactor;
-using hven::ProgressMeasures;
+using hven::detail::AcceptanceStrategy;
+using hven::detail::FilterAcceptance;
+using hven::detail::FunnelAcceptance;
+using hven::detail::kFunnelInfeasibilityFactor;
+using hven::detail::ProgressMeasures;
 using TychoTest::pm;
 
 // Bare AcceptanceStrategy: implements only the pure-virtual surface and does

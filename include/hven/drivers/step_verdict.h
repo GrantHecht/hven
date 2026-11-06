@@ -16,11 +16,11 @@ enum class StepVerdict {
     /// DRIVER OBLIGATION: an ACCEPTANCE verdict, not a convergence verdict.
     /// Algorithm 2 opens with the ||d||=0 KKT short-circuit AHEAD of the
     /// acceptance test; the driver must keep testing KKT residuals at the top
-    /// of every major and must not infer convergence from a run of kAcceptF --
+    /// of every major and must not infer convergence from a run of kAcceptObjectiveStep --
     /// Eq. (11) with sigma = 1e-4 is satisfied by arbitrarily small decreases.
-    kAcceptF,
+    kAcceptObjectiveStep,
     /// h-type: Eq. (10) fails, Eq. (12) holds. Width shrinks by Eq. (13).
-    kAcceptH,
+    kAcceptFeasibilityStep,
     /// "The step is rejected, and either the trust-region radius or the step
     /// size is reduced" (KLV Sec. 2.4.2).
     kReject,

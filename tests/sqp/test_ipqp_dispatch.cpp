@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_ipqp_dispatch.cpp -- M6 W1 task 6: the driver's kIpm dispatch, the
+// test_ipqp_dispatch.cpp -- M6 W1 task 6: the driver's kIpqp dispatch, the
 // section 2.3 routing chain, and the tier's registration as the third producer
 // of exported inequality face prices.
 //
@@ -49,7 +49,7 @@ Index tier_entries(const IpqpCounters &c) {
 
 SqpOptions ipm_options() {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
+    o.qp_mode = QpMode::kIpqp;
     o.common.max_iterations = 60;
     return o;
 }
@@ -193,7 +193,7 @@ TEST(IpqpDispatch, EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn) {
     }
 
     // NON-VACUITY. Without this the two loops above pass on a build where the
-    // kIpm arm does nothing either.
+    // kIpqp arm does nothing either.
     auto ipm_p = make_hs(6);
     SqpSolver ipm_driver(ipm_options());
     const SqpResult ipm =
@@ -211,7 +211,7 @@ TEST(IpqpDispatch, EveryIpqpCounterIsStructurallyZeroAtKWalkAndKSsn) {
 
 TEST(IpqpDispatch, KIpmValidatesAndSolves) {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
+    o.qp_mode = QpMode::kIpqp;
     EXPECT_NO_THROW(validate(o)) << "task 1's temporary \"not yet dispatchable\" refusal is gone";
 
     const HsProblem p = make_hs(6);
@@ -378,7 +378,7 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
     const IpqpCounters &c = s.counters.ipqp;
 
     ASSERT_GT(c.ipqp_tier_retired_after, 0) << "the fixture must retire, or nothing is tested";
-    EXPECT_EQ(c.ipqp_escapes, o.advanced.ipqp.retire_after)
+    EXPECT_EQ(c.ipqp_escapes, o.advanced.ipqp.max_consecutive_escapes)
         << "exactly K escapes: the (K+1)-th major never entered the tier, so it could not escape";
     const Index entries = c.ipqp_symbolic_analyses + c.ipqp_pattern_verifies;
     EXPECT_EQ(entries, c.ipqp_tier_retired_after)
@@ -394,7 +394,7 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
 TEST(IpqpDispatch, ASuccessfulSubproblemResetsTheConsecutiveEscapeTally) {
     auto p = make_hs(15);
     SqpOptions o = ipm_options();
-    o.advanced.ipqp.retire_after = 2;
+    o.advanced.ipqp.max_consecutive_escapes = 2;
     SqpSolver driver(o);
     const SqpResult s = driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
@@ -443,7 +443,7 @@ TEST(IpqpDispatch, OneAnalysisPerSolveAndOneVerifyPerLaterTierEntry) {
     // two numbers swap places.
     auto q = make_hs(26);
     SqpOptions off = ipm_options();
-    off.advanced.ipqp.hoist_symbolic = false;
+    off.advanced.ipqp.hoist_symbolic_analysis = false;
     SqpSolver off_driver(off);
     const SqpResult t =
         off_driver.solve(hven::detail::problem_ref(*q.model), (*q.model).start_point());
@@ -497,8 +497,8 @@ TEST(IpqpDispatch, NoNegativeFacePriceEscapesUnderKIpmEither) {
             EXPECT_GE(hven::detail::engine_rows(s).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
         }
-        if (SqpWarmAccess::state(s.native_warm_start).lambda_i.size() > 0) {
-            EXPECT_GE(SqpWarmAccess::state(s.native_warm_start).lambda_i.minCoeff(), 0.0)
+        if (SqpWarmAccess::state(s.sqp_warm_start).lambda_i.size() > 0) {
+            EXPECT_GE(SqpWarmAccess::state(s.sqp_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, the half that reaches the currency";
         }
         // NOTHING ON THIS BATTERY PRICES NEGATIVE under any kernel (the same claim
@@ -576,9 +576,9 @@ class SaddleBoxModel : public NlpModel {
 TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
     SaddleBoxModel model;
     SqpOptions o = ipm_options();
-    o.advanced.ipqp.reg_max = 1.0e-2;
-    o.advanced.ipqp.rho_init = 1.0e-4;
-    o.advanced.ipqp.delta_init = 1.0e-4;
+    o.advanced.ipqp.regularization_max = 1.0e-2;
+    o.advanced.ipqp.primal_regularization_initial = 1.0e-4;
+    o.advanced.ipqp.dual_regularization_initial = 1.0e-4;
     SqpSolver driver(o);
     const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
@@ -614,7 +614,7 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
 
     auto cold_p = make_hs(77);
     SqpOptions cold_opts = ipm_options();
-    cold_opts.advanced.ipqp.warm_iter_budget = 0;
+    cold_opts.advanced.ipqp.max_warm_iterations = 0;
     SqpSolver cold_driver(cold_opts);
     const SqpResult cold =
         cold_driver.solve(hven::detail::problem_ref(*cold_p.model), (*cold_p.model).start_point());
@@ -644,10 +644,10 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
 TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     SaddleBoxModel model;
     SqpOptions o = ipm_options();
-    o.advanced.ipqp.reg_max = 1.0e-2;
-    o.advanced.ipqp.rho_init = 1.0e-4;
-    o.advanced.ipqp.delta_init = 1.0e-4;
-    o.advanced.ipqp.warm_iter_budget = 0;
+    o.advanced.ipqp.regularization_max = 1.0e-2;
+    o.advanced.ipqp.primal_regularization_initial = 1.0e-4;
+    o.advanced.ipqp.dual_regularization_initial = 1.0e-4;
+    o.advanced.ipqp.max_warm_iterations = 0;
     SqpSolver driver(o);
     const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
@@ -663,7 +663,7 @@ TEST(IpqpDispatch, AnIndefiniteEscapeDropsTheCarry) {
     // the carry survive and the kill fire.
     auto p = make_hs(77);
     SqpOptions k = ipm_options();
-    k.advanced.ipqp.warm_iter_budget = 0;
+    k.advanced.ipqp.max_warm_iterations = 0;
     SqpSolver hs(k);
     const SqpResult t = hs.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(t.counters.ipqp.ipqp_escapes, 0);
@@ -701,7 +701,7 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // T7: THE FIXTURE IS HELD COLD ON EVERY MAJOR, through the documented extreme of
     // the warm budget (0 = every warm restart is killed on its first iteration).
     // Left warm, the carry converges the later majors and the premise disappears.
-    o.advanced.ipqp.warm_iter_budget = 0;
+    o.advanced.ipqp.max_warm_iterations = 0;
     SqpSolver driver(o);
     const SqpResult s = driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const IpqpCounters &c = s.counters.ipqp;
@@ -728,7 +728,7 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     // sharper reading of "no charge": not merely "fewer than three", but none.
     auto q = make_hs(77);
     SqpOptions k1 = o;
-    k1.advanced.ipqp.retire_after = 1;
+    k1.advanced.ipqp.max_consecutive_escapes = 1;
     SqpSolver k1_driver(k1);
     const SqpResult t =
         k1_driver.solve(hven::detail::problem_ref(*q.model), (*q.model).start_point());
@@ -745,7 +745,7 @@ TEST(IpqpDispatch, ThreeConsecutiveConvergedBudgetExitsDoNotRetireTheTier) {
     auto r = make_hs(77);
     SqpOptions genuine = ipm_options();
     genuine.common.max_iterations = 6;
-    genuine.advanced.ipqp.hard_iteration_cap = 2; // stops mid-descent, every major
+    genuine.advanced.ipqp.hard_max_iterations = 2; // stops mid-descent, every major
     SqpSolver genuine_driver(genuine);
     const SqpResult g =
         genuine_driver.solve(hven::detail::problem_ref(*r.model), (*r.model).start_point());
@@ -790,10 +790,10 @@ TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
 
 // RULING 3 (decision 8, NARROWED): `adaptive_mu` is off only for the subproblems
 // the TIER solves, so a model whose every major DECLINES must be bit-identical
-// under kIpm and kWalk -- a mode selection may not disable a lever it never used.
+// under kIpqp and kWalk -- a mode selection may not disable a lever it never used.
 TEST(IpqpDispatch, ASolveTheTierNeverRunsIsTheWalkWithTheCallersOwnLevers) {
     SqpOptions walk_opts = walk_options();
-    ASSERT_TRUE(walk_opts.advanced.adaptive_mu)
+    ASSERT_TRUE(walk_opts.advanced.adaptive_dual_regularization)
         << "the schedule is ON by default -- that is the premise";
 
     PinnedVariableModel walk_model(true);
@@ -843,7 +843,7 @@ TEST(IpqpDispatch, TheSsnWarmGradeExportsTheProximalCarry) {
         << "the fixture must reach the SSN warm grade, or nothing is tested";
     ASSERT_GT(s.counters.ssn.ssn_prox_updates, 0)
         << "and that subproblem's proximal ladder must have moved, or there is no level to carry";
-    EXPECT_GT(SqpWarmAccess::state(s.native_warm_start).prox_sigma, 0.0)
+    EXPECT_GT(SqpWarmAccess::state(s.sqp_warm_start).prox_sigma, 0.0)
         << "the level reaches the exported currency. Before the fix-round-1 ruling this path was "
            "excluded from the carry and this read 0, so a continuation loop alternating kSsn and "
            "kIpm re-climbed the ladder with no diagnostic";
@@ -904,7 +904,7 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
 
     QpOptions qopts;
     QpEngine engine(qopts);
-    SolveOverrides overrides;
+    QpSolveOverrides overrides;
 
     // A POPULATED evidence block: the least-infeasible point and its
     // corroboration, which is what makes W2's elastic reformulation possible.
@@ -1104,7 +1104,7 @@ TEST(IpqpDispatch, TheUsabilityGateAcceptsADowngradedCertificateAndARefusedFinal
 }
 
 // ===========================================================================
-// EQUIVALENCE -- kIpm IS A DIFFERENT ROUTE TO THE SAME ANSWER.
+// EQUIVALENCE -- kIpqp IS A DIFFERENT ROUTE TO THE SAME ANSWER.
 // ===========================================================================
 
 TEST(IpqpDispatch, KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery) {

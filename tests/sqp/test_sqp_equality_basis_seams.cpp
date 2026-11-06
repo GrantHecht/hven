@@ -32,6 +32,8 @@
 #include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/qp_as_nlp_model.h"
 
+using namespace hven::detail;
+
 namespace {
 using hven::detail::SqpWarmAccess;
 } // namespace
@@ -93,7 +95,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
     x0 << 1.0005, 0.0;
     const QpAsNlpModel model(make_qp(A, b, h, g, Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
                              x0);
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
         const SqpOptions o = opts_for(mode);
         // The control arm: the seam off reproduces F9.
@@ -106,7 +108,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
         EXPECT_LT(on.counters.major_iters, o.common.max_iterations);
 #else
         // WX-R3: the ladder after the hand-off is not known to finish kInfeasible off the
-        // reference build; record it, assert the hand-off, never bless kMaxIter.
+        // reference build; record it, assert the hand-off, never bless kIterationLimit.
         hven::test_support::record_off_reference_route(
             std::string("t6_control_") + std::to_string(static_cast<int>(mode)),
             std::string("status=") + std::to_string(static_cast<int>(on.status)) +
@@ -122,7 +124,7 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
             without.solve(hven::detail::problem_ref(model), (model).start_point());
         EXPECT_FALSE(off.equality_basis.handed_off);
         EXPECT_EQ(off.counters.major_iters, o.common.max_iterations);
-        EXPECT_EQ(off.status, SolveStatus::kMaxIter);
+        EXPECT_EQ(off.status, SolveStatus::kIterationLimit);
         EXPECT_EQ(off.equality_basis.inconsistent_row, -1);
     }
 }
@@ -195,7 +197,7 @@ TEST(SqpEqualityBasisSeam, T7FailedProxCentreLiftIsCountedAndRefusesTheBasis) {
     SqpSolver control(o);
     const SqpResult ok = control.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(ok.status, SolveStatus::kOptimal);
-    ASSERT_EQ(SqpWarmAccess::state(ok.native_warm_start).prox_center_lambda.size(), 2)
+    ASSERT_EQ(SqpWarmAccess::state(ok.sqp_warm_start).prox_center_lambda.size(), 2)
         << "fixture premise: a certifying SSN subproblem recorded a prox centre";
     EXPECT_EQ(ok.equality_basis.lift_refusals, 0);
     EXPECT_EQ(ok.equality_basis.dropped_rows, std::vector<Index>{1});
@@ -231,7 +233,7 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
                                      Vec::LinSpaced(11, -1.0, 1.0), Vec::Constant(11, -50.0),
                                      Vec::Constant(11, 50.0)),
                              Vec::Zero(11));
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
         const SqpOptions o = opts_for(mode);
         Seam::warm_probe_forward_tol = 0.0;
@@ -243,7 +245,7 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
         // The control arm: the probe reduces and the warm start resolves kWarm.
         SqpSolver control(o);
         const SqpResult warm = control.solve(hven::detail::problem_ref(model), model.start_point(),
-                                             cold.native_warm_start, SolveBudget{});
+                                             cold.sqp_warm_start, SolveBudget{});
         ASSERT_EQ(warm.status, SolveStatus::kOptimal);
         EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
         EXPECT_EQ(warm.equality_basis.warm_probe_refusals, 0);
@@ -255,7 +257,7 @@ TEST(SqpEqualityBasisSeam, T8RefusedWarmProbeIsCountedAndDegradesTheWarmLevel) {
         SqpSolver refused(o);
         const SqpResult seeded =
             refused.solve(hven::detail::problem_ref(model), model.start_point(),
-                          cold.native_warm_start, SolveBudget{});
+                          cold.sqp_warm_start, SolveBudget{});
         ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
         EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
         EXPECT_EQ(seeded.equality_basis.warm_probe_refusals, 1);

@@ -37,7 +37,7 @@ IpqpOptions with_skip(Index k) {
 
 IpqpResult solve(const QpProblem &qp, const IpqpOptions &o) {
     IpqpEngine tier(tight_opts());
-    return tier.solve(qp, nullptr, o, SolveOverrides{});
+    return tier.solve(qp, nullptr, o, QpSolveOverrides{});
 }
 
 struct Fixture {

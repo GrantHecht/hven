@@ -31,6 +31,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -38,12 +39,10 @@ using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == kBorder ? "border" : "refactorize";
-}
+const char *alg_name(QpWorkingSetAlgebra alg) { return alg == kBorder ? "border" : "refactorize"; }
 
 double objective(const QpProblem &qp, const Vec &x) {
     return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
@@ -59,7 +58,7 @@ QpDump load(const char *file) {
 // `route_certificates` / `route_rereads` >= 0 pin a fixture's measured route instead of the
 // "a kWrong read => the certificate" implication (BRITGAS qp4 since M7 W2 QC-8; STEENBRB qp3
 // pins certificates == 1 unconditionally, QC-8 rider 8).
-void expect_certified(const char *file, double f_star, WorkingSetLinearAlgebra alg,
+void expect_certified(const char *file, double f_star, QpWorkingSetAlgebra alg,
                       Index route_certificates = -1, Index route_rereads = -1) {
     const QpDump d = load(file);
     ASSERT_NE(d.result.find("status=3"), std::string::npos) << d.result;

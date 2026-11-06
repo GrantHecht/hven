@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The (theta, f, aux) triple used by every AcceptanceStrategy.
 ///
@@ -33,4 +33,4 @@ struct ProgressMeasures {
     double auxiliary = 0.0;     ///< Barrier/proximal terms; never folded into (f, θ).
 };
 
-} // namespace hven
+} // namespace hven::detail

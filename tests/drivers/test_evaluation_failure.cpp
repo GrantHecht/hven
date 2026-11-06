@@ -807,7 +807,7 @@ Eigen::VectorXd infeasible_start() {
 
 IpmOptions restoring_ipm() {
     IpmOptions o = quiet_ipm();
-    o.advanced.restoration_mode = hven::RestorationMode::kL1Nested;
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
     o.advanced.max_restoration_entries = 1;
     return o;
 }
@@ -895,8 +895,8 @@ TEST(RiderRollback, AFailureWhileRestorationIsActiveIsNeverRolledBack) {
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
     EXPECT_EQ(r.nonfinite_step_rollbacks, 0) << "the snapshot carries no elastic variables";
-    ASSERT_TRUE(r.last_feas_rest_entries.has_value());
-    EXPECT_EQ(*r.last_feas_rest_entries, 1);
+    ASSERT_TRUE(r.last_feasibility_restoration_entries.has_value());
+    EXPECT_EQ(*r.last_feasibility_restoration_entries, 1);
     EXPECT_TRUE(all_zero(r.lambda));
 }
 
@@ -1241,7 +1241,7 @@ TEST(RiderInterrupted, AFixedVariableUnderMakeConstraintIsReportedInTheDeclaredS
     nlp->fire_at = kFireAt;
     Problem problem(nlp);
     IpmOptions o = quiet_ipm();
-    o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
+    o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
     IpmSolver solver(o);
     EXPECT_THROW((void)solver.solve(problem, hs071_start()), Sentinel);
     ASSERT_EQ(nlp->fired, 1);

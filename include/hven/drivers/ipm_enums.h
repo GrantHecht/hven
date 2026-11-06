@@ -29,7 +29,7 @@ enum class IpmPhase {
 /// All three reach the same solution on a well-posed problem; they differ in the
 /// size of the factorized system and in how exactly the variable sits at its
 /// value.
-enum class FixedVariableTreatment {
+enum class IpmFixedVariableTreatment {
     /// Removed from the optimization and pinned at its value: the system is one
     /// row and column narrower per fixed variable, and the value is exact. The
     /// default.
@@ -44,7 +44,7 @@ enum class FixedVariableTreatment {
 };
 
 /// @brief Fill-reducing ordering of the KKT matrix.
-enum class KktOrdering {
+enum class IpmOrdering {
     kMinimumDegree,
     /// Serial nested dissection (METIS). The default.
     kNestedDissection,
@@ -54,7 +54,7 @@ enum class KktOrdering {
 };
 
 /// @brief Pivoting for the symmetric indefinite KKT factorization.
-enum class KktPivoting {
+enum class IpmPivotStrategy {
     /// 1x1 pivots only.
     kOneByOne,
     /// 1x1 and 2x2 Bunch-Kaufman pivots. The default.
@@ -62,16 +62,16 @@ enum class KktPivoting {
 };
 
 /// @brief Parallelism of the forward and backward solves.
-enum class KktSolveParallelism {
+enum class IpmSolveParallelism {
     /// Partition the matrix for a single right-hand side, otherwise parallelize
     /// over right-hand sides. The default.
-    kAdaptive,
+    kAdaptivePartitioning,
     /// Sequential.
     kSequential,
 };
 
 /// @brief What an `IpmPhase::kSolve` phase iterates on.
-enum class SolvePhaseMode {
+enum class IpmSolvePhaseMode {
     /// The optimality iteration, objective included.
     kOptimize,
     /// The optimality iteration with the objective dropped (scaled by 0).
@@ -81,13 +81,13 @@ enum class SolvePhaseMode {
 };
 
 /// @brief Barrier-parameter update rule.
-enum class BarrierMode { kProbe, kLoqo };
+enum class IpmBarrierMode { kProbe, kLoqo };
 
 /// @brief Merit function of the classic line search.
-enum class LineSearchMode { kAugmentedLagrangian, kLagrangian, kL1, kNone };
+enum class IpmLineSearchMode { kAugmentedLagrangian, kLagrangian, kL1, kNone };
 
 /// @brief Primal-dual step-length rule.
-enum class PrimalDualStepStrategy {
+enum class IpmStepLengthRule {
     kEqualityMultipliersPrimal,
     kAllMinimum,
     kEqualityMultipliersDual,
@@ -95,7 +95,7 @@ enum class PrimalDualStepStrategy {
 };
 
 /// @brief Step-acceptance test.
-enum class AcceptanceMode {
+enum class IpmAcceptanceMode {
     /// The fused classic backtracking merit line search.
     kClassicMerit,
     /// The modernized merit family; its penalty rule is `merit_penalty_rule`.
@@ -107,7 +107,7 @@ enum class AcceptanceMode {
 };
 
 /// @brief Penalty-parameter rule of the modernized merit family.
-enum class MeritPenaltyRule {
+enum class IpmMeritPenaltyRule {
     /// Waltz, Morales, Nocedal and Orban (2006), section 3.1.
     kSinglePenalty,
     /// Curtis and Nocedal (2008): a penalty interval.
@@ -115,7 +115,7 @@ enum class MeritPenaltyRule {
 };
 
 /// @brief Barrier-parameter governor.
-enum class BarrierGovernorMode {
+enum class IpmBarrierGovernorMode {
     /// The free-mode PROBE/LOQO update on its own.
     kClassicAdaptive,
     /// Free mode with a monotone (Fiacco-McCormick) fallback when progress
@@ -124,7 +124,7 @@ enum class BarrierGovernorMode {
 };
 
 /// @brief Feasibility restoration.
-enum class RestorationMode {
+enum class IpmRestorationMode {
     /// None. The default.
     kOff,
     /// Swap the objective for a proximal term until infeasibility is reduced.
@@ -134,7 +134,7 @@ enum class RestorationMode {
 };
 
 /// @brief KKT inertia correction.
-enum class InertiaMode {
+enum class IpmInertiaMode {
     /// The on-demand inertia ladder. The default.
     kClassic,
     /// A persistent decaying primal shift and a barrier-scaled dual shift, with
@@ -143,7 +143,7 @@ enum class InertiaMode {
 };
 
 /// @brief How `IpmOptions::return_best` scores iterates.
-enum class BestIterateCriterion {
+enum class IpmBestIterateCriterion {
     /// Smallest equality residual. The default.
     kEquality,
     /// Smallest inequality residual.

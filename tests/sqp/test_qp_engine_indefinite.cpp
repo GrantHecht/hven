@@ -46,7 +46,7 @@ using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 
-namespace hven {
+namespace hven::detail {
 // M6 W2 T7 fix 3 (Y-5). The named friend of QpEngine, DEFINED here so R5's
 // first pin can be read off `probe_inertia` itself instead of only off its
 // consequence in the counters. Nothing else in this file may use it.
@@ -65,7 +65,7 @@ struct QpEngineTestAccess {
                                                         opts, verdict);
     }
 };
-} // namespace hven
+} // namespace hven::detail
 
 namespace {
 
@@ -249,7 +249,7 @@ double free_block_stationarity_of(const QpProblem &qp, const QpSolution &sol) {
 // -37.5 is also the GLOBAL minimum (checked by hand over both x1 faces), so
 // the assertions do not merely pin whichever local minimizer this walk found.
 //
-// PRE-FIX BEHAVIOR (measured, before the ride existed): kMaxIter in BOTH
+// PRE-FIX BEHAVIOR (measured, before the ride existed): kIterationLimit in BOTH
 // modes, stalled at x = (-1, 2) with lambda_0 = -3. Iteration 2's step points
 // into the dropped row, whose slack is exactly zero, so the ratio test returns
 // alpha = 0, the row is immediately re-added, and iterations 1-2 cycle until
@@ -308,7 +308,7 @@ QpProblem ride_to_bound_qp() {
 //           inactive and satisfied (-12 <= -1). kOptimal, objective -53.5.
 //           The free subspace is span{e0} and H00 = 1 > 0.
 //
-// PRE-FIX BEHAVIOR (measured): kMaxIter in BOTH modes, stalled at
+// PRE-FIX BEHAVIOR (measured): kIterationLimit in BOTH modes, stalled at
 // x = (-1, -1, 2) with lambda = (-3, 1, 0) -- the same drop/re-add cycle as
 // fixture (a).
 QpProblem ride_to_row_qp() {
@@ -511,13 +511,13 @@ void expect_bound_multiplier_signs(const QpProblem &qp, const QpSolution &sol, d
 TEST(QpEngineIndefinite, IndefiniteStartRepairsToVertex) {
     const QpProblem qp = saddle_box_qp();
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
         const std::string tag =
-            algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+            algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize";
         SCOPED_TRACE(tag);
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -600,8 +600,8 @@ TEST(QpEngineIndefinite, InertiaGateRefusesPerturbedFactorization) {
 #else
         ASSERT_TRUE(e.perturbed_pivots.has_value());
         ASSERT_EQ(*e.perturbed_pivots, 1);
-        ASSERT_EQ(e.n_pos, 3); // looks exactly like a healthy factorization
-        ASSERT_EQ(e.n_neg, 1);
+        ASSERT_EQ(e.positive, 3); // looks exactly like a healthy factorization
+        ASSERT_EQ(e.negative, 1);
 #endif
         // ... and the gate refuses it anyway, precisely because of the
         // perturbed pivot: the expectation it is handed here is the one it
@@ -610,12 +610,12 @@ TEST(QpEngineIndefinite, InertiaGateRefusesPerturbedFactorization) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 0.0, 1e-7);
@@ -707,13 +707,13 @@ TEST(QpEngineIndefinite, SuspectStallIsNotCertifiedOptimal) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.primal_regularization = kDelta;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_NE(sol.status, QpStatus::kOptimal)
             << "certified a point whose free-block reduced gradient is "
@@ -749,13 +749,13 @@ TEST(QpEngineIndefinite, SuspectLoopStillCertifiesAStationaryPoint) {
     const QpProblem qp = suspect_stall_qp(kDelta, /*x1_bound=*/1.0);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.primal_regularization = kDelta;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 0.0, 1e-7);
@@ -937,12 +937,12 @@ TEST(QpEngineIndefinite, TrustworthyWrongInertiaRepairsToVertex) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         QpEngine eng{opts};
         const QpSolution sol = eng.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 0.0, 1e-7);
@@ -991,11 +991,11 @@ TEST(QpEngineIndefinite, UnpinnableNegativeCurvatureIsNotCertifiedOptimal) {
     qp.upper << 1.0, 1e20;
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kNumericalError);
         EXPECT_NE(sol.status, QpStatus::kOptimal);
@@ -1073,7 +1073,7 @@ TEST(QpEngineIndefinite, GateIsANoOpOnAConvexFixture) {
     qp.upper = Vec::Constant(2, 10.0);
 
     QpOptions border_opts;
-    border_opts.working_set_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    border_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     const QpSolution bor = QpEngine{border_opts}.solve(qp);
     EXPECT_EQ(bor.status, QpStatus::kOptimal);
     EXPECT_NEAR(bor.x(0), 0.0, 1e-8);
@@ -1087,7 +1087,7 @@ TEST(QpEngineIndefinite, GateIsANoOpOnAConvexFixture) {
     EXPECT_EQ(bor.bound_state[0], BoundState::kAtLower); // restored, not left dropped
 
     QpOptions refac_opts;
-    refac_opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    refac_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     const QpSolution ref = QpEngine{refac_opts}.solve(qp);
     EXPECT_EQ(ref.status, QpStatus::kOptimal);
     EXPECT_NEAR(ref.z(0), 0.0, 1e-12);
@@ -1107,11 +1107,11 @@ TEST(QpEngineIndefinite, GateIsANoOpOnAConvexFixture) {
 TEST(QpEngineIndefinite, NegativeCurvatureRideToBound) {
     const QpProblem qp = ride_to_bound_qp();
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), -10.0, 1e-6);
@@ -1145,11 +1145,11 @@ TEST(QpEngineIndefinite, NegativeCurvatureRideToBound) {
 TEST(QpEngineIndefinite, SaddleWithGeneralConstraint) {
     const QpProblem qp = ride_to_row_qp();
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), -12.0, 1e-6);
@@ -1211,11 +1211,11 @@ TEST(QpEngineIndefinite, UnboundedIndefiniteReportsNumericalError) {
     qp.upper = Vec::Constant(1, 1e20);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kNumericalError);
         EXPECT_EQ(sol.z.cwiseAbs().maxCoeff(), 0.0);
@@ -1240,11 +1240,11 @@ TEST(QpEngineIndefinite, DiagonalIndefiniteBoxReachesTheNegativeCurvatureBound) 
     const QpProblem qp = diagonal_indefinite_box_qp();
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), -2.0, 1e-8);
@@ -1291,11 +1291,11 @@ TEST(QpEngineIndefinite, RideIsANoOpOnAConvexDrop) {
     qp.upper = Vec::Constant(2, 10.0);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), -1.5, 1e-8);
@@ -1338,11 +1338,11 @@ TEST(QpEngineIndefinite, RideWithNoBlockerReportsNumericalError) {
     qp.upper = Vec::Constant(2, 1e20);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kNumericalError);
         // Reported PROMPTLY, from inside the loop -- not by running out of
@@ -1410,11 +1410,11 @@ TEST(QpEngineIndefinite, RideDeclinesADirectionThatLeavesTheWorkingSet) {
     qp.upper << 1e20, 2.0, 2.0;
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NE(sol.status, QpStatus::kNumericalError); // the pre-guard answer
@@ -1493,11 +1493,11 @@ TEST(QpEngineIndefinite, RideDeclinesAFlatDirectionOnAPsdSingularQp) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NE(sol.status, QpStatus::kInfeasible); // the pre-fix border answer
@@ -1541,11 +1541,11 @@ TEST(QpEngineIndefinite, RideOnAZeroHessianLpFindsTheVertex) {
     qp.upper = Vec::Constant(2, 10.0);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), 10.0, 1e-8);
@@ -1598,11 +1598,11 @@ TEST(QpEngineIndefinite, RideOnAWideBoxLpReachesTheTrueMinimizer) {
     qp.upper = Vec::Constant(2, 1e9);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NE(sol.status, QpStatus::kNumericalError); // the pre-ride answer
@@ -1944,12 +1944,11 @@ TEST(QpEngineIndefinite, EngineLandsOnALocalMinimizer) {
         }
 
         for (const auto algebra :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
             QpOptions opts;
             opts.working_set_algebra = algebra;
             const QpSolution sol = QpEngine{opts}.solve(c.qp);
-            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
-                                                                          : "refactorize");
+            SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
             ASSERT_EQ(sol.status, QpStatus::kOptimal);
             EXPECT_LT(primal_violation(c.qp, sol.x), 1e-8);
@@ -2063,7 +2062,7 @@ QpProblem random_indefinite(int n, int mi, unsigned seed) {
 // a known, rare engine limitation rather than a test bug: a ride that pins a
 // blocker can leave the next regularized EQP with a row residual that
 // violation_is_structural reads as structural (Task 7 fix round 2, seed 777
-// case 1613, landing residual 7.98e-6). kMaxIter is likewise reachable on a
+// case 1613, landing residual 7.98e-6). kIterationLimit is likewise reachable on a
 // degenerate working set. Demanding zero would make this battery a flake
 // detector for a defect it is not the place to fix.
 //
@@ -2111,16 +2110,15 @@ TEST(QpEngineIndefinite, RandomizedIndefiniteBatteryLandsOnLocalMinimizers) {
         ASSERT_FALSE(mins.empty()) << "no local minimizer enumerated for seed " << seed;
 
         for (const auto algebra :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
             QpOptions opts;
             opts.working_set_algebra = algebra;
             const QpSolution sol = QpEngine{opts}.solve(qp);
-            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
-                                                                          : "refactorize");
+            SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
             if (sol.status != QpStatus::kOptimal) {
                 ++non_optimal;
-                max_iter += sol.status == QpStatus::kMaxIter ? 1 : 0;
+                max_iter += sol.status == QpStatus::kIterationLimit ? 1 : 0;
                 infeasible += sol.status == QpStatus::kInfeasible ? 1 : 0;
                 numerical_error += sol.status == QpStatus::kNumericalError ? 1 : 0;
                 continue;
@@ -2238,11 +2236,11 @@ TEST(QpEngineIndefinite, WeaklyActiveBoundIsNotCertifiedOptimal) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         // THE FIX, stated as the property that must hold however the loop gets
         // there: the saddle is never certified.
@@ -2349,8 +2347,8 @@ TEST(QpEngineIndefinite, ZeroMultiplierProbeIsANoOpOnStrictComplementarity) {
 
     for (const auto &c : cases) {
         for (const auto algebra :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-            const bool border = algebra == WorkingSetLinearAlgebra::kSchurBorder;
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+            const bool border = algebra == QpWorkingSetAlgebra::kSchurBorder;
             SCOPED_TRACE(std::string(c.name) + (border ? "/border" : "/refactorize"));
             QpOptions opts;
             opts.working_set_algebra = algebra;
@@ -2446,11 +2444,11 @@ TEST(QpEngineIndefinite, WeaklyActiveGeneralRowIsNotCertifiedEither) {
     }
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpSolution sol = QpEngine{opts}.solve(qp);
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         const bool certified_the_saddle =
             sol.status == QpStatus::kOptimal && (sol.x - saddle).lpNorm<Eigen::Infinity>() < 1e-7;
@@ -2559,10 +2557,10 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
     const Vec minimizer = vec3(0.0, -2.0, 0.5);
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         // THE DEFAULT WALK: the one restart repairs one block and the saddle exit
         // leaves the other block's saddle -- both minimizers, certified.
@@ -2659,8 +2657,8 @@ TEST(QpEngineIndefinite, T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed)
     const QpProblem qp = saddle_box_qp();
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         QpOptions opts;
         opts.working_set_algebra = algebra;
         const QpEngine eng{opts};
@@ -2681,7 +2679,7 @@ TEST(QpEngineIndefinite, T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed)
         probed.bound_state()[0] = BoundState::kAtLower;
         (void)QpEngineTestAccess::probe(eng, qp, probed, kkt, face, border, counters, opts);
 
-        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+        if (algebra == QpWorkingSetAlgebra::kRefactorize) {
             EXPECT_FALSE(armed_on_pre.holds(pre, kkt))
                 << "the pre-probe key still claims a factorization the probe overwrote";
             EXPECT_TRUE(face.factorized);
@@ -2733,9 +2731,8 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
     // the on arm pins the skip.
     for (const bool independent : {false, true})
         for (const auto algebra :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-            SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
-                                                                          : "refactorize");
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+            SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
             SCOPED_TRACE(independent ? "independent_working_set" : "pre-E2 walk");
             QpOptions opts;
             opts.working_set_algebra = algebra;
@@ -2775,7 +2772,7 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
                 // inconsistent, so the walk stands still off them on a kWrong border face and
                 // takes THE STANDSTILL RETREAT; the redone pass factorizes once on the
                 // eliminated path. Status and x above are unchanged.
-                const bool border = algebra == WorkingSetLinearAlgebra::kSchurBorder;
+                const bool border = algebra == QpWorkingSetAlgebra::kSchurBorder;
                 EXPECT_EQ(warm.counters.factorizations, border ? 5 : 4);
                 EXPECT_EQ(warm.counters.standstill_retreats, border ? 1 : 0);
                 EXPECT_EQ(warm.counters.dep_inertia_rereads, 1);
@@ -2783,7 +2780,7 @@ TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFa
                 EXPECT_EQ(warm.counters.terminal_mu_refines, 1);
                 EXPECT_EQ(warm.counters.terminal_mu_refine_rescues, 0);
                 EXPECT_EQ(warm.counters.symbolic_analyses, 0);
-            } else if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+            } else if (algebra == QpWorkingSetAlgebra::kRefactorize) {
                 EXPECT_EQ(warm.counters.factorizations, 3);
                 EXPECT_EQ(warm.counters.symbolic_analyses, 1);
             } else {
@@ -2816,8 +2813,8 @@ TEST(QpEngineIndefinite, T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve)
     qp.upper << 1.0, 1e20;
 
     for (const auto algebra :
-         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.dual_regularization = 0.0;

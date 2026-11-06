@@ -74,7 +74,7 @@
 // include-discipline note in solver_context.h).
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/barrier_governor.h"

@@ -25,7 +25,7 @@
 #include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "counting_trace_sink.h"
 #include "crossover_legs.h"
@@ -274,13 +274,13 @@ const char *warm_tag(InteriorVariant::Warm warm) {
     return "<none>";
 }
 
-const char *restoration_tag(RestorationMode mode) {
+const char *restoration_tag(IpmRestorationMode mode) {
     switch (mode) {
-    case RestorationMode::kOff:
+    case IpmRestorationMode::kOff:
         return "off";
-    case RestorationMode::kProximalSwitch:
+    case IpmRestorationMode::kProximalSwitch:
         return "proximal_switch";
-    case RestorationMode::kL1Nested:
+    case IpmRestorationMode::kL1Nested:
         return "l1_nested";
     }
     throw std::invalid_argument(
@@ -319,23 +319,23 @@ hven::IterationPayload leg_callback_payload() {
 
 } // namespace
 
-const char *interior_treatment_tag(FixedVariableTreatment treatment) {
+const char *interior_treatment_tag(IpmFixedVariableTreatment treatment) {
     switch (treatment) {
-    case FixedVariableTreatment::kMakeParameter:
+    case IpmFixedVariableTreatment::kMakeParameter:
         return "MakeParameter";
-    case FixedVariableTreatment::kMakeConstraint:
+    case IpmFixedVariableTreatment::kMakeConstraint:
         return "MakeConstraint";
-    case FixedVariableTreatment::kRelaxBounds:
+    case IpmFixedVariableTreatment::kRelaxBounds:
         return "RelaxBounds";
     }
     throw std::invalid_argument(fmt::format("interior_treatment_tag: unrecognized treatment ({})",
                                             static_cast<int>(treatment)));
 }
 
-const std::vector<FixedVariableTreatment> &interior_treatments() {
-    static const std::vector<FixedVariableTreatment> kAll{FixedVariableTreatment::kMakeParameter,
-                                                          FixedVariableTreatment::kMakeConstraint,
-                                                          FixedVariableTreatment::kRelaxBounds};
+const std::vector<IpmFixedVariableTreatment> &interior_treatments() {
+    static const std::vector<IpmFixedVariableTreatment> kAll{
+        IpmFixedVariableTreatment::kMakeParameter, IpmFixedVariableTreatment::kMakeConstraint,
+        IpmFixedVariableTreatment::kRelaxBounds};
     return kAll;
 }
 
@@ -360,7 +360,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         stalled.name = "stalled";
         stalled.entry = InteriorVariant::Entry::kSolve;
         stalled.max_iters = 600;
-        stalled.restoration_mode = RestorationMode::kL1Nested;
+        stalled.restoration_mode = IpmRestorationMode::kL1Nested;
         stalled.max_feas_rest = 1;
         stalled.con_tol = 2.0e-2;
         stalled.acc_kkt_tol = 1.0e-6;
@@ -373,7 +373,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         resto.name = "resto_infeasible";
         resto.entry = InteriorVariant::Entry::kOptimize;
         resto.max_iters = 200;
-        resto.restoration_mode = RestorationMode::kL1Nested;
+        resto.restoration_mode = IpmRestorationMode::kL1Nested;
         resto.max_feas_rest = 1;
         v.push_back(resto);
 
@@ -478,8 +478,9 @@ std::string interior_variant_stamp(const InteriorVariant &variant) {
         warm_tag(variant.warm),
         variant.max_iters > 0 ? std::to_string(variant.max_iters) : std::string("<levers>"),
         restoration_tag(variant.restoration_mode),
-        variant.restoration_mode == RestorationMode::kOff ? std::string("<unused>")
-                                                          : std::to_string(variant.max_feas_rest),
+        variant.restoration_mode == IpmRestorationMode::kOff
+            ? std::string("<unused>")
+            : std::to_string(variant.max_feas_rest),
         variant.con_tol > 0.0 ? fmt::format("{:.9e}", variant.con_tol) : std::string("<levers>"),
         variant.acc_con_tol > 0.0 ? fmt::format("{:.9e}", variant.acc_kkt_tol)
                                   : std::string("<default>"),
@@ -525,7 +526,7 @@ double interior_leg_infinite_bound() {
                : CommonOptions{}.infinite_bound;
 }
 
-void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
+void configure_interior_solver(IpmSolver &ipm, IpmFixedVariableTreatment treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
@@ -557,8 +558,8 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
     // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
     // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
     if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
-        o.advanced.acceptance_mode = AcceptanceMode::kClassicMerit;
-        o.advanced.barrier_governor_mode = BarrierGovernorMode::kClassicAdaptive;
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
         o.common.max_iterations = 500;
     }
 
@@ -594,7 +595,7 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatment treatment,
         o.termination.divergence_inequality_tol = variant.div_tol;
         o.termination.divergence_barrier_tol = variant.div_tol;
     }
-    if (variant.restoration_mode != RestorationMode::kOff) {
+    if (variant.restoration_mode != IpmRestorationMode::kOff) {
         o.advanced.restoration_mode = variant.restoration_mode;
         o.advanced.max_restoration_entries = variant.max_feas_rest;
     }
@@ -607,7 +608,7 @@ std::string interior_row_key(const InteriorRow &row);
 
 InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatment treatment, const InteriorLevers &levers,
+                                 IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant) {
     if (problem == nullptr) {
         throw std::invalid_argument(
@@ -654,7 +655,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
         ConfiguredSolve configured{
             public_route ? std::make_unique<Problem>(problem)
                          : std::make_unique<Problem>(
-                               hven::detail::problem_from_program(hven::make_nlp_program(
+                               hven::detail::problem_from_program(hven::detail::make_nlp_program(
                                    problem, requested_partitions, interior_leg_infinite_bound()))),
             std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
@@ -825,7 +826,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.factorizations = result.kkt_factor_counters.factorize_count;
     row.solves = result.kkt_factor_counters.solve_count;
     row.analyses = result.kkt_analyses_total;
-    row.soc_steps = result.soc_steps_taken;
+    row.soc_steps = result.second_order_corrections;
     row.watchdog_activations = result.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
     row.stop_reason = to_string(ipm.last_stop_reason());
@@ -908,7 +909,7 @@ InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requ
     }
     const auto f7 = std::make_shared<F7CollocationChain>(detail::make_model(cell));
     const auto declared = std::make_shared<ModelAsNlpProblem>(f7, std::string(cell.id));
-    const auto program = hven::make_nlp_program(declared, requested);
+    const auto program = hven::detail::make_nlp_program(declared, requested);
     InteriorPartitionStamp stamp;
     stamp.requested = requested;
     stamp.adopted = program->num_partitions_;
@@ -916,7 +917,7 @@ InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requ
     return stamp;
 }
 
-InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatment treatment,
+InteriorRow run_interior_cell(const CorpusCell &cell, IpmFixedVariableTreatment treatment,
                               const InteriorLevers &levers, const InteriorVariant &variant) {
     if (!crossover::cell_dual_binds(cell)) {
         throw std::invalid_argument(
@@ -936,13 +937,13 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatment tre
     return run_interior_problem(declared, id, x0, treatment, levers, variant);
 }
 
-InteriorRow run_interior_hs071(FixedVariableTreatment treatment, const InteriorLevers &levers,
+InteriorRow run_interior_hs071(IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                const InteriorVariant &variant) {
     return run_interior_problem(std::make_shared<Hs071FixedProblem>(), hs071_fixed_identity(),
                                 hs071_fixed_start(), treatment, levers, variant);
 }
 
-InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatment treatment,
+InteriorRow run_interior_infeasible(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant) {
     std::shared_ptr<Nlp> problem;
     if (cell_id == kSpikeCellId) {
@@ -962,8 +963,8 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
                                 variant);
 }
 
-FixedVariableTreatment interior_treatment_from_tag(std::string_view tag) {
-    for (const FixedVariableTreatment treatment : interior_treatments()) {
+IpmFixedVariableTreatment interior_treatment_from_tag(std::string_view tag) {
+    for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
         if (tag == interior_treatment_tag(treatment)) {
             return treatment;
         }
@@ -973,7 +974,7 @@ FixedVariableTreatment interior_treatment_from_tag(std::string_view tag) {
                                             tag));
 }
 
-InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatment treatment,
+InteriorRow run_interior_single_row(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers) {
     // The fixed-variable cell is not a corpus cell -- the leg runs it
     // unconditionally from its own id, and find_cell would not know it.
@@ -1006,8 +1007,8 @@ std::string interior_globalization_stamp() {
     const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
     IpmOptions o;
     if (pinned) {
-        o.advanced.acceptance_mode = AcceptanceMode::kClassicMerit;
-        o.advanced.barrier_governor_mode = BarrierGovernorMode::kClassicAdaptive;
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
         o.common.max_iterations = 500;
     }
 

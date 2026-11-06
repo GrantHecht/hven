@@ -243,7 +243,8 @@ TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
     hven::IpmSolver solver(o);
 
     hven_drivers_tests::Hs071Problem problem;
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult converged =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -299,7 +300,8 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     o.common.max_iterations = 7;
     hven::IpmSolver solver(o);
 
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*model), x0);
@@ -310,8 +312,8 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     // The call reports the LAST RAN phase's status, and the first phase's own
     // verdict is still readable beside it.
     EXPECT_EQ(r.status, r.phases[1].status);
-    EXPECT_EQ(r.phases[1].status, hven::SolveStatus::kMaxIter);
-    EXPECT_EQ(r.phases[1].stop_reason, hven::IpmStopReason::kIterationCap);
+    EXPECT_EQ(r.phases[1].status, hven::SolveStatus::kIterationLimit);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::IpmStopReason::kIterationLimit);
     // The feasibility phase ended on its own verdict, not on the cap.
     EXPECT_LT(r.phases[0].iterations, o.common.max_iterations);
     EXPECT_EQ(r.phases[0].stop_reason, hven::IpmStopReason::kNone);
@@ -335,15 +337,16 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     o.common.max_iterations = 200;
     hven::IpmSolver solver(o);
 
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult capped =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start(), {},
                      hven::SolveBudget{.max_iterations = 2});
-    EXPECT_EQ(capped.status, hven::SolveStatus::kMaxIter);
+    EXPECT_EQ(capped.status, hven::SolveStatus::kIterationLimit);
     EXPECT_LE(capped.iterations, 2);
     ASSERT_EQ(capped.phases.size(), 1u);
-    EXPECT_EQ(capped.phases[0].stop_reason, hven::IpmStopReason::kIterationCap);
+    EXPECT_EQ(capped.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
 
     // TIGHTEN ONLY: a budget ABOVE the engine's own limit does not raise it.
     hven::IpmOptions tight = o;
@@ -352,7 +355,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     const hven::IpmResult still_capped =
         small.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start(), {},
                     hven::SolveBudget{.max_iterations = 10000});
-    EXPECT_EQ(still_capped.status, hven::SolveStatus::kMaxIter);
+    EXPECT_EQ(still_capped.status, hven::SolveStatus::kIterationLimit);
     EXPECT_LE(still_capped.iterations, 2);
 
     // AND THE DEFAULT BUDGET IS THE IDENTITY, which is what makes the whole
@@ -368,9 +371,10 @@ TEST(IpmIntrospection, PatternQueryTakesTheModel) {
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
 
-    const auto first = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto first =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
     const auto second =
-        hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     // Nothing analysed yet: no program answers true.
     EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*first)));
@@ -409,7 +413,8 @@ TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -446,7 +451,8 @@ TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -500,7 +506,7 @@ namespace {
 ///
 /// The point of the fixture is that NOTHING can be measured at the returned
 /// point, so the result has to say so rather than fill zeros.
-class NonFiniteModel final : public hven::NlpModel {
+class NonFiniteModel final : public hven::detail::NlpModel {
   public:
     Index n() const override { return 2; }
     Index me() const override { return 0; }
@@ -591,7 +597,7 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     // INDEPENDENTLY, from the shared function over the model's own quantities
     // at the returned point. This is what ties the engine's fill to §(1)'s
     // definition; it evaluates the model itself, which a SOLVE may not do.
-    const hven::NlpEval ev = hven::eval_nlp(*p.model, r.x);
+    const hven::detail::NlpEval ev = hven::detail::eval_nlp(*p.model, r.x);
     const DeclaredDiagnostics d = compute_declared_diagnostics(
         r.x, hven::detail::engine_rows(r).lambda_e, hven::detail::engine_rows(r).lambda_i, r.z,
         ev.grad, ev.Je, ev.Ji, ev.ce, ev.ci, p.model->lower(), p.model->upper(), {});
@@ -603,7 +609,7 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     // THE TWO CLOCKS ARE DIFFERENT MEASUREMENTS, and both are present: the
     // base's runs from the public entry, the engine's around solve_impl alone,
     // so the first is never the smaller.
-    EXPECT_GE(r.wall_seconds, r.solve_impl_seconds);
+    EXPECT_GE(r.wall_seconds, r.engine_seconds);
     // The shared iteration count is the TOP-LEVEL major count.
     EXPECT_EQ(r.iterations, r.counters.major_iters);
 
@@ -624,7 +630,7 @@ namespace {
 /// blocks, so the elastic tier exhausts and the RESTORATION phase runs and
 /// certifies at x = (1, 0). Copied from tests/sqp/test_sqp_restoration.cpp's
 /// fixture of the same name, because this directory links no SQP fixtures.
-class BoxBlockedEqualityModel final : public hven::NlpModel {
+class BoxBlockedEqualityModel final : public hven::detail::NlpModel {
   public:
     Index n() const override { return 2; }
     Index me() const override { return 1; }
@@ -815,7 +821,8 @@ TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
     o.common.verbosity = hven::Verbosity::kSilent;
     o.phases = {hven::IpmPhase::kSolve};
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -850,7 +857,8 @@ TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
     o.common.verbosity = hven::Verbosity::kSilent;
     o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
@@ -880,10 +888,10 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
     o.common.verbosity = hven::Verbosity::kSilent;
     o.common.threads = 1;
     o.common.max_iterations = 200;
-    o.advanced.restoration_mode = hven::RestorationMode::kL1Nested;
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
     o.advanced.max_restoration_entries = 1;
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
@@ -912,7 +920,7 @@ TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
     // the default criterion (ECONS) scores runs away from its own best early
     // iterate, which is exactly the case return_best exists for.
     LocallyInfeasibleProblem problem;
-    const auto model = hven::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
 
     // THE CAP IS SEARCHED FOR, NOT ASSUMED. What makes the fixture
     // discriminating is that the substitution actually FIRES -- that the best
@@ -971,7 +979,8 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
 
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     {
         hven::IpmSolver a(o);
@@ -1008,7 +1017,8 @@ TEST(SolveBudget, IpmClampsBeforeNarrowing) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult huge =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start(), {},
@@ -1032,13 +1042,14 @@ TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     hven::IpmSolver solver(o);
-    const auto model = hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto model =
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
 
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     ASSERT_EQ(r.status, hven::SolveStatus::kOptimal);
     EXPECT_GT(r.wall_seconds, 0.0);
-    EXPECT_GE(r.wall_seconds, r.timing.total);
+    EXPECT_GE(r.wall_seconds, r.timing.total_seconds);
 
     // And the argument check is at that entry: a mis-sized start point is
     // refused by name.
@@ -1061,7 +1072,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
         model_driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point(), {},
                            hven::SolveBudget{.max_iterations = 2});
     EXPECT_LE(capped.counters.major_iters, 2);
-    EXPECT_EQ(capped.status, hven::SolveStatus::kMaxIter);
+    EXPECT_EQ(capped.status, hven::SolveStatus::kIterationLimit);
 
     // The bridge-taking form, and a PAYLOAD riding it -- the combination that
     // had no budgeted door at all before T8.4, and which T8.5 turned from a
@@ -1069,9 +1080,9 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     hven::SqpSolver bridge_driver(o);
     // The borrow idiom this suite's bench neighbours use: a shared_ptr with an
     // EMPTY owner, so the bridge names a model it does not own.
-    const std::shared_ptr<const hven::NlpModel> borrowed(std::shared_ptr<const void>(),
-                                                         p.model.get());
-    hven::NlpModelAssembly bridge(borrowed);
+    const std::shared_ptr<const hven::detail::NlpModel> borrowed(std::shared_ptr<const void>(),
+                                                                 p.model.get());
+    hven::detail::NlpModelAssembly bridge(borrowed);
     const hven::SqpResult warmup =
         bridge_driver.solve(hven::detail::problem_ref(bridge), p.model->start_point());
     ASSERT_EQ(warmup.status, hven::SolveStatus::kOptimal);
@@ -1091,7 +1102,7 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     // The shared clock is present on the new overloads too, and is never the
     // smaller of the two measurements.
     EXPECT_GT(free_run.wall_seconds, 0.0);
-    EXPECT_GE(free_run.wall_seconds, free_run.solve_impl_seconds);
+    EXPECT_GE(free_run.wall_seconds, free_run.engine_seconds);
 }
 
 // ===========================================================================
@@ -1482,7 +1493,7 @@ TEST(SolveMessage, NamesTheStopOnTheInteriorPointEngine) {
         hven::Problem p(std::make_shared<hven_drivers_tests::Hs071Problem>());
         hven::IpmSolver solver{o};
         const auto r = solver.solve(p, x0);
-        ASSERT_EQ(r.status, SolveStatus::kMaxIter);
+        ASSERT_EQ(r.status, SolveStatus::kIterationLimit);
         EXPECT_TRUE(names(r.message, "iteration limit")) << r.message;
         EXPECT_TRUE(names(r.message, "max_iterations = 2")) << r.message;
     }
@@ -1515,7 +1526,7 @@ TEST(SolveMessage, NamesTheStopOnTheSqpEngine) {
         hven::Problem p(std::make_shared<hven_drivers_tests::Hs071Problem>());
         hven::SqpSolver solver{o};
         const auto r = solver.solve(p, x0);
-        ASSERT_EQ(r.status, SolveStatus::kMaxIter);
+        ASSERT_EQ(r.status, SolveStatus::kIterationLimit);
         EXPECT_TRUE(names(r.message, "iteration limit")) << r.message;
         EXPECT_TRUE(names(r.message, "max_iterations = 2")) << r.message;
         EXPECT_FALSE(r.returned_best_iterate);
@@ -1540,7 +1551,7 @@ TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
         return message.size() >= clause.size() &&
                message.compare(message.size() - clause.size(), clause.size(), clause) == 0;
     };
-    const auto model = hven::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
+    const auto model = hven::detail::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>());
     const auto run = [&](int cap, bool return_best) {
         hven::IpmOptions o;
         o.common.verbosity = hven::Verbosity::kSilent;
@@ -1551,11 +1562,11 @@ TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
         return solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
     };
 
-    // kMaxIter with the substitution: the iteration-limit line plus the clause.
+    // kIterationLimit with the substitution: the iteration-limit line plus the clause.
     bool saw_max_iter = false;
     for (int cap = 2; cap <= 30 && !saw_max_iter; ++cap) {
         const hven::IpmResult r = run(cap, true);
-        if (r.status == SolveStatus::kMaxIter && r.returned_best_iterate) {
+        if (r.status == SolveStatus::kIterationLimit && r.returned_best_iterate) {
             saw_max_iter = true;
             EXPECT_TRUE(has_clause(r.message)) << r.message;
             EXPECT_TRUE(names(r.message, "iteration limit reached")) << r.message;
@@ -1563,7 +1574,7 @@ TEST(SolveMessage, TheBestIterateClauseFollowsTheFlagOnTheInteriorPointEngine) {
     }
     EXPECT_TRUE(saw_max_iter) << "no cap in [2, 30] gave a best-iterate kMaxIter";
 
-    // A non-kMaxIter, non-optimal exit with the flag on: HS071 against
+    // A non-kIterationLimit, non-optimal exit with the flag on: HS071 against
     // tolerances it cannot meet ends kAcceptable, and the same clause follows
     // that status's own line.
     const auto run_hs071 = [&](bool return_best) {

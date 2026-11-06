@@ -10,7 +10,7 @@
 
 #include "hven/detail/globalization/recovery_chain.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Soft feasibility pre-stage constant: a soft step is accepted while its trial
 /// primal-dual error is at most this fraction of the current one (Ipopt's
@@ -90,7 +90,7 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
 
     Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
@@ -124,4 +124,4 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
     int soft_counter_ = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

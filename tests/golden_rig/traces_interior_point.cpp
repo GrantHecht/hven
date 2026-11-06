@@ -119,7 +119,7 @@ TEST_P(InteriorPointTrace, P2_InertiaCorrectionLadderReplay) {
         const hl::InertiaEvidence e = seam.inertia();
         run.record_inertia(e, prefix);
         if (accepting_rung < 0 && e.state == hl::InertiaEvidence::State::kObserved &&
-            e.n_neg == m_face && e.n_zero == 0) {
+            e.negative == m_face && e.zero == 0) {
             accepting_rung = static_cast<Index>(r);
         }
     }
@@ -175,7 +175,7 @@ TEST_P(InteriorPointTrace, P3_SingularVerdictAndControl) {
         ASSERT_EQ(s->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
         const hl::InertiaEvidence e = s->inertia();
         if (e.state == hl::InertiaEvidence::State::kObserved) {
-            EXPECT_EQ(e.n_zero, 0) << "active-bound curvature must never read as a zero class";
+            EXPECT_EQ(e.zero, 0) << "active-bound curvature must never read as a zero class";
             // A REASONED EXTENSION BEYOND THE AUTHORITY, flagged as such. The
             // pin this control comes from says only that the matrix must not
             // read as singular. The perturbation count is the other half of
@@ -268,7 +268,7 @@ TEST_P(InteriorPointTrace, P5_InertiaBeforeFactorizationIsAnExplicitState) {
 
     EXPECT_NE(e.state, hl::InertiaEvidence::State::kObserved)
         << "nothing has been factorized, so there is nothing to have observed";
-    EXPECT_FALSE(e.n_pos == 0 && e.n_neg == 0 && e.n_zero == 0)
+    EXPECT_FALSE(e.positive == 0 && e.negative == 0 && e.zero == 0)
         << "counts with nothing behind them must stay invalid, never be zero-filled -- a "
            "zero-filled triple reads exactly like a real one";
 
@@ -309,7 +309,7 @@ TEST_P(InteriorPointTrace, P6_RefinementStepEvidence) {
     // false there), so the only arm that reaches this point on Apple is
     // native, whose capability is unconditionally true on every backend (the
     // std::optional surface exists) even though Accelerate never populates
-    // it. Per the frozen contract (SolveInfo::refinement_iters's doc
+    // it. Per the frozen contract (SolveInfo::refinement_steps's doc
     // comment in include/hven/linear/symmetric_factor.h), refinement_iters
     // is present with Pardiso semantics on MKL and legitimately absent --
     // never zero-filled -- on Accelerate, which has no such counter.
@@ -320,11 +320,11 @@ TEST_P(InteriorPointTrace, P6_RefinementStepEvidence) {
         << "Accelerate has no refinement-step counter; a present value here would be a "
            "fabrication, not evidence";
 #else
-    EXPECT_TRUE(info.refinement_iters.has_value())
+    EXPECT_TRUE(info.refinement_steps.has_value())
         << "this seam reports refinement steps, so the field must be present when refinement is "
            "configured on";
-    if (info.refinement_iters.has_value()) {
-        EXPECT_GE(*info.refinement_iters, 0);
+    if (info.refinement_steps.has_value()) {
+        EXPECT_GE(*info.refinement_steps, 0);
     }
 #endif
 

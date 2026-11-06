@@ -46,9 +46,12 @@
 #include "hven/model/threading_flags.h"
 
 namespace hven {
+class Nlp;
+} // namespace hven
+
+namespace hven::detail {
 
 struct NonLinearProgram;
-class Nlp;
 
 /// One stored matrix entry's coordinates, in the order the model presents them.
 struct NlpCoordinate {
@@ -550,13 +553,19 @@ struct NlpConstraintPiece {
 // itself: one erasure, one virtual dispatch per solver call. Registered here,
 // beside the definitions, per the placement rule in
 // hven/model/solver_interface_adapter.h.
+} // namespace hven::detail
+
 template <>
-struct SolverInterfaceAdapter<NlpObjectivePiece> : DirectFunctionModel<NlpObjectivePiece> {};
+struct hven::SolverInterfaceAdapter<hven::detail::NlpObjectivePiece>
+    : hven::DirectFunctionModel<hven::detail::NlpObjectivePiece> {};
 template <>
-struct SolverInterfaceAdapter<NlpConstraintPiece> : DirectFunctionModel<NlpConstraintPiece> {};
+struct hven::SolverInterfaceAdapter<hven::detail::NlpConstraintPiece>
+    : hven::DirectFunctionModel<hven::detail::NlpConstraintPiece> {};
+
+namespace hven::detail {
 
 // The two make_nlp_program() overloads are declared in
 // hven/detail/model/make_nlp_program.h, included above; the bodies are in
 // src/model/nlp_adapter.cpp, beside the machinery above that they drive.
 
-} // namespace hven
+} // namespace hven::detail

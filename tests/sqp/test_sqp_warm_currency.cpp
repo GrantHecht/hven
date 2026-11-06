@@ -10,7 +10,7 @@
 // staging call run at the public entry, with the same messages under the
 // `SqpSolver::solve` name; and the against-the-problem checks (block lengths,
 // then the declaration stamp) still fire at solve entry -- now IN EVERY
-// `qp_mode`, kIpm included (M5 ruling 4's mode-local cold grade RETIRED for
+// `qp_mode`, kIpqp included (M5 ruling 4's mode-local cold grade RETIRED for
 // that case). Two families of test went with the staging state they were about
 // -- the clear-first rule and the two-warm-sources refusal -- each retired in
 // place with the argument that the hazard it guarded is unconstructible now,
@@ -66,7 +66,7 @@
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 namespace {
 using hven::detail::SqpWarmAccess;
@@ -76,15 +76,11 @@ namespace {
 using hven::detail::WarmStartAccess;
 } // namespace
 
-using hven::ConstEigenRef;
 using hven::declaration_key;
 using hven::Index;
 using hven::IpmPolishData;
 using hven::kIpmPolishTag;
 using hven::Nlp;
-using hven::NlpModel;
-using hven::NlpModelAssembly;
-using hven::NlpProblemModel;
 using hven::QpMode;
 using hven::serialize_ipm_polish;
 using hven::SolveStatus;
@@ -97,6 +93,10 @@ using hven::StartLevel;
 using hven::Vec;
 using hven::WarmExtension;
 using hven::WarmStart;
+using hven::detail::ConstEigenRef;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
+using hven::detail::NlpProblemModel;
 using hven::detail::SqpWarmState;
 
 namespace {
@@ -841,8 +841,8 @@ TEST(SqpWarmCurrency, TheNativeAndPayloadOverloadsAreSelectedByArgumentType) {
     // THE NATIVE ROUTE: a SqpWarmState from a prior solve of the same model
     // carries a real structure hash, so it can reach kWarm.
     SqpSolver native{SqpOptions{}};
-    const SqpResult by_native = native.solve(hven::detail::problem_ref(*bridge),
-                                             model->start_point(), sol.native_warm_start);
+    const SqpResult by_native =
+        native.solve(hven::detail::problem_ref(*bridge), model->start_point(), sol.sqp_warm_start);
     EXPECT_EQ(by_native.status, SolveStatus::kOptimal);
     EXPECT_GE(static_cast<int>(by_native.counters.start_level_used),
               static_cast<int>(StartLevel::kSeeded));
@@ -979,7 +979,7 @@ TEST(SqpWarmCurrency, PassingTheSameValueTwiceFromColdIsBitIdentical) {
 TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto problem = std::make_shared<CurrencyIpmProblem>();
 
-    const auto ipm_program = hven::make_nlp_program(problem);
+    const auto ipm_program = hven::detail::make_nlp_program(problem);
     hven::IpmSolver ipm;
     {
         auto o = ipm.options();
@@ -1286,13 +1286,13 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
 // M6 W1 TASK 7 -- the preserved-seed ingest and the mode-local cold degrade
 // ===========================================================================
 //
-// PLAN RULING 4, HALF RETIRED. Under `QpMode::kIpm` the interior-point tier's
+// PLAN RULING 4, HALF RETIRED. Under `QpMode::kIpqp` the interior-point tier's
 // MAIN-subproblem seed is still built here, from the validated payload and its
 // polish extension, WITHOUT the signed-z flattening the crossover necessarily
 // performs. That half stands.
 //
 // WHAT WENT (M6 W5 T8.5, owner ruling; design 2.4): the MODE-LOCAL COLD DEGRADE.
-// M5 ruling 4 made a stamp or dimension mismatch a cold grade under kIpm --
+// M5 ruling 4 made a stamp or dimension mismatch a cold grade under kIpqp --
 // spec section 5.4 lists both as the cold grade -- where kWalk and kSsn threw.
 // The ruling is RETIRED FOR THAT CASE: identity mismatch REFUSES IN EVERY MODE.
 // The reason is that the old shape made an IDENTITY answer depend on which QP
@@ -1304,14 +1304,14 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
 // The two tests below are DECLARED FLIPS of the two that pinned the old
 // behaviour (`KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows` and
 // `KIpmDegradesAStampMismatchColdWhereKWalkThrows`): same fixtures, same
-// payloads, the kIpm arm's expectation inverted from a cold grade to the same
+// payloads, the kIpqp arm's expectation inverted from a cold grade to the same
 // refusal kWalk gives.
 
 namespace {
 
 SqpOptions ipm_currency_options() {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
+    o.qp_mode = QpMode::kIpqp;
     return o;
 }
 
@@ -1340,7 +1340,7 @@ TEST(SqpWarmCurrency, KIpmRefusesAWrongSizedPayloadLikeKWalk) {
         (void)walker.solve(hven::detail::problem_ref(*wide_bridge), wide->start_point(), payload),
         std::invalid_argument);
 
-    // kIpm: THE FLIP. The same value on the same problem is refused the same
+    // kIpqp: THE FLIP. The same value on the same problem is refused the same
     // way. It used to be cold-graded and the solve ran.
     SqpSolver ipm{ipm_currency_options()};
     EXPECT_THROW(
@@ -1382,7 +1382,7 @@ TEST(SqpWarmCurrency, KIpmRefusesAStampMismatchLikeKWalk) {
                                     rekeyed->start_point(), payload),
                  std::invalid_argument);
 
-    // THE FLIP: kIpm refuses a stamp mismatch too, where it used to cold-grade.
+    // THE FLIP: kIpqp refuses a stamp mismatch too, where it used to cold-grade.
     SqpSolver ipm{ipm_currency_options()};
     try {
         (void)ipm.solve(hven::detail::problem_ref(*rekeyed_bridge), rekeyed->start_point(),
@@ -1563,7 +1563,7 @@ TEST(SqpWarmCurrency, ThePayloadPathDeliversThePolishSplitWithoutFlattening) {
         // (1e-2) sits BELOW this payload's `mu_`, so the section 5.3 clamp would
         // cap the adoption out of existence and the pin below would go vacuous.
         SqpOptions o = ipm_currency_options();
-        o.advanced.ipqp.init_mu = polish.mu;
+        o.advanced.ipqp.barrier_initial = polish.mu;
         SqpSolver driver{o};
         return driver.solve(hven::detail::problem_ref(*bridge), WarmStartAccess::primal(data),
                             data);
@@ -1599,7 +1599,8 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
 
     IpmPolishData polish = fixture_polish(sol);
     polish.mu = 0.1;
-    ASSERT_GT(polish.mu, SqpOptions{}.advanced.ipqp.init_mu) << "the premise: ABOVE the ceiling";
+    ASSERT_GT(polish.mu, SqpOptions{}.advanced.ipqp.barrier_initial)
+        << "the premise: ABOVE the ceiling";
 
     const auto run = [&](double ceiling) {
         WarmStart data = core_payload(sol, *bridge);
@@ -1607,13 +1608,13 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
         WarmStartAccess::primal(data)(2) += 0.3;
         WarmStartAccess::extensions(data).push_back(polish_extension(polish));
         SqpOptions o = ipm_currency_options();
-        o.advanced.ipqp.init_mu = ceiling;
+        o.advanced.ipqp.barrier_initial = ceiling;
         SqpSolver driver{o};
         return driver.solve(hven::detail::problem_ref(*bridge), WarmStartAccess::primal(data),
                             data);
     };
 
-    const SqpResult shipped = run(SqpOptions{}.advanced.ipqp.init_mu);
+    const SqpResult shipped = run(SqpOptions{}.advanced.ipqp.barrier_initial);
     const SqpResult raised = run(polish.mu);
     ASSERT_EQ(shipped.status, SolveStatus::kOptimal);
     ASSERT_EQ(raised.status, SolveStatus::kOptimal);
@@ -1636,7 +1637,8 @@ TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
 
     IpmPolishData polish = fixture_polish(sol);
     polish.mu = 1e-4;
-    ASSERT_LT(polish.mu, SqpOptions{}.advanced.ipqp.init_mu) << "the premise: UNDER the ceiling";
+    ASSERT_LT(polish.mu, SqpOptions{}.advanced.ipqp.barrier_initial)
+        << "the premise: UNDER the ceiling";
 
     WarmStart data = core_payload(sol, *bridge);
     WarmStartAccess::primal(data)(0) -= 1e-6;

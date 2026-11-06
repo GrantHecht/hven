@@ -129,7 +129,6 @@
 
 namespace {
 
-using hven::QpProblem;
 using hven::Vec;
 using hven::corpus::all_cells;
 using hven::corpus::budget_table_hash;
@@ -148,9 +147,10 @@ using hven::corpus::run_cell;
 using hven::corpus::to_string;
 using hven::corpus::detail::first_qp_for_cell;
 using hven::corpus::detail::wall_budget_for_cell;
+using hven::detail::QpProblem;
 
 // The top-level interior-point leg (M6 W5 T8.1); see bench/ipm_corpus_leg.h.
-using hven::FixedVariableTreatment;
+using hven::IpmFixedVariableTreatment;
 using hven::corpus::interior_base_variant;
 using hven::corpus::interior_csv_header;
 using hven::corpus::interior_exit_variants;
@@ -184,8 +184,8 @@ using hven::SsnSigmaRule;
 // M6 W5 T6.d LEG 2. The types the HS suite below needs, on the same
 // one-namespace-spelling terms.
 using hven::QpMode;
-using hven::QpModeSite;
 using hven::QpModeTraceEvent;
+using hven::QpTraceModeSite;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
@@ -845,7 +845,7 @@ std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
 constexpr int kTask6bColumns = 37;
 
 // M6 W1 T9: THIRTY-NINE MORE on the same optional-tail contract -- all of
-// IpqpCounters, one column per field, so the kIpm arm's replay ASSERTS the
+// IpqpCounters, one column per field, so the kIpqp arm's replay ASSERTS the
 // tier's census. Declared move 37 -> 76; nothing existing moves.
 constexpr int kIpqpColumns = 76;
 
@@ -1162,7 +1162,7 @@ hven::SolveStatus parse_status(const std::string &s) {
         return hven::SolveStatus::kOptimal;
     }
     if (s == "MaxIter") {
-        return hven::SolveStatus::kMaxIter;
+        return hven::SolveStatus::kIterationLimit;
     }
     if (s == "Infeasible") {
         return hven::SolveStatus::kInfeasible;
@@ -2046,7 +2046,7 @@ QpMode hs_qp_mode(const std::string &engine) {
         return QpMode::kSsn;
     }
     if (engine == "ipm") {
-        return QpMode::kIpm;
+        return QpMode::kIpqp;
     }
     throw std::invalid_argument(
         fmt::format("hven_sqp_corpus: --hs --engine: '{}' is not one of walk|ssn|ipm", engine));
@@ -2143,7 +2143,7 @@ HsRow run_hs_cell(int number, QpMode mode, const EngineLevers &levers, int repea
     const auto hs_options = [&]() {
         SqpOptions opts;
         opts.qp_mode = mode;
-        opts.advanced.ssn_prox_carry = levers.ssn_prox_carry;
+        opts.advanced.ssn_proximal_carry = levers.ssn_prox_carry;
         opts.advanced.ssn_certify_from_face = levers.ssn_certify_from_face;
         opts.advanced.ssn_sigma_rule = levers.ssn_sigma_rule;
         opts.advanced.ssn_hint_rule = levers.ssn_hint_rule;
@@ -2563,7 +2563,7 @@ class InteriorArtifactWriter {
 // rather than a finished solve thrown away.
 void run_internal_interior_one(const std::string &cell_id, const std::string &treatment_tag,
                                const std::string &out_path, int argc, char **argv) {
-    const FixedVariableTreatment treatment = interior_treatment_from_tag(treatment_tag);
+    const IpmFixedVariableTreatment treatment = interior_treatment_from_tag(treatment_tag);
     // The leg's own defaults, unchanged and unreachable from the CLI: this mode
     // measures the leg's row, so it runs the leg's levers. They are stamped.
     const InteriorLevers levers;
@@ -2967,7 +2967,7 @@ int main(int argc, char **argv) {
             }
 
             for (const CorpusCell *cell : plan.cells) {
-                for (const FixedVariableTreatment treatment : interior_treatments()) {
+                for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
                     fmt::print("running {} (N={}, treatment {})...\n", cell->id, cell->n_nodes,
                                interior_treatment_tag(treatment));
                     const InteriorRow row =
@@ -2980,7 +2980,7 @@ int main(int argc, char **argv) {
             // The fixed-variable cell, always and last: no F7 cell has a
             // bound-fixed variable, so it is the only one on which the three
             // treatments take three different paths.
-            for (const FixedVariableTreatment treatment : interior_treatments()) {
+            for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
                 fmt::print("running {} (treatment {})...\n", kHs071FixedCellId,
                            interior_treatment_tag(treatment));
                 const InteriorRow row =
@@ -2995,7 +2995,8 @@ int main(int argc, char **argv) {
             // only -- an exit is not a treatment question.
             for (const InteriorVariant &variant : interior_exit_variants()) {
                 const std::string name(variant.name);
-                const FixedVariableTreatment treatment = FixedVariableTreatment::kMakeParameter;
+                const IpmFixedVariableTreatment treatment =
+                    IpmFixedVariableTreatment::kMakeParameter;
                 std::vector<InteriorRow> rows;
                 if (name == "cap1") {
                     const CorpusCell *f7 = find_cell(kCap1F7CellId);
@@ -3068,9 +3069,9 @@ int main(int argc, char **argv) {
                                    kCap1F7CellId, variant.name);
                         continue;
                     }
-                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatment::kMakeConstraint,
-                                                     levers, variant));
-                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatment::kMakeParameter,
+                    rows.push_back(run_interior_cell(
+                        *f7, IpmFixedVariableTreatment::kMakeConstraint, levers, variant));
+                    rows.push_back(run_interior_cell(*f7, IpmFixedVariableTreatment::kMakeParameter,
                                                      levers, variant));
                 } else if (name == "stalled") {
                     rows.push_back(

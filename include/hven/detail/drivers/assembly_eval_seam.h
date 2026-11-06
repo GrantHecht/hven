@@ -62,7 +62,7 @@
 #include <hven/model/claim_stream_source.h>
 #include <hven/model/structure_identity.h>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The driver's evaluation moments, served from an NlpAssembly.
 ///
@@ -366,4 +366,4 @@ class AssemblyEvalSeam {
     StructureEpoch epoch_at_lay_{};
 };
 
-} // namespace hven
+} // namespace hven::detail

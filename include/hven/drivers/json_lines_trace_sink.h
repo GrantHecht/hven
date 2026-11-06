@@ -3,7 +3,7 @@
 
 #pragma once
 
-// trace_writer.h -- schema v0's ONE serializer: `TraceSink`'s eight events
+// json_lines_trace_sink.h -- schema v0's ONE serializer: `TraceSink`'s eight events
 // written as JSON lines to a caller-owned `std::ostream`.
 //
 // The contract is FIXED by docs/notes/2026-09-m6-w4-plan.md section 2 and is not
@@ -14,16 +14,16 @@
 // "-inf"; absence is `null`, never zero-filled (CLAUDE.md section 6); strings
 // escaped per RFC 8259 section 7.
 //
-// SCHEMA v0 CARRIES NO VECTOR-VALUED FIELD ANYWHERE (settler ruling, W4 T1 fix
-// round 1), so `IpqpInfeasibilityEvidence`'s five `Vec` members are out and
-// `ipqp.escape` carries the least-infeasible point's two scalars, not the point.
+// SCHEMA v0 CARRIES NO VECTOR-VALUED FIELD ANYWHERE, so `IpqpInfeasibilityEvidence`'s five `Vec`
+// members are out and `ipqp.escape` carries the least-infeasible point's two scalars, not the
+// point.
 //
 // `seq` and `depth` are SINK-owned -- no event struct carries either. Off by
 // default: nothing in the library constructs one, so an unattached solve pays
-// exactly what it paid before (W4 T1 pin (iv)).
+// exactly what it paid before.
 //
-// W4 T2 added the three SQP whole-solve events and W4 T4 the three interior-
-// point ones, so "eight" above is the schema's W1/W2 core, not the method count.
+// "Eight" above is the schema's core event count, not the method count: the
+// three SQP whole-solve events and the three interior-point ones come on top.
 
 #include <iosfwd>
 #include <string>
@@ -37,7 +37,7 @@ namespace hven {
 ///
 /// THE STREAM IS BORROWED, NOT OWNED: it must outlive the sink, and the sink
 /// neither opens nor closes it. It DOES flush it, on request (`flush()`) and
-/// once more at destruction (M7 W0 T5(c)) -- so a caller reading the file after
+/// once more at destruction -- so a caller reading the file after
 /// the sink is gone sees every line the sink wrote, even if its own `ofstream`
 /// is still open. Flushing changes no byte of the artifact's content.
 ///
@@ -57,7 +57,7 @@ namespace hven {
 /// Nothing in the library sets the field.
 ///
 /// THREADING: one sink serves one solve at a time on one thread. `seq_`,
-/// `depth_` and the write are unsynchronized; T2's nested restoration driver
+/// `depth_` and the write are unsynchronized; the nested restoration driver
 /// shares the sink SEQUENTIALLY, which is the only sharing v0 supports.
 class JsonLinesTraceSink final : public TraceSink {
   public:
@@ -77,12 +77,12 @@ class JsonLinesTraceSink final : public TraceSink {
     JsonLinesTraceSink(const JsonLinesTraceSink &) = delete;
     JsonLinesTraceSink &operator=(const JsonLinesTraceSink &) = delete;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &event) override;
-    void on_ipqp_reg(const IpqpTraceRegEvent &event) override;
-    void on_ipqp_restart(const IpqpTraceRestartEvent &event) override;
-    void on_ipqp_route(const IpqpTraceRouteEvent &event) override;
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &event) override;
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override;
+    void on_ipqp_iter(const IpqpIterTraceEvent &event) override;
+    void on_ipqp_reg(const IpqpRegTraceEvent &event) override;
+    void on_ipqp_restart(const IpqpRestartTraceEvent &event) override;
+    void on_ipqp_route(const IpqpRouteTraceEvent &event) override;
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &event) override;
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override;
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
     void on_sqp_major(const SqpMajorTraceEvent &event) override;
@@ -92,7 +92,7 @@ class JsonLinesTraceSink final : public TraceSink {
     void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
     void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
     void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
-    // M6 W5 T8.7b's five records. Additive events, so `v` stays 0 -- see
+    // The phase, KKT-analysis and message records. Additive events, so `v` stays 0 -- see
     // docs/trace-schema-v0.md section 8, whose own words make new events additive.
     void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
     void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
@@ -125,7 +125,7 @@ class JsonLinesTraceSink final : public TraceSink {
     /// with no stack of its own. Balanced by construction over a normal solve;
     /// it reads 0 again once the outermost `sqp.solve.end` is written.
     ///
-    /// THE `ipm.solve` PAIR DOES NOT MOVE IT (W4 T4): the interior-point driver
+    /// THE `ipm.solve` PAIR DOES NOT MOVE IT: the interior-point driver
     /// nests no driver of its own, so an IPM stream reads depth 0 throughout and
     /// a mixed stream reports the SQP side's nesting only.
     Index depth() const { return depth_; }
@@ -163,8 +163,8 @@ class JsonLinesTraceSink final : public TraceSink {
     /// read one level deeper, with no stack in the reader and no field on any
     /// event.
     ///
-    /// PRIVATE since W4 T2 fix round 1 (R3(c)): `on_sqp_solve_begin`/`_end` own
-    /// the nesting now, and a caller moving `depth_` without moving
+    /// PRIVATE: `on_sqp_solve_begin`/`_end` own
+    /// the nesting, and a caller moving `depth_` without moving
     /// `open_solves_` would desynchronize the two permanently.
     void push_depth();
 

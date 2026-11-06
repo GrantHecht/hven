@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/progress_measures.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Eq. (19) switching-condition exponents and threshold; Ipopt
 /// IpFilterLSAcceptor.cpp defaults: s_phi_ = 2.3, s_theta_ = 1.1, delta_ = 1.0.
@@ -185,4 +185,4 @@ class SwitchingAcceptance : public AcceptanceStrategy {
     double theta_max_ = 0.0;
 };
 
-} // namespace hven
+} // namespace hven::detail

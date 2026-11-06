@@ -32,6 +32,8 @@
 
 #include "corpus_cells.h"
 
+using namespace hven::detail;
+
 namespace hven::corpus {
 
 /// The id of the fixed-variable cell this leg adds to the corpus's own cells.
@@ -127,7 +129,7 @@ struct InteriorVariant {
     /// Iteration cap, when positive.
     int max_iters = 0;
     /// Restoration strategy; `off` leaves the whole restoration surface dead.
-    RestorationMode restoration_mode = RestorationMode::kOff;
+    IpmRestorationMode restoration_mode = IpmRestorationMode::kOff;
     /// Per-phase restoration entry budget; read only when a strategy is built.
     int max_feas_rest = 0;
     /// Equality and inequality tolerance, when positive.
@@ -272,10 +274,10 @@ struct InteriorRow {
 ///
 /// Not non_linear_program.h's fixed_variable_treatment_name, which spells the
 /// same three values in snake_case for diagnostics.
-const char *interior_treatment_tag(FixedVariableTreatment treatment);
+const char *interior_treatment_tag(IpmFixedVariableTreatment treatment);
 
 /// @brief The three treatments, in the order the leg runs them.
-const std::vector<FixedVariableTreatment> &interior_treatments();
+const std::vector<IpmFixedVariableTreatment> &interior_treatments();
 
 /// @brief Runs one declared problem through the top-level interior-point driver
 ///        under one fixed-variable treatment.
@@ -292,7 +294,7 @@ const std::vector<FixedVariableTreatment> &interior_treatments();
 ///         boundary validation (a treatment the declaration refuses included).
 InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatment treatment, const InteriorLevers &levers,
+                                 IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant);
 
 /// @brief Why @p cell cannot be stated as an Nlp, or an empty string when
@@ -315,7 +317,7 @@ void select_nlp_route(corpus::detail::NlpRoute route);
 /// @return The finished row.
 /// @throws std::invalid_argument if @p cell does not dual-bind
 ///         (crossover_legs.h's dual_bind_refusal is non-empty).
-InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatment treatment,
+InteriorRow run_interior_cell(const CorpusCell &cell, IpmFixedVariableTreatment treatment,
                               const InteriorLevers &levers, const InteriorVariant &variant);
 
 /// @brief Runs the fixed-variable cell: HS071 with x1 pinned by equal bounds.
@@ -326,7 +328,7 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatment tre
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.
 /// @return The finished row.
-InteriorRow run_interior_hs071(FixedVariableTreatment treatment, const InteriorLevers &levers,
+InteriorRow run_interior_hs071(IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                const InteriorVariant &variant);
 
 /// @brief Runs one of the two infeasible cells: `infeas2_spike`, whose
@@ -346,7 +348,7 @@ InteriorRow run_interior_hs071(FixedVariableTreatment treatment, const InteriorL
 /// @param variant   The exit variant this row runs.
 /// @return The finished row.
 /// @throws std::invalid_argument if @p cell_id names neither cell.
-InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatment treatment,
+InteriorRow run_interior_infeasible(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant);
 
 /// @brief The treatment named by @p tag, spelled as interior_treatment_tag
@@ -358,7 +360,7 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
 ///
 /// @param tag MakeParameter | MakeConstraint | RelaxBounds.
 /// @throws std::invalid_argument naming @p tag and the three accepted values.
-FixedVariableTreatment interior_treatment_from_tag(std::string_view tag);
+IpmFixedVariableTreatment interior_treatment_from_tag(std::string_view tag);
 
 /// @brief Runs EXACTLY ONE BASE ROW of this leg, in process, and returns it.
 ///
@@ -383,7 +385,7 @@ FixedVariableTreatment interior_treatment_from_tag(std::string_view tag);
 /// @throws std::invalid_argument if @p cell_id is neither the fixed-variable
 ///         cell nor a known corpus cell, or (from run_interior_cell) if the
 ///         cell does not dual-bind.
-InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatment treatment,
+InteriorRow run_interior_single_row(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers);
 
 /// @brief The row's key: the cell id joined to the treatment by a slash, plus

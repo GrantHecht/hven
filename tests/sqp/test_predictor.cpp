@@ -156,7 +156,7 @@ hven::detail::SqpWarmState converged_warm(ParametricNlpModel &model, double p,
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal)
         << "cold solve at p = " << p << " did not converge";
-    return SqpWarmAccess::state(sol.native_warm_start);
+    return SqpWarmAccess::state(sol.sqp_warm_start);
 }
 
 // The same warm start with its effective regularization overridden -- the
@@ -327,7 +327,7 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     SqpSolver driver(tight_options());
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const hven::detail::SqpWarmState warm = SqpWarmAccess::state(sol.native_warm_start);
+    const hven::detail::SqpWarmState warm = SqpWarmAccess::state(sol.sqp_warm_start);
 
     model.set_parameters(p0);
     const hven::detail::SqpWarmState pred = predict(model, warm, dp);
@@ -1032,7 +1032,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     const hven::detail::SqpWarmState warm = converged_warm(model, kP, opts);
     ASSERT_EQ(warm.bound_active, model.active_set(kP).bound_active)
         << "fixture premise: nothing is on the ceiling at p = 0.35";
@@ -1271,7 +1271,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     opts.common.optimality_tol = 1e-8;
     opts.common.feasibility_tol = 1e-8;
     opts.common.max_iterations = 60;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     const hven::detail::SqpWarmState warm = converged_warm(model, kP, opts);
 
     model.set_parameters(p_vec(kP));

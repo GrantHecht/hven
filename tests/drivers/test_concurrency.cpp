@@ -232,8 +232,8 @@ CellReading run_sqp_cell(int hs_number) {
 // thread -- the first test needs it to be 1 (the pool is never reached) and the
 // second needs it to be >= 2 (the pool is reached from both threads at once), and
 // both read it from the same place.
-void push_ipm_result_columns(const hven::NonLinearProgram &program, const hven::IpmResult &r,
-                             CellReading &out) {
+void push_ipm_result_columns(const hven::detail::NonLinearProgram &program,
+                             const hven::IpmResult &r, CellReading &out) {
     out.exact.push_back({"partitions", static_cast<long long>(program.num_partitions_)});
     out.exact.push_back({"phases", static_cast<long long>(r.phases.size())});
     out.exact.push_back(
@@ -243,7 +243,7 @@ void push_ipm_result_columns(const hven::NonLinearProgram &program, const hven::
     out.exact.push_back({"solve_count", static_cast<long long>(r.kkt_factor_counters.solve_count)});
     out.exact.push_back(
         {"analyze_count", static_cast<long long>(r.kkt_factor_counters.analyze_count)});
-    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.soc_steps_taken)});
+    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.second_order_corrections)});
     out.exact.push_back({"watchdog_activations", static_cast<long long>(r.watchdog_activations)});
     out.exact.push_back({"payload_ignored", static_cast<long long>(r.payload_ignored)});
 
@@ -265,7 +265,7 @@ CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
     // the process-global pool is never dispatched to by these cells (constructed
     // or not is a test-order fact; see the header).
     const auto program =
-        hven::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
     const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
@@ -655,7 +655,7 @@ CellReading run_fanout_cell(const FanOutCell &cell) {
     // THROUGH THE PUBLIC ENTRY, with a count above 1 that the layout ACTUALLY
     // ADOPTS -- which is what puts every eval_kkt / eval_aug / eval_soe of this
     // solve through parallel_sequence's pool arm rather than its inline one.
-    const auto program = hven::make_nlp_program(
+    const auto program = hven::detail::make_nlp_program(
         std::make_shared<PartitionedChainProblem>(cell.pairs, cell.target_shift),
         cell.requested_partitions);
 

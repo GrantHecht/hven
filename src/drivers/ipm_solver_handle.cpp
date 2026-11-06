@@ -19,6 +19,8 @@
 #include "hven/detail/drivers/result_message.h"
 #include "hven/detail/model/problem_access.h"
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace {

@@ -42,7 +42,7 @@
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/warmstart/seeding.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 #ifdef USE_ACCELERATE_SPARSE
 #include <limits>
@@ -57,9 +57,18 @@ class RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGove
 class RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 
 namespace hven {
+struct IpmPolishData;
+class TraceSink;
+struct IpmMessageTraceEvent;
+class ConsoleTraceSink;
+class FanOutTraceSink;
+class Ledger;
+} // namespace hven
+
+namespace hven::detail {
 
 /// The interior-point engine's internal iteration mode. A phase runs one of the
-/// first three (`SolvePhaseMode` names them for a kSolve phase); kInit is the
+/// first three (`IpmSolvePhaseMode` names them for a kSolve phase); kInit is the
 /// multiplier initializer's one-shot evaluation, never a phase's mode.
 enum class AlgorithmMode { kOpt, kOptNo, kSoe, kInit };
 
@@ -68,7 +77,6 @@ enum class AlgorithmMode { kOpt, kOptNo, kSoe, kInit };
 // parameter of one private method, and including it would pull the SQP
 // crossover header and hven/qp/qp_types.h behind it into every consumer of
 // this header. src/drivers/ipm_solver.cpp takes the include.
-struct IpmPolishData;
 
 /// @brief Number of consecutive trailing iterates that must ALL exceed a
 ///        divergence threshold before converge_check() declares DIVERGING on a
@@ -83,7 +91,7 @@ inline constexpr int kDivergencePersistIters = 3;
 // The five globalization components below are held through unique_ptr members
 // whose concrete types are complete only in ipm_solver.cpp, which is
 // why the constructors and the destructor are defined out-of-line there. The
-// acceptance_strategy.h header includes THIS header, so it must not be included
+// acceptance_mode.h header includes THIS header, so it must not be included
 // back. RestorationStrategy is the one that is not always constructed: it stays
 // null unless restoration_mode_ != off.
 class AcceptanceStrategy;
@@ -97,22 +105,17 @@ struct FeasibilityStallDetector;
 /// @brief Forward-declared, not included: `drivers/trace.h` pulls types this
 /// driver does not use, and only `attach_trace`'s parameter and one member
 /// pointer name this type here. The .cpp takes the include.
-class TraceSink;
 
 /// @brief Forward-declared for the same reason (M6 W5 T8.7b): the only place
 /// this header names the event is `emit_message`'s parameter, which is a
 /// reference, and the nine call sites that build one are all in the .cpp.
-struct IpmMessageTraceEvent;
 
 /// The two composition sinks (M6 W5 T8.7, `drivers/console_trace_sink.h`),
 /// forward-declared for the same reason and held through `unique_ptr`s whose
 /// deleters are instantiated in the .cpp -- which is where the destructor is,
 /// so an incomplete type here is fine.
-class ConsoleTraceSink;
-class FanOutTraceSink;
 
 /// @brief Forward-declared: only `attach_ledger`'s parameter names it here.
-class Ledger;
 
 /// Primal-dual interior-point solver for continuous NLPs, driving a phase
 /// sequence over barrier/line-search modes with pluggable step acceptance, a
@@ -286,16 +289,16 @@ class IpmSolverImpl {
     /// locally-infeasible break (kRestorationLocallyInfeasible), the
     /// converge-check early exit (kNone -- that phase's verdict is the whole
     /// explanation), the terminal conjunction (kStageStalled if the stall fired
-    /// this iteration, kIterationCap if this was the cap iteration AND the
+    /// this iteration, kIterationLimit if this was the cap iteration AND the
     /// phase's own local verdict is NOTCONVERGED, kNone otherwise), exhaustion
     /// after one of the loop's `continue`s bypassed the conjunction on the cap
-    /// iteration (kIterationCap), and an exception, which unwinds without
+    /// iteration (kIterationLimit), and an exception, which unwinds without
     /// producing a result at all.
     ///
     /// So the label never contradicts the verdict it is reported beside. A phase
     /// that CONVERGES on exactly its cap iteration reads kNone: the cap did not
     /// stop it, the convergence did. Only a phase that ran out of iterations
-    /// with nothing better to say reads kIterationCap.
+    /// with nothing better to say reads kIterationLimit.
     ///
     /// A stall coinciding with the cap reports kStageStalled: the stall is
     /// recorded first and both cap doors defer to a reason already in place.
@@ -393,7 +396,7 @@ class IpmSolverImpl {
     /// @param budget The caller's work ceiling. `max_iterations`, when non-zero,
     ///               caps EACH PHASE at min(budget, IpmOptions::max_iters) -- a
     ///               caller may tighten this engine's limit, never loosen it.
-    ///               `minor_budget` is IGNORED: this engine has no minor loop.
+    ///               `max_minor_iterations` is IGNORED: this engine has no minor loop.
     /// @return The result, by value.
     /// @throws std::invalid_argument if @p x0 is not sized to @p model's
     ///         declared primal width, or if validate(options()) rejects.
@@ -412,7 +415,7 @@ class IpmSolverImpl {
     /// Identity is the declaration stamp plus the block lengths, both checked
     /// at solve entry against the program this call binds, both
     /// `std::invalid_argument`. Value defects -- a seeded multiplier outside
-    /// [kSeededIqMultFloor, kSeededMultInitMax] -- are clamped and applied, as
+    /// [kSeededInequalityMultiplierFloor, kSeededMultiplierMax] -- are clamped and applied, as
     /// they always were.
     ///
     /// WHAT IS APPLIED depends on `IpmOptions::common.start_level`, which is a
@@ -823,7 +826,7 @@ class IpmSolverImpl {
     // SQP's own seeded-dual band -- three policies, three derivations, one
     // header, values DELIBERATELY NOT UNIFIED (design 2.4). M6 W5 T8.10 swept
     // the call sites that spelled them on this class and dropped the aliases:
-    // `hven::kSeededIqMultFloor` and `::kSeededMultInitMax` are the
+    // `hven::kSeededInequalityMultiplierFloor` and `::kSeededMultiplierMax` are the
     // only names for these two values now.
 
     // set_initial_multipliers() / clear_initial_multipliers() and the three
@@ -1166,7 +1169,7 @@ class IpmSolverImpl {
     // The treatment the analysis above was laid under: a treatment switch
     // changes the problem's dimensions, so the same key at the same epoch under
     // a different treatment is NOT the analysed program.
-    FixedVariableTreatment analyzed_treatment_ = FixedVariableTreatment::kMakeParameter;
+    IpmFixedVariableTreatment analyzed_treatment_ = IpmFixedVariableTreatment::kMakeParameter;
     // Set by set_options() when one of the twelve transcription-time fields
     // moved: the next solve re-runs set_qp_params() and re-analyses even for
     // the program the token names. Cleared by that solve.
@@ -1523,7 +1526,7 @@ class IpmSolverImpl {
     IpmStopReason limit_reached() const;
     /// The label for a phase that stopped on its iteration cap: the limit
     /// reached at the same boundary, if any (setting `limit_stop_`), else
-    /// kIterationCap.
+    /// kIterationLimit.
     IpmStopReason cap_or_limit_reason();
 
     /// Which door the current phase left its loop by; see last_stop_reason().
@@ -1534,7 +1537,7 @@ class IpmSolverImpl {
     IpmStopReason last_stop_reason_ = IpmStopReason::kNone;
 
     // KktVector — the compound-KKT segment view — lives in
-    // detail/interior/kkt_vector.h as hven::KktVector, shared with
+    // detail/interior/kkt_vector.h as hven::detail::KktVector, shared with
     // the globalization components (which are non-member, non-friend).
 
     /// @brief Create a KktVector view over a VectorXd using this solver's dimensions.
@@ -1559,12 +1562,12 @@ class IpmSolverImpl {
     // already converged, and re-initializing the KKT system between phases.
     struct PhaseStep {
         AlgorithmMode alg_mode_;
-        BarrierMode bar_mode_;
-        LineSearchMode ls_mode_;
+        IpmBarrierMode bar_mode_;
+        IpmLineSearchMode ls_mode_;
         const char *label_;
         bool conditional_ = false; // skip if the PRECEDING phase reported
                                    // kOptimal (still runs on kAcceptable /
-                                   // kMaxIter; kDiverging and worse break the
+                                   // kIterationLimit; kDiverging and worse break the
                                    // loop before reaching this)
     };
 
@@ -1582,8 +1585,9 @@ class IpmSolverImpl {
                                  const WarmStart *payload);
 
     // --- Core algorithm (defined in ipm_solver.cpp) ---
-    Eigen::VectorXd alg_impl(AlgorithmMode algmode, BarrierMode barmode, LineSearchMode lsmode,
-                             double obj_scale, double MuI, Eigen::Ref<Eigen::VectorXd> xsl);
+    Eigen::VectorXd alg_impl(AlgorithmMode algmode, IpmBarrierMode barmode,
+                             IpmLineSearchMode lsmode, double obj_scale, double MuI,
+                             Eigen::Ref<Eigen::VectorXd> xsl);
 
     Eigen::VectorXd init_impl(const Eigen::VectorXd &x, double Mu, bool docompute);
 
@@ -1598,8 +1602,8 @@ class IpmSolverImpl {
 
     // Installs an already-validated eq_mults/iq_mults (see
     // validate_staged_multipliers, always called first) into XSL's
-    // multiplier block, clamping every value to +/-kSeededMultInitMax
-    // (inequality entries additionally floored at kSeededIqMultFloor). Called
+    // multiplier block, clamping every value to +/-kSeededMultiplierMax
+    // (inequality entries additionally floored at kSeededInequalityMultiplierFloor). Called
     // from run_phase_sequence, at most once per call -- see the call site
     // there for which init_impl call it follows.
     void apply_staged_multipliers(Eigen::VectorXd &XSL, const Eigen::VectorXd &eq_mults,
@@ -1650,8 +1654,8 @@ class IpmSolverImpl {
 
     // Installs a staged polish hand-off's bound multipliers over the fresh seed
     // push_initial_point_interior just wrote: declared -> reduced by the bound
-    // set's own index lists, clamped into [kSeededIqMultFloor,
-    // kSeededMultInitMax], and multiplied by this call's objective scale. Called
+    // set's own index lists, clamped into [kSeededInequalityMultiplierFloor,
+    // kSeededMultiplierMax], and multiplied by this call's objective scale. Called
     // once per solve, after the push and before any evaluation. The clamp is a
     // MAGNITUDE guard: validate_staged_polish has already refused a negative.
     // PRECONDITION: bounds_ != nullptr.
@@ -1907,7 +1911,7 @@ class IpmSolverImpl {
     // previous-iteration infeasibility, econ_tol_) (Ipopt RestoConvCheck's
     // orig_inf_pr_max, single-tolerance floor). Reads resto_theta_orig_prev_
     // (seeded at entry, ratcheted each phase iteration). Defined in ipm_solver.cpp so
-    // the kKappaResto constant (globalization/acceptance_strategy.h) stays out of
+    // the kKappaResto constant (globalization/acceptance_mode.h) stays out of
     // this header's include set.
     bool resto_ratchet_passes(double theta_orig) const;
 
@@ -2101,8 +2105,6 @@ class IpmSolverImpl {
     // solve path.
 };
 
-namespace detail {
-
 /// Reaches the implementation behind a public IpmSolver. For tests that need
 /// state no public method exposes; befriended by IpmSolver.
 struct IpmSolverAccess {
@@ -2110,6 +2112,4 @@ struct IpmSolverAccess {
     static const IpmSolverImpl &impl(const IpmSolver &solver) { return solver.impl(); }
 };
 
-} // namespace detail
-
-} // namespace hven
+} // namespace hven::detail

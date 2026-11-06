@@ -165,7 +165,7 @@ target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_SQP_TASK6B_SSN_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep/ssn_resweep.csv"
     HVEN_SQP_TASK6B_WALK_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep-walk/walk_resweep.csv")
 
-# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpm baseline over the 27-cell
+# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpqp baseline over the 27-cell
 # U0 replay set — the artifact the two path_warm acceptance rows are pinned in,
 # and the one the replay's ipm arm compares all 76 columns against.
 # T10b RE-POINTS IT at the measured `ipqp_init_mu`'s own dated dir; the T9 one

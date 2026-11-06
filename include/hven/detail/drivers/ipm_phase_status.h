@@ -9,7 +9,7 @@
 
 #include <hven/core/solver_status.h>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief Resolves ONE interior-point phase's raw verdict against the stop
 ///        reason recorded for the same phase.
@@ -24,7 +24,7 @@ namespace hven {
 ///   * Otherwise kInterrupted reports kInterrupted, kStageStalled
 ///     and kRestorationLocallyInfeasible both report kStalled, kWorkLimit and
 ///     kTimeLimit report the status of the same name, and the cap (or an
-///     unlabelled exit) reports kMaxIter.
+///     unlabelled exit) reports kIterationLimit.
 ///
 /// A simultaneous stall and cap therefore reports kStalled: the engine records
 /// the stall first and both cap doors defer to a reason already in place.
@@ -39,4 +39,4 @@ namespace hven {
 /// @throws std::invalid_argument if @p reason is not one of the seven.
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason);
 
-} // namespace hven
+} // namespace hven::detail

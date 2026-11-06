@@ -55,10 +55,12 @@
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/drivers/trace_writer.h"
+#include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/model/nlp.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
+
+using namespace hven::detail;
 
 namespace hven {
 namespace {
@@ -262,8 +264,9 @@ Eigen::VectorXd nonconvex_start() {
 /// A solver over `NonconvexProblem` with the empty ladder and no console, with
 /// the program it solves (M6 W5 T8.9: declared_route.h's IpmCase).
 hven_interior_tests::IpmCase nonconvex_solver() {
-    hven_interior_tests::IpmCase c{hven::make_nlp_program(std::make_shared<NonconvexProblem>()),
-                                   std::make_unique<hven::IpmSolver>()};
+    hven_interior_tests::IpmCase c{
+        hven::detail::make_nlp_program(std::make_shared<NonconvexProblem>()),
+        std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
     o.common.verbosity = hven::Verbosity::kSilent;
     o.advanced.max_inertia_correction_attempts = 0;
@@ -466,12 +469,12 @@ struct RecordOracle : public TraceSink {
         inner->on_sqp_solve_begin(e);
     }
     void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override { inner->on_sqp_solve_end(e); }
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { inner->on_ipqp_iter(e); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &e) override { inner->on_ipqp_reg(e); }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &e) override { inner->on_ipqp_restart(e); }
-    void on_ipqp_route(const IpqpTraceRouteEvent &e) override { inner->on_ipqp_route(e); }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { inner->on_ipqp_certify(e); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override { inner->on_ipqp_escape(e); }
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { inner->on_ipqp_iter(e); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &e) override { inner->on_ipqp_reg(e); }
+    void on_ipqp_restart(const IpqpRestartTraceEvent &e) override { inner->on_ipqp_restart(e); }
+    void on_ipqp_route(const IpqpRouteTraceEvent &e) override { inner->on_ipqp_route(e); }
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &e) override { inner->on_ipqp_certify(e); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &e) override { inner->on_ipqp_escape(e); }
     void on_qp_mode(const QpModeTraceEvent &e) override { inner->on_qp_mode(e); }
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &e) override {
         inner->on_fallback_verdict(e);
@@ -512,7 +515,7 @@ struct CallbackOracle {
 // ===========================================================================
 
 TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -538,7 +541,7 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
 }
 
 TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -599,7 +602,7 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
 }
 
 TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -627,7 +630,7 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
 TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode) {
     // Rule 5, the FIRST of the record's two -1 conventions: "proximal mode off".
     // The classic path writes -1 on every iteration, which is not a shift of -1.
-    const auto classic_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto classic_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver classic;
     hven::IpmResult classic_result;
     {
@@ -645,7 +648,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
         EXPECT_EQ(field(l, "prox_reg_dual"), "null");
     }
 
-    const auto prox_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto prox_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver prox;
     hven::IpmResult prox_result;
     {
@@ -655,7 +658,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     }
     {
         auto o = prox.options();
-        o.advanced.inertia_mode = InertiaMode::kProximalRegularization;
+        o.advanced.inertia_mode = IpmInertiaMode::kProximalRegularization;
         prox.set_options(std::move(o));
     }
     std::ostringstream os_prox;
@@ -700,7 +703,7 @@ bool looks_like_the_early_exit_site(const std::string &line) {
 }
 
 TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot) {
-    const auto converged_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto converged_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver converged;
     hven::IpmResult converged_result;
     {
@@ -728,7 +731,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     // Every other line is site 2's, so BOTH sites emitted on this one solve.
     EXPECT_FALSE(looks_like_the_early_exit_site(c_lines.front()));
 
-    const auto truncated_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto truncated_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver truncated;
     hven::IpmResult truncated_result;
     {
@@ -742,7 +745,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     truncated.attach_trace(&sink_t);
     truncated_result =
         truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
-    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kMaxIter);
+    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kIterationLimit);
     const std::vector<std::string> t_lines = lines_of_event(os_t.str(), "ipm.iter");
     // THE CONTROL that makes the signature above mean something: a solve that
     // runs out of iterations never reaches site 1, so no line matches -- the
@@ -760,7 +763,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     //
     // BOTH ARMS ARE COMPILED FROM ONE SOURCE and the backend picks which runs,
     // so the macOS lane executes the Accelerate arm without an edit here.
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -806,7 +809,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
 // ===========================================================================
 
 TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -832,7 +835,7 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
 }
 
 TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -869,7 +872,7 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
 }
 
 TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -917,7 +920,7 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
 }
 
 TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
-    const auto converged_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto converged_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver converged;
     hven::IpmResult converged_result;
     {
@@ -940,7 +943,7 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     EXPECT_EQ(field(end_c.front(), "status"), "\"optimal\"");
     EXPECT_EQ(field(end_c.front(), "iters"), std::to_string(converged_result.iterations));
 
-    const auto truncated_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto truncated_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver truncated;
     hven::IpmResult truncated_result;
     {
@@ -954,7 +957,7 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     truncated.attach_trace(&sink_t);
     truncated_result =
         truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
-    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kMaxIter);
+    ASSERT_EQ(truncated_result.status, hven::SolveStatus::kIterationLimit);
     const std::vector<std::string> end_t = lines_of_event(os_t.str(), "ipm.solve.end");
     ASSERT_EQ(end_t.size(), 1u);
     EXPECT_EQ(field(end_t.front(), "status"), "\"max_iter\"");
@@ -964,7 +967,7 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
 TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     // The `begin` emit sits AFTER every argument refusal, so a call that never
     // ran leaves no opening line dangling in the artifact.
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -989,7 +992,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
 // ===========================================================================
 
 TEST(IpmTrace, AttachingASinkMovesNoResultField) {
-    const auto bare_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto bare_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver bare;
     hven::IpmResult bare_result;
     {
@@ -1008,7 +1011,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const double bare_icon = b.convergence.inequality;
     const Eigen::VectorXd bare_x = bare_result.x;
 
-    const auto traced_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto traced_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver traced;
     hven::IpmResult traced_result;
     {
@@ -1036,7 +1039,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
 }
 
 TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -1076,7 +1079,7 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     EXPECT_EQ(sqp_out.status, SolveStatus::kOptimal);
     const Index after_sqp = sink.lines_written();
 
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -1185,7 +1188,7 @@ std::string mask_wall_clock(const std::string &stream) {
 /// A silent solver on HS071 -- `print_level` 10 -- so a ledger pin does not
 /// also print a table into the test log.
 hven_interior_tests::IpmCase silent_hs071() {
-    hven_interior_tests::IpmCase c{hven::make_nlp_program(std::make_shared<Hs071Problem>()),
+    hven_interior_tests::IpmCase c{hven::detail::make_nlp_program(std::make_shared<Hs071Problem>()),
                                    std::make_unique<hven::IpmSolver>()};
     auto o = c.engine->options();
     o.common.verbosity = hven::Verbosity::kSilent;
@@ -1225,17 +1228,17 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     EXPECT_EQ(second.label, "ipm_1");
     EXPECT_EQ(first.status, SolveStatus::kOptimal);
     EXPECT_EQ(first.iterations, first_result.iterations);
-    EXPECT_EQ(first.total_time, first_result.timing.total);
+    EXPECT_EQ(first.total_time, first_result.timing.total_seconds);
     EXPECT_EQ(first.phases_run, 1);
     EXPECT_GT(first.factorizations, 0);
     EXPECT_GT(first.analyses, 0);
-    EXPECT_EQ(first.soc_steps_taken, first_result.soc_steps_taken);
+    EXPECT_EQ(first.soc_steps_taken, first_result.second_order_corrections);
     EXPECT_EQ(first.watchdog_activations, first_result.watchdog_activations);
     // The second record likewise, against the SECOND call's result.
     EXPECT_EQ(second.status, second_result.status);
     EXPECT_EQ(second.iterations, second_result.iterations);
-    EXPECT_EQ(second.total_time, second_result.timing.total);
-    EXPECT_EQ(second.soc_steps_taken, second_result.soc_steps_taken);
+    EXPECT_EQ(second.total_time, second_result.timing.total_seconds);
+    EXPECT_EQ(second.soc_steps_taken, second_result.second_order_corrections);
     EXPECT_EQ(second.watchdog_activations, second_result.watchdog_activations);
     // wall_seconds is INFORMATIONAL (CLAUDE.md section 7): populated, never a
     // magnitude.
@@ -1287,7 +1290,7 @@ TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
     // The second program, laid out and ready to be BORROWED by the first
     // solver: since M6 W5 T8.4 a program is an argument of solve(), so one
     // solver may be handed two.
-    const auto other_program = hven::make_nlp_program(std::make_shared<TwoVarProblem>());
+    const auto other_program = hven::detail::make_nlp_program(std::make_shared<TwoVarProblem>());
 
     Ledger ledger;
     hs.engine->attach_ledger(&ledger, "cross");
@@ -1496,7 +1499,7 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     // M6 W5 T8.7's addition, read off a REAL solve rather than a scripted
     // event: the four acceptable tolerances, the layout width, and the three
     // `print_stats` inputs.
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -1608,7 +1611,7 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
     // separates them. DECLARED, not changed silently -- see
     // `.superpowers/w5-t8-7b-progress.md` §1b.
     auto run = [](int which) {
-        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         {
@@ -1696,7 +1699,7 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
     // these has to say so. The analysis is OUTSIDE the bracket, ahead of it:
     // `init_impl` runs before the phase loop for the first phase and at the end
     // of the previous phase's body for every later one.
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -1761,7 +1764,7 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     // so this compares the LINE against the RETURNED report field for field --
     // everything except `phase_seconds`, which is wall-clock and never asserted
     // (CLAUDE.md §7).
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -1855,21 +1858,21 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
                 return;
             }
             installed = true;
-            solver->set_kkt_hook([this](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-                                        hven::ConstEigenRef<Eigen::VectorXd>,
-                                        hven::ConstEigenRef<Eigen::VectorXd>,
+            solver->set_kkt_hook([this](int, double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                        double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::detail::ConstEigenRef<Eigen::VectorXd>,
                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
                 ++*hook_calls;
                 return 0;
             });
         }
         void on_ipm_iter(const IpmIterTraceEvent &) override { ++rows; }
-        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+        void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+        void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+        void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+        void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+        void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
         void on_qp_mode(const QpModeTraceEvent &) override {}
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
@@ -1922,17 +1925,17 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
                 return;
             }
             done = true;
-            solver->set_kkt_hook([](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-                                    hven::ConstEigenRef<Eigen::VectorXd>,
-                                    hven::ConstEigenRef<Eigen::VectorXd>,
+            solver->set_kkt_hook([](int, double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                    double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                    hven::detail::ConstEigenRef<Eigen::VectorXd>,
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &) { return 0; });
         }
-        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+        void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+        void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+        void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+        void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+        void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
         void on_qp_mode(const QpModeTraceEvent &) override {}
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
@@ -1977,7 +1980,7 @@ namespace {
 /// enumeration: status, iterations, the objective, the four engine residuals,
 /// the primal point, all three multiplier blocks, and both constraint vectors.
 struct IpmAnswer {
-    SolveStatus status = SolveStatus::kMaxIter;
+    SolveStatus status = SolveStatus::kIterationLimit;
     int iterations = -1;
     double f = 0.0;
     double kkt_inf = 0.0, barr_inf = 0.0, econ_inf = 0.0, icon_inf = 0.0;
@@ -2070,12 +2073,12 @@ struct ThrowingMessageSink final : TraceSink {
         threw = true;
         throw std::runtime_error("a sink that throws from inside a factorization");
     }
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 };
@@ -2205,17 +2208,17 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
                 return CallbackAction::kContinue;
             });
         }
-        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+        void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+        void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+        void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+        void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+        void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
         void on_qp_mode(const QpModeTraceEvent &) override {}
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
 
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -2269,7 +2272,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
     // the whole transcript against a BASE capture in this task's leg.
     std::string printed;
     {
-        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         auto o = solver.options();
@@ -2320,7 +2323,7 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
         }
     }
     auto run = [](hven::Verbosity print_level) {
-        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         auto o = solver.options();
@@ -2400,7 +2403,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
     }
 
     auto printing_solve = [](bool attack) {
-        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         auto o = solver.options();
@@ -2440,7 +2443,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
         << "a refused mid-solve attach must leave the console's table untouched";
 
     // ... and it is legal again the moment the solve has returned.
-    const auto after_program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto after_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver after;
     hven::IpmResult after_result;
     std::ostringstream os;
@@ -2469,16 +2472,16 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
         }
         // The six QP-tier virtuals are pure on `TraceSink`; this sink is on the
         // interior-point side and never sees one.
-        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+        void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+        void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+        void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+        void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+        void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
         void on_qp_mode(const QpModeTraceEvent &) override {}
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
@@ -2497,7 +2500,7 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
 TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
     std::string printed;
     {
-        const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+        const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
         hven::IpmResult result;
         auto o = solver.options();
@@ -2532,12 +2535,12 @@ struct ThrowingRowSink final : TraceSink {
         threw = true;
         throw std::runtime_error("a sink that throws from an iteration row");
     }
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 
@@ -2548,8 +2551,8 @@ struct ThrowingRowSink final : TraceSink {
 /// One HS071 engine and the program it solves, configured identically on both
 /// arms of the pin below.
 struct RetryCase {
-    std::shared_ptr<hven::NonLinearProgram> program =
-        hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    std::shared_ptr<hven::detail::NonLinearProgram> program =
+        hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     std::unique_ptr<hven::IpmSolver> engine = std::make_unique<hven::IpmSolver>();
 
     RetryCase() {

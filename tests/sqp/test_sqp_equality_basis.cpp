@@ -170,7 +170,7 @@ TEST_P(EqualityBasisModes, F1TwoNetworksConvergeToTheOracleWithMinimumNormMultip
     // And through the in-process warm start.
     SqpSolver hot(opts_for(GetParam()));
     const SqpResult rehot = hot.solve(hven::detail::problem_ref(model), model.start_point(),
-                                      res.native_warm_start, SolveBudget{});
+                                      res.sqp_warm_start, SolveBudget{});
     ASSERT_EQ(rehot.status, SolveStatus::kOptimal);
     EXPECT_LE((rehot.x - x_star).lpNorm<Eigen::Infinity>(), 1e-6);
 }
@@ -330,7 +330,7 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
     // The warm solve adds the probe's computation to the certificate telemetry.
     SqpSolver again(opts_for(GetParam()));
     const SqpResult warm = again.solve(hven::detail::problem_ref(net.model()), Vec::Zero(11),
-                                       res.native_warm_start, SolveBudget{});
+                                       res.sqp_warm_start, SolveBudget{});
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm.equality_basis.gram_factorizations, 8);
@@ -395,7 +395,7 @@ TEST_P(EqualityBasisModes, F10ReportTelemetryOnConstructedDependentSets) {
 }
 
 INSTANTIATE_TEST_SUITE_P(QpModes, EqualityBasisModes,
-                         ::testing::Values(QpMode::kWalk, QpMode::kSsn, QpMode::kIpm));
+                         ::testing::Values(QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp));
 
 // c1 = x1 - x2 (linear), c2 = x3 (x1 - x2) + kappa (x1 - x2)^2: on the manifold
 // x1 = x2 the rows are dependent with C = x3, which moves as x3 does.
@@ -599,7 +599,7 @@ TEST(SqpEqualityBasis, F8SameCardinalityRowSwapDropsTheRowCarries) {
     at_moved.compute(model.eval_jac_e(moved), model.lower(), model.upper());
     ASSERT_EQ(at_moved.dropped(), std::vector<Index>({1}));
 
-    for (const QpMode mode : {QpMode::kIpm, QpMode::kWalk, QpMode::kSsn}) {
+    for (const QpMode mode : {QpMode::kIpqp, QpMode::kWalk, QpMode::kSsn}) {
         SCOPED_TRACE(static_cast<int>(mode));
         SqpSolver solver(opts_for(mode));
         const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -630,7 +630,7 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
     x0 << 1.0005, 0.0;
     const QpAsNlpModel model(make_qp(A, b, h, g, Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
                              x0);
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
         const SqpOptions o = opts_for(mode);
         SqpSolver solver(o);
@@ -643,7 +643,7 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
         EXPECT_LT(res.counters.major_iters, o.common.max_iterations);
 #else
         // Off the reference build the ladder after the hand-off is not known to finish
-        // kInfeasible (WX-R3: observed kMaxIter at the cap on Accelerate). The route is
+        // kInfeasible (WX-R3: observed kIterationLimit at the cap on Accelerate). The route is
         // recorded, never blessed: only the hand-off fields and an honest status hold.
         hven::test_support::record_off_reference_route(
             std::string("f9_ladder_") + std::to_string(static_cast<int>(mode)),
@@ -703,7 +703,7 @@ TEST(SqpEqualityBasis, F6RestorationRunsOverTheRetainedRowsAndResumes) {
 // QpOptions::independent_working_set = false: the base predates M7 W2 E2, so the
 // pin is the pre-E2 walk. With it ON (E1b x E2 merge effect, declared) kWalk's
 // qp_minor_iters reads 5 against the base's 6 in both configurations, with status,
-// the other five counters, x and lambda_e byte-identical; kSsn and kIpm unchanged.
+// the other five counters, x and lambda_e byte-identical; kSsn and kIpqp unchanged.
 #if !defined(__APPLE__)
 TEST(SqpEqualityBasis, T5OffIsByteIdenticalToThePreE1BaseOnADependentQp) {
 #ifdef NDEBUG
@@ -713,7 +713,7 @@ TEST(SqpEqualityBasis, T5OffIsByteIdenticalToThePreE1BaseOnADependentQp) {
 #endif
     std::string got;
     const std::pair<QpMode, const char *> modes[] = {
-        {QpMode::kWalk, "kWalk"}, {QpMode::kSsn, "kSsn"}, {QpMode::kIpm, "kIpm"}};
+        {QpMode::kWalk, "kWalk"}, {QpMode::kSsn, "kSsn"}, {QpMode::kIpqp, "kIpm"}};
     for (const auto &[mode, name] : modes) {
         for (const std::string &line : e1b_golden::off_fingerprint(mode)) {
             got += std::string(name) + " " + line + "\n";

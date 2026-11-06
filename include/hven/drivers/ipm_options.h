@@ -32,27 +32,34 @@
 #include <hven/drivers/ipm_enums.h>
 #include <hven/linear/dense_policy.h>
 
+/// The interior-point engine's default factorization thread count (`IpmOptions::common.threads`).
+/// The CMake target sets it (8) as a usage requirement; this fallback serves a consumer that
+/// includes the header without the target.
+#ifndef HVEN_DEFAULT_IPM_THREADS
+#define HVEN_DEFAULT_IPM_THREADS 8
+#endif
+
 namespace hven {
 
 /// @brief The KKT factorization's settings.
 struct IpmLinearOptions {
     /// Default `kNestedDissection`.
-    KktOrdering ordering = KktOrdering::kNestedDissection;
+    IpmOrdering ordering = IpmOrdering::kNestedDissection;
     /// Default `kTwoByTwo`. Pardiso only.
-    KktPivoting pivoting = KktPivoting::kTwoByTwo;
+    IpmPivotStrategy pivot_strategy = IpmPivotStrategy::kTwoByTwo;
     /// Weighted matching. Default true. Pardiso only.
-    bool matching = true;
+    bool weighted_matching = true;
     /// Symmetric scaling. Default false: it helps on some problem classes and
     /// degrades convergence on others. Pardiso only.
-    bool scaling = false;
+    bool matrix_scaling = false;
     /// Pivot perturbation exponent: a pivot below 10^-k times the matrix norm is
     /// perturbed. Default 8. Must be >= 0.
-    int pivot_perturbation = 8;
+    int pivot_perturbation_exponent = 8;
     /// Iterative refinement steps per solve. Default 0. Must be >= 0, and 0 on
     /// Accelerate, which performs no refinement.
-    int refinement_steps = 0;
+    int max_refinement_steps = 0;
     /// Default `kAdaptive`. Pardiso only.
-    KktSolveParallelism parallel_solve = KktSolveParallelism::kAdaptive;
+    IpmSolveParallelism solve_parallelism = IpmSolveParallelism::kAdaptivePartitioning;
     /// Conditional numerical reproducibility: pins the backend to
     /// `common.threads` CNR threads, making the factorization bit-reproducible
     /// across thread counts. Read when the factorization is configured. Default
@@ -61,18 +68,16 @@ struct IpmLinearOptions {
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-#ifdef USE_ACCELERATE_SPARSE
-    /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
-    /// finite and > 0.
-    double accelerate_zero_tolerance = 1e-4 * std::numeric_limits<double>::epsilon();
-#endif
     /// When the dense factorization arm is used. RESERVED: the arm is not wired
     /// yet, and `validate()` accepts only `kNever` (the default).
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
+    /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
+    /// finite and > 0 on every backend; ignored on MKL.
+    double accelerate_zero_tol = 1e-4 * std::numeric_limits<double>::epsilon();
     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
     /// empty uses the library's rule. RESERVED: `validate()` accepts only the
     /// empty value until the arm is wired.
-    std::optional<Index> dense_max_dimension;
+    std::optional<Index> max_dense_dimension;
 };
 
 /// @brief The termination tests beyond the shared tolerances.
@@ -111,20 +116,20 @@ struct IpmTerminationOptions {
 /// combinations of the first nine.
 struct IpmAdvancedOptions {
     /// Default `kFilter`, which `validate()` requires to run above
-    /// `BarrierGovernorMode::kMonitored` unless `never_monotone` is set.
-    AcceptanceMode acceptance_mode = AcceptanceMode::kFilter;
-    /// Read only under `AcceptanceMode::kMerit`. Default `kSinglePenalty`.
-    MeritPenaltyRule merit_penalty_rule = MeritPenaltyRule::kSinglePenalty;
+    /// `IpmBarrierGovernorMode::kMonitored` unless `never_monotone` is set.
+    IpmAcceptanceMode acceptance_mode = IpmAcceptanceMode::kFilter;
+    /// Read only under `IpmAcceptanceMode::kMerit`. Default `kSinglePenalty`.
+    IpmMeritPenaltyRule merit_penalty_rule = IpmMeritPenaltyRule::kSinglePenalty;
     /// Default `kMonitored`.
-    BarrierGovernorMode barrier_governor_mode = BarrierGovernorMode::kMonitored;
+    IpmBarrierGovernorMode barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
     /// Accept a funnel or filter test over `kClassicAdaptive` without the
     /// monotone safeguard. Contradicts `kMonitored`, which `validate()` refuses.
     /// Default false.
     bool never_monotone = false;
     /// Default `kOff`.
-    RestorationMode restoration_mode = RestorationMode::kOff;
+    IpmRestorationMode restoration_mode = IpmRestorationMode::kOff;
     /// Default `kClassic`. Assumes the exact model Hessian.
-    InertiaMode inertia_mode = InertiaMode::kClassic;
+    IpmInertiaMode inertia_mode = IpmInertiaMode::kClassic;
     /// Second-order corrections after a first-trial rejection. Default 0 (off).
     /// Must be >= 0.
     Index max_second_order_corrections = 0;
@@ -135,8 +140,9 @@ struct IpmAdvancedOptions {
     /// Default false.
     bool watchdog = false;
 
-    /// Restoration entries allowed per phase. Default 2. Must be >= 0; 0
-    /// refuses restoration.
+    /// Restoration entries allowed per PHASE (each `IpmOptions::phases` entry
+    /// counts afresh; the SQP's `max_restoration_entries` counts per solve).
+    /// Default 2. Must be >= 0; 0 refuses restoration.
     Index max_restoration_entries = 2;
     /// Classic backtracking trials per rejected step. Default 2. Must be >= 0.
     Index max_line_search_backtracks = 2;
@@ -145,18 +151,17 @@ struct IpmAdvancedOptions {
     double backtrack_divisor = 2.0;
 
     /// What an `IpmPhase::kSolve` phase iterates on. Default `kSolveEquations`.
-    SolvePhaseMode solve_phase_mode = SolvePhaseMode::kSolveEquations;
+    IpmSolvePhaseMode solve_phase_mode = IpmSolvePhaseMode::kSolveEquations;
     /// Barrier update in the optimality phase. Default `kLoqo`.
-    BarrierMode optimize_barrier_mode = BarrierMode::kLoqo;
+    IpmBarrierMode optimize_barrier_mode = IpmBarrierMode::kLoqo;
     /// Barrier update in the feasibility phase. Default `kLoqo`.
-    BarrierMode solve_barrier_mode = BarrierMode::kLoqo;
+    IpmBarrierMode solve_barrier_mode = IpmBarrierMode::kLoqo;
     /// Merit function in the optimality phase. Default `kAugmentedLagrangian`.
-    LineSearchMode optimize_line_search_mode = LineSearchMode::kAugmentedLagrangian;
+    IpmLineSearchMode optimize_line_search_mode = IpmLineSearchMode::kAugmentedLagrangian;
     /// Merit function in the feasibility phase. Default `kNone`.
-    LineSearchMode solve_line_search_mode = LineSearchMode::kNone;
+    IpmLineSearchMode solve_line_search_mode = IpmLineSearchMode::kNone;
     /// Default `kEqualityMultipliersPrimal`.
-    PrimalDualStepStrategy primal_dual_step_strategy =
-        PrimalDualStepStrategy::kEqualityMultipliersPrimal;
+    IpmStepLengthRule step_length_rule = IpmStepLengthRule::kEqualityMultipliersPrimal;
 
     /// The inertia correction's first Hessian shift. Default 1e-5. Must be
     /// finite and > 0.
@@ -180,8 +185,8 @@ struct IpmAdvancedOptions {
 /// @brief Every user-configurable interior-point parameter, as one value.
 struct IpmOptions {
     /// The shared options, at this engine's defaults: `max_iterations` 1000 (per
-    /// phase) and `threads` HVEN_DEFAULT_QP_THREADS (must be >= 1).
-    CommonOptions common{.max_iterations = 1000, .threads = HVEN_DEFAULT_QP_THREADS};
+    /// phase) and `threads` HVEN_DEFAULT_IPM_THREADS (must be >= 1).
+    CommonOptions common{.max_iterations = 1000, .threads = HVEN_DEFAULT_IPM_THREADS};
 
     /// The phase sequence, in order. Default `{kOptimize}`.
     ///
@@ -215,7 +220,7 @@ struct IpmOptions {
     double bound_interval_push = 1.0e-2;
 
     /// Default `kMakeParameter`. Read once per solve.
-    FixedVariableTreatment fixed_variable_treatment = FixedVariableTreatment::kMakeParameter;
+    IpmFixedVariableTreatment fixed_variable_treatment = IpmFixedVariableTreatment::kMakeParameter;
     /// Every finite variable bound is moved outward by this factor times
     /// max(1, |bound|) before the solve (Ipopt's bound_relax_factor); 0 records
     /// bounds verbatim. Read once per solve. Default 1e-8. Must be in
@@ -231,7 +236,7 @@ struct IpmOptions {
     /// the callback was shown. Default false.
     bool return_best = false;
     /// Default `kEquality`.
-    BestIterateCriterion best_iterate_criterion = BestIterateCriterion::kEquality;
+    IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kEquality;
 
     /// Wide console table layout. Default false.
     bool wide_console = false;

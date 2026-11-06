@@ -81,7 +81,7 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// solve that stopped ON a failing subproblem has none) or a ROLLBACK row
 /// (`rolled_back`, below): an iterate the solve stood on and left without a
 /// subproblem, because its committed point's derivatives were not finite and the
-/// step that reached it was rejected after the fact (M7 W2 R2-1). Rollback rows may
+/// step that reached it was rejected after the fact. Rollback rows may
 /// appear MID-HISTORY and SEVERAL PER SOLVE (SqpCounters::nonfinite_step_rollbacks
 /// counts them); the stopped-AT row is still at most one and last.
 ///
@@ -99,8 +99,8 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// on; after that, row k is a NEW point iff row k-1's step was accepted:
 ///
 ///     bool is_new_point = k == 0 ||
-///                         history[k-1].verdict == StepVerdict::kAcceptF ||
-///                         history[k-1].verdict == StepVerdict::kAcceptH;
+///                         history[k-1].verdict == StepVerdict::kAcceptObjectiveStep ||
+///                         history[k-1].verdict == StepVerdict::kAcceptFeasibilityStep;
 ///
 /// The predicate reads the PREVIOUS row, not this one: filtering on a row's own
 /// kReject verdict is wrong in both directions.
@@ -119,7 +119,7 @@ struct SqpIterate {
     /// @brief max(||cE||inf, max(cI)+, bound violation).
     double feasibility = 0.0;
     /// max_j |lambda_i(j) * cI_j(x)|. GATED at kkt_tol by the convergence test
-    /// on every major (WX-R1), beside stationarity and feasibility.
+    /// on every major, beside stationarity and feasibility.
     double complementarity = 0.0;
     /// max(stationarity, feasibility) -- the scalar the contraction test
     /// reads. Complementarity is not in it; the convergence test reads it
@@ -133,17 +133,17 @@ struct SqpIterate {
     /// monotonically tightening width) is checkable from the history alone.
     double violation_l1 = 0.0;
     /// The l-infinity trust-region radius THIS subproblem was solved at,
-    /// i.e. the SolveOverrides::trust_region_radius the driver passed. On a
+    /// i.e. the QpSolveOverrides::trust_region_radius the driver passed. On a
     /// stopped-AT-iterate row it is the radius the next subproblem would
     /// have been given.
     double tr_radius = 0.0;
-    /// The SolveOverrides::dual_regularization THIS subproblem was solved at (the MAIN
+    /// The QpSolveOverrides::dual_regularization THIS subproblem was solved at (the MAIN
     /// trial's QP -- a subsequent SOC/elastic re-solve on the same row uses
     /// its own separate override, per sqp_solver.h's ADAPTIVE DUAL
     /// REGULARIZATION note, so it is not what this field describes there).
     /// Meaningful iff qp_solved; 0.0 on a stopped-AT-iterate row, like the
     /// other qp_* fields. Always opts.qp.dual_regularization (the engine default) when
-    /// SqpOptions::adaptive_mu is false -- byte-identical across the whole
+    /// SqpAdvancedOptions::adaptive_dual_regularization is false -- byte-identical across the whole
     /// history.
     double mu = 0.0;
     /// ||p||inf of the step taken FROM this iterate. ON A ROUTED QP-FAILURE ROW
@@ -193,7 +193,7 @@ struct SqpIterate {
     /// reconstructing the ITERATE sequence may read `verdict != kReject` on the
     /// PREVIOUS row as "the iterate moved" across every row shape.
     StepVerdict verdict = StepVerdict::kReject;
-    /// True iff this row's ACCEPTANCE (verdict is kAcceptF/kAcceptH) was
+    /// True iff this row's ACCEPTANCE (verdict is kAcceptObjectiveStep/kAcceptFeasibilityStep) was
     /// won by a second-order correction, i.e. the strategy rejected the raw
     /// QP step p and a hot-started re-solve rescued it -- the iterate that
     /// follows this row is x + (the SOC re-solve's own step), NOT x + p.
@@ -202,11 +202,11 @@ struct SqpIterate {
     /// in SqpCounters::soc_steps, not recorded per-row -- see
     /// sqp_solver.h's SECOND-ORDER CORRECTION note for why a failed attempt
     /// does not get a field of its own). Always false when
-    /// SqpOptions::enable_soc is false.
+    /// SqpAdvancedOptions::second_order_correction is false.
     bool soc_applied = false;
     /// True iff an ELASTIC SOLVE supplied this major: the elastic tier's re-solve
     /// after a plain QP returned kInfeasible, or the certified fallback's rung A
-    /// after a kIpm escape. Set on BOTH outcomes -- the row whose step came from
+    /// after a kIpqp escape. Set on BOTH outcomes -- the row whose step came from
     /// the elastic solve, and the row that ended the solve because the ladder was
     /// exhausted. It is the branch input SOC is gated on.
     ///
@@ -216,12 +216,12 @@ struct SqpIterate {
     /// the ladder's own counts.
     ///
     /// tr_binding IS STILL MEANINGFUL: the elastic solve gets its trust region as
-    /// REAL bounds on the original variables rather than through SolveOverrides,
+    /// REAL bounds on the original variables rather than through QpSolveOverrides,
     /// and the driver re-derives the radius bit exactly as the engine would have.
     bool elastic_applied = false;
     /// True iff THIS row's elastic ladder started at a CLAMPED placement -- the
     /// evidence priced the violation above the escalation headroom or above the
-    /// dual_mu safety margin -- including a clamp whose declined ladder was then
+    /// dual_regularization safety margin -- including a clamp whose declined ladder was then
     /// retried at the floor. False on every other row. Per-ENTRY, where
     /// `elastic_rho0_ceiling_hits` is per-ladder; they agree only because the
     /// retry's override placement can never clamp.
@@ -297,7 +297,7 @@ struct SqpIterate {
     /// Variables at their real UPPER bound (`kAtUpper`, plus `kFixed`).
     Index active_upper_sides = 0;
 
-    /// True iff THIS row is a NON-FINITE STEP ROLLBACK (M7 W2 R2-1): it describes the
+    /// True iff THIS row is a NON-FINITE STEP ROLLBACK: it describes the
     /// committed point the first major after a commit found non-finite (a gradient,
     /// or an `H`, `A` or `g`) and abandoned -- `qp_solved` is false, and the next
     /// row is the restored previous iterate at a shrunk radius. The abandoned point's
@@ -352,7 +352,7 @@ struct SqpScalingReport {
     bool active = false;
     /// The objective factor `sf`. Multiply a caller-scale objective by it to
     /// reach the engine's; divide to come back. 1.0 when inactive.
-    double obj = 1.0;
+    double objective = 1.0;
     /// Largest and smallest constraint-row factor over the equality and
     /// inequality blocks together, or 1.0 when the problem has no rows (a
     /// bound-constrained problem has nothing to equilibrate). Their ratio is the
@@ -368,18 +368,18 @@ struct SqpScalingReport {
     /// discloses, and reporting both is what makes it computable. NaN whenever
     /// SqpResult::kkt_residual is NaN, for the same reason: nothing was measured.
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
-    /// THE COLUMN LAYER (M7 W2 SCL, SqpOptions::column_scaling). True when the solve
-    /// ran in scaled variables. `col_min`/`col_max` are the installed factors'
+    /// THE COLUMN LAYER (SqpOptions::column_scaling). True when the solve
+    /// ran in scaled variables. `column_min`/`column_max` are the installed factors'
     /// extremes over the columns that carry Jacobian data, 1.0 when none was
     /// installed. On a CARRIED decision (SqpWarmStart::column_factors) min, max and
     /// spread are over every variable, identity entries included, and a carried
-    /// "unscaled" decision reports spread 1. `col_spread` is the spread the rule COMPUTED whenever
-    /// it ran -- also when kAuto's gate did not fire, which is how a caller reads why -- and 1.0
-    /// under kOff.
+    /// "unscaled" decision reports spread 1. `column_spread` is the spread the rule COMPUTED
+    /// whenever it ran -- also when kAuto's gate did not fire, which is how a caller reads why --
+    /// and 1.0 under kOff.
     bool columns_active = false;
-    double col_min = 1.0;
-    double col_max = 1.0;
-    double col_spread = 1.0;
+    double column_min = 1.0;
+    double column_max = 1.0;
+    double column_spread = 1.0;
 };
 
 /// @brief Why an equality-basis split dropped nothing although it was computed
@@ -530,7 +530,7 @@ struct SqpResult : SolveResult {
     /// @brief The engine's own terminal KKT measurement; see SqpConvergence.
     SqpConvergence convergence;
 
-    /// Wall-clock seconds spent inside this solve's `solve_impl` ALONE --
+    /// Wall-clock seconds spent inside this solve's engine ALONE --
     /// never around model construction, the bridge or seam lay, the staged-value
     /// ingest or the ledger bookkeeping.
     ///
@@ -540,7 +540,7 @@ struct SqpResult : SolveResult {
     /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this
     /// project's currency of correctness. Nothing may gate on it. Defaults to
     /// 0.0; every public solve() that returns writes a value >= 0.0.
-    double solve_impl_seconds = 0.0;
+    double engine_seconds = 0.0;
 
     /// @brief What the problem-scaling layer did to this solve; the identity
     ///        when it was off, which is the shipped default.
@@ -562,7 +562,7 @@ struct SqpResult : SolveResult {
     ///
     /// Populated on EVERY exit of SqpSolver::solve(), including a failed one,
     /// from the best-known iterate. Populated is NOT the same as
-    /// `native_warm_start.valid()`: one exit -- a start point the model could not
+    /// `sqp_warm_start.valid()`: one exit -- a start point the model could not
     /// evaluate -- holds a state for the engine's own bookkeeping but reports
     /// valid() == false, because feeding that point back would override the
     /// caller's own corrected x0.
@@ -570,7 +570,7 @@ struct SqpResult : SolveResult {
     /// The base's `warm_start` carries the SHARED currency (WarmStart) taken at
     /// the same exit; this is the engine-native one, and only this engine reads
     /// it.
-    SqpWarmStart native_warm_start{SqpWarmStart::Cold{}};
+    SqpWarmStart sqp_warm_start{SqpWarmStart::Cold{}};
 };
 
 } // namespace hven

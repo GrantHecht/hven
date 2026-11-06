@@ -70,6 +70,8 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
+using namespace hven::detail;
+
 namespace hven {
 
 namespace detail {

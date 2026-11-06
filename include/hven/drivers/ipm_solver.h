@@ -26,15 +26,15 @@
 #include "hven/drivers/solve_result.h"
 #include "hven/model/problem.h"
 #include "hven/warmstart/seeding.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 namespace hven {
 
-class IpmSolverImpl;
 class TraceSink;
 class Ledger;
 
 namespace detail {
+class IpmSolverImpl;
 struct IpmSolverAccess;
 } // namespace detail
 
@@ -157,8 +157,8 @@ class IpmSolver {
     ///               `x`) leaves `x0` as the start and only the multipliers
     ///               travel.
     /// @param budget Work ceiling. A non-zero `max_iterations` caps each phase
-    ///               at `min(budget, IpmOptions::max_iters)`: a caller may
-    ///               tighten the engine's limit, never loosen it. `minor_budget`
+    ///               at `min(budget, CommonOptions::max_iterations)`: a caller may
+    ///               tighten the engine's limit, never loosen it. `max_minor_iterations`
     ///               is ignored (this engine has no minor loop).
     /// @return The result, by value.
     /// @throws std::invalid_argument if `x0` is not sized to the declared
@@ -281,10 +281,10 @@ class IpmSolver {
   private:
     friend struct detail::IpmSolverAccess;
 
-    IpmSolverImpl &impl();
-    const IpmSolverImpl &impl() const;
+    detail::IpmSolverImpl &impl();
+    const detail::IpmSolverImpl &impl() const;
 
-    std::unique_ptr<IpmSolverImpl> impl_;
+    std::unique_ptr<detail::IpmSolverImpl> impl_;
 };
 
 } // namespace hven

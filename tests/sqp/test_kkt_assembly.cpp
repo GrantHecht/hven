@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 

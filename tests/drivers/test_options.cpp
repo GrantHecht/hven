@@ -56,12 +56,14 @@
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
 
+using namespace hven::detail;
+
 namespace {
 
-using hven::AcceptanceMode;
-using hven::BarrierGovernorMode;
 using hven::CommonOptions;
-using hven::FixedVariableTreatment;
+using hven::IpmAcceptanceMode;
+using hven::IpmBarrierGovernorMode;
+using hven::IpmFixedVariableTreatment;
 using hven::IpmOptions;
 using hven::IpmSolver;
 
@@ -153,8 +155,8 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     {
         // combination guard 1: funnel/filter above an adaptive-only governor
         IpmOptions o;
-        o.advanced.acceptance_mode = AcceptanceMode::kFunnel;
-        o.advanced.barrier_governor_mode = BarrierGovernorMode::kClassicAdaptive;
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
         o.advanced.never_monotone = false;
         expect_refused(o, "advanced.acceptance_mode");
     }
@@ -162,7 +164,7 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
         // combination guard 2: never_monotone against the monitored governor
         IpmOptions o;
         o.advanced.never_monotone = true;
-        o.advanced.barrier_governor_mode = BarrierGovernorMode::kMonitored;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
         expect_refused(o, "advanced.never_monotone");
     }
     {
@@ -216,21 +218,21 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     {
         // in_closed_interval
         IpmOptions o;
-        o.bound_relax_factor = 2.0 * hven::kMaxBoundRelaxFactor;
+        o.bound_relax_factor = 2.0 * hven::detail::kMaxBoundRelaxFactor;
         expect_refused(o, "bound_relax_factor");
     }
     {
         // check_fixed_variable_treatment (a closed-set enum still reaches the
         // struct as a plain field)
         IpmOptions o;
-        o.fixed_variable_treatment = static_cast<FixedVariableTreatment>(42);
+        o.fixed_variable_treatment = static_cast<IpmFixedVariableTreatment>(42);
         expect_refused(o, "fixed_variable_treatment");
     }
     {
         // the QP integer family: non-negative
         IpmOptions o;
-        o.linear.refinement_steps = -1;
-        expect_refused(o, "linear.refinement_steps");
+        o.linear.max_refinement_steps = -1;
+        expect_refused(o, "linear.max_refinement_steps");
     }
     {
         // objective scale
@@ -268,7 +270,7 @@ TEST(Options, CommonDefaultsAreEachEnginesOwn) {
     EXPECT_EQ(CommonOptions{}.infinite_bound, 1e20);
     EXPECT_EQ(CommonOptions{}.start_level, hven::StartLevel::kWarm);
 
-    EXPECT_EQ(IpmOptions{}.common.threads, HVEN_DEFAULT_QP_THREADS);
+    EXPECT_EQ(IpmOptions{}.common.threads, HVEN_DEFAULT_IPM_THREADS);
     EXPECT_EQ(IpmOptions{}.common.verbosity, Verbosity::kSilent);
     EXPECT_EQ(IpmOptions{}.common.max_iterations, 1000);
     EXPECT_EQ(IpmOptions{}.common.start_level, hven::StartLevel::kWarm);
@@ -312,7 +314,7 @@ TEST(Options, IpmSetOptionsIsTransactional) {
 TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // M6 W5 T8.9: the program is transcribed once, here, and handed to every
     // solve below as an argument -- the wrapper's lazy transcribe() is gone.
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     ASSERT_NE(program, nullptr);
     IpmSolver solver;
     {
@@ -347,17 +349,16 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
         ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     };
 
-    accepts("qp_ref_steps", [](IpmOptions &o) { o.linear.refinement_steps = 1; }); // int
-    accepts("qp_ord", [](IpmOptions &o) {                                          // enum
-        o.linear.ordering = hven::KktOrdering::kMinimumDegree;
+    accepts("qp_ref_steps", [](IpmOptions &o) { o.linear.max_refinement_steps = 1; }); // int
+    accepts("qp_ord", [](IpmOptions &o) {                                              // enum
+        o.linear.ordering = hven::IpmOrdering::kMinimumDegree;
     });
     accepts("cnr_mode",
             [](IpmOptions &o) { o.linear.conditional_reproducibility = true; }); // the CNR flag
 #ifdef USE_ACCELERATE_SPARSE
     // UNOBSERVED on this box: this is declared and read only on an
     // Accelerate build, and nothing here has run on Mac hardware.
-    accepts("accel_zero_tolerance",
-            [](IpmOptions &o) { o.linear.accelerate_zero_tolerance = 1e-12; });
+    accepts("accel_zero_tolerance", [](IpmOptions &o) { o.linear.accelerate_zero_tol = 1e-12; });
 #endif
 
     // A value the backend does accept, left in force and carried through a live
@@ -369,14 +370,14 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     {
         const hven::Index analyses_before = result.kkt_analyses_total;
         IpmOptions changed = solver.options();
-        changed.linear.matching = changed.linear.matching != 0 ? 0 : 1;
+        changed.linear.weighted_matching = changed.linear.weighted_matching != 0 ? 0 : 1;
         EXPECT_NO_THROW(solver.set_options(changed));
         EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)));
         result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
         ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
         EXPECT_EQ(result.kkt_analyses_total, analyses_before + 1);
         EXPECT_EQ(result.kkt_analyses_this_call, 1);
-        EXPECT_EQ(solver.options().linear.matching, changed.linear.matching);
+        EXPECT_EQ(solver.options().linear.weighted_matching, changed.linear.weighted_matching);
         EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)));
     }
 
@@ -391,7 +392,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
         << "a per-solve field does not touch the analysis";
 
     IpmOptions treatment = solver.options();
-    treatment.fixed_variable_treatment = FixedVariableTreatment::kMakeConstraint;
+    treatment.fixed_variable_treatment = IpmFixedVariableTreatment::kMakeConstraint;
     EXPECT_NO_THROW(solver.set_options(std::move(treatment)));
     EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
         << "the treatment is part of the identity token: a change re-analyses";
@@ -408,7 +409,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
 // A replacement from inside the solve is a logic_error, the options do not
 // move, and the guard clears on the unwind so the next solve still runs.
 TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     IpmSolver solver;
     {
         IpmOptions o = solver.options();
@@ -458,7 +459,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
 // run_phase_sequence() unwinds, SolveInFlightGuard's destructor clears the
 // flag, and the solver is usable again.
 TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
-    const auto program = hven::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     IpmSolver solver;
     {
         IpmOptions o = solver.options();
@@ -490,10 +491,10 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
 TEST(Options, PresetsReturnFullValues) {
     // Every shipped preset name produces a value validate() accepts, and the
     // value is FULL -- every field outside the preset's nine is the default.
-    for (const auto &entry : hven::kInteriorPointSolverPresets) {
+    for (const auto &entry : hven::detail::kInteriorPointSolverPresets) {
         const IpmOptions o = hven::ipm_preset(entry.name_);
         EXPECT_NO_THROW(hven::validate(o)) << "preset " << entry.name_;
-        EXPECT_EQ(o.advanced.acceptance_mode, entry.fields_.acceptance_strategy_) << entry.name_;
+        EXPECT_EQ(o.advanced.acceptance_mode, entry.fields_.acceptance_mode_) << entry.name_;
         EXPECT_EQ(o.advanced.merit_penalty_rule, entry.fields_.merit_penalty_rule_) << entry.name_;
         EXPECT_EQ(o.advanced.barrier_governor_mode, entry.fields_.barrier_governor_) << entry.name_;
         EXPECT_EQ(o.advanced.never_monotone, entry.fields_.never_monotone_) << entry.name_;
@@ -516,7 +517,7 @@ TEST(Options, AnUnknownIpmPresetIsRefusedAndListsTheValidNames) {
     } catch (const std::invalid_argument &e) {
         const std::string what(e.what());
         EXPECT_NE(what.find("no-such-preset"), std::string::npos);
-        EXPECT_NE(what.find(hven::kInteriorPointSolverPresets[0].name_), std::string::npos);
+        EXPECT_NE(what.find(hven::detail::kInteriorPointSolverPresets[0].name_), std::string::npos);
     }
 }
 
@@ -621,7 +622,7 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
     bool refused = false;
     {
         SqpOptions o = d.options();
-        o.advanced.make_strategy = [&]() -> std::unique_ptr<hven::GlobalizationStrategy> {
+        o.advanced.make_strategy = [&]() -> std::unique_ptr<hven::detail::GlobalizationStrategy> {
             attempted = true;
             SqpOptions replacement = d.options();
             replacement.common.max_iterations = 5;
@@ -630,7 +631,7 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
             } catch (const std::logic_error &) {
                 refused = true;
             }
-            return std::make_unique<hven::FunnelStrategy>();
+            return std::make_unique<hven::detail::FunnelStrategy>();
         };
         d.set_options(std::move(o));
     }
@@ -660,7 +661,7 @@ TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     SqpSolver d(sqp_default());
     {
         SqpOptions o = d.options();
-        o.advanced.make_strategy = []() -> std::unique_ptr<hven::GlobalizationStrategy> {
+        o.advanced.make_strategy = []() -> std::unique_ptr<hven::detail::GlobalizationStrategy> {
             throw std::logic_error("a hook that leaves the solve by throwing");
         };
         d.set_options(std::move(o));
@@ -740,7 +741,7 @@ TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
 TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     using hven::options_fingerprint;
     using hven::QpOptions;
-    using hven::WorkingSetLinearAlgebra;
+    using hven::QpWorkingSetAlgebra;
 
     const QpOptions base;
     const std::uint64_t h0 = options_fingerprint(base, 0);
@@ -764,7 +765,7 @@ TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
     EXPECT_TRUE(moved([](QpOptions &o) { o.max_schur_border_dimension += 1; })) << "schur_cap";
     EXPECT_TRUE(moved([](QpOptions &o) { o.schur_condition_max *= 2.0; })) << "schur_cond_max";
     EXPECT_TRUE(moved([](QpOptions &o) {
-        o.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+        o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     })) << "ws_algebra";
     EXPECT_TRUE(moved([](QpOptions &o) { o.trust_region_radius = 1.0; })) << "tr_radius";
     EXPECT_TRUE(moved([](QpOptions &o) { o.independent_working_set = false; }))

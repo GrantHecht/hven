@@ -13,7 +13,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
 
-hven::Vec probe_deprecated_eval_grad(const hven::NlpModel &model, const hven::Vec &x) {
+hven::Vec probe_deprecated_eval_grad(const hven::detail::NlpModel &model, const hven::Vec &x) {
     hven::Vec out;
     model.eval_grad_in_place(x, out); // the replacement: not deprecated
     return model.eval_grad(x);        // the deprecated form: THE error

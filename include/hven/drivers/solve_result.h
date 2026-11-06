@@ -34,14 +34,13 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 namespace hven {
 
+namespace detail {
 class IpmSolverImpl;
 class SqpSolverImpl;
-
-namespace detail {
 struct ResultAccess;
 } // namespace detail
 
@@ -65,7 +64,7 @@ struct SolveBudget {
     /// `SolveStatus::kWorkLimit` at the current point and counts the stop in
     /// `SqpCounters::probe_budget_stops`. INTERIOR-POINT: ignored; that engine
     /// has no minor loop.
-    std::optional<Index> minor_budget;
+    std::optional<Index> max_minor_iterations;
 };
 
 /// @brief Refuses an engaged SolveBudget member below 1, and a `max_iterations`
@@ -137,14 +136,14 @@ struct SolveResult {
     /// The rule per engine. Interior-point: set when IpmOptions::return_best is
     /// on and the solve ended in any non-optimal status except an interrupt
     /// (the substitution applies to the last phase that ran), so it can ride
-    /// with kMaxIter, kStalled, kWorkLimit and the other non-optimal exits.
+    /// with kIterationLimit, kStalled, kWorkLimit and the other non-optimal exits.
     /// A non-finite abort (kNumericalError, kNonFiniteIterate) returns the best
     /// iterate in full -- x, multipliers and every residual column -- with this
     /// set, when one was recorded; when none was (a non-finite start, a phase's
     /// first iterate, a failed initial factorization) it returns the failed
     /// point with its multipliers cleared and this false.
     /// SQP: set only when SqpOptions::return_best_on_max_iterations ran out of iterations
-    /// (SolveStatus::kMaxIter); its non-finite exits never substitute and leave
+    /// (SolveStatus::kIterationLimit); its non-finite exits never substitute and leave
     /// it false. The message gains "; returned the best iterate"
     /// whenever it is set.
     bool returned_best_iterate = false;
@@ -157,7 +156,7 @@ struct SolveResult {
     ///        reduces the constraint violation from `x`.
     ///
     /// The certificate requires the restoration point's inf-norm violation to
-    /// exceed `2 * feas_tol`; a point at or below that takes the no-claim exit
+    /// exceed `2 * feasibility_tol`; a point at or below that takes the no-claim exit
     /// (kNumericalError). At `SqpOptions::restoration_proximity > 0` the driver
     /// also recomputes the certificate residual explicitly at the restored point
     /// and requires it to be <= kkt_tol.
@@ -234,7 +233,7 @@ struct SolveResult {
     /// INFORMATIONAL, NEVER ASSERTED: counters, not timings, are this project's
     /// currency of correctness (CLAUDE.md §7). This is deliberately NOT either
     /// engine's own measurement -- IpmResult::timing.total stops before final
-    /// reporting, SqpResult::solve_impl_seconds starts after setup.
+    /// reporting, SqpResult::engine_seconds starts after setup.
     double wall_seconds = 0.0;
 
     /// @brief The solve's exit state as warm-start currency, snapshotted at
@@ -269,8 +268,8 @@ struct SolveResult {
 
     // The two engines fill the private row blocks of a result they are about to
     // return.
-    friend class IpmSolverImpl;
-    friend class SqpSolverImpl;
+    friend class detail::IpmSolverImpl;
+    friend class detail::SqpSolverImpl;
     friend struct detail::ResultAccess;
 };
 

@@ -33,7 +33,7 @@
 
 #include <Eigen/Core>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief Lightweight non-owning view over the compound KKT layout
 /// [primals | slacks | eq_lmults | iq_lmults], used both as the iterate
@@ -164,4 +164,4 @@ class ConstKktVector {
     int pv_, sv_, ec_, ic_;
 };
 
-} // namespace hven
+} // namespace hven::detail

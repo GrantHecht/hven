@@ -47,15 +47,17 @@
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/qp/ssn_engine.h>
 
+using namespace hven::detail;
+
 namespace hven {
 
 void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
                       SsnResult *out) {
-    solve(qp, start, sopts, SolveOverrides{}, out);
+    solve(qp, start, sopts, QpSolveOverrides{}, out);
 }
 
 void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
-                      const SolveOverrides &overrides, SsnResult *out) {
+                      const QpSolveOverrides &overrides, SsnResult *out) {
     if (out == nullptr) {
         throw std::invalid_argument("SsnEngine::solve: out must not be null");
     }
@@ -357,7 +359,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         }
 
         if (!verifying && it >= sopts.hard_budget) {
-            out->status = QpStatus::kMaxIter;
+            out->status = QpStatus::kIterationLimit;
             out->escape_reason = SsnEscape::kBudget;
             break;
         }
@@ -657,7 +659,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                         "against the ({}, {}) a positive-definite primal block requires. "
                         "The point is a saddle or a maximizer of this QP, which no "
                         "residual-based test can see, so it is NOT certified",
-                        it, nrm.inf_norm, sopts.fb_tol, ie.n_pos, ie.n_neg, n, me + mi + mb);
+                        it, nrm.inf_norm, sopts.fb_tol, ie.positive, ie.negative, n, me + mi + mb);
                     break;
                 }
                 if (escalate_prox(qp, n, me, mi, mb)) {
@@ -672,7 +674,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                     "{}) against the ({}, {}) a positive-definite primal block requires, "
                     "and the proximal ladder is at its ceiling (sigma = {}). The Newton "
                     "step is toward a KKT point that need not be a minimizer",
-                    it, ie.n_pos, ie.n_neg, n, me + mi + mb, prox_sigma_);
+                    it, ie.positive, ie.negative, n, me + mi + mb, prox_sigma_);
                 break;
             }
         }
@@ -904,7 +906,7 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
             "positive-definite primal block requires. The point is a saddle or a maximizer "
             "of this QP, which no residual-based test can see, so it is NOT certified "
             "(deferred verification, SsnOptions::defer_certification)",
-            deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, ie.n_pos, ie.n_neg,
+            deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, ie.positive, ie.negative,
             deferred_pos_, deferred_neg_);
         ++out->counters.ssn_escapes;
         ++out->counters.ssn_escape_indefinite;
@@ -922,7 +924,7 @@ void SsnEngine::discard_deferred_certification() {
     deferred_pending_ = false;
 }
 
-void SsnEngine::validate_overrides(const SolveOverrides &o) {
+void SsnEngine::validate_overrides(const QpSolveOverrides &o) {
     if (std::isnan(o.trust_region_radius) || o.trust_region_radius < 0.0) {
         throw std::invalid_argument(
             fmt::format("SsnEngine::solve: overrides.trust_region_radius must be >= 0 (or the +inf "

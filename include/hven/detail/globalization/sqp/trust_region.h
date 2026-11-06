@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace hven {
+namespace hven::detail {
 
 // Trust-region update constants of the SQP driver. Source: Conn, Gould &
 // Toint, "Trust-Region Methods" (MPS-SIAM, 2000), Algorithm BTR and Table
@@ -45,7 +45,7 @@ inline constexpr double kTrShrinkFactor = 0.5;
 /// The short-circuit therefore lives where the STEP is visible (here), and it
 /// bypasses the strategy entirely (Algorithm 2 tests it BEFORE the funnel
 /// condition; a zero step has nothing for an acceptance test to judge); the
-/// resulting row is a kAcceptF with step_norm ~ 0.
+/// resulting row is a kAcceptObjectiveStep with step_norm ~ 0.
 ///
 /// THE SCALE FACTOR IS A NUMERICAL-ZERO THRESHOLD, not a convergence tolerance,
 /// and is deliberately four to six orders TIGHTER than kkt_tol so the two can
@@ -61,4 +61,4 @@ inline constexpr double kZeroStepScale = 1e-12;
 /// iterate's -- a real infeasibility reduction, not a funnel-width one.
 inline constexpr double kFailureStepViolationFactor = 0.5;
 
-} // namespace hven
+} // namespace hven::detail

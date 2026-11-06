@@ -20,16 +20,16 @@
 #include <hven/detail/drivers/ipm_phase_status.h>
 
 using hven::IpmStopReason;
-using hven::resolve_ipm_phase_status;
 using hven::severity;
 using hven::SolveStatus;
 using hven::to_string;
+using hven::detail::resolve_ipm_phase_status;
 
 namespace {
 
 // Eight of the ten statuses in the documented reporting order, weakest first.
 const SolveStatus kSeverityOrder[] = {SolveStatus::kOptimal,     SolveStatus::kAcceptable,
-                                      SolveStatus::kInterrupted, SolveStatus::kMaxIter,
+                                      SolveStatus::kInterrupted, SolveStatus::kIterationLimit,
                                       SolveStatus::kStalled,     SolveStatus::kInfeasible,
                                       SolveStatus::kDiverging,   SolveStatus::kNumericalError};
 
@@ -53,15 +53,16 @@ TEST(SolveStatus, SeverityIsTotalAndOrderedAsDocumented) {
 }
 
 TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kMaxIter, IpmStopReason::kIterationCap),
-              SolveStatus::kMaxIter);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kMaxIter, IpmStopReason::kStageStalled),
+    EXPECT_EQ(
+        resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kIterationLimit),
+        SolveStatus::kIterationLimit);
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kStageStalled),
               SolveStatus::kStalled);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kMaxIter,
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit,
                                        IpmStopReason::kRestorationLocallyInfeasible),
               SolveStatus::kStalled);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kMaxIter, IpmStopReason::kNone),
-              SolveStatus::kMaxIter);
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kNone),
+              SolveStatus::kIterationLimit);
     // The stronger verdict survives the stall: the mapping reads the flag first.
     // This is the rule the live pins cannot reach -- ACCEPTABLE needs fifty
     // consecutive acceptable iterates coinciding with a stall.
@@ -75,10 +76,10 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
               SolveStatus::kDiverging);
     // Reachability, stated: the interior-point engine reports neither of these.
     for (const SolveStatus f :
-         {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kMaxIter,
+         {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kIterationLimit,
           SolveStatus::kDiverging, SolveStatus::kNumericalError}) {
         for (const IpmStopReason r :
-             {IpmStopReason::kNone, IpmStopReason::kIterationCap,
+             {IpmStopReason::kNone, IpmStopReason::kIterationLimit,
               IpmStopReason::kRestorationLocallyInfeasible, IpmStopReason::kStageStalled}) {
             const SolveStatus s = resolve_ipm_phase_status(f, r);
             EXPECT_NE(s, SolveStatus::kInfeasible);
@@ -96,14 +97,14 @@ TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
     // column and the printed status, so each one is a pinned literal.
     EXPECT_STREQ(to_string(SolveStatus::kOptimal), "optimal");
     EXPECT_STREQ(to_string(SolveStatus::kAcceptable), "acceptable");
-    EXPECT_STREQ(to_string(SolveStatus::kMaxIter), "max_iter");
+    EXPECT_STREQ(to_string(SolveStatus::kIterationLimit), "max_iter");
     EXPECT_STREQ(to_string(SolveStatus::kInfeasible), "infeasible");
     EXPECT_STREQ(to_string(SolveStatus::kStalled), "stalled");
     EXPECT_STREQ(to_string(SolveStatus::kDiverging), "diverging");
     EXPECT_STREQ(to_string(SolveStatus::kNumericalError), "numerical_error");
     EXPECT_STREQ(to_string(SolveStatus::kInterrupted), "interrupted");
     EXPECT_STREQ(to_string(IpmStopReason::kNone), "none");
-    EXPECT_STREQ(to_string(IpmStopReason::kIterationCap), "iteration_cap");
+    EXPECT_STREQ(to_string(IpmStopReason::kIterationLimit), "iteration_cap");
     EXPECT_STREQ(to_string(IpmStopReason::kRestorationLocallyInfeasible),
                  "restoration_locally_infeasible");
     EXPECT_STREQ(to_string(IpmStopReason::kStageStalled), "stage_stalled");
@@ -122,9 +123,9 @@ TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
     // status is refused.
     EXPECT_EQ(resolve_ipm_phase_status(static_cast<SolveStatus>(99), IpmStopReason::kNone),
               static_cast<SolveStatus>(99));
-    EXPECT_THROW(
-        (void)resolve_ipm_phase_status(SolveStatus::kMaxIter, static_cast<IpmStopReason>(99)),
-        std::invalid_argument);
+    EXPECT_THROW((void)resolve_ipm_phase_status(SolveStatus::kIterationLimit,
+                                                static_cast<IpmStopReason>(99)),
+                 std::invalid_argument);
     // An out-of-range reason under a STRONGER verdict is ignored, not refused:
     // that switch never reaches the reason at all.
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, static_cast<IpmStopReason>(99)),

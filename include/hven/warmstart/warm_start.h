@@ -3,7 +3,7 @@
 
 #pragma once
 
-// warm_start_data.h — the warm-start currency (M5 R1), its byte form, and the
+// warm_start.h — the warm-start currency, its byte form, and the
 // row-space seed.
 //
 // Value-semantic, comparable, serializable; engine-independent by
@@ -184,7 +184,7 @@ inline constexpr std::uint32_t kWarmStartFormatVersion = 2;
 ///         IEEE-754 bit patterns, so the round trip is bit-exact for every
 ///         double a caller can store -- NaN payload and sign of zero included.
 ///         The encoding depends on the value alone, never on this process.
-std::vector<std::byte> serialize(const WarmStart &data);
+std::vector<std::byte> serialize_warm_start(const WarmStart &data);
 
 /// @brief Decodes a byte sequence written by `serialize`.
 /// @param bytes The encoding, which must be the whole of one value: trailing
@@ -196,6 +196,6 @@ std::vector<std::byte> serialize(const WarmStart &data);
 ///         refusal names the byte offset it refused at and what was expected
 ///         there. No length is used before it is checked against what remains,
 ///         so no input reads past `bytes`.
-WarmStart deserialize(std::span<const std::byte> bytes);
+WarmStart deserialize_warm_start(std::span<const std::byte> bytes);
 
 } // namespace hven

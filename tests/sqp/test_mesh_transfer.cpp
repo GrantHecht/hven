@@ -112,7 +112,7 @@ hven::detail::SqpWarmState cold_solve(const Mesh &mesh, SqpResult *out_sol = nul
     if (out_sol != nullptr) {
         *out_sol = sol;
     }
-    return SqpWarmAccess::state(sol.native_warm_start);
+    return SqpWarmAccess::state(sol.sqp_warm_start);
 }
 
 // THE COUNTERFACTUAL: mesh_transfer.h's map with the two weight steps

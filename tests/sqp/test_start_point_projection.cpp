@@ -40,6 +40,8 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/model/problem_access.h>
 
+using namespace hven::detail;
+
 namespace {
 using hven::detail::SqpWarmAccess;
 } // namespace
@@ -151,7 +153,7 @@ TEST(StartPointProjection, OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalError
     EXPECT_EQ(out.counters.start_point_clamps, 0);
     // The cold hand-off the exit's own comment promises, so a caller retrying
     // from a corrected x0 is honoured.
-    EXPECT_FALSE(SqpWarmAccess::state(out.native_warm_start).valid);
+    EXPECT_FALSE(SqpWarmAccess::state(out.sqp_warm_start).valid);
 }
 
 TEST(StartPointProjection, OffIsUnchangedOnAnInBoxStart) {

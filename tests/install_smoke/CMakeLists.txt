@@ -48,9 +48,10 @@ find_package(hven REQUIRED)
 #
 # M8 AP-2 B8: three raw-protocol headers took the names of what they declare
 # (solver_indexing_data, sizable_spec, piece_interfaces), and the umbrella
-# hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37.
+# hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37. B8 riders: model/pieces.h
+# deleted (the umbrella covers it), trace_writer.h renamed json_lines_trace_sink.h, 37 -> 36.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
-    include_trace_writer.cpp
+    include_json_lines_trace_sink.cpp
     include_trace.cpp
     include_ipqp_evidence.cpp
     include_nlp.cpp
@@ -73,7 +74,6 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_seeding.cpp
     include_console_trace_sink.cpp
     include_compiler.cpp
-    include_pieces.cpp
     include_local_blocks.cpp
     include_piece_interfaces.cpp
     include_solver_interface_adapter.cpp

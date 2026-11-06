@@ -52,10 +52,10 @@
 using hven::Index;
 using hven::model_surface_kkt_residuals;
 using hven::ModelSurfaceKktResiduals;
-using hven::NlpModel;
-using hven::NlpModelAssembly;
 using hven::SpMatRM;
 using hven::Vec;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
 
 namespace {
 

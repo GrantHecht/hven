@@ -14,7 +14,7 @@
 //
 //   - the stream is the CALLER'S, and exceptions have TWO cases: under the
 //     default mask the sink never throws and never ends a solve, under an armed
-//     mask the caller's choice propagates by design. Stated in trace_writer.h.
+//     mask the caller's choice propagates by design. Stated in json_lines_trace_sink.h.
 
 #include <cmath>
 #include <iterator>
@@ -27,8 +27,8 @@
 
 #include <hven/core/detail/aggregate_arity.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/drivers/trace_writer.h>
 
 namespace hven {
 namespace {
@@ -144,11 +144,11 @@ void key_enum(std::string &s, bool &first, const char *k, const char *v) {
 // The net is in the tests: `-Wswitch` is an ERROR there, over one exhaustive
 // switch per enum, and no emitted line may contain `"unknown"`
 // (tests/sqp/test_trace_writer.cpp).
-const char *to_json(IpqpTraceRegDir v) {
+const char *to_json(IpqpTraceRegDirection v) {
     switch (v) {
-    case IpqpTraceRegDir::kDown:
+    case IpqpTraceRegDirection::kDown:
         return "down";
-    case IpqpTraceRegDir::kUp:
+    case IpqpTraceRegDirection::kUp:
         return "up";
     }
     return "unknown";
@@ -180,13 +180,13 @@ const char *to_json(IpqpTraceRestartGrade v) {
     return "unknown";
 }
 
-const char *to_json(IpqpTraceRouteTo v) {
+const char *to_json(IpqpTraceRouteTarget v) {
     switch (v) {
-    case IpqpTraceRouteTo::kRefine:
+    case IpqpTraceRouteTarget::kRefine:
         return "refine";
-    case IpqpTraceRouteTo::kSsn:
+    case IpqpTraceRouteTarget::kSsn:
         return "ssn";
-    case IpqpTraceRouteTo::kWalk:
+    case IpqpTraceRouteTarget::kWalk:
         return "walk";
     }
     return "unknown";
@@ -220,31 +220,31 @@ const char *to_json(IpqpTraceEscapeReason v) {
     return "unknown";
 }
 
-const char *to_json(IpqpTraceQpMode v) {
+const char *to_json(QpTraceMode v) {
     switch (v) {
-    case IpqpTraceQpMode::kIpqp:
+    case QpTraceMode::kIpqp:
         return "ipqp";
-    case IpqpTraceQpMode::kWalk:
+    case QpTraceMode::kWalk:
         return "walk";
-    case IpqpTraceQpMode::kSsn:
+    case QpTraceMode::kSsn:
         return "ssn";
     }
     return "unknown";
 }
 
-const char *to_json(QpModeSite v) {
+const char *to_json(QpTraceModeSite v) {
     switch (v) {
-    case QpModeSite::kDispatch:
+    case QpTraceModeSite::kDispatch:
         return "dispatch";
-    case QpModeSite::kSsnWarmGrade:
+    case QpTraceModeSite::kSsnWarmGrade:
         return "ssn_warm_grade";
-    case QpModeSite::kFallbackRungB:
+    case QpTraceModeSite::kFallbackRungB:
         return "fallback_rung_b";
-    case QpModeSite::kElasticRung:
+    case QpTraceModeSite::kElasticRung:
         return "elastic_rung";
-    case QpModeSite::kSocResolve:
+    case QpTraceModeSite::kSocResolve:
         return "soc_resolve";
-    case QpModeSite::kCapRetry:
+    case QpTraceModeSite::kCapRetry:
         return "cap_retry";
     }
     return "unknown";
@@ -257,7 +257,7 @@ const char *to_json(QpStatus v) {
     switch (v) {
     case QpStatus::kOptimal:
         return "optimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "max_iter";
     case QpStatus::kInfeasible:
         return "infeasible";
@@ -269,9 +269,9 @@ const char *to_json(QpStatus v) {
 
 const char *to_json(StepVerdict v) {
     switch (v) {
-    case StepVerdict::kAcceptF:
+    case StepVerdict::kAcceptObjectiveStep:
         return "accept_f";
-    case StepVerdict::kAcceptH:
+    case StepVerdict::kAcceptFeasibilityStep:
         return "accept_h";
     case StepVerdict::kReject:
         return "reject";
@@ -281,29 +281,29 @@ const char *to_json(StepVerdict v) {
     return "unknown";
 }
 
-const char *to_json(IpqpTraceOutcome v) {
+const char *to_json(QpTraceOutcome v) {
     switch (v) {
-    case IpqpTraceOutcome::kOptimal:
+    case QpTraceOutcome::kOptimal:
         return "optimal";
-    case IpqpTraceOutcome::kRouted:
+    case QpTraceOutcome::kRouted:
         return "routed";
-    case IpqpTraceOutcome::kEscaped:
+    case QpTraceOutcome::kEscaped:
         return "escaped";
     }
     return "unknown";
 }
 
-const char *to_json(SqpFallbackVerdict v) {
+const char *to_json(SqpTraceFallbackVerdict v) {
     switch (v) {
-    case SqpFallbackVerdict::kDisproved:
+    case SqpTraceFallbackVerdict::kDisproved:
         return "disproved";
-    case SqpFallbackVerdict::kRelaxed:
+    case SqpTraceFallbackVerdict::kRelaxed:
         return "relaxed";
-    case SqpFallbackVerdict::kExhausted:
+    case SqpTraceFallbackVerdict::kExhausted:
         return "exhausted";
-    case SqpFallbackVerdict::kRungB:
+    case SqpTraceFallbackVerdict::kRungB:
         return "rung_b";
-    case SqpFallbackVerdict::kUnfired:
+    case SqpTraceFallbackVerdict::kUnfired:
         return "unfired";
     }
     return "unknown";
@@ -331,11 +331,11 @@ const char *to_json(StartLevel v) {
     return "unknown";
 }
 
-const char *to_json(WorkingSetLinearAlgebra v) {
+const char *to_json(QpWorkingSetAlgebra v) {
     switch (v) {
-    case WorkingSetLinearAlgebra::kRefactorize:
+    case QpWorkingSetAlgebra::kRefactorize:
         return "refactorize";
-    case WorkingSetLinearAlgebra::kSchurBorder:
+    case QpWorkingSetAlgebra::kSchurBorder:
         return "schur_border";
     }
     return "unknown";
@@ -365,23 +365,23 @@ const char *to_json(SolveStatus v) { return to_string(v); }
 // only drift the two apart.
 const char *to_json(RestorationSubStatus v) { return to_string(v); }
 
-const char *to_json(InertiaMode v) {
+const char *to_json(IpmInertiaMode v) {
     switch (v) {
-    case InertiaMode::kClassic:
+    case IpmInertiaMode::kClassic:
         return "classic";
-    case InertiaMode::kProximalRegularization:
+    case IpmInertiaMode::kProximalRegularization:
         return "proximal_regularization";
     }
     return "unknown";
 }
 
-const char *to_json(RestorationMode v) {
+const char *to_json(IpmRestorationMode v) {
     switch (v) {
-    case RestorationMode::kOff:
+    case IpmRestorationMode::kOff:
         return "off";
-    case RestorationMode::kProximalSwitch:
+    case IpmRestorationMode::kProximalSwitch:
         return "proximal_switch";
-    case RestorationMode::kL1Nested:
+    case IpmRestorationMode::kL1Nested:
         return "l1_nested";
     }
     return "unknown";
@@ -802,7 +802,7 @@ void JsonLinesTraceSink::write_line(const char *ev, const std::string &body) {
     }
 }
 
-void JsonLinesTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &event) {
+void JsonLinesTraceSink::on_ipqp_iter(const IpqpIterTraceEvent &event) {
     std::string b;
     bool first = true;
     key_index(b, first, "solve", event.solve);
@@ -843,7 +843,7 @@ void JsonLinesTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &event) {
     write_line("ipqp.iter", b);
 }
 
-void JsonLinesTraceSink::on_ipqp_reg(const IpqpTraceRegEvent &event) {
+void JsonLinesTraceSink::on_ipqp_reg(const IpqpRegTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "dir", to_json(event.dir));
@@ -853,7 +853,7 @@ void JsonLinesTraceSink::on_ipqp_reg(const IpqpTraceRegEvent &event) {
     write_line("ipqp.reg", b);
 }
 
-void JsonLinesTraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &event) {
+void JsonLinesTraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "grade", to_json(event.grade));
@@ -867,7 +867,7 @@ void JsonLinesTraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &event) {
     write_line("ipqp.restart", b);
 }
 
-void JsonLinesTraceSink::on_ipqp_route(const IpqpTraceRouteEvent &event) {
+void JsonLinesTraceSink::on_ipqp_route(const IpqpRouteTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "to", to_json(event.to));
@@ -877,7 +877,7 @@ void JsonLinesTraceSink::on_ipqp_route(const IpqpTraceRouteEvent &event) {
     write_line("ipqp.route", b);
 }
 
-void JsonLinesTraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &event) {
+void JsonLinesTraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "final_inertia", to_json(event.final_inertia));
@@ -885,7 +885,7 @@ void JsonLinesTraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &event) {
     write_line("ipqp.certify", b);
 }
 
-void JsonLinesTraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &event) {
+void JsonLinesTraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "reason", to_json(event.reason));

@@ -34,14 +34,15 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
     o.working_set_algebra = alg;

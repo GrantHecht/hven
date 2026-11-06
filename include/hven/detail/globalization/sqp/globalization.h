@@ -44,7 +44,7 @@
 #include <hven/drivers/step_verdict.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // THE ALGORITHM (KLV Algorithm 2, optimality-phase branch, transcribed).
 //
@@ -98,20 +98,18 @@ inline constexpr double kFunnelSigma = 1.0e-4;
 
 /// beta and kappa live one level down, in detail::, unlike their five KLV
 /// siblings above: the IPM engine's funnel (detail/globalization/
-/// funnel_acceptance.h) already defines hven::kFunnelBeta and
-/// hven::kFunnelKappa WITH A DIFFERENT BETA (0.9999 vs KLV's 0.99),
+/// funnel_acceptance.h) already defines hven::detail::kFunnelBeta and
+/// hven::detail::kFunnelKappa WITH A DIFFERENT BETA (0.9999 vs KLV's 0.99),
 /// so leaving these at namespace scope would be an ODR violation the linker
 /// resolves silently. detail:: nesting is the sanctioned collision mechanism
 /// for the two engines' internal names (never new top-level namespaces); the
 /// five non-colliding siblings stay put so this deviation from the verbatim
 /// import is exactly as large as the collision that forces it.
-namespace detail {
 /// beta in (0,1): funnel sufficient-decrease margin (Eq. (12); Table 1 = 0.99).
 inline constexpr double kFunnelBeta = 0.99;
 /// kappa in (0,1): convex-combination coefficient in the width update
 /// (Eq. (13); Table 1 = 0.5 — KLV: "we picked kappa = 0.5, which worked well").
 inline constexpr double kFunnelKappa = 0.5;
-} // namespace detail
 
 /// epsilon: feasibility tolerance separating a feasible point from an
 /// INFEASIBLE STATIONARY one (KLV Sec. 5.1 uses the same epsilon for both
@@ -181,7 +179,7 @@ struct StepContext {
     /// the restoration signature; see conjunct (e).
     ///
     /// NOT ONLY THIS STRATEGY'S OWN kReject VERDICTS: the driver may count
-    /// ROUTED QP FAILURES (kNumericalError/kMaxIter shrink-retries never shown
+    /// ROUTED QP FAILURES (kNumericalError/kIterationLimit shrink-retries never shown
     /// to judge()). Those satisfy the description exactly. Consequence: a
     /// kRestore verdict may rest partly on QP-failure evidence (measured at
     /// 2 of 3 on HS1 before the re-derivation); kRestoreMinRejections'
@@ -322,7 +320,7 @@ class GlobalizationStrategy {
 /// Newton domain of a NEARBY problem's solution the undamped SQP step is the
 /// superlinearly convergent one, and a cold-start acceptance test spends its
 /// majors refusing it. begin_full_step() puts the strategy into a mode where
-/// judge() returns kAcceptF for every FINITE trial WITHOUT any of Algorithm 2's
+/// judge() returns kAcceptObjectiveStep for every FINITE trial WITHOUT any of Algorithm 2's
 /// tests:
 ///  - OPT-IN AND DRIVER-DRIVEN: engaged only on a warm-enough solve with the
 ///    option set (both conditions, so a cold solve and a disabled flag are
@@ -451,4 +449,4 @@ class FunnelStrategy final : public GlobalizationStrategy {
     bool full_step_ = false;
 };
 
-} // namespace hven
+} // namespace hven::detail

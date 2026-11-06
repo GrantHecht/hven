@@ -13,7 +13,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/model/nlp_model.h>
 
-hven::SpMatRM probe_deprecated_eval_jac_i(const hven::NlpModel &model, const hven::Vec &x) {
+hven::SpMatRM probe_deprecated_eval_jac_i(const hven::detail::NlpModel &model, const hven::Vec &x) {
     hven::SpMatRM out;
     model.eval_jac_i_in_place(x, out); // the replacement: not deprecated
     return model.eval_jac_i(x);        // the deprecated form: THE error

@@ -24,7 +24,7 @@
 #include "hven/core/types.h"
 #include "hven/linear/symmetric_factor.h"
 
-namespace hven {
+namespace hven::detail {
 
 class KktFactorization {
   public:
@@ -88,7 +88,7 @@ class KktFactorization {
 
     /// The thread count the factor is currently configured with -- the STORED
     /// option, which reconfigure() and set_num_threads() both keep in step.
-    int num_threads() const { return opts_.num_threads; }
+    int num_threads() const { return opts_.threads; }
 
     /// The LIVE backend session's own count, read through
     /// SymmetricFactor::num_threads() (M6 W5 T8.8). Distinct from
@@ -221,4 +221,4 @@ class KktFactorization {
     int factor_flops_ = 0;
 };
 
-} // namespace hven
+} // namespace hven::detail

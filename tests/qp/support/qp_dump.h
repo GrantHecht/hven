@@ -6,7 +6,7 @@
 // qp_dump.h -- the loader for the M7 W2 E2-D4 QP dump corpus (format "D4QP 1", the contract in
 // tests/qp/fixtures/e2-d4/FORMAT.txt; the full 32-dump corpus is under
 // docs/notes/data/2026-09-m7-w2-e2-d4-feasible-qps/dumps/). A dump is one walk solve as a cell
-// made it: the QP, the engine's QpOptions, the solve's SolveOverrides, and the warm seed. The
+// made it: the QP, the engine's QpOptions, the solve's QpSolveOverrides, and the warm seed. The
 // in-cell outcome line is kept verbatim (`result`). Replaying a dump on a fresh QpEngine
 // reproduced the in-cell status and minors on every dump (E2-D4 REPORT).
 //
@@ -34,12 +34,12 @@
 namespace hven::test_support {
 
 struct QpDump {
-    hven::QpProblem qp;
+    hven::detail::QpProblem qp;
     hven::QpOptions opts;
     int threads = 0;
-    hven::SolveOverrides overrides;
+    hven::QpSolveOverrides overrides;
     bool has_seed = false;
-    hven::QpSolution seed;
+    hven::detail::QpSolution seed;
     std::string result; // the in-cell outcome line, verbatim
     Vec x_final;        // the in-cell solve's final iterate
 };
@@ -88,8 +88,8 @@ inline QpDump load_qp_dump(const std::string &path) {
             d.opts.max_schur_border_dimension = std::stol(t[5]);
             d.opts.schur_condition_max = num(t[6]);
             d.opts.working_set_algebra = std::stoi(t[7]) == 0
-                                             ? hven::WorkingSetLinearAlgebra::kRefactorize
-                                             : hven::WorkingSetLinearAlgebra::kSchurBorder;
+                                             ? hven::QpWorkingSetAlgebra::kRefactorize
+                                             : hven::QpWorkingSetAlgebra::kSchurBorder;
             d.opts.trust_region_radius = num(t[8]);
             d.opts.independent_working_set = std::stoi(t[9]) != 0;
             d.threads = std::stoi(t[10]);
@@ -184,8 +184,8 @@ inline QpDump load_qp_dump(const std::string &path) {
 }
 
 /// Re-solve the dump on a fresh engine, with the dumped options except those the caller changed.
-inline hven::QpSolution solve_qp_dump(const QpDump &d, const hven::QpOptions &opts) {
-    const hven::QpEngine engine(opts, d.threads);
+inline hven::detail::QpSolution solve_qp_dump(const QpDump &d, const hven::QpOptions &opts) {
+    const hven::detail::QpEngine engine(opts, d.threads);
     return d.has_seed ? engine.solve(d.qp, d.seed, d.overrides) : engine.solve(d.qp, d.overrides);
 }
 
@@ -207,8 +207,8 @@ struct QpDumpKkt {
     double scale = 1.0;
 };
 
-inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::QpSolution &s) {
-    const hven::QpProblem &qp = d.qp;
+inline QpDumpKkt qp_dump_kkt(const QpDump &d, const hven::detail::QpSolution &s) {
+    const hven::detail::QpProblem &qp = d.qp;
     const Index n = qp.n();
     QpDumpKkt k;
     Vec lo = qp.lower;

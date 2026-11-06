@@ -79,7 +79,7 @@ QpOptions tight_opts() {
 
 SqpOptions ipm_options(Index max_iter = 60) {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
+    o.qp_mode = QpMode::kIpqp;
     o.common.max_iterations = max_iter;
     return o;
 }
@@ -240,7 +240,7 @@ TEST(IpqpAcceptanceA1, TheWindowAtF7sOwnJunctionsIsRecoveredExactly) {
     const E1Cell cell = make_e1_cell(spec);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate);
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
@@ -294,7 +294,7 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
     ASSERT_EQ(cell.active_rows.size(), static_cast<std::size_t>(2 * kBand));
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate);
 
@@ -409,7 +409,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
 
     const IpqpSeed seed = base_warm_seed_from(got);
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(got.qp, &seed, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(got.qp, &seed, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kBaseWarm) << "the dumped state was consumed";
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
@@ -465,7 +465,7 @@ TEST(IpqpAcceptanceA3, BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarg
         ASSERT_GE(cell.active_lower.size(), 1u);
 
         IpqpEngine tier(tight_opts());
-        const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
         ASSERT_EQ(r.status, QpStatus::kOptimal);
         // E1's 40-iteration gate, EXCEPT at the tightest margin class, where the
         // T10b default measures 44 -- a DECLARED break of E1's gate on this one
@@ -534,7 +534,7 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
     const QpProblem qp = build_subproblem(model, x0, Vec::Zero(model.me()), Vec::Zero(model.mi()));
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal) << "the 2/8 dead population cells' named fix";
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate) << "in budget, at E1's own gate";
@@ -557,7 +557,7 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
 }
 
 // ---------------------------------------------------------------------------
-// A11 -- the HS leg under kIpm on the INDEFINITE rows, plus the QP family.
+// A11 -- the HS leg under kIpqp on the INDEFINITE rows, plus the QP family.
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -571,16 +571,16 @@ class AcceptanceTraceSink : public TraceSink {
         IpqpTraceEscapeReason reason;
         Index major;
     };
-    std::vector<IpqpTraceCertifyEvent> certifies;
+    std::vector<IpqpCertifyTraceEvent> certifies;
     std::vector<TaggedEscape> escapes;
     Index last_major = 0;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { last_major = e.major; }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { certifies.push_back(e); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override {
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { last_major = e.major; }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &e) override { certifies.push_back(e); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &e) override {
         escapes.push_back({e.reason, last_major});
     }
     void on_qp_mode(const QpModeTraceEvent &) override {}
@@ -592,7 +592,7 @@ class AcceptanceTraceSink : public TraceSink {
 /// the "not performed" 3), which the counter's 0 cannot say on its own.
 ::testing::AssertionResult every_final_read_agreed(const AcceptanceTraceSink &sink) {
     for (std::size_t k = 0; k < sink.certifies.size(); ++k) {
-        const IpqpTraceCertifyEvent &e = sink.certifies[k];
+        const IpqpCertifyTraceEvent &e = sink.certifies[k];
         if (e.final_inertia != IpqpTraceFinalInertia::kOk || e.downgraded) {
             return ::testing::AssertionFailure()
                    << "certify event " << k << " read " << static_cast<int>(e.final_inertia)
@@ -687,7 +687,7 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
         AcceptanceTraceSink sink;
         IpqpEngine tier(tight_opts());
         tier.attach_trace(&sink);
-        const IpqpResult r = tier.solve(row.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(row.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
         ASSERT_EQ(r.status, QpStatus::kOptimal);
         // THE INERTIA GATE FIRED: an indefinite Hessian cannot be stepped on
         // without a demanded modification, so the high-water mark is positive.
@@ -714,7 +714,7 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
 }
 
 // ---------------------------------------------------------------------------
-// T7's acceptance rows: the warm restart on a real continuation hop, kIpm.
+// T7's acceptance rows: the warm restart on a real continuation hop, kIpqp.
 // ---------------------------------------------------------------------------
 
 TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKillsNothing) {
@@ -730,7 +730,7 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
     SqpSolver warm_driver(ipm_options());
     const SqpResult warm =
         warm_driver.solve(hven::detail::problem_ref(model),
-                          SqpWarmAccess::state(seed.native_warm_start).x, seed.native_warm_start);
+                          SqpWarmAccess::state(seed.sqp_warm_start).x, seed.sqp_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
     SqpSolver cold_driver(ipm_options());
@@ -780,7 +780,7 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
             armed_detail += fmt::format(" hs{}={}", number, c.ipqp_iters_ladder_armed_no_advance);
         }
         armed_peak = std::max(armed_peak, c.ipqp_iters_ladder_armed_no_advance);
-        // TR-SHRINK-RETRY REACHABILITY under kIpm (T7 registered the question):
+        // TR-SHRINK-RETRY REACHABILITY under kIpqp (T7 registered the question):
         // a rejected major IS a shrink-and-re-solve, so a row with one is the
         // fixture T7 could not find.
         if (sol.counters.rejected_steps > 0) {

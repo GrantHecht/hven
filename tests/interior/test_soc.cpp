@@ -40,7 +40,7 @@
 #include "hven/core/errors.h"
 #include "solver_test_utils.h"
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/soc.h"
@@ -64,25 +64,25 @@
 
 namespace {
 
-using hven::AcceptanceStrategy;
-using hven::GlobalizationMechanism;
 using hven::Index;
 using hven::IpmIterate;
 using hven::IpmSolver;
-using hven::KktFactorization;
-using hven::kRecoveryDepthUnresolved;
-using hven::kSocRecommendedMaxCorrections;
-using hven::kSocViolationDecrease;
-using hven::NonLinearProgram;
-using hven::ProgressMeasures;
-using hven::RecoveryChain;
-using hven::soc_run_loop;
-using hven::soc_should_continue;
-using hven::soc_should_trigger;
-using hven::SocCorrectionOutcome;
-using hven::SocRecovery;
-using hven::SolverContext;
 using hven::SpMatRM;
+using hven::detail::AcceptanceStrategy;
+using hven::detail::GlobalizationMechanism;
+using hven::detail::KktFactorization;
+using hven::detail::kRecoveryDepthUnresolved;
+using hven::detail::kSocRecommendedMaxCorrections;
+using hven::detail::kSocViolationDecrease;
+using hven::detail::NonLinearProgram;
+using hven::detail::ProgressMeasures;
+using hven::detail::RecoveryChain;
+using hven::detail::soc_run_loop;
+using hven::detail::soc_should_continue;
+using hven::detail::soc_should_trigger;
+using hven::detail::SocCorrectionOutcome;
+using hven::detail::SocRecovery;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 using Action = RecoveryChain::Action;
@@ -343,7 +343,7 @@ class SocScriptedMechanism : public GlobalizationMechanism {
     explicit SocScriptedMechanism(std::vector<SocScriptedVerdict> verdicts)
         : verdicts_(std::move(verdicts)) {}
 
-    double compute_step(hven::LineSearchMode, double, double, double, double, Eigen::VectorXd &,
+    double compute_step(hven::IpmLineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         AcceptanceStrategy &, double &, double &, IpmIterate &,
                         const std::vector<IpmIterate> &, SolverContext &) override {
@@ -358,7 +358,7 @@ class SocScriptedMechanism : public GlobalizationMechanism {
         alphad = kScaledAlphaD;
     }
 
-    double run_acceptance_backtrack(hven::LineSearchMode, double, double, double, double,
+    double run_acceptance_backtrack(hven::IpmLineSearchMode, double, double, double, double,
                                     Eigen::VectorXd &, Eigen::VectorXd &DXSL, Eigen::VectorXd &,
                                     Eigen::VectorXd &, Eigen::VectorXd &, AcceptanceStrategy &,
                                     IpmIterate &Citer, const std::vector<IpmIterate> &,
@@ -402,7 +402,7 @@ struct SocDrive {
     std::shared_ptr<NonLinearProgram> program_;
     SpMatRM analyzed_pattern_;
     InertSolverContext inert_;
-    hven::EvalErrorLog errors_;
+    hven::detail::EvalErrorLog errors_;
 
     Eigen::VectorXd xsl_, dxsl_, xsl2_, rhs_, rhs2_;
     IpmIterate citer_;
@@ -429,7 +429,7 @@ struct SocDrive {
     explicit SocDrive(int max_soc, bool equality_only = false, double primal0 = 0.5,
                       double primal1 = 0.5) {
         problem_->equality_only_ = equality_only;
-        program_ = hven::make_nlp_program(problem_);
+        program_ = hven::detail::make_nlp_program(problem_);
 
         // The engine lays the KKT pattern before it evaluates; do the same so
         // the residual assemble below runs against an analysed program.
@@ -448,8 +448,8 @@ struct SocDrive {
         // The correction's own factor: the identity at the KKT dimension, so
         // solve() is exact and the corrected direction is -rhs_soc.
         KktFactorization::Options factor_opts;
-        factor_opts.kind = hven::linear::FactorKind::kLdlt;
-        factor_opts.num_threads = 1;
+        factor_opts.decomposition = hven::linear::Decomposition::kLdlt;
+        factor_opts.threads = 1;
         inert_.kkt_solver_.reconfigure(factor_opts);
         inert_.kkt_solver_.matrix() = soc_identity(program_->kkt_dim_);
         inert_.kkt_solver_.compute();
@@ -485,11 +485,11 @@ struct SocDrive {
     Action run(SocRecovery &soc, AcceptanceStrategy &acceptance,
                GlobalizationMechanism &mechanism) {
         SolverContext ctx = inert_.ctx();
-        return soc.on_step_rejected(citer_, iters_, ctx, acceptance, mechanism,
-                                    hven::LineSearchMode::kAugmentedLagrangian, /*obj_scale=*/1.0,
-                                    /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, xsl_, dxsl_,
-                                    xsl2_, rhs_, rhs2_, alpha_, alphap_, alphad_, soc_steps_,
-                                    resolved_depth_, watchdog_activations_);
+        return soc.on_step_rejected(
+            citer_, iters_, ctx, acceptance, mechanism,
+            hven::IpmLineSearchMode::kAugmentedLagrangian, /*obj_scale=*/1.0,
+            /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, xsl_, dxsl_, xsl2_, rhs_, rhs2_,
+            alpha_, alphap_, alphad_, soc_steps_, resolved_depth_, watchdog_activations_);
     }
 };
 

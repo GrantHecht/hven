@@ -28,10 +28,10 @@ namespace hven::detail {
 /// accelerate_set_num_threads() call, which is not restored on exit.
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads = 0) {
     hven::linear::SymmetricFactor::Options o;
-    o.kind = hven::linear::FactorKind::kLdlt;
-    o.num_threads = threads;
-    o.pivot_perturb_exp = std::nullopt;
-    o.max_refinement_iters = std::nullopt;
+    o.decomposition = hven::linear::Decomposition::kLdlt;
+    o.threads = threads;
+    o.pivot_perturbation_exponent = std::nullopt;
+    o.max_refinement_steps = std::nullopt;
     // Every remaining member keeps its default (don't-write / absent).
     return o;
 }

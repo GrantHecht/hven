@@ -9,6 +9,8 @@
 #include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 
+using namespace hven::detail;
+
 namespace hven {
 
 // The two public readers of the opaque SqpWarmStart (warmstart/sqp_warm_start.h).
@@ -16,10 +18,11 @@ bool SqpWarmStart::valid() const noexcept { return state_ != nullptr && state_->
 
 const Vec &SqpWarmStart::x() const noexcept { return detail::SqpWarmAccess::state(*this).x; }
 
-detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                                         const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
-                                         const Vec &lower, const Vec &upper,
-                                         const IpmCrossoverOptions &opts) {
+detail::SqpWarmState detail::from_interior_point(const Vec &x, const Vec &lambda_e,
+                                                 const Vec &lambda_i, const Vec &slack_i,
+                                                 const Vec &z_lower, const Vec &z_upper,
+                                                 const Vec &lower, const Vec &upper,
+                                                 const IpmCrossoverOptions &opts) {
     const Index n = x.size();
     const Index mi = lambda_i.size();
     if (slack_i.size() != mi) {
@@ -63,7 +66,7 @@ detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, cons
     // property of the vector, not of a row (this header's ACTIVITY INFERENCE
     // note).
     const double row_threshold =
-        detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_rel_tol);
+        detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_relative_tol);
     for (Index j = 0; j < mi; ++j) {
         const bool active = lambda_i(j) > opts.dual_tol && lambda_i(j) >= row_threshold;
         if (active) {
@@ -84,9 +87,9 @@ detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, cons
     // produce in the first place (an absent side marks a side nothing can be
     // active at).
     const double lower_threshold =
-        detail::ip_activity_threshold(z_lower, x - lower, opts.activity_rel_tol);
+        detail::ip_activity_threshold(z_lower, x - lower, opts.activity_relative_tol);
     const double upper_threshold =
-        detail::ip_activity_threshold(z_upper, upper - x, opts.activity_rel_tol);
+        detail::ip_activity_threshold(z_upper, upper - x, opts.activity_relative_tol);
     for (Index i = 0; i < n; ++i) {
         if (lower(i) == upper(i)) {
             // kFixed: sits at both bounds at once, not sign-constrained --

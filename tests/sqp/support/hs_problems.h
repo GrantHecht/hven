@@ -53,6 +53,8 @@
 
 #include <hven/detail/model/nlp_model.h>
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 namespace detail {

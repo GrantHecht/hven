@@ -32,6 +32,8 @@
 #include "support/e1_cells.h"
 #include "support/scale_problems.h"
 
+using namespace hven::detail;
+
 namespace hven::e1arm {
 
 using test_support::F7CollocationChain;
@@ -469,7 +471,7 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     qopts.trust_region_radius = std::numeric_limits<double>::infinity();
     IpqpEngine tier(qopts);
     const auto t0 = std::chrono::steady_clock::now();
-    const IpqpResult r = tier.solve(cell.qp, nullptr, iopts, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, iopts, QpSolveOverrides{});
     row.wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
     if (static_cast<Index>(r.ineq_face.size()) != row.mi) {
@@ -526,7 +528,7 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
         QpEngine polish(qopts);
         QpSolution refined;
         row.e2e_polished = polish.refine_on_face(cell.qp, ipqp_result_to_qp_solution(r),
-                                                 SolveOverrides{}, refined);
+                                                 QpSolveOverrides{}, refined);
         row.e2e_factorizations += refined.counters.factorizations;
         if (row.e2e_polished) {
             x_end = refined.x;

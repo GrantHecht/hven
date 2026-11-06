@@ -30,7 +30,7 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // Bookkeeping tag for one currently-live border, kept by the engine in
 // SchurComplement::add_border call order (so its position in this list
@@ -155,4 +155,4 @@ struct BorderOps {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail

@@ -248,9 +248,9 @@ TEST(CorpusCellsRunner, EngineSsnSelectsTheSemismoothKernelAndNothingElse) {
     EXPECT_EQ(w.common.feasibility_tol, s.common.feasibility_tol);
     EXPECT_EQ(w.common.max_iterations, s.common.max_iterations);
     EXPECT_EQ(w.qp.max_iterations, s.qp.max_iterations);
-    EXPECT_EQ(w.advanced.adaptive_mu, s.advanced.adaptive_mu);
+    EXPECT_EQ(w.advanced.adaptive_dual_regularization, s.advanced.adaptive_dual_regularization);
     EXPECT_EQ(w.advanced.warm_full_step, s.advanced.warm_full_step);
-    EXPECT_EQ(w.advanced.ssn_prox_carry, s.advanced.ssn_prox_carry)
+    EXPECT_EQ(w.advanced.ssn_proximal_carry, s.advanced.ssn_proximal_carry)
         << "the prox carry is a LEVER, not part of the "
            "engine selection -- it ships off in both";
 
@@ -571,7 +571,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     const detail::IpIterate it =
         detail::f7_ip_iterate(model, 0.85, detail::crossover_mu_for_n(12), x0);
     EXPECT_EQ(it.x, x0) << "the iterate carries the physics-informed primal, not x*";
-    const hven::detail::SqpWarmState crossover = hven::from_interior_point(
+    const hven::detail::SqpWarmState crossover = hven::detail::from_interior_point(
         it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper, model.lower(),
         model.upper(), hven::IpmCrossoverOptions{});
 
@@ -656,10 +656,10 @@ TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     hven::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p, 1.0);
     model.set_parameters(hven::Vec::Constant(1, cell.p));
     const hven::Vec x0 = model.start_point();
-    const hven::QpProblem expected =
-        hven::build_subproblem(model, x0, hven::Vec::Zero(model.me()), hven::Vec::Zero(model.mi()));
+    const hven::detail::QpProblem expected = hven::detail::build_subproblem(
+        model, x0, hven::Vec::Zero(model.me()), hven::Vec::Zero(model.mi()));
 
-    const hven::QpProblem actual = detail::first_qp_for_cell(cell);
+    const hven::detail::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_EQ(actual.n(), expected.n());
     EXPECT_EQ(actual.me(), expected.me());
     EXPECT_EQ(actual.mi(), expected.mi());
@@ -687,19 +687,19 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     ASSERT_EQ(seed.status, hven::SolveStatus::kOptimal);
 
     model.set_parameters(hven::Vec::Constant(1, cell.p));
-    const hven::QpProblem expected =
-        hven::build_subproblem(model, SqpWarmAccess::state(seed.native_warm_start).x,
-                               SqpWarmAccess::state(seed.native_warm_start).lambda_e,
-                               SqpWarmAccess::state(seed.native_warm_start).lambda_i);
+    const hven::detail::QpProblem expected =
+        hven::detail::build_subproblem(model, SqpWarmAccess::state(seed.sqp_warm_start).x,
+                                       SqpWarmAccess::state(seed.sqp_warm_start).lambda_e,
+                                       SqpWarmAccess::state(seed.sqp_warm_start).lambda_i);
 
-    const hven::QpProblem actual = detail::first_qp_for_cell(cell);
+    const hven::detail::QpProblem actual = detail::first_qp_for_cell(cell);
     EXPECT_TRUE(actual.g.isApprox(expected.g, 0.0));
     EXPECT_TRUE(actual.be.isApprox(expected.be, 0.0));
     EXPECT_TRUE(actual.bi.isApprox(expected.bi, 0.0));
     EXPECT_TRUE(actual.H.isApprox(expected.H, 0.0));
     // And distinguishing from the cold case above is the whole point of this
     // test: the warm multipliers are not all zero on this fixture.
-    EXPECT_GT(SqpWarmAccess::state(seed.native_warm_start).lambda_e.cwiseAbs().maxCoeff(), 0.0)
+    EXPECT_GT(SqpWarmAccess::state(seed.sqp_warm_start).lambda_e.cwiseAbs().maxCoeff(), 0.0)
         << "fixture must exercise a nonzero warm dual, or this test proves nothing";
 }
 
@@ -712,7 +712,8 @@ TEST(CorpusCellsRunner, FirstQpForCellFiresSetupCompleteExactlyOnceOnEveryTaxono
           StartTaxonomy::kActivityOnly, StartTaxonomy::kFullWarm}) {
         SCOPED_TRACE(to_string(t));
         int calls = 0;
-        const hven::QpProblem qp = detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
+        const hven::detail::QpProblem qp =
+            detail::first_qp_for_cell(tiny_cell(t), [&] { ++calls; });
         EXPECT_EQ(calls, 1);
         EXPECT_GT(qp.n(), 0);
     }
@@ -829,10 +830,10 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
     opts.common.feasibility_tol = 1e-8;
 
     hven::SqpSolver driver_a(opts);
-    const auto direct =
-        driver_a.solve(hven::detail::problem_ref(model), model.start_point(),
-                       SqpWarmAccess::wrap(hven::detail::SqpWarmState{}),
-                       hven::SolveBudget{.minor_budget = hven::corpus::detail::kMinorBudget});
+    const auto direct = driver_a.solve(
+        hven::detail::problem_ref(model), model.start_point(),
+        SqpWarmAccess::wrap(hven::detail::SqpWarmState{}),
+        hven::SolveBudget{.max_minor_iterations = hven::corpus::detail::kMinorBudget});
     hven::SqpSolver driver_b(opts);
     const auto via_helper =
         hven::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
@@ -845,7 +846,7 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
 
 TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // A tiny EXPLICIT budget (1 minor) on a fixture that genuinely needs more
-    // must stop at SolveStatus::kWorkLimit (kMaxIter before M8 AP-2 B3's declared
+    // must stop at SolveStatus::kWorkLimit (kIterationLimit before M8 AP-2 B3's declared
     // relabel) with probe_budget_stops == 1 --
     // sqp_solver_types.h's own documented contract -- rather than run to completion
     // or hang.
@@ -1923,7 +1924,7 @@ TEST(CorpusRunnerProcess, DumpQpWritesAParseableTripletFileMatchingTheCellsFirst
 
     const CorpusCell *cell = find_cell("f7_n1000_bound_neutral");
     ASSERT_NE(cell, nullptr);
-    const hven::QpProblem expected = detail::first_qp_for_cell(*cell);
+    const hven::detail::QpProblem expected = detail::first_qp_for_cell(*cell);
 
     EXPECT_EQ(parsed.n, expected.n());
     EXPECT_EQ(parsed.me, expected.me());
@@ -2440,7 +2441,7 @@ TEST(CorpusKktGate, OnlyRowsThatCLAIMOptimalAreJudged) {
     // re-checking it would manufacture wrong answers out of honest errors.
     using namespace kkt_gate_test;
     for (const hven::SolveStatus st :
-         {hven::SolveStatus::kMaxIter, hven::SolveStatus::kNumericalError,
+         {hven::SolveStatus::kIterationLimit, hven::SolveStatus::kNumericalError,
           hven::SolveStatus::kInfeasible, hven::SolveStatus::kWorkLimit}) {
         EXPECT_EQ(kkt_gate_verdict(row_with(1e3, 1e3, 1e3, 1e3, 1.0, 1.0, st)),
                   KktVerdict::kUnchecked);
@@ -2546,7 +2547,7 @@ TEST(CorpusGatePopulation, G1G2ReportBothKCorruptedReadingsFromTheSameRows) {
 
 TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows) {
     // M6 W1 T9 FIX ROUND 1 (review I2 / Codex 3). T7 measured the two
-    // path_warm cells' kIpm cost and registered T9 as the owner of the pin;
+    // path_warm cells' kIpqp cost and registered T9 as the owner of the pin;
     // this is the pin, read off the committed schema-76 artifact itself.
     // T10b RE-DERIVES both rows at the measured `ipqp_init_mu` (60/62 and
     // 46/48 at the 0.1 placeholder) and re-points the define at its own dated
@@ -3275,13 +3276,13 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
 // is informational (CLAUDE.md §7) and the leg's own comparator excludes it too.
 TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
     namespace corpus = hven::corpus;
-    using hven::FixedVariableTreatment;
+    using hven::IpmFixedVariableTreatment;
 
     const corpus::InteriorLevers levers;
     const corpus::InteriorRow routed = corpus::run_interior_single_row(
-        corpus::kHs071FixedCellId, FixedVariableTreatment::kMakeParameter, levers);
+        corpus::kHs071FixedCellId, IpmFixedVariableTreatment::kMakeParameter, levers);
     const corpus::InteriorRow leg = corpus::run_interior_hs071(
-        FixedVariableTreatment::kMakeParameter, levers, corpus::interior_base_variant());
+        IpmFixedVariableTreatment::kMakeParameter, levers, corpus::interior_base_variant());
 
     const std::vector<std::string> a = runner_test::split_all(corpus::interior_csv_row(routed));
     const std::vector<std::string> b = runner_test::split_all(corpus::interior_csv_row(leg));
@@ -3312,10 +3313,10 @@ TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
     // leg cannot state as an Nlp. Neither costs a solve, which is why
     // they ride along here rather than in a test of their own.
     EXPECT_THROW((void)corpus::run_interior_single_row(
-                     "not_a_cell_id", FixedVariableTreatment::kMakeParameter, levers),
+                     "not_a_cell_id", IpmFixedVariableTreatment::kMakeParameter, levers),
                  std::invalid_argument);
     EXPECT_THROW((void)corpus::run_interior_single_row(
-                     "f7_n1000_bound_warm", FixedVariableTreatment::kMakeParameter, levers),
+                     "f7_n1000_bound_warm", IpmFixedVariableTreatment::kMakeParameter, levers),
                  std::invalid_argument);
 }
 

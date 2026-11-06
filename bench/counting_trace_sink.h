@@ -30,12 +30,12 @@ namespace hven::corpus {
 /// returns. The per-site counts ARE the evidence that each mapper site fired.
 class CountingTraceSink final : public TraceSink {
   public:
-    void on_ipqp_iter(const hven::IpqpTraceIterEvent &) override { ++ipqp_iter_; }
-    void on_ipqp_reg(const hven::IpqpTraceRegEvent &) override { ++other_; }
-    void on_ipqp_restart(const hven::IpqpTraceRestartEvent &) override { ++other_; }
-    void on_ipqp_route(const hven::IpqpTraceRouteEvent &) override { ++other_; }
-    void on_ipqp_certify(const hven::IpqpTraceCertifyEvent &) override { ++other_; }
-    void on_ipqp_escape(const hven::IpqpTraceEscapeEvent &) override { ++other_; }
+    void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override { ++ipqp_iter_; }
+    void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override { ++other_; }
+    void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override { ++other_; }
+    void on_ipqp_route(const hven::IpqpRouteTraceEvent &) override { ++other_; }
+    void on_ipqp_certify(const hven::IpqpCertifyTraceEvent &) override { ++other_; }
+    void on_ipqp_escape(const hven::IpqpEscapeTraceEvent &) override { ++other_; }
     void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {
         ++fallback_verdict_;
     }
@@ -53,19 +53,19 @@ class CountingTraceSink final : public TraceSink {
     /// mapper's call sites executed.
     void on_qp_mode(const QpModeTraceEvent &event) override {
         switch (event.site) {
-        case QpModeSite::kDispatch:
+        case QpTraceModeSite::kDispatch:
             ++dispatch;
             break;
-        case QpModeSite::kSsnWarmGrade:
+        case QpTraceModeSite::kSsnWarmGrade:
             ++ssn_warm_grade;
             break;
-        case QpModeSite::kFallbackRungB:
+        case QpTraceModeSite::kFallbackRungB:
             ++fallback_rung_b;
             break;
-        case QpModeSite::kElasticRung:
+        case QpTraceModeSite::kElasticRung:
             ++elastic_rung;
             break;
-        case QpModeSite::kSocResolve:
+        case QpTraceModeSite::kSocResolve:
             ++soc_resolve;
             break;
         // M7 W2 M1 added this site with SqpOptions::qp_cap_retry, which ships
@@ -75,7 +75,7 @@ class CountingTraceSink final : public TraceSink {
         // is what proves "attached and reached" for a site no named column
         // reports, and promoting it to a column is the job of whichever task
         // first measures the retry lever.
-        case QpModeSite::kCapRetry:
+        case QpTraceModeSite::kCapRetry:
             ++other_;
             break;
         }

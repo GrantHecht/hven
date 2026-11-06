@@ -68,14 +68,14 @@ using hven::kRequestLagrangianHessian;
 using hven::kRequestObjectiveAndConstraints;
 using hven::kRequestObjectiveGradientAndConstraints;
 using hven::kRequestObjectiveOnly;
-using hven::NlpModel;
-using hven::NlpModelAssembly;
 using hven::RhsArenaView;
 using hven::RhsLocationTable;
 using hven::RhsScatterView;
 using hven::SpMatRM;
 using hven::StructureEpoch;
 using hven::Vec;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
 
 namespace {
 

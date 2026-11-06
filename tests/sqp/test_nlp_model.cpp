@@ -36,9 +36,9 @@
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 using hven::Index;
-using hven::NlpModel;
 using hven::SpMatRM;
 using hven::Vec;
+using hven::detail::NlpModel;
 using hven::test_support::assert_gradient;
 using hven::test_support::assert_hessian;
 using hven::test_support::assert_jacobians;

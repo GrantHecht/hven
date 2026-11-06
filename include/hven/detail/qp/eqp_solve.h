@@ -173,9 +173,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
-
-namespace detail {
+namespace hven::detail {
 
 // THE SHARED REFINEMENT BUDGET AND FLOOR. Both EQP paths refine under one
 // rule, so both read one pair of constants; they live in the header
@@ -286,8 +284,6 @@ constexpr double kEqpPolishStepCap = 1e-6;
 // already refined once) and it is entered only at a would-be-kInfeasible dead
 // end, so every step it takes is one the verdict asked for.
 constexpr Index kMaxVerdictRefineSteps = 10;
-
-} // namespace detail
 
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
@@ -647,4 +643,4 @@ inline Index polish_eqp_unregularized(const QpProblem &qp, const WorkingSet &ws,
     return kept;
 }
 
-} // namespace hven
+} // namespace hven::detail

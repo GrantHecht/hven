@@ -21,7 +21,7 @@ namespace hven {
 /// @brief The verdict on ONE QP subproblem solve.
 enum class QpStatus {
     kOptimal = 0,
-    kMaxIter = 1,
+    kIterationLimit = 1,
     kInfeasible = 2,
     kNumericalError = 3,
 };
@@ -37,17 +37,17 @@ enum class QpStatus {
 /// kInfeasible has two shapes on the SQP engine, told apart only by
 /// SolveResult::infeasibility_certified:
 /// - Certified: the restoration phase reached a stationary point of the
-///   infeasibility measure h at which h is still above feas_tol (the
+///   infeasibility measure h at which h is still above feasibility_tol (the
 ///   Byrd-Curtis-Nocedal rapid-detection conclusion). No direction reduces the
 ///   constraint violation from the returned point, so `x` is a local
 ///   certificate that the problem is infeasible there.
-/// - Not certified: the sub-solve converged with h above feas_tol but the
+/// - Not certified: the sub-solve converged with h above feasibility_tol but the
 ///   certificate gate refused it (restoration_proximity > 0), or the
 ///   inconsistent-equalities exit. No claim is made about the model.
 /// An unserviceable restoration request (nested, or refused by the entry rule)
 /// is kNumericalError, never kInfeasible.
 ///
-/// A solve that exhausts its major-iteration cap reports kMaxIter;
+/// A solve that exhausts its major-iteration cap reports kIterationLimit;
 /// SolveResult::returned_best_iterate says whether the point returned is the
 /// best iterate (SqpOptions::return_best_on_max_iterations) rather than the last one reached.
 ///
@@ -60,7 +60,7 @@ enum class QpStatus {
 enum class SolveStatus {
     kOptimal = 0,
     kAcceptable = 1,
-    kMaxIter = 2,
+    kIterationLimit = 2,
     kInfeasible = 3,
     kStalled = 4,
     kDiverging = 5,
@@ -68,7 +68,7 @@ enum class SolveStatus {
     // 7 is retired; the remaining values keep their numbers.
     kInterrupted = 8,
     /// A deterministic work ceiling was reached: `CommonOptions::max_factorizations`
-    /// on either engine, or the SQP engine's `SolveBudget::minor_budget`. Read at
+    /// on either engine, or the SQP engine's `SolveBudget::max_minor_iterations`. Read at
     /// iteration boundaries; the point returned is the iterate the solve stood on.
     kWorkLimit = 9,
     /// `CommonOptions::time_limit_seconds` was reached. Wall-clock, therefore NOT
@@ -78,17 +78,16 @@ enum class SolveStatus {
 };
 
 /// @brief A restoration SUB-SOLVE's own terminal status AS A COUNTER, with an
-///        explicit "never ran" zero (M7 W2 M3a fix1).
+///        explicit "never ran" zero.
 ///
 /// SolveStatus's ten values plus kNotRun, which is the DEFAULT and the whole
 /// reason this enum exists. `SqpCounters::restoration_sub_status` is a field on
-/// a record that most solves never write: the first draft of it was a bare
-/// SolveStatus defaulting to the enum's zero, `kOptimal`, with absence read off
-/// `restoration_entries == 0` -- and a never-restored solve then PRINTS
-/// `optimal` on its trace, which is a legal success value doing duty as an
-/// absence. The review called that a consumer hazard and it is one: a reader
-/// who takes this key without the count reads "the feasibility sub-solve
-/// converged" off a solve that never ran one. Here the zero says so itself.
+/// a record that most solves never write; a bare SolveStatus defaulting to the
+/// enum's zero, `kOptimal`, would PRINT `optimal` on a never-restored solve's
+/// trace -- a legal success value doing duty as an absence, so a reader who
+/// takes this key without `restoration_entries` would read "the feasibility
+/// sub-solve converged" off a solve that never ran one. Here the zero says so
+/// itself.
 ///
 /// THE OTHER ELEVEN ARE SolveStatus's, ONE FOR ONE, under the same names and the
 /// same spellings (`to_string` below is `to_string(SolveStatus)`'s alphabet
@@ -99,7 +98,7 @@ enum class SolveStatus {
 /// image for the ones it omitted, and both are how a silent mistranslation
 /// gets in. WHICH ARE REACHABLE is stated where it belongs, on the
 /// counter's own note in `core/solver_counters.h`: kOptimal, kInfeasible,
-/// kMaxIter, kInterrupted and kNumericalError, plus kWorkLimit and kTimeLimit
+/// kIterationLimit, kInterrupted and kNumericalError, plus kWorkLimit and kTimeLimit
 /// when a limit is set. The remaining four are here for
 /// the map's totality and have never been observed on this field.
 enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
@@ -111,7 +110,7 @@ enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
     kNotRun = 0,
     kOptimal = 1,
     kAcceptable = 2,
-    kMaxIter = 3,
+    kIterationLimit = 3,
     kInfeasible = 4,
     kStalled = 5,
     kDiverging = 6,
@@ -128,10 +127,10 @@ enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
 /// happened. Recorded per phase and reset at each phase start.
 enum class IpmStopReason {
     kNone = 0,
-    kIterationCap = 1,
+    kIterationLimit = 1,
     kRestorationLocallyInfeasible = 2,
     kStageStalled = 3,
-    /// The per-iteration callback returned CallbackAction::kStop (M6 W5 T8.6).
+    /// The per-iteration callback returned CallbackAction::kStop.
     /// A CALLER'S DECISION, not a verdict about the problem -- which is why it
     /// is a stop reason and why resolve_ipm_phase_status still lets a verdict
     /// the convergence check already holds win over it.
@@ -168,7 +167,7 @@ enum class IpmStopReason {
 ///        counterpart of IpmStopReason, read through
 ///        SqpSolver::last_stop_reason().
 ///
-/// kNone means the status names the cause on its own (kOptimal, kMaxIter,
+/// kNone means the status names the cause on its own (kOptimal, kIterationLimit,
 /// kWorkLimit, kTimeLimit and a certified kInfeasible). Every other value
 /// names which of the engine's exits produced the status beside it.
 enum class SqpStopReason {
@@ -214,12 +213,11 @@ enum class SqpStopReason {
 };
 
 /// @brief WHICH DIAGNOSTIC MESSAGE the interior-point engine emitted (schema
-///        `ipm.message`, M6 W5 T8.7b).
+///        `ipm.message`).
 ///
-/// Until this task these were nine `fmt::print` calls inside the solver, guarded
-/// by `CommonOptions::print_level`. They are events now: the console renders
-/// them at the tier the guard used to apply, and a caller's own sink receives
-/// the fact instead of losing it to stdout.
+/// These are events, not prints: the console renders them at the tier
+/// `CommonOptions::print_level` selects, and a caller's own sink receives the
+/// fact instead of losing it to stdout.
 ///
 /// EIGHT WARNINGS AND ONE NOTICE. The first is not a warning at all --
 /// `ensure_solver_initialized()` runs INSIDE the solve, after `ipm.solve.begin`,
@@ -266,7 +264,7 @@ enum class IpmMessageKind {
 /// @brief The last non-Success factorization status the interior-point engine
 ///        observed during one solve (schema `ipm.phase.exit`'s `last_kkt_info`).
 ///
-/// A NAMED VOCABULARY, NOT THE BACKEND'S RAW INTEGER (M6 W5 T8.7b): the value
+/// A NAMED VOCABULARY, NOT THE BACKEND'S RAW INTEGER: the value
 /// the engine records is an `Eigen::ComputationInfo`, and writing that integer
 /// onto the trace would make `ipm.phase.exit` the schema's only raw-integer
 /// enum. The mapping is the identity on the four names; `kNoConvergence` has
@@ -329,7 +327,7 @@ const char *to_string(SqpStopReason reason);
 
 /// @brief The reporting order over all ten statuses, weakest verdict first.
 ///
-/// kOptimal < kAcceptable < kInterrupted < kMaxIter < kWorkLimit < kTimeLimit <
+/// kOptimal < kAcceptable < kInterrupted < kIterationLimit < kWorkLimit < kTimeLimit <
 /// kStalled < kInfeasible < kDiverging < kNumericalError. A
 /// reporting order only.
 ///
@@ -337,14 +335,5 @@ const char *to_string(SqpStopReason reason);
 /// @return Its rank, 0 through 9; distinct for every status.
 /// @throws std::invalid_argument if @p status is not one of the ten.
 int severity(SolveStatus status);
-
-// hven::SqpStatus -- the SQP engine's own five-value verdict enum --
-// was REMOVED in M6 W5 T8.4. Its five enumerators ARE the first five of
-// SolveStatus above, under the same names, so the substitution was textual.
-// Its display strings were the CAPITALISED Optimal / MaxIter / Infeasible /
-// NumericalError / BudgetExhausted; to_string(SolveStatus) spells all nine in
-// lower snake, and the capitalised vocabulary survives only where committed
-// artifacts are pinned to those bytes -- bench-local, as
-// corpus::legacy_status_string.
 
 } // namespace hven

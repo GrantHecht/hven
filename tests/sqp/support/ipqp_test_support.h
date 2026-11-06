@@ -22,6 +22,8 @@
 #include <hven/drivers/trace.h>
 #include <hven/qp/qp_types.h>
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 /// Asserts the five-way escape census sums to `ipqp_escapes` (plan section 7
@@ -233,7 +235,7 @@ inline IpqpResult w2_escaped(const QpProblem &qp,
     if (sink != nullptr) {
         tier.attach_trace(sink);
     }
-    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    return tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
 }
 
 } // namespace hven::test_support

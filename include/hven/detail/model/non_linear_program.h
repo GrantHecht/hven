@@ -42,7 +42,7 @@
 #include "hven/model/nlp_assembly.h"
 #include "hven/model/objective_function.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Smallest per-partition KKT element count worth dispatching for. Below it the
 /// thread-dispatch overhead dominates the work, so the partition count is capped
@@ -466,7 +466,8 @@ struct NonLinearProgram : public NlpAssembly {
     ///         is fixed (the pair would be pushed nowhere and the barrier would
     ///         divide by zero), and, under MakeParameter only, for a problem all
     ///         of whose variables are fixed.
-    bool configure_variable_treatment(FixedVariableTreatment treatment, double bound_relax_factor);
+    bool configure_variable_treatment(IpmFixedVariableTreatment treatment,
+                                      double bound_relax_factor);
 
     /// Width of the primal block of the KKT system the solver factorizes:
     /// primal_vars_ minus the eliminated variables. This is the size of every
@@ -558,7 +559,7 @@ struct NonLinearProgram : public NlpAssembly {
     // IpmSolver::SolveResult::fixed_variable_treatment_.
 
     /// Selected treatment, as last configured.
-    FixedVariableTreatment variable_treatment_ = FixedVariableTreatment::kMakeParameter;
+    IpmFixedVariableTreatment variable_treatment_ = IpmFixedVariableTreatment::kMakeParameter;
     /// Relax factor, as last configured.
     double bound_relax_factor_ = 0.0;
 
@@ -1696,4 +1697,4 @@ struct NonLinearProgram : public NlpAssembly {
     bool ever_laid_ = false;
 };
 
-} // namespace hven
+} // namespace hven::detail

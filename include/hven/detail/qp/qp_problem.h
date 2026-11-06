@@ -29,7 +29,7 @@
 #include <hven/detail/model/absent_bound.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The quadratic program solved by the SQP inner loop (see the
 /// formulation and multiplier sign convention in the file header).
@@ -191,4 +191,4 @@ struct QpSolution {
     QpFarkasCertificate farkas;
 };
 
-} // namespace hven
+} // namespace hven::detail

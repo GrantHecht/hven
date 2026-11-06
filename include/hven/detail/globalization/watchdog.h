@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/drivers/ipm_iterate.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// Watchdog constants (Chamberlain, Powell, Lemaréchal & Pedersen 1982;
 /// values per the reference interior-point implementation in
@@ -56,7 +56,7 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
 
     Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
@@ -197,7 +197,7 @@ class WatchdogRecovery : public RecoveryChain {
 
     Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
@@ -247,7 +247,7 @@ class ChainedRecovery : public RecoveryChain {
 
     Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, LineSearchMode lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
@@ -275,4 +275,4 @@ class ChainedRecovery : public RecoveryChain {
     std::unique_ptr<RecoveryChain> extended_;
 };
 
-} // namespace hven
+} // namespace hven::detail

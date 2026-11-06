@@ -53,7 +53,7 @@ TEST(AuditRuntimeShim, RecordsBackendPhasesAtAll) {
 
     RecordingWindow window;
     hl::SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     hl::SymmetricFactor engine(opts);
     engine.analyze(fx.K);
     ASSERT_EQ(engine.factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
@@ -75,7 +75,7 @@ TEST(AuditRuntimeShim, RecordsNothingOutsideAWindow) {
     BackendRecorder::instance().clear();
     const Fixture fx = pd_on_face_kkt(4, 1);
     hl::SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     hl::SymmetricFactor engine(opts);
     engine.analyze(fx.K);
     ASSERT_EQ(engine.factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
@@ -89,8 +89,8 @@ TEST(AuditRuntimeShim, FindsTheRefinementCapRuleAroundAPhaseSplitSolve) {
 
     constexpr int kConfiguredCap = 2;
     hl::SymmetricFactor::Options opts;
-    opts.num_threads = 1;
-    opts.max_refinement_iters = kConfiguredCap;
+    opts.threads = 1;
+    opts.max_refinement_steps = kConfiguredCap;
 
     RecordingWindow window;
     hl::SymmetricFactor engine(opts);

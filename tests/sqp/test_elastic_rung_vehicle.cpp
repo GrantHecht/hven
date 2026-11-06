@@ -5,7 +5,7 @@
 // FIRES the elastic rung at F7 scale, and the WALK's measured cost on rung A.
 //
 // The vehicle and why it had to be built are in support/elastic_rung_vehicle.h.
-// The pin here is the one the step-2a brief asks for: under `qp_mode = kIpm`,
+// The pin here is the one the step-2a brief asks for: under `qp_mode = kIpqp`,
 // `elastic_from_ipqp_escape >= 1` at every size -- i.e. the cell really does
 // reach the certified fallback's rung A, which no natural F7 population does.
 //
@@ -107,29 +107,29 @@ std::vector<Index> sizes_for_this_process() {
 // `elastic_from_ipqp_escape = 2` at every size. That asymmetry is a finding, not
 // an artefact of the budget, and the printed row below carries every one of
 // those columns so a reader counts rather than assumes.
-constexpr int kMaxIter = 1;
+constexpr int kIterationLimit = 1;
 
-SqpOptions vehicle_options(ElasticRungEngine rung = ElasticRungEngine::kWalk) {
+SqpOptions vehicle_options(SqpElasticRungEngine rung = SqpElasticRungEngine::kWalk) {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
+    o.qp_mode = QpMode::kIpqp;
     o.advanced.elastic_rung_engine = rung;
-    o.common.max_iterations = kMaxIter;
+    o.common.max_iterations = kIterationLimit;
     o.common.threads = 1;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     o.advanced.equality_basis = false;
     return o;
 }
 
-const char *engine_name(ElasticRungEngine e) {
-    return e == ElasticRungEngine::kWalk ? "walk" : "tier";
+const char *engine_name(SqpElasticRungEngine e) {
+    return e == SqpElasticRungEngine::kWalk ? "walk" : "tier";
 }
 
 /// One `qp.mode` line, kept whole: the ladder emits one per rung.
 struct ModeLine {
-    IpqpTraceQpMode mode = IpqpTraceQpMode::kIpqp;
-    IpqpTraceOutcome outcome = IpqpTraceOutcome::kOptimal;
+    QpTraceMode mode = QpTraceMode::kIpqp;
+    QpTraceOutcome outcome = QpTraceOutcome::kOptimal;
     Index iters = 0;
-    QpModeSite site = QpModeSite::kDispatch;
+    QpTraceModeSite site = QpTraceModeSite::kDispatch;
 };
 
 class RungSink : public TraceSink {
@@ -137,12 +137,12 @@ class RungSink : public TraceSink {
     std::vector<ModeLine> modes;
     std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &e) override {
         modes.push_back(ModeLine{e.mode, e.outcome, e.iters, e.site});
     }
@@ -188,7 +188,7 @@ RungReading read_rungs(const RungSink &sink, const Ledger &ledger, const SqpCoun
     std::vector<std::size_t> walk;
     walk.reserve(sink.modes.size());
     for (std::size_t k = 0; k < sink.modes.size(); ++k) {
-        if (sink.modes[k].mode == IpqpTraceQpMode::kWalk) {
+        if (sink.modes[k].mode == QpTraceMode::kWalk) {
             walk.push_back(k);
         }
     }
@@ -209,18 +209,18 @@ RungReading read_rungs(const RungSink &sink, const Ledger &ledger, const SqpCoun
     Index walk_rung_facts = 0;
     for (std::size_t k = 0; k < sink.modes.size(); ++k) {
         const ModeLine &m = sink.modes[k];
-        if (m.site != QpModeSite::kElasticRung) {
+        if (m.site != QpTraceModeSite::kElasticRung) {
             continue;
         }
         ++r.rungs;
         r.rung_minors += m.iters;
         r.rung_max_minors = std::max(r.rung_max_minors, m.iters);
-        r.rung_not_optimal += m.outcome == IpqpTraceOutcome::kOptimal ? 0 : 1;
-        r.tier_rungs += m.mode == IpqpTraceQpMode::kIpqp ? 1 : 0;
+        r.rung_not_optimal += m.outcome == QpTraceOutcome::kOptimal ? 0 : 1;
+        r.tier_rungs += m.mode == QpTraceMode::kIpqp ? 1 : 0;
     }
     if (consistent) {
         for (std::size_t j = 0; j < walk.size(); ++j) {
-            if (sink.modes[walk[j]].site == QpModeSite::kElasticRung) {
+            if (sink.modes[walk[j]].site == QpTraceModeSite::kElasticRung) {
                 walk_rung_facts += recs[j].counters.factorizations;
             }
         }
@@ -278,7 +278,7 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 //
 // THE HAZARD. The walk ignores a trust-region override at this call site -- the
 // window is already folded into the elastic box, and the ladder passes a DEFAULT
-// `SolveOverrides` precisely so the slack columns are not capped a second time.
+// `QpSolveOverrides` precisely so the slack columns are not capped a second time.
 // The tier does not ignore it: `ipqp_effective_tr_radius` resolves the `+inf`
 // sentinel to the engine's OWN `opts.tr_radius`, and `make_ipqp_box` then windows
 // every one of the `n + ns` columns around `clamp(0, l, u)` -- slacks included.
@@ -299,7 +299,7 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 TEST(M7T3ElasticRungVehicle, TheTierRungIsImmuneToTheDriversTrustRegionRadius) {
     auto run = [](double qp_tr_radius) {
         F7InconsistentChain model(100);
-        SqpOptions o = vehicle_options(ElasticRungEngine::kTier);
+        SqpOptions o = vehicle_options(SqpElasticRungEngine::kTier);
         o.qp.trust_region_radius = qp_tr_radius;
         SqpSolver driver(o);
         RungSink sink;
@@ -360,7 +360,7 @@ TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothE
     // cell's instruction count means running one cell per process. Neither can widen the
     // sweep and neither changes an assertion.
     const char *only = std::getenv("HVEN_M7T3_ENGINE");
-    for (ElasticRungEngine rung : {ElasticRungEngine::kWalk, ElasticRungEngine::kTier}) {
+    for (SqpElasticRungEngine rung : {SqpElasticRungEngine::kWalk, SqpElasticRungEngine::kTier}) {
         if (only != nullptr && *only != '\0' && std::string(only) != engine_name(rung)) {
             continue;
         }
@@ -396,9 +396,9 @@ TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothE
             EXPECT_GE(sol.counters.elastic_activations, sol.counters.elastic_from_ipqp_escape)
                 << "every fallback-route activation is an activation";
             ASSERT_GE(r.rungs, 1) << "fixture premise: the ladder emitted its own qp.mode lines";
-            EXPECT_EQ(r.tier_rungs, rung == ElasticRungEngine::kTier ? r.rungs : 0)
+            EXPECT_EQ(r.tier_rungs, rung == SqpElasticRungEngine::kTier ? r.rungs : 0)
                 << "the toggle decides WHICH kernel runs every rung, and the qp.mode line names it";
-            if (rung == ElasticRungEngine::kWalk) {
+            if (rung == SqpElasticRungEngine::kWalk) {
                 EXPECT_EQ(r.residual_facts, 0)
                     << "THE ATTRIBUTION IDENTITY, validated where its answer is known: with no "
                        "elastic tier running, every factorization in SqpCounters is either the "

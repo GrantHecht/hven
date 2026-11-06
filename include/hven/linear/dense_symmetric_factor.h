@@ -160,7 +160,7 @@ class DenseSymmetricFactor {
     // passed).
     std::optional<BunchKaufmanBlockEvidence> block_evidence() const;
 
-    // Point this factor at a thread count for its LAPACK calls (M6 W5 T8.8).
+    // Point this factor at a thread count for its LAPACK calls.
     //
     // THE SPARSE SURFACE'S SEMANTICS, VERBATIM (symmetric_factor.h): 0 leaves
     // the backend's own default alone; a positive value is applied AT CALL
@@ -177,10 +177,10 @@ class DenseSymmetricFactor {
     // LAPACK is Accelerate's, which exposes no restorable thread-local
     // equivalent (see hven/detail/linear/thread_scope.h). No Apple value is
     // estimated anywhere.
-    void set_num_threads(int num_threads);
+    void set_threads(int threads);
 
     // The count this factor applies at its next LAPACK call; 0 by default.
-    int num_threads() const noexcept;
+    int threads() const noexcept;
 
   private:
     // Shared factorization core behind all three entry points above:
@@ -196,12 +196,12 @@ class DenseSymmetricFactor {
     Index dim_ = 0;
     Triangle triangle_ = Triangle::kUpper;
 
-    // The call-scoped thread count (M6 W5 T8.8). NOT frozen at construction --
+    // The call-scoped thread count. NOT frozen at construction --
     // it is the one setting on this class a caller may move mid-life, for the
-    // same reason SymmetricFactor::Options::num_threads is: LAPACK reads it at
+    // same reason SymmetricFactor::Options::threads is: LAPACK reads it at
     // call scope and no cached state depends on it. It is deliberately NOT an
     // Options struct: this class has none, and one field does not earn one.
-    int num_threads_ = 0;
+    int threads_ = 0;
 
     bool factorized_ = false;
 };

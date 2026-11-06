@@ -300,7 +300,7 @@ template <class... T> struct TupleOfTempSpecs {
 struct BumpAllocator {
     using ScalarStackType = detail::BumpStack<double>; ///< @internal Scalar arena type.
     /// @internal @brief SuperScalar arena type.
-    using SuperScalarStackType = detail::BumpStack<hven::DefaultSuperScalar>;
+    using SuperScalarStackType = detail::BumpStack<hven::detail::DefaultSuperScalar>;
 
     /// @brief Allocate temporaries and invoke `f` with them.
     ///
@@ -350,7 +350,7 @@ struct BumpAllocator {
         if constexpr (std::is_same_v<Scalar, double>) {
             return BumpAllocator::ScalarStack;
         } else {
-            static_assert(std::is_same_v<Scalar, hven::DefaultSuperScalar>,
+            static_assert(std::is_same_v<Scalar, hven::detail::DefaultSuperScalar>,
                           "get_stack: unsupported Scalar — only double and the default "
                           "SuperScalar have arenas");
             return BumpAllocator::SuperScalarStack;

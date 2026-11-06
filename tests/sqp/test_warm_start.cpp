@@ -10,7 +10,7 @@
 //       HS7's own bound-free, inequality-free shape, and the
 //       globalization/regularization fields actually set (not left at their
 //       "unset" sentinels).
-//   (b) a solve that stops on kMaxIter (never converges) still emits a valid
+//   (b) a solve that stops on kIterationLimit (never converges) still emits a valid
 //       warm object whose x is the point the last history row describes --
 //       i.e. the driver's best-known iterate, not a stale or cleared one.
 //   (c) structure_hash is a pure function of the model's H/Ae/Ai SPARSITY:
@@ -77,7 +77,7 @@ TEST(WarmStart, SolvedHs7PopulatesEveryField) {
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.native_warm_start);
+    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.sqp_warm_start);
 
     EXPECT_TRUE(w.valid);
 
@@ -122,7 +122,7 @@ TEST(WarmStart, SolvedHs7PopulatesEveryField) {
     EXPECT_NE(w.structure_hash, 0u);
 }
 
-// (b) A solve that NEVER converges (kMaxIter) still emits a valid warm
+// (b) A solve that NEVER converges (kIterationLimit) still emits a valid warm
 // object, and its x is the driver's own best-known (i.e. last-reported)
 // iterate -- checked against the history the same solve produced, which is
 // exactly what a caller re-deriving "did this warm object describe the point
@@ -134,7 +134,9 @@ TEST(WarmStart, MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate) {
     class AcceptEverything final : public GlobalizationStrategy {
       public:
         void reset(double) override {}
-        StepVerdict judge(const StepContext &) override { return StepVerdict::kAcceptF; }
+        StepVerdict judge(const StepContext &) override {
+            return StepVerdict::kAcceptObjectiveStep;
+        }
     };
 
     const auto p = make_hs(5);
@@ -148,15 +150,15 @@ TEST(WarmStart, MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate) {
     const SqpResult sol =
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
-    ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sol.status, SolveStatus::kIterationLimit);
     ASSERT_FALSE(sol.history.empty());
 
-    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.native_warm_start);
+    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.sqp_warm_start);
     EXPECT_TRUE(w.valid);
     ASSERT_EQ(w.x.size(), sol.x.size());
     EXPECT_EQ(w.x, sol.x);
 
-    // sol.x IS the best-known iterate on a kMaxIter exit stopped AT an
+    // sol.x IS the best-known iterate on a kIterationLimit exit stopped AT an
     // iterate (sqp_solver_types.h's SqpCounters note): the LAST history row
     // describes that exact point, so its recorded f must match the model's
     // f at warm_start.x bit-for-bit (both are the SAME ev.f, never
@@ -200,13 +202,13 @@ TEST(WarmStart, StructureHashMatchesSameModelDiffersAcrossModels) {
     ASSERT_EQ(sol_b.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol_c.status, SolveStatus::kOptimal);
 
-    ASSERT_NE(SqpWarmAccess::state(sol_a.native_warm_start).structure_hash, 0u);
-    ASSERT_NE(SqpWarmAccess::state(sol_c.native_warm_start).structure_hash, 0u);
-    EXPECT_EQ(SqpWarmAccess::state(sol_a.native_warm_start).structure_hash,
-              SqpWarmAccess::state(sol_b.native_warm_start).structure_hash)
+    ASSERT_NE(SqpWarmAccess::state(sol_a.sqp_warm_start).structure_hash, 0u);
+    ASSERT_NE(SqpWarmAccess::state(sol_c.sqp_warm_start).structure_hash, 0u);
+    EXPECT_EQ(SqpWarmAccess::state(sol_a.sqp_warm_start).structure_hash,
+              SqpWarmAccess::state(sol_b.sqp_warm_start).structure_hash)
         << "two solves of the SAME model must agree";
-    EXPECT_NE(SqpWarmAccess::state(sol_a.native_warm_start).structure_hash,
-              SqpWarmAccess::state(sol_c.native_warm_start).structure_hash)
+    EXPECT_NE(SqpWarmAccess::state(sol_a.sqp_warm_start).structure_hash,
+              SqpWarmAccess::state(sol_c.sqp_warm_start).structure_hash)
         << "HS7 and HS10 have different constraint-block shapes and Hessian sparsity";
 }
 
@@ -231,28 +233,28 @@ TEST(WarmStart, ZeroMajorSolveEmitsTheSameStructureHashAsABuiltSubproblem) {
         built_driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(built.status, SolveStatus::kOptimal);
     ASSERT_GT(built.counters.major_iters, 0) << "this arm is the subproblem-BUILDING comparator";
-    ASSERT_NE(SqpWarmAccess::state(built.native_warm_start).structure_hash, 0u);
+    ASSERT_NE(SqpWarmAccess::state(built.sqp_warm_start).structure_hash, 0u);
 
     // Re-solving AT the answer converges on the very first convergence test,
     // so no subproblem is ever built -- the exact condition O-1 is about.
     SqpSolver zero_driver(opts);
     const SqpResult zero =
-        zero_driver.solve(hven::detail::problem_ref(*p.model), built.x, built.native_warm_start);
+        zero_driver.solve(hven::detail::problem_ref(*p.model), built.x, built.sqp_warm_start);
     ASSERT_EQ(zero.status, SolveStatus::kOptimal);
     ASSERT_EQ(zero.counters.major_iters, 0) << "already optimal: nothing is linearized";
 
-    EXPECT_NE(SqpWarmAccess::state(zero.native_warm_start).structure_hash, 0u)
+    EXPECT_NE(SqpWarmAccess::state(zero.sqp_warm_start).structure_hash, 0u)
         << "the probe is what a zero-major exit hashes instead of writing the 0 sentinel";
-    EXPECT_EQ(SqpWarmAccess::state(zero.native_warm_start).structure_hash,
-              SqpWarmAccess::state(built.native_warm_start).structure_hash)
+    EXPECT_EQ(SqpWarmAccess::state(zero.sqp_warm_start).structure_hash,
+              SqpWarmAccess::state(built.sqp_warm_start).structure_hash)
         << "structural_hash reads H/Ae/Ai's PATTERN only, so probing the model at the exit "
            "point must reproduce what building at any point would have hashed";
 
     // The consequence: the zero-major solve's own hand-off is ingestible.
     SqpSolver chained_driver(opts);
-    const SqpResult chained = chained_driver.solve(hven::detail::problem_ref(*p.model),
-                                                   SqpWarmAccess::state(zero.native_warm_start).x,
-                                                   zero.native_warm_start);
+    const SqpResult chained =
+        chained_driver.solve(hven::detail::problem_ref(*p.model),
+                             SqpWarmAccess::state(zero.sqp_warm_start).x, zero.sqp_warm_start);
     EXPECT_EQ(chained.counters.start_level_used, StartLevel::kWarm)
         << "a zero-major link no longer breaks the chain";
     EXPECT_EQ(chained.status, SolveStatus::kOptimal);
@@ -311,7 +313,7 @@ TEST(WarmStart, WarmMatchesColdOnIdenticalProblem) {
     const auto p_warm = make_hs(7);
     SqpSolver warm_driver(opts);
     const SqpResult warm = warm_driver.solve(hven::detail::problem_ref(*p_warm.model),
-                                             p_warm.model->start_point(), cold.native_warm_start);
+                                             p_warm.model->start_point(), cold.sqp_warm_start);
 
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
@@ -343,7 +345,7 @@ TEST(WarmStart, LedgerRecordsColdVsWarmStartLevel) {
     SqpSolver warm_driver(opts);
     warm_driver.attach_ledger(&ledger, "warm");
     const SqpResult warm = warm_driver.solve(hven::detail::problem_ref(*p_warm.model),
-                                             p_warm.model->start_point(), cold.native_warm_start);
+                                             p_warm.model->start_point(), cold.sqp_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
 
@@ -390,7 +392,7 @@ TEST(WarmStart, StaleWarmIsSafe) {
     const SqpResult sol7 =
         driver7.solve(hven::detail::problem_ref(*p7.model), (*p7.model).start_point());
     ASSERT_EQ(sol7.status, SolveStatus::kOptimal);
-    ASSERT_TRUE(SqpWarmAccess::state(sol7.native_warm_start).valid);
+    ASSERT_TRUE(SqpWarmAccess::state(sol7.sqp_warm_start).valid);
 
     const auto p10 = make_hs(10);
     const Vec x0_10 = p10.model->start_point();
@@ -402,7 +404,7 @@ TEST(WarmStart, StaleWarmIsSafe) {
 
     SqpSolver stale_driver10(opts);
     const SqpResult stale =
-        stale_driver10.solve(hven::detail::problem_ref(*p10.model), x0_10, sol7.native_warm_start);
+        stale_driver10.solve(hven::detail::problem_ref(*p10.model), x0_10, sol7.sqp_warm_start);
 
     EXPECT_EQ(stale.counters.start_level_used, StartLevel::kCold);
     EXPECT_EQ(stale.status, cold10.status);
@@ -437,7 +439,7 @@ TEST(WarmStart, PerturbedWarmBeatsCold) {
 
     SqpSolver warm_driver(opts);
     const SqpResult warm = warm_driver.solve(hven::detail::problem_ref(perturbed),
-                                             perturbed.start_point(), sol7.native_warm_start);
+                                             perturbed.start_point(), sol7.sqp_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm.counters.major_iters, 1);
@@ -460,7 +462,7 @@ TEST(WarmStart, ActivityMappingMarksKnownActiveRowsOnHs76) {
         driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
-    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.native_warm_start);
+    const hven::detail::SqpWarmState &w = SqpWarmAccess::state(sol.sqp_warm_start);
     ASSERT_TRUE(w.valid);
     ASSERT_EQ(w.ineq_active.size(), static_cast<std::size_t>(p.model->mi()));
     ASSERT_EQ(w.bound_active.size(), static_cast<std::size_t>(p.model->n()));
@@ -651,7 +653,7 @@ TEST(WarmStart, HotReusesFactorization) {
     // identical across both solves by construction, rather than by luck:
     // with the schedule off, every solve on this driver runs at the engine's
     // own fixed defaults.
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     // kWarm is the CEILING's default (common_options.h's CommonOptions::start_level);
     // kHot must be explicitly raised to, exactly like enable_soc/adaptive_mu.
     opts.common.start_level = StartLevel::kHot;
@@ -661,15 +663,15 @@ TEST(WarmStart, HotReusesFactorization) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_TRUE(SqpWarmAccess::state(sol1.native_warm_start).valid);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr)
+    ASSERT_TRUE(SqpWarmAccess::state(sol1.sqp_warm_start).valid);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr)
         << "border mode (this driver's default ws_algebra) must commit a hot handle on a clean "
            "kOptimal exit";
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
     SqpSolver driver2(opts); // a FRESH engine instance: never solved anything of its own
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
 
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved) << "the bound change must force a real first subproblem";
@@ -705,7 +707,7 @@ TEST(WarmStart, HotReusesFactorization) {
 TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -713,14 +715,14 @@ TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
     SqpSolver driver2(opts);
     driver2.set_options(driver2.options()); // the whole value back, unchanged
 
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved);
     EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
@@ -733,7 +735,7 @@ TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
     // about the handle and is stated here so the pin above is not read as if it
     // were.
     const SqpResult sol3 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol2.native_warm_start);
+                                         consumer.start_point(), sol2.sqp_warm_start);
     EXPECT_EQ(sol3.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol3.counters.start_level_used, StartLevel::kHot);
 }
@@ -750,7 +752,7 @@ TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
 TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -758,7 +760,7 @@ TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
     SqpSolver driver2(opts);
@@ -767,7 +769,7 @@ TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
     driver2.set_options(std::move(changed));
 
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved);
     EXPECT_GE(sol2.history[0].qp_factorizations, 1)
@@ -787,7 +789,7 @@ TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
 TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -795,7 +797,7 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
     SqpSolver driver2(opts);
@@ -805,7 +807,7 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
     driver2.set_options(std::move(changed));
 
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved);
     EXPECT_GE(sol2.history[0].qp_factorizations, 1)
@@ -827,7 +829,7 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
 TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -835,7 +837,7 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
     SqpSolver driver2(opts);
@@ -847,7 +849,7 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     EXPECT_EQ(driver2.options().qp.max_schur_border_dimension, opts.qp.max_schur_border_dimension);
 
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved);
     EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
@@ -885,7 +887,7 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
 TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
@@ -897,19 +899,19 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     const SqpResult s1 = driver.solve(hven::detail::problem_ref(m_hi), (m_hi).start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.start_level_used, StartLevel::kCold);
-    ASSERT_NE(SqpWarmAccess::state(s1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(s1.sqp_warm_start).hot, nullptr);
 
     // 2. The SAME driver again: kHot through its OWN cache. `run()` consults an
     //    offered handle only when its own border is invalid, so the handle
     //    passed here is not what produces this.
     const SqpResult s2 =
-        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s1.native_warm_start);
+        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s1.sqp_warm_start);
     ASSERT_FALSE(s2.history.empty());
     ASSERT_TRUE(s2.history[0].qp_solved);
     EXPECT_EQ(s2.history[0].qp_factorizations, 0);
     EXPECT_EQ(s2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s2.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(s2.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(s2.sqp_warm_start).hot, nullptr);
 
     // 3. The rebuild at IDENTICAL options. The fresh engine's border cache is
     //    empty, so this third solve is the one that actually ADOPTS the handle
@@ -917,20 +919,20 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
     //    in force.
     driver.set_options(driver.options());
     const SqpResult s3 =
-        driver.solve(hven::detail::problem_ref(m_hi), m_hi.start_point(), s2.native_warm_start);
+        driver.solve(hven::detail::problem_ref(m_hi), m_hi.start_point(), s2.sqp_warm_start);
     ASSERT_FALSE(s3.history.empty());
     ASSERT_TRUE(s3.history[0].qp_solved);
     EXPECT_EQ(s3.history[0].qp_factorizations, 0)
         << "the rebuilt engine must adopt the handle its predecessor committed -- THE PIN";
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(s3.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(s3.sqp_warm_start).hot, nullptr);
 
     // 4. And the solve after that is kHot from the REBUILT ENGINE'S OWN CACHE,
     //    which step 3 left valid -- not from the handle, which is again never
     //    consulted. Stated so the chain is not read as four adoptions.
     const SqpResult s4 =
-        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s3.native_warm_start);
+        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s3.sqp_warm_start);
     ASSERT_FALSE(s4.history.empty());
     ASSERT_TRUE(s4.history[0].qp_solved);
     EXPECT_EQ(s4.history[0].qp_factorizations, 0);
@@ -952,7 +954,7 @@ TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
 TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
@@ -962,9 +964,9 @@ TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     const SqpResult s1 = driver.solve(hven::detail::problem_ref(m_hi), (m_hi).start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     const SqpResult s2 =
-        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s1.native_warm_start);
+        driver.solve(hven::detail::problem_ref(m_lo), m_lo.start_point(), s1.sqp_warm_start);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kHot);
-    ASSERT_NE(SqpWarmAccess::state(s2.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(s2.sqp_warm_start).hot, nullptr);
 
     // A handle from a driver running DIFFERENT QP options: a fingerprint this
     // driver's engine refuses.
@@ -973,7 +975,7 @@ TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     SqpSolver foreign(other);
     const SqpResult sf = foreign.solve(hven::detail::problem_ref(m_hi), (m_hi).start_point());
     ASSERT_EQ(sf.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sf.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sf.sqp_warm_start).hot, nullptr);
 
     // The replacement that fails, on a driver that HAS solved.
     SqpOptions bad = driver.options();
@@ -983,9 +985,8 @@ TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
     EXPECT_EQ(driver.options().qp.max_schur_border_dimension, opts.qp.max_schur_border_dimension);
 
     auto warm =
-        SqpWarmAccess::state(s2.native_warm_start); // this driver's own values and working set ...
-    warm.hot =
-        SqpWarmAccess::state(sf.native_warm_start).hot; // ... behind a handle it would refuse
+        SqpWarmAccess::state(s2.sqp_warm_start); // this driver's own values and working set ...
+    warm.hot = SqpWarmAccess::state(sf.sqp_warm_start).hot; // ... behind a handle it would refuse
 
     const SqpResult s3 = driver.solve(hven::detail::problem_ref(m_hi), m_hi.start_point(),
                                       SqpWarmAccess::wrap(warm));
@@ -1019,7 +1020,7 @@ void expect_same_bits(double a, double b, const std::string &what) {
 TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false; // condition (d), held by construction
+    opts.advanced.adaptive_dual_regularization = false; // condition (d), held by construction
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1027,16 +1028,16 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
     const SqpResult produced =
         producer_driver.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(produced.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(produced.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(produced.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
 
     SqpSolver hot_driver(opts);
     const SqpResult hot = hot_driver.solve(hven::detail::problem_ref(consumer),
-                                           consumer.start_point(), produced.native_warm_start);
+                                           consumer.start_point(), produced.sqp_warm_start);
 
     // The control: byte-for-byte the same warm object, minus the handle.
-    hven::detail::SqpWarmState without_handle = SqpWarmAccess::state(produced.native_warm_start);
+    hven::detail::SqpWarmState without_handle = SqpWarmAccess::state(produced.sqp_warm_start);
     without_handle.hot = nullptr;
     SqpSolver warm_driver(opts);
     const SqpResult warm =
@@ -1129,7 +1130,7 @@ TEST(WarmStart, HotReuseIsNeverAnswerObservable) {
 TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1137,12 +1138,12 @@ TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2), /*hval=*/2.0);
     SqpSolver driver2(opts);
     const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                         consumer.start_point(), sol1.native_warm_start);
+                                         consumer.start_point(), sol1.sqp_warm_start);
 
     ASSERT_FALSE(sol2.history.empty());
     ASSERT_TRUE(sol2.history[0].qp_solved);
@@ -1167,7 +1168,7 @@ TEST(WarmStart, ChangedHValueDegradesToWarmWithRefactorization) {
 TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     Ledger ledger;
@@ -1180,13 +1181,13 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
         const SqpResult sol1 =
             driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
         ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-        ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+        ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
         ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
         SqpSolver driver2(opts);
         driver2.attach_ledger(&ledger, "hot");
         const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                             consumer.start_point(), sol1.native_warm_start);
+                                             consumer.start_point(), sol1.sqp_warm_start);
         ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
     }
@@ -1200,13 +1201,13 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
         const SqpResult sol1 =
             driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
         ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-        ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+        ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
         ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2), /*hval=*/2.0);
         SqpSolver driver2(opts);
         driver2.attach_ledger(&ledger, "warm");
         const SqpResult sol2 = driver2.solve(hven::detail::problem_ref(consumer),
-                                             consumer.start_point(), sol1.native_warm_start);
+                                             consumer.start_point(), sol1.sqp_warm_start);
         ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol2.counters.start_level_used, StartLevel::kWarm);
     }
@@ -1286,7 +1287,7 @@ TEST(WarmStart, LedgerFactorizationsSavedTracksHotVsDegradedWarm) {
 // qp_engine.h's condition (e) note calls the SYMMETRIC one.
 TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
     opts.trust_region_initial = std::numeric_limits<double>::infinity();
     opts.qp.max_schur_border_dimension = 1;
@@ -1296,9 +1297,9 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(model_a), (model_a).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
     const hven::detail::SqpWarmState handle =
-        SqpWarmAccess::state(sol1.native_warm_start); // captured BEFORE driver1 solves again
+        SqpWarmAccess::state(sol1.sqp_warm_start); // captured BEFORE driver1 solves again
 
     // --- CONTROL: consume `handle` immediately, before anything else
     // touches the shared object.
@@ -1321,12 +1322,12 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
     // forced mid-solve rebuilds on the SAME shared BorderState `handle`
     // still names.
     RowAndBoundModel detour(/*c0=*/-1.0, /*c1=*/-1.0, /*bi=*/5.0, Vec::Zero(2));
-    const SqpResult sol_detour = driver1.solve(hven::detail::problem_ref(detour),
-                                               detour.start_point(), sol1.native_warm_start);
+    const SqpResult sol_detour =
+        driver1.solve(hven::detail::problem_ref(detour), detour.start_point(), sol1.sqp_warm_start);
     ASSERT_EQ(sol_detour.status, SolveStatus::kOptimal);
 
     const SqpResult sol_return = driver1.solve(hven::detail::problem_ref(model_b),
-                                               model_b.start_point(), sol_detour.native_warm_start);
+                                               model_b.start_point(), sol_detour.sqp_warm_start);
     ASSERT_EQ(sol_return.status, SolveStatus::kOptimal);
 
     // --- POISONED: a FRESH consumer adopts the ORIGINAL (now-stale)
@@ -1364,7 +1365,7 @@ TEST(WarmStart, ProducerSolvingAgainBeforeHandleConsumedDegradesToWarm) {
 TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
     const double a = 1e-3;
     SqpOptions opts;
-    opts.advanced.adaptive_mu = false;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kHot;
 
     ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
@@ -1372,7 +1373,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
     const SqpResult sol1 =
         driver1.solve(hven::detail::problem_ref(producer), (producer).start_point());
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol1.native_warm_start).hot, nullptr);
+    ASSERT_NE(SqpWarmAccess::state(sol1.sqp_warm_start).hot, nullptr);
 
     // A consumer with a CHANGED H VALUE adopts `sol1.warm_start` and
     // refuses it -- exactly ChangedHValueDegradesToWarmWithRefactorization's
@@ -1381,7 +1382,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
     ScaledRowModel consumer_bad(a, /*lo=*/1.0, Vec::Zero(2), /*hval=*/2.0);
     SqpSolver driver_bad(opts);
     const SqpResult bad = driver_bad.solve(hven::detail::problem_ref(consumer_bad),
-                                           consumer_bad.start_point(), sol1.native_warm_start);
+                                           consumer_bad.start_point(), sol1.sqp_warm_start);
     ASSERT_EQ(bad.status, SolveStatus::kOptimal);
     ASSERT_EQ(bad.counters.start_level_used, StartLevel::kWarm)
         << "the refusal itself, as expected";
@@ -1397,7 +1398,7 @@ TEST(WarmStart, RefusedAdoptionDoesNotCorruptProducersOwnState) {
     // the fix has to be DETACH rather than a smarter check.
     ScaledRowModel producer_again(a, /*lo=*/1.2, Vec::Zero(2));
     const SqpResult sol_again = driver1.solve(hven::detail::problem_ref(producer_again),
-                                              producer_again.start_point(), sol1.native_warm_start);
+                                              producer_again.start_point(), sol1.sqp_warm_start);
 
     ASSERT_EQ(sol_again.status, SolveStatus::kOptimal);
     ASSERT_FALSE(sol_again.history.empty());
@@ -1521,7 +1522,7 @@ TEST(WarmStart, WarmFullStepConvergesInFewMajors) {
     // The warm object, with the dual (and nothing else) made wrong for this
     // problem. -2 * 0.2887 = -0.577, which flips the sign of the Lagrangian
     // Hessian's constraint term.
-    hven::detail::SqpWarmState mispriced = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState mispriced = SqpWarmAccess::state(seed.sqp_warm_start);
     mispriced.lambda_e *= -2.0;
 
     // --- Task 3's behaviour: the funnel judges the first trial like any
@@ -1599,7 +1600,7 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
         seed_driver.solve(hven::detail::problem_ref(*p40.model), (*p40.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
-    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.sqp_warm_start);
     poisoned.lambda_e = -poisoned.lambda_e; // THE POISON: negate lambda
 
     const auto p_cold = make_hs(40);
@@ -1724,7 +1725,7 @@ TEST(WarmStart, WatchdogStallExitBreaksAFullStepCycle) {
         seed_driver.solve(hven::detail::problem_ref(*p5.model), (*p5.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
-    hven::detail::SqpWarmState cycling = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState cycling = SqpWarmAccess::state(seed.sqp_warm_start);
     cycling.x = p5.model->start_point(); // a POOR warm point, not a wrong one
     cycling.tr_radius = 2.0;             // the radius Task 2's 2-cycle needs
 
@@ -1822,7 +1823,7 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
         seed_driver.solve(hven::detail::problem_ref(*p7.model), (*p7.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
-    hven::detail::SqpWarmState w = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState w = SqpWarmAccess::state(seed.sqp_warm_start);
     w.lambda_e *= -500.0;
     w.x = p7.model->start_point();
     w.tr_radius = 5.0;
@@ -1842,7 +1843,8 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
     ASSERT_EQ(sol.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(sol.counters.watchdog_restores, 1) << "the fixture must reach the watchdog";
     ASSERT_EQ(sol.counters.full_step_majors, 8);
-    ASSERT_EQ(sol.status, SolveStatus::kMaxIter) << "stopped ON the watchdog pass, by construction";
+    ASSERT_EQ(sol.status, SolveStatus::kIterationLimit)
+        << "stopped ON the watchdog pass, by construction";
 
     // The ingested width, re-derived exactly as sqp_solver.h's Task-3 ingest
     // computes it: reset() by Eq. (9), then one Eq. (13) blend against the
@@ -1866,9 +1868,9 @@ TEST(WarmStart, WatchdogRebaseNeverWidensTheFunnel) {
 
     // THE PIN: Thm-1 monotonicity survives the watchdog. Removing the clamp
     // measures 197.657 here against a 65.625 ingest.
-    EXPECT_LE(SqpWarmAccess::state(sol.native_warm_start).funnel_width, tau_ingest)
+    EXPECT_LE(SqpWarmAccess::state(sol.sqp_warm_start).funnel_width, tau_ingest)
         << "the watchdog's re-base must never widen the funnel -- THE PIN";
-    EXPECT_DOUBLE_EQ(SqpWarmAccess::state(sol.native_warm_start).funnel_width, tau_ingest)
+    EXPECT_DOUBLE_EQ(SqpWarmAccess::state(sol.sqp_warm_start).funnel_width, tau_ingest)
         << "and with the clamp binding, Eq. (13) degenerates to tau_+ = tau exactly";
 }
 
@@ -1899,7 +1901,7 @@ TEST(WarmStart, FullStepModeInheritsElasticAndRestoration) {
         seed_driver.solve(hven::detail::problem_ref(*p40.model), (*p40.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
-    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.sqp_warm_start);
     poisoned.lambda_e *= -10.0;
 
     const auto p_cold = make_hs(40);
@@ -1976,7 +1978,7 @@ TEST(WarmStart, FullStepDisabledMatchesTask3) {
     const auto p_same = make_hs(7);
     SqpSolver same_driver(opts);
     const SqpResult same = same_driver.solve(hven::detail::problem_ref(*p_same.model),
-                                             p_same.model->start_point(), sol7.native_warm_start);
+                                             p_same.model->start_point(), sol7.sqp_warm_start);
     ASSERT_EQ(same.status, SolveStatus::kOptimal);
     EXPECT_EQ(same.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(same.counters.major_iters, 0);
@@ -1993,7 +1995,7 @@ TEST(WarmStart, FullStepDisabledMatchesTask3) {
 
     SqpSolver warm_driver(opts);
     const SqpResult warm = warm_driver.solve(hven::detail::problem_ref(perturbed),
-                                             perturbed.start_point(), sol7.native_warm_start);
+                                             perturbed.start_point(), sol7.sqp_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm.counters.major_iters, 1);
@@ -2049,7 +2051,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(*p.model), x0);
 
-    ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sol.status, SolveStatus::kIterationLimit);
     EXPECT_TRUE(sol.returned_best_iterate);
     EXPECT_EQ(sol.counters.major_iters, 3);
     ASSERT_EQ(sol.history.size(), 4u);
@@ -2078,7 +2080,7 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
 
     // sol.f is bit-identical to that row's own f (both are the SAME ev.f,
     // never recomputed -- the same invariant
-    // MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate checks for kMaxIter).
+    // MaxIterSolveEmitsValidWarmObjectAtBestKnownIterate checks for kIterationLimit).
     EXPECT_DOUBLE_EQ(sol.f, sol.history[best].f);
     EXPECT_NEAR(sol.f, 4.0625, 1e-6);
 
@@ -2097,12 +2099,12 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
     // smaller than trial 1's 4) -- the two orderings really do disagree here.
     EXPECT_GT(sol.history[best].kkt_residual, sol.history.back().kkt_residual);
 
-    EXPECT_TRUE(SqpWarmAccess::state(sol.native_warm_start).valid);
-    ASSERT_EQ(SqpWarmAccess::state(sol.native_warm_start).x.size(), sol.x.size());
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).x, sol.x);
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).lambda_e,
+    EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).valid);
+    ASSERT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).x.size(), sol.x.size());
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).x, sol.x);
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).lambda_e,
               hven::detail::engine_rows(sol).lambda_e);
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).lambda_i,
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).lambda_i,
               hven::detail::engine_rows(sol).lambda_i);
 }
 
@@ -2111,12 +2113,11 @@ TEST(WarmStart, BudgetReturnsUsableIterate) {
 // (max_iter = 6 per round rather than 3, so the chain has room to make
 // progress each round instead of only ever re-discovering the same best
 // iterate). MEASURED: round 1 (cold, 2-arg overload) and round 2 (warm) both
-// exhaust their 6-major budget and report kMaxIter with returned_best_iterate; round 3 (warm)
-// converges in 4 majors. Total majors across all three: 6 + 6 + 4 = 16 --
-// IDENTICAL to a single unbudgeted solve of the same fixture from the same
-// x0 (also measured at 16), i.e. this fixture's own budget slicing costs
-// NO majors beyond what one continuous solve would have spent -- the
-// re-entry overhead this fixture happens to pin is exactly zero.
+// exhaust their 6-major budget and report kIterationLimit with returned_best_iterate; round 3
+// (warm) converges in 4 majors. Total majors across all three: 6 + 6 + 4 = 16 -- IDENTICAL to a
+// single unbudgeted solve of the same fixture from the same x0 (also measured at 16), i.e. this
+// fixture's own budget slicing costs NO majors beyond what one continuous solve would have spent --
+// the re-entry overhead this fixture happens to pin is exactly zero.
 TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
     const auto p = make_hs(26);
     Vec x0(3);
@@ -2128,29 +2129,27 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
 
     SqpSolver d1(opts);
     const SqpResult s1 = d1.solve(hven::detail::problem_ref(*p.model), x0);
-    ASSERT_EQ(s1.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(s1.status, SolveStatus::kIterationLimit);
     EXPECT_TRUE(s1.returned_best_iterate);
     EXPECT_EQ(s1.counters.major_iters, 6);
     EXPECT_EQ(s1.counters.start_level_used, StartLevel::kCold)
         << "the 2-arg overload is always cold by construction";
     EXPECT_EQ(s1.counters.suspect_escalations, 0);
-    ASSERT_TRUE(SqpWarmAccess::state(s1.native_warm_start).valid);
+    ASSERT_TRUE(SqpWarmAccess::state(s1.sqp_warm_start).valid);
 
     SqpSolver d2(opts);
-    const SqpResult s2 =
-        d2.solve(hven::detail::problem_ref(*p.model), SqpWarmAccess::state(s1.native_warm_start).x,
-                 s1.native_warm_start);
-    ASSERT_EQ(s2.status, SolveStatus::kMaxIter);
+    const SqpResult s2 = d2.solve(hven::detail::problem_ref(*p.model),
+                                  SqpWarmAccess::state(s1.sqp_warm_start).x, s1.sqp_warm_start);
+    ASSERT_EQ(s2.status, SolveStatus::kIterationLimit);
     EXPECT_TRUE(s2.returned_best_iterate);
     EXPECT_EQ(s2.counters.major_iters, 6);
     EXPECT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(s2.counters.suspect_escalations, 0);
-    ASSERT_TRUE(SqpWarmAccess::state(s2.native_warm_start).valid);
+    ASSERT_TRUE(SqpWarmAccess::state(s2.sqp_warm_start).valid);
 
     SqpSolver d3(opts);
-    const SqpResult s3 =
-        d3.solve(hven::detail::problem_ref(*p.model), SqpWarmAccess::state(s2.native_warm_start).x,
-                 s2.native_warm_start);
+    const SqpResult s3 = d3.solve(hven::detail::problem_ref(*p.model),
+                                  SqpWarmAccess::state(s2.sqp_warm_start).x, s2.sqp_warm_start);
     ASSERT_EQ(s3.status, SolveStatus::kOptimal) << "THE PIN: the third round finally converges";
     EXPECT_EQ(s3.counters.major_iters, 4);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm);
@@ -2182,7 +2181,7 @@ TEST(WarmStart, ChainedBudgetSolvesReachOptimal) {
 }
 
 // (c) return_best_on_max_iterations = false is BYTE-IDENTICAL to Phase 3 on the same fixture
-// and the same truncation as (a): kMaxIter, reported at the LAST iterate
+// and the same truncation as (a): kIterationLimit, reported at the LAST iterate
 // (trial 3), not the best-by-(h, f) one.
 TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     const auto p = make_hs(26);
@@ -2196,7 +2195,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(*p.model), x0);
 
-    ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sol.status, SolveStatus::kIterationLimit);
     EXPECT_EQ(sol.counters.major_iters, 3);
     ASSERT_EQ(sol.history.size(), 4u);
 
@@ -2213,7 +2212,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // below is MKL-measured. On Accelerate, three truncated majors on HS26
     // (rank-deficient at the solution) amplify last-digit linear-algebra
     // differences into ~8.69e-12 of f -- the 1e-9 x-pin and every structural
-    // assertion in this test (kMaxIter, 3 majors, history size 4, and the
+    // assertion in this test (kIterationLimit, 3 majors, history size 4, and the
     // sol.f == sol.history.back().f claim above, the one the test exists for)
     // hold bitwise on both backends. Value is Accelerate-observed (macOS
     // 26.5.2 / AppleClang 21) and will be re-verified on the next Mac
@@ -2224,7 +2223,7 @@ TEST(WarmStart, BudgetModeOffMatchesMaxIterExactly) {
     // 0.0024386526444118797 on MKL. HS26 is rank-deficient at its solution, and the
     // UNREGULARIZED POLISH (eqp_solve.h's polish_eqp_core) takes the primal delta
     // out of the truncated majors' answers; the structural assertions this test
-    // exists for -- kMaxIter, 3 majors, history size 4, sol.f == history.back().f --
+    // exists for -- kIterationLimit, 3 majors, history size 4, sol.f == history.back().f --
     // are unchanged, and the new MKL value agrees with the Accelerate one above to
     // 2.1e-12, which is CLOSER than the 8.69e-12 the comment records for the pair.
     EXPECT_NEAR(sol.f, 0.0024386526444118797, 1e-12);
@@ -2323,8 +2322,8 @@ TEST(WarmStart, CrossoverRecoversExactSolveHs14) {
     ASSERT_EQ(warm_sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(warm_sol.counters.major_iters, 0)
         << "THE PIN (observed, Phase-6 Task 5): the seeded duals certify the IP point outright";
-    ASSERT_EQ(SqpWarmAccess::state(warm_sol.native_warm_start).ineq_active.size(), 1u);
-    EXPECT_EQ(SqpWarmAccess::state(warm_sol.native_warm_start).ineq_active[0], 1)
+    ASSERT_EQ(SqpWarmAccess::state(warm_sol.sqp_warm_start).ineq_active.size(), 1u);
+    EXPECT_EQ(SqpWarmAccess::state(warm_sol.sqp_warm_start).ineq_active[0], 1)
         << "the certified exit active set matches HS14's own known active row -- exact. Note this "
            "is attributed from the INGESTED SEED, not from a QpSolution: no subproblem ran";
 
@@ -2428,11 +2427,11 @@ TEST(WarmStart, CrossoverRecoversExactSolveF1) {
     // the crossover's own (already checked, correct) reading of x2 sitting at
     // its upper bound, carried through a solve that had no reason to disagree
     // with it -- a strict improvement over emitting "nothing known".
-    ASSERT_EQ(SqpWarmAccess::state(sol.native_warm_start).bound_active.size(), 2u);
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).bound_active,
+    ASSERT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).bound_active.size(), 2u);
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).bound_active,
               (std::vector<std::int8_t>{0, 1}))
         << "0 majors ran, but a SEED was ingested: the exit re-emits the seeded activity";
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).bound_active, crossover.bound_active)
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).bound_active, crossover.bound_active)
         << "and it is exactly the hint that went in, not a re-derivation";
 }
 
@@ -2768,7 +2767,7 @@ TEST(WarmStart, SeededGateRejectsIncompatibleAndNonFiniteObjects) {
     const auto p10 = make_hs(10);
     SqpSolver d10{opts};
     const SqpResult stale = d10.solve(hven::detail::problem_ref(*p10.model),
-                                      p10.model->start_point(), s7.native_warm_start);
+                                      p10.model->start_point(), s7.sqp_warm_start);
     EXPECT_EQ(stale.counters.start_level_used, StartLevel::kCold)
         << "kSeeded still requires (n, me, mi) compatibility -- it drops the HASH, not the shape";
     EXPECT_EQ(stale.counters.n_seeded, 0);
@@ -2785,7 +2784,7 @@ TEST(WarmStart, SeededGateRejectsIncompatibleAndNonFiniteObjects) {
             seed_driver.solve(hven::detail::problem_ref(*p6.model), (*p6.model).start_point());
         ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
 
-        hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seeded.native_warm_start);
+        hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seeded.sqp_warm_start);
         poisoned.structure_hash = 0; // force the seeded route, not the warm one
         if (which == 0) {
             poisoned.x(0) = nan;
@@ -2826,7 +2825,7 @@ TEST(WarmStart, NonFiniteObjectResolvesColdEvenWithAMatchingHash) {
     const SqpResult seed =
         seed_driver.solve(hven::detail::problem_ref(*seed_p.model), (*seed_p.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(seed.native_warm_start).structure_hash, 0u)
+    ASSERT_NE(SqpWarmAccess::state(seed.sqp_warm_start).structure_hash, 0u)
         << "the object must carry a real hash, or this test is test (4)(b) again";
 
     // THE CONTROL first: unpoisoned, this exact object resolves above kSeeded,
@@ -2835,7 +2834,7 @@ TEST(WarmStart, NonFiniteObjectResolvesColdEvenWithAMatchingHash) {
         const auto p = make_hs(7);
         SqpSolver driver{SqpOptions{}};
         const SqpResult warm = driver.solve(hven::detail::problem_ref(*p.model),
-                                            p.model->start_point(), seed.native_warm_start);
+                                            p.model->start_point(), seed.sqp_warm_start);
         EXPECT_GE(static_cast<int>(warm.counters.start_level_used),
                   static_cast<int>(StartLevel::kWarm))
             << "the unpoisoned object earns the hash-matching route";
@@ -2844,7 +2843,7 @@ TEST(WarmStart, NonFiniteObjectResolvesColdEvenWithAMatchingHash) {
 
     for (int which = 0; which < 3; ++which) {
         SCOPED_TRACE(which == 0 ? "x" : which == 1 ? "lambda_e" : "lambda_i");
-        hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.native_warm_start);
+        hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(seed.sqp_warm_start);
         if (which == 0) {
             poisoned.x(0) = nan;
         } else if (which == 1 && poisoned.lambda_e.size() > 0) {
@@ -2884,11 +2883,10 @@ TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     const SqpResult seed =
         seed_driver.solve(hven::detail::problem_ref(*p7.model), (*p7.model).start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(seed.native_warm_start).structure_hash, 0u);
-    ASSERT_GE(SqpWarmAccess::state(seed.native_warm_start).tr_radius, 0.0)
+    ASSERT_NE(SqpWarmAccess::state(seed.sqp_warm_start).structure_hash, 0u);
+    ASSERT_GE(SqpWarmAccess::state(seed.sqp_warm_start).tr_radius, 0.0)
         << "the object really does carry a radius";
-    ASSERT_GE(SqpWarmAccess::state(seed.native_warm_start).funnel_width, 0.0)
-        << "and a funnel width";
+    ASSERT_GE(SqpWarmAccess::state(seed.sqp_warm_start).funnel_width, 0.0) << "and a funnel width";
 
     // Hs7PerturbedModel keeps HS7's sparsity (so the hash matches and the kWarm
     // arm is reachable) while moving the solution enough that the warm arm has
@@ -2896,7 +2894,7 @@ TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     Hs7PerturbedModel warm_model(1.0e-3);
     SqpSolver warm_driver(warm_opts);
     const SqpResult warm = warm_driver.solve(hven::detail::problem_ref(warm_model),
-                                             warm_model.start_point(), seed.native_warm_start);
+                                             warm_model.start_point(), seed.sqp_warm_start);
     ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
@@ -2904,9 +2902,8 @@ TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     seeded_opts.common.start_level = StartLevel::kSeeded;
     Hs7PerturbedModel seeded_model(1.0e-3);
     SqpSolver seeded_driver(seeded_opts);
-    const SqpResult seeded =
-        seeded_driver.solve(hven::detail::problem_ref(seeded_model), seeded_model.start_point(),
-                            seed.native_warm_start);
+    const SqpResult seeded = seeded_driver.solve(hven::detail::problem_ref(seeded_model),
+                                                 seeded_model.start_point(), seed.sqp_warm_start);
     ASSERT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
     ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
 
@@ -2923,10 +2920,10 @@ TEST(WarmStart, SeededRefusesFunnelTrustRegionAndFullStepState) {
     // kWarm one. That is a stronger statement than reading one radius off one
     // history row, and it cannot go vacuous -- the kWarm arm is required to
     // notice the difference the seeded arm is required to ignore.
-    hven::detail::SqpWarmState poisoned_state = SqpWarmAccess::state(seed.native_warm_start);
+    hven::detail::SqpWarmState poisoned_state = SqpWarmAccess::state(seed.sqp_warm_start);
     poisoned_state.tr_radius = 0.05;     // well below opts.trust_region_initial
     poisoned_state.funnel_width = 1.0e6; // absurdly loose
-    ASSERT_NE(poisoned_state.tr_radius, SqpWarmAccess::state(seed.native_warm_start).tr_radius);
+    ASSERT_NE(poisoned_state.tr_radius, SqpWarmAccess::state(seed.sqp_warm_start).tr_radius);
 
     Hs7PerturbedModel warm_model_b(1.0e-3);
     SqpSolver warm_driver_b(warm_opts);
@@ -2976,10 +2973,10 @@ TEST(WarmStart, LedgerLevelHistogramCountsEveryResolvedLevel) {
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     // 2: warm (matching hash).
     const SqpResult warm = driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point(),
-                                        cold.native_warm_start);
+                                        cold.sqp_warm_start);
     ASSERT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
     // 3: seeded (hash erased).
-    hven::detail::SqpWarmState hashless = SqpWarmAccess::state(cold.native_warm_start);
+    hven::detail::SqpWarmState hashless = SqpWarmAccess::state(cold.sqp_warm_start);
     hashless.structure_hash = 0;
     const SqpResult seeded = driver.solve(hven::detail::problem_ref(*p.model),
                                           p.model->start_point(), SqpWarmAccess::wrap(hashless));
@@ -3298,7 +3295,7 @@ TEST(WarmStart, CrossoverActivityInferenceHoldsUnderMeshRefinement) {
 // forces (1.00e-3) while the barrier-noise prices on inactive rows do not.
 // Identification is simply not available from a hand-off that loose, and
 // warm_start.h's note states the regime (kIpmActivityFactor * mu_hat >
-// ||lambda_i||inf * activity_rel_tol) so a caller can test for it. Pinned
+// ||lambda_i||inf * activity_relative_tol) so a caller can test for it. Pinned
 // below so the carry cannot rot silently.
 TEST(WarmStart, CrossoverLooseIpIterateDoesNotOverInfer) {
     using namespace ip_repair;
@@ -3450,10 +3447,10 @@ TEST(WarmStart, CrossoverAllZeroDualsInferNothingAndStillResolveSeeded) {
     // and its size answers no question a reader has (SqpCounters'
     // ip_activity_inferred note). Without this arm the scoping is unpinned.
     SqpSolver warm_driver(opts);
-    ASSERT_FALSE(SqpWarmAccess::state(seed.native_warm_start).qp_working_set.active_ineq().empty())
+    ASSERT_FALSE(SqpWarmAccess::state(seed.sqp_warm_start).qp_working_set.active_ineq().empty())
         << "the control arm needs a NON-empty hint to be worth anything";
     const SqpResult warm_sol = warm_driver.solve(hven::detail::problem_ref(*p.model),
-                                                 p.model->start_point(), seed.native_warm_start);
+                                                 p.model->start_point(), seed.sqp_warm_start);
     ASSERT_EQ(warm_sol.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(warm_sol.counters.ip_activity_inferred, 0)
         << "THE PIN: identically 0 above kSeeded, hint or no hint";
@@ -3683,7 +3680,7 @@ TEST(WarmStart, CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel) {
     }
     const IpmCrossoverOptions defaults;
     const double threshold =
-        kIpmActivityFactor * std::max(1e-8, dual_inf * defaults.activity_rel_tol);
+        kIpmActivityFactor * std::max(1e-8, dual_inf * defaults.activity_relative_tol);
     EXPECT_NEAR(threshold, 5.003e-7, 1e-10) << "THE PIN (observed): the rule's own floor";
     EXPECT_LT(threshold, defaults.dual_tol)
         << "past N ~ 800 the rule's floor is BELOW dual_tol, which is what makes dual_tol the sole "
@@ -3724,10 +3721,10 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     const SqpResult walk = walk_driver.solve(hven::detail::problem_ref(*walk_problem.model),
                                              (*walk_problem.model).start_point());
     ASSERT_EQ(SolveStatus::kOptimal, walk.status);
-    EXPECT_FALSE(SqpWarmAccess::state(walk.native_warm_start).has_prox_center);
-    EXPECT_DOUBLE_EQ(0.0, SqpWarmAccess::state(walk.native_warm_start).prox_sigma);
-    EXPECT_EQ(0, SqpWarmAccess::state(walk.native_warm_start).prox_center_x.size());
-    EXPECT_EQ(0, SqpWarmAccess::state(walk.native_warm_start).prox_center_lambda.size());
+    EXPECT_FALSE(SqpWarmAccess::state(walk.sqp_warm_start).has_prox_center);
+    EXPECT_DOUBLE_EQ(0.0, SqpWarmAccess::state(walk.sqp_warm_start).prox_sigma);
+    EXPECT_EQ(0, SqpWarmAccess::state(walk.sqp_warm_start).prox_center_x.size());
+    EXPECT_EQ(0, SqpWarmAccess::state(walk.sqp_warm_start).prox_center_lambda.size());
 
     // (2) A kSsn SOLVE WHOSE LADDER ARMED EMITS THE FULL BLOCK, sized to the
     // model.
@@ -3738,9 +3735,9 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     const SqpResult ssn = ssn_driver.solve(hven::detail::problem_ref(*ssn_problem.model),
                                            (*ssn_problem.model).start_point());
     ASSERT_EQ(SolveStatus::kOptimal, ssn.status);
-    ASSERT_TRUE(SqpWarmAccess::state(ssn.native_warm_start).has_prox_center)
+    ASSERT_TRUE(SqpWarmAccess::state(ssn.sqp_warm_start).has_prox_center)
         << "fixture premise: HS27's ladder arms";
-    EXPECT_GT(SqpWarmAccess::state(ssn.native_warm_start).prox_sigma, 0.0);
+    EXPECT_GT(SqpWarmAccess::state(ssn.sqp_warm_start).prox_sigma, 0.0);
     // FIX ROUND 1: THE LEVEL AND THE CENTRE ARE TWO DIFFERENT HIGH-WATER MARKS.
     // The level is taken over EVERY SSN subproblem (an exhausted ladder is
     // exactly the evidence the carry transmits); the centre only over CERTIFYING
@@ -3749,9 +3746,9 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     // with both vectors empty -- which warm_start.h's own field note admits
     // ("n, or empty"). tests/test_sqp_solver.cpp's
     // TheCarriedProximalCentreIsNeverAnEscapedIterate pins both polarities.
-    EXPECT_EQ(0, SqpWarmAccess::state(ssn.native_warm_start).prox_center_x.size())
+    EXPECT_EQ(0, SqpWarmAccess::state(ssn.sqp_warm_start).prox_center_x.size())
         << "HS27's ladder is climbed on a subproblem that then ESCAPES";
-    EXPECT_EQ(0, SqpWarmAccess::state(ssn.native_warm_start).prox_center_lambda.size());
+    EXPECT_EQ(0, SqpWarmAccess::state(ssn.sqp_warm_start).prox_center_lambda.size());
 
     // A SOLVE WHOSE LADDER ARMS ON A CERTIFYING SUBPROBLEM DOES SHIP THE
     // VECTORS, so the emptiness above is a property of HS27's trajectory and
@@ -3762,11 +3759,11 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
         certifying_driver.solve(hven::detail::problem_ref(*certifying_problem.model),
                                 (*certifying_problem.model).start_point());
     ASSERT_EQ(SolveStatus::kOptimal, certifying.status);
-    ASSERT_TRUE(SqpWarmAccess::state(certifying.native_warm_start).has_prox_center);
+    ASSERT_TRUE(SqpWarmAccess::state(certifying.sqp_warm_start).has_prox_center);
     EXPECT_EQ(certifying_problem.model->n(),
-              SqpWarmAccess::state(certifying.native_warm_start).prox_center_x.size());
+              SqpWarmAccess::state(certifying.sqp_warm_start).prox_center_x.size());
     EXPECT_EQ(certifying_problem.model->me() + certifying_problem.model->mi(),
-              SqpWarmAccess::state(certifying.native_warm_start).prox_center_lambda.size());
+              SqpWarmAccess::state(certifying.sqp_warm_start).prox_center_lambda.size());
 
     // (3) THE HASH GATE. The SAME object with its hash erased -- which is what
     // mesh_transfer.h and from_interior_point emit by construction -- resolves
@@ -3774,13 +3771,13 @@ TEST(WarmStartProxCarry, TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve) {
     // therefore NOT read, which is observable: the receiving solve reproduces
     // the carry-OFF ladder count exactly.
     auto receiver_problem = make_hs(27);
-    hven::detail::SqpWarmState hashed = SqpWarmAccess::state(ssn.native_warm_start);
+    hven::detail::SqpWarmState hashed = SqpWarmAccess::state(ssn.sqp_warm_start);
     hashed.x = receiver_problem.model->start_point();
     hven::detail::SqpWarmState hashless = hashed;
     hashless.structure_hash = 0;
 
     SqpOptions carry_on = ssn_opts;
-    carry_on.advanced.ssn_prox_carry = true;
+    carry_on.advanced.ssn_proximal_carry = true;
 
     SqpSolver hashed_driver(carry_on);
     const SqpResult from_hashed = hashed_driver.solve(

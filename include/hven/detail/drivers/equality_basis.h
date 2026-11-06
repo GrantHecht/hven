@@ -90,7 +90,7 @@ struct EqualityBasisTolerances {
     /// the ratio lift_forward_tol / (coef_cap u) ~ 0.9 sets where projections refuse.
     double lift_forward_tol = 1e-8;
     /// The certificate factorizations' static pivot perturbation exponent
-    /// (SymmetricFactor::Options::pivot_perturb_exp; Pardiso iparm[9]). Any perturbed
+    /// (SymmetricFactor::Options::pivot_perturbation_exponent; Pardiso iparm[9]). Any perturbed
     /// or zero pivot refuses the split, so this sets only how small a pivot is refused.
     int gram_pivot_perturb_exp = 13;
 };

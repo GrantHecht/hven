@@ -970,6 +970,8 @@ const ProblemStatistics &Problem::statistics() const noexcept {
     return state_ != nullptr ? state_->statistics() : kEmpty;
 }
 
-Index Problem::partitions() const noexcept { return state_ != nullptr ? state_->partitions() : 0; }
+Index Problem::num_partitions() const noexcept {
+    return state_ != nullptr ? state_->partitions() : 0;
+}
 
 } // namespace hven

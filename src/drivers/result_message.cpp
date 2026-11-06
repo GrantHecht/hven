@@ -26,7 +26,7 @@ std::string iteration_limit_message(Index cap) {
 }
 
 // The best-iterate clause rides on every status the flag is set with, not only
-// kMaxIter: the interior-point return-best substitution applies to any
+// kIterationLimit: the interior-point return-best substitution applies to any
 // non-optimal exit but an interrupt.
 std::string with_best_clause(std::string message, bool returned_best_iterate) {
     if (returned_best_iterate) {
@@ -72,7 +72,7 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
         return "converged: optimality and feasibility tolerances met";
     case SolveStatus::kAcceptable:
         return "converged to an acceptable level: the acceptable tolerances were met";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
         return "locally infeasible";
@@ -117,7 +117,7 @@ std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
         return "converged: optimality and feasibility tolerances met";
     case SolveStatus::kAcceptable:
         return "converged to an acceptable level: the acceptable tolerances were met";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return iteration_limit_message(effective_iteration_cap(common, budget));
     case SolveStatus::kInfeasible:
         if (result.infeasibility_certified) {
@@ -163,9 +163,9 @@ std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
         return "interrupted by the iteration callback";
     case SolveStatus::kWorkLimit:
         if (result.counters.probe_budget_stops > 0) {
-            if (budget.minor_budget) {
+            if (budget.max_minor_iterations) {
                 return fmt::format("work limit reached: minor-iteration budget (minor_budget = {})",
-                                   *budget.minor_budget);
+                                   *budget.max_minor_iterations);
             }
             return "work limit reached: minor-iteration budget";
         }

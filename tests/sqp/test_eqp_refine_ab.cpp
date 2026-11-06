@@ -77,12 +77,11 @@ namespace {
 // One A/B cell: the three levers, and a stable short name used in the note.
 struct Cell {
     bool adaptive_mu;
-    WorkingSetLinearAlgebra algebra;
+    QpWorkingSetAlgebra algebra;
 
     std::string name() const {
         return fmt::format("mu={} alg={}", adaptive_mu ? "on " : "off",
-                           algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border"
-                                                                            : "refactorize");
+                           algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
     }
 };
 
@@ -90,8 +89,8 @@ struct Cell {
 std::vector<Cell> cells() {
     std::vector<Cell> out;
     for (bool mu : {false, true}) {
-        for (WorkingSetLinearAlgebra alg :
-             {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (QpWorkingSetAlgebra alg :
+             {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
             out.push_back(Cell{mu, alg});
         }
     }
@@ -142,7 +141,7 @@ const char *status_name(SolveStatus s) {
     switch (s) {
     case SolveStatus::kOptimal:
         return "kOptimal";
-    case SolveStatus::kMaxIter:
+    case SolveStatus::kIterationLimit:
         return "kMaxIter";
     case SolveStatus::kInfeasible:
         return "kInfeasible";
@@ -178,7 +177,7 @@ Outcome run_one(const Row &r, const Cell &c, const Regime &g) {
     opts.common.max_iterations = r.max_iter;
     opts.common.optimality_tol = g.tol;
     opts.common.feasibility_tol = g.tol;
-    opts.advanced.adaptive_mu = c.adaptive_mu;
+    opts.advanced.adaptive_dual_regularization = c.adaptive_mu;
     opts.qp.working_set_algebra = c.algebra;
     SqpSolver driver(opts);
     const SqpResult sol =
@@ -259,7 +258,7 @@ void sweep(const Regime &g) {
     // border mode.
     std::size_t shipped = 0;
     for (std::size_t ci = 0; ci < cs.size(); ++ci) {
-        if (cs[ci].adaptive_mu && cs[ci].algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (cs[ci].adaptive_mu && cs[ci].algebra == QpWorkingSetAlgebra::kSchurBorder) {
             shipped = ci;
         }
     }
@@ -472,7 +471,7 @@ void f7_ceiling_sweep(Index nodes, double p, double scale, double tol) {
         opts.common.feasibility_tol = tol;
         opts.common.max_iterations = 60;
         opts.qp.max_iterations = 5000; // the wide window needs it (scale-study note S5)
-        opts.advanced.adaptive_mu = c.adaptive_mu;
+        opts.advanced.adaptive_dual_regularization = c.adaptive_mu;
         opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
@@ -504,7 +503,7 @@ void scaled_row_sweep(double a, double lo, double tol) {
         SqpOptions opts;
         opts.common.optimality_tol = tol;
         opts.common.feasibility_tol = tol;
-        opts.advanced.adaptive_mu = c.adaptive_mu;
+        opts.advanced.adaptive_dual_regularization = c.adaptive_mu;
         opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), x0);
@@ -700,12 +699,12 @@ TEST(EqpRefinementAb, DISABLED_FullBattery) {
 // machine, and identical in Release and Debug:
 //
 //     cell                     status      rel. x error   maj  minor  eqp_ref
-//     mu=off / border          kMaxIter      4.4062e-06    60     64        0
-//     mu=off / refactorize     kMaxIter      4.4062e-06    60     64        0
+//     mu=off / border          kIterationLimit      4.4062e-06    60     64        0
+//     mu=off / refactorize     kIterationLimit      4.4062e-06    60     64        0
 //     mu=on  / border          kOptimal      5.9218e-12     7     12        0
 //     mu=on  / refactorize     kOptimal      5.9218e-12     7     12        0
 //
-// -- the SAME shape ScaledRowModel(a = 1e-3, lo = 1.5) gives (kMaxIter at
+// -- the SAME shape ScaledRowModel(a = 1e-3, lo = 1.5) gives (kIterationLimit at
 // 3.1000e-05 versus kOptimal at 3.1622e-11): adaptive_mu is the only lever
 // that clears the ceiling, it clears it in BOTH algebra modes, and the two
 // modes are byte-identical to each other in every cell. The note's conclusions
@@ -744,7 +743,7 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         opts.common.feasibility_tol = kTol;
         opts.common.max_iterations = 60;
         opts.qp.max_iterations = 5000;
-        opts.advanced.adaptive_mu = c.adaptive_mu;
+        opts.advanced.adaptive_dual_regularization = c.adaptive_mu;
         opts.qp.working_set_algebra = c.algebra;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
@@ -758,7 +757,7 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
             EXPECT_LT(err, 1e-10) << "observed 5.9218e-12";
         } else {
             // RE-PREMISED AT M7 W2 E4 FIX ROUND 2, AND THE CEILING IS GONE. This arm
-            // pinned the FIXED-mu accuracy ceiling -- kMaxIter and a relative error of
+            // pinned the FIXED-mu accuracy ceiling -- kIterationLimit and a relative error of
             // 4.4062e-06 -- which is the dual regularization's own footprint on the
             // subproblem answers. E4's UNREGULARIZED POLISH (fix round 1, E4-11) backs
             // that footprint out of every EQP answer, so the fixed-mu arm now certifies
@@ -786,7 +785,7 @@ TEST(EqpRefinementAb, EveryCellSolvesTheBorderReproProblem) {
         EXPECT_EQ(o.status, SolveStatus::kOptimal);
         EXPECT_LT(o.f_err, 1e-6);
         EXPECT_EQ(o.eqp_refine_steps, 0);
-        if (c.algebra == WorkingSetLinearAlgebra::kRefactorize) {
+        if (c.algebra == QpWorkingSetAlgebra::kRefactorize) {
             EXPECT_EQ(o.border_refine_steps, 0) << "refactorize mode never borders";
         } else {
             EXPECT_GT(o.border_refine_steps, 0) << "border mode refines every bordered solve";

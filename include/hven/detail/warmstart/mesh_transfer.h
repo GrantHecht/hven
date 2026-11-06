@@ -287,7 +287,7 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven {
+namespace hven::detail {
 
 // A discretization mesh: STRICTLY INCREASING nodes and STRICTLY POSITIVE
 // quadrature weights, one weight per node. Deliberately a plain aggregate with
@@ -591,4 +591,4 @@ class MeshTransfer {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail

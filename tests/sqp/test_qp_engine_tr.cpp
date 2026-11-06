@@ -33,13 +33,14 @@
 #include "support/dense_oracle.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
 namespace {
 
-constexpr WorkingSetLinearAlgebra kBothModes[] = {WorkingSetLinearAlgebra::kSchurBorder,
-                                                  WorkingSetLinearAlgebra::kRefactorize};
+constexpr QpWorkingSetAlgebra kBothModes[] = {QpWorkingSetAlgebra::kSchurBorder,
+                                              QpWorkingSetAlgebra::kRefactorize};
 
 // --- Battery fixtures -----------------------------------------------------
 
@@ -165,7 +166,7 @@ TEST(QpEngineTr, TrOffIsBitIdenticalDefault) {
 
     const QpProblem qp = simple_box_qp();
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions default_opts;
         default_opts.working_set_algebra = algebra;
@@ -199,7 +200,7 @@ TEST(QpEngineTr, TrOffIsBitIdenticalDefault) {
 TEST(QpEngineTr, TrClampsTheStep) {
     const QpProblem qp = unconstrained_quadratic_qp();
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -229,7 +230,7 @@ TEST(QpEngineTr, TrClampsTheStep) {
 TEST(QpEngineTr, TrInsideRealBounds) {
     const QpProblem qp = tighter_real_bound_on_x0_qp();
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -270,7 +271,7 @@ TEST(QpEngineTr, TrInsideRealBounds) {
 TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
     const QpProblem qp = loosely_bounded_quadratic_qp();
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions cold_opts;
         cold_opts.working_set_algebra = algebra;
@@ -331,7 +332,7 @@ TEST(QpEngineTr, IndefiniteInteractionWithSaddleBox) {
     ASSERT_FALSE(minimizers.empty());
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -380,7 +381,7 @@ TEST(QpEngineTr, SameInstanceWarmSolveWithShiftedTrWindow) {
     qp.upper(0) = 1.5;
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -447,20 +448,20 @@ TEST(QpEngineTr, SameInstanceWarmSolveWithShiftedTrWindow) {
         // the header documents, triggered here by the window re-centering
         // rather than by tr_radius itself changing (which can't happen on
         // one instance -- see the header's PHASE-3 DESIGN FRICTION note).
-        if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (algebra == QpWorkingSetAlgebra::kSchurBorder) {
             EXPECT_GT(warm.counters.factorizations, 0);
         }
     }
 }
 
-// --- Task 2: per-solve overrides (SolveOverrides) --------------------------
+// --- Task 2: per-solve overrides (QpSolveOverrides) --------------------------
 
 // (f) ShrinkRadiusRetryReusesHotStart. Models a Phase-3 SHRINK-RADIUS RETRY:
 // one ENGINE, the SAME fixed base point (cold start, x0 = (0,0), on BOTH
 // calls -- exactly the "re-solve the rejected step's own QP subproblem at a
 // smaller Delta, from the SAME x_k" shape of a real retry loop, not a
 // warm-start chained from the first call's own ANSWER), first at Delta = 1
-// via SolveOverrides, then again at Delta = 0.5 via SolveOverrides on the
+// via QpSolveOverrides, then again at Delta = 0.5 via QpSolveOverrides on the
 // SAME engine instance. Before Task 2 this required two separate QpEngine
 // instances (tr_radius being per-instance const), forfeiting hot-start reuse
 // entirely -- see the header contract's PHASE-3 DESIGN FRICTION note.
@@ -526,13 +527,13 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
     const QpSolution warm_oracle = solve_dense_oracle(warm_effective);
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
         QpEngine eng{opts}; // ONE instance for both retry radii.
 
-        SolveOverrides cold_overrides;
+        QpSolveOverrides cold_overrides;
         cold_overrides.trust_region_radius = 1.0;
         const QpSolution cold = eng.solve(qp, cold_overrides);
 
@@ -544,7 +545,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
         EXPECT_EQ(cold.bound_state[0], BoundState::kFree);
         EXPECT_EQ(cold.bound_state[1], BoundState::kFree);
 
-        SolveOverrides warm_overrides;
+        QpSolveOverrides warm_overrides;
         warm_overrides.trust_region_radius = 0.5;
         const QpSolution warm = eng.solve(qp, warm_overrides); // SAME cold x0 = (0,0), no seed.
 
@@ -558,11 +559,11 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
         EXPECT_EQ(warm.z(0), 0.0); // TR dual never exposed
         EXPECT_EQ(warm.z(1), 0.0);
 
-        // The whole point: SolveOverrides lets ONE engine instance serve both
+        // The whole point: QpSolveOverrides lets ONE engine instance serve both
         // radii, so the retry's K0 is REUSED outright (border mode only --
         // kRefactorize has no such concept and always factorizes at least
         // once per working-set change).
-        if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (algebra == QpWorkingSetAlgebra::kSchurBorder) {
             EXPECT_EQ(warm.counters.factorizations, 0);
         }
     }
@@ -571,7 +572,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
 // (g) DeltaMuOverride correctness + refactorize-mode interaction. kRefactorize
 // has no hot-start reuse machinery at all (every working-set change pays a
 // fresh factorize), so the only thing worth asserting there is that
-// SolveOverrides is still resolved and threaded correctly into the values
+// QpSolveOverrides is still resolved and threaded correctly into the values
 // that actually reach the KKT assembly -- primal_delta/dual_mu change the
 // REGULARIZED answer by a tiny, computable amount even away from any
 // artifact regime, which this pins against the dense oracle (whose own KKT
@@ -584,10 +585,10 @@ TEST(QpEngineTr, OverridesResolveCorrectlyUnderRefactorizeMode) {
     const QpSolution oracle = solve_dense_oracle(qp);
 
     QpOptions opts;
-    opts.working_set_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpEngine eng{opts};
 
-    SolveOverrides overrides;
+    QpSolveOverrides overrides;
     overrides.primal_regularization = 1e-6;
     overrides.dual_regularization = 1e-6;
     const QpSolution sol = eng.solve(qp, overrides);
@@ -598,26 +599,26 @@ TEST(QpEngineTr, OverridesResolveCorrectlyUnderRefactorizeMode) {
 
 // (h) Forwarding guard (the 118-test byte-identical contract): the plain
 // 1-arg/2-arg solve() overloads must still forward a default-constructed
-// SolveOverrides and be byte-for-byte identical to calling the 3-arg/4-arg
-// overloads with an explicit default-constructed SolveOverrides, across both
+// QpSolveOverrides and be byte-for-byte identical to calling the 3-arg/4-arg
+// overloads with an explicit default-constructed QpSolveOverrides, across both
 // ws_algebra modes and both a cold and a warm call on ONE engine instance.
 //
 // HONESTY NOTE: this is a REFACTOR FENCE, not independent proof of byte
 // identity. `solve(qp)` and `solve(qp, seed)` literally read
-// `return run(qp, nullptr, false, SolveOverrides{});` /
-// `return run(qp, &seed, true, SolveOverrides{});` -- so this test mostly
+// `return run(qp, nullptr, false, QpSolveOverrides{});` /
+// `return run(qp, &seed, true, QpSolveOverrides{});` -- so this test mostly
 // re-confirms that the forwarding line itself was typed correctly, which a
 // diff of qp_engine.h already shows. The REAL evidence that nothing else
-// changed is the pre-existing 118 tests, none of which use SolveOverrides at
+// changed is the pre-existing 118 tests, none of which use QpSolveOverrides at
 // all and all of which still pass unmodified; this test is a guard against a
-// future edit accidentally threading a non-default SolveOverrides (or a
+// future edit accidentally threading a non-default QpSolveOverrides (or a
 // stale local) into one of the plain overloads, not a claim that byte
 // identity was otherwise in doubt.
 TEST(QpEngineTr, PlainOverloadsForwardDefaultOverridesByteIdentically) {
     const QpProblem qp = tighter_real_bound_on_x0_qp();
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -627,7 +628,7 @@ TEST(QpEngineTr, PlainOverloadsForwardDefaultOverridesByteIdentically) {
         QpEngine overrides_eng{opts};
 
         const QpSolution plain_cold = plain_eng.solve(qp);
-        const QpSolution overrides_cold = overrides_eng.solve(qp, SolveOverrides{});
+        const QpSolution overrides_cold = overrides_eng.solve(qp, QpSolveOverrides{});
 
         EXPECT_EQ(plain_cold.status, overrides_cold.status);
         EXPECT_TRUE((plain_cold.x - overrides_cold.x).isZero(0.0));
@@ -642,7 +643,8 @@ TEST(QpEngineTr, PlainOverloadsForwardDefaultOverridesByteIdentically) {
         EXPECT_EQ(plain_cold.counters.minor_iters, overrides_cold.counters.minor_iters);
 
         const QpSolution plain_warm = plain_eng.solve(qp, plain_cold);
-        const QpSolution overrides_warm = overrides_eng.solve(qp, overrides_cold, SolveOverrides{});
+        const QpSolution overrides_warm =
+            overrides_eng.solve(qp, overrides_cold, QpSolveOverrides{});
 
         EXPECT_EQ(plain_warm.status, overrides_warm.status);
         EXPECT_TRUE((plain_warm.x - overrides_warm.x).isZero(0.0));
@@ -672,7 +674,7 @@ TEST(QpEngineTr, OverrideValidationRejectsNegativeRadius) {
 
     QpEngine eng{QpOptions{}};
 
-    SolveOverrides bad;
+    QpSolveOverrides bad;
     bad.trust_region_radius = -0.5;
 
     EXPECT_THROW(eng.solve(qp, bad), std::invalid_argument);
@@ -696,21 +698,21 @@ TEST(QpEngineTr, OverrideValidationRejectsNaN) {
     QpEngine eng{QpOptions{}};
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
-    SolveOverrides nan_radius;
+    QpSolveOverrides nan_radius;
     nan_radius.trust_region_radius = nan;
     EXPECT_THROW(eng.solve(qp, nan_radius), std::invalid_argument);
 
-    SolveOverrides nan_delta;
+    QpSolveOverrides nan_delta;
     nan_delta.primal_regularization = nan;
     EXPECT_THROW(eng.solve(qp, nan_delta), std::invalid_argument);
 
-    SolveOverrides nan_mu;
+    QpSolveOverrides nan_mu;
     nan_mu.dual_regularization = nan;
     EXPECT_THROW(eng.solve(qp, nan_mu), std::invalid_argument);
 }
 
 // (j2) PR #5 codex inline review: the SAME two rejections, reached through the
-// PLAIN solve() overloads, which forward a default-constructed SolveOverrides
+// PLAIN solve() overloads, which forward a default-constructed QpSolveOverrides
 // -- i.e. the +inf sentinel -- so the radius that actually reaches section 6
 // is the STORED opts_.tr_radius. Before the fix that branch copied opts_'s
 // value with no check at all: a stored -0.5 crossed lo_eff/up_eff behind the
@@ -743,7 +745,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads) {
     EXPECT_THROW(eng.solve(qp, seed), std::invalid_argument);
 
     // The message names the option that is actually wrong -- QpOptions', not
-    // SolveOverrides' -- so a caller who passed no override is not sent
+    // QpSolveOverrides' -- so a caller who passed no override is not sent
     // looking at a struct they never touched.
     try {
         eng.solve(qp);
@@ -797,10 +799,10 @@ TEST(QpEngineTr, StoredRadiusValidationLeavesWellFormedRadiiUntouched) {
 // guarantees for a value arriving from an override.
 //
 // Measured on this fixture before the fix, none of these was a clean
-// rejection: NaN primal_delta -> kMaxIter at (NaN, NaN) after 500 minors and
+// rejection: NaN primal_delta -> kIterationLimit at (NaN, NaN) after 500 minors and
 // 500 factorizations; NaN dual_mu -> a LAPACK "illegal argument value" throw
 // escaping from the dense factor; negative primal_delta -> spurious
-// kNumericalError, or a WRONG point (0,0) under kMaxIter; negative dual_mu ->
+// kNumericalError, or a WRONG point (0,0) under kIterationLimit; negative dual_mu ->
 // a confident kInfeasible at x = (1,2), on a feasible QP, at a point that
 // violates its own row.
 TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) {
@@ -822,7 +824,7 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
 
     // Each message names the field that is actually wrong, and names it on
     // QpOptions -- a caller who passed no override must not be pointed at
-    // SolveOverrides, whose negative value is a legitimate sentinel.
+    // QpSolveOverrides, whose negative value is a legitimate sentinel.
     QpOptions bad_delta;
     bad_delta.primal_regularization = -1.0;
     QpEngine delta_eng{bad_delta};
@@ -874,7 +876,7 @@ TEST(QpEngineTr, StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt) {
     bad_both.dual_regularization = std::numeric_limits<double>::quiet_NaN();
     QpEngine eng{bad_both};
 
-    SolveOverrides good;
+    QpSolveOverrides good;
     good.primal_regularization = 1e-8;
     good.dual_regularization = 1e-8;
 
@@ -974,13 +976,13 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
     const QpSolution oracle = solve_dense_oracle(qp);
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
         QpEngine eng{opts};
 
-        SolveOverrides cold_overrides;
+        QpSolveOverrides cold_overrides;
         cold_overrides.trust_region_radius = 1.0;
         const QpSolution cold = eng.solve(qp, cold_overrides);
 
@@ -992,7 +994,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
         EXPECT_FALSE(cold.tr_active[0]); // real bound, not TR
         EXPECT_FALSE(cold.tr_active[1]);
 
-        SolveOverrides warm_overrides;
+        QpSolveOverrides warm_overrides;
         warm_overrides.trust_region_radius = 0.5;
         const QpSolution warm =
             eng.solve(qp, cold, warm_overrides); // chained, ordinary warm-start.
@@ -1005,7 +1007,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
         EXPECT_FALSE(warm.tr_active[0]);
         EXPECT_FALSE(warm.tr_active[1]);
 
-        if (algebra == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (algebra == QpWorkingSetAlgebra::kSchurBorder) {
             EXPECT_EQ(warm.counters.factorizations, 0);
         }
     }
@@ -1049,7 +1051,7 @@ TEST(QpEngineTr, SeededOppositeBoundPinDoesNotRecenterTheWindow) {
     qp.upper = Vec::Constant(2, 6.0);
 
     for (const auto algebra : kBothModes) {
-        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
@@ -1065,7 +1067,7 @@ TEST(QpEngineTr, SeededOppositeBoundPinDoesNotRecenterTheWindow) {
         for (const double radius : {5.0, 2.5, 1.25}) {
             QpSolution seed = far;
             seed.x.setZero(); // the SQP driver's TR-centering discipline
-            SolveOverrides overrides;
+            QpSolveOverrides overrides;
             overrides.trust_region_radius = radius;
             const QpSolution warm = eng.solve(qp, seed, overrides);
 

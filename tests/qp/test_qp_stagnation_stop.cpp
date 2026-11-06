@@ -4,8 +4,8 @@
 // test_qp_stagnation_stop.cpp -- M7 W2 SNX, on the walk seam (docs/testing.md): THE STAGNATION
 // READING (qp_engine.h, section 4). A run of ordinary full steps keeps the working set fixed; when
 // it stops making progress the next pass is a KKT point of the working set for the drop rule alone,
-// and with nothing to drop (or the readings spent) the walk ends kMaxIter at the iterate it stands
-// on instead of spending the rest of its minor cap re-solving the same face.
+// and with nothing to drop (or the readings spent) the walk ends kIterationLimit at the iterate it
+// stands on instead of spending the rest of its minor cap re-solving the same face.
 //
 // The fixtures are two `default`-label BRITGAS restoration subproblems that ran to their minor cap
 // in-cell at 5ecd0dea (each dump's `result` line: status=1, minors=11700) on long idle runs. Both
@@ -41,6 +41,7 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::test_support::QpDump;
 
 namespace {
@@ -49,7 +50,7 @@ namespace {
 // subproblems differently. The status, the stop counter, the objective against the capped
 // endpoint and the rows are the assertions.
 void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
-                                 const WorkingSetLinearAlgebra *alg = nullptr) {
+                                 const QpWorkingSetAlgebra *alg = nullptr) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     // The premise: in-cell, this subproblem ran to its minor cap.
@@ -100,9 +101,9 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
         EXPECT_EQ(s.counters.saddle_exits + s.counters.saddle_exit_misses, 0);
     }
     if (s.counters.stagnation_stops == 1) {
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     }
-    ASSERT_TRUE(s.status == QpStatus::kMaxIter || s.status == QpStatus::kOptimal)
+    ASSERT_TRUE(s.status == QpStatus::kIterationLimit || s.status == QpStatus::kOptimal)
         << static_cast<int>(s.status);
     // No worse than the capped endpoint in objective; the rows within twice the capped
     // endpoint's miss (the two endpoints are different points of the same footprint face).
@@ -129,9 +130,9 @@ void expect_stopped_like_the_cap(const char *file, bool ends_on_a_stop,
     EXPECT_LE(s.counters.stagnation_drops, hven::detail::kStagnationDropBudget);
     EXPECT_LE(s.counters.stagnation_stops, 1);
     if (s.counters.stagnation_stops == 1) {
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     }
-    ASSERT_TRUE(s.status == QpStatus::kMaxIter || s.status == QpStatus::kOptimal)
+    ASSERT_TRUE(s.status == QpStatus::kIterationLimit || s.status == QpStatus::kOptimal)
         << static_cast<int>(s.status);
 #endif
     if (s.status == QpStatus::kOptimal) {
@@ -153,12 +154,12 @@ TEST(QpStagnationStop, BritgasRestorationFootprintFace) {
 }
 
 TEST(QpStagnationStop, BritgasRestorationUncertifiedStationaryPointBorder) {
-    constexpr WorkingSetLinearAlgebra kAlg = WorkingSetLinearAlgebra::kSchurBorder;
+    constexpr QpWorkingSetAlgebra kAlg = QpWorkingSetAlgebra::kSchurBorder;
     expect_stopped_like_the_cap("SNX_BRITGAS_resto_qp27.txt", /*ends_on_a_stop=*/true, &kAlg);
 }
 
 TEST(QpStagnationStop, BritgasRestorationUncertifiedStationaryPointRefactorize) {
-    constexpr WorkingSetLinearAlgebra kAlg = WorkingSetLinearAlgebra::kRefactorize;
+    constexpr QpWorkingSetAlgebra kAlg = QpWorkingSetAlgebra::kRefactorize;
     expect_stopped_like_the_cap("SNX_BRITGAS_resto_qp27.txt", /*ends_on_a_stop=*/true, &kAlg);
 }
 
@@ -345,7 +346,7 @@ TEST(QpStagnationStop, AReadingWithNothingToDropOnItsRowsEndsTheWalk) {
     const Walk w = observed(qp, o);
     print_walk("idle on the row", w);
     const QpSolution &s = w.solution;
-    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     EXPECT_EQ(s.counters.stagnation_stops, 1);
     EXPECT_EQ(s.counters.stagnation_drops, 0);
     EXPECT_EQ(s.counters.minor_iters, 1 + detail::kStagnationSteps + 1);
@@ -372,7 +373,7 @@ TEST(QpStagnationStop, TheMuFreeResumeIsSpentOncePerSolve) {
     const Walk w = observed(qp, o);
     print_walk("idle on a priced row", w);
     const QpSolution &s = w.solution;
-    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     EXPECT_EQ(s.counters.stagnation_stops, 1);
     EXPECT_EQ(s.counters.stagnation_drops, 0);
     EXPECT_EQ(s.counters.terminal_mu_refine_rescues, 2);
@@ -408,7 +409,7 @@ TEST(QpStagnationStop, AResidualHalvingBelowTheFloorIsNotProgress) {
         EXPECT_LT(w.records[k].active_res_inf, 0.75 * w.records[k - 1].active_res_inf) << k;
     }
     const QpSolution &s = w.solution;
-    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     EXPECT_EQ(s.counters.stagnation_stops, 1);
     EXPECT_EQ(s.counters.minor_iters, 1 + detail::kStagnationSteps + 1);
 }
@@ -434,7 +435,7 @@ TEST(QpStagnationStop, AStuckRunOffItsRowsEndsTheWalk) {
     const Walk w = observed(qp, o);
     print_walk("stuck off its rows", w);
     const QpSolution &s = w.solution;
-    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kMaxIter));
+    EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
     EXPECT_EQ(s.counters.stagnation_stops, 1);
     EXPECT_EQ(s.counters.stagnation_drops, 0);
     EXPECT_EQ(s.counters.minor_iters, 1 + detail::kStagnationSteps + 1);

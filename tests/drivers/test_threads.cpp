@@ -14,7 +14,7 @@
 //
 //   READ HERE, AT THE DRIVER, AFTER A SOLVE. The driver's own K0 factor,
 //   through the hot handle a walk solve emits; and the two LAZY tiers' live
-//   factors, through `SqpSolver::ssn_tier_num_threads()` /
+//   factors, through `SqpSolver::ssn_tier_threads()` /
 //   `ipqp_tier_num_threads()` (added by M6 W5 T8.8 fix1 for exactly this,
 //   astra I2 (a)). Those two read the engine THIS DRIVER built at first use, so
 //   deleting either driver-to-tier hand-off -- the `opts_.common.threads`
@@ -55,7 +55,7 @@
 //   call that phase made, at every tier, without claiming to read its factors.
 //   The registered W6 construction observer is what would OBSERVE them.
 //
-// ACCELERATE IS UNOBSERVED. `SymmetricFactor::set_num_threads` on Accelerate
+// ACCELERATE IS UNOBSERVED. `SymmetricFactor::set_threads` on Accelerate
 // STORES the count and applies it to nothing, so the accessor pins below hold
 // there and the MKL state pins do not compile there. The SQP deliberately does
 // NOT mirror the interior-point solver's driver-level
@@ -123,15 +123,10 @@ namespace {
 using hven::BoundState;
 using hven::Index;
 using hven::IpqpCounters;
-using hven::IpqpEngine;
-using hven::NlpModel;
-using hven::QpEngine;
 using hven::QpMode;
 using hven::QpOptions;
-using hven::QpProblem;
-using hven::QpSolution;
+using hven::QpSolveOverrides;
 using hven::QpStatus;
-using hven::SolveOverrides;
 using hven::SolveStatus;
 using hven::SpMatRM;
 using hven::SqpCounters;
@@ -140,9 +135,14 @@ using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
 using hven::SsnCounters;
-using hven::SsnEngine;
 using hven::StartLevel;
 using hven::Vec;
+using hven::detail::IpqpEngine;
+using hven::detail::NlpModel;
+using hven::detail::QpEngine;
+using hven::detail::QpProblem;
+using hven::detail::QpSolution;
+using hven::detail::SsnEngine;
 
 constexpr double kInfBound = std::numeric_limits<double>::infinity();
 
@@ -302,12 +302,12 @@ SqpOptions base_options(QpMode mode, int threads) {
 // its solve emitted. `HotState::border` is the very `BorderState` the engine
 // solved through -- qp_engine.h defines the type the opaque handle names.
 int driver_k0_num_threads(const SqpResult &sol) {
-    EXPECT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr)
+    EXPECT_NE(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr)
         << "the driver emitted no hot handle to read";
-    if (SqpWarmAccess::state(sol.native_warm_start).hot == nullptr) {
+    if (SqpWarmAccess::state(sol.sqp_warm_start).hot == nullptr) {
         return -1;
     }
-    return SqpWarmAccess::state(sol.native_warm_start).hot->border->kkt.factor.num_threads();
+    return SqpWarmAccess::state(sol.sqp_warm_start).hot->border->kkt.factor.num_threads();
 }
 
 // ---------------------------------------------------------------------------
@@ -573,7 +573,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
 }
 
 // The deterministic half of the result object itself. The two TIMING fields
-// (`wall_seconds`, `solve_impl_seconds`) are deliberately NOT compared: CLAUDE.md
+// (`wall_seconds`, `engine_seconds`) are deliberately NOT compared: CLAUDE.md
 // section 7 makes wall clock informational, and comparing it here would make
 // this pin a clock test. `export_snapshot_` is the ingest payload, compared
 // through nothing here because the histories and counters above already carry
@@ -637,34 +637,34 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
 
     // THE HOT HANDLE IS A WALK-TIER OBJECT. It carries the `BorderState` the
     // walk engine solved through, so it exists only on a solve that ran the
-    // walk; a kSsn or kIpm solve emits none. The other two tiers are read
+    // walk; a kSsn or kIpqp solve emits none. The other two tiers are read
     // through the driver's own tier accessors instead (M6 W5 T8.8 fix1), which
     // is a reading of the engine this driver built at first use. What every
     // mode CAN be held to is that the solve left MKL's thread state exactly as
     // it found it.
     const int before = max_threads_now();
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(::testing::Message() << "qp_mode " << static_cast<int>(mode));
         hven::test_support::Hs76Model model;
         SqpSolver driver(base_options(mode, 0));
         // PREMISE: neither lazy tier exists before the solve, so a reading of 0
         // after it is the engine THIS SOLVE built and not a default.
-        ASSERT_EQ(driver.ssn_tier_num_threads(), -1);
-        ASSERT_EQ(driver.ipqp_tier_num_threads(), -1);
+        ASSERT_EQ(driver.ssn_tier_threads(), -1);
+        ASSERT_EQ(driver.ipqp_tier_threads(), -1);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         if (mode == QpMode::kWalk) {
             EXPECT_EQ(driver_k0_num_threads(sol), 0) << "the driver's own K0 factor";
         }
         if (mode == QpMode::kSsn) {
-            ASSERT_NE(driver.ssn_tier_num_threads(), -1)
+            ASSERT_NE(driver.ssn_tier_threads(), -1)
                 << "PREMISE: the kSsn solve built the SSN tier";
-            EXPECT_EQ(driver.ssn_tier_num_threads(), 0) << "the driver's own SSN tier factor";
+            EXPECT_EQ(driver.ssn_tier_threads(), 0) << "the driver's own SSN tier factor";
         }
-        if (mode == QpMode::kIpm) {
-            ASSERT_NE(driver.ipqp_tier_num_threads(), -1)
+        if (mode == QpMode::kIpqp) {
+            ASSERT_NE(driver.ipqp_tier_threads(), -1)
                 << "PREMISE: the kIpm solve built the IPQP tier";
-            EXPECT_EQ(driver.ipqp_tier_num_threads(), 0) << "the driver's own IPQP tier factor";
+            EXPECT_EQ(driver.ipqp_tier_threads(), 0) << "the driver's own IPQP tier factor";
         }
         EXPECT_EQ(max_threads_now(), before) << "nothing was left behind";
     }
@@ -731,7 +731,7 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     const QpSolution face =
         face_of(off, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{true});
     QpSolution refined;
-    ASSERT_TRUE(walk.refine_on_face(qp, face, SolveOverrides{}, refined));
+    ASSERT_TRUE(walk.refine_on_face(qp, face, QpSolveOverrides{}, refined));
     EXPECT_EQ(refined.counters.factorizations, 1)
         << "PREMISE: the EQP-refine temporary was actually constructed on this path";
     EXPECT_EQ(walk.num_threads(), kAskedFor)
@@ -755,17 +755,17 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // `opts_.common.threads`) is what these two blocks observe: the engine read
     // is the one the driver built at first use, so dropping either argument
     // leaves a tier at 0 and fails here (astra I2 (a)).
-    for (const QpMode mode : {QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(::testing::Message() << "lazy tier, qp_mode " << static_cast<int>(mode));
         hven::test_support::Hs76Model tier_model;
         SqpSolver tier_driver(base_options(mode, kAskedFor));
-        ASSERT_EQ(tier_driver.ssn_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
-        ASSERT_EQ(tier_driver.ipqp_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
+        ASSERT_EQ(tier_driver.ssn_tier_threads(), -1) << "PREMISE: lazy, not yet built";
+        ASSERT_EQ(tier_driver.ipqp_tier_threads(), -1) << "PREMISE: lazy, not yet built";
         const SqpResult tier_sol =
             tier_driver.solve(hven::detail::problem_ref(tier_model), (tier_model).start_point());
         ASSERT_EQ(tier_sol.status, SolveStatus::kOptimal);
-        const int tier_threads = mode == QpMode::kSsn ? tier_driver.ssn_tier_num_threads()
-                                                      : tier_driver.ipqp_tier_num_threads();
+        const int tier_threads =
+            mode == QpMode::kSsn ? tier_driver.ssn_tier_threads() : tier_driver.ipqp_tier_threads();
         ASSERT_NE(tier_threads, -1) << "PREMISE: this solve built the tier it names";
         EXPECT_EQ(tier_threads, kAskedFor)
             << "SqpOptions::common.threads reached the tier engine the DRIVER built";
@@ -812,14 +812,13 @@ TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
     SqpSolver driver(base_options(QpMode::kWalk, kAskedFor));
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr);
-    ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur.has_value())
+    ASSERT_NE(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr);
+    ASSERT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur.has_value())
         << "PREMISE: this solve built a live Schur border";
-    ASSERT_GT(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->dim(), 0)
+    ASSERT_GT(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur->dim(), 0)
         << "PREMISE: the border is NONEMPTY, so the dense factor really factorized";
 
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->num_threads(),
-              kAskedFor)
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur->num_threads(), kAskedFor)
         << "the DENSE border factor's own count, read through to the factor";
     EXPECT_EQ(max_threads_now(), before) << "and its LAPACK calls undid the scope";
 }
@@ -831,11 +830,11 @@ TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
     SqpSolver driver(base_options(QpMode::kWalk, 0));
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    ASSERT_NE(SqpWarmAccess::state(sol.native_warm_start).hot, nullptr);
-    ASSERT_TRUE(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur.has_value());
-    ASSERT_GT(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->dim(), 0)
+    ASSERT_NE(SqpWarmAccess::state(sol.sqp_warm_start).hot, nullptr);
+    ASSERT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur.has_value());
+    ASSERT_GT(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur->dim(), 0)
         << "PREMISE: the border is NONEMPTY, as in the pin above";
-    EXPECT_EQ(SqpWarmAccess::state(sol.native_warm_start).hot->border->schur->num_threads(), 0);
+    EXPECT_EQ(SqpWarmAccess::state(sol.sqp_warm_start).hot->border->schur->num_threads(), 0);
 }
 
 // ===========================================================================
@@ -859,7 +858,7 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
     set_caller_local(kCallerOverride);
     ASSERT_EQ(mkl_get_max_threads(), kCallerOverride) << "the caller's own override is in force";
 
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(::testing::Message() << "qp_mode " << static_cast<int>(mode));
         hven::test_support::Hs76Model model;
         SqpSolver driver(base_options(mode, kAskedFor));
@@ -931,7 +930,7 @@ TEST(Threads, ZeroAndOneProduceIdenticalHistoriesAndCounters) {
     // tier's own construction site, so each tier's plumbing is its own claim.
     // The status is COMPARED rather than required to be optimal -- identity is
     // the claim, and a mode that stops on a budget must stop identically.
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         for (int m = 0; m < 3; ++m) {
             SCOPED_TRACE(::testing::Message()
                          << names[m] << ", qp_mode " << static_cast<int>(mode));

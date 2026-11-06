@@ -30,6 +30,7 @@
 namespace string_piece_test {
 
 using namespace hven;
+using namespace hven::detail;
 using namespace hven;
 using Vx = Eigen::VectorXd;
 using Vi = Eigen::VectorXi;
@@ -55,29 +56,30 @@ struct NoConstraintSurface {
     [[noreturn]] static void refuse() {
         throw std::logic_error("objective piece used as constraint");
     }
-    void constraints(hven::ConstEigenRef<Vx>, Eigen::Ref<Vx>, const SolverIndexingData &) const {
+    void constraints(hven::detail::ConstEigenRef<Vx>, Eigen::Ref<Vx>,
+                     const SolverIndexingData &) const {
         refuse();
     }
-    void constraints_adjointgradient(hven::ConstEigenRef<Vx>, hven::ConstEigenRef<Vx>,
-                                     Eigen::Ref<Vx>, Eigen::Ref<Vx>,
-                                     const SolverIndexingData &) const {
+    void constraints_adjointgradient(hven::detail::ConstEigenRef<Vx>,
+                                     hven::detail::ConstEigenRef<Vx>, Eigen::Ref<Vx>,
+                                     Eigen::Ref<Vx>, const SolverIndexingData &) const {
         refuse();
     }
-    void constraints_jacobian(hven::ConstEigenRef<Vx>, Eigen::Ref<Vx>, SpMatRM &, Eigen::Ref<Vi>,
-                              Eigen::Ref<Vi>, std::vector<std::mutex> &,
+    void constraints_jacobian(hven::detail::ConstEigenRef<Vx>, Eigen::Ref<Vx>, SpMatRM &,
+                              Eigen::Ref<Vi>, Eigen::Ref<Vi>, std::vector<std::mutex> &,
                               const SolverIndexingData &) const {
         refuse();
     }
-    void constraints_jacobian_adjointgradient(hven::ConstEigenRef<Vx>, hven::ConstEigenRef<Vx>,
-                                              Eigen::Ref<Vx>, Eigen::Ref<Vx>, SpMatRM &,
-                                              Eigen::Ref<Vi>, Eigen::Ref<Vi>,
-                                              std::vector<std::mutex> &,
+    void constraints_jacobian_adjointgradient(hven::detail::ConstEigenRef<Vx>,
+                                              hven::detail::ConstEigenRef<Vx>, Eigen::Ref<Vx>,
+                                              Eigen::Ref<Vx>, SpMatRM &, Eigen::Ref<Vi>,
+                                              Eigen::Ref<Vi>, std::vector<std::mutex> &,
                                               const SolverIndexingData &) const {
         refuse();
     }
     void constraints_jacobian_adjointgradient_adjointhessian(
-        hven::ConstEigenRef<Vx>, hven::ConstEigenRef<Vx>, Eigen::Ref<Vx>, Eigen::Ref<Vx>, SpMatRM &,
-        Eigen::Ref<Vi>, Eigen::Ref<Vi>, std::vector<std::mutex> &,
+        hven::detail::ConstEigenRef<Vx>, hven::detail::ConstEigenRef<Vx>, Eigen::Ref<Vx>,
+        Eigen::Ref<Vx>, SpMatRM &, Eigen::Ref<Vi>, Eigen::Ref<Vi>, std::vector<std::mutex> &,
         const SolverIndexingData &) const {
         refuse();
     }
@@ -92,21 +94,21 @@ struct StringLabelledQuadratic : NoConstraintSurface {
     int output_rows() const { return 1; }
     bool thread_safe() const { return true; }
 
-    void objective(double scale, hven::ConstEigenRef<Vx> X, double &val,
+    void objective(double scale, hven::detail::ConstEigenRef<Vx> X, double &val,
                    const SolverIndexingData &d) const {
         for (int V = 0; V < d.num_appl(); V++) {
             const double e = X[d.v_loc(0, V)] - ref;
             val += scale * weight * e * e;
         }
     }
-    void objective_gradient(double scale, hven::ConstEigenRef<Vx> X, double &val, Eigen::Ref<Vx> GX,
-                            const SolverIndexingData &d) const {
+    void objective_gradient(double scale, hven::detail::ConstEigenRef<Vx> X, double &val,
+                            Eigen::Ref<Vx> GX, const SolverIndexingData &d) const {
         this->objective(scale, X, val, d);
         for (int V = 0; V < d.num_appl(); V++) {
             GX[d.inner_gradient_starts[V]] = scale * 2.0 * weight * (X[d.v_loc(0, V)] - ref);
         }
     }
-    void objective_gradient_hessian(double scale, hven::ConstEigenRef<Vx> X, double &val,
+    void objective_gradient_hessian(double scale, hven::detail::ConstEigenRef<Vx> X, double &val,
                                     Eigen::Ref<Vx> GX, SpMatRM &kkt, Eigen::Ref<Vi> locations,
                                     Eigen::Ref<Vi> clashes, std::vector<std::mutex> &locks,
                                     const SolverIndexingData &d) const {
@@ -196,7 +198,7 @@ TEST(StringPiece, APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp) {
     Problem problem(std::move(declaration));
     EXPECT_EQ(problem.num_variables(), 2);
     EXPECT_EQ(problem.num_constraints(), 0);
-    EXPECT_EQ(problem.partitions(), 1);
+    EXPECT_EQ(problem.num_partitions(), 1);
     EXPECT_EQ(problem.statistics().boxed_variables, 2);
 
     IpmOptions options;

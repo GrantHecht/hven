@@ -15,6 +15,8 @@
 #include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 
+using namespace hven::detail;
+
 namespace hven::test_support {
 
 /// @brief A `QpProblem` presented as an `NlpModel`, so a QP fixture's OWN

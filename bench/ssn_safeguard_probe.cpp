@@ -163,6 +163,7 @@
 #include "support/ssn_fixtures.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using namespace hven::test_support;
@@ -186,7 +187,7 @@ const char *status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "kOptimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "kMaxIter";
     case QpStatus::kInfeasible:
         return "kInfeasible";

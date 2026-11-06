@@ -17,6 +17,7 @@
 #include <hven/detail/qp/ws_independence.h>
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -40,14 +41,14 @@ QpProblem make_qp(const Eigen::MatrixXd &H, const Vec &g, const Eigen::MatrixXd 
     return qp;
 }
 
-QpOptions opts_for(WorkingSetLinearAlgebra alg, bool on = true) {
+QpOptions opts_for(QpWorkingSetAlgebra alg, bool on = true) {
     QpOptions o;
     o.working_set_algebra = alg;
     o.independent_working_set = on;
     return o;
 }
 
-class WsIndependence : public ::testing::TestWithParam<WorkingSetLinearAlgebra> {};
+class WsIndependence : public ::testing::TestWithParam<QpWorkingSetAlgebra> {};
 
 // min 1/2||x||^2 - x0 - 2 x1 s.t. x0 + x1 <= 1, 2 x0 + 2 x1 <= 2 (a duplicate),
 // 0 <= x <= 10; seeded with BOTH rows active. The detector removes the
@@ -335,8 +336,8 @@ TEST_P(WsIndependence, AnUncertifiedPinIsKeptAndACertifiedRowRemoved) {
 }
 
 INSTANTIATE_TEST_SUITE_P(BothAlgebras, WsIndependence,
-                         ::testing::Values(WorkingSetLinearAlgebra::kSchurBorder,
-                                           WorkingSetLinearAlgebra::kRefactorize));
+                         ::testing::Values(QpWorkingSetAlgebra::kSchurBorder,
+                                           QpWorkingSetAlgebra::kRefactorize));
 
 // F7 (eliminated view): the refined statistic separates dependent from
 // independent candidates across mu and row scale, with the declared kDepTol.

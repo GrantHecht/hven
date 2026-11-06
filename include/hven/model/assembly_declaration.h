@@ -202,7 +202,7 @@ struct AssemblyDeclaration {
     ///
     /// The layout may clamp a request DOWN, never up: it adopts at most one
     /// partition per 1000 claimed KKT elements, and at least one, so a small
-    /// problem asking for several runs on fewer. Problem::partitions() reports
+    /// problem asking for several runs on fewer. Problem::num_partitions() reports
     /// the count adopted. Partitions are evaluated concurrently, so a piece is
     /// evaluated from several threads when more than one is adopted.
     /// @throws std::invalid_argument if @p partitions is below 1 or past INT_MAX.

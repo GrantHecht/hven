@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/drivers/ipm_iterate.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The classic backtracking merit line search (the one fused-path
 /// strategy): LANG / L1 / augmented-Lagrangian merit variants behind a single
@@ -53,10 +53,11 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     void reset() override {}
 
     /// Classic fused entry point: the dispatcher over the three merit variants.
-    double classic_line_search(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
-                               double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                               Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                               IpmIterate &Citer, const std::vector<IpmIterate> &iters) override;
+    double classic_line_search(IpmLineSearchMode lsmode, double obj_scale, double mu,
+                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                               Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                               Eigen::VectorXd &RHS2, IpmIterate &Citer,
+                               const std::vector<IpmIterate> &iters) override;
 
   private:
     SolverContext ctx_;
@@ -118,4 +119,4 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     mutable Eigen::VectorXd resto_iq_shift_scratch_;
 };
 
-} // namespace hven
+} // namespace hven::detail

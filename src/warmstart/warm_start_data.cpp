@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // The warm-start currency's byte form: what the layout is, and why it is this
-// one. The caller-facing contract is in hven/warmstart/warm_start_data.h.
+// one. The caller-facing contract is in hven/warmstart/warm_start.h.
 //
 // THE LAYOUT. All integers are fixed-width little-endian. All offsets below
 // are byte offsets from the start of the encoding.
@@ -47,7 +47,7 @@
 // ends before the input does means the caller handed us something other than
 // one payload: a concatenation, a truncated-then-padded buffer, a framing bug.
 
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 #include <array>
 #include <bit>
@@ -124,7 +124,7 @@ class Reader {
     std::span<const std::byte> take(std::size_t count, std::string_view what) {
         if (count > remaining()) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStart): the input ends at byte {0}, but {1} byte(s) were "
+                "deserialize_warm_start: the input ends at byte {0}, but {1} byte(s) were "
                 "expected at byte offset {2} for {3}",
                 bytes_.size(), count, offset_, what));
         }
@@ -161,7 +161,7 @@ class Reader {
         const std::uint64_t count = read_u64(what);
         if (count > static_cast<std::uint64_t>(remaining() / element_size)) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStart): the length field at byte offset {0} for {1} declares "
+                "deserialize_warm_start: the length field at byte offset {0} for {1} declares "
                 "{2} element(s) of {3} byte(s), but only {4} byte(s) remain in a {5}-byte input",
                 length_offset, what, count, element_size, remaining(), bytes_.size()));
         }
@@ -212,7 +212,7 @@ std::size_t encoded_size_hint(const WarmStart &data) {
 
 } // namespace
 
-std::vector<std::byte> serialize(const WarmStart &data) {
+std::vector<std::byte> serialize_warm_start(const WarmStart &data) {
     std::vector<std::byte> out;
     out.reserve(encoded_size_hint(data));
     for (const unsigned char byte : kMagic) {
@@ -240,14 +240,14 @@ std::vector<std::byte> serialize(const WarmStart &data) {
     return out;
 }
 
-WarmStart deserialize(std::span<const std::byte> bytes) {
+WarmStart deserialize_warm_start(std::span<const std::byte> bytes) {
     Reader reader(bytes);
 
     const std::span<const std::byte> magic = reader.take(kMagicSize, "the format magic");
     for (std::size_t i = 0; i < kMagicSize; ++i) {
         if (std::to_integer<unsigned char>(magic[i]) != kMagic[i]) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStart): expected the 8-byte format magic 48 56 45 4e 57 53 "
+                "deserialize_warm_start: expected the 8-byte format magic 48 56 45 4e 57 53 "
                 "44 00 (\"HVENWSD\\0\") at byte offset 0, found {0}",
                 hex_dump(magic)));
         }
@@ -274,7 +274,7 @@ WarmStart deserialize(std::span<const std::byte> bytes) {
                    "build is the old one -- read it with a build that writes its version.";
         }
         throw std::invalid_argument(
-            fmt::format("deserialize(WarmStart): the format version at byte offset {0} is {1}, "
+            fmt::format("deserialize_warm_start: the format version at byte offset {0} is {1}, "
                         "which this build does not read; it writes and reads version {2}.{3}",
                         kMagicSize, version, kWarmStartFormatVersion, note));
     }
@@ -310,7 +310,7 @@ WarmStart deserialize(std::span<const std::byte> bytes) {
 
     if (reader.remaining() != 0) {
         throw std::invalid_argument(
-            fmt::format("deserialize(WarmStart): the payload ends at byte offset {0}, but the "
+            fmt::format("deserialize_warm_start: the payload ends at byte offset {0}, but the "
                         "input carries {1} trailing byte(s) after it",
                         reader.offset(), reader.remaining()));
     }

@@ -28,15 +28,16 @@
 #include "support/qp_dump.h"
 
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
     o.working_set_algebra = alg;
@@ -104,7 +105,7 @@ double face_min_curvature(const QpDump &d, const QpSolution &s, Index &null_dim)
     return es.eigenvalues()(0) / std::max(1.0, h.cwiseAbs().maxCoeff());
 }
 
-void expect_shifted_exit_to_kkt(const char *file, const char *premise, WorkingSetLinearAlgebra alg,
+void expect_shifted_exit_to_kkt(const char *file, const char *premise, QpWorkingSetAlgebra alg,
                                 double f_release) {
     QpDump d;
     const QpSolution s = solve_fixture(file, alg, d);

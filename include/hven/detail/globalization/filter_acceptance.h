@@ -10,7 +10,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// (18a) constraint-violation margin gamma_theta (WB Eq. (18a); Ipopt option
 /// "gamma_theta" = 1e-5).
@@ -81,7 +81,7 @@ class Filter {
 /// This class supplies ONLY the filter-specific H-type verdict and the
 /// augmentation bookkeeping through the base's hooks; the theta_min/theta_max
 /// ceiling, switching condition, and F-type Armijo test live in
-/// SwitchingAcceptance. Opt-in via Settings::acceptance_strategy_ == filter;
+/// SwitchingAcceptance. Opt-in via Settings::acceptance_mode_ == filter;
 /// the default classic path stays bit-identical.
 ///
 /// ProgressMeasures mapping (same convention as switching_acceptance.h):
@@ -276,4 +276,4 @@ class FilterAcceptance final : public SwitchingAcceptance {
     double restoration_constraint_tol_ = IpmOptions{}.common.feasibility_tol;
 };
 
-} // namespace hven
+} // namespace hven::detail

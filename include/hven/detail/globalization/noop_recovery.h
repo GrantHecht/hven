@@ -5,7 +5,7 @@
 
 #include "hven/detail/globalization/recovery_chain.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The empty recovery chain: unconditionally accepts the rejected step
 /// as-is — exactly the classic give-up behavior with no recovery chain at all.
@@ -28,7 +28,7 @@ class NoopRecovery : public RecoveryChain {
     /// entire threaded working set) and accepts the step as-is.
     Action on_step_rejected(IpmIterate & /*Citer*/, const std::vector<IpmIterate> & /*iters*/,
                             SolverContext & /*ctx*/, AcceptanceStrategy & /*acceptance*/,
-                            GlobalizationMechanism & /*mechanism*/, LineSearchMode /*lsmode*/,
+                            GlobalizationMechanism & /*mechanism*/, IpmLineSearchMode /*lsmode*/,
                             double /*obj_scale*/, double /*mu*/, double /*prim_obj*/,
                             double /*barr_obj*/, Eigen::VectorXd & /*XSL*/,
                             Eigen::VectorXd & /*DXSL*/, Eigen::VectorXd & /*XSL2*/,
@@ -44,4 +44,4 @@ class NoopRecovery : public RecoveryChain {
     }
 };
 
-} // namespace hven
+} // namespace hven::detail

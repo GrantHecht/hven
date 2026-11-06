@@ -30,9 +30,11 @@ namespace detail {
 [[noreturn]] void throw_thread_mode_laid(const std::string &piece, int mode);
 } // namespace detail
 
+namespace detail {
 /// The one type allowed to move a piece's lay marker: it is the thing that
 /// lays layouts, and the marker records that it has.
 struct NonLinearProgram;
+} // namespace detail
 
 template <class FuncType> struct SolverFunctionBase {
     using MatrixXi = Eigen::MatrixXi;
@@ -119,7 +121,7 @@ template <class FuncType> struct SolverFunctionBase {
     /// afterwards, which is a distinction nothing else has any business drawing.
     bool thread_mode_is_laid() const { return this->thread_mode_laid_; }
 
-    friend struct NonLinearProgram;
+    friend struct detail::NonLinearProgram;
 
     ThreadingFlags thread_mode_ = ThreadingFlags::kByApplication;
 

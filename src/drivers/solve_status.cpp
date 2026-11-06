@@ -16,18 +16,18 @@
 
 namespace hven {
 
-SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason) {
+SolveStatus detail::resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason) {
     // THE VERDICT IS READ FIRST, so a stronger one the convergence check already
     // holds -- kOptimal or kAcceptable -- survives a stall recorded in the same
     // iteration. Only the engine's own "ran out of iterations with nothing
     // better to say" verdict is open to a stop reason's reinterpretation.
-    if (raw_verdict != SolveStatus::kMaxIter) {
+    if (raw_verdict != SolveStatus::kIterationLimit) {
         return raw_verdict;
     }
     switch (reason) {
     case IpmStopReason::kInterrupted:
         // THE CALLER STOPPED IT, and that outranks the cap the loop would
-        // otherwise have been labelled with -- but only from kMaxIter, so the
+        // otherwise have been labelled with -- but only from kIterationLimit, so the
         // read above still lets a converged or acceptable verdict stand. "The
         // stop is a caller's decision, not a verdict" cuts both ways: it
         // renames a NOTCONVERGED exit and it overrides nothing.
@@ -43,15 +43,15 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
     case IpmStopReason::kNonFiniteIterate:
     case IpmStopReason::kEvaluationFailure:
         // The engine ends these three kNumericalError, which the read above
-        // returns unchanged; this arm only labels a defensive kMaxIter.
+        // returns unchanged; this arm only labels a defensive kIterationLimit.
         return SolveStatus::kNumericalError;
     case IpmStopReason::kException:
         return SolveStatus::kInterrupted;
-    case IpmStopReason::kIterationCap:
+    case IpmStopReason::kIterationLimit:
     case IpmStopReason::kNone:
         // kNone here is the defensive default: the engine labels every
         // non-converged exit it takes, so an unlabelled one is the cap.
-        return SolveStatus::kMaxIter;
+        return SolveStatus::kIterationLimit;
     }
     throw std::invalid_argument(fmt::format(
         "resolve_ipm_phase_status: unrecognized IpmStopReason ({})", static_cast<int>(reason)));

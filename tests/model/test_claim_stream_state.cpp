@@ -42,10 +42,10 @@
 using hven::AssemblyDeclaration;
 using hven::ClaimBlock;
 using hven::ClaimStreamDimensions;
-using hven::FixedVariableTreatment;
-using hven::NonLinearProgram;
+using hven::IpmFixedVariableTreatment;
 using hven::StructureEpoch;
 using hven::ThreadingFlags;
+using hven::detail::NonLinearProgram;
 using hven::model_tests::build_corpus;
 using hven::model_tests::corpus_constraint;
 using hven::model_tests::CorpusCase;
@@ -96,7 +96,7 @@ TEST(ClaimStreamState, AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch) {
     const Eigen::VectorXi rows_before = copy_of(nlp->kkt_claim_rows());
     const int *storage_before = nlp->kkt_claim_rows().data();
 
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
 
     // The structures WERE re-laid -- the engine's own signal moved -- and the
     // claim stream was not, because nothing it describes changed.
@@ -108,7 +108,7 @@ TEST(ClaimStreamState, AnEliminationOnlyRelayRetainsTheStreamAndItsEpoch) {
 
 TEST(ClaimStreamState, RestoringFromAnEliminationRetainsToo) {
     auto nlp = build_corpus(state_case());
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
 
     const StructureEpoch claim_before = nlp->claim_stream_epoch();
     const Eigen::VectorXi rows_before = copy_of(nlp->kkt_claim_rows());
@@ -116,7 +116,7 @@ TEST(ClaimStreamState, RestoringFromAnEliminationRetainsToo) {
     // RelaxBounds keeps every variable, so the reduction is dropped and the
     // layout goes back over the full space. The declared claim structure never
     // moved, so neither does the stream.
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kRelaxBounds, 1e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kRelaxBounds, 1e-8));
     ASSERT_FALSE(nlp->is_reduced());
     EXPECT_EQ(nlp->claim_stream_epoch(), claim_before);
     EXPECT_EQ(copy_of(nlp->kkt_claim_rows()), rows_before);
@@ -143,7 +143,7 @@ TEST(ClaimStreamState, AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved) 
     const StructureEpoch claim_before = nlp->claim_stream_epoch();
     const int equality_claims_before = nlp->equality_jacobian_claims().count;
 
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
 
     EXPECT_NE(nlp->claim_stream_epoch(), claim_before);
     // One internal equality row per fixed variable, each claiming one Jacobian
@@ -154,12 +154,12 @@ TEST(ClaimStreamState, AMakeConstraintTreatmentRebuildsBecauseTheRowSpaceMoved) 
 
 TEST(ClaimStreamState, ASwitchFromMakeConstraintToMakeParameterRebuilds) {
     auto nlp = build_corpus(state_case());
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     const StructureEpoch claim_before = nlp->claim_stream_epoch();
 
     // The switch DROPS the internal rows, so the declared row space and the
     // claim counts both move: a rebuild here is correct, not a missed retention.
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
     EXPECT_NE(nlp->claim_stream_epoch(), claim_before);
 }
 
@@ -218,7 +218,8 @@ TEST(ClaimStreamState, APieceSwapAtIdenticalCountsRebuildsAndMovesTheStream) {
 TEST(ClaimStreamState, AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds) {
     CorpusCase fixture = state_case();
     auto source = build_corpus(fixture);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatment::kMakeConstraint, 0.0));
+    ASSERT_TRUE(
+        source->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_GT(source->internal_fixed_constraints(), 0);
 
     AssemblyDeclaration declaration = source->declaration();
@@ -257,7 +258,7 @@ TEST(ClaimStreamState, AnUnlaidProblemHasNoClaimStreamAndSaysSo) {
 
 TEST(ClaimStreamState, AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessing) {
     auto nlp = build_corpus(wide_case());
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kMakeParameter, 0.0));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kMakeParameter, 0.0));
     ASSERT_TRUE(nlp->is_reduced());
 
     const StructureEpoch claim_before = nlp->claim_stream_epoch();
@@ -286,7 +287,7 @@ TEST(ClaimStreamState, AStampThatMovesWhileReducedDropsTheStreamRatherThanGuessi
     EXPECT_THROW((void)nlp->hessian_claim_partition_offsets(), std::invalid_argument);
 
     // And it comes back the moment a layout it CAN describe is laid.
-    ASSERT_TRUE(nlp->configure_variable_treatment(FixedVariableTreatment::kRelaxBounds, 1e-8));
+    ASSERT_TRUE(nlp->configure_variable_treatment(IpmFixedVariableTreatment::kRelaxBounds, 1e-8));
     ASSERT_NO_THROW((void)nlp->kkt_claim_rows());
     hven::model_tests::ReferenceStream want = reference_restatement(*nlp);
     ASSERT_EQ(nlp->kkt_claim_rows().size(), static_cast<Eigen::Index>(want.rows_.size()));

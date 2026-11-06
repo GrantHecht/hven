@@ -203,7 +203,7 @@ enum class QpWalkAction : int {
     /// THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy): an add-site dead end at a
     /// rank-deficient working set released the members on its null directions.
     kRankRepair,
-    /// THE STAGNATION READING (qp_engine.h, section 4) ended the walk kMaxIter on this pass:
+    /// THE STAGNATION READING (qp_engine.h, section 4) ended the walk kIterationLimit on this pass:
     /// nothing to drop at a point meeting its rows, or, after the pass's step, the drops spent.
     kStagnationStop,
     /// THE STAGNATION READING with nothing to drop re-solved the face mu-free and adopted the
@@ -908,7 +908,7 @@ struct QpWalkObserver {
     static inline thread_local std::uint64_t incoming_ws_signature = 0;
     static inline thread_local Index incoming_ws_size = 0;
     /// The status the recorded solve's walk loop left (`kTerminal`'s verdict,
-    /// or `kMaxIter` when the cap was reached). `-1` until the loop ends.
+    /// or `kIterationLimit` when the cap was reached). `-1` until the loop ends.
     static inline thread_local int exit_status = -1;
 
     /// The record the current pass is filling, or `nullptr`. The hooks in
@@ -1127,9 +1127,9 @@ inline void qp_walk_note_inertia(const hven::linear::InertiaEvidence &e, Index e
         switch (e.state) {
         case hven::linear::InertiaEvidence::State::kObserved:
             s.state = QpWalkInertiaState::kObserved;
-            s.n_pos = e.n_pos;
-            s.n_neg = e.n_neg;
-            s.n_zero = e.n_zero;
+            s.n_pos = e.positive;
+            s.n_neg = e.negative;
+            s.n_zero = e.zero;
             break;
         case hven::linear::InertiaEvidence::State::kQueryFailed:
             s.state = QpWalkInertiaState::kQueryFailed;

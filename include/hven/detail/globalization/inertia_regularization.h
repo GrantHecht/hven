@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace hven {
+namespace hven::detail {
 
 // Proximal primal-dual KKT regularization: constants and pure-logic helpers
 // for the `proximal_regularization` inertia mode — an alternative to the
@@ -73,4 +73,4 @@ inline double prox_reg_decay(double applied_total, double decr) {
     return std::max(kProxRegFloor, applied_total * decr);
 }
 
-} // namespace hven
+} // namespace hven::detail

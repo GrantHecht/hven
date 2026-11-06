@@ -85,7 +85,7 @@ struct CommonOptions {
     /// Backend thread count for this solver's factorizations. 0 leaves the
     /// backend's own default alone (the process-wide MKL_NUM_THREADS then
     /// governs). The SQP default is 0; `IpmOptions` defaults it to
-    /// HVEN_DEFAULT_QP_THREADS and requires it >= 1.
+    /// HVEN_DEFAULT_IPM_THREADS and requires it >= 1.
     ///
     /// The SQP engine applies it at call scope to every factorization path,
     /// nested restoration solves included, and undoes it on every exit; nothing

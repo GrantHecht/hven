@@ -27,14 +27,14 @@
 
 namespace {
 
-using hven::FilterAcceptance;
-using hven::FunnelAcceptance;
-using hven::MeritPenaltyRule;
-using hven::ModernMeritAcceptance;
+using hven::IpmMeritPenaltyRule;
+using hven::detail::FilterAcceptance;
+using hven::detail::FunnelAcceptance;
+using hven::detail::ModernMeritAcceptance;
 using TychoTest::pm;
 
 // An H-type test (m_f = 0: the switching condition never holds).
-bool RetractHType(hven::AcceptanceStrategy &a, double theta_current, double theta_trial) {
+bool RetractHType(hven::detail::AcceptanceStrategy &a, double theta_current, double theta_trial) {
     return a.is_iterate_acceptable(pm(theta_current), pm(theta_trial), pm(0.0), 1.0, 1.0);
 }
 
@@ -112,7 +112,7 @@ TEST(AcceptanceRetraction, FilterRetractIsDisarmedByTheNextTest) {
 }
 
 TEST(AcceptanceRetraction, MeritRetractRestoresTheSmallestKnownInfeasibility) {
-    ModernMeritAcceptance a(MeritPenaltyRule::kSinglePenalty);
+    ModernMeritAcceptance a(IpmMeritPenaltyRule::kSinglePenalty);
     // Armijo on the l1 merit with nu = 1: 2.0 - 1.0 >= eta * pred.
     ASSERT_TRUE(a.is_iterate_acceptable(pm(2.0), pm(1.0), pm(0.0, 0.0), 1.0, 1.0));
     ASSERT_DOUBLE_EQ(a.smallest_known_infeasibility(), 1.0);

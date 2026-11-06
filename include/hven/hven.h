@@ -38,7 +38,6 @@
 #include <hven/model/objective_function.h>
 #include <hven/model/parsed_io_flags.h>
 #include <hven/model/piece_interfaces.h>
-#include <hven/model/pieces.h>
 #include <hven/model/problem.h>
 #include <hven/model/sizable_spec.h>
 #include <hven/model/solver_function_base.h>
@@ -55,7 +54,7 @@
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 // the engines, their options, results and traces
 #include <hven/drivers/common_options.h>
@@ -66,10 +65,10 @@
 #include <hven/drivers/ipm_phase_report.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_options.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/step_verdict.h>
 #include <hven/drivers/trace.h>
-#include <hven/drivers/trace_writer.h>

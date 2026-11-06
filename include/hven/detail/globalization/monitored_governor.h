@@ -12,7 +12,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/drivers/ipm_iterate.h"
 
-namespace hven {
+namespace hven::detail {
 
 class GlobalizationMechanism;
 
@@ -100,7 +100,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     explicit MonitoredBarrierGovernor(std::unique_ptr<BarrierGovernor> free_delegate);
     ~MonitoredBarrierGovernor() override;
 
-    double update_barrier(BarrierMode barmode, double mu_in, double avgcomp, double mincomp,
+    double update_barrier(IpmBarrierMode barmode, double mu_in, double avgcomp, double mincomp,
                           Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
                           Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
                           SolverContext &ctx, double &barr_obj, const IpmIterate &current,
@@ -193,4 +193,4 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     int last_monotone_iters_ = 0;    ///< Iterations spent in monotone mode this phase.
 };
 
-} // namespace hven
+} // namespace hven::detail

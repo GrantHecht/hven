@@ -14,12 +14,12 @@
 #include "hven/drivers/solve_result.h"
 
 namespace hven {
-
 struct IpmOptions;
 struct SqpOptions;
 struct SqpResult;
+} // namespace hven
 
-namespace detail {
+namespace hven::detail {
 
 /// @brief The message of an interior-point solve.
 /// @param result The engine's result (status, returned_best_iterate).
@@ -44,5 +44,4 @@ std::string sqp_result_message(const SqpResult &result, SqpStopReason reason,
 ///        the exception it describes.
 std::string describe_exception(const std::exception_ptr &error) noexcept;
 
-} // namespace detail
-} // namespace hven
+} // namespace hven::detail

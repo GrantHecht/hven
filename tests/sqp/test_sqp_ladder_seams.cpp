@@ -35,6 +35,8 @@
 
 #include "support/qp_as_nlp_model.h"
 
+using namespace hven::detail;
+
 namespace hven {
 namespace {
 
@@ -158,7 +160,7 @@ TEST(SqpLadderSeam, L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible) {
     SqpOptions o = quiet();
     o.trust_region_initial = 8.0; // SecondRequestIsCappedAndReported's options
     o.common.max_iterations = 200;
-    o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    o.advanced.max_consecutive_qp_failures = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
@@ -494,7 +496,7 @@ TEST(SqpLadderSeam, R2ACarriedPriceIsNotACertificate) {
     ASSERT_EQ(Seam::forced, 1);
     ASSERT_GE(sol.history.size(), 3u);
     EXPECT_EQ(sol.history[1].qp_status, QpStatus::kNumericalError);
-    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kAcceptF);
+    EXPECT_EQ(sol.history[1].verdict, StepVerdict::kAcceptObjectiveStep);
     EXPECT_EQ(sol.counters.qp_failure_steps_judged, 1);
     EXPECT_EQ(sol.counters.qp_failure_steps_accepted, 1);
     EXPECT_DOUBLE_EQ(sol.history[2].f, 0.3) << "the failed walk's point was taken";
@@ -611,7 +613,7 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     SpreadMissModel model;
     SqpOptions o = quiet();
     o.common.max_iterations = 200;
-    o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+    o.advanced.max_consecutive_qp_failures = 1000; // the shrink ladder runs to the floor
     SqpSolver driver(o);
     // The nesting depth of every row event, in order: the sub-solve's rows arrive at depth 1.
     std::vector<Index> depths;
@@ -771,7 +773,7 @@ TEST(SqpLadderSeam, QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow) {
         o.hessian_mode = mode;
         o.trust_region_initial = 1.0;
         o.trust_region_min = 0.01;
-        o.advanced.qp_failure_budget = 1000; // the shrink ladder runs to the floor
+        o.advanced.max_consecutive_qp_failures = 1000; // the shrink ladder runs to the floor
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
@@ -814,7 +816,7 @@ TEST(SqpLadderSeam, ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap) {
         SqpOptions o = quiet();
         o.trust_region_initial = 8.0;
         o.common.max_iterations = 200;
-        o.advanced.qp_failure_budget = 1000;
+        o.advanced.max_consecutive_qp_failures = 1000;
         o.advanced.max_restoration_entries = cap;
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -842,7 +844,7 @@ TEST(SqpLadderSeam, ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap) {
         SqpOptions o = quiet();
         o.trust_region_initial = 8.0;
         o.common.max_iterations = 200;
-        o.advanced.qp_failure_budget = 1000;
+        o.advanced.max_consecutive_qp_failures = 1000;
         o.advanced.max_restoration_entries = cap;
         SqpSolver driver(o);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());

@@ -27,7 +27,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven {
+namespace hven::detail {
 
 // The penalty ladder: rho STARTS at kElasticRhoInit, or -- when infeasibility evidence prices the
 // violation higher -- at that norm CAPPED at kElasticRhoMax, and is multiplied by kElasticRhoFactor
@@ -38,7 +38,7 @@ namespace hven {
 // subproblem's OWN multiplier norm: for rho > ||lambda*||inf of the unrelaxed
 // QP, paying the penalty is strictly worse than satisfying the row, so the
 // elastic solution has s == 0 and IS the unrelaxed solution (pinned by a suite
-// fixture that straddles the threshold). rho_init = 1e2 sits well above the
+// fixture that straddles the threshold). primal_regularization_initial = 1e2 sits well above the
 // multipliers of a well-scaled subproblem; rho_max = 1e8 is where the penalty
 // term starts to dominate the double-precision arithmetic of the H block (the
 // engine's own regularization pair sits at 1e-8, so 1e8 is the reciprocal scale
@@ -157,7 +157,7 @@ struct ElasticQp {
 /// (coefficient rho*sigma_j > 0) against s >= 0, so no slack direction is a
 /// direction of decrease and the zero curvature cannot produce an unbounded ray.
 ///
-/// THE TRUST REGION IS FOLDED INTO THE BOX, not passed as SolveOverrides::
+/// THE TRUST REGION IS FOLDED INTO THE BOX, not passed as QpSolveOverrides::
 /// tr_radius -- a correctness requirement, not style: applying the radius to
 /// EVERY variable index would cap every slack at Delta too, and the slack a
 /// violated row needs is the size of the VIOLATION, which has nothing to do
@@ -248,4 +248,4 @@ void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSo
 QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
                            bool carry_multipliers);
 
-} // namespace hven
+} // namespace hven::detail

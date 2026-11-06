@@ -36,20 +36,22 @@
 #include <string>
 #include <string_view>
 
+using namespace hven::detail;
+
 namespace {
 // Name of a non-classic acceptance strategy, for the validate() error message
 // below. classic_merit never reaches this helper (the guard that calls it is
-// gated on acceptance_strategy_ != classic_merit).
-const char *acceptance_strategy_name(hven::AcceptanceMode strategy) {
-    using hven::AcceptanceMode;
+// gated on acceptance_mode_ != classic_merit).
+const char *acceptance_strategy_name(hven::IpmAcceptanceMode strategy) {
+    using hven::IpmAcceptanceMode;
     switch (strategy) {
-    case AcceptanceMode::kMerit:
+    case IpmAcceptanceMode::kMerit:
         return "kMerit";
-    case AcceptanceMode::kFunnel:
+    case IpmAcceptanceMode::kFunnel:
         return "kFunnel";
-    case AcceptanceMode::kFilter:
+    case IpmAcceptanceMode::kFilter:
         return "kFilter";
-    case AcceptanceMode::kClassicMerit:
+    case IpmAcceptanceMode::kClassicMerit:
         return "kClassicMerit";
     }
     return "unknown";
@@ -124,20 +126,20 @@ template <typename E> void enum_in_range(E v, E last, const char *name) {
         throw std::invalid_argument(fmt::format("{} is out of range, got {}", name, i));
 }
 
-void check_fixed_variable_treatment(hven::FixedVariableTreatment treatment) {
-    using hven::FixedVariableTreatment;
+void check_fixed_variable_treatment(hven::IpmFixedVariableTreatment treatment) {
+    using hven::IpmFixedVariableTreatment;
     switch (treatment) {
-    case FixedVariableTreatment::kMakeParameter:
-    case FixedVariableTreatment::kMakeConstraint:
-    case FixedVariableTreatment::kRelaxBounds:
+    case IpmFixedVariableTreatment::kMakeParameter:
+    case IpmFixedVariableTreatment::kMakeConstraint:
+    case IpmFixedVariableTreatment::kRelaxBounds:
         return;
     }
-    throw std::invalid_argument(
-        fmt::format("fixed_variable_treatment must be one of {}, {}, {} (got {})",
-                    hven::fixed_variable_treatment_name(FixedVariableTreatment::kMakeParameter),
-                    hven::fixed_variable_treatment_name(FixedVariableTreatment::kMakeConstraint),
-                    hven::fixed_variable_treatment_name(FixedVariableTreatment::kRelaxBounds),
-                    static_cast<int>(treatment)));
+    throw std::invalid_argument(fmt::format(
+        "fixed_variable_treatment must be one of {}, {}, {} (got {})",
+        hven::detail::fixed_variable_treatment_name(IpmFixedVariableTreatment::kMakeParameter),
+        hven::detail::fixed_variable_treatment_name(IpmFixedVariableTreatment::kMakeConstraint),
+        hven::detail::fixed_variable_treatment_name(IpmFixedVariableTreatment::kRelaxBounds),
+        static_cast<int>(treatment)));
 }
 
 } // namespace
@@ -232,7 +234,7 @@ void hven::validate(const IpmOptions &o) {
     check_fixed_variable_treatment(o.fixed_variable_treatment);
     // kRelaxBounds holds a fixed variable between bounds pushed apart by this
     // factor; at 0 there is no interval to hold it in.
-    if (o.fixed_variable_treatment == FixedVariableTreatment::kRelaxBounds &&
+    if (o.fixed_variable_treatment == IpmFixedVariableTreatment::kRelaxBounds &&
         !(o.bound_relax_factor > 0.0))
         throw std::invalid_argument(fmt::format(
             "bound_relax_factor must be > 0 under fixed_variable_treatment = kRelaxBounds, got {}",
@@ -246,18 +248,17 @@ void hven::validate(const IpmOptions &o) {
         throw std::invalid_argument(fmt::format(
             "objective_scale must be finite and strictly positive, got {}", o.objective_scale));
 
-    enum_in_range(o.best_iterate_criterion, BestIterateCriterion::kObjective,
+    enum_in_range(o.best_iterate_criterion, IpmBestIterateCriterion::kObjective,
                   "best_iterate_criterion");
 
     // --- Linear ---
-    enum_in_range(lin.ordering, KktOrdering::kParallelNestedDissection, "linear.ordering");
-    enum_in_range(lin.pivoting, KktPivoting::kTwoByTwo, "linear.pivoting");
-    non_negative(lin.pivot_perturbation, "linear.pivot_perturbation");
-    non_negative(lin.refinement_steps, "linear.refinement_steps");
-    enum_in_range(lin.parallel_solve, KktSolveParallelism::kSequential, "linear.parallel_solve");
-#ifdef USE_ACCELERATE_SPARSE
-    pos_finite(lin.accelerate_zero_tolerance, "linear.accelerate_zero_tolerance");
-#endif
+    enum_in_range(lin.ordering, IpmOrdering::kParallelNestedDissection, "linear.ordering");
+    enum_in_range(lin.pivot_strategy, IpmPivotStrategy::kTwoByTwo, "linear.pivot_strategy");
+    non_negative(lin.pivot_perturbation_exponent, "linear.pivot_perturbation_exponent");
+    non_negative(lin.max_refinement_steps, "linear.max_refinement_steps");
+    enum_in_range(lin.solve_parallelism, IpmSolveParallelism::kSequential,
+                  "linear.solve_parallelism");
+    pos_finite(lin.accelerate_zero_tol, "linear.accelerate_zero_tol");
     // THE DENSE ARM IS NAMED, NOT WIRED. Accepting another value would be a
     // setting that silently does nothing.
     if (lin.dense_factorization != hven::linear::DensePolicy::kNever)
@@ -265,9 +266,9 @@ void hven::validate(const IpmOptions &o) {
             fmt::format("linear.dense_factorization = {} is reserved: the dense factorization arm "
                         "is not available yet; only DensePolicy::kNever is accepted",
                         static_cast<int>(lin.dense_factorization)));
-    if (lin.dense_max_dimension)
+    if (lin.max_dense_dimension)
         throw std::invalid_argument(
-            "linear.dense_max_dimension is reserved: the dense factorization arm is not available "
+            "linear.max_dense_dimension is reserved: the dense factorization arm is not available "
             "yet; leave it empty");
 
     // --- Advanced: iteration and attempt budgets ---
@@ -280,24 +281,25 @@ void hven::validate(const IpmOptions &o) {
     non_negative(adv.max_extended_backtracks, "advanced.max_extended_backtracks");
     non_negative(adv.max_restoration_entries, "advanced.max_restoration_entries");
 
-    enum_in_range(adv.acceptance_mode, AcceptanceMode::kFilter, "advanced.acceptance_mode");
-    enum_in_range(adv.merit_penalty_rule, MeritPenaltyRule::kFlexible,
+    enum_in_range(adv.acceptance_mode, IpmAcceptanceMode::kFilter, "advanced.acceptance_mode");
+    enum_in_range(adv.merit_penalty_rule, IpmMeritPenaltyRule::kFlexible,
                   "advanced.merit_penalty_rule");
-    enum_in_range(adv.barrier_governor_mode, BarrierGovernorMode::kMonitored,
+    enum_in_range(adv.barrier_governor_mode, IpmBarrierGovernorMode::kMonitored,
                   "advanced.barrier_governor_mode");
-    enum_in_range(adv.restoration_mode, RestorationMode::kL1Nested, "advanced.restoration_mode");
-    enum_in_range(adv.inertia_mode, InertiaMode::kProximalRegularization, "advanced.inertia_mode");
-    enum_in_range(adv.solve_phase_mode, SolvePhaseMode::kSolveEquations,
+    enum_in_range(adv.restoration_mode, IpmRestorationMode::kL1Nested, "advanced.restoration_mode");
+    enum_in_range(adv.inertia_mode, IpmInertiaMode::kProximalRegularization,
+                  "advanced.inertia_mode");
+    enum_in_range(adv.solve_phase_mode, IpmSolvePhaseMode::kSolveEquations,
                   "advanced.solve_phase_mode");
-    enum_in_range(adv.optimize_barrier_mode, BarrierMode::kLoqo, "advanced.optimize_barrier_mode");
-    enum_in_range(adv.solve_barrier_mode, BarrierMode::kLoqo, "advanced.solve_barrier_mode");
-    enum_in_range(adv.optimize_line_search_mode, LineSearchMode::kNone,
+    enum_in_range(adv.optimize_barrier_mode, IpmBarrierMode::kLoqo,
+                  "advanced.optimize_barrier_mode");
+    enum_in_range(adv.solve_barrier_mode, IpmBarrierMode::kLoqo, "advanced.solve_barrier_mode");
+    enum_in_range(adv.optimize_line_search_mode, IpmLineSearchMode::kNone,
                   "advanced.optimize_line_search_mode");
-    enum_in_range(adv.solve_line_search_mode, LineSearchMode::kNone,
+    enum_in_range(adv.solve_line_search_mode, IpmLineSearchMode::kNone,
                   "advanced.solve_line_search_mode");
-    enum_in_range(adv.primal_dual_step_strategy,
-                  PrimalDualStepStrategy::kEqualityMultipliersMaximum,
-                  "advanced.primal_dual_step_strategy");
+    enum_in_range(adv.step_length_rule, IpmStepLengthRule::kEqualityMultipliersMaximum,
+                  "advanced.step_length_rule");
 
     // --- Advanced: strategy-combination guards ---
     // The SOC and extended-backtracking recovery links re-drive the acceptance
@@ -307,9 +309,10 @@ void hven::validate(const IpmOptions &o) {
     // Funnel and filter are designed to operate above a monotone barrier
     // safeguard. kClassicAdaptive is free-mode only, so pairing it with them
     // drops that safeguard unless the caller opts in via never_monotone.
-    if ((adv.acceptance_mode == AcceptanceMode::kFunnel ||
-         adv.acceptance_mode == AcceptanceMode::kFilter) &&
-        adv.barrier_governor_mode == BarrierGovernorMode::kClassicAdaptive && !adv.never_monotone)
+    if ((adv.acceptance_mode == IpmAcceptanceMode::kFunnel ||
+         adv.acceptance_mode == IpmAcceptanceMode::kFilter) &&
+        adv.barrier_governor_mode == IpmBarrierGovernorMode::kClassicAdaptive &&
+        !adv.never_monotone)
         throw std::invalid_argument(fmt::format(
             "advanced.acceptance_mode = {} is designed to operate above the monotone barrier "
             "safeguard, which advanced.barrier_governor_mode = kClassicAdaptive does not provide: "
@@ -320,7 +323,7 @@ void hven::validate(const IpmOptions &o) {
             acceptance_strategy_name(adv.acceptance_mode)));
     // never_monotone accepts running WITHOUT a monotone safeguard; kMonitored
     // provides one, so the combination is a direct contradiction.
-    if (adv.never_monotone && adv.barrier_governor_mode == BarrierGovernorMode::kMonitored)
+    if (adv.never_monotone && adv.barrier_governor_mode == IpmBarrierGovernorMode::kMonitored)
         throw std::invalid_argument(
             "advanced.never_monotone = true is contradictory with advanced.barrier_governor_mode = "
             "kMonitored: the monitored governor already provides the monotone safeguard "
@@ -335,7 +338,7 @@ void hven::validate(const IpmOptions &o) {
     in_open_unit(adv.inertia_correction_decrease, "advanced.inertia_correction_decrease");
 }
 
-static_assert(hven::kDefaultBoundRelaxFactor == 1.0e-8,
+static_assert(hven::detail::kDefaultBoundRelaxFactor == 1.0e-8,
               "kDefaultBoundRelaxFactor must equal IpmOptions' bound_relax_factor default");
 
 // Named configuration presets
@@ -347,7 +350,7 @@ hven::IpmOptions hven::ipm_preset(std::string_view name) {
             continue;
         const InteriorPointSolverPresetFields &f = entry.fields_;
         IpmAdvancedOptions &adv = o.advanced;
-        adv.acceptance_mode = f.acceptance_strategy_;
+        adv.acceptance_mode = f.acceptance_mode_;
         adv.merit_penalty_rule = f.merit_penalty_rule_;
         adv.barrier_governor_mode = f.barrier_governor_;
         adv.never_monotone = f.never_monotone_;
@@ -460,155 +463,155 @@ void kv_opt_dbl(std::ostream &os, const char *name, const std::optional<double> 
 // the token a reader can paste back into source. Each switch is exhaustive with
 // no default, so a new enumerator warns here; the trailing return covers a
 // value that is in range for no enumerator at all.
-const char *enum_name(hven::SolvePhaseMode v) {
-    using hven::SolvePhaseMode;
+const char *enum_name(hven::IpmSolvePhaseMode v) {
+    using hven::IpmSolvePhaseMode;
     switch (v) {
-    case SolvePhaseMode::kOptimize:
+    case IpmSolvePhaseMode::kOptimize:
         return "kOptimize";
-    case SolvePhaseMode::kOptimizeWithoutObjective:
+    case IpmSolvePhaseMode::kOptimizeWithoutObjective:
         return "kOptimizeWithoutObjective";
-    case SolvePhaseMode::kSolveEquations:
+    case IpmSolvePhaseMode::kSolveEquations:
         return "kSolveEquations";
     }
     return "unknown";
 }
-const char *enum_name(hven::BarrierMode v) {
-    using hven::BarrierMode;
+const char *enum_name(hven::IpmBarrierMode v) {
+    using hven::IpmBarrierMode;
     switch (v) {
-    case BarrierMode::kProbe:
+    case IpmBarrierMode::kProbe:
         return "kProbe";
-    case BarrierMode::kLoqo:
+    case IpmBarrierMode::kLoqo:
         return "kLoqo";
     }
     return "unknown";
 }
-const char *enum_name(hven::LineSearchMode v) {
-    using hven::LineSearchMode;
+const char *enum_name(hven::IpmLineSearchMode v) {
+    using hven::IpmLineSearchMode;
     switch (v) {
-    case LineSearchMode::kAugmentedLagrangian:
+    case IpmLineSearchMode::kAugmentedLagrangian:
         return "kAugmentedLagrangian";
-    case LineSearchMode::kLagrangian:
+    case IpmLineSearchMode::kLagrangian:
         return "kLagrangian";
-    case LineSearchMode::kL1:
+    case IpmLineSearchMode::kL1:
         return "kL1";
-    case LineSearchMode::kNone:
+    case IpmLineSearchMode::kNone:
         return "kNone";
     }
     return "unknown";
 }
-const char *enum_name(hven::PrimalDualStepStrategy v) {
-    using hven::PrimalDualStepStrategy;
+const char *enum_name(hven::IpmStepLengthRule v) {
+    using hven::IpmStepLengthRule;
     switch (v) {
-    case PrimalDualStepStrategy::kEqualityMultipliersPrimal:
+    case IpmStepLengthRule::kEqualityMultipliersPrimal:
         return "kEqualityMultipliersPrimal";
-    case PrimalDualStepStrategy::kAllMinimum:
+    case IpmStepLengthRule::kAllMinimum:
         return "kAllMinimum";
-    case PrimalDualStepStrategy::kEqualityMultipliersDual:
+    case IpmStepLengthRule::kEqualityMultipliersDual:
         return "kEqualityMultipliersDual";
-    case PrimalDualStepStrategy::kEqualityMultipliersMaximum:
+    case IpmStepLengthRule::kEqualityMultipliersMaximum:
         return "kEqualityMultipliersMaximum";
     }
     return "unknown";
 }
 // acceptance_strategy_name() above spells these as their enumerators for
 // validate()'s message; the dump reuses that table.
-const char *enum_name(hven::AcceptanceMode v) { return acceptance_strategy_name(v); }
-const char *enum_name(hven::MeritPenaltyRule v) {
-    using hven::MeritPenaltyRule;
+const char *enum_name(hven::IpmAcceptanceMode v) { return acceptance_strategy_name(v); }
+const char *enum_name(hven::IpmMeritPenaltyRule v) {
+    using hven::IpmMeritPenaltyRule;
     switch (v) {
-    case MeritPenaltyRule::kSinglePenalty:
+    case IpmMeritPenaltyRule::kSinglePenalty:
         return "kSinglePenalty";
-    case MeritPenaltyRule::kFlexible:
+    case IpmMeritPenaltyRule::kFlexible:
         return "kFlexible";
     }
     return "unknown";
 }
-const char *enum_name(hven::BarrierGovernorMode v) {
-    using hven::BarrierGovernorMode;
+const char *enum_name(hven::IpmBarrierGovernorMode v) {
+    using hven::IpmBarrierGovernorMode;
     switch (v) {
-    case BarrierGovernorMode::kClassicAdaptive:
+    case IpmBarrierGovernorMode::kClassicAdaptive:
         return "kClassicAdaptive";
-    case BarrierGovernorMode::kMonitored:
+    case IpmBarrierGovernorMode::kMonitored:
         return "kMonitored";
     }
     return "unknown";
 }
-const char *enum_name(hven::RestorationMode v) {
-    using hven::RestorationMode;
+const char *enum_name(hven::IpmRestorationMode v) {
+    using hven::IpmRestorationMode;
     switch (v) {
-    case RestorationMode::kOff:
+    case IpmRestorationMode::kOff:
         return "kOff";
-    case RestorationMode::kProximalSwitch:
+    case IpmRestorationMode::kProximalSwitch:
         return "kProximalSwitch";
-    case RestorationMode::kL1Nested:
+    case IpmRestorationMode::kL1Nested:
         return "kL1Nested";
     }
     return "unknown";
 }
-const char *enum_name(hven::FixedVariableTreatment v) {
-    using hven::FixedVariableTreatment;
+const char *enum_name(hven::IpmFixedVariableTreatment v) {
+    using hven::IpmFixedVariableTreatment;
     switch (v) {
-    case FixedVariableTreatment::kMakeParameter:
+    case IpmFixedVariableTreatment::kMakeParameter:
         return "kMakeParameter";
-    case FixedVariableTreatment::kMakeConstraint:
+    case IpmFixedVariableTreatment::kMakeConstraint:
         return "kMakeConstraint";
-    case FixedVariableTreatment::kRelaxBounds:
+    case IpmFixedVariableTreatment::kRelaxBounds:
         return "kRelaxBounds";
     }
     return "unknown";
 }
-const char *enum_name(hven::InertiaMode v) {
-    using hven::InertiaMode;
+const char *enum_name(hven::IpmInertiaMode v) {
+    using hven::IpmInertiaMode;
     switch (v) {
-    case InertiaMode::kClassic:
+    case IpmInertiaMode::kClassic:
         return "kClassic";
-    case InertiaMode::kProximalRegularization:
+    case IpmInertiaMode::kProximalRegularization:
         return "kProximalRegularization";
     }
     return "unknown";
 }
-const char *enum_name(hven::KktOrdering v) {
-    using hven::KktOrdering;
+const char *enum_name(hven::IpmOrdering v) {
+    using hven::IpmOrdering;
     switch (v) {
-    case KktOrdering::kMinimumDegree:
+    case IpmOrdering::kMinimumDegree:
         return "kMinimumDegree";
-    case KktOrdering::kNestedDissection:
+    case IpmOrdering::kNestedDissection:
         return "kNestedDissection";
-    case KktOrdering::kParallelNestedDissection:
+    case IpmOrdering::kParallelNestedDissection:
         return "kParallelNestedDissection";
     }
     return "unknown";
 }
-const char *enum_name(hven::KktPivoting v) {
-    using hven::KktPivoting;
+const char *enum_name(hven::IpmPivotStrategy v) {
+    using hven::IpmPivotStrategy;
     switch (v) {
-    case KktPivoting::kOneByOne:
+    case IpmPivotStrategy::kOneByOne:
         return "kOneByOne";
-    case KktPivoting::kTwoByTwo:
+    case IpmPivotStrategy::kTwoByTwo:
         return "kTwoByTwo";
     }
     return "unknown";
 }
-const char *enum_name(hven::KktSolveParallelism v) {
-    using hven::KktSolveParallelism;
+const char *enum_name(hven::IpmSolveParallelism v) {
+    using hven::IpmSolveParallelism;
     switch (v) {
-    case KktSolveParallelism::kAdaptive:
-        return "kAdaptive";
-    case KktSolveParallelism::kSequential:
+    case IpmSolveParallelism::kAdaptivePartitioning:
+        return "kAdaptivePartitioning";
+    case IpmSolveParallelism::kSequential:
         return "kSequential";
     }
     return "unknown";
 }
-const char *enum_name(hven::BestIterateCriterion v) {
-    using hven::BestIterateCriterion;
+const char *enum_name(hven::IpmBestIterateCriterion v) {
+    using hven::IpmBestIterateCriterion;
     switch (v) {
-    case BestIterateCriterion::kEquality:
+    case IpmBestIterateCriterion::kEquality:
         return "kEquality";
-    case BestIterateCriterion::kInequality:
+    case IpmBestIterateCriterion::kInequality:
         return "kInequality";
-    case BestIterateCriterion::kKkt:
+    case IpmBestIterateCriterion::kKkt:
         return "kKkt";
-    case BestIterateCriterion::kObjective:
+    case IpmBestIterateCriterion::kObjective:
         return "kObjective";
     }
     return "unknown";
@@ -715,22 +718,17 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_bool(os, "wide_console", o.wide_console);
     const IpmLinearOptions &l = o.linear;
     kv_str(os, "linear.ordering", enum_name(l.ordering));
-    kv_str(os, "linear.pivoting", enum_name(l.pivoting));
-    kv_bool(os, "linear.matching", l.matching);
-    kv_bool(os, "linear.scaling", l.scaling);
-    kv_int(os, "linear.pivot_perturbation", l.pivot_perturbation);
-    kv_int(os, "linear.refinement_steps", l.refinement_steps);
-    kv_str(os, "linear.parallel_solve", enum_name(l.parallel_solve));
+    kv_str(os, "linear.pivot_strategy", enum_name(l.pivot_strategy));
+    kv_bool(os, "linear.weighted_matching", l.weighted_matching);
+    kv_bool(os, "linear.matrix_scaling", l.matrix_scaling);
+    kv_int(os, "linear.pivot_perturbation_exponent", l.pivot_perturbation_exponent);
+    kv_int(os, "linear.max_refinement_steps", l.max_refinement_steps);
+    kv_str(os, "linear.solve_parallelism", enum_name(l.solve_parallelism));
     kv_bool(os, "linear.conditional_reproducibility", l.conditional_reproducibility);
     kv_bool(os, "linear.force_analysis", l.force_analysis);
-#ifdef USE_ACCELERATE_SPARSE
-    // THE APPLE-ONLY FIELD, declared under the same guard: on Linux and
-    // Windows the dump is one line shorter. The pin in
-    // tests/drivers/test_options_dump.cpp carries both counts.
-    kv_dbl(os, "linear.accelerate_zero_tolerance", l.accelerate_zero_tolerance);
-#endif
     kv_str(os, "linear.dense_factorization", enum_name(l.dense_factorization));
-    kv_opt_int(os, "linear.dense_max_dimension", l.dense_max_dimension);
+    kv_dbl(os, "linear.accelerate_zero_tol", l.accelerate_zero_tol);
+    kv_opt_int(os, "linear.max_dense_dimension", l.max_dense_dimension);
     const IpmAdvancedOptions &a = o.advanced;
     kv_str(os, "advanced.acceptance_mode", enum_name(a.acceptance_mode));
     kv_str(os, "advanced.merit_penalty_rule", enum_name(a.merit_penalty_rule));
@@ -753,7 +751,7 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_str(os, "advanced.solve_barrier_mode", enum_name(a.solve_barrier_mode));
     kv_str(os, "advanced.optimize_line_search_mode", enum_name(a.optimize_line_search_mode));
     kv_str(os, "advanced.solve_line_search_mode", enum_name(a.solve_line_search_mode));
-    kv_str(os, "advanced.primal_dual_step_strategy", enum_name(a.primal_dual_step_strategy));
+    kv_str(os, "advanced.step_length_rule", enum_name(a.step_length_rule));
     kv_dbl(os, "advanced.inertia_correction_initial", a.inertia_correction_initial);
     kv_dbl(os, "advanced.inertia_correction_increase", a.inertia_correction_increase);
     kv_dbl(os, "advanced.inertia_correction_decrease", a.inertia_correction_decrease);

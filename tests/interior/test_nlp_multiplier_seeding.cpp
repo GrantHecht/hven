@@ -10,7 +10,7 @@
 // set_initial_multipliers()/clear_initial_multipliers() are gone; a seed is the
 // MULTIPLIERS-ONLY FORM of the shared payload -- a WarmStart with an EMPTY
 // `primal_` -- handed to `solve(model, x0, warm, budget)` as an argument. The
-// install site, the [kSeededIqMultFloor, kSeededMultInitMax] clamps and the
+// install site, the [kSeededInequalityMultiplierFloor, kSeededMultiplierMax] clamps and the
 // objective-scale handling are unchanged, and `x0` is still the start. Three
 // tests about the STAGING STATE (its consumption on throw, its clear-first rule
 // on a declining problem, and "the unseeded path does not consult it") are
@@ -30,7 +30,7 @@
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 #include "hven/detail/warmstart/warm_start_access.h"
@@ -43,8 +43,8 @@ namespace {
 constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
-using hven::ConstEigenRef;
 using hven::Nlp;
+using hven::detail::ConstEigenRef;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian. Same problem as
@@ -219,8 +219,8 @@ struct SeedEqOnlyProblem : Nlp {
 // meant -- and the install site, the clamps and the objective-scale handling
 // are the same ones the staged seed fed.
 namespace {
-hven::WarmStart seed_payload(const hven::NonLinearProgram &program, const Eigen::VectorXd &eq_mults,
-                             const Eigen::VectorXd &iq_mults) {
+hven::WarmStart seed_payload(const hven::detail::NonLinearProgram &program,
+                             const Eigen::VectorXd &eq_mults, const Eigen::VectorXd &iq_mults) {
     hven::WarmStart seed;
     WarmStartAccess::eq(seed) = eq_mults;
     WarmStartAccess::iq(seed) = iq_mults;
@@ -317,7 +317,7 @@ struct SeedLowerBoundProblem : Nlp {
 // the correct sign is negative). apply_starting_multipliers's
 // LowerBounded-row mapping negates it (iqm = -lam), so this deliberately
 // produces a negative seed on the IpmSolver-internal inequality multiplier,
-// which apply_staged_multipliers must clamp to kSeededIqMultFloor rather than
+// which apply_staged_multipliers must clamp to kSeededInequalityMultiplierFloor rather than
 // installing it verbatim.
 struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem,
                                      hven_interior_tests::MultiplierSeedHook {
@@ -418,9 +418,9 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
             o.common.verbosity = hven::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
-        solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                                hven::ConstEigenRef<Eigen::VectorXd>,
-                                hven::ConstEigenRef<Eigen::VectorXd>,
+        solver.set_kkt_hook([&](int i, double, hven::detail::ConstEigenRef<Eigen::VectorXd> XSL,
+                                double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                hven::detail::ConstEigenRef<Eigen::VectorXd>,
                                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
             if (i == 0) {
                 unseeded_opt_entry_eq_mult = XSL[2];
@@ -449,9 +449,9 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
             o.common.verbosity = hven::Verbosity::kSilent;
             solver.set_options(std::move(o));
         }
-        solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                                hven::ConstEigenRef<Eigen::VectorXd>,
-                                hven::ConstEigenRef<Eigen::VectorXd>,
+        solver.set_kkt_hook([&](int i, double, hven::detail::ConstEigenRef<Eigen::VectorXd> XSL,
+                                double, hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                                hven::detail::ConstEigenRef<Eigen::VectorXd>,
                                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
             if (i == 0) {
                 seeded_opt_entry_eq_mult = XSL[2];
@@ -544,7 +544,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     {
         auto o = solver.options();
         o.common.verbosity = hven::Verbosity::kSilent;
-        o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
+        o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
@@ -643,9 +643,9 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     }
 
     double captured_eq_mult = std::numeric_limits<double>::quiet_NaN();
-    solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
+    solver.set_kkt_hook([&](int i, double, hven::detail::ConstEigenRef<Eigen::VectorXd> XSL, double,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
                             Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
         if (i == 0) {
             captured_eq_mult = XSL[2]; // see SeededSolveOptimizeReachesOptPhase for the layout
@@ -656,7 +656,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
-    EXPECT_DOUBLE_EQ(captured_eq_mult, 1.0e6); // kSeededMultInitMax, not the raw 1e12 seed
+    EXPECT_DOUBLE_EQ(captured_eq_mult, 1.0e6); // kSeededMultiplierMax, not the raw 1e12 seed
 }
 
 // Same idea on the inequality side: SeedLowerBoundProblem (1 primal var, 1
@@ -686,9 +686,9 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     }
 
     double captured_iq_mult = std::numeric_limits<double>::quiet_NaN();
-    solver.set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
-                            hven::ConstEigenRef<Eigen::VectorXd>,
+    solver.set_kkt_hook([&](int i, double, hven::detail::ConstEigenRef<Eigen::VectorXd> XSL, double,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
+                            hven::detail::ConstEigenRef<Eigen::VectorXd>,
                             Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
         if (i == 0) {
             captured_iq_mult = XSL[2];
@@ -718,7 +718,7 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
     {
         auto o = solver.options();
         o.common.verbosity = hven::Verbosity::kSilent;
-        o.fixed_variable_treatment = hven::FixedVariableTreatment::kMakeConstraint;
+        o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);

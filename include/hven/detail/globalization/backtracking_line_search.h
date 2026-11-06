@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/drivers/ipm_iterate.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven {
+namespace hven::detail {
 
 /// @brief The classic globalization mechanism: fraction-to-boundary primal/dual
 /// step-length scaling followed by an AcceptanceStrategy backtrack on the
@@ -32,7 +32,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     /// Fused fraction-to-boundary scaling + acceptance backtrack — see
     /// GlobalizationMechanism::compute_step for why the two halves are fused.
-    double compute_step(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+    double compute_step(IpmLineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
                         double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                         Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
                         AcceptanceStrategy &acceptance, double &alphap, double &alphad,
@@ -55,7 +55,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// so the dispatch lives in one place. On the classic path this forwards to
     /// acceptance.classic_line_search; on the generic path it runs
     /// generic_line_search.
-    double run_acceptance_backtrack(LineSearchMode lsmode, double obj_scale, double mu,
+    double run_acceptance_backtrack(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
@@ -88,11 +88,11 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// built from the trial point. Stores the same accepted_ /
     /// first-rejection signals as the classic path so the recovery chain
     /// composes.
-    double generic_line_search(LineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
-                               double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                               Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                               AcceptanceStrategy &acceptance, IpmIterate &Citer,
-                               SolverContext &ctx);
+    double generic_line_search(IpmLineSearchMode lsmode, double obj_scale, double mu,
+                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                               Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                               Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
+                               IpmIterate &Citer, SolverContext &ctx);
 
     /// Nested-restoration trial-path scratch (dead unless a nested restoration
     /// strategy is active): backs the elastic residual shift added to a
@@ -110,4 +110,4 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     Eigen::VectorXd bound_dir_scratch_;
 };
 
-} // namespace hven
+} // namespace hven::detail

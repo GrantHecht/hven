@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/schur_complement.h>
 using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;

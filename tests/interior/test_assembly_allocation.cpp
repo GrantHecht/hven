@@ -205,9 +205,9 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
 // left to allocate.
 TEST(NlpAdapterAllocationTest, AWarmAssemblyAllocatesNothing) {
     auto problem = std::make_shared<AllocTestProblem>();
-    auto model = std::make_shared<hven::NlpProblemModel>(problem);
-    auto core = std::make_shared<hven::NlpAdapterCore>(model, problem->name());
-    auto nlp = hven::make_nlp_program(core);
+    auto model = std::make_shared<hven::detail::NlpProblemModel>(problem);
+    auto core = std::make_shared<hven::detail::NlpAdapterCore>(model, problem->name());
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
