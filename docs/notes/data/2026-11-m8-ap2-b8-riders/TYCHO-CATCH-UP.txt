@@ -27,7 +27,7 @@ T24 IpmLinearOptions IN THE FACTOR LAYER'S WORDS: pivoting -> pivot_strategy, ma
     max_refinement_steps, cnr_threads -> conditional_reproducibility_threads, accelerate_zero_tolerance ->
     accelerate_zero_tol; InertiaEvidence n_pos/n_neg/n_zero -> positive/negative/zero; SolveInfo
     refinement_iters -> refinement_steps; SymmetricFactor/DenseSymmetricFactor set_num_threads ->
-    set_threads, DenseSymmetricFactor::num_threads() -> threads().
+    set_threads, SymmetricFactor::num_threads() / DenseSymmetricFactor::num_threads() -> threads().
 T25 THE ADVANCED TIERS, SWEPT. IpqpOptions: hard_iteration_cap -> hard_max_iterations, init_mu/min_mu
     -> barrier_initial/barrier_min, rho_init/delta_init -> primal_/dual_regularization_initial,
     reg_floor/reg_max/reg_decrease -> regularization_min/_max/_decrease, tau -> fraction_to_boundary,

@@ -74,3 +74,4 @@ include/hven/model/problem.h	Problem	partitions	num_partitions
 include/hven/drivers/sqp_solver.h	SqpSolver	ssn_tier_num_threads	ssn_tier_threads
 include/hven/drivers/sqp_solver.h	SqpSolver	ipqp_tier_num_threads	ipqp_tier_threads
 include/hven/warmstart/sqp_warm_start.h	IpmCrossoverOptions	activity_rel_tol	activity_relative_tol
+include/hven/linear/symmetric_factor.h	SymmetricFactor	num_threads	threads

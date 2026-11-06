@@ -12,3 +12,4 @@
 \bhven::QpEngineTestAccess::	hven::detail::QpEngineTestAccess::
 \bhven::AggregateEvalSeamTestAccess::	hven::detail::AggregateEvalSeamTestAccess::
 \bIpqpMu0Rule_(\w+_Test)\b	IpqpBarrierInitialRule_\1
+\bhven::linear::SymmetricFactor::num_threads\(	hven::linear::SymmetricFactor::threads(
