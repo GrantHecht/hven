@@ -59,6 +59,8 @@
 
 namespace hven {
 
+using detail::ipm_residual_color;
+
 namespace {
 // The console's tiers on the old integer scale its rendering rules are written
 // in: kIterations prints everything (0), kSummary drops the iteration rows and
