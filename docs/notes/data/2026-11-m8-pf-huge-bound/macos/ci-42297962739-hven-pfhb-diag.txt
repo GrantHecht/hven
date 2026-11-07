@@ -1,0 +1,141 @@
+# OBSERVED on a GitHub macOS runner (Accelerate): CI run 42297962739, workflow ci, branch m8-pf-hb-diag 7ebb4e16
+# (the PF-HB fix f96a3a0f + a diagnostic-only commit; never lands), job macos-clang-release, step
+# 'Huge-bound diagnostic (m8-pf-hb-diag)': every HVEN-PFHB-DIAG line and gtest summary line of that step,
+# extracted from the run log as relayed by the coordinator (sha256 of the full log 63621b0e90836ba5d6e5e547ccbe9383da0aaf6dbb3d7b95c6da4c815f61a8b0);
+# timestamps and job/step prefixes stripped, nothing else changed.
+=== HVEN-PFHB-DIAG RUN fixed
+HVEN-PFHB-DIAG fix=ON lambda0_dblmax=5.56268e-310 (subnormal kept? yes)
+HVEN-PFHB-DIAG variant=large_finite status=0 iterations=6 x=  3  -4 0.5
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-43 lambda=1e-23,8.33333e-05,5.56268e-312,1e-23
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.69891e-44 lambda=6.69891e-24,6.27038e-05,3.72639e-312,6.69891e-24
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=4.14569e-44 lambda=4.14569e-24,4.84552e-05,2.30612e-312,4.14569e-24
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.62647e-44 lambda=1.62647e-24,2.28486e-05,9.04754e-313,1.62647e-24
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=2.56471e-45 lambda=2.56471e-25,2.84963e-06,1.42667e-313,2.56471e-25
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=3.81771e-47 lambda=3.81771e-27,4.24209e-08,2.12367e-315,3.81771e-27
+HVEN-PFHB-DIAG-END variant=large_finite
+HVEN-PFHB-DIAG variant=rows_only status=0 iterations=6 x=       3       -4 0.499999
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-43 lambda=1e-23,8.33333e-05,5.56268e-312,1e-23
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.69891e-44 lambda=6.69891e-24,6.27038e-05,3.72639e-312,6.69891e-24
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=2.00284e-44 lambda=2.00284e-24,2.807e-05,1.11412e-312,2.00284e-24
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.90848e-45 lambda=6.90848e-25,1.21906e-05,3.84297e-313,6.90848e-25
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=4.43583e-45 lambda=4.43583e-25,5.7066e-06,2.46751e-313,4.43583e-25
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=4.43583e-47 lambda=4.43583e-27,5.70755e-08,2.46751e-315,4.43583e-27
+HVEN-PFHB-DIAG-END variant=rows_only
+HVEN-PFHB-DIAG variant=vars_only status=0 iterations=6 x=       3       -4 0.499999
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.94444e-06 lambda=8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=5.96523e-06 lambda=6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=3.25088e-06 lambda=3.41075e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.50991e-06 lambda=1.49765e-05
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=8.24826e-07 lambda=7.42345e-06
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=8.25008e-09 lambda=7.42507e-08
+HVEN-PFHB-DIAG-END variant=vars_only
+HVEN-PFHB-DIAG variant=var_dblmax status=0 iterations=6 x=  3  -4 0.5
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.94444e-06 lambda=8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=5.96523e-06 lambda=6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=2.0522e-06 lambda=2.15323e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=9.1836e-07 lambda=9.31042e-06
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=4.41847e-07 lambda=3.97663e-06
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=4.41898e-09 lambda=3.97709e-08
+HVEN-PFHB-DIAG-END variant=var_dblmax
+HVEN-PFHB-DIAG variant=row_1e160 status=0 iterations=6 x=  3  -4 0.5
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.94444e-06 lambda=1e-163,8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=5.96523e-06 lambda=6.69891e-164,6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.43592e-06 lambda=6.35942e-165,1.50665e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.40845e-07 lambda=2.15549e-165,6.51309e-06
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=2.76809e-07 lambda=1.77431e-165,2.49129e-06
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=2.76828e-09 lambda=1.77431e-167,2.49145e-08
+HVEN-PFHB-DIAG-END variant=row_1e160
+HVEN-PFHB-DIAG variant=row_1e16 status=0 iterations=6 x=  3  -4 0.5
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1e-35 lambda=1e-19,8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.69891e-36 lambda=6.69891e-20,6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.35942e-37 lambda=6.35942e-21,1.50665e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=2.15549e-37 lambda=2.15549e-21,6.51309e-06
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77431e-37 lambda=1.77431e-21,2.49129e-06
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77431e-39 lambda=1.77431e-23,2.49145e-08
+HVEN-PFHB-DIAG-END variant=row_1e16
+[  PASSED  ] 38 tests.
+=== HVEN-PFHB-DIAG RUN unfixed
+HVEN-PFHB-DIAG fix=OFF lambda0_dblmax=5.56268e-310 (subnormal kept? yes)
+HVEN-PFHB-DIAG variant=large_finite status=5 iterations=24 x= 3.13614 -3.96542 0.093228
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-43 lambda=1e-23,8.33333e-05,5.56268e-312,1e-23
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-45 lambda=1e-23,8.33333e-05,5.56268e-312,1e-25
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-47 lambda=1e-23,8.33333e-05,5.56268e-312,1e-27
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-49 lambda=1e-23,8.33333e-05,5.56268e-312,1e-29
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-51 lambda=1e-23,8.33333e-05,5.56268e-312,1e-31
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=8.90254e-44 lambda=8.90254e-24,8.50272e-05,5.56268e-312,9.86758e-18
+HVEN-PFHB-DIAG-KKT it=6 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.9736e-39 lambda=1.9736e-19,2.1928,1.09786e-307,7.59804e-18
+HVEN-PFHB-DIAG-KKT it=7 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=7.59804e-40 lambda=1.97706e-19,2.19438,1.09786e-307,7.59804e-20
+HVEN-PFHB-DIAG-KKT it=8 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=7.89413e-39 lambda=7.89413e-19,4.41308,1.09786e-307,5.2093e-15
+HVEN-PFHB-DIAG-KKT it=9 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=7.89413e-39 lambda=7.89413e-19,4.46769,1.09786e-307,5.2093e-17
+HVEN-PFHB-DIAG-KKT it=10 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=5.2093e-39 lambda=7.89413e-19,4.46847,1.09786e-307,5.2093e-19
+HVEN-PFHB-DIAG-KKT it=11 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=5.2093e-41 lambda=7.88547e-19,4.4651,1.09786e-307,5.2093e-21
+HVEN-PFHB-DIAG-KKT it=12 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.57883e-39 lambda=1.57883e-19,1.52096,1.09786e-307,2.80822e-16
+HVEN-PFHB-DIAG-KKT it=13 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.57883e-39 lambda=1.57883e-19,1.33662,1.09786e-307,3.9512e-16
+HVEN-PFHB-DIAG-KKT it=14 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.57883e-39 lambda=1.57883e-19,1.33194,1.09786e-307,3.32917e-17
+HVEN-PFHB-DIAG-KKT it=15 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.57883e-39 lambda=1.57883e-19,1.33193,1.09786e-307,8.26329e-18
+HVEN-PFHB-DIAG-KKT it=16 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-39 lambda=1.57883e-19,1.33193,1.09786e-307,1.2656e-19
+HVEN-PFHB-DIAG-KKT it=17 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-41 lambda=1.57841e-19,1.33164,1.09786e-307,1.2656e-21
+HVEN-PFHB-DIAG-KKT it=18 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-41 lambda=1.57841e-19,1.33164,1.09786e-309,1.2656e-21
+HVEN-PFHB-DIAG-KKT it=19 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-43 lambda=1.5784e-19,1.33164,1.09786e-309,1.2656e-23
+HVEN-PFHB-DIAG-KKT it=20 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-45 lambda=1.5784e-19,1.33164,1.09786e-309,1.2656e-25
+HVEN-PFHB-DIAG-KKT it=21 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-47 lambda=1.5784e-19,1.33164,6.71643e-26,1.2656e-27
+HVEN-PFHB-DIAG-KKT it=22 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.2656e-49 lambda=1.5784e-19,1.33164,6.71643e-26,1.2656e-29
+HVEN-PFHB-DIAG-KKT it=23 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=6.31531e-41 lambda=6.31531e-21,0.069169,6.71643e-26,1.7502e-17
+HVEN-PFHB-DIAG-END variant=large_finite
+HVEN-PFHB-DIAG variant=rows_only status=5 iterations=19 x= 10.6501 -1.32209 -6.57217
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-43 lambda=1e-23,8.33333e-05,5.56268e-312,1e-23
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-45 lambda=1e-23,8.33333e-05,5.56268e-312,1e-25
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-47 lambda=1e-23,8.33333e-05,5.56268e-312,1e-27
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=7.04785e-44 lambda=7.04785e-24,7.53286e-05,5.56268e-312,1.50739e-15
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1.73974e-40 lambda=1.73974e-20,0.193298,5.56268e-312,1.13431e-15
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-38 lambda=1e-18,6.21122,5.56268e-312,1.97281e-16
+HVEN-PFHB-DIAG-KKT it=6 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-38 lambda=1e-18,5.30195,5.56268e-312,8.20459e-16
+HVEN-PFHB-DIAG-KKT it=7 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-38 lambda=1e-18,5.26413,5.56268e-312,8.20459e-18
+HVEN-PFHB-DIAG-KKT it=8 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=8.20459e-40 lambda=1e-18,5.25197,5.56268e-312,8.20459e-20
+HVEN-PFHB-DIAG-KKT it=9 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=8.20459e-42 lambda=9.99906e-19,5.25164,5.56268e-312,8.20459e-22
+HVEN-PFHB-DIAG-KKT it=10 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=8.20459e-44 lambda=9.99905e-19,5.25164,5.56268e-312,8.20459e-24
+HVEN-PFHB-DIAG-KKT it=11 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=4.29833e-39 lambda=4.29833e-19,2.93979,5.56268e-312,3.96934e-17
+HVEN-PFHB-DIAG-KKT it=12 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=4.29833e-39 lambda=4.29833e-19,2.93979,5.56268e-314,3.96934e-17
+HVEN-PFHB-DIAG-KKT it=13 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=3.96934e-39 lambda=4.64977e-19,3.07709,5.56268e-314,3.96934e-19
+HVEN-PFHB-DIAG-KKT it=14 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=3.96934e-41 lambda=4.64389e-19,3.07466,5.56268e-314,3.96934e-21
+HVEN-PFHB-DIAG-KKT it=15 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=3.96934e-43 lambda=4.64387e-19,3.07465,5.56268e-314,3.96934e-23
+HVEN-PFHB-DIAG-KKT it=16 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=2.10227e-39 lambda=2.10227e-19,1.71375,2.22045e-16,9.98294e-17
+HVEN-PFHB-DIAG-KKT it=17 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-38 lambda=1e-18,6.64881,2.22045e-16,4.49731e-15
+HVEN-PFHB-DIAG-KKT it=18 slackdiag zeros=1 subnormal=0 nonfinite=0 minpos=1e-38 lambda=1e-18,5.35582,2.22045e-16,4.69631e-16
+HVEN-PFHB-DIAG-END variant=rows_only
+HVEN-PFHB-DIAG variant=vars_only status=0 iterations=6 x=       3       -4 0.499999
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.94444e-06 lambda=8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=5.96523e-06 lambda=6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=3.25088e-06 lambda=3.41075e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.50991e-06 lambda=1.49765e-05
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=8.24826e-07 lambda=7.42345e-06
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=8.25008e-09 lambda=7.42507e-08
+HVEN-PFHB-DIAG-END variant=vars_only
+HVEN-PFHB-DIAG variant=var_dblmax status=5 iterations=1 x=1 1 0
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.94444e-06 lambda=8.33333e-05
+HVEN-PFHB-DIAG-END variant=var_dblmax
+HVEN-PFHB-DIAG variant=row_1e160 status=5 iterations=6 x= 10.6511 -1.17199 -12.8533
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=1 nonfinite=0 minpos=9.88131e-324 lambda=1e-163,8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=1 nonfinite=0 minpos=9.88131e-324 lambda=1e-163,6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=1 nonfinite=0 minpos=9.88131e-324 lambda=1e-163,2.37728e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77636e-175 lambda=1.77636e-15,1.33331e-05
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77636e-175 lambda=1.77636e-15,2.77777
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77636e-177 lambda=1.77636e-17,5.62723
+HVEN-PFHB-DIAG-END variant=row_1e160
+HVEN-PFHB-DIAG variant=row_1e16 status=0 iterations=14 x=  3  -4 0.5
+HVEN-PFHB-DIAG-KKT it=0 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1e-35 lambda=1e-19,8.33333e-05
+HVEN-PFHB-DIAG-KKT it=1 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1e-35 lambda=1e-19,6.27038e-05
+HVEN-PFHB-DIAG-KKT it=2 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1e-35 lambda=1e-19,2.37728e-05
+HVEN-PFHB-DIAG-KKT it=3 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77646e-31 lambda=1.77646e-15,1.33331e-05
+HVEN-PFHB-DIAG-KKT it=4 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.11122e-32 lambda=1.11122e-16,0.394776
+HVEN-PFHB-DIAG-KKT it=5 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=9.4379e-32 lambda=9.4379e-16,0.739645
+HVEN-PFHB-DIAG-KKT it=6 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=3.88678e-32 lambda=3.88678e-16,0.0938091
+HVEN-PFHB-DIAG-KKT it=7 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=3.88678e-34 lambda=3.88678e-18,0.0308613
+HVEN-PFHB-DIAG-KKT it=8 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.92255e-34 lambda=6.92255e-18,0.000534015
+HVEN-PFHB-DIAG-KKT it=9 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=6.92255e-36 lambda=6.92255e-20,0.000239605
+HVEN-PFHB-DIAG-KKT it=10 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77646e-35 lambda=1.77646e-19,2.36421e-05
+HVEN-PFHB-DIAG-KKT it=11 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77646e-37 lambda=1.77646e-21,5.62132e-07
+HVEN-PFHB-DIAG-KKT it=12 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77847e-38 lambda=1.77847e-22,5.62132e-09
+HVEN-PFHB-DIAG-KKT it=13 slackdiag zeros=0 subnormal=0 nonfinite=0 minpos=1.77847e-40 lambda=1.77847e-24,5.80916e-10
+HVEN-PFHB-DIAG-END variant=row_1e16
+[  PASSED  ] 1 test.
