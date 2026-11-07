@@ -1,0 +1,45 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T13:39:00-05:00
+source /home/ghecht/Projects/hven/.claude/worktrees/pf1-riders
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/build-riders/rel'
+[1/2] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_release_readmission.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/tests/qp/test_qp_release_readmission.cpp:114:67: warning: format specifies type 'long' but the argument has type 'double' [-Wformat]
+  112 |                     "%ld (record %zu): dual_mu %.3g -> %.3g; previous "
+      |                      ~~~
+      |                      %f
+  113 |                     "minor's verdict=%d perturbed=%ld\n",
+  114 |                     static_cast<long>(records[rung].minor), rung, records[rung - 1].dual_mu,
+      |                                                                   ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/tests/qp/test_qp_release_readmission.cpp:115:21: warning: format specifies type 'size_t' (aka 'unsigned long') but the argument has type 'double' [-Wformat]
+  112 |                     "%ld (record %zu): dual_mu %.3g -> %.3g; previous "
+      |                                  ~~~
+      |                                  %f
+  113 |                     "minor's verdict=%d perturbed=%ld\n",
+  114 |                     static_cast<long>(records[rung].minor), rung, records[rung - 1].dual_mu,
+  115 |                     records[rung].dual_mu, records[rung - 1].inertia_verdict,
+      |                     ^~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/tests/qp/test_qp_release_readmission.cpp:115:44: warning: format specifies type 'double' but the argument has type 'int' [-Wformat]
+  112 |                     "%ld (record %zu): dual_mu %.3g -> %.3g; previous "
+      |                                                ~~~~
+      |                                                %.3d
+  113 |                     "minor's verdict=%d perturbed=%ld\n",
+  114 |                     static_cast<long>(records[rung].minor), rung, records[rung - 1].dual_mu,
+  115 |                     records[rung].dual_mu, records[rung - 1].inertia_verdict,
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/tests/qp/test_qp_release_readmission.cpp:116:21: warning: format specifies type 'double' but the argument has type 'long' [-Wformat]
+  112 |                     "%ld (record %zu): dual_mu %.3g -> %.3g; previous "
+      |                                                        ~~~~
+      |                                                        %.3ld
+  113 |                     "minor's verdict=%d perturbed=%ld\n",
+  114 |                     static_cast<long>(records[rung].minor), rung, records[rung - 1].dual_mu,
+  115 |                     records[rung].dual_mu, records[rung - 1].inertia_verdict,
+  116 |                     static_cast<long>(records[rung - 1].inertia_perturbed));
+      |                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/.claude/worktrees/pf1-riders/tests/qp/test_qp_release_readmission.cpp:113:39: warning: more '%' conversions than data arguments [-Wformat-insufficient-args]
+  113 |                     "minor's verdict=%d perturbed=%ld\n",
+      |                                      ~^
+5 warnings generated.
+[2/2] Linking CXX executable tests/hven_qp_walk_seam_tests
+rc=0
+FOREGROUND_END 2026-11-07T13:39:08-05:00
+FINAL_RC=0

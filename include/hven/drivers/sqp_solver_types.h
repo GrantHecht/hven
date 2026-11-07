@@ -144,7 +144,10 @@ struct SqpIterate {
     /// Meaningful iff qp_solved; 0.0 on a stopped-AT-iterate row, like the
     /// other qp_* fields. Always opts.qp.dual_regularization (the engine default) when
     /// SqpAdvancedOptions::adaptive_dual_regularization is false -- byte-identical across the whole
-    /// history.
+    /// history. This is the dual_regularization the subproblem was DISPATCHED at: the walk may
+    /// lower its effective value within the solve (QpCounters::dual_regularization_decreases > 0),
+    /// in which case the subproblem exited at a smaller mu than recorded and the warm-start stamp
+    /// over-states the footprint, which is the safe direction.
     double mu = 0.0;
     /// ||p||inf of the step taken FROM this iterate. ON A ROUTED QP-FAILURE ROW
     /// no step was taken: the field records the |p|inf of the iterate the failed

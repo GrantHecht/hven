@@ -139,7 +139,7 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
-    /// Rungs of the dual-regularization descent this solve spent (qp_engine.h,
+    /// Rungs of the release re-admission rule this solve spent (qp_engine.h,
     /// THE RELEASE RE-ADMISSION): each multiplies the effective
     /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
     /// refresh re-admitted the row the previous pass released, at most

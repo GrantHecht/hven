@@ -3925,6 +3925,13 @@ struct SqpSolverImpl::SolveState {
     //                   row that computed it -- can read it). Starts at
     //                   the engine's own default, which is exactly what
     //                   it would resolve to if no subproblem ever runs.
+    //                   The value is the dual_regularization the subproblem
+    //                   was DISPATCHED at: the walk may lower its effective
+    //                   value within the solve (QpCounters::
+    //                   dual_regularization_decreases > 0), so the subproblem
+    //                   exited at a smaller mu than recorded and the
+    //                   warm-start stamp over-states the footprint, which is
+    //                   the safe direction.
     //   resto.moved_x   true iff `enter_restoration` actually moved
     //                   `x` to a RESTORED point (the
     //                   "not feasible enough" outcome). On every other

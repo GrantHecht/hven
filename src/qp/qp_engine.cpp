@@ -2882,8 +2882,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                       dropped.is_ineq && !in_working(ws, dropped.idx);
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
         // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
-        // the previous pass released, so the multiplier that released it was dual_mu's footprint.
-        // One rung down, and the factor state discarded so the next pass factorizes with it.
+        // the previous pass released, so the residual the row was released with was dual_mu's
+        // footprint. One rung down, and the factor state discarded so the next pass factorizes with
+        // it.
         if (released_row_out && in_working(ws, dropped.idx) &&
             counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
             eff_opts.dual_regularization > 0.0) {
