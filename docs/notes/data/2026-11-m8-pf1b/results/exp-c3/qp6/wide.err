@@ -1,0 +1,5 @@
+PF1BREADMIT minor=4308 row=822 left_at=4308 gap=0 via_dropped=0 dropped_active=0 dropped_idx=-1 kind=1 mu=1.000e-08
+PF1BRUNG minor=4308 row=822 wide=1 mu_from=1.000e-08
+PF1BREADMIT minor=4377 row=240 left_at=4377 gap=0 via_dropped=0 dropped_active=0 dropped_idx=-1 kind=1 mu=1.000e-10
+PF1BRUNG minor=4377 row=240 wide=1 mu_from=1.000e-10
+PF1BREADMIT minor=4379 row=608 left_at=4379 gap=0 via_dropped=0 dropped_active=0 dropped_idx=-1 kind=1 mu=1.000e-12

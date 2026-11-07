@@ -1,0 +1,36 @@
+M8 PF-1b -- PROVENANCE
+================================================================================
+Base        7a95a612 (origin/m8: PF-1 e55cecde + riders). Branch m8-pf1b, worktree .claude/worktrees/pf1b.
+Commits     10ac5642 docs(qp): the rung's contract note corrected (include/hven/detail/qp/qp_engine.h, 3 comment lines
+            for 3; libhven.a Release objects 56/56 byte-identical to the 7a95a612 export with deps copied at its pins:
+            tools/objid.sh, results/object-identity.log). Then this directory. No engine change, so no DECLARATION and no
+            proof legs (REPORT.txt argues why).
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8 (Fedora 22.1.8-4.fc44), MKL (Pardiso, iparm[9] = 8 in
+            ../2026-11-m8-pf1/iparm/iparm-pf1.txt), MKL_NUM_THREADS=1. Apple/Accelerate: UNOBSERVED. Windows: UNOBSERVED.
+Date        2026-11-07, 14:56 (diagnostic build) to 18:30 EST.
+Protocol    every build and solve `flock /tmp/box-build.lock bash tools/run.sh <cmd>` (pgrep hven_bench_cell empty before
+            the lock and PGREP_EMPTY inside it, set -o pipefail, MKL_NUM_THREADS=1, FOREGROUND_START/END, no timeout wrapper);
+            long jobs under setsid with a foreground wait on the real pid. All runs are counter/residual evidence; no
+            wall-clock figure here is a quotable timing (the `wall=` fields are informational).
+Instruments (tools/; scratch, never committed to src/)
+            setup_diag.sh   build-pf1b/diag-src = `git archive` of the worktree HEAD (7a95a612) + deps + patch_dump.py (the PF-1
+                            D4QP dump and per-solve PF1SOLVE summary, HVEN_PF1_QPDUMP / HVEN_PF1_SUMMARY) + patch_pf1b.py (the
+                            rule's rung count / factor from HVEN_PF1B_RUNGS / HVEN_PF1B_FACTOR, defaults 2 / 1e-2 = the code;
+                            HVEN_PF1B_WIDE: every refresh re-admission of a row released earlier in the solve takes the rung;
+                            HVEN_PF1B_TRACE: PF1BREADMIT / PF1BRUNG lines) + the pf1b_replay target (pf1b_target.cmake).
+            build_diag.sh   Release, HVEN_FP_MODE=SAFER_FAST, clang, bench ON: hven_sqp_corpus and tests/pf1b_replay.
+            pf1b_replay     a D4QP dump on a fresh QpEngine under the walk seam observer (HVEN_TESTING): PF1R counters, PF1A
+                            action/verdict census, PF1K = qp_dump_kkt of the returned point (residuals recomputed from the QP
+                            data), PF1E = the unregularized EQP of the returned working set by SparseLU (+3 refinement steps),
+                            PF1S = singular values of that set's constraint block (BDCSVD), PF1H = LDL^T of H; --csv per minor.
+            exps.sh + spec_*.txt   the replay runs; analyze.py the per-minor summaries (results/summary-*.txt).
+            cell_n2000.sh   f7_n2000_path_corrupted on the diagnostic corpus binary with every QP dumped; its row equals the
+                            PF-1 census row exactly (results/cell-n2000/row.csv: WorkLimit 59746 60000 19873;20001;19872).
+Runs        results/exp-a (n1000 fixture: head, the cycle face, the dual_mu sweep, x1e-1 rungs), exp-b (x0.5 / x0.3 rungs),
+            exp-c1 (n2000 QP1 at the head), exp-c2 (QP1 to completion; QP1 rung off), exp-c3 (wide trigger on n1000 and
+            n2000 QP1; QP2 to completion; QP3 to completion -- stopped by me at ~44 min, over-long, rc 143), exp-c4 (QP3 to
+            30000 minors). Each .txt is the replay's output, each .err its PF1B trace.
+Data        data/n2000_qp{1,2,3}_dump.txt.gz (engine solves 6/7/8 of the cell = the hop's QP1/2/3, D4QP v1, the format of
+            tests/qp/fixtures/e2-d4/FORMAT.txt); data/n1000_qp1_head.csv.gz and data/n2000_qp1_full.csv.gz (per-minor
+            records of the head runs; columns in tools/pf1b_replay.cpp).
+Frozen data docs/notes/data/** outside this directory untouched.
