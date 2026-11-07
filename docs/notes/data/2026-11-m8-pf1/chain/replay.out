@@ -1,0 +1,17 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T06:17:44-05:00
+5c7a793d7a9b9d3fadf4d3802fe737803feef7e603e8045c504564cb2545c614  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-07T06:17:44-05:00
+run rc=0
+compare rc=0
+=== pf1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-07T06:22:31-05:00
+run rc=0
+compare rc=0
+=== pf1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-07T06:22:52-05:00
+run rc=0
+compare rc=0
+=== pf1-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-07T06:23:18-05:00
