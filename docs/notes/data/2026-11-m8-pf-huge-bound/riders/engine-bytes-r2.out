@@ -1,0 +1,16 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T00:48:41-05:00
+armB pin unmoved
+CMakeFiles/hven.dir: object sets equal (56)
+bench: object sets equal (9)
+library objects differing: 0
+stamped TUs: ['bench/bench_corpus.cpp', 'bench/bench_crossover.cpp', 'bench/ipm_corpus_leg.cpp', 'bench/ipqp_e1_arm.cpp']
+stamp A {'f96a3a0f6c44'} stamp B {'9c205bb1d8b7'}
+bench objects differing: ['bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o', 'bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o', 'bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o']
+stamp offsets A [108227785] B [108227785]
+corpus bytes differing: 32 outside stamp+build-id: 0
+normalized sha256 A 08acddceeb66b62971e12212cbbbe419e7cc5af786928af45b26aa56f6e2a78b
+normalized sha256 B 08acddceeb66b62971e12212cbbbe419e7cc5af786928af45b26aa56f6e2a78b
+CORPUS_IDENTICAL_BUT_STAMP
+rc=0
+FOREGROUND_END 2026-11-07T00:48:53-05:00

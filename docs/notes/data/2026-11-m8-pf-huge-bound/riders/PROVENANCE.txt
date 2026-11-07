@@ -1,0 +1,39 @@
+M8 PF-HB riders (ruling C246: R1, R2, R3) -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt (9c205bb1) and its successor DECLARATION-r2.txt (8eef7903), each committed before its
+               leg(s). Run 1 (run1/) failed R2 only; r2 replaced that criterion and ran R2' alone.
+Code           b2c3efb5 (tests + comment text + TYCHO-CATCH-UP.txt) on 072ad8d2; arm B = f96a3a0f.
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, MKL, MKL_NUM_THREADS=1. Apple and Windows:
+               UNOBSERVED (the new tests' off-reference arm compiled and ran in O).
+Dates          2026-11-07 00:24:58 (run 1 pre-flight) to 00:48:53 EST (R2').
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep before the lock and PGREP_EMPTY inside it,
+               set -o pipefail, no timeout wrapper, ctest -j4 under setsid; legs derive every path from their own
+               location (pre-flight refuses an absolute path); fresh build dirs build-pfe/rel-r, dbg-r, offref-r
+               (arm B's build-pfe/rel, whose corpus binary is hard-linked to armBbin, never rebuilt).
+
+RESULTS
+F   failproof   FAILPROOF_AS_DECLARED (run1/failproof/): probe site off -> probe test FAILS (large_finite 8 vs pinned 6;
+                far row 16 vs 7; max mu 100 = barrier_max), SOC test passes; SOC site off -> SOC test FAILS (committed
+                far multiplier step -0.2 vs recovered -2e-23), probe test passes; restored -> both pass; tree clean.
+                The scratch diffs: run1/failproof/{probe-off,soc-off}.diff. PASS.
+R1  Release     fresh build-pfe/rel-r rc 0. PASS.
+R2  engine      run 1: CORPUS_DIFFERS (run1/engine-bytes.out) -- the bench drivers' configure-time git-describe stamp;
+                FAILED as declared, answered by r2. R2' (engine-bytes-r2.out): library objects 56/56 identical, sets
+                equal; bench objects differ only in the three stamped TUs that differ (bench_corpus, bench_crossover,
+                ipqp_e1_arm); corpus binary: 32 bytes differ, 0 outside the stamp (offset 108227785) and the build-id
+                descriptor; normalized sha256 08acddce...e2a78b both. CORPUS_IDENTICAL_BUT_STAMP. PASS. No engine byte
+                moved.
+R3  Debug       fresh build-pfe/dbg-r rc 0. PASS.
+S   suites      Release 3481/3481, Debug 3481/3481 (run1/suites/). PASS.
+X   examples    8 found, worst rc 0 (run1/examples.out). PASS.
+O   off-ref     clean build rc 0, 26 warning lines, ctest 3481/3481 (run1/offref/). PASS.
+C   format      clang-format 22.1.8: 0 diagnostics on the five touched files (run1/format.out). PASS.
+
+R1's SOC test lives in tests/interior/test_soc.cpp, not test_infinite_bound.cpp: a dev sweep (scratch-instrumented
+engine, never committed) of 2016 whole-solve configurations -- a Maratos circle as the near side of a range row with
+the far side at 1e20, alone and with a linear far row, four acceptance modes, two backtrack budgets, 21 start angles,
+four radii -- attempted corrections in many but ACCEPTED none, so in a whole solve the SOC site's recovery changes no
+committed step; the test drives the live link (SocRecovery::on_step_rejected) through the file's SocDrive harness with
+a scripted accepting mechanism on the identity factor instead. The kProbe test pins its counts (6, 7) on the
+reference build rather than equality with the reference (7): the far pairs' affine complementarity enters the
+probe's average, so the counts legitimately differ.
