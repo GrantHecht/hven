@@ -461,6 +461,7 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_saddle_shift.cpp
     qp/test_qp_stagnation_stop.cpp
     qp/test_qp_latch_reason.cpp
+    qp/test_qp_release_readmission.cpp
     qp/test_route_reference.cpp
 )
 

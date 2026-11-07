@@ -2878,7 +2878,27 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
 #endif
         const std::size_t working_rows_before_refresh = ws.active_ineq().size();
+        const bool released_row_out = eff_opts.independent_working_set && dropped.active &&
+                                      dropped.is_ineq && !in_working(ws, dropped.idx);
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+        // THE RELEASE RE-ADMISSION (qp_engine.h, Degeneracy): the refresh just re-admitted the row
+        // the previous pass released, so the multiplier that released it was dual_mu's footprint.
+        // One rung down, and the factor state discarded so the next pass factorizes with it.
+        if (released_row_out && in_working(ws, dropped.idx) &&
+            counters.dual_regularization_decreases < detail::kMaxDualRegDecreases &&
+            eff_opts.dual_regularization > 0.0) {
+            ++counters.dual_regularization_decreases;
+            eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
+            if (border_.use_count() > 1) {
+                border_ = std::make_shared<BorderState>();
+            } else {
+                border_->schur.reset();
+                border_->latched = false;
+                border_->k0_rows.clear();
+                border_->ledger.clear();
+            }
+            face.factorized = false;
+        }
         if (standstill_face && kind == BlockKind::kNone && !ride_blocked && alpha >= 1.0) {
             standstill_steps = standstill_steps_in + 1;
             if (standstill_steps >= 2) {

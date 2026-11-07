@@ -139,6 +139,14 @@ struct QpCounters {
     /// pairing IS the exhaustion diagnostic.
     Index suspect_escalations = 0;
 
+    /// Rungs of the dual-regularization descent this solve spent (qp_engine.h,
+    /// THE RELEASE RE-ADMISSION): each multiplies the effective
+    /// dual_regularization by detail::kDualRegDecreaseFactor after the shift
+    /// refresh re-admitted the row the previous pass released, at most
+    /// detail::kMaxDualRegDecreases. Zero on every solve that never re-admits a
+    /// released row; independent_working_set walks only.
+    Index dual_regularization_decreases = 0;
+
     /// True iff qp_engine.h's border-mode reuse gate (`reuse_eligible` in
     /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border cache
     /// trustworthy for THIS solve() call -- whether the engine actually skipped

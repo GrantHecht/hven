@@ -779,6 +779,18 @@
 // bring the rows to their floor within the minors left (the cap's status either way); a run that
 // can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
 // the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
+// THE RELEASE RE-ADMISSION (independent_working_set; dual_regularization_decreases). A working row
+// whose dual_mu*|lambda| footprint the row tolerance excuses can be released on that multiplier;
+// with the multiplier gone the same residual is a violation, and the shift refresh re-admits the
+// row on the post-drop pass. On a well-conditioned face this cannot happen (the step leaves a row
+// released on a negative multiplier). On a face whose smallest singular value is below what dual_mu
+// resolves, the regularized EQP has a fixed point off the face's own solution and the walk cycles
+// release -> re-admission until the minor cap (measured: f7_n1000_path_corrupted QP1, row 905,
+// period four; 20000 minors at dual_mu 1e-8, kOptimal at 1e-10). When the refresh re-admits the row
+// the previous pass released, dual_mu is lowered one rung (kDualRegDecreaseFactor, at most
+// kMaxDualRegDecreases per solve) and the factor state discarded so the next pass factorizes with
+// it. Nothing else changes and nothing is certified; a walk that never re-admits a released row is
+// untouched.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -1141,6 +1153,14 @@ inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
 // RUNGS, i.e. delta 1e-8 -> 1e-5 at the defaults. Per-SOLVE.
 constexpr double kSuspectDeltaFactor = 10.0;
 constexpr Index kMaxSuspectEscalations = 3;
+
+// THE DUAL-REGULARIZATION DESCENT's rung (Degeneracy, THE RELEASE RE-ADMISSION): the effective
+// dual_regularization is multiplied by kDualRegDecreaseFactor, at most kMaxDualRegDecreases times
+// per solve -- dual_mu 1e-8 -> 1e-12 at the defaults, never 0 (a dependent set stays
+// factorizable). Two decades per rung: the release re-admission's measured face
+// (f7_n1000_path_corrupted QP1, sigma_min ~1e-6) cycles at 1e-8 and solves at 1e-10 and 1e-12.
+constexpr double kDualRegDecreaseFactor = 1e-2;
+constexpr Index kMaxDualRegDecreases = 2;
 
 // --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
 //
