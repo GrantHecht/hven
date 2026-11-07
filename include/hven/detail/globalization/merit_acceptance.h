@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
+#include "hven/drivers/ipm_iterate.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The classic backtracking merit line search (the one fused-path
 /// strategy): LANG / L1 / augmented-Lagrangian merit variants behind a single
@@ -53,21 +53,21 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     void reset() override {}
 
     /// Classic fused entry point: the dispatcher over the three merit variants.
-    double classic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+    double classic_line_search(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                               Eigen::VectorXd &RHS2, IterateInfo &Citer,
-                               const std::vector<IterateInfo> &iters) override;
+                               Eigen::VectorXd &RHS2, IpmIterate &Citer,
+                               const std::vector<IpmIterate> &iters) override;
 
   private:
     SolverContext ctx_;
 
-    /// @brief Creates a KKTVector view over a VectorXd using the context's
+    /// @brief Creates a KktVector view over a VectorXd using the context's
     /// dimensions; the view type is shared with the solver and the sibling
     /// components, so the merit bodies keep their named-segment accessors
     /// unchanged.
-    KKTVector kkt_view(Eigen::VectorXd &v) {
-        return KKTVector(v, ctx_.primal_vars_, ctx_.slack_vars_, ctx_.equal_cons_,
+    KktVector kkt_view(Eigen::VectorXd &v) {
+        return KktVector(v, ctx_.primal_vars_, ctx_.slack_vars_, ctx_.equal_cons_,
                          ctx_.inequal_cons_);
     }
 
@@ -77,23 +77,23 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     };
 
     /// The three merit variants behind the classic dispatcher.
-    double ls_lang(double obj_scale, double mu, double prim_obj, double barr_obj, KKTVector &xsl,
-                   KKTVector &dxsl, KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
-                   IterateInfo &citer);
-    double ls_l1(double obj_scale, double mu, double prim_obj, double barr_obj, KKTVector &xsl,
-                 KKTVector &dxsl, KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
-                 IterateInfo &citer);
-    double ls_auglang(double obj_scale, double mu, double prim_obj, double barr_obj, KKTVector &xsl,
-                      KKTVector &dxsl, KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
-                      IterateInfo &citer);
+    double ls_lang(double obj_scale, double mu, double prim_obj, double barr_obj, KktVector &xsl,
+                   KktVector &dxsl, KktVector &xsl2, KktVector &rhs, KktVector &rhs2,
+                   IpmIterate &citer);
+    double ls_l1(double obj_scale, double mu, double prim_obj, double barr_obj, KktVector &xsl,
+                 KktVector &dxsl, KktVector &xsl2, KktVector &rhs, KktVector &rhs2,
+                 IpmIterate &citer);
+    double ls_auglang(double obj_scale, double mu, double prim_obj, double barr_obj, KktVector &xsl,
+                      KktVector &dxsl, KktVector &xsl2, KktVector &rhs, KktVector &rhs2,
+                      IpmIterate &citer);
 
     /// Trial-point evaluation for the merit tests.
-    void eval_trial_point_occ(double obj_scale, double mu, double alpha, KKTVector &xsl,
-                              KKTVector &dxsl, KKTVector &xsl2, KKTVector &rhs2, double &ptest,
+    void eval_trial_point_occ(double obj_scale, double mu, double alpha, KktVector &xsl,
+                              KktVector &dxsl, KktVector &xsl2, KktVector &rhs2, double &ptest,
                               double &btest);
 
     /// Penalty triple for the current iterate / trial point.
-    PenaltyTerms compute_penalties(KKTVector &xsl, KKTVector &rhs) const;
+    PenaltyTerms compute_penalties(KktVector &xsl, KktVector &rhs) const;
 
     /// Secondary (safeguard) acceptance test applied after the primary merit test.
     bool secondary_accept(double ptest, double prim_obj, const PenaltyTerms &test,
@@ -119,4 +119,4 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     mutable Eigen::VectorXd resto_iq_shift_scratch_;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

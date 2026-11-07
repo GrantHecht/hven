@@ -1,0 +1,13 @@
+diff --git a/src/drivers/ipm_solver_globalization.cpp b/src/drivers/ipm_solver_globalization.cpp
+index d5eb939e..7081eae4 100644
+--- a/src/drivers/ipm_solver_globalization.cpp
++++ b/src/drivers/ipm_solver_globalization.cpp
+@@ -1455,7 +1455,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
+             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
+         // Far slack pairs: the same multiplier recovery as the main step
+         // (barrier_math.h, kFarSlackWidth); the corrected RHS keeps its slack rows.
+-        if (ctx.inequal_cons_ > 0) {
++        if (false && ctx.inequal_cons_ > 0) { // SCRATCH: SOC-site recovery off
+             const int pv = ctx.primal_vars_;
+             const int sv = ctx.slack_vars_;
+             const int ic = ctx.inequal_cons_;

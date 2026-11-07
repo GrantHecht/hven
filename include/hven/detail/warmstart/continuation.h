@@ -8,14 +8,14 @@
 // p0 and then only warm ones.
 //
 // This is the workflow the whole warm-start subsystem exists for. Nothing
-// here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmStart + the
+// here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmState + the
 // 3-arg solve (the hand-off between consecutive parameter values), the `hot`
 // factorization handle (reachable only when the caller raises
 // SqpOptions::common.start_level to kHot; the predictor drops `hot` by contract, so
 // a PREDICTED sweep is kWarm by construction), SqpOptions::warm_full_step
 // (which stops the funnel from re-globalizing a warm start from scratch, and
 // engages automatically on every step past the first here), SqpOptions::
-// budget_mode (see BUDGET EXHAUSTION below), and predict() -- the tangential
+// return_best_on_max_iterations (see BUDGET EXHAUSTION below), and predict() -- the tangential
 // predictor that turns the warm start at p into a first-order-accurate one
 // at p + dp.
 //
@@ -23,9 +23,9 @@
 // THE LOOP
 //
 //   1. Solve COLD at p0. If that fails there is no path to follow: return
-//      immediately with reached_p1 == false. A kBudgetExhausted there is not a
-//      failure but a continue, under the SAME rule and cap every later
-//      parameter value gets -- see BUDGET EXHAUSTION below.
+//      immediately with reached_p1 == false. A budget exhaustion (kIterationLimit with
+//      returned_best_iterate) there is not a failure but a continue, under the SAME rule and cap
+//      every later parameter value gets -- see BUDGET EXHAUSTION below.
 //   2. Repeat: propose p_next = p_cur + dp * direction, CLAMPED at p1
 //      (direction is the unit vector along p1 - p0, dp an arc length along
 //      that segment, so a multi-parameter sweep moves along the SEGMENT and
@@ -34,7 +34,7 @@
 //      start otherwise -- re-pose the model at p_next and solve warm.
 //        - kOptimal: accept. p_cur := p_next, the warm start advances, and dp
 //          GROWS by `grow` (capped at dp_max) if the step cost <= target_majors.
-//        - kBudgetExhausted: see BUDGET EXHAUSTION below -- neither.
+//        - kIterationLimit with returned_best_iterate: see BUDGET EXHAUSTION below -- neither.
 //        - anything else: reject. dp SHRINKS by `shrink` and the step is
 //          retried from the LAST GOOD warm start, at the last good p. Below
 //          dp_min the run fails.
@@ -73,12 +73,11 @@
 // BUDGET EXHAUSTION IS A CONTINUE, NOT A SHRINK -- the one status this loop
 // treats as neither success nor failure.
 //
-// When the caller's driver runs with SqpOptions::budget_mode, a solve that
-// exhausts max_iter reports kBudgetExhausted and returns THE BEST ITERATE IT
-// VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the
-// tie-break) rather than the last one reached -- a hand-off designed for this
-// loop. The honest reading of it is "the step was too expensive for one
-// budget slice", not "the step was too long".
+// When the caller's driver runs with SqpOptions::return_best_on_max_iterations, a solve that
+// exhausts max_iter reports kIterationLimit with returned_best_iterate set and returns THE BEST
+// ITERATE IT VISITED BY THE FUNNEL'S OWN ORDERING (feasibility first, min f as the tie-break)
+// rather than the last one reached -- a hand-off designed for this loop. The honest reading of it
+// is "the step was too expensive for one budget slice", not "the step was too long".
 //
 // This loop therefore RE-SOLVES AT THE SAME p_next, seeded by the returned
 // warm start, rather than shrinking dp and moving p_next back. Shrinking
@@ -104,9 +103,9 @@
 // not just the last slice -- is within target_majors. A proposal that took
 // three budgets is not a cheap step and must not lengthen the next one.
 //
-// With budget_mode OFF (the default) none of this is reachable:
-// sqp_solver_types.h guarantees kBudgetExhausted is NEVER reported then, and every
-// max_iter exhaustion arrives as kMaxIter, which is an ordinary failure here.
+// With return_best_on_max_iterations OFF (the default) none of this is reachable:
+// returned_best_iterate is NEVER set then, and every
+// max_iter exhaustion arrives as kIterationLimit, which is an ordinary failure here.
 //
 // ---------------------------------------------------------------------
 // RETRY ECONOMICS -- what a REJECTED proposal costs, a different question
@@ -173,11 +172,12 @@
 //     per sweep; such a field could only ever have been inert. The per-step
 //     solver configuration is the DRIVER's, set by the caller when
 //     constructing it.
-//   - NO PredictorOptions FIELD. predict() is called with its defaults. This
-//     is a genuine (small) limitation rather than an impossibility -- unlike
-//     solve_options, such a field WOULD work -- and it is left out only
-//     because no caller needs to retune fd_step_scale mid-sweep. Adding it
-//     later is source-compatible.
+//   - NO PredictorOptions FIELD. predict() is called with its defaults, except
+//     PredictorOptions::infinite_bound, which is the driver's own
+//     common.infinite_bound. This is a genuine (small) limitation rather than
+//     an impossibility -- unlike solve_options, such a field WOULD work -- and
+//     it is left out only because no caller needs to retune fd_step_scale
+//     mid-sweep. Adding it later is source-compatible.
 //   - NO ITERATION CAP. See TERMINATION IS GUARANTEED above.
 
 #include <algorithm>
@@ -188,14 +188,14 @@
 
 #include <fmt/format.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // How the sweep proposes and re-sizes its parameter steps. Every field is a
 // CALLER-VISIBLE POLICY: none of them changes what a converged step means,
@@ -241,7 +241,7 @@ struct ContinuationOptions {
     // Each proposal's FIRST solve is given a minor budget of
     // probe_budget * (minors the last converged step cost). A solve that
     // reaches a major having spent that many minors without converging is
-    // ABANDONED -- the driver returns kMaxIter with
+    // ABANDONED -- the driver returns kIterationLimit with
     // SqpCounters::probe_budget_stops == 1 -- and this loop treats that
     // exactly as any other failed proposal: shrink, retry from the last good
     // warm start. It is a FAILED-PROPOSAL DETECTOR rather than a step-length
@@ -309,6 +309,9 @@ struct ContinuationStep {
     // sequence, not off this field.
     double dp = 0.0;
     SolveStatus status = SolveStatus::kOptimal;
+    // SqpResult::returned_best_iterate of this solve: with kIterationLimit, a budget
+    // exhaustion.
+    bool returned_best_iterate = false;
     // The driver's own counters for this one solve; ContinuationResult::
     // total_majors is the sum of counters.major_iters over every step.
     SqpCounters counters;
@@ -343,7 +346,7 @@ struct ContinuationResult {
     // parameter value is the last kOptimal step's `p`. If NO step converged
     // (the cold solve at p0 failed), this is that failed solve's own warm
     // start, which warm_start.h guarantees is still safe to feed forward.
-    SqpWarmStart final_warm;
+    detail::SqpWarmState final_warm;
 
     // Aggregate accounting over `steps`. Sums rather than new measurements:
     // total_majors is sum of counters.major_iters, predictor_calls counts the
@@ -375,7 +378,7 @@ struct ContinuationResult {
     //                         were free.
     //   proposals_full_cost   attempts that failed on their own terms, having
     //                         been allowed to run to whatever exit the driver
-    //                         chose (kNumericalError, kMaxIter, kInfeasible,
+    //                         chose (kNumericalError, kIterationLimit, kInfeasible,
     //                         a demoted budget-exhaustion chain, ...). With
     //                         the probe budget off this is every failure, and
     //                         proposals_abandoned is identically 0.
@@ -389,13 +392,13 @@ struct ContinuationResult {
 
 namespace continuation_detail {
 
-// Consecutive kBudgetExhausted solves allowed at ONE proposal before it is
+// Consecutive best-iterate max-iter solves allowed at ONE proposal before it is
 // demoted to an ordinary failure (this header's BUDGET EXHAUSTION note). 3
 // is an implementation choice, not a paper constant: small enough that a
 // genuinely stuck proposal costs a bounded multiple of the caller's own
 // max_iter, large enough that a step needing "a bit more than one budget"
 // -- the case the whole continue rule exists for -- is not thrown away on
-// its first slice. It is inert whenever SqpOptions::budget_mode is off,
+// its first slice. It is inert whenever SqpOptions::return_best_on_max_iterations is off,
 // which is the default.
 inline constexpr int kBudgetContinuationsMax = 3;
 
@@ -463,4 +466,4 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, const Vec &p1,
                                     SqpSolver &driver, const ContinuationOptions &opts = {});
 
-} // namespace hven::solvers
+} // namespace hven::detail

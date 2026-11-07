@@ -10,7 +10,7 @@
 
 #include <hven/detail/globalization/sqp/lbfgs_damped.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 // The two quasi-Newton models beside LbfgsDamped (M7 QN quality round). References: Powell,
 // Math. Programming 14 (1978) for the damping; Nocedal & Wright, Numerical Optimization
@@ -107,4 +107,4 @@ class MaskedQnModel final : public QnModel {
     MixedLiftData lift_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

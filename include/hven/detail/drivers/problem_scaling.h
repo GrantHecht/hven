@@ -55,7 +55,7 @@
 
 #include <hven/core/types.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief The rule that turns derivatives at the start point into factors.
 ///
@@ -137,4 +137,4 @@ struct ProblemScaling {
 ProblemScaling compute_problem_scaling(const Vec &grad, const SpMatRM &Je, const SpMatRM &Ji,
                                        const ScalingRule &rule);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

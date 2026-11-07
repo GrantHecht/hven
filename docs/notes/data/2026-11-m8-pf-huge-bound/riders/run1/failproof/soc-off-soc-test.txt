@@ -1,0 +1,27 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/build-pfhb/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SocRecovery.AFarSlackPairsCorrectedMultiplierStepIsRecovered
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from SocRecovery
+[ RUN      ] SocRecovery.AFarSlackPairsCorrectedMultiplierStepIsRecovered
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/interior/test_soc.cpp:696: Failure
+Expected equality of these values:
+  corrected(far_l)
+    Which is: -0.20000000000000001
+  recovered
+    Which is: -2.0000000000000002e-23
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/interior/test_soc.cpp:697: Failure
+Expected: (std::abs(corrected(far_l))) < (1e-20), actual: 0.2 vs 9.9999999999999995e-21
+the far pair stays on its central path
+
+[  FAILED  ] SocRecovery.AFarSlackPairsCorrectedMultiplierStepIsRecovered (2 ms)
+[----------] 1 test from SocRecovery (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SocRecovery.AFarSlackPairsCorrectedMultiplierStepIsRecovered
+
+ 1 FAILED TEST

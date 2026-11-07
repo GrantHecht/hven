@@ -59,7 +59,7 @@
 //      criterion demonstrating itself                        -- (5)/(6) below.
 //   3. The Task-7 review's convex n = 3 sphere class, reconstructed and cited
 //                                                          -- (3)/(4) below.
-//   4. A TRANSFER-PRODUCED SqpWarmStart into the B-1 exit -- ESTABLISHED VACUOUS
+//   4. A TRANSFER-PRODUCED SqpWarmState into the B-1 exit -- ESTABLISHED VACUOUS
 //      and pinned as such                                       -- (7) below.
 //   5. Equality-only controls: bit-identity across the repair    -- (8) below.
 //   6. LEGITIMATE zero-major exits (Phase-5 Task 0's O-1 feature) still
@@ -77,7 +77,7 @@
 // a sign-consistency residual into the reduced stationarity measure for BOUNDS
 // only, and a general inequality row enters grad_lag unconditionally with no
 // sign test. It is an INGEST PRECONDITION -- warm_start.h's SIGN CONVENTIONS
-// paragraph -- and every test below assumes a SqpWarmStart that honours it.
+// paragraph -- and every test below assumes a SqpWarmState that honours it.
 //
 // AND THAT PRECONDITION HAS A LIVE IN-REPO PRODUCER, not only hand-assembly:
 // warm_start.h's from_interior_point COPIES THE CALLER'S lambda_i VERBATIM (its
@@ -85,7 +85,7 @@
 // interior-point crossover taken before full convergence can carry a negative
 // price on a GEOMETRICALLY ACTIVE row -- which is exactly the configuration the
 // clear leaves alone, since the clear only zeroes STRICTLY SLACK rows.
-// tests/test_warm_start.cpp's SqpWarmStart.CrossoverWrongSignDualLeavesRowFree
+// tests/test_warm_start.cpp's SqpWarmState.CrossoverWrongSignDualLeavesRowFree
 // ships a fixture of that shape (lambda_i = -1e-8 against a slack of -1e-9).
 // The magnitude is bounded by the producer's sign violation and is orders below
 // kkt_tol, which is why the repair's verdict is unchanged.
@@ -118,12 +118,14 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/mesh_transfer.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 #include "support/hs_problems.h"
@@ -131,11 +133,16 @@
 #include "support/parametric_families.h"
 
 #include "hven/core/compiler.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::F6PathBoundQuadrature;
@@ -153,10 +160,10 @@ constexpr double kTol = 1e-6;
 // in more than the one thing under test.
 SqpOptions probe_options(StartLevel level = StartLevel::kWarm) {
     SqpOptions opts;
-    opts.kkt_tol = kTol;
-    opts.feas_tol = kTol;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = kTol;
+    opts.common.feasibility_tol = kTol;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
     return opts;
 }
@@ -315,10 +322,11 @@ WarmLink warm_link(ParametricNlpModel &model, double p_from, double p_to, const 
     WarmLink out;
     model.set_parameters(Vec::Constant(1, p_from));
     SqpSolver cold(probe_options(StartLevel::kCold));
-    out.first = cold.solve(model, model.start_point());
+    out.first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     model.set_parameters(Vec::Constant(1, p_to));
     SqpSolver warm(opts);
-    out.second = warm.solve(model, out.first.x, out.first.warm_start);
+    out.second =
+        warm.solve(hven::detail::problem_ref(model), out.first.x, out.first.sqp_warm_start);
     return out;
 }
 
@@ -346,12 +354,13 @@ WarmLink seeded_link(ParametricNlpModel &model, double p_from, double p_to,
     WarmLink out;
     model.set_parameters(Vec::Constant(1, p_from));
     SqpSolver cold(probe_options(StartLevel::kCold));
-    out.first = cold.solve(model, model.start_point());
-    SqpWarmStart hashless = out.first.warm_start;
+    out.first = cold.solve(hven::detail::problem_ref(model), model.start_point());
+    hven::detail::SqpWarmState hashless = SqpWarmAccess::state(out.first.sqp_warm_start);
     hashless.structure_hash = 0; // the mesh-transfer / crossover sentinel
     model.set_parameters(Vec::Constant(1, p_to));
     SqpSolver seeded(opts);
-    out.second = seeded.solve(model, out.first.x, hashless);
+    out.second =
+        seeded.solve(hven::detail::problem_ref(model), out.first.x, SqpWarmAccess::wrap(hashless));
     return out;
 }
 
@@ -407,8 +416,9 @@ TEST(B1Gate, MinimalReleaseNoLongerCertifiesTheOldPoint) {
     // its multiplier is strictly positive and exactly cancelling.
     ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
     EXPECT_NEAR(1.0, link.first.x(0), 1e-8);
-    ASSERT_EQ(1, link.first.lambda_i.size());
-    EXPECT_NEAR(B1MinimalRelease::lambda_star(1.0), link.first.lambda_i(0), 1e-8)
+    ASSERT_EQ(1, hven::detail::engine_rows(link.first).lambda_i.size());
+    EXPECT_NEAR(B1MinimalRelease::lambda_star(1.0),
+                hven::detail::engine_rows(link.first).lambda_i(0), 1e-8)
         << "lambda = 2 - p = 1 zeroes gL at x = 1, for EVERY p";
 
     // The warm solve is a real ingest -- not a silently-cold one.
@@ -442,8 +452,8 @@ TEST(B1Gate, AFullyReleasedRowExitsWithAnExactlyZeroPrice) {
 
     ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
     EXPECT_NEAR(2.0, link.second.x(0), 1e-7) << "the unconstrained minimizer is feasible at p = 3";
-    ASSERT_EQ(1, link.second.lambda_i.size());
-    EXPECT_EQ(0.0, link.second.lambda_i(0))
+    ASSERT_EQ(1, hven::detail::engine_rows(link.second).lambda_i.size());
+    EXPECT_EQ(0.0, hven::detail::engine_rows(link.second).lambda_i(0))
         << "a strictly slack row prices at exactly zero, not merely at roundoff";
     const test_support::NlpKktResidual r = self_check_kkt(model, link.second, kTol);
     EXPECT_LT(r.complementarity, 1e-12);
@@ -540,17 +550,18 @@ TEST(B1Gate, F6RelaxingStepsNoLongerFreezeTheObjective) {
         SCOPED_TRACE(fmt::format("F6 p {} -> {}", p_from, p_to));
         F6PathBoundQuadrature model(nodes, weights, p_from);
         SqpOptions opts = probe_options();
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
         SqpOptions cold_opts = opts;
         cold_opts.common.start_level = StartLevel::kCold;
 
         SqpSolver cold(cold_opts);
-        const SqpResult first = cold.solve(model, model.start_point());
+        const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(SolveStatus::kOptimal, first.status);
         model.set_parameters(Vec::Constant(1, p_to));
         SqpSolver warm(opts);
-        const SqpResult second = warm.solve(model, first.x, first.warm_start);
+        const SqpResult second =
+            warm.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
 
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
         ASSERT_EQ(SolveStatus::kOptimal, second.status);
@@ -574,17 +585,18 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
     const Vec weights = trapezoid_weights(nodes);
     F6PathBoundQuadrature model(nodes, weights, 0.50);
     SqpOptions opts = probe_options();
-    opts.kkt_tol = 1e-8;
-    opts.feas_tol = 1e-8;
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
     SqpOptions cold_opts = opts;
     cold_opts.common.start_level = StartLevel::kCold;
 
     SqpSolver cold(cold_opts);
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     model.set_parameters(Vec::Constant(1, 0.20));
     SqpSolver warm(opts);
-    const SqpResult second = warm.solve(model, first.x, first.warm_start);
+    const SqpResult second =
+        warm.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
 
     ASSERT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
@@ -598,7 +610,7 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
 }
 
 // =====================================================================
-// (7) CORPUS ELEMENT 4 -- A TRANSFER-PRODUCED SqpWarmStart INTO THE B-1 EXIT.
+// (7) CORPUS ELEMENT 4 -- A TRANSFER-PRODUCED SqpWarmState INTO THE B-1 EXIT.
 //
 // Carried from the Task-7 note's §5.1 as UNCHECKED BY BOTH PARTIES, with the
 // instruction to establish which of two truths holds and pin it either way.
@@ -637,13 +649,17 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
 
     F6PathBoundQuadrature coarse_model(coarse.nodes, coarse.weights, 0.30);
     SqpSolver cold(probe_options(StartLevel::kCold));
-    const SqpResult coarse_sol = cold.solve(coarse_model, coarse_model.start_point());
+    const SqpResult coarse_sol =
+        cold.solve(hven::detail::problem_ref(coarse_model), coarse_model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, coarse_sol.status);
-    ASSERT_NE(0u, coarse_sol.warm_start.structure_hash) << "the SOURCE object is hash-valid";
-    ASSERT_GT(coarse_sol.lambda_i.maxCoeff(), 0.0) << "and carries live inequality prices";
+    ASSERT_NE(0u, SqpWarmAccess::state(coarse_sol.sqp_warm_start).structure_hash)
+        << "the SOURCE object is hash-valid";
+    ASSERT_GT(hven::detail::engine_rows(coarse_sol).lambda_i.maxCoeff(), 0.0)
+        << "and carries live inequality prices";
 
     const MeshTransfer transfer;
-    const SqpWarmStart moved = transfer.transfer(coarse_sol.warm_start, coarse, fine);
+    const hven::detail::SqpWarmState moved =
+        transfer.transfer(SqpWarmAccess::state(coarse_sol.sqp_warm_start), coarse, fine);
     EXPECT_TRUE(moved.valid);
     EXPECT_EQ(0u, moved.structure_hash)
         << "mesh_transfer.h section 4: UNKNOWN, not uncomputed -- the sentinel is deliberate, and "
@@ -656,7 +672,8 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     // exact configuration (5) shows is exposed when the ingest resolves.
     F6PathBoundQuadrature fine_model(fine.nodes, fine.weights, 1.20);
     SqpSolver warm(probe_options(StartLevel::kWarm));
-    const SqpResult sol = warm.solve(fine_model, moved.x, moved);
+    const SqpResult sol =
+        warm.solve(hven::detail::problem_ref(fine_model), moved.x, SqpWarmAccess::wrap(moved));
     EXPECT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
         << "THE PIN, INVERTED BY PHASE-6 TASK 5: a transferred object now REACHES the ingest, at "
            "the level that takes values without provenance";
@@ -824,12 +841,14 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
         ASSERT_GT(p.model->me(), 0);
 
         SqpSolver cold(probe_options(StartLevel::kCold));
-        const SqpResult first = cold.solve(*p.model, p.model->start_point());
+        const SqpResult first =
+            cold.solve(hven::detail::problem_ref(*p.model), p.model->start_point());
         ASSERT_EQ(SolveStatus::kOptimal, first.status);
         EXPECT_EQ(c.cold_majors, first.counters.major_iters);
 
         SqpSolver warm(probe_options(StartLevel::kWarm));
-        const SqpResult second = warm.solve(*p.model, first.x, first.warm_start);
+        const SqpResult second =
+            warm.solve(hven::detail::problem_ref(*p.model), first.x, first.sqp_warm_start);
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
         EXPECT_EQ(SolveStatus::kOptimal, second.status);
         EXPECT_EQ(c.warm_majors, second.counters.major_iters);
@@ -878,26 +897,30 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
 TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
     SqpSolver cold(probe_options(StartLevel::kCold));
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
-    ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
+    ASSERT_NEAR(1.0, hven::detail::engine_rows(first).lambda_i(0), 1e-8)
+        << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
     // The SAME p: the ingested point is an exact KKT point of the very problem
     // being posed, so the certificate is genuine and must be issued for free.
     SqpSolver warm(probe_options(StartLevel::kWarm));
-    const SqpResult second = warm.solve(model, first.x, first.warm_start);
+    const SqpResult second =
+        warm.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
     EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(0, second.counters.major_iters)
         << "THE GUARD: the gate must not destroy the zero-major hand-off it sits beside";
-    EXPECT_DOUBLE_EQ(first.lambda_i(0), second.lambda_i(0))
+    EXPECT_DOUBLE_EQ(hven::detail::engine_rows(first).lambda_i(0),
+                     hven::detail::engine_rows(second).lambda_i(0))
         << "an ACTIVE row's price is carried through untouched";
 
     // And a TIGHTENING move is still caught by feasibility, as it always was.
     model.set_parameters(Vec::Constant(1, 0.5));
     SqpSolver tighten(probe_options(StartLevel::kWarm));
-    const SqpResult third = tighten.solve(model, first.x, first.warm_start);
+    const SqpResult third =
+        tighten.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
     EXPECT_GT(third.counters.major_iters, 0);
     EXPECT_NEAR(B1MinimalRelease::f_star(0.5), third.f, 1e-7);
 }
@@ -917,7 +940,7 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
 TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     B1MinimalRelease model(1.0);
     SqpSolver cold(probe_options(StartLevel::kCold));
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
 
     SqpOptions opts = probe_options();
@@ -926,16 +949,18 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     // free -- which is correct, since it is a KKT point to within feas_tol.
     model.set_parameters(Vec::Constant(1, 1.0 + 0.1 * kTol));
     SqpSolver inside(opts);
-    const SqpResult s_in = inside.solve(model, first.x, first.warm_start);
+    const SqpResult s_in =
+        inside.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
     EXPECT_EQ(SolveStatus::kOptimal, s_in.status);
     EXPECT_EQ(0, s_in.counters.major_iters) << "within feas_tol of the boundary: still active";
-    EXPECT_GT(s_in.lambda_i(0), 0.0);
+    EXPECT_GT(hven::detail::engine_rows(s_in).lambda_i(0), 0.0);
 
     // OUTSIDE it, by 100x: the row is strictly slack, the price is cleared and
     // the solve has to work for its answer.
     model.set_parameters(Vec::Constant(1, 1.0 + 100.0 * kTol));
     SqpSolver outside(opts);
-    const SqpResult s_out = outside.solve(model, first.x, first.warm_start);
+    const SqpResult s_out =
+        outside.solve(hven::detail::problem_ref(model), first.x, first.sqp_warm_start);
     EXPECT_EQ(SolveStatus::kOptimal, s_out.status);
     EXPECT_GT(s_out.counters.major_iters, 0) << "beyond feas_tol: the stale price is cleared";
     EXPECT_NEAR(B1MinimalRelease::x_star(1.0 + 100.0 * kTol), s_out.x(0), 1e-7);
@@ -1004,19 +1029,21 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
             SCOPED_TRACE(fmt::format("F6 seeded p {} -> {}", p_from, p_to));
             F6PathBoundQuadrature model(nodes, weights, p_from);
             SqpOptions opts = probe_options();
-            opts.kkt_tol = 1e-8;
-            opts.feas_tol = 1e-8;
+            opts.common.optimality_tol = 1e-8;
+            opts.common.feasibility_tol = 1e-8;
             SqpOptions cold_opts = opts;
             cold_opts.common.start_level = StartLevel::kCold;
 
             SqpSolver cold(cold_opts);
-            const SqpResult first = cold.solve(model, model.start_point());
+            const SqpResult first =
+                cold.solve(hven::detail::problem_ref(model), model.start_point());
             ASSERT_EQ(SolveStatus::kOptimal, first.status);
-            SqpWarmStart hashless = first.warm_start;
+            hven::detail::SqpWarmState hashless = SqpWarmAccess::state(first.sqp_warm_start);
             hashless.structure_hash = 0;
             model.set_parameters(Vec::Constant(1, p_to));
             SqpSolver seeded(opts);
-            const SqpResult second = seeded.solve(model, first.x, hashless);
+            const SqpResult second = seeded.solve(hven::detail::problem_ref(model), first.x,
+                                                  SqpWarmAccess::wrap(hashless));
 
             EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
             ASSERT_EQ(SolveStatus::kOptimal, second.status);
@@ -1047,19 +1074,21 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
 TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
     SqpSolver cold(probe_options(StartLevel::kCold));
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
-    ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
+    ASSERT_NEAR(1.0, hven::detail::engine_rows(first).lambda_i(0), 1e-8)
+        << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
-    SqpWarmStart hashless = first.warm_start;
+    hven::detail::SqpWarmState hashless = SqpWarmAccess::state(first.sqp_warm_start);
     hashless.structure_hash = 0; // the mesh-transfer / crossover sentinel
     ASSERT_TRUE(hashless.valid);
 
     // The SAME p: the seeded point is an exact KKT point of the very problem
     // being posed, so the certificate is genuine and must be issued for free.
     SqpSolver seeded(probe_options(StartLevel::kWarm));
-    const SqpResult second = seeded.solve(model, first.x, hashless);
+    const SqpResult second =
+        seeded.solve(hven::detail::problem_ref(model), first.x, SqpWarmAccess::wrap(hashless));
     EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
     EXPECT_EQ(1, second.counters.n_seeded);
     EXPECT_EQ(SolveStatus::kOptimal, second.status);
@@ -1067,14 +1096,16 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
         << "THE GUARD: neither the B-1 clear, the seeded sign clamp, nor the degradation may "
            "destroy the zero-major hand-off they all sit beside (Phase-5 Task 0's O-1)";
     EXPECT_EQ(0, second.counters.seeded_clamped) << "a positive price is not a sign violation";
-    EXPECT_DOUBLE_EQ(first.lambda_i(0), second.lambda_i(0))
+    EXPECT_DOUBLE_EQ(hven::detail::engine_rows(first).lambda_i(0),
+                     hven::detail::engine_rows(second).lambda_i(0))
         << "an ACTIVE row's price is carried through untouched, at kSeeded exactly as at kWarm";
     EXPECT_DOUBLE_EQ(first.f, second.f);
 
     // And a TIGHTENING move is still caught by feasibility on this route too.
     model.set_parameters(Vec::Constant(1, 0.5));
     SqpSolver tighten(probe_options(StartLevel::kWarm));
-    const SqpResult third = tighten.solve(model, first.x, hashless);
+    const SqpResult third =
+        tighten.solve(hven::detail::problem_ref(model), first.x, SqpWarmAccess::wrap(hashless));
     EXPECT_EQ(StartLevel::kSeeded, third.counters.start_level_used);
     EXPECT_GT(third.counters.major_iters, 0);
     EXPECT_NEAR(B1MinimalRelease::f_star(0.5), third.f, 1e-7);
@@ -1128,7 +1159,7 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
 // (60/60, ending 1e-4 outside a row whose tolerance is 1e-6). THE S = 1e12 ARM
 // IS KEPT ANYWAY, asserting only what W1 is responsible for -- that the
 // certificate is not issued -- because the trade it makes is the point: a
-// refused certificate followed by kMaxIter is a failure the CALLER CAN SEE,
+// refused certificate followed by kIterationLimit is a failure the CALLER CAN SEE,
 // while the pre-W1 kOptimal at f = 0 is one no caller can detect at all. That
 // this badly-scaled instance then defeats the iteration is a pre-existing
 // scaling limit of the driver, not something the gate introduced, and it is
@@ -1184,8 +1215,8 @@ class B1ScaledStalePrice : public NlpModel {
 // the same helper tests/test_warm_start.cpp's seeded arms use. The activity
 // hint is deliberately EMPTY: the B-1 clear and the W1 gate both read GEOMETRY,
 // not the hint, so leaving it out keeps the fixture about the multiplier.
-SqpWarmStart scaled_seed(const Vec &x, double lambda_i0) {
-    SqpWarmStart w;
+hven::detail::SqpWarmState scaled_seed(const Vec &x, double lambda_i0) {
+    hven::detail::SqpWarmState w;
     w.x = x;
     w.lambda_e = Vec(0);
     w.lambda_i = Vec::Constant(1, lambda_i0);
@@ -1206,7 +1237,8 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
 
     SqpSolver driver(probe_options(StartLevel::kWarm));
     const SqpResult sol =
-        driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
+        driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                     SqpWarmAccess::wrap(scaled_seed(Vec::Zero(1), model.stale_price())));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
         << "fixture premise: a hash-less object ingests at kSeeded";
@@ -1229,7 +1261,8 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
     // ingested multipliers: once a subproblem has priced them, the
     // O(||lambda|| ||p||) argument is live and the residual is the step's, not
     // a stale set's.
-    const double converged_complementarity = std::abs(sol.lambda_i(0) * model.eval_ci(sol.x)(0));
+    const double converged_complementarity =
+        std::abs(hven::detail::engine_rows(sol).lambda_i(0) * model.eval_ci(sol.x)(0));
     EXPECT_LT(converged_complementarity, 1e-3);
     EXPECT_LT(converged_complementarity, 1e-3 * model.complementarity_at_seed());
     // RE-PREMISED AT M7 W2 E4 FIX ROUND 2 (a declared event). The scope ruling this
@@ -1261,7 +1294,8 @@ TEST(B1Gate, TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut) {
 
     SqpSolver driver(probe_options(StartLevel::kWarm));
     const SqpResult sol =
-        driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
+        driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                     SqpWarmAccess::wrap(scaled_seed(Vec::Zero(1), model.stale_price())));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
     const bool false_certificate =
@@ -1281,17 +1315,18 @@ TEST(B1Gate, TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut) {
 TEST(B1Gate, TheScaledStalePriceIsRefusedAtWarmToo) {
     B1ScaledStalePrice model(1e6, 5e-7);
     SqpSolver cold(probe_options(StartLevel::kCold));
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
-    ASSERT_TRUE(first.warm_start.valid);
-    ASSERT_NE(0u, first.warm_start.structure_hash);
+    ASSERT_TRUE(SqpWarmAccess::state(first.sqp_warm_start).valid);
+    ASSERT_NE(0u, SqpWarmAccess::state(first.sqp_warm_start).structure_hash);
 
-    SqpWarmStart poisoned = first.warm_start;
+    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(first.sqp_warm_start);
     poisoned.x = Vec::Zero(1);
     poisoned.lambda_i = Vec::Constant(1, model.stale_price());
 
     SqpSolver warm(probe_options(StartLevel::kWarm));
-    const SqpResult sol = warm.solve(model, model.start_point(), poisoned);
+    const SqpResult sol = warm.solve(hven::detail::problem_ref(model), model.start_point(),
+                                     SqpWarmAccess::wrap(poisoned));
     EXPECT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
     EXPECT_GT(sol.counters.major_iters, 0) << "pre-W1: zero majors, f = 0";
     EXPECT_NEAR(model.f_star(), sol.f, 1e-3);
@@ -1311,8 +1346,9 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
         ASSERT_NEAR(inside ? 5e-7 : 2e-6, model.complementarity_at_seed(), 1e-15);
 
         SqpSolver driver(probe_options(StartLevel::kWarm));
-        const SqpResult sol = driver.solve(model, model.start_point(),
-                                           scaled_seed(Vec::Zero(1), model.stale_price()));
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                         SqpWarmAccess::wrap(scaled_seed(Vec::Zero(1), model.stale_price())));
         ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
         EXPECT_EQ(SolveStatus::kOptimal, sol.status);
         if (inside) {
@@ -1356,13 +1392,12 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // The only thing the corpus was missing is a post-refusal solve LONGER than
 // that window -- element (13)'s arms converge in about one major, under it.
 //
-// HOW THIS ONE IS MADE LONG, WITHOUT TOUCHING THE POISON. `tr_init == tr_max`
-// pins the trust region at a fixed width for the whole solve (the growth rule
-// is `min(delta * kTrGrowFactor, tr_max)`, so it cannot grow), and the model's
-// row is placed `eps = 8 * tr` away from the seed. The post-refusal walk is
-// then TR-limited at every step and needs ~8 majors to cross, which is
-// comfortably past the window and does not depend on the growth threshold, the
-// funnel, or any counter this project pins.
+// HOW THIS ONE IS MADE LONG, WITHOUT TOUCHING THE POISON. `trust_region_initial ==
+// trust_region_max` pins the trust region at a fixed width for the whole solve (the growth rule is
+// `min(delta * kTrGrowFactor, trust_region_max)`, so it cannot grow), and the model's row is placed
+// `eps = 8 * tr` away from the seed. The post-refusal walk is then TR-limited at every step and
+// needs ~8 majors to cross, which is comfortably past the window and does not depend on the growth
+// threshold, the funnel, or any counter this project pins.
 //
 // WHAT IT ASSERTS. The watchdog must be shown to have actually restored --
 // otherwise the fixture could pass for the trivial reason that the restore never
@@ -1376,25 +1411,27 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
 
     SqpOptions opts = probe_options(StartLevel::kWarm);
     // THE FIXED TRUST REGION -- see the banner. Equal init/max is legal
-    // (SqpSolver validates `tr_max >= tr_init`) and is what makes the
+    // (SqpSolver validates `trust_region_max >= trust_region_initial`) and is what makes the
     // post-refusal solve outlast kWarmFullStepWindow deterministically.
-    opts.tr_init = kTr;
-    opts.tr_max = kTr;
-    ASSERT_TRUE(opts.warm_full_step) << "fixture premise: the KD window is armed by default";
+    opts.trust_region_initial = kTr;
+    opts.trust_region_max = kTr;
+    ASSERT_TRUE(opts.advanced.warm_full_step)
+        << "fixture premise: the KD window is armed by default";
 
     // A hash-CARRYING object, so this ingests at kWarm -- the level at which
     // the full-step window is armed at all (a seeded object never arms it).
     SqpSolver cold(opts);
-    const SqpResult first = cold.solve(model, model.start_point());
+    const SqpResult first = cold.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
-    ASSERT_NE(0u, first.warm_start.structure_hash);
+    ASSERT_NE(0u, SqpWarmAccess::state(first.sqp_warm_start).structure_hash);
 
-    SqpWarmStart poisoned = first.warm_start;
+    hven::detail::SqpWarmState poisoned = SqpWarmAccess::state(first.sqp_warm_start);
     poisoned.x = Vec::Zero(1);
     poisoned.lambda_i = Vec::Constant(1, model.stale_price());
 
     SqpSolver warm(opts);
-    const SqpResult sol = warm.solve(model, model.start_point(), poisoned);
+    const SqpResult sol = warm.solve(hven::detail::problem_ref(model), model.start_point(),
+                                     SqpWarmAccess::wrap(poisoned));
 
     ASSERT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
 
@@ -1415,15 +1452,15 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     //
     // WHAT HAPPENS NOW, MEASURED: every major repeats that zero step, the watchdog
     // restores at major kWarmFullStepWindow + 1 (its subject is back), and the solve
-    // ends kMaxIter at the cap. That is the honest status for a solve that cannot
+    // ends kIterationLimit at the cap. That is the honest status for a solve that cannot
     // move; it is not a certificate.
     const bool restored = std::any_of(sol.history.begin(), sol.history.end(),
                                       [](const SqpIterate &row) { return row.watchdog_restored; });
     EXPECT_TRUE(restored) << "the watchdog must actually restore, or this pins nothing";
     EXPECT_NE(SolveStatus::kOptimal, sol.status)
         << "the triple the ingest gate refused must not be certified after the restore";
-    EXPECT_EQ(SolveStatus::kMaxIter, sol.status);
-    EXPECT_GT(sol.sqp_complementarity, opts.kkt_tol);
+    EXPECT_EQ(SolveStatus::kIterationLimit, sol.status);
+    EXPECT_GT(sol.convergence.complementarity, opts.common.optimality_tol);
 }
 
 // =====================================================================
@@ -1497,8 +1534,8 @@ TEST(B1Gate, AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn) {
 
     ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
     EXPECT_NEAR(2.0, link.second.x(0), 1e-7);
-    ASSERT_EQ(1, link.second.lambda_i.size());
-    EXPECT_EQ(0.0, link.second.lambda_i(0))
+    ASSERT_EQ(1, hven::detail::engine_rows(link.second).lambda_i.size());
+    EXPECT_EQ(0.0, hven::detail::engine_rows(link.second).lambda_i(0))
         << "a strictly slack row prices at exactly zero under either kernel, not merely at "
            "roundoff";
     const test_support::NlpKktResidual r = self_check_kkt(model, link.second, kTol);
@@ -1516,7 +1553,8 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 
     SqpSolver driver(ssn_probe_options(StartLevel::kWarm));
     const SqpResult sol =
-        driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
+        driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                     SqpWarmAccess::wrap(scaled_seed(Vec::Zero(1), model.stale_price())));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
         << "fixture premise: a hash-less object ingests at kSeeded, mode or no mode";
@@ -1578,12 +1616,14 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 // =====================================================================
 TEST(B1Gate, KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined) {
     B1ScaledStalePrice model(1e6, 5e-7);
-    const SqpWarmStart seed = scaled_seed(Vec::Zero(1), model.stale_price());
+    const hven::detail::SqpWarmState seed = scaled_seed(Vec::Zero(1), model.stale_price());
 
     SqpSolver walk_driver(probe_options(StartLevel::kWarm));
-    const SqpResult walk = walk_driver.solve(model, model.start_point(), seed);
+    const SqpResult walk = walk_driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                             SqpWarmAccess::wrap(seed));
     SqpSolver ssn_driver(ssn_probe_options(StartLevel::kWarm));
-    const SqpResult ssn = ssn_driver.solve(model, model.start_point(), seed);
+    const SqpResult ssn = ssn_driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                           SqpWarmAccess::wrap(seed));
 
     ASSERT_EQ(SolveStatus::kOptimal, walk.status);
     ASSERT_EQ(SolveStatus::kOptimal, ssn.status);
@@ -1650,6 +1690,6 @@ TEST(B1Gate, ReviewSphereIsRepairedUnderKSsnToo) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

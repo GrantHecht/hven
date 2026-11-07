@@ -33,12 +33,20 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/solve_status.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/model/nlp_model.h>
+#include <hven/core/solver_status.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
+
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -101,7 +109,7 @@ OutOfBoxSqrtModel unit_box_model() { return OutOfBoxSqrtModel(vec2(1.0, 1.0), ve
 
 SqpOptions quiet_options(bool project) {
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::Verbosity::kSilent;
     o.project_start_point = project;
     return o;
 }
@@ -133,7 +141,7 @@ TEST(StartPointProjection, OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalError
     OutOfBoxSqrtModel model = unit_box_model();
     SqpSolver driver(quiet_options(/*project=*/false));
     SqpResult out;
-    ASSERT_NO_THROW(out = driver.solve(model, vec2(-1.0, -1.0)));
+    ASSERT_NO_THROW(out = driver.solve(hven::detail::problem_ref(model), vec2(-1.0, -1.0)));
 
     EXPECT_EQ(out.status, SolveStatus::kNumericalError);
     EXPECT_TRUE(std::isnan(out.f));
@@ -145,13 +153,13 @@ TEST(StartPointProjection, OffTakesAnOutOfBoxStartVerbatimAndExitsNumericalError
     EXPECT_EQ(out.counters.start_point_clamps, 0);
     // The cold hand-off the exit's own comment promises, so a caller retrying
     // from a corrected x0 is honoured.
-    EXPECT_FALSE(out.warm_start.valid);
+    EXPECT_FALSE(SqpWarmAccess::state(out.sqp_warm_start).valid);
 }
 
 TEST(StartPointProjection, OffIsUnchangedOnAnInBoxStart) {
     OutOfBoxSqrtModel model = unit_box_model();
     SqpSolver driver(quiet_options(/*project=*/false));
-    const SqpResult out = driver.solve(model, vec2(2.0, 3.0));
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), vec2(2.0, 3.0));
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_NEAR(out.f, -2.0 * std::sqrt(5.0), 1e-9);
@@ -165,7 +173,7 @@ TEST(StartPointProjection, OffIsUnchangedOnAnInBoxStart) {
 TEST(StartPointProjection, OnSolvesTheOutOfBoxStartAndCountsBothComponents) {
     OutOfBoxSqrtModel model = unit_box_model();
     SqpSolver driver(quiet_options(/*project=*/true));
-    const SqpResult out = driver.solve(model, vec2(-1.0, -1.0));
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), vec2(-1.0, -1.0));
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_NEAR(out.f, -2.0 * std::sqrt(5.0), 1e-9);
@@ -180,11 +188,17 @@ TEST(StartPointProjection, OnCountsOnlyTheComponentsStrictlyOutsideTheBox) {
     SqpSolver driver(quiet_options(/*project=*/true));
 
     // One below its lower bound, one already inside.
-    EXPECT_EQ(driver.solve(model, vec2(-1.0, 3.0)).counters.start_point_clamps, 1);
+    EXPECT_EQ(
+        driver.solve(hven::detail::problem_ref(model), vec2(-1.0, 3.0)).counters.start_point_clamps,
+        1);
     // One below, one ABOVE: the count is a component count and covers both sides.
-    EXPECT_EQ(driver.solve(model, vec2(-1.0, 9.0)).counters.start_point_clamps, 2);
+    EXPECT_EQ(
+        driver.solve(hven::detail::problem_ref(model), vec2(-1.0, 9.0)).counters.start_point_clamps,
+        2);
     // ON A BOUND is not OUTSIDE it: the predicate is strict.
-    EXPECT_EQ(driver.solve(model, vec2(1.0, 5.0)).counters.start_point_clamps, 0);
+    EXPECT_EQ(
+        driver.solve(hven::detail::problem_ref(model), vec2(1.0, 5.0)).counters.start_point_clamps,
+        0);
 }
 
 TEST(StartPointProjection, OnLeavesAnInBoxStartByteIdenticalToOff) {
@@ -195,15 +209,15 @@ TEST(StartPointProjection, OnLeavesAnInBoxStartByteIdenticalToOff) {
     const Vec x0 = vec2(2.0, 3.0);
 
     SqpSolver off(quiet_options(/*project=*/false));
-    const SqpResult a = off.solve(model, x0);
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), x0);
     SqpSolver on(quiet_options(/*project=*/true));
-    const SqpResult b = on.solve(model, x0);
+    const SqpResult b = on.solve(hven::detail::problem_ref(model), x0);
 
     ASSERT_EQ(a.status, SolveStatus::kOptimal);
     EXPECT_EQ(b.status, a.status);
     EXPECT_EQ(b.f, a.f);
     EXPECT_EQ(b.x, a.x);
-    EXPECT_EQ(b.kkt_residual, a.kkt_residual);
+    EXPECT_EQ(b.convergence.kkt_residual, a.convergence.kkt_residual);
     EXPECT_EQ(b.iterations, a.iterations);
     EXPECT_EQ(b.history.size(), a.history.size());
     EXPECT_EQ(b.counters.start_point_clamps, 0);
@@ -227,7 +241,7 @@ TEST(StartPointProjection, OnLandsAFixedVariableExactlyOnItsValueAndLeavesInfini
         }
         return CallbackAction::kContinue;
     });
-    const SqpResult out = driver.solve(model, vec2(4.0, 9.0));
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), vec2(4.0, 9.0));
 
     EXPECT_EQ(out.counters.start_point_clamps, 2);
     ASSERT_EQ(first.size(), 2);
@@ -244,7 +258,7 @@ TEST(StartPointProjection, OnMovesNothingWhereTheBoundIsInfinite) {
     // The objective is unbounded below on this box, so the solve is capped:
     // this pin is about the START POINT, not about where the iteration goes.
     SqpOptions opts = quiet_options(/*project=*/true);
-    opts.max_iter = 2;
+    opts.common.max_iterations = 2;
     SqpSolver driver(opts);
     Vec first;
     driver.set_iteration_callback([&first](const IterationEvent &e) {
@@ -253,7 +267,7 @@ TEST(StartPointProjection, OnMovesNothingWhereTheBoundIsInfinite) {
         }
         return CallbackAction::kContinue;
     });
-    const SqpResult out = driver.solve(model, vec2(1e6, 1e6));
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), vec2(1e6, 1e6));
 
     EXPECT_EQ(out.counters.start_point_clamps, 0);
     ASSERT_EQ(first.size(), 2);
@@ -268,10 +282,13 @@ TEST(StartPointProjection, OnStillRefusesANonFiniteStartPoint) {
     OutOfBoxSqrtModel model = unit_box_model();
     SqpSolver driver(quiet_options(/*project=*/true));
 
-    EXPECT_THROW(driver.solve(model, vec2(std::numeric_limits<double>::quiet_NaN(), 3.0)),
+    EXPECT_THROW(driver.solve(hven::detail::problem_ref(model),
+                              vec2(std::numeric_limits<double>::quiet_NaN(), 3.0)),
                  std::invalid_argument);
-    EXPECT_THROW(driver.solve(model, vec2(kInf, 3.0)), std::invalid_argument);
-    EXPECT_THROW(driver.solve(model, Vec::Constant(3, 2.0)), std::invalid_argument);
+    EXPECT_THROW(driver.solve(hven::detail::problem_ref(model), vec2(kInf, 3.0)),
+                 std::invalid_argument);
+    EXPECT_THROW(driver.solve(hven::detail::problem_ref(model), Vec::Constant(3, 2.0)),
+                 std::invalid_argument);
 }
 
 TEST(StartPointProjection, TheOptionsValidatorAcceptsBothStatesAndTheDumpCarriesTheField) {
@@ -301,9 +318,9 @@ TEST(StartPointProjection, TheDefaultProjectsAndSolvesTheNanStartShape) {
     EXPECT_TRUE(SqpOptions{}.project_start_point);
     OutOfBoxSqrtModel model = unit_box_model();
     SqpOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::Verbosity::kSilent;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, vec2(-1.0, -1.0));
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), vec2(-1.0, -1.0));
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_NEAR(out.f, -2.0 * std::sqrt(5.0), 1e-9);
@@ -326,4 +343,4 @@ TEST(StartPointProjection, TheBoxHalfOfHIsTheL1DistanceToTheBox) {
     EXPECT_THROW(box_violation_l1(Vec::Zero(3), lo, up), std::invalid_argument);
 }
 
-} // namespace hven::solvers
+} // namespace hven

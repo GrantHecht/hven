@@ -8,11 +8,11 @@
 
 #include "hven/detail/interior/utils/memory_management.h"
 
-namespace hven::utils {
+namespace hven::detail {
 
 thread_local BumpAllocator::SuperScalarStackType BumpAllocator::SuperScalarStack =
-    detail::BumpStack<hven::DefaultSuperScalar>(HVEN_DEFAULT_ARENA_SIZE);
+    detail::BumpStack<hven::detail::DefaultSuperScalar>(HVEN_DEFAULT_ARENA_SIZE);
 thread_local BumpAllocator::ScalarStackType BumpAllocator::ScalarStack =
     detail::BumpStack<double>(HVEN_DEFAULT_ARENA_SIZE);
 
-} // namespace hven::utils
+} // namespace hven::detail

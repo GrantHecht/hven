@@ -33,18 +33,19 @@
 
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     EXPECT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     std::printf("[ qc8 ] %s %s status=%d minors=%ld facts=%ld f=%.12g implied=%ld blkterm=%ld\n",

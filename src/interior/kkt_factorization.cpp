@@ -13,9 +13,12 @@
 // confusion a raw comparison would introduce -- so the categorization below is
 // written in terms of the names, never raw values.
 #include <Accelerate/Accelerate.h>
+
 #endif
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 namespace {
 
@@ -67,8 +70,8 @@ void KktFactorization::set_num_threads(int num_threads) {
     // The factor validates first, so a rejected count leaves both this
     // object's options and the factor itself untouched. `opts_` is then kept
     // in step because release() and reconfigure() rebuild the factor from it.
-    factor_.set_num_threads(num_threads);
-    opts_.num_threads = num_threads;
+    factor_.set_threads(num_threads);
+    opts_.threads = num_threads;
 }
 
 void KktFactorization::release() {
@@ -145,8 +148,8 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
         return;
     }
 
-    n_pos_ = static_cast<int>(outcome.inertia.n_pos);
-    n_neg_ = static_cast<int>(outcome.inertia.n_neg);
+    n_pos_ = static_cast<int>(outcome.inertia.positive);
+    n_neg_ = static_cast<int>(outcome.inertia.negative);
     // An absent perturbed-pivot count reads as the 0 the engine saw on a
     // backend that keeps no such counter.
     perturbed_pivots_ = static_cast<int>(outcome.inertia.perturbed_pivots.value_or(0));
@@ -214,10 +217,10 @@ void KktFactorization::record_failed_factorization(const hven::linear::Factorize
     // Unreachable in practice for a real symmetric indefinite matrix: with
     // static pivot perturbation on, this backend perturbs its way through
     // rather than refusing.
-    n_pos_ = static_cast<int>(outcome.inertia.n_pos);
-    n_neg_ = static_cast<int>(outcome.inertia.n_neg);
+    n_pos_ = static_cast<int>(outcome.inertia.positive);
+    n_neg_ = static_cast<int>(outcome.inertia.negative);
     perturbed_pivots_ = static_cast<int>(outcome.inertia.perturbed_pivots.value_or(0));
 #endif
 }
 
-} // namespace hven::solvers
+} // namespace hven

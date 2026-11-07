@@ -1,0 +1,61 @@
+M8 PF-HB -- huge real bounds on the interior-point engine -- PROVENANCE and results
+================================================================================
+Declarations   DECLARATION.txt + runtime/DECLARATION.txt (aa583cdc), committed before the first leg, never edited.
+               No leg failed; no successor declaration.
+Base / head    base 6d10c70f (origin/m8). Code head f96a3a0f (fix + tests). Evidence: aa583cdc (declarations,
+               instruments, pre-declaration build outputs) + this commit.
+Arms           A = 6d10c70f (legs/prebuild.sh: `git archive` export build-pfe/armA-src, submodule pins checked):
+               build-pfe/armAbin/hven_sqp_corpus sha256 c9bef60132ffc9d3bcb9d81c1efd8c9e1a17e10ab5cf38bc225d8df01e085cf3,
+               compile database sha256 29822ff68d56b988f561d7fd9ffbacdd5ee1095153f021ec6ada027879646920 (chain/prebuild.out,
+               chain/arma.out). B = f96a3a0f: build-pfe/rel fresh (chain/build-rel.out) -> build-pfe/armBbin sha256
+               3e1b7b1e70c099af16bd07fa7031b879e0e7103d5d6ba9f4b503e377be72d0f8 (checked by run_all.sh, interior.sh, census.sh).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL, MKL_NUM_THREADS=1,
+               perf 7.2.12-200.fc44. Apple: see MACOS below (CI-observed). Windows: UNOBSERVED (CI lane only).
+Dates          2026-11-06 16:25 EST (arm A build) / 16:36 (runtime gate start) to 2026-11-06 23:54 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY inside it,
+               set -o pipefail, no timeout wrapper, ctest -j4 under setsid, absolute evidence paths, chain1's fail-closed
+               pre-flight (PREFLIGHT_OK; a planted copy with two stale paths -- a dev-tree path and another worktree's --
+               refused before the declaration). build-pfe/gate_then_chain.sh ran the runtime gate alone and started
+               chain1 only on VERDICT PASS (runtime/run_all.log, chain/chain1.log).
+
+RESULTS (criteria as declared)
+P0  arm A       both sha256 as declared, ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release 3479/3479, Debug 3479/3479 (suites/). PASS. (D5)
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       15 configurations BYTE-IDENTICAL to the B8 riders' dump (iparm/iparm-pfhb.txt). PASS. (D8)
+P5  census      57 baseline cells, 57 fresh, 0 mismatches; serial-confirm list empty (census/; 17:50 -> 23:54). PASS. (D1)
+P6  smoke       default and clang arms PASSED (36 standalone-include TUs, a pieces solve, both engines); export
+                contract OK on both (install-smoke/). PASS. (D9)
+P7  PCH         PASS: 4 TUs engaged, 57 artifacts byte-identical (pch/pch-neutrality.txt).
+P8  off-ref     fresh build rc 0, 26 warning lines, ctest Release 3479/3479 (offref/). PASS.
+P9  Accelerate  pass A PASS_A_AS_DECLARED; the listing is byte-identical to the B8 riders' (accelerate/). PASS. Pass B
+                (reported, not a criterion) prints NOT_AS_DECLARED for the stub's known gaps (OTHER in
+                src/drivers/ipm_solver.cpp, src/drivers/solver_init.cpp, tests/sqp/test_accelerate_probes.cpp,
+                tests/sqp/test_scaffold.cpp); its listing is byte-identical to the B8 riders' pass B, so nothing new.
+P10 flags       TU sets equal, 0 TUs differ, FLAGS_AS_DECLARED (flags/). PASS. (D7)
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 1.000087, ipm 1.000000, ssn 1.000000,
+                walk 0.999997; THROTTLE 0 in every mode; counter identity holds in every mode. PASS. (D11)
+P12 interior    unmoved (arm A vs B) 0 differences; promoted baseline reproduced, 0 differences (interior/). PASS. (D2)
+
+THE INERTNESS PREMISE (dev, stated in the declaration): widest slack over the interior corpus cells 0.455, 39 in the
+suite outside InfiniteBound; the legs above are the proof that nothing moved.
+
+MACOS (OBSERVED in CI, not on this box): run 42297962739 of workflow ci on branch m8-pf-hb-diag 7ebb4e16 (the fix
+f96a3a0f + a diagnostic-only commit that never lands: an env switch HVEN_DIAG_NO_FAR_RECOVERY=1 turning the fix off,
+a disabled table test, a macOS CI step), GitHub macOS runner, Accelerate, all four lanes green. Lines cited:
+macos/ci-42297962739-hven-pfhb-diag.txt (extracted from the run log as relayed; the log's sha256 in its header).
+  - denormal mode: a runtime 0.1/DBL_MAX = 5.56268e-310 kept (no FTZ/DAZ), as on this box.
+  - fix ON: large_finite, rows_only, vars_only, +-DBL_MAX variable, row 1e160, row 1e16 -- all kOptimal in 6
+    iterations; every iteration's KKT slack diagonals: 0 subnormal, 0 non-finite; DISABLED_HugeRealBoundDiag +
+    HugeRealBound + InfiniteBound: 38 tests PASSED (the removed off-reference guard holds on Accelerate).
+  - fix OFF (the engine of 6d10c70f): large_finite kDiverging at 24 (C241's macOS failure), rows_only kDiverging
+    at 19, vars_only kOptimal 6, +-DBL_MAX variable kDiverging at 1, row 1e160 kDiverging at 6 with a subnormal slack
+    diagonal 9.88e-324 assembled in iterations 0-2, row 1e16 kOptimal at 14.
+  Linux/MKL, same commit, this box (dev): macos/linux-7ebb4e16-hven-pfhb-diag.txt -- fix ON all six kOptimal in 6;
+  fix OFF 63, 94, 6, kDiverging at 1, kDiverging at 4, 14.
+  So the mechanism is the same on both backends: Accelerate's different rounding noise in the far pairs' multiplier
+  steps took the solves that MKL survived (63/94 iterations) to kDiverging; the fix removes the noise source on both.
+
+SLIPS           None in the legs. Dev: the scratch instrumented builds (slack histogram, recovery prototype) ran in
+                build-pfhb/ under the lock and were reverted before the fix commit.

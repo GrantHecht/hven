@@ -292,9 +292,9 @@ void TraceRun::record_counters(const Counters &c) {
 void TraceRun::record_inertia(const hven::linear::InertiaEvidence &e, const std::string &prefix) {
     record(
         Observation::state(trace_, label_, prefix + "inertia_state", inertia_state_name(e.state)));
-    record(Observation::counter(trace_, label_, prefix + "n_pos", e.n_pos));
-    record(Observation::counter(trace_, label_, prefix + "n_neg", e.n_neg));
-    record(Observation::counter(trace_, label_, prefix + "n_zero", e.n_zero));
+    record(Observation::counter(trace_, label_, prefix + "n_pos", e.positive));
+    record(Observation::counter(trace_, label_, prefix + "n_neg", e.negative));
+    record(Observation::counter(trace_, label_, prefix + "n_zero", e.zero));
     record(Observation::boolean(trace_, label_, prefix + "zero_is_derived", e.zero_is_derived));
     // Presence FIRST, and separately from the value: an absent optional is a
     // different reading from a zero, and a table that recorded only the number
@@ -309,10 +309,10 @@ void TraceRun::record_inertia(const hven::linear::InertiaEvidence &e, const std:
 
 void TraceRun::record_solve_info(const hven::linear::SolveInfo &s, const std::string &prefix) {
     record(Observation::presence(trace_, label_, prefix + "refinement_iters_presence",
-                                 s.refinement_iters.has_value()));
-    if (s.refinement_iters.has_value()) {
+                                 s.refinement_steps.has_value()));
+    if (s.refinement_steps.has_value()) {
         record(
-            Observation::counter(trace_, label_, prefix + "refinement_iters", *s.refinement_iters));
+            Observation::counter(trace_, label_, prefix + "refinement_iters", *s.refinement_steps));
     }
 }
 

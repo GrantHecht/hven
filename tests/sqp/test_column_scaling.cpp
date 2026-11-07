@@ -35,13 +35,26 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/drivers/column_scaling.h>
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/problem_scaling.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/trace.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "support/hs_problems.h"
 
-namespace hven::solvers {
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
+
+namespace {
+using hven::detail::WarmStartAccess;
+} // namespace
+
+namespace hven {
 namespace {
 
 using detail::ColumnScaledModel;
@@ -404,8 +417,14 @@ TEST(ColumnScaledModel, EveryEvaluationIsTheCallersReparametrized) {
     EXPECT_EQ(base.eval_f(x), f);
     EXPECT_TRUE(vce.isApprox(ce, 0.0));
 
-    EXPECT_TRUE(m.lower().isApprox(Vec(base.lower().cwiseQuotient(d)), 0.0));
-    EXPECT_TRUE(m.upper().isApprox(Vec(base.upper().cwiseQuotient(d)), 0.0));
+    // The box as the absent-bound rule reads it at the default threshold (M8 B7),
+    // divided by d: an absent side is an infinity and stays one.
+    Vec lower_read = base.lower();
+    Vec upper_read = base.upper();
+    hven::detail::normalize_bounds(lower_read, hven::detail::kDefaultInfiniteBound);
+    hven::detail::normalize_bounds(upper_read, hven::detail::kDefaultInfiniteBound);
+    EXPECT_TRUE(m.lower().cwiseEqual(Vec(lower_read.cwiseQuotient(d))).all());
+    EXPECT_TRUE(m.upper().cwiseEqual(Vec(upper_read.cwiseQuotient(d))).all());
     EXPECT_TRUE(m.start_point().isApprox(xs, 0.0));
     HVEN_SUPPRESS_DEPRECATED_BEGIN
     EXPECT_TRUE(m.eval_grad(xs).isApprox(gs, 0.0));
@@ -471,7 +490,7 @@ TEST(ColumnScaledModel, BadFactorsAreRefused) {
 TEST(ColumnScalingOption, TheShippedDefaultIsAutoAtTheHalfPrecisionGate) {
     const SqpOptions o;
     EXPECT_EQ(SqpColumnScaling::kAuto, o.column_scaling);
-    EXPECT_FALSE(o.enable_scaling) << "the row layer stays opt-in";
+    EXPECT_FALSE(o.row_scaling) << "the row layer stays opt-in";
     EXPECT_DOUBLE_EQ(std::ldexp(1.0, 26), o.column_scaling_threshold);
     EXPECT_DOUBLE_EQ(1.0 / std::sqrt(std::numeric_limits<double>::epsilon()),
                      o.column_scaling_threshold);
@@ -479,7 +498,7 @@ TEST(ColumnScalingOption, TheShippedDefaultIsAutoAtTheHalfPrecisionGate) {
 
 TEST(ColumnScalingOption, ValidationRefusesTheSentinelAndABadThreshold) {
     SqpOptions o;
-    o.column_scaling = SqpColumnScaling::kSqpColumnScalingCount;
+    o.column_scaling = static_cast<SqpColumnScaling>(3);
     EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     for (const double t : {0.5, 0.0, -1.0, std::numeric_limits<double>::quiet_NaN(),
                            std::numeric_limits<double>::infinity()}) {
@@ -519,16 +538,19 @@ TEST(ColumnScalingOption, TheDumpCarriesBothFields) {
 void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     // AN INDEPENDENT MEASUREMENT of the caller's own problem at the returned point
     // and prices: the model-taking evaluate_kkt knows nothing about any factor.
-    const SqpKkt k = evaluate_kkt(model, sol.x, sol.lambda_e, sol.lambda_i, SqpOptions{}.feas_tol);
-    EXPECT_DOUBLE_EQ(k.stationarity, sol.sqp_stationarity);
-    EXPECT_DOUBLE_EQ(k.feasibility, sol.sqp_feasibility);
-    EXPECT_DOUBLE_EQ(k.complementarity, sol.sqp_complementarity);
-    EXPECT_DOUBLE_EQ(k.residual(), sol.kkt_residual);
+    const SqpKkt k =
+        evaluate_kkt(model, sol.x, hven::detail::engine_rows(sol).lambda_e,
+                     hven::detail::engine_rows(sol).lambda_i, SqpOptions{}.common.feasibility_tol);
+    EXPECT_DOUBLE_EQ(k.stationarity, sol.convergence.stationarity);
+    EXPECT_DOUBLE_EQ(k.feasibility, sol.convergence.feasibility);
+    EXPECT_DOUBLE_EQ(k.complementarity, sol.convergence.complementarity);
+    EXPECT_DOUBLE_EQ(k.residual(), sol.convergence.kkt_residual);
     ASSERT_EQ(k.z.size(), sol.z.size());
     for (Index i = 0; i < sol.z.size(); ++i) {
         EXPECT_DOUBLE_EQ(k.z(i), sol.z(i)) << "bound price " << i;
     }
-    EXPECT_LE(k.feasibility, SqpOptions{}.feas_tol) << "feasible in the caller's units";
+    EXPECT_LE(k.feasibility, SqpOptions{}.common.feasibility_tol)
+        << "feasible in the caller's units";
     EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.f);
     // THE SHARED FOUR, by their one definition, on the caller's own evaluations.
     Vec g, ce, ci;
@@ -538,12 +560,12 @@ void expect_caller_certified(const NlpModel &model, const SqpResult &sol) {
     model.eval_ci_in_place(sol.x, ci);
     model.eval_jac_e_in_place(sol.x, je);
     model.eval_jac_i_in_place(sol.x, ji);
-    const DeclaredDiagnostics dd =
-        compute_declared_diagnostics(sol.x, sol.lambda_e, sol.lambda_i, sol.z, g, je, ji, ce, ci,
-                                     model.lower(), model.upper(), {});
+    const hven::detail::DeclaredDiagnostics dd = hven::detail::compute_declared_diagnostics(
+        sol.x, hven::detail::engine_rows(sol).lambda_e, hven::detail::engine_rows(sol).lambda_i,
+        sol.z, g, je, ji, ce, ci, model.lower(), model.upper(), {});
     EXPECT_DOUBLE_EQ(dd.stationarity, sol.stationarity);
-    EXPECT_DOUBLE_EQ(dd.feasibility_e, sol.feasibility_e);
-    EXPECT_DOUBLE_EQ(dd.feasibility_i, sol.feasibility_i);
+    EXPECT_DOUBLE_EQ(dd.feasibility_e, hven::detail::engine_rows(sol).feasibility_e);
+    EXPECT_DOUBLE_EQ(dd.feasibility_i, hven::detail::engine_rows(sol).feasibility_i);
     EXPECT_DOUBLE_EQ(dd.complementarity, sol.complementarity);
 }
 
@@ -553,13 +575,13 @@ TEST(ColumnScalingDriver, AutoSolvesTheBadlyScaledFitInTheCallersUnits) {
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_TRUE(sol.scaling.columns_active);
     EXPECT_TRUE(sol.scaling.active) << "kAuto engages the row/objective layer when it fires";
-    EXPECT_DOUBLE_EQ(65536.0, sol.scaling.col_spread);
-    EXPECT_DOUBLE_EQ(1.0 / 256.0, sol.scaling.col_min);
-    EXPECT_DOUBLE_EQ(256.0, sol.scaling.col_max);
+    EXPECT_DOUBLE_EQ(65536.0, sol.scaling.column_spread);
+    EXPECT_DOUBLE_EQ(1.0 / 256.0, sol.scaling.column_min);
+    EXPECT_DOUBLE_EQ(256.0, sol.scaling.column_max);
     const Vec xs = model.x_star();
     for (Index i = 0; i < 6; ++i) {
         EXPECT_NEAR(xs(i), sol.x(i), 1e-6 * std::max(1e-4, std::abs(xs(i)))) << i;
@@ -567,13 +589,13 @@ TEST(ColumnScalingDriver, AutoSolvesTheBadlyScaledFitInTheCallersUnits) {
     expect_caller_certified(model, sol);
     // The warm start carries the caller's point and prices, and none of the
     // scaled-space state.
-    ASSERT_TRUE(sol.warm_start.valid);
-    EXPECT_TRUE(sol.warm_start.x.isApprox(sol.x, 0.0));
-    EXPECT_TRUE(sol.warm_start.z.isApprox(sol.z, 0.0));
-    EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.tr_radius);
-    EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.funnel_width);
-    EXPECT_EQ(nullptr, sol.warm_start.hot);
-    EXPECT_FALSE(sol.warm_start.has_prox_center);
+    ASSERT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).valid);
+    EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).x.isApprox(sol.x, 0.0));
+    EXPECT_TRUE(SqpWarmAccess::state(sol.sqp_warm_start).z.isApprox(sol.z, 0.0));
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).tr_radius);
+    EXPECT_DOUBLE_EQ(-1.0, SqpWarmAccess::state(sol.sqp_warm_start).funnel_width);
+    EXPECT_EQ(nullptr, SqpWarmAccess::state(sol.sqp_warm_start).hot);
+    EXPECT_FALSE(SqpWarmAccess::state(sol.sqp_warm_start).has_prox_center);
 }
 
 TEST(ColumnScalingDriver, AnActiveBoundsPriceIsReMeasuredInTheCallersUnits) {
@@ -586,7 +608,7 @@ TEST(ColumnScalingDriver, AnActiveBoundsPriceIsReMeasuredInTheCallersUnits) {
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.columns_active);
     const double xs[6] = {1.0, 0.0125, -7.5e-5, 1.0, 1.5, 0.5};
@@ -602,7 +624,7 @@ TEST(ColumnScalingDriver, AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_TRUE(sol.scaling.columns_active);
     EXPECT_FALSE(sol.scaling.active) << "kAlways leaves the row layer to enable_scaling";
@@ -612,11 +634,13 @@ TEST(ColumnScalingDriver, AlwaysScalesTheColumnsAloneWhenTheRowLayerIsOff) {
 void expect_same_solve(const SqpResult &a, const SqpResult &b) {
     EXPECT_EQ(a.status, b.status);
     EXPECT_TRUE(a.x.isApprox(b.x, 0.0));
-    EXPECT_TRUE(a.lambda_e.isApprox(b.lambda_e, 0.0));
-    EXPECT_TRUE(a.lambda_i.isApprox(b.lambda_i, 0.0));
+    EXPECT_TRUE(
+        hven::detail::engine_rows(a).lambda_e.isApprox(hven::detail::engine_rows(b).lambda_e, 0.0));
+    EXPECT_TRUE(
+        hven::detail::engine_rows(a).lambda_i.isApprox(hven::detail::engine_rows(b).lambda_i, 0.0));
     EXPECT_TRUE(a.z.isApprox(b.z, 0.0));
     EXPECT_EQ(a.f, b.f);
-    EXPECT_EQ(a.kkt_residual, b.kkt_residual);
+    EXPECT_EQ(a.convergence.kkt_residual, b.convergence.kkt_residual);
     EXPECT_EQ(a.history.size(), b.history.size());
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
@@ -675,12 +699,12 @@ TEST(ColumnScalingDriver, TheRuleCostsOneJacobianCallAndNothingElse) {
     test_support::Hs14Model base;
     CountingModel off_model(base), on_model(base);
     SqpSolver off{off_options()};
-    const SqpResult a = off.solve(off_model, base.start_point());
+    const SqpResult a = off.solve(hven::detail::problem_ref(off_model), base.start_point());
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver on{opts};
-    const SqpResult b = on.solve(on_model, base.start_point());
+    const SqpResult b = on.solve(hven::detail::problem_ref(on_model), base.start_point());
     ASSERT_FALSE(b.scaling.columns_active);
     EXPECT_EQ(off_model.values, on_model.values);
     EXPECT_EQ(off_model.grads, on_model.grads);
@@ -691,15 +715,15 @@ TEST(ColumnScalingDriver, TheRuleCostsOneJacobianCallAndNothingElse) {
 TEST(ColumnScalingDriver, BelowTheGateAutoIsTheOffSolve) {
     test_support::Hs14Model model;
     SqpSolver off{off_options()};
-    const SqpResult a = off.solve(model, model.start_point());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), model.start_point());
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver on{opts};
-    const SqpResult b = on.solve(model, model.start_point());
+    const SqpResult b = on.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, a.status);
-    EXPECT_LT(b.scaling.col_spread, opts.column_scaling_threshold);
-    EXPECT_GE(b.scaling.col_spread, 1.0);
+    EXPECT_LT(b.scaling.column_spread, opts.column_scaling_threshold);
+    EXPECT_GE(b.scaling.column_spread, 1.0);
     expect_same_solve(a, b);
 }
 
@@ -715,7 +739,7 @@ TEST(ColumnScalingDriver, TheIterationEventCarriesTheCallersPointAndPrices) {
         last_z = ev.z;
         return CallbackAction::kContinue;
     });
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_EQ(6, last_x.size());
     // The terminal row's event describes the returned point, in the caller's units:
@@ -729,30 +753,32 @@ TEST(ColumnScalingDriver, TheIterationEventCarriesTheCallersPointAndPrices) {
 
 // THE WARM START'S SCALED-SPACE STATE IS NOT CARRIED IN. A radius is an l-infinity
 // box in the variables the solve ran in; a caller-space radius read as a scaled one
-// would be wrong by the factors, so the column-scaled solve starts at tr_init.
+// would be wrong by the factors, so the column-scaled solve starts at trust_region_initial.
 TEST(ColumnScalingDriver, ACallerSpaceRadiusIsNotCarriedIntoAScaledSolve) {
     PolyFitModel model;
     SqpSolver plain{off_options()};
-    SqpResult cold = plain.solve(model, model.start_point());
+    SqpResult cold = plain.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
-    SqpWarmStart warm = cold.warm_start;
-    warm.tr_radius = 0.125; // a carried radius distinct from tr_init
+    hven::detail::SqpWarmState warm = SqpWarmAccess::state(cold.sqp_warm_start);
+    warm.tr_radius = 0.125; // a carried radius distinct from trust_region_initial
     warm.x = model.start_point();
     // the control: an unscaled warm solve takes the radius
     SqpOptions off_warm = off_options();
     off_warm.common.start_level = StartLevel::kWarm;
     SqpSolver control{off_warm};
-    const SqpResult c = control.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult c = control.solve(hven::detail::problem_ref(model), model.start_point(),
+                                      SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_FALSE(c.history.empty());
     ASSERT_DOUBLE_EQ(0.125, c.history.front().tr_radius) << "the premise: kWarm carries it";
     SqpOptions opts = off_warm;
     opts.column_scaling =
         SqpColumnScaling::kAlways; // the row layer off: its own ingest refusal would hide this one
     SqpSolver scaled{opts};
-    const SqpResult s = scaled.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult s = scaled.solve(hven::detail::problem_ref(model), model.start_point(),
+                                     SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_TRUE(s.scaling.columns_active);
     ASSERT_FALSE(s.history.empty());
-    EXPECT_DOUBLE_EQ(opts.tr_init, s.history.front().tr_radius);
+    EXPECT_DOUBLE_EQ(opts.trust_region_initial, s.history.front().tr_radius);
     EXPECT_EQ(SolveStatus::kOptimal, s.status);
 }
 
@@ -826,14 +852,14 @@ template <class Model> Equivalence expect_scaled_equivalence(const Model &model,
     e.d = cs.active ? cs.cols : Vec::Ones(model.n());
 
     SqpOptions opts = off_options();
-    opts.max_iter = max_iter;
+    opts.common.max_iterations = max_iter;
     SqpSolver plain{opts};
     const ColumnScaledModel scaled_model(model, e.d);
-    e.ref = plain.solve(scaled_model, scaled_model.to_scaled(x0));
+    e.ref = plain.solve(hven::detail::problem_ref(scaled_model), scaled_model.to_scaled(x0));
 
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
-    e.sol = driver.solve(model, x0);
+    e.sol = driver.solve(hven::detail::problem_ref(model), x0);
     const SqpResult &ref = e.ref;
     const SqpResult &sol = e.sol;
     EXPECT_TRUE(sol.scaling.columns_active);
@@ -851,14 +877,16 @@ template <class Model> Equivalence expect_scaled_equivalence(const Model &model,
     EXPECT_EQ(ref.counters.evals_values + 1, sol.counters.evals_values) << "the rule's probe";
     EXPECT_EQ(ref.history.size(), sol.history.size());
     EXPECT_TRUE(sol.x.isApprox(scaled_model.to_caller(ref.x), 0.0));
-    EXPECT_TRUE(sol.lambda_e.isApprox(ref.lambda_e, 0.0));
-    EXPECT_TRUE(sol.lambda_i.isApprox(ref.lambda_i, 0.0));
+    EXPECT_TRUE(hven::detail::engine_rows(sol).lambda_e.isApprox(
+        hven::detail::engine_rows(ref).lambda_e, 0.0));
+    EXPECT_TRUE(hven::detail::engine_rows(sol).lambda_i.isApprox(
+        hven::detail::engine_rows(ref).lambda_i, 0.0));
     EXPECT_EQ(ref.z.size(), sol.z.size());
     if (ref.z.size() == sol.z.size()) {
         EXPECT_TRUE(sol.z.isApprox(Vec(ref.z.cwiseQuotient(e.d)), 0.0))
             << sol.z.transpose() << " vs " << ref.z.transpose() << " / d";
     }
-    EXPECT_EQ(ref.kkt_residual, sol.scaling.scaled_kkt_residual)
+    EXPECT_EQ(ref.convergence.kkt_residual, sol.scaling.scaled_kkt_residual)
         << "the inner residual, under the column layer alone";
     return e;
 }
@@ -921,7 +949,8 @@ TEST(ColumnScalingDriver, ACertifiedExitMapsTheFeasibilityPrice) {
     const Equivalence e = expect_scaled_equivalence(model, 60);
     ASSERT_EQ(SolveStatus::kInfeasible, e.sol.status);
     ASSERT_TRUE(e.sol.infeasibility_certified);
-    const SqpKkt k = evaluate_kkt(model, e.sol.x, e.sol.lambda_e, e.sol.lambda_i, 1e-6);
+    const SqpKkt k = evaluate_kkt(model, e.sol.x, hven::detail::engine_rows(e.sol).lambda_e,
+                                  hven::detail::engine_rows(e.sol).lambda_i, 1e-6);
     ASSERT_LT(e.sol.z(0), 0.0) << "the premise: the cap carries the certificate's price";
     EXPECT_NE(k.z(0), e.sol.z(0)) << "the premise: grad L's price differs";
 }
@@ -929,15 +958,16 @@ TEST(ColumnScalingDriver, ACertifiedExitMapsTheFeasibilityPrice) {
 TEST(ColumnScalingDriver, ARestorationExitAtTheCapMapsTheFeasibilityPriceToo) {
     // THE SAME EXPORT ON EVERY STATUS: restoration adopts its own prices on every
     // exit that moved x, so a solve the iteration cap stops inside restoration
-    // (kMaxIter) exports the feasibility problem's price as the certified exit does.
+    // (kIterationLimit) exports the feasibility problem's price as the certified exit does.
     // Swept over the caps that end before, inside and after the phase.
     ScaledInfeasibleModel model;
     bool saw_discriminating_max_iter = false;
     for (int cap = 1; cap <= 8; ++cap) {
         SCOPED_TRACE(cap);
         const Equivalence c = expect_scaled_equivalence(model, cap);
-        const SqpKkt k = evaluate_kkt(model, c.sol.x, c.sol.lambda_e, c.sol.lambda_i, 1e-6);
-        if (c.sol.status == SolveStatus::kMaxIter && c.sol.counters.restoration_iters > 0 &&
+        const SqpKkt k = evaluate_kkt(model, c.sol.x, hven::detail::engine_rows(c.sol).lambda_e,
+                                      hven::detail::engine_rows(c.sol).lambda_i, 1e-6);
+        if (c.sol.status == SolveStatus::kIterationLimit && c.sol.counters.restoration_iters > 0 &&
             k.z.size() == c.sol.z.size() && !k.z.isApprox(c.sol.z, 1e-6)) {
             saw_discriminating_max_iter = true;
         }
@@ -952,7 +982,7 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver first{opts};
-    const SqpResult cold = first.solve(model, model.start_point());
+    const SqpResult cold = first.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
 
     // INTO A COLUMN-SCALED SOLVE: x / d, z * d on the way in.
@@ -966,12 +996,12 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
         }
         return CallbackAction::kContinue;
     });
-    const SqpResult again =
-        second.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    const SqpResult again = second.solve(hven::detail::problem_ref(model), model.start_point(),
+                                         cold.sqp_warm_start, SolveBudget{});
     // The first major stands on the warm point: x~ = x / d in, x = d x~ out, the same
     // doubles (power-of-two d).
-    EXPECT_TRUE(first_x.isApprox(cold.warm_start.x, 0.0))
-        << first_x.transpose() << " vs " << cold.warm_start.x.transpose();
+    EXPECT_TRUE(first_x.isApprox(SqpWarmAccess::state(cold.sqp_warm_start).x, 0.0))
+        << first_x.transpose() << " vs " << SqpWarmAccess::state(cold.sqp_warm_start).x.transpose();
     EXPECT_NE(StartLevel::kCold, again.counters.start_level_used);
     ASSERT_EQ(SolveStatus::kOptimal, again.status);
     EXPECT_TRUE(again.scaling.columns_active);
@@ -987,8 +1017,8 @@ TEST(ColumnScalingDriver, TheWarmStartCrossesBothWays) {
     SqpOptions plain = off_options();
     plain.common.start_level = StartLevel::kWarm;
     SqpSolver third{plain};
-    const SqpResult crossed =
-        third.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    const SqpResult crossed = third.solve(hven::detail::problem_ref(model), model.start_point(),
+                                          cold.sqp_warm_start, SolveBudget{});
     EXPECT_NE(StartLevel::kCold, crossed.counters.start_level_used);
     ASSERT_EQ(SolveStatus::kOptimal, crossed.status);
     EXPECT_FALSE(crossed.scaling.columns_active);
@@ -1061,9 +1091,9 @@ TEST(ColumnScalingDriver, TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt) {
     // A valid warm object (dimensions and working set from a real solve), moved to
     // the far point.
     SqpSolver plain{off_options()};
-    const SqpResult seed = plain.solve(model, model.start_point());
-    ASSERT_TRUE(seed.warm_start.valid);
-    SqpWarmStart warm = seed.warm_start;
+    const SqpResult seed = plain.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_TRUE(SqpWarmAccess::state(seed.sqp_warm_start).valid);
+    hven::detail::SqpWarmState warm = SqpWarmAccess::state(seed.sqp_warm_start);
     warm.x = far;
 
     SqpOptions opts;
@@ -1071,26 +1101,29 @@ TEST(ColumnScalingDriver, TheRuleReadsTheWarmPointWhenTheIngestWouldTakeIt) {
     opts.column_scaling_threshold = kFixtureGate;
     opts.common.start_level = StartLevel::kWarm;
     SqpSolver warm_driver{opts};
-    const SqpResult w = warm_driver.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult w = warm_driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                          SqpWarmAccess::wrap(warm), SolveBudget{});
     EXPECT_NE(StartLevel::kCold, w.counters.start_level_used);
     EXPECT_TRUE(w.scaling.columns_active) << "the rule read warm.x";
-    EXPECT_DOUBLE_EQ(spread_warm, w.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(spread_warm, w.scaling.column_spread);
 
     // AT A kCold CEILING the ingest never takes warm.x, so neither does the rule.
     opts.common.start_level = StartLevel::kCold;
     SqpSolver cold_driver{opts};
-    const SqpResult c = cold_driver.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult c = cold_driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                          SqpWarmAccess::wrap(warm), SolveBudget{});
     EXPECT_EQ(StartLevel::kCold, c.counters.start_level_used);
     EXPECT_FALSE(c.scaling.columns_active) << "the rule read x0";
-    EXPECT_DOUBLE_EQ(spread_x0, c.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(spread_x0, c.scaling.column_spread);
 
     // AN INVALID warm object: x0 is read.
     opts.common.start_level = StartLevel::kWarm;
     SqpSolver invalid_driver{opts};
     const SqpResult i =
-        invalid_driver.solve(model, model.start_point(), SqpWarmStart{}, SolveBudget{});
+        invalid_driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                             SqpWarmAccess::wrap(hven::detail::SqpWarmState{}), SolveBudget{});
     EXPECT_FALSE(i.scaling.columns_active);
-    EXPECT_DOUBLE_EQ(spread_x0, i.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(spread_x0, i.scaling.column_spread);
 }
 
 TEST(ColumnScalingDriver, TheRuleReadsTheStartAsTheSolveDoes) {
@@ -1104,16 +1137,16 @@ TEST(ColumnScalingDriver, TheRuleReadsTheStartAsTheSolveDoes) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
-    opts.max_iter = 5;
+    opts.common.max_iterations = 5;
     SqpSolver projecting{opts};
-    const SqpResult p = projecting.solve(model, x0);
+    const SqpResult p = projecting.solve(hven::detail::problem_ref(model), x0);
     EXPECT_FALSE(p.scaling.columns_active);
-    EXPECT_DOUBLE_EQ(rule_spread_at(model, projected), p.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, projected), p.scaling.column_spread);
     opts.project_start_point = false;
     SqpSolver verbatim{opts};
-    const SqpResult v = verbatim.solve(model, x0);
+    const SqpResult v = verbatim.solve(hven::detail::problem_ref(model), x0);
     EXPECT_TRUE(v.scaling.columns_active);
-    EXPECT_DOUBLE_EQ(rule_spread_at(model, x0), v.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, x0), v.scaling.column_spread);
 }
 
 TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
@@ -1122,10 +1155,11 @@ TEST(ColumnScalingDriver, TheArgumentRefusalsAreSolveImplsOwn) {
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
     SqpSolver driver{opts};
-    EXPECT_THROW(driver.solve(model, Vec::Zero(5)), std::invalid_argument);
+    EXPECT_THROW(driver.solve(hven::detail::problem_ref(model), Vec::Zero(5)),
+                 std::invalid_argument);
     Vec bad = Vec::Zero(6);
     bad(1) = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_THROW(driver.solve(model, bad), std::invalid_argument);
+    EXPECT_THROW(driver.solve(hven::detail::problem_ref(model), bad), std::invalid_argument);
 }
 
 // ===========================================================================
@@ -1138,12 +1172,12 @@ class EndSink final : public TraceSink {
   public:
     std::vector<SqpCounters> ends;
     std::vector<std::pair<bool, double>> columns; // (columns_active, col_spread) per end
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override {
@@ -1159,7 +1193,7 @@ void expect_three_consumers_agree(const SqpResult &sol, const EndSink &sink, con
     const SqpCounters &l = ledger.sqp_records()[0].counters;
     // The column pair rides the end line (M7 W2 SCW): fired or not, and the spread.
     EXPECT_EQ(sol.scaling.columns_active, sink.columns.back().first);
-    EXPECT_EQ(sol.scaling.col_spread, sink.columns.back().second);
+    EXPECT_EQ(sol.scaling.column_spread, sink.columns.back().second);
     EXPECT_EQ(sol.counters.evals_full, t.evals_full);
     EXPECT_EQ(sol.counters.evals_full, l.evals_full);
     EXPECT_EQ(sol.counters.evals_values, t.evals_values);
@@ -1173,7 +1207,7 @@ void expect_three_consumers_agree(const SqpResult &sol, const EndSink &sink, con
 TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     PolyFitModel model;
     SqpSolver plain{off_options()};
-    const SqpResult ref = plain.solve(model, model.start_point());
+    const SqpResult ref = plain.solve(hven::detail::problem_ref(model), model.start_point());
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
@@ -1181,9 +1215,9 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     Ledger ledger;
     driver.attach_trace(&sink);
     driver.attach_ledger(&ledger, "scl");
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_TRUE(sol.scaling.columns_active);
-    EXPECT_GT(sol.scaling.col_spread, 1.0);
+    EXPECT_GT(sol.scaling.column_spread, 1.0);
     expect_three_consumers_agree(sol, sink, ledger);
     EXPECT_GE(sol.counters.evals_values, 1) << "the probe is in it";
     EXPECT_EQ(ref.counters.evals_values, 0) << "the kOff solve has no probe";
@@ -1198,9 +1232,9 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
     Ledger ledger2;
     quiet.attach_trace(&sink2);
     quiet.attach_ledger(&ledger2, "scl");
-    const SqpResult q = quiet.solve(hs, hs.start_point());
+    const SqpResult q = quiet.solve(hven::detail::problem_ref(hs), hs.start_point());
     ASSERT_FALSE(q.scaling.columns_active);
-    EXPECT_GE(q.scaling.col_spread, 1.0) << "the rule ran and its spread is reported";
+    EXPECT_GE(q.scaling.column_spread, 1.0) << "the rule ran and its spread is reported";
     expect_three_consumers_agree(q, sink2, ledger2);
 }
 
@@ -1222,21 +1256,23 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     };
     auto record = [](std::vector<Seen> &into) {
         return [&into](const IterationEvent &ev) {
-            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda_e});
+            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda});
             return CallbackAction::kContinue;
         };
     };
     SqpOptions opts = off_options();
-    opts.max_iter = max_iter;
+    opts.common.max_iterations = max_iter;
     std::vector<Seen> ref_events, events;
     SqpSolver plain{opts};
-    plain.set_iteration_callback(record(ref_events));
+    plain.set_iteration_callback(record(ref_events), IterationPayload::kAll,
+                                 CallbackScope::kIncludeRestoration);
     const ColumnScaledModel scaled_model(model, cs.cols);
-    (void)plain.solve(scaled_model, scaled_model.to_scaled(x0));
+    (void)plain.solve(hven::detail::problem_ref(scaled_model), scaled_model.to_scaled(x0));
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver driver{opts};
-    driver.set_iteration_callback(record(events));
-    (void)driver.solve(model, x0);
+    driver.set_iteration_callback(record(events), IterationPayload::kAll,
+                                  CallbackScope::kIncludeRestoration);
+    (void)driver.solve(hven::detail::problem_ref(model), x0);
     ASSERT_EQ(ref_events.size(), events.size());
     Index depth1 = 0;
     bool depth1_bound_price = false;
@@ -1290,22 +1326,25 @@ TEST(ColumnScalingDriver, AnUnscaledHotFactorizationDoesNotResolveHotInAScaledSo
     SqpOptions hot_opts = off_options();
     hot_opts.common.start_level = StartLevel::kHot;
     SqpSolver first{hot_opts};
-    const SqpResult cold = first.solve(model, model.start_point());
+    const SqpResult cold = first.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
-    ASSERT_NE(nullptr, cold.warm_start.hot) << "the premise: a hot handle was exported";
+    ASSERT_NE(nullptr, SqpWarmAccess::state(cold.sqp_warm_start).hot)
+        << "the premise: a hot handle was exported";
     // The control: the unscaled solve takes it.
     SqpSolver control{hot_opts};
-    const SqpResult c = control.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    const SqpResult c = control.solve(hven::detail::problem_ref(model), model.start_point(),
+                                      cold.sqp_warm_start, SolveBudget{});
     ASSERT_EQ(StartLevel::kHot, c.counters.start_level_used) << "the premise: kHot resolves";
 
     SqpOptions opts = hot_opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver scaled{opts};
-    const SqpResult s = scaled.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
+    const SqpResult s = scaled.solve(hven::detail::problem_ref(model), model.start_point(),
+                                     cold.sqp_warm_start, SolveBudget{});
     ASSERT_TRUE(s.scaling.columns_active);
     EXPECT_NE(StartLevel::kHot, s.counters.start_level_used);
     EXPECT_NE(StartLevel::kCold, s.counters.start_level_used) << "the values still cross";
-    EXPECT_EQ(nullptr, s.warm_start.hot);
+    EXPECT_EQ(nullptr, SqpWarmAccess::state(s.sqp_warm_start).hot);
     EXPECT_EQ(SolveStatus::kOptimal, s.status);
     expect_caller_certified(model, s);
 }
@@ -1317,20 +1356,21 @@ TEST(ColumnScalingDriver, TheSsnProxBlockIsNotExportedFromAScaledSolve) {
     auto problem = test_support::make_hs(27);
     const NlpModel &model = *problem.model;
     SqpOptions opts = off_options();
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     opts.qp_mode = QpMode::kSsn;
     SqpSolver plain{opts};
-    const SqpResult ref = plain.solve(model, model.start_point());
+    const SqpResult ref = plain.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, ref.status);
-    ASSERT_GT(ref.warm_start.prox_sigma, 0.0) << "the premise: the unscaled solve exports one";
+    ASSERT_GT(SqpWarmAccess::state(ref.sqp_warm_start).prox_sigma, 0.0)
+        << "the premise: the unscaled solve exports one";
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver scaled{opts};
-    const SqpResult sol = scaled.solve(model, model.start_point());
+    const SqpResult sol = scaled.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.columns_active);
-    EXPECT_EQ(0.0, sol.warm_start.prox_sigma);
-    EXPECT_FALSE(sol.warm_start.has_prox_center);
-    EXPECT_EQ(0, sol.warm_start.prox_center_x.size());
+    EXPECT_EQ(0.0, SqpWarmAccess::state(sol.sqp_warm_start).prox_sigma);
+    EXPECT_FALSE(SqpWarmAccess::state(sol.sqp_warm_start).has_prox_center);
+    EXPECT_EQ(0, SqpWarmAccess::state(sol.sqp_warm_start).prox_center_x.size());
 }
 
 // THE FIT WITH AN INEQUALITY ROW: 100 a1 + 1e4 a2 <= 1/2 (the slope-like row) cuts
@@ -1353,7 +1393,7 @@ class PolyFitIneqModel final : public PolyFitModel {
 TEST(ColumnScalingDriver, AnInequalityRowSolvesInTheCallersUnits) {
     PolyFitIneqModel model;
     SqpSolver plain{off_options()};
-    const SqpResult ref = plain.solve(model, model.start_point());
+    const SqpResult ref = plain.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, ref.status);
     for (const auto mode : {SqpColumnScaling::kAlways, SqpColumnScaling::kAuto}) {
         SCOPED_TRACE(mode == SqpColumnScaling::kAlways ? "kAlways" : "kAuto");
@@ -1361,16 +1401,18 @@ TEST(ColumnScalingDriver, AnInequalityRowSolvesInTheCallersUnits) {
         opts.column_scaling = mode;
         opts.column_scaling_threshold = kFixtureGate;
         SqpSolver driver{opts};
-        const SqpResult sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(SolveStatus::kOptimal, sol.status);
         ASSERT_TRUE(sol.scaling.columns_active);
-        ASSERT_EQ(1, sol.lambda_i.size());
-        EXPECT_GT(sol.lambda_i(0), 1e-3) << "the row binds";
-        EXPECT_NEAR(ref.lambda_i(0), sol.lambda_i(0), 1e-6 * std::abs(ref.lambda_i(0)));
+        ASSERT_EQ(1, hven::detail::engine_rows(sol).lambda_i.size());
+        EXPECT_GT(hven::detail::engine_rows(sol).lambda_i(0), 1e-3) << "the row binds";
+        EXPECT_NEAR(hven::detail::engine_rows(ref).lambda_i(0),
+                    hven::detail::engine_rows(sol).lambda_i(0),
+                    1e-6 * std::abs(hven::detail::engine_rows(ref).lambda_i(0)));
         for (Index i = 0; i < 6; ++i) {
             EXPECT_NEAR(ref.x(i), sol.x(i), 1e-6 * std::max(1e-4, std::abs(ref.x(i)))) << i;
         }
-        EXPECT_LE(model.eval_ci(sol.x)(0), opts.feas_tol);
+        EXPECT_LE(model.eval_ci(sol.x)(0), opts.common.feasibility_tol);
         expect_caller_certified(model, sol);
     }
 }
@@ -1383,15 +1425,17 @@ TEST(ColumnScalingDriver, ThePayloadRouteCrossesAColumnScaledSolve) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
     SqpSolver first{opts};
-    const SqpResult cold = first.solve(model, model.start_point());
+    const SqpResult cold = first.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
-    const WarmStartData data = first.export_warm_start();
-    ASSERT_EQ(6, data.primal_.size());
-    EXPECT_TRUE(data.primal_.isApprox(cold.x, 0.0)) << "exported in the caller's units";
-    EXPECT_TRUE(data.bound_lmults_.isApprox(cold.z, 0.0));
+    const WarmStart &data = cold.warm_start;
+    ASSERT_EQ(6, WarmStartAccess::primal(data).size());
+    EXPECT_TRUE(WarmStartAccess::primal(data).isApprox(cold.x, 0.0))
+        << "exported in the caller's units";
+    EXPECT_TRUE(WarmStartAccess::bound(data).isApprox(cold.z, 0.0));
 
     SqpSolver second{opts};
-    const SqpResult again = second.solve(model, model.start_point(), data, SolveBudget{});
+    const SqpResult again =
+        second.solve(hven::detail::problem_ref(model), model.start_point(), data, SolveBudget{});
     EXPECT_NE(StartLevel::kCold, again.counters.start_level_used);
     ASSERT_EQ(SolveStatus::kOptimal, again.status);
     EXPECT_TRUE(again.scaling.columns_active);
@@ -1403,7 +1447,8 @@ TEST(ColumnScalingDriver, ThePayloadRouteCrossesAColumnScaledSolve) {
 
     // And into an unscaled solve.
     SqpSolver third{off_options()};
-    const SqpResult crossed = third.solve(model, model.start_point(), data, SolveBudget{});
+    const SqpResult crossed =
+        third.solve(hven::detail::problem_ref(model), model.start_point(), data, SolveBudget{});
     EXPECT_NE(StartLevel::kCold, crossed.counters.start_level_used);
     ASSERT_EQ(SolveStatus::kOptimal, crossed.status);
     EXPECT_LE(crossed.counters.major_iters, 1);
@@ -1420,24 +1465,25 @@ TEST(ScaledConvergenceGuard, AShrunkRowIsNotConvergedUntilTheCallersResidualIs) 
     // the caller's tolerance whatever path the radius makes it take.
     SteepRowModel model;
     SqpOptions opts = off_options(); // the row layer alone
-    opts.enable_scaling = true;
-    opts.feas_tol = 1e-3;
+    opts.row_scaling = true;
+    opts.common.feasibility_tol = 1e-3;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
     EXPECT_LT(sol.scaling.row_min, 1e-6) << "the row was shrunk";
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "a scaled-feasible, caller-infeasible iterate was met and refused";
     const double c = model.eval_ce(sol.x)(0);
-    EXPECT_LE(std::abs(c), opts.feas_tol) << "the caller's own residual at the returned point";
-    EXPECT_LE(sol.sqp_feasibility, opts.feas_tol);
+    EXPECT_LE(std::abs(c), opts.common.feasibility_tol)
+        << "the caller's own residual at the returned point";
+    EXPECT_LE(sol.convergence.feasibility, opts.common.feasibility_tol);
 
     // UNSCALED, the guard is never entered.
     SqpOptions plain_opts = off_options();
-    plain_opts.feas_tol = opts.feas_tol;
+    plain_opts.common.feasibility_tol = opts.common.feasibility_tol;
     SqpSolver plain{plain_opts};
-    const SqpResult ref = plain.solve(model, model.start_point());
+    const SqpResult ref = plain.solve(hven::detail::problem_ref(model), model.start_point());
     EXPECT_EQ(0, ref.counters.scaled_convergence_refusals);
 }
 
@@ -1448,14 +1494,15 @@ TEST(ScaledConvergenceGuard, ABoxViolationAColumnFactorHidIsRefused) {
     opts.column_scaling_threshold = kFixtureGate;
     opts.project_start_point = false;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_TRUE(sol.scaling.columns_active);
-    EXPECT_GE(sol.scaling.col_max, 4096.0) << "x1's 1e-4 column, scaled up";
+    EXPECT_GE(sol.scaling.column_max, 4096.0) << "x1's 1e-4 column, scaled up";
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "the start passes the scaled test and is infeasible in the caller's units";
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
-    EXPECT_LE(sol.x(1), model.upper()(1) + opts.feas_tol) << "the returned point is in the box";
-    EXPECT_LE(sol.sqp_feasibility, opts.feas_tol);
+    EXPECT_LE(sol.x(1), model.upper()(1) + opts.common.feasibility_tol)
+        << "the returned point is in the box";
+    EXPECT_LE(sol.convergence.feasibility, opts.common.feasibility_tol);
 }
 
 // ===========================================================================
@@ -1499,26 +1546,28 @@ class HiddenGradientModel : public NlpModel {
 TEST(ScaledConvergenceGuard, ACallerUnitGradientAColumnFactorHidIsRefused) {
     HiddenGradientModel model;
     SqpSolver plain{off_options()};
-    const SqpResult cold = plain.solve(model, model.start_point());
+    const SqpResult cold = plain.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
-    ASSERT_TRUE(cold.warm_start.valid);
-    ASSERT_EQ(0, cold.warm_start.column_factors.size()) << "kOff records no decision";
-    SqpWarmStart warm = cold.warm_start;
+    ASSERT_TRUE(SqpWarmAccess::state(cold.sqp_warm_start).valid);
+    ASSERT_EQ(0, SqpWarmAccess::state(cold.sqp_warm_start).column_factors.size())
+        << "kOff records no decision";
+    hven::detail::SqpWarmState warm = SqpWarmAccess::state(cold.sqp_warm_start);
     warm.lambda_e(0) += 2e-15; // caller-unit grad L in x0: 1e16 * 2e-15 = 20
 
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAlways;
     opts.common.start_level = StartLevel::kWarm;
     SqpSolver driver{opts};
-    const SqpResult sol = driver.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_TRUE(sol.scaling.columns_active);
-    ASSERT_LE(sol.scaling.col_min, std::ldexp(1.0, -26)) << "the premise: x0's column shrunk";
+    ASSERT_LE(sol.scaling.column_min, std::ldexp(1.0, -26)) << "the premise: x0's column shrunk";
     EXPECT_NE(StartLevel::kCold, sol.counters.start_level_used);
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "the warm point passes the scaled test with a caller-unit gradient of 20";
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_GE(sol.counters.major_iters, 1);
-    EXPECT_LE(sol.sqp_stationarity, 1.0) << "the caller-unit ceiling holds at the answer";
+    EXPECT_LE(sol.convergence.stationarity, 1.0) << "the caller-unit ceiling holds at the answer";
 }
 
 // ===========================================================================
@@ -1528,13 +1577,16 @@ TEST(ScaledConvergenceGuard, ACallerUnitGradientAColumnFactorHidIsRefused) {
 TEST(ColumnScalingDefault, BelowTheGateTheDefaultIsTheOffSolvePlusTheProbe) {
     test_support::Hs14Model base;
     CountingModel off_model(base), on_model(base);
-    const SqpResult a = SqpSolver{off_options()}.solve(off_model, base.start_point());
-    const SqpResult b = SqpSolver{SqpOptions{}}.solve(on_model, base.start_point());
+    const SqpResult a =
+        SqpSolver{off_options()}.solve(hven::detail::problem_ref(off_model), base.start_point());
+    const SqpResult b =
+        SqpSolver{SqpOptions{}}.solve(hven::detail::problem_ref(on_model), base.start_point());
     ASSERT_FALSE(b.scaling.columns_active);
     EXPECT_FALSE(b.scaling.active);
     EXPECT_EQ(a.status, b.status);
     EXPECT_TRUE(a.x.isApprox(b.x, 0.0));
-    EXPECT_TRUE(a.lambda_i.isApprox(b.lambda_i, 0.0));
+    EXPECT_TRUE(
+        hven::detail::engine_rows(a).lambda_i.isApprox(hven::detail::engine_rows(b).lambda_i, 0.0));
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.factorizations, b.counters.factorizations);
     EXPECT_EQ(a.counters.evals_full, b.counters.evals_full);
@@ -1543,9 +1595,10 @@ TEST(ColumnScalingDefault, BelowTheGateTheDefaultIsTheOffSolvePlusTheProbe) {
     EXPECT_EQ(off_model.grads, on_model.grads);
     EXPECT_EQ(off_model.hess, on_model.hess);
     EXPECT_EQ(off_model.jacs + 2, on_model.jacs);
-    EXPECT_EQ(a.warm_start.column_factors.size(), 0);
-    ASSERT_EQ(b.warm_start.column_factors.size(), base.n());
-    EXPECT_TRUE((b.warm_start.column_factors.array() == 1.0).all()) << "decided: unscaled";
+    EXPECT_EQ(SqpWarmAccess::state(a.sqp_warm_start).column_factors.size(), 0);
+    ASSERT_EQ(SqpWarmAccess::state(b.sqp_warm_start).column_factors.size(), base.n());
+    EXPECT_TRUE((SqpWarmAccess::state(b.sqp_warm_start).column_factors.array() == 1.0).all())
+        << "decided: unscaled";
 }
 
 // ===========================================================================
@@ -1598,14 +1651,16 @@ TEST(ColumnScalingDriver, TheEngagedRowLayerNeverAmplifiesTheObjective) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
-    const SqpResult engaged = SqpSolver{opts}.solve(model, model.start_point());
+    const SqpResult engaged =
+        SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_TRUE(engaged.scaling.columns_active);
     ASSERT_TRUE(engaged.scaling.active);
-    EXPECT_DOUBLE_EQ(1.0, engaged.scaling.obj) << "not amplified";
-    opts.enable_scaling = true;
-    const SqpResult asked = SqpSolver{opts}.solve(model, model.start_point());
+    EXPECT_DOUBLE_EQ(1.0, engaged.scaling.objective) << "not amplified";
+    opts.row_scaling = true;
+    const SqpResult asked =
+        SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_TRUE(asked.scaling.active);
-    EXPECT_GT(asked.scaling.obj, 1.0) << "the caller's own toggle keeps the two-sided rule";
+    EXPECT_GT(asked.scaling.objective, 1.0) << "the caller's own toggle keeps the two-sided rule";
 }
 
 // The ceiling's divisor carries the objective factor: a hidden caller-unit gradient is
@@ -1614,9 +1669,9 @@ TEST(ScaledConvergenceGuard, TheCeilingDividesByTheObjectiveFactorOnTheDefaultPa
     HiddenGradientModel base;
     const WeightedObjective model(base, 1e4);
     SqpSolver plain{off_options()};
-    const SqpResult cold = plain.solve(model, model.start_point());
+    const SqpResult cold = plain.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, cold.status);
-    SqpWarmStart warm = cold.warm_start;
+    hven::detail::SqpWarmState warm = SqpWarmAccess::state(cold.sqp_warm_start);
     warm.lambda_e(0) += 2e-15; // caller-unit grad L in x0: 1e16 * 2e-15 = 20
 
     SqpOptions opts;
@@ -1625,25 +1680,27 @@ TEST(ScaledConvergenceGuard, TheCeilingDividesByTheObjectiveFactorOnTheDefaultPa
     opts.common.start_level = StartLevel::kWarm;
     // The row layer reads its gradient at x0: x1 = 1 puts it at 1e4, above max_gradient.
     const Vec x_start = (Vec(2) << 0.0, 1.0).finished();
-    const SqpResult sol = SqpSolver{opts}.solve(model, x_start, warm, SolveBudget{});
+    const SqpResult sol = SqpSolver{opts}.solve(hven::detail::problem_ref(model), x_start,
+                                                SqpWarmAccess::wrap(warm), SolveBudget{});
     ASSERT_TRUE(sol.scaling.columns_active);
     ASSERT_TRUE(sol.scaling.active);
-    EXPECT_LT(sol.scaling.obj, 1.0) << "the premise: the row layer shrank the objective";
+    EXPECT_LT(sol.scaling.objective, 1.0) << "the premise: the row layer shrank the objective";
     EXPECT_GE(sol.counters.scaled_convergence_refusals, 1)
         << "scaled stationarity / (obj * d) is 20 in the caller's units";
 }
 
 // ===========================================================================
-// THE DECISION TRAVELS WITH THE WARM START (M7 W2 SCW, SqpWarmStart::column_factors).
+// THE DECISION TRAVELS WITH THE WARM START (M7 W2 SCW, SqpWarmState::column_factors).
 // ===========================================================================
 TEST(ColumnScalingWarmChain, AFiredDecisionIsCarriedWithoutAProbe) {
     PolyFitModel model;
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
-    const SqpResult cold = SqpSolver{opts}.solve(model, model.start_point());
+    const SqpResult cold =
+        SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_TRUE(cold.scaling.columns_active);
-    const Vec &d = cold.warm_start.column_factors;
+    const Vec &d = SqpWarmAccess::state(cold.sqp_warm_start).column_factors;
     ASSERT_EQ(model.n(), d.size());
     EXPECT_FALSE((d.array() == 1.0).all());
     for (Index j = 0; j < d.size(); ++j) {
@@ -1651,15 +1708,17 @@ TEST(ColumnScalingWarmChain, AFiredDecisionIsCarriedWithoutAProbe) {
     }
 
     opts.common.start_level = StartLevel::kWarm;
-    const SqpResult carried =
-        SqpSolver{opts}.solve(model, model.start_point(), cold.warm_start, SolveBudget{});
-    SqpWarmStart cleared = cold.warm_start;
+    const SqpResult carried = SqpSolver{opts}.solve(
+        hven::detail::problem_ref(model), model.start_point(), cold.sqp_warm_start, SolveBudget{});
+    hven::detail::SqpWarmState cleared = SqpWarmAccess::state(cold.sqp_warm_start);
     cleared.column_factors = Vec();
     const SqpResult reread =
-        SqpSolver{opts}.solve(model, model.start_point(), cleared, SolveBudget{});
+        SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point(),
+                              SqpWarmAccess::wrap(cleared), SolveBudget{});
     ASSERT_TRUE(carried.scaling.columns_active);
     ASSERT_TRUE(reread.scaling.columns_active);
-    EXPECT_TRUE(carried.warm_start.column_factors.isApprox(d, 0.0)) << "the chain keeps d";
+    EXPECT_TRUE(SqpWarmAccess::state(carried.sqp_warm_start).column_factors.isApprox(d, 0.0))
+        << "the chain keeps d";
     EXPECT_EQ(reread.counters.evals_values, carried.counters.evals_values + 1)
         << "a carried decision costs no probe";
     EXPECT_EQ(SolveStatus::kOptimal, carried.status);
@@ -1672,17 +1731,19 @@ TEST(ColumnScalingWarmChain, AnUnscaledDecisionIsNotReReadAtTheWarmPoint) {
     SqpOptions opts;
     opts.column_scaling = SqpColumnScaling::kAuto;
     opts.column_scaling_threshold = kFixtureGate;
-    const SqpResult cold = SqpSolver{opts}.solve(model, model.start_point());
+    const SqpResult cold =
+        SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_FALSE(cold.scaling.columns_active);
-    ASSERT_EQ(2, cold.warm_start.column_factors.size());
-    SqpWarmStart warm = cold.warm_start;
+    ASSERT_EQ(2, SqpWarmAccess::state(cold.sqp_warm_start).column_factors.size());
+    hven::detail::SqpWarmState warm = SqpWarmAccess::state(cold.sqp_warm_start);
     warm.x = far;
 
     opts.common.start_level = StartLevel::kWarm;
-    const SqpResult w = SqpSolver{opts}.solve(model, model.start_point(), warm, SolveBudget{});
+    const SqpResult w = SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point(),
+                                              SqpWarmAccess::wrap(warm), SolveBudget{});
     EXPECT_NE(StartLevel::kCold, w.counters.start_level_used);
     EXPECT_FALSE(w.scaling.columns_active) << "the chain's decision, not the far point's";
-    EXPECT_DOUBLE_EQ(1.0, w.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(1.0, w.scaling.column_spread);
 
     // A record this problem cannot use is ignored: the rule runs at warm.x, here the
     // cold answer, where it does not fire -- so a bad record taken would show. The
@@ -1692,29 +1753,34 @@ TEST(ColumnScalingWarmChain, AnUnscaledDecisionIsNotReReadAtTheWarmPoint) {
                            Vec((Vec(2) << 0.5, -2.0).finished()),
                            Vec((Vec(2) << 1.0, std::ldexp(1.0, -1074)).finished()),
                            Vec((Vec(2) << std::ldexp(1.0, 1000), 1.0).finished())}) {
-        SqpWarmStart b = cold.warm_start;
+        hven::detail::SqpWarmState b = SqpWarmAccess::state(cold.sqp_warm_start);
         b.column_factors = bad;
-        const SqpResult r = SqpSolver{opts}.solve(model, model.start_point(), b, SolveBudget{});
+        const SqpResult r =
+            SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point(),
+                                  SqpWarmAccess::wrap(b), SolveBudget{});
         EXPECT_FALSE(r.scaling.columns_active) << bad.transpose();
-        EXPECT_DOUBLE_EQ(rule_spread_at(model, cold.warm_start.x), r.scaling.col_spread)
+        EXPECT_DOUBLE_EQ(rule_spread_at(model, SqpWarmAccess::state(cold.sqp_warm_start).x),
+                         r.scaling.column_spread)
             << bad.transpose();
     }
 
     // At a kCold ceiling the ingest takes nothing, the record included: the rule reads x0.
     opts.common.start_level = StartLevel::kCold;
-    SqpWarmStart fired = warm;
+    hven::detail::SqpWarmState fired = warm;
     fired.column_factors = (Vec(2) << 1.0, 1.0 / 128.0).finished();
-    const SqpResult c = SqpSolver{opts}.solve(model, model.start_point(), fired, SolveBudget{});
+    const SqpResult c = SqpSolver{opts}.solve(hven::detail::problem_ref(model), model.start_point(),
+                                              SqpWarmAccess::wrap(fired), SolveBudget{});
     EXPECT_FALSE(c.scaling.columns_active);
-    EXPECT_DOUBLE_EQ(rule_spread_at(model, model.start_point()), c.scaling.col_spread);
+    EXPECT_DOUBLE_EQ(rule_spread_at(model, model.start_point()), c.scaling.column_spread);
 
     // kOff never reads it, and records nothing.
     SqpOptions off = off_options();
     off.common.start_level = StartLevel::kWarm;
-    const SqpResult o = SqpSolver{off}.solve(model, model.start_point(), fired, SolveBudget{});
+    const SqpResult o = SqpSolver{off}.solve(hven::detail::problem_ref(model), model.start_point(),
+                                             SqpWarmAccess::wrap(fired), SolveBudget{});
     EXPECT_FALSE(o.scaling.columns_active);
-    EXPECT_EQ(0, o.warm_start.column_factors.size());
+    EXPECT_EQ(0, SqpWarmAccess::state(o.sqp_warm_start).column_factors.size());
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

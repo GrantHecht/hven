@@ -55,17 +55,17 @@
 namespace {
 
 using hven::Index;
-using hven::solvers::SolveStatus;
-using hven::solvers::corpus::CorpusCell;
-using hven::solvers::crossover::cell_prefix;
-using hven::solvers::crossover::CellLegs;
-using hven::solvers::crossover::CounterMargin;
-using hven::solvers::crossover::flag_string;
-using hven::solvers::crossover::IpmLegRow;
-using hven::solvers::crossover::kAbsent;
-using hven::solvers::crossover::LegOptions;
-using hven::solvers::crossover::margins_row;
-using hven::solvers::crossover::SqpLegRow;
+using hven::SolveStatus;
+using hven::corpus::CorpusCell;
+using hven::crossover::cell_prefix;
+using hven::crossover::CellLegs;
+using hven::crossover::CounterMargin;
+using hven::crossover::flag_string;
+using hven::crossover::IpmLegRow;
+using hven::crossover::kAbsent;
+using hven::crossover::LegOptions;
+using hven::crossover::margins_row;
+using hven::crossover::SqpLegRow;
 
 // The five artifact files, in the order the child writes their rows.
 constexpr const char *kLegFiles[] = {"leg_a_ipm_only.csv", "leg_b_sqp_cold.csv",
@@ -92,8 +92,8 @@ std::string leg_a_row(const CellLegs &legs) {
 std::string sqp_row(const CellLegs &legs, const SqpLegRow &r) {
     return fmt::format(
         "{},{},{},{},{},{},{},{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{:.6f}\n",
-        cell_prefix(*legs.cell), legs.n, legs.me, legs.mi, hven::solvers::to_string(r.status),
-        hven::solvers::to_string(r.start_level), r.major_iters, r.qp_minor_iters, r.factorizations,
+        cell_prefix(*legs.cell), legs.n, legs.me, legs.mi, hven::to_string(r.status),
+        hven::to_string(r.start_level), r.major_iters, r.qp_minor_iters, r.factorizations,
         r.symbolic_analyses, r.ip_activity_inferred, r.seeded_clamped, r.f, r.kkt_residual,
         r.stationarity, r.feasibility, r.complementarity, r.wall_s);
 }
@@ -119,10 +119,10 @@ std::string absent_sqp(const CorpusCell &cell, const char *status) {
 // the child salvaged.
 std::string absent_margins(const CorpusCell &cell) {
     return fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n", cell.id,
-                       cell.n_nodes, hven::solvers::corpus::to_string(cell.ctag),
-                       hven::solvers::corpus::to_string(cell.start), kAbsent, kAbsent, kAbsent,
+                       cell.n_nodes, hven::corpus::to_string(cell.ctag),
+                       hven::corpus::to_string(cell.start), kAbsent, kAbsent, kAbsent, kAbsent,
                        kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent, kAbsent,
-                       kAbsent, kAbsent, kAbsent, kAbsent, kAbsent);
+                       kAbsent, kAbsent, kAbsent, kAbsent);
 }
 
 void write_headers(std::ostream &os, int which) {
@@ -203,21 +203,21 @@ int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string 
         if (!out) {
             return 1;
         }
-        const auto sink = [&out](const CellLegs &legs, hven::solvers::crossover::LegStage stage) {
+        const auto sink = [&out](const CellLegs &legs, hven::crossover::LegStage stage) {
             switch (stage) {
-            case hven::solvers::crossover::LegStage::kIpm:
+            case hven::crossover::LegStage::kIpm:
                 out << "0\t" << leg_a_row(legs);
                 break;
-            case hven::solvers::crossover::LegStage::kWarmCore:
+            case hven::crossover::LegStage::kWarmCore:
                 out << "2\t" << sqp_row(legs, legs.c);
                 break;
-            case hven::solvers::crossover::LegStage::kWarmPolish:
+            case hven::crossover::LegStage::kWarmPolish:
                 out << "3\t" << sqp_row(legs, legs.d);
                 break;
-            case hven::solvers::crossover::LegStage::kCold:
+            case hven::crossover::LegStage::kCold:
                 out << "1\t" << sqp_row(legs, legs.b);
                 break;
-            case hven::solvers::crossover::LegStage::kMargins:
+            case hven::crossover::LegStage::kMargins:
                 break;
             }
             // Re-emitted after EVERY leg, not only at the end: the parent keeps
@@ -227,7 +227,7 @@ int run_child(const CorpusCell &cell, const LegOptions &opts, const std::string 
             out << "4\t" << margins_row(legs);
             out.flush();
         };
-        (void)hven::solvers::crossover::run_cell_legs(cell, opts, sink);
+        (void)hven::crossover::run_cell_legs(cell, opts, sink);
         return out ? 0 : 1;
     } catch (const std::exception &error) {
         std::ofstream err(sidecar + ".error");
@@ -375,8 +375,8 @@ void print_help() {
 
 void print_list() {
     fmt::print("{:<36} {:>7}  {:<9} {}\n", "cell_id", "n_nodes", "dual-bind", "reason if refused");
-    for (const CorpusCell &cell : hven::solvers::corpus::all_cells()) {
-        const std::string refusal = hven::solvers::crossover::dual_bind_refusal(cell);
+    for (const CorpusCell &cell : hven::corpus::all_cells()) {
+        const std::string refusal = hven::crossover::dual_bind_refusal(cell);
         fmt::print("{:<36} {:>7}  {:<9} {}\n", cell.id, cell.n_nodes,
                    refusal.empty() ? "yes" : "no", refusal);
     }
@@ -428,7 +428,7 @@ Args parse_args(int argc, char **argv) {
 
 std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
     if (spec == "all") {
-        return hven::solvers::crossover::dual_bindable_cells();
+        return hven::crossover::dual_bindable_cells();
     }
     std::vector<const CorpusCell *> out;
     std::size_t start = 0;
@@ -437,12 +437,12 @@ std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
         const std::string id =
             spec.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         if (!id.empty()) {
-            const CorpusCell *cell = hven::solvers::corpus::find_cell(id);
+            const CorpusCell *cell = hven::corpus::find_cell(id);
             if (cell == nullptr) {
                 throw std::invalid_argument(
                     fmt::format("'{}' is not a corpus cell id (try --list)", id));
             }
-            const std::string refusal = hven::solvers::crossover::dual_bind_refusal(*cell);
+            const std::string refusal = hven::crossover::dual_bind_refusal(*cell);
             if (!refusal.empty()) {
                 throw std::invalid_argument(
                     fmt::format("cell '{}' does not dual-bind: {}", id, refusal));
@@ -499,8 +499,8 @@ int main(int argc, char **argv) {
         int errored = 0;
         for (const CorpusCell *cell : cells) {
             fmt::print("running {} (N={}, {}, {}, deadline {:.0f}s)...\n", cell->id, cell->n_nodes,
-                       hven::solvers::corpus::to_string(cell->ctag),
-                       hven::solvers::corpus::to_string(cell->start), args.deadline_s);
+                       hven::corpus::to_string(cell->ctag), hven::corpus::to_string(cell->start),
+                       args.deadline_s);
             std::fflush(stdout);
             const CellOutcome outcome = run_cell_with_deadline(*cell, opts, args.deadline_s);
             const char *status = outcome.timed_out ? kDnfStatus : kErrorStatus;

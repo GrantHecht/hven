@@ -10,11 +10,13 @@
 
 #include <fmt/format.h>
 
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/nlp_triplet_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/model/nlp.h"
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 namespace {
 
@@ -49,13 +51,13 @@ void require_length(Index actual, int expected, const char *what, const std::str
 
 /// Records a matrix's stored coordinates, in storage order, as the claim order
 /// every later evaluation of that matrix is checked against.
-std::vector<NLPCoordinate> record_coordinates(const SpMatRM &matrix) {
-    std::vector<NLPCoordinate> recorded;
+std::vector<NlpCoordinate> record_coordinates(const SpMatRM &matrix) {
+    std::vector<NlpCoordinate> recorded;
     recorded.reserve(static_cast<std::size_t>(matrix.nonZeros()));
     for (int outer = 0; outer < static_cast<int>(matrix.outerSize()); outer++) {
         for (SpMatRM::InnerIterator it(matrix, outer); it; ++it) {
             recorded.push_back(
-                NLPCoordinate{static_cast<int>(it.row()), static_cast<int>(it.col())});
+                NlpCoordinate{static_cast<int>(it.row()), static_cast<int>(it.col())});
         }
     }
     return recorded;
@@ -95,8 +97,9 @@ void require_upper_triangle(const SpMatRM &hessian, const std::string &name) {
 
 } // namespace
 
-void nlp_require_claimed_pattern(const SpMatRM &matrix, const std::vector<NLPCoordinate> &recorded,
-                                 const char *what, const std::string &name) {
+void detail::nlp_require_claimed_pattern(const SpMatRM &matrix,
+                                         const std::vector<NlpCoordinate> &recorded,
+                                         const char *what, const std::string &name) {
     // Compressed first, because the pairing this function certifies is between
     // stored value k and recorded coordinate k.
     require_compressed(matrix, what, name);
@@ -122,10 +125,10 @@ void nlp_require_claimed_pattern(const SpMatRM &matrix, const std::vector<NLPCoo
     }
 }
 
-NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name)
+NlpAdapterCore::NlpAdapterCore(std::shared_ptr<NlpModel> model, std::string name)
     : model_(std::move(model)), name_(std::move(name)) {
     if (!model_) {
-        throw std::invalid_argument("NLPAdapterCore: the model pointer is null");
+        throw std::invalid_argument("NlpAdapterCore: the model pointer is null");
     }
     n_ = to_host_count(model_->n(), "n()", name_);
     num_eq_ = to_host_count(model_->me(), "me()", name_);
@@ -200,12 +203,12 @@ NLPAdapterCore::NLPAdapterCore(std::shared_ptr<NlpModel> model, std::string name
     require_compressed(this->inequality_jacobian(), "eval_jac_i", name_);
     iq_jac_ = record_coordinates(this->inequality_jacobian());
 
-    hess_owner_ = (num_iq_ > 0)   ? HessOwner::IqPiece
-                  : (num_eq_ > 0) ? HessOwner::EqPiece
-                                  : HessOwner::Objective;
+    hess_owner_ = (num_iq_ > 0)   ? HessOwner::kInequalityPiece
+                  : (num_eq_ > 0) ? HessOwner::kEqualityPiece
+                                  : HessOwner::kObjective;
 }
 
-void NLPAdapterCore::sync_x(ConstEigenRef<Eigen::VectorXd> x) {
+void NlpAdapterCore::sync_x(ConstEigenRef<Eigen::VectorXd> x) {
     if (x.size() != n_) {
         throw std::invalid_argument(
             fmt::format("{}: the solver handed a {}-element iterate to a {}-variable model", name_,
@@ -219,7 +222,7 @@ void NLPAdapterCore::sync_x(ConstEigenRef<Eigen::VectorXd> x) {
     }
 }
 
-void NLPAdapterCore::refresh_gradient(ConstEigenRef<Eigen::VectorXd> x) {
+void NlpAdapterCore::refresh_gradient(ConstEigenRef<Eigen::VectorXd> x) {
     this->sync_x(x);
     if (gradient_valid_) {
         return;
@@ -229,7 +232,7 @@ void NLPAdapterCore::refresh_gradient(ConstEigenRef<Eigen::VectorXd> x) {
     gradient_valid_ = true;
 }
 
-void NLPAdapterCore::refresh_residuals(ConstEigenRef<Eigen::VectorXd> x) {
+void NlpAdapterCore::refresh_residuals(ConstEigenRef<Eigen::VectorXd> x) {
     this->sync_x(x);
     if (residuals_valid_) {
         return;
@@ -245,7 +248,7 @@ void NLPAdapterCore::refresh_residuals(ConstEigenRef<Eigen::VectorXd> x) {
     residuals_valid_ = true;
 }
 
-void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
+void NlpAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
     this->sync_x(x);
     if (jacobians_valid_) {
         return;
@@ -263,7 +266,7 @@ void NLPAdapterCore::refresh_jacobians(ConstEigenRef<Eigen::VectorXd> x) {
     jacobians_valid_ = true;
 }
 
-void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool inequality,
+void NlpAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool inequality,
                                                    const char *site) const {
     const char *kind = inequality ? "inequality" : "equality";
     // "this host", not "the {kind} piece": the caller (site) may be the
@@ -277,7 +280,7 @@ void NLPAdapterCore::refuse_short_multiplier_block(Index actual, int rows, bool 
                     name_, actual, kind, rows, kind, site));
 }
 
-void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
+void NlpAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> L) {
     // Checked before the slice, not after it, under the block rule stated on
     // refuse_short_multiplier_block: the head is what this host records, and a
     // block shorter than its rows has none to take.
@@ -288,7 +291,7 @@ void NLPAdapterCore::record_equality_multipliers(ConstEigenRef<Eigen::VectorXd> 
     le_recorded_ = true;
 }
 
-void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
+void NlpAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                                          ConstEigenRef<Eigen::VectorXd> le,
                                          ConstEigenRef<Eigen::VectorXd> li) {
     this->sync_x(x);
@@ -312,8 +315,9 @@ void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
     nlp_require_claimed_pattern(this->hessian(), hess_, "eval_hess", name_);
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core,
-                                                   int num_partitions) {
+std::shared_ptr<NonLinearProgram>
+detail::make_nlp_program(const std::shared_ptr<NlpAdapterCore> &core, int num_partitions,
+                         double infinite_bound) {
     if (num_partitions < 1) {
         throw std::invalid_argument(fmt::format(
             "make_nlp_program: a partition count must be at least 1 (got {})", num_partitions));
@@ -325,9 +329,10 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     }
 
     auto nlp = std::make_shared<NonLinearProgram>(num_partitions);
+    nlp->set_infinite_bound(infinite_bound);
 
-    ObjectiveFunction obj(ObjectiveInterface(NLPObjectivePiece(core)), vindex);
-    obj.set_thread_mode(ThreadingFlags::MainThread);
+    ObjectiveFunction obj(ObjectiveInterface(NlpObjectivePiece(core)), vindex);
+    obj.set_thread_mode(ThreadingFlags::kMainThread);
     nlp->objectives_.push_back(obj);
 
     if (core->num_eq_ > 0) {
@@ -335,8 +340,8 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         for (int k = 0; k < core->num_eq_; k++) {
             cindex(k, 0) = k;
         }
-        ConstraintFunction eq(ConstraintInterface(NLPConstraintPiece(core, false)), vindex, cindex);
-        eq.set_thread_mode(ThreadingFlags::MainThread);
+        ConstraintFunction eq(ConstraintInterface(NlpConstraintPiece(core, false)), vindex, cindex);
+        eq.set_thread_mode(ThreadingFlags::kMainThread);
         nlp->equality_constraints_.push_back(eq);
     }
     if (core->num_iq_ > 0) {
@@ -344,8 +349,8 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         for (int k = 0; k < core->num_iq_; k++) {
             cindex(k, 0) = k;
         }
-        ConstraintFunction iq(ConstraintInterface(NLPConstraintPiece(core, true)), vindex, cindex);
-        iq.set_thread_mode(ThreadingFlags::MainThread);
+        ConstraintFunction iq(ConstraintInterface(NlpConstraintPiece(core, true)), vindex, cindex);
+        iq.set_thread_mode(ThreadingFlags::kMainThread);
         nlp->inequality_constraints_.push_back(iq);
     }
 
@@ -355,6 +360,13 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         }
     }
 
+    // The values the core's model itself read as absent before handing its box
+    // here (an Nlp's NlpProblemModel, its row bounds included): the program's
+    // own count sees only what the model left finite, so the source's count is
+    // carried beside it for the census and the ipm.solve.begin event. A Problem
+    // re-sets it at each solve entry; a pre-laid program has it from here.
+    nlp->source_absent_bounds_ = core->model_->absent_bounds();
+
     // make_nlp lays the problem out and CLAMPS num_partitions_ to what the
     // element count supports, so the program a caller gets back already
     // reports the ADOPTED count on its public num_partitions_ member.
@@ -362,8 +374,8 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
     return nlp;
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NlpTripletModel> problem,
-                                                   int num_partitions) {
+std::shared_ptr<NonLinearProgram>
+detail::make_nlp_program(std::shared_ptr<Nlp> problem, int num_partitions, double infinite_bound) {
     if (problem == nullptr) {
         throw std::invalid_argument("make_nlp_program: the problem pointer is null");
     }
@@ -373,9 +385,9 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NlpTripletMod
     // the caller holding nothing half-built -- there is no state here to leave
     // behind.
     const std::string name = problem->name();
-    auto model = std::make_shared<NlpProblemModel>(std::move(problem));
-    auto core = std::make_shared<NLPAdapterCore>(std::move(model), name);
-    return make_nlp_program(core, num_partitions);
+    auto model = std::make_shared<NlpProblemModel>(std::move(problem), infinite_bound);
+    auto core = std::make_shared<NlpAdapterCore>(std::move(model), name);
+    return make_nlp_program(core, num_partitions, infinite_bound);
 }
 
-} // namespace hven::solvers
+} // namespace hven

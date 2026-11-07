@@ -39,6 +39,8 @@
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
 
+#include "hven/core/errors.h"
+#include "hven/detail/drivers/finite_screen.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
@@ -63,22 +65,42 @@
 #include <stdexcept>
 #include <utility>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
+
+void detail::throw_non_finite_trial(const char *quantity) {
+    throw EvaluationError(std::string("non-finite ") + quantity + " at a trial point");
+}
 
 namespace {
-// File-local helpers shared by every wrapped trial-evaluation catch site
-// below (ls_lang/ls_l1/ls_auglang/generic_line_search): both null-guard on
-// `log` so a SolverContext built without an EvalErrorLog (e.g. a bare
-// unit-test context) stays a silent no-op, matching the inline record()/
-// record_unknown() calls they replace.
+// File-local helper shared by every wrapped trial-evaluation catch site below
+// (ls_lang/ls_l1/ls_auglang/generic_line_search and the SOC sites): it
+// null-guards on `log` so a SolverContext built without an EvalErrorLog (e.g. a
+// bare unit-test context) stays a silent no-op.
+//
+// THE SITES CATCH EvaluationError AND NOTHING ELSE (M8 B5). The model's own
+// "cannot evaluate here" signal, and the non-finite screen inside each trial
+// evaluator below, which throws one, are rejected trials; every other exception
+// is not this engine's to absorb and propagates out of the solve unchanged.
 void note_eval_error(EvalErrorLog *log, const char *what) {
     if (log)
         log->record(what);
 }
 
-void note_eval_error_unknown(EvalErrorLog *log) {
-    if (log)
-        log->record_unknown();
+// THE TRIAL SCREEN (M8 B5): the objective and constraint values a trial
+// evaluation produced, O(m). A NaN or an infinity is a failed trial, exactly as
+// a thrown EvaluationError is, so the screen throws one and the trial takes the
+// catch site's rejection path. Without it a -Inf merit passes every acceptance
+// comparison and a NaN one is rejected only because the comparisons are false.
+template <class EqBlock, class IqBlock>
+void screen_trial_values(double objective, const EqBlock &eq, const IqBlock &iq) {
+    if (detail::is_finite(objective) && detail::all_finite(eq) && detail::all_finite(iq))
+        [[likely]] {
+        return;
+    }
+    detail::throw_non_finite_trial(!detail::is_finite(objective) ? "objective value"
+                                                                 : "constraint value");
 }
 } // namespace
 
@@ -121,7 +143,8 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
     // that one tolerance — a disclosed single-tolerance adaptation of Ipopt's
     // two-tolerance minimum. Classic merit has no Uno counterpart; the Ipopt
     // relative-reduction shape is the reference.
-    const double floor = std::max(kKappaResto * reference.infeasibility, ctx_.opts_.econ_tol);
+    const double floor =
+        std::max(kKappaResto * reference.infeasibility, ctx_.opts_.common.feasibility_tol);
     return trial.infeasibility <= floor;
 }
 
@@ -147,11 +170,22 @@ void ClassicMeritAcceptance::eval_rhs(double obj_scale,
                         detail::compound_rhs_scatter_view(*ctx_.nlp_, val, GX, AGXS_FX,
                                                           ctx_.primal_vars_, ctx_.slack_vars_,
                                                           ctx_.equal_cons_, ctx_.inequal_cons_));
+    // The screen (M8 B5): this request carries the first-order blocks too, so
+    // the whole right-hand side is read -- the objective gradient and J'lambda
+    // beside the constraint values. Both outputs name the same vector at the one
+    // caller (ls_lang); both are read so the screen does not depend on that.
+    if (!detail::is_finite(val) || !detail::all_finite(GX) || !detail::all_finite(AGXS_FX))
+        [[unlikely]] {
+        detail::throw_non_finite_trial(!detail::is_finite(val)
+                                           ? "objective value"
+                                           : "objective gradient, constraint value or Jacobian "
+                                             "entry");
+    }
 }
 
 void ClassicMeritAcceptance::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
                                                 Eigen::Ref<Eigen::VectorXd> FXI) const {
-    detail::apply_reset_slacks(S, FXI, ctx_.slack_vars_, ctx_.opts_.neg_slack_reset);
+    detail::apply_reset_slacks(S, FXI, ctx_.slack_vars_, ctx_.opts_.advanced.negative_slack_reset);
 }
 
 double ClassicMeritAcceptance::barrier_objective(Eigen::Ref<Eigen::VectorXd> S, double mu) const {
@@ -167,8 +201,8 @@ void ClassicMeritAcceptance::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
 // Line search — shared helpers
 
 void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, double alpha,
-                                                  KKTVector &xsl, KKTVector &dxsl, KKTVector &xsl2,
-                                                  KKTVector &rhs2, double &ptest, double &btest) {
+                                                  KktVector &xsl, KktVector &dxsl, KktVector &xsl2,
+                                                  KktVector &rhs2, double &ptest, double &btest) {
     xsl2.data() = xsl.data() + alpha * dxsl.data();
     rhs2.data().setZero();
     ctx_.nlp_->assemble(
@@ -179,6 +213,7 @@ void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, d
         detail::residual_rhs_scatter_view(*ctx_.nlp_, ptest, rhs2.eq_cons().data(),
                                           rhs2.iq_cons().data(), ctx_.equal_cons_,
                                           ctx_.inequal_cons_));
+    screen_trial_values(ptest, rhs2.eq_cons(), rhs2.iq_cons());
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx_.restoration_ is null). Shared by the L1 and AUGLANG variants. While
     // active, obj_scale is 0 (user objective contributes exactly 0.0) and the
@@ -217,7 +252,7 @@ void ClassicMeritAcceptance::eval_trial_point_occ(double obj_scale, double mu, d
     }
 }
 
-auto ClassicMeritAcceptance::compute_penalties(KKTVector &xsl, KKTVector &rhs) const
+auto ClassicMeritAcceptance::compute_penalties(KktVector &xsl, KktVector &rhs) const
     -> PenaltyTerms {
     return {xsl.lmults().cwiseAbs().dot(rhs.all_cons().cwiseAbs()), rhs.all_cons().squaredNorm(),
             rhs.all_cons().template lpNorm<Eigen::Infinity>()};
@@ -232,13 +267,13 @@ bool ClassicMeritAcceptance::secondary_accept(double ptest, double prim_obj,
 // Line search — variant implementations
 
 double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_obj,
-                                       double barr_obj, KKTVector &xsl, KKTVector &dxsl,
-                                       KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
-                                       IterateInfo &citer) {
+                                       double barr_obj, KktVector &xsl, KktVector &dxsl,
+                                       KktVector &xsl2, KktVector &rhs, KktVector &rhs2,
+                                       IpmIterate &citer) {
     double alpha = 1.0;
     double LangInit = prim_obj + barr_obj + xsl.lmults().dot(rhs.all_cons());
 
-    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
+    for (int j = 0; j < ctx_.opts_.advanced.max_line_search_backtracks; j++) {
         double ptest = 0;
         double btest = 0;
         xsl2.data() = xsl.data() + alpha * dxsl.data();
@@ -246,11 +281,8 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
         bool evaluable = true;
         try {
             this->eval_rhs(obj_scale, xsl2.data(), ptest, rhs2.data(), rhs2.data());
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
@@ -260,12 +292,12 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
             // is no evaluated trial to measure it on, and the sentinel suppresses
             // the second-order correction trigger for this rejection. merit_val_
             // is likewise not written on a throwing rung, so it retains the
-            // previous evaluable rung's value (or the IterateInfo default when
+            // previous evaluable rung's value (or the IpmIterate default when
             // the first rung throws).
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
             continue;
         }
         // Feasibility-restoration trial seam (dead on the default path:
@@ -297,27 +329,27 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
         }
         double LangTest = ptest + btest + xsl2.lmults().dot(rhs2.all_cons());
         if (LangTest < LangInit) {
-            citer.ls_iters_ = j;
-            citer.accepted_ = true;
+            citer.ls_iters = j;
+            citer.accepted = true;
             break;
         } else {
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
             // Signal-only: record the first rejection's backtracking index.
             // The self-referential select keeps the first value (the LANG
             // variant computes no infeasibility scalar, so theta is left at its
             // default). Writes touch only the diagnostic signal fields; no
             // classic line-search state is read or modified here.
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
         }
     }
     return alpha;
 }
 
 double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_obj, double barr_obj,
-                                     KKTVector &xsl, KKTVector &dxsl, KKTVector &xsl2,
-                                     KKTVector &rhs, KKTVector &rhs2, IterateInfo &citer) {
+                                     KktVector &xsl, KktVector &dxsl, KktVector &xsl2,
+                                     KktVector &rhs, KktVector &rhs2, IpmIterate &citer) {
     double alpha = 1.0;
     double vv = rhs.prim_dual_grad().dot(dxsl.primals_slacks());
     double cv = dxsl.lmults().dot(rhs.all_cons());
@@ -331,25 +363,22 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
 
     double LangInit = prim_obj + barr_obj + init.l1_ + init.l2_ * sc;
 
-    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
+    for (int j = 0; j < ctx_.opts_.advanced.max_line_search_backtracks; j++) {
         double ptest = 0;
         double btest = 0;
         bool evaluable = true;
         try {
             eval_trial_point_occ(obj_scale, mu, alpha, xsl, dxsl, xsl2, rhs2, ptest, btest);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
             continue;
         }
 
@@ -357,22 +386,22 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
         PenaltyTerms test = compute_penalties(xsl, rhs2);
         LangTest += test.l1_ + test.l2_ * sc;
 
-        citer.merit_val_ = LangTest;
+        citer.merit_val = LangTest;
         if (LangTest < LangInit || secondary_accept(ptest, prim_obj, test, init)) {
-            citer.ls_iters_ = j;
-            citer.accepted_ = true;
+            citer.ls_iters = j;
+            citer.accepted = true;
             break;
         } else {
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
             // Signal-only: record the first rejection's index and the trial's
             // already-computed L2 infeasibility (test.l2_). The self-referential
             // selects keep the first values. Writes touch only the diagnostic
             // signal fields; no classic line-search state is read or modified.
-            citer.theta_at_first_rejection_ =
-                citer.first_rejection_iter_ < 0 ? test.l2_ : citer.theta_at_first_rejection_;
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.theta_at_first_rejection =
+                citer.first_rejection_iter < 0 ? test.l2_ : citer.theta_at_first_rejection;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
         }
     }
     return alpha;
@@ -386,9 +415,9 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
 constexpr double kLsAuglangTolFilterMultiplier = 10.0;
 
 double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double prim_obj,
-                                          double barr_obj, KKTVector &xsl, KKTVector &dxsl,
-                                          KKTVector &xsl2, KKTVector &rhs, KKTVector &rhs2,
-                                          IterateInfo &citer) {
+                                          double barr_obj, KktVector &xsl, KktVector &dxsl,
+                                          KktVector &xsl2, KktVector &rhs, KktVector &rhs2,
+                                          IpmIterate &citer) {
     double alpha = 1.0;
     double vv = rhs.prim_dual_grad().dot(dxsl.primals_slacks());
     double cv = dxsl.lmults().dot(rhs.all_cons());
@@ -402,25 +431,22 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
 
     double LangInit = prim_obj + barr_obj + init.l1_ + init.l2_ * sc;
 
-    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
+    for (int j = 0; j < ctx_.opts_.advanced.max_line_search_backtracks; j++) {
         double ptest = 0;
         double btest = 0;
         bool evaluable = true;
         try {
             eval_trial_point_occ(obj_scale, mu, alpha, xsl, dxsl, xsl2, rhs2, ptest, btest);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx_.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx_.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
             continue;
         }
 
@@ -431,14 +457,14 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         for (int i = 0; i < ctx_.equal_cons_; i++) {
             double eqerr = std::abs(rhs2.eq_cons()[i]);
             double eqmul = std::abs(xsl.eq_lmults()[i]);
-            if (eqerr > ctx_.opts_.econ_tol * kLsAuglangTolFilterMultiplier) {
+            if (eqerr > ctx_.opts_.common.feasibility_tol * kLsAuglangTolFilterMultiplier) {
                 TestL1Pen += eqerr * eqmul;
             }
         }
         for (int i = 0; i < ctx_.inequal_cons_; i++) {
             double iqerr = std::abs(rhs2.iq_cons()[i]);
             double iqmul = std::abs(xsl.iq_lmults()[i]);
-            if (iqerr > ctx_.opts_.icon_tol * kLsAuglangTolFilterMultiplier) {
+            if (iqerr > ctx_.opts_.common.feasibility_tol * kLsAuglangTolFilterMultiplier) {
                 TestL1Pen += iqerr * iqmul;
             }
         }
@@ -447,9 +473,10 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         double TestLinfPenalty = rhs2.all_cons().template lpNorm<Eigen::Infinity>();
 
         // Zero L2 when within tolerance threshold
-        const double zero_l2_threshold =
-            ctx_.opts_.econ_tol * ctx_.opts_.econ_tol * ctx_.equal_cons_ +
-            ctx_.opts_.icon_tol * ctx_.opts_.icon_tol * ctx_.inequal_cons_;
+        const double zero_l2_threshold = ctx_.opts_.common.feasibility_tol *
+                                             ctx_.opts_.common.feasibility_tol * ctx_.equal_cons_ +
+                                         ctx_.opts_.common.feasibility_tol *
+                                             ctx_.opts_.common.feasibility_tol * ctx_.inequal_cons_;
         if (TestL2Pen < zero_l2_threshold) {
             TestL2Pen = 0;
         }
@@ -457,22 +484,22 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         LangTest += TestL1Pen + TestL2Pen * sc;
 
         PenaltyTerms test{TestL1Pen, TestL2Pen, TestLinfPenalty};
-        citer.merit_val_ = LangTest;
+        citer.merit_val = LangTest;
         if (LangTest < LangInit || secondary_accept(ptest, prim_obj, test, init)) {
-            citer.ls_iters_ = j;
-            citer.accepted_ = true;
+            citer.ls_iters = j;
+            citer.accepted = true;
             break;
         } else {
-            citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.opts_.alpha_red;
+            citer.ls_iters = j + 1;
+            alpha = alpha / ctx_.opts_.advanced.backtrack_divisor;
             // Signal-only: record the first rejection's index and the trial's
             // already-computed L2 penalty (TestL2Pen). The self-referential
             // selects keep the first values. Writes touch only the diagnostic
             // signal fields; no classic line-search state is read or modified.
-            citer.theta_at_first_rejection_ =
-                citer.first_rejection_iter_ < 0 ? TestL2Pen : citer.theta_at_first_rejection_;
-            citer.first_rejection_iter_ =
-                citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
+            citer.theta_at_first_rejection =
+                citer.first_rejection_iter < 0 ? TestL2Pen : citer.theta_at_first_rejection;
+            citer.first_rejection_iter =
+                citer.first_rejection_iter < 0 ? j : citer.first_rejection_iter;
         }
     }
     return alpha;
@@ -480,13 +507,12 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
 
 // Line search — dispatcher (verbatim today's IpmSolver::ls_impl)
 
-double ClassicMeritAcceptance::classic_line_search(IpmSolver::LineSearchModes lsmode,
-                                                   double obj_scale, double mu, double prim_obj,
-                                                   double barr_obj, Eigen::VectorXd &XSL,
-                                                   Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                                   Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                                   IterateInfo &Citer,
-                                                   const std::vector<IterateInfo> &iters) {
+double ClassicMeritAcceptance::classic_line_search(IpmLineSearchMode lsmode, double obj_scale,
+                                                   double mu, double prim_obj, double barr_obj,
+                                                   Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                                   Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                                   Eigen::VectorXd &RHS2, IpmIterate &Citer,
+                                                   const std::vector<IpmIterate> &iters) {
     // Line search exhaustion (all max_ls_iters_ attempts fail the merit test) is
     // signaled by Citer.ls_iters_ == max_ls_iters_ in the iteration table.
     // On success, ls_iters_ records the 0-based index of the accepted step (j).
@@ -496,28 +522,28 @@ double ClassicMeritAcceptance::classic_line_search(IpmSolver::LineSearchModes ls
     // The best alpha found is still returned; alg_impl's convergence check determines
     // whether the overall iteration should continue or terminate.
 
-    KKTVector v_xsl = kkt_view(XSL);
-    KKTVector v_dxsl = kkt_view(DXSL);
-    KKTVector v_xsl2 = kkt_view(XSL2);
-    KKTVector v_rhs = kkt_view(RHS);
-    KKTVector v_rhs2 = kkt_view(RHS2);
+    KktVector v_xsl = kkt_view(XSL);
+    KktVector v_dxsl = kkt_view(DXSL);
+    KktVector v_xsl2 = kkt_view(XSL2);
+    KktVector v_rhs = kkt_view(RHS);
+    KktVector v_rhs2 = kkt_view(RHS2);
 
     switch (lsmode) {
-    case IpmSolver::LineSearchModes::kLang:
+    case IpmLineSearchMode::kLagrangian:
         return ls_lang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                        Citer);
-    case IpmSolver::LineSearchModes::kL1:
+    case IpmLineSearchMode::kL1:
         return ls_l1(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                      Citer);
-    case IpmSolver::LineSearchModes::kAugLang:
+    case IpmLineSearchMode::kAugmentedLagrangian:
         return ls_auglang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                           Citer);
-    case IpmSolver::LineSearchModes::kNoLs:
+    case IpmLineSearchMode::kNone:
         // Unreachable through the mechanism: run_acceptance_backtrack takes the
         // NOLS early-out before dispatching here. Kept as an explicit case so a
         // direct call still gets the NOLS convention rather than the default throw.
-        Citer.ls_iters_ = 0;
-        Citer.accepted_ = true;
+        Citer.ls_iters = 0;
+        Citer.accepted = true;
         return 1.0;
     default:
         throw std::invalid_argument("Unknown LineSearchMode");
@@ -538,6 +564,7 @@ void ModernMeritAcceptance::reset() {
     pi_l_ = kFlexInitPiL;
     pi_u_ = kFlexInitPiU;
     smallest_known_infeasibility_ = std::numeric_limits<double>::infinity();
+    retraction_armed_ = false;
     // Phase-aware, mirroring the filter/funnel: inside the feasibility phase
     // this is a μ-event reset — the stashed optimality-phase state (which the
     // exit test reduces against) and the in-feasibility flag SURVIVE, so a
@@ -628,6 +655,8 @@ void ModernMeritAcceptance::notify_switch_to_optimality(const ProgressMeasures &
     pi_u_ = stashed_pi_u_;
     smallest_known_infeasibility_ = stashed_smallest_known_infeasibility_;
     in_feasibility_phase_ = false;
+    // The saved state belonged to the feasibility phase just left.
+    retraction_armed_ = false;
 }
 
 bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
@@ -640,12 +669,19 @@ bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &curren
     // likewise accepted and ignored — see modern_merit.h's declaration comment.
     (void)objective_multiplier;
     (void)step_length;
+    // THE RETRACTION'S SAVE (M8 B5 riders): what an ACCEPT moves -- the
+    // flexible rule's pi_l and the smallest-known tracker. The penalty updates
+    // that run on every trial (nu, pi_u) are the direction's, not the accept's,
+    // and stay.
+    retract_pi_l_ = pi_l_;
+    retract_smallest_known_infeasibility_ = smallest_known_infeasibility_;
+    retraction_armed_ = false;
     bool accept;
     switch (rule_) {
-    case MeritPenaltyRules::wmno:
+    case IpmMeritPenaltyRule::kSinglePenalty:
         accept = accept_wmno(current, trial, predicted_reduction);
         break;
-    case MeritPenaltyRules::flexible:
+    case IpmMeritPenaltyRule::kFlexible:
         accept = accept_flexible(current, trial, predicted_reduction);
         break;
     default:
@@ -656,10 +692,20 @@ bool ModernMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &curren
     // by std::min() ONLY inside the accept branch of is_iterate_acceptable (the
     // restoration-exit test reduces against it). FP-inert on the default path —
     // it writes a member that nothing reads unless the exit test runs.
-    if (accept)
+    if (accept) {
         smallest_known_infeasibility_ =
             std::min(smallest_known_infeasibility_, trial.infeasibility);
+        retraction_armed_ = true;
+    }
     return accept;
+}
+
+void ModernMeritAcceptance::retract_last_acceptance() {
+    if (retraction_armed_) {
+        pi_l_ = retract_pi_l_;
+        smallest_known_infeasibility_ = retract_smallest_known_infeasibility_;
+        retraction_armed_ = false;
+    }
 }
 
 // WMNO Math. Program. 107 (2006), §3.1. Merit Eq. (3.1), ν_TRIAL Eq. (3.5, σ=0),
@@ -747,6 +793,7 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
         kRequestObjectiveAndConstraints, KktScatterView{},
         detail::residual_rhs_scatter_view(*ctx.nlp_, ptest, RHS2.data() + pv + sv,
                                           RHS2.data() + (RHS2.size() - ic), ec, ic));
+    screen_trial_values(ptest, RHS2.segment(pv + sv, ec), RHS2.tail(ic));
     // Feasibility-restoration trial seam (dead on the default path:
     // ctx.restoration_ is null). While active, obj_scale is 0 (user objective
     // contributes exactly 0.0) and the restoration objective at the trial primals
@@ -767,11 +814,11 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
     for (int i = 0; i < sv; i++) {
         double fxi = FXI[i];
         double si = S[i];
-        if (si < ctx.opts_.neg_slack_reset)
-            si = ctx.opts_.neg_slack_reset;
+        if (si < ctx.opts_.advanced.negative_slack_reset)
+            si = ctx.opts_.advanced.negative_slack_reset;
         if (fxi < 0.0) {
             FXI[i] = 0.0;
-            S[i] = std::max(std::abs(fxi), ctx.opts_.neg_slack_reset);
+            S[i] = std::max(std::abs(fxi), ctx.opts_.advanced.negative_slack_reset);
         } else {
             FXI[i] += si;
         }
@@ -803,7 +850,7 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 // BacktrackingLineSearch — step-length mechanism. max_step_to_boundary and
 // max_primal_dual_step read the solver state (opts_.pd_step_strategy,
 // inequal_cons_, equal_cons_) through the SolverContext reference `ctx`, and
-// max_primal_dual_step reconstructs the KKTVector view over the raw XSL/DXSL
+// max_primal_dual_step reconstructs the KktVector view over the raw XSL/DXSL
 // blocks itself rather than taking it from the caller. Statement and operand
 // order are load-bearing here for the reason the file block above states. See
 // backtracking_line_search.h's riskiest-seam design note.
@@ -817,8 +864,8 @@ double BacktrackingLineSearch::max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> 
 void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                                                   double bfrac, double &alphap, double &alphad,
                                                   const SolverContext &ctx) {
-    KKTVector xsl = kkt_view(XSL, ctx);
-    KKTVector dxsl = kkt_view(DXSL, ctx);
+    KktVector xsl = kkt_view(XSL, ctx);
+    KktVector dxsl = kkt_view(DXSL, ctx);
     double Smax = this->max_step_to_boundary(xsl.slacks(), dxsl.slacks(), bfrac, ctx.inequal_cons_);
     double Lmax =
         this->max_step_to_boundary(xsl.iq_lmults(), dxsl.iq_lmults(), bfrac, ctx.inequal_cons_);
@@ -888,16 +935,17 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
     double eqmultstep = Smax;
     double iqmultstep = Lmax;
 
-    if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kPrimSlackEqSplitIq) {
-    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kAllMinimum) {
+    if (ctx.opts_.advanced.step_length_rule == IpmStepLengthRule::kEqualityMultipliersPrimal) {
+    } else if (ctx.opts_.advanced.step_length_rule == IpmStepLengthRule::kAllMinimum) {
         double step = std::min(Smax, Lmax);
         primstep = step;
         slackstep = step;
         eqmultstep = step;
         iqmultstep = step;
-    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kPrimSlackSplitEqIq) {
+    } else if (ctx.opts_.advanced.step_length_rule == IpmStepLengthRule::kEqualityMultipliersDual) {
         eqmultstep = Lmax;
-    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kMaxEq) {
+    } else if (ctx.opts_.advanced.step_length_rule ==
+               IpmStepLengthRule::kEqualityMultipliersMaximum) {
         double step = std::max(Smax, Lmax);
         eqmultstep = step;
     }
@@ -921,10 +969,10 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
 // DXSL. SocRecovery::do_correction applies the same rule to corrected
 // directions.
 double BacktrackingLineSearch::compute_step(
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
-    double &alphad, IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
+    IpmLineSearchMode lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
+    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap, double &alphad,
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx) {
     // The fraction-to-boundary scaling runs when there are inequality slacks OR
     // when the problem declares variable bounds (whose distances and multipliers
     // need the same positivity caps, on an equality-only problem just as much as
@@ -935,7 +983,7 @@ double BacktrackingLineSearch::compute_step(
     // selected — so the guard is byte-identical off.
     if (ctx.inequal_cons_ > 0 || ctx.bounds_ ||
         (ctx.restoration_ && ctx.restoration_->is_active() && ctx.restoration_->is_nested()))
-        this->max_primal_dual_step(XSL, DXSL, ctx.opts_.bound_fraction, alphap, alphad, ctx);
+        this->max_primal_dual_step(XSL, DXSL, ctx.opts_.fraction_to_boundary, alphap, alphad, ctx);
 
     // Second half: the acceptance backtrack on the scaled DXSL, dispatched
     // classic-vs-generic. Factored into run_acceptance_backtrack so the same
@@ -953,17 +1001,17 @@ double BacktrackingLineSearch::compute_step(
 // classic_line_search; the generic path (drives_classic_path() == false) runs
 // the loop-in-mechanism generic_line_search.
 double BacktrackingLineSearch::run_acceptance_backtrack(
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IterateInfo &Citer,
-    const std::vector<IterateInfo> &iters, SolverContext &ctx) {
+    IpmLineSearchMode lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
+    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IpmIterate &Citer,
+    const std::vector<IpmIterate> &iters, SolverContext &ctx) {
     // NOLS short-circuits both driving paths identically, so the early-out lives
     // here rather than being repeated at the head of each. Both dispatch arms are
     // reached only through this function.
-    if (lsmode == IpmSolver::LineSearchModes::kNoLs) {
-        Citer.ls_iters_ = 0;
+    if (lsmode == IpmLineSearchMode::kNone) {
+        Citer.ls_iters = 0;
         // No line search runs: the full step is taken, i.e. accepted.
-        Citer.accepted_ = true;
+        Citer.accepted = true;
         return 1.0;
     }
     if (acceptance.drives_classic_path())
@@ -978,15 +1026,12 @@ double BacktrackingLineSearch::run_acceptance_backtrack(
 // max_ls_iters_, alpha /= alpha_red_ on reject) and the classic signal stores,
 // but the accept/reject verdict comes from
 // AcceptanceStrategy::is_iterate_acceptable on a ProgressMeasures triple.
-double BacktrackingLineSearch::generic_line_search(IpmSolver::LineSearchModes lsmode,
-                                                   double obj_scale, double mu, double prim_obj,
-                                                   double barr_obj, Eigen::VectorXd &XSL,
-                                                   Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                                   Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                                   AcceptanceStrategy &acceptance,
-                                                   IterateInfo &Citer, SolverContext &ctx) {
-    KKTVector v_dxsl = kkt_view(DXSL, ctx);
-    KKTVector v_rhs = kkt_view(RHS, ctx);
+double BacktrackingLineSearch::generic_line_search(
+    IpmLineSearchMode lsmode, double obj_scale, double mu, double prim_obj, double barr_obj,
+    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IpmIterate &Citer, SolverContext &ctx) {
+    KktVector v_dxsl = kkt_view(DXSL, ctx);
+    KktVector v_rhs = kkt_view(RHS, ctx);
 
     // Current-point measures (j-independent). infeasibility = ‖c(z_k)‖₁ (the
     // merit ‖c‖); objective/auxiliary = the smooth barrier objective split
@@ -1002,7 +1047,7 @@ double BacktrackingLineSearch::generic_line_search(IpmSolver::LineSearchModes ls
     const double dirderiv = v_rhs.prim_dual_grad().dot(v_dxsl.primals_slacks());
 
     double alpha = 1.0;
-    for (int j = 0; j < ctx.opts_.max_ls_iters; j++) {
+    for (int j = 0; j < ctx.opts_.advanced.max_line_search_backtracks; j++) {
         double ptest = 0.0;
         double btest = 0.0;
         double theta_t = 0.0;
@@ -1010,19 +1055,16 @@ double BacktrackingLineSearch::generic_line_search(IpmSolver::LineSearchModes ls
         try {
             modern_eval_trial_point(ctx, obj_scale, mu, alpha, XSL, DXSL, XSL2, RHS2, ptest, btest,
                                     theta_t, resto_eq_shift_scratch_, resto_iq_shift_scratch_);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx.eval_errors_, e.what());
-            evaluable = false;
-        } catch (...) {
-            note_eval_error_unknown(ctx.eval_errors_);
             evaluable = false;
         }
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
-            Citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx.opts_.alpha_red;
-            Citer.first_rejection_iter_ =
-                Citer.first_rejection_iter_ < 0 ? j : Citer.first_rejection_iter_;
+            Citer.ls_iters = j + 1;
+            alpha = alpha / ctx.opts_.advanced.backtrack_divisor;
+            Citer.first_rejection_iter =
+                Citer.first_rejection_iter < 0 ? j : Citer.first_rejection_iter;
             continue;
         }
         ProgressMeasures trial{theta_t, ptest, btest};
@@ -1034,23 +1076,23 @@ double BacktrackingLineSearch::generic_line_search(IpmSolver::LineSearchModes ls
         pred.infeasibility = alpha * current.infeasibility;
 
         // Diagnostic merit (barrier objective sans penalty; the penalty is
-        // strategy-internal state). Not printed — see IterateInfo's field note.
-        Citer.merit_val_ = trial.objective + trial.auxiliary;
+        // strategy-internal state). Not printed — see IpmIterate's field note.
+        Citer.merit_val = trial.objective + trial.auxiliary;
 
         if (acceptance.is_iterate_acceptable(current, trial, pred, obj_scale, alpha)) {
-            Citer.ls_iters_ = j;
-            Citer.accepted_ = true;
+            Citer.ls_iters = j;
+            Citer.accepted = true;
             break;
         } else {
-            Citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx.opts_.alpha_red;
+            Citer.ls_iters = j + 1;
+            alpha = alpha / ctx.opts_.advanced.backtrack_divisor;
             // Signal stores mirror the classic path (self-referential selects
             // keep the FIRST rejection's values) so SOC/watchdog compose. The
             // modern path records its own merit infeasibility θ_t (L1 ‖c‖).
-            Citer.theta_at_first_rejection_ =
-                Citer.first_rejection_iter_ < 0 ? theta_t : Citer.theta_at_first_rejection_;
-            Citer.first_rejection_iter_ =
-                Citer.first_rejection_iter_ < 0 ? j : Citer.first_rejection_iter_;
+            Citer.theta_at_first_rejection =
+                Citer.first_rejection_iter < 0 ? theta_t : Citer.theta_at_first_rejection;
+            Citer.first_rejection_iter =
+                Citer.first_rejection_iter < 0 ? j : Citer.first_rejection_iter;
         }
     }
     return alpha;
@@ -1178,41 +1220,50 @@ double ClassicAdaptiveGovernor::mpc_mu(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref
 // header). `current` is ignored and `mu_event` is never written (free mode only;
 // see the header).
 double ClassicAdaptiveGovernor::update_barrier(
-    IpmSolver::BarrierModes barmode, double mu_in, double avgcomp, double mincomp,
-    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+    IpmBarrierMode barmode, double mu_in, double avgcomp, double mincomp, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
     GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
-    const IterateInfo & /*current*/, bool & /*mu_event*/) {
-    KKTVector v_xsl = kkt_view(XSL, ctx);
-    KKTVector v_rhs = kkt_view(RHS, ctx);
-    KKTVector v_temp = kkt_view(Temp, ctx);
+    const IpmIterate & /*current*/, bool & /*mu_event*/) {
+    KktVector v_xsl = kkt_view(XSL, ctx);
+    KktVector v_rhs = kkt_view(RHS, ctx);
+    KktVector v_temp = kkt_view(Temp, ctx);
 
     double mu = mu_in;
     double alphap = 1.0; // predictor fraction-to-boundary steps — discarded (see header).
     double alphad = 1.0;
 
     switch (barmode) {
-    case IpmSolver::BarrierModes::kProbe:
+    case IpmBarrierMode::kProbe:
         this->barrier_gradient(v_xsl.iq_lmults(), v_rhs.dual_grad());
         // Solve straight into DXSL, then negate in place (elementwise,
         // alias-safe) -- the same order the main step solve keeps, so the
         // arithmetic is unchanged and no kkt_dim_-sized temporary appears.
         ctx.kkt_solver_.solve(RHS, DXSL);
         DXSL = -DXSL;
-        mechanism.max_primal_dual_step(XSL, DXSL, ctx.opts_.bound_fraction, alphap, alphad, ctx);
+        // The affine probe's far slack pairs: the same recovery as the real step
+        // (barrier_math.h, kFarSlackWidth), against the affine slack rows (R = LI).
+        if (ctx.inequal_cons_ > 0) {
+            KktVector v_dxsl = kkt_view(DXSL, ctx);
+            detail::recover_far_slack_multiplier_steps(v_xsl.slacks(), v_xsl.iq_lmults(),
+                                                       v_rhs.dual_grad(), v_dxsl.slacks(),
+                                                       v_dxsl.iq_lmults());
+        }
+        mechanism.max_primal_dual_step(XSL, DXSL, ctx.opts_.fraction_to_boundary, alphap, alphad,
+                                       ctx);
         Temp = XSL + DXSL;
         mu = this->mpc_mu(v_temp.primals(), v_temp.slacks(), v_temp.iq_lmults(), avgcomp, mincomp,
                           ctx);
 
         break;
-    case IpmSolver::BarrierModes::kLoqo:
+    case IpmBarrierMode::kLoqo:
         mu = this->loqo_mu(avgcomp, mincomp);
         break;
     default:
         throw std::invalid_argument("Unknown BarrierMode");
     }
 
-    mu = std::max(mu, ctx.opts_.min_mu);
-    mu = std::min(mu, ctx.opts_.max_mu);
+    mu = std::max(mu, ctx.opts_.barrier_min);
+    mu = std::min(mu, ctx.opts_.barrier_max);
     barr_obj = this->barrier_objective(v_xsl.slacks(), mu, ctx);
     this->barrier_gradient(v_xsl.slacks(), v_xsl.iq_lmults(), mu, v_rhs.dual_grad());
     return mu;
@@ -1228,7 +1279,7 @@ double ClassicAdaptiveGovernor::update_barrier(
 // runs in its own monotone mode — so the two paths share one arithmetic.
 double BarrierGovernor::update_barrier_monotone(double mu_in, Eigen::VectorXd &XSL,
                                                 Eigen::VectorXd &RHS, SolverContext &ctx,
-                                                double &barr_obj, const IterateInfo &current,
+                                                double &barr_obj, const IpmIterate &current,
                                                 bool &mu_event) {
     double mu = mu_in;
     mu_event = false;
@@ -1243,7 +1294,8 @@ double BarrierGovernor::update_barrier_monotone(double mu_in, Eigen::VectorXd &X
     const double sub_err = MonitoredBarrierGovernor::barrier_subproblem_error(current);
     if (sub_err <= kBarrierTolFactor * mu_in) {
         const double new_mu = MonitoredBarrierGovernor::fiacco_mccormick_mu(
-            mu_in, ctx.opts_.bar_tol, ctx.opts_.kkt_tol, ctx.opts_.min_mu, ctx.opts_.max_mu);
+            mu_in, effective_complementarity_tol(ctx.opts_), ctx.opts_.common.optimality_tol,
+            ctx.opts_.barrier_min, ctx.opts_.barrier_max);
         if (new_mu < mu_in) {
             mu = new_mu;     // advance (a new barrier subproblem)
             mu_event = true; // -> acceptance per-subproblem reset
@@ -1271,14 +1323,14 @@ namespace {
 // `XSL += alpha*DXSL` then applies them), and Citer is stamped so the recorded
 // iterate reflects the taken step rather than the rejected one. SocRecovery and
 // ExtendedBacktrackRecovery ran identical copies of this block.
-void commit_recovered_step(Eigen::VectorXd &DXSL, double &alpha, IterateInfo &Citer,
+void commit_recovered_step(Eigen::VectorXd &DXSL, double &alpha, IpmIterate &Citer,
                            const Eigen::VectorXd &dxsl_trial, double alpha_trial,
-                           const IterateInfo &trial_iter) {
+                           const IpmIterate &trial_iter) {
     DXSL = dxsl_trial;
     alpha = alpha_trial;
-    Citer.accepted_ = true;
-    Citer.ls_iters_ = trial_iter.ls_iters_;
-    Citer.merit_val_ = trial_iter.merit_val_;
+    Citer.accepted = true;
+    Citer.ls_iters = trial_iter.ls_iters;
+    Citer.merit_val = trial_iter.merit_val;
 }
 } // namespace
 
@@ -1309,6 +1361,7 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
         kRequestObjectiveAndConstraints, KktScatterView{},
         detail::residual_rhs_scatter_view(*ctx.nlp_, val, cons_out.data(),
                                           cons_out.data() + (cons_out.size() - ic), ec, ic));
+    screen_trial_values(val, cons_out.head(cons_out.size() - ic), cons_out.tail(ic));
 
     // Slack reset on the inequality block against the trial slacks — the same
     // convention ClassicMeritAcceptance::apply_reset_slacks / alg_impl's RHS
@@ -1318,12 +1371,12 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
     for (int i = 0; i < sv; i++) {
         double fxi = FXI[i];
         double si = S[i];
-        if (si < ctx.opts_.neg_slack_reset) {
-            si = ctx.opts_.neg_slack_reset;
+        if (si < ctx.opts_.advanced.negative_slack_reset) {
+            si = ctx.opts_.advanced.negative_slack_reset;
         }
         if (fxi < 0.0) {
             FXI[i] = 0.0;
-            S[i] = std::max(std::abs(fxi), ctx.opts_.neg_slack_reset);
+            S[i] = std::max(std::abs(fxi), ctx.opts_.advanced.negative_slack_reset);
         } else {
             FXI[i] += si;
         }
@@ -1331,13 +1384,13 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
 }
 
 RecoveryChain::Action SocRecovery::on_step_rejected(
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-    int &soc_steps, int & /*resolved_depth*/, int & /*watchdog_activations*/) {
-    const int max_soc = ctx.opts_.max_soc;
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx,
+    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+    double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int & /*resolved_depth*/,
+    Index & /*watchdog_activations*/) {
+    const int max_soc = ctx.opts_.advanced.max_second_order_corrections;
     if (max_soc <= 0)
         return Action::kAcceptAsIs; // defensive: SocRecovery is only built when max_soc_ > 0.
 
@@ -1378,15 +1431,12 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     Eigen::VectorXd c_soc(ncons);
     try {
         eval_trial_constraints(ctx, obj_scale, XSL, DXSL, 1.0, XSL2, trial_cons);
-    } catch (const std::exception &e) {
+    } catch (const EvaluationError &e) {
         note_eval_error(ctx.eval_errors_, e.what());
         // The correction seed cannot be evaluated; there is no point starting
         // the SOC procedure. Fall back to the ladder-exhaustion path. alphap /
         // alphad are still at their snapshot values here (only do_correction
         // mutates them), so this early return needs no restore.
-        return Action::kAcceptAsIs;
-    } catch (...) {
-        note_eval_error_unknown(ctx.eval_errors_);
         return Action::kAcceptAsIs;
     }
     c_soc = RHS.tail(ncons) + trial_cons;
@@ -1403,6 +1453,16 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         dxsl_soc = -dxsl_soc;
         if (!std::isfinite(dxsl_soc.squaredNorm()))
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
+        // Far slack pairs: the same multiplier recovery as the main step
+        // (barrier_math.h, kFarSlackWidth); the corrected RHS keeps its slack rows.
+        if (ctx.inequal_cons_ > 0) {
+            const int pv = ctx.primal_vars_;
+            const int sv = ctx.slack_vars_;
+            const int ic = ctx.inequal_cons_;
+            detail::recover_far_slack_multiplier_steps(XSL.segment(pv, sv), XSL.tail(ic),
+                                                       rhs_soc.segment(pv, sv),
+                                                       dxsl_soc.segment(pv, sv), dxsl_soc.tail(ic));
+        }
 
         // Fraction-to-boundary scale the corrected direction, exactly as the
         // main step path scales DXSL before its backtrack (mechanism's shared
@@ -1416,31 +1476,31 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         // one shared entry point rather than being re-derived here.
         if (ctx.inequal_cons_ > 0 || ctx.bounds_ ||
             (ctx.restoration_ && ctx.restoration_->is_active() && ctx.restoration_->is_nested()))
-            mechanism.max_primal_dual_step(XSL, dxsl_soc, ctx.opts_.bound_fraction, alphap, alphad,
-                                           ctx);
+            mechanism.max_primal_dual_step(XSL, dxsl_soc, ctx.opts_.fraction_to_boundary, alphap,
+                                           alphad, ctx);
 
         // Re-run the full acceptance backtrack on the corrected direction,
         // through the mechanism so the SAME acceptance criteria the ordinary
         // step faced are applied to the corrected trial — the classic merit
         // test on the classic path, or the generic
         // AcceptanceStrategy::is_iterate_acceptable surface (filter / funnel /
-        // modern merit) on the generic path. A fresh IterateInfo captures the
+        // modern merit) on the generic path. A fresh IpmIterate captures the
         // verdict and, on rejection, the first corrected trial's infeasibility
         // (theta_at_first_rejection_, in the driving path's own norm) without
         // clobbering Citer's recorded signals.
-        IterateInfo trial_iter;
+        IpmIterate trial_iter;
         const double alpha_soc = mechanism.run_acceptance_backtrack(
             lsmode, obj_scale, mu, prim_obj, barr_obj, XSL, dxsl_soc, XSL2, RHS, RHS2, acceptance,
             trial_iter, iters, ctx);
 
-        if (trial_iter.accepted_) {
+        if (trial_iter.accepted) {
             commit_recovered_step(DXSL, alpha, Citer, dxsl_soc, alpha_soc, trial_iter);
             return SocCorrectionOutcome{true, 0.0};
         }
 
         // Rejected. Without an infeasibility reading (theta < 0) SOC cannot
         // measure progress; stop.
-        const double trial_violation = trial_iter.theta_at_first_rejection_;
+        const double trial_violation = trial_iter.theta_at_first_rejection;
         if (trial_violation < 0.0)
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
 
@@ -1451,11 +1511,8 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         // non-finite direction guard above uses.
         try {
             eval_trial_constraints(ctx, obj_scale, XSL, dxsl_soc, alpha_soc, XSL2, trial_cons);
-        } catch (const std::exception &e) {
+        } catch (const EvaluationError &e) {
             note_eval_error(ctx.eval_errors_, e.what());
-            return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
-        } catch (...) {
-            note_eval_error_unknown(ctx.eval_errors_);
             return SocCorrectionOutcome{false, std::numeric_limits<double>::infinity()};
         }
         c_soc = alpha_soc * c_soc + trial_cons;
@@ -1463,7 +1520,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     };
 
     const Action action =
-        soc_run_loop(Citer.theta_at_first_rejection_, max_soc, soc_steps, do_correction);
+        soc_run_loop(Citer.theta_at_first_rejection, max_soc, soc_steps, do_correction);
 
     if (action != Action::kRetry) {
         // Reverting to the originally-rejected step: restore the diagnostic
@@ -1480,14 +1537,13 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
 // live alpha and re-driving run_acceptance_backtrack reproduces the SAME
 // ladder with no redundant re-test and no new math).
 RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double & /*alphap*/,
-    double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
-    int & /*watchdog_activations*/) {
-    const int max_extended = ctx.opts_.ls_extended_iters;
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx,
+    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+    double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    double &alpha, double & /*alphap*/, double & /*alphad*/, Index & /*soc_steps*/,
+    int & /*resolved_depth*/, Index & /*watchdog_activations*/) {
+    const int max_extended = ctx.opts_.advanced.max_extended_backtracks;
     if (max_extended <= 0)
         return Action::kAcceptAsIs; // defensive: only built when ls_extended_iters_ > 0.
 
@@ -1504,11 +1560,11 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     double scale = alpha;
     for (int i = 0; i < max_extended; ++i) {
         dxsl_ext = scale * DXSL;
-        IterateInfo trial_iter;
+        IpmIterate trial_iter;
         const double alpha_result = mechanism.run_acceptance_backtrack(
             lsmode, obj_scale, mu, prim_obj, barr_obj, XSL, dxsl_ext, XSL2, RHS, RHS2, acceptance,
             trial_iter, iters, ctx);
-        if (trial_iter.accepted_) {
+        if (trial_iter.accepted) {
             // The accepted step is still the original direction, further scaled.
             commit_recovered_step(DXSL, alpha, Citer, dxsl_ext, alpha_result, trial_iter);
             return Action::kRetry;
@@ -1526,12 +1582,12 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
 // WatchdogRecovery — drives WatchdogState against the real working set. See
 // watchdog.h's file docstring, "Watchdog" section, for the full semantics.
 RecoveryChain::Action WatchdogRecovery::on_step_rejected(
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx,
+    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+    double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Always-available proxy for "did the point improve" — see the file
     // docstring for why prim_obj + barr_obj (rather than a per-variant merit
     // value) is used here.
@@ -1561,7 +1617,7 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         ++watchdog_activations;
         [[fallthrough]];
     case WatchdogState::Outcome::kTrialRelax:
-        Citer.accepted_ = true;
+        Citer.accepted = true;
         resolved_depth = kRecoveryDepthWatchdog;
         return Action::kAcceptAsIs;
 
@@ -1597,7 +1653,7 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         if (ctx.bounds_)
             *ctx.bound_duals_ = snapshot_bound_duals_;
         alpha = 0.0;
-        Citer.accepted_ = true;
+        Citer.accepted = true;
         resolved_depth = kRecoveryDepthWatchdog;
         return Action::kRetry;
     }
@@ -1609,12 +1665,12 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
 // class doc for the ordering rationale), stamping resolved_depth with
 // whichever link's index actually resolved the rejection.
 RecoveryChain::Action ChainedRecovery::on_step_rejected(
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx,
+    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+    double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Links in trial order, each paired with the depth it stamps when it resolves.
     // A null link is simply absent from the chain.
     const std::array<std::pair<RecoveryChain *, int>, 2> links = {
@@ -1641,12 +1697,12 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
 // feasibility_switch_recovery.h for the design.
 
 RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
-    IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
-    double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-    int &soc_steps, int &resolved_depth, int &watchdog_activations) {
+    IpmIterate &Citer, const std::vector<IpmIterate> &iters, SolverContext &ctx,
+    AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+    double obj_scale, double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+    double &alpha, double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+    Index &watchdog_activations) {
     // Delegate the whole rejection to the inner chain first.
     const Action inner =
         inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu,
@@ -1717,7 +1773,15 @@ RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
 
 void SwitchingAcceptance::reset() {
     bounds_initialized_ = false;
+    retraction_armed_ = false;
     reset_bounds();
+}
+
+void SwitchingAcceptance::retract_last_acceptance() {
+    if (retraction_armed_) {
+        restore_acceptance_state();
+        retraction_armed_ = false;
+    }
 }
 
 bool SwitchingAcceptance::is_infeasibility_sufficiently_reduced(
@@ -1761,6 +1825,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     // the arithmetic here — see modern_merit.h's identical posture.
     (void)objective_multiplier;
 
+    // A new acceptance test supersedes whatever the last accept left to retract.
+    retraction_armed_ = false;
+
     // Lazy per-phase initialization (see the file-top formulation): θ₀ is the
     // FIRST current.infeasibility seen since the last reset().
     if (!bounds_initialized_) {
@@ -1803,7 +1870,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     if (switching_holds) {
         // F-type: accept iff the Armijo condition on φ holds (Eq. 20).
         if (armijo_holds(current, trial, predicted_reduction)) {
+            save_acceptance_state();
             register_accepted_step(current, trial, /*h_type=*/false);
+            retraction_armed_ = true;
             return true;
         }
         // T1 (Armijo) failed by definition to reach this branch.
@@ -1818,7 +1887,9 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
         notify_trial_rejected(RejectionCause::kHTypeProgress, false);
         return false;
     }
+    save_acceptance_state();
     register_accepted_step(current, trial, /*h_type=*/true);
+    retraction_armed_ = true;
     return true;
 }
 
@@ -1880,8 +1951,16 @@ void FunnelAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
+// THE RETRACTION PAIR (M8 B5 riders): register_accepted_step moves the width and
+// nothing else, so the width is the whole of what an accept can be asked to give
+// back.
+void FunnelAcceptance::save_acceptance_state() { retract_width_ = width_; }
+
+void FunnelAcceptance::restore_acceptance_state() { width_ = retract_width_; }
+
 void FunnelAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_funnel_width = std::isfinite(width_) ? width_ : -1.0;
+    result.last_funnel_width =
+        std::isfinite(width_) ? std::optional<double>(width_) : std::optional<double>();
 }
 
 bool FunnelAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -1949,6 +2028,8 @@ void FunnelAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     width_ = stashed_width_;
     width_ = convex_combination(width_, current_progress.infeasibility, kFunnelKappa);
     in_feasibility_phase_ = false;
+    // The saved width belonged to the feasibility phase just left.
+    disarm_retraction();
 }
 
 // FilterAcceptance — (θ, φ)-pair filter H-type strategy on the switching
@@ -2083,8 +2164,26 @@ void FilterAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
+// THE RETRACTION PAIR (M8 B5 riders): register_accepted_step may augment the
+// filter (an H-type accept), clear it (the reset heuristic) and moves the three
+// reset-heuristic fields, so all four are saved. Copy-assignment into a member
+// reuses its capacity: no allocation once the filter has stopped growing.
+void FilterAcceptance::save_acceptance_state() {
+    retract_filter_ = filter_;
+    retract_successive_filter_rejections_ = successive_filter_rejections_;
+    retract_n_filter_resets_ = n_filter_resets_;
+    retract_last_rejection_was_filter_ = last_rejection_was_filter_;
+}
+
+void FilterAcceptance::restore_acceptance_state() {
+    filter_ = retract_filter_;
+    successive_filter_rejections_ = retract_successive_filter_rejections_;
+    n_filter_resets_ = retract_n_filter_resets_;
+    last_rejection_was_filter_ = retract_last_rejection_was_filter_;
+}
+
 void FilterAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_filter_size = static_cast<int>(filter_.size());
+    result.last_filter_size = static_cast<Index>(filter_.size());
     result.last_filter_resets = n_filter_resets_;
 }
 
@@ -2187,6 +2286,8 @@ void FilterAcceptance::notify_switch_to_optimality(const ProgressMeasures &curre
     n_filter_resets_ = stashed_n_filter_resets_;
     last_rejection_was_filter_ = stashed_last_rejection_was_filter_;
     filter_.augment(phi_exit, theta_exit);
+    // The saved filter belonged to the feasibility phase just left.
+    disarm_retraction();
 
     // Leave feasibility mode. The stash is intentionally NOT cleared here: it is
     // now a harmless leftover (the exit test only reads it while the flag is set,
@@ -2210,16 +2311,16 @@ MonitoredBarrierGovernor::MonitoredBarrierGovernor(std::unique_ptr<BarrierGovern
 
 MonitoredBarrierGovernor::~MonitoredBarrierGovernor() = default;
 
-double MonitoredBarrierGovernor::monitor_error(const IterateInfo &it) {
+double MonitoredBarrierGovernor::monitor_error(const IpmIterate &it) {
     // (1): sum of squared ∞-norm residual parts — this engine's mapping of Ipopt's
     // 2-norm-squared quality function (IpAdaptiveMuUpdate.cpp:657-675).
-    return it.kkt_inf_ * it.kkt_inf_ + it.econ_inf_ * it.econ_inf_ + it.icon_inf_ * it.icon_inf_ +
-           it.barr_inf_ * it.barr_inf_;
+    return it.kkt_inf * it.kkt_inf + it.econ_inf * it.econ_inf + it.icon_inf * it.icon_inf +
+           it.barr_inf * it.barr_inf;
 }
 
-double MonitoredBarrierGovernor::barrier_subproblem_error(const IterateInfo &it) {
+double MonitoredBarrierGovernor::barrier_subproblem_error(const IpmIterate &it) {
     // (6): ∞-norm barrier optimality error (Ipopt curr_barrier_error analog).
-    return std::max({it.kkt_inf_, it.econ_inf_, it.icon_inf_, it.barr_inf_});
+    return std::max({it.kkt_inf, it.econ_inf, it.icon_inf, it.barr_inf});
 }
 
 double MonitoredBarrierGovernor::fiacco_mccormick_mu(double mu, double bar_tol, double kkt_tol,
@@ -2266,7 +2367,7 @@ void MonitoredBarrierGovernor::remember_accepted(double curr_error) {
 }
 
 MonitoredBarrierGovernor::BarrierDecision
-MonitoredBarrierGovernor::decide(const IterateInfo &current, double mu_in, double avgcomp,
+MonitoredBarrierGovernor::decide(const IpmIterate &current, double mu_in, double avgcomp,
                                  double bar_tol, double kkt_tol, double min_mu, double max_mu) {
     const double curr_error = monitor_error(current);
     BarrierDecision d;
@@ -2327,22 +2428,23 @@ void MonitoredBarrierGovernor::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
     detail::barrier_gradient(S, LI, mu, AGS);
 }
 
-double MonitoredBarrierGovernor::update_barrier(IpmSolver::BarrierModes barmode, double mu_in,
+double MonitoredBarrierGovernor::update_barrier(IpmBarrierMode barmode, double mu_in,
                                                 double avgcomp, double mincomp,
                                                 Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                                                 Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                                                 GlobalizationMechanism &mechanism,
                                                 SolverContext &ctx, double &barr_obj,
-                                                const IterateInfo &current, bool &mu_event) {
-    const BarrierDecision d = decide(current, mu_in, avgcomp, ctx.opts_.bar_tol, ctx.opts_.kkt_tol,
-                                     ctx.opts_.min_mu, ctx.opts_.max_mu);
+                                                const IpmIterate &current, bool &mu_event) {
+    const BarrierDecision d =
+        decide(current, mu_in, avgcomp, effective_complementarity_tol(ctx.opts_),
+               ctx.opts_.common.optimality_tol, ctx.opts_.barrier_min, ctx.opts_.barrier_max);
     mu_event = d.mu_event;
 
     if (d.monotone) {
         // Monotone mode: hold μ fixed and write the barrier tail directly (the
         // same objective/dual-gradient the free-mode common tail produces). The
         // slack / inequality-multiplier / dual-gradient blocks are the same
-        // contiguous segments IpmSolver::KKTVector names (slacks/iq_lmults on XSL,
+        // contiguous segments IpmSolver::KktVector names (slacks/iq_lmults on XSL,
         // dual_grad on RHS): segment(primal_vars_, slack_vars_) and tail(...).
         const double mu = d.mu;
         auto slacks = XSL.segment(ctx.primal_vars_, ctx.slack_vars_);
@@ -2374,7 +2476,7 @@ void MonitoredBarrierGovernor::reset() {
 
 void MonitoredBarrierGovernor::append_diagnostics(IpmResult &result) const {
     result.last_monotone_switches = last_monotone_switches_;
-    result.last_monotone_iters = last_monotone_iters_;
+    result.last_monotone_iterations = last_monotone_iters_;
 }
 
 // ProximalSwitchRestoration — proximal feasibility mode-switch. See
@@ -2774,4 +2876,4 @@ void NestedL1Restoration::trial_residual_shift(double alpha,
     iq_shift_out = (n_i_ + alpha * dn_i_) - (p_i_ + alpha * dp_i_);
 }
 
-} // namespace hven::solvers
+} // namespace hven

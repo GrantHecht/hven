@@ -26,13 +26,14 @@
 
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
+using Record = hven::detail::testing::QpWalkMinorRecord;
 
 // ===========================================================================
 // A 4-variable synthetic whose FIRST pass reaches the add site with no factor, and whose
@@ -80,14 +81,14 @@ QpProblem unrun_synthetic() {
 
 } // namespace
 
-class QpE2Fix7Unrun : public ::testing::TestWithParam<WorkingSetLinearAlgebra> {};
+class QpE2Fix7Unrun : public ::testing::TestWithParam<QpWorkingSetAlgebra> {};
 
 TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
     const QpProblem qp = unrun_synthetic();
     QpOptions o;
-    o.ws_algebra = GetParam();
+    o.working_set_algebra = GetParam();
     o.independent_working_set = true;
-    o.max_iter = 100;
+    o.max_iterations = 100;
 
     Obs::reset();
     Obs::active = true;
@@ -150,8 +151,8 @@ TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
 }
 
 INSTANTIATE_TEST_SUITE_P(BothAlgebras, QpE2Fix7Unrun,
-                         ::testing::Values(WorkingSetLinearAlgebra::kRefactorize,
-                                           WorkingSetLinearAlgebra::kSchurBorder));
+                         ::testing::Values(QpWorkingSetAlgebra::kRefactorize,
+                                           QpWorkingSetAlgebra::kSchurBorder));
 
 // ===========================================================================
 // E2 FIX8, THE BOUNDED REPAIR: ACOPR118 majors 17 and 18 of the hven-sqp lane's `default`
@@ -175,22 +176,22 @@ QpDump e2d4_dump(const char *name) {
     return hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + name);
 }
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+const char *alg_name(QpWorkingSetAlgebra alg) {
+    return alg == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize";
 }
 
 // Release and Debug round these subproblems differently (the same reason
 // test_qp_flat_face_saddle.cpp states for the R2 dumps: -O0 against -O3 under SAFER_FAST puts a
 // pass on different sides of a drop tolerance), so MINOR COUNTS are printed and never asserted;
 // the status, the objective and the KKT battery are the assertions.
-void expect_acopr118(const char *file, WorkingSetLinearAlgebra alg, double f_reference) {
+void expect_acopr118(const char *file, QpWorkingSetAlgebra alg, double f_reference) {
     const QpDump d = e2d4_dump(file);
     // The dump's own in-cell outcome, verbatim: kNumericalError (status=3) in 2-3 minors. This is
     // the premise of the whole fixture, so it is asserted rather than trusted.
     EXPECT_NE(d.result.find("status=3"), std::string::npos);
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
 
     Obs::reset();
@@ -269,22 +270,22 @@ void expect_acopr118(const char *file, WorkingSetLinearAlgebra alg, double f_ref
 // independent-working-set-OFF walk certifies this dump at f = -0.154376254 (border) /
 // -0.154376247 (refactorize); the ON walk returned +0.1054162515 at 3 minors before this round.
 TEST(QpE2Fix7Acopr118, Major17SubproblemCertifiesRefactorize) {
-    expect_acopr118("ACOPR118_e4_qp5.txt", WorkingSetLinearAlgebra::kRefactorize, -0.15437625);
+    expect_acopr118("ACOPR118_e4_qp5.txt", QpWorkingSetAlgebra::kRefactorize, -0.15437625);
 }
 
 TEST(QpE2Fix7Acopr118, Major17SubproblemCertifiesBorder) {
-    expect_acopr118("ACOPR118_e4_qp5.txt", WorkingSetLinearAlgebra::kSchurBorder, -0.15437625);
+    expect_acopr118("ACOPR118_e4_qp5.txt", QpWorkingSetAlgebra::kSchurBorder, -0.15437625);
 }
 
 // ACOPR118 major 18 (trust region 0.125). Kept beside major 17 because it is the one dump of the
 // four where the ON walk now does BETTER than the OFF walk rather than matching it: OFF under the
-// border algebra spends its whole 1000-minor budget and exits kMaxIter, ON certifies.
+// border algebra spends its whole 1000-minor budget and exits kIterationLimit, ON certifies.
 TEST(QpE2Fix7Acopr118, Major18SubproblemCertifiesRefactorize) {
-    expect_acopr118("ACOPR118_e4_qp6.txt", WorkingSetLinearAlgebra::kRefactorize, 0.039528206);
+    expect_acopr118("ACOPR118_e4_qp6.txt", QpWorkingSetAlgebra::kRefactorize, 0.039528206);
 }
 
 TEST(QpE2Fix7Acopr118, Major18SubproblemCertifiesBorder) {
-    expect_acopr118("ACOPR118_e4_qp6.txt", WorkingSetLinearAlgebra::kSchurBorder, 0.039528206);
+    expect_acopr118("ACOPR118_e4_qp6.txt", QpWorkingSetAlgebra::kSchurBorder, 0.039528206);
 }
 
 // ===========================================================================
@@ -327,7 +328,7 @@ QpProblem concave_box(Index n) {
 
 } // namespace
 
-class QpE2Fix8Budget : public ::testing::TestWithParam<WorkingSetLinearAlgebra> {};
+class QpE2Fix8Budget : public ::testing::TestWithParam<QpWorkingSetAlgebra> {};
 
 TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails) {
     constexpr Index kN = 12;
@@ -336,9 +337,9 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
     for (const bool independent : {true, false}) {
         SCOPED_TRACE(independent ? "independent_working_set" : "option off");
         QpOptions o;
-        o.ws_algebra = GetParam();
+        o.working_set_algebra = GetParam();
         o.independent_working_set = independent;
-        o.max_iter = 500;
+        o.max_iterations = 500;
         Obs::reset();
         Obs::active = true;
         const QpEngine engine(o);
@@ -348,7 +349,7 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
         Obs::reset();
         std::printf("[ e2f8 ] budget %s %s status=%d minors=%ld facts=%ld budget_stops=%ld "
                     "restarts=%ld a0=%d\n",
-                    GetParam() == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize",
+                    GetParam() == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize",
                     independent ? "on" : "off", static_cast<int>(s.status),
                     static_cast<long>(s.counters.minor_iters),
                     static_cast<long>(s.counters.factorizations),
@@ -384,5 +385,5 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
 }
 
 INSTANTIATE_TEST_SUITE_P(BothAlgebras, QpE2Fix8Budget,
-                         ::testing::Values(WorkingSetLinearAlgebra::kRefactorize,
-                                           WorkingSetLinearAlgebra::kSchurBorder));
+                         ::testing::Values(QpWorkingSetAlgebra::kRefactorize,
+                                           QpWorkingSetAlgebra::kSchurBorder));

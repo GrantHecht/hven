@@ -101,6 +101,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <hven/detail/model/problem_access.h>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -129,66 +130,66 @@
 namespace {
 
 using hven::Vec;
-using hven::solvers::QpProblem;
-using hven::solvers::corpus::all_cells;
-using hven::solvers::corpus::budget_table_hash;
-using hven::solvers::corpus::CorpusCell;
-using hven::solvers::corpus::CorpusOutcome;
-using hven::solvers::corpus::CorpusRow;
-using hven::solvers::corpus::CountingTraceSink;
-using hven::solvers::corpus::dnf_phase_status_string;
-using hven::solvers::corpus::DnfPhase;
-using hven::solvers::corpus::dual_sign_would_fail;
-using hven::solvers::corpus::evaluate_gates;
-using hven::solvers::corpus::find_cell;
-using hven::solvers::corpus::kkt_gate_verdict;
-using hven::solvers::corpus::KktVerdict;
-using hven::solvers::corpus::run_cell;
-using hven::solvers::corpus::to_string;
-using hven::solvers::corpus::detail::first_qp_for_cell;
-using hven::solvers::corpus::detail::wall_budget_for_cell;
+using hven::corpus::all_cells;
+using hven::corpus::budget_table_hash;
+using hven::corpus::CorpusCell;
+using hven::corpus::CorpusOutcome;
+using hven::corpus::CorpusRow;
+using hven::corpus::CountingTraceSink;
+using hven::corpus::dnf_phase_status_string;
+using hven::corpus::DnfPhase;
+using hven::corpus::dual_sign_would_fail;
+using hven::corpus::evaluate_gates;
+using hven::corpus::find_cell;
+using hven::corpus::kkt_gate_verdict;
+using hven::corpus::KktVerdict;
+using hven::corpus::run_cell;
+using hven::corpus::to_string;
+using hven::corpus::detail::first_qp_for_cell;
+using hven::corpus::detail::wall_budget_for_cell;
+using hven::detail::QpProblem;
 
 // The top-level interior-point leg (M6 W5 T8.1); see bench/ipm_corpus_leg.h.
-using hven::solvers::FixedVariableTreatments;
-using hven::solvers::corpus::interior_base_variant;
-using hven::solvers::corpus::interior_csv_header;
-using hven::solvers::corpus::interior_exit_variants;
-using hven::solvers::corpus::interior_globalization_stamp;
-using hven::solvers::corpus::interior_treatment_from_tag;
-using hven::solvers::corpus::interior_treatment_tag;
-using hven::solvers::corpus::interior_treatments;
-using hven::solvers::corpus::interior_variant_stamp;
-using hven::solvers::corpus::InteriorLevers;
-using hven::solvers::corpus::InteriorPartitionStamp;
-using hven::solvers::corpus::InteriorRow;
-using hven::solvers::corpus::InteriorVariant;
-using hven::solvers::corpus::kCap1F7CellId;
-using hven::solvers::corpus::kHs071FixedCellId;
-using hven::solvers::corpus::kParts2VariantName;
-using hven::solvers::corpus::kSpikeCellId;
-using hven::solvers::corpus::kStationaryCellId;
-using hven::solvers::corpus::run_interior_cell;
-using hven::solvers::corpus::run_interior_hs071;
-using hven::solvers::corpus::run_interior_infeasible;
-using hven::solvers::corpus::run_interior_single_row;
+using hven::IpmFixedVariableTreatment;
+using hven::corpus::interior_base_variant;
+using hven::corpus::interior_csv_header;
+using hven::corpus::interior_exit_variants;
+using hven::corpus::interior_globalization_stamp;
+using hven::corpus::interior_treatment_from_tag;
+using hven::corpus::interior_treatment_tag;
+using hven::corpus::interior_treatments;
+using hven::corpus::interior_variant_stamp;
+using hven::corpus::InteriorLevers;
+using hven::corpus::InteriorPartitionStamp;
+using hven::corpus::InteriorRow;
+using hven::corpus::InteriorVariant;
+using hven::corpus::kCap1F7CellId;
+using hven::corpus::kHs071FixedCellId;
+using hven::corpus::kParts2VariantName;
+using hven::corpus::kSpikeCellId;
+using hven::corpus::kStationaryCellId;
+using hven::corpus::run_interior_cell;
+using hven::corpus::run_interior_hs071;
+using hven::corpus::run_interior_infeasible;
+using hven::corpus::run_interior_single_row;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
-using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
+using EngineLevers = hven::corpus::detail::EngineConfig;
 // Task 6b Phase B's three iteration-shape rules (sqp_solver_types.h), named here for
 // the same reason every other type above is: this file spells one namespace.
-using hven::solvers::SsnHintRule;
-using hven::solvers::SsnInfeasibilityRule;
-using hven::solvers::SsnSigmaRule;
+using hven::SsnHintRule;
+using hven::SsnInfeasibilityRule;
+using hven::SsnSigmaRule;
 
 // M6 W5 T6.d LEG 2. The types the HS suite below needs, on the same
 // one-namespace-spelling terms.
-using hven::solvers::QpMode;
-using hven::solvers::QpModeSite;
-using hven::solvers::QpModeTraceEvent;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::TraceSink;
+using hven::QpMode;
+using hven::QpModeTraceEvent;
+using hven::QpTraceModeSite;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::TraceSink;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
@@ -273,6 +274,14 @@ constexpr const char *kUsage =
     "                    undocumented: it is the fork/exec child of this file's\n"
     "                    wall deadline, not a surface a caller drives. REFUSED\n"
     "                    with any other invocation.\n"
+    "  --internal-route native|nlp-internal|nlp-public   HIDDEN MEASUREMENT LEVER\n"
+    "                    (AP-2 B2). native (the default) is the corpus route every\n"
+    "                    pinned artifact was taken on. The two Nlp routes state each\n"
+    "                    cell as an Nlp (the crossover leg's dual binding): nlp-\n"
+    "                    internal solves it through a fresh NlpProblemModel per\n"
+    "                    solve (SQP arms) or make_nlp_program (interior), nlp-public\n"
+    "                    through one Problem(Nlp). Stamped into the provenance\n"
+    "                    header; refused with --hs.\n"
     "  --ssn-prox-carry  MEASUREMENT ARM. Set SqpOptions::ssn_prox_carry (a real,\n"
     "                    shipped option that ships OFF -- see sqp_solver_types.h for the\n"
     "                    sweep that ruled it off). Stamped into the CSV's own\n"
@@ -452,7 +461,7 @@ constexpr const char *kUsage =
     "`# variant:` lines.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
-    hven::solvers::bench_cli::throw_usage(kUsage, detail);
+    hven::bench_cli::throw_usage(kUsage, detail);
 }
 
 // T6 with CONTEXT. std::stoi's own message is the word "stoi"; a malformed
@@ -524,6 +533,8 @@ struct Args {
     // more on 13 of 23 rows), so a run that passes it is a measurement arm and
     // the CSV's provenance header says so.
     bool ssn_prox_carry = false;
+    // AP-2 B2 hidden measurement lever: the corpus route (corpus_cells.h, NlpRoute).
+    std::optional<std::string> internal_route;
     // TASK 6b PHASE B MEASUREMENT ARMS (R5/R1/R2/R4). Same discipline as
     // ssn_prox_carry above: real option surfaces, shipped defaults, and any
     // non-default stamped into the artifact's own provenance header.
@@ -667,15 +678,22 @@ Args parse_args(int argc, char **argv) {
         } else if (arg == "--internal-force-wall-budget-seconds") {
             // Legacy spelling, kept so an existing invocation keeps working:
             // forces BOTH phases.
-            const double v = hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
+            const double v = hven::bench_cli::parse_double(kUsage, arg, next_value(arg));
             a.internal_force_setup_budget_s = v;
             a.internal_force_solve_budget_s = v;
         } else if (arg == "--internal-force-setup-budget-seconds") {
             a.internal_force_setup_budget_s =
-                hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
+                hven::bench_cli::parse_double(kUsage, arg, next_value(arg));
         } else if (arg == "--internal-force-solve-budget-seconds") {
             a.internal_force_solve_budget_s =
-                hven::solvers::bench_cli::parse_double(kUsage, arg, next_value(arg));
+                hven::bench_cli::parse_double(kUsage, arg, next_value(arg));
+        } else if (arg == "--internal-route") {
+            const std::string v = next_value(arg);
+            if (v != "native" && v != "nlp-internal" && v != "nlp-public") {
+                throw_usage(fmt::format(
+                    "--internal-route: '{}' is not one of native|nlp-internal|nlp-public", v));
+            }
+            a.internal_route = v;
         } else if (arg == "--ssn-prox-carry") {
             a.ssn_prox_carry = true;
         } else if (arg == "--ssn-certify-from-face") {
@@ -827,7 +845,7 @@ std::vector<const CorpusCell *> resolve_cells(const std::string &spec) {
 constexpr int kTask6bColumns = 37;
 
 // M6 W1 T9: THIRTY-NINE MORE on the same optional-tail contract -- all of
-// IpqpCounters, one column per field, so the kIpm arm's replay ASSERTS the
+// IpqpCounters, one column per field, so the kIpqp arm's replay ASSERTS the
 // tier's census. Declared move 37 -> 76; nothing existing moves.
 constexpr int kIpqpColumns = 76;
 
@@ -858,6 +876,11 @@ const char *callback_arm_label(bool attached, bool scalars) {
 // lever. Shared by the corpus provenance and (M7 W3) the HS-suite provenance, so
 // an arm is stamped in the same words whichever instrument ran it.
 void write_ssn_lever_lines(std::ostream &os, const EngineLevers &levers) {
+    if (hven::corpus::detail::nlp_route() != hven::corpus::detail::NlpRoute::kNative) {
+        os << fmt::format("# lever: internal_route={} (AP-2 B2 MEASUREMENT ARM -- the corpus "
+                          "route is native)\n",
+                          to_string(hven::corpus::detail::nlp_route()));
+    }
     if (levers.ssn_prox_carry) {
         os << "# lever: ssn_prox_carry=true (MEASUREMENT ARM -- the shipped default is false)\n";
     }
@@ -997,7 +1020,7 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
                           "-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1\n",
                           cell.id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
                           to_string(cell.start), cell.degenerate ? 1 : 0,
-                          out.engine_error ? hven::solvers::corpus::kEngineErrorStatusString
+                          out.engine_error ? hven::corpus::kEngineErrorStatusString
                                            : dnf_phase_status_string(out.dnf_phase),
                           out.dnf_wall_s);
         return;
@@ -1014,7 +1037,7 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
         "{:.9e},{},{}\n",
         row.cell_id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
         to_string(cell.start), cell.degenerate ? 1 : 0,
-        hven::solvers::corpus::legacy_status_string(row.status), row.factorizations, row.qp_minors,
+        hven::corpus::legacy_status_string(row.status), row.factorizations, row.qp_minors,
         row.escapes, row.qp_factorizations.size(), join_qp_factorizations(row.qp_factorizations),
         row.kkt_residual, row.wall_s, to_string(kkt_gate_verdict(row)), row.kkt_stationarity,
         row.kkt_primal, row.kkt_dual_sign, row.kkt_complementarity, row.dual_scale, row.x_scale,
@@ -1134,21 +1157,24 @@ void print_list() {
     }
 }
 
-hven::solvers::SolveStatus parse_status(const std::string &s) {
+hven::SolveStatus parse_status(const std::string &s) {
     if (s == "Optimal") {
-        return hven::solvers::SolveStatus::kOptimal;
+        return hven::SolveStatus::kOptimal;
     }
     if (s == "MaxIter") {
-        return hven::solvers::SolveStatus::kMaxIter;
+        return hven::SolveStatus::kIterationLimit;
     }
     if (s == "Infeasible") {
-        return hven::solvers::SolveStatus::kInfeasible;
+        return hven::SolveStatus::kInfeasible;
     }
     if (s == "NumericalError") {
-        return hven::solvers::SolveStatus::kNumericalError;
+        return hven::SolveStatus::kNumericalError;
     }
-    if (s == "BudgetExhausted") {
-        return hven::solvers::SolveStatus::kBudgetExhausted;
+    if (s == "WorkLimit") {
+        return hven::SolveStatus::kWorkLimit;
+    }
+    if (s == "TimeLimit") {
+        return hven::SolveStatus::kTimeLimit;
     }
     throw std::invalid_argument(
         fmt::format("hven_sqp_corpus: internal row parse: unrecognised status string '{}'", s));
@@ -1217,8 +1243,8 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
         o.cell = cell;
         const std::string &status = col[6];
         if (status == "dnf_setup" || status == "dnf_budget" ||
-            status == hven::solvers::corpus::kEngineErrorStatusString) {
-            if (status == hven::solvers::corpus::kEngineErrorStatusString) {
+            status == hven::corpus::kEngineErrorStatusString) {
+            if (status == hven::corpus::kEngineErrorStatusString) {
                 o.engine_error = true;
             } else {
                 o.dnf_phase = status == "dnf_setup" ? DnfPhase::kSetup : DnfPhase::kSolve;
@@ -1273,15 +1299,13 @@ std::vector<CorpusOutcome> read_outcomes_csv(const std::string &path) {
             // rather than scored, exactly as an internally inconsistent
             // qp_subproblems column is. This is what makes the wrong-answer
             // category re-checkable offline instead of trusted.
-            const hven::solvers::corpus::KktVerdict stored =
-                hven::solvers::corpus::kkt_verdict_from_string(col[14]);
-            const hven::solvers::corpus::KktVerdict derived =
-                hven::solvers::corpus::kkt_gate_verdict(o.row);
+            const hven::corpus::KktVerdict stored = hven::corpus::kkt_verdict_from_string(col[14]);
+            const hven::corpus::KktVerdict derived = hven::corpus::kkt_gate_verdict(o.row);
             if (stored != derived) {
                 throw std::invalid_argument(fmt::format(
                     "{}: kkt_verdict says '{}' but this row's own residuals re-derive to '{}' -- "
                     "the artifact is internally inconsistent and must not be scored",
-                    where, col[14], hven::solvers::corpus::to_string(derived)));
+                    where, col[14], hven::corpus::to_string(derived)));
             }
         }
         // PHASE-7 TASK 6b's escape-reason census, read on the SAME optional-tail
@@ -1661,6 +1685,10 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         // default-configuration row under a non-default provenance header.
         std::vector<std::string> argv_own{self_path, "--internal-run-one", cell.id, "--engine",
                                           engine,    "--internal-out",     out_path};
+        if (hven::corpus::detail::nlp_route() != hven::corpus::detail::NlpRoute::kNative) {
+            argv_own.emplace_back("--internal-route");
+            argv_own.emplace_back(to_string(hven::corpus::detail::nlp_route()));
+        }
         if (levers.ssn_prox_carry) {
             argv_own.emplace_back("--ssn-prox-carry");
         }
@@ -1807,11 +1835,11 @@ void print_gate_verdict(const std::vector<CorpusOutcome> &outcomes) {
     std::size_t escapes = 0;
     std::size_t subproblems = 0;
     for (const CorpusOutcome &o : outcomes) {
-        if (o.cell != nullptr && hven::solvers::corpus::in_g1_g2_population(*o.cell)) {
+        if (o.cell != nullptr && hven::corpus::in_g1_g2_population(*o.cell)) {
             ++population;
         }
         if (o.cell != nullptr &&
-            hven::solvers::corpus::in_g1_g2_population(*o.cell, /*include_corrupted=*/true)) {
+            hven::corpus::in_g1_g2_population(*o.cell, /*include_corrupted=*/true)) {
             ++population_wc;
         }
         if (o.dnf()) {
@@ -2018,7 +2046,7 @@ QpMode hs_qp_mode(const std::string &engine) {
         return QpMode::kSsn;
     }
     if (engine == "ipm") {
-        return QpMode::kIpm;
+        return QpMode::kIpqp;
     }
     throw std::invalid_argument(
         fmt::format("hven_sqp_corpus: --hs --engine: '{}' is not one of walk|ssn|ipm", engine));
@@ -2036,7 +2064,7 @@ struct HsRow {
     double spread_pct = 0.0;
     double median_se_pct = 0.0;
     bool counters_stable = true;
-    hven::solvers::SolveStatus status = hven::solvers::SolveStatus::kOptimal;
+    hven::SolveStatus status = hven::SolveStatus::kOptimal;
     double f = 0.0;
     long long majors = 0;
     long long qp_minors = 0;
@@ -2078,7 +2106,7 @@ double median_of(std::vector<double> v) {
 }
 
 std::vector<int> resolve_hs_cells(const std::string &spec) {
-    const std::vector<int> &shipped = hven::solvers::test_support::hs_numbers();
+    const std::vector<int> &shipped = hven::test_support::hs_numbers();
     if (spec == "all") {
         return shipped;
     }
@@ -2115,38 +2143,40 @@ HsRow run_hs_cell(int number, QpMode mode, const EngineLevers &levers, int repea
     const auto hs_options = [&]() {
         SqpOptions opts;
         opts.qp_mode = mode;
-        opts.ssn_prox_carry = levers.ssn_prox_carry;
-        opts.ssn_certify_from_face = levers.ssn_certify_from_face;
-        opts.ssn_sigma_rule = levers.ssn_sigma_rule;
-        opts.ssn_hint_rule = levers.ssn_hint_rule;
-        opts.ssn_infeasibility_rule = levers.ssn_infeasibility_rule;
+        opts.advanced.ssn_proximal_carry = levers.ssn_prox_carry;
+        opts.advanced.ssn_certify_from_face = levers.ssn_certify_from_face;
+        opts.advanced.ssn_sigma_rule = levers.ssn_sigma_rule;
+        opts.advanced.ssn_hint_rule = levers.ssn_hint_rule;
+        opts.advanced.ssn_infeasibility_rule = levers.ssn_infeasibility_rule;
         return opts;
     };
     // THE WARM-UP SOLVES, discarded: same model, same options, same sink, same
     // code path -- only the clock is not read. See Args::hs_warmup for the
     // measurement that made this necessary.
     for (int w = 0; w < warmup; ++w) {
-        hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
+        hven::test_support::HsProblem hs = hven::test_support::make_hs(number);
         SqpSolver driver(hs_options());
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
         }
-        const SqpResult discarded = driver.solve(*hs.model);
+        const SqpResult discarded =
+            driver.solve(hven::detail::problem_ref(*hs.model), (*hs.model).start_point());
         (void)discarded;
     }
     std::vector<double> walls;
     walls.reserve(static_cast<std::size_t>(repeat));
-    hven::solvers::SqpCounters first_counters;
+    hven::SqpCounters first_counters;
     for (int r = 0; r < repeat; ++r) {
-        hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
+        hven::test_support::HsProblem hs = hven::test_support::make_hs(number);
         SqpSolver driver(hs_options());
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
         }
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(*hs.model);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(*hs.model), (*hs.model).start_point());
         const auto t1 = std::chrono::steady_clock::now();
         walls.push_back(std::chrono::duration<double>(t1 - t0).count());
 
@@ -2365,9 +2395,10 @@ void write_interior_provenance_head(std::ostream &os, int argc, char **argv,
     os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
     os << fmt::format("# host: {}\n", host[0] == '\0' ? "<unknown>" : host);
     os << fmt::format("# generated: {}\n", stamp[0] == '\0' ? "<unknown>" : stamp);
-    os << fmt::format("# levers: max_iters={} print_level={} partitions={} qp_threads={}\n",
-                      levers.max_iters, levers.print_level, levers.num_partitions,
-                      levers.qp_threads);
+    os << fmt::format("# levers: max_iters={} verbosity={} partitions={} qp_threads={}\n",
+                      levers.max_iters,
+                      levers.verbosity == hven::Verbosity::kSilent ? "silent" : "on",
+                      levers.num_partitions, levers.qp_threads);
     os << fmt::format("# levers: kkt_tol={:.9e} econ_tol={:.9e} icon_tol={:.9e} barr_tol={:.9e}\n",
                       levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
     os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
@@ -2492,14 +2523,14 @@ class InteriorArtifactWriter {
     /// @brief Writes one row, flushes it, and checks both.
     /// @throws std::runtime_error on a repeated row key or a failed write.
     void write_row(const InteriorRow &row) {
-        const std::string key = hven::solvers::corpus::interior_row_key(row);
+        const std::string key = hven::corpus::interior_row_key(row);
         if (!keys_.insert(key).second) {
             throw std::runtime_error(
                 fmt::format("--csv: row key '{}' would be written twice; the replay comparator "
                             "keys on the first column and keeps only the last of a repeated key",
                             key));
         }
-        out_ << hven::solvers::corpus::interior_csv_row(row);
+        out_ << hven::corpus::interior_csv_row(row);
         out_.flush();
         require_ok("a data row");
         ++written_;
@@ -2532,7 +2563,7 @@ class InteriorArtifactWriter {
 // rather than a finished solve thrown away.
 void run_internal_interior_one(const std::string &cell_id, const std::string &treatment_tag,
                                const std::string &out_path, int argc, char **argv) {
-    const FixedVariableTreatments treatment = interior_treatment_from_tag(treatment_tag);
+    const IpmFixedVariableTreatment treatment = interior_treatment_from_tag(treatment_tag);
     // The leg's own defaults, unchanged and unreachable from the CLI: this mode
     // measures the leg's row, so it runs the leg's levers. They are stamped.
     const InteriorLevers levers;
@@ -2546,7 +2577,7 @@ void run_internal_interior_one(const std::string &cell_id, const std::string &tr
 }
 
 // The cells this arm runs, and the refusal line for every requested cell it
-// cannot: a cell an NlpTripletModel cannot state is named, never silently dropped.
+// cannot: a cell an Nlp cannot state is named, never silently dropped.
 struct InteriorPlan {
     std::vector<const CorpusCell *> cells;
     std::vector<std::string> refusals;
@@ -2587,7 +2618,7 @@ InteriorPlan plan_interior_cells(const std::string &spec) {
         }
     }
     for (const CorpusCell *c : requested) {
-        const std::string why = hven::solvers::corpus::interior_cell_refusal(*c);
+        const std::string why = hven::corpus::interior_cell_refusal(*c);
         if (why.empty()) {
             plan.cells.push_back(c);
         } else {
@@ -2602,6 +2633,18 @@ InteriorPlan plan_interior_cells(const std::string &spec) {
 int main(int argc, char **argv) {
     try {
         const Args args = parse_args(argc, argv);
+        if (args.internal_route) {
+            if (args.hs) {
+                throw_usage("--internal-route applies to the corpus arms (walk|ssn|ipm|interior) "
+                            "only: the HS suite states its problems as NlpModels and has no Nlp "
+                            "route");
+            }
+            using hven::corpus::detail::NlpRoute;
+            hven::corpus::select_nlp_route(
+                *args.internal_route == "nlp-internal" ? NlpRoute::kNlpInternal
+                : *args.internal_route == "nlp-public" ? NlpRoute::kNlpPublic
+                                                       : NlpRoute::kNative);
+        }
         if (args.help) {
             fmt::print("{}", kUsage);
             return 0;
@@ -2684,18 +2727,17 @@ int main(int argc, char **argv) {
                 levers.trace = &corpus_sink;
             }
             if (args.corpus_callback) {
-                levers.iteration_callback =
-                    [&callback_events](const hven::solvers::IterationEvent &) {
-                        ++callback_events;
-                        return hven::solvers::CallbackAction::kContinue;
-                    };
+                levers.iteration_callback = [&callback_events](const hven::IterationEvent &) {
+                    ++callback_events;
+                    return hven::CallbackAction::kContinue;
+                };
                 // M7 W0 T2. THE SAME CALLBACK, A NARROWER DECLARATION. The
                 // `count-scalars` arm changes nothing about the observer -- it
                 // still increments a long long and returns kContinue -- only
                 // what the driver is asked to prepare for it.
                 levers.iteration_payload = args.corpus_callback_scalars
-                                               ? hven::solvers::IterationPayload::kScalars
-                                               : hven::solvers::IterationPayload::kAll;
+                                               ? hven::IterationPayload::kScalars
+                                               : hven::IterationPayload::kAll;
             }
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
@@ -2912,7 +2954,7 @@ int main(int argc, char **argv) {
                                     "the corpus",
                                     kCap1F7CellId));
                 }
-                return hven::solvers::corpus::interior_partition_stamp(*f7, 2);
+                return hven::corpus::interior_partition_stamp(*f7, 2);
             }();
             write_interior_provenance(writer.stream(), argc, argv, levers, plan.refusals,
                                       parts2_stamp);
@@ -2925,7 +2967,7 @@ int main(int argc, char **argv) {
             }
 
             for (const CorpusCell *cell : plan.cells) {
-                for (const FixedVariableTreatments treatment : interior_treatments()) {
+                for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
                     fmt::print("running {} (N={}, treatment {})...\n", cell->id, cell->n_nodes,
                                interior_treatment_tag(treatment));
                     const InteriorRow row =
@@ -2938,7 +2980,7 @@ int main(int argc, char **argv) {
             // The fixed-variable cell, always and last: no F7 cell has a
             // bound-fixed variable, so it is the only one on which the three
             // treatments take three different paths.
-            for (const FixedVariableTreatments treatment : interior_treatments()) {
+            for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
                 fmt::print("running {} (treatment {})...\n", kHs071FixedCellId,
                            interior_treatment_tag(treatment));
                 const InteriorRow row =
@@ -2953,7 +2995,8 @@ int main(int argc, char **argv) {
             // only -- an exit is not a treatment question.
             for (const InteriorVariant &variant : interior_exit_variants()) {
                 const std::string name(variant.name);
-                const FixedVariableTreatments treatment = FixedVariableTreatments::MakeParameter;
+                const IpmFixedVariableTreatment treatment =
+                    IpmFixedVariableTreatment::kMakeParameter;
                 std::vector<InteriorRow> rows;
                 if (name == "cap1") {
                     const CorpusCell *f7 = find_cell(kCap1F7CellId);
@@ -3015,9 +3058,20 @@ int main(int argc, char **argv) {
                             "corpus",
                             kCap1F7CellId));
                     }
-                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatments::MakeConstraint,
-                                                     levers, variant));
-                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatments::MakeParameter,
+                    // AP-2 B2: the public Problem(Nlp) route lays one partition
+                    // (a partition request is group B6's), so under
+                    // `--internal-route nlp-public` the two parts2 rows are not
+                    // run, and the console says so by name.
+                    if (hven::corpus::detail::nlp_route() ==
+                        hven::corpus::detail::NlpRoute::kNlpPublic) {
+                        fmt::print("skipped {} (variant {}): the public Problem(Nlp) route lays "
+                                   "one partition\n",
+                                   kCap1F7CellId, variant.name);
+                        continue;
+                    }
+                    rows.push_back(run_interior_cell(
+                        *f7, IpmFixedVariableTreatment::kMakeConstraint, levers, variant));
+                    rows.push_back(run_interior_cell(*f7, IpmFixedVariableTreatment::kMakeParameter,
                                                      levers, variant));
                 } else if (name == "stalled") {
                     rows.push_back(

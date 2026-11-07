@@ -14,11 +14,11 @@
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 
+using hven::candidate_value_digest;
+using hven::CandidateValues;
+using hven::IdentityProbe;
+using hven::StructureEpoch;
 using hven::Vec;
-using hven::solvers::candidate_value_digest;
-using hven::solvers::CandidateValues;
-using hven::solvers::IdentityProbe;
-using hven::solvers::StructureEpoch;
 
 namespace {
 
@@ -71,8 +71,8 @@ TEST(IdentityProbeTest, SameEpochWithADifferentDigestIsNotTheSameProbe) {
 
 TEST(IdentityProbeTest, DefaultsToNothingLaidAndNoValues) {
     const IdentityProbe probe;
-    EXPECT_EQ(probe.epoch_, StructureEpoch());
-    EXPECT_EQ(probe.value_digest_, 0u);
+    EXPECT_EQ(probe.epoch, StructureEpoch());
+    EXPECT_EQ(probe.value_digest, 0u);
 }
 
 TEST(CandidateValueDigestTest, SameValuesHashEqual) {
@@ -107,14 +107,14 @@ TEST(AggregateProbeContract, TheProbeCarriesTheCurrentStructureEpoch) {
     Vec x = Vec::Zero(hven::model_tests::FakeAggregate::kPrimalVars);
 
     const IdentityProbe before = aggregate.probe_identity(x);
-    EXPECT_EQ(before.epoch_, aggregate.structure_epoch());
+    EXPECT_EQ(before.epoch, aggregate.structure_epoch());
 
     aggregate.relay_structures();
     const IdentityProbe after = aggregate.probe_identity(x);
-    EXPECT_EQ(after.epoch_, aggregate.structure_epoch());
+    EXPECT_EQ(after.epoch, aggregate.structure_epoch());
     EXPECT_NE(before, after);
     // Same point, so only the structural half moved.
-    EXPECT_EQ(before.value_digest_, after.value_digest_);
+    EXPECT_EQ(before.value_digest, after.value_digest);
 }
 
 TEST(AggregateProbeContract, TheProbeIsAValuesEvaluationPlusAHash) {
@@ -132,6 +132,6 @@ TEST(AggregateProbeContract, ADifferentPointMovesTheValueHalf) {
 
     const IdentityProbe at_x = aggregate.probe_identity(x);
     const IdentityProbe at_y = aggregate.probe_identity(y);
-    EXPECT_EQ(at_x.epoch_, at_y.epoch_);
-    EXPECT_NE(at_x.value_digest_, at_y.value_digest_);
+    EXPECT_EQ(at_x.epoch, at_y.epoch);
+    EXPECT_NE(at_x.value_digest, at_y.value_digest);
 }

@@ -1,0 +1,189 @@
+== hven PCH neutrality check
+   source:    /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221
+   scratch:   /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-b3/pch-check
+   jobs:      16
+   PCH TUs:   4 (from _hven_pch_sources in src/CMakeLists.txt)
+   compiler:  /usr/bin/clang++ (project default; override by passing -DCMAKE_CXX_COMPILER=...)
+
+-- configuring PCH-enabled build
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-b3/pch-check/build-pch-on
+-- building PCH-enabled build
+[1/55] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/55] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/55] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[4/55] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[5/55] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/55] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[7/55] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[8/55] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[9/55] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[10/55] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[11/55] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[12/55] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[13/55] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[14/55] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[15/55] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[16/55] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[17/55] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[18/55] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[19/55] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[20/55] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[21/55] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[22/55] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[23/55] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[24/55] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[25/55] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[26/55] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[27/55] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[28/55] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[29/55] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[30/55] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[31/55] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[32/55] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[33/55] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[34/55] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[35/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[36/55] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[37/55] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[38/55] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[39/55] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[40/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[41/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[42/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[43/55] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[44/55] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[45/55] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[46/55] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/src/drivers/sqp_solver.cpp:6123:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6123 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[47/55] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[48/55] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[49/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[50/55] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[51/55] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[52/55] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[53/55] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[54/55] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[55/55] Linking CXX static library libhven.a
+
+-- configuring PCH-disabled build
+-- The CXX compiler identification is Clang 22.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-b3/pch-check/build-pch-off
+-- building PCH-disabled build
+[1/54] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/54] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/54] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[4/54] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[5/54] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/54] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[7/54] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[8/54] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[9/54] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[10/54] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[11/54] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[12/54] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[13/54] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[14/54] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[15/54] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[16/54] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[17/54] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[18/54] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[19/54] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[20/54] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[21/54] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[22/54] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[23/54] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[24/54] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[25/54] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[26/54] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[27/54] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[28/54] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[29/54] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[30/54] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[31/54] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[32/54] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[33/54] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[34/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[35/54] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[36/54] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[37/54] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[38/54] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[39/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[40/54] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[41/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[42/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[43/54] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[44/54] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[45/54] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[46/54] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/src/drivers/sqp_solver.cpp:6123:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6123 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[47/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[48/54] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[49/54] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[50/54] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[51/54] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[52/54] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[53/54] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[54/54] Linking CXX static library libhven.a
+
+-- checking the PCH was actually engaged
+   compiled PCH artifacts found: 1
+PASS: PCH engaged on 4 translation units in /home/ghecht/Projects/hven/.claude/worktrees/agent-a3b067b098f5e9221/build-b3/pch-check/build-pch-on (expected 4).
+
+-- comparing every hven object between the two builds
+   object count matches the compile database: 53/53
+   libhven.a: identical
+   objects compared: 54, differing: 0
+
+PASS: PCH engaged on 4 translation units, and all 54
+      emitted artifacts are byte-identical with and without it.

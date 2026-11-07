@@ -7,13 +7,13 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// kappa_soc — required per-correction reduction factor in the constraint
 /// violation (Wächter & Biegler 2006, §2.4): a correction is worth continuing
@@ -31,7 +31,7 @@ inline constexpr int kSocRecommendedMaxCorrections = 4;
 /// index 0) was the one rejected AND that trial did not reduce the constraint
 /// violation relative to the current iterate. A negative theta means "no
 /// infeasibility reading available" (the LANG merit variant records none;
-/// -1 is IterateInfo's unset sentinel), in which case SOC conservatively does
+/// -1 is IpmIterate's unset sentinel), in which case SOC conservatively does
 /// not trigger.
 ///
 /// @param current_infeasibility Must be the SAME quantity
@@ -46,10 +46,10 @@ inline constexpr int kSocRecommendedMaxCorrections = 4;
 /// current_infeasibility is not tolerance-zeroed. The zeroing can only SHRINK
 /// the trial-side theta, making the trigger HARDER to satisfy — the asymmetry
 /// suppresses SOC near feasibility and can never spuriously fire it.
-inline bool soc_should_trigger(const IterateInfo &citer, double current_infeasibility) {
-    if (citer.first_rejection_iter_ != 0)
+inline bool soc_should_trigger(const IpmIterate &citer, double current_infeasibility) {
+    if (citer.first_rejection_iter != 0)
         return false;
-    const double trial_infeasibility = citer.theta_at_first_rejection_;
+    const double trial_infeasibility = citer.theta_at_first_rejection;
     if (trial_infeasibility < 0.0)
         return false;
     return trial_infeasibility >= current_infeasibility;
@@ -88,7 +88,7 @@ struct SocCorrectionOutcome {
 /// with a scripted lambda. The first correction always runs once triggered;
 /// subsequent ones are gated by soc_should_continue.
 template <class CorrectionFn>
-RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, int &soc_steps,
+RecoveryChain::Action soc_run_loop(double first_trial_violation, int max_soc, Index &soc_steps,
                                    CorrectionFn &&do_correction) {
     double prev_violation = first_trial_violation;
     int corrections = 0;
@@ -143,14 +143,14 @@ class SocRecovery : public RecoveryChain {
   public:
     SocRecovery() = default;
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Stateless (per RecoveryChain's ownership rule): nothing to clear.
     void reset() override {}
@@ -166,4 +166,4 @@ class SocRecovery : public RecoveryChain {
                                 Eigen::VectorXd &xsl2_scratch, Eigen::VectorXd &cons_out);
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

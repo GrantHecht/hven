@@ -9,7 +9,8 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -199,8 +200,9 @@ TEST(QpWarmStart, DeltaMuOverrideForcesRefactorization) {
     qp.g.array() += 1e-3;
     auto oracle = solve_dense_oracle(qp);
 
-    SolveOverrides overrides;
-    overrides.dual_mu = QpOptions{}.dual_mu * 10.0; // 1e-7 vs the engine's 1e-8 default.
+    QpSolveOverrides overrides;
+    overrides.dual_regularization =
+        QpOptions{}.dual_regularization * 10.0; // 1e-7 vs the engine's 1e-8 default.
     auto warm = engine.solve(qp, cold, overrides);
 
     ASSERT_EQ(warm.status, QpStatus::kOptimal);
@@ -447,8 +449,8 @@ QpProblem row_and_bound_qp(double c0, double c1, double bi) {
 // wrongly accept.
 TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     QpOptions opts;
-    opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
-    opts.schur_cap = 1;
+    opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    opts.max_schur_border_dimension = 1;
 
     QpProblem qpA = row_and_bound_qp(1.0, 2.0, 1.0); // optimum (0, 1): row + x0 bound active
     QpEngine engine_p{opts};
@@ -467,7 +469,7 @@ TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     QpSolution seed = sol_a;
     seed.x = Vec::Zero(2);
     QpEngine engine_c{opts};
-    const QpSolution sol_c = engine_c.solve(qpB, seed, SolveOverrides{}, h1);
+    const QpSolution sol_c = engine_c.solve(qpB, seed, QpSolveOverrides{}, h1);
     ASSERT_EQ(sol_c.status, QpStatus::kOptimal);
     ASSERT_TRUE(sol_c.counters.k0_reused)
         << "C's own gate must pass (byte-identical H/Ai) for it to ever touch the shared object "

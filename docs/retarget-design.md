@@ -1,5 +1,7 @@
 # Interior-point linear-solver retarget design
 
+> Historical record (M3-era retarget design). Names in this document are the API of that time; the current names are in `docs/notes/2026-11-m8-ap2-b8-naming.md`.
+
 > **SURFACE VERDICT (adjudicated):** the current
 > `hven::linear::SymmetricFactor::Options` surface does not reproduce every
 > *act* in psiopt's proven configuration. Three gaps were found; each now

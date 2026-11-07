@@ -19,13 +19,13 @@
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/threading_flags.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
-#include "hven/solver_interface_adapter.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/solver_indexing_data.h"
+#include "hven/model/solver_interface_adapter.h"
+#include "hven/model/threading_flags.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The residual x - value as a solver constraint: one variable in, one
 /// constraint row out, per application.
@@ -55,7 +55,7 @@ struct FixedVariableRow {
     void constraints(ConstEigenRef<Eigen::VectorXd> X, EigenRef<Eigen::VectorXd> FX,
                      const SolverIndexingData &data) const {
         for (int V = 0; V < data.num_appl(); V++) {
-            FX[data.inner_constraint_starts_[V]] = this->residual(X, data, V);
+            FX[data.inner_constraint_starts[V]] = this->residual(X, data, V);
         }
     }
 
@@ -64,9 +64,9 @@ struct FixedVariableRow {
                                      EigenRef<Eigen::VectorXd> AGX,
                                      const SolverIndexingData &data) const {
         for (int V = 0; V < data.num_appl(); V++) {
-            FX[data.inner_constraint_starts_[V]] = this->residual(X, data, V);
+            FX[data.inner_constraint_starts[V]] = this->residual(X, data, V);
             // The adjoint gradient is J^T * l, and J is 1.
-            AGX[data.inner_gradient_starts_[V]] = L[data.c_loc(0, V)];
+            AGX[data.inner_gradient_starts[V]] = L[data.c_loc(0, V)];
         }
     }
 
@@ -77,7 +77,7 @@ struct FixedVariableRow {
                               std::vector<std::mutex> &KKTLocks,
                               const SolverIndexingData &data) const {
         for (int V = 0; V < data.num_appl(); V++) {
-            FX[data.inner_constraint_starts_[V]] = this->residual(X, data, V);
+            FX[data.inner_constraint_starts[V]] = this->residual(X, data, V);
             this->scatter_jacobian(V, KKTmat, KKTLocations, KKTClashes, KKTLocks, data);
         }
     }
@@ -89,8 +89,8 @@ struct FixedVariableRow {
         EigenRef<Eigen::VectorXi> KKTLocations, EigenRef<Eigen::VectorXi> KKTClashes,
         std::vector<std::mutex> &KKTLocks, const SolverIndexingData &data) const {
         for (int V = 0; V < data.num_appl(); V++) {
-            FX[data.inner_constraint_starts_[V]] = this->residual(X, data, V);
-            AGX[data.inner_gradient_starts_[V]] = L[data.c_loc(0, V)];
+            FX[data.inner_constraint_starts[V]] = this->residual(X, data, V);
+            AGX[data.inner_gradient_starts[V]] = L[data.c_loc(0, V)];
             this->scatter_jacobian(V, KKTmat, KKTLocations, KKTClashes, KKTLocks, data);
         }
     }
@@ -124,9 +124,9 @@ struct FixedVariableRow {
     void get_kkt_space(EigenRef<Eigen::VectorXi> KKTrows, EigenRef<Eigen::VectorXi> KKTcols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
                        SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(data.num_appl());
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int V = 0; V < data.num_appl(); V++) {
-            data.inner_kkt_starts_[V] = freeloc;
+            data.inner_kkt_starts[V] = freeloc;
             if (!dojac) {
                 continue;
             }
@@ -154,7 +154,7 @@ struct FixedVariableRow {
     /// has a single element.
     ///
     /// The lock protocol is the shared one (see kkt_canonical_lock_col in
-    /// indexing_data.h): a Jacobian element's canonical lock column is the
+    /// solver_indexing_data.h): a Jacobian element's canonical lock column is the
     /// variable's own column, since constraint rows sort above every variable
     /// column, and the column is left unlocked when this application's
     /// constraint rows are unique to it, so no other partition can be writing
@@ -168,8 +168,8 @@ struct FixedVariableRow {
             // Eliminated variable: the claim exists, the matrix entry does not.
             return;
         }
-        const int freeloc = data.inner_kkt_starts_[Apl];
-        const bool lock_column = !data.unique_constraints_ && (VarClashes[active] != -1);
+        const int freeloc = data.inner_kkt_starts[Apl];
+        const bool lock_column = !data.unique_constraints && (VarClashes[active] != -1);
         if (lock_column) {
             ClashLocks[VarClashes[active]].lock();
         }
@@ -182,9 +182,14 @@ struct FixedVariableRow {
 
 // A plain value type, not an erased handle, so it is stored as itself: one
 // erasure, one virtual dispatch per solver call. Registered here, beside the
-// definition, per the placement rule in hven/solver_interface_adapter.h.
+// definition, per the placement rule in hven/model/solver_interface_adapter.h.
+} // namespace hven::detail
+
 template <>
-struct SolverInterfaceAdapter<FixedVariableRow> : DirectFunctionModel<FixedVariableRow> {};
+struct hven::SolverInterfaceAdapter<hven::detail::FixedVariableRow>
+    : hven::DirectFunctionModel<hven::detail::FixedVariableRow> {};
+
+namespace hven::detail {
 
 /// @brief Builds one internal equality row pinning primal variable @p index
 /// to @p value and writing constraint row @p row, addressed over the problem's
@@ -217,8 +222,8 @@ inline ConstraintFunction make_fixed_variable_row(int index, double value, int r
     // The policy the transcription gives a thread-safe single-application
     // function, so these rows spread over the work partitions the same way the
     // user's own single-application constraints do.
-    fix_row.set_thread_mode(ThreadingFlags::RoundRobin);
+    fix_row.set_thread_mode(ThreadingFlags::kRoundRobin);
     return fix_row;
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

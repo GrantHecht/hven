@@ -24,15 +24,17 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_solver.h>
 
 #include "support/e1_cells.h"
 #include "support/scale_problems.h"
 
-namespace hven::solvers::e1arm {
+using namespace hven::detail;
+
+namespace hven::e1arm {
 
 using test_support::F7CollocationChain;
 
@@ -466,10 +468,10 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     row.active_true = static_cast<Index>(cell.active.size());
 
     QpOptions qopts;
-    qopts.tr_radius = std::numeric_limits<double>::infinity();
+    qopts.trust_region_radius = std::numeric_limits<double>::infinity();
     IpqpEngine tier(qopts);
     const auto t0 = std::chrono::steady_clock::now();
-    const IpqpResult r = tier.solve(cell.qp, nullptr, iopts, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, iopts, QpSolveOverrides{});
     row.wall_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
     if (static_cast<Index>(r.ineq_face.size()) != row.mi) {
@@ -526,7 +528,7 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
         QpEngine polish(qopts);
         QpSolution refined;
         row.e2e_polished = polish.refine_on_face(cell.qp, ipqp_result_to_qp_solution(r),
-                                                 SolveOverrides{}, refined);
+                                                 QpSolveOverrides{}, refined);
         row.e2e_factorizations += refined.counters.factorizations;
         if (row.e2e_polished) {
             x_end = refined.x;
@@ -573,4 +575,4 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     return row;
 }
 
-} // namespace hven::solvers::e1arm
+} // namespace hven::e1arm

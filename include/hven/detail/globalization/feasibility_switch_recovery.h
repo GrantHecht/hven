@@ -10,7 +10,7 @@
 
 #include "hven/detail/globalization/recovery_chain.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Soft feasibility pre-stage constant: a soft step is accepted while its trial
 /// primal-dual error is at most this fraction of the current one (Ipopt's
@@ -88,14 +88,14 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
                 "FeasibilitySwitchRecovery: inner recovery chain must not be null");
     }
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// A genuinely accepted regular step means the ordinary optimality-phase
     /// acceptance test recovered, so any soft pre-stage in progress has ended:
@@ -124,4 +124,4 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
     int soft_counter_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

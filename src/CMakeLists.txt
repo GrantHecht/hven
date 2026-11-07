@@ -55,18 +55,22 @@ endif()
 # surface, and it sits in this block rather than the engine block below because
 # it is a second provider of the contract and names no engine type. The
 # triplet-to-native conversion sits here on the same footing: it is a provider
-# of the model contract and names no engine type either.
+# of the model contract and names no engine type either, and so do the Nlp
+# callback contract's default members.
 ################################################################################
 
 target_sources(hven PRIVATE
+    model/nlp.cpp
     model/assembly_declaration.cpp
+    model/validation_errors.cpp
     model/nlp_model_assembly.cpp
     model/nlp_problem_model.cpp
 )
 
 ################################################################################
-# The shared solve-outcome vocabulary (include/hven/drivers/solve_status.h). Its
-# own block because it belongs to neither engine: the status both report and the
+# The shared solve-outcome vocabulary (core/solver_status.h), the interior-point
+# phase-status resolution (detail/drivers/ipm_phase_status.h), the shared declared
+# diagnostics and the one-line stop message. Its own block because it belongs to neither engine: the status both report and the
 # mappings from the two engine-native enums onto it. A TU on the same footing as
 # core/enum_names.cpp -- switches over enums, not a per-element path.
 ################################################################################
@@ -74,11 +78,13 @@ target_sources(hven PRIVATE
 target_sources(hven PRIVATE
     drivers/solve_status.cpp
     drivers/solve_result.cpp
+    drivers/result_message.cpp
+    drivers/callback_rows.cpp
 )
 
 ################################################################################
 # Interior-point engine — the top-level IpmSolver algorithm
-# (drivers/), the NlpTripletModel contract with its adapter and the
+# (drivers/), the Nlp contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
 # interior-point machinery under include/hven/detail/ (interior/ +
 # globalization/), split along those same seams.
@@ -86,11 +92,14 @@ target_sources(hven PRIVATE
 
 target_sources(hven PRIVATE
     drivers/ipm_solver.cpp
+    drivers/ipm_solver_handle.cpp
     drivers/ipm_solver_globalization.cpp
+    drivers/common_options.cpp
     drivers/ipm_options.cpp
     drivers/solver_init.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
+    model/problem.cpp
     interior/kkt_factorization.cpp
     interior/utils/color_text.cpp
     interior/utils/get_core_count.cpp
@@ -207,6 +216,7 @@ target_sources(hven PRIVATE
     drivers/equality_basis.cpp
     drivers/problem_scaling.cpp
     drivers/sqp_solver.cpp
+    drivers/sqp_solver_handle.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     drivers/trace.cpp
@@ -227,9 +237,9 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
-# The warm-start currency (include/hven/warmstart/warm_start_data.h). Its own
+# The warm-start currency (include/hven/warmstart/warm_start.h). Its own
 # block rather than part of the engine blocks above, because it is neither
-# engine's: WarmStartData is the value a consumer holds BETWEEN solves, and the
+# engine's: WarmStart is the value a consumer holds BETWEEN solves, and the
 # component names no engine type and includes no engine header. Its TU carries
 # the byte form -- the layout, the bounds-checked decode, and the refusals --
 # which is orchestration-shaped, non-template code that CLAUDE.md section 5
@@ -518,7 +528,7 @@ endif()
 # 43 as of drivers/solve_result.cpp (M6 W5 T8.4): the shared declared
 # diagnostics' one definition. Stays OUT on the same unmeasured-default footing
 # as the fourteen above. It includes its own header (core/types.h,
-# drivers/solve_status.h and warmstart/warm_start_data.h), fmt/format.h and
+# warmstart/warm_start.h), fmt/format.h and
 # three standard headers -- a different set in a different order from the one
 # src/hven_pch.h prefixes.
 #
@@ -526,7 +536,7 @@ endif()
 # tables, rendered from the trace stream. NOT a PCH source, on the same
 # unmeasured-default footing as the fifteen above -- it includes its own header
 # (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_solver.h,
-# detail/interior/iterate_info.h and three standard headers, again a different
+# drivers/ipm_iterate.h and three standard headers, again a different
 # set in a different order from src/hven_pch.h's prefix.
 #
 # 43 as of M6 W5 T8.7b, which DELETED drivers/interior_point_solver_print.cpp.
@@ -565,7 +575,26 @@ endif()
 # 48 as of globalization/sqp/qn_models.cpp (M7 QN quality): the full-memory damped BFGS and
 # the nonlinear-variables-only restriction. NOT a PCH source, on the same unmeasured-default
 # footing.
-set(_hven_expected_source_count 48)
+# 49 as of model/validation_errors.cpp (M8 AP-2 B1): the cold throw-message paths of the model
+# contract's inline checks. NOT a PCH source, on the same unmeasured-default footing: it
+# includes fmt and the four model headers, a different set from src/hven_pch.h's prefix.
+# 50, 51 as of drivers/ipm_solver_handle.cpp and drivers/sqp_solver_handle.cpp (M8 AP-2 B1):
+# the public IpmSolver / SqpSolver handles' forwarding bodies. NOT PCH sources, on the same
+# footing: each includes only its implementation header.
+# 52, 53 as of model/nlp.cpp and model/problem.cpp (M8 AP-2 B2): the Nlp contract's default
+# members and the Problem every solve takes. NOT PCH sources, on the same unmeasured-default
+# footing: nlp.cpp includes its own header and fmt; problem.cpp the model transcription
+# headers in its own order, a different set from src/hven_pch.h's prefix.
+# 54 as of drivers/common_options.cpp (M8 AP-2 B3): the one CommonOptions validator. NOT a PCH
+# source, on the same unmeasured-default footing: it includes only its own header, fmt and
+# the standard library.
+# 55 as of drivers/result_message.cpp (M8 AP-2 B4): the one-line stop message built by the
+# public handles. NOT a PCH source, on the same footing: it includes only its own header,
+# the option and result headers, fmt and the standard library.
+# 56 as of drivers/callback_rows.cpp (M8 AP-2 B4): the row-space compose of an iteration
+# event's multipliers. NOT a PCH source, on the same footing: it includes only its own header
+# and the problem access header.
+set(_hven_expected_source_count 56)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

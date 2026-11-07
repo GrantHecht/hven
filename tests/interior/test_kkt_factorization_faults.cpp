@@ -39,9 +39,9 @@
 namespace {
 
 using hven::SpMatRM;
+using hven::detail::KktFactorization;
 using hven::linear::detail::testing::AnalyzeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
-using hven::solvers::KktFactorization;
 
 // An ordinary, healthy 2x2 system: diag(2, -3), one positive and one negative
 // eigenvalue. Every test below makes the INJECTED fault the reason a
@@ -56,8 +56,8 @@ SpMatRM fault_probe_matrix() {
 
 KktFactorization::Options fault_probe_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLDLT;
-    opts.num_threads = 1;
+    opts.decomposition = hven::linear::Decomposition::kLdlt;
+    opts.threads = 1;
     return opts;
 }
 
@@ -275,7 +275,7 @@ TEST(KktFactorizationFaultTest, PardisoFailedFactorizationReportsNoInertia) {
     // says so, and also carries the state the three ints have no room for.
     EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
     EXPECT_FALSE(kkt.inertia_evidence().perturbed_pivots.has_value());
-    EXPECT_LT(kkt.inertia_evidence().n_zero, 0);
+    EXPECT_LT(kkt.inertia_evidence().zero, 0);
 }
 
 #endif

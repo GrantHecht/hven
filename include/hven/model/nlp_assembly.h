@@ -10,7 +10,7 @@
 // It sits BESIDE NlpModel, never over it. NlpModel is one problem's callbacks;
 // NlpAssembly is a collection of pieces and the arenas they claim out of. A
 // bridge implementing this interface over an NlpModel is how a single-model
-// problem reaches this level, and neither NlpModel nor NlpTripletModel gains a
+// problem reaches this level, and neither NlpModel nor Nlp gains a
 // method, a base class or an obligation from anything in this header.
 //
 // CONCURRENCY POSTURE, part of the contract: an aggregate is inside at most
@@ -47,15 +47,30 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include <fmt/format.h>
-
 #include "hven/core/types.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
+
+namespace detail {
+
+// Cold paths of this header's argument checks. Each throws std::invalid_argument;
+// the message is built out of line (src/model/validation_errors.cpp) so this
+// header needs no formatting library and the inline check stays small.
+[[noreturn]] void throw_arena_view_missing(const char *arena, std::uint32_t flag,
+                                           const char *missing);
+[[noreturn]] void throw_residual_arena_view_missing(const char *arena, Eigen::Index declared_rows,
+                                                    const char *missing);
+[[noreturn]] void throw_residual_arena_size(const char *arena, Eigen::Index view_rows,
+                                            Eigen::Index declared_rows);
+[[noreturn]] void throw_objective_slot_missing(std::uint32_t flag);
+[[noreturn]] void throw_kkt_view_empty(std::uint32_t flags);
+[[noreturn]] void throw_bound_destination_mismatch(const double *view_values, const double *bound);
+
+} // namespace detail
 
 /// What a provider DECLARES about how it does its work -- never about what it
 /// is allowed to return.
@@ -142,14 +157,10 @@ namespace detail {
 /// view under a naming request is incoherent rather than degenerate.
 inline void require_arena_view(const RhsArenaView &view, EvalRequest flag, const char *arena) {
     if (view.empty()) {
-        const char *missing = view.values_ == nullptr      ? "storage"
-                              : view.locations_ == nullptr ? "location table"
-                                                           : "rows (its length is zero)";
-        throw std::invalid_argument(
-            fmt::format("assemble: the request names the {0} (flag 0x{1:x}), but that arena's "
-                        "scatter view supplies no {2}. A request may leave empty only the arenas "
-                        "it does NOT name; see the mapping table in model/candidate_point.h",
-                        arena, static_cast<std::uint32_t>(flag), missing));
+        const char *missing = view.values == nullptr      ? "storage"
+                              : view.locations == nullptr ? "location table"
+                                                          : "rows (its length is zero)";
+        detail::throw_arena_view_missing(arena, static_cast<std::uint32_t>(flag), missing);
     }
 }
 
@@ -174,17 +185,12 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
     if (declared_rows == 0) {
         return;
     }
-    if (view.locations_ == nullptr || view.values_ == nullptr) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the request names the {0} arena, whose declared length is {1}, but the "
-            "view supplies no {2}",
-            arena, declared_rows, view.values_ == nullptr ? "storage" : "location table"));
+    if (view.locations == nullptr || view.values == nullptr) {
+        detail::throw_residual_arena_view_missing(
+            arena, declared_rows, view.values == nullptr ? "storage" : "location table");
     }
-    if (view.size_ != declared_rows) {
-        throw std::invalid_argument(
-            fmt::format("assemble: the {0} arena's view is {1} rows, but the aggregate declares "
-                        "{2} {0} rows",
-                        arena, view.size_, declared_rows));
+    if (view.size != declared_rows) {
+        detail::throw_residual_arena_size(arena, view.size, declared_rows);
     }
 }
 
@@ -216,26 +222,24 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 /// why the gradient arenas are not checked the same way.
 inline void validate_request_destinations(EvalRequest request, const AssemblyDeclaration &declared,
                                           const KktScatterView &kkt, const RhsScatterView &rhs) {
-    if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
-        throw std::invalid_argument(
-            fmt::format("assemble: the request names the objective value (flag 0x{0:x}), but no "
-                        "out slot was supplied for it",
-                        static_cast<std::uint32_t>(EvalRequest::kObjectiveValue)));
+    if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective == nullptr) {
+        detail::throw_objective_slot_missing(
+            static_cast<std::uint32_t>(EvalRequest::kObjectiveValue));
     }
     if (has_request(request, EvalRequest::kObjectiveGradient)) {
-        detail::require_arena_view(rhs.objective_gradient_, EvalRequest::kObjectiveGradient,
+        detail::require_arena_view(rhs.objective_gradient, EvalRequest::kObjectiveGradient,
                                    "objective gradient");
     }
     if (has_request(request, EvalRequest::kConstraintValues)) {
         // One flag, two arenas: no evaluation shape produces one residual block
         // without the other, so naming the flag names both destinations.
-        detail::require_residual_arena(rhs.equality_residuals_, declared.equality_rows_,
+        detail::require_residual_arena(rhs.equality_residuals, declared.equality_rows,
                                        "equality residual");
-        detail::require_residual_arena(rhs.inequality_residuals_, declared.inequality_rows_,
+        detail::require_residual_arena(rhs.inequality_residuals, declared.inequality_rows,
                                        "inequality residual");
     }
     if (has_request(request, EvalRequest::kConstraintAdjointGradient)) {
-        detail::require_arena_view(rhs.constraint_adjoint_gradient_,
+        detail::require_arena_view(rhs.constraint_adjoint_gradient,
                                    EvalRequest::kConstraintAdjointGradient,
                                    "constraint adjoint gradient");
     }
@@ -245,10 +249,7 @@ inline void validate_request_destinations(EvalRequest request, const AssemblyDec
                                         EvalRequest::kConstraintJacobian |
                                         EvalRequest::kConstraintAdjointHessian;
     if ((request & kKktBearing) != EvalRequest::kNone && kkt.empty()) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the request names KKT-bearing output (flags 0x{0:x} of the request), but "
-            "the KKT scatter view is empty",
-            static_cast<std::uint32_t>(request & kKktBearing)));
+        detail::throw_kkt_view_empty(static_cast<std::uint32_t>(request & kKktBearing));
     }
 }
 
@@ -283,14 +284,8 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
     if (bound == nullptr || kkt.empty()) {
         return;
     }
-    if (kkt.values_ != bound) {
-        throw std::invalid_argument(fmt::format(
-            "assemble: the KKT scatter view names value array {0}, but this provider's location "
-            "tables were bound at analysis time to {1}. The destination bound at analysis no "
-            "longer matches the view; re-run the analysis against the destination you intend to "
-            "fill. (A consumer matrix that was resized or reallocated moves its value array, so "
-            "this is a stale location table being caught rather than a rejected argument.)",
-            fmt::ptr(kkt.values_), fmt::ptr(bound)));
+    if (kkt.values != bound) {
+        detail::throw_bound_destination_mismatch(kkt.values, bound);
     }
 }
 
@@ -563,10 +558,10 @@ class NlpAssembly {
                   RhsScatterView rhs) {
         const AssemblyDeclaration &declared = this->declaration();
         validate_eval_request(request);
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
         if (request_consumes_multipliers(request)) {
-            validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+            validate_full_multipliers(point, declared.equality_rows, declared.inequality_rows);
         }
         validate_request_destinations(request, declared, kkt, rhs);
         validate_bound_destination(this->bound_kkt_destination(), kkt);
@@ -605,9 +600,9 @@ class NlpAssembly {
     /// internals -- which is the whole point of the surface existing.
     void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) {
         const AssemblyDeclaration &declared = this->declaration();
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
-        validate_candidate_values(out, declared.equality_rows_, declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
+        validate_candidate_values(out, declared.equality_rows, declared.inequality_rows);
         this->evaluate_candidate_values_impl(point, out);
     }
 
@@ -635,11 +630,11 @@ class NlpAssembly {
     /// and a scorer that skips those rows is insensitive to the difference.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
         const AssemblyDeclaration &declared = this->declaration();
-        validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
-                                 declared.inequality_rows_);
-        validate_candidate_first_order(out, declared.primal_vars_, declared.equality_rows_,
-                                       declared.inequality_rows_);
-        validate_full_multipliers(point, declared.equality_rows_, declared.inequality_rows_);
+        validate_candidate_point(point, declared.primal_vars, declared.equality_rows,
+                                 declared.inequality_rows);
+        validate_candidate_first_order(out, declared.primal_vars, declared.equality_rows,
+                                       declared.inequality_rows);
+        validate_full_multipliers(point, declared.equality_rows, declared.inequality_rows);
         this->evaluate_candidate_first_order_impl(point, out);
     }
 
@@ -701,4 +696,4 @@ inline ModelStructureKey model_structure_key(const NlpAssembly &aggregate) {
     return aggregate.model_structure_key();
 }
 
-} // namespace hven::solvers
+} // namespace hven

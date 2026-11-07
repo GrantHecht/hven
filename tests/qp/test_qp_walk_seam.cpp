@@ -42,17 +42,18 @@
 
 #include <hven/detail/qp/qp_engine.h>
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
-using Route = hven::solvers::detail::testing::QpWalkDropRoute;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
-using EqpPath = hven::solvers::detail::testing::QpWalkEqpPath;
-using InertiaState = hven::solvers::detail::testing::QpWalkInertiaState;
-using RideOutcome = hven::solvers::detail::testing::QpWalkRideOutcome;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
+using Route = hven::detail::testing::QpWalkDropRoute;
+using Record = hven::detail::testing::QpWalkMinorRecord;
+using EqpPath = hven::detail::testing::QpWalkEqpPath;
+using InertiaState = hven::detail::testing::QpWalkInertiaState;
+using RideOutcome = hven::detail::testing::QpWalkRideOutcome;
 
 namespace {
 
@@ -1023,9 +1024,9 @@ TEST(QpWalkSeam, TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatfor
               static_cast<int>(first.state))
         << "this platform's backend did not report inertia at all: the premise below is untested";
     EXPECT_EQ(static_cast<int>(first.state), static_cast<int>(second.state));
-    EXPECT_EQ(first.n_pos, second.n_pos);
-    EXPECT_EQ(first.n_neg, second.n_neg);
-    EXPECT_EQ(first.n_zero, second.n_zero);
+    EXPECT_EQ(first.positive, second.positive);
+    EXPECT_EQ(first.negative, second.negative);
+    EXPECT_EQ(first.zero, second.zero);
     EXPECT_EQ(first.zero_is_derived, second.zero_is_derived);
     EXPECT_EQ(first.perturbed_pivots.has_value(), second.perturbed_pivots.has_value());
     if (first.perturbed_pivots.has_value() && second.perturbed_pivots.has_value()) {
@@ -1033,13 +1034,13 @@ TEST(QpWalkSeam, TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatfor
     }
     // NON-VACUITY: the matrix really is indefinite, so a triple that agreed
     // only because it was all zeros would not pass here.
-    EXPECT_GT(first.n_pos, 0);
-    EXPECT_GT(first.n_neg, 0);
+    EXPECT_GT(first.positive, 0);
+    EXPECT_GT(first.negative, 0);
     // And the accessor agrees with the factorization's own returned evidence,
     // which is the other object the engine could have read.
     EXPECT_EQ(static_cast<int>(outcome.inertia.state), static_cast<int>(first.state));
-    EXPECT_EQ(outcome.inertia.n_pos, first.n_pos);
-    EXPECT_EQ(outcome.inertia.n_neg, first.n_neg);
+    EXPECT_EQ(outcome.inertia.positive, first.positive);
+    EXPECT_EQ(outcome.inertia.negative, first.negative);
 }
 
 TEST(QpWalkSeam, ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals) {
@@ -1240,8 +1241,8 @@ TEST(QpWalkSeam, TheRegularizationAndResidualsAreRecordedOnEveryPass) {
         for (const Record &r : Obs::records) {
             SCOPED_TRACE(r.minor);
             // The EFFECTIVE pair, which §4b's suspect ladder can only raise.
-            EXPECT_GE(r.primal_delta, defaults.primal_delta);
-            EXPECT_EQ(defaults.dual_mu, r.dual_mu);
+            EXPECT_GE(r.primal_delta, defaults.primal_regularization);
+            EXPECT_EQ(defaults.dual_regularization, r.dual_mu);
             // Residual norms: finite, non-negative, and a scale of at least 1
             // by free_block_stationarity's own construction.
             EXPECT_FALSE(std::isnan(r.stat_free_inf));
@@ -1257,8 +1258,8 @@ TEST(QpWalkSeam, TheRegularizationAndResidualsAreRecordedOnEveryPass) {
 // --- (3) THE SIGNATURE ---------------------------------------------------
 
 TEST(QpWalkSeam, TheSignatureIsOrderIndependentSideSensitiveAndIdentitySensitive) {
-    using hven::solvers::detail::testing::qp_walk_ws_signature;
-    using hven::solvers::detail::testing::qp_walk_ws_size;
+    using hven::detail::testing::qp_walk_ws_signature;
+    using hven::detail::testing::qp_walk_ws_size;
 
     WorkingSet a(4, 3);
     a.add_ineq(2);

@@ -1,0 +1,48 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-01T22:37:42-05:00
+0ba5d82441c5ab044e0f67e46907e963e77b107b0a8552a1b253a5de9c225656  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armA/hven_sqp_corpus
+7beeca673de33679a47a435ed025796d5676cbcde4b3fa005d82defd8edca3e0  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armB/hven_sqp_corpus
+R1 mode=walk rc=0 2026-11-01T23:06:24-05:00
+R1 analysis mode=walk rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=1.984702e+08 B=2.069973e+08  B/A=1.042964
+corpus branch-misses:u                    A=5.052173e+09 B=5.039620e+09  B/A=0.997515
+corpus branches:u                         A=4.225843e+11 B=4.225864e+11  B/A=1.000005
+corpus cycles:u                           A=9.359930e+11 B=9.346805e+11  B/A=0.998598
+R1 mode=ssn rc=0 2026-11-01T23:08:29-05:00
+R1 analysis mode=ssn rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=1.453121e+07 B=1.469440e+07  B/A=1.011231
+corpus branch-misses:u                    A=1.211661e+08 B=1.202510e+08  B/A=0.992447
+corpus branches:u                         A=2.535523e+10 B=2.536004e+10  B/A=1.000190
+corpus cycles:u                           A=5.777368e+10 B=5.780085e+10  B/A=1.000470
+R1 mode=ipm rc=0 2026-11-01T23:11:07-05:00
+R1 analysis mode=ipm rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=4.446764e+07 B=4.208149e+07  B/A=0.946340
+corpus branch-misses:u                    A=1.238078e+08 B=1.233945e+08  B/A=0.996662
+corpus branches:u                         A=3.593383e+10 B=3.593851e+10  B/A=1.000130
+corpus cycles:u                           A=7.727804e+10 B=7.728929e+10  B/A=1.000146
+R1 mode=interior rc=0 2026-11-01T23:12:43-05:00
+R1 analysis mode=interior rc=0
+counter check: 3 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=9.401203e+06 B=1.006991e+07  B/A=1.071130
+corpus branch-misses:u                    A=3.680363e+07 B=3.674035e+07  B/A=0.998281
+corpus branches:u                         A=1.565939e+10 B=1.589674e+10  B/A=1.015157
+corpus cycles:u                           A=3.550573e+10 B=3.617553e+10  B/A=1.018865
+R2 mode=walk rc=0 2026-11-01T23:12:54-05:00
+R2 analysis mode=walk rc=0
+counter check: 10 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=1.846144e+06 B=1.851399e+06  B/A=1.002846
+corpus branch-misses:u                    A=3.206021e+07 B=3.207594e+07  B/A=1.000491
+corpus branches:u                         A=7.138215e+09 B=7.153412e+09  B/A=1.002129
+corpus cycles:u                           A=1.438723e+10 B=1.441059e+10  B/A=1.001624
+R2 mode=interior rc=0 2026-11-01T23:13:42-05:00
+R2 analysis mode=interior rc=0
+counter check: 1 (round,cell) pairs compared, 0 with a difference or missing
+corpus L1-icache-load-misses:u            A=9.888466e+06 B=9.973082e+06  B/A=1.008557
+corpus branch-misses:u                    A=3.677195e+07 B=3.635188e+07  B/A=0.988576
+corpus branches:u                         A=1.606947e+10 B=1.568223e+10  B/A=0.975902
+corpus cycles:u                           A=3.659049e+10 B=3.563561e+10  B/A=0.973903
+worst=0
+FOREGROUND_END 2026-11-01T23:13:42-05:00

@@ -12,7 +12,9 @@
 
 #include "hven/core/pattern_hash.h"
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 namespace {
 
@@ -28,7 +30,7 @@ std::size_t locate(const SpMatRM &k, Index row, Index col) {
     if (hit == end || *hit != static_cast<StorageIndex>(col)) {
         // Unreachable for a matrix just built from these triplets; a throw, not an assert,
         // because Release compiles asserts out and a wrong position corrupts k silently.
-        throw std::runtime_error(
+        throw std::logic_error(
             fmt::format("IpqpKktLayout: internal error -- entry ({}, {}) is missing from the "
                         "matrix just assembled from it",
                         row, col));
@@ -253,7 +255,7 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
             // The structure-key collision guard, in SsnEngine::sync_matrix's exact shape.
             // Both halves are needed: this one catches a colliding pattern that emits MORE
             // entries, the count check below one that emits fewer.
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "IpqpKktLayout: structure-key collision detected -- the reused pattern expects "
                 "{} entries but this problem emits more; refusing to write past the cached "
                 "position map",
@@ -262,7 +264,7 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
         values[value_pos_[t++]] += v;
     });
     if (t != expected) {
-        throw std::runtime_error(fmt::format(
+        throw std::logic_error(fmt::format(
             "IpqpKktLayout: structure-key collision detected -- the reused pattern expects {} "
             "entries but this problem emitted {}",
             expected, t));
@@ -281,4 +283,4 @@ void IpqpKktLayout::scatter(const SpMatRM &H, const SpMatRM &Ae, const SpMatRM &
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

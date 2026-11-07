@@ -1,0 +1,95 @@
+M8 AP-2 group B2 -- successor runtime gate B2-runtime-r5 -- DECLARATION
+(settler rulings C215, C216 and C217; committed before the first leg; never edited afterwards)
+================================================================================
+DISCLOSURE (r5). This successor follows r4's VOID (../runtime-r4/, ruling C217): r4's
+per-mode per-arm liveness guard was the settler's error applied to modes where the spin cannot
+occur -- the wall-clock spin happens only behind the IPM driver's ensure_solver_initialized()
+call_once, which the SQP modes (walk, ssn, ipm) never reach (the r2 -g record's mechanism,
+../runtime-r2/spin/). The guard is therefore now derived from that mechanism and applies to the
+INTERIOR mode only (per arm, excluded samples summed over the mode's processes and rounds > 0,
+else VOID). For walk, ssn and ipm there is no liveness guard: the excluded count is reported
+beside the filtered and all-samples sums (expected 0, filtered == all-samples). No earlier
+interior pass (r3 1.000827, r4 1.000817) is carried; all four modes are re-measured fresh. All
+else is verbatim from r4.
+DISCLOSURE (r4, carried). This successor follows r3's VOID (../runtime-r3/, ruling C216): r3's per-
+process filter-liveness guard (excluded samples > 0 in EVERY process) was the settler's
+specification error -- short cells legitimately sample no spin symbol -- and it voided r3's
+ipm leg at its first process. r3 stays FAILED; r3's interior pass (1.000827) is NOT carried:
+interior is re-measured fresh here. The ONE change from r3 is the guard, now per mode, per
+arm, evaluated at the end of each mode before that mode's verdict (see PARSER PRE-FLIGHT);
+everything else is verbatim from r3.
+DISCLOSURE (r3, carried). This successor follows r2's parser failure: r2's analyzer (../runtime-r2/
+analyze_r2.py) kept perf's two trailing '-' columns in each symbol name, so no excluded
+symbol matched and its "filtered" sum was the unfiltered sum (r2 FAIL 0.994514, an analyzer
+defect; r2 is frozen and stands as recorded). The instrument itself was chosen AFTER r1's
+result was known: r1 (../runtime/, interior instructions:u B/A = 1.008006) was diagnosed by
+a perf attribution that placed the excess in wall-clock spin symbols (MKL clock-frequency
+calibration and the time() polling it drives); the settler then specified this sampled,
+symbol-filtered criterion (C213), and a throttle preflight (../runtime-r2/PREFLIGHT-
+FINDING.txt) moved the period from 20000 to 200000 (C214). r2's post-hoc corrected reading
+of the same tables, 1.000785 (../runtime-r2/interior/corrected-reading.txt), is explanatory
+only and is not a result of this gate. The criterion below is IDENTICAL to r2's; only the
+parser is fixed and a fail-closed parser pre-flight is added.
+NOTE on symbol matching: matching is by exact symbol name after the trailing columns are
+stripped. perf names one clock symbol "clock_gettime@@GLIBC_2.17"; that is not the exact
+name "clock_gettime" and is not excluded (5 samples in the r2 tables), as in r2's corrected
+reading.
+
+ARMS
+  A  the pin, origin/m8 03d5d121: build-b2/armA/hven_sqp_corpus,
+     sha256 0ba5d82441c5ab044e0f67e46907e963e77b107b0a8552a1b253a5de9c225656
+  B  the B2 code head 75292af277a436bd3caafddbd3a959abbb8bfa86: build-b2/rel/bench/
+     hven_sqp_corpus copied to build-b2/armB-r5/, sha256
+     97222ee94cd3483a0961b52c8894d1f4bb543d69593e4f309228c99d76691a33
+     (identical to r2's and r3's declared arm B sha256; reused, no rebuild;
+     run_all.sh refuses to start on a sha256 mismatch for either arm)
+
+MODES  all four: interior, ipm, ssn, walk, run in that order. walk/ssn/ipm: each of the 27
+replay cells (docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt) is one process
+(--internal-run-one). interior: the top-level leg whole, one process (--engine interior
+--cells <27>).
+
+INSTRUMENT, per measured process (runtime_r5_leg.sh):
+  wait until `date +%N` < 5e6 (sub-second phase alignment), then
+  MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+    perf record -c 200000 -e instructions:u -- \
+    perf stat -x, -e instructions:u -- <arm binary> <cell args>
+  Samples are attributed with `perf report --comm hven_sqp_corpus --sort symbol -F
+  overhead,sample,sym`; the parser strips perf's trailing '-  -' columns.
+VALIDITY: every measured process must show THROTTLE events == 0 (perf report --stats). A
+  throttled process VOIDS its leg: the leg stops at once and the gate stops and is reported.
+  No re-run.
+PARSER PRE-FLIGHT (fail closed), new in r3:
+  (1) Before any leg, analyze_r5.py --preflight must reproduce, exactly, the hand-computed
+      total / excluded / filtered sums of fixture/perf-table-excerpt.txt recorded in
+      fixture/expected.txt (an excerpt of r2's recorded interior table). Failure: the gate
+      does not start (run_all.sh exit 7).
+  (2) Filter liveness, INTERIOR MODE ONLY (r5): per arm, the excluded samples summed over all
+      of that arm's processes in the mode, across all rounds, must be > 0; otherwise the leg
+      is VOID (analyzer exit 4), evaluated at the end of the mode before its verdict. No
+      liveness guard for walk, ssn, ipm. Any unparseable table line VOIDS the leg.
+ROUNDS 3, arm order alternated per round: r1 A->B, r2 B->A, r3 A->B (per cell for the
+  per-cell modes; per leg for interior). One untimed, unrecorded warm-up process per arm at
+  the start of each mode. taskset to one physical core (core 2).
+
+CRITERION, per mode: the FILTERED SUM -- the measured process's instructions:u samples
+  summed over every symbol EXCEPT exactly: difftime, difftime@plt,
+  mkl_serv_get_clocks_frequency, __vdso_time, __vdso_clock_gettime, time, clock_gettime.
+  Per (arm, cell) the median over the 3 rounds; per arm the sum of those medians; PASS for
+  the mode iff 0.995 <= B/A <= 1.005. The gate PASSES iff all four modes pass.
+REPORTED BESIDE IT, NEVER THE CRITERION: the raw perf-stat instructions:u (same
+  aggregation), the unfiltered sample sum, the excluded samples, per-round ratios.
+STOP CONDITION: counter identity on every (round, cell) pair -- each child row field for
+  field except wall_s; the interior corpus CSV by scripts/compare_replay.py, EXACT. Any
+  difference or missing row stops the gate.
+NOT RUN: the explanatory -g call-graph record (the r2 spin finding stands).
+
+ON FAIL (a mode outside the band, a VOID leg, a STOP, or a pre-flight failure): stop at that
+  point, commit the evidence, report it, do not re-run, do not change the criterion or the
+  analyzer after data.
+
+PROTOCOL: run_all.sh as `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial,
+alone; `pgrep -a hven_bench_cell` empty before the lock (its own command) and PGREP_EMPTY
+inside it; FOREGROUND_START/END; set -o pipefail; no timeout wrapper. perf.data files are
+deleted after their tables are written; the tables, perf stat outputs, throttle counts and
+CSVs are the evidence, in <mode>/. Hardware/toolchain: as ../riders/PROVENANCE.txt.

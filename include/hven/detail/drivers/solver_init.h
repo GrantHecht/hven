@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief Ensures the math runtime is initialized (thread pool, CPU dispatch,
 ///        memory allocators). Thread-safe (std::call_once).
@@ -16,4 +16,4 @@ namespace hven::solvers {
 ///         or 0.0 if already initialized.
 double ensure_solver_initialized();
 
-} // namespace hven::solvers
+} // namespace hven::detail

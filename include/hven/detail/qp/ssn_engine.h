@@ -42,16 +42,8 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
-namespace detail {
-
-// Bounds at or beyond this magnitude are ABSENT and contribute no FB row.
-// Identical value and meaning to qp_engine.h's kEngineInfBound and to the
-// +/-1e20 sentinel nlp_model.h/qp_problem.h document; restated rather than
-// reached for so this header depends on the QP data types only, not on the
-// walk's internals.
-inline constexpr double kSsnInfBound = 1e20;
 // The relative band below which a seeded bound price on an ABSENT side is read as
 // round-off rather than a caller error (SsnEngine::split_bound_multipliers).
 // 1024 ulps of 1.0. The band is this times max(1, ||z||_inf): the floor of 1 keeps a
@@ -282,7 +274,7 @@ struct SsnNorms {
 // What one factorization's reported inertia says about the system factorized.
 //
 // This is qp_engine.h's detail::InertiaVerdict, RESTATED rather than included,
-// for the same reason kSsnInfBound is: this header depends on the QP data types
+// so that this header depends on the QP data types
 // and the KKT factor helper, never on the walk's internals. The rules are that
 // header's exactly -- non-kObserved evidence routes to kSuspect, then perturbed
 // pivots (whose counts carry no information at all, including when they happen
@@ -301,15 +293,13 @@ inline SsnInertia ssn_inertia_verdict(const hven::linear::InertiaEvidence &e, In
     if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
         return SsnInertia::kSuspect;
     }
-    const Index pos = static_cast<Index>(e.n_pos);
-    const Index neg = static_cast<Index>(e.n_neg);
+    const Index pos = static_cast<Index>(e.positive);
+    const Index neg = static_cast<Index>(e.negative);
     if (pos + neg != expected_pos + expected_neg) {
         return SsnInertia::kSuspect;
     }
     return (pos == expected_pos && neg == expected_neg) ? SsnInertia::kOk : SsnInertia::kWrong;
 }
-
-} // namespace detail
 
 // Why a solve stopped somewhere other than a converged point. kNone is the
 // converged case, and all five escapes are reachable:
@@ -455,7 +445,7 @@ struct SsnOptions {
     Index soft_budget = 12;
 
     // The hard cap, on ATTEMPTS rather than on accepted steps. A solve that
-    // reaches it stops with QpStatus::kMaxIter and SsnEscape::kBudget. Must be
+    // reaches it stops with QpStatus::kIterationLimit and SsnEscape::kBudget. Must be
     // >= 0; 0 means "test the start point and take no step".
     //
     // The second-order verification is not an attempt and is not capped by this
@@ -731,9 +721,9 @@ class SsnEngine {
     const QpOptions &options() const { return opts_; }
 
     /// The LIVE factor's own thread count, read through to the backend session
-    /// (SymmetricFactor::num_threads()) rather than a stored copy -- a boundary
+    /// (SymmetricFactor::threads()) rather than a stored copy -- a boundary
     /// observation of the factor this tier actually solves through.
-    int num_threads() const noexcept { return kkt_.factor.num_threads(); }
+    int num_threads() const noexcept { return kkt_.factor.threads(); }
 
     // Solve `qp` from `start`. `out` must be non-null and is fully overwritten.
     //
@@ -743,13 +733,13 @@ class SsnEngine {
     // distinguished from SOLVER outcomes: a solve that cannot make progress
     // reports a status and an SsnEscape and does not throw.
     //
-    // This overload forwards a default-constructed SolveOverrides, which
+    // This overload forwards a default-constructed QpSolveOverrides, which
     // resolves to every opts_ value unchanged, so it is BYTE-IDENTICAL to
     // solving with no override support at all -- the same guarantee
     // QpEngine's plain overloads carry (qp_types.h).
     void solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts, SsnResult *out);
 
-    // The per-solve seam. Takes the WALK's own SolveOverrides rather than a
+    // The per-solve seam. Takes the WALK's own QpSolveOverrides rather than a
     // parallel type, and every field's sentinel and resolution rule is
     // qp_types.h's unchanged.
     //
@@ -762,7 +752,7 @@ class SsnEngine {
     // Jacobian and never the residual. They cost iterations, not accuracy, which
     // is the opposite trade from the walk.
     void solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
-               const SolveOverrides &overrides, SsnResult *out);
+               const QpSolveOverrides &overrides, SsnResult *out);
 
     // THE DEFERRED CERTIFICATION'S TWO CLOSING MOVES. Both throw if called
     // when nothing is pending -- a caller that closes a deferral twice, or
@@ -797,12 +787,12 @@ class SsnEngine {
     // -----------------------------------------------------------------------
     // Validation
     // -----------------------------------------------------------------------
-    // qp_types.h's SolveOverrides precondition, applied unchanged: tr_radius
+    // qp_types.h's QpSolveOverrides precondition, applied unchanged: tr_radius
     // must be the +inf sentinel or >= 0 -- never negative (a negative Delta
     // would silently cross lo_eff and up_eff) and never NaN;
     // primal_delta/dual_mu keep the negative-means-sentinel convention but
     // reject NaN, which no downstream arithmetic can absorb.
-    static void validate_overrides(const SolveOverrides &o);
+    static void validate_overrides(const QpSolveOverrides &o);
 
     static void validate_options(const SsnOptions &s);
 
@@ -819,7 +809,7 @@ class SsnEngine {
     //
     //     lo_eff = max(lower, x0 - Delta),   up_eff = min(upper, x0 + Delta)
     //
-    // -- qp_types.h's SolveOverrides::tr_radius contract for the walk, applied
+    // -- qp_types.h's QpSolveOverrides::trust_region_radius contract for the walk, applied
     // here unchanged, including "about the SOLVE'S OWN start point x0" and
     // "computed once, at the top of solve()". A row is marked from_tr iff the
     // trust region is STRICTLY tighter than the real bound on that side (a tie
@@ -896,8 +886,8 @@ class SsnEngine {
     // hashed. A collision in the first is GUARDED, not merely asserted away: the
     // refresh path bounds-checks every write and requires the emission to consume
     // the map exactly, turning a structure-mismatched refresh into a thrown
-    // std::runtime_error. A collision between two structures with the same entry
-    // count remains the honest residual exposure.
+    // std::logic_error (an invariant the structure key was meant to keep). A collision between two
+    // structures with the same entry count remains the honest residual exposure.
     template <typename Emit>
     void for_each_entry(const QpProblem &qp, Index n, Index me, Index mi, Index mb,
                         Emit emit) const;
@@ -1078,7 +1068,7 @@ class SsnEngine {
     std::uint64_t structure_key_ = 0;
     std::vector<std::pair<Index, double>> structure_bound_key_;
     bool has_structure_ = false;
-    // The regularizers THIS solve resolved to (SolveOverrides, or opts_ when
+    // The regularizers THIS solve resolved to (QpSolveOverrides, or opts_ when
     // the override is at its sentinel). Members rather than parameters because
     // for_each_entry is driven from two places and both must see the same pair.
     //
@@ -1114,4 +1104,4 @@ class SsnEngine {
     double deferred_fb_tol_ = 0.0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

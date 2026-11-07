@@ -1,0 +1,14 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-05T10:02:40-05:00
+9f97fbb2 test(m8-b7): the rider pins (+11) -- R4 re-lay pin on the same solvers, R2/R6/R1/R5 counts and refusals, strong guarantee, WarmStart across thresholds, upper read as -inf, threshold-aware helpers, predictor and restoration clamps at 1e6 with a bound at 2e6
+04858b808a9b5c143a6cdaec02f1c797e68162c9c452ce7d25a5f50e6ac0e783  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7r/cap/bench/hven_sqp_corpus
+29e0e8976068882e8c64a27c93d1d9e091b9478c8188c5b06116e87839ead08e  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
+47eb1af6122c91ece5a57f2a991feb75b69ec060f278595f812afb74e5118ba4  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/docs/notes/data/2026-11-m8-ap2-b7/interior/interior-declared.txt
+cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+capture 1 rc=0
+capture 2 rc=0
+=== capture-1-vs-2 === cells compared: 43  columns compared: 30  differences: 0
+=== frozen-vs-b7-armA === cells compared: 43  columns compared: 30  differences: 0
+rows 43 columns 30 pairs declared 237 observed 237 missing 0 extra 0 value 0 -> INTERIOR_AS_DECLARED
+worst=0
+FOREGROUND_END 2026-11-05T10:03:04-05:00

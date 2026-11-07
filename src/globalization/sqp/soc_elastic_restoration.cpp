@@ -15,12 +15,15 @@
 // include-what-you-use run: clang-format sorts `detail/globalization/...`
 // ahead of `drivers/...`, which would put the three headers BEFORE the
 // definition they depend on and fail to compile.
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
 
-QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const NlpEval &ev_trial,
-                               const Vec &p, const std::vector<bool> &ineq_active) {
+namespace hven {
+
+QpProblem detail::build_soc_subproblem(const QpProblem &qp, const NlpEval &ev,
+                                       const NlpEval &ev_trial, const Vec &p,
+                                       const std::vector<bool> &ineq_active) {
     QpProblem soc_qp = qp;
     if (qp.me() > 0) {
         const Vec residual_e = ev_trial.ce - ev.ce - qp.Ae * p;
@@ -53,7 +56,8 @@ Vec ElasticQp::slack_violations(const Vec &x_aug) const {
     return slacks(x_aug).cwiseProduct(slack_scale);
 }
 
-ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho, double tol) {
+ElasticQp detail::build_elastic_subproblem(const QpProblem &qp, double tr_radius, double rho,
+                                           double tol) {
     const Index n = qp.n();
     const Index me = qp.me();
     const Index mi = qp.mi();
@@ -143,6 +147,7 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
     e.qp.Ai.makeCompressed();
     e.qp.bi = qp.bi;
 
+    e.qp.infinite_bound = qp.infinite_bound;
     e.qp.lower = Vec::Zero(n2);
     e.qp.upper = Vec::Zero(n2);
     e.qp.lower.head(n) = lo;
@@ -160,7 +165,7 @@ ElasticQp build_elastic_subproblem(const QpProblem &qp, double tr_radius, double
     return e;
 }
 
-QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
+QpSolution detail::elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     const Index n2 = e.qp.n();
     QpSolution s;
     s.status = QpStatus::kOptimal;
@@ -178,7 +183,8 @@ QpSolution elastic_seed(const ElasticQp &e, const QpSolution &failed) {
     return s;
 }
 
-void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSolution &seed) {
+void detail::place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp,
+                                           QpSolution &seed) {
     const Index n = e.n_orig;
     const Index n2 = e.qp.n();
     if (seed.x.size() != n2 || static_cast<Index>(seed.bound_state.size()) != n2 || qp.n() != n) {
@@ -211,8 +217,8 @@ void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSo
     }
 }
 
-QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
-                           bool carry_multipliers) {
+QpSolution detail::elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
+                                   bool carry_multipliers) {
     const Index n = e.n_orig;
     QpSolution out;
     out.status = aug.status;
@@ -261,7 +267,7 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
 
 RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
                                    const Vec &x_centre, double proximity,
-                                   bool regularized_curvature)
+                                   bool regularized_curvature, double infinite_bound)
     : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()),
       regularized_(regularized_curvature) {
     if (x_entry.size() != nx_) {
@@ -286,7 +292,22 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
                         "the requesting iterate the proximity term is centred on",
                         x_centre.size(), nx_));
     }
+    if (!(infinite_bound > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: infinite_bound ({}) must be > 0 (kInfinity is legal)",
+                        infinite_bound));
+    }
     n_ = nx_ + 2 * me_ + mi_;
+
+    // THE MODEL'S BOX AS THE ENGINE READS IT (M8 B7), for the two clamps below:
+    // through the absent-bound rule at the parent bridge's threshold, so a bound
+    // absent to the engine never clamps the centre or the start. The wrapper's
+    // own box repeats the model's as declared, like every NlpModel box; the
+    // sub-solve's bridge reads it under the same threshold.
+    Vec box_lower = model.lower();
+    Vec box_upper = model.upper();
+    detail::normalize_bounds(box_lower, infinite_bound);
+    detail::normalize_bounds(box_upper, infinite_bound);
 
     // COMPUTED ONCE, FROM DATA ALREADY IN HAND, and only when the term is on:
     // at the shipped OFF nothing is stored and nothing is copied. d_i =
@@ -299,7 +320,7 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
         zeta_ = proximity;
         // THE CENTRE IS CLAMPED INTO THE BOX (M7 W2 ladder, L2), like the start
         // below: a term pulling x toward an out-of-box point would pull it out.
-        centre_ = x_centre.cwiseMax(model.lower()).cwiseMin(model.upper());
+        centre_ = x_centre.cwiseMax(box_lower).cwiseMin(box_upper);
         d_ = Vec::Ones(nx_);
         for (Index i = 0; i < nx_; ++i) {
             const double a = std::abs(centre_(i));
@@ -338,8 +359,8 @@ RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, co
     // sub-solve's first QP box-infeasible. Only then are the rows re-evaluated,
     // once, at the clamped point; the sigmas stay the entry's. An in-box entry
     // takes the original arithmetic, with no model call.
-    const Vec &lo = model.lower();
-    const Vec &up = model.upper();
+    const Vec &lo = box_lower;
+    const Vec &up = box_upper;
     for (Index i = 0; i < nx_; ++i) {
         if (x_entry(i) < lo(i) || x_entry(i) > up(i)) {
             ++start_clamps_;
@@ -560,7 +581,7 @@ SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &l
         // proximity term's exact curvature summed in when that term is on.
         const double mu = std::min(1.0, curvature_violation(original_x(y)));
         // mu is not weighted by obj_scale: it models h's curvature, not the objective's,
-        // and the phase's sub-solve runs unscaled (enable_scaling = false), so no factor is owed.
+        // and the phase's sub-solve runs unscaled (row_scaling = false), so no factor is owed.
         const double w = zeta_ > 0.0 ? mu + obj_scale * zeta_ : mu;
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(nx_));
@@ -662,8 +683,8 @@ Vec RestorationModel::start_point() const { return start_; }
 // It is the quantity tests/sqp/test_sqp_restoration.cpp's `check_certificate`
 // recomputes from the model, which is what makes that helper an independent
 // oracle rather than a restatement.
-double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
-                                            const Vec &lambda_i, const Vec &z) {
+double detail::subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
+                                                    const Vec &lambda_i, const Vec &z) {
     Vec r = -z;
     if (ev.Je.rows() > 0) {
         r += ev.Je.transpose() * lambda_e;
@@ -674,4 +695,4 @@ double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda
     return r.lpNorm<Eigen::Infinity>();
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -19,13 +19,14 @@
 
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/ipm_solver.h"
-#include "hven/model/nlp_triplet_model.h"
+#include "hven/model/nlp.h"
 
 namespace {
 
 using hven::SpMatRM;
-using hven::solvers::KktFactorization;
+using hven::detail::KktFactorization;
 
 // Upper triangle of a symmetric matrix, in the row-major CSR convention the
 // factor requires: a structural diagonal in every row, nothing below it.
@@ -42,8 +43,8 @@ std::vector<Eigen::Triplet<double>> indefinite_2x2() { return {{0, 0, 2.0}, {1, 
 
 KktFactorization::Options mkl_like_options() {
     KktFactorization::Options opts;
-    opts.kind = hven::linear::FactorKind::kLDLT;
-    opts.num_threads = 1;
+    opts.decomposition = hven::linear::Decomposition::kLdlt;
+    opts.threads = 1;
     return opts;
 }
 
@@ -131,7 +132,7 @@ TEST(KktFactorizationTest, RefactorizeBeforeAnySymbolicAnalysisThrows) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
 
-    EXPECT_THROW(kkt.refactorize(), std::runtime_error);
+    EXPECT_THROW(kkt.refactorize(), std::logic_error);
 }
 
 TEST(KktFactorizationTest, RefactorizeAgainstADifferentPatternThrows) {
@@ -160,7 +161,7 @@ TEST(KktFactorizationTest, ReleaseDropsTheBufferAndTheFactorization) {
     EXPECT_EQ(kkt.matrix().cols(), 0);
     Eigen::VectorXd rhs = Eigen::VectorXd::Zero(2);
     Eigen::VectorXd x(2);
-    EXPECT_THROW(kkt.solve(rhs, x), std::runtime_error);
+    EXPECT_THROW(kkt.solve(rhs, x), std::logic_error);
 }
 
 TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
@@ -169,12 +170,12 @@ TEST(KktFactorizationTest, ReconfigureRebuildsTheFactorAndDropsTheAnalysis) {
     kkt.compute();
 
     KktFactorization::Options opts = mkl_like_options();
-    opts.pivot_perturb_exp = 10;
+    opts.pivot_perturbation_exponent = 10;
     kkt.reconfigure(opts);
 
     // The options are baked into the session the symbolic lives in, so the new
     // configuration starts without one.
-    EXPECT_THROW(kkt.refactorize(), std::runtime_error);
+    EXPECT_THROW(kkt.refactorize(), std::logic_error);
     EXPECT_NO_THROW(kkt.compute());
     EXPECT_EQ(kkt.peigs(), 1);
     EXPECT_EQ(kkt.neigs(), 1);
@@ -230,9 +231,9 @@ TEST(KktFactorizationTest, InertiaEvidenceIsUnavailableBeforeAnyFactorization) {
     // inertia: nothing has been observed, and the accessor says so.
     const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kUnavailable);
-    EXPECT_LT(ev.n_pos, 0);
-    EXPECT_LT(ev.n_neg, 0);
-    EXPECT_LT(ev.n_zero, 0);
+    EXPECT_LT(ev.positive, 0);
+    EXPECT_LT(ev.negative, 0);
+    EXPECT_LT(ev.zero, 0);
     EXPECT_FALSE(ev.perturbed_pivots.has_value());
 }
 
@@ -243,11 +244,11 @@ TEST(KktFactorizationTest, InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfu
 
     const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
     ASSERT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(ev.n_pos, kkt.peigs());
-    EXPECT_EQ(ev.n_neg, kkt.neigs());
+    EXPECT_EQ(ev.positive, kkt.peigs());
+    EXPECT_EQ(ev.negative, kkt.neigs());
     // The three counts partition the dimension, whichever backend produced
     // them -- derived on one, reported natively on the other.
-    EXPECT_EQ(ev.n_pos + ev.n_neg + ev.n_zero, kkt.matrix().rows());
+    EXPECT_EQ(ev.positive + ev.negative + ev.zero, kkt.matrix().rows());
 
 #if defined(USE_ACCELERATE_SPARSE)
     // Accelerate reports all three counts natively and keeps no
@@ -272,16 +273,16 @@ TEST(KktFactorizationTest, InertiaEvidenceFollowsTheLastFactorization) {
     KktFactorization kkt(mkl_like_options());
     kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
     kkt.compute();
-    ASSERT_EQ(kkt.inertia_evidence().n_pos, 1);
-    ASSERT_EQ(kkt.inertia_evidence().n_neg, 1);
+    ASSERT_EQ(kkt.inertia_evidence().positive, 1);
+    ASSERT_EQ(kkt.inertia_evidence().negative, 1);
 
     kkt.matrix().coeffRef(1, 1) = 5.0;
     kkt.refactorize();
 
-    EXPECT_EQ(kkt.inertia_evidence().n_pos, 2);
-    EXPECT_EQ(kkt.inertia_evidence().n_neg, 0);
-    EXPECT_EQ(kkt.inertia_evidence().n_pos, kkt.peigs());
-    EXPECT_EQ(kkt.inertia_evidence().n_neg, kkt.neigs());
+    EXPECT_EQ(kkt.inertia_evidence().positive, 2);
+    EXPECT_EQ(kkt.inertia_evidence().negative, 0);
+    EXPECT_EQ(kkt.inertia_evidence().positive, kkt.peigs());
+    EXPECT_EQ(kkt.inertia_evidence().negative, kkt.neigs());
 }
 
 TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
@@ -313,36 +314,35 @@ TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
 
 // A one-variable unconstrained problem, only ever transcribed -- these tests
 // reject at configuration time and never reach a solve.
-struct KktConfigRejectProblem : hven::solvers::NlpTripletModel {
-    int num_vars() const override { return 1; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return 1; }
+struct KktConfigRejectProblem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    int num_vars() const { return 1; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return 1; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl << -std::numeric_limits<double>::infinity();
         xu << std::numeric_limits<double>::infinity();
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0];
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = 2.0 * x[0];
-    }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g[0] = 2.0 * x[0]; }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
-                  Eigen::Ref<Eigen::VectorXd>) const override {}
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v[0] = obj_factor * 2.0;
     }
     std::string name() const override { return "KktConfigRejectProblem"; }
@@ -354,25 +354,26 @@ struct KktConfigRejectProblem : hven::solvers::NlpTripletModel {
 // left behind -- so the second solve below (the one that matters) runs
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
     {
         auto o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
-    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::detail::problem_ref(*program), x0).status,
+              hven::SolveStatus::kOptimal);
 
     {
         auto o = solver.options();
         o.common.threads = solver.options().common.threads + 1;
         solver.set_options(std::move(o));
     }
-    EXPECT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::detail::problem_ref(*program), x0).status,
+              hven::SolveStatus::kOptimal);
 }
 
 #if defined(USE_ACCELERATE_SPARSE)
@@ -381,70 +382,33 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // performs no refinement, where the engine's previous interface ran its own
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
     {
         auto o = solver.options();
-        o.qp_ref_steps = 2;
+        o.linear.max_refinement_steps = 2;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
-}
-
-// The pivot tolerance is fixed at the value the engine has always requested.
-TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.accel_pivot_tolerance = 0.05;
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(solver.solve(hven::detail::problem_ref(*program), Eigen::VectorXd::Zero(1)),
+                 std::invalid_argument);
 }
 
 #else
-
-// The surface calls the backend silently and exposes no message-level control.
-TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.qp_print = true;
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
-}
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
 // the undocumented ones this enum also carries are not passed through as raw
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
-    const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::IpmSolver solver;
-    {
-        auto o = solver.options();
-        o.qp_pivot_strategy = hven::solvers::IpmSolver::QPPivotModes::kE13;
-        solver.set_options(std::move(o));
-    }
-    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
-    // from an attach step, so the refusal surfaces there. The problem has one
-    // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    const auto program = hven::detail::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::IpmSolver solver;
+    // M8 AP-2 B3: refused at validate(), by name, before any solve.
+    auto o = solver.options();
+    o.linear.pivot_strategy = static_cast<hven::IpmPivotStrategy>(13);
+    EXPECT_THROW(solver.set_options(std::move(o)), std::invalid_argument);
+    (void)program;
 }
 
 #endif

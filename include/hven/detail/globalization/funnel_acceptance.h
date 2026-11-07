@@ -9,7 +9,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// (init) absolute floor tau-bar (KLV Eq. (9); reference option "funnel_ubd" = 1.0).
 inline constexpr double kFunnelInitialUpperBound = 1.0;
@@ -31,7 +31,7 @@ inline constexpr double kFunnelKappa = 0.5;
 /// step then tightens tau. This class supplies ONLY the funnel-specific
 /// membership + H-type verdicts and the width bookkeeping through the base's
 /// hooks; theta_min/theta_max ceiling, switching condition, and F-type Armijo
-/// live in SwitchingAcceptance. Opt-in via Settings::acceptance_strategy_ ==
+/// live in SwitchingAcceptance. Opt-in via Settings::acceptance_mode_ ==
 /// funnel; the default classic path stays bit-identical.
 ///
 /// ProgressMeasures mapping: current/trial .infeasibility = h(x) at z_k /
@@ -151,6 +151,10 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     void register_accepted_step(const ProgressMeasures &current, const ProgressMeasures &trial,
                                 bool h_type) override;
 
+    /// The retraction pair: the width register_accepted_step may move.
+    void save_acceptance_state() override;
+    void restore_acceptance_state() override;
+
   private:
     /// Reference convex_combination(a, b, coeff) = coeff*a + (1-coeff)*b.
     static double convex_combination(double a, double b, double coefficient) {
@@ -165,8 +169,11 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     /// the exit test's membership half consults it while in the phase.
     double stashed_width_ = std::numeric_limits<double>::infinity();
 
+    /// The width before the last accept, for retract_last_acceptance().
+    double retract_width_ = std::numeric_limits<double>::infinity();
+
     /// Set at entry, cleared at exit; makes reset_bounds() phase-aware.
     bool in_feasibility_phase_ = false;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

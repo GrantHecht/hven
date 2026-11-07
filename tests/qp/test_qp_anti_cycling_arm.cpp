@@ -68,12 +68,13 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Ac = hven::solvers::detail::testing::QpAntiCycleArmState;
-using Arm = hven::solvers::detail::testing::QpAntiCycleArm;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Ac = hven::detail::testing::QpAntiCycleArmState;
+using Arm = hven::detail::testing::QpAntiCycleArm;
 
 namespace {
 
@@ -464,9 +465,12 @@ struct ArmGuard {
     }
 };
 
+// A cap of 0 leaves max_iter empty: the size-derived default.
 QpOptions capped(Index cap) {
     QpOptions opts;
-    opts.max_iter = cap;
+    if (cap > 0) {
+        opts.max_iterations = cap;
+    }
     // The premise "the old walk cycles" belongs to the pre-E2 walk: with the
     // independent working set (M7 W2 E2) these QPs END (the E2 fixtures at the
     // end of test_qp_anti_cycling_arm.cpp).
@@ -619,7 +623,7 @@ TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerived
     // `src/qp/qp_engine.cpp` ties the two literals together with a
     // `static_assert`, and this is the same fact asserted from outside, where
     // a reader of the fixtures can see it.
-    EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::solvers::detail::kEngineDenomTol);
+    EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::detail::kEngineDenomTol);
     EXPECT_DOUBLE_EQ(Ac::params.reset_nontrivial, 3.7e-11);
     // And `begin_minor()` is inert unless ARM E is armed.
     EXPECT_FALSE(Ac::begin_minor());
@@ -694,14 +698,14 @@ TEST(QpAntiCyclingArm, AnUnarmedSwitchWithTheObserverAttachedIsTheUnattachedRunB
 TEST(QpAntiCyclingArm, TheOffWalkOnThePeriodTwoFixtureTerminatesAtItsOptimum) {
     ArmGuard guard;
     // MEASURED at M7 W2 E4 fix round 2: kOptimal in 4 minors, where M4 through
-    // E3 read kMaxIter at the 200-minor cap with a period-2 zero-motion suffix.
+    // E3 read kIterationLimit at the 200-minor cap with a period-2 zero-motion suffix.
     expect_the_off_walk_reads(period2_cycle_qp(), QpStatus::kOptimal, 4);
 }
 
 TEST(QpAntiCyclingArm, TheOffWalkOnThePeriodFourFixtureTerminatesAtItsOptimum) {
     ArmGuard guard;
     // MEASURED at M7 W2 E4 fix round 2: kOptimal in 4 minors, where M4 through
-    // E3 read kMaxIter at the cap with a period-4 zero-motion suffix.
+    // E3 read kIterationLimit at the cap with a period-4 zero-motion suffix.
     expect_the_off_walk_reads(period4_cycle_qp(), QpStatus::kOptimal, 4);
 }
 
@@ -927,8 +931,8 @@ TEST(QpAntiCyclingArm, ArmingOnOneThreadIsInvisibleOnAnother) {
 
 namespace {
 
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Block = hven::solvers::detail::testing::QpWalkBlock;
+using Action = hven::detail::testing::QpWalkAction;
+using Block = hven::detail::testing::QpWalkBlock;
 
 /// A QP in the engine's own terms: a dense symmetric `H` given in full (the
 /// INDEFINITE Hessians below are not `M Mᵀ` and cannot be written through
@@ -1224,11 +1228,11 @@ TEST(QpAntiCyclingArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) 
 
 namespace {
 
-QpOptions e2_opts(WorkingSetLinearAlgebra alg, Index cap = kCycleCap) {
+QpOptions e2_opts(QpWorkingSetAlgebra alg, Index cap = kCycleCap) {
     QpOptions o;
-    o.max_iter = cap;
+    o.max_iterations = cap;
     o.independent_working_set = true;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return o;
 }
 
@@ -1262,18 +1266,18 @@ QpProblem e2_diag_qp(const std::vector<double> &h, const std::vector<double> &g,
     return qp;
 }
 
-constexpr std::array<WorkingSetLinearAlgebra, 2> kE2Algebras = {
-    WorkingSetLinearAlgebra::kRefactorize, WorkingSetLinearAlgebra::kSchurBorder};
+constexpr std::array<QpWorkingSetAlgebra, 2> kE2Algebras = {QpWorkingSetAlgebra::kRefactorize,
+                                                            QpWorkingSetAlgebra::kSchurBorder};
 
-const char *e2_name(WorkingSetLinearAlgebra alg) {
-    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+const char *e2_name(QpWorkingSetAlgebra alg) {
+    return alg == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize";
 }
 
 /// THE RECURRENCE ENDS: kOptimal at the brute-force optimum, promptly, with
 /// no cap and no termination. The border path retreats once on both shapes
 /// (E2-F1: its Schur complement is swamped on these K0s); refactorize never.
 void expect_e2_ends(const QpProblem &qp) {
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const Walk on = observed_walk(qp, e2_opts(alg));
         const QpCounters &c = on.solution.counters;
@@ -1326,7 +1330,7 @@ TEST(QpE2WorkingSet, ADependentBlockerIsExchangedForTheMemberItsCoefficientsName
     const QpProblem qp = e2_diag_qp({1.0, 1.0}, {-3.0, 3.0}, {-1.0, -1.0}, {-2.0}, 0.0, 5.0);
     QpProblem boxed = qp;
     boxed.upper(0) = 1.0;
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(boxed, e2_opts(alg, 40));
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
@@ -1347,7 +1351,7 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberOnAnInfeasibleQpReturnsAVerifiedCertifica
     // coefficient, so no member is admissible and the certificate is built.
     const QpProblem qp =
         e2_diag_qp({1.0, 1.0}, {0.0, 0.0}, {-1.0, -1.0, 1.0, 1.0}, {-3.0, 1.0}, 0.0, 2.0);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
@@ -1395,10 +1399,10 @@ TEST(QpE2WorkingSet, TheDoubledRowIsImpliedByItsFaceAndTheWalkReachesTheOptimum)
     // N3 reading held.)
     const QpProblem qp = e2_diag_qp({1.0, 1.0, 1.0}, {-2.0, -0.5, -1.5},
                                     {1.0, 1.0, 1.0, 2.0, 2.0, 2.0}, {1.0, 2.0}, 0.0, 2.0);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-2;
+        o.dual_regularization = 1e-2;
         const QpSolution s = plain_solve(qp, o);
         std::printf("[ qc8 ] doubled-row %s status=%d x=(%.15g, %.15g, %.15g) implied=%ld "
                     "minors=%ld\n",
@@ -1449,7 +1453,7 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
     qp.be = Vec::Constant(1, 1.0);
     qp.lower(0) = 1.2;
     qp.lower(1) = -2.0;
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kNumericalError));
@@ -1459,8 +1463,7 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
         EXPECT_EQ(s.counters.dep_implied_passovers, 0);
         EXPECT_EQ(s.counters.dep_passovers, 0);
         EXPECT_FALSE(s.farkas.present);
-        EXPECT_EQ(s.counters.dep_border_retreats,
-                  alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        EXPECT_EQ(s.counters.dep_border_retreats, alg == QpWorkingSetAlgebra::kSchurBorder ? 1 : 0);
         // Where it stands: the start, the blocker met with its eta margin, inside the box.
         EXPECT_NEAR(s.x(0), 1.2, 1e-12);
         EXPECT_NEAR(s.x(1), 0.0, 1e-12);
@@ -1468,7 +1471,7 @@ TEST(QpE2WorkingSet, NoAdmissibleMemberAndNoPassOverEndsInsideTheBox) {
     }
     // The control: inconsistent by more than the margin, the same walk certifies it.
     qp.bi(0) = -(1.0 + 1e-7);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
@@ -1500,11 +1503,11 @@ TEST(QpE2WorkingSet, TheBorderNoLongerNeedsItsRetreatAndStillEndsOptimal) {
     const QpProblem qp = period2_cycle_qp();
     Obs::reset();
     Obs::active = true;
-    const QpSolution s = plain_solve(qp, e2_opts(WorkingSetLinearAlgebra::kSchurBorder));
+    const QpSolution s = plain_solve(qp, e2_opts(QpWorkingSetAlgebra::kSchurBorder));
     Index retreat_records = 0;
     for (const auto &r : Obs::records) {
         retreat_records +=
-            r.action == hven::solvers::detail::testing::QpWalkAction::kEliminatedRetreat ? 1 : 0;
+            r.action == hven::detail::testing::QpWalkAction::kEliminatedRetreat ? 1 : 0;
     }
     Obs::active = false;
     Obs::reset();
@@ -1637,7 +1640,7 @@ TEST(QpE2WorkingSet, ALockedPositiveMemberStillGetsTheVerifiedCertificate) {
     seed.x = Vec(3);
     seed.x << -1.0, -1.0, 0.0;
     seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kFixed};
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpEngine engine{e2_opts(alg, 40)};
         const QpSolution s = engine.solve(qp, seed);
@@ -1697,7 +1700,7 @@ TEST(QpE2WorkingSet, TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal) {
     qp.upper = Vec::Ones(5);
     qp.upper(0) = 0.0; // x0 fixed
     Vec x_ref;
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 200));
         const QpCounters &c = s.counters;
@@ -1710,7 +1713,7 @@ TEST(QpE2WorkingSet, TheUndecidableBorderPingPongRetreatsOnceAndEndsOptimal) {
         EXPECT_EQ(c.ws_exchanges, 1);
         EXPECT_LE(c.minor_iters, 8);
 #if HVEN_TEST_ROUTE_REFERENCE
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
             EXPECT_EQ(c.dep_undecidable, 1);
             EXPECT_EQ(c.dep_border_retreats, 1);
         } else {
@@ -1781,7 +1784,7 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
     qp.lower = Vec::Zero(4);
     qp.upper = Vec::Ones(4);
     qp.upper(0) = 0.0; // x0 fixed
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = plain_solve(qp, e2_opts(alg, 40));
         const QpCounters &c = s.counters;
@@ -1802,7 +1805,7 @@ TEST(QpE2WorkingSet, AFullyPinnedRowDecidesAnUndecidablePinExactly) {
         // (QpEngine::test_candidate). It is the count of verdicts the screen alone
         // carries, not of passes that held no factor.
         EXPECT_EQ(c.dep_unrun_tests, 0);
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
 #if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_EQ(c.dep_structural_first, 1);
             // RE-DERIVED AGAIN, M7 W2 E2 FIX ROUND 8 (F7-1): 1 -> 2 minors. The first pass's
@@ -1886,7 +1889,7 @@ TEST(QpE2WorkingSet, ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalE
         return f.y_i.dot(p.bi) + box_min(p, box_part);
     };
 
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpEngine engine{e2_opts(alg, 40)};
         const QpSolution s = engine.solve(qp, seed);
@@ -1897,7 +1900,7 @@ TEST(QpE2WorkingSet, ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalE
         EXPECT_EQ(c.dep_infeasible_certificates, 0);
         EXPECT_EQ(c.dep_blocker_terminations, 0);
         EXPECT_EQ(c.dep_certificate_rejections, 0);
-        EXPECT_EQ(c.dep_border_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+        EXPECT_EQ(c.dep_border_retreats, alg == QpWorkingSetAlgebra::kSchurBorder ? 1 : 0);
         for (Index i = 0; i < qp.n(); ++i) {
             EXPECT_GE(s.x(i), qp.lower(i));
             EXPECT_LE(s.x(i), qp.upper(i));
@@ -1952,7 +1955,7 @@ TEST(QpE2WorkingSet, AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasib
     qp.Ae = Aed.sparseView();
     qp.be = Vec::Constant(2, 1.0);
 
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpEngine engine{e2_opts(alg, 40)};
         const QpSolution s = engine.solve(qp);
@@ -1993,9 +1996,9 @@ QpDump e2d4_dump(const char *name) {
     return hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + name);
 }
 
-QpSolution e2d4_solve(const QpDump &d, WorkingSetLinearAlgebra alg) {
+QpSolution e2d4_solve(const QpDump &d, QpWorkingSetAlgebra alg) {
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return hven::test_support::solve_qp_dump(d, o);
 }
 
@@ -2025,7 +2028,7 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
     const QpDump d = e2d4_dump("STEENBRB_def-qp0.txt");
     EXPECT_NE(d.result.find("status=3"), std::string::npos);
     EXPECT_NE(d.result.find("zmexh=1"), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         expect_e2d4_kkt(d, s);
@@ -2042,7 +2045,7 @@ TEST(QpE2WorkingSet, AStructuralDependencyDecidesFirstOnTheSteenbrbElasticQp) {
         // admission stopped happening -- `dep_structural_first` 0, a non-vacuity
         // premise lost. The floor, which is there for its own reasons (see the
         // constant's note), restores it: the premise holds at the shipped engine.
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
             EXPECT_GE(s.counters.dep_structural_first, 1);
         }
 #endif
@@ -2112,7 +2115,7 @@ TEST(QpE2WorkingSet, TheLockedVertexUnlocksOnTheAcopr57PrimalQps) {
         // off 7.2e-10 relative.
         EXPECT_LE(std::abs(f_off - c.f_star), c.on_rel_tol * std::abs(c.f_star));
         EXPECT_LE(std::abs(f_off - c.f_star), c.rel_tol * std::abs(c.f_star));
-        for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        for (const QpWorkingSetAlgebra alg : kE2Algebras) {
             SCOPED_TRACE(e2_name(alg));
             const QpSolution s = e2d4_solve(d, alg);
             expect_e2d4_kkt(d, s);
@@ -2137,7 +2140,7 @@ TEST(QpE2WorkingSet, AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57) {
     // border path takes the kWrong; the refactorize walk reads kOk already.
     const QpDump d = e2d4_dump("ACOPP57_def-qp0.txt");
     EXPECT_NE(d.result.find("status=3 minors=2 "), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         expect_e2d4_kkt(d, s);
@@ -2145,7 +2148,7 @@ TEST(QpE2WorkingSet, AMuFreeInertiaReReadCertifiesTheSingularPsdFaceOfAcopp57) {
                   1e-2 * 0.243742606211);
         EXPECT_LE(s.counters.minor_iters, 12);
         EXPECT_EQ(s.counters.dep_inertia_reread_flips, s.counters.dep_inertia_rereads);
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
 #if HVEN_TEST_ROUTE_REFERENCE
             EXPECT_GE(s.counters.dep_inertia_reread_flips, 1);
 #else
@@ -2197,7 +2200,7 @@ TEST(QpE2WorkingSet, AMuFreeSuspectReadDoesNotCertifyASaddle) {
     qp.lower(0) = 0.0;
     qp.upper(0) = 0.0;
     for (const bool e2 : {false, true}) {
-        for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+        for (const QpWorkingSetAlgebra alg : kE2Algebras) {
             SCOPED_TRACE(e2 ? "on" : "off");
             SCOPED_TRACE(e2_name(alg));
             QpOptions o = e2_opts(alg, 40);
@@ -2235,7 +2238,7 @@ TEST(QpE2WorkingSet, AGreyReReadSolvesTheAcopr57RestorationQp) {
     // both algebras, with the KKT conditions recomputed from the QP.
     const QpDump d = e2d4_dump("ACOPR57_def-qp4.txt");
     EXPECT_NE(d.result.find("status=3 minors=27 "), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         expect_e2d4_kkt(d, s);
@@ -2256,7 +2259,7 @@ TEST(QpE2WorkingSet, AConvergedGreyPinOnDallasmIsReReadDependent) {
     // this rule), so the status is not pinned; a kOptimal must pass the recomputed KKT check.
     const QpDump d = e2d4_dump("DALLASM_def-qp0.txt");
     EXPECT_NE(d.result.find("status=3 minors=64 "), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         if (s.status == QpStatus::kOptimal) {
@@ -2303,7 +2306,7 @@ TEST(QpE2WorkingSet, AGreyPinOnYorknetThatIsIndependentStaysIndependent) {
     // kNumericalError -- not this rule's class).
     const QpDump d = e2d4_dump("YORKNET_def-qp1.txt");
     EXPECT_NE(d.result.find("status=3 minors=594 "), std::string::npos);
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         EXPECT_EQ(s.counters.dep_grey_rereads, 1);
@@ -2389,7 +2392,7 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
 #else
     (void)off_minors;
 #endif
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         expect_e2d4_kkt(d, s);
@@ -2461,7 +2464,7 @@ TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
 
 namespace {
 
-using RideRead = hven::solvers::detail::testing::QpWalkRideOutcome;
+using RideRead = hven::detail::testing::QpWalkRideOutcome;
 
 /// min 1/2 (x0^2 + x1^2) - 1/8 x2^2 + 1/2 x0 x2 - 0.4 x1 + 2.25 x2 subject to
 /// x0 <= 0, x1 <= 0, x0 + x1 <= 0 (a DEPENDENT third row), x0, x1 in [-10, 10],
@@ -2505,7 +2508,7 @@ QpSolution declined_ride_seed() {
 
 struct RideWalk {
     QpSolution solution;
-    std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> records;
+    std::vector<hven::detail::testing::QpWalkMinorRecord> records;
 };
 
 RideWalk declined_ride_walk(const QpOptions &o) {
@@ -2545,10 +2548,10 @@ TEST(QpE2WorkingSet, TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint)
     // dependency is structural rather than manufactured: `Cs_STEENBRB_qp4/5/6`
     // still assert `dep_ride_blockers >= 1` and `ride_exchanges >= 1` through
     // `expect_the_declined_ride_resolves`.
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-5;
+        o.dual_regularization = 1e-5;
         const RideWalk w = declined_ride_walk(o);
         const QpSolution &s = w.solution;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
@@ -2564,14 +2567,14 @@ TEST(QpE2WorkingSet, TheRideNeedsNoExchangeOnceThePolishRemovesTheRowsFootprint)
         // exchange: no pass may add back the bound the drop released at zero motion.
         for (const auto &r : w.records) {
             EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
-                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block == hven::detail::testing::QpWalkBlock::kBound &&
                          r.block_index == 2 && r.alpha == 0.0)
                 << "the released bound re-entered at alpha 0";
         }
     }
     // The option-off walk (no dependency test) reaches the same optimum, unchanged.
-    QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
-    off.dual_mu = 1e-5;
+    QpOptions off = e2_opts(QpWorkingSetAlgebra::kRefactorize, 40);
+    off.dual_regularization = 1e-5;
     off.independent_working_set = false;
     const RideWalk w_off = declined_ride_walk(off);
     EXPECT_EQ(static_cast<int>(w_off.solution.status), static_cast<int>(QpStatus::kOptimal));
@@ -2599,10 +2602,10 @@ TEST(QpE2WorkingSet, TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFoot
     // depended on the veto -- no sign veto, and the released bound never re-entering
     // at alpha 0 on ANY pass, which is the rule the fixture's name was about. A
     // returning veto fails here and the read-out above can be reinstated.
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         QpOptions o = e2_opts(alg, 40);
-        o.dual_mu = 1e-4;
+        o.dual_regularization = 1e-4;
         const RideWalk w = declined_ride_walk(o);
         EXPECT_EQ(w.solution.counters.ride_declines_fallthrough_blocked, 0)
             << "the null-space veto fired: the rows' dual_mu footprint has returned";
@@ -2610,13 +2613,13 @@ TEST(QpE2WorkingSet, TheNullSpaceVetoIsNotReachedOnceThePolishRemovesTheRowsFoot
         for (const auto &r : w.records) {
             EXPECT_NE(r.ride_outcome, RideRead::kNullspaceVeto);
             EXPECT_FALSE(r.post_drop && r.released_index == 2 &&
-                         r.block == hven::solvers::detail::testing::QpWalkBlock::kBound &&
+                         r.block == hven::detail::testing::QpWalkBlock::kBound &&
                          r.block_index == 2 && r.alpha == 0.0)
                 << "the released bound re-entered at alpha 0";
         }
     }
-    QpOptions off = e2_opts(WorkingSetLinearAlgebra::kRefactorize, 40);
-    off.dual_mu = 1e-4;
+    QpOptions off = e2_opts(QpWorkingSetAlgebra::kRefactorize, 40);
+    off.dual_regularization = 1e-4;
     off.independent_working_set = false;
     const RideWalk w_off = declined_ride_walk(off);
     // The option-off CONTRAST is gone with the veto: there is no vetoed pass for the
@@ -2665,7 +2668,7 @@ TEST(QpE4ProximalEqp, TheYorknetRestorationQpIsDriftFreeAndOptimal) {
     // which is the same statement in the currency the shipped counters carry.
     const QpDump d = e2d4_dump("A0_YORKNET_qp3.txt");
     EXPECT_NE(d.result.find("status=1"), std::string::npos) << "the base spent its cap";
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
@@ -2687,7 +2690,7 @@ TEST(QpE4ProximalEqp, TheAcopp57PrimaryQpCostsTwoMinorsOnBothAlgebras) {
     // own exact system, so the two algebras agree: MEASURED kOptimal in 2 minors on
     // BOTH, with the terminal stationarity 9.7e-15.
     const QpDump d = e2d4_dump("ACOPP57_def-qp0.txt");
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
@@ -2719,7 +2722,7 @@ TEST(QpE4ProximalEqp, TheSteenbrbRestorationQp2ExitsFiniteAndSaysWhy) {
     // and loses `ACOPR57_def`/qp4's base certificate on both algebras in the same
     // motion. The cap stays at 1e-6 and this cell stays kNumericalError.
     const QpDump d = e2d4_dump("STEENBRB_def-qp2.txt");
-    for (const WorkingSetLinearAlgebra alg : kE2Algebras) {
+    for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
         const QpSolution s = e2d4_solve(d, alg);
         const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);

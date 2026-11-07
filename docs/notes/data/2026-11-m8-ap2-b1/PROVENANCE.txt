@@ -1,0 +1,59 @@
+M8 AP-2 group B1 -- evidence provenance (CLAUDE.md section 7 stamp)
+================================================================================
+Declaration   DECLARATION.txt (committed 3330123e before the first leg; not edited)
+Branch        m8-b1, cut from origin/m8 = 34fba748 ("docs(m8): AP-1 review riders"); not pushed
+Pin           the P-SYM "before" arm and the runtime "A" arm are the UNCHANGED tree at 34fba748's
+              code (the one commit after it, 3330123e, adds DECLARATION.txt only), built in
+              build-b1/rel at the same absolute path as the "after" arm
+Toolchain     clang 22.1.8 (Fedora 22.1.8-4.fc44), GCC 16.2.1 for the default install-smoke arm,
+              cmake 4.3.0, ninja 1.13.2, perf 7.2.12-200.fc44, MKL 2026.1
+Hardware      AMD Ryzen 7 5800X3D (8 cores / 16 threads, SMT on), 31 GiB, Linux 7.2.12-200.fc44,
+              governor powersave, frequency boost enabled; perf_event_paranoid = 2 (user-space events)
+Date          2026-11-01
+Configure     -G Ninja -DCMAKE_BUILD_TYPE=Release|Debug -DHVEN_FP_MODE=SAFER_FAST
+              -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON
+              (the linux-clang-* presets' flags; the preset binary dirs are fixed under the source
+              tree, so the same options are spelled by hand into build-b1/{rel,dbg})
+Apple / Windows  UNOBSERVED. Nothing here was taken on Mac or Windows hardware.
+
+BOX PROTOCOL
+Every build, test, replay, smoke and runtime leg ran as one script under
+`flock /tmp/box-build.lock`, with `pgrep -a hven_bench_cell` empty before the lock (its own
+command) and PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END inside it, MKL_NUM_THREADS=1.
+ctest was -j4 under setsid. The runtime legs were serial, one process at a time, taskset -c 2
+(SMT sibling cpu10 idle), MKL_NUM_THREADS=OMP_NUM_THREADS=1. One build step (the post-format
+Release build) was launched with a `timeout` wrapper around the flock command; the build
+finished in well under its limit and nothing was cut off. The idle proof (R2', /proc/stat)
+was NOT computed: nothing here asserts a wall, the reading is instructions.
+
+LEGS AND VERDICTS (head sha at each: see the commit list in the report)
+ 1  both suites          Release 3254/3254 pass, Debug 3254/3254 pass (suites/). The first Release
+                         run failed one test (QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpMode
+                         Emit: the scan reads src/drivers/sqp_solver.cpp and took the handle's
+                         `impl().solve(...)` forwarders for kernel calls); the forwarders moved to
+                         src/drivers/*_handle.cpp (281bc51d) and the suite was re-run in full.
+ 2  install smoke        default (GCC) arm and clang arm both PASSED, each followed by
+                         check_export_contract.sh OK (install-smoke/). The first attempt failed on
+                         both arms: tests/install_smoke/include_console_trace_sink.cpp named
+                         ipm_residual_color, which B1 moves to detail/; the smoke TU was corrected and
+                         both arms re-run (install-smoke/attempt1-failed-leg.log).
+ 3  export contract      scripts/check_export_contract.sh now refuses a detail/ include in a public
+                         header outside the 19-pair shrink-only allow-list; control + two falsifiers
+                         in install-smoke/export-contract-falsifiers.txt.
+ 4  golden rig           the native-arm rig suite runs inside the ctest suites (GoldenRig*,
+                         FailByDesign* ...); the two OLD-SEAM arms are not configured in this tree
+                         (HVEN_RIG_PSIOPT_SEAM / HVEN_RIG_SQP_SEAM empty), as in every earlier gate.
+ 5  27-cell replay x3    EXACT, 0 differences on 27 cells x 75 columns, walk / ssn / ipm, against
+                         docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv (replay/).
+ 6  census               NOT RUN (declared: B1 moves no numeric code). See P-SYM below: the declared
+                         tripwire for running it WAS tripped; this is reported, not waved.
+ B1-a move test         tests/drivers/test_solver_move.cpp, 6 tests, in both suites.
+ B1-b compile flags     flags-diff.txt: 52 library TUs in both builds, 0 differing flag lists; the
+                         3 added TUs carry the baseline flags.
+ B1-c P-SYM             FAIL by the tool's verdict, both attempts (psym/). See psym/classification.txt
+                         and the report.
+ B1-d runtime           pass A, three rounds alternated, 27 cells: corpus instructions B/A
+                         walk 1.000004, ssn 1.000006, ipm 1.000006, interior 0.999371; every
+                         (round, cell) pair counter-identical (runtime/passA-*/analysis.txt).
+                         Pass B not taken (declared explanatory-only).
+ +  PCH neutrality      scripts/check_pch_neutrality.sh (pch-neutrality.txt).

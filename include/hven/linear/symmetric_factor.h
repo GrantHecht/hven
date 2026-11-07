@@ -78,23 +78,17 @@ concept VectorShaped =
 
 } // namespace detail
 
-// Which factorization the engine asks the backend for. kLDLT (symmetric
-// indefinite) is the workhorse and the only kind implemented today;
-// constructing with any other kind throws std::logic_error until its backend
-// path lands.
-//
-// When kLLT and kLU do land, their inertia obligation is already settled:
-// neither reports one, on either backend, so inertia() and every
-// FactorizeOutcome they produce carry State::kUnavailable. Today that rule is
-// unreachable rather than untrue -- no object of those kinds can be built.
-enum class FactorKind { kLDLT, kLLT, kLU };
+// Which decomposition the engine asks the backend for: kLdlt, the symmetric
+// indefinite LDL^T, is the one both backends implement. A value outside the
+// enumeration throws std::logic_error at construction.
+enum class Decomposition { kLdlt };
 
 // What a factorization observed about the matrix's inertia, and how much of
 // that observation is real.
 //
 // The counts are only meaningful when `state == kObserved`. The zero class is
 // backend-dependent: MKL Pardiso reports the positive and negative counts and
-// nothing else, so the zero count is DERIVED as dim - n_pos - n_neg and
+// nothing else, so the zero count is DERIVED as dim - positive - negative and
 // flagged with `zero_is_derived = true`; Accelerate reports all three
 // natively. A backend whose inertia query ran and failed reports
 // `kQueryFailed` with the counts left invalid -- distinguishable by
@@ -108,11 +102,11 @@ struct InertiaEvidence {
     };
 
     State state = State::kUnavailable;
-    Index n_pos = -1;
-    Index n_neg = -1;
-    Index n_zero = -1;
+    Index positive = -1;
+    Index negative = -1;
+    Index zero = -1;
 
-    // True when n_zero was computed as dim - n_pos - n_neg rather than
+    // True when zero was computed as dim - positive - negative rather than
     // reported by the backend (MKL Pardiso), so a consumer can tell a
     // measured zero class from an inferred one.
     bool zero_is_derived = false;
@@ -201,7 +195,7 @@ struct FactorizeOutcome {
 // absent otherwise.
 struct SolveInfo {
     // Iterative-refinement steps the backend actually performed.
-    std::optional<Index> refinement_iters;
+    std::optional<Index> refinement_steps;
 };
 
 class Factorization;
@@ -244,8 +238,8 @@ class SymmetricFactor {
     // backend-parameter escape hatch: a need to reach an unlisted backend
     // parameter is a change to this surface, reviewed as such.
     struct Options {
-        // Which factorization to run. Only kLDLT is implemented today.
-        FactorKind kind = FactorKind::kLDLT;
+        // Which decomposition to run.
+        Decomposition decomposition = Decomposition::kLdlt;
 
         // Threads for this instance's backend calls. 0 leaves the backend's
         // own default alone. A positive value is applied at call scope and
@@ -256,11 +250,11 @@ class SymmetricFactor {
         //
         // The ONE option on this struct that is not frozen at construction:
         // because it is applied per backend call rather than baked into the
-        // symbolic factorization, set_num_threads() can move it mid-life
+        // symbolic factorization, set_threads() can move it mid-life
         // without disturbing the analysis. Every other field here is fixed
         // for the engine's lifetime and changes only by building a new
         // engine.
-        int num_threads = 0;
+        int threads = 0;
 
         // Static pivot perturbation exponent k (Pardiso iparm[9] on MKL;
         // the zeroTolerance formula on Accelerate): a pivot too small to
@@ -269,7 +263,7 @@ class SymmetricFactor {
         //
         // OPTIONAL, WITH A WRITTEN DEFAULT: std::nullopt is the DON'T-WRITE
         // state -- the optional-means-don't-write mechanic
-        // accelerate_zero_tolerance already established on this surface --
+        // accelerate_zero_tol already established on this surface --
         // while the default stays the WRITTEN value 8, so a
         // default-constructed Options produces exactly the backend writes
         // it produced before the state existed.
@@ -277,7 +271,7 @@ class SymmetricFactor {
         // Per-backend semantics:
         //   present k     MKL: writes iparm[9] = k.
         //                 Accelerate: zeroTolerance = 10^-k * eps (see
-        //                 accelerate_zero_tolerance below for the override
+        //                 accelerate_zero_tol below for the override
         //                 that bypasses this formula entirely).
         //   std::nullopt  MKL: iparm[9] is never touched -- pardisoinit's
         //                 own value survives exactly (8 on the MKL this
@@ -294,7 +288,7 @@ class SymmetricFactor {
         //                 value": the closest expressible act, and a value
         //                 citable from Apple's documentation rather than an
         //                 observation.
-        std::optional<int> pivot_perturb_exp = 8;
+        std::optional<int> pivot_perturbation_exponent = 8;
 
         // Maximum iterative-refinement steps for a full solve (Pardiso
         // iparm[7] on MKL; Accelerate has no refinement mechanism at all).
@@ -302,15 +296,15 @@ class SymmetricFactor {
         // solve_partial().
         //
         // OPTIONAL, WITH A WRITTEN DEFAULT, the same mechanic as
-        // pivot_perturb_exp above: std::nullopt = don't write; the default
+        // pivot_perturbation_exponent above: std::nullopt = don't write; the default
         // stays the WRITTEN value 0.
         //
         // Per-backend semantics:
         //   present n     MKL: writes iparm[7] = n.
         //                 Accelerate: stored only (adopt() round-trips
         //                 it); no backend act exists, and
-        //                 SolveInfo::refinement_iters stays absent -- the
-        //                 same store-only treatment num_threads already
+        //                 SolveInfo::refinement_steps stays absent -- the
+        //                 same store-only treatment threads already
         //                 has on that backend.
         //   std::nullopt  MKL: iparm[7] is never touched -- pardisoinit's
         //                 own cap survives (2 on the MKL this was verified
@@ -322,7 +316,7 @@ class SymmetricFactor {
         //                 held, written or inherited.
         //                 Accelerate: as the present-value row -- no
         //                 mechanism, no act.
-        std::optional<int> max_refinement_iters = 0;
+        std::optional<int> max_refinement_steps = 0;
 
         // Fill-in reordering for the symbolic analysis (Pardiso iparm[1] on
         // MKL; Accelerate's own ordering-method control on the other
@@ -504,7 +498,7 @@ class SymmetricFactor {
         // Pardiso-only: any non-default value THROWS std::invalid_argument
         // at construction on Accelerate, which has no per-instance thread
         // control of any kind for this option to parallelize a solve with
-        // (see num_threads' own doc comment on that backend's
+        // (see threads' own doc comment on that backend's
         // best-effort-absent treatment) -- a silently-inert non-default
         // value would defeat the point of naming the option at all, exactly
         // the situation weighted_matching's throw exists to prevent.
@@ -534,7 +528,7 @@ class SymmetricFactor {
         // PARDISO does not produce numerically repeatable results even if
         // CNR is enabled." Read literally -- CNR's positive requirement
         // names nested dissection specifically, not minimum degree -- a
-        // positive `cnr_threads` REQUIRES `ordering ==
+        // positive `conditional_reproducibility_threads` REQUIRES `ordering ==
         // Ordering::kNestedDissection` exactly; every other Ordering value,
         // INCLUDING kBackendDefault (whose value floats with the linked
         // MKL -- see `ordering`'s own doc comment -- and is 3, the
@@ -545,10 +539,10 @@ class SymmetricFactor {
         //
         // Pardiso-only: a positive value THROWS std::invalid_argument at
         // construction on Accelerate, which has no CNR concept. Unlike
-        // num_threads, this is not a plain thread count Accelerate could
+        // threads, this is not a plain thread count Accelerate could
         // best-effort-ignore: CNR is a reproducibility GUARANTEE, and
         // silently dropping it would let a caller believe it still held.
-        int cnr_threads = 0;
+        int conditional_reproducibility_threads = 0;
 
         // Whether hven REPORTS the factorization's Mflop-cost estimate
         // (Pardiso iparm[18]) as FactorizeOutcome::factor.factor_mflops.
@@ -589,16 +583,16 @@ class SymmetricFactor {
 
         // An explicit override for Accelerate's zero-pivot threshold
         // (SparseNumericFactorOptions::zeroTolerance), bypassing the
-        // pivot_perturb_exp-derived formula documented on that field
+        // pivot_perturbation_exponent-derived formula documented on that field
         // entirely. std::nullopt (default) uses that formula; a present
         // value is passed to Accelerate verbatim and must be > 0.
         // Accelerate-only: a present value THROWS std::invalid_argument at
         // construction on MKL, which has no zeroTolerance concept of its
-        // own -- pivot_perturb_exp's MKL meaning (a perturbation EXPONENT
+        // own -- pivot_perturbation_exponent's MKL meaning (a perturbation EXPONENT
         // feeding iparm[9]'s relative formula) is not the same knob as this
         // one (an absolute THRESHOLD), so a value set here cannot silently
-        // fold into pivot_perturb_exp's MKL behavior instead.
-        std::optional<double> accelerate_zero_tolerance;
+        // fold into pivot_perturbation_exponent's MKL behavior instead.
+        std::optional<double> accelerate_zero_tol;
     };
 
     // The three factors of a symmetric factorization, solved against
@@ -711,22 +705,22 @@ class SymmetricFactor {
     // it against any call in flight on that session, including one issued by a
     // different co-owner on another thread.
     //
-    // Best-effort-absent on Accelerate, exactly as Options::num_threads is: the
+    // Best-effort-absent on Accelerate, exactly as Options::threads is: the
     // value is stored, keeping the Options round trip honest, and applied to
     // nothing.
-    void set_num_threads(int num_threads);
+    void set_threads(int threads);
 
     // The thread count that governs this engine's next backend call.
     //
     // Once there is a session, that is the session's current count, read through
-    // on every query rather than snapshotted: a set_num_threads() on any one
+    // on every query rather than snapshotted: a set_threads() on any one
     // co-owner moves the count for all of them.
     //
     // Before the first analyze() there is no session, so this reports what the
-    // constructor was given as moved by set_num_threads(). A later analyze()
+    // constructor was given as moved by set_threads(). A later analyze()
     // resets what this reports: it forks a fresh session from this engine's own
     // Options.
-    int num_threads() const noexcept;
+    int threads() const noexcept;
 
     // --- lifecycle ---
 
@@ -737,14 +731,14 @@ class SymmetricFactor {
     // Throws std::invalid_argument unless A is compressed, square,
     // non-empty, stores only its upper triangle, and has every diagonal
     // entry present in its pattern (the backend requires the structural
-    // diagonal even where the value is zero). Throws std::runtime_error if
-    // the backend's symbolic phase itself fails; this instance keeps
+    // diagonal even where the value is zero). Throws
+    // hven::BackendError if the backend's symbolic phase itself fails; this instance keeps
     // whatever state it had.
     void analyze(const SpMatRM &A);
 
     // Numeric factorization into the EXISTING symbolic -- never re-analyzes.
     //
-    // Throws std::runtime_error if no symbolic analysis is available (call
+    // Throws std::logic_error if no symbolic analysis is available (call
     // analyze() first, or adopt() a handle that carries one), and
     // std::invalid_argument if A's pattern hash differs from the analyzed
     // key: a different pattern is a contract violation, not a numeric
@@ -777,7 +771,7 @@ class SymmetricFactor {
     // -- see detail::VectorShaped above for why the obvious spelling cannot
     // be written in C++.
     //
-    // Both overloads throw std::runtime_error when no usable factorization
+    // Both overloads throw std::logic_error when no usable factorization
     // exists (never factorized, the last factorization failed, or this
     // engine adopted a handle whose numerics are stale), and
     // std::invalid_argument on a size mismatch.
@@ -799,7 +793,7 @@ class SymmetricFactor {
     // is expected to fall back to a full solve, not to catch an exception.
     //
     // Refinement is forced off for the duration of every partial solve
-    // regardless of Options::max_refinement_iters: the backend requires it,
+    // regardless of Options::max_refinement_steps: the backend requires it,
     // and a refinement setting that leaked in here would corrupt the result.
     SolveInfo solve_partial(SolvePhase phase, ConstVecRef rhs, VecRef x) const;
 
@@ -847,7 +841,7 @@ class SymmetricFactor {
     // treats any difference as stale. Same for Factorization::inertia(),
     // which likewise reports the session's current evidence.
     //
-    // Throws std::runtime_error if there is no usable factorization to
+    // Throws std::logic_error if there is no usable factorization to
     // share.
     std::shared_ptr<const Factorization> share();
 
@@ -887,7 +881,7 @@ class SymmetricFactor {
     //   - session or epoch MISMATCH (a co-owner has refactorized since the
     //     handle was emitted): symbolic-only reuse. The handle's numerics are
     //     stale, so solves through this engine are REFUSED with a
-    //     std::runtime_error explaining the staleness -- but the symbolic is
+    //     std::logic_error explaining the staleness -- but the symbolic is
     //     still good, so the first factorize() reuses it with no re-analysis
     //     and clears the refusal.
     //   - pattern mismatch: the structural key travels with the handle and
@@ -900,8 +894,8 @@ class SymmetricFactor {
     // emitting engine: it is driving that session, and the session's
     // configuration is already baked into the factorization it is adopting.
     // For every option but one those are the same thing, since the rest are
-    // frozen when the session is built. The exception is num_threads, which
-    // set_num_threads() can move on a live session -- so what an adopter
+    // frozen when the session is built. The exception is threads, which
+    // set_threads() can move on a live session -- so what an adopter
     // receives is the count in force NOW, which may be one a co-owner set
     // after this factorization was computed, not the count the session was
     // analyzed with.
@@ -963,7 +957,10 @@ class Factorization {
     Factorization &operator=(const Factorization &) = delete;
 
     // Multi-RHS and single-RHS solves, with the same shapes, errors, and
-    // ambiguity workaround as SymmetricFactor's own.
+    // ambiguity workaround as SymmetricFactor's own -- except that a session a
+    // co-owner's failed factorize() left without numerics is refused with
+    // hven::BackendError: the holder of a handle saw no outcome to
+    // check, so the refusal is the backend's failure, not the holder's bug.
     SolveInfo solve(ConstMatRef RHS, MatRef X) const;
 
     template <class RhsT, class XT>

@@ -72,14 +72,16 @@
 #include <Eigen/Dense>
 #include <gtest/gtest.h>
 
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 #include <hven/core/compiler.h>
+
+using namespace hven::detail;
 
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 namespace detail {
 
@@ -248,6 +250,6 @@ inline ::testing::AssertionResult assert_hessian(const NlpModel &model, const Ve
     return ::testing::AssertionSuccess();
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support
 
 HVEN_SUPPRESS_DEPRECATED_END

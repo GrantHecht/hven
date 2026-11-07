@@ -18,9 +18,8 @@
 
 namespace hven_install_smoke {
 int standalone_include_solve_result() {
-    const hven::solvers::IterationCallback cb = [](const hven::solvers::IterationEvent &e) {
-        return e.iteration < 0 ? hven::solvers::CallbackAction::kStop
-                               : hven::solvers::CallbackAction::kContinue;
+    const hven::IterationCallback cb = [](const hven::IterationEvent &e) {
+        return e.iteration < 0 ? hven::CallbackAction::kStop : hven::CallbackAction::kContinue;
     };
     return cb ? 1 : 0;
 }

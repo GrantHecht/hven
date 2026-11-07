@@ -14,7 +14,8 @@
 
 #include "support/border_test_utils.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -507,9 +508,9 @@ std::vector<std::pair<std::string, QpProblem>> equivalence_battery() {
 // cleared-multiplier contract are compared there.
 void expect_border_matches_refactorize(const QpProblem &qp) {
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
     const auto ref = QpEngine{ref_opts}.solve(qp);
     const auto bor = QpEngine{bor_opts}.solve(qp);
@@ -603,7 +604,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
 
     Vec e0 = Vec::Zero(full.K.rows());
     e0(0) = 1.0;
-    schur.add_border(e0, -opts.dual_mu);
+    schur.add_border(e0, -opts.dual_regularization);
 
     // Full-mode rhs = [-g (all n) | be | bw] with the border rhs appended;
     // the border's rhs entry carries the bound VALUE (lower(0) here), not a
@@ -625,7 +626,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     // 1e-9 this test asserts. Shared with BorderOps.PinVariableMatchesEliminated
     // (test_border_ops.cpp) via tests/sqp/support/border_test_utils.h.
     std::vector<Vec> border_v{e0};
-    std::vector<double> border_d{-opts.dual_mu};
+    std::vector<double> border_d{-opts.dual_regularization};
     sol = test_support::refine_bordered_solve(full.K, qp.n(), border_v, border_d, schur, rhs, sol,
                                               opts);
     // AND THE UNREGULARIZED POLISH, which is what takes the primal delta back out
@@ -671,8 +672,8 @@ TEST(QpEngineBorder, KktFactorMoveKeepsFactorizationUsable) {
     EXPECT_LT((Kd * x - rhs).norm(), 1e-10);
     const hven::linear::InertiaEvidence e = dest.factor.inertia();
     ASSERT_EQ(e.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(e.n_pos, 2);
-    EXPECT_EQ(e.n_neg, 1);
+    EXPECT_EQ(e.positive, 2);
+    EXPECT_EQ(e.negative, 1);
     EXPECT_TRUE(dest.analyzed);
     EXPECT_FALSE(detail::needs_analysis(dest, K));
 
@@ -701,14 +702,14 @@ TEST(QpEngineBorder, BorderModeMatchesRefactorizeModeWarmStarted) {
     // the refactorize oracle, so leaving it implicit would silently turn into
     // a vacuous border-vs-border comparison.
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
 
     const QpProblem qp = random_strictly_convex(5, 3, 3);
     const auto cold = QpEngine{ref_opts}.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     const auto ref_warm = QpEngine{ref_opts}.solve(qp, cold);
     const auto bor_warm = QpEngine{bor_opts}.solve(qp, cold);
 
@@ -731,9 +732,9 @@ TEST(QpEngineBorder, BorderModeMatchesRefactorizeModeFromOverfullWarmStart) {
     // comment -- QpOptions{} is now kSchurBorder, so the oracle side of this
     // comparison must say so itself.
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
     for (unsigned seed = 0; seed < 20; ++seed) {
         SCOPED_TRACE(seed);
@@ -828,7 +829,7 @@ QpProblem box_with_moving_rows(Index n, Index pairs) {
 // path from the refactorize path, which spends one per major iteration.
 TEST(QpEngineBorder, BorderModeCountsUpdates) {
     QpOptions opts;
-    opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     const auto sol = QpEngine{opts}.solve(simple_box_qp());
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
@@ -847,10 +848,10 @@ TEST(QpEngineBorder, RebuildUnderTinySchurCapMatchesRefactorize) {
     // comment -- QpOptions{} is now kSchurBorder, so the oracle side of this
     // comparison must say so itself.
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
-    bor_opts.schur_cap = 1;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    bor_opts.max_schur_border_dimension = 1;
 
     Index cases_that_rebuilt = 0;
     for (const auto &[name, qp] : equivalence_battery()) {
@@ -913,10 +914,10 @@ TEST(QpEngineBorder, PinsPastSchurCapDoNotRebuildQuadratically) {
     // comment -- QpOptions{} is now kSchurBorder, so the oracle side of this
     // comparison must say so itself.
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
-    bor_opts.schur_cap = 16;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    bor_opts.max_schur_border_dimension = 16;
 
     const auto ref = QpEngine{ref_opts}.solve(qp);
     const auto bor = QpEngine{bor_opts}.solve(qp);
@@ -975,10 +976,10 @@ TEST(QpEngineBorder, LatchedBorderModeDoesNotThrashOnRowChanges) {
     const QpProblem qp = box_with_moving_rows(kN, kPairs);
 
     QpOptions ref_opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
-    bor_opts.schur_cap = kCap;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    bor_opts.max_schur_border_dimension = kCap;
 
     const auto ref = QpEngine{ref_opts}.solve(qp);
     const auto bor = QpEngine{bor_opts}.solve(qp);
@@ -1035,7 +1036,7 @@ TEST(QpEngineBorder, LatchedBorderModeDoesNotThrashOnRowChanges) {
 // (TDD) against the pre-flip default; the flip in qp_types.h is what makes it
 // pass.
 TEST(QpEngineBorder, DefaultIsBorderMode) {
-    EXPECT_EQ(QpOptions{}.ws_algebra, WorkingSetLinearAlgebra::kSchurBorder);
+    EXPECT_EQ(QpOptions{}.working_set_algebra, QpWorkingSetAlgebra::kSchurBorder);
 }
 
 // Task 4, test (b): an ENGINE-level fixture that fires needs_refactorization()
@@ -1099,13 +1100,13 @@ TEST(QpEngineBorder, SingularBorderTriggersRebuild) {
     const QpProblem qp = near_singular_border_qp();
 
     QpOptions opts;
-    opts.primal_delta = 1e-13;
-    opts.schur_cond_max = 1e30; // isolate nearly_singular() from schur_cond_max
+    opts.primal_regularization = 1e-13;
+    opts.schur_condition_max = 1e30; // isolate nearly_singular() from schur_cond_max
 
     QpOptions ref_opts = opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts = opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
     const auto ref = QpEngine{ref_opts}.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
@@ -1129,15 +1130,15 @@ TEST(QpEngineBorder, BorderModeWithNonDefaultOptions) {
     const QpProblem qp = box_all_bounds_active(4);
 
     QpOptions opts;
-    opts.max_iter = 7;
-    opts.feas_tol = 1e-7;
-    opts.schur_cap = 2;
-    opts.schur_cond_max = 1e6;
+    opts.max_iterations = 7;
+    opts.feasibility_tol = 1e-7;
+    opts.max_schur_border_dimension = 2;
+    opts.schur_condition_max = 1e6;
 
     QpOptions ref_opts = opts;
-    ref_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpOptions bor_opts = opts;
-    bor_opts.ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
     const auto ref = QpEngine{ref_opts}.solve(qp);
     const auto bor = QpEngine{bor_opts}.solve(qp);

@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/bound_set.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Watchdog constants (Chamberlain, Powell, Lemaréchal & Pedersen 1982;
 /// values per the reference interior-point implementation in
@@ -54,14 +54,14 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
   public:
     ExtendedBacktrackRecovery() = default;
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Stateless: nothing to clear.
     void reset() override {}
@@ -195,14 +195,14 @@ class WatchdogRecovery : public RecoveryChain {
             throw std::invalid_argument("WatchdogRecovery: inner recovery chain must not be null");
     }
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Resets the shortened-iteration counter on real progress, then threads
     /// the notification through to the wrapped chain.
@@ -245,14 +245,14 @@ class ChainedRecovery : public RecoveryChain {
     ChainedRecovery(std::unique_ptr<RecoveryChain> soc, std::unique_ptr<RecoveryChain> extended)
         : soc_(std::move(soc)), extended_(std::move(extended)) {}
 
-    Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
                             double obj_scale, double mu, double prim_obj, double barr_obj,
                             Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                             Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
-                            int &watchdog_activations) override;
+                            double &alphap, double &alphad, Index &soc_steps, int &resolved_depth,
+                            Index &watchdog_activations) override;
 
     /// Propagates to whichever links are present (legitimately null when a
     /// link is disabled by Settings).
@@ -275,4 +275,4 @@ class ChainedRecovery : public RecoveryChain {
     std::unique_ptr<RecoveryChain> extended_;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

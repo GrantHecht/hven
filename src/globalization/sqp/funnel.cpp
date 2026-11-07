@@ -13,7 +13,9 @@
 
 #include <hven/detail/globalization/sqp/globalization.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 void FunnelStrategy::reset(double h0) {
     if (!(h0 >= 0.0) || !std::isfinite(h0)) { // the !(>=) form also catches NaN
@@ -52,7 +54,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
     // exactly "Algorithm 2 is not consulted", not "consulted with different
     // constants".
     if (full_step_) {
-        return StepVerdict::kAcceptF;
+        return StepVerdict::kAcceptObjectiveStep;
     }
 
     // Eq. (8) -- the funnel condition, necessary for ANY acceptance.
@@ -80,7 +82,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
         // f-TYPE. Eq. (11): the Armijo-type sufficient decrease on f.
         // Accepted or not, the width does not move (KLV Thm. 1, Eq. (17)).
         const double actual_df = ctx.f_old - ctx.f_new; // delta_f, Eq. (7a)
-        return actual_df >= kFunnelSigma * ctx.pred_df ? StepVerdict::kAcceptF
+        return actual_df >= kFunnelSigma * ctx.pred_df ? StepVerdict::kAcceptObjectiveStep
                                                        : StepVerdict::kReject;
     }
 
@@ -97,7 +99,7 @@ StepVerdict FunnelStrategy::judge(const StepContext &ctx) {
         // makes the existing Eq. (13) arithmetic assertions role-sensitive
         // automatically.
         width_ = (1.0 - detail::kFunnelKappa) * ctx.h_new + detail::kFunnelKappa * width_;
-        return StepVerdict::kAcceptH;
+        return StepVerdict::kAcceptFeasibilityStep;
     }
 
     return StepVerdict::kReject;
@@ -121,4 +123,4 @@ void FunnelStrategy::resume_from_restoration(double h_restored) {
     full_step_ = false;
 }
 
-} // namespace hven::solvers
+} // namespace hven

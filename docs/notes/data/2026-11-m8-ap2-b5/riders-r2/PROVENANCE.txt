@@ -1,0 +1,22 @@
+M8 AP-2 group B5, riders round 2 -- PROVENANCE and results
+================================================================================
+Declaration  DECLARATION.txt (76b5e6e4), committed before the first proof leg. No leg failed; no
+             successor declaration; no criterion changed.
+Code head    60e7bf30 (m8-b5); every leg ran on it (corpus binary sha256
+             d9b57fbb9899c6a9ec0c8c6027a902736b6d253c6a1a024a2ab7093bc9f74186).
+Machine      AMD Ryzen 7 5800X3D, Fedora Linux 7.2.12-200.fc44, clang 22.1.8, MKL, MKL_NUM_THREADS=1.
+             Apple/Windows: UNOBSERVED.
+Date         2026-11-04 06:48-07:14 EST (chain.sh; build-b5/chain-r2.log). Dev build and a dev run of
+             the new tests (64 matching tests green) before the declaration, under the lock.
+Protocol     every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before and PGREP_EMPTY inside,
+             set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence paths.
+
+RESULTS (criteria as declared)
+P1  suites   Release 3402/3402, Debug 3402/3402 (suites/). PASS (3399 + 3 as declared, D2).
+P2  replay   walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/riders-comparison-*.txt;
+             the CSVs are replay/r2-*.csv). PASS.
+P3  off-ref  clean build rc 0 (26 warning lines, the riders classes), ctest Release 3402/3402
+             (offref/). PASS.
+P4  PCH      PASS: engaged on 4 TUs, 57 artifacts byte-identical with and without it (pch/).
+Census and runtime gate: NOT re-run, per the declared argument; the replay shows no corpus cell takes a
+non-finite exit.

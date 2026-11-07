@@ -1,0 +1,52 @@
+AMENDMENT 2026-11-01 (append-only; review rider R2 of B1). Nothing above this line in this
+directory, and nothing in attempt1-prefix-anchored/, has been altered. This file is the single
+place the amendment lives; attempt1-prefix-anchored/NOTE.txt is the attempt-1 file and is left as
+it ran.
+
+1. A criterion change after data, disclosed. NOTE.txt says that "no criterion changed between the
+two" attempts, "only the implementation of the declared one". That holds for the symbol-map
+generator (the declared substitution). It does NOT hold for the exception rule. Attempt 2's
+exception rule (ii) excuses every symbol DEFINED in a handle object (ipm_solver.cpp.o /
+sqp_solver.cpp.o), which is wider than the declared rule, "the demangled name begins
+hven::solvers::IpmSolver:: / SqpSolver::". The widening was made after seeing attempt-1 data, so
+it is a criterion change after data.
+
+2. It does not change the outcome. The P-SYM verdict is FAIL either way (compare.txt: "P-SYM: FAIL
+-- differences outside the accepted noise class"). The census ran as the declared remedy and was
+green 57/57. Exceptions excuse ONLY-AFTER only, and the run reports 0 collisions: no exception
+can hide a before-symbol's change.
+
+3. The consumed non-forwarder exceptions, i.e. the excused symbols whose demangled name does NOT
+begin hven::solvers::IpmSolver:: / SqpSolver:: (the ones the declared rule would not have
+excused), as consumed in compare.txt:
+  ipm_solver.cpp.o
+    hven::solvers::(anonymous namespace)::throw_ipm_moved_from()
+    hven::solvers::IpmSolverImpl::clear_iteration_callback()
+    hven::solvers::IpmSolverImpl::clear_kkt_hook()
+    hven::solvers::IpmSolverImpl::set_iteration_callback(std::function<...>, IterationPayload)
+    hven::solvers::IpmSolverImpl::set_kkt_hook(std::function<...> const&)
+    std::optional<std::function<int (int, double, ...)>>::operator=(...)   (mangled
+      _ZNSt8optionalISt8functionIFiidRK...)
+  sqp_solver.cpp.o
+    hven::solvers::(anonymous namespace)::throw_sqp_moved_from()
+    hven::solvers::SqpSolverImpl::clear_iteration_callback()
+The remaining excused symbols in those two objects (.L.str, GCC_except_table*, DW.ref.*,
+__clang_call_terminate, SqpSolverImpl::set_iteration_callback) were listed but not consumed
+(STALE-EXCEPTION in compare.txt) or are handle-class members.
+
+4. The ctor/dtor pairs. The declared substitution rewrites qualifiers (hven::solvers::XSolver:: ->
+hven::solvers::XSolverImpl::) but not the constructor/destructor name token, so a pin symbol
+XSolver::XSolver(...) becomes XSolverImpl::XSolver(...), which matches nothing in the after tree
+(there the token is XSolverImpl::XSolverImpl(...) / ~XSolverImpl()). That yields 3 ONLY-BEFORE
+and 3 ONLY-AFTER entries per engine (ctor and dtor, one entry per emitted variant such as
+[C1]/[C2]/[D1]/[D2] or the unsuffixed form). They are the same constructors and destructors
+under their renamed class, and are part of the FAIL verdict.
+
+5. Hand attribution of the three UNRESOLVED engine findings (classification.txt, "symbol not
+found in a disassembly"; the other two UNRESOLVED entries are bench objects and are outside B1):
+  - ipm_solver.cpp.o  IpmSolverImpl::assemble_dispatch(...)   calls the outlined validators
+    (the validate_* / require_* functions that now live out of line in the assembly seam TU).
+  - ipm_solver.cpp.o  IpmSolverImpl::assemble_objective(...)  calls the outlined validators.
+  - sqp_solver.cpp.o  SqpSolverImpl::enter_restoration(...)   constructs the renamed
+    sub-driver (SqpSolverImpl(opts, RestorationSubDriverTag)).
+These are attributions by reading the source, not tool output.

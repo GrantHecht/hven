@@ -1,0 +1,23 @@
+LEG_START mode=walk 2026-11-01T23:12:44-05:00
+7beeca673de33679a47a435ed025796d5676cbcde4b3fa005d82defd8edca3e0  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armB/hven_sqp_corpus
+RUN mode=walk cell=f7_n1000_bound_neutral arm=A 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n1000_bound_neutral arm=B 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n1000_bound_physics arm=A 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n1000_bound_physics arm=B 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n2000_bound_neutral arm=A 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n2000_bound_neutral arm=B 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n2000_bound_physics arm=A 2026-11-01T23:12:44-05:00
+RUN mode=walk cell=f7_n2000_bound_physics arm=B 2026-11-01T23:12:45-05:00
+RUN mode=walk cell=f7_n5000_bound_neutral arm=A 2026-11-01T23:12:45-05:00
+RUN mode=walk cell=f7_n5000_bound_neutral arm=B 2026-11-01T23:12:45-05:00
+RUN mode=walk cell=f7_n5000_bound_physics arm=A 2026-11-01T23:12:45-05:00
+RUN mode=walk cell=f7_n5000_bound_physics arm=B 2026-11-01T23:12:46-05:00
+RUN mode=walk cell=f7_n10000_bound_neutral arm=A 2026-11-01T23:12:46-05:00
+RUN mode=walk cell=f7_n10000_bound_neutral arm=B 2026-11-01T23:12:47-05:00
+RUN mode=walk cell=f7_n10000_bound_physics arm=A 2026-11-01T23:12:48-05:00
+RUN mode=walk cell=f7_n10000_bound_physics arm=B 2026-11-01T23:12:48-05:00
+RUN mode=walk cell=f7_n20000_bound_neutral arm=A 2026-11-01T23:12:49-05:00
+RUN mode=walk cell=f7_n20000_bound_neutral arm=B 2026-11-01T23:12:50-05:00
+RUN mode=walk cell=f7_n20000_bound_physics arm=A 2026-11-01T23:12:52-05:00
+RUN mode=walk cell=f7_n20000_bound_physics arm=B 2026-11-01T23:12:53-05:00
+LEG_END mode=walk worst_rc=0 2026-11-01T23:12:54-05:00

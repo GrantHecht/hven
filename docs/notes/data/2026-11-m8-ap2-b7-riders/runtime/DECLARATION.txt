@@ -1,0 +1,40 @@
+M8 AP-2 group B7 RIDERS -- runtime neutrality gate -- DECLARATION
+(B7's instrument, ../../2026-11-m8-ap2-b7/runtime/, re-derived for the riders; committed before the first
+leg; never edited)
+================================================================================
+SOURCE. ../../2026-11-m8-ap2-b7/runtime/DECLARATION.txt, taken VERBATIM except for the arms, the paths,
+this group's name and B7's interior-mode pin, which is REMOVED (below). run_all.sh and runtime_leg.sh are
+B7's with the comments' group name, the build directory (build-b7e -> build-b7r), the evidence directory
+and arm A's sha256 replaced, and runtime_leg.sh's pin_of() returning the placeholder for both arms in
+every mode. analyze_r5.py is B7's byte for byte (sha256
+1aeb3efd227421d6bd83fec5ba68adbae3e1dc7a1ca14eb7fd180ef9dd7206c4; its one repository-root line's comment
+names B7's directory: b7-riders/runtime/ is five levels below the root, as b7/runtime/ was -- checked by
+../legs/chain1.sh's pre-flight, not carried). The fixture is copied byte for byte.
+
+ARMS
+  A  the B7 code head 8089104c: B7's own frozen arm B corpus binary (build-b7e/armBbin/hven_sqp_corpus,
+     B7's PROVENANCE.txt), copied by ../legs/armA.sh to build-b7r/armAbin/hven_sqp_corpus after a sha256
+     check, sha256 d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c.
+  B  the riders' code head ee27e1b2: build-b7r/rel/bench/hven_sqp_corpus (a fresh configure and build at the
+     head, ../legs/build.sh) copied by run_all.sh to build-b7r/armBbin/, sha256 ff39639edf676a6c08741b105e37beb4c09e2efd5cbf48ac7901124d73c97004.
+     run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration.
+THE INTERIOR MODE. Both arms at the defaults. B7's pin existed because B7's arm A was the pre-event base
+(31c73879), whose interior rows differ from B7's at the defaults; here arm A is the B7 code head, whose
+interior rows the riders do not move (../DECLARATION.txt D2; measured before this declaration on a dev
+build: 43 rows x 30 columns, 0 differences against B7's own arm B capture), so counter identity holds at
+the defaults and no pin is argued for. Neither arm sees HVEN_LEG_PRE_B7_INFINITE_BOUND (env -u); both
+carry the placeholder HVEN_LEG_NOT_B7_INFINITE_BOUND=1 (read by nothing), so the environments are one size.
+WHAT THE RIDERS ADD TO THE MEASURED PATHS, for the reader of the ratios: per SQP solve on the model route
+(the corpus's SQP route), one pass over the model's box for the threshold refusals (two comparisons per
+bound) before the bridge is laid; per interior lay, the absent count over the materialised box (a pass over
+the variables, one byte per variable, only where a value read as absent); per restoration-wrapper
+construction, one normalised copy of the box. Nothing per iteration on either engine.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows
+UNOBSERVED.

@@ -1,0 +1,95 @@
+M8 AP-2 group B3 -- evidence provenance (CLAUDE.md section 7 stamp)
+================================================================================
+Declaration   DECLARATION.txt (committed 3524ebba before the first leg; not edited)
+Amendment     AMENDMENT-B3c.txt (committed f3743539 before any B3-c leg) -- A CRITERION CHANGE,
+              reported as one: the console byte-pins differ from the pin's transcripts by the
+              banner token "InteriorPointSolver " -> "IpmSolver " (the page's section 4.1 fix),
+              which the declaration's X1 had not listed.
+Runtime decl  runtime/DECLARATION.txt (committed d2f8739d before the runtime gate's first leg)
+Branch        m8-b3, cut from origin/m8 988449b4, REBASED onto origin/m8 19a9dfb1 (settler C222:
+              d8575487, tests only; C224: 19a9dfb1, <iostream> in src/drivers/ipm_options.cpp,
+              kept); not pushed
+Code head     22626a2e (later commits are docs/evidence only). The R/D suites, replay,
+              install smoke, examples, PCH, iparm, P-SYM and runtime legs ran at fee7b3c2; the one
+              code commit after it (22626a2e) touches only the off-reference test regions that
+              the default configuration does not compile, and the off-reference leg ran at it.
+Pin           988449b4, built UNCHANGED in build-b3/rel before any B3 edit (P-SYM "before",
+              runtime arm A dffea0d7..., iparm pin dump, pin compile_commands.json); the tree
+              was then moved to B3 and rebuilt IN PLACE.
+Toolchain     clang 22.1.8 (Fedora 22.1.8-4.fc44); GCC 16.2.1 for the default install-smoke arm;
+              cmake 4.3.0; ninja; perf 7.2.12-200.fc44; MKL; MKL_NUM_THREADS=1
+Hardware      AMD Ryzen 7 5800X3D (8 cores / 16 threads, SMT on), 31 GiB, Linux 7.2.12-200.fc44
+Date          2026-11-02
+Configure     -G Ninja -DCMAKE_BUILD_TYPE=Release|Debug -DHVEN_FP_MODE=SAFER_FAST
+              -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON
+              (build-b3/rel, build-b3/dbg; legs/build.sh). Off-reference: the linux-clang-release
+              preset with -B build-b3/offref -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF
+              -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON (legs/offref.sh).
+Apple / Windows  UNOBSERVED. Nothing here was taken on Mac or Windows hardware; the Accelerate
+              arm is syntax-checked on Linux only (accelerate/).
+
+BOX PROTOCOL
+Every build, test, replay, smoke, example, PCH, iparm, P-SYM, runtime and census leg ran as one
+script under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` checked empty before the
+lock and PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END inside it, set -o pipefail,
+MKL_NUM_THREADS=1, no timeout wrapper. ctest -j4 under setsid. Runtime legs serial, one process
+at a time, taskset -c 2. Scripts: legs/, runtime/.
+
+LEGS AND VERDICTS
+ 1  both suites          Release 3285/3285, Debug 3285/3285 (suites/). The first Release run at
+                         the rebased head failed 16 tests, every one a pin on a pre-B3 name or
+                         message (refusal texts, dump lines and order, two probe-stop statuses in
+                         test_continuation.cpp, two backend refusals that moved to validate());
+                         fixed in fee7b3c2 and both suites run in full after.
+ 2  install smoke        default (GCC) and clang arms PASSED; 24 standalone-include TUs (19 + the
+                         six new public headers - fixed_variable_treatment) (install-smoke/).
+ 3  export contract      OK on both arms: "no public header includes detail/ beyond the shrink-only
+                         allow-list (7 residual pairs)" -- 10 at B2, the three B3 lines deleted.
+ 4  golden rig           the native-arm rig suite runs inside both ctest suites; the two OLD-SEAM
+                         arms are not configured in this tree -- not claimed.
+ 5  27-cell replay x3    EXACT: 27 cells x 75 columns, 0 differences, walk / ssn / ipm (replay/).
+ 6  census               AS DECLARED (census/RESULT.txt): 57/57 rows; exactly the two X2 rows
+                         (f7_n2000_path_neutral, f7_n2000_path_corrupted) differ, in the status
+                         column only (MaxIter -> WorkLimit), both run solo (T2); 0 mismatches
+                         against the re-derived baseline. The census leg script (legs/census.sh)
+                         was committed after the leg started (e44d4443); its criterion is the
+                         declaration's.
+ B3-a iparm              iparm-pin.txt and iparm-b3.txt BYTE-IDENTICAL (sha256 24d4b2c8...), 17
+                         configurations, 21 pardiso calls each where accepted; parallel_solve=2,
+                         algorithm=two_level and backend_print=on refused on BOTH arms (iparm/).
+ B3-b dump + validation  test_options_dump.cpp re-derived (arity, sizeof, line counts, verbatim head);
+                         tests/drivers/test_limits.cpp pins every new refusal on both engines.
+ B3-c console            console_sink_base_transcript.inc re-derived for the banner token only
+                         (console-transcript-rederivation.diff: 6 lines, the 4 Beginning/Finished
+                         occurrences); Verbosity.DefaultSolversOfBothEnginesWriteNothingToStdout.
+ B3-d limits             test_limits.cpp: work limit on both engines (boundary stop, kWorkLimit,
+                         sequence ended on the IPM), never-binding limits bit-identical, the probe
+                         budget -> kWorkLimit with probe_budget_stops == 1, an unmeetable time limit
+                         -> kTimeLimit on both engines.
+ B3-e examples           all eight build and exit 0 (examples-run.log).
+ B3-f compile flags      flags-diff.txt: 57 library TUs in both builds, 0 differing flag lists.
+ B3-g P-SYM (inventory)  psym/compare.txt: 170 objects, 88 byte-identical, 81 with differences, 1
+                         new (test_limits.cpp.o). Library objects differing: 14 of 57, every one a TU
+                         B3 edited or whose headers it re-laid (enum_names, console_trace_sink,
+                         ipm_options, ipm_solver, ipm_solver_globalization, ipm_solver_handle,
+                         solve_result, solve_status, sqp_options, sqp_solver, sqp_solver_handle,
+                         non_linear_program, ipqp_engine, continuation). Informational by
+                         declaration; the identity claims are proofs 5/6 and the runtime STOP.
+ C224 PCH neutrality     PASS: PCH engaged on 4 TUs; all 54 artifacts byte-identical with and
+                         without it (pch/).
+ C222 off-reference      linux-clang-release + HVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, BENCH/EXAMPLES
+                         ON: the first build stopped on three guarded test regions still on pre-B3
+                         names (test_sqp_equality_basis*.cpp, test_sqp_restoration.cpp); fixed in
+                         22626a2e; the build then completed (incrementally, same directory) and
+                         ctest Release passed (offref/).
+ C222 Accelerate sweep   pass A (the settler's spec): 32 files; failures only KNOWN-HEADER (6 files:
+                         Accelerate.h missing) and KNOWN-SIZEOF (test_options_dump.cpp); 0 OTHER.
+                         Pass B (extra, with the repo's stub Accelerate.h): ipm_solver.cpp's
+                         Accelerate arm parses clean past the header; the remaining errors are the
+                         stub's gaps (accelerate_threads.h's SparseFactor/vDSP, lapacke_shim's
+                         lapack_int, Eigen's AccelerateSupport) -- none in B3-edited code
+                         (accelerate/).
+ Runtime                 PASS (runtime/RESULT.txt): interior 0.999812, ipm 1.000002, ssn 1.000005,
+                         walk 1.000000; counter identity on every pair; 0 throttled.
+
+WALL-CLOCK: informational only, never quoted.

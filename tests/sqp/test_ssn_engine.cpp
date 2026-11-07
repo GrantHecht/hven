@@ -14,7 +14,7 @@
 
 #include "support/ssn_fixtures.h"
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::Vec;
 
@@ -26,7 +26,7 @@ namespace {
 // here -- every iteration count below is an OBSERVED VALUE measured with
 // clang++ against MKL Pardiso, ============ MKL-OBSERVED. NOT YET
 // RE-VERIFIED ON APPLE ACCELERATE. ============ -- travels with them.
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 QpOptions default_opts() { return QpOptions{}; }
 
@@ -682,11 +682,11 @@ TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
     // The band is relative to the seed's own scale, with a floor of 1.
     SsnStart above;
     above.z = Vec::Zero(2);
-    above.z(1) = -4.0 * hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    above.z(1) = -4.0 * hven::detail::kSsnAbsentPriceRoundoff;
     EXPECT_THROW(engine.solve(qp, above, SsnOptions{}, &res), std::invalid_argument);
     SsnStart at_band;
     at_band.z = Vec::Zero(2);
-    at_band.z(1) = -hven::solvers::detail::kSsnAbsentPriceRoundoff;
+    at_band.z(1) = -hven::detail::kSsnAbsentPriceRoundoff;
     EXPECT_NO_THROW(engine.solve(qp, at_band, SsnOptions{}, &res));
 }
 
@@ -764,8 +764,8 @@ QpProblem tr_probe_qp() {
 
 TEST(SsnEngineLocal, TheBoxCentreIsHonouredAndIsNotTheStartPoint) {
     const QpProblem qp = tr_probe_qp();
-    SolveOverrides ov;
-    ov.tr_radius = 1.0;
+    QpSolveOverrides ov;
+    ov.trust_region_radius = 1.0;
 
     // START AT (0, 3), WINDOW CENTRED AT THE ORIGIN. The objective pulls
     // variable 1 upward without limit, so the answer is whatever the window
@@ -808,8 +808,8 @@ TEST(SsnEngineLocal, ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoin
     // "no-op" is stronger than "same answer": the same counters, the same
     // residual, the same iterate, bit for bit.
     const QpProblem qp = tr_probe_qp();
-    SolveOverrides ov;
-    ov.tr_radius = 1.0;
+    QpSolveOverrides ov;
+    ov.trust_region_radius = 1.0;
     SsnOptions sopts;
 
     SsnEngine a(default_opts());
@@ -838,7 +838,7 @@ TEST(SsnEngineLocal, ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoin
 
 TEST(SsnEngineLocal, AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite) {
     const QpProblem qp = tr_probe_qp();
-    SolveOverrides ov;
+    QpSolveOverrides ov;
     SsnOptions sopts;
     SsnResult res;
     SsnEngine engine(default_opts());
@@ -871,7 +871,7 @@ TEST(SsnEngineLocal, AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite) {
 
 TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
     // (a) OF THE FIX-ROUND-2 PINS. `SsnStart::x` IS where the solve begins --
-    // the property the kIpm warm grade now relies on to carry the tier's
+    // the property the kIpqp warm grade now relies on to carry the tier's
     // acquisition across from the interior-point tier.
     //
     // OBSERVED AT ZERO ITERATIONS, which is the only unambiguous reading: an
@@ -890,7 +890,7 @@ TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
     qp.lower = Vec::Constant(2, -100.0);
     qp.upper = Vec::Constant(2, 100.0);
 
-    SolveOverrides ov; // +inf radius: no trust region, so no window in the way
+    QpSolveOverrides ov; // +inf radius: no trust region, so no window in the way
     SsnOptions sopts;
 
     SsnEngine warm(default_opts());
@@ -921,8 +921,8 @@ TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
 
 TEST(SsnEngineLocal, TrustRegionPinsAreSeparatedFromRealBounds) {
     const QpProblem qp = tr_probe_qp();
-    SolveOverrides ov;
-    ov.tr_radius = 1.0; // about the start point x0 = 0
+    QpSolveOverrides ov;
+    ov.trust_region_radius = 1.0; // about the start point x0 = 0
 
     SsnEngine engine(default_opts());
     SsnStart start;
@@ -987,8 +987,8 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
     const QpProblem qp = cycling_qp_3var();
     const double radius = 0.01;
 
-    SolveOverrides ov;
-    ov.tr_radius = radius;
+    QpSolveOverrides ov;
+    ov.trust_region_radius = radius;
 
     // --- an ESCAPED exit may be far outside the radius, and reports it ----
     double worst_factor = 0.0;
@@ -1034,8 +1034,8 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
     // binding trust region, which no fixture covered before.
     {
         const QpProblem mixed = mixed_block_qp();
-        SolveOverrides tight;
-        tight.tr_radius = 0.2;
+        QpSolveOverrides tight;
+        tight.trust_region_radius = 0.2;
         SsnEngine engine(default_opts());
         SsnResult res;
         engine.solve(mixed, SsnStart{}, SsnOptions{}, tight, &res);
@@ -1090,8 +1090,8 @@ TEST(SsnEngineLocal, LooseTrustRegionIsBitIdenticalToNoOverride) {
     plain_engine.solve(qp, SsnStart{}, SsnOptions{}, &plain);
     ASSERT_EQ(plain.status, QpStatus::kOptimal);
 
-    SolveOverrides loose;
-    loose.tr_radius = 1e6;
+    QpSolveOverrides loose;
+    loose.trust_region_radius = 1e6;
     SsnEngine tr_engine(default_opts());
     SsnResult with_tr;
     tr_engine.solve(qp, SsnStart{}, SsnOptions{}, loose, &with_tr);
@@ -1122,8 +1122,8 @@ TEST(SsnEngineLocal, TrustRegionRadiusIsNotPartOfTheStructureKey) {
     SsnStart start;
     start.x = Vec::Zero(2);
 
-    SolveOverrides ov;
-    ov.tr_radius = 1.0;
+    QpSolveOverrides ov;
+    ov.trust_region_radius = 1.0;
     SsnResult first;
     engine.solve(qp, start, SsnOptions{}, ov, &first);
     ASSERT_EQ(first.status, QpStatus::kOptimal);
@@ -1131,8 +1131,8 @@ TEST(SsnEngineLocal, TrustRegionRadiusIsNotPartOfTheStructureKey) {
 
     // A shrink, then a growth: neither re-derives the pattern.
     for (double radius : {0.25, 0.5, 4.0, 1e3}) {
-        SolveOverrides next;
-        next.tr_radius = radius;
+        QpSolveOverrides next;
+        next.trust_region_radius = radius;
         SsnResult res;
         engine.solve(qp, start, SsnOptions{}, next, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal) << "radius " << radius;
@@ -1146,7 +1146,7 @@ TEST(SsnEngineLocal, TrustRegionRadiusIsNotPartOfTheStructureKey) {
     EXPECT_EQ(no_tr.pattern_rebuilds, 1);
 }
 
-// The other two SolveOverrides fields resolve by qp_types.h's rules too. dual_mu
+// The other two QpSolveOverrides fields resolve by qp_types.h's rules too. dual_mu
 // is the observable one: on a rank-deficient active set the regularizer picks
 // the multiplier split, so overriding it to 0 must visibly abandon the
 // minimum-norm answer the engine default produces.
@@ -1174,8 +1174,8 @@ TEST(SsnEngineLocal, RegularizerOverridesResolveLikeTheWalks) {
     EXPECT_NEAR(defaulted.lambda_i(0), 0.5, 1e-6);
     EXPECT_NEAR(defaulted.lambda_i(1), 0.5, 1e-6);
 
-    SolveOverrides no_mu;
-    no_mu.dual_mu = 0.0; // an explicit zero, not the negative sentinel
+    QpSolveOverrides no_mu;
+    no_mu.dual_regularization = 0.0; // an explicit zero, not the negative sentinel
     SsnResult unregularized;
     engine.solve(qp, start, SsnOptions{}, no_mu, &unregularized);
     ASSERT_EQ(unregularized.status, QpStatus::kOptimal);
@@ -1229,8 +1229,8 @@ TEST(SsnEngineLocal, PrimalDeltaOverrideChangesWhetherTheSolveConverges) {
     EXPECT_NEAR(defaulted.x(0), 2.0e6, 1.0);
     EXPECT_NEAR(defaulted.x(1), 2.0, 1e-6);
 
-    SolveOverrides big_delta;
-    big_delta.primal_delta = 0.01; // 1e6x the shipped default
+    QpSolveOverrides big_delta;
+    big_delta.primal_regularization = 0.01; // 1e6x the shipped default
     SsnResult regularized;
     engine.solve(qp, SsnStart{}, SsnOptions{}, big_delta, &regularized);
     EXPECT_EQ(regularized.status, QpStatus::kNumericalError)
@@ -1244,27 +1244,27 @@ TEST(SsnEngineLocal, OverrideValidationMatchesTheWalksPrecondition) {
     SsnEngine engine(default_opts());
     SsnResult res;
 
-    SolveOverrides negative;
-    negative.tr_radius = -1.0;
+    QpSolveOverrides negative;
+    negative.trust_region_radius = -1.0;
     EXPECT_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, negative, &res), std::invalid_argument);
 
-    SolveOverrides nan_radius;
-    nan_radius.tr_radius = std::numeric_limits<double>::quiet_NaN();
+    QpSolveOverrides nan_radius;
+    nan_radius.trust_region_radius = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, nan_radius, &res),
                  std::invalid_argument);
 
-    SolveOverrides nan_delta;
-    nan_delta.primal_delta = std::numeric_limits<double>::quiet_NaN();
+    QpSolveOverrides nan_delta;
+    nan_delta.primal_regularization = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, nan_delta, &res),
                  std::invalid_argument);
 
-    SolveOverrides nan_mu;
-    nan_mu.dual_mu = std::numeric_limits<double>::quiet_NaN();
+    QpSolveOverrides nan_mu;
+    nan_mu.dual_regularization = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, nan_mu, &res), std::invalid_argument);
 
     // Zero is a legal radius (it pins every variable at the start point).
-    SolveOverrides zero;
-    zero.tr_radius = 0.0;
+    QpSolveOverrides zero;
+    zero.trust_region_radius = 0.0;
     EXPECT_NO_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, zero, &res));
     EXPECT_TRUE(res.tr_active[0]);
     EXPECT_TRUE(res.tr_active[1]);
@@ -1841,7 +1841,7 @@ TEST(SsnEngineLocal, HardBudgetStopsWithABudgetEscape) {
     SsnResult res;
     engine.solve(qp, SsnStart{}, sopts, &res);
 
-    EXPECT_EQ(res.status, QpStatus::kMaxIter);
+    EXPECT_EQ(res.status, QpStatus::kIterationLimit);
     EXPECT_EQ(res.escape_reason, SsnEscape::kBudget);
     EXPECT_EQ(res.iters, 1);
     EXPECT_EQ(res.counters.ssn_escapes, 1);
@@ -1850,7 +1850,7 @@ TEST(SsnEngineLocal, HardBudgetStopsWithABudgetEscape) {
     sopts.hard_budget = 0;
     SsnResult none;
     engine.solve(qp, SsnStart{}, sopts, &none);
-    EXPECT_EQ(none.status, QpStatus::kMaxIter);
+    EXPECT_EQ(none.status, QpStatus::kIterationLimit);
     EXPECT_EQ(none.escape_reason, SsnEscape::kBudget);
     EXPECT_EQ(none.iters, 0);
     EXPECT_EQ(none.factorizations, 0);
@@ -1892,7 +1892,7 @@ TEST(SsnEngineLocal, NonFiniteStepIsReportedNotThrown) {
 // =============================================================================
 //
 // The per-row FB diagonal is -(beta/alpha_f + mu), not -(beta/alpha_f): the
-// same QpOptions::dual_mu the walk's KKT assembly applies (kkt_assembly.h). On
+// same QpOptions::dual_regularization the walk's KKT assembly applies (kkt_assembly.h). On
 // a well-posed active set mu is invisible at 1e-8, so the property has to be
 // asserted where it is NOT: a RANK-DEFICIENT active set, here two identical
 // active rows. The dual is then non-unique -- any (t, 1-t) is a valid
@@ -1937,7 +1937,7 @@ TEST(SsnEngineLocal, FbTolDerivationAndItsBound) {
     EXPECT_DOUBLE_EQ(ssn_fb_tol_from_kkt_tol(1e-9), 1e-9);
     EXPECT_THROW(ssn_fb_tol_from_kkt_tol(0.0), std::invalid_argument);
     EXPECT_THROW(ssn_fb_tol_from_kkt_tol(-1.0), std::invalid_argument);
-    EXPECT_DOUBLE_EQ(SsnOptions{}.fb_tol, SqpOptions{}.kkt_tol);
+    EXPECT_DOUBLE_EQ(SsnOptions{}.fb_tol, SqpOptions{}.common.optimality_tol);
 
     // The two-sided bound ssn_engine.h section 5 derives, checked directly:
     // (2 - sqrt(2)) * min(a, b) <= phi(a, b) <= min(a, b) for a, b >= 0.
@@ -2137,7 +2137,7 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
         SsnEngine bare_engine(default_opts());
         SsnResult bare;
         bare_engine.solve(c.qp, c.start, bare_opts(), &bare);
-        EXPECT_EQ(bare.status, QpStatus::kMaxIter) << c.name;
+        EXPECT_EQ(bare.status, QpStatus::kIterationLimit) << c.name;
         EXPECT_EQ(bare.escape_reason, SsnEscape::kBudget) << c.name;
         EXPECT_EQ(bare.iters, SsnOptions{}.hard_budget) << c.name;
         EXPECT_EQ(bare.counters.ssn_bulk_flips, c.bare_flips) << c.name;
@@ -2582,7 +2582,7 @@ TEST(SsnEngineLocal, BudgetsAreEnforcedAndCountersAreTruthful) {
         SsnEngine engine(default_opts());
         SsnResult res;
         engine.solve(cycling_qp_3var(), SsnStart{}, sopts, &res);
-        EXPECT_EQ(res.status, QpStatus::kMaxIter);
+        EXPECT_EQ(res.status, QpStatus::kIterationLimit);
         EXPECT_EQ(res.escape_reason, SsnEscape::kBudget);
         EXPECT_EQ(res.counters.ssn_iters, res.iters);
         EXPECT_LE(res.iters, sopts.hard_budget);
@@ -2895,7 +2895,7 @@ TEST(SsnEngineLocal, UncertainBandGeometryAndValidation) {
         SsnEngine wide_engine(default_opts());
         SsnResult wide_res;
         wide_engine.solve(cycling_qp_3var(), SsnStart{}, wide, &wide_res);
-        EXPECT_EQ(wide_res.status, QpStatus::kMaxIter);
+        EXPECT_EQ(wide_res.status, QpStatus::kIterationLimit);
         EXPECT_EQ(wide_res.counters.ssn_bulk_flips, 1); // 4 without the hysteresis
         EXPECT_EQ(wide_res.counters.ssn_uncertain_peak, 1);
         EXPECT_EQ(wide_res.counters.ssn_prox_updates, 4); // 0 without, 1 if damped on alpha only

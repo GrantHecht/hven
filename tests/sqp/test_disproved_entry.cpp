@@ -36,13 +36,14 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_status.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 
 #include "support/disproved_entry_vehicle.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::disproved_entry_model;
@@ -66,13 +67,13 @@ struct Reader : TraceSink {
     double first_primal_improvement = 0.0;
     double first_primal_end = 0.0;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
 
-    void on_ipqp_restart(const IpqpTraceRestartEvent &event) override {
+    void on_ipqp_restart(const IpqpRestartTraceEvent &event) override {
         switch (event.grade) {
         case IpqpTraceRestartGrade::kCold:
             ++cold;
@@ -86,7 +87,7 @@ struct Reader : TraceSink {
         }
     }
 
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &event) override {
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override {
         if (event.reason != IpqpTraceEscapeReason::kInfeasibleSuspect) {
             ++other_escapes;
             return;
@@ -101,19 +102,19 @@ struct Reader : TraceSink {
 
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override {
         switch (event.verdict) {
-        case SqpFallbackVerdict::kDisproved:
+        case SqpTraceFallbackVerdict::kDisproved:
             ++disproved;
             break;
-        case SqpFallbackVerdict::kRelaxed:
+        case SqpTraceFallbackVerdict::kRelaxed:
             ++relaxed;
             break;
-        case SqpFallbackVerdict::kExhausted:
+        case SqpTraceFallbackVerdict::kExhausted:
             ++exhausted;
             break;
-        case SqpFallbackVerdict::kRungB:
+        case SqpTraceFallbackVerdict::kRungB:
             ++rung_b;
             break;
-        case SqpFallbackVerdict::kUnfired:
+        case SqpTraceFallbackVerdict::kUnfired:
             break;
         }
     }
@@ -131,23 +132,23 @@ struct CellRun {
 /// `ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold` quietly
 /// passing at a threshold that is no longer shipped. The premise test asserts
 /// what the pins assume it to be.
-const Index kShippedRetireAfter = IpqpOptions{}.ipqp_retire_after;
+const Index kShippedRetireAfter = IpqpOptions{}.max_consecutive_escapes;
 
 /// One solve of the shipped cell. `max_iter`, `retire_after` and `reseed` are the
 /// only knobs any test below turns; everything else is the shipped default.
 CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
     SqpOptions opts;
-    opts.qp_mode = QpMode::kIpm;
-    opts.max_iter = max_iter;
-    opts.ipqp.ipqp_retire_after = retire_after;
-    opts.ipqp_reseed_after_disproval = reseed;
+    opts.qp_mode = QpMode::kIpqp;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.ipqp.max_consecutive_escapes = retire_after;
+    opts.advanced.ipqp_reseed_after_disproval = reseed;
     opts.common.threads = 1;
 
     const test_support::QpAsNlpModel model = disproved_entry_model(DisprovedEntryCell{});
     CellRun out;
     SqpSolver driver(opts);
     driver.attach_trace(&out.trace);
-    out.sol = driver.solve(model);
+    out.sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     return out;
 }
 
@@ -170,15 +171,15 @@ TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSub
 
     // (ii) The vehicle's own "inside every window" premise. Its header claims the
     //      consistent witness (x_k = target, s = 0) is inside EVERY window the
-    //      driver can build, i.e. |target| < tr_init <= box. `disproved_entry_qp`
+    //      driver can build, i.e. |target| < trust_region_initial <= box. `disproved_entry_qp`
     //      validates only the second half -- it cannot see the DRIVER's radius --
     //      so the first half is pinned here, against the default `run_cell` leaves
     //      alone. Without it the tier's suspicion could become TRUE inside the
     //      window and the disproval below would be about nothing.
     const DisprovedEntryCell cell;
-    EXPECT_LT(std::abs(cell.target), SqpOptions{}.tr_init)
+    EXPECT_LT(std::abs(cell.target), SqpOptions{}.trust_region_initial)
         << "the witness must be reachable inside the FIRST subproblem's window";
-    EXPECT_LE(SqpOptions{}.tr_init, cell.box)
+    EXPECT_LE(SqpOptions{}.trust_region_initial, cell.box)
         << "... and the window must not exceed the box the vehicle validates against";
 
     const CellRun r =
@@ -289,7 +290,7 @@ TEST(SqpDriverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippe
 
 TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     // THE SHIPPED DEFAULT, stated where a change to it would be caught.
-    EXPECT_FALSE(SqpOptions{}.ipqp_reseed_after_disproval);
+    EXPECT_FALSE(SqpOptions{}.advanced.ipqp_reseed_after_disproval);
 
     // ... and an explicit `false` is the same run as the default: this is the
     // OFF arm of the pair below, written out so the ON arm's numbers have a
@@ -300,7 +301,7 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     EXPECT_EQ(off.trace.base + off.trace.full, 0);
     EXPECT_EQ(off.sol.counters.ipqp_suspicion_disproved, 3);
     EXPECT_EQ(off.sol.counters.ipqp.ipqp_tier_retired_after, 3);
-    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): kMaxIter -> kOptimal on
+    // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared mover): kIterationLimit -> kOptimal on
     // the OFF arm. `max_iter = 3` is the fixture's own budget and the point of the cell
     // is the three cold entries and the three disproved suspicions above -- all four of
     // which are unchanged -- while the solve's terminal status at that budget is not
@@ -354,13 +355,14 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
         SqpCounters counters[2];
         for (int arm = 0; arm < 2; ++arm) {
             SqpOptions opts;
-            opts.qp_mode = QpMode::kIpm;
-            opts.max_iter = max_iter;
-            opts.ipqp_reseed_after_disproval = arm == 1;
+            opts.qp_mode = QpMode::kIpqp;
+            opts.common.max_iterations = max_iter;
+            opts.advanced.ipqp_reseed_after_disproval = arm == 1;
             opts.common.threads = 1;
             SqpSolver driver(opts);
             const test_support::QpAsNlpModel model = disproved_entry_model(quiet);
-            counters[arm] = driver.solve(model).counters;
+            counters[arm] =
+                driver.solve(hven::detail::problem_ref(model), (model).start_point()).counters;
         }
         EXPECT_EQ(counters[0].ipqp_suspicion_disproved, 0)
             << "premise: this cell disproves nothing";
@@ -386,11 +388,12 @@ TEST(SqpDriverDisprovedEntry, TheReseedIsInertWhereNothingIsDisproved) {
 /// `perf stat` pass can price the two arms in separate processes rather than
 /// one process running both (CLAUDE.md section 7's instruction line).
 void measure_state(bool reseed) {
-    std::fputs("state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,"
-               "rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,"
-               "qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,"
-               "elastic_escalations,f\n",
-               stdout);
+    std::fputs(
+        "state,max_iter,max_consecutive_escapes,status,majors,escapes,suspect,disproved,relaxed,"
+        "rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,"
+        "qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,"
+        "elastic_escalations,f\n",
+        stdout);
     for (const Index max_iter : {1, 2, 3, 6}) {
         const CellRun r = run_cell(max_iter, /*retire_after=*/kShippedRetireAfter, reseed);
         ASSERT_GE(r.sol.counters.ipqp_suspicion_disproved, 1)
@@ -418,4 +421,4 @@ TEST(M7T4DisprovedEntry, TheReseedMeasuredOff) { measure_state(/*reseed=*/false)
 TEST(M7T4DisprovedEntry, TheReseedMeasuredOn) { measure_state(/*reseed=*/true); }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

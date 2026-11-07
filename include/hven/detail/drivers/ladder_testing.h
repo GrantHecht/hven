@@ -11,7 +11,7 @@
 
 #include <vector>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 /// Ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems as
 /// the engine's own N3 exit does: status kNumericalError, multipliers cleared,
@@ -64,6 +64,6 @@ struct SqpLadderSeam {
     }
 };
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif

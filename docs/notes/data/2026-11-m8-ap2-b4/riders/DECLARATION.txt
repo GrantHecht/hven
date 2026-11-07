@@ -1,0 +1,104 @@
+M8 AP-2 group B4, settler riders -- DECLARATION (committed before the first proof leg; never edited
+afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and the failed record
+is kept)
+================================================================================
+Base        m8-b4 at f8a78f5d (B4 code head 74084e73 + the B4 evidence, ../).
+Code head   8bdb2bee (m8-b4). Commits after the B4 evidence head, oldest first:
+              99482a13 refactor: rider code (I1, I2, I5a, M1, M2, M5, x0 as ConstVecRef)
+              2a7b8a91 test: rider tests (I5a, I5b, M6, M7; readers follow the removals)
+              8bdb2bee docs: returned_best_iterate rule, seed range-row rule, stale prose (I1, M3, M4, M8)
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B4.
+Scratch     build trees under build-b4/ (git-ignored): rel, dbg, offref-r, smoke-*, pch-check, iparm-build.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+I1  SolveResult::returned_best_iterate documents the per-engine rule (IPM: return_best on and any
+    non-optimal exit except an interrupt; SQP: budget_mode cap). result_message.cpp appends
+    "; returned the best iterate" whenever the flag is set, independent of status.
+I2  IpmResult::last_eval_exception deleted with its writer; EvaluationErrors.last_message is the one
+    channel. Readers (tests) follow.
+I5a IpmSolver::solve restarts the work tally BEFORE ipm_program(problem). ESTABLISHED: the program
+    build of an Nlp problem DOES make eval_* calls (NLPAdapterCore's constructor walks the patterns with
+    one eval_hessian and one eval_jacobian through the counting decorator), so reset_work was moved ahead
+    of the build and the first solve of a fresh Problem now counts them.
+I5b Literal HS071 work pins per engine (tests/drivers/test_solve_result.cpp): IPM second solve 10
+    iterations, 20/10/10/10/10 evaluations, 10 factorizations; SQP 5 iterations, 6/6/6/7/6 evaluations,
+    19 factorizations.
+M1  ProblemAccess::compose_rows_into / NlpProblemModel::compose_user_multipliers_into: the event lambda
+    is composed into the engine's scratch in place.
+M2  WarmExtension::tag_/payload_ -> tag/payload; serialized bytes unchanged.
+M3  WarmStart::seed documents the range-row rule.
+M4  stale docs: severity() range 0-9; IpmResult::fixed_variable_treatment prose; IterationEvent::depth
+    (>= 2 unreachable).
+M5  continuation.cpp shares the native warm-start handle instead of deep-copying the state.
+M6  test: WarmStart::seed(problem, r.x, r.lambda, r.z).key() == r.warm_start.key() under
+    kMakeConstraint with a fixed variable.
+M7  test: the best-iterate clause (kMaxIter + flag; kAcceptable + flag, HS071 at tol 1e-12; no clause
+    without the option).
+M8  WorkCounters doc: the internal-route sentence dropped.
+NIT x0 is ConstVecRef on IpmSolver::solve and both SqpSolver::solve overloads (the handle copies it to
+    a Vec once per solve).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  Removed surface: IpmResult::last_eval_exception. Renamed: WarmExtension::tag_/payload_ ->
+    tag/payload (aggregate rule). Signature spelling: x0 as ConstVecRef (binds the same arguments).
+    New in detail/: ProblemAccess::compose_rows_into, NlpProblemModel::compose_user_multipliers_into.
+X2  Message text. The clause "; returned the best iterate" now also ends the message of every
+    non-kMaxIter exit that has returned_best_iterate set (an IPM kAcceptable, kStalled, kInfeasible, ...
+    solve with return_best on). The kMaxIter text is unchanged. returned_best_iterate itself is unchanged.
+X3  Work counters of the FIRST solve of a fresh Nlp Problem on the interior-point engine: +1
+    hessian_evals and +1 jacobian_evals (the program build's pattern walk), where the build was
+    previously excluded. Second and later solves, the SQP engine, and pieces/program problems are
+    unchanged. work is a new output of B4; no replay, census or runtime column reads it.
+X4  New pins: SolveWork.TheFirstInteriorPointSolveCountsItsProgramBuild, Hs071InteriorPoint-
+    SecondSolveHasTheHandCountedWork, Hs071SqpHasTheHandCountedWork, Problem.SeedKeyMatchesTheExport-
+    KeyUnderMakeConstraintWithAFixedVariable, SolveMessage.TheBestIterateClauseFollowsTheFlagOnThe-
+    InteriorPointEngine (3309 -> 3316 tests).
+X5  No new TU: the PCH source count stays 56. The runtime instrument pays one copy of x0 per solve and
+    one more Hessian and Jacobian evaluation on a first Nlp solve; both are inside the runtime gate's
+    instruction count.
+EXPECTED UNCHANGED: the 27-cell replay (EXACT), the 57-cell walk census (0 mismatches), the iparm dump
+(byte-identical to ../iparm/iparm-b4.txt), the export contract with no allow-list, every counter and
+status of every measured runtime row, every trace golden.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b4/rel) and Debug (build-b4/dbg), full, -j4 under setsid: every test
+    passes (3316 expected; legs/ctest.sh).
+P2  examples: all 8 build and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P4  iparm (legs/iparm.sh): the dumper (byte copy of B4's, iparm/) against an install of the riders
+    head: BYTE-IDENTICAL to ../iparm/iparm-b4.txt, 15 configurations.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh: scripts/run_walk_census.sh at defaults, scripts/census_compare.py) on arm B.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh:
+    pass, the detail-include rule armed and NO allow-list (none exists; none may be added).
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh directory (build-b4/offref-r),
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass (legs/offref.sh; the evidence directory is passed ABSOLUTE).
+P9  Accelerate syntax sweep, pass A as B4 (legs/accelerate_sweep.py): no OTHER; no class beyond B4's
+    (KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED.
+P10 runtime gate (runtime/DECLARATION.txt): arm A = the 74084e73 binary, arm B = 8bdb2bee; same filter,
+    band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm
+    order alternated.
+(The compile-flags diff of B4's P10 is not repeated: no library TU is added or removed and no flag is
+touched by these commits; the settler's list for this round does not call for it.)
+ARMS
+  A  the 74084e73 binary: build-b4/armB/hven_sqp_corpus of the B4 round (stamp 74084e73e922), copied
+     to build-b4/armAr/hven_sqp_corpus, sha256
+     101be1a2bffa31ef3e579116fa0639fa2fe7a606c26aebc8957062ec53f51788.
+  B  8bdb2bee: build-b4/rel re-configured at the head (stamp 8bdb2beeb2c7), bench/hven_sqp_corpus
+     frozen at build-b4/armBr/hven_sqp_corpus, sha256
+     ed95c9a9121e6e4f949be59bf3b11939b8a5f91a62415cb782ee2b44eb3081b9.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs
+the non-timing legs in sequence, each under its own lock); `pgrep -a hven_bench_cell` empty before the
+lock and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4
+under setsid; FOREGROUND_START/END markers; ABSOLUTE evidence paths.
+DEV CHECKS before this declaration (not evidence): a full Release ctest at 99482a13+tests showed 2
+failing new tests (a wrong SQP iteration literal, 6 for 5; a non-kMaxIter fixture that ended kMaxIter);
+both fixed in the tests commit (the 2a7b8a91 content) and re-run green by filter.

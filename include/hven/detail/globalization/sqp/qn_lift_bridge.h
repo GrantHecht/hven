@@ -16,7 +16,7 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn_engine.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// Consecutive non-zero-step skips that reset the window (design m7-qn-design.md section 3). A
 /// zero-step skip neither advances nor clears the streak: near a solution every step is zero,
@@ -65,20 +65,20 @@ class QnLiftBridge {
     double predicted_decrease(const QpProblem &qp, const Vec &p) const;
 
     /// The walk: cold, warm, and warm with a hot handle offered.
-    QpSolution solve(const QpEngine &engine, const QpProblem &qp, const SolveOverrides &o);
+    QpSolution solve(const QpEngine &engine, const QpProblem &qp, const QpSolveOverrides &o);
     QpSolution solve(const QpEngine &engine, const QpProblem &qp, const QpSolution &seed,
-                     const SolveOverrides &o);
+                     const QpSolveOverrides &o);
     QpSolution solve(const QpEngine &engine, const QpProblem &qp, const QpSolution &seed,
-                     const SolveOverrides &o, const std::shared_ptr<const HotState> &hot);
+                     const QpSolveOverrides &o, const std::shared_ptr<const HotState> &hot);
     /// Tier 3 on an externally identified face (QpEngine::refine_on_face).
     bool refine_on_face(const QpEngine &engine, const QpProblem &qp, const QpSolution &face,
-                        const SolveOverrides &o, QpSolution &out);
+                        const QpSolveOverrides &o, QpSolution &out);
     /// The SSN tier. `out` is un-lifted in place.
     void solve(SsnEngine &engine, const QpProblem &qp, const SsnStart &start,
-               const SsnOptions &sopts, const SolveOverrides &o, SsnResult *out);
+               const SsnOptions &sopts, const QpSolveOverrides &o, SsnResult *out);
     /// The interior tier.
     IpqpResult solve(IpqpEngine &engine, const QpProblem &qp, const IpqpSeed *seed,
-                     const IpqpOptions &iopts, const SolveOverrides &o);
+                     const IpqpOptions &iopts, const QpSolveOverrides &o);
 
     /// Whether `seed` can seed `qp` through the lift: its blocks are the unlifted sizes, or
     /// a lifted carry's -- accepted only when `qp` has exactly the (n, me) of the last lift an
@@ -123,4 +123,4 @@ class QnLiftBridge {
     Tally tally_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

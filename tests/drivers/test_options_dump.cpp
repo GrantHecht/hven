@@ -43,56 +43,57 @@
 
 namespace {
 
-using hven::solvers::CommonOptions;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpqpOptions;
-using hven::solvers::QpOptions;
-using hven::solvers::SqpOptions;
+using hven::CommonOptions;
+using hven::IpmOptions;
+using hven::IpqpOptions;
+using hven::QpOptions;
+using hven::SqpOptions;
 
 // ---------------------------------------------------------------------------
 // Axis 1: the declared field counts, pinned at compile time.
-//
-// IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
-// initializer, the nested CommonOptions) and `phases` (the one sequence).
-// SqpOptions' 45 count `qp`, `ipqp` and `common` as one each (32 before M7 W2 R2
-// added `qp_failure_step`; 33 before M7 W2 P1E added `elastic_witness_start`,
-// `elastic_last_optimal_rung` and `restoration_resume_reduction`; 36 before M7 QN
-// stage 3 added `hessian_mode`, `qn_memory` and `qn_update_on_reject`; 39 before the
-// M7 QN quality round added `qn_nonlinear_only` and `qn_full_memory_max`; 41 before M7 W2
-// SCL added `column_scaling` and `column_scaling_threshold`; 43 before M7 W2 RST added
-// `restoration_curvature` and `restoration_max_entries`).
-//
-// IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
-// detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
-// inside `#ifdef USE_ACCELERATE_SPARSE` (drivers/ipm_solver_types.h), so the
-// struct HAS TWO MORE FIELDS on an Accelerate build than on an MKL one, and the
-// dump prints two more lines there under the same guard. Both counts are stated
-// here rather than one being asserted everywhere, because either single value
-// would be false on the other platform.
 // ---------------------------------------------------------------------------
-#ifdef USE_ACCELERATE_SPARSE
-constexpr std::size_t kIpmOptionsFields = 65;
-#else
-constexpr std::size_t kIpmOptionsFields = 63;
-#endif
-constexpr std::size_t kSqpOptionsFields = 45;
+// M8 AP-2 B3 (the options break) re-laid both structs into tiers, so the counts
+// below are per struct. Each nested struct is flattened under its member name.
+// `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
+// counts are the same everywhere.
+constexpr std::size_t kIpmLinearOptionsFields = 12;
+constexpr std::size_t kIpmOptionsFields = 17;
+constexpr std::size_t kIpmTerminationOptionsFields = 10;
+constexpr std::size_t kIpmAdvancedOptionsFields = 24;
+constexpr std::size_t kSqpOptionsFields = 17;
+constexpr std::size_t kSqpLinearOptionsFields = 2;
+constexpr std::size_t kSqpAdvancedOptionsFields = 27;
 constexpr std::size_t kIpqpOptionsFields = 25;
 constexpr std::size_t kQpOptionsFields = 11;
-constexpr std::size_t kCommonOptionsFields = 3;
+constexpr std::size_t kCommonOptionsFields = 9;
 
 static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
               "IpmOptions gained or lost a field. Give it a line in "
               "dump_options(const IpmOptions&, std::ostream&) "
               "(src/drivers/ipm_options.cpp), in its declaration position, then move "
               "kIpmOptionsFields and kIpmDumpLines here together.");
+static_assert(::hven::detail::kAggregateArity<hven::IpmLinearOptions> == kIpmLinearOptionsFields,
+              "IpmLinearOptions gained or lost a field: it is flattened under `linear.`.");
+static_assert(::hven::detail::kAggregateArity<hven::IpmTerminationOptions> ==
+                  kIpmTerminationOptionsFields,
+              "IpmTerminationOptions gained or lost a field: it is flattened under "
+              "`termination.`.");
+static_assert(::hven::detail::kAggregateArity<hven::IpmAdvancedOptions> ==
+                  kIpmAdvancedOptionsFields,
+              "IpmAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
 static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
               "SqpOptions gained or lost a field. Give it a line in "
               "dump_options(const SqpOptions&, std::ostream&) "
               "(src/drivers/sqp_options.cpp), in its declaration position, then move "
               "kSqpOptionsFields and kSqpDumpLines here together.");
+static_assert(::hven::detail::kAggregateArity<hven::SqpLinearOptions> == kSqpLinearOptionsFields,
+              "SqpLinearOptions gained or lost a field: it is flattened under `linear.`.");
+static_assert(::hven::detail::kAggregateArity<hven::SqpAdvancedOptions> ==
+                  kSqpAdvancedOptionsFields,
+              "SqpAdvancedOptions gained or lost a field: it is flattened under `advanced.`.");
 static_assert(::hven::detail::kAggregateArity<IpqpOptions> == kIpqpOptionsFields,
-              "IpqpOptions gained or lost a field: it is flattened under the `ipqp.` "
-              "prefix by dump_options(const SqpOptions&, std::ostream&).");
+              "IpqpOptions gained or lost a field: it is flattened under the "
+              "`advanced.ipqp.` prefix by dump_options(const SqpOptions&, std::ostream&).");
 static_assert(::hven::detail::kAggregateArity<QpOptions> == kQpOptionsFields,
               "QpOptions gained or lost a field: it is flattened under the `qp.` "
               "prefix by dump_options(const SqpOptions&, std::ostream&).");
@@ -103,94 +104,44 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
 // ---------------------------------------------------------------------------
 // Axis 2: sizeof, on the one platform these values were observed on.
 //
-// LINUX x86-64, clang, the project's own flag regime -- the configuration
-// CLAUDE.md documents and all of hven's pins are taken under. These numbers are
-// layout, not contract: a different ABI, a different alignment or a different
-// standard-library std::function/std::vector will legitimately produce others,
-// which is why the asserts are gated rather than written as a portable claim.
-// Apple and Windows values are UNOBSERVED and are deliberately not guessed.
+// LINUX x86-64, clang, the project's own flag regime. These numbers are layout,
+// not contract: a different ABI, alignment or standard library legitimately
+// produces others, which is why the asserts are gated. Apple and Windows values
+// are UNOBSERVED and deliberately not guessed. All values re-observed at M8 AP-2
+// B3, which re-laid every options struct (the history of earlier values is in
+// docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
-static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-64. If a field "
+static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 520,
-              "SqpOptions' layout moved on Linux x86-64 -- see the IpmOptions note directly "
-              "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
-              "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
-              "padding that enum left (observed, not assumed -- axis 1 above is what "
-              "noticed the new field); UNCHANGED again at M7 W2 M4, whose "
-              "`project_start_point` bool sits in the padding ahead of `common` "
-              "(observed at that task, on this platform, the same way); 384 -> 400 at M7 W2 "
-              "M1, which added the `qp_failure_budget` Index and the `qp_cap_retry` bool: "
-              "SIXTEEN bytes, not eight, and the extra eight are an alignment hole rather "
-              "than a field -- the Index is 8-aligned, so it cannot sit in the padding "
-              "`project_start_point` (offset 368) leaves, and lands at 376; `qp_cap_retry` "
-              "then takes 384 and `common` 388-400; 400 -> 416 at M7 W2 M2b, which added the "
-              "`restoration_proximity` double: EIGHT bytes of field and EIGHT of alignment "
-              "hole, because a double is 8-aligned and cannot sit in the seven bytes "
-              "`qp_cap_retry` (offset 384) leaves -- it lands at 392, `common` moves to "
-              "400-412, and the struct's own 8-alignment rounds 412 up. Observed here, on "
-              "this platform, the way every value on this axis is: the design page's "
-              "arithmetic said 408 and the compiler is the authority. UNCHANGED at M7 W2 E1, "
-              "whose `equality_basis` bool fits the padding after `restoration_proximity` "
-              "(the size observed; the offsets not); 416 -> 424 at M7 W2 E2, whose "
-              "QpOptions `independent_working_set` bool grows the embedded QpOptions "
-              "72 -> 80 (its 8-alignment; observed); 424 -> 440 at M7 W2 P1E, whose two "
-              "elastic bools fit the padding after `equality_basis` and whose "
-              "`restoration_resume_reduction` double adds eight bytes and moves `common` "
-              "(observed); 440 -> 456 at M7 QN stage 3, whose `hessian_mode` enum, "
-              "`qn_memory` Index and `qn_update_on_reject` bool precede `common` (observed); "
-              "456 -> 472 at the M7 QN quality round: its `qn_nonlinear_only` bool fits the "
-              "padding after `qn_update_on_reject`, its 8-aligned `qn_full_memory_max` Index "
-              "lands at 448, and `common` moves to 456-468, which the struct rounds to 472 "
-              "(observed); 472 -> 488 at M7 W2 SCL, whose `column_scaling` enum and "
-              "8-aligned `column_scaling_threshold` double follow `scaling_factor_limit` "
-              "(observed); 488 -> 504 at M7 W2 RST, whose `restoration_curvature` enum and "
-              "8-aligned `restoration_max_entries` Index follow `qn_full_memory_max` "
-              "(observed); 504 -> 512 at M7 W2 A2, the nested IpqpOptions' 152 -> 160 "
-              "(observed); 512 -> 520 at M7 W2 A3, the nested IpqpOptions' 160 -> 168 "
-              "(observed).");
-// 152 -> 160 at M7 W2 A2: the `ipqp_mu0_rule` enum and the `ipqp_mu_residual_floor` bool
-// follow the three trailing bools and round the struct to the next 8 (observed).
-// 160 -> 168 at M7 W2 A3: the 8-aligned `ipqp_ladder_skip_after` Index follows the two A2
-// fields (observed).
-static_assert(sizeof(IpqpOptions) == 168, "IpqpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(QpOptions) == 80, "QpOptions' layout moved on Linux x86-64.");
-static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::IpmLinearOptions) == 56,
+              "IpmLinearOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::IpmTerminationOptions) == 88,
+              "IpmTerminationOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::IpmAdvancedOptions) == 144,
+              "IpmAdvancedOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(SqpOptions) == 600, "SqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::SqpLinearOptions) == 24,
+              "SqpLinearOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(hven::SqpAdvancedOptions) == 328,
+              "SqpAdvancedOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(IpqpOptions) == 184, "IpqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(QpOptions) == 88, "QpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(CommonOptions) == 80, "CommonOptions' layout moved on Linux x86-64.");
 #endif
 
 // ---------------------------------------------------------------------------
 // Axis 3: the dumped line count, read off the printer.
 //
-// IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
-// CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
-// `accel_*` fields exist and the dump prints them.
-// SqpOptions: 42 own lines (the 45 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 11, IpqpOptions' 25 and CommonOptions' 3 = 81. (IpqpOptions' 24 and 80 before
-// M7 W2 A3 added `ipqp_ladder_skip_after`; 22 and 78 before
-// M7 W2 A2 added `ipqp_mu0_rule` and `ipqp_mu_residual_floor`; 40 and 76 before M7 W2 RST
-// added `restoration_curvature` and `restoration_max_entries`; 38 and 74 before M7 W2 SCL
-// added `column_scaling` and `column_scaling_threshold`; 36 and 72 before the M7 QN
-// quality round added its two fields; 33 and 69 before M7 QN
-// stage 3 added its three fields; 10 and 68 before M7 QN
-// stage 2 added QpOptions::`hessian_known_convex`; 30 and 65 before M7 W2
-// P1E added its three fields; 29 own lines and 64
-// before M7 W2 R2 added `qp_failure_step`; 22 own lines and 56
-// before M7 W0 T3 added `elastic_rung_engine`; 23 and 57 before M7 W0 T4 added
-// `ipqp_reseed_after_disproval`; 24 and 58 before M7 W2 M4 added
-// `project_start_point`; 25 and 59 before M7 W2 M1 added `qp_failure_budget`
-// and `qp_cap_retry`; 27 and 61 before M7 W2 M2b added `restoration_proximity`;
-// 28 and 62 before M7 W2 E1 added `equality_basis`, whose default E1 fix round 1
-// turned to false: the line count is unchanged.)
+// IpmOptions: common 9 + phases 1 + termination 10 + 12 own scalars + linear 12
+// + advanced 24 = 68.
+// SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
+// advanced.ipqp 25 = 86.
 // ---------------------------------------------------------------------------
-#ifdef USE_ACCELERATE_SPARSE
-constexpr int kIpmDumpLines = 67;
-#else
-constexpr int kIpmDumpLines = 65;
-#endif
-constexpr int kSqpDumpLines = 81;
+constexpr int kIpmDumpLines = 68;
+constexpr int kSqpDumpLines = 86;
 
 int count_lines(const std::string &text) {
     int n = 0;
@@ -204,13 +155,13 @@ int count_lines(const std::string &text) {
 
 std::string dump_to_string(const IpmOptions &o) {
     std::ostringstream os;
-    hven::solvers::dump_options(o, os);
+    hven::dump_options(o, os);
     return os.str();
 }
 
 std::string dump_to_string(const SqpOptions &o) {
     std::ostringstream os;
-    hven::solvers::dump_options(o, os);
+    hven::dump_options(o, os);
     return os.str();
 }
 
@@ -234,18 +185,18 @@ TEST(OptionsDump, SqpDumpsOneLinePerField) {
 
 // The two fields whose defaults differ between the engines, which is what makes
 // them worth reading back: CommonOptions' own defaults are 0 / 3, IpmOptions
-// overrides them to HVEN_DEFAULT_QP_THREADS / 0, and the brief pins the SHARED
+// overrides them to HVEN_DEFAULT_IPM_THREADS / 0, and the brief pins the SHARED
 // struct's values -- so this is the SqpOptions dump.
 TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
     const std::string text = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(text, "common.threads = 0")) << text;
-    EXPECT_TRUE(has_line(text, "common.print_level = 3")) << text;
+    EXPECT_TRUE(has_line(text, "common.verbosity = kSilent")) << text;
 }
 
 // SqpOptions::equality_basis is ON by default (M7 W2 E1b; off from E1 fix round 1 until
 // E1b moved the split onto the hven::linear backend -- a DECLARED dump move).
 TEST(OptionsDump, SqpDumpsTheEqualityBasisOn) {
-    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "equality_basis = true"));
+    EXPECT_TRUE(has_line(dump_to_string(SqpOptions{}), "advanced.equality_basis = true"));
 }
 
 // SqpOptions::project_start_point is ON by default (M7 W2 ladder round, L2 = proposal E5;
@@ -260,52 +211,57 @@ TEST(OptionsDump, SqpDumpsTheStartPointProjectionOn) {
 TEST(OptionsDump, EnumsPrintEnumeratorNames) {
     const std::string sqp = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(sqp, "qp_mode = kWalk")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "elastic_rung_engine = kWalk")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "advanced.elastic_rung_engine = kWalk")) << sqp;
     EXPECT_TRUE(has_line(sqp, "hessian_mode = kExact")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qn_memory = 10")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qn_update_on_reject = false")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qn_nonlinear_only = false")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qn_full_memory_max = 400")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "lbfgs_memory = 10")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "advanced.lbfgs_update_on_reject = false")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "advanced.lbfgs_nonlinear_only = false")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "advanced.max_lbfgs_full_memory_dimension = 400")) << sqp;
     EXPECT_TRUE(has_line(sqp, "common.start_level = kWarm")) << sqp;
-    EXPECT_TRUE(has_line(sqp, "qp.ws_algebra = kSchurBorder")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "qp.working_set_algebra = kSchurBorder")) << sqp;
 
     const std::string ipm = dump_to_string(IpmOptions{});
-    EXPECT_TRUE(has_line(ipm, "soe_mode = kSoe")) << ipm;
-    EXPECT_TRUE(has_line(ipm, "opt_bar_mode = kLoqo")) << ipm;
-    EXPECT_TRUE(has_line(ipm, "restoration_mode = off")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "advanced.solve_phase_mode = kSolveEquations")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "advanced.optimize_barrier_mode = kLoqo")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "advanced.restoration_mode = kOff")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "linear.dense_factorization = kNever")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "common.verbosity = kSilent")) << ipm;
     EXPECT_TRUE(has_line(ipm, "phases = [kOptimize]")) << ipm;
 }
 
-// Declaration order, doubles at {:.17g}, bools as words: the head of the IPM
-// dump verbatim, which is the cheapest way to pin the format itself.
-//
-// `max_iters = 1000` is a DECLARED re-derivation (M7 W2 D1, 2026-09-18): the
-// default was 500 until that event, and this line is one of exactly two places
-// in the tree where the 500 -> 1000 half of it is observable -- every bench leg
-// pins its own cap, so no committed measurement moved with it. See
-// docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
+// Declaration order, shortest round-trip doubles, optionals as `unset`, bools as
+// words: the head of the IPM dump verbatim, which is the cheapest way to pin the
+// format itself. RE-DERIVED at M8 AP-2 B3 (declared): the options were re-laid
+// into tiers, and doubles moved from `{:.17g}` (`9.9999999999999995e-07`) to the
+// shortest round-trip form (`1e-06`).
 TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
+    const std::string head = "common.optimality_tol = 1e-06\n"
+                             "common.feasibility_tol = 1e-06\n"
+                             "common.max_iterations = 1000\n"
+                             "common.max_factorizations = unset\n"
+                             "common.time_limit_seconds = unset\n"
+                             "common.verbosity = kSilent\n"
+                             "common.threads = " +
+                             std::to_string(HVEN_DEFAULT_IPM_THREADS) +
+                             "\n"
+                             "common.start_level = kWarm\n"
+                             "common.infinite_bound = 1e+20\n"
+                             "phases = [kOptimize]\n"
+                             "termination.complementarity_tol = unset\n"
+                             "termination.acceptable_iterations = 50\n";
     const std::string text = dump_to_string(IpmOptions{});
-    EXPECT_EQ(text.substr(0, std::string("max_iters = 1000\n"
-                                         "max_ls_iters = 2\n"
-                                         "max_acc_iters = 50\n"
-                                         "max_refac = 15\n"
-                                         "max_soc = 0\n"
-                                         "ls_extended_iters = 0\n"
-                                         "watchdog = false\n"
-                                         "max_feas_rest = 2\n"
-                                         "kkt_tol = 9.9999999999999995e-07\n")
-                                 .size()),
-              "max_iters = 1000\n"
-              "max_ls_iters = 2\n"
-              "max_acc_iters = 50\n"
-              "max_refac = 15\n"
-              "max_soc = 0\n"
-              "ls_extended_iters = 0\n"
-              "watchdog = false\n"
-              "max_feas_rest = 2\n"
-              "kkt_tol = 9.9999999999999995e-07\n")
-        << text;
+    EXPECT_EQ(text.substr(0, head.size()), head) << text;
+}
+
+// The optional limits print their value once set.
+TEST(OptionsDump, EngagedLimitsPrintTheirValues) {
+    SqpOptions o;
+    o.common.max_factorizations = 250;
+    o.common.time_limit_seconds = 1.5;
+    const std::string text = dump_to_string(o);
+    EXPECT_TRUE(has_line(text, "common.max_factorizations = 250")) << text;
+    EXPECT_TRUE(has_line(text, "common.time_limit_seconds = 1.5")) << text;
+    EXPECT_TRUE(has_line(text, "advanced.ipqp.max_iterations = unset")) << text;
 }
 
 // Deterministic and side-effect-free: dumping the same value twice, and
@@ -382,7 +338,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
     {
         std::ostringstream os;
         poison(os);
-        hven::solvers::dump_options(IpmOptions{}, os);
+        hven::dump_options(IpmOptions{}, os);
         EXPECT_EQ(os.str(), dump_to_string(IpmOptions{}));
         EXPECT_EQ(os.width(), 40) << "an unformatted write does not consume width(); a formatted "
                                      "insertion would have reset it to 0";
@@ -390,7 +346,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
     {
         std::ostringstream os;
         poison(os);
-        hven::solvers::dump_options(SqpOptions{}, os);
+        hven::dump_options(SqpOptions{}, os);
         EXPECT_EQ(os.str(), dump_to_string(SqpOptions{}));
         EXPECT_EQ(os.width(), 40);
     }
@@ -401,7 +357,7 @@ TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
 TEST(OptionsDump, WritesIntoAStreamTheCallerIsAlreadyUsing) {
     std::ostringstream os;
     os << "prologue\n";
-    hven::solvers::dump_options(SqpOptions{}, os);
+    hven::dump_options(SqpOptions{}, os);
     os << "epilogue\n";
     const std::string expected = "prologue\n" + dump_to_string(SqpOptions{}) + "epilogue\n";
     EXPECT_EQ(os.str(), expected);
@@ -412,11 +368,11 @@ TEST(OptionsDump, WritesIntoAStreamTheCallerIsAlreadyUsing) {
 TEST(OptionsDump, ReadsTheValueItWasGiven) {
     IpmOptions o;
     o.common.threads = 7;
-    o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
-    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
     const std::string text = dump_to_string(o);
     EXPECT_TRUE(has_line(text, "common.threads = 7")) << text;
-    EXPECT_TRUE(has_line(text, "restoration_mode = l1_nested")) << text;
+    EXPECT_TRUE(has_line(text, "advanced.restoration_mode = kL1Nested")) << text;
     EXPECT_TRUE(has_line(text, "phases = [kSolve, kOptimize]")) << text;
     EXPECT_EQ(count_lines(text), kIpmDumpLines);
 }

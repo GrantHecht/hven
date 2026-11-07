@@ -12,11 +12,10 @@
 #include <limits>
 #include <type_traits>
 
-#include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
-namespace hven::solvers {
+namespace hven {
 
 /// @brief QP solver performance counters.
 ///
@@ -27,12 +26,12 @@ namespace hven::solvers {
 /// counted was deleted as measured-inert, and the counter stays as that
 /// invariant. "KEPT" is operative in both: a candidate step the strict-decrease
 /// rule rejects is discarded and NOT counted. The EQP-site residual check's own
-/// solves (M7 W2 E4) are a fourth, disjoint quantity in `eqp_refine_iters` and
+/// solves are a fourth, disjoint quantity in `eqp_refine_iters` and
 /// are deliberately NOT folded into eqp_refine_steps, whose identically-0
 /// invariant is therefore unchanged by it.
 /// @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 struct QpCounters {
-    /// THE ACCOUNTING CONTRACT (ruling E4-17, M7 W2 E4 fix round 2). This field is
+    /// THE ACCOUNTING CONTRACT. This field is
     /// the ACTIVE-SET SEARCH's cost and nothing else: every budget is written
     /// against it, the hot-handle contract is stated as `qp_factorizations == 0`
     /// on a reused K0 (the WarmStart pins read exactly that), and the HS battery's
@@ -40,16 +39,15 @@ struct QpCounters {
     /// nothing therefore belongs in its OWN field, and the terminal polish's
     /// stage-2 re-solve is charged to `terminal_polish_solves` for that reason.
     /// The TOTAL a solve spent is `factorizations + terminal_polish_solves`.
-    /// `terminal_mu_refines`' factorization predates this ruling and IS in this
-    /// field; the asymmetry is recorded at both fields and deliberately left
-    /// alone.
+    /// `terminal_mu_refines`' factorization IS in this field; the asymmetry is
+    /// recorded at both fields and deliberate.
     Index factorizations = 0;
     Index schur_updates = 0;
     Index minor_iters = 0;
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
 
-    /// THE EQP-SITE RESIDUAL CHECK (M7 W2 E4; eqp_solve.h's own header section).
+    /// THE EQP-SITE RESIDUAL CHECK (eqp_solve.h's own header section).
     /// Solves SPENT driving the CONSTRAINT-row residual of an EQP answer against
     /// its OWN regularized system down to detail::kEqpResidualRefuseTol, summed
     /// over every EQP solve of this QP solve, on either algebra.
@@ -75,23 +73,23 @@ struct QpCounters {
     /// refusals and still kOptimal. A NaN residual is a refusal.
     Index eqp_residual_refusals = 0;
 
-    /// EQP answers refused by THE STEP'S ROW-DRIFT CHECK (M7 W2 E4 fix round 2;
-    /// qp_engine.h's eqp_answer_drifts_off_met_rows) -- the answer solved its own
+    /// EQP answers refused by THE STEP'S ROW-DRIFT CHECK
+    /// (qp_engine.h's eqp_answer_drifts_off_met_rows) -- the answer solved its own
     /// REGULARIZED system, so `eqp_residual_refusals` has nothing to say about
     /// it, and it nonetheless leaves a working row the INCOMING iterate was
-    /// already on, by exactly the dual regularization's own dual_mu*|lambda|
+    /// already on, by exactly the dual regularization's own dual_regularization*|lambda|
     /// term. Disjoint from `eqp_residual_refusals` by construction: a pass the
     /// residual check already refused is not counted here as well.
     ///
     /// Each refusal routes the pass to the SAME suspect-stall ladder, for the
     /// reason the arithmetic gives -- on the flat face that produces this,
-    /// |lambda| scales as 1/primal_delta, so one decade more primal_delta is one
+    /// |lambda| scales as 1/primal_regularization, so one decade more primal_regularization is one
     /// decade less drift. 0 on every solve whose steps keep their closed rows
     /// closed, which is the overwhelming majority.
     ///
     /// ADVISORY ONCE THE LADDER IS EXHAUSTED -- as the residual refusal is, on
     /// the same rule (qp_engine.h section 5): the walk takes the step it would
-    /// have taken before the check existed and the terminal site classifies the
+    /// have taken without the check and the terminal site classifies the
     /// point it stops at. This is its OWN field because the CAUSE differs, not
     /// the response: the answer counted here DOES solve its system and the
     /// complaint is a quality one. So a nonzero count here is a REPORT about
@@ -99,8 +97,8 @@ struct QpCounters {
     /// a failure, and a solve can read several refusals and still kOptimal.
     Index eqp_row_drift_refusals = 0;
 
-    /// THE UNREGULARIZED POLISH at the EQP site (M7 W2 E4 fix round 1, ruling
-    /// E4-11; eqp_solve.h's polish_eqp_core). Refinement steps KEPT against the
+    /// THE UNREGULARIZED POLISH at the EQP site (eqp_solve.h's
+    /// polish_eqp_core). Refinement steps KEPT against the
     /// face's OWN exact KKT system -- both regularizations backed out -- summed
     /// over every EQP solve of this QP solve, on either algebra.
     ///
@@ -125,7 +123,7 @@ struct QpCounters {
     /// end whose classification was going to be kOptimal anyway. Nothing is
     /// excluded by algebra: both paths refine at a would-be-kInfeasible dead end,
     /// and which twin runs is decided by the candidate's provenance rather than
-    /// by QpOptions::ws_algebra.
+    /// by QpOptions::working_set_algebra.
     ///
     /// At most detail::kMaxVerdictRefineSteps steps are bought per dead end; a
     /// whole-solve figure is only as large as the fixture's dead ends make it.
@@ -133,7 +131,7 @@ struct QpCounters {
 
     /// Rungs of the suspect-stall escalation ladder this solve spent (see
     /// qp_engine.h's section 4b). Each rung multiplies the effective
-    /// primal_delta by detail::kSuspectDeltaFactor after a would-be-kOptimal
+    /// primal_regularization by detail::kSuspectDeltaFactor after a would-be-kOptimal
     /// exit off a kSuspect factorization failed the free-block stationarity
     /// check. Zero on every solve whose linear algebra was trustworthy, which
     /// is the overwhelming majority; a solve that reports kNumericalError with
@@ -147,7 +145,7 @@ struct QpCounters {
     /// rebuilding K0, not merely whether `factorizations` reads 0. The two are
     /// different claims: `factorizations == 0` also arises from a reduced system
     /// with nothing to factorize and from a solve that never reached the loop.
-    /// Always false under QpOptions::ws_algebra == kRefactorize, where the
+    /// Always false under QpOptions::working_set_algebra == kRefactorize, where the
     /// border-mode cache does not exist.
     bool k0_reused = false;
 
@@ -216,7 +214,7 @@ struct QpCounters {
 
     /// DEGENERATE PIVOTS: minor iterations that added a blocking constraint
     /// while moving the iterate by no more than the loop's own step tolerance
-    /// (alpha * ||p||inf <= feas_tol * max(1, ||x||inf) -- the same threshold the
+    /// (alpha * ||p||inf <= feasibility_tol * max(1, ||x||inf) -- the same threshold the
     /// loop's KKT-point test uses, so the two are consistent by construction).
     /// qp_engine.h implements no anti-cycling rule and this field changes no
     /// decision.
@@ -289,12 +287,11 @@ struct QpCounters {
     Index entry_dependency_removals = 0;
     Index mandatory_dependent_entries = 0;
     // Detector re-checks after untested growth. On the eliminated path the
-    // support carries the pins' coefficients (E2 fix1), so a dependency an
+    // support carries the pins' coefficients, so a dependency an
     // optional pin creates removes that pin.
     Index dep_recheck_removals = 0;
     // Negative-curvature ride blockers that tested dependent, resolved by the
-    // add site's rule along the ride (qp_engine.h 4c, THE DECLINED RIDE; M7 W2
-    // NC1 -- they declined to the ordinary step before, as dep_ride_declines).
+    // add site's rule along the ride (qp_engine.h 4c, THE DECLINED RIDE).
     Index dep_ride_blockers = 0;
     Index ride_exchanges = 0; // ... of which exchanged; the ride is re-armed
     // A vetoed ride (ride_sign, or the null-space veto with a p that does not
@@ -305,7 +302,7 @@ struct QpCounters {
     // working set; at a KKT point of an independent set only a noise-level
     // multiplier can produce one (qp_engine.h 4c).
     Index ride_sign_vetoes = 0;
-    // M7 W2 NC2, THE FLAT FACE (qp_engine.h 4c): rides whose sign the drop's own
+    // THE FLAT FACE (qp_engine.h 4c): rides whose sign the drop's own
     // multiplier decided, the measured g'p being below its own resolution.
     Index ride_predicted_signs = 0;
     // THE EQUALITY DRIFT's checked invariant (qp_engine.h 4c): passes at which the
@@ -314,7 +311,7 @@ struct QpCounters {
     // EVERY later pass: this is a count of PASSES off the rows, not of drift
     // EVENTS. Nothing re-projects the iterate; the count is the observation.
     Index eq_drift_violations = 0;
-    // THE SADDLE EXIT (qp_engine.h 4c, M7 W2 NC3): trusted-kWrong dead ends that took a
+    // THE SADDLE EXIT (qp_engine.h 4c): trusted-kWrong dead ends that took a
     // VERIFIED negative-curvature direction of the face; dead ends where none was found and
     // the kNumericalError exit stood; and the triangular solves the search cost (its one
     // factorization per dead end is counted in `factorizations`). The search's face solves
@@ -323,11 +320,11 @@ struct QpCounters {
     Index saddle_exits = 0;
     Index saddle_exit_misses = 0;
     Index saddle_direction_solves = 0;
-    // THE CONVEX CERTIFICATE (qp_engine.h 4c, M7 W2 NC4): trusted-kWrong dead ends whose
+    // THE CONVEX CERTIFICATE (qp_engine.h 4c): trusted-kWrong dead ends whose
     // kWrong was overruled because H is structurally convex (nonnegative diagonal, LP
     // included); the point then faces the ordinary walk's first-order tests.
     Index convex_certificates = 0;
-    // THE ASCENT GUARD (qp_engine.h 4c, M7 W2 W1): passes whose EQP direction held the
+    // THE ASCENT GUARD (qp_engine.h 4c): passes whose EQP direction held the
     // working set and ascended with nonpositive curvature (an indefinite face's saddle),
     // ridden along -p instead of stepped along p.
     Index ascent_rides = 0;
@@ -336,7 +333,7 @@ struct QpCounters {
     Index dep_untested_growth = 0; // screen-positive checks the detector did not resolve
     // The screen called a candidate dependent while the mandatory rows were
     // themselves dependent (mandatory_dependent_entries > 0): a possible false
-    // dependent, the safe direction. With E1's basis on it cannot occur.
+    // dependent, the safe direction. With the independent-set basis on it cannot occur.
     Index dep_screen_under_mandatory_dependence = 0;
 
     // The exchange and the no-admissible-member rule at the ordinary add site
@@ -346,12 +343,12 @@ struct QpCounters {
     Index ws_exchanges_shifted = 0; // the released member was a shift-driven row (last resort)
     // A verified EXACT Farkas certificate (multipliers refined mu-free, residual
     // within the rounding floor QpFarkasCertificate::exact_tol) => kInfeasible;
-    // tried whenever no member is admissible (E2 fix1: not only under cond1).
+    // tried whenever no member is admissible (not only under cond1).
     Index dep_infeasible_certificates = 0;
     // A verified TOLERANCED certificate (residual above the floor: a box_part
     // coefficient dropped on an unbounded coordinate) is not a proof for the
     // QP => kNumericalError at the current iterate, the certificate kept in
-    // QpSolution::farkas (E2 fix2, settler S25/S25').
+    // QpSolution::farkas.
     Index dep_certificate_toleranced = 0;
     Index dep_certificate_rejections =
         0; // a cond1 candidate failed verification => kNumericalError
@@ -359,13 +356,13 @@ struct QpCounters {
     Index dep_blocker_terminations = 0; // no admissible member, no certificate, no pass-over
     // An undecidable (screen-negative, unresolved) blocker admitted with the
     // next pass's detector as its test -- on the eliminated path only, and
-    // only when no structural dependency decides it (E2 fix1). A deferred add
+    // only when no structural dependency decides it. A deferred add
     // that detector later finds dependent is removed and counted in
     // dep_recheck_removals (or, if the detector does not resolve an
     // over-count, in dep_untested_growth); this counter is not decremented.
     Index dep_deferred_adds = 0;
     // The rule would have ended the solve on a border-stack pass, or the
-    // blocker's test there was undecidable (E2 fix1): the solve continued on
+    // blocker's test there was undecidable: the solve continued on
     // the bound-eliminated path instead (once per solve).
     Index dep_border_retreats = 0;
     // THE STANDSTILL RETREAT (qp_engine.h): border-stack passes that stood still (zero
@@ -373,56 +370,53 @@ struct QpCounters {
     // with the inertia reading kWrong, and moved the rest of the solve to the
     // bound-eliminated path with a re-check armed. Not counted in dep_border_retreats.
     Index standstill_retreats = 0;
-    // THE BORDERED ANSWER'S CERTIFICATE (bordered_eqp.h, M7 W2 BPS): border-stack passes
+    // THE BORDERED ANSWER'S CERTIFICATE (bordered_eqp.h): border-stack passes
     // whose refinement stopped above its own target, and took the bound-eliminated twin
     // for that pass.
     Index border_uncertified_fallbacks = 0;
     // An undecidable blocker decided EXACTLY by a structural dependency (a
     // pin completing a member row on pinned columns, or a row on pinned
-    // columns only), coefficients read off the row (E2 fix1).
+    // columns only), coefficients read off the row.
     Index dep_structural_exact = 0;
     // A member the re-check removed as a dependent deferred add, blocking
     // again at the same point on an undecided test: refused (no coefficients,
-    // so the pass-over or the end) instead of re-admitted (E2 fix1).
+    // so the pass-over or the end) instead of re-admitted.
     Index dep_known_dependent_refusals = 0;
     // Detections (entry or re-check) that left out a removable support member
     // y_hat does not certify: ||A_W^T y_hat|| > kDepRemovalTol * |y_k| ||a_k||
-    // (E2 fix1b). A member in the support by a small coefficient only.
+    // A member in the support by a small coefficient only.
     Index dep_uncertified_trims = 0;
     // ... of which no removable member was certified, so the uncertified one
     // with the largest scaled coefficient was offered alone: a HEURISTIC
-    // fallback, not a certificate (E2 fix1b; renamed from
-    // dep_certified_fallbacks in E2 fix2, settler S24).
+    // fallback, not a certificate.
     Index dep_uncertified_fallbacks = 0;
     // Candidate tests whose refinement stalled with rho >= kDepUndecidable,
-    // admitted as independent (the landed contract, E2 fix2, settler S23; a
-    // stall below kDepUndecidable is dep_undecidable instead). Telemetry: the
-    // stall class is truly independent on the measured corpus (R-D retired,
-    // settler S34).
+    // admitted as independent (a stall below kDepUndecidable is
+    // dep_undecidable instead). Telemetry: the stall class is truly independent
+    // on the measured corpus.
     Index dep_stall_admits = 0;
     // Candidate tests that DID NOT RUN -- no factor held this pass's working
-    // set, so no solve was made (E2 fix7, settler E4-37(b)). Their verdict is
+    // set, so no solve was made. Their verdict is
     // the integer screen's alone: positive it is an exact proof of dependence,
-    // negative the candidate is admitted as the pre-E2 walk admits it, and
+    // negative the candidate is admitted, and
     // never on the strength of an uncomputed rho. Telemetry, and the count of
     // the growth this walk could not test numerically; the screen-positive
     // half is also counted dep_dependent as any other dependent verdict is.
     Index dep_unrun_tests = 0;
-    // E2 fix8, THE BOUNDED REPAIR (qp_engine.h, the repair's BUDGET). Candidate pins
+    // THE BOUNDED REPAIR (qp_engine.h, the repair's BUDGET). Candidate pins
     // `repair_temporary_vertex` TRIED although the integer screen had fired. The screen
     // proves {A_W, e_i} dependent as a family, not e_i in span(A_W): equal only for an
     // independent A_W, which a rank-deficient equality Jacobian denies. Skipping such a
     // pin is the UNSAFE direction there -- it can abort the repair short of the pin that
-    // cuts the negative curvature (ACOPR118's majors 17-20: aborted at 70, repairs at 75)
-    // -- so only a test that decided THIS candidate skips, and these are the pins the old
-    // rule would have skipped on the count.
+    // cuts the negative curvature
+    // -- so only a test that decided THIS candidate skips; this counts the pins a
+    // count-only screen would have skipped.
     Index dep_repair_screen_pins = 0;
     // Repairs that stopped on the pin budget (qp_engine.h, repair_pin_budget) rather than
     // on a verdict or on running out of candidates. Such a repair FAILS (it undoes itself),
-    // which is the same outcome the screen's accidental bound produced. 0 over every repair
-    // the budget was derived from (838 replayed from dumps, 20 in-cell).
+    // which is the safe outcome.
     Index dep_repair_budget_stops = 0;
-    // Passes SPENT after a start repair that undid itself (E2 fix8, F7-1). The repair
+    // Passes SPENT after a start repair that undid itself. The repair
     // restores `ws` and `x` but leaves `face` and the border stack describing the last set
     // it probed, so the pass it was called from would run its add site's dependency tests
     // with no factor that holds its working set. When the pass HELD a usable factor view
@@ -432,16 +426,16 @@ struct QpCounters {
     // a stale `face` costs a DEPENDENCY TEST with nothing to test against, and only that
     // walk takes one.
     Index dep_repair_restarts = 0;
-    // THE IMPLIED BLOCKER (M7 W2 QC-8; qp_engine.h, blocker_implied_by_face): pass-overs
+    // THE IMPLIED BLOCKER (qp_engine.h, blocker_implied_by_face): pass-overs
     // that SURVIVE their sequence -- of a blocker of an ordinary step proved dependent on the
-    // working set whose face satisfies it (g + rho ||a|| ||x_face,free|| <= feas_tol *
+    // working set whose face satisfies it (g + rho ||a|| ||x_face,free|| <= feasibility_tol *
     // row_scale), its rate along p the step's leak, not motion -- each within its members'
-    // leak allowance (R1). A sequence that falls back to the exchange it set aside (R3) undoes
+    // leak allowance. A sequence that falls back to the exchange it set aside undoes
     // the pass-overs it had taken, and they are not counted. Not counted in dep_passovers.
     // Appended at the end of the add-site group (the layout tests derive their ranges with
     // offsetof).
     Index dep_implied_passovers = 0;
-    // THE DEAD-END RANK REPAIR (M7 W2 RDV; qp_engine.h, Degeneracy; ws_independence.h,
+    // THE DEAD-END RANK REPAIR (qp_engine.h, Degeneracy; ws_independence.h,
     // rank_repair): add-site dead ends (no admissible member, no verified certificate, no
     // pass-over) at which the working set itself was numerically rank-deficient and the members
     // on its null directions were released (rank_repairs), the members so released, counted
@@ -452,9 +446,9 @@ struct QpCounters {
     Index rank_repairs = 0;
     Index rank_repair_releases = 0;
     Index rank_repair_misses = 0;
-    // THE REFUSED-BLOCKER EXCHANGE (M7 W2 YRK; qp_engine.h, Degeneracy): exchanges taken where
-    // the add-site rule would end the solve (N3, after the rank repair) for the pass-over
-    // sequence's first blocker, refused by D3(b), on coefficients derived mu-free for it.
+    // THE REFUSED-BLOCKER EXCHANGE (qp_engine.h, Degeneracy): exchanges taken where
+    // the add-site rule would end the solve (after the rank repair) for the pass-over
+    // sequence's first blocker, on coefficients derived mu-free for it.
     // Appended at the end of the add-site group.
     Index dep_refused_exchanges = 0;
 
@@ -463,21 +457,21 @@ struct QpCounters {
     Index zero_motion_exhausted = 0; // an exempt member's multiplier is real
     Index zero_motion_cap_hits = 0;  // > 2(n + mi) releases/re-entries at one point
 
-    // E2 fix3 (the E2-D4 rules; qp_engine.h, Degeneracy).
-    // R-A: a numerical "independent" candidate test overturned by an exact
+    // (qp_engine.h, Degeneracy.)
+    // A numerical "independent" candidate test overturned by an exact
     // structural dependency, at any growth site (add, repair pin, ride add).
     Index dep_structural_first = 0;
-    // R-B (E2 fix5): zero-motion exchanges that released a member locked only
+    // Zero-motion exchanges that released a member locked only
     // by having entered at this point, taken where the rule would otherwise end
     // the solve (no admissible member, no verified certificate, no pass-over).
     Index dep_unlocks = 0;
-    // R-C': kWrong inertia verdicts re-read on a mu-free eliminated factor (at
+    // kWrong inertia verdicts re-read on a mu-free eliminated factor (at
     // the start repair and the terminal check), and how many replaced the
     // kWrong (a kOk mu-free read, or a kSuspect one confirmed by a kOk read at
-    // the pass's dual_mu).
+    // the pass's dual_regularization).
     Index dep_inertia_rereads = 0;
     Index dep_inertia_reread_flips = 0;
-    // R-E (E2 fix6): CONVERGED candidate tests read independent in the grey
+    // CONVERGED candidate tests read independent in the grey
     // band kDepTol < rho < kDepUndecidable, re-read with the refinement run to
     // its end on the same factor (no factorization; the solves in
     // dep_test_solves), and how many of those the re-read certified DEPENDENT
@@ -485,23 +479,20 @@ struct QpCounters {
     Index dep_grey_rereads = 0;
     Index dep_grey_reread_dependent = 0;
 
-    // E2 fix4 (qp_engine.h, refine_terminal_mu_free): terminal points that
+    // (qp_engine.h, refine_terminal_mu_free) Terminal points that
     // would read kInfeasible by a structural violation while a working row's
-    // dual_mu * |lambda| footprint exceeds its tolerance, re-solved mu-free on
+    // dual_regularization * |lambda| footprint exceeds its tolerance, re-solved mu-free on
     // the face (one factorization each, also in `factorizations`), and how many
     // of those refined points satisfied every row and bound and were adopted.
     //
-    // THE ASYMMETRY, STATED AND NOT REPAIRED (ruling E4-17): this site's
-    // factorization IS in `factorizations` while the terminal polish's stage-2
-    // re-solve is NOT. Both are one local solve at a terminal point, so the
-    // charging differs for history rather than for a reason -- it predates the
-    // ruling, every pin that reads it was derived with it there, and moving it
-    // would be a silent break of those pins for a cosmetic gain.
+    // THE ASYMMETRY: this site's factorization IS in `factorizations` while
+    // the terminal polish's stage-2 re-solve is NOT. Both are one local solve
+    // at a terminal point; the charging differs by construction and pins that
+    // read it depend on it.
     Index terminal_mu_refines = 0;
     Index terminal_mu_refine_rescues = 0;
 
-    /// THE TERMINAL POLISH (M7 W2 E4 fix round 1, ruling E4-11;
-    /// qp_engine.h's section 5 and QpEngine::polish_terminal_point).
+    /// THE TERMINAL POLISH (qp_engine.h's section 5 and QpEngine::polish_terminal_point).
     ///
     /// `terminal_polish_solves`: would-be kOptimal exits at which the final point
     /// was RE-SOLVED on its FINAL WORKING SET with the dual regularization out of
@@ -518,7 +509,7 @@ struct QpCounters {
     /// `factorizations + terminal_polish_solves`.
     ///
     /// `terminal_polish_rejected`: of those, the candidates NOT adopted --
-    /// non-finite, or a row/bound outside feas_tol that the incumbent met, or a
+    /// non-finite, or a row/bound outside feasibility_tol that the incumbent met, or a
     /// worse stationarity / row / complementarity residual, or nothing strictly
     /// better to show. A rejection leaves x and every multiplier exactly as the
     /// walk had them, so it is a cost and never a risk;
@@ -535,7 +526,7 @@ struct QpCounters {
     Index terminal_polish_rejected = 0;
     Index terminal_polish_adopted = 0;
 
-    // M7 W2 SDL (qp_engine.h, section 5 and THE SADDLE EXIT). Appended.
+    // (qp_engine.h, section 5 and THE SADDLE EXIT.)
     // `certificate_sign_refusals`: would-be kOptimal exits whose exported multipliers carried a
     // wrong sign past the KKT-point test's relative tolerance (the certificate's SIGN HALF);
     // each ends kNumericalError.
@@ -550,7 +541,7 @@ struct QpCounters {
     // multipliers failed the sign half; the incumbent (pre-polish x and multipliers) is then
     // read by both halves again. Counts RESTORATIONS, not the certifications that follow them.
     Index terminal_polish_sign_reverts = 0;
-    // M7 W2 SDL-4. Appended. `certificate_bound_refusals`: would-be kOptimal exits whose point
+    // `certificate_bound_refusals`: would-be kOptimal exits whose point
     // violated its own box structurally (the certificate's BOUND HALF); each ends
     // kNumericalError, never kInfeasible (routing: see sqp_solver.cpp).
     // `terminal_polish_bound_reverts`: adopted terminal polishes undone because the polished
@@ -558,23 +549,23 @@ struct QpCounters {
     // RESTORATIONS, as terminal_polish_sign_reverts (which a bound failure takes precedence over).
     Index certificate_bound_refusals = 0;
     Index terminal_polish_bound_reverts = 0;
-    // M7 W2 SDL-6. Appended. The certificate's ROW HALF (a terminal point with a structural row
+    // The certificate's ROW HALF (a terminal point with a structural row
     // violation): `terminal_farkas_certificates` exits kInfeasible on a VERIFIED Farkas
     // certificate (QpEngine::verify_terminal_farkas); `certificate_row_refusals` exits
     // kNumericalError without one (routing: see sqp_solver.cpp).
     Index terminal_farkas_certificates = 0;
     Index certificate_row_refusals = 0;
-    // M7 W2 SNX. Appended. THE STAGNATION READING (qp_engine.h, section 4): `stagnation_drops`
-    // counts the drops it made; `stagnation_stops` the walks it ended kMaxIter before the minor
-    // cap.
+    // THE STAGNATION READING (qp_engine.h, section 4): `stagnation_drops`
+    // counts the drops it made; `stagnation_stops` the walks it ended kIterationLimit before the
+    // minor cap.
     Index stagnation_drops = 0;
     Index stagnation_stops = 0;
-    // M7 W2 RLA. Appended. THE LATCH AND ITS REASON (qp_engine.h, section 4): border mode's
+    // THE LATCH AND ITS REASON (qp_engine.h, section 4): border mode's
     // latches onto the elimination path, by reason -- `border_latches_cap` with more pins than
-    // schur_cap, `border_latches_conditioning` with the pins under it and C ill-conditioned or
-    // singular; `border_latch_releases` the latches released (each a K0 rebuild, also in
-    // `factorizations`); `border_latch_holds` the border_candidate entries (passes and probes) on
-    // which a conditioning latch held under the cap.
+    // max_schur_border_dimension, `border_latches_conditioning` with the pins under it and C
+    // ill-conditioned or singular; `border_latch_releases` the latches released (each a K0 rebuild,
+    // also in `factorizations`); `border_latch_holds` the border_candidate entries (passes and
+    // probes) on which a conditioning latch held under the cap.
     Index border_latches_cap = 0;
     Index border_latches_conditioning = 0;
     Index border_latch_releases = 0;
@@ -696,7 +687,7 @@ struct SsnCounters {
     /// The largest magnitude clamped by that sweep (0.0 when nothing was
     /// swept). A PEAK, folded with `max` like `ssn_uncertain_peak` and unlike
     /// every summed field beside it -- it is the bound on how far the reported
-    /// stationarity can be optimistic (see the R6 note above), which a sum
+    /// stationarity can be optimistic (see the note above), which a sum
     /// would destroy.
     double ssn_sign_sweep_max = 0.0;
 
@@ -736,9 +727,9 @@ struct SsnCounters {
 // order, so the JSON's key order is the declaration order and a field added to a
 // struct without a table entry does not silently vanish from the stream.
 //
-// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert: the
-// largest N for which the struct is brace-initializable with N arguments. Not
-// sizeof, which is padding-dependent.
+// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert (in
+// src/drivers/trace_writer.cpp): the largest N for which the struct is
+// brace-initializable with N arguments. Not sizeof, which is padding-dependent.
 //
 // TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE SAME
 // POSITION, and the assert passes again.
@@ -809,9 +800,6 @@ constexpr bool counters_offsets_increase(const std::size_t *offsets, std::size_t
 /// @brief `HVEN_SSN_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kSsnCountersFieldCount =
     0 HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
-static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldCount,
-              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
-              "in its declaration position (and the trace's golden line moves with it).");
 
 /// The SsnCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.
@@ -851,8 +839,7 @@ struct IpqpCounters {
     /// section 3.1's Mehrotra predictor-corrector: one factorization, an
     /// affine solve, a corrector solve). Excludes a predictor attempt that
     /// fails before its corrector runs -- section 3.1 does not address the
-    /// partial case, and the natural boundary is a completed pair only
-    /// (T4 confirms).
+    /// partial case, and the natural boundary is a completed pair only.
     Index ipqp_iters = 0;
 
     /// Numeric factorizations paid. `>= ipqp_iters`, exceeding it by
@@ -883,7 +870,7 @@ struct IpqpCounters {
     /// THE CONTRACT IS "exactly one of {1 verify, 1 analyze} per tier entry", not
     /// "exactly 1 verify": an entry that RE-ENTERS on an already laid pattern pays
     /// the one-time O(nnz) verify and 0 analyses, while the entry that LAYS the
-    /// pattern pays 1 analysis and 0 verifies. `IpqpOptions::ipqp_hoist_symbolic
+    /// pattern pays 1 analysis and 0 verifies. `IpqpOptions::hoist_symbolic_analysis
     /// == false` forces every entry into the second state. Either way every later
     /// factorization in the entry runs `kAssumeAnalyzed` and moves neither count.
     /// Excludes pattern-verify calls paid by any other QP kernel.
@@ -940,7 +927,7 @@ struct IpqpCounters {
     /// past it. One per iteration, never per rung -- the quantity is "how often
     /// did the memory's guess come back too small", not how far the climb went.
     /// Both routes to that value are charged: as an iteration's first trial once
-    /// `IpqpOptions::ipqp_ladder_skip_after` consecutive iterations have needed a modification,
+    /// `IpqpOptions::ladder_skip_after` consecutive iterations have needed a modification,
     /// and as the rung that answers a refused zero-trial before then.
     ///
     /// AN EXPECTED COST, NOT A FAULT: the ladder deliberately re-tries a smaller
@@ -1019,8 +1006,8 @@ struct IpqpCounters {
     ///       assembled matrix and so not a disagreement either --
     ///       `ipqp_escape_numerical`.
     ///   `3` NOT PERFORMED: no factorization was taken for the read, because
-    ///       `IpqpOptions::ipqp_require_final_inertia` is false or because
-    ///       `ipqp_max_factorizations` refused it. Always a downgrade and never its
+    ///       `IpqpOptions::require_final_inertia` is false or because
+    ///       `IpqpOptions::max_factorizations` refused it. Always a downgrade and never its
     ///       own escape -- `kNone` on the option-off path, `kBudget` on the
     ///       cap-refused one. Kept distinct from `2` so the census cannot confuse a
     ///       read that never ran with one that ran and failed.
@@ -1277,8 +1264,8 @@ struct IpqpCounters {
     /// corpus caveat as `ipqp_read_kept_tight_sides` above.
     Index ipqp_read_barrier_noise_sides = 0;
 
-    // A2 (M7-37): the fire counters of `IpqpOptions::ipqp_mu0_rule` and
-    // `ipqp_mu_residual_floor`, all 0 at their defaults. Additive fold. Design:
+    // The fire counters of `IpqpOptions::barrier_initial_rule` and
+    // `IpqpOptions::barrier_residual_floor`, all 0 at their defaults. Additive fold. Design:
     // docs/notes/2026-10-m7-w2-a2-mu0-design.md section 5 clause 4.
 
     /// += 1 per solve whose cold start took the derived `mu_0` (`kComplementarity` accepted).
@@ -1290,7 +1277,7 @@ struct IpqpCounters {
     /// += iterations whose corrector target the residual floor raised above `sigma * mu`.
     Index ipqp_mu_floor_binds = 0;
 
-    /// A3 (M7-38): += iterations on which the skip rule (`IpqpOptions::ipqp_ladder_skip_after`)
+    /// += iterations on which the skip rule (`IpqpOptions::ladder_skip_after`)
     /// LICENSED starting the ladder at the memory value (the `skip_licensed()` predicate). Counts
     /// licensed skips: when the evidence floor stands, the first trial may be that floor instead.
     /// Non-zero at the default on a nonconvex subproblem; structurally 0 on a convex one. Additive
@@ -1348,9 +1335,6 @@ struct IpqpCounters {
 /// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
 inline constexpr std::size_t kIpqpCountersFieldCount =
     0 HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
-static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFieldCount,
-              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
-              "entry in its declaration position (and the trace's golden line moves with it).");
 
 /// The IpqpCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.
@@ -1377,7 +1361,7 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 ///
 /// The history length depends on where the solve stopped, and a consumer indexing
 /// into it must branch on that:
-/// - stopped AT an iterate (kOptimal, kMaxIter, the non-finite-iterate
+/// - stopped AT an iterate (kOptimal, kIterationLimit, the non-finite-iterate
 ///   kNumericalError): history.size() == major_iters + 1, the last row has
 ///   qp_solved == false;
 /// - stopped ON a subproblem (a QP-propagated kNumericalError, or any of the three
@@ -1413,7 +1397,7 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// consumer budgeting Hessian evaluations should use
 /// steps_accepted + restoration_iters + 1 as the unconditional upper bound.
 ///
-/// EXACT-HESSIAN-SPECIFIC (M9 label): this identity holds under SqpHessianMode::kExact only;
+/// EXACT-HESSIAN-SPECIFIC: this identity holds under SqpHessianMode::kExact only;
 /// `eval_hess_calls` is the measured count, and it is 0 under kLbfgsDamped unless
 /// `SqpOptions::restoration_curvature == kRegularized`, whose phase runs the exact-Hessian
 /// path on the regularized wrapper (those folded calls never reach the caller's Hessian).
@@ -1449,7 +1433,7 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// restoration_iters counts major iterations spent inside the restoration phase --
 /// subproblems solved on the feasibility problem. These majors are NOT in
 /// major_iters and have no history rows; the two counters partition the QP solves
-/// a driver spends on models, and they share the max_iter budget. The sub-solve's
+/// a driver spends on models, and they share the max_iterations budget. The sub-solve's
 /// qp_minor_iters and factorizations ARE folded into this struct's aggregates.
 ///
 /// A nonzero restoration_iters does not imply a failed solve: a solve that
@@ -1459,10 +1443,9 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 struct SqpCounters {
     Index major_iters = 0;
     Index qp_minor_iters = 0;
-    /// The same accounting contract QpCounters::factorizations states (ruling
-    /// E4-17): the active-set SEARCH's cost, summed over every QP solve this
-    /// driver spent. The terminal polish's stage-2 re-solves are in
-    /// `terminal_polish_solves` and the total spend is the sum of the two;
+    /// The same accounting contract QpCounters::factorizations states: the active-set SEARCH's
+    /// cost, summed over every QP solve this driver spent. The terminal polish's stage-2 re-solves
+    /// are in `terminal_polish_solves` and the total spend is the sum of the two;
     /// `terminal_mu_refines`' factorization is in THIS field, asymmetrically and
     /// on purpose.
     Index factorizations = 0;
@@ -1526,7 +1509,7 @@ struct SqpCounters {
     /// `run_elastic_ladder`. A clamp means the evidence priced the violation above
     /// what the placement rule allows: the escalation headroom cap
     /// `kElasticRhoMax / kElasticRhoFactor`, or the dual-regularization safety cap
-    /// `kElasticRhoDualMuSafety / dual_mu`. Excludes the ordinary placements, and
+    /// `kElasticRhoDualMuSafety / dual_regularization`. Excludes the ordinary placements, and
     /// is identically 0 on the no-evidence route, which is placed at the floor.
     Index elastic_rho0_ceiling_hits = 0;
 
@@ -1654,14 +1637,15 @@ struct SqpCounters {
     /// WHAT IT COUNTS: the 4-argument solve() overload was given a positive budget,
     /// this solve reached the top of a major having already spent at least that
     /// many qp_minor_iters, and it was not converged there, so it returned
-    /// SolveStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
-    /// minors actually spent are >= the budget.
+    /// SolveStatus::kWorkLimit at that iterate. The test
+    /// runs BETWEEN majors, so the minors actually spent are >= the budget.
     ///
-    /// What it does NOT count: an ordinary max_iter exhaustion (also kMaxIter, this
-    /// field 0); a kBudgetExhausted exit under SqpOptions::budget_mode, a different
-    /// budget with a different contract; and a solve that spent more than the
-    /// budget and CONVERGED anyway, which is reported kOptimal with this field 0.
-    /// A solve given no budget leaves this identically 0.
+    /// What it does NOT count: an ordinary max_iterations exhaustion (kIterationLimit, this field
+    /// 0); a CommonOptions::max_factorizations stop (also kWorkLimit, this field 0); a
+    /// best-iterate max-iter exit under SqpOptions::return_best_on_max_iterations, a different
+    /// budget with a different contract; and a solve that spent more than the budget and CONVERGED
+    /// anyway, which is reported kOptimal with this field 0. A solve given no budget leaves this
+    /// identically 0.
     Index probe_budget_stops = 0;
 
     /// How many inequality ROWS and variable BOUNDS SqpOptions::crash_basis seeded
@@ -1764,14 +1748,14 @@ struct SqpCounters {
     /// Zero on every solve run at the shipped default (`SqpOptions::qp_mode ==
     /// QpMode::kWalk`): no IPQP subproblem is solved there, structurally rather than
     /// by arithmetic -- the dispatch's kWalk arm constructs no `IpqpEngine`. At
-    /// `QpMode::kIpm` every field is written from a real solve. Two routing fields
+    /// `QpMode::kIpqp` every field is written from a real solve. Two routing fields
     /// are DRIVER-SCALE and have no per-subproblem contribution at all
     /// (`ipqp_tier_retired_after`, `ipqp_declined_pinned`).
     IpqpCounters ipqp;
 
     /// @brief How many times this solve IGNORED a warm-start payload's
     ///        `"hven.ipm.polish.v1"` extension because the payload was the
-    ///        MULTIPLIERS-ONLY form (M6 W5 T8.5).
+    ///        MULTIPLIERS-ONLY form.
     ///
     /// The seed form carries an EMPTY `primal_`, so the solve starts at the
     /// caller's `x0`. The polish extension's bound duals and inequality values
@@ -1790,7 +1774,7 @@ struct SqpCounters {
     Index polish_ignored = 0;
 
     /// @brief How many components of the caller's `x0` lay STRICTLY OUTSIDE the
-    ///        declared variable box at this solve's entry (M7 W2 M4).
+    ///        declared variable box at this solve's entry.
     ///
     /// THE DEFINITION IS THE PROPERTY OF THE POINT, NOT OF THE REPAIR:
     /// `x_j < l_j` or `x_j > u_j`, counted before anything moves the point, with
@@ -1821,17 +1805,15 @@ struct SqpCounters {
     ///
     /// STATED AGAINST THE `x0` ARGUMENT: on a WARM ingest the count describes
     /// the argument handed to `solve()` while the loop starts at `warm.x`, so
-    /// the two are the same point only on a cold solve (M7 W2 M4 fix1, the
-    /// sentence carried here at M7 W2 M1; `docs/counters.md` has the mechanism).
+    /// the two are the same point only on a cold solve (`docs/counters.md` has the
+    /// mechanism).
     ///
     /// DECLARED LAST, after `polish_ignored`, for that field's own reason.
     Index start_point_clamps = 0;
 
     // -----------------------------------------------------------------------
-    // THE SUBPROBLEM-EXIT GROUP (M7 W2 M1, signals S2 and S3). Five fields that
-    // say WHY a subproblem failed and what the driver did about it. Before them
-    // a capped subproblem and a broken factorization were one number in every
-    // consumer column: `map_status` folds `QpStatus::kMaxIter` and
+    // THE SUBPROBLEM-EXIT GROUP. Five fields that say WHY a subproblem failed
+    // and what the driver did about it. `map_status` folds `QpStatus::kIterationLimit` and
     // `QpStatus::kNumericalError` into the same `SolveStatus::kNumericalError`
     // (src/drivers/sqp_solver.cpp), and `rejected_steps` conflates a routed
     // failure with a strategy rejection BY DESIGN (see its note above).
@@ -1846,10 +1828,10 @@ struct SqpCounters {
     // DECLARED LAST, after `start_point_clamps`, for that field's own reason.
     // -----------------------------------------------------------------------
 
-    /// @brief Subproblem exits with `QpStatus::kMaxIter` -- the subproblem spent
-    ///        its whole minor budget (M7 W2 M1).
+    /// @brief Subproblem exits with `QpStatus::kIterationLimit` -- the subproblem spent
+    ///        its whole minor budget.
     ///
-    /// A BUDGET FACT, NOT A NUMERICAL ONE. The cap is `QpOptions::max_iter`
+    /// A BUDGET FACT, NOT A NUMERICAL ONE. The cap is `QpOptions::max_iterations`
     /// resolved for this subproblem -- the size-derived
     /// `max(500, 5*(n + mi + #bounded))` at the shipped sentinel, or the
     /// caller's own positive value -- and a solve that reaches it returns the
@@ -1860,7 +1842,7 @@ struct SqpCounters {
     /// (`SqpIterate::qp_status`).
     ///
     /// COUNTED WHERE THE DRIVER ACTS ON THE EXIT, which is the routing site --
-    /// so an attempt that `SqpOptions::qp_cap_retry` RESCUED is not counted
+    /// so an attempt that `SqpAdvancedOptions::qp_iteration_limit_retry` RESCUED is not counted
     /// here at all: the retry replaced it as the major's answer before the
     /// routing ran, and `qp_cap_retries` is what records it. The two together
     /// are exact for the capped subproblem exits that REACHED THE ROUTING SITE:
@@ -1876,7 +1858,7 @@ struct SqpCounters {
     /// WHICH KERNEL'S EXIT: whichever kernel answered the major, because the
     /// routing site is common to all three. At the shipped default
     /// (`qp_mode == QpMode::kWalk`) every one of them is the walk's; under
-    /// `kSsn`/`kIpm` a tier exit that reaches the same block is counted the same
+    /// `kSsn`/`kIpqp` a tier exit that reaches the same block is counted the same
     /// way, which is the fold `map_status` already makes.
     ///
     /// FOLDED from the restoration sub-solve, on the `qp_minor_iters`
@@ -1884,12 +1866,12 @@ struct SqpCounters {
     /// solves this solve caused.
     ///
     /// A walk the STAGNATION READING ended (`QpCounters::stagnation_stops`)
-    /// exits `QpStatus::kMaxIter` and is counted here; `qp_cap_retry` never
+    /// exits `QpStatus::kIterationLimit` and is counted here; `qp_iteration_limit_retry` never
     /// retries it.
     Index qp_maxiter_exits = 0;
 
     /// @brief Subproblem exits with `QpStatus::kNumericalError` -- the
-    ///        subproblem's own linear algebra failed (M7 W2 M1).
+    ///        subproblem's own linear algebra failed.
     ///
     /// The complement of `qp_maxiter_exits` at the same site, with the same
     /// per-exit counting, the same kernel scope and the same restoration fold.
@@ -1898,17 +1880,16 @@ struct SqpCounters {
     Index qp_numerical_exits = 0;
 
     /// @brief Subproblem failures the driver ROUTED -- shrank the radius and
-    ///        retried -- rather than ending the solve on (M7 W2 M1).
+    ///        retried -- rather than ending the solve on.
     ///
     /// One per failure the routing gate admitted:
-    /// `qp_failures_in_a_row < SqpOptions::qp_failure_budget` and the failed
+    /// `qp_failures_in_a_row < SqpAdvancedOptions::max_consecutive_qp_failures` and the failed
     /// solve handed back a usable iterate (`qp_failure_is_retryable`). At the
     /// shipped budget of 3 that gate admits up to three failures IN A ROW at one
     /// iterate and refuses the fourth, and
     /// `qp_maxiter_exits + qp_numerical_exits - qp_failures_routed` is the
     /// number of failures that ended a solve or were refused as unusable. At a
-    /// budget of 1 -- the engine before M7 W2 M1 -- it is the count of first
-    /// failures.
+    /// budget of 1 it is the count of first failures.
     ///
     /// IT IS A SUBSET OF `rejected_steps`, which is incremented at the same
     /// site and keeps its meaning unchanged: every routed failure is a major
@@ -1921,14 +1902,13 @@ struct SqpCounters {
     Index qp_failures_routed = 0;
 
     /// @brief The largest run of CONSECUTIVE routed subproblem failures this
-    ///        solve reached (M7 W2 M1).
+    ///        solve reached.
     ///
     /// A PEAK, folded with `max` like `active_set_delta_peak`. The driver's own
     /// `qp_failures_in_a_row` counts failures since the last `kOptimal`
     /// subproblem and is cleared by one; this is its high-water mark. It is
-    /// bounded by `SqpOptions::qp_failure_budget` by construction, so at the
-    /// shipped budget of 3 it is 0, 1, 2 or 3, and at a budget of 1 -- the
-    /// engine before M7 W2 M1 -- it is 0 or 1.
+    /// bounded by `SqpAdvancedOptions::max_consecutive_qp_failures` by construction, so at the
+    /// shipped budget of 3 it is 0, 1, 2 or 3, and at a budget of 1 it is 0 or 1.
     ///
     /// It counts ADMITTED failures, so the failure that ENDS the solve (the one
     /// the gate refuses) is not in it: a solve that ends on its second
@@ -1939,12 +1919,10 @@ struct SqpCounters {
     Index qp_failures_in_a_row_peak = 0;
 
     /// @brief Capped subproblems re-solved ONCE at a doubled cap under
-    ///        `SqpOptions::qp_cap_retry` (M7 W2 M1).
+    ///        `SqpAdvancedOptions::qp_iteration_limit_retry`.
     ///
     /// THE FIRED-COUNTER of that toggle, and identically 0 at its OFF state --
-    /// which is the whole of what it is for: a lever whose firing cannot be
-    /// read from `SqpResult::counters` does not ship (the W2 signals contract,
-    /// docs/notes/2026-09-m7-w2-a0-signals-design.md section 2 clause 4).
+    /// a lever's firing is readable from `SqpResult::counters`.
     ///
     /// One per RETRY ATTEMPTED, whatever its outcome: the retry's own minors
     /// and factorizations fold into `qp_minor_iters` and `factorizations` like
@@ -1958,13 +1936,13 @@ struct SqpCounters {
     Index qp_cap_retries = 0;
 
     /// @brief Restoration phases that RAN and were measured -- the entries the
-    ///        four excursion fields below describe (M7 W2 M2, signal S5).
+    ///        four excursion fields below describe.
     ///
     /// One per `enter_restoration` call that ran the feasibility sub-solve AND
     /// could measure its returned point on the caller's own model: the RESUME
     /// arm and the not-feasible-enough arm, which are the two the four fields
     /// below are written at. The three REFUSALS never enter the phase at all (a
-    /// nested restoration, the entry rule (`SqpOptions::restoration_max_entries`), and no budget
+    /// nested restoration, the entry rule (`SqpOptions::max_restoration_entries`), and no budget
     /// left to restore with), and the NON-FINITE exit -- where the restored point or its KKT
     /// measurement is not finite -- ran the phase but measured nothing, so it moves neither this
     /// count nor the four fields, on the driver's own rule at that exit: nothing was measured, so
@@ -1987,7 +1965,7 @@ struct SqpCounters {
     Index restoration_entries = 0;
 
     /// @brief The l1 constraint violation at the iterate that REQUESTED the
-    ///        last restoration entry (M7 W2 M2, signal S5).
+    ///        last restoration entry.
     ///
     /// `h_in` of the excursion record. The quantity is the globalization's own
     /// h -- `sum |c_e| + sum max(0, c_i)`, `sqp_solver.h`'s
@@ -2009,7 +1987,7 @@ struct SqpCounters {
     /// seed was taken.
     ///
     /// IN THE ENGINE'S OWN UNITS, which are the caller's unless
-    /// `SqpOptions::enable_scaling` is on -- the units the resume test is taken
+    /// `SqpOptions::row_scaling` is on -- the units the resume test is taken
     /// in, so that the record is stated in the units of the decision it
     /// describes.
     ///
@@ -2018,12 +1996,12 @@ struct SqpCounters {
     double restoration_h_in = 0.0;
 
     /// @brief The l1 constraint violation at the point the last restoration
-    ///        entry RETURNED (M7 W2 M2, signal S5).
+    ///        entry RETURNED.
     ///
     /// `h_out` of the record: the same quantity as `restoration_h_in`, at the
-    /// restored point. NOT the resume test's reading since M7 W2 SNR: that test
+    /// restored point. NOT the resume test's reading: that test
     /// reads the inf-norm `restoration_feas_out`, which this l1 sum bounds from
-    /// above on the rows, so `restoration_h_out <= feas_tol` on an in-box point
+    /// above on the rows, so `restoration_h_out <= feasibility_tol` on an in-box point
     /// implies the entry resumed but not conversely. The resume reading is
     /// `restoration_feas_out`'s.
     ///
@@ -2031,7 +2009,7 @@ struct SqpCounters {
     double restoration_h_out = 0.0;
 
     /// @brief The objective at the iterate that REQUESTED the last restoration
-    ///        entry (M7 W2 M2, signal S5).
+    ///        entry.
     ///
     /// `f_in` of the record, read at `x_k` beside `restoration_h_in`.
     ///
@@ -2045,12 +2023,11 @@ struct SqpCounters {
     double restoration_f_in = 0.0;
 
     /// @brief The objective at the point the last restoration entry RETURNED
-    ///        (M7 W2 M2, signal S5).
+    ///       .
     ///
     /// `f_out` of the record. With `restoration_f_in` it is the EXCURSION the
-    /// A-SQP read's section M2 measured and could not see from the currency: a
-    /// restoration that buys feasibility at eleven orders of objective reports
-    /// it here, on a phase that produces no history row by contract
+    /// currency cannot show: a restoration that buys feasibility at many orders
+    /// of objective reports it here, on a phase that produces no history row by contract
     /// (`SqpIterate`'s note).
     ///
     /// ON THE RESUME ARM this is the `f` the solve carries forward -- the
@@ -2062,7 +2039,7 @@ struct SqpCounters {
     double restoration_f_out = 0.0;
 
     /// @brief The feasibility SUB-SOLVE's own terminal status at the last
-    ///        measured restoration entry, or `kNotRun` (M7 W2 M3a).
+    ///        measured restoration entry, or `kNotRun`.
     ///
     /// `sub_status` of the excursion record: the `SqpResult::status` the nested
     /// restoration driver returned, mapped through
@@ -2072,7 +2049,7 @@ struct SqpCounters {
     ///
     ///   `kNotRun`          NO restoration sub-solve was measured on this
     ///                      solve. The DEFAULT, and the only value here that is
-    ///                      not a reading (M7 W2 M3a fix1 -- see below).
+    ///                      not a reading.
     ///   `kOptimal`         the sub-solve converged on the feasibility problem.
     ///                      On this value, and only on it, the parent puts the
     ///                      CERTIFICATE gate to the returned point, so
@@ -2080,41 +2057,32 @@ struct SqpCounters {
     ///                      decision rather than a structural `false`.
     ///   `kInfeasible`      the feasibility problem ITSELF raised a restoration
     ///                      request, which nothing can service (a nested
-    ///                      restoration is refused). Before the M7 W2 ladder
-    ///                      round (L1); that refusal now reads `kNumericalError`
-    ///                      here, and the parent reports `kNumericalError`
-    ///                      either way, making NO CLAIM about the model.
-    ///   `kMaxIter`         the sub-solve spent the majors the parent lent it.
+    ///                      restoration is refused); that refusal reads
+    ///                      `kNumericalError` here, and the parent reports
+    ///                      `kNumericalError` either way, making NO CLAIM about
+    ///                      the model.
+    ///   `kIterationLimit`         the sub-solve spent the majors the parent lent it.
     ///   `kInterrupted`     the caller's callback stopped the sub-solve.
     ///   `kNumericalError`  the sub-solve failed numerically.
     ///
-    /// Those five and `kNotRun` are what this field has ever held. The enum
-    /// carries SolveStatus's remaining four (`kAcceptable`, `kStalled`,
-    /// `kDiverging`, `kBudgetExhausted`) so that the map into it is TOTAL and
+    /// Those five and `kNotRun` are what this field holds. The enum
+    /// carries SolveStatus's remaining three (`kAcceptable`, `kStalled`,
+    /// `kDiverging`) so that the map into it is TOTAL and
     /// needs no default arm; the SQP engine reports the first three on no exit
-    /// at all, and the sub-solve runs with `budget_mode` forced false.
+    /// at all, and the sub-solve runs with `return_best_on_max_iterations` forced false.
     ///
-    /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED (M7 W2 M3a fix1).
-    /// The resume decision is `restoration_feas_out <= SqpOptions::feas_tol`
-    /// (`restoration_h_out` until M7 W2 SNR) and NOTHING ELSE -- `enter_restoration` takes it
-    /// before it looks at the sub-solve's status at all (the M7 W2 P1E sufficient-reduction resume,
+    /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED.
+    /// The resume decision is `restoration_feas_out <= CommonOptions::feasibility_tol`
+    /// and NOTHING ELSE -- `enter_restoration` takes it
+    /// before it looks at the sub-solve's status at all (the sufficient-reduction resume,
     /// off by default, is the one exception: it reads the status, see
     /// `restoration_reduction_resumes`) -- so a sub-solve that returned a feasible
-    /// enough point with `kMaxIter` or `kInterrupted` resumes exactly as a
-    /// `kOptimal` one does. It is CERTIFICATION that requires `kOptimal`. An
-    /// earlier draft of this note said the resume was reachable from `kOptimal`
-    /// alone, which was a statement about the documentation and not about the
-    /// code. (Whether resume SHOULD be gated on the sub-status is an open
-    /// engine question, registered with the M7 W2 M3a artifact; this field
-    /// describes today's behaviour and changes none of it.)
+    /// enough point with `kIterationLimit` or `kInterrupted` resumes exactly as a
+    /// `kOptimal` one does. It is CERTIFICATION that requires `kOptimal`.
     ///
-    /// WHY IT IS HERE. M7 W2 M2b could not say which of those arms its
-    /// `kInfeasible` rows took: the parent's status is arm-faithful only up to
-    /// the two `kInfeasible` arms, which it spells identically, and the row
-    /// shape had to be read for the difference
-    /// (`docs/notes/data/2026-09-m7-w2-m2b-proximity/README.md`, finding 1 and
-    /// its "what the evidence does not support"). This field is the
-    /// observation that inference stood in for.
+    /// WHY IT IS HERE. The parent's status is arm-faithful only up to the two
+    /// `kInfeasible` arms, which it spells identically; this field is the direct
+    /// observation of which arm the sub-solve took.
     ///
     /// OVERWRITTEN per entry, NOT folded, and written at exactly the two arms
     /// the four absolutes above are written at -- the same `record` call. The
@@ -2126,13 +2094,10 @@ struct SqpCounters {
     /// objective -- so absence for THEM stays `restoration_entries == 0`. This
     /// field is an enum with a value to spare, so it spends it: `kNotRun` is
     /// the default, it is what a never-restored solve reports here, and it is
-    /// what the trace spells `not_run`. The first draft defaulted to the
-    /// enum's zero `kOptimal` and left absence to the count, which made a clean
-    /// solve print `optimal` for a sub-solve it never ran; the review called
-    /// that a consumer hazard and the settler withdrew it.
+    /// what the trace spells `not_run`.
     RestorationSubStatus restoration_sub_status = RestorationSubStatus::kNotRun;
 
-    /// THE QP ENGINE'S E4 GROUP, summed over every QP solve this driver spent --
+    /// THE QP ENGINE'S EQP-SITE GROUP, summed over every QP solve this driver spent --
     /// subproblems, SOC re-solves, elastic rungs, tier-3 face re-solves and the
     /// restoration sub-solve alike, exactly like qp_minor_iters/factorizations and
     /// the refinement counters above. Each carries its QpCounters meaning
@@ -2160,7 +2125,7 @@ struct SqpCounters {
     /// `eqp_residual_refusals`, where the meaning reads.
     Index eqp_row_drift_refusals = 0;
 
-    // THE FAILED-SUBPROBLEM STEP GROUP (M7 W2 R2, `SqpOptions::qp_failure_step`).
+    // THE FAILED-SUBPROBLEM STEP GROUP (`SqpOptions::qp_failure_step`).
     // Appended last, on the additive-trailing-key route.
 
     /// @brief Failed walk subproblems whose own step was JUDGED by the
@@ -2178,21 +2143,21 @@ struct SqpCounters {
     ///        `qp_numerical_exits`. At most one per driver, FOLDED from the
     ///        restoration sub-solve (so up to two in a solve that restored).
     Index nonfinite_subproblems = 0;
-    /// @brief THE BOX-ROUNDING PROJECTION (M7 W2 W1): non-finite subproblems built at
+    /// @brief THE BOX-ROUNDING PROJECTION: non-finite subproblems built at
     ///        an iterate outside its box only by the rounding of a step onto a bound,
     ///        re-evaluated at the box projection before the guard above reads them.
     ///        Appended last; FOLDED from the restoration sub-solve.
     Index nonfinite_box_projections = 0;
-    /// @brief THE LAST OPTIMAL RUNG (M7 W2 P1E, `SqpOptions::elastic_last_optimal_rung`):
+    /// @brief THE LAST OPTIMAL RUNG (`SqpOptions::elastic_last_optimal_rung`):
     ///        ladders whose failing rung was replaced by the last solved one. 0 with the
     ///        option off. Appended last; FOLDED from the restoration sub-solve.
     Index elastic_last_rung_fallbacks = 0;
-    /// @brief THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E,
-    ///        `SqpOptions::restoration_resume_reduction`): restoration entries that
-    ///        resumed with `restoration_feas_out > feas_tol`. 0 with the option off. Not
+    /// @brief THE SUFFICIENT-REDUCTION RESUME
+    ///        (`SqpOptions::restoration_resume_reduction`): restoration entries that
+    ///        resumed with `restoration_feas_out > feasibility_tol`. 0 with the option off. Not
     ///        folded: the sub-solve never restores.
     Index restoration_reduction_resumes = 0;
-    /// @brief THE CURVATURE SOURCE'S BILL (M7 QN stage 3): Lagrangian-Hessian
+    /// @brief THE CURVATURE SOURCE'S BILL: Lagrangian-Hessian
     ///        evaluations this solve made -- one per subproblem build and one per
     ///        warm-start structure probe under `SqpHessianMode::kExact`, and 0 under
     ///        kLbfgsDamped -- except that under `SqpOptions::restoration_curvature ==
@@ -2204,7 +2169,7 @@ struct SqpCounters {
     ///        through one eval_hess per lay -- so one call per solve and one per
     ///        restoration entry still reaches the model under kLbfgsDamped.
     Index eval_hess_calls = 0;
-    /// @brief THE QUASI-NEWTON GROUP (M7 QN stage 3; all 0 under kExact). Pairs
+    /// @brief THE QUASI-NEWTON GROUP (all 0 under kExact). Pairs
     ///        accepted into the L-BFGS window, and of those the Powell-damped ones.
     ///        FOLDED from the restoration sub-solve, which runs its own instance.
     Index qn_updates = 0;
@@ -2219,7 +2184,7 @@ struct SqpCounters {
     /// @brief Pairs evicted early by the window's rank test. FOLDED.
     Index qn_rank_dropped = 0;
     /// @brief Window resets, by reason: consecutive non-zero-step skips, the radius
-    ///        floor (a shrink below tr_min), a restoration resume. FOLDED.
+    ///        floor (a shrink below trust_region_min), a restoration resume. FOLDED.
     Index qn_resets_consecutive_skips = 0;
     Index qn_resets_radius_floor = 0;
     Index qn_resets_restoration_resume = 0;
@@ -2230,7 +2195,7 @@ struct SqpCounters {
     /// @brief Lifted subproblem solves whose engine reported a wrong-inertia reading
     ///        (walk: a re-read, convex certificate or saddle exit; IPQP: an inertia
     ///        retry; SSN: an indefinite escape). A PD B makes these a bug flag: counted,
-    ///        never acted on (ruling C30 NOTE: no reset on kWrong). FOLDED.
+    ///        never acted on (no reset on kWrong). FOLDED.
     Index qn_kwrong_seen = 0;
     /// @brief Lifts built while the quasi-Newton model did not read positive definite
     ///        (rounding can push the eigen form's smallest eigenvalue to or below zero).
@@ -2238,9 +2203,10 @@ struct SqpCounters {
     Index qn_nonpd_seen = 0;
     /// @brief The number of variables the quasi-Newton model carries curvature for: the
     ///        structural count, or the nonlinear variables only under
-    ///        SqpOptions::qn_nonlinear_only. A level, not a sum: max-folded; 0 under kExact.
+    ///        SqpAdvancedOptions::lbfgs_nonlinear_only. A level, not a sum: max-folded; 0 under
+    ///        kExact.
     Index qn_dimension = 0;
-    /// @brief THE NON-FINITE STEP ROLLBACK (M7 W2 R2-1): accepted steps rejected after
+    /// @brief THE NON-FINITE STEP ROLLBACK: accepted steps rejected after
     ///        the fact because the committed point's gradient, Jacobian or Hessian was
     ///        not finite. The previous iterate is restored at a shrunk radius instead of
     ///        the solve ending; a rolled-back step stays counted in `steps_accepted`.
@@ -2248,28 +2214,28 @@ struct SqpCounters {
     ///        to the radius floor and the full-step mode. Appended last; FOLDED from
     ///        the restoration sub-solve.
     Index nonfinite_step_rollbacks = 0;
-    /// @brief THE RESUME TEST'S READING (M7 W2 SNR): the inf-norm violation, rows and
+    /// @brief THE RESUME TEST'S READING: the inf-norm violation, rows and
     ///        box, at the point the last restoration entry RETURNED -- the measure the
     ///        convergence test gates on (`SqpKkt::feasibility`), in the engine's units.
-    ///        `restoration_feas_out <= feas_tol` iff that entry resumed, unless it is
+    ///        `restoration_feas_out <= feasibility_tol` iff that entry resumed, unless it is
     ///        counted in `restoration_reduction_resumes`. Same overwrite rule as
     ///        `restoration_h_out`; appended last; not folded.
     double restoration_feas_out = 0.0;
-    /// @brief THE CALLER-UNIT FEASIBILITY GUARD (M7 W2 SCL): measured iterates at which
+    /// @brief THE CALLER-UNIT FEASIBILITY GUARD: measured iterates at which
     ///        the convergence test passed in the engine's scaled units and was refused
     ///        because the feasibility in the CALLER's units -- each row residual over its
     ///        row factor, each box violation times its column factor -- exceeded
-    ///        feas_tol. 0 on a solve that ran unscaled. Appended last; not folded (the
+    ///        feasibility_tol. 0 on a solve that ran unscaled. Appended last; not folded (the
     ///        restoration sub-solve runs unscaled and has no guard). Where the
-    ///        caller-unit rounding floor exceeds feas_tol, every iterate is refused
-    ///        and the solve ends kMaxIter: a refusal streak to max_iter is the
+    ///        caller-unit rounding floor exceeds feasibility_tol, every iterate is refused
+    ///        and the solve ends kIterationLimit: a refusal streak to max_iterations is the
     ///        expected spelling of that case, and of the stationarity ceiling below
-    ///        when its caller-unit floor exceeds 1. ALSO COUNTS (M7 W2 SCW) a
+    ///        when its caller-unit floor exceeds 1. ALSO COUNTS a
     ///        column-scaled iterate refused by the caller-unit STATIONARITY ceiling
     ///        (<= 1, IPOPT's unscaled dual_inf_tol), which a column factor read where
     ///        its column nearly vanishes can otherwise hide.
     Index scaled_convergence_refusals = 0;
-    /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES (M7 W2 RST): restoration
+    /// @brief THE RESTORATION PHASE'S CURVATURE SWITCHES: restoration
     ///        sub-solves on the exact model that met a switch trigger
     ///        (SqpOptions::restoration_curvature == kModelThenRegularized): their first
     ///        failed walk subproblem, or an exhausted elastic tier's nested restoration
@@ -2374,49 +2340,11 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 77 direct fields and the struct takes 79 initializers.
-// (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
-// aggregates -- last in declaration order, so the table order below is still
-// the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
-// which appended `start_point_clamps` the same way and for the same reason.
-// 39 -> 44 at M7 W2 M1, which appended the five-field subproblem-exit group the
-// same way and for the same reason. 44 -> 49 at M7 W2 M2, which appended the
-// five-field restoration excursion record the same way and for the same reason
-// -- and which is where the table first carries `double` entries outside the
-// two nested aggregates; they are 8-byte members like every `Index` above them,
-// so the offsets stay monotone and the check below is unchanged. 49 -> 50 at
-// M7 W2 M3a, which appended `restoration_sub_status` to that record the same
-// way and for the same reason. It is the SECOND enum in the table, after
-// `start_level_used`, and the first field NARROWER than 8 bytes: a 4-byte
-// `RestorationSubStatus` last in the struct, which the struct's own 8-byte
-// alignment then pads, so the offsets stay monotone and `sizeof` moves
-// 848 -> 856. Its type was a bare `SolveStatus` until M7 W2 M3a fix1 replaced
-// it with the ten-valued enum that has an explicit `kNotRun` -- the SAME
-// underlying type and therefore the SAME width, so that re-derivation moved
-// `sizeof` no further and no pre-existing offset at all. 50 -> 56 at M7 W2 E4
-// fix round 1, which appended the QP engine's six-field E4 group -- the EQP-site
-// residual check's two, the unregularized polish's one and the terminal polish's
-// three -- the same way and for the same reason. They are `Index` again, so they
-// land 8-byte-aligned after `restoration_sub_status`'s 4 bytes of padding and the
-// offsets stay monotone. 56 -> 57 at M7 W2 E4 fix round 2, which made that group
-// SEVEN with `eqp_row_drift_refusals` -- appended LAST in the struct and last in
-// the table on the declared additive-trailing-key route, so no pre-existing offset
-// moves and `sizeof` goes 904 -> 912. 57 -> 60 at M7 W2 R2, which appended the
-// failed-subproblem step group and `nonfinite_subproblems` the same way and for the
-// same reason: three `Index` fields last, `sizeof` 912 -> 936. 60 -> 61 at M7 W2 W1,
-// `nonfinite_box_projections`, the same way: `sizeof` 936 -> 944. 61 -> 63 at M7 W2
-// P1E, `elastic_last_rung_fallbacks` and `restoration_reduction_resumes`, the same way:
-// `sizeof` 944 -> 960. 63 -> 77 at M7 QN stage 3, `eval_hess_calls` and the thirteen-field
-// quasi-Newton group, the same way: `sizeof` 960 -> 1072. 77 -> 79 at the QN review and
-// riders, `qn_nonpd_seen` and `qn_dimension`; 79 -> 80 at M7 W2 R2-1,
-// `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
-// `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104. 81 -> 82 at M7 W2 SCL,
-// `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112. 82 -> 83 at M7 W2 RST,
-// `restoration_curvature_switches`, the same way: `sizeof` 1112 -> 1120.)
-static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
-              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
-              "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
-              "table of its own and raise the + 2 here.");
+// the struct takes `kSqpCountersFieldCount + 2` initializers.
+//
+// The three arity pins (SsnCounters, IpqpCounters, SqpCounters against their tables)
+// live in src/drivers/trace_writer.cpp, which already includes this header: a
+// struct-table mismatch still fails the library build.
 
 /// The SqpCounters table's field offsets, in table order. `offsetof` is only
 /// portable on a standard-layout type, so that is asserted first.
@@ -2433,4 +2361,4 @@ static_assert(counters_offsets_increase(kOffsetsSqpCounters, kSqpCountersFieldCo
               "declaration position. The JSON key order is the table's, so this must be the "
               "struct's.");
 
-} // namespace hven::solvers
+} // namespace hven

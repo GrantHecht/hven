@@ -78,13 +78,12 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/errors.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/linear/dense_symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
-
-namespace detail {
+namespace hven::detail {
 
 // Relative floor beneath which C's smallest |block eigenvalue| counts as
 // numerically singular, even though the dense factorization completed
@@ -105,8 +104,6 @@ constexpr double kSchurSingularEigFrac = 1e-12;
 // extreme directions could live on, and an unconverged direction only widens that set.
 constexpr int kConditionDirectionSteps = 2;
 
-} // namespace detail
-
 class SchurComplement {
   public:
     /// @param kkt     The sparse K0 factor this complement borders.
@@ -122,12 +119,12 @@ class SchurComplement {
     ///                 own default alone.
     SchurComplement(detail::KktFactor &kkt, const QpOptions &opts, int threads = 0)
         : kkt_(kkt), opts_(opts) {
-        factor_.set_num_threads(threads);
+        factor_.set_threads(threads);
     }
 
     /// The DENSE border factor's live thread count -- a boundary observation
     /// of the one factor path the sparse surface does not cover.
-    int num_threads() const noexcept { return factor_.num_threads(); }
+    int num_threads() const noexcept { return factor_.threads(); }
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
     // one K0 solve (to cache K0^-1 v), the O(dim() * n0) dots of the new row
@@ -275,10 +272,11 @@ class SchurComplement {
     }
 
     // rhs_full sized K0.rows() + dim(); returns [x0; y] of the same size.
-    // Throws std::runtime_error if C's last factorization found an exact
-    // zero pivot (see factor_c()) -- needs_refactorization() would
+    // Throws hven::BackendError if C's last factorization found an
+    // exact zero pivot (see factor_c()) -- needs_refactorization() would
     // already be true in that case, so this is a belt-and-suspenders guard
-    // against a caller ignoring it.
+    // against a caller ignoring it, and the QP engine's border path reads it
+    // as the singular-C degradation it answers by falling back.
     Vec solve(const Vec &rhs_full) const {
         const Index m = dim();
         const Index n0 = rhs_full.size() - m;
@@ -294,7 +292,7 @@ class SchurComplement {
         Vec y(m);
         if (m > 0) {
             if (singular_) {
-                throw std::runtime_error(fmt::format(
+                throw BackendError(fmt::format(
                     "SchurComplement::solve: Schur complement (dim={}) is exactly singular "
                     "(DenseSymmetricFactor reported kExactlySingular); refactorize instead "
                     "of solving",
@@ -380,8 +378,9 @@ class SchurComplement {
     // caller must stop
     // bordering this factorization and take a different path.
     bool needs_refactorization() const {
-        return (dim() > 0 && !evidence_usable()) || nearly_singular() || dim() > opts_.schur_cap ||
-               cond_estimate() > opts_.schur_cond_max;
+        return (dim() > 0 && !evidence_usable()) || nearly_singular() ||
+               dim() > opts_.max_schur_border_dimension ||
+               cond_estimate() > opts_.schur_condition_max;
     }
 
     // True iff C's smallest |block eigenvalue| has collapsed to a negligible
@@ -409,18 +408,20 @@ class SchurComplement {
     // negative and one positive eigenvalue -- computed directly here (not
     // assumed) from the block's own two eigenvalues.
     //
-    // Throws std::runtime_error whenever there is no usable block evidence to
+    // Throws std::logic_error whenever there is no usable block evidence to
     // read the inertia off -- C's last factorization found an exact zero pivot
     // (singular_), or the last rebuild threw before it produced any. Returning
     // 0 in either case would be a plausible-LOOKING but WRONG answer: a
     // singular C may still be indefinite, and this class has no basis for
     // claiming "no negative eigenvalues" about a matrix it could not factor.
+    // Its one caller reads needs_refactorization() first, so a throw is a
+    // caller bug.
     Index expected_neg_eigs_delta() const {
         if (dim() == 0) {
             return 0;
         }
         if (!evidence_usable()) {
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SchurComplement::expected_neg_eigs_delta: Schur complement (dim={}) has no "
                 "usable factorization ({}); refactorize instead of querying its inertia",
                 dim(),
@@ -451,7 +452,7 @@ class SchurComplement {
     // declines to judge, expected_neg_eigs_delta() throws -- which is
     // exactly what each already did for singular_. solve() needs no guard
     // here: it reaches factor_.solve(), which refuses a factor that never
-    // completed with its own std::runtime_error.
+    // completed with its own std::logic_error.
     bool evidence_usable() const noexcept { return !singular_ && evidence_.has_value(); }
 
     // The shared loop of near_null_direction() and dominant_direction(): `apply`
@@ -653,4 +654,4 @@ class SchurComplement {
     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

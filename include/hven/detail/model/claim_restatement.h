@@ -31,7 +31,7 @@
 
 #include "hven/model/claim_stream_source.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief How many claim slots each domain takes, as the layout's own element
 ///        counts report them.
@@ -94,7 +94,7 @@ struct RawClaimLayout {
 ///
 /// PARTITION OFFSETS, precisely: `offsets_d[p] .. offsets_d[p + 1]` is partition
 /// p's run WITHIN domain d, stated relative to that domain's own
-/// `ClaimBlock::start_`. An empty partition gives equal adjacent entries;
+/// `ClaimBlock::start`. An empty partition gives equal adjacent entries;
 /// `offsets_d[0]` is 0 and `offsets_d[P]` is the domain's run length. The
 /// encoding is lossless because each domain's run is partition-major by
 /// construction -- the partition loop is the outer one at the lay.
@@ -235,4 +235,4 @@ class ClaimArena {
 void restate_claim_stream(const RawClaimLayout &raw, const ClaimDomainCounts &counts,
                           ClaimArena &out);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

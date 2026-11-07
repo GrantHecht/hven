@@ -48,13 +48,13 @@
 //     N = 200 wall-time cliff recorded in tests/test_scale_problems.cpp's
 //     CARRY 2 lives in. n = 10^4 WAS NOT REACHED THERE as a single cold solve
 //     in either configuration the study tried (kNumericalError after 819 s at
-//     qp.max_iter = 20000; no finish in 3000 s uncapped); the largest that
+//     qp.max_iterations = 20000; no finish in 3000 s uncapped); the largest that
 //     terminated is n = 7500 in 434 s. So no test here solves a wide window
 //     above the sizes test_scale_problems.cpp already covers.
 //
 // THE CLIFF'S MECHANISM IS PINNED ANYWAY, at a size that costs a few seconds
 // in Debug, by SchurCapExhaustionBuysFactorizationsNotIterations below: the
-// cliff is a QpOptions::schur_cap-triggered K0-rebuild storm, which reproduces
+// cliff is a QpOptions::max_schur_border_dimension-triggered K0-rebuild storm, which reproduces
 // at ANY N once schur_cap is set below the live border count (which is the
 // PIN count -- see SchurCapExhaustionBuysFactorizationsNotIterations' own
 // header for the Phase-5 Task 4 correction). Pinning the
@@ -71,14 +71,21 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
 
-using namespace hven::solvers;
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
+
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -287,7 +294,7 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
     engine_border.attach_ledger(&ledger, "border");
 
     QpOptions refactorize_opts;
-    refactorize_opts.ws_algebra = WorkingSetLinearAlgebra::kRefactorize;
+    refactorize_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     QpEngine engine_refactorize{refactorize_opts};
     engine_refactorize.attach_ledger(&ledger, "refactorize");
 
@@ -442,13 +449,13 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
 
 namespace {
 
-using hven::solvers::test_support::AnalyticActiveSet;
-using hven::solvers::test_support::F7CollocationChain;
+using hven::test_support::AnalyticActiveSet;
+using hven::test_support::F7CollocationChain;
 
 // The options every F7 smoke below solves with, EXCEPT for the one knob each
 // test names. Deliberately the same tolerances as
 // tests/test_scale_problems.cpp's tight_options() so a counter measured here
-// is comparable with the ones recorded there; qp.max_iter is left at the
+// is comparable with the ones recorded there; qp.max_iterations is left at the
 // LIBRARY DEFAULT here rather than that file's 5000, because every
 // solve below is either an empty-window solve (2 minors -- the cap is not
 // remotely in play) or an explicitly capped diagnostic, and the whole point of
@@ -457,14 +464,14 @@ using hven::solvers::test_support::F7CollocationChain;
 //
 // MARKED CORRECTION, PHASE-6 TASK 4 (M6): that library default is no longer
 // the fixed 500 this comment used to name -- it is the SIZE-DERIVED sentinel
-// (qp_types.h's QpOptions::max_iter). Nothing below changes behaviour, and that
+// (qp_types.h's QpOptions::max_iterations). Nothing below changes behaviour, and that
 // is the point: every solve here is either 2 minors or explicitly capped, so
 // the cap it would have been measured against never binds either way.
 SqpOptions f7_smoke_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
@@ -501,8 +508,8 @@ void check_against_manufactured_optimum(const F7CollocationChain &model, const S
     const double f_star = model.f_star(p);
     EXPECT_LE(std::abs(sol.f - f_star), 1e-7 * std::max(1.0, std::abs(f_star))) << label;
     EXPECT_LE((sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), x_tol) << label;
-    const hven::solvers::test_support::NlpKktResidual chk =
-        hven::solvers::test_support::self_check_kkt(model, sol, opts.feas_tol);
+    const hven::test_support::NlpKktResidual chk =
+        hven::test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
     EXPECT_LT(chk.stationarity, 1e-7) << label;
     EXPECT_LT(chk.primal, 1e-8) << label;
     EXPECT_LT(chk.complementarity, 1e-8) << label;
@@ -558,13 +565,13 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
     SqpOptions opts = f7_smoke_options();
-    opts.equality_basis = true; // the pre-check assertion below; the rows are full rank
+    opts.advanced.equality_basis = true; // the pre-check assertion below; the rows are full rank
     SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e4_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -606,7 +613,7 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
 // THE CLIFF'S MECHANISM, at a size the per-commit Debug suite can afford.
 //
 // The N = 200 wall-time cliff (tests/test_scale_problems.cpp's CARRY 2) is a
-// QpOptions::schur_cap-triggered K0-REBUILD STORM, not a minor-iteration
+// QpOptions::max_schur_border_dimension-triggered K0-REBUILD STORM, not a minor-iteration
 // blow-up and not cycling: once the live border count exceeds schur_cap,
 // qp_engine.h's border_solve_or_fall_back finds needs_refactorization() true on
 // nearly every minor, and each one buys a K0 rebuild plus a full re-border of
@@ -679,10 +686,10 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
 
     const auto solve_with_cap = [&](Index schur_cap) {
         SqpOptions opts = f7_smoke_options();
-        opts.qp.max_iter = 5000; // the wide window needs it -- see the note
-        opts.qp.schur_cap = schur_cap;
+        opts.qp.max_iterations = 5000; // the wide window needs it -- see the note
+        opts.qp.max_schur_border_dimension = schur_cap;
         SqpSolver driver(opts);
-        return std::pair{driver.solve(model, model.start_point()), opts};
+        return std::pair{driver.solve(hven::detail::problem_ref(model), model.start_point()), opts};
     };
 
     const auto [starved, starved_opts] = solve_with_cap(8);
@@ -786,7 +793,7 @@ TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
     driver.attach_ledger(&ledger, "f7_1e6_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -860,34 +867,37 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         ASSERT_GT(kP, model.p_activation()) << "the WIDE-window regime, by construction";
 
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 10;
-        opts.adaptive_mu = false;
-        opts.warm_full_step = true;
-        opts.qp.max_iter = 20000;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 10;
+        opts.advanced.adaptive_dual_regularization = false;
+        opts.advanced.warm_full_step = true;
+        opts.qp.max_iterations = 20000;
         opts.qp_mode = QpMode::kSsn;
         SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpResult setup = driver.solve(model, model.start_point());
+        const SqpResult setup = driver.solve(hven::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal) << "the hop's premise";
 
         model.set_parameters(Vec::Constant(1, kP));
-        const SqpResult hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
+        const SqpResult hop =
+            driver.solve(hven::detail::problem_ref(model),
+                         SqpWarmAccess::state(setup.sqp_warm_start).x, setup.sqp_warm_start);
         EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
         for (const SqpResult *sol : {&setup, &hop}) {
             // (b) THE INVARIANT, on BOTH halves of the export. lambda_i is
             // what a caller reads; warm_start.lambda_i is what reaches
-            // WarmStartData::iq_lmults_ and, through it, an interior-point
+            // WarmStart::iq_lmults_ and, through it, an interior-point
             // inequality seed -- the leak R6 exists to close.
-            ASSERT_GT(sol->lambda_i.size(), 0);
-            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+            ASSERT_GT(hven::detail::engine_rows(*sol).lambda_i.size(), 0);
+            EXPECT_GE(hven::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
-            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+            ASSERT_EQ(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.size(),
+                      hven::detail::engine_rows(*sol).lambda_i.size());
+            EXPECT_GE(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             // (c) EVERY SWEPT MAGNITUDE IS BELOW THE DISCLOSED SCALE. The
@@ -917,14 +927,16 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         // `model` carries kP now -- scoring `setup` here would score it at the
         // wrong parameter.
         if (hop.counters.ssn.ssn_sign_swept > 0) {
-            const hven::solvers::test_support::NlpKktResidual rescored =
-                hven::solvers::test_support::self_check_kkt(model, hop, opts.feas_tol);
-            EXPECT_GT(rescored.stationarity, hop.sqp_stationarity)
+            const hven::test_support::NlpKktResidual rescored =
+                hven::test_support::self_check_kkt(model, hop, opts.common.feasibility_tol);
+            EXPECT_GT(rescored.stationarity, hop.convergence.stationarity)
                 << "the returned point's own stationarity must exceed the reported one whenever "
                    "prices were swept -- see SqpResult's terminal-KKT note";
-            EXPECT_LE(rescored.stationarity - hop.sqp_stationarity,
+            EXPECT_LE(rescored.stationarity - hop.convergence.stationarity,
                       hop.counters.ssn.ssn_sign_sweep_max *
-                          std::max(1.0, hop.lambda_i.template lpNorm<Eigen::Infinity>()) * 1e3)
+                          std::max(1.0, hven::detail::engine_rows(hop)
+                                            .lambda_i.template lpNorm<Eigen::Infinity>()) *
+                          1e3)
                 << "and the gap must stay within the order the counter bounds it to";
             EXPECT_GE(rescored.dual_sign, 0.0);
             EXPECT_LE(rescored.dual_sign, 0.0)
@@ -945,10 +957,10 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // M6 W1 TASK 6 -- THE THIRD PRODUCER, WITH A MUTATION PARTNER.
 //
 // THE R6 REGISTRATION'S MISSING HALF (fix round 1, reviewer C7b). The
-// driver-level kIpm export pins run on the HS battery, where NOTHING prices
+// driver-level kIpqp export pins run on the HS battery, where NOTHING prices
 // negative under any kernel -- so they pass on a build that bypassed the
 // capture and the sweep entirely. This test supplies the case that does not:
-// the SAME F7 family, at the SAME weight class, solved through the kIpm chain,
+// the SAME F7 family, at the SAME weight class, solved through the kIpqp chain,
 // really does hand `SqpSolver::finish` a negative inequality price, and the
 // single sign sweep at that one export boundary is what repairs it.
 //
@@ -960,7 +972,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // though its own barrier duals never reach the export.
 //
 // NO WARM HOP HERE, unlike the kSsn test above, and the difference is
-// measured rather than assumed: under kIpm it is the solve at p0 that produces
+// measured rather than assumed: under kIpqp it is the solve at p0 that produces
 // the negative price. The hop adds ~140 s of Debug runtime and sweeps nothing.
 //
 // THE BAND WAS RE-DERIVED AT T7 AND AGAIN AT T10b (declared, section 7). Task 6's
@@ -986,27 +998,28 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
         F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
 
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 10;
-        opts.adaptive_mu = false;
-        opts.warm_full_step = true;
-        opts.qp.max_iter = 20000;
-        opts.qp_mode = QpMode::kIpm;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 10;
+        opts.advanced.adaptive_dual_regularization = false;
+        opts.advanced.warm_full_step = true;
+        opts.qp.max_iterations = 20000;
+        opts.qp_mode = QpMode::kIpqp;
         SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpResult setup = driver.solve(model, model.start_point());
+        const SqpResult setup = driver.solve(hven::detail::problem_ref(model), model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal);
         ASSERT_GT(setup.counters.ipqp.ipqp_to_refine, 0)
             << "the tier must have reached tier 3, or the producer under test never ran";
 
         for (const SqpResult *sol : {&setup}) {
-            ASSERT_GT(sol->lambda_i.size(), 0);
-            EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
+            ASSERT_GT(hven::detail::engine_rows(*sol).lambda_i.size(), 0);
+            EXPECT_GE(hven::detail::engine_rows(*sol).lambda_i.minCoeff(), 0.0)
                 << "no negative price may escape in SqpResult::lambda_i";
-            ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
-            EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
+            ASSERT_EQ(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.size(),
+                      hven::detail::engine_rows(*sol).lambda_i.size());
+            EXPECT_GE(SqpWarmAccess::state(sol->sqp_warm_start).lambda_i.minCoeff(), 0.0)
                 << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             swept_over_the_band += sol->counters.ssn.ssn_sign_swept;
@@ -1031,7 +1044,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t_band0).count()));
 
     // NOT VACUOUS, and this is the assertion the whole test exists for: a
-    // build that bypassed kIpm's export capture or its sweep fails HERE, where
+    // build that bypassed kIpqp's export capture or its sweep fails HERE, where
     // the HS-battery pins cannot.
     EXPECT_GT(swept_over_the_band, 0)
         << "no negative face price was produced anywhere in the band under kIpm, so the third "

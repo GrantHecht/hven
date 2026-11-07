@@ -1,0 +1,15 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-05T02:50:38-05:00
+55fc58a35389c58260005a0d875db612e6f8f40d5193983b0c6bb0f108a70ea3  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armAbin/hven_sqp_corpus
+d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c  /home/ghecht/Projects/hven/.claude/worktrees/agent-a00603e2048c1c37b/build-b7e/armBbin/hven_sqp_corpus
+arm A rc=0
+arm B (default) rc=0
+arm B (pre-B7 pin) rc=0
+compare default rc=1
+=== interior-default === cells compared: 43  columns compared: 30  differences: 237
+rows 43 columns 30 pairs declared 237 observed 237 missing 0 extra 0 value 0 -> INTERIOR_AS_DECLARED
+check rc=0
+=== interior-pin === cells compared: 43  columns compared: 30  differences: 0
+compare pin rc=0
+worst=0
+FOREGROUND_END 2026-11-05T02:51:15-05:00

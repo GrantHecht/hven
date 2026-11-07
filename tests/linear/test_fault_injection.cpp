@@ -173,8 +173,8 @@ TEST(MklFactorizeFaultInjection, FirstFactorizeFailureLeavesNoUsableNumericsAndD
 
     Vec rhs = Vec::Ones(3);
     Vec x(3);
-    EXPECT_THROW(factor.solve(rhs, x), std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+    EXPECT_THROW(factor.solve(rhs, x), std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
 }
 
 // Companion sanity check: with the injector disengaged, the exact same
@@ -388,7 +388,7 @@ TEST(PardisoIparmObservation, SolveParallelismWritesItsOwnContractCode) {
 TEST(PardisoIparmObservation, CnrThreadsWritesTheRequestedCount) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.cnr_threads = 5;
+    opts.conditional_reproducibility_threads = 5;
     opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
@@ -560,8 +560,8 @@ TEST(PardisoIparmObservation, DefaultOptionsStillWriteRefinementCapZeroAndPivotP
 TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteAtAll) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.pivot_perturb_exp = std::nullopt;
-    opts.max_refinement_iters = std::nullopt;
+    opts.pivot_perturbation_exponent = std::nullopt;
+    opts.max_refinement_steps = std::nullopt;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -581,7 +581,7 @@ TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteA
     const Vec b = Vec::Ones(3);
     Vec x(3);
     const auto info = factor.solve(b, x);
-    EXPECT_TRUE(info.refinement_iters.has_value());
+    EXPECT_TRUE(info.refinement_steps.has_value());
     EXPECT_LT((b - Vec((spd3() * x))).norm(), 1e-10);
 }
 
@@ -591,8 +591,8 @@ TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteA
 TEST(PardisoIparmObservation, PresentRefinementCapAndPivotPerturbWriteTheRequestedValues) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.pivot_perturb_exp = 10;
-    opts.max_refinement_iters = 2;
+    opts.pivot_perturbation_exponent = 10;
+    opts.max_refinement_steps = 2;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
 
@@ -762,7 +762,7 @@ TEST(BackendDefaultPremise, MklPardisoinitAlreadyRequestsTheFactorNonzeroCount) 
 
 using hven::linear::detail::testing::ThreadCountObserver;
 
-// SymmetricFactor::set_num_threads claims that a mid-life change reaches
+// SymmetricFactor::set_threads claims that a mid-life change reaches
 // SUBSEQUENT backend calls while the analysis, the session and the numerics
 // all stand. The second half is checkable through the public API alone (see
 // SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics in
@@ -782,7 +782,7 @@ using hven::linear::detail::testing::ThreadCountObserver;
 // inside the session file is deliberately not done.
 TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutReAnalyzing) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -797,7 +797,7 @@ TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutRe
     EXPECT_EQ(ThreadCountObserver::last_config_num_threads, 1)
         << "the configured count is what the first solve applied";
 
-    factor.set_num_threads(2);
+    factor.set_threads(2);
 
     ThreadCountObserver::reset();
     factor.solve(b, x);
@@ -872,7 +872,7 @@ TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAft
         << "the setter returns what it replaced -- reading the same fact the other way";
 
     SymmetricFactor::Options opts;
-    opts.num_threads = kHvenThreads;
+    opts.threads = kHvenThreads;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -923,7 +923,7 @@ TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsid
     ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride);
 
     SymmetricFactor::Options opts;
-    opts.num_threads = kHvenThreads;
+    opts.threads = kHvenThreads;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -1079,9 +1079,9 @@ TEST(AccelerateInertiaQueryFaultInjection, QueryFailureReportsKQueryFailedWithIn
     }
 
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kQueryFailed);
-    EXPECT_EQ(evidence.n_pos, -1);
-    EXPECT_EQ(evidence.n_neg, -1);
-    EXPECT_EQ(evidence.n_zero, -1);
+    EXPECT_EQ(evidence.positive, -1);
+    EXPECT_EQ(evidence.negative, -1);
+    EXPECT_EQ(evidence.zero, -1);
     EXPECT_FALSE(evidence.perturbed_pivots.has_value())
         << "must stay absent, not zero-filled, alongside the failed query";
 

@@ -5,18 +5,11 @@
 
 // warm_start.h -- the interior-point CROSSOVER (`from_interior_point`).
 //
-// M6 W5 T8.5 PROMOTED THE SQP'S NATIVE WARM-START STRUCT OUT OF `detail/`: it
-// lives, with its full contract, in `warmstart/sqp_warm_start.h` as
-// `SqpWarmStart` -- the labelled SQP-only native identity beside the shared
-// `WarmStartData` payload (design 2.4). This header KEPT the old spelling
-// `WarmStart` as an alias so the ~70 call sites T8.5 did not touch went on
-// compiling; M6 W5 T8.10 swept those call sites and REMOVED the alias.
-//
-// THE HEADER ITSELF STAYS, though the T8.5 entry, the plan and the T8.10 brief
-// all said T8.10 would delete it. That premise was that nothing but the alias
-// would be left here. Everything below is the crossover -- always this header's
-// other half -- and group 2 is mapped renames only, so deleting the file would
-// have RELOCATED functional code. Settler ruling, 2026-09-13 (T8.10 fix 1).
+// The SQP's native warm-start state lives in detail/warmstart/sqp_warm_state.h as
+// `SqpWarmState`, behind the opaque public handle `SqpWarmStart`
+// (warmstart/sqp_warm_start.h); the shared payload is `WarmStart`
+// (warmstart/warm_start.h). This header is the crossover that builds a state
+// from an interior-point-style iterate.
 
 #include <algorithm>
 #include <cmath>
@@ -29,17 +22,20 @@
 
 #include <hven/core/start_level.h>
 #include <hven/detail/qp/working_set.h>
+#include <hven/detail/warmstart/sqp_warm_state.h>
+#include <hven/model/structure_identity.h>
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/sqp_warm_start.h>
+#include <hven/warmstart/warm_start.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // THE INTERIOR-POINT CROSSOVER -- `from_interior_point`.
 //
-// Builds a SqpWarmStart from an INTERIOR-POINT-STYLE primal-dual iterate: the
+// Builds a SqpWarmState from an INTERIOR-POINT-STYLE primal-dual iterate: the
 // Knitro crossover pattern (an IP method runs to near-KKT, then hands off to
 // an active-set method for the final polish). Unlike mesh_transfer.h's
-// MeshTransfer (which maps a SqpWarmStart born from THIS driver's own solve onto
+// MeshTransfer (which maps a SqpWarmState born from THIS driver's own solve onto
 // a different mesh), this function's INPUT never went through this driver at
 // all: there is no QpEngine working set, no funnel/trust-region history and,
 // critically, no MODEL this function could hash -- so `structure_hash` is
@@ -65,8 +61,8 @@ namespace hven::solvers {
 // judged ACTIVE iff BOTH
 //   lambda_i(j) > dual_tol                       -- the multiplier is
 //                                                   genuinely positive
-//   lambda_i(j) >= kIpActivityFactor
-//                  * max(mu_hat, ||lambda_i||inf * activity_rel_tol)
+//   lambda_i(j) >= kIpmActivityFactor
+//                  * max(mu_hat, ||lambda_i||inf * activity_relative_tol)
 //                                                -- and the price is LIVE at
 //                                                   the hand-off's OWN dual
 //                                                   scale
@@ -115,7 +111,7 @@ namespace hven::solvers {
 //     can be actively wrong rather than merely empty.
 //
 // A kFixed variable (lower(i) == upper(i)) is reported +1, the same
-// arbitrary-but-consistent choice SqpWarmStart::bound_active's own note makes
+// arbitrary-but-consistent choice SqpWarmState::bound_active's own note makes
 // for a solve-derived object.
 //
 // NO FUNNEL/TRUST-REGION/REGULARIZATION STATE: funnel_width, tr_radius,
@@ -137,33 +133,13 @@ namespace hven::solvers {
 // the seeded `lambda_i >= 0` clamp applies, the one defence this producer
 // specifically needs (see this header's producer-inventory note).
 //
-// The activity rule's safety factor `nu`, NOT an option: it is one decade of
-// margin over the larger of the two scales the rule compares against (the
-// same "an order above the producer's own tolerance" step sqp_solver.h's
-// kSeededDualClampTol derivation takes), fixed here rather than exposed
-// because a caller has no data with which to choose it that the rule has not
-// already read for itself. Its product with the default `activity_rel_tol`
-// is 1e-3.
-inline constexpr double kIpActivityFactor = 10.0;
-
-struct IpCrossoverOptions {
-    // eps_rel: how far below the LARGEST price a live price may sit, as a
-    // fraction. 1e-4 against kIpActivityFactor = 10 puts the floor three
-    // decades below ||lambda_i||inf -- measured on F7 at N = 100 as the
-    // widest separation available between genuinely-active and
-    // barrier-noise prices on that family.
-    double activity_rel_tol = 1e-4;
-    // Absolute "is this multiplier zero?" floor -- see this header's note
-    // above on why this one stays absolute.
-    double dual_tol = 1e-6;
-};
-
-namespace detail {
+// The activity rule's safety factor `nu` (kIpmActivityFactor) and the two
+// thresholds (IpmCrossoverOptions) are public: warmstart/sqp_warm_start.h.
 
 // The activity threshold of the rule documented above, for ONE dual/residual
 // population (the inequality rows, or one side of the variable bounds):
 //
-//     kIpActivityFactor * max(mu_hat, ||dual||inf * eps_rel)
+//     kIpmActivityFactor * max(mu_hat, ||dual||inf * eps_rel)
 //
 // with `mu_hat` the mean of dual(j)*|residual(j)| over the PRICED entries
 // (dual(j) > 0) and `||dual||inf` the largest price among them. An empty
@@ -199,12 +175,10 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
         return 0.0;
     }
     const double mu_hat = complementarity / static_cast<double>(priced);
-    return kIpActivityFactor * std::max(mu_hat, dual_inf * eps_rel);
+    return kIpmActivityFactor * std::max(mu_hat, dual_inf * eps_rel);
 }
 
-} // namespace detail
-
-/// @brief Builds a SqpWarmStart from an interior-point-style primal-dual point.
+/// @brief Builds a SqpWarmState from an interior-point-style primal-dual point.
 ///
 /// See this header's own note immediately above for the sign convention
 /// `slack_i` must already be in (cI(x) VALUES, NOT an IP solver's own
@@ -219,9 +193,23 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 /// solve; never inlined at its call sites). detail::ip_activity_threshold
 /// above STAYS HERE: it is a template on purpose, so this function can pass
 /// it an Eigen expression rather than materialize two n-sized temporaries.
-SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                                 const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
-                                 const Vec &lower, const Vec &upper,
-                                 const IpCrossoverOptions &opts = {});
+detail::SqpWarmState from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                                         const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
+                                         const Vec &lower, const Vec &upper,
+                                         const IpmCrossoverOptions &opts = {});
 
-} // namespace hven::solvers
+/// @brief The crossover from a payload, over caller-supplied bounds and key: the
+///        body behind the public `to_sqp_warm_start(warm, problem)` and the
+///        engine's own payload ingest.
+/// @param data The warm-start value carrying the polish extension.
+/// @param lower Declared lower bounds, size n.
+/// @param upper Declared upper bounds, size n.
+/// @param structure_key The declaration key of the model `lower`/`upper` belong
+///        to; the value's own stamp must equal it.
+/// @throws std::invalid_argument as the public function documents, and if
+///         `lower`/`upper` are not at the core's own n.
+SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Vec &upper,
+                               const DeclarationKey &structure_key,
+                               const IpmCrossoverOptions &opts = {});
+
+} // namespace hven::detail

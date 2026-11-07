@@ -36,7 +36,7 @@
 #include <hven/core/types.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 struct QpCertificateSeam {
     /// Armed: the next certificate on this thread reads `x` and `z` below.
@@ -84,11 +84,11 @@ inline void qp_certificate_present(Vec &x, Vec &z, const QpOptions &eff_opts) {
         x = S::x;
         z = S::z;
     }
-    S::eff_dual_mu = eff_opts.dual_mu;
-    S::eff_feas_tol = eff_opts.feas_tol;
+    S::eff_dual_mu = eff_opts.dual_regularization;
+    S::eff_feas_tol = eff_opts.feasibility_tol;
     ++S::presentations;
 }
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

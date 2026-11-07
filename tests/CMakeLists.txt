@@ -357,6 +357,7 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/core/enum_names.cpp
     ${HVEN_SRC_DIR}/core/ledger.cpp
     ${HVEN_SRC_DIR}/core/pattern_hash.cpp
+    ${HVEN_SRC_DIR}/drivers/common_options.cpp
     ${HVEN_SRC_DIR}/drivers/sqp_options.cpp
     ${HVEN_SRC_DIR}/drivers/trace.cpp
     ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
@@ -521,6 +522,9 @@ add_executable(hven_sqp_seam_tests
     $<TARGET_PROPERTY:hven,SOURCES>
     sqp/test_sqp_equality_basis_seams.cpp
     sqp/test_sqp_ladder_seams.cpp
+    # M8 B5 riders: the backend-failure half of the exception contract through
+    # the public handles, on the linear layer's analyze/factorize injectors.
+    sqp/test_backend_error_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

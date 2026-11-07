@@ -5,7 +5,7 @@
 
 #include <limits>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Consecutive feasibility-stage iterations at an elevated violation before the
 /// stage is declared worsening: sized so a real worsening is caught promptly
@@ -95,4 +95,4 @@ struct FeasibilityStallDetector {
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

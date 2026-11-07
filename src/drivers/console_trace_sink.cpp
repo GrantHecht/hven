@@ -47,19 +47,43 @@
 
 #include <hven/drivers/console_trace_sink.h>
 
+#include <hven/detail/drivers/console_color.h>
+
 #include <algorithm>
 #include <cmath>
 
 #include <fmt/format.h>
 
-#include <hven/detail/interior/iterate_info.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/drivers/ipm_iterate.h>
 
-namespace hven::solvers {
+namespace hven {
+
+using detail::ipm_residual_color;
+
+namespace {
+// The console's tiers on the old integer scale its rendering rules are written
+// in: kIterations prints everything (0), kSummary drops the iteration rows and
+// statistics (1), kWarnings keeps the status and warning lines (2), kSilent
+// prints nothing (3).
+int print_level_of(Verbosity v) {
+    switch (v) {
+    case Verbosity::kIterations:
+        return 0;
+    case Verbosity::kSummary:
+        return 1;
+    case Verbosity::kWarnings:
+        return 2;
+    case Verbosity::kSilent:
+        break;
+    }
+    return 3;
+}
+} // namespace
 
 // --- the colour bands -------------------------------------------------------
 
-fmt::text_style ipm_residual_color(double value, double target, double acceptable) {
+fmt::text_style detail::ipm_residual_color(double value, double target, double acceptable) {
     constexpr double kFloor = 1e-300;
     auto level1 = std::log(std::max(target, kFloor));
     auto level3 = std::log(std::max(acceptable, kFloor));
@@ -91,12 +115,12 @@ ConsoleTraceSink::~ConsoleTraceSink() = default;
 
 // The eight QP-tier events. Named parameters would be unused; the bodies are
 // empty on purpose and the header says why.
-void ConsoleTraceSink::on_ipqp_iter(const IpqpTraceIterEvent &) {}
-void ConsoleTraceSink::on_ipqp_reg(const IpqpTraceRegEvent &) {}
-void ConsoleTraceSink::on_ipqp_restart(const IpqpTraceRestartEvent &) {}
-void ConsoleTraceSink::on_ipqp_route(const IpqpTraceRouteEvent &) {}
-void ConsoleTraceSink::on_ipqp_certify(const IpqpTraceCertifyEvent &) {}
-void ConsoleTraceSink::on_ipqp_escape(const IpqpTraceEscapeEvent &) {}
+void ConsoleTraceSink::on_ipqp_iter(const IpqpIterTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_reg(const IpqpRegTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_route(const IpqpRouteTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &) {}
+void ConsoleTraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &) {}
 void ConsoleTraceSink::on_qp_mode(const QpModeTraceEvent &) {}
 void ConsoleTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) {}
 
@@ -165,8 +189,8 @@ void ConsoleTraceSink::ipm_print_stats(const IpmSolveBeginTraceEvent &event) {
     fmt::print(out_, "\n");
 }
 
-void ConsoleTraceSink::ipm_print_row(const IterateInfo &last) {
-    if (last.iter_ % 10 == 0) {
+void ConsoleTraceSink::ipm_print_row(const IpmIterate &last) {
+    if (last.iter % 10 == 0) {
         if (wide_) {
             fmt::print(out_, "{0:=^{1}}\n", "", 159);
             fmt::print(
@@ -190,10 +214,10 @@ void ConsoleTraceSink::ipm_print_row(const IterateInfo &last) {
     fmt::text_style BHashcol = fmt::text_style();
     fmt::text_style BOHashcol = fmt::text_style();
 
-    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf_, kkt_tol_, acc_kkt_tol_);
-    fmt::text_style Bcol = ipm_residual_color(last.barr_inf_, bar_tol_, acc_bar_tol_);
-    fmt::text_style Ecol = ipm_residual_color(last.econ_inf_, econ_tol_, acc_econ_tol_);
-    fmt::text_style Icol = ipm_residual_color(last.icon_inf_, icon_tol_, acc_icon_tol_);
+    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf, kkt_tol_, acc_kkt_tol_);
+    fmt::text_style Bcol = ipm_residual_color(last.barr_inf, bar_tol_, acc_bar_tol_);
+    fmt::text_style Ecol = ipm_residual_color(last.econ_inf, econ_tol_, acc_econ_tol_);
+    fmt::text_style Icol = ipm_residual_color(last.icon_inf, icon_tol_, acc_icon_tol_);
 
     // `iters.size() > 1` in the old printer: "this phase has already shown a
     // row". `have_prev_row_` is that predicate, cleared on a begin and on a
@@ -203,33 +227,33 @@ void ConsoleTraceSink::ipm_print_row(const IterateInfo &last) {
         auto GCol = fmt::fg(fmt::color::lime_green);
         auto BCol = fmt::fg(fmt::color::red);
 
-        PHashcol = (last.prim_obj_ <= prev_prim_obj_) ? GCol : BCol;
-        BOHashcol = (last.barr_obj_ <= prev_barr_obj_) ? GCol : BCol;
-        BHashcol = (last.barr_inf_ <= prev_barr_inf_) ? GCol : BCol;
-        EHashcol = (last.econ_inf_ <= prev_econ_inf_) ? GCol : BCol;
-        IHashcol = (last.icon_inf_ <= prev_icon_inf_) ? GCol : BCol;
-        KHashcol = (last.kkt_inf_ <= prev_kkt_inf_) ? GCol : BCol;
+        PHashcol = (last.prim_obj <= prev_prim_obj_) ? GCol : BCol;
+        BOHashcol = (last.barr_obj <= prev_barr_obj_) ? GCol : BCol;
+        BHashcol = (last.barr_inf <= prev_barr_inf_) ? GCol : BCol;
+        EHashcol = (last.econ_inf <= prev_econ_inf_) ? GCol : BCol;
+        IHashcol = (last.icon_inf <= prev_icon_inf_) ? GCol : BCol;
+        KHashcol = (last.kkt_inf <= prev_kkt_inf_) ? GCol : BCol;
     }
 
     auto hash = [this]() { fmt::print(out_, "|"); };
     auto chash = [this](fmt::text_style c) { fmt::print(out_, c, "|"); };
 
     hash();
-    fmt::print(out_, "{:<4}", last.iter_);
+    fmt::print(out_, "{:<4}", last.iter);
     hash();
-    fmt::print(out_, "{:.2e}", last.mu_);
+    fmt::print(out_, "{:.2e}", last.mu);
     hash();
-    fmt::print(out_, "{:>10.3e}", last.prim_obj_);
+    fmt::print(out_, "{:>10.3e}", last.prim_obj);
     chash(PHashcol);
-    fmt::print(out_, "{:>10.3e}", last.barr_obj_);
+    fmt::print(out_, "{:>10.3e}", last.barr_obj);
     chash(BOHashcol);
-    fmt::print(out_, Kcol, "{:>10.4e}", last.kkt_inf_);
+    fmt::print(out_, Kcol, "{:>10.4e}", last.kkt_inf);
     chash(KHashcol);
-    fmt::print(out_, Bcol, "{:>10.4e}", last.barr_inf_);
+    fmt::print(out_, Bcol, "{:>10.4e}", last.barr_inf);
     chash(BHashcol);
-    fmt::print(out_, Ecol, "{:>10.4e}", last.econ_inf_);
+    fmt::print(out_, Ecol, "{:>10.4e}", last.econ_inf);
     chash(EHashcol);
-    fmt::print(out_, Icol, "{:>10.4e}", last.icon_inf_);
+    fmt::print(out_, Icol, "{:>10.4e}", last.icon_inf);
     chash(IHashcol);
 
     // DISPLAY-ONLY CARVE-OUT: the HPert column shows the CUMULATIVE
@@ -239,12 +263,12 @@ void ConsoleTraceSink::ipm_print_row(const IterateInfo &last) {
         fmt::print(
             out_,
             "{:>9.3e}|{:>9.3e}|{:>8.2e}|{:>8.2e}|{:>8.2e}|{:>10.3e}|{:>3}|{:>3}|{:>3}|{:>6.1e}|\n",
-            last.max_e_mult_, last.max_i_mult_, last.alpha_p_, last.alpha_d_, last.alpha_t_,
-            last.merit_val_, last.ls_iters_, last.p_pivots_, last.h_facs_, last.h_pert_cum_);
+            last.max_e_mult, last.max_i_mult, last.alpha_p, last.alpha_d, last.alpha_t,
+            last.merit_val, last.ls_iters, last.p_pivots, last.h_facs, last.h_pert_cum);
     } else {
         fmt::print(out_, "{:>8.2e}|{:>8.2e}|{:>2}|{:>5}|{:>2}|{:>6.1e}|\n",
-                   last.alpha_t_ * last.alpha_p_, last.alpha_t_ * last.alpha_d_, last.ls_iters_,
-                   last.p_pivots_, last.h_facs_, last.h_pert_cum_);
+                   last.alpha_t * last.alpha_p, last.alpha_t * last.alpha_d, last.ls_iters,
+                   last.p_pivots, last.h_facs, last.h_pert_cum);
     }
 }
 
@@ -267,15 +291,15 @@ void ConsoleTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) 
     have_prev_row_ = false;
     prev_phase_ = 0;
 
-    if (fmt_.print_level >= 3) {
+    if (print_level_of(fmt_.verbosity) >= 3) {
         return;
     }
-    if (fmt_.print_level == 0) {
+    if (print_level_of(fmt_.verbosity) == 0) {
         ipm_print_stats(event);
     }
-    if (fmt_.print_level < 2) {
+    if (print_level_of(fmt_.verbosity) < 2) {
         ipm_print_header();
-        ipm_print_beginning("InteriorPointSolver ");
+        ipm_print_beginning("IpmSolver ");
     }
     std::fflush(out_);
 }
@@ -286,12 +310,12 @@ void ConsoleTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
     // so a new phase must colour its first row as a first row. `iter_ == 0` is
     // the same predicate the header rule keys on and covers the first row of a
     // phase whose index a caller cannot see.
-    if (event.phase != prev_phase_ || event.iterate.iter_ == 0) {
+    if (event.phase != prev_phase_ || event.iterate.iter == 0) {
         have_prev_row_ = false;
     }
     prev_phase_ = event.phase;
 
-    if (fmt_.print_level == 0) {
+    if (print_level_of(fmt_.verbosity) == 0) {
         ipm_print_row(event.iterate);
         std::fflush(out_);
     }
@@ -300,17 +324,17 @@ void ConsoleTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
     // print_level 0 the two coincide; at any other level nothing renders, and
     // keeping the state coherent costs six stores and means a level change
     // between solves cannot leave stale colours behind.
-    prev_prim_obj_ = event.iterate.prim_obj_;
-    prev_barr_obj_ = event.iterate.barr_obj_;
-    prev_barr_inf_ = event.iterate.barr_inf_;
-    prev_econ_inf_ = event.iterate.econ_inf_;
-    prev_icon_inf_ = event.iterate.icon_inf_;
-    prev_kkt_inf_ = event.iterate.kkt_inf_;
+    prev_prim_obj_ = event.iterate.prim_obj;
+    prev_barr_obj_ = event.iterate.barr_obj;
+    prev_barr_inf_ = event.iterate.barr_inf;
+    prev_econ_inf_ = event.iterate.econ_inf;
+    prev_icon_inf_ = event.iterate.icon_inf;
+    prev_kkt_inf_ = event.iterate.kkt_inf;
     have_prev_row_ = true;
 }
 
 void ConsoleTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
-    if (fmt_.print_level >= 2) {
+    if (print_level_of(fmt_.verbosity) >= 2) {
         return;
     }
     auto cyan = fmt::fg(fmt::color::cyan);
@@ -329,7 +353,7 @@ void ConsoleTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
     // milliseconds.
     fmt::print(out_, " Total Solve Time             : ");
     fmt::print(out_, cyan, "{0:>10.3f} ms\n", event.total_time_s * 1000.0);
-    ipm_print_finished("InteriorPointSolver ");
+    ipm_print_finished("IpmSolver ");
     ipm_print_header();
     std::fflush(out_);
 }
@@ -353,7 +377,7 @@ void ConsoleTraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &event) {
     // two rules are the whole of it (M6 W5 T8.7 (i)); a third reset keyed on
     // this event would be a second rule saying the same thing, which is one
     // more place for the two to disagree.
-    if (fmt_.print_level >= 2) {
+    if (print_level_of(fmt_.verbosity) >= 2) {
         return;
     }
     ipm_print_beginning(event.label);
@@ -361,7 +385,7 @@ void ConsoleTraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &event) {
 }
 
 void ConsoleTraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &event) {
-    if (fmt_.print_level >= 2) {
+    if (print_level_of(fmt_.verbosity) >= 2) {
         return;
     }
     ipm_print_finished(event.label);
@@ -372,7 +396,7 @@ void ConsoleTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event
     // BOTH HALVES FROM ONE EVENT. `init_impl` printed the `Beginning` line
     // before the factorization and the rest after it; nothing could interleave
     // between them, so rendering both here reproduces the transcript exactly.
-    if (fmt_.print_level >= 2) {
+    if (print_level_of(fmt_.verbosity) >= 2) {
         return;
     }
     ipm_print_beginning("KKT-Matrix Analysis ");
@@ -396,20 +420,20 @@ void ConsoleTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event
 }
 
 void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
-    if (fmt_.print_level >= 3) {
+    if (print_level_of(fmt_.verbosity) >= 3) {
         return;
     }
-    const IterateInfo &last = event.iterate;
-    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf_, kkt_tol_, acc_kkt_tol_);
-    fmt::text_style Bcol = ipm_residual_color(last.barr_inf_, bar_tol_, acc_bar_tol_);
-    fmt::text_style Ecol = ipm_residual_color(last.econ_inf_, econ_tol_, acc_econ_tol_);
-    fmt::text_style Icol = ipm_residual_color(last.icon_inf_, icon_tol_, acc_icon_tol_);
+    const IpmIterate &last = event.iterate;
+    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf, kkt_tol_, acc_kkt_tol_);
+    fmt::text_style Bcol = ipm_residual_color(last.barr_inf, bar_tol_, acc_bar_tol_);
+    fmt::text_style Ecol = ipm_residual_color(last.econ_inf, econ_tol_, acc_econ_tol_);
+    fmt::text_style Icol = ipm_residual_color(last.icon_inf, icon_tol_, acc_icon_tol_);
 
     // THE VERDICT LINE, on the RESOLVED status (M6 W5 T8.7b). The old chain
     // keyed on `alg_impl`'s RAW exit code, which was printed before
-    // `resolve_ipm_phase_status` ran; resolution only ever rewrites kMaxIter,
+    // `resolve_ipm_phase_status` ran; resolution only ever rewrites kIterationLimit,
     // into kStalled or kInterrupted, and all three take the branch the raw
-    // kMaxIter took. Same bytes, one key, and the three door fixtures pin it.
+    // kIterationLimit took. Same bytes, one key, and the three door fixtures pin it.
     const SolveStatus status = event.report.status;
     if (status == SolveStatus::kOptimal) {
         fmt::print(out_, fmt::fg(fmt::color::lime_green), "\nOptimal Solution Found\n");
@@ -417,14 +441,18 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
         fmt::print(out_, fmt::fg(fmt::color::yellow), "\nAcceptable Solution Found\n");
     } else if (status == SolveStatus::kDiverging) {
         fmt::print(out_, fmt::fg(fmt::color::dark_red), "\nSolution Diverging\n");
-    } else if (status == SolveStatus::kMaxIter || status == SolveStatus::kStalled ||
+    } else if (status == SolveStatus::kIterationLimit || status == SolveStatus::kStalled ||
                status == SolveStatus::kInterrupted) {
         fmt::print(out_, fmt::fg(fmt::color::red), "\nNo Solution Found\n");
+    } else if (status == SolveStatus::kWorkLimit) {
+        fmt::print(out_, fmt::fg(fmt::color::red), "\nWork Limit Reached\n");
+    } else if (status == SolveStatus::kTimeLimit) {
+        fmt::print(out_, fmt::fg(fmt::color::red), "\nTime Limit Reached\n");
     } else if (status == SolveStatus::kNumericalError) {
         fmt::print(out_, fmt::fg(fmt::color::dark_red), "\nKKT System Persistently Singular\n");
     }
 
-    if (fmt_.print_level < 2) {
+    if (print_level_of(fmt_.verbosity) < 2) {
         // The divisor the old block used was `iters.size()`, which is exactly
         // what the report's own `iterations` counts for this phase.
         const Index iternum = event.report.iterations;
@@ -438,15 +466,15 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
         fmt::print(out_, " Iterations : ");
         fmt::print(out_, "{:<5}\n", iternum);
         fmt::print(out_, " Prim Obj   : ");
-        fmt::print(out_, "{:<15.8e}\n", last.prim_obj_);
+        fmt::print(out_, "{:<15.8e}\n", last.prim_obj);
         fmt::print(out_, " KKT Inf    : ");
-        fmt::print(out_, Kcol, "{:<15.8e}\n", last.kkt_inf_);
+        fmt::print(out_, Kcol, "{:<15.8e}\n", last.kkt_inf);
         fmt::print(out_, " Bar Inf    : ");
-        fmt::print(out_, Bcol, "{:<15.8e}\n", last.barr_inf_);
+        fmt::print(out_, Bcol, "{:<15.8e}\n", last.barr_inf);
         fmt::print(out_, " ECons Inf  : ");
-        fmt::print(out_, Ecol, "{:<15.8e}\n", last.econ_inf_);
+        fmt::print(out_, Ecol, "{:<15.8e}\n", last.econ_inf);
         fmt::print(out_, " ICons Inf  : ");
-        fmt::print(out_, Icol, "{:<15.8e}\n", last.icon_inf_);
+        fmt::print(out_, Icol, "{:<15.8e}\n", last.icon_inf);
 
         // The last non-Success factorization status observed during THIS
         // PHASE, if any (M6 W5 T8.7b fix1, the lane's M1: `alg_impl` resets the
@@ -483,14 +511,14 @@ void ConsoleTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
     // sees the fact regardless.
     if (event.kind == IpmMessageKind::kSolverInitialized) {
         constexpr double kSolverInitPrintThresholdMs = 0.5;
-        if (event.a > kSolverInitPrintThresholdMs && fmt_.print_level < 2) {
+        if (event.a > kSolverInitPrintThresholdMs && print_level_of(fmt_.verbosity) < 2) {
             fmt::print(out_, " Solver Initialization : ");
             fmt::print(out_, fmt::fg(fmt::color::cyan), "{0:.3f} ms\n", event.a);
             std::fflush(out_);
         }
         return;
     }
-    if (fmt_.print_level >= 3) {
+    if (print_level_of(fmt_.verbosity) >= 3) {
         return;
     }
     auto yellow = fmt::fg(fmt::color::yellow);
@@ -553,7 +581,7 @@ void ConsoleTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {
         ++sqp_depth_;
     }
     ++sqp_open_solves_;
-    if (sqp_depth_ > 0 || fmt_.print_level >= 2) {
+    if (sqp_depth_ > 0 || print_level_of(fmt_.verbosity) >= 2) {
         return;
     }
     fmt::print(out_, "{}", sqp_iteration_table_head());
@@ -563,7 +591,7 @@ void ConsoleTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {
 void ConsoleTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
     // DEPTH-0 ROWS ONLY: `format_iteration_table` renders `SqpResult::history`,
     // which holds top-level rows, and this sink is pinned against it.
-    if (sqp_depth_ > 0 || fmt_.print_level != 0) {
+    if (sqp_depth_ > 0 || print_level_of(fmt_.verbosity) != 0) {
         return;
     }
     fmt::print(out_, "{}", sqp_iteration_table_row(event.row));
@@ -574,10 +602,10 @@ void ConsoleTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     // The trailer belongs to the solve this line CLOSES, so it is rendered
     // before the nesting unwinds -- the same order JsonLinesTraceSink writes in.
     if (sqp_depth_ == 0) {
-        if (fmt_.print_level < 3) {
+        if (print_level_of(fmt_.verbosity) < 3) {
             fmt::print(out_, "{}", sqp_iteration_table_status_line(event.status));
         }
-        if (fmt_.print_level < 2) {
+        if (print_level_of(fmt_.verbosity) < 2) {
             fmt::print(out_, "{}",
                        sqp_iteration_table_start_level_line(event.counters.start_level_used));
             fmt::print(out_, "{}",
@@ -585,7 +613,7 @@ void ConsoleTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
                                                         event.row_scale_min, event.row_scale_max,
                                                         event.scaled_kkt_residual));
         }
-        if (fmt_.print_level < 3) {
+        if (print_level_of(fmt_.verbosity) < 3) {
             std::fflush(out_);
         }
     }
@@ -619,12 +647,12 @@ FanOutTraceSink::~FanOutTraceSink() = default;
 // differ only in a method name and a parameter type, where a hand-written copy
 // would be twenty chances to forward to the wrong half. `HVEN_`-prefixed per
 // CLAUDE.md section 4 and #undef'd immediately below.
-HVEN_FANOUT_FORWARD(on_ipqp_iter, IpqpTraceIterEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_reg, IpqpTraceRegEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_restart, IpqpTraceRestartEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_route, IpqpTraceRouteEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_certify, IpqpTraceCertifyEvent)
-HVEN_FANOUT_FORWARD(on_ipqp_escape, IpqpTraceEscapeEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_iter, IpqpIterTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_reg, IpqpRegTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_restart, IpqpRestartTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_route, IpqpRouteTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_certify, IpqpCertifyTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipqp_escape, IpqpEscapeTraceEvent)
 HVEN_FANOUT_FORWARD(on_qp_mode, QpModeTraceEvent)
 HVEN_FANOUT_FORWARD(on_fallback_verdict, SqpFallbackVerdictTraceEvent)
 HVEN_FANOUT_FORWARD(on_sqp_major, SqpMajorTraceEvent)
@@ -642,4 +670,4 @@ HVEN_FANOUT_FORWARD(on_ipm_message, IpmMessageTraceEvent)
 
 #undef HVEN_FANOUT_FORWARD
 
-} // namespace hven::solvers
+} // namespace hven

@@ -84,15 +84,13 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 struct KktAssembly {
     SpMatRM K;                       // (n_free + me + n_working) square, upper triangle stored
     std::vector<Index> free_of_full; // free-index -> full-variable-index map, increasing
     Vec rhs_shift;                   // see header comment above; same row layout as K
 };
-
-namespace detail {
 
 // Shared triplet-build core for assemble_kkt (eliminate_bounds = true) and
 // assemble_kkt_full (eliminate_bounds = false). When eliminate_bounds is
@@ -220,7 +218,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
         }
     }
     for (Index k = 0; k < n_free; ++k) {
-        trips.emplace_back(k, k, opts.primal_delta);
+        trips.emplace_back(k, k, opts.primal_regularization);
     }
 
     // Equality rows: Ae_F^T into K's top-right block; fixed columns into
@@ -236,7 +234,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
                 rhs_shift(eq_off + r) += val * x_fixed(j);
             }
         }
-        trips.emplace_back(eq_off + r, eq_off + r, -opts.dual_mu);
+        trips.emplace_back(eq_off + r, eq_off + r, -opts.dual_regularization);
     }
 
     // Working-inequality rows: same pattern as equality rows, over ws's
@@ -253,7 +251,7 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
                 rhs_shift(ineq_off + k) += val * x_fixed(j);
             }
         }
-        trips.emplace_back(ineq_off + k, ineq_off + k, -opts.dual_mu);
+        trips.emplace_back(ineq_off + k, ineq_off + k, -opts.dual_regularization);
     }
 
     SpMatRM K(dim, dim);
@@ -262,8 +260,6 @@ inline KktAssembly assemble_kkt_core(const QpProblem &qp, const WorkingSet &ws,
 
     return KktAssembly{std::move(K), std::move(free_of_full), std::move(rhs_shift)};
 }
-
-} // namespace detail
 
 inline KktAssembly assemble_kkt(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts) {
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/true, "assemble_kkt");
@@ -280,4 +276,4 @@ inline KktAssembly assemble_kkt_full(const QpProblem &qp, const WorkingSet &ws,
     return detail::assemble_kkt_core(qp, ws, opts, /*eliminate_bounds=*/false, "assemble_kkt_full");
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

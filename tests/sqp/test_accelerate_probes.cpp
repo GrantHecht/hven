@@ -42,7 +42,7 @@
 #include <hven/detail/linear/lapacke_shim.h>
 #include <hven/qp/qp_types.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::linear::detail::lapack_int;
 using hven::linear::detail::LAPACKE_dsytrf;

@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // The warm-start currency's byte form: what the layout is, and why it is this
-// one. The caller-facing contract is in hven/warmstart/warm_start_data.h.
+// one. The caller-facing contract is in hven/warmstart/warm_start.h.
 //
 // THE LAYOUT. All integers are fixed-width little-endian. All offsets below
 // are byte offsets from the start of the encoding.
@@ -47,7 +47,7 @@
 // ends before the input does means the caller handed us something other than
 // one payload: a concatenation, a truncated-then-padded buffer, a framing bug.
 
-#include "hven/warmstart/warm_start_data.h"
+#include "hven/warmstart/warm_start.h"
 
 #include <array>
 #include <bit>
@@ -61,7 +61,11 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+#include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/warm_start_access.h"
+#include "hven/model/problem.h"
+
+namespace hven {
 
 namespace {
 
@@ -120,7 +124,7 @@ class Reader {
     std::span<const std::byte> take(std::size_t count, std::string_view what) {
         if (count > remaining()) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStartData): the input ends at byte {0}, but {1} byte(s) were "
+                "deserialize_warm_start: the input ends at byte {0}, but {1} byte(s) were "
                 "expected at byte offset {2} for {3}",
                 bytes_.size(), count, offset_, what));
         }
@@ -157,7 +161,7 @@ class Reader {
         const std::uint64_t count = read_u64(what);
         if (count > static_cast<std::uint64_t>(remaining() / element_size)) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStartData): the length field at byte offset {0} for {1} declares "
+                "deserialize_warm_start: the length field at byte offset {0} for {1} declares "
                 "{2} element(s) of {3} byte(s), but only {4} byte(s) remain in a {5}-byte input",
                 length_offset, what, count, element_size, remaining(), bytes_.size()));
         }
@@ -190,23 +194,25 @@ std::string hex_dump(std::span<const std::byte> bytes) {
 /// The encoding's exact length. A reserve hint only -- the writer below, not
 /// this function, defines the layout, so a drift here costs a reallocation and
 /// nothing else.
-std::size_t encoded_size_hint(const WarmStartData &data) {
+std::size_t encoded_size_hint(const WarmStart &data) {
     std::size_t size = kMagicSize + 4; // magic + version
     size += 4 * 8;                     // four block counts
-    size += static_cast<std::size_t>(data.primal_.size() + data.eq_lmults_.size() +
-                                     data.iq_lmults_.size() + data.bound_lmults_.size()) *
+    size += static_cast<std::size_t>(detail::WarmStartAccess::primal(data).size() +
+                                     detail::WarmStartAccess::eq(data).size() +
+                                     detail::WarmStartAccess::iq(data).size() +
+                                     detail::WarmStartAccess::bound(data).size()) *
             kDoubleSize;
     size += 8 + 8; // the stamp's two conjuncts
     size += 8;     // the extension count
-    for (const WarmExtension &extension : data.extensions_) {
-        size += kMinExtensionSize + extension.tag_.size() + extension.payload_.size();
+    for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
+        size += kMinExtensionSize + extension.tag.size() + extension.payload.size();
     }
     return size;
 }
 
 } // namespace
 
-std::vector<std::byte> serialize(const WarmStartData &data) {
+std::vector<std::byte> serialize_warm_start(const WarmStart &data) {
     std::vector<std::byte> out;
     out.reserve(encoded_size_hint(data));
     for (const unsigned char byte : kMagic) {
@@ -214,34 +220,34 @@ std::vector<std::byte> serialize(const WarmStartData &data) {
     }
     append_u32(out, kWarmStartFormatVersion);
 
-    append_vector(out, data.primal_);
-    append_vector(out, data.eq_lmults_);
-    append_vector(out, data.iq_lmults_);
-    append_vector(out, data.bound_lmults_);
+    append_vector(out, detail::WarmStartAccess::primal(data));
+    append_vector(out, detail::WarmStartAccess::eq(data));
+    append_vector(out, detail::WarmStartAccess::iq(data));
+    append_vector(out, detail::WarmStartAccess::bound(data));
 
-    append_u64(out, data.structure_key_.declaration_digest_);
-    append_u64(out, data.structure_key_.bound_digest_);
+    append_u64(out, detail::WarmStartAccess::key(data).declaration_digest);
+    append_u64(out, detail::WarmStartAccess::key(data).bound_digest);
 
-    append_u64(out, static_cast<std::uint64_t>(data.extensions_.size()));
-    for (const WarmExtension &extension : data.extensions_) {
-        append_u64(out, static_cast<std::uint64_t>(extension.tag_.size()));
-        for (const char character : extension.tag_) {
+    append_u64(out, static_cast<std::uint64_t>(detail::WarmStartAccess::extensions(data).size()));
+    for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
+        append_u64(out, static_cast<std::uint64_t>(extension.tag.size()));
+        for (const char character : extension.tag) {
             out.push_back(static_cast<std::byte>(static_cast<unsigned char>(character)));
         }
-        append_u64(out, static_cast<std::uint64_t>(extension.payload_.size()));
-        out.insert(out.end(), extension.payload_.begin(), extension.payload_.end());
+        append_u64(out, static_cast<std::uint64_t>(extension.payload.size()));
+        out.insert(out.end(), extension.payload.begin(), extension.payload.end());
     }
     return out;
 }
 
-WarmStartData deserialize(std::span<const std::byte> bytes) {
+WarmStart deserialize_warm_start(std::span<const std::byte> bytes) {
     Reader reader(bytes);
 
     const std::span<const std::byte> magic = reader.take(kMagicSize, "the format magic");
     for (std::size_t i = 0; i < kMagicSize; ++i) {
         if (std::to_integer<unsigned char>(magic[i]) != kMagic[i]) {
             throw std::invalid_argument(fmt::format(
-                "deserialize(WarmStartData): expected the 8-byte format magic 48 56 45 4e 57 53 "
+                "deserialize_warm_start: expected the 8-byte format magic 48 56 45 4e 57 53 "
                 "44 00 (\"HVENWSD\\0\") at byte offset 0, found {0}",
                 hex_dump(magic)));
         }
@@ -268,46 +274,116 @@ WarmStartData deserialize(std::span<const std::byte> bytes) {
                    "build is the old one -- read it with a build that writes its version.";
         }
         throw std::invalid_argument(
-            fmt::format("deserialize(WarmStartData): the format version at byte offset {0} is {1}, "
+            fmt::format("deserialize_warm_start: the format version at byte offset {0} is {1}, "
                         "which this build does not read; it writes and reads version {2}.{3}",
                         kMagicSize, version, kWarmStartFormatVersion, note));
     }
 
-    WarmStartData data;
-    data.primal_ = reader.read_vector("the primal block");
-    data.eq_lmults_ = reader.read_vector("the equality-multiplier block");
-    data.iq_lmults_ = reader.read_vector("the inequality-multiplier block");
-    data.bound_lmults_ = reader.read_vector("the bound-multiplier block");
+    WarmStart data;
+    detail::WarmStartAccess::primal(data) = reader.read_vector("the primal block");
+    detail::WarmStartAccess::eq(data) = reader.read_vector("the equality-multiplier block");
+    detail::WarmStartAccess::iq(data) = reader.read_vector("the inequality-multiplier block");
+    detail::WarmStartAccess::bound(data) = reader.read_vector("the bound-multiplier block");
 
-    data.structure_key_.declaration_digest_ = reader.read_u64("the stamp's declaration digest");
-    data.structure_key_.bound_digest_ = reader.read_u64("the stamp's bound digest");
+    detail::WarmStartAccess::key(data).declaration_digest =
+        reader.read_u64("the stamp's declaration digest");
+    detail::WarmStartAccess::key(data).bound_digest = reader.read_u64("the stamp's bound digest");
 
     const std::uint64_t extension_count =
         reader.read_length("the extension list", kMinExtensionSize);
-    data.extensions_.reserve(static_cast<std::size_t>(extension_count));
+    detail::WarmStartAccess::extensions(data).reserve(static_cast<std::size_t>(extension_count));
     for (std::uint64_t i = 0; i < extension_count; ++i) {
         WarmExtension extension;
         const std::uint64_t tag_size = reader.read_length("an extension tag", kByteSize);
         const std::span<const std::byte> tag =
             reader.take(static_cast<std::size_t>(tag_size), "an extension tag");
-        extension.tag_.resize(static_cast<std::size_t>(tag_size));
+        extension.tag.resize(static_cast<std::size_t>(tag_size));
         if (tag_size > 0) {
-            std::memcpy(extension.tag_.data(), tag.data(), static_cast<std::size_t>(tag_size));
+            std::memcpy(extension.tag.data(), tag.data(), static_cast<std::size_t>(tag_size));
         }
         const std::uint64_t payload_size = reader.read_length("an extension payload", kByteSize);
         const std::span<const std::byte> payload =
             reader.take(static_cast<std::size_t>(payload_size), "an extension payload");
-        extension.payload_.assign(payload.begin(), payload.end());
-        data.extensions_.push_back(std::move(extension));
+        extension.payload.assign(payload.begin(), payload.end());
+        detail::WarmStartAccess::extensions(data).push_back(std::move(extension));
     }
 
     if (reader.remaining() != 0) {
         throw std::invalid_argument(
-            fmt::format("deserialize(WarmStartData): the payload ends at byte offset {0}, but the "
+            fmt::format("deserialize_warm_start: the payload ends at byte offset {0}, but the "
                         "input carries {1} trailing byte(s) after it",
                         reader.offset(), reader.remaining()));
     }
     return data;
 }
 
-} // namespace hven::solvers
+// --- The row-space face (WarmStart::lambda, WarmStart::seed) ---------------
+//
+// The stored blocks are the engine split; these two map them to and from the
+// problem's row space (the space SolveResult::lambda reports), through the
+// same per-problem map the result's own lambda is built with.
+
+Vec WarmStart::lambda(const Problem &problem) const {
+    const DeclarationKey live = detail::ProblemAccess::declaration_key(problem);
+    if (!(structure_key_ == live)) {
+        throw std::invalid_argument(
+            fmt::format("WarmStart::lambda: this warm start was taken under declaration key {0:#x} "
+                        "but the problem's declaration keys {1:#x}; it describes a different "
+                        "problem",
+                        structure_key_.digest(), live.digest()));
+    }
+    Index me = 0;
+    Index mi = 0;
+    detail::ProblemAccess::row_counts(problem, me, mi);
+    if (eq_lmults_.size() != me || iq_lmults_.size() != mi) {
+        throw std::invalid_argument(
+            fmt::format("WarmStart::lambda: the multiplier blocks hold {0} equality and {1} "
+                        "inequality entries, but the problem has {2} equality and {3} inequality "
+                        "rows",
+                        eq_lmults_.size(), iq_lmults_.size(), me, mi));
+    }
+    return detail::ProblemAccess::compose_rows(problem, eq_lmults_, iq_lmults_);
+}
+
+WarmStart WarmStart::seed(const Problem &problem, ConstVecRef x, ConstVecRef lambda,
+                          ConstVecRef z) {
+    const Index n = problem.num_variables();
+    const Index m = problem.num_constraints();
+    if (lambda.size() != m) {
+        throw std::invalid_argument(fmt::format(
+            "WarmStart::seed: lambda holds {0} entries but the problem has {1} rows; one "
+            "multiplier per row of the problem's row space is required",
+            lambda.size(), m));
+    }
+    if (x.size() == 0) {
+        if (z.size() != 0) {
+            throw std::invalid_argument(fmt::format(
+                "WarmStart::seed: x is empty (the multipliers-only form) but z holds {0} "
+                "entries; z travels only with a primal point",
+                z.size()));
+        }
+    } else {
+        if (x.size() != n) {
+            throw std::invalid_argument(
+                fmt::format("WarmStart::seed: x holds {0} entries but the problem has {1} "
+                            "variables",
+                            x.size(), n));
+        }
+        if (z.size() != n) {
+            throw std::invalid_argument(fmt::format(
+                "WarmStart::seed: z holds {0} entries but the problem has {1} variables; a "
+                "seed with a primal point carries one bound multiplier per variable",
+                z.size(), n));
+        }
+    }
+
+    WarmStart out;
+    const Vec lambda_row = lambda;
+    detail::ProblemAccess::split_rows(problem, lambda_row, out.eq_lmults_, out.iq_lmults_);
+    out.primal_ = x;
+    out.bound_lmults_ = z;
+    out.structure_key_ = detail::ProblemAccess::declaration_key(problem);
+    return out;
+}
+
+} // namespace hven

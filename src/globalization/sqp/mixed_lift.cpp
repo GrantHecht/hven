@@ -14,7 +14,7 @@
 
 #include <hven/detail/globalization/sqp/mixed_lift.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -212,6 +212,7 @@ MixedLift::MixedLift(const QpProblem &qp, Index n_struct, const MixedLiftData &d
     lifted_.bi = qp.bi;
 
     constexpr double kInf = std::numeric_limits<double>::infinity();
+    lifted_.infinite_bound = qp.infinite_bound;
     lifted_.lower = Vec::Constant(nl, -kInf);
     lifted_.upper = Vec::Constant(nl, kInf);
     lifted_.lower.head(n) = qp.lower;
@@ -337,4 +338,4 @@ Vec MixedLift::unlift_equality_multipliers(const Vec &lambda_e) const {
     return lambda_e.head(me_orig_);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

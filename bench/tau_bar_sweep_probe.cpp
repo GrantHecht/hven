@@ -89,26 +89,28 @@
 
 #include <cstdio>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "support/hs_sweeps.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 namespace {
 
 SqpOptions cold_options(Index max_iter) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kCold;
-    opts.warm_full_step = false;
-    opts.enable_soc = false;
+    opts.advanced.warm_full_step = false;
+    opts.advanced.second_order_correction = false;
     return opts;
 }
 
@@ -134,7 +136,8 @@ int main() {
         for (double p : grid) {
             SqpSolver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
-            const SqpResult sol = driver.solve(*model, model->start_point());
+            const SqpResult sol =
+                driver.solve(hven::detail::problem_ref(*model), model->start_point());
             all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;

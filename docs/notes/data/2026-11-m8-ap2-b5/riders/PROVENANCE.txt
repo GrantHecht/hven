@@ -1,0 +1,43 @@
+M8 AP-2 group B5, settler riders R1-R11 -- PROVENANCE and results
+================================================================================
+Declaration    DECLARATION.txt and runtime/DECLARATION.txt (6b83571f), committed before the first leg.
+               No leg failed; no successor declaration; no criterion was changed.
+Code head      f45ca070 (m8-b5); base 65f01b68 (B5 evidence head; B5 code head 2142af0a). Every leg
+               ran on f45ca070 (corpus stamp f45ca070552b; arm B sha256
+               34984713d1183945d38cb5f7c0144985be6bc2f73bac8808cb1fa4ed930544da).
+Machine        AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, GCC (default smoke arm), MKL,
+               MKL_NUM_THREADS=1, perf 7.2.12-200.fc44. Apple/Windows: UNOBSERVED.
+Dates          2026-11-03 23:25 EST (runtime gate start) to 2026-11-04 06:42 EST (census end).
+Protocol       every leg `flock /tmp/box-build.lock bash <leg>`, pgrep empty before the lock and PGREP_EMPTY
+               inside it, set -o pipefail, no timeout wrapper, ctest -j4 under setsid, ABSOLUTE evidence
+               paths. The runtime gate ran alone first (runtime/run_all.log); the non-timing legs from
+               legs/chain1.sh (chain/chain1.log, chain/*.out). Dev builds, tests, replays and the partial
+               dev census before the declaration also ran under the lock; the dev census was stopped by
+               signalling its own process group after tier 1 (its 42nd cell had not finished).
+
+RESULTS (criteria as declared)
+P1  suites      Release 3399/3399, Debug 3399/3399 (suites/). PASS (3399 as declared).
+P2  examples    8/8 exit 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/riders-comparison-*.txt).
+                PASS.
+P4  iparm       15 configurations, BYTE-IDENTICAL to B5's dump, sha256
+                34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479 (iparm/iparm-riders.txt).
+                PASS. No IPARM-SURFACE label: no iparm field was touched.
+P5  census      57 baseline cells, 57 fresh, 0 mismatches (census/compare.txt); serial-confirm list empty.
+                Tiers: T1 6-wide pinned, T2 solo, T3 5-wide full budget (census/census-run.log), on the
+                frozen arm-B binary build-b5/armBr (sha256 checked by the leg). PASS.
+P6  smoke       default and clang arms rc=0; export contract OK on both (platform linux, align 32), the
+                detail-include rule armed, no allow-list (install-smoke/). PASS.
+P7  PCH         PASS, PCH engaged on 4 TUs, all 57 artifacts byte-identical with and without it (pch/).
+P8  off-ref     clean build rc=0 (26 warning lines, the B5 classes), ctest Release 3399/3399 (offref/).
+                PASS.
+P9  Accelerate  pass A: 34 files, OTHER 0, classes IDENTICAL to B5's (CLEAN / KNOWN-HEADER / KNOWN-SIZEOF)
+                (accelerate/accelerate-sweep.txt). Pass B (stub) informational and byte-identical to
+                B5's; the leg's rc=1 is pass B's, as at B4 and B5. PASS. Apple hardware UNOBSERVED.
+P10 flags       library TUs 60 before / 60 after, 0 TUs with a differing flag list, RESULT IDENTICAL
+                (flags/flags-diff.txt). PASS.
+P11 runtime     VERDICT PASS (runtime/run_all.log): filtered B/A interior 1.000060, ipm 0.999955, ssn
+                0.999945, walk 1.000005, all inside [0.995, 1.005]; THROTTLE 0 everywhere; counter identity
+                on every (round, cell) pair (interior 3, ipm/ssn/walk 81 each). PASS.
+DECLARED DIFFERENCES matched: X1-X6 as declared; no corpus row moved (replay, census, runtime counter
+identity); the dev measurements before the declaration agreed (replay x4 EXACT, census tier 1 41/41).

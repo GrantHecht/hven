@@ -25,7 +25,7 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
@@ -38,12 +38,12 @@ HVEN_SUPPRESS_DEPRECATED_BEGIN
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::NlpModel;
-using hven::solvers::test_support::assert_gradient;
-using hven::solvers::test_support::assert_hessian;
-using hven::solvers::test_support::assert_jacobians;
-using hven::solvers::test_support::HsProblem;
-using hven::solvers::test_support::make_hs;
+using hven::detail::NlpModel;
+using hven::test_support::assert_gradient;
+using hven::test_support::assert_hessian;
+using hven::test_support::assert_jacobians;
+using hven::test_support::HsProblem;
+using hven::test_support::make_hs;
 
 namespace {
 
@@ -382,8 +382,8 @@ TEST(NlpModelHs, Hs79DimensionsAndDerivatives) {
 // and crash the battery). Checked here rather than in the battery so the
 // failure names the list, not a solve.
 TEST(NlpModelHs, EveryListedNumberIsConstructible) {
-    ASSERT_EQ(hven::solvers::test_support::hs_numbers().size(), 27u);
-    for (int number : hven::solvers::test_support::hs_numbers()) {
+    ASSERT_EQ(hven::test_support::hs_numbers().size(), 27u);
+    for (int number : hven::test_support::hs_numbers()) {
         SCOPED_TRACE(::testing::Message() << "HS" << number);
         HsProblem hs = make_hs(number);
         EXPECT_NE(hs.model, nullptr);

@@ -43,9 +43,9 @@
 //     solves in one major and there is no next entry to observe.
 //
 // THE ROWS ARE CONSISTENT BY CONSTRUCTION: `x_k = target, s = 0` satisfies every
-// one of them, and with `|target| < tr_init <= box` that witness is inside every
+// one of them, and with `|target| < trust_region_initial <= box` that witness is inside every
 // window the driver can build. HALF OF THAT IS VALIDATED HERE and half cannot be:
-// `disproved_entry_qp` refuses `|target| >= box`, but `tr_init` is the DRIVER's
+// `disproved_entry_qp` refuses `|target| >= box`, but `trust_region_initial` is the DRIVER's
 // radius and no vehicle can see it, so it is asserted by the premise test
 // (`SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem`). So a
 // `kInfeasibleSuspect` escape on this subproblem is a FALSE POSITIVE by construction, and rung A's
@@ -73,7 +73,7 @@
 
 #include "qp_as_nlp_model.h"
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 /// @brief The disproving vehicle's parameters. The defaults ARE the shipped
 ///        cell -- every pin and the T4 measurement use them unchanged.
@@ -165,4 +165,4 @@ inline QpAsNlpModel disproved_entry_model(const DisprovedEntryCell &c = Disprove
     return QpAsNlpModel(qp, Vec::Zero(qp.n()));
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

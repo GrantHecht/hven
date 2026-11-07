@@ -1,0 +1,41 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T04:07:03-05:00
+[1/2] Building CXX object CMakeFiles/dump_iparm.dir/dump_iparm.cpp.o
+[2/2] Linking CXX executable dump_iparm
+dump rc=0
+294
+== config default
+status=optimal iterations=10 calls=21
+== config ordering=minimum_degree
+status=optimal iterations=10 calls=21
+== config ordering=parallel_nested_dissection
+status=optimal iterations=10 calls=21
+== config pivoting=one_by_one
+status=optimal iterations=10 calls=21
+== config matching=off
+status=optimal iterations=10 calls=21
+== config scaling=on
+status=optimal iterations=10 calls=21
+== config pivot_perturbation=13
+status=optimal iterations=10 calls=21
+== config refinement_steps=2
+status=optimal iterations=10 calls=21
+== config parallel_solve=1
+status=optimal iterations=10 calls=21
+== config parallel_solve=2
+REFUSED (std::invalid_argument) calls=0
+== config algorithm=two_level
+REFUSED (std::invalid_argument) calls=0
+== config cnr=on
+status=optimal iterations=10 calls=21
+== config skip_unperturbed=off
+status=optimal iterations=10 calls=21
+== config force_analysis=on
+status=optimal iterations=10 calls=21
+== config threads=2
+status=optimal iterations=10 calls=21
+== config cnr=on+threads=2
+status=optimal iterations=10 calls=21
+== config backend_print=on
+REFUSED (std::invalid_argument) calls=0
+FOREGROUND_END 2026-11-02T04:07:07-05:00

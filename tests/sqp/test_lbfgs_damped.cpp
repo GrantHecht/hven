@@ -20,11 +20,11 @@ namespace {
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-using hven::solvers::detail::LbfgsDamped;
-using hven::solvers::detail::LbfgsDampedOptions;
-using hven::solvers::detail::ResetReason;
-using hven::solvers::detail::SkipReason;
-using hven::solvers::detail::UpdateOutcome;
+using hven::detail::LbfgsDamped;
+using hven::detail::LbfgsDampedOptions;
+using hven::detail::ResetReason;
+using hven::detail::SkipReason;
+using hven::detail::UpdateOutcome;
 
 // Dense recursive damped BFGS with the sigma-rebuild convention.
 struct DenseReference {

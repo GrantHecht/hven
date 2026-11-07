@@ -26,8 +26,9 @@
 // CHOICE. Read this before "simplifying" any predicate in this file.
 //
 // Every check is written as the NEGATION of the acceptance condition --
-// `!(kkt_tol > 0.0)`, `!(tr_init > 0.0)`, `!(tr_max >= tr_init)`,
-// `!(tr_min <= tr_init)` -- because that is the form that rejects NaN. A NaN
+// `!(kkt_tol > 0.0)`, `!(trust_region_initial > 0.0)`, `!(trust_region_max >=
+// trust_region_initial)`,
+// `!(trust_region_min <= trust_region_initial)` -- because that is the form that rejects NaN. A NaN
 // compares false against everything, so `!(x > 0.0)` is TRUE for NaN and the
 // option is rejected, whereas the "obvious" complement `x <= 0.0` is FALSE for
 // NaN and would let a NaN tolerance or a NaN radius through into the solve.
@@ -63,6 +64,7 @@
 // this file carries no FP-reassociation risk at all.
 
 #include <cmath>
+#include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -70,67 +72,83 @@
 
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_solver_types.h>
+#include <hven/detail/drivers/common_options_validate.h>
+#include <hven/drivers/sqp_options.h>
+#include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven {
+
+namespace {
+
+// An enum field is a plain aggregate member, so a value outside its enumerators
+// is a reachable input. `last` is the final enumerator.
+template <typename E> void enum_in_range(E v, E last, const char *name) {
+    const auto i = static_cast<long long>(v);
+    if (i < 0 || i > static_cast<long long>(last)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: {} ({}) is not one of its enumerators", name, i));
+    }
+}
+
+} // namespace
 
 void validate(const SqpOptions &opts) {
-    if (!(opts.kkt_tol > 0.0) || !(opts.feas_tol > 0.0)) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: kkt_tol ({}) and feas_tol ({}) must both be > 0", opts.kkt_tol,
-                        opts.feas_tol));
-    }
-    if (opts.max_iter < 0) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: max_iter ({}) must be >= 0", opts.max_iter));
-    }
-    if (!(opts.tr_init > 0.0)) { // catches NaN, negatives and exactly 0
+    // This engine's floors: no iterations and the backend's own thread default are legal.
+    detail::validate_common_options(opts.common, {.max_iterations = 0, .threads = 0});
+    if (opts.qp.max_iterations && *opts.qp.max_iterations < 1) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
-            "pin every step to zero and stall until max_iter)",
-            opts.tr_init));
+            "SqpSolver: qp.max_iterations ({}) must be empty or >= 1", *opts.qp.max_iterations));
     }
-    // tr_max caps the growth rule, so a
+    if (!(opts.trust_region_initial > 0.0)) { // catches NaN, negatives and exactly 0
+        throw std::invalid_argument(fmt::format("SqpSolver: trust_region_initial ({}) must be > 0 "
+                                                "(use +inf for no trust region; 0 would "
+                                                "pin every step to zero and stall until max_iter)",
+                                                opts.trust_region_initial));
+    }
+    // trust_region_max caps the growth rule, so a
     // ceiling below the floor would be a contradiction rather than an
     // ignored field: it would silently mean "the radius may never grow,
     // and the very first subproblem already violates the cap".
     //
-    // tr_init == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
-    // that value there is no starting radius for tr_max to be a ceiling
-    // ON. It is NOT exempt from tr_max MATTERING: the
-    // FIRST rejection lands the radius on tr_max (see sqp_solver.h's RADIUS
+    // trust_region_initial == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
+    // that value there is no starting radius for trust_region_max to be a ceiling
+    // ON. It is NOT exempt from trust_region_max MATTERING: the
+    // FIRST rejection lands the radius on trust_region_max (see sqp_solver.h's RADIUS
     // MANAGEMENT), so the pair is meaningful after all -- what +inf now means
-    // is "unbounded until the method finds it needs a bound, then tr_max".
+    // is "unbounded until the method finds it needs a bound, then trust_region_max".
     // The growth rule is still skipped while the radius is +inf
-    // (min(+inf*2, tr_max) would REDUCE it, which no growth rule may do).
-    if (!std::isinf(opts.tr_init) && !(opts.tr_max >= opts.tr_init)) { // catches NaN too
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_max ({}) must be >= tr_init ({}); it is the ceiling "
-                        "the trust-region growth rule expands toward",
-                        opts.tr_max, opts.tr_init));
+    // (min(+inf*2, trust_region_max) would REDUCE it, which no growth rule may do).
+    if (!std::isinf(opts.trust_region_initial) &&
+        !(opts.trust_region_max >= opts.trust_region_initial)) { // catches NaN too
+        throw std::invalid_argument(fmt::format("SqpSolver: trust_region_max ({}) must be >= "
+                                                "trust_region_initial ({}); it is the ceiling "
+                                                "the trust-region growth rule expands toward",
+                                                opts.trust_region_max, opts.trust_region_initial));
     }
     // THE FLOOR. It must be positive (0 would make it
     // unreachable, since the radius only ever halves, and the restoration
     // trigger it exists to arm would be dead), and it must not exceed
-    // either end of the range it floors -- tr_min > tr_init would put the
+    // either end of the range it floors -- trust_region_min > trust_region_initial would put the
     // FIRST subproblem below the floor, i.e. request restoration before
-    // the solve has tried anything, and tr_min > tr_max would do the same
-    // to the radius a +inf tr_init lands on. Both forms catch NaN.
-    if (!(opts.tr_min > 0.0)) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_min ({}) must be > 0; it is the radius floor whose crossing "
-                        "raises a restoration request, and 0 can never be crossed by halving",
-                        opts.tr_min));
+    // the solve has tried anything, and trust_region_min > trust_region_max would do the same
+    // to the radius a +inf trust_region_initial lands on. Both forms catch NaN.
+    if (!(opts.trust_region_min > 0.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: trust_region_min ({}) must be > 0; it is the radius floor whose crossing "
+            "raises a restoration request, and 0 can never be crossed by halving",
+            opts.trust_region_min));
     }
-    if (!(opts.tr_min <= opts.tr_init) || !(opts.tr_min <= opts.tr_max)) {
+    if (!(opts.trust_region_min <= opts.trust_region_initial) ||
+        !(opts.trust_region_min <= opts.trust_region_max)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: tr_min ({}) must be <= both tr_init ({}) and tr_max ({}); "
+            fmt::format("SqpSolver: trust_region_min ({}) must be <= both trust_region_initial "
+                        "({}) and trust_region_max ({}); "
                         "a floor above the starting radius requests restoration before the "
                         "first trial is judged",
-                        opts.tr_min, opts.tr_init, opts.tr_max));
+                        opts.trust_region_min, opts.trust_region_initial, opts.trust_region_max));
     }
     // THE PROBLEM-SCALING RULE'S TWO PARAMETERS (M6 W0.2). Validated
-    // UNCONDITIONALLY, not under `if (opts.enable_scaling)`: an options object
+    // UNCONDITIONALLY, not under `if (opts.row_scaling)`: an options object
     // is a value a caller may flip a bool on later, and a rule that is
     // nonsensical the moment the toggle moves was already nonsensical when it
     // was set. Both forms catch NaN, for this file's banner's reason.
@@ -140,18 +158,14 @@ void validate(const SqpOptions &opts) {
             "the scaled objective gradient and each scaled Jacobian row are aimed at",
             opts.scaling_max_gradient));
     }
-    if (!(opts.scaling_factor_limit >= 1.0) || std::isinf(opts.scaling_factor_limit)) {
+    if (!(opts.scaling_factor_max >= 1.0) || std::isinf(opts.scaling_factor_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: scaling_factor_limit ({}) must be finite and >= 1; it clamps every "
+            "SqpSolver: scaling_factor_max ({}) must be finite and >= 1; it clamps every "
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
-            opts.scaling_factor_limit));
+            opts.scaling_factor_max));
     }
     // THE COLUMN LAYER (M7 W2 SCL), validated unconditionally for the same reason.
-    if (opts.column_scaling == SqpColumnScaling::kSqpColumnScalingCount) {
-        throw std::invalid_argument(
-            "SqpSolver: column_scaling == SqpColumnScaling::kSqpColumnScalingCount is the "
-            "enumeration's count sentinel, not a column-scaling mode");
-    }
+    enum_in_range(opts.column_scaling, SqpColumnScaling::kAuto, "column_scaling");
     if (!(opts.column_scaling_threshold >= 1.0) || std::isinf(opts.column_scaling_threshold)) {
         throw std::invalid_argument(fmt::format(
             "SqpSolver: column_scaling_threshold ({}) must be finite and >= 1; it is the "
@@ -159,7 +173,7 @@ void validate(const SqpOptions &opts) {
             "below 1",
             opts.column_scaling_threshold));
     }
-    // THE kIpm TIER'S OWN OPTIONS (M6 W1 task 1). Validated UNCONDITIONALLY,
+    // THE kIpqp TIER'S OWN OPTIONS. Validated UNCONDITIONALLY,
     // exactly like the scaling fields just above and for the same reason: an
     // options object is a value whose qp_mode a caller may set later, so a
     // nonsensical IpqpOptions field was already nonsensical when it was set.
@@ -168,159 +182,177 @@ void validate(const SqpOptions &opts) {
     // negation-of-acceptance idiom's NaN-rejection reason does not apply to
     // them; every `double` field below uses that idiom, for this file's own
     // reason.
-    if (opts.ipqp.ipqp_hard_iter_cap <= 0) {
+    if (opts.advanced.ipqp.hard_max_iterations <= 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_hard_iter_cap ({}) must be > 0; it is the budget of last "
-            "resort and, unlike ipqp_max_iter, carries no size-derived sentinel reading",
-            opts.ipqp.ipqp_hard_iter_cap));
+            "SqpSolver: advanced.ipqp.hard_max_iterations ({}) must be > 0; it is the budget of "
+            "last "
+            "resort and, unlike max_iterations, carries no size-derived sentinel reading",
+            opts.advanced.ipqp.hard_max_iterations));
     }
-    if (!(opts.ipqp.ipqp_min_mu > 0.0) || std::isinf(opts.ipqp.ipqp_min_mu)) {
+    if (!(opts.advanced.ipqp.barrier_min > 0.0) || std::isinf(opts.advanced.ipqp.barrier_min)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.barrier_min ({}) must be finite and > 0; it is the "
+            "floor of the mu_0 clamp and the tier's own barrier-decay floor",
+            opts.advanced.ipqp.barrier_min));
+    }
+    if (!(opts.advanced.ipqp.barrier_initial > 0.0) ||
+        std::isinf(opts.advanced.ipqp.barrier_initial)) {
+        throw std::invalid_argument(fmt::format("SqpSolver: advanced.ipqp.barrier_initial ({}) "
+                                                "must be finite and > 0; it is the cold starting "
+                                                "mu and the ceiling of the mu_0 clamp",
+                                                opts.advanced.ipqp.barrier_initial));
+    }
+    if (!(opts.advanced.ipqp.barrier_min <= opts.advanced.ipqp.barrier_initial)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: ipqp.ipqp_min_mu ({}) must be finite and > 0; it is the "
-                        "floor of the mu_0 clamp and the tier's own barrier-decay floor",
-                        opts.ipqp.ipqp_min_mu));
+            fmt::format("SqpSolver: advanced.ipqp.barrier_min ({}) must be <= "
+                        "advanced.ipqp.barrier_initial ({}); the mu_0 "
+                        "clamp's band [min_mu, init_mu] is otherwise inverted",
+                        opts.advanced.ipqp.barrier_min, opts.advanced.ipqp.barrier_initial));
     }
-    if (!(opts.ipqp.ipqp_init_mu > 0.0) || std::isinf(opts.ipqp.ipqp_init_mu)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_init_mu ({}) must be finite and > 0; it is the cold starting "
-            "mu and the ceiling of the mu_0 clamp",
-            opts.ipqp.ipqp_init_mu));
+    if (!(opts.advanced.ipqp.regularization_min > 0.0) ||
+        std::isinf(opts.advanced.ipqp.regularization_min)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.regularization_min ({}) must be finite and > 0; "
+                        "it is the absolute "
+                        "floor the (rho, delta) ladder's gated decrease may never cross",
+                        opts.advanced.ipqp.regularization_min));
     }
-    if (!(opts.ipqp.ipqp_min_mu <= opts.ipqp.ipqp_init_mu)) {
+    if (!(opts.advanced.ipqp.regularization_max >= opts.advanced.ipqp.regularization_min) ||
+        std::isinf(opts.advanced.ipqp.regularization_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_min_mu ({}) must be <= ipqp.ipqp_init_mu ({}); the mu_0 "
-            "clamp's band [ipqp_min_mu, ipqp_init_mu] is otherwise inverted",
-            opts.ipqp.ipqp_min_mu, opts.ipqp.ipqp_init_mu));
-    }
-    if (!(opts.ipqp.ipqp_reg_floor > 0.0) || std::isinf(opts.ipqp.ipqp_reg_floor)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_reg_floor ({}) must be finite and > 0; it is the absolute "
-            "floor the (rho, delta) ladder's gated decrease may never cross",
-            opts.ipqp.ipqp_reg_floor));
-    }
-    if (!(opts.ipqp.ipqp_reg_max >= opts.ipqp.ipqp_reg_floor) ||
-        std::isinf(opts.ipqp.ipqp_reg_max)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_reg_max ({}) must be finite and >= ipqp.ipqp_reg_floor ({}); "
+            "SqpSolver: advanced.ipqp.regularization_max ({}) must be finite and >= "
+            "advanced.ipqp.regularization_min ({}); "
             "it is the ceiling the (rho, delta) ladder's growth may never cross",
-            opts.ipqp.ipqp_reg_max, opts.ipqp.ipqp_reg_floor));
+            opts.advanced.ipqp.regularization_max, opts.advanced.ipqp.regularization_min));
     }
-    if (!(opts.ipqp.ipqp_rho_init >= opts.ipqp.ipqp_reg_floor) ||
-        !(opts.ipqp.ipqp_rho_init <= opts.ipqp.ipqp_reg_max)) {
+    if (!(opts.advanced.ipqp.primal_regularization_initial >=
+          opts.advanced.ipqp.regularization_min) ||
+        !(opts.advanced.ipqp.primal_regularization_initial <=
+          opts.advanced.ipqp.regularization_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_rho_init ({}) must lie in [ipqp_reg_floor ({}), ipqp_reg_max "
+            "SqpSolver: advanced.ipqp.primal_regularization_initial ({}) must lie in "
+            "[regularization_min ({}), regularization_max "
             "({})]; the starting value of a quantity the ladder only ever moves within that "
             "band must itself start inside it",
-            opts.ipqp.ipqp_rho_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
+            opts.advanced.ipqp.primal_regularization_initial, opts.advanced.ipqp.regularization_min,
+            opts.advanced.ipqp.regularization_max));
     }
-    if (!(opts.ipqp.ipqp_delta_init > 0.0) ||
-        !(opts.ipqp.ipqp_delta_init <= opts.ipqp.ipqp_reg_max)) {
+    if (!(opts.advanced.ipqp.dual_regularization_initial > 0.0) ||
+        !(opts.advanced.ipqp.dual_regularization_initial <=
+          opts.advanced.ipqp.regularization_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_delta_init ({}) must lie in (0, ipqp_reg_max ({})]; unlike "
-            "ipqp_rho_init it is NOT tied to ipqp_reg_floor -- spec section 2.2's monotone "
+            "SqpSolver: advanced.ipqp.dual_regularization_initial ({}) must lie in (0, "
+            "regularization_max ({})]; unlike "
+            "primal_regularization_initial it is NOT tied to regularization_min -- spec section "
+            "2.2's monotone "
             "floor is stated for rho only",
-            opts.ipqp.ipqp_delta_init, opts.ipqp.ipqp_reg_max));
+            opts.advanced.ipqp.dual_regularization_initial, opts.advanced.ipqp.regularization_max));
     }
-    if (!(opts.ipqp.ipqp_reg_decrease > 0.0) || !(opts.ipqp.ipqp_reg_decrease < 1.0)) {
+    if (!(opts.advanced.ipqp.regularization_decrease > 0.0) ||
+        !(opts.advanced.ipqp.regularization_decrease < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_reg_decrease ({}) must lie strictly in (0, 1); it is a "
+            "SqpSolver: advanced.ipqp.regularization_decrease ({}) must lie strictly in (0, 1); it "
+            "is a "
             "gated multiplicative decrease -- 0 would collapse the regularization in one "
             "gated step and >= 1 would never decrease it",
-            opts.ipqp.ipqp_reg_decrease));
+            opts.advanced.ipqp.regularization_decrease));
     }
-    if (!(opts.ipqp.ipqp_tau > 0.0) || !(opts.ipqp.ipqp_tau < 1.0)) {
+    if (!(opts.advanced.ipqp.fraction_to_boundary > 0.0) ||
+        !(opts.advanced.ipqp.fraction_to_boundary < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_tau ({}) must lie strictly in (0, 1); it is the "
+            "SqpSolver: advanced.ipqp.fraction_to_boundary ({}) must lie strictly in (0, 1); it is "
+            "the "
             "fraction-to-boundary parameter -- 0 permits no step and >= 1 permits stepping "
             "onto or past a bound",
-            opts.ipqp.ipqp_tau));
+            opts.advanced.ipqp.fraction_to_boundary));
     }
-    if (!(opts.ipqp.ipqp_face_kappa > 0.0) || !(opts.ipqp.ipqp_face_kappa < 1.0)) {
+    if (!(opts.advanced.ipqp.face_ratio_threshold > 0.0) ||
+        !(opts.advanced.ipqp.face_ratio_threshold < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_face_kappa ({}) must lie strictly in (0, 1); a non-positive "
+            "SqpSolver: advanced.ipqp.face_ratio_threshold ({}) must lie strictly in (0, 1); a "
+            "non-positive "
             "ratio-rule threshold can never classify a row active, and at kappa >= 1 the active "
             "test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) can no longer "
             "partition: at kappa == 1 an exact tie (s_j == z_j) satisfies NEITHER strict "
             "inequality (both tests false, so every tie becomes UNCERTAIN with no genuine "
             "margin), and above 1 the two tests can both fire on the same pair (a contradictory "
             "active-AND-inactive verdict)",
-            opts.ipqp.ipqp_face_kappa));
+            opts.advanced.ipqp.face_ratio_threshold));
     }
-    if (!(opts.ipqp.ipqp_converge_slack >= 1.0) || std::isinf(opts.ipqp.ipqp_converge_slack)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_converge_slack ({}) must be finite and >= 1; a slack below "
-            "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
-            "inverting the two-tier division of labor",
-            opts.ipqp.ipqp_converge_slack));
-    }
-    if (opts.ipqp.ipqp_warm_iter_budget < 0) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_warm_iter_budget ({}) must be >= 0; 0 is legal (every warm "
-            "restart is killed on its first iteration) but a negative budget is not a count",
-            opts.ipqp.ipqp_warm_iter_budget));
-    }
-    if (!(opts.ipqp.ipqp_mu_adopt_factor >= 0.0) || std::isinf(opts.ipqp.ipqp_mu_adopt_factor)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_mu_adopt_factor ({}) must be finite and >= 0; 0 is a legal, "
-            "deliberate reading (adoption disabled), a negative one is not",
-            opts.ipqp.ipqp_mu_adopt_factor));
-    }
-    if (opts.ipqp.ipqp_stall_window <= 0) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_stall_window ({}) must be > 0; a zero-width window can "
-            "never accumulate the whole-window evidence the early-stall test is built on",
-            opts.ipqp.ipqp_stall_window));
-    }
-    if (opts.ipqp.ipqp_retire_after <= 0) {
+    if (!(opts.advanced.ipqp.convergence_slack >= 1.0) ||
+        std::isinf(opts.advanced.ipqp.convergence_slack)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
-                        "consecutive escapes\" is not a count, it disables the tier outright",
-                        opts.ipqp.ipqp_retire_after));
+            fmt::format("SqpSolver: advanced.ipqp.convergence_slack ({}) must be finite and >= 1; "
+                        "a slack below "
+                        "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
+                        "inverting the two-tier division of labor",
+                        opts.advanced.ipqp.convergence_slack));
     }
-    // A2 (M7-37): the two shipped values only, in the NEGATED acceptance form, so the count
-    // sentinel and any out-of-range cast are refused by name. `ipqp_mu_residual_floor` is a bool:
-    // it has no refusable value and therefore no predicate here.
-    if (!(opts.ipqp.ipqp_mu0_rule == IpqpMu0Rule::kFixed ||
-          opts.ipqp.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity)) {
+    if (opts.advanced.ipqp.max_warm_iterations < 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_mu0_rule ({}) must be kFixed or kComplementarity; "
-            "IpqpMu0Rule::kIpqpMu0RuleCount is the enumerator-count sentinel, not a value",
-            static_cast<int>(opts.ipqp.ipqp_mu0_rule)));
+            "SqpSolver: advanced.ipqp.max_warm_iterations ({}) must be >= 0; 0 is legal (every "
+            "warm "
+            "restart is killed on its first iteration) but a negative budget is not a count",
+            opts.advanced.ipqp.max_warm_iterations));
+    }
+    if (!(opts.advanced.ipqp.barrier_adoption_factor >= 0.0) ||
+        std::isinf(opts.advanced.ipqp.barrier_adoption_factor)) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.barrier_adoption_factor ({}) must be finite and "
+                        ">= 0; 0 is a legal, "
+                        "deliberate reading (adoption disabled), a negative one is not",
+                        opts.advanced.ipqp.barrier_adoption_factor));
+    }
+    if (opts.advanced.ipqp.stall_window <= 0) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.stall_window ({}) must be > 0; a zero-width window can "
+            "never accumulate the whole-window evidence the early-stall test is built on",
+            opts.advanced.ipqp.stall_window));
+    }
+    if (opts.advanced.ipqp.max_consecutive_escapes <= 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpSolver: advanced.ipqp.max_consecutive_escapes ({}) must be > 0; "
+                        "retiring \"after zero "
+                        "consecutive escapes\" is not a count, it disables the tier outright",
+                        opts.advanced.ipqp.max_consecutive_escapes));
+    }
+    // A2 (M7-37): the two shipped values only; any out-of-range cast is refused by name.
+    // `mu_residual_floor` is a bool: it has no refusable value and therefore no predicate.
+    enum_in_range(opts.advanced.ipqp.barrier_initial_rule, IpqpBarrierInitialRule::kComplementarity,
+                  "advanced.ipqp.barrier_initial_rule");
+    // The two size-derived budgets: empty derives them; an engaged value is a count.
+    if (opts.advanced.ipqp.max_iterations && *opts.advanced.ipqp.max_iterations < 1) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.max_iterations ({}) must be empty (size-derived) or >= 1",
+            *opts.advanced.ipqp.max_iterations));
+    }
+    if (opts.advanced.ipqp.max_factorizations && *opts.advanced.ipqp.max_factorizations < 1) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.ipqp.max_factorizations ({}) must be empty (derived) or >= 1",
+            *opts.advanced.ipqp.max_factorizations));
     }
     // A3 (M7-38): 0 is legal (skip whenever a memory exists); a count cannot be negative.
-    if (!(opts.ipqp.ipqp_ladder_skip_after >= 0)) {
+    if (!(opts.advanced.ipqp.ladder_skip_after >= 0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: ipqp.ipqp_ladder_skip_after ({}) must be >= 0; it counts consecutive "
+            "SqpSolver: advanced.ipqp.ladder_skip_after ({}) must be >= 0; it counts consecutive "
             "modified iterations, and 0 already means \"skip the zero trial whenever the ladder "
             "has a memory\"",
-            opts.ipqp.ipqp_ladder_skip_after));
+            opts.advanced.ipqp.ladder_skip_after));
     }
-    // THE ENUMERATOR-COUNT SENTINEL IS NOT A MODE (fix round 3). It is a
-    // legal `QpMode` value naming no kernel, so it is refused here rather than
-    // left to reach the dispatch, where the arm that enumerates it throws --
-    // a caller who sets it gets the diagnosis at construction, which is where
-    // every other out-of-range setting gets it.
-    if (opts.qp_mode == QpMode::kQpModeCount) {
-        throw std::invalid_argument(
-            "SqpSolver: qp_mode == QpMode::kQpModeCount is the enumerator-count sentinel, not a "
-            "kernel -- it exists so a fourth QpMode cannot be added without an arm in the QP "
-            "kernel dispatch. Use kWalk, kSsn or kIpm");
-    }
-    // THE ELASTIC RUNG'S ENGINE (M7 W0 T3), on the same terms and for the same
-    // reason: the count sentinel is a legal `ElasticRungEngine` value naming no
-    // engine, and the ladder's dispatch enumerates the two that do.
-    if (opts.elastic_rung_engine == ElasticRungEngine::kElasticRungEngineCount) {
-        throw std::invalid_argument(
-            "SqpSolver: elastic_rung_engine == ElasticRungEngine::kElasticRungEngineCount is the "
-            "enumerator-count sentinel, not an engine -- it exists so a third engine cannot be "
-            "added without an arm in the elastic ladder's rung dispatch. Use kWalk or kTier");
-    }
-    // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
-    // The routing chain it was waiting on now dispatches the mode
-    // (sqp_solver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
+    // Every enum field is checked against its enumerators: a value outside them
+    // is a reachable input through a plain aggregate field.
+    enum_in_range(opts.qp_mode, QpMode::kIpqp, "qp_mode");
+    enum_in_range(opts.advanced.elastic_rung_engine, SqpElasticRungEngine::kTier,
+                  "advanced.elastic_rung_engine");
+    enum_in_range(opts.advanced.ssn_sigma_rule, SsnSigmaRule::kResidualAlways,
+                  "advanced.ssn_sigma_rule");
+    enum_in_range(opts.advanced.ssn_hint_rule, SsnHintRule::kWatchdog, "advanced.ssn_hint_rule");
+    enum_in_range(opts.advanced.ssn_infeasibility_rule, SsnInfeasibilityRule::kFarkasGated,
+                  "advanced.ssn_infeasibility_rule");
+    // kIpqp is a reachable mode (sqp_solver.cpp's THE QP KERNEL DISPATCH), so
     // nothing here refuses it. The IpqpOptions predicates above are validated
-    // UNCONDITIONALLY, at every mode, exactly as they were: a field is
-    // out of range whether or not this solve will read it.
+    // UNCONDITIONALLY, at every mode: a field is out of range whether or not
+    // this solve will read it.
 
     // THE START-POINT PROJECTION (M7 W2 M4), in declaration position.
     //
@@ -344,13 +376,15 @@ void validate(const SqpOptions &opts) {
     // retry this engine has always taken, i.e. silently change the shipped
     // behaviour through a value rather than through the field's own meaning,
     // and a negative is not a count at all.
-    if (!(opts.qp_failure_budget >= 1)) {
+    if (!(opts.advanced.max_consecutive_qp_failures >= 1)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: qp_failure_budget ({}) must be >= 1; it is the number of CONSECUTIVE "
+            "SqpSolver: advanced.max_consecutive_qp_failures ({}) must be >= 1; it is the number "
+            "of "
+            "CONSECUTIVE "
             "subproblem failures the driver may route at one iterate, and 1 is the shipped "
             "behaviour (route the first, end the solve on the second). 0 would refuse the "
             "first retry, which is a behaviour change spelled as a budget",
-            opts.qp_failure_budget));
+            opts.advanced.max_consecutive_qp_failures));
     }
 
     // THE CAP RETRY (M7 W2 M1), in declaration position and on
@@ -369,82 +403,74 @@ void validate(const SqpOptions &opts) {
     // sub-solve would be comparing infinities rather than minimizing anything.
     // 0.0 IS ACCEPTED and is the shipped value -- it is the term's OFF state,
     // not an ill-formed one.
-    if (!(opts.restoration_proximity >= 0.0) || !std::isfinite(opts.restoration_proximity)) {
+    if (!(opts.advanced.restoration_proximity >= 0.0) ||
+        !std::isfinite(opts.advanced.restoration_proximity)) {
         throw std::invalid_argument(fmt::format(
-            "SqpSolver: restoration_proximity ({}) must be a finite value >= 0; it is the "
+            "SqpSolver: advanced.restoration_proximity ({}) must be a finite value >= 0; it is the "
             "coefficient zeta on the restoration feasibility wrapper's 1/2 zeta ||D (x - "
             "x_k)||^2 proximity term, 0 is OFF (the shipped value, the wrapper that has "
             "always shipped), and an infinite weight makes that objective +inf everywhere "
             "but at the requesting iterate",
-            opts.restoration_proximity));
+            opts.advanced.restoration_proximity));
     }
 
     // THE SUFFICIENT-REDUCTION RESUME (M7 W2 P1E): a fraction of the entry's
     // violation, so [0, 1); 0 is OFF. `!(k >= 0) || !(k < 1)` refuses NaN too.
-    if (!(opts.restoration_resume_reduction >= 0.0) || !(opts.restoration_resume_reduction < 1.0)) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: restoration_resume_reduction ({}) must be in [0, 1); it is the "
-                        "fraction of the restoration entry's violation at which the phase also "
-                        "resumes, and 0 is OFF",
-                        opts.restoration_resume_reduction));
+    if (!(opts.advanced.restoration_resume_reduction >= 0.0) ||
+        !(opts.advanced.restoration_resume_reduction < 1.0)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: advanced.restoration_resume_reduction ({}) must be in [0, 1); it is the "
+            "fraction of the restoration entry's violation at which the phase also "
+            "resumes, and 0 is OFF",
+            opts.advanced.restoration_resume_reduction));
     }
 
-    // THE CURVATURE SOURCE (M7 QN stage 3): the count sentinel names no mode; the
+    // THE CURVATURE SOURCE (M7 QN stage 3): the mode must be one of the two; the
     // window must hold a pair; and the restoration wrapper's exact zeta D^2 term has
     // no QN split shipped (ruling C30 AMEND-7), so the combination is refused.
-    if (opts.hessian_mode == SqpHessianMode::kSqpHessianModeCount) {
+    enum_in_range(opts.hessian_mode, SqpHessianMode::kLbfgsDamped, "hessian_mode");
+    if (!(opts.lbfgs_memory >= 1)) {
         throw std::invalid_argument(
-            "SqpSolver: hessian_mode == SqpHessianMode::kSqpHessianModeCount is the "
-            "enumerator-count sentinel, not a mode. Use kExact or kLbfgsDamped");
+            fmt::format("SqpSolver: lbfgs_memory ({}) must be >= 1 (the L-BFGS window length)",
+                        opts.lbfgs_memory));
     }
-    if (!(opts.qn_memory >= 1)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: qn_memory ({}) must be >= 1 (the L-BFGS window length)", opts.qn_memory));
-    }
-    if (opts.hessian_mode == SqpHessianMode::kLbfgsDamped && opts.restoration_proximity > 0.0) {
+    if (opts.hessian_mode == SqpHessianMode::kLbfgsDamped &&
+        opts.advanced.restoration_proximity > 0.0) {
         throw std::invalid_argument(fmt::format(
             "SqpSolver: hessian_mode == kLbfgsDamped with restoration_proximity ({}) > 0 is not "
             "supported: the restoration wrapper's exact zeta D^2 term has no quasi-Newton split; "
             "use restoration_proximity = 0",
-            opts.restoration_proximity));
+            opts.advanced.restoration_proximity));
     }
-    if (!(opts.qn_full_memory_max >= 0)) {
+    if (!(opts.advanced.max_lbfgs_full_memory_dimension >= 0)) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: qn_full_memory_max ({}) must be >= 0 (0 = never full memory)",
-                        opts.qn_full_memory_max));
+            fmt::format("SqpSolver: advanced.max_lbfgs_full_memory_dimension ({}) must be >= 0 (0 "
+                        "= never full memory)",
+                        opts.advanced.max_lbfgs_full_memory_dimension));
     }
     // `qn_update_on_reject` and `qn_nonlinear_only` are BOOLs with no refusable value.
 
     // THE RESTORATION PHASE'S CURVATURE AND ENTRY COUNT (M7 W2 RST).
-    if (opts.restoration_curvature == SqpRestorationCurvature::kSqpRestorationCurvatureCount) {
-        throw std::invalid_argument(
-            "SqpSolver: restoration_curvature == "
-            "SqpRestorationCurvature::kSqpRestorationCurvatureCount is the enumerator-count "
-            "sentinel, not a curvature. Use kModel, kRegularized or kModelThenRegularized");
-    }
-    if (!(opts.restoration_max_entries >= 1)) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: restoration_max_entries ({}) must be >= 1 (1 = one restoration phase "
-            "per solve)",
-            opts.restoration_max_entries));
+    enum_in_range(opts.advanced.restoration_curvature,
+                  SqpRestorationCurvature::kModelThenRegularized, "advanced.restoration_curvature");
+    if (!(opts.advanced.max_restoration_entries >= 0)) {
+        throw std::invalid_argument(fmt::format("SqpSolver: advanced.max_restoration_entries ({}) "
+                                                "must be >= 0 (0 refuses restoration)",
+                                                opts.advanced.max_restoration_entries));
     }
 
-    // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
-    // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
-    // the value a caller hands over and both are checked here, so an
-    // out-of-range knob is refused at the boundary rather than at the task that
-    // starts reading it. Integers, so no NaN idiom applies.
-    if (opts.common.threads < 0) {
-        throw std::invalid_argument(
-            fmt::format("SqpSolver: common.threads ({}) must be >= 0 (0 = leave the backend's own "
-                        "default alone)",
-                        opts.common.threads));
+    // THE DENSE ARM IS NAMED, NOT WIRED: any other value would be a setting that
+    // silently does nothing.
+    if (opts.linear.dense_factorization != hven::linear::DensePolicy::kNever) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: linear.dense_factorization = {} is reserved: the dense factorization arm "
+            "is not available yet; only DensePolicy::kNever is accepted",
+            static_cast<int>(opts.linear.dense_factorization)));
     }
-    if (opts.common.print_level < 0) {
+    if (opts.linear.max_dense_dimension) {
         throw std::invalid_argument(
-            fmt::format("SqpSolver: common.print_level ({}) must be >= 0 (0 = full output, "
-                        "3 and above = silent)",
-                        opts.common.print_level));
+            "SqpSolver: linear.max_dense_dimension is reserved: the dense factorization arm is "
+            "not available yet; leave it empty");
     }
 }
 
@@ -464,10 +490,10 @@ SqpOptions sqp_preset(std::string_view name) {
 // M7 W0 T5(b): the options dump.
 //
 // A hand-written printer, one line per field, pinned against SqpOptions (and
-// the three nested structs) by tests/drivers/test_options_dump.cpp. The
-// contract -- order, prefixes, enumerator names, {:.17g} doubles -- is
+// the nested structs) by tests/drivers/test_options_dump.cpp. The contract --
+// order, prefixes, enumerator names, shortest round-trip doubles -- is
 // documented once at dump_options(const IpmOptions &, std::ostream &) in
-// drivers/ipm_solver_types.h and is not restated here.
+// drivers/ipm_options.h and is not restated here.
 //
 // NOTHING BELOW WEAKENS THIS FILE'S FP PREMISE. The dump performs no
 // floating-point operation either: every double it touches is handed to
@@ -495,11 +521,26 @@ void kv_int(std::ostream &os, const char *name, long long v) {
 void kv_bool(std::ostream &os, const char *name, bool v) {
     emit(os, fmt::format("{} = {}\n", name, v ? "true" : "false"));
 }
-void kv_dbl(std::ostream &os, const char *name, double v) {
-    emit(os, fmt::format("{} = {:.17g}\n", name, v));
-}
 void kv_str(std::ostream &os, const char *name, const char *v) {
     emit(os, fmt::format("{} = {}\n", name, v));
+}
+// Shortest round-trip (`1e-06`); see src/drivers/ipm_options.cpp.
+void kv_dbl(std::ostream &os, const char *name, double v) {
+    emit(os, fmt::format("{} = {}\n", name, v));
+}
+void kv_opt_int(std::ostream &os, const char *name, const std::optional<Index> &v) {
+    if (v) {
+        kv_int(os, name, static_cast<long long>(*v));
+    } else {
+        kv_str(os, name, "unset");
+    }
+}
+void kv_opt_dbl(std::ostream &os, const char *name, const std::optional<double> &v) {
+    if (v) {
+        kv_dbl(os, name, *v);
+    } else {
+        kv_str(os, name, "unset");
+    }
 }
 
 // ENUMERATOR NAMES, not display strings -- see src/drivers/ipm_options.cpp.
@@ -509,25 +550,17 @@ const char *enum_name(QpMode v) {
         return "kWalk";
     case QpMode::kSsn:
         return "kSsn";
-    case QpMode::kIpm:
-        return "kIpm";
-    case QpMode::kQpModeCount:
-        // NOT a mode; validate() refuses it. It is nonetheless a legal QpMode
-        // value, so the dump names it rather than reporting "unknown".
-        return "kQpModeCount";
+    case QpMode::kIpqp:
+        return "kIpqp";
     }
     return "unknown";
 }
-const char *enum_name(ElasticRungEngine v) {
+const char *enum_name(SqpElasticRungEngine v) {
     switch (v) {
-    case ElasticRungEngine::kWalk:
+    case SqpElasticRungEngine::kWalk:
         return "kWalk";
-    case ElasticRungEngine::kTier:
+    case SqpElasticRungEngine::kTier:
         return "kTier";
-    case ElasticRungEngine::kElasticRungEngineCount:
-        // NOT an engine; validate() refuses it. Named rather than "unknown",
-        // exactly as kQpModeCount is.
-        return "kElasticRungEngineCount";
     }
     return "unknown";
 }
@@ -537,8 +570,6 @@ const char *enum_name(SqpHessianMode v) {
         return "kExact";
     case SqpHessianMode::kLbfgsDamped:
         return "kLbfgsDamped";
-    case SqpHessianMode::kSqpHessianModeCount:
-        return "kSqpHessianModeCount";
     }
     return "unknown";
 }
@@ -550,8 +581,6 @@ const char *enum_name(SqpRestorationCurvature v) {
         return "kRegularized";
     case SqpRestorationCurvature::kModelThenRegularized:
         return "kModelThenRegularized";
-    case SqpRestorationCurvature::kSqpRestorationCurvatureCount:
-        return "kSqpRestorationCurvatureCount";
     }
     return "unknown";
 }
@@ -563,20 +592,15 @@ const char *enum_name(SqpColumnScaling v) {
         return "kAlways";
     case SqpColumnScaling::kAuto:
         return "kAuto";
-    case SqpColumnScaling::kSqpColumnScalingCount:
-        return "kSqpColumnScalingCount";
     }
     return "unknown";
 }
-const char *enum_name(IpqpMu0Rule v) {
+const char *enum_name(IpqpBarrierInitialRule v) {
     switch (v) {
-    case IpqpMu0Rule::kFixed:
+    case IpqpBarrierInitialRule::kFixed:
         return "kFixed";
-    case IpqpMu0Rule::kComplementarity:
+    case IpqpBarrierInitialRule::kComplementarity:
         return "kComplementarity";
-    case IpqpMu0Rule::kIpqpMu0RuleCount:
-        // NOT a value; validate() refuses it. Named rather than "unknown", as kQpModeCount is.
-        return "kIpqpMu0RuleCount";
     }
     return "unknown";
 }
@@ -609,12 +633,36 @@ const char *enum_name(SsnInfeasibilityRule v) {
     }
     return "unknown";
 }
-const char *enum_name(WorkingSetLinearAlgebra v) {
+const char *enum_name(QpWorkingSetAlgebra v) {
     switch (v) {
-    case WorkingSetLinearAlgebra::kRefactorize:
+    case QpWorkingSetAlgebra::kRefactorize:
         return "kRefactorize";
-    case WorkingSetLinearAlgebra::kSchurBorder:
+    case QpWorkingSetAlgebra::kSchurBorder:
         return "kSchurBorder";
+    }
+    return "unknown";
+}
+const char *enum_name(Verbosity v) {
+    switch (v) {
+    case Verbosity::kSilent:
+        return "kSilent";
+    case Verbosity::kWarnings:
+        return "kWarnings";
+    case Verbosity::kSummary:
+        return "kSummary";
+    case Verbosity::kIterations:
+        return "kIterations";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::linear::DensePolicy v) {
+    switch (v) {
+    case hven::linear::DensePolicy::kNever:
+        return "kNever";
+    case hven::linear::DensePolicy::kAlways:
+        return "kAlways";
+    case hven::linear::DensePolicy::kAuto:
+        return "kAuto";
     }
     return "unknown";
 }
@@ -635,90 +683,101 @@ const char *enum_name(StartLevel v) {
 } // namespace
 
 void dump_options(const SqpOptions &o, std::ostream &os) {
-    kv_dbl(os, "kkt_tol", o.kkt_tol);
-    kv_dbl(os, "feas_tol", o.feas_tol);
-    kv_int(os, "max_iter", static_cast<long long>(o.max_iter));
-    kv_dbl(os, "tr_init", o.tr_init);
-    kv_dbl(os, "tr_max", o.tr_max);
-    kv_dbl(os, "tr_min", o.tr_min);
-    kv_bool(os, "enable_soc", o.enable_soc);
-    kv_bool(os, "adaptive_mu", o.adaptive_mu);
-    kv_dbl(os, "qp.primal_delta", o.qp.primal_delta);
-    kv_dbl(os, "qp.dual_mu", o.qp.dual_mu);
-    kv_dbl(os, "qp.feas_tol", o.qp.feas_tol);
-    kv_dbl(os, "qp.opt_tol", o.qp.opt_tol);
-    kv_int(os, "qp.max_iter", static_cast<long long>(o.qp.max_iter));
-    kv_int(os, "qp.schur_cap", static_cast<long long>(o.qp.schur_cap));
-    kv_dbl(os, "qp.schur_cond_max", o.qp.schur_cond_max);
-    kv_str(os, "qp.ws_algebra", enum_name(o.qp.ws_algebra));
-    kv_dbl(os, "qp.tr_radius", o.qp.tr_radius);
+    const CommonOptions &c = o.common;
+    kv_dbl(os, "common.optimality_tol", c.optimality_tol);
+    kv_dbl(os, "common.feasibility_tol", c.feasibility_tol);
+    kv_int(os, "common.max_iterations", static_cast<long long>(c.max_iterations));
+    kv_opt_int(os, "common.max_factorizations", c.max_factorizations);
+    kv_opt_dbl(os, "common.time_limit_seconds", c.time_limit_seconds);
+    kv_str(os, "common.verbosity", enum_name(c.verbosity));
+    kv_int(os, "common.threads", c.threads);
+    kv_str(os, "common.start_level", enum_name(c.start_level));
+    kv_dbl(os, "common.infinite_bound", c.infinite_bound);
+    kv_dbl(os, "trust_region_initial", o.trust_region_initial);
+    kv_dbl(os, "trust_region_max", o.trust_region_max);
+    kv_dbl(os, "trust_region_min", o.trust_region_min);
+    kv_dbl(os, "qp.primal_regularization", o.qp.primal_regularization);
+    kv_dbl(os, "qp.dual_regularization", o.qp.dual_regularization);
+    kv_dbl(os, "qp.feasibility_tol", o.qp.feasibility_tol);
+    kv_dbl(os, "qp.optimality_tol", o.qp.optimality_tol);
+    kv_opt_int(os, "qp.max_iterations", o.qp.max_iterations);
+    kv_int(os, "qp.max_schur_border_dimension",
+           static_cast<long long>(o.qp.max_schur_border_dimension));
+    kv_dbl(os, "qp.schur_condition_max", o.qp.schur_condition_max);
+    kv_str(os, "qp.working_set_algebra", enum_name(o.qp.working_set_algebra));
+    kv_dbl(os, "qp.trust_region_radius", o.qp.trust_region_radius);
     kv_bool(os, "qp.independent_working_set", o.qp.independent_working_set);
     kv_bool(os, "qp.hessian_known_convex", o.qp.hessian_known_convex);
-    // A CALLABLE, not a configuration: see the declaration's note.
-    kv_str(os, "make_strategy", o.make_strategy ? "set" : "unset");
-    kv_bool(os, "warm_full_step", o.warm_full_step);
-    kv_bool(os, "budget_mode", o.budget_mode);
-    kv_bool(os, "elastic_ladder_early_exit", o.elastic_ladder_early_exit);
-    kv_bool(os, "crash_basis", o.crash_basis);
     kv_str(os, "qp_mode", enum_name(o.qp_mode));
-    kv_str(os, "elastic_rung_engine", enum_name(o.elastic_rung_engine));
-    kv_bool(os, "ipqp_reseed_after_disproval", o.ipqp_reseed_after_disproval);
-    kv_int(os, "ipqp.ipqp_max_iter", static_cast<long long>(o.ipqp.ipqp_max_iter));
-    kv_int(os, "ipqp.ipqp_hard_iter_cap", static_cast<long long>(o.ipqp.ipqp_hard_iter_cap));
-    kv_int(os, "ipqp.ipqp_max_factorizations",
-           static_cast<long long>(o.ipqp.ipqp_max_factorizations));
-    kv_dbl(os, "ipqp.ipqp_init_mu", o.ipqp.ipqp_init_mu);
-    kv_dbl(os, "ipqp.ipqp_min_mu", o.ipqp.ipqp_min_mu);
-    kv_dbl(os, "ipqp.ipqp_rho_init", o.ipqp.ipqp_rho_init);
-    kv_dbl(os, "ipqp.ipqp_delta_init", o.ipqp.ipqp_delta_init);
-    kv_dbl(os, "ipqp.ipqp_reg_floor", o.ipqp.ipqp_reg_floor);
-    kv_dbl(os, "ipqp.ipqp_reg_max", o.ipqp.ipqp_reg_max);
-    kv_dbl(os, "ipqp.ipqp_reg_decrease", o.ipqp.ipqp_reg_decrease);
-    kv_dbl(os, "ipqp.ipqp_tau", o.ipqp.ipqp_tau);
-    kv_dbl(os, "ipqp.ipqp_face_kappa", o.ipqp.ipqp_face_kappa);
-    kv_dbl(os, "ipqp.ipqp_converge_slack", o.ipqp.ipqp_converge_slack);
-    kv_bool(os, "ipqp.ipqp_ruiz", o.ipqp.ipqp_ruiz);
-    kv_bool(os, "ipqp.ipqp_warm_repair", o.ipqp.ipqp_warm_repair);
-    kv_int(os, "ipqp.ipqp_warm_iter_budget", static_cast<long long>(o.ipqp.ipqp_warm_iter_budget));
-    kv_dbl(os, "ipqp.ipqp_mu_adopt_factor", o.ipqp.ipqp_mu_adopt_factor);
-    kv_int(os, "ipqp.ipqp_stall_window", static_cast<long long>(o.ipqp.ipqp_stall_window));
-    kv_int(os, "ipqp.ipqp_retire_after", static_cast<long long>(o.ipqp.ipqp_retire_after));
-    kv_bool(os, "ipqp.ipqp_farkas_gate", o.ipqp.ipqp_farkas_gate);
-    kv_bool(os, "ipqp.ipqp_hoist_symbolic", o.ipqp.ipqp_hoist_symbolic);
-    kv_bool(os, "ipqp.ipqp_require_final_inertia", o.ipqp.ipqp_require_final_inertia);
-    kv_str(os, "ipqp.ipqp_mu0_rule", enum_name(o.ipqp.ipqp_mu0_rule));
-    kv_bool(os, "ipqp.ipqp_mu_residual_floor", o.ipqp.ipqp_mu_residual_floor);
-    kv_int(os, "ipqp.ipqp_ladder_skip_after",
-           static_cast<long long>(o.ipqp.ipqp_ladder_skip_after));
-    kv_bool(os, "ssn_prox_carry", o.ssn_prox_carry);
-    kv_bool(os, "ssn_certify_from_face", o.ssn_certify_from_face);
-    kv_str(os, "ssn_sigma_rule", enum_name(o.ssn_sigma_rule));
-    kv_str(os, "ssn_hint_rule", enum_name(o.ssn_hint_rule));
-    kv_str(os, "ssn_infeasibility_rule", enum_name(o.ssn_infeasibility_rule));
-    kv_bool(os, "enable_scaling", o.enable_scaling);
+    kv_bool(os, "return_best_on_max_iterations", o.return_best_on_max_iterations);
+    kv_bool(os, "row_scaling", o.row_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
-    kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
+    kv_dbl(os, "scaling_factor_max", o.scaling_factor_max);
     kv_str(os, "column_scaling", enum_name(o.column_scaling));
     kv_dbl(os, "column_scaling_threshold", o.column_scaling_threshold);
     kv_bool(os, "project_start_point", o.project_start_point);
-    kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
-    kv_bool(os, "qp_cap_retry", o.qp_cap_retry);
-    kv_bool(os, "qp_failure_step", o.qp_failure_step);
-    kv_dbl(os, "restoration_proximity", o.restoration_proximity);
-    kv_bool(os, "equality_basis", o.equality_basis);
-    kv_bool(os, "elastic_witness_start", o.elastic_witness_start);
-    kv_bool(os, "elastic_last_optimal_rung", o.elastic_last_optimal_rung);
-    kv_dbl(os, "restoration_resume_reduction", o.restoration_resume_reduction);
     kv_str(os, "hessian_mode", enum_name(o.hessian_mode));
-    kv_int(os, "qn_memory", static_cast<long long>(o.qn_memory));
-    kv_bool(os, "qn_update_on_reject", o.qn_update_on_reject);
-    kv_bool(os, "qn_nonlinear_only", o.qn_nonlinear_only);
-    kv_int(os, "qn_full_memory_max", static_cast<long long>(o.qn_full_memory_max));
-    kv_str(os, "restoration_curvature", enum_name(o.restoration_curvature));
-    kv_int(os, "restoration_max_entries", static_cast<long long>(o.restoration_max_entries));
-    kv_int(os, "common.threads", o.common.threads);
-    kv_int(os, "common.print_level", o.common.print_level);
-    kv_str(os, "common.start_level", enum_name(o.common.start_level));
+    kv_int(os, "lbfgs_memory", static_cast<long long>(o.lbfgs_memory));
+    kv_str(os, "linear.dense_factorization", enum_name(o.linear.dense_factorization));
+    kv_opt_int(os, "linear.max_dense_dimension", o.linear.max_dense_dimension);
+    const SqpAdvancedOptions &a = o.advanced;
+    kv_bool(os, "advanced.second_order_correction", a.second_order_correction);
+    kv_bool(os, "advanced.adaptive_dual_regularization", a.adaptive_dual_regularization);
+    // A CALLABLE, not a configuration: see the declaration's note.
+    kv_str(os, "advanced.make_strategy", a.make_strategy ? "set" : "unset");
+    kv_bool(os, "advanced.warm_full_step", a.warm_full_step);
+    kv_bool(os, "advanced.elastic_ladder_early_exit", a.elastic_ladder_early_exit);
+    kv_bool(os, "advanced.crash_basis", a.crash_basis);
+    kv_str(os, "advanced.elastic_rung_engine", enum_name(a.elastic_rung_engine));
+    kv_bool(os, "advanced.ipqp_reseed_after_disproval", a.ipqp_reseed_after_disproval);
+    const IpqpOptions &q = a.ipqp;
+    kv_opt_int(os, "advanced.ipqp.max_iterations", q.max_iterations);
+    kv_int(os, "advanced.ipqp.hard_max_iterations", static_cast<long long>(q.hard_max_iterations));
+    kv_opt_int(os, "advanced.ipqp.max_factorizations", q.max_factorizations);
+    kv_dbl(os, "advanced.ipqp.barrier_initial", q.barrier_initial);
+    kv_dbl(os, "advanced.ipqp.barrier_min", q.barrier_min);
+    kv_dbl(os, "advanced.ipqp.primal_regularization_initial", q.primal_regularization_initial);
+    kv_dbl(os, "advanced.ipqp.dual_regularization_initial", q.dual_regularization_initial);
+    kv_dbl(os, "advanced.ipqp.regularization_min", q.regularization_min);
+    kv_dbl(os, "advanced.ipqp.regularization_max", q.regularization_max);
+    kv_dbl(os, "advanced.ipqp.regularization_decrease", q.regularization_decrease);
+    kv_dbl(os, "advanced.ipqp.fraction_to_boundary", q.fraction_to_boundary);
+    kv_dbl(os, "advanced.ipqp.face_ratio_threshold", q.face_ratio_threshold);
+    kv_dbl(os, "advanced.ipqp.convergence_slack", q.convergence_slack);
+    kv_bool(os, "advanced.ipqp.ruiz_equilibration", q.ruiz_equilibration);
+    kv_bool(os, "advanced.ipqp.warm_repair", q.warm_repair);
+    kv_int(os, "advanced.ipqp.max_warm_iterations", static_cast<long long>(q.max_warm_iterations));
+    kv_dbl(os, "advanced.ipqp.barrier_adoption_factor", q.barrier_adoption_factor);
+    kv_int(os, "advanced.ipqp.stall_window", static_cast<long long>(q.stall_window));
+    kv_int(os, "advanced.ipqp.max_consecutive_escapes",
+           static_cast<long long>(q.max_consecutive_escapes));
+    kv_bool(os, "advanced.ipqp.farkas_gate", q.farkas_gate);
+    kv_bool(os, "advanced.ipqp.hoist_symbolic_analysis", q.hoist_symbolic_analysis);
+    kv_bool(os, "advanced.ipqp.require_final_inertia", q.require_final_inertia);
+    kv_str(os, "advanced.ipqp.barrier_initial_rule", enum_name(q.barrier_initial_rule));
+    kv_bool(os, "advanced.ipqp.barrier_residual_floor", q.barrier_residual_floor);
+    kv_int(os, "advanced.ipqp.ladder_skip_after", static_cast<long long>(q.ladder_skip_after));
+    kv_bool(os, "advanced.ssn_proximal_carry", a.ssn_proximal_carry);
+    kv_bool(os, "advanced.ssn_certify_from_face", a.ssn_certify_from_face);
+    kv_str(os, "advanced.ssn_sigma_rule", enum_name(a.ssn_sigma_rule));
+    kv_str(os, "advanced.ssn_hint_rule", enum_name(a.ssn_hint_rule));
+    kv_str(os, "advanced.ssn_infeasibility_rule", enum_name(a.ssn_infeasibility_rule));
+    kv_int(os, "advanced.max_consecutive_qp_failures",
+           static_cast<long long>(a.max_consecutive_qp_failures));
+    kv_bool(os, "advanced.qp_iteration_limit_retry", a.qp_iteration_limit_retry);
+    kv_bool(os, "advanced.qp_failure_step", a.qp_failure_step);
+    kv_dbl(os, "advanced.restoration_proximity", a.restoration_proximity);
+    kv_bool(os, "advanced.equality_basis", a.equality_basis);
+    kv_bool(os, "advanced.elastic_witness_start", a.elastic_witness_start);
+    kv_bool(os, "advanced.elastic_last_optimal_rung", a.elastic_last_optimal_rung);
+    kv_dbl(os, "advanced.restoration_resume_reduction", a.restoration_resume_reduction);
+    kv_bool(os, "advanced.lbfgs_update_on_reject", a.lbfgs_update_on_reject);
+    kv_bool(os, "advanced.lbfgs_nonlinear_only", a.lbfgs_nonlinear_only);
+    kv_int(os, "advanced.max_lbfgs_full_memory_dimension",
+           static_cast<long long>(a.max_lbfgs_full_memory_dimension));
+    kv_str(os, "advanced.restoration_curvature", enum_name(a.restoration_curvature));
+    kv_int(os, "advanced.max_restoration_entries",
+           static_cast<long long>(a.max_restoration_entries));
 }
 
-} // namespace hven::solvers
+} // namespace hven

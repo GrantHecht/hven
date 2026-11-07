@@ -1,0 +1,74 @@
+diff --git a/include/hven/drivers/ipm_options.h b/include/hven/drivers/ipm_options.h
+index ea6bfca2..8561c2a3 100644
+--- a/include/hven/drivers/ipm_options.h
++++ b/include/hven/drivers/ipm_options.h
+@@ -73,7 +73,9 @@ struct IpmLinearOptions {
+     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
+     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
+     /// finite and > 0 on every backend; ignored on MKL.
++#ifdef USE_ACCELERATE_SPARSE
+     double accelerate_zero_tol = 1e-4 * std::numeric_limits<double>::epsilon();
++#endif
+     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
+     /// empty uses the library's rule. RESERVED: `validate()` accepts only the
+     /// empty value until the arm is wired.
+diff --git a/src/drivers/ipm_options.cpp b/src/drivers/ipm_options.cpp
+index 2863e893..8a88593f 100644
+--- a/src/drivers/ipm_options.cpp
++++ b/src/drivers/ipm_options.cpp
+@@ -258,7 +258,9 @@ void hven::validate(const IpmOptions &o) {
+     non_negative(lin.max_refinement_steps, "linear.max_refinement_steps");
+     enum_in_range(lin.solve_parallelism, IpmSolveParallelism::kSequential,
+                   "linear.solve_parallelism");
++#ifdef USE_ACCELERATE_SPARSE
+     pos_finite(lin.accelerate_zero_tol, "linear.accelerate_zero_tol");
++#endif
+     // THE DENSE ARM IS NAMED, NOT WIRED. Accepting another value would be a
+     // setting that silently does nothing.
+     if (lin.dense_factorization != hven::linear::DensePolicy::kNever)
+@@ -727,7 +729,9 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
+     kv_bool(os, "linear.conditional_reproducibility", l.conditional_reproducibility);
+     kv_bool(os, "linear.force_analysis", l.force_analysis);
+     kv_str(os, "linear.dense_factorization", enum_name(l.dense_factorization));
++#ifdef USE_ACCELERATE_SPARSE
+     kv_dbl(os, "linear.accelerate_zero_tol", l.accelerate_zero_tol);
++#endif
+     kv_opt_int(os, "linear.max_dense_dimension", l.max_dense_dimension);
+     const IpmAdvancedOptions &a = o.advanced;
+     kv_str(os, "advanced.acceptance_mode", enum_name(a.acceptance_mode));
+diff --git a/tests/drivers/test_options_dump.cpp b/tests/drivers/test_options_dump.cpp
+index ee3bcfbd..68cab98f 100644
+--- a/tests/drivers/test_options_dump.cpp
++++ b/tests/drivers/test_options_dump.cpp
+@@ -56,7 +56,7 @@ using hven::SqpOptions;
+ // below are per struct. Each nested struct is flattened under its member name.
+ // `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
+ // counts are the same everywhere.
+-constexpr std::size_t kIpmLinearOptionsFields = 12;
++constexpr std::size_t kIpmLinearOptionsFields = 11;
+ constexpr std::size_t kIpmOptionsFields = 17;
+ constexpr std::size_t kIpmTerminationOptionsFields = 10;
+ constexpr std::size_t kIpmAdvancedOptionsFields = 24;
+@@ -112,11 +112,11 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
+ // docs/notes and in git).
+ // ---------------------------------------------------------------------------
+ #if defined(__linux__) && defined(__x86_64__)
+-static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
++static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
+                                          "was added, axis 1 above has already told you so; if "
+                                          "only a TYPE changed, this is the only axis that "
+                                          "noticed. Check the dump, then re-observe this value.");
+-static_assert(sizeof(hven::IpmLinearOptions) == 56,
++static_assert(sizeof(hven::IpmLinearOptions) == 48,
+               "IpmLinearOptions' layout moved on Linux x86-64.");
+ static_assert(sizeof(hven::IpmTerminationOptions) == 88,
+               "IpmTerminationOptions' layout moved on Linux x86-64.");
+@@ -140,7 +140,7 @@ static_assert(sizeof(CommonOptions) == 80, "CommonOptions' layout moved on Linux
+ // SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
+ // advanced.ipqp 25 = 86.
+ // ---------------------------------------------------------------------------
+-constexpr int kIpmDumpLines = 68;
++constexpr int kIpmDumpLines = 67;
+ constexpr int kSqpDumpLines = 86;
+ 
+ int count_lines(const std::string &text) {

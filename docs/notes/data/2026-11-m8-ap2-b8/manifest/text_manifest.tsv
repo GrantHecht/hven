@@ -1,0 +1,50 @@
+# kind	old	new	(text-safe renames: each OLD is a token unique to the entity it names; applied with word boundaries)
+type	NLPAdapterCore	NlpAdapterCore
+type	NLPConstraintPiece	NlpConstraintPiece
+type	NLPObjectivePiece	NlpObjectivePiece
+type	NLPCoordinate	NlpCoordinate
+type	NLPRowClassification	NlpRowClassification
+type	NLPRowKind	NlpRowKind
+type	ConstKKTVector	ConstKktVector
+type	KKTVector	KktVector
+type	ParsedIOFlags	ParsedIoFlags
+type	IterateInfo	IpmIterate
+type	IpCrossoverOptions	IpmCrossoverOptions
+type	kIpActivityFactor	kIpmActivityFactor
+type	AcceptanceKind	AcceptanceMode
+type	BarrierGovernorKind	BarrierGovernorMode
+token	kAugLang	kAugmentedLagrangian
+token	kLang	kLagrangian
+token	kNoLs	kNone
+token	kPrimSlackEqSplitIq	kEqualityMultipliersPrimal
+token	kPrimSlackSplitEqIq	kEqualityMultipliersDual
+token	kMaxEq	kEqualityMultipliersMaximum
+token	kWmno	kSinglePenalty
+token	kLDLT	kLdlt
+token	kLLT	kLlt
+token	kLU	kLu
+enumerator	TypeStorage::Kind	Empty	kEmpty
+enumerator	TypeStorage::Kind	Inline	kInline
+enumerator	TypeStorage::Kind	Heap	kHeap
+enumerator	HessOwner	Objective	kObjective
+enumerator	HessOwner	EqPiece	kEqualityPiece
+enumerator	HessOwner	IqPiece	kInequalityPiece
+enumerator	NlpRowKind	Equality	kEquality
+enumerator	NlpRowKind	UpperBounded	kUpperBounded
+enumerator	NlpRowKind	LowerBounded	kLowerBounded
+enumerator	NlpRowKind	Range	kRange
+enumerator	NlpRowKind	Free	kFree
+enumerator	ParsedIoFlags	HiddenInput	kHiddenInput
+enumerator	ParsedIoFlags	IngoreOutput	kIgnoreOutput
+enumerator	ParsedIoFlags	NotContiguous	kNotContiguous
+enumerator	ParsedIoFlags	Contiguous	kContiguous
+enumerator	ThreadingFlags	RoundRobin	kRoundRobin
+enumerator	ThreadingFlags	MainThread	kMainThread
+enumerator	ThreadingFlags	NeedsPool	kNeedsPool
+enumerator	ThreadingFlags	ByApplication	kByApplication
+enumerator	ThreadingFlags	Thread([0-9]+)	kThread\1
+header	hven/model/indexing_data.h	hven/model/solver_indexing_data.h
+header	hven/model/sizing_specs.h	hven/model/sizable_spec.h
+header	hven/model/solver_interface_specs.h	hven/model/piece_interfaces.h
+header	hven/solver_interface_adapter.h	hven/model/solver_interface_adapter.h
+header	hven/drivers/ipm_iterate_info.h	hven/drivers/ipm_iterate.h

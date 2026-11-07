@@ -14,7 +14,8 @@
 
 #include "support/border_test_utils.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
@@ -129,7 +130,7 @@ TEST(BorderOps, AddIneqRowMatchesDirect) {
     v_expected(1) = 1.0;
     EXPECT_DOUBLE_EQ((v - v_expected).norm(), 0.0);
 
-    schur.add_border(v, -opts.dual_mu);
+    schur.add_border(v, -opts.dual_regularization);
 
     Vec rhs(k0_rows + 1);
     rhs.head(qp.n()) = -qp.g;
@@ -142,7 +143,7 @@ TEST(BorderOps, AddIneqRowMatchesDirect) {
     K4.topLeftCorner(k0_rows, k0_rows) = Eigen::MatrixXd(full.K).selfadjointView<Eigen::Upper>();
     K4.block(0, k0_rows, k0_rows, 1) = v;
     K4.block(k0_rows, 0, 1, k0_rows) = v.transpose();
-    K4(k0_rows, k0_rows) = -opts.dual_mu;
+    K4(k0_rows, k0_rows) = -opts.dual_regularization;
     Vec x_ref = K4.fullPivLu().solve(rhs);
 
     EXPECT_LT((sol - x_ref).norm(), 1e-9);
@@ -243,7 +244,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
     v_expected(0) = 1.0;
     EXPECT_DOUBLE_EQ((v - v_expected).norm(), 0.0);
 
-    schur.add_border(v, -opts.dual_mu);
+    schur.add_border(v, -opts.dual_regularization);
 
     Vec rhs(full.K.rows() + schur.dim());
     rhs.head(qp.n()) = -qp.g;
@@ -252,7 +253,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
     Vec sol = schur.solve(rhs);
 
     std::vector<Vec> border_v{v};
-    std::vector<double> border_d{-opts.dual_mu};
+    std::vector<double> border_d{-opts.dual_regularization};
     sol = test_support::refine_bordered_solve(full.K, qp.n(), border_v, border_d, schur, rhs, sol,
                                               opts);
     // AND THE UNREGULARIZED POLISH, which is what takes the primal delta back out
@@ -293,7 +294,7 @@ TEST(BorderOps, AddThenDropRoundTrip) {
     Vec x_before = detail::solve_vec(kkt0, rhs0);
 
     Vec v = BorderOps::add_ineq_row(qp, /*j=*/0, full.K.rows());
-    schur.add_border(v, -opts.dual_mu);
+    schur.add_border(v, -opts.dual_regularization);
     ASSERT_EQ(schur.dim(), 1);
 
     schur.drop_border(0);
@@ -337,7 +338,7 @@ TEST(BorderOps, ComposedDeleteAndAddBorders) {
 
     // Border 1: activate row 1 (not part of K0 at all).
     Vec v_add = BorderOps::add_ineq_row(qp, /*j=*/1, k0_rows);
-    schur.add_border(v_add, -opts.dual_mu);
+    schur.add_border(v_add, -opts.dual_regularization);
 
     ASSERT_EQ(schur.dim(), 2);
 

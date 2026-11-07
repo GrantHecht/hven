@@ -22,7 +22,7 @@
 
 #include "support/indefinite_fixtures.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -121,38 +121,38 @@ QpProblem free_qp() {
 
 QpOptions untrusted_region() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
-IpqpOptions with_rule(IpqpMu0Rule rule) {
+IpqpOptions with_rule(IpqpBarrierInitialRule rule) {
     IpqpOptions o;
-    o.ipqp_mu0_rule = rule;
+    o.barrier_initial_rule = rule;
     return o;
 }
 
 IpqpOptions with_floor(bool on) {
     IpqpOptions o;
-    o.ipqp_mu_residual_floor = on;
+    o.barrier_residual_floor = on;
     return o;
 }
 
 class IterSink : public TraceSink {
   public:
-    std::vector<IpqpTraceIterEvent> iters;
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    std::vector<IpqpIterTraceEvent> iters;
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { iters.push_back(e); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 };
 
 struct Traced {
     IpqpResult r;
-    std::vector<IpqpTraceIterEvent> iters;
+    std::vector<IpqpIterTraceEvent> iters;
 };
 
 Traced solve_traced(const QpProblem &qp, const IpqpOptions &iopts, const IpqpSeed *seed = nullptr) {
@@ -160,7 +160,7 @@ Traced solve_traced(const QpProblem &qp, const IpqpOptions &iopts, const IpqpSee
     IterSink sink;
     tier.attach_trace(&sink);
     Traced t;
-    t.r = tier.solve(qp, seed, iopts, SolveOverrides{});
+    t.r = tier.solve(qp, seed, iopts, QpSolveOverrides{});
     t.iters = sink.iters;
     return t;
 }
@@ -180,23 +180,25 @@ void expect_same_trajectory(const IpqpResult &a, const IpqpResult &b) {
 
 TEST(IpqpMu0RuleOptions, BothTogglesDefaultOff) {
     const IpqpOptions o;
-    EXPECT_EQ(o.ipqp_mu0_rule, IpqpMu0Rule::kFixed);
-    EXPECT_FALSE(o.ipqp_mu_residual_floor);
+    EXPECT_EQ(o.barrier_initial_rule, IpqpBarrierInitialRule::kFixed);
+    EXPECT_FALSE(o.barrier_residual_floor);
 }
 
 TEST(IpqpMu0RuleOptions, ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName) {
     SqpOptions o;
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kFixed;
+    o.advanced.ipqp.barrier_initial_rule = IpqpBarrierInitialRule::kFixed;
     EXPECT_NO_THROW(validate(o));
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
+    o.advanced.ipqp.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
     EXPECT_NO_THROW(validate(o));
-    for (const IpqpMu0Rule bad : {IpqpMu0Rule::kIpqpMu0RuleCount, static_cast<IpqpMu0Rule>(7)}) {
-        o.ipqp.ipqp_mu0_rule = bad;
+    for (const IpqpBarrierInitialRule bad :
+         {static_cast<IpqpBarrierInitialRule>(2), static_cast<IpqpBarrierInitialRule>(7)}) {
+        o.advanced.ipqp.barrier_initial_rule = bad;
         try {
             validate(o);
             ADD_FAILURE() << "validate accepted ipqp_mu0_rule " << static_cast<int>(bad);
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("ipqp.ipqp_mu0_rule"), std::string::npos)
+            EXPECT_NE(std::string(e.what()).find("advanced.ipqp.barrier_initial_rule"),
+                      std::string::npos)
                 << e.what();
         }
     }
@@ -207,7 +209,7 @@ TEST(IpqpMu0RuleOptions, ValidateAcceptsTheTwoRulesAndRefusesTheSentinelByName) 
 TEST(IpqpMu0RuleOptions, TheResidualFloorBoolHasNoRefusableValue) {
     SqpOptions o;
     for (const bool v : {false, true}) {
-        o.ipqp.ipqp_mu_residual_floor = v;
+        o.advanced.ipqp.barrier_residual_floor = v;
         EXPECT_NO_THROW(validate(o));
         EXPECT_NO_THROW(solve_traced(scalar_box_qp(2.0, 1e-3), with_floor(v)));
     }
@@ -217,14 +219,15 @@ TEST(IpqpMu0RuleOptions, TheDumpCarriesBothLinesInEitherState) {
     SqpOptions o;
     std::ostringstream off;
     dump_options(o, off);
-    EXPECT_NE(off.str().find("ipqp.ipqp_mu0_rule = kFixed\n"), std::string::npos);
-    EXPECT_NE(off.str().find("ipqp.ipqp_mu_residual_floor = false\n"), std::string::npos);
-    o.ipqp.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
-    o.ipqp.ipqp_mu_residual_floor = true;
+    EXPECT_NE(off.str().find("advanced.ipqp.barrier_initial_rule = kFixed\n"), std::string::npos);
+    EXPECT_NE(off.str().find("advanced.ipqp.barrier_residual_floor = false\n"), std::string::npos);
+    o.advanced.ipqp.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
+    o.advanced.ipqp.barrier_residual_floor = true;
     std::ostringstream on;
     dump_options(o, on);
-    EXPECT_NE(on.str().find("ipqp.ipqp_mu0_rule = kComplementarity\n"), std::string::npos);
-    EXPECT_NE(on.str().find("ipqp.ipqp_mu_residual_floor = true\n"), std::string::npos);
+    EXPECT_NE(on.str().find("advanced.ipqp.barrier_initial_rule = kComplementarity\n"),
+              std::string::npos);
+    EXPECT_NE(on.str().find("advanced.ipqp.barrier_residual_floor = true\n"), std::string::npos);
 }
 
 // ---------------------------------------------------------------------------
@@ -234,9 +237,10 @@ TEST(IpqpMu0RuleOptions, TheDumpCarriesBothLinesInEitherState) {
 // THE CLOSED FORM. At x = 0 with unit bound distances, the affine step is dx = -g / (h + rho + 2)
 // = -g/12 at h = 2, rho_0 = 8; the estimate is (zl, zu) = (g/12, -g/12); the 1.5 shift adds g/8,
 // the 0.5 shift g/16; so (zl, zu) = (13g/48, 5g/48) and mu_0 = 18g/96 = 0.1875 g.
-TEST(IpqpMu0Rule, TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp) {
+TEST(IpqpBarrierInitialRule, TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp) {
     const double g = 1e-3;
-    const Traced t = solve_traced(scalar_box_qp(2.0, g), with_rule(IpqpMu0Rule::kComplementarity));
+    const Traced t =
+        solve_traced(scalar_box_qp(2.0, g), with_rule(IpqpBarrierInitialRule::kComplementarity));
     ASSERT_FALSE(t.iters.empty());
     EXPECT_NEAR(t.iters.front().mu, 0.1875 * g, 1e-12 * g);
     EXPECT_EQ(t.r.counters.ipqp_mu0_derived, 1);
@@ -246,10 +250,10 @@ TEST(IpqpMu0Rule, TheDerivedMuZeroMatchesTheClosedFormOnABoundOnlyQp) {
 }
 
 // The same QP under kFixed starts at the setting; the derived start is not that.
-TEST(IpqpMu0Rule, KFixedStartsAtTheSettingAndReadsNoCounter) {
+TEST(IpqpBarrierInitialRule, KFixedStartsAtTheSettingAndReadsNoCounter) {
     const Traced t = solve_traced(scalar_box_qp(2.0, 1e-3), IpqpOptions{});
     ASSERT_FALSE(t.iters.empty());
-    EXPECT_EQ(t.iters.front().mu, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(t.iters.front().mu, IpqpOptions{}.barrier_initial);
     EXPECT_EQ(t.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(t.r.counters.ipqp_mu0_fallbacks, 0);
     EXPECT_EQ(t.r.counters.ipqp_mu_floor_binds, 0);
@@ -257,12 +261,12 @@ TEST(IpqpMu0Rule, KFixedStartsAtTheSettingAndReadsNoCounter) {
 
 // Above the ceiling (mu_derived = 1.875 at g = 10): the kFixed start, one factorization dearer,
 // the same trajectory.
-TEST(IpqpMu0Rule, ADerivedValueAboveTheCeilingFallsBackToTheFixedStart) {
+TEST(IpqpBarrierInitialRule, ADerivedValueAboveTheCeilingFallsBackToTheFixedStart) {
     const QpProblem qp = scalar_box_qp(2.0, 10.0);
     const Traced off = solve_traced(qp, IpqpOptions{});
-    const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity));
+    const Traced on = solve_traced(qp, with_rule(IpqpBarrierInitialRule::kComplementarity));
     ASSERT_FALSE(on.iters.empty());
-    EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.barrier_initial);
     EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1);
     EXPECT_EQ(on.r.counters.ipqp_factorizations, off.r.counters.ipqp_factorizations + 1);
@@ -270,21 +274,21 @@ TEST(IpqpMu0Rule, ADerivedValueAboveTheCeilingFallsBackToTheFixedStart) {
 }
 
 // Below the floor (1.875e-14 at g = 1e-13) and exactly zero (g = 0): both fall back.
-TEST(IpqpMu0Rule, ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack) {
+TEST(IpqpBarrierInitialRule, ADerivedValueBelowTheFloorOrAZeroEstimateFallsBack) {
     for (const double g : {1e-13, 0.0}) {
-        const Traced on =
-            solve_traced(scalar_box_qp(2.0, g), with_rule(IpqpMu0Rule::kComplementarity));
+        const Traced on = solve_traced(scalar_box_qp(2.0, g),
+                                       with_rule(IpqpBarrierInitialRule::kComplementarity));
         ASSERT_FALSE(on.iters.empty()) << g;
-        EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.ipqp_init_mu) << g;
+        EXPECT_EQ(on.iters.front().mu, IpqpOptions{}.barrier_initial) << g;
         EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1) << g;
         EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0) << g;
     }
 }
 
 // Raising the ceiling admits the g = 10 value: the band test reads `ipqp_init_mu`, not a constant.
-TEST(IpqpMu0Rule, TheBandIsTheOptionsOwnCeiling) {
-    IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_init_mu = 10.0;
+TEST(IpqpBarrierInitialRule, TheBandIsTheOptionsOwnCeiling) {
+    IpqpOptions o = with_rule(IpqpBarrierInitialRule::kComplementarity);
+    o.barrier_initial = 10.0;
     const Traced on = solve_traced(scalar_box_qp(2.0, 10.0), o);
     ASSERT_FALSE(on.iters.empty());
     EXPECT_NEAR(on.iters.front().mu, 1.875, 1e-12);
@@ -294,14 +298,14 @@ TEST(IpqpMu0Rule, TheBandIsTheOptionsOwnCeiling) {
 // Every block (equality, inequality, bounds), both paths. At the shipped ceiling both QPs fall
 // back (their O(1) prices and box distances put mu_derived near 6 and 14); with the ceiling at
 // 1e6 the derived start is taken. Either way the tier converges to the walk's answer.
-TEST(IpqpMu0Rule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
+TEST(IpqpBarrierInitialRule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
     for (const QpProblem &qp : {general_qp(), many_rows_qp()}) {
         QpEngine walk(untrusted_region());
         const QpSolution ref = walk.solve(qp);
         ASSERT_EQ(ref.status, QpStatus::kOptimal);
-        for (const double ceiling : {IpqpOptions{}.ipqp_init_mu, 1e6}) {
-            IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-            o.ipqp_init_mu = ceiling;
+        for (const double ceiling : {IpqpOptions{}.barrier_initial, 1e6}) {
+            IpqpOptions o = with_rule(IpqpBarrierInitialRule::kComplementarity);
+            o.barrier_initial = ceiling;
             const Traced on = solve_traced(qp, o);
             EXPECT_EQ(on.r.status, QpStatus::kOptimal) << ceiling;
             EXPECT_EQ(on.r.counters.ipqp_mu0_derived, ceiling > 1.0 ? 1 : 0) << ceiling;
@@ -314,9 +318,9 @@ TEST(IpqpMu0Rule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
 // A REGRESSION PIN, observed at the commit that landed the rule (the arithmetic's closed form is
 // the scalar test above): the derived mu_0 of the two row QPs with the ceiling lifted. It is what
 // catches a change to the row and equality halves of the estimate, which no closed form here does.
-TEST(IpqpMu0Rule, TheDerivedMuZeroOfTheRowQpsIsPinned) {
-    IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_init_mu = 1e6;
+TEST(IpqpBarrierInitialRule, TheDerivedMuZeroOfTheRowQpsIsPinned) {
+    IpqpOptions o = with_rule(IpqpBarrierInitialRule::kComplementarity);
+    o.barrier_initial = 1e6;
     const std::vector<std::pair<QpProblem, double>> cases = {{general_qp(), 5.9569897959183518},
                                                              {many_rows_qp(), 13.594305475000516}};
     for (const auto &[qp, want] : cases) {
@@ -326,22 +330,23 @@ TEST(IpqpMu0Rule, TheDerivedMuZeroOfTheRowQpsIsPinned) {
     }
 }
 
-TEST(IpqpMu0Rule, AQpWithNoPairReadsNeitherCounter) {
-    const Traced on = solve_traced(free_qp(), with_rule(IpqpMu0Rule::kComplementarity));
+TEST(IpqpBarrierInitialRule, AQpWithNoPairReadsNeitherCounter) {
+    const Traced on = solve_traced(free_qp(), with_rule(IpqpBarrierInitialRule::kComplementarity));
     EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 0);
     expect_same_trajectory(on.r, solve_traced(free_qp(), IpqpOptions{}).r);
 }
 
 // A warm start keeps section 5.3's clamp: the rule is not consulted.
-TEST(IpqpMu0Rule, AWarmStartIsUntouched) {
+TEST(IpqpBarrierInitialRule, AWarmStartIsUntouched) {
     const QpProblem qp = general_qp();
     IpqpEngine first(untrusted_region());
-    ASSERT_EQ(first.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{}).status, QpStatus::kOptimal);
+    ASSERT_EQ(first.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{}).status,
+              QpStatus::kOptimal);
     ASSERT_NE(first.warm_carry(), nullptr);
     const IpqpSeed seed = *first.warm_carry();
     const Traced off = solve_traced(qp, IpqpOptions{}, &seed);
-    const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity), &seed);
+    const Traced on = solve_traced(qp, with_rule(IpqpBarrierInitialRule::kComplementarity), &seed);
     EXPECT_EQ(on.r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(on.r.counters.ipqp_mu0_fallbacks, 0);
     EXPECT_EQ(on.r.counters.ipqp_factorizations, off.r.counters.ipqp_factorizations);
@@ -352,7 +357,7 @@ TEST(IpqpMu0Rule, AWarmStartIsUntouched) {
 // restored, so the first iteration's climb and the high-water mark are OFF's own. The concave
 // scalar (h = -100, far past rho_0 + the unit point's curvature 2) is the case where the
 // estimate's own ladder MUST climb, which is what makes the restore observable.
-TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
+TEST(IpqpBarrierInitialRule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
     Index climbed = 0;
     // The last fixture is the review's (M7-killer): a box half-width d = 0.01 < 0.1, where the
     // unit-scaled cold Sigma = 1e-2 / d^2 exceeds 1 -- the high-water mark is then observable.
@@ -364,7 +369,7 @@ TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
           test_support::two_negative_eigenvalue_row_qp(), scalar_box_qp(-100.0, 1.0), narrow}) {
         qp.g *= 1e4;
         const Traced off = solve_traced(qp, IpqpOptions{});
-        const Traced on = solve_traced(qp, with_rule(IpqpMu0Rule::kComplementarity));
+        const Traced on = solve_traced(qp, with_rule(IpqpBarrierInitialRule::kComplementarity));
         ASSERT_EQ(on.r.counters.ipqp_mu0_fallbacks, 1);
         if (on.r.counters.ipqp_inertia_retries > off.r.counters.ipqp_inertia_retries) {
             ++climbed;
@@ -380,11 +385,11 @@ TEST(IpqpMu0Rule, AFallbackLeavesTheLadderMemoryAsOffFindsIt) {
 // The estimate is charged to the factorization budget: at a one-factorization budget the
 // estimate spends it and the loop escapes at iteration 0 (review LOW-5; the pin records what the
 // code does).
-TEST(IpqpMu0Rule, TheEstimateIsChargedToTheFactorizationBudget) {
-    IpqpOptions o = with_rule(IpqpMu0Rule::kComplementarity);
-    o.ipqp_max_factorizations = 1;
+TEST(IpqpBarrierInitialRule, TheEstimateIsChargedToTheFactorizationBudget) {
+    IpqpOptions o = with_rule(IpqpBarrierInitialRule::kComplementarity);
+    o.max_factorizations = 1;
     IpqpEngine tier(untrusted_region());
-    const IpqpResult r = tier.solve(general_qp(), nullptr, o, SolveOverrides{});
+    const IpqpResult r = tier.solve(general_qp(), nullptr, o, QpSolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_factorizations, 1);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
     EXPECT_EQ(r.counters.ipqp_iters, 0);
@@ -397,14 +402,14 @@ TEST(IpqpMu0Rule, TheEstimateIsChargedToTheFactorizationBudget) {
 /// The floor's count re-derived from the trace: `floor = mu_s * r / max(1, r_s)` with
 /// `(mu_s, r_s)` the first event's, `r = max(res_p, res_d)`; a bind is `floor > sigma * mu` and
 /// `floor > ipqp_min_mu`.
-Index binds_from_trace(const std::vector<IpqpTraceIterEvent> &iters, double min_mu) {
+Index binds_from_trace(const std::vector<IpqpIterTraceEvent> &iters, double min_mu) {
     if (iters.empty()) {
         return 0;
     }
     const double mu_s = iters.front().mu;
     const double r_s = std::max(iters.front().res_p, iters.front().res_d);
     Index binds = 0;
-    for (const IpqpTraceIterEvent &e : iters) {
+    for (const IpqpIterTraceEvent &e : iters) {
         const double floor_k = mu_s * std::max(e.res_p, e.res_d) / std::max(1.0, r_s);
         if (floor_k > e.sigma * e.mu && floor_k > min_mu) {
             ++binds;
@@ -419,7 +424,7 @@ TEST(IpqpMuResidualFloor, TheCounterIsTheNeighbourhoodRuleReadOffTheTrace) {
          {general_qp(), many_rows_qp(), scalar_box_qp(2.0, 10.0), scalar_box_qp(2.0, 1e-3)}) {
         const Traced on = solve_traced(qp, with_floor(true));
         EXPECT_EQ(on.r.counters.ipqp_mu_floor_binds,
-                  binds_from_trace(on.iters, IpqpOptions{}.ipqp_min_mu));
+                  binds_from_trace(on.iters, IpqpOptions{}.barrier_min));
         EXPECT_EQ(on.r.counters.ipqp_mu0_derived + on.r.counters.ipqp_mu0_fallbacks, 0);
     }
 }
@@ -459,11 +464,11 @@ TEST(IpqpMuResidualFloor, AWarmKillReAnchorsAtTheColdRestart) {
 
     // A seed for THIS problem, perturbed off its solution so the warm attempt is real.
     IpqpEngine solved(untrusted_region());
-    ASSERT_EQ(solved.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{}).status,
+    ASSERT_EQ(solved.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{}).status,
               QpStatus::kOptimal);
     IpqpSeed seed = *solved.warm_carry();
     seed.x.array() += 0.3;
-    o.ipqp_warm_iter_budget = 0;
+    o.max_warm_iterations = 0;
     const Traced killed = solve_traced(qp, o, &seed);
     ASSERT_EQ(killed.r.counters.ipqp_warm_restart_abandoned, 1);
     EXPECT_EQ(killed.r.counters.ipqp_mu_floor_binds, cold.r.counters.ipqp_mu_floor_binds);
@@ -472,4 +477,4 @@ TEST(IpqpMuResidualFloor, AWarmKillReAnchorsAtTheColdRestart) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

@@ -21,7 +21,8 @@
 
 namespace TychoTest {
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper: an inert (all-zero-by-default) owning SolverContext for

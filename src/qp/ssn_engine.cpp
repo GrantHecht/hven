@@ -26,8 +26,8 @@
 // finish_deferred_certification() and discard_deferred_certification() --
 // crossed at most twice per QP subproblem.
 //
-// The `detail::` free functions and constants above SsnEngine (kSsnInfBound,
-// the safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
+// The `detail::` free functions and constants above SsnEngine (the
+// safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
 // types) stay inline in the header: tests, bench, src/drivers/sqp_solver.cpp
 // and include/hven/detail/warmstart/warm_start.h name them directly, and this
 // TU inlines them exactly as before.
@@ -40,21 +40,24 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 #include <Eigen/SparseCore>
 
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/qp/ssn_engine.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
                       SsnResult *out) {
-    solve(qp, start, sopts, SolveOverrides{}, out);
+    solve(qp, start, sopts, QpSolveOverrides{}, out);
 }
 
 void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptions &sopts,
-                      const SolveOverrides &overrides, SsnResult *out) {
+                      const QpSolveOverrides &overrides, SsnResult *out) {
     if (out == nullptr) {
         throw std::invalid_argument("SsnEngine::solve: out must not be null");
     }
@@ -78,9 +81,11 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
     // Resolved once, exactly like QpEngine::run()'s own resolution. The
     // BASE pair is what the caller asked for; eff_* carries the proximal
     // increment on top of it and is what for_each_entry emits.
-    const double tr_radius = overrides.tr_radius;
-    base_delta_ = overrides.primal_delta < 0.0 ? opts_.primal_delta : overrides.primal_delta;
-    base_mu_ = overrides.dual_mu < 0.0 ? opts_.dual_mu : overrides.dual_mu;
+    const double tr_radius = overrides.trust_region_radius;
+    base_delta_ = overrides.primal_regularization < 0.0 ? opts_.primal_regularization
+                                                        : overrides.primal_regularization;
+    base_mu_ = overrides.dual_regularization < 0.0 ? opts_.dual_regularization
+                                                   : overrides.dual_regularization;
     const bool guarded = sopts.safeguards == SsnSafeguards::kFull;
     prox_sigma_ = guarded ? sopts.prox_sigma_init : 0.0;
     // The ladder's OWN monotone state, which is `prox_sigma_` exactly
@@ -354,7 +359,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         }
 
         if (!verifying && it >= sopts.hard_budget) {
-            out->status = QpStatus::kMaxIter;
+            out->status = QpStatus::kIterationLimit;
             out->escape_reason = SsnEscape::kBudget;
             break;
         }
@@ -654,7 +659,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                         "against the ({}, {}) a positive-definite primal block requires. "
                         "The point is a saddle or a maximizer of this QP, which no "
                         "residual-based test can see, so it is NOT certified",
-                        it, nrm.inf_norm, sopts.fb_tol, ie.n_pos, ie.n_neg, n, me + mi + mb);
+                        it, nrm.inf_norm, sopts.fb_tol, ie.positive, ie.negative, n, me + mi + mb);
                     break;
                 }
                 if (escalate_prox(qp, n, me, mi, mb)) {
@@ -669,7 +674,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                     "{}) against the ({}, {}) a positive-definite primal block requires, "
                     "and the proximal ladder is at its ceiling (sigma = {}). The Newton "
                     "step is toward a KKT point that need not be a minimizer",
-                    it, ie.n_pos, ie.n_neg, n, me + mi + mb, prox_sigma_);
+                    it, ie.positive, ie.negative, n, me + mi + mb, prox_sigma_);
                 break;
             }
         }
@@ -901,7 +906,7 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
             "positive-definite primal block requires. The point is a saddle or a maximizer "
             "of this QP, which no residual-based test can see, so it is NOT certified "
             "(deferred verification, SsnOptions::defer_certification)",
-            deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, ie.n_pos, ie.n_neg,
+            deferred_attempt_, deferred_fb_residual_, deferred_fb_tol_, ie.positive, ie.negative,
             deferred_pos_, deferred_neg_);
         ++out->counters.ssn_escapes;
         ++out->counters.ssn_escape_indefinite;
@@ -919,18 +924,20 @@ void SsnEngine::discard_deferred_certification() {
     deferred_pending_ = false;
 }
 
-void SsnEngine::validate_overrides(const SolveOverrides &o) {
-    if (std::isnan(o.tr_radius) || o.tr_radius < 0.0) {
+void SsnEngine::validate_overrides(const QpSolveOverrides &o) {
+    if (std::isnan(o.trust_region_radius) || o.trust_region_radius < 0.0) {
         throw std::invalid_argument(
-            fmt::format("SsnEngine::solve: overrides.tr_radius must be >= 0 (or the +inf "
+            fmt::format("SsnEngine::solve: overrides.trust_region_radius must be >= 0 (or the +inf "
                         "sentinel), got {}",
-                        o.tr_radius));
+                        o.trust_region_radius));
     }
-    if (std::isnan(o.primal_delta)) {
-        throw std::invalid_argument("SsnEngine::solve: overrides.primal_delta must not be NaN");
+    if (std::isnan(o.primal_regularization)) {
+        throw std::invalid_argument(
+            "SsnEngine::solve: overrides.primal_regularization must not be NaN");
     }
-    if (std::isnan(o.dual_mu)) {
-        throw std::invalid_argument("SsnEngine::solve: overrides.dual_mu must not be NaN");
+    if (std::isnan(o.dual_regularization)) {
+        throw std::invalid_argument(
+            "SsnEngine::solve: overrides.dual_regularization must not be NaN");
     }
 }
 
@@ -1055,10 +1062,10 @@ void SsnEngine::build_bound_rows(const QpProblem &qp, const Vec &centre, double 
                 up_from_tr = true;
             }
         }
-        if (lo > -detail::kSsnInfBound) {
+        if (lo > -qp.infinite_bound) {
             bound_rows_.push_back(detail::SsnBoundRow{j, -1.0, -lo, lo_from_tr});
         }
-        if (up < detail::kSsnInfBound) {
+        if (up < qp.infinite_bound) {
             bound_rows_.push_back(detail::SsnBoundRow{j, 1.0, up, up_from_tr});
         }
     }
@@ -1086,19 +1093,19 @@ Vec SsnEngine::split_bound_multipliers(const QpProblem &qp, const Vec &z) const 
         if (std::abs(zj) <= band) {
             continue;
         }
-        if (zj > 0.0 && !(qp.lower(j) > -detail::kSsnInfBound)) {
+        if (zj > 0.0 && !(qp.lower(j) > -qp.infinite_bound)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: start.z({}) = {} prices variable {}'s LOWER bound, but "
-                "that bound is absent (lower = {}, at or beyond the +/-{} infinity "
-                "sentinel) -- there is no row for that multiplier",
-                j, zj, j, qp.lower(j), detail::kSsnInfBound));
+                "that bound is absent (lower = {}, at or beyond the subproblem's infinite_bound {}"
+                ") -- there is no row for that multiplier",
+                j, zj, j, qp.lower(j), qp.infinite_bound));
         }
-        if (zj < 0.0 && !(qp.upper(j) < detail::kSsnInfBound)) {
+        if (zj < 0.0 && !(qp.upper(j) < qp.infinite_bound)) {
             throw std::invalid_argument(fmt::format(
                 "SsnEngine::solve: start.z({}) = {} prices variable {}'s UPPER bound, but "
-                "that bound is absent (upper = {}, at or beyond the +/-{} infinity "
-                "sentinel) -- there is no row for that multiplier",
-                j, zj, j, qp.upper(j), detail::kSsnInfBound));
+                "that bound is absent (upper = {}, at or beyond the subproblem's infinite_bound {}"
+                ") -- there is no row for that multiplier",
+                j, zj, j, qp.upper(j), qp.infinite_bound));
         }
     }
     Vec lb = Vec::Zero(static_cast<Index>(bound_rows_.size()));
@@ -1197,7 +1204,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
         const std::size_t expected = value_pos_.size();
         for_each_entry(qp, n, me, mi, mb, [&](Index, Index, double v) {
             if (t >= expected) {
-                throw std::runtime_error(
+                throw std::logic_error(
                     fmt::format("SsnEngine: structure-key collision detected -- the reused pattern "
                                 "expects {} entries but this QP emits more; refusing to write past "
                                 "the cached position map",
@@ -1206,7 +1213,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
             vals[value_pos_[t++]] += v;
         });
         if (t != expected) {
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SsnEngine: structure-key collision detected -- the reused pattern expects "
                 "{} entries but this QP emitted {}",
                 expected, t));
@@ -1243,7 +1250,7 @@ bool SsnEngine::sync_matrix(const QpProblem &qp, Index n, Index me, Index mi, In
             // checked rather than asserted because a Release build compiles
             // an assert out entirely and a wrong position would corrupt K
             // silently on every later reuse.
-            throw std::runtime_error(fmt::format(
+            throw std::logic_error(fmt::format(
                 "SsnEngine: internal error -- entry ({}, {}) is missing from the matrix "
                 "just assembled from it",
                 row, col));
@@ -1571,4 +1578,4 @@ void SsnEngine::select_branch(double s, double lam, double phi, bool hinted, boo
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven

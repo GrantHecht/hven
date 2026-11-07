@@ -428,7 +428,7 @@ before the session's own `solve()` is called, and both read the count
 through `FactorSession::config()` — ordinary, unconditional, non-test-gated
 session API. Only the recording is `HVEN_TESTING`-gated.
 
-It exists for `SymmetricFactor::set_num_threads`, whose contract is that a
+It exists for `SymmetricFactor::set_threads`, whose contract is that a
 mid-life thread change reaches SUBSEQUENT backend calls without rebuilding
 the session or dropping the symbolic analysis. The second half of that is
 plain public-API coverage (`test_symmetric_factor.cpp`'s
@@ -436,7 +436,7 @@ plain public-API coverage (`test_symmetric_factor.cpp`'s
 epoch, analyze counter, and a working refactorize/solve after the setter).
 The first half has no public observable at all — a thread count is licensed
 to reassociate arithmetic, not to change a result, and MKL exposes no query
-for the thread-local override in force. `SymmetricFactor::num_threads()` does
+for the thread-local override in force. `SymmetricFactor::threads()` does
 read a live session's STORED count back (it reads through to the session, so
 a co-owner's `set_num_threads` is visible through it), but a count that is
 stored is not a count that was APPLIED: nothing outside reports what a backend
@@ -486,7 +486,7 @@ boundary carries everything else, so the boundary is where it stays.
 
 `hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
 the linear layer, and it is the first use of it outside `linear/`. It declares
-four `static inline` structs under `hven::solvers::detail::testing`, entirely
+four `static inline` structs under `hven::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
 - `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
@@ -539,7 +539,7 @@ the LINEAR LAYER's seam — everything in it lives in
 `hven::linear::detail::testing` and is consumed by the two backend adapter TUs.
 This one is consumed by `src/qp/ipqp_engine.cpp` and is about the tier's own
 reading of an already-computed factorization, not about a backend call. A
-`hven::solvers` injector inside a `hven::linear` header would make the linear
+`hven` injector inside a `hven::linear` header would make the linear
 layer's seam header depend on a consumer above it. The CONVENTION is the shared
 thing, and it is followed exactly.
 
@@ -736,7 +736,7 @@ exist.
 `QpEngine`'s primal active-set walk, and it is the READ-ONLY variant of it
 throughout — there is no injector in this file and nothing in it can change a
 decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
-`hven::solvers::detail::testing`:
+`hven::detail::testing`:
 
 - `QpWalkObserver` — `active`, `solves`, `capture_solve`, `max_records`,
   `truncated`, `allocation_failed`, `records`, plus the per-solve block
@@ -814,7 +814,7 @@ decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
 instrument is the per-SOLVE `Ledger` record — one `QpCounters` per subproblem —
 so the finest public granularity is the subproblem and never the minor. M7 W2
 M3a addendum F read exactly that instrument on STEENBRB and YORKNET at
-`tr_init = inf` and found the first QP spending its whole iteration cap (4680
+`trust_region_initial = inf` and found the first QP spending its whole iteration cap (4680
 and 2560 minors) in what the counters describe as long degenerate active-set
 churn. Its formal verdict was MIXED and **cycling proper — a working set
 revisited — was not shown**, because SIX different mechanisms produce those same
@@ -976,8 +976,8 @@ the same terms as the walk observer above: declared entirely under
 `#ifdef HVEN_TESTING`, included only from inside `qp_walk_trace.h`'s own
 `#ifdef HVEN_TESTING` block, per-thread, and exercised only by
 `hven_qp_walk_seam_tests`. `QpCertificateSeam` holds an `armed` switch, the
-presented `x` and `z`, a `presentations` count and the effective `dual_mu` /
-`feas_tol` the certificate ran under; `qp_certificate_present` is its one hook.
+presented `x` and `z`, a `presentations` count and the effective `dual_regularization` /
+`feasibility_tol` the certificate ran under; `qp_certificate_present` is its one hook.
 
 **Where, and what it replaces.** One call in `src/qp/qp_engine.cpp`, on the
 would-be-`kOptimal` branch, immediately before the certificate's BOUND HALF (E4)
@@ -998,10 +998,10 @@ existing test. The fixtures
 box QP with one bound violated by an exact `v`, and assert the verdict for `v`
 inside the margin, on it, past it, below and at the residue floor, and far
 outside, on the lower and the upper side, on both working-set algebras and at two
-`dual_mu`. Each case asserts that the seam fired exactly once.
+`dual_regularization`. Each case asserts that the seam fired exactly once.
 The sign half (M7 W2 SDL, RDV-5) is asserted through the same hook
 (`QpCertificateSign.*`): a lower pin presented at `z = -1.25e12`, an upper pin
-wrong-signed, a NaN, and both sides of the `opt_tol * scale` tolerance; with the
+wrong-signed, a NaN, and both sides of the `optimality_tol * scale` tolerance; with the
 sign half removed, every refusal case comes back `kOptimal` with the presented `z`.
 
 **Cost to the production build.** The hook sits below the TU's one `assert()`,
@@ -1015,14 +1015,14 @@ no session file is touched.
 ## A fifth seam, in the SQP driver: the equality basis (M7 W2 E1b)
 
 `hven/detail/drivers/equality_basis_testing.h` declares
-`hven::solvers::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
+`hven::detail::testing::EqualityBasisSeam`, `#ifdef HVEN_TESTING` only,
 with three knobs read at three guarded points in `src/drivers/sqp_solver.cpp` (an
 Apache-2.0 file this repository wrote; no deviation):
 
 - `disable_hand_off` — the zero-step hand-off at a suspected inconsistency does
   nothing. It is `SqpEqualityBasis.F9`'s negative control
   (`SqpEqualityBasisSeam.T6DisabledHandOffRunsF9ToMaxIter`: 100/100 majors and
-  `kMaxIter` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
+  `kIterationLimit` in every `qp_mode`), so F9's `kInfeasible` is shown to be the
   hand-off's doing.
 - `prox_lift_forward_tol` — when positive, an SSN prox-centre lift is accepted only
   if its own (not injected) inflated a-posteriori estimate is `≤` this times
@@ -1053,7 +1053,7 @@ That makes FOUR targets defining `HVEN_TESTING`; the property that matters, no
 ## A sixth seam, in the SQP driver: the ladder (M7 W2 ladder round)
 
 `hven/detail/drivers/ladder_testing.h` declares
-`hven::solvers::detail::testing::SqpLadderSeam`, `#ifdef HVEN_TESTING` only, read at
+`hven::detail::testing::SqpLadderSeam`, `#ifdef HVEN_TESTING` only, read at
 one guarded point in `src/drivers/sqp_solver.cpp`'s `run_major`, just above the
 elastic tier's entry test (an Apache-2.0 file this repository wrote; no deviation).
 It ends the TOP-LEVEL driver's next `fail_walk_qps` kOptimal walk subproblems the
@@ -1097,6 +1097,24 @@ reading the iterate after a forced failure reads a better point than the engine
 would hand back. Fixtures: `tests/sqp/test_sqp_ladder_seams.cpp`
 (`SqpLadderSeam.*`), compiled into `hven_sqp_seam_tests` beside the fifth seam's.
 No new target, no `notices/` entry.
+
+## The linear injectors through the public handles (M8 B5 riders)
+
+No new seam: `tests/sqp/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),
+compiled into `hven_sqp_seam_tests`, arms the two existing linear injectors around
+a whole `IpmSolver::solve` / `SqpSolver::solve`, to pin the backend half of the
+exception contract (`core/errors.h`) end to end: a failure the engine can report
+is a status, one it cannot is a `BackendError` that leaves `solve` with the
+interrupted solve in `last_result()`. Each use stays inside the scope its
+injector is faithful for (above):
+
+- `AnalyzeFaultInjector` -- faithful in every scenario -- fails the interior-point
+  engine's initial analysis (a status, `kNumericalError`) and the SQP's KKT
+  analysis (a `BackendError` through the handle).
+- `FactorizeFaultInjector` -- faithful only on a session that never factorized --
+  fails a FRESH solver's first factorization, the interior-point engine's initial
+  KKT factorization, which is exactly that scenario. Nothing after it is read: the
+  solve ends on the status before a second factorization runs.
 
 ## Alternatives considered and rejected
 
@@ -1187,14 +1205,14 @@ each option answers):
 
 - `Options::matrix_scaling`, `Options::pivot_strategy`,
   `Options::factorization_algorithm`, `Options::solve_parallelism`,
-  `Options::cnr_threads`, `Options::collect_factor_mflops`: Pardiso-only.
+  `Options::conditional_reproducibility_threads`, `Options::collect_factor_mflops`: Pardiso-only.
   Any non-default value THROWS `std::invalid_argument` at construction on
   Accelerate, under `#if defined(__APPLE__)`; on MKL, under `#else`, a
   non-default value BY ITSELF (against otherwise-default sibling options)
   does NOT throw — but `matrix_scaling`, `cnr_threads`, and
   `factorization_algorithm` each carry a further requirement on other
   options that DOES throw when unmet, detailed next.
-- `Options::accelerate_zero_tolerance`: the inverse case — Accelerate's
+- `Options::accelerate_zero_tol`: the inverse case — Accelerate's
   OWN option. A present value does NOT throw under
   `#if defined(__APPLE__)`, and THROWS `std::invalid_argument` under
   `#else` (MKL has no zeroTolerance concept for it to override).
@@ -1584,7 +1602,7 @@ in practice. Every recorded row carries the mechanism and the value it pinned
 to.
 
 **On Accelerate the native arm pins nothing, and records that.** hven's
-Accelerate session stores `Options::num_threads` so `adopt()` can round-trip
+Accelerate session stores `Options::threads` so `adopt()` can round-trip
 the options faithfully and applies it to no backend call — the surface calls
 per-instance thread control best-effort-absent on this backend rather than
 fabricating one. The arm therefore reports mechanism `absent`, value `0`, and

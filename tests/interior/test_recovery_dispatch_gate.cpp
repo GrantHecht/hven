@@ -5,7 +5,7 @@
 // Unit test for the recovery-dispatch gate (IpmSolver globalization).
 //
 // The merit line search records its accept/reject verdict on the per-iteration
-// IterateInfo (accepted_), and alg_impl drives the RecoveryChain hook only when
+// IpmIterate (accepted_), and alg_impl drives the RecoveryChain hook only when
 // that verdict is "rejected" AND the KKT step direction was usable (GoodStep).
 // The gate condition is factored into should_dispatch_recovery() so it has a
 // single definition; this test exercises that predicate directly and then
@@ -21,8 +21,8 @@
 
 #include "solver_test_utils.h"
 
-#include "hven/detail/drivers/ipm_solver_fwd.h"
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/drivers/ipm_solver_impl.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/filter_acceptance.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
@@ -30,7 +30,8 @@
 #include "hven/detail/globalization/modern_merit.h"
 #include "hven/detail/globalization/monitored_governor.h"
 #include "hven/detail/globalization/recovery_chain.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
+#include "hven/drivers/ipm_options.h"
 
 #include <gtest/gtest.h>
 
@@ -41,21 +42,22 @@
 
 namespace {
 
-using hven::solvers::AcceptanceStrategies;
-using hven::solvers::AcceptanceStrategy;
-using hven::solvers::BarrierGovernors;
-using hven::solvers::FilterAcceptance;
-using hven::solvers::FunnelAcceptance;
-using hven::solvers::GlobalizationMechanism;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpmSolver;
-using hven::solvers::IterateInfo;
-using hven::solvers::kRecoveryDepthUnresolved;
-using hven::solvers::MonitoredBarrierGovernor;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::RecoveryChain;
-using hven::solvers::should_dispatch_recovery;
-using hven::solvers::SolverContext;
+using hven::Index;
+using hven::IpmAcceptanceMode;
+using hven::IpmBarrierGovernorMode;
+using hven::IpmIterate;
+using hven::IpmOptions;
+using hven::IpmSolver;
+using hven::detail::AcceptanceStrategy;
+using hven::detail::FilterAcceptance;
+using hven::detail::FunnelAcceptance;
+using hven::detail::GlobalizationMechanism;
+using hven::detail::kRecoveryDepthUnresolved;
+using hven::detail::MonitoredBarrierGovernor;
+using hven::detail::ProgressMeasures;
+using hven::detail::RecoveryChain;
+using hven::detail::should_dispatch_recovery;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // Stub AcceptanceStrategy: classic_line_search stamps the configured
@@ -77,11 +79,11 @@ class GateStubAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    double classic_line_search(IpmSolver::LineSearchModes, double, double, double, double,
+    double classic_line_search(hven::IpmLineSearchMode, double, double, double, double,
                                Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                               Eigen::VectorXd &, Eigen::VectorXd &, IterateInfo &Citer,
-                               const std::vector<IterateInfo> &) override {
-        Citer.accepted_ = accept_;
+                               Eigen::VectorXd &, Eigen::VectorXd &, IpmIterate &Citer,
+                               const std::vector<IpmIterate> &) override {
+        Citer.accepted = accept_;
         return 1.0;
     }
 
@@ -95,12 +97,11 @@ class GateStubAcceptance : public AcceptanceStrategy {
 // itself — see test_soc.cpp for the SOC policy).
 class GateRecordingRecovery : public RecoveryChain {
   public:
-    Action on_step_rejected(IterateInfo &, const std::vector<IterateInfo> &, SolverContext &,
-                            AcceptanceStrategy &, GlobalizationMechanism &,
-                            IpmSolver::LineSearchModes, double, double, double, double,
-                            Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                            Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
-                            int &, int &, int &) override {
+    Action on_step_rejected(IpmIterate &, const std::vector<IpmIterate> &, SolverContext &,
+                            AcceptanceStrategy &, GlobalizationMechanism &, hven::IpmLineSearchMode,
+                            double, double, double, double, Eigen::VectorXd &, Eigen::VectorXd &,
+                            Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, double &,
+                            double &, double &, Index &, int &, Index &) override {
         ++calls_;
         return Action::kAcceptAsIs;
     }
@@ -113,10 +114,10 @@ class GateRecordingRecovery : public RecoveryChain {
 // never reached; present only to satisfy the on_step_rejected signature.
 class GateUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(IpmSolver::LineSearchModes, double, double, double, double,
+    double compute_step(hven::IpmLineSearchMode, double, double, double, double, Eigen::VectorXd &,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
-                        Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
-                        const std::vector<IterateInfo> &, SolverContext &) override {
+                        AcceptanceStrategy &, double &, double &, IpmIterate &,
+                        const std::vector<IpmIterate> &, SolverContext &) override {
         ADD_FAILURE() << "mechanism must not be reached: the recording recovery ignores it";
         return 1.0;
     }
@@ -130,28 +131,28 @@ class GateUnusedMechanism : public GlobalizationMechanism {
 // Faithful replica of alg_impl's recovery-hook wiring: dispatch only when the
 // shared gate predicate says so. The extra working-set arguments are inert here
 // (GateRecordingRecovery ignores them) and bound to local dummies.
-void drive_gate(bool good_step, IterateInfo &citer, RecoveryChain &recovery,
-                AcceptanceStrategy &acceptance, const std::vector<IterateInfo> &iters,
+void drive_gate(bool good_step, IpmIterate &citer, RecoveryChain &recovery,
+                AcceptanceStrategy &acceptance, const std::vector<IpmIterate> &iters,
                 SolverContext &ctx) {
     if (should_dispatch_recovery(good_step, citer)) {
         GateUnusedMechanism mechanism;
         Eigen::VectorXd v;
         double alpha = 1.0, alphap = 1.0, alphad = 1.0;
-        int soc_steps = 0;
+        Index soc_steps = 0;
         int resolved_depth = kRecoveryDepthUnresolved;
-        int watchdog_activations = 0;
+        Index watchdog_activations = 0;
         recovery.on_step_rejected(citer, iters, ctx, acceptance, mechanism,
-                                  IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v, v,
-                                  v, v, v, alpha, alphap, alphad, soc_steps, resolved_depth,
-                                  watchdog_activations);
+                                  hven::IpmLineSearchMode::kAugmentedLagrangian, 1.0, 1e-3, 0.0,
+                                  0.0, v, v, v, v, v, alpha, alphap, alphad, soc_steps,
+                                  resolved_depth, watchdog_activations);
     }
 }
 
 TEST(RecoveryDispatchGate, PredicateTruthTable) {
-    IterateInfo rejected;
-    rejected.accepted_ = false;
-    IterateInfo accepted;
-    accepted.accepted_ = true;
+    IpmIterate rejected;
+    rejected.accepted = false;
+    IpmIterate accepted;
+    accepted.accepted = true;
 
     EXPECT_TRUE(should_dispatch_recovery(/*good_step=*/true, rejected));
     EXPECT_FALSE(should_dispatch_recovery(/*good_step=*/true, accepted));
@@ -165,17 +166,17 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
     // all-zero-dimension context suffices.
     InertSolverContext inert;
     SolverContext ctx = inert.ctx();
-    const std::vector<IterateInfo> iters;
+    const std::vector<IpmIterate> iters;
     Eigen::VectorXd v; // inert working vectors for the stub line search
 
     // Rejected step (GoodStep): the stub stamps accepted_ = false; gate fires.
     {
         GateRecordingRecovery recovery;
         GateStubAcceptance acceptance(/*accept=*/false);
-        IterateInfo citer;
-        acceptance.classic_line_search(IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v,
-                                       v, v, v, v, citer, iters);
-        EXPECT_FALSE(citer.accepted_);
+        IpmIterate citer;
+        acceptance.classic_line_search(hven::IpmLineSearchMode::kAugmentedLagrangian, 1.0, 1e-3,
+                                       0.0, 0.0, v, v, v, v, v, citer, iters);
+        EXPECT_FALSE(citer.accepted);
         drive_gate(/*good_step=*/true, citer, recovery, acceptance, iters, ctx);
         EXPECT_EQ(recovery.calls_, 1);
     }
@@ -184,10 +185,10 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
     {
         GateRecordingRecovery recovery;
         GateStubAcceptance acceptance(/*accept=*/true);
-        IterateInfo citer;
-        acceptance.classic_line_search(IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v,
-                                       v, v, v, v, citer, iters);
-        EXPECT_TRUE(citer.accepted_);
+        IpmIterate citer;
+        acceptance.classic_line_search(hven::IpmLineSearchMode::kAugmentedLagrangian, 1.0, 1e-3,
+                                       0.0, 0.0, v, v, v, v, v, citer, iters);
+        EXPECT_TRUE(citer.accepted);
         drive_gate(/*good_step=*/true, citer, recovery, acceptance, iters, ctx);
         EXPECT_EQ(recovery.calls_, 0);
     }
@@ -198,8 +199,8 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
     {
         GateRecordingRecovery recovery;
         GateStubAcceptance acceptance(/*accept=*/false); // never reached (gate stays silent)
-        IterateInfo citer;                               // no line search ran
-        EXPECT_FALSE(citer.accepted_);
+        IpmIterate citer;                                // no line search ran
+        EXPECT_FALSE(citer.accepted);
         drive_gate(/*good_step=*/false, citer, recovery, acceptance, iters, ctx);
         EXPECT_EQ(recovery.calls_, 0);
     }
@@ -215,34 +216,34 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
 // mask the result).
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithMaxSoc) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.max_soc = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.max_second_order_corrections = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithLsExtendedIters) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.ls_extended_iters = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.max_extended_backtracks = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithMaxSoc) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.max_soc = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.max_second_order_corrections = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithLsExtendedIters) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.ls_extended_iters = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.max_extended_backtracks = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // Settings::validate()'s feasibility-restoration budget guard: max_feas_rest_
@@ -251,64 +252,64 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithLsExtendedIters) {
 // — validate() adds no new combination restrictions for it.
 TEST(RecoveryDispatchGate, ValidateRejectsNegativeMaxFeasRest) {
     IpmOptions settings;
-    settings.max_feas_rest = -1;
-    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
+    settings.advanced.max_restoration_entries = -1;
+    EXPECT_THROW(hven::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsZeroMaxFeasRest) {
     IpmOptions settings;
-    settings.max_feas_rest = 0;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.max_restoration_entries = 0;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsRestorationWithClassicMerit) {
     IpmOptions settings;
-    settings.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
-    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.restoration_mode = hven::IpmRestorationMode::kProximalSwitch;
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsRestorationWithFilterMonitored) {
     IpmOptions settings;
-    settings.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.restoration_mode = hven::IpmRestorationMode::kProximalSwitch;
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // classic_merit is unaffected by the widened guard: max_soc_/ls_extended_iters_
 // combine with it exactly as before.
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMaxSoc) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
-    settings.max_soc = 1;
-    settings.ls_extended_iters = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+    settings.advanced.max_second_order_corrections = 1;
+    settings.advanced.max_extended_backtracks = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // merit composes with the recovery knobs too (no monotone opt-in needed — only
 // funnel/filter carry that separate requirement).
 TEST(RecoveryDispatchGate, ValidateAcceptsMeritWithMaxSoc) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::merit;
-    settings.max_soc = 1;
-    settings.ls_extended_iters = 1;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kMerit;
+    settings.advanced.max_second_order_corrections = 1;
+    settings.advanced.max_extended_backtracks = 1;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // Every recovery link (SOC, extended backtracking, watchdog) combines freely
 // with every acceptance strategy, including the two non-classic strategies.
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithWatchdog) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.watchdog = true;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.watchdog = true;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
     // M7 W2 D1 (2026-09-18): the governor is written EXPLICITLY here, where it
     // used to be inherited. This case is about the watchdog composing with a
     // non-classic strategy above the FREE-ONLY governor, opted into by
@@ -316,90 +317,90 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
     // governor, which is now the default. Writing classic_adaptive restores
     // exactly the combination this test was written to exercise; leaving it out
     // would silently turn the case into a refusal test.
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = true;
-    settings.watchdog = true;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = true;
+    settings.advanced.watchdog = true;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
-// Settings::validate()'s barrier_governor/never_monotone truth table (see the
-// guard's comment in ipm_solver.cpp): funnel/filter with barrier_governor=
+// Settings::validate()'s barrier_governor_mode/never_monotone truth table (see the
+// guard's comment in ipm_solver.cpp): funnel/filter with barrier_governor_mode=
 // classic_adaptive (monitored is the default since M7 W2 D1, 2026-09-18) and
-// never_monotone=false rejects; either opt-in (barrier_governor=monitored, or
+// never_monotone=false rejects; either opt-in (barrier_governor_mode=monitored, or
 // never_monotone=true) accepts; the two opt-ins together are a direct
 // contradiction and reject; classic_merit/merit are unaffected in every
 // combination.
 
 TEST(RecoveryDispatchGate, ValidateRejectsFunnelWithClassicAdaptiveGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = false;
-    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = false;
+    EXPECT_THROW(hven::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateRejectsFilterWithClassicAdaptiveGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = false;
-    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = false;
+    EXPECT_THROW(hven::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithMonitoredGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithMonitoredGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithNeverMonotone) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::funnel;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = true;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = true;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithNeverMonotone) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::filter;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = true;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kFilter;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = true;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateRejectsNeverMonotoneWithMonitoredGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    settings.never_monotone = true;
-    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    settings.advanced.never_monotone = true;
+    EXPECT_THROW(hven::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = false;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = false;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // merit is a generic-path strategy like funnel/filter but is explicitly
 // unaffected by the monotone-safeguard guard -- only funnel/filter are gated.
 TEST(RecoveryDispatchGate, ValidateAcceptsMeritWithClassicAdaptiveGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::merit;
-    settings.barrier_governor = BarrierGovernors::classic_adaptive;
-    settings.never_monotone = false;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kMerit;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+    settings.advanced.never_monotone = false;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 // classic_merit + monitored is allowed opt-in (bit-identity is about the
@@ -407,14 +408,14 @@ TEST(RecoveryDispatchGate, ValidateAcceptsMeritWithClassicAdaptiveGovernor) {
 // with the monitored governor).
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMonitoredGovernor) {
     IpmOptions settings;
-    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(hven::solvers::validate(settings));
+    settings.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+    settings.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+    EXPECT_NO_THROW(hven::validate(settings));
 }
 
 } // namespace
 
-// Settings::acceptance_strategy_ = funnel/filter must construct the matching
+// Settings::acceptance_mode_ = funnel/filter must construct the matching
 // concrete strategy and drive the generic AcceptanceStrategy path, exactly
 // like the modern merit family (see test_merit_rules.cpp's DrivesGenericPath).
 //
@@ -428,10 +429,10 @@ TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMonitoredGovernor) {
 // cases live at global scope instead of inside the anonymous namespace above.
 
 TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
-    hven::solvers::IpmSolver solver;
+    hven::detail::IpmSolverImpl solver;
     {
         auto o = solver.options();
-        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::funnel;
+        o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kFunnel;
         // The monotone-barrier opt-in that validate() requires alongside
         // funnel/filter. Written here because set_options() checks the WHOLE
         // value -- before M6 W5 T8.3 this test wrote the strategy straight into
@@ -445,21 +446,21 @@ TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
         // now monitored, never_monotone contradicts it, and the pre-event
         // classic_adaptive has to be named for the acceptance strategy to stay
         // the only moving dispatch input.
-        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
-        o.never_monotone = true;
+        o.advanced.barrier_governor_mode = hven::IpmBarrierGovernorMode::kClassicAdaptive;
+        o.advanced.never_monotone = true;
         solver.set_options(std::move(o));
     }
     solver.rebuild_globalization_components();
-    hven::solvers::AcceptanceStrategy *acceptance = solver.acceptance_.get();
-    ASSERT_NE(dynamic_cast<hven::solvers::FunnelAcceptance *>(acceptance), nullptr);
+    hven::detail::AcceptanceStrategy *acceptance = solver.acceptance_.get();
+    ASSERT_NE(dynamic_cast<hven::detail::FunnelAcceptance *>(acceptance), nullptr);
     EXPECT_FALSE(acceptance->drives_classic_path());
 }
 
 TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
-    hven::solvers::IpmSolver solver;
+    hven::detail::IpmSolverImpl solver;
     {
         auto o = solver.options();
-        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::filter;
+        o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kFilter;
         // The monotone-barrier opt-in that validate() requires alongside
         // funnel/filter. Written here because set_options() checks the WHOLE
         // value -- before M6 W5 T8.3 this test wrote the strategy straight into
@@ -473,17 +474,17 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
         // DEFAULT acceptance strategy, so this test would pass without the
         // acceptance write; it is kept explicit because what it pins is the
         // DISPATCH (selector -> constructed component), not the default.
-        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
-        o.never_monotone = true;
+        o.advanced.barrier_governor_mode = hven::IpmBarrierGovernorMode::kClassicAdaptive;
+        o.advanced.never_monotone = true;
         solver.set_options(std::move(o));
     }
     solver.rebuild_globalization_components();
-    hven::solvers::AcceptanceStrategy *acceptance = solver.acceptance_.get();
-    ASSERT_NE(dynamic_cast<hven::solvers::FilterAcceptance *>(acceptance), nullptr);
+    hven::detail::AcceptanceStrategy *acceptance = solver.acceptance_.get();
+    ASSERT_NE(dynamic_cast<hven::detail::FilterAcceptance *>(acceptance), nullptr);
     EXPECT_FALSE(acceptance->drives_classic_path());
 }
 
-// IpmOptions::barrier_governor = monitored must construct
+// IpmOptions::barrier_governor_mode = monitored must construct
 // MonitoredBarrierGovernor, and classic_adaptive must construct
 // ClassicAdaptiveGovernor. BOTH ARE ASSERTED DIRECTLY, and the second one is
 // asserted here because M7 W2 D1 (2026-09-18) made it impossible to leave to
@@ -491,7 +492,7 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
 //
 // Until that event this comment read "the default, classic_adaptive,
 // constructs ClassicAdaptiveGovernor -- covered implicitly by every other test
-// in this file, which never touches barrier_governor and still
+// in this file, which never touches barrier_governor_mode and still
 // solves/validates against the classic governor". The event moved the default
 // to monitored, so every test that leaves the governor alone now exercises the
 // MONITORED path and the implicit coverage that sentence claimed is gone. The
@@ -502,15 +503,15 @@ TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
 // governor_ member, so it is declared as a friend in ipm_solver.h and lives at
 // global scope (see the comment above for why).
 TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
-    hven::solvers::IpmSolver solver;
+    hven::detail::IpmSolverImpl solver;
     {
         auto o = solver.options();
-        o.barrier_governor = hven::solvers::BarrierGovernors::monitored;
+        o.advanced.barrier_governor_mode = hven::IpmBarrierGovernorMode::kMonitored;
         solver.set_options(std::move(o));
     }
     solver.rebuild_globalization_components();
-    hven::solvers::BarrierGovernor *governor = solver.governor_.get();
-    ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(governor), nullptr);
+    hven::detail::BarrierGovernor *governor = solver.governor_.get();
+    ASSERT_NE(dynamic_cast<hven::detail::MonitoredBarrierGovernor *>(governor), nullptr);
     EXPECT_FALSE(governor->in_monotone_mode());
 }
 
@@ -523,28 +524,29 @@ TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
 // the selector rather than a separate mechanism.
 TEST(RecoveryDispatchGate, ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor) {
     {
-        hven::solvers::IpmSolver solver;
+        hven::detail::IpmSolverImpl solver;
         auto o = solver.options();
-        o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
+        o.advanced.barrier_governor_mode = hven::IpmBarrierGovernorMode::kClassicAdaptive;
         // classic_adaptive under the DEFAULT acceptance strategy (filter) is
         // guard 1's refusal, so this arm also writes the pre-event acceptance
         // strategy -- which is what the pair classic_adaptive + classic_merit
         // was before the event, and the only combination in which the free-only
         // governor needs no opt-in.
-        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::classic_merit;
+        o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kClassicMerit;
         solver.set_options(std::move(o));
         solver.rebuild_globalization_components();
-        hven::solvers::BarrierGovernor *governor = solver.governor_.get();
-        ASSERT_NE(dynamic_cast<hven::solvers::ClassicAdaptiveGovernor *>(governor), nullptr);
-        EXPECT_EQ(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(governor), nullptr);
+        hven::detail::BarrierGovernor *governor = solver.governor_.get();
+        ASSERT_NE(dynamic_cast<hven::detail::ClassicAdaptiveGovernor *>(governor), nullptr);
+        EXPECT_EQ(dynamic_cast<hven::detail::MonitoredBarrierGovernor *>(governor), nullptr);
     }
     {
         // A solver left entirely alone constructs the governor the shipped
         // default names, which since W2 D1 is the monitored one.
-        hven::solvers::IpmSolver solver;
-        ASSERT_EQ(solver.options().barrier_governor, hven::solvers::BarrierGovernors::monitored);
+        hven::detail::IpmSolverImpl solver;
+        ASSERT_EQ(solver.options().advanced.barrier_governor_mode,
+                  hven::IpmBarrierGovernorMode::kMonitored);
         solver.rebuild_globalization_components();
-        ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(solver.governor_.get()),
+        ASSERT_NE(dynamic_cast<hven::detail::MonitoredBarrierGovernor *>(solver.governor_.get()),
                   nullptr);
     }
 }
@@ -567,9 +569,9 @@ TEST(RecoveryDispatchGate, ClassicAdaptiveSelectionConstructsClassicAdaptiveGove
 // Test access: same friend pattern as the selection tests above (private
 // rebuild_globalization_components() + private acceptance_), hence global scope.
 TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
-    using hven::solvers::MeritPenaltyRules;
-    using hven::solvers::ModernMeritAcceptance;
-    using hven::solvers::ProgressMeasures;
+    using hven::IpmMeritPenaltyRule;
+    using hven::detail::ModernMeritAcceptance;
+    using hven::detail::ProgressMeasures;
     const auto pm = [](double infeasibility, double objective) {
         ProgressMeasures p;
         p.infeasibility = infeasibility;
@@ -578,11 +580,11 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     };
 
     {
-        hven::solvers::IpmSolver solver;
+        hven::detail::IpmSolverImpl solver;
         {
             auto o = solver.options();
-            o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;
-            o.merit_penalty_rule = MeritPenaltyRules::flexible;
+            o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kMerit;
+            o.advanced.merit_penalty_rule = IpmMeritPenaltyRule::kFlexible;
             solver.set_options(std::move(o));
         }
         solver.rebuild_globalization_components();
@@ -594,16 +596,16 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     }
 
     {
-        hven::solvers::IpmSolver solver;
+        hven::detail::IpmSolverImpl solver;
         {
             auto o = solver.options();
-            o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;
+            o.advanced.acceptance_mode = hven::IpmAcceptanceMode::kMerit;
             solver.set_options(std::move(o));
         }
         // wmno is the default; set it explicitly so the contrast is stated.
         {
             auto o = solver.options();
-            o.merit_penalty_rule = MeritPenaltyRules::wmno;
+            o.advanced.merit_penalty_rule = IpmMeritPenaltyRule::kSinglePenalty;
             solver.set_options(std::move(o));
         }
         solver.rebuild_globalization_components();
@@ -611,7 +613,7 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
         ASSERT_NE(merit, nullptr);
         EXPECT_TRUE(
             merit->is_iterate_acceptable(pm(1.0, 10.0), pm(0.5, 12.0), pm(1.0, -9.0), 1.0, 1.0));
-        EXPECT_DOUBLE_EQ(merit->wmno_penalty(), 11.0);                     // the WMNO rule ran
-        EXPECT_DOUBLE_EQ(merit->flex_pi_l(), hven::solvers::kFlexInitPiL); // flexible did not
+        EXPECT_DOUBLE_EQ(merit->wmno_penalty(), 11.0);                    // the WMNO rule ran
+        EXPECT_DOUBLE_EQ(merit->flex_pi_l(), hven::detail::kFlexInitPiL); // flexible did not
     }
 }

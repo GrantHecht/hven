@@ -35,18 +35,37 @@ find_package(hven REQUIRED)
 # transcription entry moved out of detail/model/nlp_adapter.h into the public
 # header hven/model/make_nlp_program.h, and a public header that does not carry
 # its own includes is exactly what this list exists to catch.
+#
+# M8 AP-2 B2: the transcription entry, the triplet model and the NlpModel bridge
+# left the public surface (to detail/); their three TUs became the Nlp contract,
+# the Problem both engines solve, and the fixed-variable vocabulary split out of
+# the interior-point program's header, 19 -> 19.
+#
+# M8 AP-2 B3: the fixed-variable header left the public surface (its enum is in
+# the options header now) and the six new public headers of the options break
+# joined -- ipm_options, sqp_options, ipm_enums, ipm_phase_report, step_verdict
+# and linear/dense_policy -- 19 -> 24.
+#
+# M8 AP-2 B8: three raw-protocol headers took the names of what they declare
+# (solver_indexing_data, sizable_spec, piece_interfaces), and the umbrella
+# hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37. B8 riders: model/pieces.h
+# deleted (the umbrella covers it), trace_writer.h renamed json_lines_trace_sink.h, 37 -> 36.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
-    include_trace_writer.cpp
+    include_json_lines_trace_sink.cpp
     include_trace.cpp
     include_ipqp_evidence.cpp
-    include_nlp_triplet_model.cpp
-    include_make_nlp_program.cpp
+    include_nlp.cpp
+    include_problem.cpp
     include_nlp_assembly.cpp
     include_assembly_declaration.cpp
-    include_nlp_model_assembly.cpp
+    include_ipm_options.cpp
+    include_sqp_options.cpp
+    include_ipm_enums.cpp
+    include_ipm_phase_report.cpp
+    include_step_verdict.cpp
+    include_dense_policy.cpp
     include_ipm_solver.cpp
     include_sqp_solver.cpp
-    include_solve_status.cpp
     include_core_solver_status.cpp
     include_common_options.cpp
     include_ipm_solver_types.cpp
@@ -54,7 +73,20 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_sqp_warm_start.cpp
     include_seeding.cpp
     include_console_trace_sink.cpp
-    include_compiler.cpp)
+    include_compiler.cpp
+    include_local_blocks.cpp
+    include_piece_interfaces.cpp
+    include_solver_interface_adapter.cpp
+    include_solver_indexing_data.cpp
+    include_objective_function.cpp
+    include_constraint_function.cpp
+    include_solver_function_base.cpp
+    include_sizable_spec.cpp
+    include_threading_flags.cpp
+    include_parsed_io_flags.cpp
+    include_type_storage.cpp
+    include_ipm_iterate.cpp
+    include_hven.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
 target_link_libraries(hven_install_smoke PRIVATE hven::hven)

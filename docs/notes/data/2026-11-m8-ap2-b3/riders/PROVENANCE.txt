@@ -1,0 +1,50 @@
+M8 AP-2 group B3, settler riders -- evidence provenance (CLAUDE.md section 7 stamp)
+================================================================================
+Declaration   DECLARATION.txt (committed e1df577c before the first proof leg; not edited);
+              DECLARATION-r2.txt (committed 8af35db8 before the r2 runtime leg): the runtime gate's
+              first run stopped on an analyzer path, kept in runtime/r1-failed/.
+Runtime decl  runtime/DECLARATION.txt (committed with e1df577c)
+Code head     6cec5e25 (m8-b3). Commits after the B3 evidence head ef0848fe: 90b553b6 baseline,
+              a7a515f4 code, 00a30389 header prose, 94adf5d1 tests, 6cec5e25 concurrency.md; then
+              evidence commits only (no source touched).
+Toolchain     clang 22.1.8 (Fedora 22.1.8-4.fc44); GCC 16.2.1 for the default install-smoke arm; cmake
+              4.3.0; ninja; perf 7.2.12-200.fc44; MKL; MKL_NUM_THREADS=1
+Hardware      AMD Ryzen 7 5800X3D (8 cores / 16 threads, SMT on), 31 GiB, Linux 7.2.12-200.fc44
+Date          2026-11-02
+Configure     -G Ninja -DHVEN_FP_MODE=SAFER_FAST -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_BENCH=ON
+              -DHVEN_BUILD_EXAMPLES=ON (build-b3/rel Release, build-b3/dbg Debug, legs/build.sh); off-reference:
+              linux-clang-release preset, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, fresh build-r/offref.
+Apple / Windows  UNOBSERVED. The Accelerate arm is syntax-checked on Linux only.
+Box protocol  Every leg a script under `flock /tmp/box-build.lock`, pgrep checked before the lock and
+              PGREP_EMPTY inside, set -o pipefail, MKL_NUM_THREADS=1, no timeout wrapper, ctest -j4 under
+              setsid. Runtime legs serial, alone, taskset -c 2. Census parallel-tiered v1 (T1 6-wide
+              pinned / T2 solo / T3 5-wide), alone on the box.
+
+VERDICTS
+ P1 suites           Release 3293/3293, Debug 3293/3293 (suites/). (3285 at the B3 head + 8 new tests.)
+ P2 27-cell replay   walk, ssn, ipm: 27 cells x 75 columns, 0 differences (replay/).
+ P3 iparm            iparm/iparm-riders.txt == iparm/iparm-pin-filtered.txt, byte-identical (sha256
+                     34bb45c0...), 15 configurations. Dropped from the B3 pin dump: algorithm=two_level
+                     and backend_print=on (option gone; both were REFUSED on both B3 arms, 0 pardiso calls).
+ P4 census           57/57, 0 mismatches against the promoted baseline (census/compare.txt); the
+                     serial-confirm list is empty. Run 12:29-18:33 on build-r/armB (sha 24a097ea...).
+ P5 install smoke    default (GCC) and clang arms PASSED; export contract OK on both, "7 residual pairs"
+                     (install-smoke/). The allow-list did not grow (7 at B3).
+ P6 PCH neutrality   PASS: PCH engaged on 4 TUs, all 55 artifacts byte-identical with and without it (pch/).
+                     (The new TU is not a PCH source; _hven_expected_source_count 53 -> 54.)
+ P7 off-reference    clean build-r/offref, linux-clang-release + HVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF,
+                     bench and examples ON: build ok, ctest Release 3293/3293 (offref/).
+ P8 Accelerate       pass A: 32 files, 25 clean, 6 known-header, 2 known-sizeof, 0 OTHER; the per-file
+                     classes are identical to B3's (accelerate/accelerate-sweep.txt vs ../accelerate/).
+                     Pass B (stub, beyond the spec) reports the same 44 OTHER / 2 STUB-GAP as B3's,
+                     file for file. UNOBSERVED on Apple hardware.
+ P9 examples         all eight build and exit 0 (examples.out).
+ P10 runtime gate    PASS (runtime/run_all.log, runtime/<mode>/analysis.txt). Fixture pre-flight PASS;
+                     counter identity on every (round, cell) pair; THROTTLE 0 in every process; filtered
+                     B/A: interior 1.000191, ipm 1.000001, ssn 1.000001, walk 1.000000; all within
+                     [0.995, 1.005]. Arm A 22626a2e (d7c14361...), arm B 6cec5e25 (24a097ea...).
+DECLARED DIFFERENCES MATCHED: replay, census, iparm, runtime counters unchanged as declared; the
+removed surface, new refusals, message re-pins and the tie change are pinned by the suites (3293 green).
+DEVIATIONS: (1) the runtime gate needed a successor declaration r2 (analyzer path, see above);
+(2) arm A was built in a detached git worktree at another path (declared); (3) the leg scripts
+offref.sh and chain1.sh were finalized after the declaration commit but before any leg that used them.

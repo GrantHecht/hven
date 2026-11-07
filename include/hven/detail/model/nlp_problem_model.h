@@ -1,0 +1,415 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+#pragma once
+
+// nlp_problem_model.h — the conversion from the triplet-shaped convenience
+// problem (model/nlp_triplet_model.h) to the native model contract
+// (model/nlp_model.h).
+//
+// Nlp states a problem the way Ipopt's TNLP does: one two-sided bound
+// pair per constraint row, a single flat Jacobian value array over a declared
+// (row, col) structure, and a lower-triangle Lagrangian Hessian over a second
+// such structure. NlpModel states the same problem the way this library's
+// engines consume it: separated cE(x) = 0 and cI(x) <= 0 blocks, a sparse
+// Jacobian per block, and an upper-triangle Lagrangian Hessian, all returned
+// whole by value.
+//
+// NlpProblemModel is the one object that performs that conversion, and it is
+// the only route by which an Nlp reaches an engine. Everything the
+// conversion decides -- which solver rows a declared row becomes, which sign
+// each carries, how the two multiplier shapes correspond -- is decided here,
+// once, at construction, and is readable from here rather than inferred from a
+// consumer's behaviour.
+
+#include <memory>
+#include <optional>
+#include <vector>
+
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+
+#include "hven/core/types.h"
+#include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/detail/model/absent_bound.h"
+#include "hven/detail/model/nlp_model.h"
+#include "hven/model/nlp.h"
+
+namespace hven::detail {
+
+/// How one declared constraint row is realized in the native model's row spaces.
+enum class NlpRowKind { kEquality, kUpperBounded, kLowerBounded, kRange, kFree };
+
+/// Setup-time classification of the declared constraint rows against their
+/// bounds: which native rows each declared row becomes, in declaration order.
+/// A Range row (two finite, unequal bounds) becomes two inequality rows, the
+/// upper part first, then the negated lower part.
+struct NlpRowClassification {
+    std::vector<NlpRowKind> kinds; ///< one entry per declared row
+    Eigen::VectorXi eq_row;        ///< declared row -> equality row, -1 if none
+    Eigen::VectorXi iq_upper_row;  ///< declared row -> inequality row (upper part), -1
+    Eigen::VectorXi iq_lower_row;  ///< declared row -> inequality row (negated lower), -1
+    int num_eq = 0;
+    int num_iq = 0;
+
+    /// @brief Classifies every declared row against its bound pair.
+    /// @param gl Declared lower bounds, one per row.
+    /// @param gu Declared upper bounds, one per row.
+    /// @return The classification, with the native row numbering assigned.
+    /// @throws std::invalid_argument on mismatched sizes, a NaN bound, an
+    ///         inverted pair, or an equality declared at infinity.
+    static NlpRowClassification classify(ConstEigenRef<Eigen::VectorXd> gl,
+                                         ConstEigenRef<Eigen::VectorXd> gu);
+};
+
+/// @brief The triplet-shaped convenience problem, as a native model.
+///
+/// Bounds are read through the absent-bound rule and nothing else. A declared
+/// bound at or beyond the construction's infinite_bound is the infinity of its
+/// sign (absent_bound.h); every other value is a real bound, kept verbatim --
+/// nothing here rescales or clips one. lower(), upper(), row_lower() and
+/// row_upper() hand back the bounds as the rule read them (raw_lower() and its
+/// siblings the values Nlp::bounds declared), and the constraint-row bounds
+/// enter the residuals as the shifts they are. Under infinite_bound = +inf the
+/// rule is the identity and every finite value is a real bound however large.
+///
+/// Row conversion. A declared row's kind decides its native rows and the sign
+/// each carries, so that every inequality reads cI(x) <= 0:
+///
+///   Equality      (gl == gu, finite)  -> one equality row,   g(x) - gl
+///   UpperBounded  (gl == -inf)        -> one inequality row, g(x) - gu
+///   LowerBounded  (gu == +inf)        -> one inequality row, gl - g(x)
+///   Range         (both finite)       -> two inequality rows, g(x) - gu then gl - g(x)
+///   Free          (both infinite)     -> no row
+///
+/// Multiplier shapes. Nlp carries one multiplier per declared row, in
+/// Ipopt's sign convention (L = obj_factor*f + lambda^T g). NlpModel carries a
+/// lambda_e per equality row and a lambda_i >= 0 per inequality row, in the
+/// convention nlp_model.h states. The two correspond row by row, by kind:
+///
+///   Equality      lambda(r) =  lambda_e(eq_row(r))
+///   UpperBounded  lambda(r) =  lambda_i(iq_upper_row(r))
+///   LowerBounded  lambda(r) = -lambda_i(iq_lower_row(r))
+///   Range         lambda(r) =  lambda_i(iq_upper_row(r)) - lambda_i(iq_lower_row(r))
+///   Free          lambda(r) =  0
+///
+/// compose_user_multipliers applies that map; split_user_multipliers sends a
+/// declared multiplier back the other way, a Range row's signed value going to
+/// whichever of its two rows that sign names (the other taking zero) and a
+/// Free row's value being dropped.
+///
+/// Round trips, exactly. compose_user_multipliers(split_user_multipliers(l))
+/// == l for every declared l whose Free rows are zero: each kind's split is
+/// undone by its compose, and a Free row is the only place a declared value
+/// has no native image to come back from.
+///
+/// The other order is not an identity. compose is not injective on the native
+/// pairs -- a Range row's two multipliers reach the declared space only as
+/// their difference -- so split_user_multipliers(compose_user_multipliers(le,
+/// li)) generally differs from (le, li): a Range row carrying
+/// (upper, lower) = (3, 4) composes to -1 and splits back to (0, 1). It is an
+/// identity only where every Range row has at most one nonzero side.
+///
+/// Duplicate (row, col) entries in either declared structure are legal and
+/// their values are summed, which is where they are summed: the native
+/// matrices carry one entry per distinct coordinate.
+///
+/// Evaluation callbacks are pure, so g(x) and the Jacobian values are cached
+/// per iterate: eval_ce and eval_ci share one Nlp::eval_g call, and
+/// eval_jac_e and eval_jac_i share one Nlp::eval_jacobian call.
+///
+/// Thread safety. None: the caches above and the storage below are mutable
+/// members this model rewrites on every evaluation, so two threads evaluating
+/// one instance race each other. One instance per evaluating thread, or one
+/// evaluating thread per instance. Const-qualified methods are not an
+/// exception -- the mutation is behind `mutable`, which is what makes the
+/// caching possible at all.
+///
+/// Storage. The native patterns are laid once at construction and only values
+/// are written afterwards, so an evaluation after the first allocates nothing.
+/// The in-place methods write straight into the caller's destination, giving it
+/// the laid pattern the first time they see it and filling its value array on
+/// every call after; the by-value methods do the same into a member of this
+/// model and hand back a copy of it, as their signatures require.
+class NlpProblemModel final : public NlpModel {
+  public:
+    /// @brief Converts a declared problem, validating its declaration.
+    ///
+    /// Every variable and row bound is read through the absent-bound rule
+    /// (absent_bound.h): a bound at or beyond @p infinite_bound is the infinity
+    /// of its sign, and lower()/upper()/row_lower()/row_upper() report it so.
+    /// The pair checks below are made on the bounds as the rule reads them.
+    ///
+    /// @param problem The problem to convert; must not be null.
+    /// @param infinite_bound The threshold (CommonOptions::infinite_bound); > 0.
+    /// @throws std::invalid_argument on a null problem, a threshold that is not
+    ///         > 0, a non-positive variable count, a negative or inconsistent
+    ///         nonzero count, a variable bound pair that is NaN, inverted, or
+    ///         fixes the variable at an infinity, a constraint-row bound pair
+    ///         that is NaN, inverted, or an equality at infinity, or a structure
+    ///         entry outside its matrix (a Hessian entry above the diagonal
+    ///         included).
+    explicit NlpProblemModel(std::shared_ptr<Nlp> problem,
+                             double infinite_bound = detail::kDefaultInfiniteBound);
+
+    /// @brief The absent-bound threshold this model read its bounds under.
+    double infinite_bound() const noexcept { return infinite_bound_; }
+    /// @brief How many finite declared bound values (variable and row sides) the
+    ///        last read took as absent.
+    Index absent_bounds() const override { return absent_bounds_; }
+    /// @brief infinite_bound(): this model read its variable and row bounds under
+    ///        it (the row split depends on it).
+    std::optional<double> source_infinite_bound() const override { return infinite_bound_; }
+    /// @brief The declared bounds as last read, before the rule (the values a
+    ///        per-solve re-read is compared against).
+    const Vec &raw_lower() const { return raw_x_lower_; }
+    const Vec &raw_upper() const { return raw_x_upper_; }
+    const Vec &raw_row_lower() const { return raw_g_lower_; }
+    const Vec &raw_row_upper() const { return raw_g_upper_; }
+
+    Index n() const override { return n_; }
+    Index me() const override { return rows_.num_eq; }
+    Index mi() const override { return rows_.num_iq; }
+    /// @brief The problem's own has_hessian(); eval_hess refuses a problem that
+    ///        answers false (std::logic_error: no engine path calls it then).
+    bool has_hessian() const override { return problem_->has_hessian(); }
+
+    double eval_f(const Vec &x) const override;
+    Vec eval_grad(const Vec &x) const override;
+    Vec eval_ce(const Vec &x) const override;
+    Vec eval_ci(const Vec &x) const override;
+
+    /// @brief The exact Lagrangian Hessian, upper triangle, at the composed
+    ///        declared multipliers.
+    /// @param x The iterate.
+    /// @param obj_scale The objective scale, passed through as obj_factor.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
+    /// @return The upper triangle, over the pattern the declared structure
+    ///         defines, mirrored across the diagonal.
+    /// @throws std::invalid_argument if @p x is not n() long, or if a
+    ///         multiplier block is not exactly as long as the row count it
+    ///         stands for -- empty is legal only where that count is itself
+    ///         0, not a general shorthand for all-zero; stricter than the
+    ///         adapter's own head-taking rule (nlp_adapter.h's refuse_short_
+    ///         multiplier_block, which accepts a block longer than its rows,
+    ///         and treats empty as all-zero regardless of row count).
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &lambda_i) const override;
+
+    SpMatRM eval_jac_e(const Vec &x) const override;
+    SpMatRM eval_jac_i(const Vec &x) const override;
+
+    // The in-place forms, overridden so a consumer's own storage is filled
+    // directly. Each leaves the destination holding exactly what its
+    // by-value counterpart returns; the by-value methods are implemented
+    // as a copy of these.
+
+    /// @brief The objective gradient at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with n() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
+    void eval_grad_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The equality residuals at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with me() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
+    void eval_ce_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The inequality residuals at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled with mi() entries.
+    /// @throws std::invalid_argument if @p x is not n() long.
+    void eval_ci_in_place(const Vec &x, Vec &out) const override;
+    /// @brief The equality Jacobian at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed.
+    /// @throws std::invalid_argument if @p x is not n() long.
+    void eval_jac_e_in_place(const Vec &x, SpMatRM &out) const override;
+    /// @brief The inequality Jacobian at @p x, written into @p out.
+    /// @param x The iterate.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed.
+    /// @throws std::invalid_argument if @p x is not n() long.
+    void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const override;
+    /// @brief The exact Lagrangian Hessian, upper triangle, written into
+    ///        @p out.
+    /// @param x The iterate.
+    /// @param obj_scale The objective scale, passed through as obj_factor.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
+    /// @param out Filled over the pattern the declared structure defines,
+    ///            compressed, mirrored across the diagonal.
+    /// @throws std::invalid_argument if @p x is not n() long, or if a
+    ///         multiplier block is not exactly as long as the row count it
+    ///         stands for -- empty is legal only where that count is itself
+    ///         0, not a general shorthand for all-zero; stricter than the
+    ///         adapter's own head-taking rule (nlp_adapter.h's refuse_short_
+    ///         multiplier_block, which accepts a block longer than its rows,
+    ///         and treats empty as all-zero regardless of row count).
+    void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
+                            const Vec &lambda_i, SpMatRM &out) const override;
+
+    /// @brief Declared variable lower bounds, as the absent-bound rule reads them.
+    const Vec &lower() const override { return x_lower_; }
+    /// @brief Declared variable upper bounds, as the absent-bound rule reads them.
+    const Vec &upper() const override { return x_upper_; }
+
+    /// @brief The origin projected onto the declared variable bounds.
+    ///
+    /// Nlp declares no start point -- the primal guess is an argument
+    /// to the solve entry points -- so this is a bounds-respecting default
+    /// rather than a value the problem stated.
+    Vec start_point() const override;
+
+    /// @brief The declared row lower bounds as the rule reads them, one per row.
+    const Vec &row_lower() const { return g_lower_; }
+    /// @brief The declared row upper bounds as the rule reads them, one per row.
+    const Vec &row_upper() const { return g_upper_; }
+    /// @brief The dimensions read at construction.
+    NlpDimensions dimensions() const { return {n_, m_, jac_nnz_, hess_nnz_}; }
+    /// @brief The declared Jacobian structure, rows then columns, as read.
+    const Eigen::VectorXi &jacobian_rows() const { return jac_rows_; }
+    const Eigen::VectorXi &jacobian_cols() const { return jac_cols_; }
+    /// @brief The declared Hessian structure (lower triangle), as read.
+    const Eigen::VectorXi &hessian_rows() const { return hess_rows_; }
+    const Eigen::VectorXi &hessian_cols() const { return hess_cols_; }
+
+    /// @brief Adopts new bound values in place, every row keeping its kind.
+    ///
+    /// The row tables' shifts are re-derived (O(m)); the native patterns, the
+    /// row numbering and the multiplier map do not depend on a bound's value,
+    /// only on each row's kind, so nothing else moves. The per-iterate cache is
+    /// cleared. Every refusal is made before anything is written.
+    ///
+    /// @param x_lower n entries, as declared (the rule is applied here).  @param x_upper n.
+    /// @param g_lower m entries.  @param g_upper m entries.
+    /// @return true iff the variable box's STRUCTURE changed: which sides of a
+    ///         variable are finite, or which variables are fixed.
+    /// @throws std::invalid_argument on a wrong length, on a variable or row
+    ///         bound pair construction would refuse, and on a row whose kind
+    ///         (equality, upper-bounded, lower-bounded, range, free) differs from
+    ///         the kind it was laid with, naming the row and both kinds.
+    bool update_bounds(const Vec &x_lower, const Vec &x_upper, const Vec &g_lower,
+                       const Vec &g_upper);
+
+    /// @brief The problem this model converts.
+    const Nlp &problem() const { return *problem_; }
+    /// @brief Shared ownership of the problem this model converts.
+    const std::shared_ptr<Nlp> &problem_ptr() const { return problem_; }
+
+    /// @brief Forgets the per-iterate cache, so the next evaluation calls the
+    ///        problem even at the cached point. A Problem calls this at every
+    ///        solve entry: between solves the problem's values may change.
+    void invalidate_cache() const;
+
+    /// @brief The row classification decided at construction.
+    const NlpRowClassification &rows() const { return rows_; }
+    /// @brief The number of constraint rows the problem declared.
+    int num_declared_rows() const { return m_; }
+
+    /// @brief Maps native multipliers onto the declared row space.
+    /// @param lambda_e Equality multipliers, exactly me() entries; empty is
+    ///                    legal only where me() == 0.
+    /// @param lambda_i Inequality multipliers, exactly mi() entries; empty is
+    ///                    legal only where mi() == 0.
+    /// @return One multiplier per declared row, Ipopt sign convention.
+    /// @throws std::invalid_argument if either multiplier block is not
+    ///         exactly as long as the row count it stands for (me() for
+    ///         @p lambda_e, mi() for @p lambda_i) -- a block merely at least
+    ///         that long is refused, and so is an empty block against a
+    ///         nonzero row count: empty is legal only where that count is
+    ///         itself 0, never a general shorthand for all-zero.
+    Vec compose_user_multipliers(ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i) const;
+
+    /// @brief compose_user_multipliers writing into @p lambda_user in place: it
+    ///        is resized (no allocation once at capacity) and overwritten.
+    ///        Same refusals.
+    void compose_user_multipliers_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e,
+                                       ConstEigenRef<Vec> lambda_i) const;
+
+    /// @brief Maps declared multipliers onto the native row spaces.
+    /// @param lambda_user One multiplier per declared row, Ipopt sign convention.
+    /// @param lambda_e Filled with the equality multipliers, sized me().
+    /// @param lambda_i Filled with the inequality multipliers, sized mi().
+    /// @throws std::invalid_argument if @p lambda_user is not one entry per
+    ///         declared row.
+    void split_user_multipliers(ConstEigenRef<Vec> lambda_user, Vec &lambda_e, Vec &lambda_i) const;
+
+  private:
+    /// One declared Jacobian slot's contribution to one native matrix entry.
+    struct JacTarget {
+        int slot_;        ///< index into the declared Jacobian value array
+        int value_index_; ///< index into the native matrix's value array
+        double sign_;     ///< the residual's sign for the row it lands in
+    };
+
+    /// One native residual: sign_ * (g[row_] - shift_).
+    struct ResTarget {
+        int row_;
+        double sign_;
+        double shift_;
+    };
+
+    void validate_sizes(const NlpDimensions &dims) const;
+    void validate_variable_bounds(const Vec &x_lower, const Vec &x_upper) const;
+    Index normalize_read_bounds(Vec &x_lower, Vec &x_upper, Vec &g_lower, Vec &g_upper) const;
+    void build_row_tables();
+    void read_structures();
+    void build_jacobian_pattern();
+    void build_hessian_pattern();
+
+    // site names the public entry that reached this helper (eval_hess_in_place
+    // or compose_user_multipliers), so a refusal names which one the caller
+    // actually called -- mirroring nlp_adapter.h's refuse_short_multiplier_
+    // block, whose own site parameter serves the same purpose one layer up.
+    void compose_into(Vec &lambda_user, ConstEigenRef<Vec> lambda_e, ConstEigenRef<Vec> lambda_i,
+                      const char *site) const;
+
+    void sync_x(const Vec &x) const;
+    void refresh_g(const Vec &x) const;
+    void refresh_jac(const Vec &x) const;
+
+    std::shared_ptr<Nlp> problem_;
+    double infinite_bound_ = detail::kDefaultInfiniteBound;
+    Index absent_bounds_ = 0;
+    int n_ = 0, m_ = 0, jac_nnz_ = 0, hess_nnz_ = 0;
+
+    Vec x_lower_, x_upper_; ///< declared variable bounds, normalized (absent_bound.h)
+    Vec g_lower_, g_upper_; ///< declared row bounds, normalized (absent_bound.h)
+    Vec raw_x_lower_, raw_x_upper_, raw_g_lower_, raw_g_upper_; ///< as declared
+    Vec upd_x_lower_, upd_x_upper_, upd_g_lower_, upd_g_upper_; ///< update_bounds scratch
+    NlpRowClassification rows_;
+    Eigen::VectorXi jac_rows_, jac_cols_;   ///< declared Jacobian structure
+    Eigen::VectorXi hess_rows_, hess_cols_; ///< declared Hessian structure, lower triangle
+
+    std::vector<ResTarget> eq_res_, iq_res_;
+    std::vector<JacTarget> eq_jac_, iq_jac_;
+    std::vector<int> hess_value_index_; ///< declared Hessian slot -> native value index
+
+    /// The native patterns, laid once at construction. Only their index arrays
+    /// are read after that: an in-place evaluation gives its destination this
+    /// pattern the first time it sees it, then fills that destination's value
+    /// array.
+    SpMatRM jac_e_, jac_i_, hess_;
+
+    /// The by-value methods' own destinations, filled by the in-place methods
+    /// and copied out.
+    mutable SpMatRM jac_e_values_, jac_i_values_, hess_values_;
+
+    // Per-iterate cache; the callbacks are pure, so it keys on the iterate.
+    mutable Vec x_cache_;
+    mutable bool g_valid_ = false;
+    mutable bool jac_valid_ = false;
+    mutable Vec g_cache_, jac_cache_;
+    mutable Vec lambda_user_, hess_vals_;
+
+    /// The by-value methods' own destinations for the dense returns.
+    mutable Vec grad_, ce_, ci_;
+};
+
+} // namespace hven::detail

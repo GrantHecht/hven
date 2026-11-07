@@ -5,7 +5,7 @@
 
 #include "hven/detail/globalization/recovery_chain.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The empty recovery chain: unconditionally accepts the rejected step
 /// as-is — exactly the classic give-up behavior with no recovery chain at all.
@@ -26,16 +26,16 @@ class NoopRecovery : public RecoveryChain {
 
     /// Pure no-op: ignores every argument (iterate info, history, context, the
     /// entire threaded working set) and accepts the step as-is.
-    Action on_step_rejected(IterateInfo & /*Citer*/, const std::vector<IterateInfo> & /*iters*/,
+    Action on_step_rejected(IpmIterate & /*Citer*/, const std::vector<IpmIterate> & /*iters*/,
                             SolverContext & /*ctx*/, AcceptanceStrategy & /*acceptance*/,
-                            GlobalizationMechanism & /*mechanism*/,
-                            IpmSolver::LineSearchModes /*lsmode*/, double /*obj_scale*/,
-                            double /*mu*/, double /*prim_obj*/, double /*barr_obj*/,
-                            Eigen::VectorXd & /*XSL*/, Eigen::VectorXd & /*DXSL*/,
-                            Eigen::VectorXd & /*XSL2*/, Eigen::VectorXd & /*RHS*/,
-                            Eigen::VectorXd & /*RHS2*/, double & /*alpha*/, double & /*alphap*/,
-                            double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
-                            int & /*watchdog_activations*/) override {
+                            GlobalizationMechanism & /*mechanism*/, IpmLineSearchMode /*lsmode*/,
+                            double /*obj_scale*/, double /*mu*/, double /*prim_obj*/,
+                            double /*barr_obj*/, Eigen::VectorXd & /*XSL*/,
+                            Eigen::VectorXd & /*DXSL*/, Eigen::VectorXd & /*XSL2*/,
+                            Eigen::VectorXd & /*RHS*/, Eigen::VectorXd & /*RHS2*/,
+                            double & /*alpha*/, double & /*alphap*/, double & /*alphad*/,
+                            Index & /*soc_steps*/, int & /*resolved_depth*/,
+                            Index & /*watchdog_activations*/) override {
         return Action::kAcceptAsIs;
     }
 
@@ -44,4 +44,4 @@ class NoopRecovery : public RecoveryChain {
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

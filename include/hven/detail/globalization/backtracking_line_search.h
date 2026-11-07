@@ -9,14 +9,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
+#include "hven/drivers/ipm_iterate.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The classic globalization mechanism: fraction-to-boundary primal/dual
 /// step-length scaling followed by an AcceptanceStrategy backtrack on the
@@ -32,11 +32,11 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     /// Fused fraction-to-boundary scaling + acceptance backtrack — see
     /// GlobalizationMechanism::compute_step for why the two halves are fused.
-    double compute_step(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                        double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                        Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                        Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
-                        double &alphad, IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    double compute_step(IpmLineSearchMode lsmode, double obj_scale, double mu, double prim_obj,
+                        double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                        Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                        AcceptanceStrategy &acceptance, double &alphap, double &alphad,
+                        IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                         SolverContext &ctx) override;
 
     /// mu-event / phase-change hook — no-op: classic backtracking carries no
@@ -45,7 +45,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     /// Fraction-to-boundary primal/dual step. Public so the PROBE barrier
     /// block's predictor call site can drive it directly on the predictor DXSL;
-    /// builds the KKTVector view over the raw XSL/DXSL blocks internally and
+    /// builds the KktVector view over the raw XSL/DXSL blocks internally and
     /// MUTATES DXSL in place. bfrac / dims / step strategy are read through ctx.
     void max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, double bfrac,
                               double &alphap, double &alphad, const SolverContext &ctx) override;
@@ -55,21 +55,21 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// so the dispatch lives in one place. On the classic path this forwards to
     /// acceptance.classic_line_search; on the generic path it runs
     /// generic_line_search.
-    double run_acceptance_backtrack(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+    double run_acceptance_backtrack(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                     Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
                                     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                                    AcceptanceStrategy &acceptance, IterateInfo &Citer,
-                                    const std::vector<IterateInfo> &iters,
+                                    AcceptanceStrategy &acceptance, IpmIterate &Citer,
+                                    const std::vector<IpmIterate> &iters,
                                     SolverContext &ctx) override;
 
   private:
-    /// @brief Creates a KKTVector view over a VectorXd using the context's
+    /// @brief Creates a KktVector view over a VectorXd using the context's
     /// dimensions. The view type is shared with the solver and the sibling
     /// components, so the moved step body keeps its named-segment accessors
     /// unchanged.
-    static KKTVector kkt_view(Eigen::VectorXd &v, const SolverContext &ctx) {
-        return KKTVector(v, ctx.primal_vars_, ctx.slack_vars_, ctx.equal_cons_, ctx.inequal_cons_);
+    static KktVector kkt_view(Eigen::VectorXd &v, const SolverContext &ctx) {
+        return KktVector(v, ctx.primal_vars_, ctx.slack_vars_, ctx.equal_cons_, ctx.inequal_cons_);
     }
 
     /// @brief Scalar fraction-to-boundary step for one block of
@@ -88,11 +88,11 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// built from the trial point. Stores the same accepted_ /
     /// first-rejection signals as the classic path so the recovery chain
     /// composes.
-    double generic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+    double generic_line_search(IpmLineSearchMode lsmode, double obj_scale, double mu,
                                double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                               IterateInfo &Citer, SolverContext &ctx);
+                               IpmIterate &Citer, SolverContext &ctx);
 
     /// Nested-restoration trial-path scratch (dead unless a nested restoration
     /// strategy is active): backs the elastic residual shift added to a
@@ -110,4 +110,4 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     Eigen::VectorXd bound_dir_scratch_;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

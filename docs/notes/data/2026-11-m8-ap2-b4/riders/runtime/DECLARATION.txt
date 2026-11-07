@@ -1,0 +1,27 @@
+M8 AP-2 group B4 riders -- runtime neutrality gate -- DECLARATION
+(the B4 instrument, ../../runtime/DECLARATION.txt, taken VERBATIM except for the arms, the paths and this
+round's name; committed before the first leg; never edited)
+================================================================================
+SOURCE. ../../runtime/DECLARATION.txt: modes, instrument per measured process, validity, parser
+pre-flight, filtered criterion, stop condition, on-fail rule and protocol are all as stated there.
+runtime_leg.sh and run_all.sh are B4's with only the build directories (armAbin -> armAr, armB -> armBr),
+the evidence directory and arm A's sha256 replaced. analyze_r5.py is B4's byte-for-byte except ONE line:
+this directory sits one level deeper than B4's runtime/ (riders/runtime), so the repository-root path
+there reads '../../../../../..' (six levels) where B4's read five (B4 sha256 9f298a1c...; this copy
+dff20c56...). The fixture is copied byte-for-byte; its pre-flight was read once before this commit
+(PASS: total 38909, excluded 21354, filtered 17555).
+
+ARMS
+  A  the 74084e73 binary (B4's arm B), build-b4/armAr/hven_sqp_corpus,
+     sha256 101be1a2bffa31ef3e579116fa0639fa2fe7a606c26aebc8957062ec53f51788 (stamp 74084e73e922).
+  B  the riders code head 8bdb2bee: build-b4/rel/bench/hven_sqp_corpus copied by run_all.sh to
+     build-b4/armBr/, sha256 ed95c9a9121e6e4f949be59bf3b11939b8a5f91a62415cb782ee2b44eb3081b9
+     (stamp 8bdb2beeb2c7). run_all.sh refuses to start on a mismatch for either arm.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as ../../runtime/DECLARATION.txt.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows UNOBSERVED.

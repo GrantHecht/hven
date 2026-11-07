@@ -10,11 +10,13 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 
 #include "support/ipqp_test_support.h"
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 namespace {
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -395,4 +397,4 @@ TEST(AccumulateIpqpCounters, TotalStartingFromANonzeroBaseFoldsCorrectly) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

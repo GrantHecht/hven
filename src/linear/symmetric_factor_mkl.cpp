@@ -20,25 +20,34 @@
 
 #include <fmt/format.h>
 
+#include "hven/core/errors.h"
 #include "hven/core/pattern_hash.h"
 #include "hven/detail/linear/fault_injection.h"
 #include "hven/detail/linear/pardiso_session.h"
 
+namespace {
+
+// THE BACKEND'S OWN FAILURE, AS BackendError (M8 B5). The session layer
+// reports a failed symbolic analysis or solve -- the backend's error code in
+// the message -- as std::runtime_error; this adapter is where hven's contract
+// (core/errors.h) names it, so a caller catches every runtime failure hven
+// raises in one hven::Error clause. The message is the session's,
+// unchanged. Zero cost unless the backend fails.
+template <class Call> void backend_call(Call &&call) {
+    try {
+        call();
+    } catch (const hven::BackendError &) {
+        throw;
+    } catch (const std::runtime_error &e) {
+        throw hven::BackendError(e.what());
+    }
+}
+
+} // namespace
+
 namespace hven::linear {
 
 namespace {
-
-const char *kind_name(FactorKind kind) {
-    switch (kind) {
-    case FactorKind::kLDLT:
-        return "kLDLT";
-    case FactorKind::kLLT:
-        return "kLLT";
-    case FactorKind::kLU:
-        return "kLU";
-    }
-    return "unknown";
-}
 
 // Maps SymmetricFactor::Options::Ordering onto the raw iparm[1] override
 // PardisoConfig carries (std::nullopt = don't write, matching
@@ -211,7 +220,7 @@ pardiso_factorization_algorithm_of(std::optional<int> code) {
     }
 }
 
-// The thread-count rule, applied by the constructor to Options::num_threads
+// The thread-count rule, applied by the constructor to Options::threads
 // and again by the live setter -- one function so the two cannot drift into
 // accepting different values. `where` is the entry point the message names,
 // which is the only thing that differs between the two callers.
@@ -225,12 +234,12 @@ void validate_num_threads(int num_threads, const char *where) {
 
 detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     detail::PardisoConfig cfg;
-    // Real symmetric indefinite. Only kLDLT reaches here -- the constructor
+    // Real symmetric indefinite. Only kLdlt reaches here -- the constructor
     // rejects the kinds whose backend paths have not landed.
     cfg.mtype = -2;
-    cfg.num_threads = opts.num_threads;
-    cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
-    cfg.max_refinement_iters = opts.max_refinement_iters;
+    cfg.num_threads = opts.threads;
+    cfg.pivot_perturb_exp = opts.pivot_perturbation_exponent;
+    cfg.max_refinement_iters = opts.max_refinement_steps;
     cfg.ordering = pardiso_ordering_code(opts.ordering);
     cfg.weighted_matching = opts.weighted_matching;
     cfg.matrix_scaling = opts.matrix_scaling;
@@ -238,7 +247,7 @@ detail::PardisoConfig config_from(const SymmetricFactor::Options &opts) {
     cfg.factorization_algorithm =
         pardiso_factorization_algorithm_code(opts.factorization_algorithm);
     cfg.solve_parallelism = pardiso_solve_parallelism_code(opts.solve_parallelism);
-    cfg.cnr_threads = opts.cnr_threads;
+    cfg.cnr_threads = opts.conditional_reproducibility_threads;
     cfg.collect_factor_mflops = opts.collect_factor_mflops;
     return cfg;
 }
@@ -306,9 +315,9 @@ void validate_upper_csr(const SpMatRM &A) {
 InertiaEvidence evidence_of(const detail::FactorSession &session) {
     InertiaEvidence evidence;
     evidence.state = InertiaEvidence::State::kObserved;
-    evidence.n_pos = session.num_pos_eigs();
-    evidence.n_neg = session.num_neg_eigs();
-    evidence.n_zero = session.dim() - evidence.n_pos - evidence.n_neg;
+    evidence.positive = session.num_pos_eigs();
+    evidence.negative = session.num_neg_eigs();
+    evidence.zero = session.dim() - evidence.positive - evidence.negative;
     evidence.zero_is_derived = true;
     evidence.perturbed_pivots = session.num_perturbed_pivots();
     return evidence;
@@ -394,7 +403,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstMatRef RHS, MatRe
     }
 
     SolveInfo info;
-    info.refinement_iters = session.refinement_iters();
+    info.refinement_steps = session.refinement_iters();
     return info;
 }
 
@@ -420,7 +429,7 @@ SolveInfo run_solve(const detail::FactorSession &session, ConstVecRef rhs, VecRe
     session.solve(rhs_buffer.data(), x.data(), 1);
 
     SolveInfo info;
-    info.refinement_iters = session.refinement_iters();
+    info.refinement_steps = session.refinement_iters();
     return info;
 }
 
@@ -442,42 +451,42 @@ int pardiso_phase_of(SymmetricFactor::SolvePhase phase) {
 // SymmetricFactor
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
-    if (opts_.kind != FactorKind::kLDLT) {
-        throw std::logic_error(
-            fmt::format("SymmetricFactor: FactorKind::{} is not yet implemented -- only kLDLT has "
-                        "a backend path today",
-                        kind_name(opts_.kind)));
+    if (opts_.decomposition != Decomposition::kLdlt) {
+        throw std::logic_error(fmt::format(
+            "SymmetricFactor: decomposition {} is not a Decomposition value (kLdlt is the one)",
+            static_cast<int>(opts_.decomposition)));
     }
-    validate_num_threads(opts_.num_threads, "SymmetricFactor");
+    validate_num_threads(opts_.threads, "SymmetricFactor");
     // A present value is validated; std::nullopt is the don't-write state
     // (leave the backend's own default in force) and needs no range check.
-    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
-                        "leave the backend's own default in force), got {}",
-                        *opts_.pivot_perturb_exp));
-    }
-    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
-                        "leave the backend's own default in force), got {}",
-                        *opts_.max_refinement_iters));
-    }
-    if (opts_.cnr_threads < 0) {
+    if (opts_.pivot_perturbation_exponent.has_value() && *opts_.pivot_perturbation_exponent < 0) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
-            opts_.cnr_threads));
+            "SymmetricFactor: pivot_perturbation_exponent must be >= 0 (or std::nullopt to "
+            "leave the backend's own default in force), got {}",
+            *opts_.pivot_perturbation_exponent));
+    }
+    if (opts_.max_refinement_steps.has_value() && *opts_.max_refinement_steps < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: max_refinement_steps must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.max_refinement_steps));
+    }
+    if (opts_.conditional_reproducibility_threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: conditional_reproducibility_threads must be >= 0 (0 "
+                        "means CNR mode is off), got {}",
+                        opts_.conditional_reproducibility_threads));
     }
 
-    // accelerate_zero_tolerance is Accelerate's own knob (it overrides
+    // accelerate_zero_tol is Accelerate's own knob (it overrides
     // Accelerate's zeroTolerance directly); MKL has no zeroTolerance
     // concept for it to override, so a present value here would otherwise be
     // silently ignored on this backend.
-    if (opts_.accelerate_zero_tolerance.has_value()) {
+    if (opts_.accelerate_zero_tol.has_value()) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: Options::accelerate_zero_tolerance is an Accelerate-only option and "
+            "SymmetricFactor: Options::accelerate_zero_tol is an Accelerate-only option and "
             "has no MKL equivalent -- requires std::nullopt on this backend, got {}",
-            *opts_.accelerate_zero_tolerance));
+            *opts_.accelerate_zero_tol));
     }
 
     // --- documented MKL option interactions, validated rather than left
@@ -513,14 +522,17 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // specifically (iparm[1] = 2) -- not minimum degree -- so the
     // compatible set is exactly {kNestedDissection}; every other Ordering
     // value, INCLUDING kBackendDefault, throws.
-    if (opts_.cnr_threads > 0 && opts_.ordering != Options::Ordering::kNestedDissection) {
+    if (opts_.conditional_reproducibility_threads > 0 &&
+        opts_.ordering != Options::Ordering::kNestedDissection) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: cnr_threads > 0 (CNR mode) requires ordering == "
+            "SymmetricFactor: conditional_reproducibility_threads > 0 (CNR mode) requires ordering "
+            "== "
             "Ordering::kNestedDissection -- Intel documents CNR as reproducible only under the "
             "non-parallel nested dissection algorithm (iparm[1] = 2); every other ordering, "
-            "including kBackendDefault, is documented-incompatible or unverified, got cnr_threads "
+            "including kBackendDefault, is documented-incompatible or unverified, got "
+            "conditional_reproducibility_threads "
             "= {} with a non-kNestedDissection ordering",
-            opts_.cnr_threads));
+            opts_.conditional_reproducibility_threads));
     }
 
     // The two-level factorization algorithm requires nested-dissection
@@ -558,13 +570,13 @@ SymmetricFactor::~SymmetricFactor() = default;
 SymmetricFactor::SymmetricFactor(SymmetricFactor &&) noexcept = default;
 SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = default;
 
-void SymmetricFactor::set_num_threads(int num_threads) {
+void SymmetricFactor::set_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this engine
     // exactly as it was -- the same shape analyze() keeps on a failed
     // symbolic phase.
-    validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
+    validate_num_threads(num_threads, "SymmetricFactor::set_threads");
 
-    opts_.num_threads = num_threads;
+    opts_.threads = num_threads;
     if (session_) {
         // The live session is where a backend call reads the count from, and
         // Pardiso reads it at CALL SCOPE -- the count is not in the parameter
@@ -576,7 +588,7 @@ void SymmetricFactor::set_num_threads(int num_threads) {
     }
 }
 
-int SymmetricFactor::num_threads() const noexcept {
+int SymmetricFactor::threads() const noexcept {
     // Read THROUGH to the session rather than reporting `opts_`, whose copy
     // goes stale the moment a CO-OWNER of this session moves the count (the
     // setter above writes both, but it writes only ITS OWN engine's `opts_`).
@@ -584,7 +596,7 @@ int SymmetricFactor::num_threads() const noexcept {
     // the only one that answers the question this reader is asked. `opts_`
     // remains the answer before the first analyze(), when there is no session
     // to read and `opts_` is what the next one will be built from.
-    return session_ ? session_->config().num_threads : opts_.num_threads;
+    return session_ ? session_->config().num_threads : opts_.threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
@@ -604,11 +616,11 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // carries.
     if (detail::testing::AnalyzeFaultInjector::active) {
         const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
-        throw std::runtime_error(fmt::format(
+        throw hven::BackendError(fmt::format(
             "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
     }
 #endif
-    session->analyze(A);
+    backend_call([&] { session->analyze(A); });
 
 #ifdef HVEN_TESTING
     // Pure observation, not injection -- see PardisoIparmObserver's own doc
@@ -633,8 +645,8 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
 
 FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
     if (!has_pattern_ || !session_) {
-        throw std::runtime_error("SymmetricFactor::factorize: called before analyze() (or before "
-                                 "adopting a factorization that carries a symbolic analysis)");
+        throw std::logic_error("SymmetricFactor::factorize: called before analyze() (or before "
+                               "adopting a factorization that carries a symbolic analysis)");
     }
     if (!A.isCompressed()) {
         throw std::invalid_argument(
@@ -739,11 +751,11 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     }
 
     Vec rhs_buffer = rhs;
-    session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
+    backend_call([&] { session_->solve_partial(backend_phase, rhs_buffer.data(), x.data()); });
     ++counters_.partial_solve_count;
 
     SolveInfo info;
-    info.refinement_iters = session_->refinement_iters();
+    info.refinement_steps = session_->refinement_iters();
     return info;
 }
 
@@ -792,17 +804,17 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // configuration that session was built with rather than imposing a new
     // one on a factorization that has already been computed.
     Options opts;
-    opts.kind = FactorKind::kLDLT;
-    opts.num_threads = cfg.num_threads;
-    opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
-    opts.max_refinement_iters = cfg.max_refinement_iters;
+    opts.decomposition = Decomposition::kLdlt;
+    opts.threads = cfg.num_threads;
+    opts.pivot_perturbation_exponent = cfg.pivot_perturb_exp;
+    opts.max_refinement_steps = cfg.max_refinement_iters;
     opts.ordering = pardiso_ordering_of(cfg.ordering);
     opts.weighted_matching = cfg.weighted_matching;
     opts.matrix_scaling = cfg.matrix_scaling;
     opts.pivot_strategy = pardiso_pivot_strategy_of(cfg.pivot_strategy);
     opts.factorization_algorithm = pardiso_factorization_algorithm_of(cfg.factorization_algorithm);
     opts.solve_parallelism = pardiso_solve_parallelism_of(cfg.solve_parallelism);
-    opts.cnr_threads = cfg.cnr_threads;
+    opts.conditional_reproducibility_threads = cfg.cnr_threads;
     opts.collect_factor_mflops = cfg.collect_factor_mflops;
 
     SymmetricFactor adopted(opts);
@@ -834,11 +846,11 @@ bool SymmetricFactor::has_usable_numerics() const {
 
 void SymmetricFactor::require_solvable(const char *what) const {
     if (!session_ || !session_->has_numerics()) {
-        throw std::runtime_error(
+        throw std::logic_error(
             fmt::format("SymmetricFactor::{}: called before a successful factorize()", what));
     }
     if (numerics_refused_) {
-        throw std::runtime_error(fmt::format(
+        throw std::logic_error(fmt::format(
             "SymmetricFactor::{}: this engine adopted a factorization emitted at epoch {}, but the "
             "shared session has since been refactorized (it is at epoch {}) -- those numerics are "
             "stale and numeric reuse is refused; call factorize() to produce this engine's own",
@@ -856,7 +868,7 @@ Factorization::~Factorization() = default;
 
 SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, RHS, X, "solve");
@@ -864,7 +876,7 @@ SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
 
 SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, rhs, x, "solve");

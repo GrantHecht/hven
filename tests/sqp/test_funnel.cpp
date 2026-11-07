@@ -54,10 +54,11 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/globalization.h>
-#include <hven/drivers/sqp_solver.h>
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
@@ -213,10 +214,10 @@ TEST(FunnelHType, AcceptanceShrinksTheWidthByEquationThirteen) {
     FunnelStrategy s = funnel_at_1000();
     ASSERT_DOUBLE_EQ(s.width(), 1000.0);
 
-    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_DOUBLE_EQ(s.width(), 750.0);
 
-    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_DOUBLE_EQ(s.width(), 425.0);
 }
 
@@ -228,8 +229,8 @@ TEST(FunnelHType, RetractionUndoesOnlyTheLastJudgement) {
     FunnelStrategy s = funnel_at_1000();
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 1000.0) << "no judge() yet";
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     ASSERT_DOUBLE_EQ(s.width(), 425.0);
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 750.0);
@@ -237,7 +238,7 @@ TEST(FunnelHType, RetractionUndoesOnlyTheLastJudgement) {
     // retract: the retraction after it must not undo the PREVIOUS major's move.
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 750.0) << "already retracted; a second retraction is a no-op";
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 500.0, 100.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     ASSERT_DOUBLE_EQ(s.width(), 425.0);
     // The next major commits judge-less (the zero-step accept); the major after it
     // retracts. It must NOT undo the 750 -> 425 move above, which was a legitimate
@@ -245,7 +246,7 @@ TEST(FunnelHType, RetractionUndoesOnlyTheLastJudgement) {
     s.note_unjudged_commit();
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judge-less commit has no judgement to retract";
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 300.0, 50.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 300.0, 50.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     s.retract_last_judgement();
     EXPECT_DOUBLE_EQ(s.width(), 425.0) << "a judged commit still retracts exactly its own move";
     s.resume_from_restoration(50.0); // (13): 0.5·50 + 0.5·425 = 237.5
@@ -259,7 +260,8 @@ TEST(FunnelHType, SufficientDecreaseBoundaryIsInclusive) {
     {
         FunnelStrategy s = funnel_at_1000();
         const double on_boundary = detail::kFunnelBeta * 1000.0;
-        EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, on_boundary, 0.0)), StepVerdict::kAcceptH);
+        EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, on_boundary, 0.0)),
+                  StepVerdict::kAcceptFeasibilityStep);
         // (13): τ⁺ = 0.5·(β·1000) + 0.5·1000.
         EXPECT_DOUBLE_EQ(s.width(), (1.0 - detail::kFunnelKappa) * on_boundary +
                                         detail::kFunnelKappa * 1000.0);
@@ -302,7 +304,7 @@ TEST(FunnelHType, KappaRoleIsUnobservableAtOneHalf) {
 // h-type branch never consults f.)
 TEST(FunnelHType, ObjectiveIsNotConsultedOnTheHTypePath) {
     FunnelStrategy s = funnel_at_1000();
-    EXPECT_EQ(s.judge(ctx(1.0, 1.0e6, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(ctx(1.0, 1.0e6, 800.0, 500.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_DOUBLE_EQ(s.width(), 750.0);
 }
 
@@ -321,7 +323,7 @@ TEST(FunnelFType, SwitchingPlusArmijoAcceptsAndLeavesTheWidthUntouched) {
     s.reset(0.0);
     ASSERT_DOUBLE_EQ(s.width(), 100.0);
 
-    EXPECT_EQ(s.judge(ctx(10.0, 9.0, 1.0e-3, 1.0e-3, 1.0)), StepVerdict::kAcceptF);
+    EXPECT_EQ(s.judge(ctx(10.0, 9.0, 1.0e-3, 1.0e-3, 1.0)), StepVerdict::kAcceptObjectiveStep);
     EXPECT_DOUBLE_EQ(s.width(), 100.0);
 }
 
@@ -359,7 +361,7 @@ TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
     { // Δm_f exactly on the switching boundary ⇒ f-type (and Armijo passes).
         FunnelStrategy s;
         s.reset(0.0);
-        EXPECT_EQ(s.judge(ctx(10.0, 9.0, h, h, on_switching)), StepVerdict::kAcceptF);
+        EXPECT_EQ(s.judge(ctx(10.0, 9.0, h, h, on_switching)), StepVerdict::kAcceptObjectiveStep);
         EXPECT_DOUBLE_EQ(s.width(), 100.0); // f-type ⇒ width unchanged
     }
     { // A hair BELOW the switching boundary ⇒ h-type instead, and (12)
@@ -368,7 +370,7 @@ TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
         FunnelStrategy s;
         s.reset(0.0);
         const double below = std::nextafter(on_switching, -std::numeric_limits<double>::infinity());
-        EXPECT_EQ(s.judge(ctx(10.0, 9.0, h, h, below)), StepVerdict::kAcceptH);
+        EXPECT_EQ(s.judge(ctx(10.0, 9.0, h, h, below)), StepVerdict::kAcceptFeasibilityStep);
         EXPECT_DOUBLE_EQ(s.width(),
                          (1.0 - detail::kFunnelKappa) * h + detail::kFunnelKappa * 100.0);
     }
@@ -383,7 +385,7 @@ TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
             FunnelStrategy s;
             s.reset(0.0);
             EXPECT_EQ(s.judge(ctx(f_old, f_old - 1.01 * kFunnelSigma * pred, h, h, pred)),
-                      StepVerdict::kAcceptF);
+                      StepVerdict::kAcceptObjectiveStep);
         }
         {
             FunnelStrategy s;
@@ -397,7 +399,7 @@ TEST(FunnelFType, SwitchingAndArmijoBoundariesAreInclusive) {
         // the trial is f-type, and Eq. (11) then demands only Δf >= 0.
         FunnelStrategy s;
         s.reset(0.0);
-        EXPECT_EQ(s.judge(ctx(1.0, 1.0, 0.0, 0.0, 0.0)), StepVerdict::kAcceptF);
+        EXPECT_EQ(s.judge(ctx(1.0, 1.0, 0.0, 0.0, 0.0)), StepVerdict::kAcceptObjectiveStep);
         EXPECT_DOUBLE_EQ(s.width(), 100.0);
         EXPECT_EQ(s.judge(ctx(1.0, std::nextafter(1.0, 2.0), 0.0, 0.0, 0.0)), StepVerdict::kReject);
     }
@@ -410,12 +412,12 @@ TEST(FunnelFType, SwitchingConditionScalesWithTheSquareOfInfeasibility) {
     // Δm_f = 1.0. (10) holds iff 1.0 >= 0.999·h², i.e. h <= 1.0005... .
     FunnelStrategy near;
     near.reset(0.0);
-    EXPECT_EQ(near.judge(ctx(10.0, 9.0, 1.0, 1.0, 1.0)), StepVerdict::kAcceptF);
+    EXPECT_EQ(near.judge(ctx(10.0, 9.0, 1.0, 1.0, 1.0)), StepVerdict::kAcceptObjectiveStep);
 
     // Same Δm_f, h = 10 ⇒ 1.0 >= 99.9 is false ⇒ h-type, and (12) accepts.
     FunnelStrategy far;
     far.reset(0.0);
-    EXPECT_EQ(far.judge(ctx(10.0, 9.0, 10.0, 10.0, 1.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(far.judge(ctx(10.0, 9.0, 10.0, 10.0, 1.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_LT(far.width(), 100.0);
 }
 
@@ -426,22 +428,22 @@ TEST(FunnelFType, SwitchingConditionScalesWithTheSquareOfInfeasibility) {
 // switching threshold in opposite directions, so the swap flips the verdict.
 TEST(FunnelFType, SwitchingConditionReadsTheCurrentIterateNotTheTrial) {
     // τ = 100. Δm_f = 5. δ·h_old² = 0.999, δ·h_new² = 99.9.
-    //   as written (h_old): 5 >= 0.999  ⇒ f-type, Δf = 1 >= 5e-4 ⇒ kAcceptF.
-    //   with h_new:         5 >= 99.9   ⇒ h-type, 10 <= 99      ⇒ kAcceptH.
+    //   as written (h_old): 5 >= 0.999  ⇒ f-type, Δf = 1 >= 5e-4 ⇒ kAcceptObjectiveStep.
+    //   with h_new:         5 >= 99.9   ⇒ h-type, 10 <= 99      ⇒ kAcceptFeasibilityStep.
     {
         FunnelStrategy s;
         s.reset(0.0);
-        EXPECT_EQ(s.judge(ctx(10.0, 9.0, 1.0, 10.0, 5.0)), StepVerdict::kAcceptF);
+        EXPECT_EQ(s.judge(ctx(10.0, 9.0, 1.0, 10.0, 5.0)), StepVerdict::kAcceptObjectiveStep);
         EXPECT_DOUBLE_EQ(s.width(), 100.0) << "an f-type accept must not move the width";
     }
     // The mirror image: h_old and h_new exchanged, same Δm_f.
-    //   as written (h_old): 5 >= 99.9   ⇒ h-type, 1 <= 99       ⇒ kAcceptH,
+    //   as written (h_old): 5 >= 99.9   ⇒ h-type, 1 <= 99       ⇒ kAcceptFeasibilityStep,
     //                                     τ⁺ = 0.5·1 + 0.5·100 = 50.5.
-    //   with h_new:         5 >= 0.999  ⇒ f-type                ⇒ kAcceptF.
+    //   with h_new:         5 >= 0.999  ⇒ f-type                ⇒ kAcceptObjectiveStep.
     {
         FunnelStrategy s;
         s.reset(0.0);
-        EXPECT_EQ(s.judge(ctx(10.0, 9.0, 10.0, 1.0, 5.0)), StepVerdict::kAcceptH);
+        EXPECT_EQ(s.judge(ctx(10.0, 9.0, 10.0, 1.0, 5.0)), StepVerdict::kAcceptFeasibilityStep);
         EXPECT_DOUBLE_EQ(s.width(), 50.5);
     }
 }
@@ -596,7 +598,8 @@ TEST(FunnelRestore, NearMissTrialIsInsideTheFunnel) {
     // still lies inside the funnel is judged by the ordinary h-type rule.
     FunnelStrategy s = funnel_at_1000();
     // h_new = 900 <= τ = 1000, and 900 <= β·τ = 990 ⇒ Eq. (12) accepts.
-    EXPECT_EQ(s.judge(stalled_ctx(10.0, 10.0, 800.0, 900.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(stalled_ctx(10.0, 10.0, 800.0, 900.0, 0.0)),
+              StepVerdict::kAcceptFeasibilityStep);
 }
 
 // =============================================================================
@@ -606,7 +609,7 @@ TEST(FunnelRestore, NearMissTrialIsInsideTheFunnel) {
 // The property: across ANY sequence of judgements, the width is monotonically
 // non-increasing (KLV, text under Eq. (9): "the funnel ... whose width is
 // monotonically non-increasing; that is, τ⁽ᵏ⁺¹⁾ <= τ⁽ᵏ⁾ for all k >= 0"), it
-// moves ONLY on a kAcceptH, and each such move contracts by at least the
+// moves ONLY on a kAcceptFeasibilityStep, and each such move contracts by at least the
 // factor θ = 1 − (1−β)(1−κ) from Thm. 1 case 1.
 TEST(FunnelInvariant, WidthIsMonotoneAndContractsOnlyOnHTypeAccepts) {
     const double theta = 1.0 - (1.0 - detail::kFunnelBeta) * (1.0 - detail::kFunnelKappa);
@@ -633,7 +636,7 @@ TEST(FunnelInvariant, WidthIsMonotoneAndContractsOnlyOnHTypeAccepts) {
 
         EXPECT_LE(now, previous) << "step " << i << ": the funnel width widened";
 
-        if (v == StepVerdict::kAcceptH) {
+        if (v == StepVerdict::kAcceptFeasibilityStep) {
             EXPECT_LT(now, previous) << "step " << i << ": an h-type accept must shrink it";
             EXPECT_LE(now, theta * previous)
                 << "step " << i << ": Thm. 1's contraction factor was not met";
@@ -686,7 +689,7 @@ TEST(FunnelInvariant, WidthIsMonotoneOverManyScriptedSequences) {
 
             const StepVerdict v = s.judge(c);
             EXPECT_LE(s.width(), previous);
-            if (v == StepVerdict::kAcceptH) {
+            if (v == StepVerdict::kAcceptFeasibilityStep) {
                 ++h_accepts;
                 EXPECT_LT(s.width(), previous);
                 EXPECT_LE(s.width(), theta * previous);
@@ -695,7 +698,7 @@ TEST(FunnelInvariant, WidthIsMonotoneOverManyScriptedSequences) {
                     << "Eq. (13) arithmetic";
             } else {
                 EXPECT_DOUBLE_EQ(s.width(), previous);
-                if (v == StepVerdict::kAcceptF) {
+                if (v == StepVerdict::kAcceptObjectiveStep) {
                     ++f_accepts;
                 }
             }
@@ -711,7 +714,7 @@ TEST(FunnelInvariant, WidthIsMonotoneOverManyScriptedSequences) {
 
 TEST(FunnelInvariant, ResetClearsState) {
     FunnelStrategy s = funnel_at_1000();
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     ASSERT_DOUBLE_EQ(s.width(), 750.0);
 
     // A new solve re-derives the width from ITS OWN h⁰ (Eq. 9) — including
@@ -722,7 +725,7 @@ TEST(FunnelInvariant, ResetClearsState) {
     EXPECT_DOUBLE_EQ(s.width(), 1250.0);
 
     // And the funnel behaves like a freshly constructed one at that width.
-    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 1000.0, 600.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 1000.0, 600.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_DOUBLE_EQ(s.width(),
                      (1.0 - detail::kFunnelKappa) * 600.0 + detail::kFunnelKappa * 1250.0);
 }
@@ -741,11 +744,11 @@ TEST(FunnelResume, RebasesByEqThirteenAndNotByEqNine) {
     FunnelStrategy s = funnel_at_1000();
     // Tighten it well below tau_bar first, so the two rules disagree loudly:
     // an h-type accept at h = 4 takes tau from 1000 to 502.
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 4.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 4.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     ASSERT_DOUBLE_EQ(s.width(), 502.0);
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 4.0, 1.0, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 4.0, 1.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     ASSERT_DOUBLE_EQ(s.width(), 251.5);
-    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 1.0, 0.5, 0.0)), StepVerdict::kAcceptH);
+    ASSERT_EQ(s.judge(ctx(10.0, 10.0, 1.0, 0.5, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     const double before = s.width();
     ASSERT_DOUBLE_EQ(before, 126.0);
 
@@ -801,7 +804,9 @@ TEST(FunnelResume, DefaultImplementationIsAReset) {
     class Minimal final : public GlobalizationStrategy {
       public:
         void reset(double h0) override { last_reset = h0; }
-        StepVerdict judge(const StepContext &) override { return StepVerdict::kAcceptF; }
+        StepVerdict judge(const StepContext &) override {
+            return StepVerdict::kAcceptObjectiveStep;
+        }
         double last_reset = -1.0;
     };
     Minimal m;
@@ -857,7 +862,7 @@ TEST(FunnelInvariant, DrivesThroughTheGlobalizationStrategyInterface) {
     FunnelStrategy concrete;
     GlobalizationStrategy &s = concrete;
     s.reset(800.0);
-    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptH);
+    EXPECT_EQ(s.judge(ctx(10.0, 10.0, 800.0, 500.0, 0.0)), StepVerdict::kAcceptFeasibilityStep);
     EXPECT_DOUBLE_EQ(concrete.width(), 750.0);
 }
 
@@ -884,9 +889,9 @@ TEST(FunnelFullStep, AcceptsWhatTheFunnelWouldRejectWithoutMovingTheWidth) {
     FunnelStrategy s = funnel_at_1000();
     s.begin_full_step();
     EXPECT_TRUE(s.in_full_step());
-    EXPECT_EQ(s.judge(outside), StepVerdict::kAcceptF);
-    EXPECT_EQ(s.judge(armijo), StepVerdict::kAcceptF);
-    EXPECT_EQ(s.judge(hsteep), StepVerdict::kAcceptF);
+    EXPECT_EQ(s.judge(outside), StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(s.judge(armijo), StepVerdict::kAcceptObjectiveStep);
+    EXPECT_EQ(s.judge(hsteep), StepVerdict::kAcceptObjectiveStep);
     EXPECT_DOUBLE_EQ(s.width(), 1000.0) << "no verdict the mode returns may move tau";
 }
 

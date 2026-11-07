@@ -37,16 +37,16 @@
 
 namespace {
 
-using hven::solvers::ElasticSlackInit;
-using hven::solvers::IpmSolver;
-using hven::solvers::kBoundMultResetThreshold;
-using hven::solvers::kNearFeasibleGuardFactor;
-using hven::solvers::kRestoPenaltyParameter;
-using hven::solvers::kRestoProximityWeight;
-using hven::solvers::l1_elastic_slack_init;
-using hven::solvers::NestedL1Restoration;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::SolverContext;
+using hven::IpmSolver;
+using hven::detail::ElasticSlackInit;
+using hven::detail::kBoundMultResetThreshold;
+using hven::detail::kNearFeasibleGuardFactor;
+using hven::detail::kRestoPenaltyParameter;
+using hven::detail::kRestoProximityWeight;
+using hven::detail::l1_elastic_slack_init;
+using hven::detail::NestedL1Restoration;
+using hven::detail::ProgressMeasures;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // =============================================================================
@@ -638,12 +638,12 @@ TEST(L1RestoRecenter, ResetClearsRecenterCount) {
 
 TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 2;
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
-    const double threshold = kNearFeasibleGuardFactor * inert.opts_.econ_tol; // 1e-7
+    const double threshold = kNearFeasibleGuardFactor * inert.opts_.common.feasibility_tol; // 1e-7
     EXPECT_FALSE(r.entry_permitted(threshold, ctx));       // "<=" refuses at boundary
     EXPECT_FALSE(r.entry_permitted(threshold * 0.5, ctx)); // below -> refused
     EXPECT_TRUE(r.entry_permitted(threshold * 2.0, ctx));  // above -> permitted
@@ -652,8 +652,8 @@ TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
 
 TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 2;
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -676,8 +676,8 @@ TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
 
 TEST(L1RestoEntryPermitted, ZeroBudgetAlwaysRefuses) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 0;
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 0;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -762,10 +762,10 @@ TEST(L1RestoReset, ClearsAllElasticState) {
 
 TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 0);
-    EXPECT_EQ(result.last_feas_rest_iters, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 0);
 }
 
 TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -785,10 +785,10 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_nested(ref, xr, eq, empty, 0.2);
     r.note_iteration();
 
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 2);
-    EXPECT_EQ(result.last_feas_rest_iters, 4);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 2);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 4);
 }
 
 // Reference the reset-threshold constant so the header's declaration is

@@ -1,0 +1,5 @@
+LEG_START mode=interior 2026-11-01T23:12:54-05:00
+7beeca673de33679a47a435ed025796d5676cbcde4b3fa005d82defd8edca3e0  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armB/hven_sqp_corpus
+RUN mode=interior arm=A 2026-11-01T23:13:18-05:00
+RUN mode=interior arm=B 2026-11-01T23:13:30-05:00
+LEG_END mode=interior worst_rc=0 2026-11-01T23:13:42-05:00

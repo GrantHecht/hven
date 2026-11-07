@@ -54,9 +54,9 @@ TEST(FailByDesignControl, SqpSeamStillZeroFillsItsPreFactorizationInertia) {
            "now reads kUnavailable, either the seam changed or its adapter started smoothing it "
            "toward the new surface's semantics, and the fail-by-design trace this guards has "
            "stopped finding anything";
-    EXPECT_EQ(e.n_pos, 0);
-    EXPECT_EQ(e.n_neg, 0);
-    EXPECT_EQ(e.n_zero, 0)
+    EXPECT_EQ(e.positive, 0);
+    EXPECT_EQ(e.negative, 0);
+    EXPECT_EQ(e.zero, 0)
         << "the zero-filled triple IS the finding: it is indistinguishable from a real reading, "
            "which is precisely why the unified surface refuses to produce one";
 }
@@ -89,9 +89,9 @@ TEST(FailByDesignControl, PsioptSeamStillZeroFillsItsPreFactorizationInertiaOnAp
 
     const hl::InertiaEvidence e = seam->inertia();
     EXPECT_EQ(e.state, hl::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(e.n_pos, 0);
-    EXPECT_EQ(e.n_neg, 0);
-    EXPECT_EQ(e.n_zero, 0);
+    EXPECT_EQ(e.positive, 0);
+    EXPECT_EQ(e.negative, 0);
+    EXPECT_EQ(e.zero, 0);
     EXPECT_TRUE(e.perturbed_pivots.has_value())
         << "this seam's perturbed-pivot accessor returns a hardcoded zero on a backend with no "
            "such counter -- a PRESENT zero is the fabrication, and its absence here would mean "

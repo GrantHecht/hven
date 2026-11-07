@@ -30,7 +30,7 @@
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief Completes the raw inequality residual g(x) into g(x) + s: a slack
 /// below neg_slack_reset is clamped to that floor for the purpose of the sum
@@ -70,6 +70,35 @@ inline double max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
         }
     }
     return alpha;
+}
+
+/// @brief Slack width (2^26 = 1/sqrt(eps)) at and beyond which a slack pair is FAR.
+///
+/// The KKT solve returns a multiplier step with absolute error near eps times the
+/// multiplier scale, and s*lambda multiplies that error by s. The width is a
+/// conservative cut, not a derived bound: harm is observed only from s ~ 1e14.
+/// Slacks are in the row's own units (rows are not scaled), so a row with large values
+/// in its units (e.g. positions in metres) can cross the width with an ordinary bound.
+inline constexpr double kFarSlackWidth = 67108864.0;
+
+/// @brief Far-pair multiplier recovery: for every slack pair with S[i] >= kFarSlackWidth,
+/// replaces the solved multiplier step with dLI = -R - (LI/S)*dS, where R is the RHS
+/// slack-row entry (LI - mu/S for a centring step, LI for an affine probe).
+///
+/// Exact for the pair's own linearized complementarity; coincides with the solved slack
+/// row where the KKT diagonal is LI/S. Pairs below the width keep the solved step bit for
+/// bit. DXSL sign convention: the step is the NEGATED solution, so the slack row reads
+/// (LI/S)*dS + dLI = -R.
+inline void recover_far_slack_multiplier_steps(ConstEigenRef<Eigen::VectorXd> S,
+                                               ConstEigenRef<Eigen::VectorXd> LI,
+                                               ConstEigenRef<Eigen::VectorXd> R,
+                                               ConstEigenRef<Eigen::VectorXd> dS,
+                                               EigenRef<Eigen::VectorXd> dLI) {
+    const Eigen::Index n = S.size();
+    for (Eigen::Index i = 0; i < n; i++) {
+        if (S[i] >= kFarSlackWidth)
+            dLI[i] = -R[i] - (LI[i] / S[i]) * dS[i];
+    }
 }
 
 /// @brief Log-barrier objective -mu * sum(log s_i) over the first inequal_cons slacks.
@@ -232,4 +261,4 @@ inline void accumulate_bound_sigma(ConstEigenRef<Eigen::VectorXd> x, const Bound
     }
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

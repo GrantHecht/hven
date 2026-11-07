@@ -1,26 +1,25 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// The shared declared diagnostics, defined once (M6 W5 T8.4).
+// SolveBudget validation and the shared declared diagnostics, defined once.
 //
-// A TU rather than an inline body, on solve_status.cpp's footing: this is
-// reporting arithmetic taken ONCE per solve, at the exit seam, not a
-// per-element hot path, and CLAUDE.md §5 places that in a .cpp.
-//
-// It EVALUATES NOTHING. Every model quantity arrives as an argument, from the
-// evaluation the engine already holds at the point it is about to return -- see
-// drivers/solve_result.h on why a fresh evaluation here would be a defect and
-// not a convenience.
+// The diagnostics are reporting arithmetic taken once per solve, at the exit
+// seam, not a per-element hot path, so they live in a .cpp. They EVALUATE
+// NOTHING: every model quantity arrives as an argument, from the evaluation the
+// engine already holds at the point it is about to return (see
+// detail/drivers/declared_diagnostics.h).
 
+#include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/drivers/solve_result.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+namespace hven {
 
 namespace {
 
@@ -45,6 +44,22 @@ void check_core_shapes(const Vec &x, const Vec &lambda_i, const Vec &z, const Ve
 }
 
 } // namespace
+
+void validate(const SolveBudget &budget) {
+    if (budget.max_iterations &&
+        (*budget.max_iterations < 1 || *budget.max_iterations > std::numeric_limits<int>::max())) {
+        throw std::invalid_argument(
+            fmt::format("SolveBudget::max_iterations must be empty or in [1, {}], got {}",
+                        std::numeric_limits<int>::max(), *budget.max_iterations));
+    }
+    if (budget.max_minor_iterations && *budget.max_minor_iterations < 1) {
+        throw std::invalid_argument(
+            fmt::format("SolveBudget::minor_budget must be empty or >= 1, got {}",
+                        *budget.max_minor_iterations));
+    }
+}
+
+namespace detail {
 
 DeclaredDiagnostics compute_declared_diagnostics(const Vec &x, const Vec &lambda_e,
                                                  const Vec &lambda_i, const Vec &z, const Vec &grad,
@@ -205,4 +220,6 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
     return d;
 }
 
-} // namespace hven::solvers
+} // namespace detail
+
+} // namespace hven

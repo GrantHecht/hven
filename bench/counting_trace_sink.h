@@ -20,7 +20,7 @@
 
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers::corpus {
+namespace hven::corpus {
 
 /// @brief A real sink that COUNTS, per site, and keeps nothing else.
 ///
@@ -30,21 +30,21 @@ namespace hven::solvers::corpus {
 /// returns. The per-site counts ARE the evidence that each mapper site fired.
 class CountingTraceSink final : public TraceSink {
   public:
-    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override { ++ipqp_iter_; }
-    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override { ++other_; }
-    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override { ++other_; }
-    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override { ++other_; }
-    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override { ++other_; }
-    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override { ++other_; }
-    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {
+    void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override { ++ipqp_iter_; }
+    void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override { ++other_; }
+    void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override { ++other_; }
+    void on_ipqp_route(const hven::IpqpRouteTraceEvent &) override { ++other_; }
+    void on_ipqp_certify(const hven::IpqpCertifyTraceEvent &) override { ++other_; }
+    void on_ipqp_escape(const hven::IpqpEscapeTraceEvent &) override { ++other_; }
+    void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {
         ++fallback_verdict_;
     }
-    void on_sqp_major(const hven::solvers::SqpMajorTraceEvent &) override { ++other_; }
-    void on_sqp_solve_begin(const hven::solvers::SqpSolveBeginTraceEvent &) override { ++other_; }
-    void on_sqp_solve_end(const hven::solvers::SqpSolveEndTraceEvent &) override { ++other_; }
-    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &) override { ++other_; }
-    void on_ipm_solve_begin(const hven::solvers::IpmSolveBeginTraceEvent &) override { ++other_; }
-    void on_ipm_solve_end(const hven::solvers::IpmSolveEndTraceEvent &) override { ++other_; }
+    void on_sqp_major(const hven::SqpMajorTraceEvent &) override { ++other_; }
+    void on_sqp_solve_begin(const hven::SqpSolveBeginTraceEvent &) override { ++other_; }
+    void on_sqp_solve_end(const hven::SqpSolveEndTraceEvent &) override { ++other_; }
+    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { ++other_; }
+    void on_ipm_solve_begin(const hven::IpmSolveBeginTraceEvent &) override { ++other_; }
+    void on_ipm_solve_end(const hven::IpmSolveEndTraceEvent &) override { ++other_; }
 
     /// THE ONE THAT MATTERS. `qp.mode` is the event both driver-side
     /// `trace_outcome_of` calls construct and both kernels-side
@@ -53,19 +53,19 @@ class CountingTraceSink final : public TraceSink {
     /// mapper's call sites executed.
     void on_qp_mode(const QpModeTraceEvent &event) override {
         switch (event.site) {
-        case QpModeSite::kDispatch:
+        case QpTraceModeSite::kDispatch:
             ++dispatch;
             break;
-        case QpModeSite::kSsnWarmGrade:
+        case QpTraceModeSite::kSsnWarmGrade:
             ++ssn_warm_grade;
             break;
-        case QpModeSite::kFallbackRungB:
+        case QpTraceModeSite::kFallbackRungB:
             ++fallback_rung_b;
             break;
-        case QpModeSite::kElasticRung:
+        case QpTraceModeSite::kElasticRung:
             ++elastic_rung;
             break;
-        case QpModeSite::kSocResolve:
+        case QpTraceModeSite::kSocResolve:
             ++soc_resolve;
             break;
         // M7 W2 M1 added this site with SqpOptions::qp_cap_retry, which ships
@@ -75,7 +75,7 @@ class CountingTraceSink final : public TraceSink {
         // is what proves "attached and reached" for a site no named column
         // reports, and promoting it to a column is the job of whichever task
         // first measures the retry lever.
-        case QpModeSite::kCapRetry:
+        case QpTraceModeSite::kCapRetry:
             ++other_;
             break;
         }
@@ -116,4 +116,4 @@ class CountingTraceSink final : public TraceSink {
     long long other_ = 0;
 };
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

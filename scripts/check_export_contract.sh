@@ -125,4 +125,47 @@ INCLUDE_DIRS_COUNT="$(grep -c 'INTERFACE_INCLUDE_DIRECTORIES' "${TARGETS_FILE}" 
     || fail "INTERFACE_INCLUDE_DIRECTORIES appears ${INCLUDE_DIRS_COUNT} times in ${TARGETS_FILE} (expected exactly once)"
 echo "-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once"
 
+# No public header includes a `detail/` header.
+#
+# "Public header" = any installed header under <prefix>/include/hven that is not
+# itself inside a `detail/` directory. Its #include lines are scanned for any path
+# with a `detail/` component; one such line anywhere is a failure. There is no
+# allow-list. (Only #include lines match: a string literal or comment that merely
+# mentions a detail path is not an include.)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREFIX_DIR="$(cd "${TARGETS_DIR}/../../.." && pwd)"
+INCLUDE_ROOT="${PREFIX_DIR}/include/hven"
+[ -d "${INCLUDE_ROOT}" ] || fail "no installed headers at ${INCLUDE_ROOT} (derived from ${TARGETS_FILE})"
+
+FOUND_PAIRS="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -name '*.h' -not -path '*/detail/*' | sed 's|^\./||' | LC_ALL=C sort |
+        while IFS= read -r header; do
+            { grep -E '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"][^>"]*detail/' "${header}" || true; } |
+                sed -E 's/^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"]([^>"]*)[>"].*/\1/' |
+                while IFS= read -r included; do
+                    echo "${header}|${included}"
+                done
+        done | LC_ALL=C sort
+)"
+[ -z "${FOUND_PAIRS}" ] \
+    || fail "public header(s) include a detail/ header (header|included):
+${FOUND_PAIRS}"
+echo "-- no public header includes a detail/ header"
+
+# The umbrella <hven/hven.h> includes every public header (M8 B8): a public header it
+# does not name is a header no "#include <hven/hven.h>" consumer can see.
+[ -f "${INCLUDE_ROOT}/hven.h" ] || fail "no umbrella header at ${INCLUDE_ROOT}/hven.h"
+MISSING_FROM_UMBRELLA="$(
+    cd "${INCLUDE_ROOT}" &&
+        find . -name '*.h' -not -path '*/detail/*' -not -path './hven.h' | sed 's|^\./||' |
+        LC_ALL=C sort | while IFS= read -r header; do
+            grep -qE "^#include <hven/${header}>\$" hven.h || echo "${header}"
+        done
+)"
+[ -z "${MISSING_FROM_UMBRELLA}" ] \
+    || fail "public header(s) the umbrella hven.h does not include:
+${MISSING_FROM_UMBRELLA}"
+echo "-- the umbrella hven.h includes every public header"
+
 echo "== export contract OK for platform=${PLATFORM}, align=${ALIGN_VALUE}"

@@ -8,8 +8,8 @@
 // negative curvature) to its first blocker instead.
 //
 // The dump is the C11 census's BRITGAS elastic qp1 (tests/qp/fixtures/e2-d4/C11_BRITGAS_qp1.txt;
-// `result` = the in-cell outcome at m7 21369067: kMaxIter at the 6980-minor cap, site=667). Its
-// walk cycled through such steps (329 in-face ascending ordinary steps; the trace is in the W1
+// `result` = the in-cell outcome at m7 21369067: kIterationLimit at the 6980-minor cap, site=667).
+// Its walk cycled through such steps (329 in-face ascending ordinary steps; the trace is in the W1
 // report). No global oracle exists for this nonconvex QP: the assertions are the descent of every
 // in-face step, the KKT battery, and a positive-definite reduced Hessian on the final face.
 //
@@ -30,22 +30,21 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using hven::test_support::QpDump;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Record = hven::detail::testing::QpWalkMinorRecord;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == kBorder ? "border" : "refactorize";
-}
+const char *alg_name(QpWorkingSetAlgebra alg) { return alg == kBorder ? "border" : "refactorize"; }
 
 double objective(const QpProblem &qp, const Vec &x) {
     return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
@@ -170,13 +169,13 @@ QpDump britgas_qp1() {
                                             "/C11_BRITGAS_qp1.txt");
 }
 
-void expect_britgas_qp1(WorkingSetLinearAlgebra alg) {
+void expect_britgas_qp1(QpWorkingSetAlgebra alg) {
     const QpDump d = britgas_qp1();
     // The premise: the in-cell walk ended at its minor cap (site 667).
     ASSERT_NE(d.result.find("status=1"), std::string::npos) << d.result;
     ASSERT_NE(d.result.find("site=667"), std::string::npos) << d.result;
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const Walk w = observed(d, o);
     const QpSolution &s = w.solution;
@@ -261,7 +260,7 @@ TEST(QpW1AscentGuard, TheOptionOffWalkTakesNoGuardRide) {
     const QpDump d = britgas_qp1();
     for (const auto alg : {kBorder, kRefactorize}) {
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         o.independent_working_set = false;
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         std::printf("[ w1 ] option-off %s status=%d minors=%ld\n", alg_name(alg),

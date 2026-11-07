@@ -10,8 +10,8 @@
 // pass stands still, the walk now takes the border retreat and re-checks.
 //
 // The fixtures are the seven ACOPR118 / ACOPP118 `default` sub-QPs that capped in-cell at the
-// fix8 head (each dump's `result` line: status=1, kMaxIter). Every one is feasible (phase-1 LP
-// minimum 0) inside a finite trust-region box, so a minimiser exists. The eighth capped QP,
+// fix8 head (each dump's `result` line: status=1, kIterationLimit). Every one is feasible (phase-1
+// LP minimum 0) inside a finite trust-region box, so a minimiser exists. The eighth capped QP,
 // ACOPP118 qp2, also fails on the bound-eliminated path and is not a fixture here.
 //
 // REFERENCES. ACOPR118 qp3-qp6 and ACOPP118 qp0-qp1: the kRefactorize algebra of the same
@@ -32,27 +32,28 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::test_support::QpDump;
 
 namespace {
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize";
+const char *alg_name(QpWorkingSetAlgebra alg) {
+    return alg == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize";
 }
 
 // MINOR AND FACTORIZATION COUNTS ARE PRINTED, NEVER ASSERTED: Release and Debug round these
 // subproblems differently (test_qp_unrun_dependency_test.cpp states the same for the
 // ACOPR118 dumps). The status, the objective, the KKT battery and the retreat count are the
 // assertions.
-void expect_certified(const char *file, WorkingSetLinearAlgebra alg, double f_reference) {
+void expect_certified(const char *file, QpWorkingSetAlgebra alg, double f_reference) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     // The premise: in-cell, this subproblem ran to its iteration cap.
     ASSERT_NE(d.result.find("status=1"), std::string::npos) << d.result;
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
 
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
@@ -69,14 +70,14 @@ void expect_certified(const char *file, WorkingSetLinearAlgebra alg, double f_re
 
 #if HVEN_TEST_ROUTE_REFERENCE
     // The retreat is a border-path rule, once per solve.
-    EXPECT_EQ(s.counters.standstill_retreats, alg == WorkingSetLinearAlgebra::kSchurBorder ? 1 : 0);
+    EXPECT_EQ(s.counters.standstill_retreats, alg == QpWorkingSetAlgebra::kSchurBorder ? 1 : 0);
 
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
 #else
     // Off the reference build the walk's route -- whether it stood still and retreated, and
     // whether this capped fixture certifies inside its iteration budget -- is recorded, not
     // pinned (WX design section 2.1). The portable contract: an honest status for a feasible
-    // fixture (the dump's premise is an in-cell kMaxIter), and, if kOptimal, the battery and
+    // fixture (the dump's premise is an in-cell kIterationLimit), and, if kOptimal, the battery and
     // the reference basin below. The refactorize algebra never takes the retreat on any build.
     hven::test_support::record_off_reference_route(
         std::string(file) + "_" + alg_name(alg),
@@ -85,10 +86,10 @@ void expect_certified(const char *file, WorkingSetLinearAlgebra alg, double f_re
             " dep_border_retreats=" + std::to_string(s.counters.dep_border_retreats) +
             " minors=" + std::to_string(s.counters.minor_iters) +
             " facts=" + std::to_string(s.counters.factorizations));
-    if (alg != WorkingSetLinearAlgebra::kSchurBorder) {
+    if (alg != QpWorkingSetAlgebra::kSchurBorder) {
         EXPECT_EQ(s.counters.standstill_retreats, 0);
     }
-    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kMaxIter)
+    EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kIterationLimit)
         << "status " << static_cast<int>(s.status);
 #endif
     if (s.status != QpStatus::kOptimal) {
@@ -122,8 +123,8 @@ constexpr bool kDebugBuild = false;
 constexpr bool kDebugBuild = true;
 #endif
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
 } // namespace
 

@@ -26,6 +26,10 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # Threads::Threads reaches it through hven::hven's own interface.
     test_concurrency.cpp
     test_console_sink.cpp
+    # AP-2 B5: evaluation failure and the exception contract on both engines --
+    # trial-point failures rejected, the start point, foreign exceptions
+    # propagated unchanged with last_result() kept, the stop reasons.
+    test_evaluation_failure.cpp
     test_options.cpp
     # M7 W0 T5(b): the options dump and its drift pin -- three axes (declared
     # field count, sizeof, dumped line count) against IpmOptions, SqpOptions and
@@ -33,9 +37,20 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # because the claim is about BOTH engines' printers and the shared
     # CommonOptions block they each flatten.
     test_options_dump.cpp
+    # AP-2 B3: the work and time limits, the minor-budget label, the new
+    # validation refusals and silent-by-default, on both engines.
+    test_limits.cpp
+    # AP-2 B7: the absent-bound threshold (CommonOptions::infinite_bound) on both
+    # engines, the Nlp and pieces routes and the QP tier.
+    test_infinite_bound.cpp
     test_print_tables.cpp
+    # AP-2 B2: one problem type -- Problem on both engines, the per-solve re-read,
+    # the refusals by name, lambda and g in the problem's row space.
+    test_problem.cpp
     test_solve_status.cpp
     test_solve_result.cpp
+    # AP-2 B1: the solvers are movable handles; a move preserves the engine.
+    test_solver_move.cpp
     test_threads.cpp
     test_warm_protocol.cpp
 )

@@ -14,7 +14,7 @@
 
 #include <hven/detail/kkt/bordered_eqp.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -162,8 +162,8 @@ struct DepSystem {
                 u(i) = y(p);
             }
         }
-        const Vec top =
-            Vec(qp.H.selfadjointView<Eigen::Upper>() * u) + opts.primal_delta * u + at_times(qp, y);
+        const Vec top = Vec(qp.H.selfadjointView<Eigen::Upper>() * u) +
+                        opts.primal_regularization * u + at_times(qp, y);
         const Vec ae_u = qp.me() > 0 ? Vec(qp.Ae * u) : Vec::Zero(0);
         const Vec ai_u = qp.mi() > 0 ? rows_w->times(u) : Vec::Zero(0);
         Vec r = rhs;
@@ -1067,7 +1067,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
             ystar = Z * c / gamma;
             rscale = ystar.cwiseAbs().dot(rf.cwiseAbs());
         }
-        const double ctol = kRankConsistencyFactor * opts.feas_tol * std::max(1.0, rscale);
+        const double ctol = kRankConsistencyFactor * opts.feasibility_tol * std::max(1.0, rscale);
         const bool incons = gamma > ctol;
         Index best = -1;
         double bv = 0.0;
@@ -1114,4 +1114,4 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
     return out;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

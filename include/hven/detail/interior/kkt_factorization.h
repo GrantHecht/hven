@@ -24,7 +24,7 @@
 #include "hven/core/types.h"
 #include "hven/linear/symmetric_factor.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 class KktFactorization {
   public:
@@ -88,16 +88,16 @@ class KktFactorization {
 
     /// The thread count the factor is currently configured with -- the STORED
     /// option, which reconfigure() and set_num_threads() both keep in step.
-    int num_threads() const { return opts_.num_threads; }
+    int num_threads() const { return opts_.threads; }
 
     /// The LIVE backend session's own count, read through
-    /// SymmetricFactor::num_threads() (M6 W5 T8.8). Distinct from
+    /// SymmetricFactor::threads() (M6 W5 T8.8). Distinct from
     /// num_threads() above, which answers "what is this object configured
     /// with"; this one answers "what will the next backend call apply", which
     /// is what a boundary observation of the factor wants. The two agree
     /// whenever set_num_threads() is the only thing that has moved the count,
     /// which is the case for every hven caller.
-    int session_num_threads() const noexcept { return factor_.num_threads(); }
+    int session_num_threads() const noexcept { return factor_.threads(); }
 
     /// Drop the factorization, the symbolic analysis and the assembly buffer.
     void release();
@@ -221,4 +221,4 @@ class KktFactorization {
     int factor_flops_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

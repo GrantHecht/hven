@@ -112,11 +112,13 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/globalization/sqp/globalization.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/warmstart/continuation.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
 #include "../common_support/route_reference.h"
@@ -129,7 +131,7 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::assert_gradient;
@@ -437,13 +439,13 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
 SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Index max_iter,
                          bool failure_step = false) {
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = max_iter;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = max_iter;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = level;
-    opts.warm_full_step = full_step;
-    opts.enable_soc = enable_soc;
+    opts.advanced.warm_full_step = full_step;
+    opts.advanced.second_order_correction = enable_soc;
     // THE FAILED-SUBPROBLEM STEP IS OFF (M7 W2 R2, declared). It is gated off in
     // the full-step mode by design -- the full-step funnel accepts every trial
     // unjudged -- so with it on the KD lever would differ in TWO things, not one.
@@ -452,7 +454,7 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     // minors, 31 -> 39 factorizations, 3 -> 7 rejections, the same answers and the
     // same status counts. Every other cell, and every KD-on cell, is unchanged.
     // That reading is pinned by HsSweepCorpus.Hs15WarmKdOffWithTheFailedSubproblemStep.
-    opts.qp_failure_step = failure_step;
+    opts.advanced.qp_failure_step = failure_step;
     return opts;
 }
 
@@ -549,8 +551,9 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         model->set_parameters(Vec::Constant(1, p));
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
         SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
-        const SqpResult sol = have_prev ? driver.solve(*model, prev.x, prev.warm_start)
-                                        : driver.solve(*model, model->start_point());
+        const SqpResult sol =
+            have_prev ? driver.solve(hven::detail::problem_ref(*model), prev.x, prev.sqp_warm_start)
+                      : driver.solve(hven::detail::problem_ref(*model), model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -594,7 +597,7 @@ SweepCell run_cold_grid(const HsSweepSpec &spec, const std::vector<double> &grid
         SqpSolver driver(sweep_options(StartLevel::kCold, full_step, enable_soc, spec.max_iter));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model->set_parameters(Vec::Constant(1, grid[i]));
-        const SqpResult sol = driver.solve(*model, model->start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(*model), model->start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         if (sol.status == SolveStatus::kOptimal) {
             const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, sol, 1e-6);
@@ -1114,7 +1117,7 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
-    // 23/30. The shipped `SqpOptions::qp_failure_budget` moved from 1 to 3 on
+    // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
     // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
     // HS15's warm arm is the one cell in this corpus that routes a subproblem
     // failure at all: two more failures are now routed at the iterate that used
@@ -1384,7 +1387,7 @@ void check_soc_costs_what_it_costs() {
 //         :3908  the full-step arming              } unreachable on a cold solve
 //         :5109  make_warm_start's funnel->width() read, which runs on EVERY
 //                exit INCLUDING COLD -- so a decorated cold solve emits a
-//                SqpWarmStart whose funnel_width stays at the unset sentinel.
+//                SqpWarmState whose funnel_width stays at the unset sentinel.
 //       (Line numbers as of commit d83a8ed; sqp_solver.h has grown before and
 //       will again -- find the three sites by `dynamic_cast<.*FunnelStrategy`
 //       if these have drifted.)
@@ -1443,15 +1446,17 @@ void check_soc_trigger_ratios() {
             model->set_parameters(Vec::Constant(1, p));
             JudgeLog log;
             SqpOptions opts = sweep_options(StartLevel::kCold, true, true, spec.max_iter);
-            opts.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
+            opts.advanced.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
                 return std::make_unique<RecordingFunnel>(&log);
             };
             SqpSolver decorated(opts);
-            const SqpResult sd = decorated.solve(*model, model->start_point());
+            const SqpResult sd =
+                decorated.solve(hven::detail::problem_ref(*model), model->start_point());
 
             // (b): the decorator is inert on a cold solve. Asserted, not argued.
             SqpSolver plain(sweep_options(StartLevel::kCold, true, true, spec.max_iter));
-            const SqpResult sp = plain.solve(*model, model->start_point());
+            const SqpResult sp =
+                plain.solve(hven::detail::problem_ref(*model), model->start_point());
             ASSERT_EQ(sp.counters.major_iters, sd.counters.major_iters) << spec.name << " p=" << p;
             ASSERT_EQ(sp.counters.qp_minor_iters, sd.counters.qp_minor_iters)
                 << spec.name << " p=" << p;
@@ -1516,7 +1521,7 @@ TEST(HsSweepCorpus, Corpus) {
 // failed subproblems' own steps cost majors here and change neither the answers nor
 // the status count.
 TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
-    ASSERT_TRUE(SqpOptions{}.qp_failure_step) << "the shipped default this row pins";
+    ASSERT_TRUE(SqpOptions{}.advanced.qp_failure_step) << "the shipped default this row pins";
     const HsSweepSpec *spec = nullptr;
     for (const HsSweepSpec &sp : hs_sweep_specs()) {
         if (sp.name == std::string("HS15")) {
@@ -1584,32 +1589,33 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
 TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     auto model = make_hs_sweep(10);
     SqpOptions opts;
-    opts.kkt_tol = 1e-6;
-    opts.feas_tol = 1e-6;
-    opts.max_iter = 60;
-    opts.adaptive_mu = false;
+    opts.common.optimality_tol = 1e-6;
+    opts.common.feasibility_tol = 1e-6;
+    opts.common.max_iterations = 60;
+    opts.advanced.adaptive_dual_regularization = false;
     opts.common.start_level = StartLevel::kWarm;
 
     // --- solve at p = 0: the published HS10, solved from its own start point.
     model->set_parameters(Vec::Constant(1, 0.0));
     SqpSolver d0(opts);
-    const SqpResult s0 = d0.solve(*model, model->start_point());
+    const SqpResult s0 = d0.solve(hven::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s0.status);
     EXPECT_NEAR(-1.0, s0.f, 1e-6);
     EXPECT_NEAR(1.0, s0.x(1), 1e-6);
-    ASSERT_EQ(1, s0.lambda_i.size());
-    EXPECT_NEAR(0.5, s0.lambda_i(0), 1e-6) << "the exact multiplier derived above";
+    ASSERT_EQ(1, hven::detail::engine_rows(s0).lambda_i.size());
+    EXPECT_NEAR(0.5, hven::detail::engine_rows(s0).lambda_i(0), 1e-6)
+        << "the exact multiplier derived above";
 
     // THE PRECONDITION OF THE WHOLE MECHANISM, checked from the model: at
     // p = 0.5 the row is strictly slack AT THE OLD POINT, by far more than
     // feas_tol, while the stale price is strictly positive.
     model->set_parameters(Vec::Constant(1, 0.5));
     EXPECT_NEAR(-0.5, model->eval_ci(s0.x)(0), 1e-6) << "released, by 5e5 x feas_tol";
-    EXPECT_GT(s0.lambda_i(0), 0.0);
+    EXPECT_GT(hven::detail::engine_rows(s0).lambda_i(0), 0.0);
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
     SqpSolver d1(opts);
-    const SqpResult s1 = d1.solve(*model, s0.x, s0.warm_start);
+    const SqpResult s1 = d1.solve(hven::detail::problem_ref(*model), s0.x, s0.sqp_warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.
@@ -1631,7 +1637,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
-    const SqpResult s2 = d2.solve(*model, model->start_point());
+    const SqpResult s2 = d2.solve(hven::detail::problem_ref(*model), model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s2.status);
     EXPECT_NEAR(-std::sqrt(1.5), s2.f, 1e-6);
     const test_support::NlpKktResidual rc = test_support::self_check_kkt(*model, s2, 1e-6);
@@ -1709,6 +1715,6 @@ TEST(HsSweepModels, Hs15BranchEndsAtAPointWhereLicqFails) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

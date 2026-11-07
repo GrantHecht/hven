@@ -28,6 +28,8 @@
 // fingerprint lives in tests/sqp/test_warm_start.cpp beside the kHot chain it
 // belongs to.
 
+#include "hven/detail/globalization/sqp/globalization.h"
+#include "hven/detail/model/fixed_variable_treatment.h"
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
@@ -43,6 +45,7 @@
 #include "hven/core/ledger.h"
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/problem_access.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
@@ -53,14 +56,16 @@
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
 
+using namespace hven::detail;
+
 namespace {
 
-using hven::solvers::AcceptanceStrategies;
-using hven::solvers::BarrierGovernors;
-using hven::solvers::CommonOptions;
-using hven::solvers::FixedVariableTreatments;
-using hven::solvers::IpmOptions;
-using hven::solvers::IpmSolver;
+using hven::CommonOptions;
+using hven::IpmAcceptanceMode;
+using hven::IpmBarrierGovernorMode;
+using hven::IpmFixedVariableTreatment;
+using hven::IpmOptions;
+using hven::IpmSolver;
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
@@ -72,14 +77,14 @@ using hven_drivers_tests::Hs071Problem;
 // Silent, and otherwise default.
 IpmOptions quiet() {
     IpmOptions o;
-    o.common.print_level = 10;
+    o.common.verbosity = hven::Verbosity::kSilent;
     return o;
 }
 
 // A value validate() rejects, whichever field the caller is not looking at.
 void expect_refused(const IpmOptions &o, const char *field) {
     try {
-        hven::solvers::validate(o);
+        hven::validate(o);
         FAIL() << "validate() accepted an options value it must refuse (" << field << ")";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find(field), std::string::npos)
@@ -90,34 +95,31 @@ void expect_refused(const IpmOptions &o, const char *field) {
 } // namespace
 
 // ---------------------------------------------------------------------------
-// NEITHER ENGINE'S SOLVER OBJECT MOVES (design §2.1; fix round 1)
+// THE SOLVERS ARE MOVABLE HANDLES, NOT COPYABLE
 // ---------------------------------------------------------------------------
 //
-// Both classes own live backend sessions -- IpmSolver its KktFactor
-// and its unique_ptr globalization components, SqpSolver its QpEngine and the
-// two lazy tiers -- and neither has defined transfer semantics. Before T8.3 the
-// SQP driver's by-value QpEngine member enforced HALF of that by accident:
-// QpEngine declares no assignment, so move ASSIGNMENT was implicitly deleted.
-// Holding the engine through a unique_ptr removed that accident, which is why
-// the four operations are now deleted by declaration on both classes. A
-// moved-from driver would hold a null engine_, and every use dereferences it
-// without a check.
+// Both solvers are handles over a heap-allocated private implementation: they
+// are movable (the implementation keeps its address, so the cross-references
+// inside it survive a move) and not copyable. A moved-from solver may only be
+// destroyed or assigned to; tests/drivers/test_solver_move.cpp pins the
+// behaviour of a move, not just its traits.
 //
 // These are static_asserts rather than a TEST body deliberately: what is being
 // pinned is a compile-time property, and a regression must fail the BUILD.
-static_assert(!std::is_copy_constructible_v<hven::solvers::SqpSolver>,
+static_assert(!std::is_copy_constructible_v<hven::SqpSolver>,
               "SqpSolver must not be copy-constructible");
-static_assert(!std::is_copy_assignable_v<hven::solvers::SqpSolver>,
-              "SqpSolver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<hven::solvers::SqpSolver>,
-              "SqpSolver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<hven::solvers::SqpSolver>,
-              "SqpSolver must not be move-assignable");
+static_assert(!std::is_copy_assignable_v<hven::SqpSolver>, "SqpSolver must not be copy-assignable");
+static_assert(std::is_nothrow_move_constructible_v<hven::SqpSolver>,
+              "SqpSolver must be nothrow move-constructible");
+static_assert(std::is_nothrow_move_assignable_v<hven::SqpSolver>,
+              "SqpSolver must be nothrow move-assignable");
 
 static_assert(!std::is_copy_constructible_v<IpmSolver>, "IpmSolver must not be copy-constructible");
 static_assert(!std::is_copy_assignable_v<IpmSolver>, "IpmSolver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<IpmSolver>, "IpmSolver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<IpmSolver>, "IpmSolver must not be move-assignable");
+static_assert(std::is_nothrow_move_constructible_v<IpmSolver>,
+              "IpmSolver must be nothrow move-constructible");
+static_assert(std::is_nothrow_move_assignable_v<IpmSolver>,
+              "IpmSolver must be nothrow move-assignable");
 
 // The OPTIONS VALUES, by contrast, must move -- and SqpSolver::set_options()
 // relies on more than that: it assigns `opts_ = std::move(o)` AFTER the engine
@@ -125,7 +127,7 @@ static_assert(!std::is_move_assignable_v<IpmSolver>, "IpmSolver must not be move
 // the new engine standing beside the old options. This assert is what makes
 // that argument checkable: add a field whose move assignment can throw and the
 // build fails here, pointing at src/drivers/sqp_solver.cpp's set_options().
-static_assert(std::is_nothrow_move_assignable_v<hven::solvers::SqpOptions>,
+static_assert(std::is_nothrow_move_assignable_v<hven::SqpOptions>,
               "SqpSolver::set_options() commits the options after the engine swap on the "
               "strength of this");
 static_assert(std::is_nothrow_move_assignable_v<IpmOptions>,
@@ -140,72 +142,72 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     {
         // pos_int
         IpmOptions o;
-        o.max_iters = 0;
-        expect_refused(o, "max_iters");
+        o.common.max_iterations = 0;
+        expect_refused(o, "common.max_iterations");
     }
     {
         // the non-negative family (max_refac / max_ls_iters / max_soc /
         // ls_extended_iters / max_feas_rest share one condition and message)
         IpmOptions o;
-        o.max_feas_rest = -1;
-        expect_refused(o, "max_feas_rest");
+        o.advanced.max_restoration_entries = -1;
+        expect_refused(o, "advanced.max_restoration_entries");
     }
     {
         // combination guard 1: funnel/filter above an adaptive-only governor
         IpmOptions o;
-        o.acceptance_strategy = AcceptanceStrategies::funnel;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.never_monotone = false;
-        expect_refused(o, "acceptance_strategy");
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kFunnel;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+        o.advanced.never_monotone = false;
+        expect_refused(o, "advanced.acceptance_mode");
     }
     {
         // combination guard 2: never_monotone against the monitored governor
         IpmOptions o;
-        o.never_monotone = true;
-        o.barrier_governor = BarrierGovernors::monitored;
-        expect_refused(o, "never_monotone");
+        o.advanced.never_monotone = true;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kMonitored;
+        expect_refused(o, "advanced.never_monotone");
     }
     {
         // pos_finite
         IpmOptions o;
-        o.kkt_tol = std::numeric_limits<double>::quiet_NaN();
-        expect_refused(o, "kkt_tol");
+        o.common.optimality_tol = std::numeric_limits<double>::quiet_NaN();
+        expect_refused(o, "common.optimality_tol");
     }
     {
         // cross-field: convergence tol above its acceptable tol
         IpmOptions o;
-        o.acc_econ_tol = o.econ_tol / 10.0;
-        expect_refused(o, "econ_tol");
+        o.termination.acceptable_equality_tol = o.common.feasibility_tol / 10.0;
+        expect_refused(o, "termination.acceptable_equality_tol");
     }
     {
         // cross-field: acceptable tol above its divergence tol
         IpmOptions o;
-        o.div_kkt_tol = o.acc_kkt_tol / 10.0;
-        expect_refused(o, "acc_kkt_tol");
+        o.termination.divergence_kkt_tol = o.termination.acceptable_kkt_tol / 10.0;
+        expect_refused(o, "termination.acceptable_kkt_tol");
     }
     {
         // barrier ordering: min_mu above max_mu
         IpmOptions o;
-        o.min_mu = 10.0 * o.max_mu;
-        expect_refused(o, "min_mu");
+        o.barrier_min = 10.0 * o.barrier_max;
+        expect_refused(o, "barrier_min");
     }
     {
         // barrier ordering: init_mu outside [min_mu, max_mu]
         IpmOptions o;
-        o.init_mu = 10.0 * o.max_mu;
-        expect_refused(o, "init_mu");
+        o.barrier_initial = 10.0 * o.barrier_max;
+        expect_refused(o, "barrier_initial");
     }
     {
         // in_open_unit
         IpmOptions o;
-        o.bound_fraction = 1.0;
-        expect_refused(o, "bound_fraction");
+        o.fraction_to_boundary = 1.0;
+        expect_refused(o, "fraction_to_boundary");
     }
     {
         // greater_than
         IpmOptions o;
-        o.alpha_red = 1.0;
-        expect_refused(o, "alpha_red");
+        o.advanced.backtrack_divisor = 1.0;
+        expect_refused(o, "advanced.backtrack_divisor");
     }
     {
         // in_open_interval
@@ -216,33 +218,27 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     {
         // in_closed_interval
         IpmOptions o;
-        o.bound_relax_factor = 2.0 * hven::solvers::kMaxBoundRelaxFactor;
+        o.bound_relax_factor = 2.0 * hven::detail::kMaxBoundRelaxFactor;
         expect_refused(o, "bound_relax_factor");
     }
     {
         // check_fixed_variable_treatment (a closed-set enum still reaches the
         // struct as a plain field)
         IpmOptions o;
-        o.fixed_variable_treatment = static_cast<FixedVariableTreatments>(42);
+        o.fixed_variable_treatment = static_cast<IpmFixedVariableTreatment>(42);
         expect_refused(o, "fixed_variable_treatment");
     }
     {
         // the QP integer family: non-negative
         IpmOptions o;
-        o.qp_ref_steps = -1;
-        expect_refused(o, "qp_ref_steps");
-    }
-    {
-        // the QP integer family: exactly 0 or 1
-        IpmOptions o;
-        o.qp_matching = 2;
-        expect_refused(o, "qp_matching");
+        o.linear.max_refinement_steps = -1;
+        expect_refused(o, "linear.max_refinement_steps");
     }
     {
         // objective scale
         IpmOptions o;
-        o.obj_scale = -1.0;
-        expect_refused(o, "obj_scale");
+        o.objective_scale = -1.0;
+        expect_refused(o, "objective_scale");
     }
     {
         // the two fields that MOVED into CommonOptions keep the conditions
@@ -253,24 +249,31 @@ TEST(Options, IpmValidateRefusesWhatSettingsValidateRefused) {
     }
     {
         IpmOptions o;
-        o.common.print_level = -1;
-        expect_refused(o, "common.print_level");
+        o.common.verbosity = static_cast<hven::Verbosity>(7);
+        expect_refused(o, "common.verbosity");
     }
     // And the shipped default is accepted.
-    EXPECT_NO_THROW(hven::solvers::validate(IpmOptions{}));
+    EXPECT_NO_THROW(hven::validate(IpmOptions{}));
 }
 
-// The defaults each engine's `common` carries. The interior-point engine keeps
-// the values Settings::qp_threads_ and Settings::print_level_ had; the struct's
-// own defaults (0 / 3) are the SQP engine's, pinned beside SqpOptions.
+// The defaults each engine's `common` carries. Silent on BOTH engines (owner
+// decision 4); the iteration cap and thread count are each engine's own.
 TEST(Options, CommonDefaultsAreEachEnginesOwn) {
+    using hven::Verbosity;
     EXPECT_EQ(CommonOptions{}.threads, 0);
-    EXPECT_EQ(CommonOptions{}.print_level, 3);
-    EXPECT_EQ(CommonOptions{}.start_level, hven::solvers::StartLevel::kWarm);
+    EXPECT_EQ(CommonOptions{}.verbosity, Verbosity::kSilent);
+    EXPECT_EQ(CommonOptions{}.max_iterations, 100);
+    EXPECT_EQ(CommonOptions{}.optimality_tol, 1e-6);
+    EXPECT_EQ(CommonOptions{}.feasibility_tol, 1e-6);
+    EXPECT_FALSE(CommonOptions{}.max_factorizations.has_value());
+    EXPECT_FALSE(CommonOptions{}.time_limit_seconds.has_value());
+    EXPECT_EQ(CommonOptions{}.infinite_bound, 1e20);
+    EXPECT_EQ(CommonOptions{}.start_level, hven::StartLevel::kWarm);
 
-    EXPECT_EQ(IpmOptions{}.common.threads, HVEN_DEFAULT_QP_THREADS);
-    EXPECT_EQ(IpmOptions{}.common.print_level, 0);
-    EXPECT_EQ(IpmOptions{}.common.start_level, hven::solvers::StartLevel::kWarm);
+    EXPECT_EQ(IpmOptions{}.common.threads, HVEN_DEFAULT_IPM_THREADS);
+    EXPECT_EQ(IpmOptions{}.common.verbosity, Verbosity::kSilent);
+    EXPECT_EQ(IpmOptions{}.common.max_iterations, 1000);
+    EXPECT_EQ(IpmOptions{}.common.start_level, hven::StartLevel::kWarm);
 }
 
 // ---------------------------------------------------------------------------
@@ -282,19 +285,19 @@ TEST(Options, IpmSetOptionsIsTransactional) {
     const int good_iters = 123;
     {
         IpmOptions o = solver.options();
-        o.max_iters = good_iters;
+        o.common.max_iterations = good_iters;
         solver.set_options(std::move(o));
     }
-    ASSERT_EQ(solver.options().max_iters, good_iters);
+    ASSERT_EQ(solver.options().common.max_iterations, good_iters);
 
     IpmOptions bad = solver.options();
-    bad.max_iters = 0;
-    bad.kkt_tol = 1.0e-9;
+    bad.common.max_iterations = 0;
+    bad.common.optimality_tol = 1.0e-9;
     EXPECT_THROW(solver.set_options(bad), std::invalid_argument);
 
     // Neither field moved: the value is taken whole or not at all.
-    EXPECT_EQ(solver.options().max_iters, good_iters);
-    EXPECT_EQ(solver.options().kkt_tol, IpmOptions{}.kkt_tol);
+    EXPECT_EQ(solver.options().common.max_iterations, good_iters);
+    EXPECT_EQ(solver.options().common.optimality_tol, IpmOptions{}.common.optimality_tol);
 }
 
 // EVERY FIELD IS ACCEPTED, and the transcription-time twelve are not silently
@@ -311,16 +314,16 @@ TEST(Options, IpmSetOptionsIsTransactional) {
 TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // M6 W5 T8.9: the program is transcribed once, here, and handed to every
     // solve below as an argument -- the wrapper's lazy transcribe() is gone.
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     ASSERT_NE(program, nullptr);
     IpmSolver solver;
     {
         IpmOptions o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
-    hven::solvers::IpmResult result = solver.solve(*program, hs071_start());
-    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
     // Each edit is applied to the value in force, attempted alone, ACCEPTED,
     // and required to invalidate the analysis. qp_matching is left out and
@@ -329,36 +332,33 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // asserted to have invalidated the analysis; then the previous value is
     // restored and a solve re-establishes the precondition for the next field.
     //
-    // The restore is not tidiness. Several of these values are ones the BACKEND
-    // refuses at transcription -- qp_print = true is refused by name on the MKL
-    // surface, which exposes no message-level control -- and that refusal is a
-    // different rule from this one, raised from a different place, at the next
-    // solve. Leaving such a value in force would make every later step of this
-    // test throw out of set_qp_params() instead of testing what it is for.
+    // The restore is not tidiness: a value the backend refuses at transcription
+    // would make every later step of this test throw out of set_qp_params()
+    // instead of testing what it is for.
     const auto accepts = [&](const char *field, auto edit) {
-        ASSERT_TRUE(solver.kkt_pattern_is_analyzed(*program)) << "precondition for " << field;
+        ASSERT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
+            << "precondition for " << field;
         const IpmOptions before = solver.options();
         IpmOptions changed = before;
         edit(changed);
         EXPECT_NO_THROW(solver.set_options(changed)) << field;
-        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
             << "a transcription-time change must not leave the old analysis standing: " << field;
         solver.set_options(before);
-        result = solver.solve(*program, hs071_start());
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+        result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     };
 
-    accepts("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
-    accepts("qp_ord", [](IpmOptions &o) {                               // enum
-        o.qp_ord = hven::solvers::QPOrderingModes::kMinDeg;
+    accepts("qp_ref_steps", [](IpmOptions &o) { o.linear.max_refinement_steps = 1; }); // int
+    accepts("qp_ord", [](IpmOptions &o) {                                              // enum
+        o.linear.ordering = hven::IpmOrdering::kMinimumDegree;
     });
-    accepts("qp_print", [](IpmOptions &o) { o.qp_print = true; }); // bool
-    accepts("cnr_mode", [](IpmOptions &o) { o.cnr_mode = true; }); // the CNR flag
+    accepts("cnr_mode",
+            [](IpmOptions &o) { o.linear.conditional_reproducibility = true; }); // the CNR flag
 #ifdef USE_ACCELERATE_SPARSE
-    // UNOBSERVED on this box: these two are declared and read only on an
+    // UNOBSERVED on this box: this is declared and read only on an
     // Accelerate build, and nothing here has run on Mac hardware.
-    accepts("accel_pivot_tolerance", [](IpmOptions &o) { o.accel_pivot_tolerance = 0.02; });
-    accepts("accel_zero_tolerance", [](IpmOptions &o) { o.accel_zero_tolerance = 1e-12; });
+    accepts("accel_zero_tolerance", [](IpmOptions &o) { o.linear.accelerate_zero_tol = 1e-12; });
 #endif
 
     // A value the backend does accept, left in force and carried through a live
@@ -370,31 +370,31 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     {
         const hven::Index analyses_before = result.kkt_analyses_total;
         IpmOptions changed = solver.options();
-        changed.qp_matching = changed.qp_matching != 0 ? 0 : 1;
+        changed.linear.weighted_matching = changed.linear.weighted_matching != 0 ? 0 : 1;
         EXPECT_NO_THROW(solver.set_options(changed));
-        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program));
-        result = solver.solve(*program, hs071_start());
-        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)));
+        result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
         EXPECT_EQ(result.kkt_analyses_total, analyses_before + 1);
         EXPECT_EQ(result.kkt_analyses_this_call, 1);
-        EXPECT_EQ(solver.options().qp_matching, changed.qp_matching);
-        EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program));
+        EXPECT_EQ(solver.options().linear.weighted_matching, changed.linear.weighted_matching);
+        EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)));
     }
 
     // THE COUNTER-EXAMPLE, unchanged: a PER-SOLVE field is accepted too and
     // does NOT invalidate the analysis -- fixed_variable_treatment excepted,
     // which changes the problem's dimensions and is part of the identity token.
     IpmOptions ok = solver.options();
-    ok.max_iters = 77;
+    ok.common.max_iterations = 77;
     EXPECT_NO_THROW(solver.set_options(std::move(ok)));
-    EXPECT_EQ(solver.options().max_iters, 77);
-    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_EQ(solver.options().common.max_iterations, 77);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
         << "a per-solve field does not touch the analysis";
 
     IpmOptions treatment = solver.options();
-    treatment.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
+    treatment.fixed_variable_treatment = IpmFixedVariableTreatment::kMakeConstraint;
     EXPECT_NO_THROW(solver.set_options(std::move(treatment)));
-    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)))
         << "the treatment is part of the identity token: a change re-analyses";
 }
 
@@ -409,11 +409,11 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
 // A replacement from inside the solve is a logic_error, the options do not
 // move, and the guard clears on the unwind so the next solve still runs.
 TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     IpmSolver solver;
     {
         IpmOptions o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     const IpmOptions before = solver.options();
@@ -423,31 +423,33 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     IpmSolver *engine = &solver;
     // M6 W5 T8.6: the shared iteration callback, in place of the late callback
     // this test used to arm. Same assertions, same solve.
-    engine->set_iteration_callback([&](const hven::solvers::IterationEvent &) {
+    engine->set_iteration_callback([&](const hven::IterationEvent &) {
         ++attempts;
         IpmOptions o = engine->options();
-        o.max_iters = 3;
+        o.common.max_iterations = 3;
         try {
             engine->set_options(std::move(o));
         } catch (const std::logic_error &) {
             saw_logic_error = true;
         }
-        return hven::solvers::CallbackAction::kContinue;
+        return hven::CallbackAction::kContinue;
     });
 
-    ASSERT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(hven::detail::problem_ref(*program), hs071_start()).status,
+              hven::SolveStatus::kOptimal);
     ASSERT_GT(attempts, 0);
     EXPECT_TRUE(saw_logic_error);
-    EXPECT_EQ(solver.options().max_iters, before.max_iters);
+    EXPECT_EQ(solver.options().common.max_iterations, before.common.max_iterations);
 
     // The guard cleared on the way out: a replacement between calls works, and
     // so does the next solve.
     IpmOptions after = solver.options();
-    after.max_iters = 400;
+    after.common.max_iterations = 400;
     EXPECT_NO_THROW(solver.set_options(std::move(after)));
-    EXPECT_EQ(solver.options().max_iters, 400);
+    EXPECT_EQ(solver.options().common.max_iterations, 400);
     engine->clear_iteration_callback();
-    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(hven::detail::problem_ref(*program), hs071_start()).status,
+              hven::SolveStatus::kOptimal);
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1). The
@@ -457,28 +459,29 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
 // run_phase_sequence() unwinds, SolveInFlightGuard's destructor clears the
 // flag, and the solver is usable again.
 TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
-    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     IpmSolver solver;
     {
         IpmOptions o = solver.options();
-        o.common.print_level = 10;
+        o.common.verbosity = hven::Verbosity::kSilent;
         solver.set_options(std::move(o));
     }
     IpmSolver *engine = &solver;
-    engine->set_iteration_callback(
-        [](const hven::solvers::IterationEvent &) -> hven::solvers::CallbackAction {
-            throw std::logic_error("a hook that leaves the solve by throwing");
-        });
-    EXPECT_THROW(solver.solve(*program, hs071_start()), std::logic_error);
+    engine->set_iteration_callback([](const hven::IterationEvent &) -> hven::CallbackAction {
+        throw std::logic_error("a hook that leaves the solve by throwing");
+    });
+    EXPECT_THROW(solver.solve(hven::detail::problem_ref(*program), hs071_start()),
+                 std::logic_error);
     engine->clear_iteration_callback();
 
     // The guard did not survive the unwind: a replacement is accepted and the
     // next solve runs.
     IpmOptions after = engine->options();
-    after.max_iters = 400;
+    after.common.max_iterations = 400;
     EXPECT_NO_THROW(engine->set_options(std::move(after)));
-    EXPECT_EQ(engine->options().max_iters, 400);
-    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(engine->options().common.max_iterations, 400);
+    EXPECT_EQ(solver.solve(hven::detail::problem_ref(*program), hs071_start()).status,
+              hven::SolveStatus::kOptimal);
 }
 
 // ---------------------------------------------------------------------------
@@ -488,33 +491,33 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
 TEST(Options, PresetsReturnFullValues) {
     // Every shipped preset name produces a value validate() accepts, and the
     // value is FULL -- every field outside the preset's nine is the default.
-    for (const auto &entry : hven::solvers::kInteriorPointSolverPresets) {
-        const IpmOptions o = hven::solvers::ipm_preset(entry.name_);
-        EXPECT_NO_THROW(hven::solvers::validate(o)) << "preset " << entry.name_;
-        EXPECT_EQ(o.acceptance_strategy, entry.fields_.acceptance_strategy_) << entry.name_;
-        EXPECT_EQ(o.merit_penalty_rule, entry.fields_.merit_penalty_rule_) << entry.name_;
-        EXPECT_EQ(o.barrier_governor, entry.fields_.barrier_governor_) << entry.name_;
-        EXPECT_EQ(o.never_monotone, entry.fields_.never_monotone_) << entry.name_;
-        EXPECT_EQ(o.restoration_mode, entry.fields_.restoration_mode_) << entry.name_;
-        EXPECT_EQ(o.inertia_mode, entry.fields_.inertia_mode_) << entry.name_;
-        EXPECT_EQ(o.max_soc, entry.fields_.max_soc_) << entry.name_;
-        EXPECT_EQ(o.ls_extended_iters, entry.fields_.ls_extended_iters_) << entry.name_;
-        EXPECT_EQ(o.watchdog, entry.fields_.watchdog_) << entry.name_;
+    for (const auto &entry : hven::detail::kInteriorPointSolverPresets) {
+        const IpmOptions o = hven::ipm_preset(entry.name_);
+        EXPECT_NO_THROW(hven::validate(o)) << "preset " << entry.name_;
+        EXPECT_EQ(o.advanced.acceptance_mode, entry.fields_.acceptance_mode_) << entry.name_;
+        EXPECT_EQ(o.advanced.merit_penalty_rule, entry.fields_.merit_penalty_rule_) << entry.name_;
+        EXPECT_EQ(o.advanced.barrier_governor_mode, entry.fields_.barrier_governor_) << entry.name_;
+        EXPECT_EQ(o.advanced.never_monotone, entry.fields_.never_monotone_) << entry.name_;
+        EXPECT_EQ(o.advanced.restoration_mode, entry.fields_.restoration_mode_) << entry.name_;
+        EXPECT_EQ(o.advanced.inertia_mode, entry.fields_.inertia_mode_) << entry.name_;
+        EXPECT_EQ(o.advanced.max_second_order_corrections, entry.fields_.max_soc_) << entry.name_;
+        EXPECT_EQ(o.advanced.max_extended_backtracks, entry.fields_.ls_extended_iters_)
+            << entry.name_;
+        EXPECT_EQ(o.advanced.watchdog, entry.fields_.watchdog_) << entry.name_;
         // Outside the nine, a default value.
-        EXPECT_EQ(o.max_iters, IpmOptions{}.max_iters) << entry.name_;
-        EXPECT_EQ(o.common.print_level, IpmOptions{}.common.print_level) << entry.name_;
+        EXPECT_EQ(o.common.max_iterations, IpmOptions{}.common.max_iterations) << entry.name_;
+        EXPECT_EQ(o.common.verbosity, IpmOptions{}.common.verbosity) << entry.name_;
     }
 }
 
 TEST(Options, AnUnknownIpmPresetIsRefusedAndListsTheValidNames) {
     try {
-        hven::solvers::ipm_preset("no-such-preset");
+        hven::ipm_preset("no-such-preset");
         FAIL() << "an unknown preset name must be refused";
     } catch (const std::invalid_argument &e) {
         const std::string what(e.what());
         EXPECT_NE(what.find("no-such-preset"), std::string::npos);
-        EXPECT_NE(what.find(hven::solvers::kInteriorPointSolverPresets[0].name_),
-                  std::string::npos);
+        EXPECT_NE(what.find(hven::detail::kInteriorPointSolverPresets[0].name_), std::string::npos);
     }
 }
 
@@ -524,39 +527,37 @@ TEST(Options, AnUnknownIpmPresetIsRefusedAndListsTheValidNames) {
 
 namespace {
 
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolver;
+using hven::SqpOptions;
+using hven::SqpSolver;
 
 // Whatever the driver reads at construction, at the SQP engine's own defaults.
 SqpOptions sqp_default() { return SqpOptions{}; }
 
 } // namespace
 
-// The SQP engine's `common` defaults are the struct's own -- 0 threads (leave
-// the backend alone) and print_level 3 (silent) -- and neither is read in T8.3.
-// M6 W5 T8.10 FOLDED the driver's own `start_level` field into
-// `common.start_level`, which is now the one field the driver caps a warm
-// start with; its default is unchanged at kWarm.
+// The SQP engine's `common` defaults are the struct's own: 0 threads (leave the
+// backend alone), silent, 100 iterations, kWarm.
 TEST(Options, SqpCommonDefaultsAreTheStructsOwn) {
     const SqpOptions o;
     EXPECT_EQ(o.common.threads, 0);
-    EXPECT_EQ(o.common.print_level, 3);
-    EXPECT_EQ(o.common.start_level, hven::solvers::StartLevel::kWarm);
+    EXPECT_EQ(o.common.verbosity, hven::Verbosity::kSilent);
+    EXPECT_EQ(o.common.max_iterations, 100);
+    EXPECT_EQ(o.common.start_level, hven::StartLevel::kWarm);
 }
 
 TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
     {
         SqpOptions o;
-        o.max_iter = -1;
+        o.common.max_iterations = -1;
         // The pre-T8.3 spelling was a one-line forwarder onto this same body;
         // T8.10 removed it, so there is one name and one call to make.
-        EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
+        EXPECT_THROW(hven::validate(o), std::invalid_argument);
     }
     {
         SqpOptions o;
         o.common.threads = -1;
         try {
-            hven::solvers::validate(o);
+            hven::validate(o);
             FAIL() << "a negative thread count must be refused";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("common.threads"), std::string::npos);
@@ -564,25 +565,25 @@ TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
     }
     {
         SqpOptions o;
-        o.common.print_level = -1;
+        o.common.verbosity = static_cast<hven::Verbosity>(-1);
         try {
-            hven::solvers::validate(o);
-            FAIL() << "a negative print level must be refused";
+            hven::validate(o);
+            FAIL() << "an out-of-range verbosity must be refused";
         } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find("common.print_level"), std::string::npos);
+            EXPECT_NE(std::string(e.what()).find("common.verbosity"), std::string::npos);
         }
     }
-    EXPECT_NO_THROW(hven::solvers::validate(SqpOptions{}));
+    EXPECT_NO_THROW(hven::validate(SqpOptions{}));
 }
 
 TEST(Options, SqpPresetsReturnFullValues) {
-    const SqpOptions d = hven::solvers::sqp_preset("default");
-    EXPECT_NO_THROW(hven::solvers::validate(d));
-    EXPECT_EQ(d.max_iter, SqpOptions{}.max_iter);
-    EXPECT_EQ(d.kkt_tol, SqpOptions{}.kkt_tol);
-    EXPECT_EQ(d.common.print_level, SqpOptions{}.common.print_level);
+    const SqpOptions d = hven::sqp_preset("default");
+    EXPECT_NO_THROW(hven::validate(d));
+    EXPECT_EQ(d.common.max_iterations, SqpOptions{}.common.max_iterations);
+    EXPECT_EQ(d.common.optimality_tol, SqpOptions{}.common.optimality_tol);
+    EXPECT_EQ(d.common.verbosity, SqpOptions{}.common.verbosity);
     try {
-        hven::solvers::sqp_preset("no-such-preset");
+        hven::sqp_preset("no-such-preset");
         FAIL() << "an unknown preset name must be refused";
     } catch (const std::invalid_argument &e) {
         const std::string what(e.what());
@@ -595,21 +596,21 @@ TEST(Options, SqpSetOptionsIsTransactional) {
     SqpSolver d(sqp_default());
     {
         SqpOptions o = d.options();
-        o.max_iter = 42;
+        o.common.max_iterations = 42;
         d.set_options(std::move(o));
     }
-    ASSERT_EQ(d.options().max_iter, 42);
+    ASSERT_EQ(d.options().common.max_iterations, 42);
 
     SqpOptions bad = d.options();
-    bad.max_iter = -1;
-    bad.kkt_tol = 1.0e-9;
+    bad.common.max_iterations = -1;
+    bad.common.optimality_tol = 1.0e-9;
     EXPECT_THROW(d.set_options(bad), std::invalid_argument);
-    EXPECT_EQ(d.options().max_iter, 42);
-    EXPECT_EQ(d.options().kkt_tol, SqpOptions{}.kkt_tol);
+    EXPECT_EQ(d.options().common.max_iterations, 42);
+    EXPECT_EQ(d.options().common.optimality_tol, SqpOptions{}.common.optimality_tol);
 
     // The old engines are still in force too: the driver solves.
-    const auto p = hven::solvers::test_support::make_hs(7);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    const auto p = hven::test_support::make_hs(7);
+    EXPECT_NO_THROW(d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // The replacement is refused while a solve is in flight -- reached through
@@ -621,35 +622,35 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
     bool refused = false;
     {
         SqpOptions o = d.options();
-        o.make_strategy = [&]() -> std::unique_ptr<hven::solvers::GlobalizationStrategy> {
+        o.advanced.make_strategy = [&]() -> std::unique_ptr<hven::detail::GlobalizationStrategy> {
             attempted = true;
             SqpOptions replacement = d.options();
-            replacement.max_iter = 5;
+            replacement.common.max_iterations = 5;
             try {
                 d.set_options(std::move(replacement));
             } catch (const std::logic_error &) {
                 refused = true;
             }
-            return std::make_unique<hven::solvers::FunnelStrategy>();
+            return std::make_unique<hven::detail::FunnelStrategy>();
         };
         d.set_options(std::move(o));
     }
-    const auto p = hven::solvers::test_support::make_hs(7);
-    const auto sol = d.solve(*p.model);
+    const auto p = hven::test_support::make_hs(7);
+    const auto sol = d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     (void)sol;
     ASSERT_TRUE(attempted) << "the strategy factory never ran";
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
-    EXPECT_EQ(d.options().max_iter, SqpOptions{}.max_iter);
+    EXPECT_EQ(d.options().common.max_iterations, SqpOptions{}.common.max_iterations);
 
     // The guard cleared: a replacement between calls goes through, AND so does
     // the next solve -- the IPM pin above asserts both and this one now does
     // too (fix round 1).
     SqpOptions after = d.options();
-    after.make_strategy = {};
-    after.max_iter = 11;
+    after.advanced.make_strategy = {};
+    after.common.max_iterations = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
-    EXPECT_EQ(d.options().max_iter, 11);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    EXPECT_EQ(d.options().common.max_iterations, 11);
+    EXPECT_NO_THROW(d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1), the
@@ -660,20 +661,21 @@ TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     SqpSolver d(sqp_default());
     {
         SqpOptions o = d.options();
-        o.make_strategy = []() -> std::unique_ptr<hven::solvers::GlobalizationStrategy> {
+        o.advanced.make_strategy = []() -> std::unique_ptr<hven::detail::GlobalizationStrategy> {
             throw std::logic_error("a hook that leaves the solve by throwing");
         };
         d.set_options(std::move(o));
     }
-    const auto p = hven::solvers::test_support::make_hs(7);
-    EXPECT_THROW(d.solve(*p.model), std::logic_error);
+    const auto p = hven::test_support::make_hs(7);
+    EXPECT_THROW(d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()),
+                 std::logic_error);
 
     SqpOptions after = d.options();
-    after.make_strategy = {};
-    after.max_iter = 11;
+    after.advanced.make_strategy = {};
+    after.common.max_iterations = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
-    EXPECT_EQ(d.options().max_iter, 11);
-    EXPECT_NO_THROW(d.solve(*p.model));
+    EXPECT_EQ(d.options().common.max_iterations, 11);
+    EXPECT_NO_THROW(d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point()));
 }
 
 // THE LEDGER LABEL SEQUENCE CONTINUES ACROSS A REBUILD (A3; fix round 1).
@@ -689,24 +691,24 @@ TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
 // `<prefix>_qp_<i>` for its own position i, and all of them are distinct.
 TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
     SqpSolver d(sqp_default());
-    hven::solvers::Ledger ledger;
+    hven::Ledger ledger;
     d.attach_ledger(&ledger, "chain");
 
-    const auto p = hven::solvers::test_support::make_hs(7);
+    const auto p = hven::test_support::make_hs(7);
 
-    d.solve(*p.model);
+    d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_first = ledger.records().size();
     ASSERT_GT(after_first, 0u) << "the fixture must produce QP records to pin";
 
     d.set_options(d.options()); // the identical-options rebuild
-    d.solve(*p.model);
+    d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_second = ledger.records().size();
     ASSERT_GT(after_second, after_first);
 
     SqpOptions changed = d.options(); // and a CHANGED-options rebuild
-    changed.qp.schur_cap = d.options().qp.schur_cap + 1;
+    changed.qp.max_schur_border_dimension = d.options().qp.max_schur_border_dimension + 1;
     d.set_options(std::move(changed));
-    d.solve(*p.model);
+    d.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     const std::size_t after_third = ledger.records().size();
     ASSERT_GT(after_third, after_second);
 
@@ -737,9 +739,9 @@ TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
 // fields ALONE from a default value and requires the fingerprint to move;
 // add a field to QpOptions and this test is where the omission surfaces.
 TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
-    using hven::solvers::options_fingerprint;
-    using hven::solvers::QpOptions;
-    using hven::solvers::WorkingSetLinearAlgebra;
+    using hven::options_fingerprint;
+    using hven::QpOptions;
+    using hven::QpWorkingSetAlgebra;
 
     const QpOptions base;
     const std::uint64_t h0 = options_fingerprint(base, 0);
@@ -754,16 +756,18 @@ TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
         edit(o);
         return options_fingerprint(o, 0) != h0;
     };
-    EXPECT_TRUE(moved([](QpOptions &o) { o.primal_delta *= 2.0; })) << "primal_delta";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.dual_mu *= 2.0; })) << "dual_mu";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.feas_tol *= 2.0; })) << "feas_tol";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.opt_tol *= 2.0; })) << "opt_tol";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.max_iter += 1; })) << "max_iter";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cap += 1; })) << "schur_cap";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cond_max *= 2.0; })) << "schur_cond_max";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.ws_algebra = WorkingSetLinearAlgebra::kRefactorize; }))
-        << "ws_algebra";
-    EXPECT_TRUE(moved([](QpOptions &o) { o.tr_radius = 1.0; })) << "tr_radius";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.primal_regularization *= 2.0; })) << "primal_delta";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.dual_regularization *= 2.0; })) << "dual_mu";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.feasibility_tol *= 2.0; })) << "feas_tol";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.optimality_tol *= 2.0; })) << "opt_tol";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.max_iterations = o.max_iterations.value_or(0) + 1; }))
+        << "max_iter";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.max_schur_border_dimension += 1; })) << "schur_cap";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.schur_condition_max *= 2.0; })) << "schur_cond_max";
+    EXPECT_TRUE(moved([](QpOptions &o) {
+        o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
+    })) << "ws_algebra";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.trust_region_radius = 1.0; })) << "tr_radius";
     EXPECT_TRUE(moved([](QpOptions &o) { o.independent_working_set = false; }))
         << "independent_working_set";
     EXPECT_TRUE(moved([](QpOptions &o) { o.hessian_known_convex = true; }))

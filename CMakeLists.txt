@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(hven VERSION 0.1.0 LANGUAGES CXX)
+project(hven VERSION 0.2.0 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -44,6 +44,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(HVEN_BUILD_TESTS "Build the hven C++ unit test suite (requires Google Test via FetchContent)" ON)
 option(HVEN_BUILD_BENCH "Build the hven benchmark suite" OFF)
 option(HVEN_BUILD_BINDINGS "Build the hven Python bindings" OFF)
+option(HVEN_BUILD_EXAMPLES "Build the examples/ programs (one self-contained program per problem)" OFF)
 
 # bindings/ is an empty scaffolding directory today (no CMakeLists.txt yet)
 # — fail loudly rather than silently no-op if someone turns the option on
@@ -371,8 +372,9 @@ target_compile_definitions(hven PUBLIC
 #     (include/hven/drivers/ipm_solver.h) -- a real ABI-layout hazard on Apple.
 #   - NOMINMAX / WIN32_LEAN_AND_MEAN / _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
 #     are needed for include/hven/detail/interior/utils/thread_pool.h to
-#     even COMPILE on Windows (it is reached from the public
-#     include/hven/model/non_linear_program.h); without them a Windows
+#     even COMPILE on Windows (it is reached from
+#     include/hven/detail/model/non_linear_program.h, an installed header
+#     that was public until M8 AP-2 B2); without them a Windows
 #     consumer hits the exact <windows.h> max/min collision and
 #     constexpr-mutex-constructor failure this project's own build works
 #     around for itself (see the if(WIN32) add_compile_definitions() block
@@ -492,20 +494,17 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 
 # The engine's two build-supplied sizing knobs.
 #
-# HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
-# -- include/hven/drivers/ipm_solver.h, in the qp_threads_ default
-# member initializer -- so a consumer that includes it without the definition
-# would fail on an undefined identifier inside a header it did not write.
-# (M6 W5 T1: it was two headers until the folded init_partitions moved out of
-# the public model/nlp_solver.h into src/model/nlp_solver.cpp; M6 W5 T8.9
-# retired both.) Carried as a usage requirement, linking hven::hven is all a
-# consumer has to do.
+# HVEN_DEFAULT_IPM_THREADS, the interior-point engine's default factorization
+# thread count, is PUBLIC: include/hven/drivers/ipm_options.h reads it in the
+# IpmOptions::common default member initializer (with an #ifndef fallback of the
+# same value for a consumer that includes the header without this target), and
+# src/drivers/solver_init.cpp sizes the Accelerate thread pool from it.
 #
 # HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is
 # src/interior/utils/memory_management.cpp, an hven source, and nothing in
 # any header names it.
 target_compile_definitions(hven
-    PUBLIC HVEN_DEFAULT_QP_THREADS=8
+    PUBLIC HVEN_DEFAULT_IPM_THREADS=8
     PRIVATE HVEN_DEFAULT_ARENA_SIZE=256)
 
 # Sources come from src/CMakeLists.txt via target_sources(hven PRIVATE ...).
@@ -585,6 +584,16 @@ endif()
 # enforces wall deadlines by fork/exec.
 if(NOT WIN32 AND (HVEN_BUILD_TESTS OR HVEN_BUILD_BENCH))
     add_subdirectory(bench)
+endif()
+
+################################################################################
+# Examples. examples/CMakeLists.txt serves both ways it can be built: from here
+# (hven::hven is the in-tree alias) and as its own top-level project against an
+# install tree, the way a stranger would. Default OFF for now.
+################################################################################
+if(HVEN_BUILD_EXAMPLES)
+    enable_testing()
+    add_subdirectory(examples)
 endif()
 
 ################################################################################

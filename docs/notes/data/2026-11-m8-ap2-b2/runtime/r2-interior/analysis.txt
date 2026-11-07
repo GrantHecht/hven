@@ -1,0 +1,16 @@
+=== interior r1 === cells compared: 41  columns compared: 30  differences: 0  UNMATCHED CELLS: ['f7_n1000_bound_neutral/MakeConstraint/parts2', 'f7_n1000_bound_neutral/MakeParameter/parts2']
+counter check: 1 (round,cell) pairs compared, 0 with a difference or missing
+
+cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
+all                            1.00856                 0.98858                 0.97590                 0.97390                 0.98360               
+
+corpus L1-icache-load-misses:u            A=9.888466e+06 B=9.973082e+06  B/A=1.008557
+corpus branch-misses:u                    A=3.677195e+07 B=3.635188e+07  B/A=0.988576
+corpus branches:u                         A=1.606947e+10 B=1.568223e+10  B/A=0.975902
+corpus cycles:u                           A=3.659049e+10 B=3.563561e+10  B/A=0.973903
+corpus instructions:u                     A=1.081877e+11 B=1.064133e+11  B/A=0.983598
+
+worst per-cell instructions ratio: 0.98360 (all)
+cells outside 0.99-1.01: ['all']
+largest within-arm round-to-round instruction spread: 0.00000
+CORPUS instructions B/A = 0.983598 -> OUTSIDE +-0.5 %

@@ -84,7 +84,7 @@ class DenseSymmetricFactor {
     // itself succeeds, and factorized() is false until it does.
     //
     // Throws std::invalid_argument if A is not square or is 0x0. Throws
-    // std::runtime_error (fmt-formatted, carrying LAPACK's info code) if
+    // hven::BackendError (fmt-formatted, carrying LAPACK's info code) if
     // dsytrf itself fails -- info < 0 is an illegal-argument bug internal
     // to this class; info > 0 means A is exactly singular (a zero pivot
     // at that 1-based index) and cannot be factorized this way.
@@ -112,7 +112,7 @@ class DenseSymmetricFactor {
     // non-square, empty, or wrong-triangle argument throws
     // std::invalid_argument, and info < 0 (an illegal argument value
     // internal to this class -- a bug here, not a property of A) throws
-    // std::runtime_error. Only exact singularity is demoted to a return
+    // hven::BackendError. Only exact singularity is demoted to a return
     // value.
     [[nodiscard]] DenseFactorizeOutcome try_factorize(ConstMatRef A, Triangle triangle);
 
@@ -124,9 +124,9 @@ class DenseSymmetricFactor {
     //
     // A zero-column RHS is accepted and is a no-op (X is untouched).
     //
-    // Throws std::runtime_error if called before a successful
-    // factorize(). Throws std::invalid_argument if RHS's row count does
-    // not equal dim(), or if X's shape does not match RHS's shape.
+    // Throws std::logic_error if called before a successful
+    // factorize() (a caller that ignored the outcome). Throws std::invalid_argument if RHS's row
+    // count does not equal dim(), or if X's shape does not match RHS's shape.
     void solve(ConstMatRef RHS, MatRef X) const;
 
     // True iff the most recent factorize() call completed successfully.
@@ -154,13 +154,13 @@ class DenseSymmetricFactor {
     //
     // Computed on demand from the cached factors and pivots (O(dim())),
     // not cached: a consumer that reads it per solve should hold onto the
-    // result itself. Throws std::runtime_error only if the cached pivot
+    // result itself. Throws std::logic_error only if the cached pivot
     // array is malformed in a way a successful dsytrf cannot produce (a
     // can't-happen bounds guard, never a consequence of what the caller
     // passed).
     std::optional<BunchKaufmanBlockEvidence> block_evidence() const;
 
-    // Point this factor at a thread count for its LAPACK calls (M6 W5 T8.8).
+    // Point this factor at a thread count for its LAPACK calls.
     //
     // THE SPARSE SURFACE'S SEMANTICS, VERBATIM (symmetric_factor.h): 0 leaves
     // the backend's own default alone; a positive value is applied AT CALL
@@ -177,10 +177,10 @@ class DenseSymmetricFactor {
     // LAPACK is Accelerate's, which exposes no restorable thread-local
     // equivalent (see hven/detail/linear/thread_scope.h). No Apple value is
     // estimated anywhere.
-    void set_num_threads(int num_threads);
+    void set_threads(int threads);
 
     // The count this factor applies at its next LAPACK call; 0 by default.
-    int num_threads() const noexcept;
+    int threads() const noexcept;
 
   private:
     // Shared factorization core behind all three entry points above:
@@ -196,12 +196,12 @@ class DenseSymmetricFactor {
     Index dim_ = 0;
     Triangle triangle_ = Triangle::kUpper;
 
-    // The call-scoped thread count (M6 W5 T8.8). NOT frozen at construction --
+    // The call-scoped thread count. NOT frozen at construction --
     // it is the one setting on this class a caller may move mid-life, for the
-    // same reason SymmetricFactor::Options::num_threads is: LAPACK reads it at
+    // same reason SymmetricFactor::Options::threads is: LAPACK reads it at
     // call scope and no cached state depends on it. It is deliberately NOT an
     // Options struct: this class has none, and one field does not earn one.
-    int num_threads_ = 0;
+    int threads_ = 0;
 
     bool factorized_ = false;
 };

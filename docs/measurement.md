@@ -409,7 +409,7 @@ binaries' checksums (`…/2026-09-m6-w6-attached-cost/PROVENANCE.txt:37-92`).
 **And the option fields the run's TRAJECTORY depends on, whether or not the leg set them**
 (M7 W2 D1, 2026-09-18). The list above names toolchain, hardware and flags and no solver
 option, and that gap has a cost: when the IPM default event moved
-`IpmOptions::acceptance_strategy` and `::barrier_governor`, not one committed artifact in
+`IpmOptions::acceptance_mode` and `::barrier_governor_mode`, not one committed artifact in
 the tree recorded which values it had been measured under — the dependence was recoverable
 only from the producing driver's source. A leg stamps the fields it SETS, as the interior
 leg always did for its caps and tolerances, and now also the ones it INHERITS from the

@@ -16,22 +16,29 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"
 #include "../../bench/ipqp_e1_arm.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "support/e1_cells.h"
 #include "support/hs_problems.h"
 #include "support/indefinite_fixtures.h"
 #include "support/ipqp_test_support.h"
 #include "support/scale_problems.h"
 
-namespace hven::solvers {
+namespace {
+using hven::detail::SqpWarmAccess;
+} // namespace
+
+namespace hven {
 namespace {
 
 using test_support::e1_rule_counts;
@@ -66,14 +73,14 @@ constexpr int kStallRow = 38;
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = std::numeric_limits<double>::infinity();
+    o.trust_region_radius = std::numeric_limits<double>::infinity();
     return o;
 }
 
 SqpOptions ipm_options(Index max_iter = 60) {
     SqpOptions o;
-    o.qp_mode = QpMode::kIpm;
-    o.max_iter = max_iter;
+    o.qp_mode = QpMode::kIpqp;
+    o.common.max_iterations = max_iter;
     return o;
 }
 
@@ -96,16 +103,16 @@ RealizedFace solve_and_read_face(Index nodes, double p) {
     F7CollocationChain model(nodes, /*states=*/3, /*controls=*/2, p, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, p));
     SqpOptions o;
-    o.max_iter = 60;
+    o.common.max_iterations = 60;
     SqpSolver driver(o);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "n=" << nodes << " p=" << p;
 
     RealizedFace out;
     bool open = false;
     Index start = 0, prev = 0;
     for (Index j = 0; j < model.mi(); ++j) {
-        const bool on = sol.lambda_i(j) > 1e-8;
+        const bool on = hven::detail::engine_rows(sol).lambda_i(j) > 1e-8;
         if (!on) {
             continue;
         }
@@ -233,7 +240,7 @@ TEST(IpqpAcceptanceA1, TheWindowAtF7sOwnJunctionsIsRecoveredExactly) {
     const E1Cell cell = make_e1_cell(spec);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate);
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
@@ -287,7 +294,7 @@ TEST(IpqpAcceptanceA1, TwoBlocksOneAtEachJunctionAreRecoveredExactly) {
     ASSERT_EQ(cell.active_rows.size(), static_cast<std::size_t>(2 * kBand));
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate);
 
@@ -360,9 +367,9 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWideP, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpOptions truncated;
-    truncated.max_iter = kCompletedMajors;
+    truncated.common.max_iterations = kCompletedMajors;
     SqpSolver driver(truncated);
-    const SqpResult mid = driver.solve(model);
+    const SqpResult mid = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_NE(mid.status, SolveStatus::kOptimal) << "the point must be MID-solve, not the answer";
     ASSERT_TRUE(mid.x.allFinite());
 
@@ -372,9 +379,10 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     dumped.n_flag = kNodes;
     dumped.major = kDumpMajor;
     dumped.p = kWideP;
-    dumped.qp = build_subproblem(model, mid.x, mid.lambda_e, mid.lambda_i);
-    dumped.lambda_e = mid.lambda_e;
-    dumped.lambda_i = mid.lambda_i;
+    dumped.qp = build_subproblem(model, mid.x, hven::detail::engine_rows(mid).lambda_e,
+                                 hven::detail::engine_rows(mid).lambda_i);
+    dumped.lambda_e = hven::detail::engine_rows(mid).lambda_e;
+    dumped.lambda_i = hven::detail::engine_rows(mid).lambda_i;
     dumped.z = mid.z;
 
     const std::string path = ::testing::TempDir() + "hven_a2_mid_solve_next_major.qpdump";
@@ -401,7 +409,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
 
     const IpqpSeed seed = base_warm_seed_from(got);
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(got.qp, &seed, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(got.qp, &seed, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kBaseWarm) << "the dumped state was consumed";
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
@@ -457,7 +465,7 @@ TEST(IpqpAcceptanceA3, BothSetsAndTheBoundMultiplierSignsAreRecoveredAtEveryMarg
         ASSERT_GE(cell.active_lower.size(), 1u);
 
         IpqpEngine tier(tight_opts());
-        const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(cell.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
         ASSERT_EQ(r.status, QpStatus::kOptimal);
         // E1's 40-iteration gate, EXCEPT at the tightest margin class, where the
         // T10b default measures 44 -- a DECLARED break of E1's gate on this one
@@ -526,7 +534,7 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
     const QpProblem qp = build_subproblem(model, x0, Vec::Zero(model.me()), Vec::Zero(model.mi()));
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal) << "the 2/8 dead population cells' named fix";
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
     EXPECT_LT(r.counters.ipqp_iters, kE1IterGate) << "in budget, at E1's own gate";
@@ -549,7 +557,7 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
 }
 
 // ---------------------------------------------------------------------------
-// A11 -- the HS leg under kIpm on the INDEFINITE rows, plus the QP family.
+// A11 -- the HS leg under kIpqp on the INDEFINITE rows, plus the QP family.
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -563,16 +571,16 @@ class AcceptanceTraceSink : public TraceSink {
         IpqpTraceEscapeReason reason;
         Index major;
     };
-    std::vector<IpqpTraceCertifyEvent> certifies;
+    std::vector<IpqpCertifyTraceEvent> certifies;
     std::vector<TaggedEscape> escapes;
     Index last_major = 0;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { last_major = e.major; }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { certifies.push_back(e); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override {
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { last_major = e.major; }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &e) override { certifies.push_back(e); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &e) override {
         escapes.push_back({e.reason, last_major});
     }
     void on_qp_mode(const QpModeTraceEvent &) override {}
@@ -584,7 +592,7 @@ class AcceptanceTraceSink : public TraceSink {
 /// the "not performed" 3), which the counter's 0 cannot say on its own.
 ::testing::AssertionResult every_final_read_agreed(const AcceptanceTraceSink &sink) {
     for (std::size_t k = 0; k < sink.certifies.size(); ++k) {
-        const IpqpTraceCertifyEvent &e = sink.certifies[k];
+        const IpqpCertifyTraceEvent &e = sink.certifies[k];
         if (e.final_inertia != IpqpTraceFinalInertia::kOk || e.downgraded) {
             return ::testing::AssertionFailure()
                    << "certify event " << k << " read " << static_cast<int>(e.final_inertia)
@@ -602,7 +610,7 @@ IpqpCounters counters_through_major(NlpModel &model, Index majors) {
         return IpqpCounters{};
     }
     SqpSolver driver(ipm_options(majors));
-    return driver.solve(model).counters.ipqp;
+    return driver.solve(hven::detail::problem_ref(model), (model).start_point()).counters.ipqp;
 }
 
 } // namespace
@@ -625,7 +633,8 @@ TEST(IpqpAcceptanceA11, TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly) {
         AcceptanceTraceSink sink;
         SqpSolver driver(ipm_options());
         driver.attach_trace(&sink);
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6 * std::max(1.0, std::abs(p.f_star)));
 
@@ -678,7 +687,7 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
         AcceptanceTraceSink sink;
         IpqpEngine tier(tight_opts());
         tier.attach_trace(&sink);
-        const IpqpResult r = tier.solve(row.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(row.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
         ASSERT_EQ(r.status, QpStatus::kOptimal);
         // THE INERTIA GATE FIRED: an indefinite Hessian cannot be stepped on
         // without a demanded modification, so the high-water mark is positive.
@@ -705,7 +714,7 @@ TEST(IpqpAcceptanceA11, TheIndefiniteQpFamilyArmsTheLadderAndReachesTheFinalRead
 }
 
 // ---------------------------------------------------------------------------
-// T7's acceptance rows: the warm restart on a real continuation hop, kIpm.
+// T7's acceptance rows: the warm restart on a real continuation hop, kIpqp.
 // ---------------------------------------------------------------------------
 
 TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKillsNothing) {
@@ -714,16 +723,18 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWarmP0, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWarmP0));
     SqpSolver seed_driver(ipm_options());
-    const SqpResult seed = seed_driver.solve(model, model.start_point());
+    const SqpResult seed = seed_driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpSolver warm_driver(ipm_options());
-    const SqpResult warm = warm_driver.solve(model, seed.warm_start.x, seed.warm_start);
+    const SqpResult warm =
+        warm_driver.solve(hven::detail::problem_ref(model),
+                          SqpWarmAccess::state(seed.sqp_warm_start).x, seed.sqp_warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
     SqpSolver cold_driver(ipm_options());
-    const SqpResult cold = cold_driver.solve(model, model.start_point());
+    const SqpResult cold = cold_driver.solve(hven::detail::problem_ref(model), model.start_point());
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     const IpqpCounters &wc = warm.counters.ipqp;
@@ -757,7 +768,8 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
     for (const int number : test_support::hs_numbers()) {
         const HsProblem p = make_hs(number);
         SqpSolver driver(ipm_options());
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const IpqpCounters &c = sol.counters.ipqp;
         stalls += c.ipqp_escape_stall;
         if (c.ipqp_escape_stall > 0) {
@@ -768,7 +780,7 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
             armed_detail += fmt::format(" hs{}={}", number, c.ipqp_iters_ladder_armed_no_advance);
         }
         armed_peak = std::max(armed_peak, c.ipqp_iters_ladder_armed_no_advance);
-        // TR-SHRINK-RETRY REACHABILITY under kIpm (T7 registered the question):
+        // TR-SHRINK-RETRY REACHABILITY under kIpqp (T7 registered the question):
         // a rejected major IS a shrink-and-re-solve, so a row with one is the
         // fixture T7 could not find.
         if (sol.counters.rejected_steps > 0) {
@@ -828,7 +840,8 @@ TEST(IpqpAcceptanceCensus, TheNaturalStallIsChargedToASubproblemThatNeverArmedTh
     AcceptanceTraceSink sink;
     SqpSolver driver(ipm_options());
     driver.attach_trace(&sink);
-    const SqpResult full = driver.solve(*p.model);
+    const SqpResult full =
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
     ASSERT_GE(full.counters.ipqp.ipqp_escape_stall, 1) << "the natural stall must still fire";
 
     std::vector<Index> stall_majors;
@@ -1098,4 +1111,4 @@ TEST(IpqpAcceptanceA4, TheGateAtTheMeasuredDefaultIsGreenButForOneNamedCell) {
     EXPECT_EQ(tracks.size(), 9u);
 }
 
-} // namespace hven::solvers
+} // namespace hven

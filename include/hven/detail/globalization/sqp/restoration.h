@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -28,21 +29,23 @@
 #include <fmt/format.h>
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/absent_bound.h>
+#include <hven/detail/model/nlp_model.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
-/// The fraction of tr_init the trust region restarts at when the main loop
+/// The fraction of trust_region_initial the trust region restarts at when the main loop
 /// resumes from restoration: one order of magnitude is the conservative reading
 /// of "start again", and the growth rule earns it back (see sqp_solver.h's
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
-/// "Effectively infinite" upper bound on a slack, matching qp_problem.h's own
-/// stated convention (+/-1e20) rather than a true +inf, so every bound
-/// arithmetic in the engine and in build_subproblem (upper - x) stays in
-/// ordinary floating point.
-inline constexpr double kRestorationSlackBound = 1e20;
+/// The upper bound on a slack: none. Written as +inf, the one spelling of an
+/// absent side under every CommonOptions::infinite_bound (a finite stand-in would
+/// become a real bound under a larger threshold). The restoration sub-solve's
+/// bridge read the former 1e20 as +inf at the default threshold already, and
+/// every subproblem bound arithmetic (upper - x) keeps an infinity infinite.
+inline constexpr double kRestorationSlackBound = std::numeric_limits<double>::infinity();
 
 /// The restored point's violation (the convergence test's inf-norm) must exceed this
 /// multiple of `feas_tol` before a kOptimal restoration sub-solve is read as a certificate
@@ -143,8 +146,14 @@ class RestorationModel final : public NlpModel {
     /// SqpOptions::restoration_curvature == kRegularized). False is the wrapper above,
     /// to the byte. True replaces the constraint curvature `eval_hess` returns with
     /// the Levenberg-Marquardt model of the class note's REGULARIZED CURVATURE.
+    /// @param infinite_bound The absent-bound threshold the model's box is read
+    /// under for the centre and start clamps (the parent bridge's,
+    /// NlpModelAssembly::infinite_bound(); > 0): a bound at or beyond it is the
+    /// infinity of its sign there, as to the engine, and clamps nothing. The
+    /// wrapper's own box repeats the model's as declared.
     RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
-                     const Vec &x_centre, double proximity, bool regularized_curvature);
+                     const Vec &x_centre, double proximity, bool regularized_curvature,
+                     double infinite_bound = detail::kDefaultInfiniteBound);
 
     Index n() const override;
     Index me() const override;
@@ -240,6 +249,10 @@ class RestorationModel final : public NlpModel {
     SpMatRM eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
+    /// The regularized curvature reads nothing of the wrapped model; the
+    /// unregularized one reads its constraint Hessian, so it answers for it.
+    bool has_hessian() const override { return regularized_ || model_.has_hessian(); }
+
     /// [ Je(x) | diag(sigmaE) | -diag(sigmaE) | 0 ]
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &y) const override;
 
@@ -328,4 +341,4 @@ bool feasibility_subsolve_certifies(double proximity, double kkt_tol, const Vec 
     return subgradient_certificate_residual_inf(ev, lambda_e, lambda_i, z) <= kkt_tol;
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

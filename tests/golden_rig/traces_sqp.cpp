@@ -335,7 +335,9 @@ TEST_P(SqpTrace, T4b_AdoptRefusesStaleNumerics) {
 
     // Numeric reuse refused ...
     Vec x(a.K.rows());
-    EXPECT_THROW(adopter->solve(a.rhs, x), std::runtime_error)
+    // std::exception, the common base: hven refuses with std::logic_error (a
+    // precondition, M8 B5 riders) and an OLD-SEAM adapter with its own type.
+    EXPECT_THROW(adopter->solve(a.rhs, x), std::exception)
         << "solving through an engine that adopted stale numerics must be refused, not served";
 
     // ... while symbolic reuse stays legal: the adopter's first factorization
@@ -379,7 +381,7 @@ TEST_P(SqpTrace, T5_InertiaEvidence) {
         ASSERT_EQ(s->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
         const hl::InertiaEvidence e = s->inertia();
         if (e.state == hl::InertiaEvidence::State::kObserved) {
-            EXPECT_GE(e.n_neg, 1) << "the saddle's negative curvature must be visible";
+            EXPECT_GE(e.negative, 1) << "the saddle's negative curvature must be visible";
         }
         run.record_inertia(e, "a_");
     }
@@ -408,9 +410,9 @@ TEST_P(SqpTrace, T5_InertiaEvidence) {
         ASSERT_EQ(s->factorize(fx.K).status, hl::FactorizeOutcome::Status::kOk);
         const hl::InertiaEvidence e = s->inertia();
         if (e.state == hl::InertiaEvidence::State::kObserved) {
-            EXPECT_EQ(e.n_pos, kFree) << "a positive-definite face has exactly one positive "
-                                         "eigenvalue per free variable";
-            EXPECT_EQ(e.n_neg, kFace) << "and exactly one negative eigenvalue per face row";
+            EXPECT_EQ(e.positive, kFree) << "a positive-definite face has exactly one positive "
+                                            "eigenvalue per free variable";
+            EXPECT_EQ(e.negative, kFace) << "and exactly one negative eigenvalue per face row";
         }
         run.record_inertia(e, "c_");
     }
@@ -436,13 +438,14 @@ TEST_P(SqpTrace, T6_RankDeficientFaceReportsAState) {
 
     // The honesty rule, in both halves.
     if (e.state == hl::InertiaEvidence::State::kQueryFailed) {
-        EXPECT_LT(e.n_pos, 0) << "a failed query must leave its counts invalid, never zero-filled";
-        EXPECT_LT(e.n_neg, 0);
-        EXPECT_LT(e.n_zero, 0);
+        EXPECT_LT(e.positive, 0)
+            << "a failed query must leave its counts invalid, never zero-filled";
+        EXPECT_LT(e.negative, 0);
+        EXPECT_LT(e.zero, 0);
     }
     if (e.state == hl::InertiaEvidence::State::kObserved) {
-        EXPECT_GE(e.n_pos, 0);
-        EXPECT_GE(e.n_neg, 0);
+        EXPECT_GE(e.positive, 0);
+        EXPECT_GE(e.negative, 0);
     }
 
     run.record(Observation::state(
@@ -485,7 +488,7 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     // every backend on purpose: the capability says the std::optional
     // surface exists; whether it carries a value is the backend's own
     // answer. Per the frozen contract (include/hven/linear/symmetric_factor.h's
-    // InertiaEvidence::perturbed_pivots and SolveInfo::refinement_iters doc
+    // InertiaEvidence::perturbed_pivots and SolveInfo::refinement_steps doc
     // comments), both are present with Pardiso semantics on MKL and
     // legitimately absent -- never zero-filled -- on Accelerate, which has
     // neither counter. Asserting ABSENCE on Accelerate below is itself the
@@ -537,11 +540,11 @@ TEST_P(SqpTrace, T7_BackendParameterSurfaceFloor) {
     // exists to avoid -- add the same native-arm gate here if that happens.
     if (caps.reports_refinement_iters) {
 #if defined(__APPLE__)
-        EXPECT_FALSE(info.refinement_iters.has_value())
+        EXPECT_FALSE(info.refinement_steps.has_value())
             << "Accelerate has no refinement-step counter; a present value here would be a "
                "fabrication, not evidence";
 #else
-        EXPECT_TRUE(info.refinement_iters.has_value())
+        EXPECT_TRUE(info.refinement_steps.has_value())
             << "this seam reports a refinement-step count, so the field must be present";
 #endif
     }

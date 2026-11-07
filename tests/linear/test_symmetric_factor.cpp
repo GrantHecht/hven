@@ -196,8 +196,8 @@ TEST(SymmetricFactor, AnAssumedPatternSkipsTheGuardAndNothingElse) {
     ASSERT_EQ(verified_out.status, FactorizeOutcome::Status::kOk);
     ASSERT_EQ(assumed_out.status, FactorizeOutcome::Status::kOk);
     EXPECT_EQ(assumed_out.backend_code, verified_out.backend_code);
-    EXPECT_EQ(assumed_out.inertia.n_pos, verified_out.inertia.n_pos);
-    EXPECT_EQ(assumed_out.inertia.n_neg, verified_out.inertia.n_neg);
+    EXPECT_EQ(assumed_out.inertia.positive, verified_out.inertia.positive);
+    EXPECT_EQ(assumed_out.inertia.negative, verified_out.inertia.negative);
 
     EXPECT_EQ(verified.counters().pattern_verify_count, 1);
     EXPECT_EQ(assumed.counters().pattern_verify_count, 0)
@@ -244,19 +244,19 @@ TEST(SymmetricFactor, MisuseOrderingThrows) {
     const SpMatRM A = upper_csr(spd4());
 
     // factorize before analyze
-    EXPECT_THROW(factor.factorize(A), std::runtime_error);
+    EXPECT_THROW(factor.factorize(A), std::logic_error);
 
     Vec b = Vec::Ones(4);
     Vec x(4);
 
     // solve before factorize, with and without a symbolic analysis in hand
-    EXPECT_THROW(factor.solve(b, x), std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+    EXPECT_THROW(factor.solve(b, x), std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
     factor.analyze(A);
-    EXPECT_THROW(factor.solve(b, x), std::runtime_error);
+    EXPECT_THROW(factor.solve(b, x), std::logic_error);
     EXPECT_THROW(factor.solve_partial(SymmetricFactor::SolvePhase::kForward, b, x),
-                 std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+                 std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
 
     // ... and none of that counted as work.
     EXPECT_EQ(factor.counters().factorize_count, 0);
@@ -325,14 +325,10 @@ TEST(SymmetricFactor, SolveRejectsSizeMismatch) {
     EXPECT_EQ(factor.counters().solve_count, 0);
 }
 
-TEST(SymmetricFactor, UnimplementedFactorKindsThrow) {
-    SymmetricFactor::Options llt = default_options();
-    llt.kind = hven::linear::FactorKind::kLLT;
-    EXPECT_THROW(SymmetricFactor{llt}, std::logic_error);
-
-    SymmetricFactor::Options lu = default_options();
-    lu.kind = hven::linear::FactorKind::kLU;
-    EXPECT_THROW(SymmetricFactor{lu}, std::logic_error);
+TEST(SymmetricFactor, ADecompositionOutsideTheEnumerationThrows) {
+    SymmetricFactor::Options bad = default_options();
+    bad.decomposition = static_cast<hven::linear::Decomposition>(1);
+    EXPECT_THROW(SymmetricFactor{bad}, std::logic_error);
 }
 
 // =============================================================================
@@ -348,9 +344,9 @@ TEST(SymmetricFactor, InertiaOfAnSpdMatrixIsAllPositive) {
 
     const InertiaEvidence &evidence = outcome.inertia;
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(evidence.n_pos, 4);
-    EXPECT_EQ(evidence.n_neg, 0);
-    EXPECT_EQ(evidence.n_zero, 0);
+    EXPECT_EQ(evidence.positive, 4);
+    EXPECT_EQ(evidence.negative, 0);
+    EXPECT_EQ(evidence.zero, 0);
     EXPECT_TRUE(evidence.zero_is_derived) << "MKL derives the zero class rather than reporting it";
     ASSERT_TRUE(evidence.perturbed_pivots.has_value())
         << "the perturbed-pivot counter is always present on this backend";
@@ -359,9 +355,9 @@ TEST(SymmetricFactor, InertiaOfAnSpdMatrixIsAllPositive) {
     // inertia() reports the same evidence as the outcome did.
     const InertiaEvidence queried = factor.inertia();
     EXPECT_EQ(queried.state, evidence.state);
-    EXPECT_EQ(queried.n_pos, evidence.n_pos);
-    EXPECT_EQ(queried.n_neg, evidence.n_neg);
-    EXPECT_EQ(queried.n_zero, evidence.n_zero);
+    EXPECT_EQ(queried.positive, evidence.positive);
+    EXPECT_EQ(queried.negative, evidence.negative);
+    EXPECT_EQ(queried.zero, evidence.zero);
 }
 
 TEST(SymmetricFactor, InertiaOfASaddlePointIsObserved) {
@@ -372,9 +368,9 @@ TEST(SymmetricFactor, InertiaOfASaddlePointIsObserved) {
     ASSERT_EQ(outcome.status, FactorizeOutcome::Status::kOk);
 
     EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(outcome.inertia.n_pos, 2);
-    EXPECT_EQ(outcome.inertia.n_neg, 1);
-    EXPECT_EQ(outcome.inertia.n_zero, 0);
+    EXPECT_EQ(outcome.inertia.positive, 2);
+    EXPECT_EQ(outcome.inertia.negative, 1);
+    EXPECT_EQ(outcome.inertia.zero, 0);
     ASSERT_TRUE(outcome.inertia.perturbed_pivots.has_value());
     EXPECT_EQ(*outcome.inertia.perturbed_pivots, 0)
         << "a well-conditioned saddle point needs no pivot perturbation";
@@ -403,15 +399,15 @@ TEST(SymmetricFactor, InertiaOfASingularMatrixDerivesItsZeroClass) {
     const InertiaEvidence &evidence = outcome.inertia;
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kObserved);
     EXPECT_TRUE(evidence.zero_is_derived);
-    EXPECT_EQ(evidence.n_zero, 3 - evidence.n_pos - evidence.n_neg)
+    EXPECT_EQ(evidence.zero, 3 - evidence.positive - evidence.negative)
         << "the zero class is the derived remainder, by construction";
 
     ASSERT_TRUE(evidence.perturbed_pivots.has_value());
     EXPECT_GT(*evidence.perturbed_pivots, 0)
         << "the perturbed-pivot counter is the only tell that this factorization is not exact";
-    EXPECT_EQ(evidence.n_pos, 2);
-    EXPECT_EQ(evidence.n_neg, 1);
-    EXPECT_EQ(evidence.n_zero, 0);
+    EXPECT_EQ(evidence.positive, 2);
+    EXPECT_EQ(evidence.negative, 1);
+    EXPECT_EQ(evidence.zero, 0);
 }
 
 // =============================================================================
@@ -463,11 +459,11 @@ TEST(SymmetricFactor, ConfiguredRefinementDoesNotLeakIntoPartialSolves) {
     factorize_ok(unrefined, K);
     Vec reference(3);
     const hven::linear::SolveInfo unrefined_info = unrefined.solve(b, reference);
-    ASSERT_TRUE(unrefined_info.refinement_iters.has_value());
-    EXPECT_EQ(*unrefined_info.refinement_iters, 0) << "refinement was configured off";
+    ASSERT_TRUE(unrefined_info.refinement_steps.has_value());
+    EXPECT_EQ(*unrefined_info.refinement_steps, 0) << "refinement was configured off";
 
     SymmetricFactor::Options refined = default_options();
-    refined.max_refinement_iters = 2;
+    refined.max_refinement_steps = 2;
     SymmetricFactor factor(refined);
     factor.analyze(K);
     factorize_ok(factor, K);
@@ -476,8 +472,8 @@ TEST(SymmetricFactor, ConfiguredRefinementDoesNotLeakIntoPartialSolves) {
     // The configured refinement is real and reported, not merely accepted.
     Vec x_refined(3);
     const hven::linear::SolveInfo refined_info = factor.solve(b, x_refined);
-    ASSERT_TRUE(refined_info.refinement_iters.has_value());
-    EXPECT_EQ(*refined_info.refinement_iters, 2);
+    ASSERT_TRUE(refined_info.refinement_steps.has_value());
+    EXPECT_EQ(*refined_info.refinement_steps, 2);
     expect_vec_near(x_refined, x_exact);
 
     Vec y(3);
@@ -492,9 +488,9 @@ TEST(SymmetricFactor, ConfiguredRefinementDoesNotLeakIntoPartialSolves) {
 
     // Partial solves ran with refinement off, whatever the engine was
     // configured with.
-    EXPECT_EQ(forward.refinement_iters.value_or(-1), 0);
-    EXPECT_EQ(diagonal.refinement_iters.value_or(-1), 0);
-    EXPECT_EQ(backward.refinement_iters.value_or(-1), 0);
+    EXPECT_EQ(forward.refinement_steps.value_or(-1), 0);
+    EXPECT_EQ(diagonal.refinement_steps.value_or(-1), 0);
+    EXPECT_EQ(backward.refinement_steps.value_or(-1), 0);
 
     // The composition still reproduces a full solve computed with refinement
     // off -- the refinement setting did not leak into it.
@@ -504,7 +500,7 @@ TEST(SymmetricFactor, ConfiguredRefinementDoesNotLeakIntoPartialSolves) {
     // its refinement back. Drop the restore and this reads 0.
     Vec x_after(3);
     const hven::linear::SolveInfo after = factor.solve(b, x_after);
-    EXPECT_EQ(after.refinement_iters.value_or(-1), 2)
+    EXPECT_EQ(after.refinement_steps.value_or(-1), 2)
         << "the refinement cap must survive a partial solve";
     expect_vec_near(x_after, x_exact);
 }
@@ -614,7 +610,7 @@ TEST(SymmetricFactor, ExplicitThreadCountChangesNeitherCountersNorSolutions) {
     const Vec b = dense * x_exact;
 
     SymmetricFactor::Options single = default_options();
-    single.num_threads = 1;
+    single.threads = 1;
 
     SymmetricFactor threaded(single);
     threaded.analyze(A);
@@ -659,7 +655,7 @@ TEST(SymmetricFactor, APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOve
     const Vec b = dense * x_exact;
 
     SymmetricFactor::Options opts = default_options();
-    opts.num_threads = kHvenThreads;
+    opts.threads = kHvenThreads;
 
     mkl_set_num_threads_local(kCallerOverride);
 
@@ -692,7 +688,7 @@ TEST(SymmetricFactor, ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics) {
     const Vec b = dense * x_exact;
 
     SymmetricFactor::Options opts = default_options();
-    opts.num_threads = 1;
+    opts.threads = 1;
 
     SymmetricFactor factor(opts);
     factor.analyze(A);
@@ -704,7 +700,7 @@ TEST(SymmetricFactor, ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics) {
     const std::uint64_t session_before = factor.session_id();
     const std::uint64_t epoch_before = factor.epoch();
 
-    factor.set_num_threads(2);
+    factor.set_threads(2);
 
     // No new session, no new numerics, no re-analysis: the setter moved a
     // value the backend reads per call and nothing else.
@@ -739,7 +735,7 @@ TEST(SymmetricFactor, AThreadCountSetBeforeAnalyzeIsCarriedIntoTheSession) {
     const Vec b = dense * x_exact;
 
     SymmetricFactor factor(default_options());
-    factor.set_num_threads(1);
+    factor.set_threads(1);
 
     factor.analyze(A);
     factorize_ok(factor, A);
@@ -758,13 +754,13 @@ TEST(SymmetricFactor, ANegativeThreadCountIsRejectedAndChangesNothing) {
     const Vec b = dense * x_exact;
 
     SymmetricFactor::Options opts = default_options();
-    opts.num_threads = 1;
+    opts.threads = 1;
 
     SymmetricFactor factor(opts);
     factor.analyze(A);
     factorize_ok(factor, A);
 
-    EXPECT_THROW(factor.set_num_threads(-1), std::invalid_argument);
+    EXPECT_THROW(factor.set_threads(-1), std::invalid_argument);
 
     EXPECT_EQ(factor.counters().analyze_count, 1);
     Vec x(4);
@@ -811,9 +807,9 @@ TEST(SymmetricFactor, MinimumDegreeOrderingFactorizesAndSolvesCorrectly) {
     // Orderings change internals, never results: the counters and the
     // inertia read the same as the default-ordering baseline above.
     ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(factor.inertia().n_pos, 4);
-    EXPECT_EQ(factor.inertia().n_neg, 0);
-    EXPECT_EQ(factor.inertia().n_zero, 0);
+    EXPECT_EQ(factor.inertia().positive, 4);
+    EXPECT_EQ(factor.inertia().negative, 0);
+    EXPECT_EQ(factor.inertia().zero, 0);
 }
 
 TEST(SymmetricFactor, NestedDissectionOrderingFactorizesAndSolvesCorrectly) {
@@ -839,9 +835,9 @@ TEST(SymmetricFactor, NestedDissectionOrderingFactorizesAndSolvesCorrectly) {
     // Orderings change internals, never results: the counters and the
     // inertia read the same as the default-ordering baseline above.
     ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(factor.inertia().n_pos, 4);
-    EXPECT_EQ(factor.inertia().n_neg, 0);
-    EXPECT_EQ(factor.inertia().n_zero, 0);
+    EXPECT_EQ(factor.inertia().positive, 4);
+    EXPECT_EQ(factor.inertia().negative, 0);
+    EXPECT_EQ(factor.inertia().zero, 0);
 }
 
 TEST(SymmetricFactor, ParallelNestedDissectionOrderingFactorizesAndSolvesCorrectly) {
@@ -865,9 +861,9 @@ TEST(SymmetricFactor, ParallelNestedDissectionOrderingFactorizesAndSolvesCorrect
     EXPECT_EQ(factor.counters().factorize_count, 1);
     EXPECT_EQ(factor.counters().solve_count, 1);
     ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(factor.inertia().n_pos, 4);
-    EXPECT_EQ(factor.inertia().n_neg, 0);
-    EXPECT_EQ(factor.inertia().n_zero, 0);
+    EXPECT_EQ(factor.inertia().positive, 4);
+    EXPECT_EQ(factor.inertia().negative, 0);
+    EXPECT_EQ(factor.inertia().zero, 0);
 }
 
 TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
@@ -891,9 +887,9 @@ TEST(SymmetricFactor, WeightedMatchingFactorizesAndSolvesCorrectly) {
     EXPECT_EQ(factor.counters().factorize_count, 1);
     EXPECT_EQ(factor.counters().solve_count, 1);
     ASSERT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(factor.inertia().n_pos, 4);
-    EXPECT_EQ(factor.inertia().n_neg, 0);
-    EXPECT_EQ(factor.inertia().n_zero, 0);
+    EXPECT_EQ(factor.inertia().positive, 4);
+    EXPECT_EQ(factor.inertia().negative, 0);
+    EXPECT_EQ(factor.inertia().zero, 0);
 }
 
 // Composition under active matching is
@@ -969,8 +965,8 @@ TEST(SymmetricFactor, SharedHandleOutlivesItsOriginator) {
 
     const InertiaEvidence evidence = handle->inertia();
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kObserved);
-    EXPECT_EQ(evidence.n_pos, 2);
-    EXPECT_EQ(evidence.n_neg, 1);
+    EXPECT_EQ(evidence.positive, 2);
+    EXPECT_EQ(evidence.negative, 1);
 }
 
 TEST(SymmetricFactor, AdoptingACurrentHandleReusesItsNumerics) {
@@ -1045,8 +1041,8 @@ TEST(SymmetricFactor, AdoptingAStaleHandleRefusesNumericsButKeepsTheSymbolic) {
 
     SymmetricFactor adopter = SymmetricFactor::adopt(handle);
     Vec x(3);
-    EXPECT_THROW(adopter.solve(b, x), std::runtime_error);
-    EXPECT_THROW(adopter.share(), std::runtime_error);
+    EXPECT_THROW(adopter.solve(b, x), std::logic_error);
+    EXPECT_THROW(adopter.share(), std::logic_error);
     EXPECT_FALSE(adopter.supports_partial_solve());
     EXPECT_EQ(adopter.inertia().state, InertiaEvidence::State::kUnavailable)
         << "an engine refused the numerics does not report their evidence as its own";

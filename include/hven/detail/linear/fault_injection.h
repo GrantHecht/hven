@@ -261,7 +261,7 @@ struct PardisoIparmObserver {
 // thread scope inside the session were deleted outright; it is not, and
 // cannot be, evidence that the scope engages.
 //
-// It exists for SymmetricFactor::set_num_threads, and it pins the half of
+// It exists for SymmetricFactor::set_threads, and it pins the half of
 // that setter's claim which has no public observable: that a mid-life change
 // lands in the configuration a subsequent backend call reads. The rest of
 // the claim is carried by traced data flow (every phase reaches the backend

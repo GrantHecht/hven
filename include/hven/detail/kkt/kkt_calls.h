@@ -10,7 +10,7 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief The SQP engine's linear configuration for its KKT factors.
 ///
@@ -28,10 +28,10 @@ namespace hven::solvers::detail {
 /// accelerate_set_num_threads() call, which is not restored on exit.
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads = 0) {
     hven::linear::SymmetricFactor::Options o;
-    o.kind = hven::linear::FactorKind::kLDLT;
-    o.num_threads = threads;
-    o.pivot_perturb_exp = std::nullopt;
-    o.max_refinement_iters = std::nullopt;
+    o.decomposition = hven::linear::Decomposition::kLdlt;
+    o.threads = threads;
+    o.pivot_perturbation_exponent = std::nullopt;
+    o.max_refinement_steps = std::nullopt;
     // Every remaining member keeps its default (don't-write / absent).
     return o;
 }
@@ -105,7 +105,7 @@ AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K);
 bool needs_analysis(const KktFactor &k, const SpMatRM &K);
 
 /// @brief Analyze iff the pattern changed, then factorize.
-/// @throws std::runtime_error As the three-argument overload.
+/// @throws hven::BackendError As the three-argument overload.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K);
 
 /// @brief The same, on a decision the caller has already taken -- which is what
@@ -114,7 +114,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
 /// The decision MUST be the one `analysis_decision()` returned for this same
 /// `k` and this same K's pattern; handing back a stale decision would analyze
 /// (or skip analyzing) against the wrong pattern.
-/// @throws std::runtime_error If the outcome is
+/// @throws hven::BackendError If the outcome is
 /// FactorizeOutcome::Status::kBackendError; every other status is returned.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);
@@ -122,4 +122,4 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 /// @brief Allocate and solve, returning the solution by value.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

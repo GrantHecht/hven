@@ -1,0 +1,104 @@
+M8 AP-2 group B3, settler riders -- DECLARATION (committed before the first proof leg; never edited
+afterwards; a failed leg is followed by a successor declaration DECLARATION-r2.txt and the failed
+record is kept)
+================================================================================
+Base        m8-b3 at ef0848fe (B3 code head 22626a2e, evidence on top), the B3 evidence in ../
+Code head   6cec5e25 (m8-b3). Commits after the B3 evidence head, oldest first:
+              90b553b6 bench: the walk baseline re-derived (2 rows MaxIter -> WorkLimit), promoted
+              a7a515f4 refactor: rider code (validator, optional QpOptions::max_iter, removals, tie)
+              00a30389 docs: settlement prose stripped from include/hven/drivers/sqp_options.h
+              94adf5d1 test: rider tests and re-pins
+              6cec5e25 docs: concurrency.md
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B3.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+R1  bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv replaced by the B3 census's
+    re-derived file (exactly f7_n2000_path_neutral and f7_n2000_path_corrupted: status MaxIter ->
+    WorkLimit; every other byte, provenance header included, untouched).
+R2  QpOptions::max_iter is std::optional<Index> (empty = derived); an engaged value < 1 is refused
+    (SqpOptions validate: "qp.max_iter"; QpEngine::solve). The options fingerprint folds value_or(0).
+R3  KktFactorizationAlgorithm::kTwoLevel removed (the linear layer's own FactorizationAlgorithm,
+    SymmetricFactor::Options, is untouched).
+R4  settlement prose stripped from sqp_options.h (comments only).
+R5  common.max_iterations > INT_MAX refused by name (both engines, one validator); SolveBudget::
+    max_iterations > INT_MAX refused at solve entry (both engines).
+R6  IpmLinearOptions::backend_output and accelerate_pivot_tolerance (Accelerate-only) deleted from
+    the public options, with their refusals and dump lines. The factor layer keeps its values.
+R7  one shared CommonOptions validator (src/drivers/common_options.cpp), per-engine floors, one
+    message form, one field per message, NaN refused by negated comparisons.
+R8  linear.skip_unperturbed_attempts moved to advanced.skip_unperturbed_attempts.
+R9  the IPM's two iteration-cap doors read limit_reached(): a cap and a limit reached at the same
+    boundary report kWorkLimit / kTimeLimit and end the phase sequence (as the SQP does).
+R10 docs/concurrency.md names verbosity = kSilent.
+R11 validate refuses FixedVariableTreatment::kRelaxBounds with bound_relax_factor <= 0.
+R12 tests/bench cleanups (denorm_min -> min; the doubled feasibility_tol assignment; std::move).
+R13 new tests: work limit in the SQP restoration sub-solve; IPM limit in a second phase; limit exit
+    ignores return_best; set_options re-arms a limit (both engines); the cap/limit tie.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  Removed surface: KktFactorizationAlgorithm::kTwoLevel; IpmLinearOptions::backend_output;
+    IpmLinearOptions::accelerate_pivot_tolerance (Apple only); linear.skip_unperturbed_attempts
+    (now advanced.skip_unperturbed_attempts). Dump lines: linear.backend_output and
+    linear.skip_unperturbed_attempts leave the linear block, advanced.skip_unperturbed_attempts is
+    added after advanced.inertia_correction_max_attempts (IPM dump 69 -> 68 lines on Linux, 71 -> 69
+    on Apple), and qp.max_iter prints `unset` (was 0) at the default. sizeof moves (Linux x86-64):
+    IpmOptions 472 -> 480, IpmAdvancedOptions 136 -> 144, SqpOptions 592 -> 600, QpOptions 80 -> 88.
+X2  New refusals, each pinned: common.max_iterations outside [floor, INT_MAX] (both engines);
+    SolveBudget::max_iterations > INT_MAX; an engaged qp.max_iter < 1; kRelaxBounds with
+    bound_relax_factor <= 0. SolveBudget.IpmClampsBeforeNarrowing (2^32) becomes INT_MAX.
+X3  Message re-pins: every common-option refusal reads `common.<field> must ..., got <value>` on both
+    engines (the SQP's "SqpSolver:" prefix and its message naming both tolerances are gone; the IPM's
+    "finite and positive" wording becomes "finite and > 0").
+X4  Tie status. Only when a limit is engaged: a cap and a limit met at the same boundary report
+    kWorkLimit/kTimeLimit where the IPM reported kMaxIter. With both limits empty (every replay,
+    census and runtime row) the new code reads nothing and no status moves.
+X5  QpOptions::max_iter = 0 / <= 0 (the old "derive" spelling) is no longer accepted; it is empty.
+    The default value is unchanged in effect, the fingerprint of a default QpOptions is unchanged.
+EXPECTED UNCHANGED: the 27-cell replay (EXACT), the 57-cell census against the promoted baseline
+(0 mismatches), the iparm dump over the remaining configurations (byte-identical), every counter
+and status of every measured runtime row.
+
+PROOFS AND PASS CRITERIA
+--------------------------------------------------------------------------------
+P1  suites: ctest Release and Debug, full, -j4 under setsid: every test passes.
+    (3285 at the B3 head + 8 new tests = 3293.)
+P2  27-cell replay x (walk, ssn, ipm), scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-{walk,ssn,ipm}.csv, the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P3  iparm (IPARM-SURFACE validation): the riders-head dump (iparm/dump_iparm.cpp, a copy of B3's
+    with the two configurations whose option is gone dropped) is BYTE-IDENTICAL to the B3 pin dump
+    (../iparm/iparm-pin.txt) with the same two configurations removed. Dropped configs:
+    algorithm=two_level (the enumerator is gone; REFUSED on both arms at B3) and backend_print=on
+    (the field is gone; REFUSED on both arms at B3); neither made a pardiso call. 15 configurations
+    remain. skip_unperturbed=off is spelled advanced.skip_unperturbed_attempts.
+P4  walk census 57/57, 0 mismatches against the promoted baseline (scripts/run_walk_census.sh at
+    defaults, scripts/census_compare.py); the two relabelled cells run solo (tier T2).
+P5  install smoke on the default (GCC) and clang arms, each followed by scripts/
+    check_export_contract.sh: pass; the allow-list may only shrink (7 residual pairs at B3).
+P6  scripts/check_pch_neutrality.sh: PASS. (The new TU src/drivers/common_options.cpp is not a PCH
+    source; _hven_expected_source_count 53 -> 54.)
+P7  off-reference CLEAN build: the linux-clang-release preset in a fresh build directory with
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then
+    ctest Release: pass.
+P8  Accelerate syntax sweep, pass A as B3 did (-fsyntax-only -DUSE_ACCELERATE_SPARSE over every
+    file naming it): no OTHER; the known classes (KNOWN-HEADER, KNOWN-SIZEOF) as at B3. UNOBSERVED
+    on Apple hardware.
+P9  examples: all build (HVEN_BUILD_EXAMPLES=ON) and exit 0.
+P10 runtime gate (runtime/DECLARATION.txt, the B3 instrument verbatim): arm A = 22626a2e,
+    arm B = the riders code head; same filter, band 0.995 <= B/A <= 1.005, THROTTLE == 0, counter
+    identity as the STOP condition, arm order alternated.
+ARMS
+  A  22626a2e, built in a detached git worktree (build-r/armA-src, configure flags of legs/build.sh,
+     Release), build-r/armAbin/hven_sqp_corpus
+     sha256 d7c14361143f673e49c0679d3a8f3f5632b65615f4bdf54a9a86605b35a27234.
+     DEVIATION FROM B3'S PRACTICE: B3 built its arm A in place in the same absolute build directory
+     as arm B; this arm A lives at a different source and build path. Instruction counts do not
+     depend on either path.
+  B  6cec5e25 (code), build-b3/rel/bench/hven_sqp_corpus copied to build-r/armB/,
+     sha256 24a097eaad6abacc0a5ff9a689c7b39ca245cc5961e98cfc832e10afca5a061d.
+BOX PROTOCOL: as B3 (PROVENANCE.txt there): every leg a script under `flock /tmp/box-build.lock`,
+`pgrep -a hven_bench_cell` empty before the lock and PGREP_EMPTY inside it, set -o pipefail,
+MKL_NUM_THREADS=1, no timeout wrapper, ctest -j4 under setsid. Scripts: legs/, runtime/, iparm/.
