@@ -1151,9 +1151,9 @@ constexpr Index kMaxSuspectEscalations = 3;
 
 // THE RELEASE RE-ADMISSION's rung (Degeneracy): the effective dual_regularization is multiplied by
 // kDualRegDecreaseFactor, at most kMaxDualRegDecreases times per solve (1e-8 -> 1e-12 at the
-// defaults). The floor keeps the rule inside the regularized contract; a face the lowered mu no
-// longer resolves is caught by the inertia verdict (kSuspect on perturbed pivots) and the suspect
-// ladder.
+// defaults), never to 0. A mu below the backend's static-pivot floor reads kSuspect on perturbed
+// pivots and escalates nothing: the suspect ladder answers only a refused EQP answer or a kSuspect
+// would-be-kOptimal exit failing free-block stationarity (section 4b); the exit's gates guard it.
 constexpr double kDualRegDecreaseFactor = 1e-2;
 constexpr Index kMaxDualRegDecreases = 2;
 
