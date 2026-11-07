@@ -44,6 +44,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/globalization/soc.h"
+#include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
@@ -52,6 +53,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -88,6 +90,8 @@ using TychoTest::InertSolverContext;
 using Action = RecoveryChain::Action;
 
 constexpr double kSocInf = std::numeric_limits<double>::infinity();
+/// A real upper bound far past the far-slack width (hven/detail/interior/barrier_math.h).
+constexpr double kSocFarUpper = 1e19;
 
 ///////////////////////////////////////////////////////////////////////////////
 // soc_should_trigger / soc_should_continue — pure predicates.
@@ -234,6 +238,9 @@ struct SocTrialProblem : hven::Nlp {
     /// the shape on which the correction's fraction-to-boundary guard is FALSE.
     /// Fixed before the program is built; every shape method reads it.
     bool equality_only_ = false;
+    /// Gives row 1 the real upper bound kSocFarUpper, so it is a range row whose
+    /// upper side is a far slack pair. Fixed before the program is built.
+    bool far_range_ = false;
     mutable int eval_g_calls_ = 0;
 
     int num_vars() const { return 2; }
@@ -250,7 +257,7 @@ struct SocTrialProblem : hven::Nlp {
             return;
         }
         gl << 1.0, 0.0; // row 0 is an equality (gl == gu), row 1 a >= row
-        gu << 1.0, kSocInf;
+        gu << 1.0, far_range_ ? kSocFarUpper : kSocInf;
     }
     double eval_f(hven::ConstVecRef x) const override {
         double f = 0.0;
@@ -427,8 +434,9 @@ struct SocDrive {
     ///                        non-negative; a separated pair makes it negative
     ///                        and takes the slack reset's other branch.
     explicit SocDrive(int max_soc, bool equality_only = false, double primal0 = 0.5,
-                      double primal1 = 0.5) {
+                      double primal1 = 0.5, bool far_range = false) {
         problem_->equality_only_ = equality_only;
+        problem_->far_range_ = far_range;
         program_ = hven::detail::make_nlp_program(problem_);
 
         // The engine lays the KKT pattern before it evaluates; do the same so
@@ -637,6 +645,63 @@ TEST(SocRecovery, TheCorrectedDirectionSolvesTheCorrectedRightHandSide) {
     EXPECT_FALSE(corrected.tail(ncons).isApprox(-entry_rhs.tail(ncons)));
     EXPECT_TRUE(corrected.allFinite());
     EXPECT_EQ(drive.problem_->eval_g_calls_, 1) << "the seed evaluation, and only it";
+}
+
+// A far slack pair (the upper side of a range row bounded at kSocFarUpper): the committed
+// correction carries the pair's multiplier step from its own linearized complementarity
+// (barrier_math.h, recover_far_slack_multiplier_steps), not the solved one. On the identity
+// factor the solved step is -c_soc, nowhere near the pair's central value, so the assertion
+// fails if the correction site skips the recovery.
+TEST(SocRecovery, AFarSlackPairsCorrectedMultiplierStepIsRecovered) {
+    SocDrive drive(kSocRecommendedMaxCorrections, /*equality_only=*/false, 0.5, 0.5,
+                   /*far_range=*/true);
+    SocUnusedAcceptance acceptance;
+    SocScriptedMechanism mechanism({{true, 1.0, 0.0}});
+    SocRecovery soc;
+
+    // Row 1 is a range row: two slack pairs, its upper side first.
+    const int pv = drive.inert_.primal_vars_;
+    ASSERT_EQ(pv, 2);
+    ASSERT_EQ(drive.inert_.slack_vars_, 2);
+    ASSERT_EQ(drive.inert_.equal_cons_, 1);
+    ASSERT_EQ(drive.inert_.inequal_cons_, 2);
+    const int n = drive.inert_.kkt_dim_;
+    ASSERT_EQ(n, 7);
+    const int far_s = pv;      // upper side: s = 1e19 - g
+    const int near_s = pv + 1; // lower side: s = g - 0
+    const int far_l = n - 2;   // their multipliers, in slack order
+    const int near_l = n - 1;
+
+    // A centred iterate at mu = 1e-3: the far pair sits at lambda = mu/s.
+    const double mu = 1e-3;
+    const double g1 = drive.xsl_(0) - drive.xsl_(1);
+    drive.xsl_(far_s) = kSocFarUpper - g1;
+    drive.xsl_(far_l) = mu / drive.xsl_(far_s);
+    ASSERT_GE(drive.xsl_(far_s), hven::detail::kFarSlackWidth);
+    ASSERT_LT(drive.xsl_(near_s), hven::detail::kFarSlackWidth);
+    drive.rhs_(far_s) = 0.2 * drive.xsl_(far_l); // a small slack-row residual, lambda - mu/s
+    const Eigen::VectorXd entry_rhs = drive.rhs_;
+    const Eigen::VectorXd entry_xsl = drive.xsl_;
+
+    ASSERT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
+    ASSERT_EQ(mechanism.recorded_dxsl_.size(), 1u);
+    const Eigen::VectorXd &corrected = mechanism.recorded_dxsl_[0];
+    ASSERT_TRUE(corrected.allFinite());
+
+    // The identity solve returns each slack step as the negated slack row.
+    EXPECT_DOUBLE_EQ(corrected(far_s), -entry_rhs(far_s));
+    // The far multiplier step: -R - (lambda/s) ds, against the slack row that was solved.
+    const double recovered =
+        -entry_rhs(far_s) - (entry_xsl(far_l) / entry_xsl(far_s)) * corrected(far_s);
+    EXPECT_DOUBLE_EQ(corrected(far_l), recovered);
+    EXPECT_LT(std::abs(corrected(far_l)), 1e-20) << "the far pair stays on its central path";
+    // The near pair keeps the solved step: the identity's -c_soc, not its own recovery.
+    const double near_recovered =
+        -entry_rhs(near_s) - (entry_xsl(near_l) / entry_xsl(near_s)) * corrected(near_s);
+    EXPECT_NE(corrected(near_l), near_recovered);
+    // What is committed is that direction.
+    EXPECT_TRUE(drive.dxsl_.isApprox(corrected));
+    EXPECT_EQ(drive.dxsl_(far_l), corrected(far_l));
 }
 
 // Every correction rejected, each cutting the violation enough to earn another:

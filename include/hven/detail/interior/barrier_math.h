@@ -72,24 +72,23 @@ inline double max_step_to_boundary(Eigen::Ref<Eigen::VectorXd> SLI,
     return alpha;
 }
 
-/// Slack width (2^26 = 1/sqrt(eps)) at and beyond which a slack pair is FAR. The KKT
-/// solve returns a multiplier step with absolute error near eps times the multiplier
-/// scale, and a pair's complementarity s*lambda multiplies that error by s: past this
-/// width the solved step cannot resolve the pair's central value mu/s, and the noise
-/// it leaves in s*lambda drives the barrier oracle and the barrier residual. Such a
-/// pair arises from a real bound of huge magnitude (a finite bound under
-/// CommonOptions::infinite_bound = infinity).
+/// @brief Slack width (2^26 = 1/sqrt(eps)) at and beyond which a slack pair is FAR.
+///
+/// The KKT solve returns a multiplier step with absolute error near eps times the
+/// multiplier scale, and s*lambda multiplies that error by s. The width is a
+/// conservative cut, not a derived bound: harm is observed only from s ~ 1e14.
+/// Slacks are in the row's own units (rows are not scaled), so a row with large values
+/// in its units (e.g. positions in metres) can cross the width with an ordinary bound.
 inline constexpr double kFarSlackWidth = 67108864.0;
 
 /// @brief Far-pair multiplier recovery: for every slack pair with S[i] >= kFarSlackWidth,
-/// replaces the multiplier step dLI[i] the KKT solve returned with the one the pair's own
-/// linearized complementarity equation gives, back-substituted against the right-hand
-/// side that was solved: dLI = -R - (LI/S)*dS, where R is the RHS slack-row entry
-/// (LI - mu/S for a centring step, LI for an affine probe). Exact for the same
-/// equation the factorization satisfied only to normwise backward error; the same
-/// recovery the variable-bound multipliers get (compute_bound_dual_direction).
-/// Pairs below the width keep the solved step bit for bit. DXSL sign convention:
-/// the step is the NEGATED solution, so the slack row reads (LI/S)*dS + dLI = -R.
+/// replaces the solved multiplier step with dLI = -R - (LI/S)*dS, where R is the RHS
+/// slack-row entry (LI - mu/S for a centring step, LI for an affine probe).
+///
+/// Exact for the pair's own linearized complementarity; coincides with the solved slack
+/// row where the KKT diagonal is LI/S. Pairs below the width keep the solved step bit for
+/// bit. DXSL sign convention: the step is the NEGATED solution, so the slack row reads
+/// (LI/S)*dS + dLI = -R.
 inline void recover_far_slack_multiplier_steps(ConstEigenRef<Eigen::VectorXd> S,
                                                ConstEigenRef<Eigen::VectorXd> LI,
                                                ConstEigenRef<Eigen::VectorXd> R,

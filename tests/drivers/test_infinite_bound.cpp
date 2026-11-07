@@ -1203,4 +1203,64 @@ TEST(HugeRealBound, ABoundAtTheTopOfTheDoubleRangeRelaxesToItNotPastIt) {
     }
 }
 
+/// The largest barrier parameter an IPM solve visits, through the iteration callback.
+void track_max_mu(IpmSolver &ipm, double &max_mu) {
+    ipm.set_iteration_callback([&max_mu](const IterationEvent &ev) {
+        if (ev.mu.has_value())
+            max_mu = std::max(max_mu, *ev.mu);
+        return CallbackAction::kContinue;
+    });
+}
+
+TEST(HugeRealBound, TheAffineProbeRecoversTheFarPairsToo) {
+    // The probe barrier rule solves an affine predictor on the live factorization; its far
+    // pairs take the same recovery as the real step (ClassicAdaptiveGovernor::update_barrier).
+    // The far pairs' affine complementarity enters the probe's average, so a count need not
+    // equal the reference's: pinned on the reference build, within two of it elsewhere.
+    auto probe_ipm = [](double infinite_bound, double &max_mu) {
+        IpmSolver ipm = quiet_ipm(infinite_bound);
+        IpmOptions o = ipm.options();
+        o.advanced.optimize_barrier_mode = IpmBarrierMode::kProbe;
+        ipm.set_options(o);
+        track_max_mu(ipm, max_mu);
+        return ipm;
+    };
+    double ref_max_mu = 0.0;
+    Problem ref_problem(std::make_shared<Shifted>());
+    IpmSolver ref_ipm = probe_ipm(kThr, ref_max_mu);
+    const IpmResult ref = ref_ipm.solve(ref_problem, start());
+    ASSERT_EQ(ref.status, SolveStatus::kOptimal);
+
+    auto far_row = std::make_shared<Shifted>();
+    far_row->gu[0] = 1e20;
+    struct Case {
+        std::shared_ptr<Shifted> nlp;
+        Index pinned; // on the reference build
+        const char *key;
+    };
+    for (const Case &c : {Case{large_finite(), 6, "huge_real_bounds_probe_iterations"},
+                          Case{far_row, 7, "huge_real_row_probe_iterations"}}) {
+        SCOPED_TRACE(c.key);
+        double max_mu = 0.0;
+        Problem problem(c.nlp);
+        IpmSolver ipm = probe_ipm(kInfinity, max_mu);
+        const IpmResult r = ipm.solve(problem, start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_NEAR(r.x[0], 3.0, 1e-5);
+        EXPECT_NEAR(r.x[1], -4.0, 1e-5);
+        EXPECT_NEAR(r.x[2], 0.5, 1e-5);
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(r.iterations, c.pinned) << "reference " << ref.iterations;
+#else
+        EXPECT_LE(r.iterations, ref.iterations + 2);
+        hven::test_support::record_off_reference_route(
+            c.key, std::to_string(r.iterations) + " vs " + std::to_string(ref.iterations));
+#endif
+        // An unrecovered probe reads the far pairs' noise as complementarity and sends the
+        // barrier parameter to barrier_max.
+        EXPECT_LE(max_mu, 10.0 * ref_max_mu) << "reference max mu " << ref_max_mu;
+        EXPECT_LT(max_mu, IpmOptions{}.barrier_max);
+    }
+}
+
 } // namespace

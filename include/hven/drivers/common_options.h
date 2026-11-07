@@ -138,6 +138,9 @@ struct CommonOptions {
     ///    at infinity) -- the same refusals as for the infinities themselves;
     ///  - a NaN bound and a lower bound above its upper are refused by name, as
     ///    before.
+    ///  - under `kInfinity`, a one-sided finite bound near the largest double makes the
+    ///    interior-point engine's bound-damping term dominate its merit, so its line
+    ///    search cannot reject a step.
     ///
     /// Applied once, where the declaration enters each engine's transcription: an
     /// Nlp problem's variable and row bounds, a pieces problem's variable bounds,
