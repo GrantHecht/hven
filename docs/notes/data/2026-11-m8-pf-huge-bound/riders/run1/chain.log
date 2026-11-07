@@ -1,0 +1,56 @@
+PREFLIGHT_OK 2026-11-07T00:24:58-05:00 head 9c205bb1 code b2c3efb5
+### failproof 2026-11-07T00:24:58-05:00
+restored 0 0
+FAILPROOF_AS_DECLARED
+rc=0
+FOREGROUND_END 2026-11-07T00:25:46-05:00
+### failproof rc=0
+### build-rel 2026-11-07T00:25:46-05:00
+[343/344] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[344/344] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-07T00:29:07-05:00
+### build-rel rc=0
+### engine-bytes 2026-11-07T00:29:07-05:00
+object sets equal: 56
+objects differing: 0
+rc=1
+FOREGROUND_END 2026-11-07T00:29:07-05:00
+### engine-bytes rc=1
+### build-dbg 2026-11-07T00:29:07-05:00
+[343/344] Linking CXX executable examples/hven_example_08_results_trace_options
+[344/344] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-07T00:31:27-05:00
+### build-dbg rc=0
+### ctest-release 2026-11-07T00:31:27-05:00
+FOREGROUND_START 2026-11-07T00:31:27-05:00
+100% tests passed, 0 tests failed out of 3481
+rc=0
+FOREGROUND_END 2026-11-07T00:34:15-05:00
+### ctest-release rc=0
+### ctest-debug 2026-11-07T00:34:15-05:00
+FOREGROUND_START 2026-11-07T00:34:15-05:00
+100% tests passed, 0 tests failed out of 3481
+rc=0
+FOREGROUND_END 2026-11-07T00:41:49-05:00
+### ctest-debug rc=0
+### examples 2026-11-07T00:41:49-05:00
+rc=0
+examples=8 worst=0
+rc=0
+FOREGROUND_END 2026-11-07T00:41:56-05:00
+### examples rc=0
+### offref 2026-11-07T00:41:56-05:00
+build rc=0 warning-lines=26
+100% tests passed, 0 tests failed out of 3481
+rc=0
+FOREGROUND_END 2026-11-07T00:48:04-05:00
+### offref rc=0
+### format 2026-11-07T00:48:04-05:00
+0 tests/interior/test_soc.cpp
+diagnostics=0
+rc=0
+FOREGROUND_END 2026-11-07T00:48:04-05:00
+### format rc=0
+CHAIN_END 2026-11-07T00:48:04-05:00 failed-legs=1
