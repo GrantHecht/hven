@@ -1,0 +1,5 @@
+.text   measured 0x401300+0x66edc32  record 0x401300+0x66edc32  same: True
+.rodata measured 0x6af4440+0x1327c0  record 0x6af4440+0x1327c0  same: True
+.data   shift 0x3000 (page multiple: True)
+instructions: 21455966; identical text: 21422822; differing only by RW-segment displacement 0x3000: 33144; other: 0
+BINARY_TEXT_IDENTITY_OK
