@@ -1,0 +1,325 @@
+{
+ "samples": 4024,
+ "period": 1000003,
+ "instr_sampled_all": 4162941072,
+ "instr_sampled_solver": 4114309931,
+ "bucket_instr": {
+  "B_sym": 5210015,
+  "B_fac": 2374148885,
+  "B_kkt": 88968258,
+  "B_eval": 1115064225,
+  "B_setup": 2133006,
+  "B_eng": 528785542,
+  "B_proc": 48631141
+ },
+ "share_of_solver": {
+  "B_sym": 0.001266315636735146,
+  "B_fac": 0.5770466797145137,
+  "B_kkt": 0.0216241020953849,
+  "B_eval": 0.27102095945625054,
+  "B_setup": 0.0005184359068159856,
+  "B_eng": 0.1285235071902997
+ },
+ "proc_share_of_all": 0.011681919142957305,
+ "rule_instr": 2642550662,
+ "fallback_instr": 1154275339,
+ "fallback_by_bucket": {
+  "B_eval": 1097546174,
+  "B_fac": 56729165
+ },
+ "unmatched_instr": 366115071,
+ "unmatched_share_of_solver": 0.08898577820825818,
+ "chains_reaching_main": 0.001242544731610338,
+ "init_instr": 0,
+ "steady_state_instr": 4114309931,
+ "steady_state_share": {
+  "B_sym": 0.001266315636735146,
+  "B_fac": 0.5770466797145137,
+  "B_kkt": 0.0216241020953849,
+  "B_eval": 0.27102095945625054,
+  "B_setup": 0.0005184359068159856,
+  "B_eng": 0.1285235071902997
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2262781561
+  ],
+  [
+   "<no hven::linear frame>",
+   56729165
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   29896087
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   11371033
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   6259018
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   2070006
+  ],
+  [
+   "hven::linear::{anon}::uplo_char",
+   1021003
+  ],
+  [
+   "hven::linear::SymmetricFactor::SymmetricFactor",
+   1007003
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   1007003
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   1007003
+  ],
+  [
+   "hven::linear::SymmetricFactor::inertia",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 278233807,
+ "kmp_instr": 1273340690,
+ "top_unmatched_leaf": [
+  [
+   "__sin_fma",
+   203245588
+  ],
+  [
+   "<empty>",
+   106000318
+  ],
+  [
+   "__ieee754_exp_fma",
+   20763060
+  ],
+  [
+   "xflow",
+   20742060
+  ],
+  [
+   "__sincos_fma",
+   4182012
+  ],
+  [
+   "exp@@GLIBC_2.29",
+   4049012
+  ],
+  [
+   "with_errno.constprop.0",
+   2056006
+  ],
+  [
+   "__internal_syscall_cancel",
+   2049006
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "_int_malloc",
+    2084006
+   ],
+   [
+    "std::vector<int, std::allocator<int> >::_M_fill_assign",
+    1063003
+   ],
+   [
+    "hven::linear::SymmetricFactor::analyze",
+    1042003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1021003
+   ]
+  ],
+  "B_fac": [
+   [
+    "__kmp_fork_call",
+    145949423
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    122955357
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    118864345
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    111808324
+   ],
+   [
+    "__kmp_serialized_parallel",
+    107570312
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    78674228
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    74513216
+   ],
+   [
+    "[unknown]",
+    55841162
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    25854075
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    11483033
+   ],
+   [
+    "malloc",
+    8301024
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    7217021
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    5189015
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    4203012
+   ],
+   [
+    "hven::detail::build_bordered_system",
+    3182009
+   ],
+   [
+    "hven::detail::assemble_kkt_core",
+    3098009
+   ]
+  ],
+  "B_eval": [
+   [
+    "eval91_",
+    1097581174
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    3077009
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    3056009
+   ],
+   [
+    "hven::{anon}::zero_values",
+    2091006
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    2084006
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    2049006
+   ],
+   [
+    "elfun_",
+    2014006
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_f",
+    1042003
+   ]
+  ],
+  "B_setup": [
+   [
+    "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >",
+    1070003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__sin_fma",
+    203245588
+   ],
+   [
+    "<empty>",
+    106000318
+   ],
+   [
+    "__ieee754_exp_fma",
+    20763060
+   ],
+   [
+    "xflow",
+    20742060
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    17602051
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    14476042
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    14406042
+   ],
+   [
+    "malloc",
+    13476039
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    15448045
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    12420036
+   ],
+   [
+    "check_match",
+    4168012
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    3112009
+   ],
+   [
+    "strcmp",
+    3070009
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ],
+   [
+    "rml::internal::LargeObjectCache::reset",
+    1070003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1063003
+   ]
+  ]
+ }
+}

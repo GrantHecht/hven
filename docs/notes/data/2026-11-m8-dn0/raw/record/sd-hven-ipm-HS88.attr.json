@@ -1,0 +1,134 @@
+{
+ "samples": 4736,
+ "period": 1000003,
+ "instr_sampled_all": 4759919208,
+ "instr_sampled_solver": 4751891184,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3014009,
+  "B_kkt": 0,
+  "B_eval": 30098090,
+  "B_setup": 4718779085,
+  "B_eng": 0,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0006342756774709848,
+  "B_kkt": 0.0,
+  "B_eval": 0.006333918188476767,
+  "B_setup": 0.9930318061340523,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0016865882905128503,
+ "rule_instr": 4759919208,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9902871621621622,
+ "init_instr": 4716772079,
+ "steady_state_instr": 35119105,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.08582248892732318,
+  "B_kkt": 0.0,
+  "B_eval": 0.8570289590238703,
+  "B_setup": 0.057148552048806485,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3014009
+  ]
+ ],
+ "mkl_serv_instr": 4716772079,
+ "kmp_instr": 3014009,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__vfscanf_internal",
+    1007003
+   ],
+   [
+    "__printf_buffer_write",
+    1007003
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "eval88_",
+    15056045
+   ],
+   [
+    "__sin_fma",
+    13035039
+   ],
+   [
+    "hven::ConstraintModel<hven::detail::NlpConstraintPiece>::constraints",
+    1007003
+   ],
+   [
+    "__sincos_fma",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    2915778703
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1407997203
+   ],
+   [
+    "__vdso_time",
+    197973591
+   ],
+   [
+    "difftime@plt",
+    175917525
+   ],
+   [
+    "time@plt",
+    19105057
+   ],
+   [
+    "std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >",
+    1007003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3014009
+   ],
+   [
+    "do_lookup_x",
+    3000009
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "strcmp",
+    1007003
+   ]
+  ]
+ }
+}

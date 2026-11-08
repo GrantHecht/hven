@@ -1,0 +1,134 @@
+{
+ "samples": 2422,
+ "period": 1000003,
+ "instr_sampled_all": 2422007266,
+ "instr_sampled_solver": 2417007251,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 7000021,
+  "B_kkt": 0,
+  "B_eval": 2000006,
+  "B_setup": 2408007224,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0028961522548613984,
+  "B_kkt": 0.0,
+  "B_eval": 0.0008274720728175424,
+  "B_setup": 0.9962763756723211,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.002064409578860446,
+ "rule_instr": 2422007266,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9962840627580511,
+ "init_instr": 2407007221,
+ "steady_state_instr": 10000030,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7,
+  "B_kkt": 0.0,
+  "B_eval": 0.2,
+  "B_setup": 0.1,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   7000021
+  ]
+ ],
+ "mkl_serv_instr": 2407007221,
+ "kmp_instr": 6000018,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    3000009
+   ],
+   [
+    "_strnlen_s_chk",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_matching_core",
+    1000003
+   ],
+   [
+    "__kmp_fork_call",
+    1000003
+   ],
+   [
+    "__kmp_barrier",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "malloc",
+    1000003
+   ],
+   [
+    "group_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1484004452
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    690002070
+   ],
+   [
+    "difftime@plt",
+    115000345
+   ],
+   [
+    "__vdso_time",
+    106000318
+   ],
+   [
+    "time@plt",
+    12000036
+   ],
+   [
+    "_gfortrani_get_fpu_rounding_mode",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    1000003
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "__mpn_mul_1",
+    1000003
+   ]
+  ]
+ }
+}

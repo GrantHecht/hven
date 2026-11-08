@@ -1,0 +1,252 @@
+{
+ "samples": 434,
+ "period": 1000003,
+ "instr_sampled_all": 490848302,
+ "instr_sampled_solver": 315015837,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 259441693,
+  "B_kkt": 5784015,
+  "B_eval": 5784015,
+  "B_setup": 17079045,
+  "B_eng": 26927069,
+  "B_proc": 175832465
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8235830156056567,
+  "B_kkt": 0.01836102925834805,
+  "B_eval": 0.01836102925834805,
+  "B_setup": 0.054216464678885336,
+  "B_eng": 0.08547846119876189
+ },
+ "proc_share_of_all": 0.3582216018341243,
+ "rule_instr": 474566260,
+ "fallback_instr": 5910015,
+ "fallback_by_bucket": {
+  "B_fac": 4672012,
+  "B_proc": 1238003
+ },
+ "unmatched_instr": 10372027,
+ "unmatched_share_of_solver": 0.03292541447686009,
+ "chains_reaching_main": 0.07834101382488479,
+ "init_instr": 0,
+ "steady_state_instr": 315015837,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8235830156056567,
+  "B_kkt": 0.01836102925834805,
+  "B_eval": 0.01836102925834805,
+  "B_setup": 0.054216464678885336,
+  "B_eng": 0.08547846119876189
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   254769681
+  ],
+  [
+   "<no hven::linear frame>",
+   4672012
+  ]
+ ],
+ "mkl_serv_instr": 28010075,
+ "kmp_instr": 165738444,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   6924018
+  ],
+  [
+   "getenv",
+   1245003
+  ],
+  [
+   "_ZNSt4pairINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES5_EC2IRPKcRKS5_Qaacl16_S_constructibleITL0__TL0_0_EEntcl10_S_danglesISD_SE_EEEEOT_OT0_",
+   1133003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_fork_call",
+    12931036
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    11309030
+   ],
+   [
+    "__strcmp_avx2",
+    11295030
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    11162030
+   ],
+   [
+    "[unknown]",
+    9162024
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    9106024
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    8232021
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    8099021
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    2357006
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1217003
+   ],
+   [
+    "malloc",
+    1133003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1077003
+   ]
+  ],
+  "B_eval": [
+   [
+    "hven::detail::AssemblyEvalSeam::jacobians_only",
+    1217003
+   ],
+   [
+    "cutest_csh_threadsafe_",
+    1210003
+   ],
+   [
+    "hven::detail::AssemblyEvalSeam::eval_nlp_values",
+    1210003
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    1105003
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    1042003
+   ]
+  ],
+  "B_setup": [
+   [
+    "formatted_transfer_scalar_read",
+    3462009
+   ],
+   [
+    "_int_malloc",
+    2175006
+   ],
+   [
+    "malloc",
+    1224003
+   ],
+   [
+    "hven::detail::NlpProblemModel::normalize_read_bounds",
+    1182003
+   ],
+   [
+    "cutest_csjp_",
+    1175003
+   ],
+   [
+    "_gfortrani_read_f",
+    1161003
+   ],
+   [
+    "strtod",
+    1147003
+   ],
+   [
+    "data_transfer_init",
+    1133003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    6924018
+   ],
+   [
+    "hven::detail::detect_dependency",
+    2441006
+   ],
+   [
+    "hven::detail::SqpSolverImpl::run_major",
+    1273003
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    1266003
+   ],
+   [
+    "hven::detail::QpEngine::eqp_answer_drifts_off_met_rows",
+    1259003
+   ],
+   [
+    "getenv",
+    1245003
+   ],
+   [
+    "hven::SolveResult::~SolveResult",
+    1238003
+   ],
+   [
+    "hven::detail::QpEngine::price",
+    1210003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    65155171
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    30080081
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    23429063
+   ],
+   [
+    "strcmp",
+    14023036
+   ],
+   [
+    "check_match",
+    10092027
+   ],
+   [
+    "__GI___open64_nocancel",
+    3497009
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2392006
+   ],
+   [
+    "fmt::v12::basic_appender<char> fmt::v12::detail::copy_noinline<char, char const*, fmt::v12::basic_appender<char> >",
+    2385006
+   ]
+  ]
+ }
+}

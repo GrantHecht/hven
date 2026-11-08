@@ -1,0 +1,222 @@
+{
+ "samples": 4231,
+ "period": 1000003,
+ "instr_sampled_all": 4249772693,
+ "instr_sampled_solver": 4240737666,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 143497429,
+  "B_kkt": 9014027,
+  "B_eval": 30119090,
+  "B_setup": 4047065087,
+  "B_eng": 11042033,
+  "B_proc": 9035027
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.033837846219653425,
+  "B_kkt": 0.002125579960361547,
+  "B_eval": 0.007102323315464428,
+  "B_setup": 0.954330450441968,
+  "B_eng": 0.002603800062552608
+ },
+ "proc_share_of_all": 0.0021260024129954097,
+ "rule_instr": 4240744666,
+ "fallback_instr": 9028027,
+ "fallback_by_bucket": {
+  "B_fac": 9028027
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9666745450248169,
+ "init_instr": 4039037063,
+ "steady_state_instr": 201700603,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7114377788944934,
+  "B_kkt": 0.04469013411923216,
+  "B_eval": 0.14932573106883573,
+  "B_setup": 0.03980168566972504,
+  "B_eng": 0.05474467024771364
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   134469402
+  ],
+  [
+   "<no hven::linear frame>",
+   9028027
+  ]
+ ],
+ "mkl_serv_instr": 4043044075,
+ "kmp_instr": 126441378,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_upd_real_block",
+    28119084
+   ],
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    24070072
+   ],
+   [
+    "mkl_pds_lp64_dsytf2_pardiso",
+    15049045
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    9028027
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    8021024
+   ],
+   [
+    "__kmpc_flush",
+    6028018
+   ],
+   [
+    "mkl_blas_def_xdger_kernel",
+    4014012
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_pardiso",
+    4007012
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::nlp_scatter_hessian_block",
+    5007015
+   ],
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    2000006
+   ],
+   [
+    "hven::detail::IpmSolverImpl::install_primal_diags_with_sigma",
+    1007003
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    8042024
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    5028015
+   ],
+   [
+    "cutest_csh_threadsafe_",
+    3007009
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    3007009
+   ],
+   [
+    "elfun_",
+    2007006
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    2007006
+   ],
+   [
+    "hven::detail::NlpProblemModel::compose_into",
+    2007006
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    1007003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    2527158548
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1129176372
+   ],
+   [
+    "__vdso_time",
+    197875591
+   ],
+   [
+    "difftime@plt",
+    172770516
+   ],
+   [
+    "time@plt",
+    12056036
+   ],
+   [
+    "std::pair<std::__detail::_Node_iterator<std::pair<unsigned long const, int>, false, false>, bool> std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_emplace_uniq<unsigned long, int&>",
+    2007006
+   ],
+   [
+    "_gfortrani_read_block_form",
+    1007003
+   ],
+   [
+    "_gfortrani_read_f",
+    1007003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    5035015
+   ],
+   [
+    "[unknown]",
+    2007006
+   ],
+   [
+    "hven::detail::IpmSolverImpl::dual_infeasibility_inf",
+    1000003
+   ],
+   [
+    "hven::detail::IpmSolverImpl::factor_impl",
+    1000003
+   ],
+   [
+    "std::chrono::_V2::steady_clock::now",
+    1000003
+   ],
+   [
+    "__ieee754_log_fma",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    5014015
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2014006
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1007003
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ]
+  ]
+ }
+}

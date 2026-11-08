@@ -1,0 +1,243 @@
+{
+ "samples": 638,
+ "period": 1000003,
+ "instr_sampled_all": 721245914,
+ "instr_sampled_solver": 549638458,
+ "bucket_instr": {
+  "B_sym": 1028003,
+  "B_fac": 482022278,
+  "B_kkt": 5763015,
+  "B_eval": 0,
+  "B_setup": 4378012,
+  "B_eng": 56447150,
+  "B_proc": 171607456
+ },
+ "share_of_solver": {
+  "B_sym": 0.0018703258206142482,
+  "B_fac": 0.8769806242342671,
+  "B_kkt": 0.010485101462823767,
+  "B_eval": 0.0,
+  "B_setup": 0.007965257773137847,
+  "B_eng": 0.10269869070915703
+ },
+ "proc_share_of_all": 0.23793196282842305,
+ "rule_instr": 704299869,
+ "fallback_instr": 7917021,
+ "fallback_by_bucket": {
+  "B_fac": 7917021
+ },
+ "unmatched_instr": 9029024,
+ "unmatched_share_of_solver": 0.016427205681448148,
+ "chains_reaching_main": 0.032915360501567396,
+ "init_instr": 0,
+ "steady_state_instr": 549638458,
+ "steady_state_share": {
+  "B_sym": 0.0018703258206142482,
+  "B_fac": 0.8769806242342671,
+  "B_kkt": 0.010485101462823767,
+  "B_eval": 0.0,
+  "B_setup": 0.007965257773137847,
+  "B_eng": 0.10269869070915703
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   467286239
+  ],
+  [
+   "<no hven::linear frame>",
+   7917021
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   3574009
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   1091003
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   1084003
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   1070003
+  ]
+ ],
+ "mkl_serv_instr": 77177204,
+ "kmp_instr": 257932684,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   3385009
+  ],
+  [
+   "_int_malloc",
+   2175006
+  ],
+  [
+   "hven::WarmStart::operator=",
+   1217003
+  ],
+  [
+   "__GI_____strtoll_l_internal",
+   1182003
+  ],
+  [
+   "<empty>",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "void hven::feed_pattern<double, 1, int>",
+    1028003
+   ]
+  ],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    30290081
+   ],
+   [
+    "__kmp_fork_call",
+    28318075
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    22373060
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    19995054
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    16023042
+   ],
+   [
+    "__kmp_barrier",
+    14911039
+   ],
+   [
+    "pthread_getspecific@@GLIBC_2.34",
+    11722030
+   ],
+   [
+    "__kmp_serialized_parallel",
+    11694030
+   ]
+  ],
+  "B_kkt": [
+   [
+    "cfree@GLIBC_2.2.5",
+    1238003
+   ],
+   [
+    "malloc",
+    1231003
+   ],
+   [
+    "hven::detail::SchurComplement::solve",
+    1133003
+   ],
+   [
+    "_int_malloc",
+    1105003
+   ],
+   [
+    "hven::detail::SchurComplement::needs_refactorization",
+    1056003
+   ]
+  ],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "malloc",
+    1140003
+   ],
+   [
+    "hven_bench::hs::normalize_absent_bounds",
+    1098003
+   ],
+   [
+    "_int_malloc",
+    1077003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ]
+  ],
+  "B_eng": [
+   [
+    "malloc",
+    5763015
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    4665012
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    3406009
+   ],
+   [
+    "__internal_syscall_cancel",
+    3385009
+   ],
+   [
+    "_int_malloc",
+    3238009
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    2511006
+   ],
+   [
+    "hven::detail::detect_dependency",
+    2084006
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    2056006
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    66029174
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    36081096
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    24024063
+   ],
+   [
+    "strcmp",
+    8847024
+   ],
+   [
+    "check_match",
+    6630018
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ],
+   [
+    "rml::internal::LargeObjectCache::putList",
+    1238003
+   ],
+   [
+    "__strchrnul_avx2",
+    1231003
+   ]
+  ]
+ }
+}

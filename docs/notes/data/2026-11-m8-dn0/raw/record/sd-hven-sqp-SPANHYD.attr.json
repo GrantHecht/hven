@@ -1,0 +1,197 @@
+{
+ "samples": 8000,
+ "period": 82585477,
+ "instr_sampled_all": 660683816000,
+ "instr_sampled_solver": 660601230523,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 633513194067,
+  "B_kkt": 24197544761,
+  "B_eval": 0,
+  "B_setup": 0,
+  "B_eng": 2890491695,
+  "B_proc": 82585477
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.9589948743592949,
+  "B_kkt": 0.03662957869733717,
+  "B_eval": 0.0,
+  "B_setup": 0.0,
+  "B_eng": 0.004375546943367921
+ },
+ "proc_share_of_all": 0.000125,
+ "rule_instr": 621373128948,
+ "fallback_instr": 39228101575,
+ "fallback_by_bucket": {
+  "B_fac": 39228101575
+ },
+ "unmatched_instr": 82585477,
+ "unmatched_share_of_solver": 0.00012501562695336918,
+ "chains_reaching_main": 0.0,
+ "init_instr": 0,
+ "steady_state_instr": 660601230523,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.9589948743592949,
+  "B_kkt": 0.03662957869733717,
+  "B_eval": 0.0,
+  "B_setup": 0.0,
+  "B_eng": 0.004375546943367921
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   586769814085
+  ],
+  [
+   "<no hven::linear frame>",
+   39310687052
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   4707372189
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   1321367632
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   743269293
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   495512862
+  ],
+  [
+   "hven::linear::detail::FactorSession::~FactorSession",
+   82585477
+  ],
+  [
+   "hven::linear::SymmetricFactor::analyze",
+   82585477
+  ]
+ ],
+ "mkl_serv_instr": 20233441865,
+ "kmp_instr": 380306121585,
+ "top_unmatched_leaf": [
+  [
+   "unlink_chunk.isra.0",
+   82585477
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    122887189776
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    80025327213
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    52854705280
+   ],
+   [
+    "find_norm",
+    43027033517
+   ],
+   [
+    "mkl_pds_lp64_do_all_pardiso_fc",
+    31052139352
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklbw_pardiso",
+    21885151405
+   ],
+   [
+    "mkl_blas_def_xdgemv_kernel_t",
+    18994659710
+   ],
+   [
+    "mkl_blas_lp64_dgemv",
+    15443484199
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::append_border",
+    17177779216
+   ],
+   [
+    "hven::detail::assemble_kkt_core",
+    1156196678
+   ],
+   [
+    "_int_malloc",
+    1156196678
+   ],
+   [
+    "void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > >, Eigen::SparseMatrix<double, 1, int>, Eigen::internal::scalar_sum_op<double, double> >",
+    991025724
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    908440247
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>& Eigen::SparseMatrix<double, 1, int>::operator=<Eigen::SparseMatrix<double, 0, int> >",
+    495512862
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    330341908
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    330341908
+   ]
+  ],
+  "B_eval": [],
+  "B_setup": [],
+  "B_eng": [
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    578098339
+   ],
+   [
+    "hven::detail::QpEngine::run",
+    495512862
+   ],
+   [
+    "hven::detail::bordered_regularized_residual",
+    330341908
+   ],
+   [
+    "hven::detail::QpEngine::sync_borders",
+    247756431
+   ],
+   [
+    "void std::__final_insertion_sort<__gnu_cxx::__normal_iterator<long*, std::vector<long, std::allocator<long> > >, std::less<void> >",
+    165170954
+   ],
+   [
+    "_int_malloc",
+    165170954
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    82585477
+   ],
+   [
+    "unlink_chunk.isra.0",
+    82585477
+   ]
+  ],
+  "B_proc": [
+   [
+    "__TBB_mallocProcessShutdownNotification",
+    82585477
+   ]
+  ]
+ }
+}

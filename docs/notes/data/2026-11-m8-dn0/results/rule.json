@@ -1,0 +1,246 @@
+{
+ "primary": {
+  "reading": "primary (process total, one-time init included)",
+  "cells": {
+   "hven-ipm/hs": {
+    "median_cell": "hs026",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "instr_median",
+    "rank_value": 3977255146,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.0005706600312791624,
+     "B_kkt": 0.0,
+     "B_eval": 0.000191105634694878,
+     "B_setup": 0.9990484571357339,
+     "B_eng": 0.0001897771982921422
+    },
+    "fact_share": 0.0005706600312791624,
+    "rho": 0.04111664970037579,
+    "rho_incl_densify": 0.042606372801745604,
+    "rho_engine_weighted": 0.21688705497329763,
+    "neg_agree": 1.0,
+    "replayed": 20,
+    "DN1_condition": false,
+    "DN2_condition": false,
+    "dominant_bucket": "B_setup",
+    "caveat": ""
+   },
+   "hven-ipm/sd": {
+    "median_cell": "HS67",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "instr_median",
+    "rank_value": 4013089481,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.0013440860215053765,
+     "B_kkt": 0.0,
+     "B_eval": 0.00044802867383512545,
+     "B_setup": 0.9982078853046595,
+     "B_eng": 0.0
+    },
+    "fact_share": 0.0013440860215053765,
+    "rho": 0.16389724241483303,
+    "rho_incl_densify": 0.16925815018198162,
+    "rho_engine_weighted": 0.6845494801266705,
+    "neg_agree": 1.0,
+    "replayed": 12,
+    "DN1_condition": false,
+    "DN2_condition": false,
+    "dominant_bucket": "B_setup",
+    "caveat": "CUTEst derivative check: undiagnosed mismatch"
+   },
+   "hven-sqp/hs": {
+    "median_cell": "hs043",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "instr_median",
+    "rank_value": 16639434,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.8773270006376198,
+     "B_kkt": 0.019360133004826235,
+     "B_eval": 0.00935265022471132,
+     "B_setup": 0.011508501444441557,
+     "B_eng": 0.08245171468840108
+    },
+    "fact_share": 0.8773270006376198,
+    "rho": 0.06055384766931674,
+    "rho_incl_densify": 0.062390976888126386,
+    "rho_engine_weighted": 0.13922333344373503,
+    "neg_agree": 1.0,
+    "replayed": 7,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   },
+   "hven-sqp/sd": {
+    "median_cell": "HS84",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "instr_median",
+    "rank_value": 34122244,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.005555199575816066,
+     "B_fac": 0.8572836004178146,
+     "B_kkt": 0.02833408160979315,
+     "B_eval": 0.007824356210926453,
+     "B_setup": 0.016594551431371136,
+     "B_eng": 0.08440821075427864
+    },
+    "fact_share": 0.8628387999936307,
+    "rho": 0.04633741402896847,
+    "rho_incl_densify": 0.04793186745016478,
+    "rho_engine_weighted": 0.10087685825876092,
+    "neg_agree": 1.0,
+    "replayed": 50,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   }
+  },
+  "engines": {
+   "hven-ipm": {
+    "DN1": false,
+    "DN2_provisional": false
+   },
+   "hven-sqp": {
+    "DN1": true,
+    "DN2_provisional": false
+   }
+  },
+  "DN1_fires": true,
+  "DN2_fires": false,
+  "outcome": "DN-1"
+ },
+ "secondary": {
+  "reading": "secondary (steady state, process-once solver init excluded)",
+  "cells": {
+   "hven-ipm/hs": {
+    "median_cell": "hs010",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "ss_instr",
+    "rank_value": 2007006,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.5,
+     "B_kkt": 0.250871945574652,
+     "B_eval": 0.0,
+     "B_setup": 0.0,
+     "B_eng": 0.249128054425348
+    },
+    "fact_share": 0.5,
+    "rho": 0.042416358947606495,
+    "rho_incl_densify": 0.043831355179965927,
+    "rho_engine_weighted": 0.17834043356406096,
+    "neg_agree": 1.0,
+    "replayed": 10,
+    "DN1_condition": true,
+    "DN2_condition": true,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   },
+   "hven-ipm/sd": {
+    "median_cell": "HS75",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "ss_instr",
+    "rank_value": 4000012,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.5,
+     "B_kkt": 0.0,
+     "B_eval": 0.0,
+     "B_setup": 0.25,
+     "B_eng": 0.25
+    },
+    "fact_share": 0.5,
+    "rho": 0.09755269989975106,
+    "rho_incl_densify": 0.10007731230016946,
+    "rho_engine_weighted": 0.37345448654966157,
+    "neg_agree": 1.0,
+    "replayed": 12,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   },
+   "hven-sqp/hs": {
+    "median_cell": "hs043",
+    "rank": 11,
+    "of": 22,
+    "rank_key": "ss_instr",
+    "rank_value": 11758731,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.8773270006376198,
+     "B_kkt": 0.019360133004826235,
+     "B_eval": 0.00935265022471132,
+     "B_setup": 0.011508501444441557,
+     "B_eng": 0.08245171468840108
+    },
+    "fact_share": 0.8773270006376198,
+    "rho": 0.06055384766931674,
+    "rho_incl_densify": 0.062390976888126386,
+    "rho_engine_weighted": 0.13922333344373503,
+    "neg_agree": 1.0,
+    "replayed": 7,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   },
+   "hven-sqp/sd": {
+    "median_cell": "HS63",
+    "rank": 49,
+    "of": 97,
+    "rank_key": "ss_instr",
+    "rank_value": 29115327,
+    "status": "optimal",
+    "shares": {
+     "B_sym": 0.0,
+     "B_fac": 0.8967388233632168,
+     "B_kkt": 0.01710272207227209,
+     "B_eval": 0.0,
+     "B_setup": 0.0167429433581242,
+     "B_eng": 0.069415511206387
+    },
+    "fact_share": 0.8967388233632168,
+    "rho": 0.046643849714695915,
+    "rho_incl_densify": 0.04831541598137454,
+    "rho_engine_weighted": 0.11873140416690788,
+    "neg_agree": 1.0,
+    "replayed": 14,
+    "DN1_condition": true,
+    "DN2_condition": false,
+    "dominant_bucket": "B_fac",
+    "caveat": ""
+   }
+  },
+  "engines": {
+   "hven-ipm": {
+    "DN1": true,
+    "DN2_provisional": false
+   },
+   "hven-sqp": {
+    "DN1": true,
+    "DN2_provisional": false
+   }
+  },
+  "DN1_fires": true,
+  "DN2_fires": false,
+  "outcome": "DN-1"
+ }
+}

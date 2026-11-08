@@ -1,0 +1,211 @@
+{
+ "samples": 6931,
+ "period": 1000003,
+ "instr_sampled_all": 6988749793,
+ "instr_sampled_solver": 6975651754,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 98658294,
+  "B_kkt": 4042012,
+  "B_eval": 122882366,
+  "B_setup": 6745048067,
+  "B_eng": 5021015,
+  "B_proc": 13098039
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.014143236715254177,
+  "B_kkt": 0.000579445784070602,
+  "B_eval": 0.017615897457830577,
+  "B_setup": 0.9669416285198346,
+  "B_eng": 0.0007197915230101379
+ },
+ "proc_share_of_all": 0.0018741605276982622,
+ "rule_instr": 6984728781,
+ "fallback_instr": 3021009,
+ "fallback_by_bucket": {
+  "B_fac": 3021009
+ },
+ "unmatched_instr": 1000003,
+ "unmatched_share_of_solver": 0.00014335621032494564,
+ "chains_reaching_main": 0.9774924253354494,
+ "init_instr": 6706795953,
+ "steady_state_instr": 268855801,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.36695616621640237,
+  "B_kkt": 0.015034126044392101,
+  "B_eval": 0.45705677743587164,
+  "B_setup": 0.14227743592558748,
+  "B_eng": 0.01867549437774638
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   95637285
+  ],
+  [
+   "<no hven::linear frame>",
+   3021009
+  ]
+ ],
+ "mkl_serv_instr": 6708802959,
+ "kmp_instr": 83567249,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    12091036
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    7063021
+   ],
+   [
+    "__kmpc_flush",
+    6049018
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bkl_scal_pardiso",
+    6035018
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    5042015
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_pardiso",
+    5035015
+   ],
+   [
+    "mkl_blas_def_dgemm_pst",
+    4035012
+   ],
+   [
+    "mkl_pds_lp64_dsytf2_pardiso",
+    4028012
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    2028006
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    2014006
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    60413180
+   ],
+   [
+    "range_",
+    13098039
+   ],
+   [
+    "__sincos_fma",
+    12098036
+   ],
+   [
+    "elfun_",
+    11119033
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    11070033
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    4028012
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    2021006
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    2000006
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    4236432603
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1860419535
+   ],
+   [
+    "__vdso_time",
+    318555948
+   ],
+   [
+    "difftime@plt",
+    264149786
+   ],
+   [
+    "time@plt",
+    26231078
+   ],
+   [
+    "_gfortrani_read_block_form",
+    6063018
+   ],
+   [
+    "_gfortrani_read_decimal",
+    5021015
+   ],
+   [
+    "__cutest_double_MOD_cutest_initialize_workspace",
+    3021009
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    2014006
+   ],
+   [
+    "hven::detail::BacktrackingLineSearch::max_primal_dual_step",
+    2007006
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    6063018
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    3000009
+   ],
+   [
+    "check_match",
+    2021006
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1007003
+   ],
+   [
+    "strcmp",
+    1007003
+   ]
+  ]
+ }
+}

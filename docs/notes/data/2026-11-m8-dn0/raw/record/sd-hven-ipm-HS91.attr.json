@@ -1,0 +1,155 @@
+{
+ "samples": 2188,
+ "period": 1000003,
+ "instr_sampled_all": 2188006564,
+ "instr_sampled_solver": 2184006552,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 2000006,
+  "B_kkt": 1000003,
+  "B_eval": 45000135,
+  "B_setup": 2126006378,
+  "B_eng": 10000030,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0009157509157509158,
+  "B_kkt": 0.0004578754578754579,
+  "B_eval": 0.020604395604395604,
+  "B_setup": 0.9734432234432234,
+  "B_eng": 0.004578754578754579
+ },
+ "proc_share_of_all": 0.0018281535648994515,
+ "rule_instr": 2136006408,
+ "fallback_instr": 44000132,
+ "fallback_by_bucket": {
+  "B_eval": 44000132
+ },
+ "unmatched_instr": 8000024,
+ "unmatched_share_of_solver": 0.003663003663003663,
+ "chains_reaching_main": 0.9721206581352834,
+ "init_instr": 2125006375,
+ "steady_state_instr": 59000177,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.03389830508474576,
+  "B_kkt": 0.01694915254237288,
+  "B_eval": 0.7627118644067796,
+  "B_setup": 0.01694915254237288,
+  "B_eng": 0.1694915254237288
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2000006
+  ]
+ ],
+ "mkl_serv_instr": 2125006375,
+ "kmp_instr": 2000006,
+ "top_unmatched_leaf": [
+  [
+   "__sin_fma",
+   6000018
+  ],
+  [
+   "xflow",
+   1000003
+  ],
+  [
+   "exp@@GLIBC_2.29",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::bound_kkt_destination",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "eval91_",
+    44000132
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1329003987
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    620001860
+   ],
+   [
+    "__vdso_time",
+    93000279
+   ],
+   [
+    "difftime@plt",
+    78000234
+   ],
+   [
+    "time@plt",
+    5000015
+   ],
+   [
+    "__memchr_avx2",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__sin_fma",
+    6000018
+   ],
+   [
+    "xflow",
+    1000003
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1000003
+   ],
+   [
+    "exp@@GLIBC_2.29",
+    1000003
+   ],
+   [
+    "hven::detail::BacktrackingLineSearch::generic_line_search",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "strcmp",
+    1000003
+   ]
+  ]
+ }
+}

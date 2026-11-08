@@ -1,0 +1,77 @@
+# M8 DN-0 provenance (collected 2026-11-08T00:37:36Z)
+## commits
+hven worktree HEAD: 90489dbf444884155d7f63c40c458128b4fb7805 (m8-dn0)
+hven pin (measured library): 58dc14bc54a4d4225c6903ff73e3e9722e23ae87
+harness HEAD: 6ad47d7d13c4725bacf1ce5a1132ed750c199cf3 (m8-dn0); dirty: 0 tracked changes
+## pin stamp
+  HVEN_PIN_SHA 58dc14bc54a4d4225c6903ff73e3e9722e23ae87
+  HVEN_PIN_BRANCH m8
+  HVEN_PIN_DATE 2026-11-07
+  HVEN_BUILT_UTC 2026-11-07T23:34:17Z
+  HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+  HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+  HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+## toolchain
+clang: clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake: cmake version 4.3.0
+ninja: 1.13.2
+perf: perf version 7.2.12-200.fc44.x86_64
+python: Python 3.13.12
+gfortran: GNU Fortran (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2)
+MKL (from the pin build's CMakeCache): /opt/intel/oneapi/mkl/latest/include 
+  #define __INTEL_MKL_BUILD_DATE 20260915
+  #define INTEL_MKL_VERSION      20260200
+libiomp5: /opt/intel/oneapi/compiler/2026.2/lib/libiomp5.so
+CUTEst: /home/ghecht/Software/cutest/lib/libcutest_double.so
+## hardware / OS
+host: fedora
+kernel: 7.2.12-200.fc44.x86_64
+  CPU(s):                                  16
+  Model name:                              AMD Ryzen 7 5800X3D 8-Core Processor
+  Thread(s) per core:                      2
+  Core(s) per socket:                      8
+  Socket(s):                               1
+  CPU(s) scaling MHz:                      81%
+  L3 cache:                                96 MiB (1 instance)
+measurement core: 2; its SMT siblings: 2,10
+governor(cpu2): powersave
+boost: 1
+memory: MemTotal:       32756800 kB
+perf_event_paranoid: 2
+## binaries (sha256)
+  6fd1cdcecd9d0ea88f2ca198b26e56a8d14f6396b0c6a33de9e5cef3045bd5a5  build/lanes/hven/hven_bench_cell
+  e25afa3d5e612e947d663271000e990484ad76f4ae01b01b88d23da4aa2ada30  .scratch/dn0/build-dump/lanes/hven/hven_bench_cell
+  80a21da968a2c28e1f2cf09df56e4acd5618d6b82d7a41988e7b497eebcb00af  .scratch/dn0/build-tools/dn0_replay
+  1ad55842abbbfab48ea25598de1d635cca37f5babf88c66785b65413fd62eded  .scratch/dn0/build-tools/dn0_replay_verify
+  2cc652f7ba98b89c12cde2df7ebf5ed2fcff0123398ee8c568c03e89fb2854fa  .hven/install-58dc14bc54a4/lib64/libhven.a
+## effective compile flags
+libhven.a (pin build build.ninja, symmetric_factor_mkl.cpp.o):
+    FLAGS = -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+    DEFINES = -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_IPM_THREADS=8 -DHVEN_VERSION_STRING=\"0.2.0\"
+measured lane binary (build/build.ninja FLAGS for hven_bench_cell.cpp):
+    FLAGS = -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20
+    DEFINES = -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_BENCH_HAS_CUTEST=1 -DHVEN_BENCH_PIN_SHA=\"58dc14bc54a4d4225c6903ff73e3e9722e23ae87\" -DHVEN_DEFAULT_IPM_THREADS=8
+dump build: objects byte-identical to the measured build's (cmp), link adds -Wl,--wrap=pardiso + pardiso_wrap.c.o
+replay (build-tools compile_commands.json):
+  dn0_replay.cpp: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -isystem /home/ghecht/Projects/hven-bench-sd/.hven/install-58dc14bc54a4/include -isystem /opt/intel/oneapi/mkl/latest/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/dn0_replay.dir/dn0_replay.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0/docs/notes/data/2026-11-m8-dn0/tools/dn0_replay.cpp
+  dn0_replay.cpp: /usr/bin/clang++ -DDN0_VERIFY -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_IPM_THREADS=8 -isystem /home/ghecht/Projects/hven-bench-sd/.hven/install-58dc14bc54a4/include -isystem /opt/intel/oneapi/mkl/latest/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/dn0_replay_verify.dir/dn0_replay.cpp.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0/docs/notes/data/2026-11-m8-dn0/tools/dn0_replay.cpp
+  pardiso_wrap.c: /usr/bin/clang  -DMKL_LP64 -m64 -O3 -DNDEBUG -o CMakeFiles/dn0_pardiso_wrap.dir/pardiso_wrap.c.o -c /home/ghecht/Projects/hven/.claude/worktrees/dn0/docs/notes/data/2026-11-m8-dn0/tools/pardiso_wrap.c
+## legs (UTC, from raw/logs)
+FOREGROUND_START P 2026-11-08T00:06:27Z
+FOREGROUND_END P 2026-11-08T00:30:19Z
+FOREGROUND_START R 2026-11-08T00:35:28Z
+FOREGROUND_END R 2026-11-08T00:35:35Z
+FOREGROUND_START S1 2026-11-07T23:53:11Z
+WARMUP_DONE hven-ipm hs003 (discarded)
+FOREGROUND_END S1 2026-11-07T23:57:27Z
+FOREGROUND_START S2 2026-11-07T23:57:55Z
+FOREGROUND_END S2 2026-11-08T00:02:11Z
+FOREGROUND_START S3 2026-11-08T00:02:11Z
+FOREGROUND_END S3 2026-11-08T00:06:27Z
+FOREGROUND_START D 2026-11-08T00:30:19Z
+FOREGROUND_END D 2026-11-08T00:35:28Z
+LEG_DONE S2 2026-11-08T00:02:11Z
+LEG_DONE S3 2026-11-08T00:06:27Z
+LEG_DONE P 2026-11-08T00:30:19Z
+LEG_DONE D 2026-11-08T00:35:28Z
+LEG_DONE R 2026-11-08T00:35:35Z

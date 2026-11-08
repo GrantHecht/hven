@@ -1,0 +1,166 @@
+{
+ "samples": 165,
+ "period": 1000003,
+ "instr_sampled_all": 186910495,
+ "instr_sampled_solver": 23115060,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 0,
+  "B_kkt": 0,
+  "B_eval": 12806033,
+  "B_setup": 4406012,
+  "B_eng": 5903015,
+  "B_proc": 163795435
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.5540125355504161,
+  "B_setup": 0.1906121809763851,
+  "B_eng": 0.2553752834731989
+ },
+ "proc_share_of_all": 0.8763308609289168,
+ "rule_instr": 182224483,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 4686012,
+ "unmatched_share_of_solver": 0.20272549584556562,
+ "chains_reaching_main": 0.15757575757575756,
+ "init_instr": 0,
+ "steady_state_instr": 23115060,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.5540125355504161,
+  "B_setup": 0.1906121809763851,
+  "B_eng": 0.2553752834731989
+ },
+ "fac_split": [],
+ "mkl_serv_instr": 0,
+ "kmp_instr": 2105006,
+ "top_unmatched_leaf": [
+  [
+   "void std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >::_M_realloc_append<char const*&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+   1238003
+  ],
+  [
+   "_ZNSt4pairINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES5_EC2IRPKcRKS5_Qaacl16_S_constructibleITL0__TL0_0_EEntcl10_S_danglesISD_SE_EEEEOT_OT0_",
+   1231003
+  ],
+  [
+   "<empty>",
+   1147003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__ieee754_pow_fma",
+    6959018
+   ],
+   [
+    "Eigen::SparseMatrix<double, 1, int>::operator=",
+    1210003
+   ],
+   [
+    "hven_bench::hs::{anon}::Hs25Model::terms",
+    1203003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1175003
+   ],
+   [
+    "pow@@GLIBC_2.29",
+    1154003
+   ],
+   [
+    "hven_bench::hs::{anon}::Hs25Model::eval_hess",
+    1105003
+   ]
+  ],
+  "B_setup": [
+   [
+    "hven::detail::compute_column_scaling",
+    1168003
+   ],
+   [
+    "hven_bench::hs::normalize_absent_bounds",
+    1098003
+   ],
+   [
+    "_int_malloc",
+    1077003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ]
+  ],
+  "B_eng": [
+   [
+    "void std::vector<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > >::_M_realloc_append<char const*&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+    1238003
+   ],
+   [
+    "_ZNSt4pairINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES5_EC2IRPKcRKS5_Qaacl16_S_constructibleITL0__TL0_0_EEntcl10_S_danglesISD_SE_EEEEOT_OT0_",
+    1231003
+   ],
+   [
+    "hven::WarmStart::operator=",
+    1217003
+   ],
+   [
+    "<empty>",
+    1147003
+   ],
+   [
+    "_int_malloc",
+    1070003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    55272147
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    46565123
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    22723060
+   ],
+   [
+    "check_match",
+    7805021
+   ],
+   [
+    "strcmp",
+    5812015
+   ],
+   [
+    "__printf_buffer_write",
+    3525009
+   ],
+   [
+    "__brk",
+    2252006
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ]
+  ]
+ }
+}

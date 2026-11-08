@@ -1,0 +1,95 @@
+{
+ "samples": 1807,
+ "period": 1000003,
+ "instr_sampled_all": 1807005421,
+ "instr_sampled_solver": 1802005406,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 0,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 1802005406,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 1.0,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.002767017155506364,
+ "rule_instr": 1807005421,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9966795794133924,
+ "init_instr": 1802005406,
+ "steady_state_instr": 0,
+ "steady_state_share": {
+  "B_sym": null,
+  "B_fac": null,
+  "B_kkt": null,
+  "B_eval": null,
+  "B_setup": null,
+  "B_eng": null
+ },
+ "fac_split": [],
+ "mkl_serv_instr": 1802005406,
+ "kmp_instr": 0,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    1102003306
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    540001620
+   ],
+   [
+    "__vdso_time",
+    83000249
+   ],
+   [
+    "difftime@plt",
+    71000213
+   ],
+   [
+    "time@plt",
+    6000018
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "do_lookup_x",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "std::codecvt<char, char, __mbstate_t>::do_always_noconv",
+    1000003
+   ]
+  ]
+ }
+}

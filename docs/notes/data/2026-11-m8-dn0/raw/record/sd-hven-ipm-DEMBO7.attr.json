@@ -1,0 +1,174 @@
+{
+ "samples": 2062,
+ "period": 1000003,
+ "instr_sampled_all": 2062006186,
+ "instr_sampled_solver": 2058006174,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 31000093,
+  "B_kkt": 1000003,
+  "B_eval": 8000024,
+  "B_setup": 2016006048,
+  "B_eng": 2000006,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.015063168124392614,
+  "B_kkt": 0.00048590864917395527,
+  "B_eval": 0.003887269193391642,
+  "B_setup": 0.9795918367346939,
+  "B_eng": 0.0009718172983479105
+ },
+ "proc_share_of_all": 0.0019398642095053346,
+ "rule_instr": 2061006183,
+ "fallback_instr": 1000003,
+ "fallback_by_bucket": {
+  "B_fac": 1000003
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9864209505334627,
+ "init_instr": 2014006042,
+ "steady_state_instr": 44000132,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7045454545454546,
+  "B_kkt": 0.022727272727272728,
+  "B_eval": 0.18181818181818182,
+  "B_setup": 0.045454545454545456,
+  "B_eng": 0.045454545454545456
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   30000090
+  ],
+  [
+   "<no hven::linear frame>",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 2013006039,
+ "kmp_instr": 24000072,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    6000018
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    3000009
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    3000009
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ],
+   [
+    "vsnprintf",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_blkl_ll_real",
+    1000003
+   ],
+   [
+    "mkl_blas_def_dgemm_pst",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::augment_bound_complementarity",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    2000006
+   ],
+   [
+    "elfun_",
+    2000006
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    1000003
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    1000003
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    1000003
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1272003816
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    549001647
+   ],
+   [
+    "difftime@plt",
+    100000300
+   ],
+   [
+    "__vdso_time",
+    81000243
+   ],
+   [
+    "time@plt",
+    12000036
+   ],
+   [
+    "_gfortrani_parse_format",
+    1000003
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    2000006
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "do_lookup_x",
+    1000003
+   ]
+  ]
+ }
+}

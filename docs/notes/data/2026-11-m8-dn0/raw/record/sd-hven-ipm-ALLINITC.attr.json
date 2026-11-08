@@ -1,0 +1,136 @@
+{
+ "samples": 954,
+ "period": 1000003,
+ "instr_sampled_all": 954002862,
+ "instr_sampled_solver": 950002850,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 5000015,
+  "B_kkt": 1000003,
+  "B_eval": 1000003,
+  "B_setup": 941002823,
+  "B_eng": 2000006,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.005263157894736842,
+  "B_kkt": 0.0010526315789473684,
+  "B_eval": 0.0010526315789473684,
+  "B_setup": 0.9905263157894737,
+  "B_eng": 0.002105263157894737
+ },
+ "proc_share_of_all": 0.0041928721174004195,
+ "rule_instr": 954002862,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9947589098532494,
+ "init_instr": 940002820,
+ "steady_state_instr": 10000030,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5,
+  "B_kkt": 0.1,
+  "B_eval": 0.1,
+  "B_setup": 0.1,
+  "B_eng": 0.2
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   4000012
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 940002820,
+ "kmp_instr": 2000006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_env_initialize",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_sagg_expand_cond_perm",
+    1000003
+   ],
+   [
+    "malloc",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    1000003
+   ],
+   [
+    "rml::internal::internalPoolMalloc",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "elfun_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    582001746
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    282000846
+   ],
+   [
+    "__vdso_time",
+    40000120
+   ],
+   [
+    "difftime@plt",
+    32000096
+   ],
+   [
+    "time@plt",
+    4000012
+   ],
+   [
+    "hven_bench::cutest::CutestModel::bounds",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "[unknown]",
+    1000003
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3000009
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ]
+  ]
+ }
+}

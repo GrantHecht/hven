@@ -1,0 +1,135 @@
+{
+ "samples": 4783,
+ "period": 1000003,
+ "instr_sampled_all": 4803748349,
+ "instr_sampled_solver": 4794720322,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3014009,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 4790706310,
+  "B_eng": 1000003,
+  "B_proc": 9028027
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0006286099704649259,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9991628266654924,
+  "B_eng": 0.00020856336404265457
+ },
+ "proc_share_of_all": 0.0018793713458947888,
+ "rule_instr": 4802748346,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1000003,
+ "unmatched_share_of_solver": 0.00020856336404265457,
+ "chains_reaching_main": 0.9970729667572653,
+ "init_instr": 4788699304,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.500581297049768,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.3333333333333333,
+  "B_eng": 0.16608536961689868
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3014009
+  ]
+ ],
+ "mkl_serv_instr": 4788699304,
+ "kmp_instr": 4014012,
+ "top_unmatched_leaf": [
+  [
+   "__munmap",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    1007003
+   ],
+   [
+    "__kmpc_dispatch_init_4",
+    1007003
+   ],
+   [
+    "__strchr_avx2",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    2956944832
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1404912197
+   ],
+   [
+    "__vdso_time",
+    212889636
+   ],
+   [
+    "difftime@plt",
+    197903591
+   ],
+   [
+    "time@plt",
+    16049048
+   ],
+   [
+    "isspace",
+    1007003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__munmap",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3014009
+   ],
+   [
+    "do_lookup_x",
+    2007006
+   ],
+   [
+    "strcmp",
+    1007003
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "check_match",
+    1000003
+   ],
+   [
+    "mprotect",
+    1000003
+   ]
+  ]
+ }
+}

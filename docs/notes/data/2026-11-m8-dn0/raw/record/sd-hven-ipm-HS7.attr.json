@@ -1,0 +1,127 @@
+{
+ "samples": 4664,
+ "period": 1000003,
+ "instr_sampled_all": 4684334992,
+ "instr_sampled_solver": 4676306968,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 4014012,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 4672292956,
+  "B_eng": 0,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0008583722213849328,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.999141627778615,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.001713802282225848,
+ "rule_instr": 4683334989,
+ "fallback_instr": 1000003,
+ "fallback_by_bucket": {
+  "B_fac": 1000003
+ },
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9969982847341338,
+ "init_instr": 4670285950,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.6666666666666666,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.3333333333333333,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3014009
+  ],
+  [
+   "<no hven::linear frame>",
+   1000003
+  ]
+ ],
+ "mkl_serv_instr": 4671285953,
+ "kmp_instr": 2007006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "indirect_msort_with_tmp",
+    1007003
+   ],
+   [
+    "mkl_pds_lp64_sagg_smat_is_consistent",
+    1007003
+   ],
+   [
+    "__kmp_initialize_system_tick",
+    1000003
+   ],
+   [
+    "mkl_serv_getenv",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    2945692799
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1312750921
+   ],
+   [
+    "__vdso_time",
+    218966654
+   ],
+   [
+    "difftime@plt",
+    178805534
+   ],
+   [
+    "time@plt",
+    14070042
+   ],
+   [
+    "isspace",
+    1007003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3014009
+   ],
+   [
+    "do_lookup_x",
+    3007009
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "strcmp",
+    1000003
+   ]
+  ]
+ }
+}

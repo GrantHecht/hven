@@ -1,0 +1,121 @@
+{
+ "samples": 4698,
+ "period": 1000003,
+ "instr_sampled_all": 4718139094,
+ "instr_sampled_solver": 4709111067,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 4014012,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 4705097055,
+  "B_eng": 0,
+  "B_proc": 9028027
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0008523927218724909,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9991476072781275,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.001913471989725956,
+ "rule_instr": 4718139094,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9961685823754789,
+ "init_instr": 4703090049,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.6666666666666666,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.3333333333333333,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   4014012
+  ]
+ ],
+ "mkl_serv_instr": 4703090049,
+ "kmp_instr": 4014012,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__strcmp_avx2",
+    1007003
+   ],
+   [
+    "__kmp_serialized_parallel",
+    1007003
+   ],
+   [
+    "__vfscanf_internal",
+    1000003
+   ],
+   [
+    "__printf_buffer",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    2996748952
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1326708963
+   ],
+   [
+    "__vdso_time",
+    190826570
+   ],
+   [
+    "difftime@plt",
+    169714507
+   ],
+   [
+    "time@plt",
+    19091057
+   ],
+   [
+    "__internal_syscall_cancel",
+    2007006
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4014012
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ],
+   [
+    "check_match",
+    1007003
+   ],
+   [
+    "strcmp",
+    1007003
+   ],
+   [
+    "printf",
+    1000003
+   ]
+  ]
+ }
+}
