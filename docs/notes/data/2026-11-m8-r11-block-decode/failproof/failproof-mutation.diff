@@ -1,0 +1,21 @@
+225,227c225,236
+<             Block2x2 block;
+<             if (!decode_2x2(a11, a21, a22, block)) {
+<                 return std::nullopt;
+---
+>             const double trace = a11 + a22;
+>             const double det = a11 * a22 - a21 * a21;
+>             const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
+>             const double e1 = (trace + disc) / 2.0;
+>             const double e2 = (trace - disc) / 2.0;
+>             evidence.block_abs_eigs.push_back(std::abs(e1));
+>             evidence.block_abs_eigs.push_back(std::abs(e2));
+>             if (e1 < 0.0) {
+>                 ++evidence.neg_eigs;
+>             }
+>             if (e2 < 0.0) {
+>                 ++evidence.neg_eigs;
+229,231d237
+<             evidence.block_abs_eigs.push_back(block.abs_first);
+<             evidence.block_abs_eigs.push_back(block.abs_second);
+<             evidence.neg_eigs += block.neg;

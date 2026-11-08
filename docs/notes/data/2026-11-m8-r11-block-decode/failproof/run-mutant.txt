@@ -1,0 +1,57 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseSymmetricFactorGrowth.EvidenceCountsTheNegativeOfAnIllScaled2x2Block:DenseSymmetricFactorGrowth.EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block:DenseSymmetricFactorGrowth.EvidenceIsAbsentWhenDCarriesANonFiniteEntry
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from DenseSymmetricFactorGrowth
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceCountsTheNegativeOfAnIllScaled2x2Block
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:599: Failure
+Expected equality of these values:
+  ev->neg_eigs
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:602: Failure
+The difference between got[0] and 1e-10 is 1e-10, which exceeds 1e-14 * 1e-10, where
+got[0] evaluates to 0,
+1e-10 evaluates to 1e-10, and
+1e-14 * 1e-10 evaluates to 1.0000000000000001e-24.
+
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:599: Failure
+Expected equality of these values:
+  ev->neg_eigs
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:602: Failure
+The difference between got[0] and 1e-10 is 1e-10, which exceeds 1e-14 * 1e-10, where
+got[0] evaluates to 0,
+1e-10 evaluates to 1e-10, and
+1e-14 * 1e-10 evaluates to 1.0000000000000001e-24.
+
+[  FAILED  ] DenseSymmetricFactorGrowth.EvidenceCountsTheNegativeOfAnIllScaled2x2Block (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:620: Failure
+The difference between got[0] and 1e-10 is 1e-10, which exceeds 1e-14 * 1e-10, where
+got[0] evaluates to 0,
+1e-10 evaluates to 1e-10, and
+1e-14 * 1e-10 evaluates to 1.0000000000000001e-24.
+
+/home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11e/fp-src/tests/linear/test_dense_symmetric_factor_growth.cpp:620: Failure
+The difference between got[0] and 1e-10 is 1e-10, which exceeds 1e-14 * 1e-10, where
+got[0] evaluates to 0,
+1e-10 evaluates to 1e-10, and
+1e-14 * 1e-10 evaluates to 1.0000000000000001e-24.
+
+[  FAILED  ] DenseSymmetricFactorGrowth.EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block (0 ms)
+[ RUN      ] DenseSymmetricFactorGrowth.EvidenceIsAbsentWhenDCarriesANonFiniteEntry
+[       OK ] DenseSymmetricFactorGrowth.EvidenceIsAbsentWhenDCarriesANonFiniteEntry (0 ms)
+[----------] 3 tests from DenseSymmetricFactorGrowth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] DenseSymmetricFactorGrowth.EvidenceCountsTheNegativeOfAnIllScaled2x2Block
+[  FAILED  ] DenseSymmetricFactorGrowth.EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block
+
+ 2 FAILED TESTS

@@ -1,0 +1,49 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T09:57:35-05:00
+=== hven_example_01_hs071_both_engines
+IpmSolver    status=optimal   iterations= 10  f=17.0140173  x=(1.0000, 4.7430, 3.8211, 1.3794)  lambda=(-0.5523, 0.1615)  OK
+SqpSolver    status=optimal   iterations=  5  f=17.0140173  x=(1.0000, 4.7430, 3.8211, 1.3794)  lambda=(-0.5523, 0.1615)  OK
+rc=0
+=== hven_example_02_bounded_rosenbrock
+IpmSolver  status=optimal  iterations= 17  x=(0.500000, 0.250000)  f=0.24999999  z_x=-1.0000  OK
+SqpSolver  status=optimal  iterations= 15  x=(0.500000, 0.250000)  f=0.25000000  z_x=-1.0000  OK
+rc=0
+=== hven_example_03_equality_constrained
+IpmSolver  status=optimal  iterations=  5  f=3.03337044 (exact 3.03337045)  lambda=0.870829 (exact 0.870829)  g=4.000000  |ce|=1.8e-08  OK
+SqpSolver  status=optimal  iterations=  5  f=3.03337045 (exact 3.03337045)  lambda=0.870829 (exact 0.870829)  g=4.000000  |ce|=4.5e-13  OK
+rc=0
+=== hven_example_04_partitioned_chain
+1 partition(s) requested: adopted=1 status=optimal  iterations=  4 f=0.368214320 |c|=4.1e-12
+4 partition(s) requested: adopted=3 status=optimal  iterations=  4 f=0.368214320 |c|=4.1e-12
+OK
+rc=0
+=== hven_example_05_warm_continuation
+IPM    cold : 3 3 9 10 11   total=36  OK
+IPM    warm : 3 2 8 5 4   total=22  OK
+SQP    cold : 1 1 4 5 6   total=17  OK
+SQP    warm : 1 1 3 3 3   total=11  OK
+OK
+rc=0
+=== hven_example_06_ipm_to_sqp_polish
+IPM rough          status=optimal  iterations= 8  f=17.0139920332 (tol 1e-3)
+SQP polish staged  status=optimal  iterations= 2  f=17.0140172892  stationarity=4.4e-16  start level=Seeded
+SQP polish payload status=optimal  iterations= 2  f=17.0140172892  stationarity=4.4e-16  start level=Seeded
+SQP cold           status=optimal  iterations= 6  f=17.0140172892  stationarity=1.8e-15  start level=Cold
+OK
+rc=0
+=== hven_example_07_sqp_quasi_newton
+exact        status=optimal  iterations= 6  f=12.09109752 (exact 12.09109770)  eval_hess calls=6  OK
+L-BFGS       status=optimal  iterations= 5  f=12.09109770 (exact 12.09109770)  eval_hess calls=0  OK
+rc=0
+=== hven_example_08_results_trace_options
+complementarity 1.41e-09
+wall seconds    0.0020 (informational)
+sqp_stationarity 9.71e-10   (the SQP engine's own measure)
+callbacks seen  6
+counters        major=5 factorizations=19 eval_hess_calls=5
+trace (ipm): ipm.iter=10 ipm.kkt_analysis=1 ipm.message=1 ipm.phase.begin=1 ipm.phase.end=1 ipm.phase.exit=1 ipm.solve.begin=1 ipm.solve.end=1
+trace (sqp): qp.mode=5 sqp.major=6 sqp.solve.begin=1 sqp.solve.end=1
+OK
+rc=0
+worst=0
+FOREGROUND_END 2026-11-08T09:57:35-05:00
