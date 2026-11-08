@@ -1,0 +1,316 @@
+{
+ "samples": 2589,
+ "period": 250007,
+ "instr_sampled_all": 851017357,
+ "instr_sampled_solver": 390105815,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 164220555,
+  "B_kkt": 3924114,
+  "B_eval": 34495209,
+  "B_setup": 90298503,
+  "B_eng": 97167434,
+  "B_proc": 460911542
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.420964129950229,
+  "B_kkt": 0.010059101528645503,
+  "B_eval": 0.08842526225865154,
+  "B_setup": 0.23147182002401068,
+  "B_eng": 0.24907968623846327
+ },
+ "proc_share_of_all": 0.5416006362370821,
+ "rule_instr": 714698081,
+ "fallback_instr": 57868610,
+ "fallback_by_bucket": {
+  "B_fac": 57608103,
+  "B_proc": 260507
+ },
+ "unmatched_instr": 78450666,
+ "unmatched_share_of_solver": 0.20110099102214102,
+ "chains_reaching_main": 0.29857087678640404,
+ "init_instr": 381261,
+ "steady_state_instr": 389724554,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.42137595210385437,
+  "B_kkt": 0.01006894217909606,
+  "B_eval": 0.08851176721084912,
+  "B_setup": 0.23071998178487876,
+  "B_eng": 0.2493233567213217
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   104986155
+  ],
+  [
+   "<no hven::linear frame>",
+   57608103
+  ],
+  [
+   "hven::linear::SymmetricFactor::factorize",
+   400511
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   370761
+  ],
+  [
+   "hven::linear::SymmetricFactor::require_solvable",
+   311259
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   293759
+  ],
+  [
+   "hven::linear::SymmetricFactor::solve_single",
+   250007
+  ]
+ ],
+ "mkl_serv_instr": 16369704,
+ "kmp_instr": 197456483,
+ "top_unmatched_leaf": [
+  [
+   "__strcmp_avx2",
+   39554095
+  ],
+  [
+   "__internal_syscall_cancel",
+   9794271
+  ],
+  [
+   "__printf_buffer",
+   3602351
+  ],
+  [
+   "__memmove_avx_unaligned_erms",
+   3399594
+  ],
+  [
+   "<empty>",
+   2208559
+  ],
+  [
+   "__strchr_avx2",
+   1827300
+  ],
+  [
+   "vsnprintf",
+   1615793
+  ],
+  [
+   "__fstat64",
+   1573793
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    22016363
+   ],
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    7848216
+   ],
+   [
+    "_strnlen_s_chk",
+    5835412
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    5359894
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    4195368
+   ],
+   [
+    "[unknown]",
+    3875355
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    3743852
+   ],
+   [
+    "_int_malloc",
+    3735104
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    1012531
+   ],
+   [
+    "hven::detail::nlp_scatter_hessian_block",
+    680270
+   ],
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    582266
+   ],
+   [
+    "hven::detail::NonLinearProgram::set_con_coeffs_zero",
+    405761
+   ],
+   [
+    "hven::detail::NonLinearProgram::get_rhs_space",
+    360261
+   ],
+   [
+    "hven::NlpAssembly::assemble",
+    314759
+   ],
+   [
+    "void hven::detail::parallel_blocks<hven::detail::NonLinearProgram::fill_solver_coeffs",
+    295509
+   ],
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    272757
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    4943637
+   ],
+   [
+    "elfun_",
+    4747880
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    3661855
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    3208838
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    2713825
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    1921804
+   ],
+   [
+    "cutest_csh_threadsafe_",
+    1871052
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::constraints_jacobian_adjointgradient",
+    1421790
+   ]
+  ],
+  "B_setup": [
+   [
+    "_int_malloc",
+    9275256
+   ],
+   [
+    "_gfortrani_read_block_form",
+    8593236
+   ],
+   [
+    "hven::detail::get_core_count",
+    6533178
+   ],
+   [
+    "__internal_syscall_cancel",
+    6266919
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    4176120
+   ],
+   [
+    "formatted_transfer_scalar_read",
+    3647853
+   ],
+   [
+    "__GI_____strtod_l_internal",
+    3441343
+   ],
+   [
+    "__memchr_avx2",
+    3392596
+   ]
+  ],
+  "B_eng": [
+   [
+    "__strcmp_avx2",
+    39554095
+   ],
+   [
+    "__internal_syscall_cancel",
+    9794271
+   ],
+   [
+    "__printf_buffer",
+    3602351
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    3399594
+   ],
+   [
+    "__ieee754_pow_fma",
+    3175835
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    2988334
+   ],
+   [
+    "<empty>",
+    2208559
+   ],
+   [
+    "__strchr_avx2",
+    1827300
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    161347235
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    111758597
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    61371446
+   ],
+   [
+    "strcmp",
+    42114922
+   ],
+   [
+    "check_match",
+    23581404
+   ],
+   [
+    "mprotect",
+    5870167
+   ],
+   [
+    "_dl_addr",
+    5382646
+   ],
+   [
+    "_dl_runtime_resolve_xsavec",
+    3506097
+   ]
+  ]
+ }
+}
