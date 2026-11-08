@@ -68,15 +68,17 @@ struct IpmLinearOptions {
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-    /// When the dense factorization arm is used. RESERVED: the arm is not wired
-    /// yet, and `validate()` accepts only `kNever` (the default).
+    /// When the dense factorization arm is used: `kNever` (the default) or
+    /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
+    /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
+    /// `validate()` refuses it until the selection rule lands.
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
     /// finite and > 0 on every backend; ignored on MKL.
     double accelerate_zero_tol = 1e-4 * std::numeric_limits<double>::epsilon();
     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
     /// empty uses the library's rule. RESERVED: `validate()` accepts only the
-    /// empty value until the arm is wired.
+    /// empty value until `kAuto` is available.
     std::optional<Index> max_dense_dimension;
 };
 

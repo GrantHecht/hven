@@ -507,7 +507,8 @@ class IpqpEngine {
     ///         refuses a negative common.threads long before any engine is
     ///         built (tests/drivers/test_options.cpp), so this is a
     ///         defence-in-depth throw, not the primary gate.
-    explicit IpqpEngine(const QpOptions &opts, int threads = 0);
+    explicit IpqpEngine(const QpOptions &opts, int threads = 0,
+                        hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever);
 
     IpqpEngine(const IpqpEngine &) = delete;
     IpqpEngine &operator=(const IpqpEngine &) = delete;

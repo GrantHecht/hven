@@ -357,8 +357,10 @@ struct RankRepair {
 /// The dead-end rank repair's analysis of `ws` (above); reads `opts.feas_tol` only. `threads` is
 /// the owning engine's (sqp_kkt_options). `block_cap` is the block-entry cap above which the
 /// analysis refuses (production: kRankBlockCap; a parameter so a test can reach the refusal
-/// without a multi-gigabyte block). Writes nothing.
+/// without a multi-gigabyte block). `dense` is the owning engine's dense-arm policy, taken by
+/// the Gram factor through the same factory. Writes nothing.
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads, double block_cap = kRankBlockCap);
+                       const QpOptions &opts, int threads, double block_cap = kRankBlockCap,
+                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever);
 
 } // namespace hven::detail

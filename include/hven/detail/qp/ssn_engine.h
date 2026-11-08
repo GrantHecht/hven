@@ -713,7 +713,11 @@ class SsnEngine {
     ///                pre-T8.8 one. `QpOptions` deliberately carries no thread
     ///                field: the count is fingerprinted separately
     ///                (qp_types.h's options_fingerprint).
-    explicit SsnEngine(const QpOptions &opts, int threads = 0) : opts_(opts), kkt_(threads) {}
+    /// @param dense   The dense-arm policy for `kkt_` (SqpOptions::linear.dense_factorization,
+    ///                M8 DN-1); kNever is the configuration before the arm.
+    explicit SsnEngine(const QpOptions &opts, int threads = 0,
+                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+        : opts_(opts), kkt_(threads, dense) {}
 
     SsnEngine(const SsnEngine &) = delete;
     SsnEngine &operator=(const SsnEngine &) = delete;

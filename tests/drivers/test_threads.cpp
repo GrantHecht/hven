@@ -480,9 +480,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // appended `qn_dimension`; 79 and 77 until M7 W2 R2-1 appended `nonfinite_step_rollbacks`;
 // 80 and 78 until M7 W2 SNR appended `restoration_feas_out`; 81 and 79 until M7 W2 SCL
 // appended `scaled_convergence_refusals`; 82 and 80 until M7 W2 RST appended
-// `restoration_curvature_switches`.)
+// `restoration_curvature_switches`; 83 until M8 DN-1 appended `inertia_suspect_verdicts` and
+// `inertia_wrong_verdicts`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 83 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 85 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -568,6 +569,8 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_BITS(a, b, restoration_feas_out);
     HVEN_EXPECT_SAME(a, b, scaled_convergence_refusals);
     HVEN_EXPECT_SAME(a, b, restoration_curvature_switches);
+    HVEN_EXPECT_SAME(a, b, inertia_suspect_verdicts);
+    HVEN_EXPECT_SAME(a, b, inertia_wrong_verdicts);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

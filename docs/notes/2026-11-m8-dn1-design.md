@@ -875,7 +875,7 @@ round, per the brief.
 | R8 | **consumer-side allocation and the Schur border's LAPACKE workspace** keep part of the 0.09-0.12 residual | registered, outside DN-1 |
 | R9 | **the replay covers the first 50 factorizations per cell**, so fallback and fork counts beyond that are unmeasured | S3 reports `dense_fallback_count` over whole solves |
 | R10 | **the IPM's singular policy** is Pardiso's perturbation, not Ipopt-style singular evidence | registered alternative (§6); DN-3 or later |
-| R11 | **`DenseSymmetricFactor::block_evidence()`'s 2×2 decode miscounts negatives** when \|det\| ≪ trace² (14 LAKES matrices, 5 decidable, [E3d]). The Schur border stack reads it through `expected_neg_eigs_delta()` (`schur_complement.h:419-431, 625`), so the walk's border path may carry the same miscount today | outside DN-1 (the border path is walk-touching and stays byte-identical, N5); registered as a follow-on with a census. The dense session does not use it (§5.3) |
+| R11 | **`DenseSymmetricFactor::block_evidence()`'s 2×2 decode miscounts negatives** when \|det\| ≪ trace² (14 LAKES matrices, 5 decidable, [E3d]). The Schur border stack reads it through `expected_neg_eigs_delta()` (`schur_complement.h:419-431, 625`), so the walk's border path may carry the same miscount today | outside DN-1 (the border path is walk-touching and stays byte-identical, N5); registered as a follow-on with a census. The dense session does not use it (§5.3). **CLOSED** by c2ce3ed32 (det/trace decode, landed before DN-1); DN-1 shares that `decode_2x2` through `detail/linear/block_decode.h` |
 
 ## 16. Open questions for the owner
 

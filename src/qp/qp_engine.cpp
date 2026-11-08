@@ -206,7 +206,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // THE EQP-REFINE TEMPORARY, at this engine's thread count (M6 W5 T8.8).
     // It dies inside this call, so no boundary observation can read its count;
     // what covers it is the CONSTRUCTION RULE (kkt_calls.h) plus this line.
-    detail::KktFactor kkt(threads_);
+    detail::KktFactor kkt(threads_, dense_policy_);
     ++out.counters.factorizations;
     // THE PROXIMAL CENTRE for a re-solve OF THE CALLER'S OWN FACE is the point
     // the caller stopped at: this function re-solves the same subproblem from
@@ -539,7 +539,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // `counters` is declared BEFORE the seeding refresh_shifts() below
     // because that call is itself a source of counters.shift_adds, which
     // QpCounters documents as included. Nothing else reads it this early.
-    detail::KktFactor kkt(threads_);
+    detail::KktFactor kkt(threads_, dense_policy_);
     // The face `kkt` holds, for the verdict-site refinement's reuse guard.
     EliminatedFace face;
     QpCounters counters;
@@ -619,7 +619,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // branch). Reliable here only under the header contract's
             // THREAD SAFETY note (sequential use).
             if (border_.use_count() > 1) {
-                border_ = std::make_shared<BorderState>();
+                border_ = std::make_shared<BorderState>(0, dense_policy_);
             } else {
                 border_->schur.reset();
                 border_->latched = false;
@@ -843,6 +843,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             eliminated_only
                 ? eliminated_candidate(qp, ws, x, kkt, face, counters, verdict, eff_opts)
                 : eqp_candidate(qp, ws, x, kkt, face, *border_, counters, verdict, eff_opts);
+        if (verdict == detail::InertiaVerdict::kSuspect) {
+            ++counters.inertia_suspect_verdicts;
+        } else if (verdict == detail::InertiaVerdict::kWrong) {
+            ++counters.inertia_wrong_verdicts;
+        }
 #ifdef HVEN_TESTING
         // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
         // the same verdict site for HYPOTHETICAL working sets later in this very
@@ -897,7 +902,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                 eff_opts.primal_regularization *= detail::kSuspectDeltaFactor;
                 if (border_.use_count() > 1) {
-                    border_ = std::make_shared<BorderState>();
+                    border_ = std::make_shared<BorderState>(0, dense_policy_);
                 } else {
                     border_->schur.reset();
                     border_->latched = false;
@@ -1491,7 +1496,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     Vec saddle_d;
                     if (eff_opts.independent_working_set && !convex_overruled) {
                         if (!saddle_kkt) {
-                            saddle_kkt = std::make_unique<detail::KktFactor>(threads_);
+                            saddle_kkt =
+                                std::make_unique<detail::KktFactor>(threads_, dense_policy_);
                         }
                         saddle_d = saddle_direction(qp, ws, x, *saddle_kkt, saddle_face, counters,
                                                     eff_opts, curvature_tol, pass_view);
@@ -1645,7 +1651,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #endif
                             eff_opts.primal_regularization *= detail::kSuspectDeltaFactor;
                             if (border_.use_count() > 1) {
-                                border_ = std::make_shared<BorderState>();
+                                border_ = std::make_shared<BorderState>(0, dense_policy_);
                             } else {
                                 border_->schur.reset();
                                 border_->latched = false;
@@ -1837,7 +1843,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // say.
                 if (Adeg::diag_post_drop_inertia && detail::testing::QpWalkObserver::capturing) {
                     if (!diag_kkt) {
-                        diag_kkt = std::make_unique<detail::KktFactor>(threads_);
+                        diag_kkt = std::make_unique<detail::KktFactor>(threads_, dense_policy_);
                     }
                     const QpCounters saved_counters = counters;
                     const detail::testing::QpWalkEqpEvidence saved_eqp =
@@ -2503,8 +2509,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // leaves the released constraint satisfied on the new face -- and the walk
                 // goes on from where it stands. Nothing is certified here.
                 --rank_repairs_left;
-                const detail::RankRepair rr =
-                    detail::rank_repair(qp, ws, shift, eff_opts, threads_);
+                const detail::RankRepair rr = detail::rank_repair(
+                    qp, ws, shift, eff_opts, threads_, detail::kRankBlockCap, dense_policy_);
                 if (rr.outcome == detail::RankRepair::Outcome::kRelease) {
                     ++counters.rank_repairs;
                     for (const detail::WsMember &m : rr.release) {
@@ -2891,7 +2897,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             ++counters.dual_regularization_decreases;
             eff_opts.dual_regularization *= detail::kDualRegDecreaseFactor;
             if (border_.use_count() > 1) {
-                border_ = std::make_shared<BorderState>();
+                border_ = std::make_shared<BorderState>(0, dense_policy_);
             } else {
                 border_->schur.reset();
                 border_->latched = false;
@@ -3544,7 +3550,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     // THE REUSE GUARD: the key carries the working set AND the factor's own
     // identity, so a moved working set and a re-factorized `kkt` both miss.
     // See EliminatedFace and the declaration.
-    detail::KktFactor fresh(threads_);
+    detail::KktFactor fresh(threads_, dense_policy_);
     const bool reuse = face.holds(ws, kkt);
     const detail::KktFactor &fac = reuse ? kkt : fresh;
     if (!reuse) {
@@ -4191,7 +4197,7 @@ bool QpEngine::reread_wrong_inertia(const QpProblem &qp, const WorkingSet &ws, c
     }
     ++counters.dep_inertia_rereads;
     const auto read = [&](double mu) {
-        detail::KktFactor local(threads_);
+        detail::KktFactor local(threads_, dense_policy_);
         EliminatedFace local_face;
         QpOptions o = opts;
         o.dual_regularization = mu;
@@ -4274,7 +4280,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
 
     // The mu-free EQP of the CURRENT face: one factorization (charged by
     // eliminated_candidate) plus solve_eqp's mandatory unregularized step.
-    detail::KktFactor local(threads_);
+    detail::KktFactor local(threads_, dense_policy_);
     EliminatedFace local_face;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     EqpResult r;
@@ -4478,7 +4484,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     //
     // The EQP-level fields the local solve moves ARE folded back below: they
     // describe the solve's own arithmetic, which no other counter reports.
-    detail::KktFactor local(threads_);
+    detail::KktFactor local(threads_, dense_policy_);
     EliminatedFace local_face;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     QpCounters local_counters;
@@ -5357,7 +5363,7 @@ bool QpEngine::verify_terminal_farkas(const QpProblem &qp, const WorkingSet &ws,
     }
     // The pass's factor no longer holds for ws: a local eliminated factor of it (the saddle
     // exit's pattern).
-    detail::KktFactor own(threads_);
+    detail::KktFactor own(threads_, dense_policy_);
     EliminatedFace own_face;
     detail::InertiaVerdict v = detail::InertiaVerdict::kWrong;
     try {
@@ -6168,7 +6174,7 @@ Vec QpEngine::saddle_direction(const QpProblem &qp, const WorkingSet &ws, const 
     QpOptions os = o;
     os.primal_regularization =
         o.primal_regularization + detail::kSaddleShiftFactor * detail::hessian_scale(qp);
-    detail::KktFactor shifted(threads_);
+    detail::KktFactor shifted(threads_, dense_policy_);
     EliminatedFace shifted_face;
     try {
         (void)eliminated_candidate(qp, ws, x, shifted, shifted_face, counters, v, os);

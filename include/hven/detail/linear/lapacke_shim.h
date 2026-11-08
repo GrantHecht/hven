@@ -11,7 +11,8 @@
 // caller-side workspace query (`lwork = -1`, read back `work[0]`) that
 // `LAPACKE_dsytrf` performs internally on MKL. This header implements ONLY
 // the two entry points `DenseSymmetricFactor` uses --
-// `LAPACKE_dsytrf`/`LAPACKE_dsytrs`, column-major layout only -- so the
+// `LAPACKE_dsytrf`/`LAPACKE_dsytrs`, column-major layout only -- and the two
+// caller-workspace `_work` forms the dense arm uses, so the
 // dense factor/solve logic itself needs no `#ifdef` branching once these two
 // names resolve, whether to MKL's own LAPACKE header or to this shim.
 //
@@ -107,6 +108,32 @@ inline lapack_int LAPACKE_dsytrs(int matrix_layout, char uplo, lapack_int n, lap
                                  lapack_int ldb) {
     if (matrix_layout != LAPACK_COL_MAJOR) {
         return -1; // LAPACKE convention: argument 1 (matrix_layout) is illegal
+    }
+    lapack_int info = 0;
+    dsytrs_(&uplo, &n, &nrhs, a, &lda, ipiv, b, &ldb, &info);
+    return info;
+}
+
+// The caller-workspace forms the dense arm (dense_session.cpp) uses, so its
+// factorize() and solve() allocate nothing. The same names and signatures as
+// MKL's LAPACKE: lwork == -1 is the workspace query (the optimal size in
+// work[0]); column-major only.
+inline lapack_int LAPACKE_dsytrf_work(int matrix_layout, char uplo, lapack_int n, double *a,
+                                      lapack_int lda, lapack_int *ipiv, double *work,
+                                      lapack_int lwork) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
+    }
+    lapack_int info = 0;
+    dsytrf_(&uplo, &n, a, &lda, ipiv, work, &lwork, &info);
+    return info;
+}
+
+inline lapack_int LAPACKE_dsytrs_work(int matrix_layout, char uplo, lapack_int n, lapack_int nrhs,
+                                      const double *a, lapack_int lda, const lapack_int *ipiv,
+                                      double *b, lapack_int ldb) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
     }
     lapack_int info = 0;
     dsytrs_(&uplo, &n, &nrhs, a, &lda, ipiv, b, &ldb, &info);

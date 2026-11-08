@@ -583,7 +583,8 @@ static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFiel
 // `nonfinite_step_rollbacks`, the same way: `sizeof` 1088 -> 1096. 80 -> 81 at M7 W2 SNR,
 // `restoration_feas_out`, the same way: `sizeof` 1096 -> 1104. 81 -> 82 at M7 W2 SCL,
 // `scaled_convergence_refusals`, the same way: `sizeof` 1104 -> 1112. 82 -> 83 at M7 W2 RST,
-// `restoration_curvature_switches`, the same way: `sizeof` 1112 -> 1120.)
+// `restoration_curvature_switches`, the same way: `sizeof` 1112 -> 1120. 83 -> 85 at M8 DN-1,
+// `inertia_suspect_verdicts` and `inertia_wrong_verdicts`, the same way: `sizeof` +16.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

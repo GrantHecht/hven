@@ -1562,7 +1562,11 @@ struct BorderState {
     ///                every construction site passed before that task -- leaves
     ///                the backend's own default alone, so a default-argument
     ///                construction is bit-for-bit the old one.
-    explicit BorderState(int threads = 0) : kkt(threads) {}
+    ///
+    /// @param dense   The owning engine's dense-arm policy (M8 DN-1).
+    explicit BorderState(int threads = 0,
+                         hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+        : kkt(threads, dense) {}
 
     BorderState(const BorderState &) = delete;
     BorderState &operator=(const BorderState &) = delete;
@@ -1742,9 +1746,16 @@ class QpEngine {
     // site keeps compiling and keeps hashing the 0 the SQP lane has always
     // passed -- and 0 means "leave the backend's own default alone", so a
     // defaulted engine is bit-for-bit the pre-T8.8 one.
-    explicit QpEngine(const QpOptions &opts, int threads = 0)
-        : opts_(opts), threads_(threads), options_hash_(options_fingerprint(opts, threads)),
-          border_(std::make_shared<BorderState>(threads)) {}
+    //
+    // `dense` is the dense-arm policy every factor this engine builds takes (M8
+    // DN-1). A policy other than kNever is folded into the hot-handle key, so
+    // two engines on different arms never share a K0; kNever leaves the key as
+    // options_fingerprint(opts, threads) has always made it.
+    explicit QpEngine(const QpOptions &opts, int threads = 0,
+                      hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+        : opts_(opts), threads_(threads), dense_policy_(dense),
+          options_hash_(engine_fingerprint(opts, threads, dense)),
+          border_(std::make_shared<BorderState>(threads, dense)) {}
 
     // THE LIVE K0 FACTOR'S OWN COUNT, read through to the backend session --
     // NOT the carried `threads_` this engine was built with (M6 W5 T8.8). The
@@ -1759,6 +1770,19 @@ class QpEngine {
     // The thread count this engine was BUILT with -- the value hashed into
     // options_hash_. Distinct from num_threads() above; see it.
     int carried_num_threads() const noexcept { return threads_; }
+
+    // The dense-arm policy this engine's factors are built with.
+    hven::linear::DensePolicy dense_policy() const noexcept { return dense_policy_; }
+
+    // options_fingerprint(opts, threads), with a policy other than kNever mixed in.
+    static std::uint64_t engine_fingerprint(const QpOptions &opts, int threads,
+                                            hven::linear::DensePolicy dense) {
+        const std::uint64_t h = options_fingerprint(opts, threads);
+        if (dense == hven::linear::DensePolicy::kNever) {
+            return h;
+        }
+        return h ^ (0x9E3779B97F4A7C15ULL * (static_cast<std::uint64_t>(dense) + 1));
+    }
 
     // Attach a ledger for instrumentation (nullptr = off, default off).
     // Emits one SolveRecord per solve() call with the given label prefix
@@ -2962,6 +2986,7 @@ class QpEngine {
     // engine (SqpSolver::set_options rebuilds). Computed once here rather than
     // per solve because run()'s adoption gate reads it on every call.
     int threads_ = 0;
+    hven::linear::DensePolicy dense_policy_ = hven::linear::DensePolicy::kNever;
     std::uint64_t options_hash_ = 0;
 
     // HOT-START REUSE state (border mode only; see the header contract).

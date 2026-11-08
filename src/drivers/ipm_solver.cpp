@@ -195,6 +195,7 @@ void hven::detail::IpmSolverImpl::set_qp_params() {
     opts.pivot_perturbation_exponent = opts_.linear.pivot_perturbation_exponent;
     opts.max_refinement_steps = opts_.linear.max_refinement_steps;
     opts.ordering = linear_ordering_of(opts_.linear.ordering);
+    opts.dense_factorization = opts_.linear.dense_factorization;
 
 #ifdef USE_ACCELERATE_SPARSE
     // Accelerate carries no weighted-matching, scaling, pivoting-strategy,

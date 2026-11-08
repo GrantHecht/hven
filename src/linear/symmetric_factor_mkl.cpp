@@ -22,6 +22,7 @@
 
 #include "hven/core/errors.h"
 #include "hven/core/pattern_hash.h"
+#include "hven/detail/linear/dense_session.h"
 #include "hven/detail/linear/fault_injection.h"
 #include "hven/detail/linear/pardiso_session.h"
 
@@ -564,6 +565,8 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
             "= {}, weighted_matching = {}",
             opts_.matrix_scaling, opts_.weighted_matching));
     }
+
+    detail::validate_dense_options(opts_);
 }
 
 SymmetricFactor::~SymmetricFactor() = default;
@@ -586,6 +589,9 @@ void SymmetricFactor::set_threads(int num_threads) {
         // the two must not disagree.
         session_->set_num_threads(num_threads);
     }
+    if (dense_) {
+        dense_->set_num_threads(num_threads);
+    }
 }
 
 int SymmetricFactor::threads() const noexcept {
@@ -596,11 +602,31 @@ int SymmetricFactor::threads() const noexcept {
     // the only one that answers the question this reader is asked. `opts_`
     // remains the answer before the first analyze(), when there is no session
     // to read and `opts_` is what the next one will be built from.
+    if (dense_) {
+        return dense_->num_threads();
+    }
     return session_ ? session_->config().num_threads : opts_.threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
+
+    // The dense arm is chosen per analyzed pattern. Its session is fresh, like
+    // the platform's (outstanding handles keep the old one), and continues the
+    // engine's epoch; the fallback session of the old pattern is dropped.
+    if (detail::dense_selected(opts_, static_cast<Index>(A.rows()))) {
+        auto dense = std::make_shared<detail::DenseSession>(opts_, epoch());
+        dense->analyze(A);
+        dense_ = std::move(dense);
+        dense_active_ = true;
+        session_.reset();
+        pattern_hash_ = hven::pattern_hash(A);
+        has_pattern_ = true;
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+        ++counters_.analyze_count;
+        return;
+    }
 
     // A fresh session per analysis. The alternative -- re-running the
     // symbolic phase in the existing session -- would silently destroy the
@@ -636,6 +662,8 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
 #endif
 
     session_ = std::move(session);
+    dense_.reset();
+    dense_active_ = false;
     pattern_hash_ = hven::pattern_hash(A);
     has_pattern_ = true;
     numerics_refused_ = false;
@@ -644,7 +672,7 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
 }
 
 FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
-    if (!has_pattern_ || !session_) {
+    if (!has_pattern_ || (!session_ && !dense_)) {
         throw std::logic_error("SymmetricFactor::factorize: called before analyze() (or before "
                                "adopting a factorization that carries a symbolic analysis)");
     }
@@ -669,6 +697,10 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
                 "for a new pattern",
                 hash, pattern_hash_));
         }
+    }
+
+    if (dense_) {
+        return factorize_dense(A);
     }
 
     int backend_code;
@@ -716,9 +748,64 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
     return outcome;
 }
 
+FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
+    FactorizeOutcome outcome;
+    if (dense_->factorize(A, epoch() + 1)) {
+        ++counters_.factorize_count;
+        ++counters_.dense_factorize_count;
+        dense_active_ = true;
+        outcome.status = FactorizeOutcome::Status::kOk;
+        outcome.inertia = detail::dense_evidence_of(*dense_);
+        outcome.factor = detail::dense_factor_evidence_of(*dense_);
+        outcome.arm = FactorArm::kDense;
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+        return outcome;
+    }
+
+    // Exactly singular: the platform session takes this factorization. It is
+    // reused iff it took the engine's previous factorization (its epoch is
+    // then the engine's); otherwise a fresh one is analyzed on this pattern,
+    // seeded with the engine's epoch, so the epoch never runs backwards.
+    if (!session_ || dense_active_) {
+        auto session =
+            std::make_shared<detail::FactorSession>(config_from(dense_->options()), epoch());
+        backend_call([&] { session->analyze(A); });
+        session_ = std::move(session);
+    }
+    dense_active_ = false;
+
+    int backend_code;
+#ifdef HVEN_TESTING
+    // The same injector as the platform path above, on the fallback session's
+    // first factorization (a fresh fork, which is the scope it is faithful in).
+    if (detail::testing::FactorizeFaultInjector::active) {
+        backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
+    } else
+#endif
+    {
+        backend_code = session_->factorize(A);
+    }
+    ++counters_.factorize_count;
+    ++counters_.dense_fallback_count;
+
+    outcome.backend_code = backend_code;
+    if (backend_code == 0) {
+        outcome.status = FactorizeOutcome::Status::kOk;
+        outcome.inertia = evidence_of(*session_);
+        outcome.factor = factor_evidence_of(*session_);
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+    } else {
+        outcome.status = FactorizeOutcome::Status::kBackendError;
+    }
+    return outcome;
+}
+
 SolveInfo SymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     require_solvable("solve");
-    const SolveInfo info = run_solve(*session_, RHS, X, "solve");
+    const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, RHS, X, "solve")
+                                         : run_solve(*session_, RHS, X, "solve");
     if (X.cols() > 0) {
         ++counters_.solve_count;
     }
@@ -727,13 +814,19 @@ SolveInfo SymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
 
 SolveInfo SymmetricFactor::solve_single(ConstVecRef rhs, VecRef x) const {
     require_solvable("solve");
-    const SolveInfo info = run_solve(*session_, rhs, x, "solve");
+    const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, rhs, x, "solve")
+                                         : run_solve(*session_, rhs, x, "solve");
     ++counters_.solve_count;
     return info;
 }
 
 SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecRef x) const {
     require_solvable("solve_partial");
+    if (dense_active_) {
+        throw std::logic_error("SymmetricFactor::solve_partial: the current factorization is the "
+                               "dense arm's, which has no partial solves (check "
+                               "supports_partial_solve() first)");
+    }
 
     const int backend_phase = pardiso_phase_of(phase);
 
@@ -769,7 +862,7 @@ bool SymmetricFactor::supports_partial_solve() const {
     // under matching has evidence behind it, matching being on forces this
     // predicate false -- and relaxing it later requires bench/correctness
     // evidence, not a quiet drop.
-    return has_usable_numerics() && session_->num_perturbed_pivots() == 0 &&
+    return has_usable_numerics() && !dense_active_ && session_->num_perturbed_pivots() == 0 &&
            !opts_.weighted_matching;
 }
 
@@ -777,24 +870,56 @@ InertiaEvidence SymmetricFactor::inertia() const {
     if (!has_usable_numerics()) {
         return InertiaEvidence{};
     }
-    return evidence_of(*session_);
+    return dense_active_ ? detail::dense_evidence_of(*dense_) : evidence_of(*session_);
 }
 
 const SymmetricFactor::Counters &SymmetricFactor::counters() const { return counters_; }
 
 std::shared_ptr<const Factorization> SymmetricFactor::share() {
     require_solvable("share");
+    if (dense_active_) {
+        return std::make_shared<const Factorization>(Factorization::PrivateTag{}, dense_,
+                                                     pattern_hash_, dense_->epoch());
+    }
     return std::make_shared<const Factorization>(Factorization::PrivateTag{}, session_,
                                                  pattern_hash_, session_->epoch());
 }
 
-std::uint64_t SymmetricFactor::epoch() const { return session_ ? session_->epoch() : 0; }
+// The session that took the most recent successful factorization (or, before
+// one, the session the last analyze() or adopt() created or took).
+std::uint64_t SymmetricFactor::epoch() const {
+    if (dense_active_) {
+        return dense_->epoch();
+    }
+    return session_ ? session_->epoch() : 0;
+}
 
-std::uint64_t SymmetricFactor::session_id() const { return session_ ? session_->session_id() : 0; }
+std::uint64_t SymmetricFactor::session_id() const {
+    if (dense_active_) {
+        return dense_->session_id();
+    }
+    return session_ ? session_->session_id() : 0;
+}
 
 SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> handle) {
     if (!handle) {
         throw std::invalid_argument("SymmetricFactor::adopt: handle must not be null");
+    }
+
+    if (handle->dense_) {
+        // The dense session stores the Options it was analyzed under (threads
+        // as moved since), so the adopter is configured exactly like it.
+        const std::shared_ptr<detail::DenseSession> &dense = handle->dense_;
+        SymmetricFactor adopted(dense->options());
+        adopted.dense_ = dense;
+        adopted.dense_active_ = true;
+        adopted.pattern_hash_ = handle->pattern_hash_;
+        adopted.has_pattern_ = true;
+        if (handle->session_id() != dense->session_id() || handle->epoch() != dense->epoch()) {
+            adopted.numerics_refused_ = true;
+            adopted.refused_epoch_ = handle->epoch();
+        }
+        return adopted;
     }
 
     const std::shared_ptr<detail::FactorSession> &session = handle->session_;
@@ -841,11 +966,16 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
 }
 
 bool SymmetricFactor::has_usable_numerics() const {
+    if (dense_active_) {
+        return dense_->has_numerics() && !numerics_refused_;
+    }
     return session_ && session_->has_numerics() && !numerics_refused_;
 }
 
 void SymmetricFactor::require_solvable(const char *what) const {
-    if (!session_ || !session_->has_numerics()) {
+    const bool has_numerics =
+        dense_active_ ? dense_->has_numerics() : (session_ && session_->has_numerics());
+    if (!has_numerics) {
         throw std::logic_error(
             fmt::format("SymmetricFactor::{}: called before a successful factorize()", what));
     }
@@ -854,7 +984,7 @@ void SymmetricFactor::require_solvable(const char *what) const {
             "SymmetricFactor::{}: this engine adopted a factorization emitted at epoch {}, but the "
             "shared session has since been refactorized (it is at epoch {}) -- those numerics are "
             "stale and numeric reuse is refused; call factorize() to produce this engine's own",
-            what, refused_epoch_, session_->epoch()));
+            what, refused_epoch_, epoch()));
     }
 }
 
@@ -864,9 +994,29 @@ Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> 
                              std::uint64_t pattern_hash, std::uint64_t epoch)
     : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch) {}
 
+Factorization::Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
+                             std::uint64_t pattern_hash, std::uint64_t epoch)
+    : dense_(std::move(dense)), pattern_hash_(pattern_hash), epoch_(epoch) {}
+
 Factorization::~Factorization() = default;
 
+// A dense session a co-owner's exactly singular attempt overwrote has no
+// numerics until the next dense success: refused like a failed factorize().
+namespace {
+void require_dense_numerics(const detail::DenseSession &dense) {
+    if (!dense.has_numerics()) {
+        throw hven::BackendError("Factorization::solve: the shared dense session no longer holds "
+                                 "a usable factorization (a co-owner's factorize() found the "
+                                 "matrix exactly singular, or failed)");
+    }
+}
+} // namespace
+
 SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
+    if (dense_) {
+        require_dense_numerics(*dense_);
+        return detail::run_dense_solve(*dense_, RHS, X, "solve");
+    }
     if (!session_->has_numerics()) {
         throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
@@ -875,6 +1025,10 @@ SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
 }
 
 SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
+    if (dense_) {
+        require_dense_numerics(*dense_);
+        return detail::run_dense_solve(*dense_, rhs, x, "solve");
+    }
     if (!session_->has_numerics()) {
         throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
@@ -883,6 +1037,9 @@ SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
 }
 
 InertiaEvidence Factorization::inertia() const {
+    if (dense_) {
+        return dense_->has_numerics() ? detail::dense_evidence_of(*dense_) : InertiaEvidence{};
+    }
     if (!session_->has_numerics()) {
         return InertiaEvidence{};
     }
@@ -895,7 +1052,9 @@ std::uint64_t Factorization::pattern_hash() const { return pattern_hash_; }
 // never rebinds and a session's id never changes, so there is nothing here
 // that could go out of step with the session, and no second copy to keep in
 // step. Contrast epoch_, which is a SNAPSHOT of a value that does move.
-std::uint64_t Factorization::session_id() const { return session_->session_id(); }
+std::uint64_t Factorization::session_id() const {
+    return dense_ ? dense_->session_id() : session_->session_id();
+}
 
 std::uint64_t Factorization::epoch() const { return epoch_; }
 

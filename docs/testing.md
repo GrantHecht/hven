@@ -359,6 +359,14 @@ where it does:
   states this scope limit explicitly so a future editor does not assume more
   coverage than exists.
 
+  The same injector is read at a second site in each adapter (M8 DN-1): the
+  dense arm's fallback, where an exactly singular dense attempt hands the
+  factorization to the platform session. It is read there and not on the dense
+  attempt, which stays real. It is faithful there in the same one scenario: the
+  fallback session is a fresh fork on its first factorization
+  (`tests/linear/test_fault_injection.cpp`'s `DenseArmFallbackFault`). A reused
+  fallback session that has succeeded before is outside that scope.
+
   The scope limit is not as narrow in practice as it first reads, because
   `analyze()` FORKS: every `analyze()` starts a fresh session. A consumer whose
   compute path is analyze-then-factorize — the interior-point engine's is —

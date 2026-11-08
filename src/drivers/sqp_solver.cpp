@@ -1418,6 +1418,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         out.terminal_polish_adopted += qs_e.counters.terminal_polish_adopted;
         out.verdict_refine_steps += qs_e.counters.verdict_refine_steps;
         out.suspect_escalations += qs_e.counters.suspect_escalations;
+        out.inertia_suspect_verdicts += qs_e.counters.inertia_suspect_verdicts;
+        out.inertia_wrong_verdicts += qs_e.counters.inertia_wrong_verdicts;
         out.symbolic_analyses += qs_e.counters.symbolic_analyses;
         // ONE LINE PER RUNG (M6 W4 T5), written where the rung has run and
         // BEFORE the four breaks below, so a climb stopping here still reports.
@@ -2112,7 +2114,8 @@ void SqpSolverImpl::set_options(SqpOptions o) {
     // (2) BUILD THE REPLACEMENT INTO A TEMPORARY. A throw here -- QpEngine's
     // constructor allocates a BorderState -- leaves the live engine and the live
     // options exactly as they were.
-    auto fresh = std::make_unique<QpEngine>(engine_qp_options(o), o.common.threads);
+    auto fresh = std::make_unique<QpEngine>(engine_qp_options(o), o.common.threads,
+                                            o.linear.dense_factorization);
     if (ledger_ != nullptr) {
         fresh->attach_ledger(ledger_, label_prefix_ + "_qp");
         // The record labels are a per-DRIVER sequence. Carrying the counter is
@@ -2175,11 +2178,13 @@ const SqpOptions &SqpSolverImpl::validated(const SqpOptions &opts) {
 
 SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts)
     : opts_(validated(opts)),
-      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)) {}
+      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads,
+                                         opts.linear.dense_factorization)) {}
 
 SqpSolverImpl::SqpSolverImpl(const SqpOptions &opts, RestorationSubDriverTag)
     : opts_(validated(opts)),
-      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads)),
+      engine_(std::make_unique<QpEngine>(engine_qp_options(opts), opts.common.threads,
+                                         opts.linear.dense_factorization)),
       allow_restoration_(false), is_restoration_sub_driver_(true) {}
 
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
@@ -6030,6 +6035,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.terminal_polish_adopted += phase.counters.terminal_polish_adopted;
         st.out.counters.verdict_refine_steps += phase.counters.verdict_refine_steps;
         st.out.counters.suspect_escalations += phase.counters.suspect_escalations;
+        st.out.counters.inertia_suspect_verdicts += phase.counters.inertia_suspect_verdicts;
+        st.out.counters.inertia_wrong_verdicts += phase.counters.inertia_wrong_verdicts;
         st.out.counters.symbolic_analyses += phase.counters.symbolic_analyses;
         // THE SUBPROBLEM-EXIT GROUP'S WORK HALF (M7 W2 M1) FOLDS, on the
         // qp_minor_iters argument: all three count QP SOLVES, and the sub-solve's
@@ -7674,6 +7681,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.terminal_polish_adopted += mj.qs.counters.terminal_polish_adopted;
     st.out.counters.verdict_refine_steps += mj.qs.counters.verdict_refine_steps;
     st.out.counters.suspect_escalations += mj.qs.counters.suspect_escalations;
+    st.out.counters.inertia_suspect_verdicts += mj.qs.counters.inertia_suspect_verdicts;
+    st.out.counters.inertia_wrong_verdicts += mj.qs.counters.inertia_wrong_verdicts;
     st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
 
     // THE CAP RETRY (M7 W2 M1, mechanism M1(3)), BEHIND `SqpOptions::
@@ -7771,6 +7780,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.terminal_polish_adopted += retried.counters.terminal_polish_adopted;
         st.out.counters.verdict_refine_steps += retried.counters.verdict_refine_steps;
         st.out.counters.suspect_escalations += retried.counters.suspect_escalations;
+        st.out.counters.inertia_suspect_verdicts += retried.counters.inertia_suspect_verdicts;
+        st.out.counters.inertia_wrong_verdicts += retried.counters.inertia_wrong_verdicts;
         st.out.counters.symbolic_analyses += retried.counters.symbolic_analyses;
         // THE RETRY IS THIS MAJOR'S ANSWER from here down, whatever it says:
         // the row, the census, the routing and map_status all read `mj.qs`.
@@ -8322,6 +8333,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.terminal_polish_adopted += mj.qs_soc.counters.terminal_polish_adopted;
         st.out.counters.verdict_refine_steps += mj.qs_soc.counters.verdict_refine_steps;
         st.out.counters.suspect_escalations += mj.qs_soc.counters.suspect_escalations;
+        st.out.counters.inertia_suspect_verdicts += mj.qs_soc.counters.inertia_suspect_verdicts;
+        st.out.counters.inertia_wrong_verdicts += mj.qs_soc.counters.inertia_wrong_verdicts;
         st.out.counters.symbolic_analyses += mj.qs_soc.counters.symbolic_analyses;
 
         if (mj.qs_soc.status == QpStatus::kOptimal) {
@@ -8878,7 +8891,8 @@ SsnEngine &SqpSolverImpl::ssn_engine() {
         // one persistent factor, configured once at construction, and
         // set_options() drops both tiers so a changed count is picked up by the
         // next first use.
-        ssn_engine_ = std::make_unique<SsnEngine>(engine_qp_options(opts_), opts_.common.threads);
+        ssn_engine_ = std::make_unique<SsnEngine>(engine_qp_options(opts_), opts_.common.threads,
+                                                  opts_.linear.dense_factorization);
     }
     return *ssn_engine_;
 }
@@ -8900,7 +8914,8 @@ SsnOptions SqpSolverImpl::ssn_options(double prox_sigma_init) const {
 IpqpEngine &SqpSolverImpl::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
         // The thread count reaches this tier too; see ssn_engine() above.
-        ipqp_engine_ = std::make_unique<IpqpEngine>(engine_qp_options(opts_), opts_.common.threads);
+        ipqp_engine_ = std::make_unique<IpqpEngine>(engine_qp_options(opts_), opts_.common.threads,
+                                                    opts_.linear.dense_factorization);
         // task 8: apply the standing trace attachment (a no-op when unset)
         // now that the engine exists -- `attach_trace` cannot reach an engine
         // that has not been constructed yet.
@@ -8925,7 +8940,8 @@ IpqpEngine &SqpSolverImpl::elastic_ipqp_engine() {
         // and the same regularization pair as the walk, the SSN tier and the primary IPQP tier.
         QpOptions elastic_qp = engine_qp_options(opts_);
         elastic_qp.trust_region_radius = std::numeric_limits<double>::infinity();
-        elastic_ipqp_engine_ = std::make_unique<IpqpEngine>(elastic_qp, opts_.common.threads);
+        elastic_ipqp_engine_ = std::make_unique<IpqpEngine>(elastic_qp, opts_.common.threads,
+                                                            opts_.linear.dense_factorization);
         // NO TRACE ATTACHMENT, deliberately. The elastic rungs announce themselves through the
         // ladder's own `qp.mode` line (site `elastic_rung`, mode `ipqp` under this toggle);
         // attaching the sink here would additionally interleave this engine's per-iteration
@@ -8951,7 +8967,8 @@ QpEngine &SqpSolverImpl::cap_retry_engine(Index cap) {
         // outright over the size-derived default.
         QpOptions retry_qp = engine_qp_options(opts_);
         retry_qp.max_iterations = cap;
-        cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads);
+        cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads,
+                                                       opts_.linear.dense_factorization);
         cap_retry_engine_cap_ = cap;
         // NO LEDGER, deliberately, and on the lazy tiers' own precedent: the
         // record labels are a per-DRIVER sequence keyed off the PRIMARY

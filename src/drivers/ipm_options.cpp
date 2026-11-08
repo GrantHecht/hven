@@ -259,17 +259,24 @@ void hven::validate(const IpmOptions &o) {
     enum_in_range(lin.solve_parallelism, IpmSolveParallelism::kSequential,
                   "linear.solve_parallelism");
     pos_finite(lin.accelerate_zero_tol, "linear.accelerate_zero_tol");
-    // THE DENSE ARM IS NAMED, NOT WIRED. Accepting another value would be a
-    // setting that silently does nothing.
-    if (lin.dense_factorization != hven::linear::DensePolicy::kNever)
+    // THE DENSE ARM: kNever and kAlways. kAuto and its threshold stay refused
+    // until the selection rule lands (DN-3). CNR is a per-session Pardiso
+    // guarantee the dense arm cannot keep.
+    if (lin.dense_factorization != hven::linear::DensePolicy::kNever &&
+        lin.dense_factorization != hven::linear::DensePolicy::kAlways)
         throw std::invalid_argument(
-            fmt::format("linear.dense_factorization = {} is reserved: the dense factorization arm "
-                        "is not available yet; only DensePolicy::kNever is accepted",
+            fmt::format("linear.dense_factorization = {} is reserved: automatic dense selection "
+                        "is not available yet; DensePolicy::kNever and kAlways are accepted",
                         static_cast<int>(lin.dense_factorization)));
     if (lin.max_dense_dimension)
         throw std::invalid_argument(
-            "linear.max_dense_dimension is reserved: the dense factorization arm is not available "
+            "linear.max_dense_dimension is reserved: automatic dense selection is not available "
             "yet; leave it empty");
+    if (lin.dense_factorization != hven::linear::DensePolicy::kNever &&
+        lin.conditional_reproducibility)
+        throw std::invalid_argument(
+            "linear.conditional_reproducibility requires linear.dense_factorization = kNever: "
+            "the dense arm's LAPACK has no per-session reproducibility mode");
 
     // --- Advanced: iteration and attempt budgets ---
     // 0 disables each of these outright, which is well-defined; negative is not.

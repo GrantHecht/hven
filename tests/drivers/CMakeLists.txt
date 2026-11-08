@@ -26,6 +26,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # Threads::Threads reaches it through hven::hven's own interface.
     test_concurrency.cpp
     test_console_sink.cpp
+    # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.
+    test_dense_arm_engines.cpp
     # AP-2 B5: evaluation failure and the exception contract on both engines --
     # trial-point failures rejected, the start point, foreign exceptions
     # propagated unchanged with last_result() kept, the stop reasons.

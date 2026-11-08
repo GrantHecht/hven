@@ -845,7 +845,8 @@ Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
 } // namespace
 
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads, double block_cap) {
+                       const QpOptions &opts, int threads, double block_cap,
+                       hven::linear::DensePolicy dense) {
     RankRepair out;
     const Index n = qp.n();
     const Index me = qp.me();
@@ -919,7 +920,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
         Y = Eigen::MatrixXd::Identity(mr, mr); // every row is empty on the free columns
     } else {
         const double t = kRankGramShift * omega;
-        hven::linear::SymmetricFactor factor(sqp_kkt_options(threads));
+        hven::linear::SymmetricFactor factor(sqp_kkt_options(threads, dense));
         bool factored = false;
         const double mnorm = std::sqrt(omega); // >= ||M_F||_2
         Index b = std::min<Index>(mr, kRankBlockStart);

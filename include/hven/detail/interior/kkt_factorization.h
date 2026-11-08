@@ -190,7 +190,7 @@ class KktFactorization {
 
     /// Factor size, in whichever unit this backend reports: an entry count on
     /// MKL Pardiso, a byte size on Apple Accelerate.
-    int factor_mem() const { return factor_mem_; }
+    Index factor_mem() const { return factor_mem_; }
 
     /// Estimated factorization cost in Mflops, or 0 on a backend that reports
     /// no cost estimate.
@@ -217,7 +217,7 @@ class KktFactorization {
     // and it does not move.
     hven::linear::InertiaEvidence inertia_{};
     Eigen::ComputationInfo info_ = Eigen::Success;
-    int factor_mem_ = 0;
+    Index factor_mem_ = 0;
     int factor_flops_ = 0;
 };
 

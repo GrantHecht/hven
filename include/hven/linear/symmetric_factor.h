@@ -41,6 +41,7 @@
 #include <type_traits>
 
 #include "hven/core/types.h"
+#include "hven/linear/dense_policy.h"
 
 namespace hven::linear {
 
@@ -56,6 +57,11 @@ namespace detail {
 // does), so both backends' session headers define a class with this exact
 // name rather than a backend-qualified one that would leak here.
 class FactorSession;
+
+// The dense arm's session (detail/linear/dense_session.h): a column-major
+// LAPACK Bunch-Kaufman factorization of the densified matrix. Incomplete here
+// for the same reason as FactorSession.
+class DenseSession;
 
 // Eigen binds a vector to a matrix Ref and a matrix to a vector Ref, so a
 // pair of solve(vector) / solve(matrix) overloads spelled purely in terms of
@@ -166,7 +172,17 @@ struct FactorEvidence {
     // a field that could exist and currently does not report, not to a
     // field the backend has no concept of whatsoever.
     std::optional<Index> factor_size_bytes;
+
+    // Dense arm only: n(n+1)/2, the number of entries of L and D the dense
+    // session stores. Computed from the dimension, not reported by a backend.
+    // std::nullopt on every factorization the platform session took.
+    std::optional<Index> dense_factor_entries;
 };
+
+// Which session produced a FactorizeOutcome's numerics, evidence and status:
+// kSparse for the platform session (Pardiso or Accelerate), including every
+// dense-arm fallback; kDense for a factorization the dense arm took.
+enum class FactorArm { kSparse, kDense };
 
 // The result of one numeric factorization. A backend error is reported here,
 // not thrown: the caller decides whether a failed factorization is fatal or
@@ -189,6 +205,9 @@ struct FactorizeOutcome {
     // than on SolveInfo. Default-constructed (every field absent) on a
     // kBackendError outcome, exactly like inertia.
     FactorEvidence factor;
+
+    // The session that produced this outcome. See FactorArm.
+    FactorArm arm = FactorArm::kSparse;
 };
 
 // What a solve reports about itself. Populated where the backend reports it;
@@ -593,6 +612,30 @@ class SymmetricFactor {
         // one (an absolute THRESHOLD), so a value set here cannot silently
         // fold into pivot_perturbation_exponent's MKL behavior instead.
         std::optional<double> accelerate_zero_tol;
+
+        // Which session factorizes an analyzed pattern, decided per pattern
+        // at analyze():
+        //   kNever   the platform session, always (default).
+        //   kAlways  the dense arm: LAPACK Bunch-Kaufman (dsytrf/dsytrs) on
+        //            the densified matrix. It allocates 8*n^2 bytes for each
+        //            analyzed pattern, and again for each session an
+        //            outstanding handle keeps alive (n = 2,000: 32 MB;
+        //            10,000: 800 MB; 40,000: 12.8 GB). analyze() throws
+        //            std::invalid_argument when n exceeds LAPACK's integer
+        //            or 8*n^2 overflows; std::bad_alloc surfaces unchanged.
+        //   kAuto    the dense arm iff n <= max_dense_dimension.
+        // A dense attempt that finds the matrix exactly singular (a zero
+        // pivot, a 2x2 block with determinant exactly 0.0, or a non-finite
+        // value in D) is retaken by the platform session within the same
+        // factorize() call; FactorizeOutcome::arm reports which took it.
+        // Every Pardiso- or Accelerate-only option above configures that
+        // fallback session only. conditional_reproducibility_threads > 0
+        // requires kNever.
+        DensePolicy dense_factorization = DensePolicy::kNever;
+
+        // kAuto's threshold on n; required (>= 1) under kAuto and refused
+        // under the other two policies.
+        std::optional<Index> max_dense_dimension;
     };
 
     // The three factors of a symmetric factorization, solved against
@@ -673,6 +716,15 @@ class SymmetricFactor {
         // PatternCheck::kAssumeAnalyzed advances factorize_count and leaves
         // this one standing; under kVerify the two move together.
         Index pattern_verify_count = 0;
+
+        // +1 per factorize() the dense arm took (FactorArm::kDense).
+        Index dense_factorize_count = 0;
+
+        // +1 per factorize() the dense arm attempted, found exactly singular
+        // and handed to the platform session. factorize_count is
+        // dense_factorize_count + dense_fallback_count + the factorizations
+        // of sparse-selected patterns.
+        Index dense_fallback_count = 0;
     };
 
     explicit SymmetricFactor(Options opts);
@@ -807,6 +859,10 @@ class SymmetricFactor {
     // silently. On Accelerate there is no perturbation evidence at all, so
     // composability is unverifiable and the answer is a conservative false.
     //
+    // False whenever the current numerics are the dense arm's: LAPACK
+    // dsytrs has no phase-split entry point, and solve_partial() on them
+    // throws std::logic_error.
+    //
     // On MKL it ALSO requires Options::weighted_matching == false: composition
     // under active matching has not been exercised at scale (the caveat this
     // rule was originally carried under, now enforced rather than merely
@@ -913,8 +969,17 @@ class SymmetricFactor {
     // True iff this engine is entitled to the session's current numerics.
     bool has_usable_numerics() const;
 
+    // The dense arm's factorize(): the dense attempt, then the platform
+    // fallback on exact singularity.
+    FactorizeOutcome factorize_dense(const SpMatRM &A);
+
     Options opts_;
     std::shared_ptr<detail::FactorSession> session_;
+    // Non-null iff the analyzed pattern is dense-selected. session_ is then
+    // the fallback session (null until the first fallback).
+    std::shared_ptr<detail::DenseSession> dense_;
+    // True iff the current numerics and identity are dense_'s.
+    bool dense_active_ = false;
     std::uint64_t pattern_hash_ = 0;
     bool has_pattern_ = false;
 
@@ -950,6 +1015,9 @@ class Factorization {
 
   public:
     Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
+                  std::uint64_t pattern_hash, std::uint64_t epoch);
+    // A handle on dense numerics.
+    Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                   std::uint64_t pattern_hash, std::uint64_t epoch);
     ~Factorization();
 
@@ -995,7 +1063,9 @@ class Factorization {
   private:
     SolveInfo solve_single(ConstVecRef rhs, VecRef x) const;
 
+    // Exactly one of the two is non-null, fixed at emission.
     std::shared_ptr<detail::FactorSession> session_;
+    std::shared_ptr<detail::DenseSession> dense_;
     std::uint64_t pattern_hash_ = 0;
     std::uint64_t epoch_ = 0;
 };

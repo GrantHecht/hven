@@ -687,7 +687,8 @@ const QpOptions &IpqpEngine::options() const { return opts_; }
 
 int IpqpEngine::num_threads() const { return kkt_.session_num_threads(); }
 
-IpqpEngine::IpqpEngine(const QpOptions &opts, int threads) : opts_(opts) {
+IpqpEngine::IpqpEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
+    : opts_(opts) {
     // THE TIER'S OWN BACKEND OPTIONS, NOT detail::sqp_kkt_options() (spec 4.4).
     // Default-constructed and left alone: every field that maps to a Pardiso iparm slot stays
     // at the value pardisoinit chose, so CLAUDE.md section 6's labelling rule has nothing to
@@ -707,6 +708,16 @@ IpqpEngine::IpqpEngine(const QpOptions &opts, int threads) : opts_(opts) {
     // AT 0 THIS IS A NO-OP IN EVERY OBSERVABLE SENSE: the factor is already configured at 0,
     // and 0 means "leave the backend's own default alone".
     kkt_.set_num_threads(threads);
+
+    // THE DENSE-ARM POLICY (M8 DN-1), the second exception: SqpOptions::linear's policy, set
+    // through reconfigure() because it is fixed per factor. Not a Pardiso parameter-array
+    // field either. kNever leaves the factor exactly as built above.
+    if (dense != hven::linear::DensePolicy::kNever) {
+        KktFactorization::Options o;
+        o.threads = threads;
+        o.dense_factorization = dense;
+        kkt_.reconfigure(o);
+    }
 }
 
 const IpqpSeed *IpqpEngine::warm_carry() const { return carry_armed_ ? &carry_ : nullptr; }

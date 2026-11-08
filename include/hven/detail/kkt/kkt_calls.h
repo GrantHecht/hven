@@ -26,10 +26,16 @@ namespace hven::detail {
 /// Accelerate stores the count and applies it to nothing -- UNOBSERVED, and
 /// the SQP deliberately does NOT mirror the IPM's process-wide
 /// accelerate_set_num_threads() call, which is not restored on exit.
-inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads = 0) {
+///
+/// `dense` is SqpOptions::linear.dense_factorization (M8 DN-1); the default,
+/// kNever, is the configuration this factory produced before the dense arm.
+inline hven::linear::SymmetricFactor::Options
+sqp_kkt_options(int threads = 0,
+                hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever) {
     hven::linear::SymmetricFactor::Options o;
     o.decomposition = hven::linear::Decomposition::kLdlt;
     o.threads = threads;
+    o.dense_factorization = dense;
     o.pivot_perturbation_exponent = std::nullopt;
     o.max_refinement_steps = std::nullopt;
     // Every remaining member keeps its default (don't-write / absent).
@@ -68,7 +74,11 @@ struct KktFactor {
     ///                its owner's count in that owner's mem-initializer. That
     ///                is what makes "every factor path" a checkable claim
     ///                rather than an enumerated one.
-    explicit KktFactor(int threads = 0) : factor(sqp_kkt_options(threads)) {}
+    /// @param dense   The owning engine's dense-arm policy (M8 DN-1), passed
+    ///                beside `threads` at every construction site the same way.
+    explicit KktFactor(int threads = 0,
+                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+        : factor(sqp_kkt_options(threads, dense)) {}
 
     hven::linear::SymmetricFactor factor;
     std::uint64_t analyzed_pattern = 0;

@@ -154,6 +154,18 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
     // backend that keeps no such counter.
     perturbed_pivots_ = static_cast<int>(outcome.inertia.perturbed_pivots.value_or(0));
 
+    // A factorization the dense arm took reports its size as n(n+1)/2 entries,
+    // computed from the dimension, and no cost estimate.
+    if (outcome.arm == hven::linear::FactorArm::kDense) {
+        if (!outcome.factor.dense_factor_entries.has_value()) {
+            throw std::logic_error(
+                "KktFactorization: the dense arm's factorization reported no entry count");
+        }
+        factor_mem_ = *outcome.factor.dense_factor_entries;
+        factor_flops_ = 0;
+        return;
+    }
+
     // Factor size. The backends report structurally different quantities --
     // an entry count on one, a byte size on the other -- and the linear layer
     // keeps them in separate fields rather than folding them under a shared
@@ -163,7 +175,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
     if (!outcome.factor.factor_size_bytes.has_value()) {
         throw std::logic_error("KktFactorization: the factorization reported no factor byte size");
     }
-    factor_mem_ = static_cast<int>(*outcome.factor.factor_size_bytes);
+    factor_mem_ = *outcome.factor.factor_size_bytes;
     // This backend reports no factorization-cost estimate at all; the
     // engine's own "> 0" print guard suppresses it.
     factor_flops_ = 0;
@@ -172,7 +184,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
         throw std::logic_error(
             "KktFactorization: the factorization reported no factor entry count");
     }
-    factor_mem_ = static_cast<int>(*outcome.factor.factor_nonzeros);
+    factor_mem_ = *outcome.factor.factor_nonzeros;
 
     // The cost estimate is reported only where it was requested; requesting it
     // and not getting it is a defect.

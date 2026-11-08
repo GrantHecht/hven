@@ -674,12 +674,14 @@ struct SqpAdvancedOptions {
 
 /// @brief The SQP engine's factorization settings.
 struct SqpLinearOptions {
-    /// When the dense factorization arm is used. RESERVED: the arm is not wired
-    /// yet, and `validate()` accepts only `kNever` (the default).
+    /// When the dense factorization arm is used: `kNever` (the default) or
+    /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
+    /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
+    /// `validate()` refuses it until the selection rule lands.
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
     /// empty uses the library's rule. RESERVED: `validate()` accepts only the
-    /// empty value until the arm is wired.
+    /// empty value until `kAuto` is available.
     std::optional<Index> max_dense_dimension;
 };
 

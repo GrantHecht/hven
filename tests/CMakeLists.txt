@@ -189,6 +189,9 @@ set(HVEN_TEST_SOURCES
     # compiles into hven_tests on every platform and asserts the throw on
     # Accelerate, the inverse guard on MKL.
     linear/test_symmetric_factor_pardiso_only_options.cpp
+    # The dense arm behind SymmetricFactor (M8 DN-1): written against the public surface
+    # and two detail helpers, platform-neutral (the fallback is whichever backend this is).
+    linear/test_symmetric_factor_dense_arm.cpp
     # The warm-start currency (M5 W1): the value types, their fieldwise
     # equality, and the versioned byte form's round trip and refusals. It
     # depends on nothing but the public warmstart/ and model/ headers, so it
@@ -230,7 +233,19 @@ target_compile_definitions(hven_tests PRIVATE HVEN_VERSION_STRING="${PROJECT_VER
 target_compile_definitions(hven_tests
     PRIVATE HVEN_CORE_INCLUDE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../include/hven/core")
 
+# The DN-0 KKT dumps the dense-arm suite reads (linear/fixtures/dn1/), absolute so ctest's
+# working directory is irrelevant.
+target_compile_definitions(hven_tests
+    PRIVATE HVEN_DN1_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/linear/fixtures/dn1")
+
 gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+# The dense arm's allocation-free hot path (M8 DN-1, T9): its own executable, because the test
+# replaces the global operator new for the binary it links into.
+add_executable(hven_dense_alloc_tests linear/test_dense_arm_allocation.cpp)
+target_link_libraries(hven_dense_alloc_tests PRIVATE hven::hven GTest::gtest_main)
+target_compile_options(hven_dense_alloc_tests PRIVATE ${COMPILE_FLAGS})
+gtest_discover_tests(hven_dense_alloc_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
 # Fault-injection tests (docs/testing.md: the test-seam convention this repo
@@ -282,6 +297,8 @@ add_executable(hven_fault_injection_tests
     interior/test_kkt_factorization_faults.cpp
 )
 
+# The dense arm's session TU, which the adapter below dispatches to.
+target_sources(hven_fault_injection_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp)
 if(NOT APPLE)
     target_sources(hven_fault_injection_tests PRIVATE
         ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
@@ -366,6 +383,8 @@ add_executable(hven_ipqp_seam_tests
     sqp/test_ipqp_seams.cpp
 )
 
+# The dense arm's session TU, which the adapter below dispatches to.
+target_sources(hven_ipqp_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp)
 if(NOT APPLE)
     target_sources(hven_ipqp_seam_tests PRIVATE
         ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
@@ -463,8 +482,13 @@ add_executable(hven_qp_walk_seam_tests
     qp/test_qp_latch_reason.cpp
     qp/test_qp_release_readmission.cpp
     qp/test_route_reference.cpp
+    # M8 DN-1 T13: the walk's verdicts under the dense arm (no seam read; here for the
+    # E2-D4 dump fixtures).
+    qp/test_qp_dense_arm.cpp
 )
 
+# The dense arm's session TU, which the adapter below dispatches to.
+target_sources(hven_qp_walk_seam_tests PRIVATE ${HVEN_SRC_DIR}/linear/dense_session.cpp)
 if(NOT APPLE)
     target_sources(hven_qp_walk_seam_tests PRIVATE
         ${HVEN_SRC_DIR}/linear/pardiso_session.cpp

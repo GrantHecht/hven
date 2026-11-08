@@ -578,6 +578,11 @@ struct QpCounters {
     Index border_latches_conditioning = 0;
     Index border_latch_releases = 0;
     Index border_latch_holds = 0;
+    // THE PASS'S INERTIA VERDICT (qp_engine.h, section 4b): passes whose main
+    // verdict (the EQP candidate's, before any zero-multiplier probe re-entry or
+    // mu-free reread) read kSuspect or kWrong; kOk is the remainder.
+    Index inertia_suspect_verdicts = 0;
+    Index inertia_wrong_verdicts = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2254,6 +2259,11 @@ struct SqpCounters {
     ///        kLbfgsDamped. Appended last; FOLDED from the restoration sub-solve, where
     ///        it is counted.
     Index restoration_curvature_switches = 0;
+    /// @brief The walk's per-pass inertia verdicts, kSuspect and kWrong, summed over
+    ///        the same set of QP solves as suspect_escalations and named identically to
+    ///        QpCounters' fields. Appended last.
+    Index inertia_suspect_verdicts = 0;
+    Index inertia_wrong_verdicts = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2339,7 +2349,9 @@ struct SqpCounters {
     X(nonfinite_step_rollbacks, counter_never_absent)                                              \
     X(restoration_feas_out, counter_never_absent)                                                  \
     X(scaled_convergence_refusals, counter_never_absent)                                           \
-    X(restoration_curvature_switches, counter_never_absent)
+    X(restoration_curvature_switches, counter_never_absent)                                        \
+    X(inertia_suspect_verdicts, counter_never_absent)                                              \
+    X(inertia_wrong_verdicts, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

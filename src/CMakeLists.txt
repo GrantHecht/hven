@@ -14,6 +14,9 @@ target_sources(hven PRIVATE
     # out of a drivers/ one -- see the file's own banner.
     core/enum_names.cpp
     linear/dense_symmetric_factor.cpp
+    # The dense arm behind SymmetricFactor: both platforms run the same LAPACK
+    # calls (MKL's LAPACKE, or the Accelerate shim), as the file above does.
+    linear/dense_session.cpp
     kkt/kkt_calls.cpp
 )
 
@@ -594,7 +597,10 @@ endif()
 # 56 as of drivers/callback_rows.cpp (M8 AP-2 B4): the row-space compose of an iteration
 # event's multipliers. NOT a PCH source, on the same footing: it includes only its own header
 # and the problem access header.
-set(_hven_expected_source_count 56)
+# 57 as of linear/dense_session.cpp (M8 DN-1): the dense arm behind SymmetricFactor. NOT a PCH
+# source, on the same unmeasured-default footing: it includes its own header, fmt, the LAPACKE
+# header (or the Accelerate shim) and the standard library.
+set(_hven_expected_source_count 57)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

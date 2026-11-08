@@ -139,6 +139,44 @@ TEST(FailedFactorizeEvidencePin, InertiaReportsNonObservedAfterAFailedFactorize)
     EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
 }
 
+// The dense arm's fallback (M8 DN-1, T10): a dense-selected engine whose dense attempt finds
+// the matrix exactly singular hands it to a fresh platform session; that session's backend
+// failure, injected through the same FactorizeFaultInjector on its first factorization (the
+// injector's faithful scope), surfaces as kBackendError with arm == kSparse. The dense attempt
+// itself is real: the injector is read on the fallback path only.
+TEST(DenseArmFallbackFault, AFallbackBackendFailureSurfacesAsTheSparseArmsError) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    SymmetricFactor factor{o};
+    Mat singular = Mat::Zero(3, 3);
+    singular(0, 0) = 1.0;
+    singular(0, 1) = singular(1, 0) = 1.0;
+    singular(1, 1) = 1.0; // rows 0 and 1 equal, row 2 zero: exactly singular
+    const SpMatRM A = upper_csr(singular);
+    factor.analyze(A);
+    {
+        FactorizeFaultGuard guard(/*code=*/-4);
+        const FactorizeOutcome outcome = factor.factorize(A);
+        EXPECT_EQ(outcome.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(outcome.backend_code, -4);
+        EXPECT_EQ(outcome.arm, hven::linear::FactorArm::kSparse);
+        EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kUnavailable);
+    }
+    EXPECT_EQ(factor.counters().dense_fallback_count, 1);
+    EXPECT_EQ(factor.counters().dense_factorize_count, 0);
+    EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kUnavailable);
+    Vec x(3);
+    EXPECT_THROW(factor.solve(Vec::Ones(3), x), std::logic_error);
+
+    // A dense-acceptable matrix on the same pattern is taken by the dense arm again.
+    Mat good = singular;
+    good(2, 2) = -1.0;
+    good(1, 1) = 3.0;
+    const FactorizeOutcome ok = factor.factorize(upper_csr(good));
+    EXPECT_EQ(ok.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(ok.arm, hven::linear::FactorArm::kDense);
+}
+
 #if !defined(__APPLE__)
 
 // The MKL factorize-failure epoch test the factorize-failure disclosure
