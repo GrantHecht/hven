@@ -209,3 +209,101 @@ D3 policy singular-only: per-factorization fallback forks 14 fresh sessions on t
 D3 policy threshold-k8: per-factorization fallback forks 992 fresh sessions on the replayed window (sum of their analyses 477832792 instructions); cells with any fallback: 139
 D2 policy singular-only: 25 fallbacks on the replayed window; a sticky-per-pattern variant would run 122 later factorizations of the same pattern sparse, 111 of them dense-acceptable
 D2 policy threshold-k8: 2307 fallbacks on the replayed window; a sticky-per-pattern variant would run 1769 later factorizations of the same pattern sparse, 390 of them dense-acceptable
+
+E0 LAPACK: Intel(R) oneAPI Math Kernel Library Version 2026.2-Product Build 20260915 for Intel(R) 64 architecture applications; libmkl_rt via ctypes, LP64, MKL_NUM_THREADS=1; uplo 'U'.
+   reference tolerance: decidable iff min|lambda| > s * n * eps * max|lambda|, s in (1, 10, 100).
+   scaled reference: eigvalsh(D A D), D = |a_ii|^-1/2 rounded to a power of two (an exact congruence:
+   inertia(DAD) = inertia(A) with no rounding), D = 1 on a zero diagonal.
+E1 MKL dsytrf vs DN-0's dense column: singular status 5501/5501; negative count on both-nonsingular 5476/5476 (block_evidence e1/e2 decode), 5462/5476 (det/trace decode)
+   scaled reference unusable (an entry left the normal range): 0
+   unscaled and scaled references both decidable but disagreeing: 0
+E2 decidable matrices per engine (u = unscaled reference, s = scaled, union, new = scaled-only)
+  lane       s    mats  dec_u  dec_s  union  new  undecidable
+  hven-ipm     1   2684   2018   2574   2575  557         109
+  hven-ipm    10   2684   1900   2555   2556  656         128
+  hven-ipm   100   2684   1807   2528   2531  724         153
+  hven-sqp     1   2817   2761   2695   2764    3          53
+  hven-sqp    10   2817   2727   2650   2741   14          76
+  hven-sqp   100   2817   2673   2582   2692   19         125
+E3 negative count vs the reference on the decidable union, per engine and safety factor
+   dense = MKL dsytrf (the arm; = DN-0's dense column by E1), det/trace decode; a matrix dsytrf finds
+   exactly singular is counted 'singular' (the arm hands it to the fallback). pardiso = DN-0's sparse
+   column; unpert = on matrices Pardiso did not perturb. rook = MKL dsytrf_rook. dense_e1e2_right = the
+   same dsytrf read through block_evidence()'s e1/e2 decode (DN-0's dense column).
+  lane       s  set    mats  dense_taken  dense_right  dense_wrong  singular  pardiso_right  unpert  unpert_right  A2_count  rook_taken  rook_right  rook_singular  dense_e1e2_right
+  hven-ipm    1 union   2575         2575         2575            0         0           2557    2405          2404         0        2575        2575              0            2570
+  hven-ipm    1 new      557          557          557            0         0            552     472           471         0         557         557              0             552
+  hven-ipm   10 union   2556         2556         2556            0         0           2538    2390          2389         0        2556        2556              0            2554
+  hven-ipm   10 new      656          656          656            0         0            640     543           542         0         656         656              0             654
+  hven-ipm  100 union   2531         2531         2531            0         0           2513    2367          2366         0        2531        2531              0            2531
+  hven-ipm  100 new      724          724          724            0         0            707     600           599         0         724         724              0             724
+  hven-sqp    1 union   2764         2764         2764            0         0           2602    2519          2379         0        2764        2764              0            2764
+  hven-sqp    1 new        3            3            3            0         0              3       3             3         0           3           3              0               3
+  hven-sqp   10 union   2741         2741         2741            0         0           2581    2496          2358         0        2741        2741              0            2741
+  hven-sqp   10 new       14           14           14            0         0             10       9             7         0          14          14              0              14
+  hven-sqp  100 union   2692         2692         2692            0         0           2554    2447          2331         0        2692        2692              0            2692
+  hven-sqp  100 new       19           19           19            0         0             15      12            12         0          19          19              0              19
+E3w dense-taken matrices the dense arm gets wrong on the decidable union at s = 1 (cell, matrix, n, dense, pardiso, pardiso_perturbed, ref, decided by, min|l|/max|l| unscaled, scaled, rook)
+  (none)
+E3d matrices where block_evidence()'s e1/e2 decode and the det/trace decode of the SAME dsytrf factor differ
+   (cell, matrix, n, e1/e2, det/trace, pardiso, pardiso_perturbed, decidable union s=1, ref, rook)
+  sd-hven-ipm-LAKES                  mat_0002.bin n= 168 e1e2=  72 detrace=  78 pardiso=  78 pert=  0 dec=0 ref=   - rook=78
+  sd-hven-ipm-LAKES                  mat_0003.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 14 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0004.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 11 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0005.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 13 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0006.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 17 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0007.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 14 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0008.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 14 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0009.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 19 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0010.bin n= 168 e1e2=  73 detrace=  79 pardiso=  79 pert= 16 dec=0 ref=   - rook=79
+  sd-hven-ipm-LAKES                  mat_0011.bin n= 168 e1e2=  72 detrace=  78 pardiso=  78 pert=  1 dec=1 ref=  78 rook=78
+  sd-hven-ipm-LAKES                  mat_0012.bin n= 168 e1e2=  77 detrace=  83 pardiso=  83 pert=  2 dec=1 ref=  83 rook=83
+  sd-hven-ipm-LAKES                  mat_0013.bin n= 168 e1e2=  72 detrace=  78 pardiso=  78 pert=  0 dec=1 ref=  78 rook=78
+  sd-hven-ipm-LAKES                  mat_0014.bin n= 168 e1e2=  77 detrace=  83 pardiso=  83 pert=  0 dec=1 ref=  83 rook=83
+  sd-hven-ipm-LAKES                  mat_0015.bin n= 168 e1e2=  72 detrace=  78 pardiso=  78 pert=  0 dec=1 ref=  78 rook=78
+E3c cumulative n <= N, decidable union at s = 1: dense right / taken; Pardiso (unperturbed) vs reference; and A4's literal form, Pardiso-unperturbed agreement with the dense arm on all matrices
+  lane       cut  union  dense_right/taken  pardiso_unpert_right/unpert  A4_agree/unpert_all
+  hven-ipm      8   1191     1191/1191                 1147/1147             1147/1147   = 1.0000
+  hven-ipm     16   1555     1555/1555                 1428/1428             1428/1428   = 1.0000
+  hven-ipm     24   1852     1852/1852                 1725/1725             1725/1725   = 1.0000
+  hven-ipm     32   1911     1911/1911                 1784/1784             1784/1784   = 1.0000
+  hven-ipm     48   2016     2016/2016                 1883/1884             1883/1884   = 0.9995
+  hven-ipm     64   2142     2142/2142                 1984/1985             1984/1985   = 0.9995
+  hven-ipm     96   2276     2276/2276                 2117/2118             2117/2118   = 0.9995
+  hven-ipm    128   2413     2413/2413                 2245/2246             2249/2251   = 0.9991
+  hven-ipm    all   2575     2575/2575                 2404/2405             2416/2420   = 0.9983
+  hven-sqp      8   1491     1491/1491                 1366/1366             1366/1366   = 1.0000
+  hven-sqp     16   2036     2036/2036                 1818/1823             1818/1823   = 0.9973
+  hven-sqp     24   2138     2138/2138                 1915/1920             1915/1920   = 0.9974
+  hven-sqp     32   2187     2187/2187                 1961/1966             1961/1966   = 0.9975
+  hven-sqp     48   2310     2310/2310                 2060/2085             2060/2085   = 0.9880
+  hven-sqp     64   2404     2404/2404                 2120/2169             2120/2169   = 0.9774
+  hven-sqp     96   2584     2584/2584                 2263/2344             2279/2360   = 0.9657
+  hven-sqp    128   2652     2652/2652                 2312/2410             2351/2449   = 0.9600
+  hven-sqp    all   2764     2764/2764                 2379/2519             2418/2558   = 0.9453
+E4 the block walk (R5): dense-taken (info = 0) factorizations
+  dsytrf       taken 5476; with a 2x2 det exactly 0.0: 0; with a non-finite value: 0; with a 1x1 pivot exactly 0.0: 0; e1/e2 decode != det/trace decode: 14; exactly singular (info > 0): 25
+  dsytrf_rook  taken 5478; with a 2x2 det exactly 0.0: 0; with a non-finite value: 0; with a 1x1 pivot exactly 0.0: 0; e1/e2 decode != det/trace decode: 0; exactly singular (info > 0): 23
+E5 min |D-block eigenvalue| / max|a_ij| over dense-taken factorizations (R6), per engine and arm;
+   quantiles, then counts at or below each cut; 'undec' = outside the decidable union at s = 1
+  hven-ipm  dsytrf       all   n= 2669 min 2.27e-44 q01 2.83e-37 q05 7.69e-25 q10 3.83e-20 q25 3.10e-14 q50 3.85e-08  <=1e-04:1950 <=1e-06:1615 <=1e-08:1228 <=1e-10:1015 <=1e-12:837 <=1e-14:611
+  hven-ipm  dsytrf       dec   n= 2575 min 1.86e-31 q01 9.14e-31 q05 9.04e-22 q10 1.92e-18 q25 7.99e-14 q50 6.99e-08  <=1e-04:1856 <=1e-06:1521 <=1e-08:1134 <=1e-10:921 <=1e-12:743 <=1e-14:517
+  hven-ipm  dsytrf       undec n=   94 min 2.27e-44 q01 2.27e-44 q05 2.61e-43 q10 5.65e-42 q25 3.95e-38 q50 2.84e-26  <=1e-04:94 <=1e-06:94 <=1e-08:94 <=1e-10:94 <=1e-12:94 <=1e-14:94
+  hven-ipm  dsytrf_rook  all   n= 2671 min 2.27e-44 q01 2.83e-37 q05 1.39e-24 q10 2.34e-20 q25 2.31e-14 q50 3.18e-08  <=1e-04:1975 <=1e-06:1659 <=1e-08:1267 <=1e-10:1036 <=1e-12:852 <=1e-14:633
+  hven-ipm  dsytrf_rook  dec   n= 2575 min 1.86e-31 q01 9.14e-31 q05 1.03e-21 q10 1.90e-18 q25 5.26e-14 q50 5.41e-08  <=1e-04:1879 <=1e-06:1563 <=1e-08:1171 <=1e-10:940 <=1e-12:756 <=1e-14:537
+  hven-ipm  dsytrf_rook  undec n=   96 min 2.27e-44 q01 2.27e-44 q05 2.61e-43 q10 5.65e-42 q25 7.59e-38 q50 1.19e-26  <=1e-04:96 <=1e-06:96 <=1e-08:96 <=1e-10:96 <=1e-12:96 <=1e-14:96
+  hven-sqp  dsytrf       all   n= 2807 min 5.62e-35 q01 1.77e-14 q05 3.21e-12 q10 5.84e-12 q25 4.40e-10 q50 6.63e-06  <=1e-04:1537 <=1e-06:1280 <=1e-08:1054 <=1e-10:546 <=1e-12:112 <=1e-14:3
+  hven-sqp  dsytrf       dec   n= 2764 min 7.20e-16 q01 2.81e-14 q05 3.26e-12 q10 5.88e-12 q25 4.44e-10 q50 9.90e-06  <=1e-04:1494 <=1e-06:1237 <=1e-08:1011 <=1e-10:503 <=1e-12:69 <=1e-14:2
+  hven-sqp  dsytrf       undec n=   43 min 5.62e-35 q01 5.62e-35 q05 1.59e-14 q10 1.59e-14 q25 1.75e-14 q50 1.81e-14  <=1e-04:43 <=1e-06:43 <=1e-08:43 <=1e-10:43 <=1e-12:43 <=1e-14:1
+  hven-sqp  dsytrf_rook  all   n= 2807 min 5.62e-35 q01 1.72e-14 q05 2.58e-12 q10 5.83e-12 q25 3.54e-10 q50 5.65e-06  <=1e-04:1566 <=1e-06:1302 <=1e-08:1086 <=1e-10:590 <=1e-12:119 <=1e-14:3
+  hven-sqp  dsytrf_rook  dec   n= 2764 min 7.20e-16 q01 2.81e-14 q05 3.26e-12 q10 5.86e-12 q25 4.40e-10 q50 6.62e-06  <=1e-04:1523 <=1e-06:1259 <=1e-08:1043 <=1e-10:547 <=1e-12:76 <=1e-14:2
+  hven-sqp  dsytrf_rook  undec n=   43 min 5.62e-35 q01 5.62e-35 q05 1.13e-14 q10 1.13e-14 q25 1.71e-14 q50 1.72e-14  <=1e-04:43 <=1e-06:43 <=1e-08:43 <=1e-10:43 <=1e-12:43 <=1e-14:1
+E6 undecidable matrices the dense arm takes (S5): Pardiso unperturbed (the walk already reads a trusted
+   verdict through an unperturbed Pardiso today) vs Pardiso perturbed (a new trusted read)
+  hven-ipm  unscaled s=1  undecidable 666; dense exactly singular 15; dense-taken 651: Pardiso unperturbed 487, perturbed 164 (0.0611 of 2684) {'ACOPP30': 12, 'ALLINITC': 35, 'BURKEHAN': 47, 'HS107': 7, 'HS61': 2, 'HS99EXP': 22, 'LAKES': 10, 'LAUNCH': 1, 'LEWISPOL': 5, 'LSNNODOC': 7, 'MSS1': 2, 'SPANHYD': 8, 'WATER': 6}
+  hven-ipm  union s=1     undecidable 109; dense exactly singular 15; dense-taken 94: Pardiso unperturbed 15, perturbed 79 (0.0294 of 2684) {'ACOPP30': 12, 'BURKEHAN': 45, 'HS99EXP': 1, 'LAKES': 8, 'LSNNODOC': 1, 'MSS1': 2, 'SPANHYD': 8, 'WATER': 2}
+  hven-sqp  unscaled s=1  undecidable 56; dense exactly singular 10; dense-taken 46: Pardiso unperturbed 42, perturbed 4 (0.0014 of 2817) {'HS90': 1, 'SPANHYD': 3}
+  hven-sqp  union s=1     undecidable 53; dense exactly singular 10; dense-taken 43: Pardiso unperturbed 39, perturbed 4 (0.0014 of 2817) {'HS90': 1, 'SPANHYD': 3}
+E7 dsytrf_rook against dsytrf (S3)
+  hven-ipm  both taken 2669; same negative count 2659; on undecidable 84/94; singular: dsytrf 15, rook 13; max|L| median/q99/max: dsytrf 2.00/265354219.42/3.56e+12, rook 1.00/1.56/1.88
+  hven-sqp  both taken 2807; same negative count 2807; on undecidable 43/43; singular: dsytrf 10, rook 10; max|L| median/q99/max: dsytrf 1.00/737357.03/9e+05, rook 0.92/1.55/1.82

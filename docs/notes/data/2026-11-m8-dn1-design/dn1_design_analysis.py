@@ -17,10 +17,15 @@ Parts
      disagreement, and simulates the threshold-fallback policy the page proposes
   D  engine call structure (Pardiso phases per cell from index.tsv) and the per-call cost,
      the dense projection, and the two per-call-overhead alternatives (F2, call trimming)
+  E  (review round r1) MKL's own dsytrf and dsytrf_rook, a congruence-scaled eigenvalue reference
+     (exact power-of-two Jacobi scaling), the decidable union per engine at three tolerance safety
+     factors, the block walk's zero/non-finite cases, the small-pivot distribution, and S5's split
 
-Usage: dn1_design_analysis.py DN0 RUN OUTDIR [DN0R1]
+Usage: dn1_design_analysis.py DN0 RUN OUTDIR [DN0R1 [MKLRT]]
   DN0R1    docs/notes/data/2026-11-m8-dn0-ipm-r1      (committed: results/init-audit.csv, the IPM's
                                                       init-excluded bucket reading, informational)
+  MKLRT    path to libmkl_rt.so (part E, review round r1: MKL dsytrf / dsytrf_rook through ctypes, the
+           congruence-scaled reference, the small-pivot distribution); run with MKL_NUM_THREADS=1
 Requires numpy and scipy for part C (BSD-licensed; an analysis tool, never linked into hven).
 """
 import collections
@@ -288,6 +293,314 @@ def report_c(res, out):
     return res
 
 
+# ---------------------------------------------------------------- part E (review round r1)
+#
+# E is the design review's R4 / R5 / R6 / S3 / S5 analysis. It calls MKL's own LAPACK (the library hven
+# links; libmkl_rt through ctypes, LP64, MKL_NUM_THREADS=1 is the caller's job) for dsytrf (Bunch-Kaufman,
+# the routine DN-0's dense column ran) and dsytrf_rook (bounded Bunch-Kaufman), uplo 'U', and adds a
+# congruence-scaled eigenvalue reference. No timing is taken anywhere in E.
+
+SAFETY = (1, 10, 100)  # the reference tolerance's safety factor s: decidable iff min|l| > s * n * eps * max|l|
+SMALLPIV_CUTS = (1e-4, 1e-6, 1e-8, 1e-10, 1e-12, 1e-14)
+
+
+class MklLapack:
+    def __init__(self, path):
+        import ctypes
+        self.ct = ctypes
+        self.lib = ctypes.CDLL(path)
+        buf = ctypes.create_string_buffer(256)
+        self.lib.mkl_get_version_string(buf, 256)
+        self.version = buf.value.decode().strip()
+
+    def sytrf(self, M, np, rook=False):
+        """Factor the upper triangle of a copy of M (column-major). Returns (info, factored array, ipiv)."""
+        ct = self.ct
+        n = M.shape[0]
+        a = np.array(M, dtype=np.float64, order="F", copy=True)
+        ipiv = np.zeros(n, dtype=np.int32)
+        fn = self.lib.dsytrf_rook_ if rook else self.lib.dsytrf_
+        uplo = ct.c_char(b"U")
+        nn = ct.c_int(n)
+        lda = ct.c_int(max(1, n))
+        info = ct.c_int(0)
+        wq = ct.c_double(0.0)
+        lw = ct.c_int(-1)
+        fn(ct.byref(uplo), ct.byref(nn), a.ctypes.data_as(ct.POINTER(ct.c_double)), ct.byref(lda),
+           ipiv.ctypes.data_as(ct.POINTER(ct.c_int)), ct.byref(wq), ct.byref(lw), ct.byref(info))
+        lwork = max(1, int(wq.value))
+        work = np.zeros(lwork)
+        lw = ct.c_int(lwork)
+        fn(ct.byref(uplo), ct.byref(nn), a.ctypes.data_as(ct.POINTER(ct.c_double)), ct.byref(lda),
+           ipiv.ctypes.data_as(ct.POINTER(ct.c_int)), work.ctypes.data_as(ct.POINTER(ct.c_double)),
+           ct.byref(lw), ct.byref(info))
+        return info.value, a, ipiv
+
+
+def decode_blocks(a, ipiv, n, np):
+    """Walk D's blocks (uplo 'U'; a negative ipiv entry opens a 2x2 block at (k, k+1) on a forward scan, which
+    holds for both dsytrf and dsytrf_rook). Returns a dict:
+      neg_detrace   negative count with 2x2 signs taken from det and trace (det<0: one each; det>0: both
+                    sign(trace)); the form R5 proposes
+      neg_evidence  negative count with block_evidence()'s e1/e2 = (trace +- disc)/2 form
+      det_zero      2x2 blocks whose computed det is exactly 0.0;  nonfinite  blocks with a non-finite value
+      one_zero      1x1 pivots exactly 0.0 (info > 0 reports these)
+      min_abs       min |eigenvalue| over D's blocks (eigvalsh of each 2x2);  max_l  max |entry| of the unit
+                    triangular factor outside D's blocks (element growth)"""
+    neg_dt = neg_ev = det_zero = nonfinite = one_zero = 0
+    min_abs = math.inf
+    k = 0
+    in_block = np.zeros(n, dtype=bool)
+    while k < n:
+        if ipiv[k] > 0:
+            d = a[k, k]
+            if not math.isfinite(d):
+                nonfinite += 1
+            if d == 0.0:
+                one_zero += 1
+            if d < 0.0:
+                neg_dt += 1
+                neg_ev += 1
+            min_abs = min(min_abs, abs(d))
+            k += 1
+        else:
+            a11, a21, a22 = a[k, k], a[k, k + 1], a[k + 1, k + 1]
+            in_block[k] = True
+            tr = a11 + a22
+            det = a11 * a22 - a21 * a21
+            if not (math.isfinite(a11) and math.isfinite(a21) and math.isfinite(a22) and math.isfinite(det)):
+                nonfinite += 1
+            if det == 0.0:
+                det_zero += 1
+            elif det < 0.0:
+                neg_dt += 1
+            elif tr < 0.0:
+                neg_dt += 2
+            disc = math.sqrt(max(0.0, tr * tr - 4.0 * det))
+            e1, e2 = (tr + disc) / 2.0, (tr - disc) / 2.0
+            neg_ev += (e1 < 0.0) + (e2 < 0.0)
+            ev = np.linalg.eigvalsh(np.array([[a11, a21], [a21, a22]]))
+            min_abs = min(min_abs, float(np.min(np.abs(ev))))
+            k += 2
+    # max |U| outside the diagonal blocks: column j's strictly-upper part, excluding a 2x2 partner entry.
+    max_l = 0.0
+    for j in range(n):
+        top = j - 1 if (j > 0 and in_block[j - 1]) else j
+        if top > 0:
+            max_l = max(max_l, float(np.max(np.abs(a[:top, j]))))
+    return dict(neg_detrace=neg_dt, neg_evidence=neg_ev, det_zero=det_zero, nonfinite=nonfinite,
+                one_zero=one_zero, min_abs=min_abs, max_l=max_l)
+
+
+def pow2_jacobi(M, np):
+    """Exact congruence D*M*D with D = |a_ii|^(-1/2) rounded to a power of two (so every product is exact
+    unless it under/overflows), D = 1 on a zero diagonal. Returns (S, ok) with ok False if any scaled entry
+    went non-finite or a nonzero entry fell below the normal range (the congruence would then be inexact)."""
+    diag = np.abs(np.diag(M))
+    d = np.ones_like(diag)
+    nz = diag > 0.0
+    d[nz] = np.exp2(np.round(-0.5 * np.log2(diag[nz])))
+    S = M * d[:, None] * d[None, :]
+    finite = bool(np.all(np.isfinite(S)))
+    nzm = M != 0.0
+    tiny = np.finfo(float).tiny
+    normal = bool(np.all(np.abs(S[nzm]) >= tiny)) if np.any(nzm) else True
+    return S, finite and normal
+
+
+def part_e(mats, run, mkl_path):
+    import numpy as np
+    lap = MklLapack(mkl_path)
+    eps = np.finfo(float).eps
+    rows = []
+    for m in mats:
+        path = os.path.join(run, "dump", m["tag"] + ".dump", m["matrix"])
+        M = dense_of(path, np)
+        n = M.shape[0]
+        amax = float(np.max(np.abs(M))) if n else 0.0
+        ev = np.linalg.eigvalsh(M)
+        S, s_ok = pow2_jacobi(M, np)
+        evs = np.linalg.eigvalsh(S) if s_ok else None
+        r = dict(m=m, n=n, amax=amax, s_ok=s_ok)
+        for s in SAFETY:
+            lm = float(np.max(np.abs(ev)))
+            r[f"dec_u{s}"] = bool(float(np.min(np.abs(ev))) > s * n * eps * lm)
+            r["neg_u"] = int(np.sum(ev < 0.0))
+            if s_ok:
+                lms = float(np.max(np.abs(evs)))
+                r[f"dec_s{s}"] = bool(float(np.min(np.abs(evs))) > s * n * eps * lms)
+                r["neg_s"] = int(np.sum(evs < 0.0))
+            else:
+                r[f"dec_s{s}"] = False
+                r["neg_s"] = -1
+        r["mineig_u"] = float(np.min(np.abs(ev)) / np.max(np.abs(ev))) if n else 0.0
+        r["mineig_s"] = float(np.min(np.abs(evs)) / np.max(np.abs(evs))) if s_ok else float("nan")
+        for tag, rook in (("bk", False), ("rk", True)):
+            info, a, ipiv = lap.sytrf(M, np, rook=rook)
+            r[f"{tag}_info"] = info
+            r.update({f"{tag}_{k}": v for k, v in decode_blocks(a, ipiv, n, np).items()})
+            r[f"{tag}_minpiv_rel"] = r[f"{tag}_min_abs"] / amax if amax > 0 else 0.0
+        rows.append(r)
+    return lap.version, rows
+
+
+def report_e(version, rows, out):
+    out.write(f"E0 LAPACK: {version}; libmkl_rt via ctypes, LP64, MKL_NUM_THREADS=1; uplo 'U'.\n"
+              f"   reference tolerance: decidable iff min|lambda| > s * n * eps * max|lambda|, s in {SAFETY}.\n"
+              f"   scaled reference: eigvalsh(D A D), D = |a_ii|^-1/2 rounded to a power of two (an exact congruence:\n"
+              f"   inertia(DAD) = inertia(A) with no rounding), D = 1 on a zero diagonal.\n")
+    # E1: MKL dsytrf reproduces DN-0's dense column (the arm's own routine; A5's analysis analogue)
+    st = sum(1 for r in rows if (r["bk_info"] > 0) == (r["m"]["dense_status"] != 0))
+    ok = [r for r in rows if r["bk_info"] == 0 and r["m"]["dense_status"] == 0]
+    same_ev = sum(1 for r in ok if r["bk_neg_evidence"] == r["m"]["dense_neg"])
+    same_dt = sum(1 for r in ok if r["bk_neg_detrace"] == r["m"]["dense_neg"])
+    out.write(f"E1 MKL dsytrf vs DN-0's dense column: singular status {st}/{len(rows)}; negative count on both-"
+              f"nonsingular {same_ev}/{len(ok)} (block_evidence e1/e2 decode), {same_dt}/{len(ok)} (det/trace decode)\n")
+    out.write(f"   scaled reference unusable (an entry left the normal range): {sum(1 for r in rows if not r['s_ok'])}\n")
+    incons = [r for r in rows for s in SAFETY if r[f"dec_u{s}"] and r[f"dec_s{s}"] and r["neg_u"] != r["neg_s"]]
+    out.write(f"   unscaled and scaled references both decidable but disagreeing: {len(incons)}\n")
+    # E2: decidability per engine and safety factor
+    out.write("E2 decidable matrices per engine (u = unscaled reference, s = scaled, union, new = scaled-only)\n")
+    out.write("  lane       s    mats  dec_u  dec_s  union  new  undecidable\n")
+    for lane in ("hven-ipm", "hven-sqp"):
+        sub = [r for r in rows if r["m"]["lane"] == lane]
+        for s in SAFETY:
+            du = sum(r[f"dec_u{s}"] for r in sub)
+            ds = sum(r[f"dec_s{s}"] for r in sub)
+            un = sum(r[f"dec_u{s}"] or r[f"dec_s{s}"] for r in sub)
+            new = sum((not r[f"dec_u{s}"]) and r[f"dec_s{s}"] for r in sub)
+            out.write(f"  {lane:9} {s:4} {len(sub):6} {du:6} {ds:6} {un:6} {new:4} {len(sub) - un:11}\n")
+
+    def ref_neg(r, s):
+        return r["neg_u"] if r[f"dec_u{s}"] else r["neg_s"]
+
+    # E3: agreement with the reference on the union, per engine (A1/A2's population), and on the new set
+    out.write("E3 negative count vs the reference on the decidable union, per engine and safety factor\n"
+              "   dense = MKL dsytrf (the arm; = DN-0's dense column by E1), det/trace decode; a matrix dsytrf finds\n"
+              "   exactly singular is counted 'singular' (the arm hands it to the fallback). pardiso = DN-0's sparse\n"
+              "   column; unpert = on matrices Pardiso did not perturb. rook = MKL dsytrf_rook. dense_e1e2_right = the\n"
+              "   same dsytrf read through block_evidence()'s e1/e2 decode (DN-0's dense column).\n")
+    out.write("  lane       s  set    mats  dense_taken  dense_right  dense_wrong  singular  pardiso_right  "
+              "unpert  unpert_right  A2_count  rook_taken  rook_right  rook_singular  dense_e1e2_right\n")
+    wrong_list = []
+    for lane in ("hven-ipm", "hven-sqp"):
+        for s in SAFETY:
+            sub = [r for r in rows if r["m"]["lane"] == lane]
+            for sname, sel in (("union", lambda r: r[f"dec_u{s}"] or r[f"dec_s{s}"]),
+                               ("new", lambda r: (not r[f"dec_u{s}"]) and r[f"dec_s{s}"])):
+                g = [r for r in sub if sel(r)]
+                taken = [r for r in g if r["bk_info"] == 0]
+                right = sum(1 for r in taken if r["bk_neg_detrace"] == ref_neg(r, s))
+                wrong = [r for r in taken if r["bk_neg_detrace"] != ref_neg(r, s)]
+                if s == 1 and sname == "union":
+                    wrong_list.extend(wrong)
+                p_right = sum(1 for r in g if r["m"]["sparse_neg"] == ref_neg(r, s))
+                unp = [r for r in g if r["m"]["sparse_perturbed"] == 0 and r["m"]["sparse_status"] == 0]
+                unp_right = sum(1 for r in unp if r["m"]["sparse_neg"] == ref_neg(r, s))
+                a2 = sum(1 for r in unp if r["m"]["sparse_neg"] == ref_neg(r, s) and
+                         not (r["bk_info"] == 0 and r["bk_neg_detrace"] == ref_neg(r, s)))
+                ev_right = sum(1 for r in taken if r["bk_neg_evidence"] == ref_neg(r, s))
+                rt = [r for r in g if r["rk_info"] == 0]
+                r_right = sum(1 for r in rt if r["rk_neg_detrace"] == ref_neg(r, s))
+                out.write(f"  {lane:9} {s:3} {sname:5} {len(g):6} {len(taken):12} {right:12} {len(wrong):12} "
+                          f"{len(g) - len(taken):9} {p_right:14} {len(unp):7} {unp_right:13} {a2:9} "
+                          f"{len(rt):11} {r_right:11} {len(g) - len(rt):14} {ev_right:15}\n")
+    out.write("E3w dense-taken matrices the dense arm gets wrong on the decidable union at s = 1 (cell, matrix, n, dense, "
+              "pardiso, pardiso_perturbed, ref, decided by, min|l|/max|l| unscaled, scaled, rook)\n")
+    for r in wrong_list:
+        m = r["m"]
+        by = "u" if r["dec_u1"] else "s"
+        out.write(f"  {m['tag']:34} {m['matrix']} n={r['n']:4} dense={r['bk_neg_detrace']:4} "
+                  f"pardiso={m['sparse_neg']:4} pert={m['sparse_perturbed']} ref={ref_neg(r, 1):4} by={by} "
+                  f"mineig_u={r['mineig_u']:.2e} mineig_s={r['mineig_s']:.2e} rook={r['rk_neg_detrace']}\n")
+    if not wrong_list:
+        out.write("  (none)\n")
+    out.write("E3d matrices where block_evidence()'s e1/e2 decode and the det/trace decode of the SAME dsytrf factor differ\n"
+              "   (cell, matrix, n, e1/e2, det/trace, pardiso, pardiso_perturbed, decidable union s=1, ref, rook)\n")
+    for r in rows:
+        if r["bk_info"] == 0 and r["bk_neg_evidence"] != r["bk_neg_detrace"]:
+            m = r["m"]
+            dec = r["dec_u1"] or r["dec_s1"]
+            out.write(f"  {m['tag']:34} {m['matrix']} n={r['n']:4} e1e2={r['bk_neg_evidence']:4} "
+                      f"detrace={r['bk_neg_detrace']:4} pardiso={m['sparse_neg']:4} pert={m['sparse_perturbed']:3} "
+                      f"dec={int(dec)} ref={(ref_neg(r, 1) if dec else '-')!s:>4} rook={r['rk_neg_detrace']}\n")
+    # E3c: cumulative by size, union at s = 1 (A4 reported at every size cut beside the exact-reference gates)
+    out.write("E3c cumulative n <= N, decidable union at s = 1: dense right / taken; Pardiso (unperturbed) vs reference; "
+              "and A4's literal form, Pardiso-unperturbed agreement with the dense arm on all matrices\n")
+    out.write("  lane       cut  union  dense_right/taken  pardiso_unpert_right/unpert  A4_agree/unpert_all\n")
+    for lane in ("hven-ipm", "hven-sqp"):
+        for cut in CUTS:
+            sub = [r for r in rows if r["m"]["lane"] == lane and r["n"] <= cut]
+            g = [r for r in sub if r["dec_u1"] or r["dec_s1"]]
+            taken = [r for r in g if r["bk_info"] == 0]
+            right = sum(1 for r in taken if r["bk_neg_detrace"] == ref_neg(r, 1))
+            unp = [r for r in g if r["m"]["sparse_perturbed"] == 0 and r["m"]["sparse_status"] == 0]
+            unp_r = sum(1 for r in unp if r["m"]["sparse_neg"] == ref_neg(r, 1))
+            ua = [r for r in sub if r["m"]["sparse_perturbed"] == 0 and r["m"]["sparse_status"] == 0
+                  and r["bk_info"] == 0]
+            ua_r = sum(1 for r in ua if r["m"]["sparse_neg"] == r["bk_neg_detrace"])
+            out.write(f"  {lane:9} {('all' if cut >= 10**9 else cut):>5} {len(g):6} {right:8}/{len(taken):<8} "
+                      f"{unp_r:16}/{len(unp):<10} {ua_r:10}/{len(ua):<6} = {ua_r / len(ua):.4f}\n")
+    # E4: R5 -- the block walk
+    out.write("E4 the block walk (R5): dense-taken (info = 0) factorizations\n")
+    for tag, name in (("bk", "dsytrf"), ("rk", "dsytrf_rook")):
+        taken = [r for r in rows if r[f"{tag}_info"] == 0]
+        dz = sum(1 for r in taken if r[f"{tag}_det_zero"] > 0)
+        nf = sum(1 for r in taken if r[f"{tag}_nonfinite"] > 0)
+        oz = sum(1 for r in taken if r[f"{tag}_one_zero"] > 0)
+        dif = sum(1 for r in taken if r[f"{tag}_neg_detrace"] != r[f"{tag}_neg_evidence"])
+        out.write(f"  {name:12} taken {len(taken)}; with a 2x2 det exactly 0.0: {dz}; with a non-finite value: {nf}; "
+                  f"with a 1x1 pivot exactly 0.0: {oz}; e1/e2 decode != det/trace decode: {dif}; "
+                  f"exactly singular (info > 0): {sum(1 for r in rows if r[f'{tag}_info'] > 0)}\n")
+    # E5: R6 -- the small-pivot distribution
+    out.write("E5 min |D-block eigenvalue| / max|a_ij| over dense-taken factorizations (R6), per engine and arm;\n"
+              "   quantiles, then counts at or below each cut; 'undec' = outside the decidable union at s = 1\n")
+    for lane in ("hven-ipm", "hven-sqp"):
+        for tag, name in (("bk", "dsytrf"), ("rk", "dsytrf_rook")):
+            for sname, sel in (("all", lambda r: True),
+                               ("dec", lambda r: r["dec_u1"] or r["dec_s1"]),
+                               ("undec", lambda r: not (r["dec_u1"] or r["dec_s1"]))):
+                v = sorted(r[f"{tag}_minpiv_rel"] for r in rows
+                           if r["m"]["lane"] == lane and r[f"{tag}_info"] == 0 and sel(r))
+                if not v:
+                    continue
+
+                def qq(p):
+                    return v[min(len(v) - 1, int(p * len(v)))]
+                cnt = " ".join(f"<={c:.0e}:{sum(1 for x in v if x <= c)}" for c in SMALLPIV_CUTS)
+                out.write(f"  {lane:9} {name:12} {sname:5} n={len(v):5} min {v[0]:.2e} q01 {qq(.01):.2e} "
+                          f"q05 {qq(.05):.2e} q10 {qq(.10):.2e} q25 {qq(.25):.2e} q50 {qq(.5):.2e}  {cnt}\n")
+    # E6: S5 -- undecidable SQP matrices the arm takes: trusted today (Pardiso unperturbed) or new
+    out.write("E6 undecidable matrices the dense arm takes (S5): Pardiso unperturbed (the walk already reads a trusted\n"
+              "   verdict through an unperturbed Pardiso today) vs Pardiso perturbed (a new trusted read)\n")
+    for lane in ("hven-ipm", "hven-sqp"):
+        sub = [r for r in rows if r["m"]["lane"] == lane]
+        for ref, sel in (("unscaled s=1", lambda r: not r["dec_u1"]),
+                         ("union s=1", lambda r: not (r["dec_u1"] or r["dec_s1"]))):
+            g = [r for r in sub if sel(r)]
+            taken = [r for r in g if r["bk_info"] == 0]
+            unp = sum(1 for r in taken if r["m"]["sparse_perturbed"] == 0)
+            pert = [r for r in taken if r["m"]["sparse_perturbed"] > 0]
+            cells = collections.Counter(r["m"]["prob"] for r in pert)
+            out.write(f"  {lane:9} {ref:13} undecidable {len(g)}; dense exactly singular {len(g) - len(taken)}; "
+                      f"dense-taken {len(taken)}: Pardiso unperturbed {unp}, perturbed {len(pert)} "
+                      f"({len(pert) / len(sub):.4f} of {len(sub)}) {dict(sorted(cells.items()))}\n")
+    # E7: S3 -- rook against Bunch-Kaufman
+    out.write("E7 dsytrf_rook against dsytrf (S3)\n")
+    for lane in ("hven-ipm", "hven-sqp"):
+        sub = [r for r in rows if r["m"]["lane"] == lane]
+        both = [r for r in sub if r["bk_info"] == 0 and r["rk_info"] == 0]
+        same = sum(1 for r in both if r["bk_neg_detrace"] == r["rk_neg_detrace"])
+        und = [r for r in both if not (r["dec_u1"] or r["dec_s1"])]
+        und_same = sum(1 for r in und if r["bk_neg_detrace"] == r["rk_neg_detrace"])
+        gl_bk = sorted(r["bk_max_l"] for r in both)
+        gl_rk = sorted(r["rk_max_l"] for r in both)
+        out.write(f"  {lane:9} both taken {len(both)}; same negative count {same}; on undecidable {und_same}/{len(und)}; "
+                  f"singular: dsytrf {sum(1 for r in sub if r['bk_info'] > 0)}, rook {sum(1 for r in sub if r['rk_info'] > 0)}; "
+                  f"max|L| median/q99/max: dsytrf {gl_bk[len(gl_bk) // 2]:.2f}/{gl_bk[int(.99 * len(gl_bk))]:.2f}/"
+                  f"{gl_bk[-1]:.3g}, rook {gl_rk[len(gl_rk) // 2]:.2f}/{gl_rk[int(.99 * len(gl_rk))]:.2f}/{gl_rk[-1]:.3g}\n")
+
+
 # ---------------------------------------------------------------- part D (engine call structure)
 
 def read_index(dn0, tag):
@@ -517,6 +830,7 @@ def part_d(dn0, mats, out, res, r1=None, run=None):
 def main():
     dn0, run, outdir = sys.argv[1:4]
     r1 = sys.argv[4] if len(sys.argv) > 4 else None
+    mkl_path = sys.argv[5] if len(sys.argv) > 5 else None
     os.makedirs(outdir, exist_ok=True)
     roster = load_roster(dn0)
     mats = load_replay(run, roster)
@@ -539,6 +853,11 @@ def main():
         report_c(res, out)
         out.write("\n")
         part_d(dn0, mats, out, res, r1, run)
+        erows = None
+        if res is not None and mkl_path:
+            out.write("\n")
+            version, erows = part_e(mats, run, mkl_path)
+            report_e(version, erows, out)
         if res is not None:
             import io
             with io.TextIOWrapper(gzip.GzipFile(os.path.join(outdir, "matrices.csv.gz"), "wb", mtime=0),
@@ -546,13 +865,23 @@ def main():
                 w = csv.writer(f)
                 w.writerow(["cell", "matrix", "n", "sparse_neg", "sparse_perturbed", "dense_status", "dense_neg",
                             "bk_neg_scipy", "bk_exact_zero_scipy", "minpiv_rel", "true_neg", "true_zero",
-                            "min_abs_eig_rel", "sparse_total", "dense_total"])
-                for r in res:
+                            "min_abs_eig_rel", "sparse_total", "dense_total"] +
+                           (["mkl_bk_info", "mkl_bk_neg", "mkl_bk_minpiv_rel", "mkl_rook_info", "mkl_rook_neg",
+                             "mkl_rook_minpiv_rel", "dec_u1", "dec_u10", "dec_u100", "dec_s1", "dec_s10",
+                             "dec_s100", "ref_neg_scaled", "min_abs_eig_rel_scaled"] if erows else []))
+                for i, r in enumerate(res):
                     m = r["m"]
+                    extra = []
+                    if erows:
+                        e = erows[i]
+                        extra = [e["bk_info"], e["bk_neg_detrace"], f"{e['bk_minpiv_rel']:.3e}", e["rk_info"],
+                                 e["rk_neg_detrace"], f"{e['rk_minpiv_rel']:.3e}"] + \
+                                [int(e[f"dec_{k}{s}"]) for k in ("u", "s") for s in SAFETY] + \
+                                [e["neg_s"], f"{e['mineig_s']:.3e}"]
                     w.writerow([m["tag"], m["matrix"], r["n"], m["sparse_neg"], m["sparse_perturbed"],
                                 m["dense_status"], m["dense_neg"], r["bk_neg"], r["bk_exact_zero"],
                                 f"{r['minpiv_rel']:.3e}", r["true_neg"], r["true_zero"],
-                                f"{r['min_abs_eig_rel']:.3e}", m["sparse_total"], m["dense_total"]])
+                                f"{r['min_abs_eig_rel']:.3e}", m["sparse_total"], m["dense_total"]] + extra)
 
 
 if __name__ == "__main__":
