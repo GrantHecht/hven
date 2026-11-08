@@ -1,0 +1,6 @@
+object sets equal
+objects 56; differing: ./src/drivers/solver_init.cpp.o
+arm A solver_init undefined MKL/dsecnd refs: dsecnd 
+arm B solver_init undefined MKL/dsecnd refs: MKL_Get_Max_Threads 
+arm B libhven.a dsecnd symbols: 0
+OBJECTS_AS_DECLARED
