@@ -26,23 +26,29 @@ namespace hven::linear::detail {
 // |trace|/2 + r, r = sqrt(((a11 - a22)/2)^2 + a21^2), a sum of non-negatives;
 // the smaller is |det| over it. (trace +- sqrt(trace^2 - 4 det))/2 cancels
 // when |det| << trace^2 and can return 0 or the wrong sign for the smaller
-// one. Returns false iff an entry is non-finite. `det_zero` is true iff the
-// computed (scaled) determinant is exactly 0.0, including the all-zero block.
+// one. Returns false iff an entry is non-finite. The five-argument form also
+// reports whether the computed (scaled) determinant is exactly 0.0, the
+// all-zero block included.
 struct Block2x2 {
     double abs_first = 0.0;
     double abs_second = 0.0;
     Index neg = 0;
-    bool det_zero = false;
 };
 
-inline bool decode_2x2(double a11, double a21, double a22, Block2x2 &out) {
+// Forced inline: one 2x2 block per call on the inertia read, and it keeps
+// DenseSymmetricFactor's compiled block_evidence() what it was when this lived
+// file-local in dense_symmetric_factor.cpp (design N5).
+[[gnu::always_inline]] inline bool decode_2x2_core(double a11, double a21, double a22,
+                                                   Block2x2 &out, bool *det_zero) {
     if (!std::isfinite(a11) || !std::isfinite(a21) || !std::isfinite(a22)) {
         return false;
     }
     const double m = std::max({std::abs(a11), std::abs(a21), std::abs(a22)});
     if (m == 0.0) {
         out = Block2x2{};
-        out.det_zero = true;
+        if (det_zero != nullptr) {
+            *det_zero = true;
+        }
         return true;
     }
     int e = 0;
@@ -65,16 +71,26 @@ inline bool decode_2x2(double a11, double a21, double a22, Block2x2 &out) {
         out.abs_first = abs_small;
         out.abs_second = abs_big;
     }
-    out.det_zero = false;
     if (det < 0.0) {
         out.neg = 1;
     } else if (det > 0.0) {
         out.neg = half_trace < 0.0 ? 2 : 0;
     } else {
         out.neg = half_trace < 0.0 ? 1 : 0;
-        out.det_zero = true;
+    }
+    if (det_zero != nullptr) {
+        *det_zero = det == 0.0;
     }
     return true;
+}
+
+[[gnu::always_inline]] inline bool decode_2x2(double a11, double a21, double a22, Block2x2 &out) {
+    return decode_2x2_core(a11, a21, a22, out, nullptr);
+}
+
+[[gnu::always_inline]] inline bool decode_2x2(double a11, double a21, double a22, Block2x2 &out,
+                                              bool &det_zero) {
+    return decode_2x2_core(a11, a21, a22, out, &det_zero);
 }
 
 } // namespace hven::linear::detail

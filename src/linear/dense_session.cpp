@@ -83,8 +83,10 @@ DenseInertiaCount dense_block_walk(const double *a, Index n, const int *ipiv) {
             }
             // uplo 'U': the block's off-diagonal entry is D(k, k+1).
             Block2x2 block;
-            if (!decode_2x2(a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + (k + 1)], block) ||
-                block.det_zero) {
+            bool det_zero = false;
+            if (!decode_2x2(a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + (k + 1)], block,
+                            det_zero) ||
+                det_zero) {
                 out.singular = true;
                 return out;
             }
