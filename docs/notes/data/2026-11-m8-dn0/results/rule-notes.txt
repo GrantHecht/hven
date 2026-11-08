@@ -1,0 +1,17 @@
+M8 DN-0 rule notes (review riders; rule.txt and the declaration are frozen and unedited)
+
+R2. Secondary (steady-state) reading, IPM half: NON-EVIDENTIAL.
+With a 1,000,003 period floor against ~4e9-instruction processes, reps = 1,
+which leaves 1-4 steady-state perf samples per IPM cell (hs010's shares
+0.500/0.251/0.249 are 2/1/1 samples). The "DN1 true" printed for the secondary
+reading in rule.txt must not be quoted. The SQP half of the secondary reading
+is identical to the primary, because the SQP never calls
+ensure_solver_initialized.
+
+R4a. The primary IPM median cells (hs026, HS67) were ranked by total process
+instructions. Those are dominated by the process-once MKL dsecnd()
+clock-calibration spin (whole-population range 3.6-4.5e9, varying with
+wall-clock alignment), so the median selection is effectively random among
+init-dominated cells.
+
+R4b. HS67 carries a CUTEst derivative-check caveat (an undiagnosed mismatch).

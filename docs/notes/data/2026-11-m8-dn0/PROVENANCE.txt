@@ -75,3 +75,12 @@ LEG_DONE S3 2026-11-08T00:06:27Z
 LEG_DONE P 2026-11-08T00:30:19Z
 LEG_DONE D 2026-11-08T00:35:28Z
 LEG_DONE R 2026-11-08T00:35:35Z
+
+== dump-build fidelity (appended 2026-11-07, review rider R3) ==
+tools/dump_fidelity.py compares run/dump/*.out against run/stat-r1/*.out
+(hven-bench-sd/.scratch/dn0/run) on status, iterations and objective for every
+cell; output in results/dump-fidelity.txt.
+Result: IDENTICAL 238/238 (0 mismatches).
+No cmp listing of the 36 lane objects (measured build vs dump build) exists under
+.scratch/dn0: the 36-object byte-identity claim is attested, not recorded; the
+238/238 outcome identity covers the same risk.
