@@ -402,11 +402,11 @@ class SchurComplement {
     }
 
     // True inertia contribution of C: each 1x1 Bunch-Kaufman block
-    // contributes sign(d_ii); each 2x2 block has a strictly negative
-    // determinant by construction (Bunch-Kaufman only forms a 2x2 pivot when
-    // no acceptable 1x1 pivot exists), so it always contributes exactly one
-    // negative and one positive eigenvalue -- computed directly here (not
-    // assumed) from the block's own two eigenvalues.
+    // contributes sign(d_ii); each 2x2 block contributes the signs its
+    // determinant and trace give (block_evidence()): one of each whenever
+    // det < 0, which a Bunch-Kaufman 2x2 pivot always has in exact
+    // arithmetic (|a11 a22| < alpha^2 a21^2). Read off the factor, not
+    // assumed.
     //
     // Throws std::logic_error whenever there is no usable block evidence to
     // read the inertia off -- C's last factorization found an exact zero pivot

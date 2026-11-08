@@ -50,6 +50,64 @@ char uplo_char(Triangle triangle, const char *caller) {
                                             caller, static_cast<int>(triangle)));
 }
 
+// The two eigenvalues of the symmetric 2x2 block [[a11, a21], [a21, a22]]:
+// their magnitudes, algebraically larger one first, and how many are
+// negative. Signs come from the determinant and the trace, never from the
+// eigenvalues themselves: det < 0 is one of each sign, det > 0 is two of the
+// trace's sign, det == 0 is {trace, 0}. The block is first scaled by an exact
+// power of two so its largest entry lies in [0.5, 1) -- nothing below can
+// overflow, and every sign is that of the unscaled block. det is a difference
+// of products taken with fma (Kahan), within a few ulps of the exact value, so
+// its sign is right whenever det is not exactly zero. The larger magnitude is
+// |trace|/2 + r, r = sqrt(((a11 - a22)/2)^2 + a21^2), a sum of non-negatives;
+// the smaller is |det| over it. (trace +- sqrt(trace^2 - 4 det))/2 cancels
+// when |det| << trace^2 and can return 0 or the wrong sign for the smaller
+// one. Returns false iff an entry is non-finite.
+struct Block2x2 {
+    double abs_first = 0.0;
+    double abs_second = 0.0;
+    Index neg = 0;
+};
+
+bool decode_2x2(double a11, double a21, double a22, Block2x2 &out) {
+    if (!std::isfinite(a11) || !std::isfinite(a21) || !std::isfinite(a22)) {
+        return false;
+    }
+    const double m = std::max({std::abs(a11), std::abs(a21), std::abs(a22)});
+    if (m == 0.0) {
+        out = Block2x2{};
+        return true;
+    }
+    int e = 0;
+    (void)std::frexp(m, &e);
+    const double b11 = std::ldexp(a11, -e);
+    const double b21 = std::ldexp(a21, -e);
+    const double b22 = std::ldexp(a22, -e);
+    const double w = b21 * b21;
+    const double det = std::fma(b11, b22, -w) + std::fma(-b21, b21, w);
+    const double half_trace = 0.5 * (b11 + b22);
+    const double half_diff = 0.5 * (b11 - b22);
+    const double big = std::abs(half_trace) + std::sqrt(std::fma(half_diff, half_diff, w));
+    const double small = std::abs(det) / big; // big >= 1/2 after the scaling
+    const double abs_big = std::ldexp(big, e);
+    const double abs_small = std::ldexp(small, e);
+    if (half_trace >= 0.0) {
+        out.abs_first = abs_big;
+        out.abs_second = abs_small;
+    } else {
+        out.abs_first = abs_small;
+        out.abs_second = abs_big;
+    }
+    if (det < 0.0) {
+        out.neg = 1;
+    } else if (det > 0.0) {
+        out.neg = half_trace < 0.0 ? 2 : 0;
+    } else {
+        out.neg = half_trace < 0.0 ? 1 : 0;
+    }
+    return true;
+}
+
 } // namespace
 
 int DenseSymmetricFactor::factorize_core(ConstMatRef A, Triangle triangle, const char *caller) {
@@ -128,11 +186,8 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
     // (k, k+1) when the upper triangle was factored, the subdiagonal
     // (k+1, k) when the lower was.
     //
-    // The 2x2 trace/determinant/discriminant arithmetic below is migrated
-    // VERBATIM from the SQP border stack's own walk, whose cond_estimate()
-    // consumers are float-load-bearing: the expression forms and their
-    // evaluation order are the contract here, not just the values they
-    // nominally compute.
+    // A non-finite entry anywhere in D leaves no inertia to read: the
+    // evidence is then absent, as for a factorization that did not complete.
     const bool upper = (triangle_ == Triangle::kUpper);
     BunchKaufmanBlockEvidence evidence;
     evidence.block_abs_eigs.reserve(static_cast<std::size_t>(dim_));
@@ -142,6 +197,9 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
         const auto uk = static_cast<std::size_t>(k);
         if (ipiv_[uk] > 0) {
             const double dii = factors_(k, k);
+            if (!std::isfinite(dii)) {
+                return std::nullopt;
+            }
             evidence.block_abs_eigs.push_back(std::abs(dii));
             if (dii < 0.0) {
                 ++evidence.neg_eigs;
@@ -164,19 +222,13 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
             const double a11 = factors_(k, k);
             const double a21 = upper ? factors_(k, k + 1) : factors_(k + 1, k);
             const double a22 = factors_(k + 1, k + 1);
-            const double trace = a11 + a22;
-            const double det = a11 * a22 - a21 * a21;
-            const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
-            const double e1 = (trace + disc) / 2.0;
-            const double e2 = (trace - disc) / 2.0;
-            evidence.block_abs_eigs.push_back(std::abs(e1));
-            evidence.block_abs_eigs.push_back(std::abs(e2));
-            if (e1 < 0.0) {
-                ++evidence.neg_eigs;
+            Block2x2 block;
+            if (!decode_2x2(a11, a21, a22, block)) {
+                return std::nullopt;
             }
-            if (e2 < 0.0) {
-                ++evidence.neg_eigs;
-            }
+            evidence.block_abs_eigs.push_back(block.abs_first);
+            evidence.block_abs_eigs.push_back(block.abs_second);
+            evidence.neg_eigs += block.neg;
             k += 2;
         }
     }

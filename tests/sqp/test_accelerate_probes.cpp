@@ -183,13 +183,13 @@ Index shim_block_walk_neg_count(Eigen::MatrixXd C, std::vector<lapack_int> &ipiv
             const double a11 = C(k, k);
             const double a21 = C(k + 1, k);
             const double a22 = C(k + 1, k + 1);
+            // Signs from det and trace, as block_evidence() reads them.
             const double trace = a11 + a22;
             const double det = a11 * a22 - a21 * a21;
-            const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
-            if ((trace + disc) / 2.0 < 0.0)
-                ++neg;
-            if ((trace - disc) / 2.0 < 0.0)
-                ++neg;
+            if (det < 0.0)
+                neg += 1;
+            else if (trace < 0.0)
+                neg += det > 0.0 ? 2 : 1;
             k += 2;
         }
     }
@@ -207,7 +207,7 @@ TEST(AccelerateProbe, ShimBlockWalkMatchesKnownInertia) {
     RecordProperty("ipiv_3x3", fmt::format("{},{},{}", ipiv[0], ipiv[1], ipiv[2]).c_str());
 
     // The canonical forced-2x2 case: C = [[0,1],[1,0]], eigenvalues {+1, -1}.
-    // This drives the walk's ELSE branch (the trace/discriminant 2x2 decode),
+    // This drives the walk's ELSE branch (the det/trace 2x2 decode),
     // which the 3x3 case above never reaches (review finding: without this,
     // the 2x2 decode was dead code in this probe). OBSERVED: ipiv = (-2, -2).
     Eigen::MatrixXd C2(2, 2);

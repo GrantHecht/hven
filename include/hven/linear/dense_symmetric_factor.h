@@ -47,9 +47,10 @@ enum class DenseFactorizeOutcome {
 
 // Facts read off a completed Bunch-Kaufman factorization's block-diagonal
 // D: the |eigenvalue| of every diagonal block (1x1 blocks contribute
-// |d_ii|; 2x2 blocks contribute both of their eigenvalues, via the
-// trace/determinant/discriminant decode) and how many of those
-// eigenvalues are negative.
+// |d_ii|; 2x2 blocks contribute both of their eigenvalues) and how many of
+// those eigenvalues are negative. A 2x2 block's signs are read from its
+// determinant and trace, never from its eigenvalues, and its smaller
+// magnitude is |det| over the larger: both stay right when |det| << trace^2.
 //
 // EVIDENCE, NOT VERDICT. This type answers "what did the blocks come out
 // as", never "is this matrix acceptable" -- condition thresholds,
@@ -58,7 +59,8 @@ enum class DenseFactorizeOutcome {
 // absent-never-zero discipline through the accessor that produces it:
 // there is no factorization to read blocks off of unless factorized() is
 // true, and block_evidence() returns std::nullopt in that case rather
-// than an empty list that would read as "no blocks, no negatives".
+// than an empty list that would read as "no blocks, no negatives" -- and
+// likewise when D carries a non-finite entry, which has no sign to count.
 //
 // The uplo convention the walk depends on is owned by the factor that
 // produced the factorization, not by this struct's reader: the block
@@ -147,7 +149,9 @@ class DenseSymmetricFactor {
     // BunchKaufmanBlockEvidence.
     //
     // std::nullopt whenever factorized() is false: never factorized,
-    // factorization failed, or factorization completed exactly singular.
+    // factorization failed, or factorization completed exactly singular --
+    // and whenever an entry of D is non-finite. A 2x2 block whose determinant
+    // is exactly zero is reported as it is: eigenvalues {trace, 0}.
     // Absent, not empty and not zero-filled -- a factorization that did
     // not complete usably has no block eigenvalues to report, and "0
     // negative eigenvalues" does not follow from it.

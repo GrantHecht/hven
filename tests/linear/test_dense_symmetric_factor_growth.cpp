@@ -451,7 +451,7 @@ TEST(DenseSymmetricFactorGrowth, EvidenceOnDiagonalFixtureIsExact) {
 
 // Known 2x2-block fixture: [[0,1],[1,0]] has a zero diagonal, so
 // Bunch-Kaufman is FORCED to take a 2x2 pivot -- this is the fixture that
-// exercises the trace/determinant/discriminant decode rather than the 1x1
+// exercises the 2x2 decode rather than the 1x1
 // arm. Eigenvalues are exactly {+1, -1}.
 TEST(DenseSymmetricFactorGrowth, EvidenceDecodesAForced2x2Block) {
     Mat A(2, 2);
@@ -558,4 +558,81 @@ TEST(DenseSymmetricFactorGrowth, EvidenceIsAbsentAfterAFailedFactorize) {
 
     EXPECT_THROW({ f.factorize(singular2x2()); }, std::runtime_error);
     EXPECT_FALSE(f.block_evidence().has_value());
+}
+
+// --- R11: the 2x2 decode when |det| << trace^2 ------------------------------
+
+namespace {
+
+// [[0, 1, 0], [1, d, 2d], [0, 2d, 3d]] times `sign`, reversed for kUpper
+// (Bunch-Kaufman with 'U' eliminates from the last column). Either way the
+// first pivot is the 2x2 block sign * [[0, 1], [1, d]]: |a11| = 0 < alpha *
+// colmax, and |d| < alpha * rowmax = 0.64 * 2d. Its det is -1 against a trace
+// of sign * d, so (trace - sqrt(trace^2 - 4 det)) / 2 rounds to 0 at d = 1e10.
+// Exact inertia by hand: the block has one eigenvalue of each sign, and the
+// trailing Schur complement is sign * (3d - 4d^2 * (D^-1)_22) = sign * 3d,
+// since (D^-1)_22 = 0. Its smallest |eigenvalue| is |det| / |larger| = 1/d to
+// within 1e-20 relative. An eigensolver cannot decide this matrix's inertia
+// (its smallest eigenvalue is ~1e-20 of its norm); the hand count can.
+Mat adversarial2x2_fixture(double sign, Triangle t) {
+    constexpr double d = 1e10;
+    Mat A(3, 3);
+    A << 0, 1, 0, 1, d, 2 * d, 0, 2 * d, 3 * d;
+    A *= sign;
+    if (t == Triangle::kUpper) {
+        A = A.reverse().eval();
+    }
+    return A;
+}
+
+} // namespace
+
+// Trace > 0: the block's negative eigenvalue is ~ -1e-10 against ~1e10. The
+// (trace +- disc)/2 decode returns 0 for it and counts 0 negatives in all;
+// the true count is 1.
+TEST(DenseSymmetricFactorGrowth, EvidenceCountsTheNegativeOfAnIllScaled2x2Block) {
+    for (const Triangle t : {Triangle::kUpper, Triangle::kLower}) {
+        DenseSymmetricFactor f;
+        ASSERT_EQ(f.try_factorize(adversarial2x2_fixture(1.0, t), t), DenseFactorizeOutcome::kOk);
+        const auto ev = f.block_evidence();
+        ASSERT_TRUE(ev.has_value());
+        EXPECT_EQ(ev->neg_eigs, 1);
+        const std::vector<double> got = sorted_abs_eigs(*ev);
+        ASSERT_EQ(got.size(), 3u);
+        EXPECT_NEAR(got[0], 1e-10, 1e-14 * 1e-10);
+        EXPECT_NEAR(got[1], 1e10, 1e-12 * 1e10);
+        EXPECT_NEAR(got[2], 3e10, 1e-12 * 3e10);
+    }
+}
+
+// Trace < 0: the mirror. The count survives the old decode (the eigenvalue it
+// loses is the positive one), but its magnitude does not: it reported 0,
+// which reads as an exactly singular block.
+TEST(DenseSymmetricFactorGrowth, EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block) {
+    for (const Triangle t : {Triangle::kUpper, Triangle::kLower}) {
+        DenseSymmetricFactor f;
+        ASSERT_EQ(f.try_factorize(adversarial2x2_fixture(-1.0, t), t), DenseFactorizeOutcome::kOk);
+        const auto ev = f.block_evidence();
+        ASSERT_TRUE(ev.has_value());
+        EXPECT_EQ(ev->neg_eigs, 2);
+        const std::vector<double> got = sorted_abs_eigs(*ev);
+        ASSERT_EQ(got.size(), 3u);
+        EXPECT_NEAR(got[0], 1e-10, 1e-14 * 1e-10);
+        EXPECT_NEAR(got[1], 1e10, 1e-12 * 1e10);
+        EXPECT_NEAR(got[2], 3e10, 1e-12 * 3e10);
+    }
+}
+
+// A non-finite entry of D has no sign: the evidence is absent, not a count.
+// LAPACKE's input screen refuses NaN but passes an infinity, and dsytrf
+// completes with it as a 1x1 pivot.
+TEST(DenseSymmetricFactorGrowth, EvidenceIsAbsentWhenDCarriesANonFiniteEntry) {
+    Mat A(2, 2);
+    A << std::numeric_limits<double>::infinity(), 0, 0, 1;
+    for (const Triangle t : {Triangle::kUpper, Triangle::kLower}) {
+        DenseSymmetricFactor f;
+        ASSERT_EQ(f.try_factorize(A, t), DenseFactorizeOutcome::kOk);
+        ASSERT_TRUE(f.factorized());
+        EXPECT_FALSE(f.block_evidence().has_value());
+    }
 }
