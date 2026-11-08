@@ -1,0 +1,31 @@
+== replay/replay-walk.probe: 54 processes; exited normally 54
+  be_calls=530 be_blocks1=33890 be_blocks2=0 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=0 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=825 sc_neg_read_disagree=0 sc_nr_calls=2838 sc_nr_disagree=0 sc_ns_calls=2838 sc_ns_disagree=0 sc_cond_calls=2837 sc_cond_bits_differ=0 sc_cond_maxside_disagree=0 latch_calls=0 latch_mild_disagree=0 sc_nnd_calls=0 sc_nnd_disagree=0
+== replay/replay-ssn.probe: 54 processes; exited normally 54
+  be_calls=0 be_blocks1=0 be_blocks2=0 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=0 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=0 sc_neg_read_disagree=0 sc_nr_calls=0 sc_nr_disagree=0 sc_ns_calls=0 sc_ns_disagree=0 sc_cond_calls=0 sc_cond_bits_differ=0 sc_cond_maxside_disagree=0 latch_calls=0 latch_mild_disagree=0 sc_nnd_calls=0 sc_nnd_disagree=0
+== replay/replay-ipm.probe: 54 processes; exited normally 54
+  be_calls=0 be_blocks1=0 be_blocks2=0 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=0 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=0 sc_neg_read_disagree=0 sc_nr_calls=0 sc_nr_disagree=0 sc_ns_calls=0 sc_ns_disagree=0 sc_cond_calls=0 sc_cond_bits_differ=0 sc_cond_maxside_disagree=0 latch_calls=0 latch_mild_disagree=0 sc_nnd_calls=0 sc_nnd_disagree=0
+== census/census.probe: 103 processes; exited normally 103
+  be_calls=21740 be_blocks1=1376005 be_blocks2=15 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=15 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=30604 sc_neg_read_disagree=0 sc_nr_calls=94172 sc_nr_disagree=0 sc_ns_calls=94172 sc_ns_disagree=0 sc_cond_calls=94009 sc_cond_bits_differ=54 sc_cond_maxside_disagree=0 latch_calls=0 latch_mild_disagree=0 sc_nnd_calls=0 sc_nnd_disagree=0
+  CELL f7_n1000_path_neutral {'be_blocks2': 4, 'be_mag_diff_blocks': 4}
+  CELL f7_n750_path_neutral_control {'be_blocks2': 11, 'be_mag_diff_blocks': 11, 'sc_cond_bits_differ': 54}
+== dnf/dnf-last-per-process.probe: 26 processes; exited normally 13
+  be_calls=21745 be_blocks1=1486235 be_blocks2=0 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=0 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=23836 sc_neg_read_disagree=0 sc_nr_calls=72194 sc_nr_disagree=0 sc_ns_calls=72194 sc_ns_disagree=0 sc_cond_calls=72018 sc_cond_bits_differ=0 sc_cond_maxside_disagree=0 latch_calls=0 latch_mild_disagree=0 sc_nnd_calls=0 sc_nnd_disagree=0
+== train/train.probe: 24 processes; exited normally 18
+  be_calls=46244 be_blocks1=3503400 be_blocks2=55829 be_nonfinite_calls=0 be_det_zero_blocks=0 be_sign_disagree_blocks=0 be_neg_disagree_calls=0 be_mag_diff_blocks=37066 be_old_small_zero_blocks=0 be_old_e2_wrongsign_blocks=0 sc_neg_reads=22277 sc_neg_read_disagree=0 sc_nr_calls=85322 sc_nr_disagree=0 sc_ns_calls=104906 sc_ns_disagree=0 sc_cond_calls=79118 sc_cond_bits_differ=734 sc_cond_maxside_disagree=0 latch_calls=19584 latch_mild_disagree=0 sc_nnd_calls=19584 sc_nnd_disagree=0
+  CELL ACOPP118 {'be_blocks2': 751, 'be_mag_diff_blocks': 667}
+  CELL ACOPR118 {'be_blocks2': 4812, 'be_mag_diff_blocks': 3571, 'sc_cond_bits_differ': 5}
+  CELL ACOPR57 {'be_blocks2': 4, 'be_mag_diff_blocks': 4}
+  CELL BRITGAS {'be_blocks2': 37559, 'be_mag_diff_blocks': 25013, 'sc_cond_bits_differ': 403}
+  CELL MSS2 {'be_blocks2': 225, 'be_mag_diff_blocks': 78, 'sc_cond_bits_differ': 9}
+  CELL MSS3 {'be_blocks2': 225, 'be_mag_diff_blocks': 169}
+  CELL NET3 {'be_blocks2': 350, 'be_mag_diff_blocks': 256}
+  CELL READING6 {'be_blocks2': 3466, 'be_mag_diff_blocks': 2389}
+  CELL READING8 {'be_blocks2': 46, 'be_mag_diff_blocks': 10}
+  CELL SAWPATH {'be_blocks2': 501, 'be_mag_diff_blocks': 252, 'sc_cond_bits_differ': 9}
+  CELL STEENBRB {'be_blocks2': 808, 'be_mag_diff_blocks': 498}
+  CELL STEENBRC {'be_blocks2': 606, 'be_mag_diff_blocks': 419, 'sc_cond_bits_differ': 10}
+  CELL STEENBRD {'be_blocks2': 400, 'be_mag_diff_blocks': 231}
+  CELL STEENBRE {'be_blocks2': 405, 'be_mag_diff_blocks': 207}
+  CELL STEENBRG {'be_blocks2': 806, 'be_mag_diff_blocks': 547, 'sc_cond_bits_differ': 106}
+  CELL TAX53322 {'be_blocks2': 4803, 'be_mag_diff_blocks': 2716, 'sc_cond_bits_differ': 192}
+  CELL YORKNET {'be_blocks2': 62, 'be_mag_diff_blocks': 39}

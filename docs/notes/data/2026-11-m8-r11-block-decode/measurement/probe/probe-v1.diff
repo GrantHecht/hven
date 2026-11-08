@@ -1,0 +1,263 @@
+--- a/src/linear/dense_symmetric_factor.cpp
++++ b/src/linear/dense_symmetric_factor.cpp
+@@ -13,6 +13,12 @@
+ #include <stdexcept>
+ 
+ #include <fmt/format.h>
++#include "hven/linear/r11_probe.h"
++#include <cstdio>
++#include <cstring>
++#include <fstream>
++#include <unistd.h>
++#include <fcntl.h>
+ 
+ // Backend routing: HVEN_USE_ACCELERATE_LAPACK is defined project-wide (see
+ // cmake/hven_sparse_backend.cmake) exactly on Apple, where Accelerate ships
+@@ -52,6 +58,42 @@
+ 
+ } // namespace
+ 
++namespace r11probe {
++struct Dec { double abs1, abs2; int neg; };
++bool decode2(double a11, double a21, double a22, Dec &out) {
++    if (!std::isfinite(a11) || !std::isfinite(a21) || !std::isfinite(a22)) return false;
++    const double m = std::max({std::abs(a11), std::abs(a21), std::abs(a22)});
++    if (m == 0.0) { out = {0.0, 0.0, 0}; return true; }
++    int e = 0; (void)std::frexp(m, &e);
++    const double b11 = std::ldexp(a11, -e), b21 = std::ldexp(a21, -e), b22 = std::ldexp(a22, -e);
++    const double w = b21 * b21;
++    const double err = std::fma(-b21, b21, w);
++    const double det = std::fma(b11, b22, -w) + err;
++    const double ht = 0.5 * (b11 + b22), hd = 0.5 * (b11 - b22);
++    const double r = std::sqrt(std::fma(hd, hd, w));
++    const double big = std::abs(ht) + r;
++    const double small = big > 0.0 ? std::abs(det) / big : 0.0;
++    const double B = std::ldexp(big, e), S = std::ldexp(small, e);
++    if (ht >= 0.0) { out.abs1 = B; out.abs2 = S; } else { out.abs1 = S; out.abs2 = B; }
++    out.neg = det < 0.0 ? 1 : (det > 0.0 ? (ht < 0.0 ? 2 : 0) : (ht < 0.0 ? 1 : 0));
++    if (det == 0.0) ++hven::linear::r11::be_det_zero_blocks;
++    return true;
++}
++struct Dumper { ~Dumper() {
++    const char *f = std::getenv("R11_PROBE_OUT"); if (!f) return;
++    std::string line = "R11 pid=" + std::to_string(getpid());
++    using namespace hven::linear::r11;
++#define R11_P(name) line += std::string(" " #name "=") + std::to_string(name.load());
++    R11_COUNTERS(R11_P)
++#undef R11_P
++    std::ifstream c("/proc/self/cmdline", std::ios::binary); std::string cmd((std::istreambuf_iterator<char>(c)), {});
++    for (char &ch : cmd) if (ch == '\0') ch = ' ';
++    line += " cmd=" + cmd + "\n";
++    int fd = ::open(f, O_WRONLY | O_APPEND | O_CREAT, 0644); if (fd >= 0) { (void)!::write(fd, line.data(), line.size()); ::close(fd); }
++} };
++Dumper g_dumper;
++} // namespace r11probe
++
+ int DenseSymmetricFactor::factorize_core(ConstMatRef A, Triangle triangle, const char *caller) {
+     if (A.rows() != A.cols()) {
+         throw std::invalid_argument(
+@@ -136,6 +178,9 @@
+     const bool upper = (triangle_ == Triangle::kUpper);
+     BunchKaufmanBlockEvidence evidence;
+     evidence.block_abs_eigs.reserve(static_cast<std::size_t>(dim_));
++    BunchKaufmanBlockEvidence alt;
++    bool alt_ok = true;
++    ++r11::be_calls;
+ 
+     Index k = 0;
+     while (k < dim_) {
+@@ -146,6 +191,10 @@
+             if (dii < 0.0) {
+                 ++evidence.neg_eigs;
+             }
++            ++r11::be_blocks1;
++            if (!std::isfinite(dii)) alt_ok = false;
++            alt.block_abs_eigs.push_back(std::abs(dii));
++            if (dii < 0.0) ++alt.neg_eigs;
+             k += 1;
+         } else {
+             // Bounds guard, not an expected path: a successful dsytrf never
+@@ -177,10 +226,26 @@
+             if (e2 < 0.0) {
+                 ++evidence.neg_eigs;
+             }
++            ++r11::be_blocks2;
++            {
++                r11probe::Dec d{};
++                if (!r11probe::decode2(a11, a21, a22, d)) { alt_ok = false; }
++                else {
++                    alt.block_abs_eigs.push_back(d.abs1); alt.block_abs_eigs.push_back(d.abs2);
++                    alt.neg_eigs += d.neg;
++                    const int oldneg = (e1 < 0.0) + (e2 < 0.0);
++                    if (oldneg != d.neg) ++r11::be_sign_disagree_blocks;
++                    if (std::abs(e1) != d.abs1 || std::abs(e2) != d.abs2) ++r11::be_mag_diff_blocks;
++                    if (e2 == 0.0 && det != 0.0) ++r11::be_old_small_zero_blocks;
++                    if (det < 0.0 && e2 >= 0.0) ++r11::be_old_e2_wrongsign_blocks;
++                }
++            }
+             k += 2;
+         }
+     }
+ 
++    if (!alt_ok) { ++r11::be_nonfinite_calls; r11::last_alt.reset(); }
++    else { if (alt.neg_eigs != evidence.neg_eigs) ++r11::be_neg_disagree_calls; r11::last_alt = alt; }
+     return evidence;
+ }
+ 
+--- a/include/hven/detail/kkt/schur_complement.h
++++ b/include/hven/detail/kkt/schur_complement.h
+@@ -81,6 +81,7 @@
+ #include <hven/core/errors.h>
+ #include <hven/detail/kkt/kkt_calls.h>
+ #include <hven/linear/dense_symmetric_factor.h>
++#include <hven/linear/r11_probe.h>
+ #include <hven/qp/qp_types.h>
+ 
+ namespace hven::detail {
+@@ -166,6 +167,7 @@
+                 // Factorization deferred: nothing may read C's old one.
+                 singular_ = false;
+                 evidence_.reset();
++                alt_evidence_.reset();
+                 factor_pending_ = true;
+             } else {
+                 factor_c();
+@@ -332,6 +334,8 @@
+     // conditioning latch (qp_engine.h, section 4) for the borders that made C
+     // ill-conditioned; they change nothing here.
+     Vec near_null_direction() const {
++        ++hven::linear::r11::sc_nnd_calls;
++        if (dim() != 0 && r11_usable(evidence_) != r11_usable(alt_evidence_)) ++hven::linear::r11::sc_nnd_disagree;
+         if (dim() == 0 || !evidence_usable()) {
+             return {};
+         }
+@@ -352,6 +356,12 @@
+     // +inf when C's last factorization was exactly singular or otherwise
+     // produced a zero eigenvalue.
+     double cond_estimate() const {
++        ++hven::linear::r11::sc_cond_calls;
++        {
++            const double co = r11_cond(evidence_), ca = r11_cond(alt_evidence_);
++            if (!(co == ca)) ++hven::linear::r11::sc_cond_bits_differ;
++            if ((co > opts_.schur_condition_max) != (ca > opts_.schur_condition_max)) ++hven::linear::r11::sc_cond_maxside_disagree;
++        }
+         if (dim() == 0) {
+             return 1.0;
+         }
+@@ -378,6 +388,8 @@
+     // caller must stop
+     // bordering this factorization and take a different path.
+     bool needs_refactorization() const {
++        ++hven::linear::r11::sc_nr_calls;
++        if (r11_nr(evidence_) != r11_nr(alt_evidence_)) ++hven::linear::r11::sc_nr_disagree;
+         return (dim() > 0 && !evidence_usable()) || nearly_singular() ||
+                dim() > opts_.max_schur_border_dimension ||
+                cond_estimate() > opts_.schur_condition_max;
+@@ -389,6 +401,8 @@
+     // is well conditioned, but because the block eigenvalues are not populated
+     // in that case and needs_refactorization() already reports it directly.
+     bool nearly_singular() const {
++        ++hven::linear::r11::sc_ns_calls;
++        if (r11_ns(evidence_) != r11_ns(alt_evidence_)) ++hven::linear::r11::sc_ns_disagree;
+         if (dim() == 0 || !evidence_usable()) {
+             return false;
+         }
+@@ -428,6 +442,8 @@
+                 singular_ ? "DenseSymmetricFactor reported kExactlySingular"
+                           : "the last rebuild threw before producing block evidence"));
+         }
++        ++hven::linear::r11::sc_neg_reads;
++        if (!alt_evidence_.has_value() || alt_evidence_->neg_eigs != evidence_->neg_eigs) ++hven::linear::r11::sc_neg_read_disagree;
+         return static_cast<Index>(evidence_->neg_eigs);
+     }
+ 
+@@ -600,6 +616,7 @@
+         const Index m = dim();
+         singular_ = false;
+         evidence_.reset();
++        alt_evidence_.reset();
+         if (m == 0) {
+             return;
+         }
+@@ -623,6 +640,7 @@
+             return;
+         }
+         evidence_ = factor_.block_evidence();
++        alt_evidence_ = hven::linear::r11::last_alt;
+     }
+ 
+     detail::KktFactor &kkt_;
+@@ -652,6 +670,33 @@
+     hven::linear::DenseSymmetricFactor factor_;
+     bool singular_ = false; // true iff last try_factorize was kExactlySingular
+     std::optional<hven::linear::BunchKaufmanBlockEvidence> evidence_;
++    std::optional<hven::linear::BunchKaufmanBlockEvidence> alt_evidence_;
++
++  public:
++    // R11 probe: the readers re-evaluated on a given evidence set.
++    bool r11_usable(const std::optional<hven::linear::BunchKaufmanBlockEvidence> &ev) const {
++        return !singular_ && ev.has_value();
++    }
++    double r11_cond(const std::optional<hven::linear::BunchKaufmanBlockEvidence> &ev) const {
++        if (dim() == 0) return 1.0;
++        if (!r11_usable(ev)) return std::numeric_limits<double>::infinity();
++        double mx = 0.0, mn = std::numeric_limits<double>::infinity();
++        for (const double e : ev->block_abs_eigs) { mx = std::max(mx, e); mn = std::min(mn, e); }
++        if (mn == 0.0) return std::numeric_limits<double>::infinity();
++        return mx / mn;
++    }
++    bool r11_ns(const std::optional<hven::linear::BunchKaufmanBlockEvidence> &ev) const {
++        if (dim() == 0 || !r11_usable(ev)) return false;
++        double mx = 0.0, mn = std::numeric_limits<double>::infinity();
++        for (const double e : ev->block_abs_eigs) { mx = std::max(mx, e); mn = std::min(mn, e); }
++        return mn < detail::kSchurSingularEigFrac * std::max(1.0, mx);
++    }
++    bool r11_nr(const std::optional<hven::linear::BunchKaufmanBlockEvidence> &ev) const {
++        return (dim() > 0 && !r11_usable(ev)) || r11_ns(ev) || dim() > opts_.max_schur_border_dimension ||
++               r11_cond(ev) > opts_.schur_condition_max;
++    }
++    const std::optional<hven::linear::BunchKaufmanBlockEvidence> &r11_old() const { return evidence_; }
++    const std::optional<hven::linear::BunchKaufmanBlockEvidence> &r11_alt() const { return alt_evidence_; }
+ };
+ 
+ } // namespace hven::detail
+--- a/src/qp/qp_engine.cpp
++++ b/src/qp/qp_engine.cpp
+@@ -5539,6 +5539,12 @@
+     border.latch_mild =
+         border.schur.has_value() && !border.schur->nearly_singular() &&
+         border.schur->cond_estimate() <= kLatchMildCondFactor * opts.schur_condition_max;
++    if (border.schur.has_value()) {
++        ++hven::linear::r11::latch_calls;
++        const auto &sc = *border.schur;
++        const bool alt_mild = !sc.r11_ns(sc.r11_alt()) && sc.r11_cond(sc.r11_alt()) <= kLatchMildCondFactor * opts.schur_condition_max;
++        if (alt_mild != border.latch_mild) ++hven::linear::r11::latch_mild_disagree;
++    }
+     // The culprits: the pins C's two extreme directions live on. Position k of a direction is
+     // the k-th border, and every live border is a pin here (the latch is taken only where a
+     // rebuild would be a no-op). A direction that cannot be read makes every pin a culprit.
+--- /dev/null
++++ b/include/hven/linear/r11_probe.h
+@@ -0,0 +1,22 @@
++// R11 SCRATCH PROBE -- never committed. Counts where block_evidence()'s old
++// (trace +- disc)/2 decode and the det/trace decode disagree, and where the
++// Schur stack's decisions would differ.
++#pragma once
++#include <atomic>
++#include <optional>
++#include "hven/linear/dense_symmetric_factor.h"
++
++namespace hven::linear::r11 {
++#define R11_COUNTERS(X)                                                                            \
++    X(be_calls) X(be_blocks1) X(be_blocks2) X(be_nonfinite_calls) X(be_det_zero_blocks)            \
++    X(be_sign_disagree_blocks) X(be_neg_disagree_calls) X(be_mag_diff_blocks)                      \
++    X(be_old_small_zero_blocks) X(be_old_e2_wrongsign_blocks) X(sc_neg_reads)                     \
++    X(sc_neg_read_disagree) X(sc_nr_calls) X(sc_nr_disagree) X(sc_ns_calls) X(sc_ns_disagree)     \
++    X(sc_cond_calls) X(sc_cond_bits_differ) X(sc_cond_maxside_disagree) X(latch_calls)            \
++    X(latch_mild_disagree) X(sc_nnd_calls) X(sc_nnd_disagree)
++#define R11_DECL(name) inline std::atomic<long> name{0};
++R11_COUNTERS(R11_DECL)
++#undef R11_DECL
++// The det/trace evidence of the most recent block_evidence() call on this thread.
++inline thread_local std::optional<BunchKaufmanBlockEvidence> last_alt;
++} // namespace hven::linear::r11
