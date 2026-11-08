@@ -24,7 +24,11 @@ double detail::ensure_solver_initialized() {
 #ifdef USE_ACCELERATE_SPARSE
         ensure_accelerate_initialized(HVEN_DEFAULT_IPM_THREADS);
 #else
-        dsecnd();
+        // Brings up MKL's threading layer (the OpenMP runtime), the first-call
+        // cost a first factorization would otherwise carry. Not dsecnd(): its
+        // first call calibrates the clock by spinning to a wall-second boundary
+        // (~1 s, ~4e9 instructions) and warms nothing Pardiso uses.
+        (void)mkl_get_max_threads();
 #endif
         t.stop();
         first_init_ms = double(t.count<std::chrono::microseconds>()) / 1000.0;
