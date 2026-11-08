@@ -268,8 +268,9 @@ TEST(DenseArm, LakesMatrixCountsTheReferenceNegatives) {
 // T2b: the block walk on synthetic D blocks (uplo 'U', column-major, leading dimension n).
 
 TEST(DenseArmBlockWalk, IllScaledNegativeDeterminantCountsOneNegative) {
-    // [[1e8, 1], [1, 1e-12]]: det = 1e-4 - 1 < 0, |det| << trace^2.
-    std::vector<double> a = {1e8, 0.0, 1.0, 1e-12};
+    // [[1e10, 1], [1, 1e-12]]: det = 1e-2 - 1 < 0, |det| << trace^2, so trace^2 - 4 det rounds
+    // to trace^2 and (trace - disc)/2 reads exactly 0.
+    std::vector<double> a = {1e10, 0.0, 1.0, 1e-12};
     std::vector<int> ipiv = {-1, -1};
     const auto c = hven::linear::detail::dense_block_walk(a.data(), 2, ipiv.data());
     EXPECT_FALSE(c.singular);
