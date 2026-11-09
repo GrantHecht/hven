@@ -1,0 +1,97 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArm.*:DenseArmBlockWalk.*
+[==========] Running 19 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from DenseArm
+[ RUN      ] DenseArm.LifecycleMatchesTheSparseArm
+[       OK ] DenseArm.LifecycleMatchesTheSparseArm (2 ms)
+[ RUN      ] DenseArm.EvidenceIsObservedCountedAndUnperturbed
+[       OK ] DenseArm.EvidenceIsObservedCountedAndUnperturbed (0 ms)
+[ RUN      ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:261: Failure
+Expected equality of these values:
+  o.inertia.negative
+    Which is: 72
+  78
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:262: Failure
+Expected equality of these values:
+  o.inertia.positive
+    Which is: 84
+  90
+
+[  FAILED  ] DenseArm.LakesMatrixCountsTheReferenceNegatives (0 ms)
+[ RUN      ] DenseArm.ExactlySingularFallsBackToThePlatformSession
+[       OK ] DenseArm.ExactlySingularFallsBackToThePlatformSession (0 ms)
+[ RUN      ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms
+[       OK ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms (0 ms)
+[ RUN      ] DenseArm.ShareAndAdoptOnDenseNumerics
+[       OK ] DenseArm.ShareAndAdoptOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics
+[       OK ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.OptionsValidation
+[       OK ] DenseArm.OptionsValidation (0 ms)
+[ RUN      ] DenseArm.AutoSelectsByDimension
+[       OK ] DenseArm.AutoSelectsByDimension (0 ms)
+[ RUN      ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations
+[       OK ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations (0 ms)
+[ RUN      ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress
+[       OK ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress (0 ms)
+[ RUN      ] DenseArm.PatternGuardRunsAsOnTheSparseArm
+[       OK ] DenseArm.PatternGuardRunsAsOnTheSparseArm (0 ms)
+[ RUN      ] DenseArm.CounterIdentityOnAMixedRun
+[       OK ] DenseArm.CounterIdentityOnAMixedRun (0 ms)
+[ RUN      ] DenseArm.ThreadsRoundTrip
+[       OK ] DenseArm.ThreadsRoundTrip (0 ms)
+[----------] 14 tests from DenseArm (3 ms total)
+
+[----------] 5 tests from DenseArmBlockWalk
+[ RUN      ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:277: Failure
+Expected equality of these values:
+  c.negative
+    Which is: 0
+  1
+
+[  FAILED  ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative (0 ms)
+[ RUN      ] DenseArmBlockWalk.SignsFromDeterminantAndTrace
+[       OK ] DenseArmBlockWalk.SignsFromDeterminantAndTrace (0 ms)
+[ RUN      ] DenseArmBlockWalk.ZeroDeterminantIsSingular
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:300: Failure
+Value of: hven::linear::detail::dense_block_walk(a.data(), 2, ipiv.data()).singular
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:302: Failure
+Value of: hven::linear::detail::dense_block_walk(z.data(), 2, ipiv.data()).singular
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseArmBlockWalk.ZeroDeterminantIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.NonFiniteIsSingular
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:313: Failure
+Value of: hven::linear::detail::dense_block_walk(a.data(), 2, ipiv2.data()).singular
+  Actual: false
+Expected: true
+slot 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/tests/linear/test_symmetric_factor_dense_arm.cpp:322: Failure
+Value of: hven::linear::detail::dense_block_walk(big.data(), 2, ipiv2.data()).singular
+  Actual: true
+Expected: false
+
+[  FAILED  ] DenseArmBlockWalk.NonFiniteIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.MalformedPivotDataThrows
+[       OK ] DenseArmBlockWalk.MalformedPivotDataThrows (0 ms)
+[----------] 5 tests from DenseArmBlockWalk (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 2 test suites ran. (4 ms total)
+[  PASSED  ] 15 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+[  FAILED  ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative
+[  FAILED  ] DenseArmBlockWalk.ZeroDeterminantIsSingular
+[  FAILED  ] DenseArmBlockWalk.NonFiniteIsSingular
+
+ 4 FAILED TESTS

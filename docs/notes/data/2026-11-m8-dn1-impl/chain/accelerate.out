@@ -1,0 +1,71 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T19:01:28-05:00
+accelerate-sweep.txt files 30 clean 24 known-header 6 known-sizeof 0 stub-gap 0 not-in-build 0 OTHER 0
+accelerate-sweep-stub.txt files 30 clean 26 known-header 0 known-sizeof 0 stub-gap 2 not-in-build 0 OTHER 57
+OTHER src/drivers/ipm_solver.cpp include/hven/detail/interior/utils/accelerate_threads.h:88:20: error: no matching function for call to 'SparseFactor'
+OTHER src/drivers/ipm_solver.cpp include/hven/detail/interior/utils/accelerate_threads.h:104:5: error: use of undeclared identifier 'vDSP_dotprD'
+OTHER src/drivers/solver_init.cpp include/hven/detail/interior/utils/accelerate_threads.h:88:20: error: no matching function for call to 'SparseFactor'
+OTHER src/drivers/solver_init.cpp include/hven/detail/interior/utils/accelerate_threads.h:104:5: error: use of undeclared identifier 'vDSP_dotprD'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:36:2: error: "lapacke_shim.h requires ACCELERATE_NEW_LAPACK (see cmake/hven_sparse_backend.cmake)"
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:61:20: error: unknown type name '__LAPACK_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:72:30: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:76:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:76:64: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:77:34: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:77:50: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:84:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:88:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:96:70: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:97:25: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:106:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:106:64: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:106:78: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:107:51: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:107:73: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:108:34: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:112:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:121:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:121:69: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:122:39: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:122:55: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:123:39: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:127:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:132:8: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:132:69: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:132:83: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:133:56: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:133:78: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:134:50: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp include/hven/detail/linear/lapacke_shim.h:138:5: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:47:29: error: no member named 'lapack_int' in namespace 'hven::linear::detail'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:126:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:127:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:138:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:150:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:151:11: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:161:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:169:64: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:170:32: error: unknown type name 'lapack_int'
+OTHER tests/sqp/test_accelerate_probes.cpp tests/sqp/test_accelerate_probes.cpp:205:17: error: use of undeclared identifier 'lapack_int'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:139:76: error: unknown type name 'DenseMatrix_Double'; did you mean 'SparseMatrix_Double'?
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:144:28: error: use of undeclared identifier 'DenseVector_Float'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:282:61: error: no matching function for call to 'SparseFactor'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:403:8: error: no member named 'attributes' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:404:8: error: no member named 'columnCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:405:8: error: no member named 'rowCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:406:8: error: no member named 'columnStride' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:410:8: error: no member named 'attributes' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:411:8: error: no member named 'columnCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:412:8: error: no member named 'rowCount' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:413:8: error: no member named 'columnStride' in 'SparseMatrix_Double'
+OTHER tests/sqp/test_scaffold.cpp dep/eigen/Eigen/src/AccelerateSupport/AccelerateSupport.h:416:3: error: no matching function for call to 'SparseSolve'
+sweep rc=1
+PASS_A_AS_DECLARED
+PASS B: OTHER lines present: ['src/drivers/ipm_solver.cpp', 'src/drivers/solver_init.cpp', 'tests/sqp/test_accelerate_probes.cpp', 'tests/sqp/test_scaffold.cpp']
+PASS_B_NOT_AS_DECLARED
+ee6e88bf954fc3972d8571a5b89890301e88bd83997a15c0b2b20ad3453bf3f2  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-ap2-b8-riders/accelerate/accelerate-sweep.txt
+ee6e88bf954fc3972d8571a5b89890301e88bd83997a15c0b2b20ad3453bf3f2  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-impl/accelerate/accelerate-sweep.txt
+ee7ada92ae2b3739ea529ef7cbfe100fb416cbd53791c2850d05017327b8a5b5  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-ap2-b8-riders/accelerate/accelerate-sweep-stub.txt
+9351c0a2d696d69798236bc455252b100e08e5cdda0d71a04166c1a0a1f06d40  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-impl/accelerate/accelerate-sweep-stub.txt
+rc=0
+FOREGROUND_END 2026-11-08T19:01:55-05:00
