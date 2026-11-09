@@ -954,6 +954,12 @@ class IpmSolverImpl {
     // phase init. See inertia_regularization.h for the δ_c reference.
     bool dc_latched_ = false;
 
+    // Whether the last factor_impl call left delta_c in the KKT buffer.
+    bool factor_dc_applied_ = false;
+
+    // dense_residual_ratio's residual; sized at its first use.
+    Eigen::VectorXd dense_residual_scratch_;
+
     // (Re)builds acceptance_/mechanism_/governor_/recovery_ from the current
     // Settings, once per run_phase_sequence() -- after the variable-treatment
     // configuration and before the first phase -- and NOT from set_nlp(), so a
@@ -1676,10 +1682,27 @@ class IpmSolverImpl {
     // to this call in both modes -- applied up-front by the proximal branch, and
     // on demand at the singularity signal (or up-front once dc_latched_) by the
     // classic one; 0.0 means suppressed. `exhausted` is set, never cleared, when
-    // the ladder runs out of attempts with inertia still wrong.
+    // the ladder runs out of attempts with inertia still wrong. `base_singular`
+    // declares the base matrix singular: no base attempt, delta_c engaged (when
+    // available), the ladder entered at `ipurt`.
     int factor_impl(bool docompute, bool ZFac, double ipurt, double incpurt0, double incpurt,
                     double &finalpert, double &cumpert, double base_prox, double dual_shift,
-                    bool &exhausted);
+                    bool &exhausted, bool base_singular);
+
+    // ||K x - rhs|| / ||rhs|| on the KKT buffer (upper triangle); NaN for a
+    // non-finite x, infinity for rhs == 0 with a nonzero residual.
+    double dense_residual_ratio(const Eigen::VectorXd &rhs, const Eigen::VectorXd &x);
+
+    // The step solve's singularity guard, entered only after a dense-arm
+    // factorization. While the residual ratio exceeds
+    // kDenseResidualRatioSingular (at most kDenseSingularAttempts times): the
+    // ladder's perturbations are removed and factor_impl re-runs with
+    // base_singular at max(ipurt, init, incpurt * cumpert), then `x` is
+    // re-solved. Returns the re-run ladder's factorizations (0: no trigger);
+    // finalpert/cumpert/exhausted describe the last re-run.
+    int dense_step_singularity_guard(const Eigen::VectorXd &rhs, Eigen::VectorXd &x, double ipurt,
+                                     double incpurt, double &finalpert, double &cumpert,
+                                     double base_prox, double dual_shift, bool &exhausted);
 
     bool claim_kkt_analysis();
 

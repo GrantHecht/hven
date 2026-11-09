@@ -133,6 +133,7 @@ void KktFactorization::clear_evidence() {
     info_ = Eigen::Success;
     factor_mem_ = 0;
     factor_flops_ = 0;
+    arm_ = hven::linear::FactorArm::kSparse;
 }
 
 void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
@@ -140,6 +141,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
     // both of its branches: the accessor's contract is "the last outcome's
     // inertia, verbatim", which includes the outcomes the projection collapses.
     inertia_ = outcome.inertia;
+    arm_ = outcome.arm;
 
     info_ = computation_info_of(outcome.backend_code);
 
@@ -207,6 +209,7 @@ void KktFactorization::record_failed_factorization(const hven::linear::Factorize
     // with a default-constructed outcome, when the BACKEND SYMBOLIC phase
     // fails, and that path never passes through record().
     inertia_ = outcome.inertia;
+    arm_ = outcome.arm;
 
 #ifdef USE_ACCELERATE_SPARSE
     // This projection ZEROES the inertia counts and both factor metrics on a

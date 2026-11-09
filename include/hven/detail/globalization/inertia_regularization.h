@@ -62,6 +62,17 @@ inline double dual_regularization(double mu) {
     return kDualRegScale * std::pow(mu, kDualRegExponent);
 }
 
+/// @brief Residual ratio ||K x - rhs|| / ||rhs|| above which a solve on a
+/// dense-arm factorization is treated as a singular system: Ipopt's published
+/// `residual_ratio_singular` option value (Waechter & Biegler 2006, sec. 3.1;
+/// Ipopt options reference). Bunch-Kaufman counts a tiny pivot of a
+/// numerically singular matrix as nonzero, so its inertia alone cannot flag one.
+inline constexpr double kDenseResidualRatioSingular = 1.0e-5;
+
+/// @brief Singular-system re-factorizations one dense-arm solve may take
+/// before its result is used as it stands.
+inline constexpr int kDenseSingularAttempts = 3;
+
 /// @brief One decay step of the persistent primal base shift toward its floor:
 /// rho_{k+1} = max(kProxRegFloor, applied_total * decr).
 ///

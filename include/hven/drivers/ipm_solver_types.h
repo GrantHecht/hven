@@ -242,6 +242,12 @@ struct IpmResult : SolveResult {
     /// @brief The KKT factor's linear-layer call counters as of this result,
     ///        including the pattern-guard count.
     hven::linear::SymmetricFactor::Counters kkt_factor_counters;
+
+    /// Solves on a dense-arm factorization whose residual ratio
+    /// ||K x - rhs|| / ||rhs|| exceeded the singularity threshold, each one
+    /// answered as a singular system (refactorization, re-solve). Always 0
+    /// when `linear.dense_factorization` is `kNever`.
+    Index dense_residual_ratio_triggers = 0;
 };
 
 } // namespace hven

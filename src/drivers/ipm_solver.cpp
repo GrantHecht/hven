@@ -1917,7 +1917,7 @@ hven::SolveStatus hven::detail::IpmSolverImpl::converge_check(std::vector<IpmIte
 int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt,
                                              double incpurt0, double incpurt, double &finalpert,
                                              double &cumpert, double base_prox, double dual_shift,
-                                             bool &exhausted) {
+                                             bool &exhausted, bool base_singular) {
     auto Inertia = [&]() {
         return this->kkt_sol_.neigs() - (this->equal_cons_ + this->inequal_cons_);
     };
@@ -1991,7 +1991,8 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     // singularity). dc_latched_ is the Ipopt hess/jac-degenerate adaptation:
     // sticky per phase, it makes later calls pre-apply delta_c at the base
     // attempt instead of re-paying the singular factorization every iteration.
-    bool dc_applied = false;
+    bool &dc_applied = this->factor_dc_applied_;
+    dc_applied = false;
     auto EngageDualReg = [&]() {
         if (!dc_applied && dual_shift != 0.0) {
             PerturbC(-dual_shift);
@@ -2043,17 +2044,22 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
             PerturbC(-dual_shift);
             dc_applied = true;
         }
-        if (!docompute)
-            Refactor();
-        else
-            Compute();
-        CheckInfo();
-        RankDef();
-        IncEigs = Inertia();
-        finalpert = 0.0;
-        // A singular or wrong-inertia base factorization enters the ladder.
-        if (IncEigs == 0 && !Singular())
-            return 0;
+        if (!base_singular) {
+            if (!docompute)
+                Refactor();
+            else
+                Compute();
+            CheckInfo();
+            RankDef();
+            IncEigs = Inertia();
+            finalpert = 0.0;
+            // A singular or wrong-inertia base factorization enters the ladder.
+            if (IncEigs == 0 && !Singular())
+                return 0;
+        }
+    } else if (base_singular) {
+        // The singularity signal, declared rather than observed.
+        EngageDualReg();
     } else if (Zfac || docompute) {
         if (!docompute)
             Refactor();
@@ -2112,6 +2118,55 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     }
     exhausted = true;
     return opts_.advanced.max_inertia_correction_attempts;
+}
+
+double hven::detail::IpmSolverImpl::dense_residual_ratio(const Eigen::VectorXd &rhs,
+                                                         const Eigen::VectorXd &x) {
+    Eigen::VectorXd &r = this->dense_residual_scratch_;
+    r.resize(rhs.size());
+    r.noalias() = this->kkt_sol_.matrix().selfadjointView<Eigen::Upper>() * x;
+    r -= rhs;
+    const double res = r.norm();
+    const double rhs_norm = rhs.norm();
+    if (rhs_norm == 0.0)
+        return res == 0.0 ? 0.0 : std::numeric_limits<double>::infinity();
+    return res / rhs_norm;
+}
+
+int hven::detail::IpmSolverImpl::dense_step_singularity_guard(const Eigen::VectorXd &rhs,
+                                                              Eigen::VectorXd &x, double ipurt,
+                                                              double incpurt, double &finalpert,
+                                                              double &cumpert, double base_prox,
+                                                              double dual_shift, bool &exhausted) {
+    const bool proximal = opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization;
+    int extra = 0;
+    for (int attempt = 0; attempt < hven::detail::kDenseSingularAttempts; ++attempt) {
+        if (this->kkt_sol_.arm() != hven::linear::FactorArm::kDense)
+            break;
+        // NaN (a non-finite solution) fails the test too.
+        if (this->dense_residual_ratio(rhs, x) <= hven::detail::kDenseResidualRatioSingular)
+            break;
+        ++this->result_.dense_residual_ratio_triggers;
+        // Back to the base matrix: the ladder's shifts are additive.
+        const double applied = cumpert + (proximal ? base_prox : 0.0);
+        if (applied != 0.0)
+            this->nlp_->perturb_kkt_p_diags(-applied, this->kkt_sol_.matrix());
+        if (this->factor_dc_applied_)
+            this->nlp_->perturb_kkt_c_diags(dual_shift, this->kkt_sol_.matrix());
+        const double target =
+            attempt == 0
+                ? std::max({ipurt, opts_.advanced.inertia_correction_initial, incpurt * cumpert})
+                : incpurt * cumpert;
+        finalpert = 0.0;
+        bool rerun_exhausted = false;
+        extra += this->factor_impl(false, false, target, incpurt, incpurt, finalpert, cumpert,
+                                   base_prox, dual_shift, rerun_exhausted, true);
+        exhausted = rerun_exhausted;
+        this->kkt_sol_.solve(rhs, x);
+        if (rerun_exhausted)
+            break;
+    }
+    return extra;
 }
 
 // Best-iterate scoring + snapshot for the return_best_ path. See the declaration
@@ -3735,7 +3790,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
 
         bool kkt_exhausted = false;
         Citer.h_facs = this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum,
-                                         base_prox, dual_shift, kkt_exhausted);
+                                         base_prox, dual_shift, kkt_exhausted, false);
 
         if (Citer.h_facs > 0) {
             // Hpert0 warm-start MUST keep consuming nhpert (the last perturbation
@@ -3893,6 +3948,24 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // place, keeping the existing order (solve, then negate) so nothing
         // about the arithmetic moves.
         this->kkt_sol_.solve(RHS, DXSL);
+        // A dense-arm factorization's inertia cannot see numerical singularity
+        // (Bunch-Kaufman counts a tiny pivot as nonzero); the solve's residual
+        // ratio can. Never entered on a sparse factorization.
+        if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+            const int extra = this->dense_step_singularity_guard(
+                RHS, DXSL, Hpert0, Incr, nhpert, nhpert_cum, base_prox, dual_shift, kkt_exhausted);
+            if (extra > 0) {
+                Citer.h_facs += extra;
+                Hpert0 = std::max(opts_.advanced.inertia_correction_initial,
+                                  nhpert * opts_.advanced.inertia_correction_decrease);
+                FirstPert = false;
+                Citer.h_pert = nhpert;
+                Citer.h_pert_cum = nhpert_cum;
+                if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization)
+                    rho_k = hven::detail::prox_reg_decay(
+                        base_prox + nhpert, opts_.advanced.inertia_correction_decrease);
+            }
+        }
         DXSL = -DXSL;
         bool GoodStep = std::isfinite(DXSL.squaredNorm());
 
@@ -4882,10 +4955,30 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
     // destination, then negate in place, in that order.
     Eigen::VectorXd dx(this->kkt_dim_);
     this->kkt_sol_.solve(RHS, dx);
+    // The step solve's singularity guard, on this system's one singular rule:
+    // its (1,1) block is the identity, so only the constraint rows can be
+    // deficient and delta_c is the shift that answers them. A solve still above
+    // the threshold after it gives no estimate (Waechter & Biegler 2006,
+    // sec. 3.6: an unreliable least-squares estimate is discarded).
+    bool estimate_discarded = false;
+    if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+        if (!(this->dense_residual_ratio(RHS, dx) <= hven::detail::kDenseResidualRatioSingular)) {
+            ++this->result_.dense_residual_ratio_triggers;
+            this->nlp_->perturb_kkt_c_diags(-hven::detail::dual_regularization(mu),
+                                            this->kkt_sol_.matrix());
+            this->kkt_sol_.refactorize(this->kkt_pattern_check());
+            if (this->kkt_sol_.info() == Eigen::Success)
+                this->kkt_sol_.solve(RHS, dx);
+            estimate_discarded = this->kkt_sol_.info() != Eigen::Success ||
+                                 (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense &&
+                                  !(this->dense_residual_ratio(RHS, dx) <=
+                                    hven::detail::kDenseResidualRatioSingular));
+        }
+    }
     dx = -dx;
     KktVector v_dx = kkt_view(dx);
 
-    if (equal_cons_ > 0)
+    if (equal_cons_ > 0 && !estimate_discarded)
         v_xsl.eq_lmults() = v_dx.eq_lmults();
     if (this->inequal_cons_ > 0)
         this->nlp_->set_slack_diags(0.0);

@@ -196,6 +196,12 @@ class KktFactorization {
     /// no cost estimate.
     int factor_flops() const { return factor_flops_; }
 
+    /// The arm that produced the last factorization: kDense only for one the
+    /// dense arm took (never on a policy of kNever). kSparse before any
+    /// factorization, after reconfigure()/release(), and on a failed symbolic
+    /// phase.
+    hven::linear::FactorArm arm() const { return arm_; }
+
   private:
     void record(const hven::linear::FactorizeOutcome &outcome);
 
@@ -219,6 +225,7 @@ class KktFactorization {
     Eigen::ComputationInfo info_ = Eigen::Success;
     Index factor_mem_ = 0;
     int factor_flops_ = 0;
+    hven::linear::FactorArm arm_ = hven::linear::FactorArm::kSparse;
 };
 
 } // namespace hven::detail
