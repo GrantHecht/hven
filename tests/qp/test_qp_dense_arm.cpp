@@ -12,6 +12,12 @@
 //      face, falls back to Pardiso and reads exactly what it reads today). Both arms' outcome
 //      and dep_inertia_reread_flips are pinned.
 //
+// NO FIRING FIXTURE for the dense R-C' flip itself: a dense-taken kOk at mu = 0 that flips a
+// kWrong WITHOUT the confirming read at the pass's mu (design §5.3) is not reached by either
+// fixture below -- the saddle's kWrong stands and the singular PSD face's re-reads behave as
+// pinned. That path is argued, not tested here; DN-1's S3 leg (dep_inertia_reread_flips per
+// cell, kNever vs kAlways, over DN-0's roster) is its first observation.
+//
 // In hven_qp_walk_seam_tests for the E2-D4 dump fixtures; no seam is read.
 
 #include <cmath>

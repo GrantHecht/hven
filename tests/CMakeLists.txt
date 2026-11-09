@@ -241,10 +241,18 @@ target_compile_definitions(hven_tests
 gtest_discover_tests(hven_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 # The dense arm's allocation-free hot path (M8 DN-1, T9): its own executable, because the test
-# replaces the global operator new for the binary it links into.
+# replaces the global operator new for the binary it links into. On Linux it also wraps the C
+# allocator at link time (--wrap: every object in this static link, hven and MKL included),
+# counting in the test's wrappers; see the test's header for what that does not reach.
 add_executable(hven_dense_alloc_tests linear/test_dense_arm_allocation.cpp)
 target_link_libraries(hven_dense_alloc_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_dense_alloc_tests PRIVATE ${COMPILE_FLAGS})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_compile_definitions(hven_dense_alloc_tests PRIVATE HVEN_DENSE_ALLOC_WRAP_MALLOC=1)
+    target_link_options(hven_dense_alloc_tests PRIVATE
+        "LINKER:--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=posix_memalign"
+        "LINKER:--wrap=aligned_alloc,--wrap=memalign")
+endif()
 gtest_discover_tests(hven_dense_alloc_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
