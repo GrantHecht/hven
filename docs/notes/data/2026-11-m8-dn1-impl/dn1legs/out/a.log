@@ -1,0 +1,20 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T09:17:35-05:00
+A_LIST_OK 5501 matrices, 233 cells
+f204be2c2a444b8fcdda8081a53f5940e04fc8ab8cf858b4c257f6e9b53b078c  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-design/matrices.csv.gz
+16b2d528a22177e15dddde57532e6ba9556b2fb003c80a745a39a5e3e79d3e61  /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-impl/dn1legs/out/a/list.txt
+full rc=0 2026-11-09T09:17:37-05:00
+dense-default rc=0 2026-11-09T09:17:37-05:00
+   5502 /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-impl/dn1legs/out/a/replay-full-mkl1.csv
+   5502 /home/ghecht/Projects/hven/.claude/worktrees/dn1/docs/notes/data/2026-11-m8-dn1-impl/dn1legs/out/a/replay-dense-default.csv
+  11004 total
+analysis rc=0
+== VERDICTS
+A1_IPM_PASS 2575/2575
+A1_SQP_PASS 2764/2764
+A2_IPM_PASS 0
+A2_SQP_PASS 0
+A3_PASS 25/25
+A5_PASS bk 5476/5476 dn0-diff 14
+A_THR_DIFFERENCES_LISTED 21
+FOREGROUND_END 2026-11-09T09:17:40-05:00

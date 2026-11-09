@@ -1,0 +1,36 @@
+M8 DN-1 -- the DN-1 set -- PROVENANCE AND RESULTS (../DECLARATION-dn1legs.txt; criteria verbatim from ../DECLARATION.txt)
+================================================================================
+Commits     c4a9f607 DECLARATION-dn1legs + instruments (before the first run); this commit: out/ and this file. Code head
+            2171f8dd4 (its N set: ../r2/, all met).
+Binaries    dn1_replay c20dce44...60a2; hven_bench_cell.T 9a39b99e...cfd8b (clone commit A c3ed8a95); hven_bench_cell.S
+            552a772e...64a2 (clone commit B 5751a59f); all checked by the legs.
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2. Apple/Windows
+            UNOBSERVED.
+Dates       2026-11-09 EST: run_set.sh 09:17-10:00 (A 09:17, T 09:18-09:55, S 09:55-09:59, M 09:59-10:00); serial, alone,
+            each leg under the box lock (out/run_set.out: every leg rc 0, SET_DONE).
+
+RESULTS
+A1  IPM 2575/2575, SQP 2764/2764 at s=1 (s=10: 2556/2556, 2741/2741; s=100: 2531/2531, 2692/2692). PASS.
+A2  IPM 0, SQP 0. PASS.
+A3  25/25 fallback matrices field-for-field equal to kNever (dense-taken 5476, fallback 25). PASS.
+A4  (reported) IPM 1.0000 to n<=32, 0.9983 all; SQP 1.0000 n<=8, 0.9973 n<=16, 0.9774 n<=64, 0.9600 n<=128, 0.9453 all.
+A5  arm = mkl_bk_neg 5476/5476; vs DN-0's dense column exactly the 14 LAKES matrices, +6 each. PASS.
+A6  (reported) rook: reference agreement on the union IPM 2575/2575, SQP 2764/2764; exactly singular 13 / 10; max |mult|
+    1.88 / 1.82; residual max 2.4e-16 / 2.1e-16; instructions per factorization median 8080 / 4943, per solve 6642 / 4848.
+A7  (reported) SQP all 2807: q01 1.8e-14 q05 3.2e-12 q25 4.4e-10 median 6.6e-6, <=1e-8 1057, <=1e-12 112, <=1e-14 3;
+    IPM all 2669: q01 5.5e-37 median 3.8e-8, <=1e-12 837, <=1e-14 611 (out/a/a-analysis.txt, decidable/undecidable split).
+A-thr DIFFERENCES LISTED: 9 IPM matrices (ACOPP30 x3, MSS1 x2, SPANHYD x4; n 114-296), every one UNDECIDABLE under both
+    references; MSS1 mat_0000 is dense-taken at MKL_NUM_THREADS=1 but exactly singular (fallback) at the default threads.
+    No SQP matrix and no decidable matrix differs.
+T   16/23 optimal (PF-1 16/23); every cell equal to PF-1 in status, outcome, iterations and objective. PASS.
+S1  NOT MET 211/215: IPM ACOPP30 optimal -> max_iter (1000 its, dense-taken throughout, 0 fallbacks), IPM ALLINITC
+    acceptable -> optimal, IPM CRESC100 optimal -> acceptable, SQP HS91 optimal -> optimal with objective rel 1.30e-8
+    (> 1e-8; 57 -> 53 iterations, inertia_wrong_verdicts 48 -> 42). FOR THE SETTLER (design: S1 failures are ruled).
+S2  (reported) 3 moves to success (IPM LEWISPOL max_iter -> optimal; SQP ALLINITC numerical_error -> optimal; SQP
+    CRESC100 infeasible -> optimal), 3 non-success moves (IPM BURKEHAN max_iter -> diverging; SQP CRESC50
+    numerical_error -> max_iter; SQP MESH infeasible -> numerical_error), each with KKT residuals in out/s/s-analysis.txt.
+S3  (reported) 294 counter moves over 238 cells. dep_inertia_reread_flips under kAlways > 0: HS101 2 (2 under kNever
+    too), LEWISPOL 0 -> 1 (the first observed dense R-C' flip candidate), MESH 30 -> 36.
+M   hs043 / HS84 init-excluded savings: MKL_NUM_THREADS=1 0.5407 / 0.7008 (raw 0.4994 / 0.6732); default threads
+    0.8734 / 0.9258 (raw 0.8522 / 0.9159). M_PASS. At the default threads the kNever arm's samples are 71% / 75% on
+    OpenMP worker threads (Pardiso's), the dense arm's 0%.
