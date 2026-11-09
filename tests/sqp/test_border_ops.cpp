@@ -116,7 +116,7 @@ TEST(BorderOps, AddIneqRowMatchesDirect) {
     KktAssembly full = assemble_kkt_full(qp, ws0, opts);
     ASSERT_EQ(full.K.rows(), qp.n() + qp.me()); // n_working == 0
 
-    detail::KktFactor kkt0;
+    detail::KktFactor kkt0(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
@@ -167,7 +167,7 @@ TEST(BorderOps, DeleteK0RowMatchesDirect) {
     const Index me = qp.me();
     ASSERT_EQ(full.K.rows(), var_count + me + 1); // n_working == 1
 
-    detail::KktFactor kkt1;
+    detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt1, full.K);
     SchurComplement schur(kkt1, opts);
 
@@ -235,7 +235,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
     WorkingSet ws_empty(qp.n(), qp.mi());
     KktAssembly full = assemble_kkt_full(qp, ws_empty, opts);
 
-    detail::KktFactor kkt0;
+    detail::KktFactor kkt0(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
@@ -267,7 +267,7 @@ TEST(BorderOps, PinVariableMatchesEliminated) {
 
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
-    detail::KktFactor kkt1;
+    detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
     EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
@@ -283,7 +283,7 @@ TEST(BorderOps, AddThenDropRoundTrip) {
     WorkingSet ws0(qp.n(), qp.mi());
     KktAssembly full = assemble_kkt_full(qp, ws0, opts);
 
-    detail::KktFactor kkt0;
+    detail::KktFactor kkt0(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
@@ -327,7 +327,7 @@ TEST(BorderOps, ComposedDeleteAndAddBorders) {
     const Index k0_rows = full.K.rows();
     ASSERT_EQ(k0_rows, var_count + me + 1); // n_working == 1
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, full.K);
     SchurComplement schur(kkt, opts);
 

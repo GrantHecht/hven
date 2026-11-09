@@ -598,7 +598,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     }
     EXPECT_DOUBLE_EQ(full.rhs_shift.norm(), 0.0); // all-zero in full mode
 
-    detail::KktFactor kkt0;
+    detail::KktFactor kkt0(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt0, full.K);
     SchurComplement schur(kkt0, opts);
 
@@ -642,7 +642,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
     // variable 0 marked kAtLower in the working set. ---
     WorkingSet ws_pin(qp.n(), qp.mi());
     ws_pin.bound_state()[0] = BoundState::kAtLower;
-    detail::KktFactor kkt1;
+    detail::KktFactor kkt1(0, hven::linear::DensePolicy::kNever);
     EqpResult eqp = solve_eqp(qp, ws_pin, Vec::Zero(qp.n()), kkt1, opts);
 
     ASSERT_EQ(x_border.size(), eqp.x.size());
@@ -660,7 +660,7 @@ TEST(QpEngineBorder, BorderPinEquivalence) {
 TEST(QpEngineBorder, KktFactorMoveKeepsFactorizationUsable) {
     SpMatRM K = make_kkt3();
 
-    detail::KktFactor source;
+    detail::KktFactor source(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(source, K);
 
     detail::KktFactor dest(std::move(source));

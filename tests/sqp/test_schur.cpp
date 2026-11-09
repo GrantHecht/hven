@@ -50,7 +50,7 @@ TEST(Schur, BorderedSolveMatchesDirectFactorization) {
     // variable 1. Compare against factorizing the 4x4 system directly.
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     Vec v(3);
@@ -76,7 +76,7 @@ TEST(Schur, RefactorizationTriggerFires) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
     opts.max_schur_border_dimension = 2;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
@@ -100,7 +100,7 @@ TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
     // system directly factorized from K0 + the SECOND border only.
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
@@ -131,7 +131,7 @@ TEST(Schur, DropBorderMatchesDirectFactorizationOfSurvivor) {
 TEST(Schur, DropBorderThrowsOnOutOfRange) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     EXPECT_THROW(schur.drop_border(0), std::out_of_range);
@@ -152,7 +152,7 @@ TEST(Schur, IndefiniteSchurSolveMatchesDirect) {
     // -- one negative, one positive eigenvalue, neither block trivial.
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
@@ -207,7 +207,7 @@ TEST(Schur, AntiDiagonalSchurBlock) {
     // spans the WHOLE of C).
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
 
     Vec v1(3);
@@ -255,7 +255,7 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
     // a singular C.
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
 
     Vec v(3);
@@ -303,7 +303,7 @@ TEST(Schur, SingularOneByOneSchurBlockThrowsOnInertiaQuery) {
 TEST(Schur, NonFiniteBorderNeverLeavesAReadableEvidenceState) {
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
 
@@ -362,7 +362,7 @@ TEST(Schur, InertiaBookkeepingPinnedVariable) {
     // exactly one negative diagonal entry.
     SpMatRM K0 = make_kkt3();
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
     SchurComplement schur(kkt, opts);
     Vec v(3);
@@ -385,7 +385,7 @@ TEST(Schur, NearlySingularOneByOneNeedsRefactorization) {
     SpMatRM K0 = K0d.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
     K0.makeCompressed();
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K0);
 
     // C = d - v^T K0^-1 v = (1 + eps) - 1 = eps, a single 1x1 block.
@@ -498,7 +498,7 @@ TEST(Schur, IncrementalCMatchesFromScratchAfterAddsAndDrops) {
     QpOptions opts;
     opts.max_schur_border_dimension = 100;
     opts.schur_condition_max = 1e300;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, fx.K0);
     SchurComplement schur(kkt, opts);
 
@@ -563,7 +563,7 @@ TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
     QpOptions opts;
     opts.max_schur_border_dimension = 100;
     opts.schur_condition_max = 1e300;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, fx.K0);
 
     SchurComplement per_add(kkt, opts);
@@ -609,7 +609,7 @@ TEST(Schur, BatchedAddsLeaveTheStatePerAddWouldHave) {
 TEST(Schur, BatchThatThrowsLeavesThePerAddStack) {
     IncrementalFixture fx;
     QpOptions opts;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, fx.K0);
     const double nan_d = std::numeric_limits<double>::quiet_NaN();
 

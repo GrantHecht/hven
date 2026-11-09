@@ -1576,7 +1576,7 @@ struct BorderState {
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger; // in SchurComplement::add_border order
-    detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads)
+    detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads, dense)
     std::optional<SchurComplement> schur;
     bool latched = false;
     LatchReason latch_reason = LatchReason::kCap;

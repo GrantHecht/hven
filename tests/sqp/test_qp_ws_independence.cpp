@@ -204,7 +204,7 @@ TEST(WsIndependenceDetector, TheEliminatedSupportNamesThePinsTheDependencyUses) 
     WorkingSet ws(4, 0);
     ws.bound_state()[0] = BoundState::kFixed;
     ws.bound_state()[2] = BoundState::kAtLower;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
@@ -253,7 +253,7 @@ QpProblem near_dependent_rows_qp(bool as_equalities, double b = 1.0) {
 
 detail::EntryDetection detect_on(const QpProblem &qp, const WorkingSet &ws) {
     QpOptions o;
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
@@ -354,7 +354,7 @@ TEST(WsIndependenceCalibration, RefinedStatisticSeparates) {
             o.dual_regularization = mu;
             WorkingSet ws(3, 2);
             ws.add_ineq(0);
-            detail::KktFactor kkt;
+            detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
             (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
             detail::DepFactorView v;
             v.eliminated = &kkt;
@@ -383,7 +383,7 @@ struct BorderedView {
     QpProblem qp;
     QpOptions o;
     WorkingSet ws{3, 2};
-    detail::KktFactor kkt0;
+    detail::KktFactor kkt0{0, hven::linear::DensePolicy::kNever};
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger;
@@ -448,7 +448,8 @@ struct RowsView {
     QpOptions o;
     WorkingSet ws;
     bool bordered = false;
-    detail::KktFactor kkt; // eliminated path, or K0 on the border path
+    // The eliminated path, or K0 on the border path.
+    detail::KktFactor kkt{0, hven::linear::DensePolicy::kNever};
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger;
@@ -740,7 +741,7 @@ TEST(WsIndependenceReadOnly, TestAndDetectorWriteNothing) {
     EXPECT_EQ(b.schur->dim(), dim);
     EXPECT_EQ(b.ledger.size(), ledger.size());
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     (void)solve_eqp(b.qp, b.ws, Vec::Zero(b.qp.n()), kkt, b.o);
     detail::DepFactorView v;
     v.eliminated = &kkt;
@@ -870,7 +871,7 @@ TEST_P(WsIndependence, AUsableFactorIsNeverAnUnrunTest) {
     const QpOptions o = opts_for(GetParam());
     WorkingSet ws(3, 2);
     ws.add_ineq(0);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     (void)solve_eqp(qp, ws, Vec::Zero(qp.n()), kkt, o);
     detail::DepFactorView v;
     v.eliminated = &kkt;

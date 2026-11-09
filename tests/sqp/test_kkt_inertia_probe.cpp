@@ -56,7 +56,7 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
         Eigen::MatrixXd D(3, 3);
         D << 1, 0, 1, 0, eps, 0, 1, 0, 0;
         SpMatRM K = upper_with_structural_diag(D);
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
         ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk) << "eps=" << eps;
         const InertiaEvidence e = outcome.inertia;
@@ -115,7 +115,7 @@ TEST(InertiaProbe, ExactlySingular) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
 
     hven::linear::FactorizeOutcome outcome;
     EXPECT_NO_THROW(outcome = detail::factorize_checked(kkt, K));

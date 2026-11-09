@@ -343,6 +343,10 @@ RowDependence factor_row_dependence(const SpMatCM &M, double tau_lo, double coef
     out.shift_lo = t_lo;
     out.shift_hi = t_hi;
 
+    // dense_factorization stays kNever whatever SqpLinearOptions says (M8
+    // DN-1): this factor and the certificate K below rest their rounding-error
+    // certificate on Pardiso's perturbed-pivot evidence, and moving that
+    // evidence source is a separate, registered argument (DN-1 design §5.7).
     linear::SymmetricFactor::Options opts;
     opts.threads = 1;
     opts.pivot_perturbation_exponent = tol.gram_pivot_perturb_exp;

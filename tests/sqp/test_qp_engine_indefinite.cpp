@@ -583,7 +583,7 @@ TEST(QpEngineIndefinite, InertiaGateRefusesPerturbedFactorization) {
         QpOptions opts;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
         ASSERT_EQ(e.state, hven::linear::InertiaEvidence::State::kObserved);
 // OBSERVED (results note §(a)): Accelerate reports (2, 1) plus one zero
@@ -695,7 +695,7 @@ TEST(QpEngineIndefinite, SuspectStallIsNotCertifiedOptimal) {
         opts.primal_regularization = kDelta;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
 #ifdef USE_ACCELERATE_SPARSE
         ASSERT_EQ(e.zero, 1);
@@ -884,7 +884,7 @@ TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, K).inertia;
 #ifdef USE_ACCELERATE_SPARSE
     ASSERT_EQ(e.zero, 1);
@@ -901,7 +901,7 @@ TEST(QpEngineIndefinite, InertiaVerdictNeverTrustsAPerturbedFactorization) {
     Eigen::MatrixXd De(3, 3);
     De << 1, 0, 1, 0, 1e-12, 0, 1, 0, 0;
     SpMatRM Ke = upper_with_structural_diag(De);
-    detail::KktFactor kkt_e;
+    detail::KktFactor kkt_e(0, hven::linear::DensePolicy::kNever);
     const hven::linear::InertiaEvidence e_ctrl = detail::factorize_checked(kkt_e, Ke).inertia;
     if (e_ctrl.perturbed_pivots.has_value()) {
         ASSERT_EQ(*e_ctrl.perturbed_pivots, 0);
@@ -927,7 +927,7 @@ TEST(QpEngineIndefinite, TrustworthyWrongInertiaRepairsToVertex) {
         QpOptions opts;
         WorkingSet ws(3, 0);
         const KktAssembly a = assemble_kkt_full(qp, ws, opts);
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         const hven::linear::InertiaEvidence e = detail::factorize_checked(kkt, a.K).inertia;
         if (e.perturbed_pivots.has_value()) {
             ASSERT_EQ(*e.perturbed_pivots, 0);
@@ -2620,7 +2620,7 @@ TEST(QpEngineIndefinite, T7Fix2TheFaceKeyIsInvalidatedByAnyRefactorizationOfKkt)
     K.insert(2, 2) = 0.0;
     K.makeCompressed();
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     WorkingSet ws(/*n=*/2, /*mi=*/1);
     detail::factorize_checked(kkt, K);
     EliminatedFace face;
@@ -2664,7 +2664,7 @@ TEST(QpEngineIndefinite, T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed)
         const QpEngine eng{opts};
 
         WorkingSet pre(qp.n(), qp.mi());
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         EliminatedFace face;
         BorderState border;
         QpCounters counters;

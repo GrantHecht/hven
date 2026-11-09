@@ -677,7 +677,10 @@ struct SqpLinearOptions {
     /// When the dense factorization arm is used: `kNever` (the default) or
     /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
     /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
-    /// `validate()` refuses it until the selection rule lands.
+    /// `validate()` refuses it until the selection rule lands. It reaches the
+    /// QP walk's, the SSN tier's and the IPQP subproblem's KKT factors; the
+    /// warm-start predictor's factor and the equality-basis Gram and
+    /// certificate factors stay on the platform session at every value.
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
     /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
     /// empty uses the library's rule. RESERVED: `validate()` accepts only the

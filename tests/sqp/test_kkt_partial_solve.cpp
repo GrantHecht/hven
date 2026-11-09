@@ -52,7 +52,7 @@ TEST(KktPartialSolve, ComposedPartialsMatchFullSolve) {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K);
 #ifdef USE_ACCELERATE_SPARSE
     // OBSERVED (results note §(b)): the gate is false on this backend --
@@ -104,7 +104,7 @@ TEST(KktPartialSolve, GateClosesOnPerturbedPivots) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
     ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
 #ifdef USE_ACCELERATE_SPARSE

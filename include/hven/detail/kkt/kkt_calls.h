@@ -15,11 +15,11 @@ namespace hven::detail {
 /// @brief The SQP engine's linear configuration for its KKT factors.
 ///
 /// `threads` is the count SqpOptions::common.threads carries, handed down by
-/// whichever engine owns the factor (M6 W5 T8.8). It DEFAULTS TO 0, which is
-/// the value every caller passed before that task and which means "leave the
-/// backend's own default alone" -- so a default-argument call is byte-for-byte
-/// the configuration this factory has always produced, and the process-wide
-/// MKL_NUM_THREADS pin stays the reproducibility mechanism at 0. A positive
+/// whichever engine owns the factor (M6 W5 T8.8). 0 is the value every caller
+/// passed before that task and means "leave the backend's own default alone"
+/// -- so (0, kNever) is byte-for-byte the configuration this factory has
+/// always produced, and the process-wide MKL_NUM_THREADS pin stays the
+/// reproducibility mechanism at 0. A positive
 /// count is applied by SymmetricFactor at each backend call and undone
 /// afterward (symmetric_factor.h); it is never written to a process global.
 ///
@@ -27,11 +27,13 @@ namespace hven::detail {
 /// the SQP deliberately does NOT mirror the IPM's process-wide
 /// accelerate_set_num_threads() call, which is not restored on exit.
 ///
-/// `dense` is SqpOptions::linear.dense_factorization (M8 DN-1); the default,
-/// kNever, is the configuration this factory produced before the dense arm.
-inline hven::linear::SymmetricFactor::Options
-sqp_kkt_options(int threads = 0,
-                hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever) {
+/// `dense` is SqpOptions::linear.dense_factorization (M8 DN-1); kNever is the
+/// configuration this factory produced before the dense arm. Neither
+/// parameter has a default, so every caller states its policy: a factor that
+/// stays on the platform session at kAlways (the warm-start predictor's)
+/// says kNever where it is built.
+inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
+                                                              hven::linear::DensePolicy dense) {
     hven::linear::SymmetricFactor::Options o;
     o.decomposition = hven::linear::Decomposition::kLdlt;
     o.threads = threads;
@@ -58,8 +60,8 @@ sqp_kkt_options(int threads = 0,
 //     session, moving `session_id()` and breaking qp_engine.h's hot-start
 //     reuse condition (e) for every other holder of that handle.
 struct KktFactor {
-    /// @param threads The owning engine's thread count; 0 (the default, and
-    ///                what every pre-T8.8 construction site passed) leaves the
+    /// @param threads The owning engine's thread count; 0 (what every
+    ///                pre-T8.8 construction site passed) leaves the
     ///                backend's own default alone. THE SOLE WAY a thread count
     ///                reaches a walk/SSN-tier factor: `factor` is configured
     ///                once, here, through sqp_kkt_options(), and no library
@@ -76,8 +78,9 @@ struct KktFactor {
     ///                rather than an enumerated one.
     /// @param dense   The owning engine's dense-arm policy (M8 DN-1), passed
     ///                beside `threads` at every construction site the same way.
-    explicit KktFactor(int threads = 0,
-                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+    ///                No default for either: a construction site that leaves a
+    ///                factor on the platform session says kNever.
+    explicit KktFactor(int threads, hven::linear::DensePolicy dense)
         : factor(sqp_kkt_options(threads, dense)) {}
 
     hven::linear::SymmetricFactor factor;

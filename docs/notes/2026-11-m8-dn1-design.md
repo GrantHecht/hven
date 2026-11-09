@@ -512,6 +512,10 @@ Engine plumbing:
   construction sites in `qp_engine.cpp` (two `kkt`, `fresh`, three `local` factors including
   `reread_wrong_inertia`'s, `own`, `shifted`), the engine's member K0 and the SSN's `kkt_` pass the
   engine's policy, so no factor is left behind on the old default.
+- **The warm-start predictor's factor stays at `kNever` in DN-1** (`predictor.h`, its one
+  `KktFactor`, built with an explicit `kNever`): the policy reaches the walk, SSN and IPQP factors
+  only. `KktFactor` and `sqp_kkt_options()` take the policy with no default, so every construction
+  site states it (review C270 finding 4).
 - **`equality_basis.cpp` stays at `kNever` in DN-1.** Its two factors (Gram, certificate K) carry a
   rounding-error certificate built on Pardiso's perturbed-pivot evidence and its own pivot exponent
   (`equality_basis.cpp:205-234`, `:955-966`). Moving a certificate's evidence source is a separate

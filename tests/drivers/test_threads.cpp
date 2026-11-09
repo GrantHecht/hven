@@ -635,7 +635,7 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     EXPECT_EQ(ssn.num_threads(), 0) << "the SSN tier's one persistent factor";
     EXPECT_EQ(ipqp.num_threads(), 0) << "the IPQP tier's KKT factorization";
 
-    const hven::detail::KktFactor defaulted;
+    const hven::detail::KktFactor defaulted(0, hven::linear::DensePolicy::kNever);
     EXPECT_EQ(defaulted.factor.threads(), 0);
 
     // THE HOT HANDLE IS A WALK-TIER OBJECT. It carries the `BorderState` the

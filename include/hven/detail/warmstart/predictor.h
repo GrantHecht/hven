@@ -622,7 +622,10 @@ inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::Sqp
 
         Vec dx = Vec::Zero(n);
 
-        detail::KktFactor kkt(threads);
+        // On the platform session at every SqpLinearOptions::dense_factorization:
+        // the predictor's one factorization stays sparse in M8 DN-1 (the
+        // dense-arm plumbing reaches the walk/SSN/IPQP factors only).
+        detail::KktFactor kkt(threads, hven::linear::DensePolicy::kNever);
         detail::factorize_checked(kkt, k0.K); // THE one factorization
         SchurComplement schur(kkt, qopts, threads);
         std::vector<predictor_detail::PredictorBorder> borders;
