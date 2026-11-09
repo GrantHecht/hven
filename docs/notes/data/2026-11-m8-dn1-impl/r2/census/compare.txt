@@ -1,0 +1,7 @@
+MISMATCH f7_n1000_path_corrupted
+  base : f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12
+  fresh: f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12
+MISMATCH f7_n2000_path_corrupted
+  base : f7_n2000_path_corrupted,F7,2000,path,corrupted,1,WorkLimit,59745,60000,0,3,19872;20001;19872,9.843817033e-02
+  fresh: f7_n2000_path_corrupted,F7,2000,path,corrupted,1,WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02
+57 baseline cells, 57 fresh cells, 2 mismatches
