@@ -1,0 +1,150 @@
+M8 DN-1b -- the IPM's residual-ratio singularity guard on dense-arm factorizations -- DECLARATION (committed before
+the first leg; never edited afterwards; a failed leg is answered by a DECLARATION-r2 successor, this file and its
+outputs kept; criteria are never changed after data)
+================================================================================
+Spec        settler ruling C273 (DN-1b), ledger C271-C273; DN-1's evidence ../2026-11-m8-dn1-impl/ (DECLARATION-r2.txt,
+            DECLARATION-dn1legs.txt) whose instruments are copied here and re-pointed.
+Base        7784e4f59 (origin/m8).
+Code head   b9da286613685945069f9f8cdfbf12f8ef179283 (one commit on the base: feat(ipm) DN-1b). Evidence commits (this
+            directory) follow and touch no source.
+Arm A       7784e4f59, built by legs/prebuild.sh from its `git archive` export build-dn1be/armA-src (dep/eigen bc3b3987,
+            dep/fmt 407c905e) at build-dn1be/armA, Release, legs/build.sh's flags: corpus binary
+            build-dn1be/armAbin/hven_sqp_corpus sha256 512d4bb00a3d2c3dbd05d6e32b5250c5da365ff8c514dca979c44c965647e41e,
+            compile database build-dn1be/armA-compile_commands.json sha256
+            b269c0342139dbd0121d21ef8f10f4dc429de760e9f5fcc8fd438e13f7312533; build log build-dn1be/armA.build.log.
+Arm B       the code head: build-dn1be/rel (fresh, legs/build.sh, built at the code head with no source modification;
+            log build-dn1be/build-rel.out) -> frozen by runtime/run_all.sh to build-dn1be/armBbin, hven_sqp_corpus sha256
+            9e8e1d203ea35a79f935cab4d2d5a5a0bbe18ea8827e2ca27ecf11191077921e. build-dn1be/dbg fresh at the head (Debug).
+Lane binary the LOCAL hven-bench clone /home/ghecht/Projects/hven-bench-dn1 (never pushed), branch dn1b-legs = DN-1's
+            commit B 5751a59 + commit C (pin -> the code head, sl/hb_patch_c.py's one side column), built by
+            sl/hb_setup_c.sh against the pin's own install: build-dn1be/dn1bbin/hven_bench_cell sha256 c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2, MKL_NUM_THREADS=1 unless a leg says
+            otherwise. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44. Apple/Accelerate and Windows: UNOBSERVED.
+Scratch     build-dn1be/ (evidence trees, git-ignored); build-dn1b/ (dev trees: not evidence; the pre-flight refuses it).
+Instruments legs/ = ../2026-11-m8-dn1-impl/r2/legs/ (+ ../legs/prebuild.sh) copied and re-pointed (worktree dn1b,
+            evidence this directory, arm A AND arm B trees build-dn1be/, python root depth -1); amended criteria:
+            flags_check.py (P10), objects.sh (P16), failproof.sh (P14, rewritten for DN-1b's mutations). runtime/ =
+            ../2026-11-m8-dn1-impl/r2/runtime/ copied and re-pointed (runtime/DECLARATION.txt). sl/ =
+            ../2026-11-m8-dn1-impl/dn1legs/ dn1_cell.sh, s_run.sh, s_analyze.py (S1 amended below), t_run.sh (the frozen
+            lane binary via --binary), t_compare.py; NEW hb_setup_c.sh, hb_patch_c.py.
+
+THE CHANGE
+- KktFactorization::arm(): the FactorArm of the last factorization (recorded in record() and
+  record_failed_factorization(); kSparse after reconfigure()/release()).
+- After the IPM step solve, when arm() == kDense: rr = ||K x - rhs|| / ||rhs|| on the KKT buffer (upper triangle,
+  selfadjointView, member scratch). rr > kDenseResidualRatioSingular = 1e-5 (Ipopt's published residual_ratio_singular
+  value; Waechter & Biegler 2006 sec. 3.1; Ipopt options reference; no Ipopt source read) or non-finite -> the system is
+  treated as singular: the ladder's additive shifts are removed from the buffer and factor_impl re-runs with
+  base_singular (no base attempt; delta_c engaged by the existing rule when available, latching; the ladder entered at
+  max(Hpert0, inertia_correction_initial, increase * last total delta_w), then increase * total on a repeat), the
+  solve repeated; at most kDenseSingularAttempts = 3; an exhausted re-run ladder ends the loop and the existing
+  exhausted path takes it; after 3 the solution is used as it stands (the pre-guard behaviour). Hpert0, h_facs,
+  h_pert, h_pert_cum and (proximal mode) rho_k take the re-run's values.
+- After the least-squares multiplier solve (init_impl), when arm() == kDense and rr > 1e-5: delta_c =
+  dual_regularization(mu) once (its (1,1) block is the identity: only the constraint rows can be deficient),
+  refactorize, re-solve; still above (or a failed refactorization) -> the estimate is discarded (equality multipliers
+  stay zero; Waechter & Biegler 2006 sec. 3.6).
+- Solve sites NOT guarded: the PROBE predictor solve (non-default barrier mode; the same factorization the step guard
+  then checks; its output only selects mu) and the SOC correction solves (back-substitutions on the factorization the
+  step guard already accepted or repaired).
+- IpmResult::dense_residual_ratio_triggers (appended last): one per residual-ratio trigger, both sites. No trace key,
+  event, option or printed string changes. The threshold and the attempt count are documented constants
+  (detail/globalization/inertia_regularization.h), not options.
+
+THE DEV MEASUREMENTS THE EXPECTATIONS ARE DECLARED FROM (before this declaration; scratch outputs, not evidence)
+- Dev trees build-dn1b/rel and build-dn1b/dbg at the code head: "100% tests passed, 0 tests failed out of 3524" both.
+- Dev falsifier (legs/failproof.sh re-pointed to build-dn1b, scratch): head 9 DenseArmEngines tests OK; off fails exactly
+  IpmResidualGuardRecoversANumericallySingularDenseFactor (dense status 5 vs sparse 0, f 5.8e31); ungated fails exactly
+  IpmResidualGuardIsNeverEnteredOnSparseFactorizations: FAILPROOF_AS_DECLARED.
+- Dev roster (the dev install of the code head behind a scratch copy of the lane at commit B + hb_patch_c.py; all 238
+  DN-0 cells, default and dense-default, MKL=1, core 2): S1 212/215, misses exactly IPM ALLINITC, IPM CRESC100, SQP HS91;
+  IPM ACOPP30 optimal 24 its under both (objective rel 3.4e-17); triggers kAlways ACOPP30 1, CRESC50 7, every other cell
+  0; kNever 0 on all 119 IPM rows. S2 moves as DN-1's (IPM BURKEHAN, LEWISPOL; SQP ALLINITC, CRESC100, CRESC50, MESH).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults, DensePolicy::kNever)
+--------------------------------------------------------------------------------
+D0  THE CHANGE above.
+D1  ENGINE AT kNever: NO MOVERS. Every counter, status, iterate column and residual is EXACT against arm A: replay x
+    walk/ssn/ipm (P3), interior unmoved and promoted (P12), the census (P5, PF-1's two declared movers only), the runtime
+    gate's counter identity in all four modes (P11). At kNever the guard branch is never entered (arm() is kSparse on
+    every factorization); the added work per IPM factorization is one stored enum and one stored bool, per step solve
+    one enum compare.
+D2  API: IpmResult::dense_residual_ratio_triggers (name for owner approval); KktFactorization::arm() (detail).
+D3  TESTS: 3522 -> 3524: DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor,
+    DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (hven_drivers_tests).
+D4  TRACE: no change.
+D5  OBJECTS: the same object set; every ./src/linear/ object BYTE-IDENTICAL; the differing objects (IPM/interior TUs
+    and every TU including ipm_solver_types.h, ipm_solver_impl.h, kkt_factorization.h or
+    inertia_regularization.h) are listed, not judged.
+D6  COMPILE FLAGS: no TU differs, none added or removed.
+D7  No iparm change and no IPARM-SURFACE label.
+D8  INSTALL SMOKE and export contract unchanged.
+D9  ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A (no new file mentions USE_ACCELERATE_SPARSE).
+
+PROOFS AND PASS CRITERIA, THE N SET (legs/; each its own script under the box lock; criteria as DN-1's
+DECLARATION-r2.txt unless stated)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above: ARM_A_OK.
+P1  suites: ctest Release (build-dn1be/rel) and Debug (build-dn1be/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3524" in both (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each.
+P4  iparm: BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations (legs/iparm.sh).
+P5  walk census, 57 rows, on the frozen arm B binary (legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: legs/census_check.py with
+    ../2026-11-m8-dn1-impl/census-movers.csv (PF-1's two rows, read only) prints CENSUS_AS_DECLARED.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass.
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (fresh build-dn1be/offref, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF) then ctest: build rc
+    0, "0 tests failed out of 3524" (legs/offref.sh); AND arm B's Release warning set equals arm A's: legs/warnings.sh
+    on build-dn1be/armA.build.log vs build-dn1be/build-rel.out prints WARNINGS_SET_EQUAL.
+P9  Accelerate syntax sweep (legs/misc.sh accelerate): PASS_A_AS_DECLARED. Pass B reported. macOS CI is the settler's.
+P10 compile-flags diff (legs/flags.sh, legs/flags_check.py): FLAGS_AS_DECLARED (D6).
+P11 runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in
+    [0.995, 1.005] in every mode; perf record period 400000.
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT; promoted EXACT.
+P14 THE FALSIFIER (legs/failproof.sh): FAILPROOF_AS_DECLARED (head: every DenseArmEngines test passes; guard disabled:
+    exactly ...RecoversANumericallySingularDenseFactor fails, the dense status differing from the sparse one; guard
+    ungated: exactly ...IsNeverEnteredOnSparseFactorizations fails).
+P16 OBJECTS (legs/objects.sh): OBJECTS_AS_DECLARED (D5).
+PRE-FLIGHT (legs/chain1.sh, fail closed): every script under legs/ and runtime/ names this worktree, build-dn1be/ and
+this directory only (build-dn1b/, DN-1's trees and other worktrees refused), except the read-only pins.
+ORDER: the runtime gate alone first (runtime/run_all.sh 9e8e1d203ea35a79f935cab4d2d5a5a0bbe18ea8827e2ca27ecf11191077921e), then
+`ARMB_SHA=9e8e1d203ea35a79f935cab4d2d5a5a0bbe18ea8827e2ca27ecf11191077921e CODE_HEAD=b9da286613685945069f9f8cdfbf12f8ef179283 bash legs/chain1.sh > chain/chain1.out`.
+
+THE S AND T LEGS (sl/; each its own flock)
+--------------------------------------------------------------------------------
+S   flock /tmp/box-build.lock bash sl/s_run.sh sl/out/s c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd
+    DN-0's 238 cells (../2026-11-m8-dn0/raw/roster.tsv), per cell `default` (kNever) then `dense-default` (kAlways), the
+    same binary, THREADS=1 (MKL_NUM_THREADS=1, core 2), CAP 300 s; sl/s_analyze.py -> sl/out/s/s-analysis.txt.
+S1  both engines, kAlways vs kNever on the same build: every kNever success (optimal or acceptable) keeps its status and
+    objective within 1e-8*max(1,|f|) -- EXCEPT the movers DECLARED IN ADVANCE, each with its argument (ledger C273):
+      IPM CRESC100 (sd-hven-ipm-CRESC100): trajectory sensitivity; the dense arm is the more accurate arm (solve
+        residuals 1e-12..1e-16 vs Pardiso 1e-9..7.5e-6); optimal -> acceptable in DN-1 with the guard not firing.
+      IPM ALLINITC (sd-hven-ipm-ALLINITC): a Pardiso-perturbation artifact in the kNever run; dense is better
+        (acceptable -> optimal in DN-1).
+      SQP HS91 (sd-hven-sqp-HS91): a path difference within tolerance (both optimal, objective rel 1.30e-8 vs the 1e-8
+        bar); the SQP is untouched by DN-1b.
+    IPM ACOPP30 (sd-hven-ipm-ACOPP30) MUST keep status and objective. Any other mover = NOT MET.
+    Owner-accepted status rule: successes keep status + objective; moves among non-success cells reported in full (S2).
+    Verdict line S1_AS_DECLARED / S1_NOT_MET.
+S2  every kNever non-success cell's kAlways status reported (not gating).
+S3  per-cell counters both arms, as DN-1's S3 plus dn1b_dense_residual_ratio_triggers (reported).
+TRIG trigger counts per IPM cell, both arms, reported; kNever must read 0 on every IPM row: TRIGGERS_KNEVER_ZERO.
+T   flock /tmp/box-build.lock bash sl/t_run.sh sl/out/t c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd b9da286613685945069f9f8cdfbf12f8ef179283
+    CUTEst TRAIN (23, hven-sqp, default options = kNever, PF-1's invocation, the frozen lane binary via --binary):
+    >= 16/23 optimal and no cell lost against PF-1's reading (hven-bench runs/2026-11-m8-pf1-train/default): T_PASS.
+    HOLDOUT is never run.
+SQP EXPOSURE (C273's measurement; scratch, reported, not a criterion): an env-gated probe in a scratch copy of the code
+    head (dense_session.cpp: every dense-arm solve's residual ratio against the matrix the session factorized; never
+    committed), the 238 cells at dense-default. Dev reading before this declaration: SQP 16/119 cells have dense solves
+    with rr > 1e-5 (296299 of 2775708 solves); every kNever success among them keeps status and objective under kAlways;
+    the extreme ratios (MESH 4.0e67, MSS1 1.2e48, HS90 7.1) are in kNever non-success cells except HS90 (optimal both,
+    one solve). IPM: 6 over-threshold solves in ACOPP30 (1) and CRESC50 (5) -- the guard's 8 triggers; the two extra
+    CRESC50 triggers are borderline (session-copy rr 9.1e-6 / 5.5e-6, buffer rr 1.6e-5 / 1.0e-5: the residual of an
+    ill-conditioned solve computed in two summation orders).
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; `pgrep -a hven_bench_cell` empty before the lock (own
+command) and PGREP_EMPTY inside; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid;
+FOREGROUND_START/END.
+ON FAIL: the failing leg's outputs are committed; a failure is answered by DECLARATION-r2, never by editing this file.
