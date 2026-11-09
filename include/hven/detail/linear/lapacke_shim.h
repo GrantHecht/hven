@@ -10,11 +10,13 @@
 // pointer) with no automatic workspace sizing, so `dsytrf_` needs the
 // caller-side workspace query (`lwork = -1`, read back `work[0]`) that
 // `LAPACKE_dsytrf` performs internally on MKL. This header implements ONLY
-// the two entry points `DenseSymmetricFactor` uses --
-// `LAPACKE_dsytrf`/`LAPACKE_dsytrs`, column-major layout only -- and the two
-// caller-workspace `_work` forms the dense arm uses, so the
-// dense factor/solve logic itself needs no `#ifdef` branching once these two
-// names resolve, whether to MKL's own LAPACKE header or to this shim.
+// four entry points, column-major layout only, for two call sites:
+// `LAPACKE_dsytrf`/`LAPACKE_dsytrs` for `DenseSymmetricFactor`
+// (dense_symmetric_factor.cpp), and the caller-workspace
+// `LAPACKE_dsytrf_work`/`LAPACKE_dsytrs_work` for the dense arm
+// (dense_session.cpp). Neither call site needs `#ifdef` branching in its
+// factor/solve logic once these four names resolve, whether to MKL's own
+// LAPACKE header or to this shim.
 //
 // hven's build defines ACCELERATE_NEW_LAPACK project-wide on Apple, next to
 // USE_ACCELERATE_SPARSE (cmake/hven_sparse_backend.cmake). It selects
@@ -27,10 +29,10 @@
 // compile-time diagnostic here rather than a confusing error at the first
 // call site.
 //
-// Both functions follow LAPACKE's error-code contract (0 success, -i illegal
-// argument i, +i exact zero pivot at i) and never print or throw; the call
-// site in dense_symmetric_factor.cpp folds nonzero info values into thrown
-// exceptions, which is where hven's error-handling rules are satisfied.
+// All four follow LAPACKE's error-code contract (0 success, -i illegal
+// argument i, +i exact zero pivot at i) and never print or throw; the two
+// call sites fold nonzero info values into thrown exceptions or a reported
+// fallback, which is where hven's error-handling rules are satisfied.
 
 #ifndef ACCELERATE_NEW_LAPACK
 #error "lapacke_shim.h requires ACCELERATE_NEW_LAPACK (see cmake/hven_sparse_backend.cmake)"

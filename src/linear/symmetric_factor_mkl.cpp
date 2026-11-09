@@ -699,6 +699,21 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
         }
     }
 
+    // THE DENSE-ARM DISPATCH (here through factorize_dense() and the dense
+    // branches of share()/adopt()/Factorization) is byte-identical in
+    // symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp: mirror
+    // every edit in both until the registered shared dispatch TU lands.
+    //
+    // An engine adopted from a platform-session handle of a dense-selected
+    // pattern (the emitter's fallback) carries the policy but no dense
+    // session: it builds one here, once, so it attempts the dense arm as the
+    // emitter would. Seeded with this engine's epoch; not an analyze().
+    if (!dense_ && detail::dense_selected(opts_, static_cast<Index>(A.rows()))) {
+        validate_upper_csr(A);
+        auto dense = std::make_shared<detail::DenseSession>(opts_, epoch());
+        dense->analyze(A);
+        dense_ = std::move(dense);
+    }
     if (dense_) {
         return factorize_dense(A);
     }
@@ -767,10 +782,35 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
     // reused iff it took the engine's previous factorization (its epoch is
     // then the engine's); otherwise a fresh one is analyzed on this pattern,
     // seeded with the engine's epoch, so the epoch never runs backwards.
+    //
+    // A fork whose symbolic phase fails is reported, not thrown (the
+    // factorize() contract): kBackendError, arm kSparse, backend_code
+    // kDenseFallbackAnalyzeFailed, counted as a fallback. session_ and
+    // dense_active_ stay as they were, and neither holds usable numerics
+    // (a fork happens only when the dense session just lost its numerics,
+    // or when there is no platform session), so solves throw and the epoch
+    // does not advance, as on any failed factorize().
     if (!session_ || dense_active_) {
         auto session =
             std::make_shared<detail::FactorSession>(config_from(dense_->options()), epoch());
-        backend_call([&] { session->analyze(A); });
+        try {
+#ifdef HVEN_TESTING
+            // The same analyze() injector as the public path: raised instead
+            // of the fork's symbolic phase, before session_ is replaced.
+            if (detail::testing::AnalyzeFaultInjector::active) {
+                const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
+                throw hven::BackendError(fmt::format(
+                    "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
+            }
+#endif
+            backend_call([&] { session->analyze(A); });
+        } catch (const hven::BackendError &) {
+            ++counters_.factorize_count;
+            ++counters_.dense_fallback_count;
+            outcome.status = FactorizeOutcome::Status::kBackendError;
+            outcome.backend_code = kDenseFallbackAnalyzeFailed;
+            return outcome;
+        }
         session_ = std::move(session);
     }
     dense_active_ = false;
@@ -881,8 +921,9 @@ std::shared_ptr<const Factorization> SymmetricFactor::share() {
         return std::make_shared<const Factorization>(Factorization::PrivateTag{}, dense_,
                                                      pattern_hash_, dense_->epoch());
     }
-    return std::make_shared<const Factorization>(Factorization::PrivateTag{}, session_,
-                                                 pattern_hash_, session_->epoch());
+    return std::make_shared<const Factorization>(
+        Factorization::PrivateTag{}, session_, pattern_hash_, session_->epoch(),
+        opts_.dense_factorization, opts_.max_dense_dimension);
 }
 
 // The session that took the most recent successful factorization (or, before
@@ -942,6 +983,11 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     opts.conditional_reproducibility_threads = cfg.cnr_threads;
     opts.collect_factor_mflops = cfg.collect_factor_mflops;
 
+    // Not in the session's configuration: carried on the handle (a
+    // dense-selected pattern's fallback session, or a sparse-selected one).
+    opts.dense_factorization = handle->dense_factorization_;
+    opts.max_dense_dimension = handle->max_dense_dimension_;
+
     SymmetricFactor adopted(opts);
     adopted.session_ = session;
     adopted.pattern_hash_ = handle->pattern_hash_;
@@ -991,8 +1037,11 @@ void SymmetricFactor::require_solvable(const char *what) const {
 // Factorization
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
-                             std::uint64_t pattern_hash, std::uint64_t epoch)
-    : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch) {}
+                             std::uint64_t pattern_hash, std::uint64_t epoch,
+                             DensePolicy dense_factorization,
+                             std::optional<Index> max_dense_dimension)
+    : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch),
+      dense_factorization_(dense_factorization), max_dense_dimension_(max_dense_dimension) {}
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                              std::uint64_t pattern_hash, std::uint64_t epoch)

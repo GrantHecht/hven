@@ -177,6 +177,49 @@ TEST(DenseArmFallbackFault, AFallbackBackendFailureSurfacesAsTheSparseArmsError)
     EXPECT_EQ(ok.arm, hven::linear::FactorArm::kDense);
 }
 
+// The dense arm's fallback fork whose symbolic phase fails (review C270 finding 3): reported as
+// kBackendError with arm kSparse and backend_code kDenseFallbackAnalyzeFailed, counted as a
+// fallback, never thrown. AnalyzeFaultInjector raises in place of the fork's phase 11 before the
+// fork is committed, the same faithful scope as on the public analyze().
+TEST(DenseArmFallbackFault, AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    SymmetricFactor factor{o};
+    Mat singular = Mat::Zero(3, 3);
+    singular(0, 0) = 1.0;
+    singular(0, 1) = singular(1, 0) = 1.0;
+    singular(1, 1) = 1.0; // rows 0 and 1 equal, row 2 zero: exactly singular
+    const SpMatRM A = upper_csr(singular);
+    factor.analyze(A); // the dense arm's analyze() reads no injector
+    {
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = true;
+        FactorizeOutcome outcome;
+        EXPECT_NO_THROW(outcome = factor.factorize(A));
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = false;
+        EXPECT_EQ(outcome.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(outcome.backend_code, hven::linear::kDenseFallbackAnalyzeFailed);
+        EXPECT_EQ(outcome.arm, hven::linear::FactorArm::kSparse);
+        EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kUnavailable);
+    }
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().dense_fallback_count, 1);
+    EXPECT_EQ(factor.counters().dense_factorize_count, 0);
+    EXPECT_EQ(factor.epoch(), 0U);
+    EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kUnavailable);
+    Vec x(3);
+    EXPECT_THROW(factor.solve(Vec::Ones(3), x), std::logic_error);
+
+    // Disarmed, the same call forks and the platform session takes it.
+    const FactorizeOutcome again = factor.factorize(A);
+    EXPECT_EQ(again.arm, hven::linear::FactorArm::kSparse);
+    EXPECT_EQ(factor.counters().dense_fallback_count, 2);
+    EXPECT_EQ(factor.counters().factorize_count, 2);
+    if (again.status == FactorizeOutcome::Status::kOk) {
+        EXPECT_EQ(factor.epoch(), 1U);
+    }
+}
+
 #if !defined(__APPLE__)
 
 // The MKL factorize-failure epoch test the factorize-failure disclosure

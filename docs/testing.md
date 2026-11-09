@@ -337,6 +337,13 @@ where it does:
   ordinary one. Nothing about an existing session is touched, because nothing
   about an existing session has been replaced yet at that point.
 
+  It is read at a second site in each adapter (M8 DN-1, review C270 finding 3):
+  the dense arm's fallback FORK, in place of the fork's symbolic phase and before
+  the fork replaces anything. Faithful there for the same reason; it is the only
+  way to reach that branch, which `factorize()` reports as `kBackendError` with
+  `backend_code == kDenseFallbackAnalyzeFailed` instead of throwing
+  (`DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown`).
+
 - **`FactorizeFaultInjector` (both backends) is faithful in ONE scenario only:
   a session that has never previously factorized successfully.** The injector
   SKIPS the real `session_->factorize(A)` call entirely rather than

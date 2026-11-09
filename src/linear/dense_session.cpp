@@ -76,10 +76,13 @@ DenseInertiaCount dense_block_walk(const double *a, Index n, const int *ipiv) {
         } else {
             // A successful dsytrf never reports a 0 pivot entry nor opens a 2x2
             // block on the last index; either would read past the factors.
-            if (ipiv[k] == 0 || k + 1 >= n) {
+            // A 2x2 block is marked by equal negative entries on both of its
+            // indices; anything else is not dsytrf's output either.
+            if (ipiv[k] == 0 || k + 1 >= n || ipiv[k + 1] != ipiv[k]) {
                 throw std::logic_error(fmt::format(
-                    "SymmetricFactor: malformed dsytrf pivot data at index {} of {} (ipiv={})", k,
-                    n, ipiv[k]));
+                    "SymmetricFactor: malformed dsytrf pivot data at index {} of {} (ipiv={}, "
+                    "next={})",
+                    k, n, ipiv[k], k + 1 < n ? ipiv[k + 1] : 0));
             }
             // uplo 'U': the block's off-diagonal entry is D(k, k+1).
             Block2x2 block;
@@ -189,7 +192,9 @@ bool DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
     }
     positive_ = counts.positive;
     negative_ = counts.negative;
-    epoch_ = next_epoch;
+    // Never back, never the same: a co-owner may have advanced this shared
+    // session past the epoch the calling engine knows (see the header).
+    epoch_ = std::max(epoch_ + 1, next_epoch);
     has_numerics_ = true;
     return true;
 }
@@ -248,6 +253,14 @@ SolveInfo run_dense_solve(const DenseSession &session, ConstMatRef RHS, MatRef X
         throw std::invalid_argument(
             fmt::format("SymmetricFactor::{}: solution outer stride {} is below its {} rows", what,
                         ldb, X.rows()));
+    }
+    // Both reach LAPACK as lapack_int; neither may narrow.
+    constexpr auto kLapackMax = static_cast<Index>(std::numeric_limits<lapack_int>::max());
+    if (static_cast<Index>(X.cols()) > kLapackMax || ldb > kLapackMax) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::{}: {} right-hand sides with leading dimension {} exceed LAPACK's "
+            "integer ({})",
+            what, X.cols(), ldb, kLapackMax));
     }
     X = RHS;
     session.solve(X.data(), static_cast<Index>(X.cols()), ldb);

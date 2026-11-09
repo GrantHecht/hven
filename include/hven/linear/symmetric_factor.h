@@ -36,6 +36,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -183,6 +184,12 @@ struct FactorEvidence {
 // kSparse for the platform session (Pardiso or Accelerate), including every
 // dense-arm fallback; kDense for a factorization the dense arm took.
 enum class FactorArm { kSparse, kDense };
+
+// FactorizeOutcome::backend_code when a dense-arm fallback could not analyze
+// the fresh platform session it forks (its symbolic phase failed): the
+// platform's own code survives only in the message hven discards there.
+// INT_MIN, a value neither backend returns as a status.
+inline constexpr int kDenseFallbackAnalyzeFailed = std::numeric_limits<int>::min();
 
 // The result of one numeric factorization. A backend error is reported here,
 // not thrown: the caller decides whether a failed factorization is fatal or
@@ -800,6 +807,14 @@ class SymmetricFactor {
     // invalidates the current numerics: solves throw until a factorization
     // succeeds, and the epoch does not advance.
     //
+    // On a dense-selected pattern, a dense attempt that finds the matrix
+    // exactly singular is retaken by the platform session in this same call
+    // (FactorizeOutcome::arm == kSparse). When that needs a fresh platform
+    // session and its symbolic phase fails, the failure is reported, not
+    // thrown: kBackendError, arm kSparse, backend_code
+    // kDenseFallbackAnalyzeFailed, with factorize_count and
+    // dense_fallback_count each advanced by one, like any other fallback.
+    //
     // `check` decides whether the pattern guard runs at all; see
     // PatternCheck for what passing kAssumeAnalyzed takes on. The default is
     // kVerify, so an unqualified factorize(A) is exactly what it always was.
@@ -956,6 +971,15 @@ class SymmetricFactor {
     // after this factorization was computed, not the count the session was
     // analyzed with.
     //
+    // The dense-arm policy (dense_factorization, max_dense_dimension) is the
+    // emitter's on either kind of handle: a dense session stores its Options,
+    // and a handle on the platform session carries the emitter's policy. An
+    // engine adopted from a platform-session handle whose pattern its policy
+    // selects for the dense arm (the emitter's fallback session) builds its
+    // own dense session at its first factorize() -- not counted as an
+    // analyze(), like a fallback fork -- and attempts the dense arm there
+    // exactly as the emitter would.
+    //
     // Throws std::invalid_argument if the handle is null.
     static SymmetricFactor adopt(std::shared_ptr<const Factorization> handle);
 
@@ -1014,9 +1038,14 @@ class Factorization {
     friend class SymmetricFactor;
 
   public:
+    // A handle on the platform session's numerics. `dense_factorization` and
+    // `max_dense_dimension` are the emitter's dense-arm policy, which adopt()
+    // gives the adopter (the platform session's configuration does not hold
+    // them).
     Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
-                  std::uint64_t pattern_hash, std::uint64_t epoch);
-    // A handle on dense numerics.
+                  std::uint64_t pattern_hash, std::uint64_t epoch, DensePolicy dense_factorization,
+                  std::optional<Index> max_dense_dimension);
+    // A handle on dense numerics (the dense session stores its Options whole).
     Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                   std::uint64_t pattern_hash, std::uint64_t epoch);
     ~Factorization();
@@ -1068,6 +1097,9 @@ class Factorization {
     std::shared_ptr<detail::DenseSession> dense_;
     std::uint64_t pattern_hash_ = 0;
     std::uint64_t epoch_ = 0;
+    // The emitter's dense-arm policy, on a platform-session handle only.
+    DensePolicy dense_factorization_ = DensePolicy::kNever;
+    std::optional<Index> max_dense_dimension_;
 };
 
 } // namespace hven::linear

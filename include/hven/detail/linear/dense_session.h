@@ -10,8 +10,11 @@
 // it; no public header includes this one.
 //
 // Every buffer is sized at analyze(); factorize() and solve() allocate
-// nothing. The epoch is set by the adapter (engine-wide, monotone across the
-// dense arm and the platform fallback session).
+// nothing. The epoch is proposed by the adapter (engine-wide, monotone across
+// the dense arm and the platform fallback session) and committed by the
+// session as the larger of that proposal and its own epoch + 1, so a session
+// that share()/adopt() co-owners advance in turn never rewinds and never
+// repeats an epoch: every (session_id, epoch) names one set of numerics.
 
 #include <cstdint>
 #include <vector>
@@ -52,8 +55,10 @@ class DenseSession {
     // CSR). Throws std::invalid_argument per validate_dense_dimension().
     void analyze(const SpMatRM &A);
 
-    // Densify A and factorize. Returns true and commits `next_epoch` when the
-    // dense arm takes the factorization; returns false, with no numerics,
+    // Densify A and factorize. Returns true and commits
+    // max(epoch() + 1, next_epoch) when the dense arm takes the factorization
+    // (an engine on its fallback session while a co-owner advanced this one
+    // proposes a `next_epoch` at or below epoch()); returns false, with no numerics,
     // when it is exactly singular (dense_block_walk's `singular`, or dsytrf
     // info > 0). Throws std::invalid_argument when A's dimension or entry
     // count is not the analyzed pattern's, hven::BackendError on an illegal

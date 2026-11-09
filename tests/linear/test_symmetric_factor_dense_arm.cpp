@@ -13,9 +13,11 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Eigenvalues>
@@ -327,6 +329,14 @@ TEST(DenseArmBlockWalk, MalformedPivotDataThrows) {
     std::vector<int> ipiv = {-1}; // a 2x2 block opening on the last index
     EXPECT_THROW(hven::linear::detail::dense_block_walk(a.data(), 1, ipiv.data()),
                  std::logic_error);
+    // A 2x2 block whose two entries differ is not dsytrf's marking.
+    std::vector<double> b = {2.0, 1.0, 1.0, -1.0};
+    std::vector<int> ipiv2 = {-1, -2};
+    EXPECT_THROW(hven::linear::detail::dense_block_walk(b.data(), 2, ipiv2.data()),
+                 std::logic_error);
+    std::vector<int> ipiv3 = {-2, 2};
+    EXPECT_THROW(hven::linear::detail::dense_block_walk(b.data(), 2, ipiv3.data()),
+                 std::logic_error);
 }
 
 // ---------------------------------------------------------------------------------------
@@ -476,6 +486,151 @@ TEST(DenseArm, ShareAndAdoptOnDenseNumerics) {
     ASSERT_EQ(h3_src.factorize(upper_csr(m2)).arm, FactorArm::kDense);
     SymmetricFactor h3 = SymmetricFactor::adopt(h3_src.share());
     EXPECT_THROW(h3.factorize(A), std::invalid_argument);
+}
+
+// T5 (review C270 finding 1): the shared dense session's epoch never rewinds and never repeats
+// under co-ownership. The adopter falls back (its own view moves to its fallback session), the
+// emitter then advances the shared dense session twice, and the adopter goes dense again
+// proposing an epoch the session has already committed: the session takes the next one.
+TEST(DenseArm, SharedDenseEpochNeverRewindsUnderCoOwnership) {
+    Mat good(2, 2);
+    good << 2.0, 1.0, 1.0, -1.0;
+    const SpMatRM G = upper_csr(good);
+    SpMatRM G2 = G; // same pattern, different numerics
+    G2.coeffRef(0, 0) = 5.0;
+    SpMatRM B = G; // exactly singular on the same pattern
+    B.coeffRef(0, 0) = 1.0;
+    B.coeffRef(0, 1) = 0.0;
+    B.coeffRef(1, 1) = 0.0;
+
+    std::set<std::pair<std::uint64_t, std::uint64_t>> pairs; // every (session_id, epoch) seen
+    const auto record = [&pairs](const SymmetricFactor &f) {
+        EXPECT_TRUE(pairs.emplace(f.session_id(), f.epoch()).second)
+            << "(session " << f.session_id() << ", epoch " << f.epoch() << ") named twice";
+    };
+
+    SymmetricFactor e(dense_options());
+    e.analyze(G);
+    ASSERT_EQ(e.factorize(G).arm, FactorArm::kDense); // shared dense session, epoch 1
+    record(e);
+    const std::uint64_t dense_id = e.session_id();
+    SymmetricFactor a = SymmetricFactor::adopt(e.share());
+
+    ASSERT_EQ(a.factorize(B).arm, FactorArm::kSparse); // the adopter falls back (fork)
+    record(a);
+    const std::uint64_t a_prior = a.epoch();
+    EXPECT_NE(a.session_id(), dense_id);
+
+    ASSERT_EQ(e.factorize(G).arm, FactorArm::kDense);
+    record(e);
+    ASSERT_EQ(e.factorize(G).arm, FactorArm::kDense);
+    record(e);
+    const std::uint64_t e_prior = e.epoch();
+    auto h_e = e.share(); // G's numerics at e_prior
+
+    ASSERT_EQ(a.factorize(G2).arm, FactorArm::kDense); // proposes a_prior + 1 <= e_prior
+    EXPECT_LE(a_prior + 1, e_prior);
+    record(a);
+    EXPECT_EQ(a.session_id(), dense_id);
+    EXPECT_GT(a.epoch(), e_prior);
+    EXPECT_GT(a.epoch(), a_prior);
+    EXPECT_EQ(e.epoch(), a.epoch()); // the emitter reads the shared session
+
+    // The handle on G's numerics names (dense_id, e_prior), which the session no longer holds:
+    // its adopter is refused rather than handed G2's numerics under G's identity.
+    SymmetricFactor stale = SymmetricFactor::adopt(h_e);
+    Vec x(2);
+    EXPECT_THROW(stale.solve(Vec::Ones(2), x), std::logic_error);
+    // The current handle solves G2.
+    SymmetricFactor fresh = SymmetricFactor::adopt(a.share());
+    fresh.solve(Vec::Ones(2), x);
+    EXPECT_LE((dense_of(G2) * x - Vec::Ones(2)).lpNorm<Eigen::Infinity>(), 1e-14);
+}
+
+// T5 (review C270 finding 2): adopt() of a handle on the platform session keeps the emitter's
+// dense-arm policy. A dense-selected pattern's fallback handle gives an adopter that attempts
+// the dense arm at its first factorize(); kAuto's threshold travels with it.
+TEST(DenseArm, AdoptOfAFallbackHandleKeepsTheDensePolicy) {
+    Mat good(2, 2);
+    good << 2.0, 1.0, 1.0, -1.0;
+    const SpMatRM G = upper_csr(good);
+    SpMatRM B = G;
+    B.coeffRef(0, 0) = 1.0;
+    B.coeffRef(0, 1) = 0.0;
+    B.coeffRef(1, 1) = 0.0;
+
+    SymmetricFactor e(dense_options());
+    e.analyze(G);
+    ASSERT_EQ(e.factorize(B).arm, FactorArm::kSparse); // the emitter's fallback session
+    auto h = e.share();
+    SymmetricFactor a = SymmetricFactor::adopt(h);
+    EXPECT_EQ(a.session_id(), h->session_id());
+    EXPECT_EQ(a.epoch(), h->epoch());
+
+    const FactorizeOutcome od = a.factorize(G);
+    EXPECT_EQ(od.arm, FactorArm::kDense);
+    EXPECT_EQ(a.counters().analyze_count, 0);
+    EXPECT_EQ(a.counters().dense_factorize_count, 1);
+    EXPECT_GT(a.epoch(), h->epoch());
+    EXPECT_NE(a.session_id(), h->session_id());
+    Vec x(2);
+    a.solve(Vec::Ones(2), x);
+    EXPECT_LE((good * x - Vec::Ones(2)).lpNorm<Eigen::Infinity>(), 1e-14);
+
+    // Its next singular attempt falls back like the emitter's would.
+    EXPECT_EQ(a.factorize(B).arm, FactorArm::kSparse);
+    EXPECT_EQ(a.counters().dense_fallback_count, 1);
+    EXPECT_EQ(a.counters().factorize_count, 2);
+
+    // kAuto with max_dense_dimension = 1: the 2x2 pattern is sparse-selected, and the adopter of
+    // its handle selects a 1x1 pattern for the dense arm, as the emitter would.
+    SymmetricFactor::Options auto_opts;
+    auto_opts.dense_factorization = DensePolicy::kAuto;
+    auto_opts.max_dense_dimension = 1;
+    SymmetricFactor e2(auto_opts);
+    e2.analyze(G);
+    ASSERT_EQ(e2.factorize(G).arm, FactorArm::kSparse);
+    SymmetricFactor a2 = SymmetricFactor::adopt(e2.share());
+    EXPECT_EQ(a2.factorize(G).arm, FactorArm::kSparse);
+    Mat one(1, 1);
+    one << -3.0;
+    a2.analyze(upper_csr(one));
+    EXPECT_EQ(a2.factorize(upper_csr(one)).arm, FactorArm::kDense);
+}
+
+// Review C270 test gap: Factorization::solve(Mat) and Factorization::inertia() on a dense
+// handle, and both after a co-owner's exactly singular attempt emptied the shared session.
+TEST(DenseArm, HandleSolveAndInertiaOnDenseNumerics) {
+    Mat m(3, 3);
+    m << 4.0, 1.0, 0.0, 1.0, -2.0, 1.0, 0.0, 1.0, 3.0;
+    const SpMatRM A = upper_csr(m);
+    SymmetricFactor f(dense_options());
+    f.analyze(A);
+    ASSERT_EQ(f.factorize(A).arm, FactorArm::kDense);
+    auto h = f.share();
+
+    Mat rhs(3, 2);
+    rhs << 1.0, -2.0, 0.5, 3.0, -1.0, 0.25;
+    Mat X(3, 2);
+    h->solve(rhs, X);
+    EXPECT_LE((m * X - rhs).lpNorm<Eigen::Infinity>(), 1e-14);
+
+    const InertiaEvidence ev = h->inertia();
+    EXPECT_EQ(ev.state, InertiaEvidence::State::kObserved);
+    EXPECT_EQ(ev.positive, 2);
+    EXPECT_EQ(ev.negative, 1);
+    EXPECT_EQ(ev.zero, 0);
+    EXPECT_FALSE(ev.zero_is_derived);
+    EXPECT_FALSE(ev.perturbed_pivots.has_value());
+
+    SymmetricFactor g = SymmetricFactor::adopt(h);
+    SpMatRM S = A;
+    for (Index k = 0; k < S.nonZeros(); ++k) {
+        S.valuePtr()[k] = 0.0;
+    }
+    ASSERT_EQ(g.factorize(S).arm, FactorArm::kSparse);
+    EXPECT_EQ(h->inertia().state, InertiaEvidence::State::kUnavailable);
+    EXPECT_THROW(h->solve(rhs, X), hven::BackendError);
 }
 
 // ---------------------------------------------------------------------------------------
