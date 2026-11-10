@@ -1,0 +1,32 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T13:36:58-05:00
+gate sites 2 loop arm-break sites 1
+3954c3954
+<         if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>         if (false) {
+4964c4964
+<     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>     if (false) {
+off rc=1
+gate sites 2 loop arm-break sites 1
+2144,2145d2143
+<         if (this->kkt_sol_.arm() != hven::linear::FactorArm::kDense)
+<             break;
+3954c3952
+<         if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>         if (true) {
+4964c4962
+<     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>     if (true) {
+ungated rc=1
+head rc=0
+head   : 9 tests, failed none
+off    : 9 tests, failed ['DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor']
+ungated: 9 tests, failed ['DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations']
+off: dense status differs from sparse: True
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-09T13:39:03-05:00

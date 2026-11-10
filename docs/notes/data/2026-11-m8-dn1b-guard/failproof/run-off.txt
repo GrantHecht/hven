@@ -1,0 +1,48 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/fp-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmEngines.*
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+/home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/fp-src-off/tests/drivers/test_dense_arm_engines.cpp:268: Failure
+Expected equality of these values:
+  dense.status
+    Which is: 4-byte object <05-00 00-00>
+  sparse.status
+    Which is: 4-byte object <00-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/fp-src-off/tests/drivers/test_dense_arm_engines.cpp:269: Failure
+The difference between dense.f and sparse.f is 5.8397454559568204e+31, which exceeds 1e-8 * std::max(1.0, std::abs(sparse.f)), where
+dense.f evaluates to 5.8397454559568204e+31,
+sparse.f evaluates to 0.33027522935779841, and
+1e-8 * std::max(1.0, std::abs(sparse.f)) evaluates to 1e-08.
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1b/build-dn1be/fp-src-off/tests/drivers/test_dense_arm_engines.cpp:272: Failure
+Expected: (dense.dense_residual_ratio_triggers) > (0), actual: 0 vs 0
+
+[  FAILED  ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (1 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[----------] 9 tests from DenseArmEngines (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (18 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+
+ 1 FAILED TEST

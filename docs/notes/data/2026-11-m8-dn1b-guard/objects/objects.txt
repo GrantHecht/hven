@@ -1,0 +1,10 @@
+objects A 57, B 57; added: none; removed: none
+in both 57; identical 54; differing 3:
+  ./src/drivers/ipm_solver.cpp.o
+  ./src/drivers/ipm_solver_handle.cpp.o
+  ./src/interior/kkt_factorization.cpp.o
+linear BYTE-IDENTICAL ./src/linear/dense_session.cpp.o
+linear BYTE-IDENTICAL ./src/linear/dense_symmetric_factor.cpp.o
+linear BYTE-IDENTICAL ./src/linear/pardiso_session.cpp.o
+linear BYTE-IDENTICAL ./src/linear/symmetric_factor_mkl.cpp.o
+OBJECTS_AS_DECLARED
