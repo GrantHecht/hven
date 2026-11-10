@@ -1,0 +1,17 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-10T00:34:09-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/armBbin/hven_sqp_corpus sha256 65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823
+census rc=0
+WARN: serial_confirm_list.txt and is NOT a regression until it has been
+WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+serial-confirm list: 2 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/census-run2/serial_confirm_list.txt
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+DECLARED_MOVER ok f7_n1000_path_corrupted: base Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12 -> fresh Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12 (declared Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12)
+DECLARED_MOVER ok f7_n2000_path_corrupted: base WorkLimit,59745,60000,0,3,19872;20001;19872,9.843817033e-02 -> fresh WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02 (declared WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02)
+cells=57 exact=42 declared_movers=2 deadline_bound=13
+CENSUS_AS_DECLARED
+census_check rc=0
+FOREGROUND_END 2026-11-10T06:39:14-05:00
+LEG census-r2 rc=0 2026-11-10T06:39:14-05:00
