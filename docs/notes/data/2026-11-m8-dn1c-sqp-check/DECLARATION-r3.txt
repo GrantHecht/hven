@@ -1,0 +1,25 @@
+M8 DN-1c -- DECLARATION-r3 (successor of DECLARATION-r2.txt; committed before the r3 legs run; never edited afterwards;
+DECLARATION.txt, DECLARATION-r2.txt and every output of their legs are kept unchanged; criteria are never changed after
+data)
+================================================================================
+WHY         P5-r2 (DECLARATION-r2) finished CENSUS_AS_DECLARED (census-r2/, commit 7f5eec0fd). The S leg was then run
+            as DECLARATION-r2's literal text reads, from this evidence directory with the evidence directory given
+            RELATIVE (sl/out/s). sl/dn1_cell.sh cd's into the hven-bench clone before redirecting each cell's output,
+            so every redirect failed before the lane binary was exec'd: ZERO solver processes ran, zero results, the
+            analysis raised FileNotFoundError; VOID, no verdict, no data (sl/out/s-run1-void/README.txt). sl/t_run.sh
+            has the same shape (it writes "$EV/run.log" after `cd "$HB"`). Not a criterion failure.
+CHANGE      INVOCATION ONLY. No source, binary, instrument, criterion or baseline changes. The S and T legs receive the
+            ABSOLUTE path of the same declared output directories:
+              EV_S = /home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/out/s
+              EV_T = /home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/out/t
+            (sl/out/s is fresh: run 1's files were moved to sl/out/s-run1-void/.)
+
+THE LEGS, IN ORDER (each its own flock; box protocol as DECLARATION.txt)
+--------------------------------------------------------------------------------
+S-r3   flock /tmp/box-build.lock bash sl/s_run.sh "$EV_S" 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc
+T-r3   flock /tmp/box-build.lock bash sl/t_run.sh "$EV_T" 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc 5da042122d89cc29c22a7de00aaeec2fe27f73ef
+RESTORE flock /tmp/box-build.lock bash sl/hb_restore.sh (after T): the clone's HEAD on dn1b-legs, no tracked change.
+
+CRITERIA: S1, S2, S3, TRIG and T exactly as DECLARATION.txt states them (carried verbatim by DECLARATION-r2.txt), with
+sl/out/s read as EV_S and sl/out/t as EV_T. Not restated here so that no second copy can drift.
+ON FAIL: the failing leg's outputs are committed; a failure is answered by DECLARATION-r4, never by editing this file.
