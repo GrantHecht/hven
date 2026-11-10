@@ -1,0 +1,72 @@
+M8 DN-1c -- DECLARATION-r2 (successor of DECLARATION.txt; committed before any r2 leg runs; never edited afterwards;
+DECLARATION.txt and every output of its legs are kept unchanged; criteria are never changed after data)
+================================================================================
+WHY         The census leg of DECLARATION.txt (P5; legs/census.sh, the last leg of legs/chain1.sh) started
+            2026-11-09T23:49:17-05:00 on the frozen arm B binary and was killed at about 00:35 local on 2026-11-10 by an
+            external harness restart that ended the implementing agent's session. It reached tier 1 complete (42/42) and
+            one tier-2 cell in flight; no merged census, no census_check.py, NO VERDICT. It is VOID, recorded in
+            census-run1-interrupted/ (README.txt). It is not a criterion failure. Every other chain1 leg (arma .. failproof)
+            finished rc=0 with its verdict as declared (commit 022b851ff, chain/chain1.out). The S legs, the T leg and
+            the clone restore of DECLARATION.txt had not started.
+CHANGE      INSTRUMENT ONLY. No source, no binary, no criterion, no baseline, no movers file changes.
+            - legs/census-r2.sh: a byte copy of legs/census.sh except one provenance comment line and RUN =
+              build-dn1ce/census-run2 (a fresh run directory; run 1's interrupted build-dn1ce/census-run is left as found
+              so the runner's resume logic can never adopt its rows). Its evidence directory is census-r2/.
+            - Nothing else. legs/census_check.py, scripts/run_walk_census.sh, scripts/census_compare.py, the baseline and
+              ../2026-11-m8-dn1-impl/census-movers.csv are read as DECLARATION.txt names them.
+Binary      build-dn1ce/armBbin/hven_sqp_corpus, the same frozen arm B binary, sha256
+            65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823 (the leg refuses any other).
+Lane binary build-dn1ce/dn1cbin/hven_bench_cell sha256 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc
+            (unchanged; the S and T runners refuse any other); clone /home/ghecht/Projects/hven-bench-dn1 HEAD on
+            dn1c-legs (commit D 17f177c) as DECLARATION.txt left it.
+Code head   5da042122d89cc29c22a7de00aaeec2fe27f73ef (unchanged).
+
+THE LEGS, IN ORDER (each its own flock; box protocol below)
+--------------------------------------------------------------------------------
+P5-r2  flock /tmp/box-build.lock bash legs/census-r2.sh docs/notes/data/2026-11-m8-dn1c-sqp-check/census-r2 \
+         65040221dc68c6df1eda7f2d4a4319c5f7aa2643156f49f60c3dc077193ae823
+       CRITERION, VERBATIM FROM DECLARATION.txt P5:
+P5  walk census, 57 rows, on the frozen arm B binary (legs/census.sh) against
+    bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv: legs/census_check.py with
+    ../2026-11-m8-dn1-impl/census-movers.csv (PF-1's two rows, read only) prints CENSUS_AS_DECLARED.
+       (legs/census.sh reads legs/census-r2.sh for this run; nothing else in the sentence changes.)
+
+S, S1, S2, S3, TRIG -- VERBATIM FROM DECLARATION.txt:
+S   flock /tmp/box-build.lock bash sl/s_run.sh sl/out/s 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc
+    DN-0's 238 cells (../2026-11-m8-dn0/raw/roster.tsv), per cell `default` (kNever) then `dense-default` (kAlways), the
+    same binary, THREADS=1 (MKL_NUM_THREADS=1, core 2), CAP 300 s; sl/s_analyze.py -> sl/out/s/s-analysis.txt.
+S1  both engines, kAlways vs kNever on the same build: every kNever success (optimal or acceptable) keeps its status and
+    objective within 1e-8*max(1,|f|) -- EXCEPT the movers DECLARED IN ADVANCE, each with its argument, DN-1b's set
+    (ledger C273, DN-1b DECLARATION S1), which the dev roster above reproduces and to which it adds none:
+      IPM CRESC100 (sd-hven-ipm-CRESC100): trajectory sensitivity; the dense arm is the more accurate arm; untouched by
+        DN-1c (the IPM never sets the check).
+      IPM ALLINITC (sd-hven-ipm-ALLINITC): a Pardiso-perturbation artifact in the kNever run; dense is better.
+      SQP HS91 (sd-hven-sqp-HS91): a path difference within tolerance (both optimal, objective rel 1.30e-8 vs 1e-8); the
+        probe finds no factorization of HS91 below 2^-53, so the check does not fire there.
+    IPM ACOPP30 (sd-hven-ipm-ACOPP30) MUST keep status and objective. Any other mover = NOT MET (SQP HS90, the one kNever
+    success with a factorization below 2^-53, is NOT declared: it must keep). Verdict line S1_AS_DECLARED / S1_NOT_MET.
+S2  every kNever non-success cell's kAlways status reported (not gating). Expected from the dev roster: SQP ALLINITC
+    numerical_error (DN-1b: optimal), SQP MESH max_iter (DN-1b: numerical_error).
+S3  per-cell counters both arms, as DN-1b's S3 plus dn1c_dense_condition_fallbacks (reported).
+TRIG trigger counts per cell, both arms, both engines (IPM dn1b_dense_residual_ratio_triggers, SQP
+    dn1c_dense_condition_fallbacks), reported; kNever must read 0 on every row of both engines, the column present on
+    every uncapped row: TRIGGERS_KNEVER_ZERO. Expected kAlways SQP fallbacks nonzero in MESH, MSS1, HS90, ALLINITC,
+    SPANHYD (reported, not gating).
+
+T -- VERBATIM FROM DECLARATION.txt:
+T   flock /tmp/box-build.lock bash sl/t_run.sh sl/out/t 80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc 5da042122d89cc29c22a7de00aaeec2fe27f73ef
+    CUTEst TRAIN (23, hven-sqp, default options = kNever, PF-1's invocation, the frozen lane binary via --binary; the
+    clone made clean as DN-1b's r2 runner did): >= 16/23 optimal and no cell lost against PF-1's reading (hven-bench
+    runs/2026-11-m8-pf1-train/default): T_PASS. HOLDOUT is never run.
+
+RESTORE -- VERBATIM FROM DECLARATION.txt:
+RESTORE flock /tmp/box-build.lock bash sl/hb_restore.sh (after T): the clone's HEAD on dn1b-legs, no tracked change.
+
+PRE-FLIGHT  before P5-r2: PREFLIGHT_ONLY=1 ARMB_SHA=<arm B sha> CODE_HEAD=<code head> bash legs/chain1.sh prints
+            PREFLIGHT_OK (it scans legs/census-r2.sh with the other instruments; no leg runs).
+BOX PROTOCOL (verbatim): every leg `flock /tmp/box-build.lock bash <leg>`; `pgrep -a hven_bench_cell` empty before the
+lock (own command) and PGREP_EMPTY inside; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under
+setsid; FOREGROUND_START/END.
+ON FAIL: the failing leg's outputs are committed; a failure is answered by DECLARATION-r3, never by editing this file
+or DECLARATION.txt. An external interruption of an r2 leg is recorded the same way as run 1's and answered by a
+successor of the same instrument-only kind.
