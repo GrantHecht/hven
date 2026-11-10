@@ -1238,6 +1238,8 @@ double ClassicAdaptiveGovernor::update_barrier(
         // Solve straight into DXSL, then negate in place (elementwise,
         // alias-safe) -- the same order the main step solve keeps, so the
         // arithmetic is unchanged and no kkt_dim_-sized temporary appears.
+        // Unguarded by the dense residual check: it only selects mu, and the step
+        // guard then checks this same factorization.
         ctx.kkt_solver_.solve(RHS, DXSL);
         DXSL = -DXSL;
         // The affine probe's far slack pairs: the same recovery as the real step

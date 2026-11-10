@@ -243,10 +243,12 @@ TEST(DenseArmEngines, TheOptionsDumpCarriesThePolicy) {
 namespace {
 
 hven::IpmResult solve_ipm(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
-                          const Eigen::VectorXd &x0) {
+                          const Eigen::VectorXd &x0,
+                          hven::IpmInertiaMode mode = hven::IpmInertiaMode::kClassic) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     o.linear.dense_factorization = policy;
+    o.advanced.inertia_mode = mode;
     hven::IpmSolver solver(o);
     hven::Problem problem(std::move(nlp));
     return solver.solve(problem, x0);
@@ -272,6 +274,23 @@ TEST(DenseArmEngines, IpmResidualGuardRecoversANumericallySingularDenseFactor) {
     EXPECT_GT(dense.dense_residual_ratio_triggers, 0);
 }
 
+// The same in proximal mode: the strip also removes the base shift rho_k.
+TEST(DenseArmEngines, IpmResidualGuardRecoversANumericallySingularDenseFactorProximal) {
+    Eigen::VectorXd x0(2);
+    x0 << 3.0, -1.0;
+    constexpr auto kProx = hven::IpmInertiaMode::kProximalRegularization;
+    const hven::IpmResult sparse =
+        solve_ipm(DensePolicy::kNever, std::make_shared<NearDuplicateRowsProblem>(), x0, kProx);
+    const hven::IpmResult dense =
+        solve_ipm(DensePolicy::kAlways, std::make_shared<NearDuplicateRowsProblem>(), x0, kProx);
+    ASSERT_TRUE(success(sparse.status));
+    EXPECT_EQ(dense.status, sparse.status);
+    EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
+    EXPECT_GT(dense.kkt_factor_counters.dense_factorize_count, 0);
+    EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
+    EXPECT_GT(dense.dense_residual_ratio_triggers, 0);
+}
+
 // kNever: the guard is never entered. The inconsistent variant (second row's bound off by
 // 1e-2) leaves Pardiso solves whose residual ratio exceeds the threshold, so an ungated guard
 // would fire on it; the other two are a numerically singular and an exactly singular KKT.
@@ -287,4 +306,68 @@ TEST(DenseArmEngines, IpmResidualGuardIsNeverEnteredOnSparseFactorizations) {
     EXPECT_EQ(solve_ipm(DensePolicy::kNever, std::make_shared<DuplicateRowsProblem>(), x0)
                   .dense_residual_ratio_triggers,
               0);
+}
+
+namespace {
+
+// M8 DN-1c: min 0.5 x'Hx - sum(x) on [-1, 1]^3 with H = [[1, 2^20, 0], [2^20, 2^40, 0],
+// [0, 0, 1]] (PSD, singular): the walk's K0 carries H + delta*I, singular to working precision
+// (rcond ~ 1e-20) although Bunch-Kaufman takes it with nonzero pivots.
+struct NearSingularHessianProblem final : hven::Nlp {
+    static double big() { return std::ldexp(1.0, 20); }
+    hven::NlpDimensions dimensions() const override { return {3, 0, 0, 4}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
+        xl.setConstant(-1.0);
+        xu.setConstant(1.0);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        const double a = x[0] + big() * x[1];
+        return 0.5 * a * a + 0.5 * x[2] * x[2] - x.sum();
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        const double a = x[0] + big() * x[1];
+        g[0] = a - 1.0;
+        g[1] = big() * a - 1.0;
+        g[2] = x[2] - 1.0;
+    }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 1, 2;
+        c << 0, 0, 1, 2;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << obj_factor, obj_factor * big(), obj_factor * big() * big(), obj_factor;
+    }
+    std::string name() const override { return "NearSingularHessianProblem"; }
+};
+
+hven::SqpResult solve_sqp(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
+                          const Eigen::VectorXd &x0) {
+    hven::SqpOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.linear.dense_factorization = policy;
+    hven::SqpSolver solver(o);
+    hven::Problem problem(std::move(nlp));
+    return solver.solve(problem, x0);
+}
+
+} // namespace
+
+// The SQP's dense factors run the condition check: the platform session retakes the walk's
+// singular-to-working-precision K0, counted in SqpCounters; the solve ends where the sparse
+// arm's does, and kNever never counts one.
+TEST(DenseArmEngines, SqpConditionCheckRetakesASingularToWorkingPrecisionKkt) {
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(3);
+    const hven::SqpResult sparse =
+        solve_sqp(DensePolicy::kNever, std::make_shared<NearSingularHessianProblem>(), x0);
+    const hven::SqpResult dense =
+        solve_sqp(DensePolicy::kAlways, std::make_shared<NearSingularHessianProblem>(), x0);
+    ASSERT_TRUE(success(sparse.status));
+    EXPECT_EQ(dense.status, sparse.status);
+    EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
+    EXPECT_EQ(sparse.counters.dense_condition_fallbacks, 0);
+    EXPECT_GT(dense.counters.dense_condition_fallbacks, 0);
 }

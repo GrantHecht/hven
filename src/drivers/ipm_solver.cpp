@@ -1917,7 +1917,8 @@ hven::SolveStatus hven::detail::IpmSolverImpl::converge_check(std::vector<IpmIte
 int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt,
                                              double incpurt0, double incpurt, double &finalpert,
                                              double &cumpert, double base_prox, double dual_shift,
-                                             bool &exhausted, bool base_singular) {
+                                             bool &exhausted, bool base_singular,
+                                             bool &dc_applied) {
     auto Inertia = [&]() {
         return this->kkt_sol_.neigs() - (this->equal_cons_ + this->inequal_cons_);
     };
@@ -1991,7 +1992,6 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     // singularity). dc_latched_ is the Ipopt hess/jac-degenerate adaptation:
     // sticky per phase, it makes later calls pre-apply delta_c at the base
     // attempt instead of re-paying the singular factorization every iteration.
-    bool &dc_applied = this->factor_dc_applied_;
     dc_applied = false;
     auto EngageDualReg = [&]() {
         if (!dc_applied && dual_shift != 0.0) {
@@ -2133,11 +2133,9 @@ double hven::detail::IpmSolverImpl::dense_residual_ratio(const Eigen::VectorXd &
     return res / rhs_norm;
 }
 
-int hven::detail::IpmSolverImpl::dense_step_singularity_guard(const Eigen::VectorXd &rhs,
-                                                              Eigen::VectorXd &x, double ipurt,
-                                                              double incpurt, double &finalpert,
-                                                              double &cumpert, double base_prox,
-                                                              double dual_shift, bool &exhausted) {
+int hven::detail::IpmSolverImpl::dense_step_singularity_guard(
+    const Eigen::VectorXd &rhs, Eigen::VectorXd &x, double ipurt, double incpurt, double &finalpert,
+    double &cumpert, double base_prox, double dual_shift, bool &exhausted, bool &dc_applied) {
     const bool proximal = opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization;
     int extra = 0;
     for (int attempt = 0; attempt < hven::detail::kDenseSingularAttempts; ++attempt) {
@@ -2147,11 +2145,12 @@ int hven::detail::IpmSolverImpl::dense_step_singularity_guard(const Eigen::Vecto
         if (this->dense_residual_ratio(rhs, x) <= hven::detail::kDenseResidualRatioSingular)
             break;
         ++this->result_.dense_residual_ratio_triggers;
-        // Back to the base matrix: the ladder's shifts are additive.
+        // Back to the base matrix: the ladder's shifts are additive, so the strip
+        // recovers each H_ii to O(ulp) of its shifted value.
         const double applied = cumpert + (proximal ? base_prox : 0.0);
         if (applied != 0.0)
             this->nlp_->perturb_kkt_p_diags(-applied, this->kkt_sol_.matrix());
-        if (this->factor_dc_applied_)
+        if (dc_applied)
             this->nlp_->perturb_kkt_c_diags(dual_shift, this->kkt_sol_.matrix());
         const double target =
             attempt == 0
@@ -2160,8 +2159,11 @@ int hven::detail::IpmSolverImpl::dense_step_singularity_guard(const Eigen::Vecto
         finalpert = 0.0;
         bool rerun_exhausted = false;
         extra += this->factor_impl(false, false, target, incpurt, incpurt, finalpert, cumpert,
-                                   base_prox, dual_shift, rerun_exhausted, true);
+                                   base_prox, dual_shift, rerun_exhausted, true, dc_applied);
         exhausted = rerun_exhausted;
+        // A re-run that left no numerics ends the guard (as the init guard does).
+        if (this->kkt_sol_.info() != Eigen::Success)
+            break;
         this->kkt_sol_.solve(rhs, x);
         if (rerun_exhausted)
             break;
@@ -3789,8 +3791,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             base_prox = rho_k;
 
         bool kkt_exhausted = false;
-        Citer.h_facs = this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum,
-                                         base_prox, dual_shift, kkt_exhausted, false);
+        bool kkt_dc_applied = false;
+        Citer.h_facs =
+            this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum, base_prox,
+                              dual_shift, kkt_exhausted, false, kkt_dc_applied);
 
         if (Citer.h_facs > 0) {
             // Hpert0 warm-start MUST keep consuming nhpert (the last perturbation
@@ -3952,8 +3956,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // (Bunch-Kaufman counts a tiny pivot as nonzero); the solve's residual
         // ratio can. Never entered on a sparse factorization.
         if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
-            const int extra = this->dense_step_singularity_guard(
-                RHS, DXSL, Hpert0, Incr, nhpert, nhpert_cum, base_prox, dual_shift, kkt_exhausted);
+            const int extra = this->dense_step_singularity_guard(RHS, DXSL, Hpert0, Incr, nhpert,
+                                                                 nhpert_cum, base_prox, dual_shift,
+                                                                 kkt_exhausted, kkt_dc_applied);
             if (extra > 0) {
                 Citer.h_facs += extra;
                 Hpert0 = std::max(opts_.advanced.inertia_correction_initial,
@@ -4969,6 +4974,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
             this->kkt_sol_.refactorize(this->kkt_pattern_check());
             if (this->kkt_sol_.info() == Eigen::Success)
                 this->kkt_sol_.solve(RHS, dx);
+            else
+                this->result_.last_kkt_info = this->kkt_sol_.info();
             estimate_discarded = this->kkt_sol_.info() != Eigen::Success ||
                                  (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense &&
                                   !(this->dense_residual_ratio(RHS, dx) <=

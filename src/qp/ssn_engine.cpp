@@ -575,8 +575,10 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             if (analysis.needed) {
                 ++out->symbolic_analyses;
             }
+            const Index fallbacks_before = detail::condition_fallbacks(kkt_);
             detail::factorize_checked(kkt_, k_, analysis);
             ++out->factorizations;
+            out->dense_condition_fallbacks += detail::condition_fallbacks(kkt_) - fallbacks_before;
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
             }
@@ -884,8 +886,10 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         if (analysis.needed) {
             ++out->symbolic_analyses;
         }
+        const Index fallbacks_before = detail::condition_fallbacks(kkt_);
         detail::factorize_checked(kkt_, k_, analysis);
         ++out->factorizations;
+        out->dense_condition_fallbacks += detail::condition_fallbacks(kkt_) - fallbacks_before;
     } catch (const std::exception &e) {
         out->status = QpStatus::kNumericalError;
         out->escape_reason = SsnEscape::kSingular;

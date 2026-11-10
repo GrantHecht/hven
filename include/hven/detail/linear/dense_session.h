@@ -17,6 +17,7 @@
 // repeats an epoch: every (session_id, epoch) names one set of numerics.
 
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "hven/core/types.h"
@@ -42,6 +43,17 @@ struct DenseInertiaCount {
 };
 DenseInertiaCount dense_block_walk(const double *a, Index n, const int *ipiv);
 
+// Options::dense_condition_check's bound: LAPACK xSYSVX reports a matrix whose
+// estimated RCOND is below DLAMCH('Epsilon') = 2^-53 singular to working precision.
+inline constexpr double kDenseConditionSingular = 0.5 * std::numeric_limits<double>::epsilon();
+
+// What DenseSession::factorize() did with a matrix.
+enum class DenseFactorizeResult {
+    kTaken,         // numerics committed
+    kSingular,      // exactly singular: a zero pivot, a zero 2x2 det, a non-finite D
+    kIllConditioned // dense_condition_check: rcond < kDenseConditionSingular
+};
+
 class DenseSession {
   public:
     // `opts` is stored whole: adopt() takes an adopter's Options from it, and
@@ -55,15 +67,16 @@ class DenseSession {
     // CSR). Throws std::invalid_argument per validate_dense_dimension().
     void analyze(const SpMatRM &A);
 
-    // Densify A and factorize. Returns true and commits
+    // Densify A and factorize. Returns kTaken and commits
     // max(epoch() + 1, next_epoch) when the dense arm takes the factorization
     // (an engine on its fallback session while a co-owner advanced this one
-    // proposes a `next_epoch` at or below epoch()); returns false, with no numerics,
-    // when it is exactly singular (dense_block_walk's `singular`, or dsytrf
-    // info > 0). Throws std::invalid_argument when A's dimension or entry
-    // count is not the analyzed pattern's, hven::BackendError on an illegal
-    // LAPACK argument.
-    bool factorize(const SpMatRM &A, std::uint64_t next_epoch);
+    // proposes a `next_epoch` at or below epoch()); returns kSingular, with no
+    // numerics, when it is exactly singular (dense_block_walk's `singular`, or
+    // dsytrf info > 0), and kIllConditioned, with no numerics, when
+    // Options::dense_condition_check finds rcond < kDenseConditionSingular.
+    // Throws std::invalid_argument when A's dimension or entry count is not
+    // the analyzed pattern's, hven::BackendError on an illegal LAPACK argument.
+    DenseFactorizeResult factorize(const SpMatRM &A, std::uint64_t next_epoch);
 
     // In-place solve of nrhs columns of b (leading dimension ldb >= dim()).
     // Requires has_numerics(). Throws hven::BackendError on a LAPACK error.
@@ -83,12 +96,20 @@ class DenseSession {
     void set_num_threads(int num_threads) noexcept { opts_.threads = num_threads; }
 
   private:
+    // dense_condition_check's test on the factorization just computed from A.
+    bool condition_ok(const SpMatRM &A);
+
     SymmetricFactor::Options opts_;
     Index n_ = 0;
     std::vector<double> a_;      // n x n, column-major; dsytrf's factors
     std::vector<int> ipiv_;      // n
     std::vector<double> work_;   // dsytrf's optimal workspace
     std::vector<Index> scatter_; // one dense offset per stored CSR entry
+    // dense_condition_check only (empty otherwise): A's column sums of |a_ij|,
+    // dsycon's 2n workspace and n integers.
+    std::vector<double> colsum_;
+    std::vector<double> con_work_;
+    std::vector<int> con_iwork_;
     bool has_numerics_ = false;
     Index positive_ = 0;
     Index negative_ = 0;

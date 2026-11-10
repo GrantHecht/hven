@@ -31,13 +31,16 @@ namespace hven::detail {
 /// configuration this factory produced before the dense arm. Neither
 /// parameter has a default, so every caller states its policy: a factor that
 /// stays on the platform session at kAlways (the warm-start predictor's)
-/// says kNever where it is built.
+/// says kNever where it is built. Under a dense policy the factor also runs
+/// the dense arm's condition check (M8 DN-1c): a dense factorization singular
+/// to working precision is retaken by the platform session.
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
                                                               hven::linear::DensePolicy dense) {
     hven::linear::SymmetricFactor::Options o;
     o.decomposition = hven::linear::Decomposition::kLdlt;
     o.threads = threads;
     o.dense_factorization = dense;
+    o.dense_condition_check = dense != hven::linear::DensePolicy::kNever;
     o.pivot_perturbation_exponent = std::nullopt;
     o.max_refinement_steps = std::nullopt;
     // Every remaining member keeps its default (don't-write / absent).
@@ -131,6 +134,12 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
 /// FactorizeOutcome::Status::kBackendError; every other status is returned.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);
+
+/// @brief The factor's dense condition fallbacks so far (a caller counts the
+/// difference across its own factorizations).
+inline Index condition_fallbacks(const KktFactor &k) {
+    return k.factor.counters().dense_condition_fallback_count;
+}
 
 /// @brief Allocate and solve, returning the solution by value.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);

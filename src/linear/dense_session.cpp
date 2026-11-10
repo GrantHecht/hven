@@ -22,6 +22,7 @@
 #ifdef HVEN_USE_ACCELERATE_LAPACK
 #include "hven/detail/linear/lapacke_shim.h"
 using hven::linear::detail::lapack_int;
+using hven::linear::detail::LAPACKE_dsycon_work;
 using hven::linear::detail::LAPACKE_dsytrf_work;
 using hven::linear::detail::LAPACKE_dsytrs_work;
 #else
@@ -139,17 +140,29 @@ void DenseSession::analyze(const SpMatRM &A) {
         }
     }
 
+    std::vector<double> colsum;
+    std::vector<double> con_work;
+    std::vector<int> con_iwork;
+    if (opts_.dense_condition_check) {
+        colsum.assign(static_cast<std::size_t>(n), 0.0);
+        con_work.assign(2 * static_cast<std::size_t>(n), 0.0);
+        con_iwork.assign(static_cast<std::size_t>(n), 0);
+    }
+
     n_ = n;
     a_ = std::move(a);
     ipiv_ = std::move(ipiv);
     work_ = std::move(work);
     scatter_ = std::move(scatter);
+    colsum_ = std::move(colsum);
+    con_work_ = std::move(con_work);
+    con_iwork_ = std::move(con_iwork);
     has_numerics_ = false;
     positive_ = 0;
     negative_ = 0;
 }
 
-bool DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
+DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
     // The cheap bound guard that stands whatever the pattern check was: the
     // scatter below indexes a_ by the analyzed pattern.
     if (static_cast<Index>(A.rows()) != n_ || static_cast<Index>(A.cols()) != n_ ||
@@ -184,11 +197,14 @@ bool DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
             "SymmetricFactor::factorize: dense dsytrf failed, info={} (illegal argument)", info));
     }
     if (info > 0) {
-        return false;
+        return DenseFactorizeResult::kSingular;
     }
     const DenseInertiaCount counts = dense_block_walk(a, n_, ipiv_.data());
     if (counts.singular) {
-        return false;
+        return DenseFactorizeResult::kSingular;
+    }
+    if (opts_.dense_condition_check && !condition_ok(A)) {
+        return DenseFactorizeResult::kIllConditioned;
     }
     positive_ = counts.positive;
     negative_ = counts.negative;
@@ -196,7 +212,41 @@ bool DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
     // session past the epoch the calling engine knows (see the header).
     epoch_ = std::max(epoch_ + 1, next_epoch);
     has_numerics_ = true;
-    return true;
+    return DenseFactorizeResult::kTaken;
+}
+
+bool DenseSession::condition_ok(const SpMatRM &A) {
+    // ||A||_1 of the symmetric matrix from its stored upper triangle.
+    std::fill(colsum_.begin(), colsum_.end(), 0.0);
+    const auto *outer = A.outerIndexPtr();
+    const auto *inner = A.innerIndexPtr();
+    const double *values = A.valuePtr();
+    for (Index i = 0; i < n_; ++i) {
+        for (auto k = static_cast<Index>(outer[i]); k < static_cast<Index>(outer[i + 1]); ++k) {
+            const auto j = static_cast<Index>(inner[k]);
+            const double v = std::abs(values[k]);
+            colsum_[static_cast<std::size_t>(j)] += v;
+            if (j != i) {
+                colsum_[static_cast<std::size_t>(i)] += v;
+            }
+        }
+    }
+    const double anorm = *std::max_element(colsum_.begin(), colsum_.end());
+    double rcond = 0.0;
+    int info = 0;
+    {
+        const MklThreadScope threads(opts_.threads);
+        info = static_cast<int>(
+            LAPACKE_dsycon_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a_.data(),
+                                static_cast<lapack_int>(n_), ipiv_.data(), anorm, &rcond,
+                                con_work_.data(), con_iwork_.data()));
+    }
+    if (info != 0) {
+        throw hven::BackendError(fmt::format(
+            "SymmetricFactor::factorize: dense dsycon failed, info={} (illegal argument)", info));
+    }
+    // NaN fails.
+    return rcond >= kDenseConditionSingular;
 }
 
 void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
@@ -308,6 +358,11 @@ void validate_dense_options(const SymmetricFactor::Options &opts) {
     default:
         throw std::invalid_argument(fmt::format("SymmetricFactor: unknown DensePolicy value ({})",
                                                 static_cast<int>(opts.dense_factorization)));
+    }
+    if (opts.dense_condition_check && opts.dense_factorization == DensePolicy::kNever) {
+        throw std::invalid_argument(
+            "SymmetricFactor: dense_condition_check configures the dense arm and is refused under "
+            "DensePolicy::kNever");
     }
     if (opts.conditional_reproducibility_threads > 0 &&
         opts.dense_factorization != DensePolicy::kNever) {

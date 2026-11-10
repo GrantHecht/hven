@@ -2111,7 +2111,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(scaled_convergence_refusals)                                                                 \
     X(restoration_curvature_switches)                                                              \
     X(inertia_suspect_verdicts)                                                                    \
-    X(inertia_wrong_verdicts)
+    X(inertia_wrong_verdicts)                                                                      \
+    X(dense_condition_fallbacks)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
@@ -2209,8 +2210,9 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // (`restoration_curvature_switches`); 1120 -> 1144 at M7 W2 A2 (the three nested
     // `ipqp_mu*` Index in IpqpCounters, 312 -> 336); 1144 -> 1152 at M7 W2 A3
     // (`ipqp_ladder_zero_trial_skips`, IpqpCounters 336 -> 344); 1152 -> 1168 at M8 DN-1
-    // (`inertia_suspect_verdicts`, `inertia_wrong_verdicts`).
-    static_assert(sizeof(hven::SqpCounters) == 1168,
+    // (`inertia_suspect_verdicts`, `inertia_wrong_verdicts`); 1168 -> 1176 at M8 DN-1c
+    // (`dense_condition_fallbacks`).
+    static_assert(sizeof(hven::SqpCounters) == 1176,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

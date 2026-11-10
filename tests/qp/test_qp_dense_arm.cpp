@@ -71,6 +71,14 @@ QpProblem tiny_pivot_qp() {
     return qp;
 }
 
+// M8 DN-1c: every SQP factor built by sqp_kkt_options runs the dense condition check under a
+// dense policy, and only there (the factor layer refuses it under kNever).
+TEST(QpDenseArm, SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly) {
+    EXPECT_FALSE(sqp_kkt_options(0, DensePolicy::kNever).dense_condition_check);
+    EXPECT_TRUE(sqp_kkt_options(0, DensePolicy::kAlways).dense_condition_check);
+    EXPECT_TRUE(sqp_kkt_options(0, DensePolicy::kAuto).dense_condition_check);
+}
+
 TEST(QpDenseArm, APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm) {
     const QpProblem qp = tiny_pivot_qp();
     // The premise, at the factor: the seed K0 is perturbed on the platform session and

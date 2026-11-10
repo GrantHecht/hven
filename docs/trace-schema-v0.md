@@ -874,6 +874,7 @@ group; `SqpOptions::hessian_mode`).
 | `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `CommonOptions::feasibility_tol`. So `restoration_feas_out <= feasibility_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
 | `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feasibility_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
 | `restoration_curvature_switches` | integer | `SqpCounters::restoration_curvature_switches` | restoration sub-solves on the exact model stopped for the phase's curvature switch (M7 W2 RST, `SqpOptions::restoration_curvature = kModelThenRegularized`, the default): at their first failed walk subproblem, or at an exhausted elastic tier's nested restoration request. Counted at the stop; the phase then restarts there on the regularized model unless its budget is spent or the model is not finite there. At most one per restoration entry; 0 under `kModel`, `kRegularized` and `kLbfgsDamped`. Folded from the restoration sub-solve |
+| `dense_condition_fallbacks` | integer | `SqpCounters::dense_condition_fallbacks` | dense-arm factorizations (walk, SSN, IPQP tiers) whose LAPACK `dsycon` estimate put them below 2^-53, singular to working precision, and which the platform session retook (M8 DN-1c). 0 under `DensePolicy::kNever`. Folded like `factorizations`. Follows `inertia_suspect_verdicts` and `inertia_wrong_verdicts` (M8 DN-1) |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -914,6 +915,11 @@ layer's five values only, and the column layer's factors are reported on
 table row above). LAST in the struct, after `scaled_convergence_refusals`, same route:
 one key before the `ssn` object, the nested tables' distinct values up by one, no
 sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 RST" note.
+
+**THE DIRECT COUNTER M8 DN-1c APPENDED — ONE** (`dense_condition_fallbacks`, the table
+row above), after M8 DN-1's `inertia_suspect_verdicts` and `inertia_wrong_verdicts`,
+same route: one key before the `ssn` object, the nested tables' distinct values up by
+one, no sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M8 DN-1c" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

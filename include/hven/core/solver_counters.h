@@ -583,6 +583,10 @@ struct QpCounters {
     // mu-free reread) read kSuspect or kWrong; kOk is the remainder.
     Index inertia_suspect_verdicts = 0;
     Index inertia_wrong_verdicts = 0;
+    // Factorizations of this solve's KKT factors that the dense arm's condition
+    // check handed to the platform session (SymmetricFactor::Counters::
+    // dense_condition_fallback_count; M8 DN-1c). 0 under DensePolicy::kNever.
+    Index dense_condition_fallbacks = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2264,6 +2268,11 @@ struct SqpCounters {
     ///        QpCounters' fields. Appended last.
     Index inertia_suspect_verdicts = 0;
     Index inertia_wrong_verdicts = 0;
+    /// @brief Dense factorizations singular to working precision that the platform
+    ///        session retook (QpCounters' field, plus the SSN's and the IPQP tiers'),
+    ///        summed over every subproblem the factorizations count covers. 0 under
+    ///        DensePolicy::kNever. Appended last.
+    Index dense_condition_fallbacks = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2351,7 +2360,8 @@ struct SqpCounters {
     X(scaled_convergence_refusals, counter_never_absent)                                           \
     X(restoration_curvature_switches, counter_never_absent)                                        \
     X(inertia_suspect_verdicts, counter_never_absent)                                              \
-    X(inertia_wrong_verdicts, counter_never_absent)
+    X(inertia_wrong_verdicts, counter_never_absent)                                                \
+    X(dense_condition_fallbacks, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

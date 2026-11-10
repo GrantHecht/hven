@@ -643,6 +643,13 @@ class SymmetricFactor {
         // kAuto's threshold on n; required (>= 1) under kAuto and refused
         // under the other two policies.
         std::optional<Index> max_dense_dimension;
+
+        // Under kAlways/kAuto: after a dense factorization the arm estimates
+        // its reciprocal condition number (LAPACK dsycon, 1-norm); below
+        // 2^-53 the matrix is singular to working precision (LAPACK xSYSVX's
+        // test) and the platform session retakes the factorization, as for an
+        // exactly singular one. Refused under kNever.
+        bool dense_condition_check = false;
     };
 
     // The three factors of a symmetric factorization, solved against
@@ -728,10 +735,14 @@ class SymmetricFactor {
         Index dense_factorize_count = 0;
 
         // +1 per factorize() the dense arm attempted, found exactly singular
+        // (or, under dense_condition_check, singular to working precision)
         // and handed to the platform session. factorize_count is
         // dense_factorize_count + dense_fallback_count + the factorizations
         // of sparse-selected patterns.
         Index dense_fallback_count = 0;
+
+        // The dense_fallback_count share that dense_condition_check sent.
+        Index dense_condition_fallback_count = 0;
     };
 
     explicit SymmetricFactor(Options opts);
@@ -1044,7 +1055,7 @@ class Factorization {
     // them).
     Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                   std::uint64_t pattern_hash, std::uint64_t epoch, DensePolicy dense_factorization,
-                  std::optional<Index> max_dense_dimension);
+                  std::optional<Index> max_dense_dimension, bool dense_condition_check);
     // A handle on dense numerics (the dense session stores its Options whole).
     Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                   std::uint64_t pattern_hash, std::uint64_t epoch);
@@ -1100,6 +1111,7 @@ class Factorization {
     // The emitter's dense-arm policy, on a platform-session handle only.
     DensePolicy dense_factorization_ = DensePolicy::kNever;
     std::optional<Index> max_dense_dimension_;
+    bool dense_condition_check_ = false;
 };
 
 } // namespace hven::linear

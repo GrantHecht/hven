@@ -482,6 +482,10 @@ struct IpqpResult {
     /// gated against", which tier 3's hand-off needs and which is exactly the
     /// thing IpqpBox exists to keep from being re-derived differently.
     IpqpBox box;
+
+    /// Of `counters.ipqp_factorizations`, those the dense arm's condition check
+    /// handed to the platform session (QpCounters::dense_condition_fallbacks).
+    Index dense_condition_fallbacks = 0;
 };
 
 /// @brief The IP-PMM interior-point QP tier.

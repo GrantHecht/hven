@@ -920,7 +920,11 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
         Y = Eigen::MatrixXd::Identity(mr, mr); // every row is empty on the free columns
     } else {
         const double t = kRankGramShift * omega;
-        hven::linear::SymmetricFactor factor(sqp_kkt_options(threads, dense));
+        // No condition check: the shift t bounds rcond near kRankGramShift, and the
+        // inverse iteration below solves with a near-singular G on purpose.
+        hven::linear::SymmetricFactor::Options gram_options = sqp_kkt_options(threads, dense);
+        gram_options.dense_condition_check = false;
+        hven::linear::SymmetricFactor factor(gram_options);
         bool factored = false;
         const double mnorm = std::sqrt(omega); // >= ||M_F||_2
         Index b = std::min<Index>(mr, kRankBlockStart);

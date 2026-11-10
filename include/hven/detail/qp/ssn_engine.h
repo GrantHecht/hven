@@ -690,6 +690,10 @@ struct SsnResult {
     std::string escape_detail;
 
     SsnCounters counters;
+
+    // Of `factorizations`, those the dense arm's condition check handed to the
+    // platform session (QpCounters::dense_condition_fallbacks' SSN share).
+    Index dense_condition_fallbacks = 0;
 };
 
 // The engine.

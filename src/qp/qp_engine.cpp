@@ -219,6 +219,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // reports how many steps that took -- 0 on a flat face, where the proximal
     // answer is the only answer there is.
     const EqpResult eqp = solve_eqp(qp, ws, face.x, kkt, eff_opts);
+    out.counters.dense_condition_fallbacks += detail::condition_fallbacks(kkt);
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
     out.counters.eqp_polish_steps += eqp.polish_steps;
@@ -3564,6 +3565,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         // Charged for the ATTEMPT, eliminated_candidate's convention.
         ++counters.factorizations;
         detail::factorize_checked(fresh, assembly.K, analysis);
+        counters.dense_condition_fallbacks += detail::condition_fallbacks(fresh);
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
     // reports a singular K as a status, so a throw from here is a genuine
@@ -3666,7 +3668,9 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         return EqpResult{std::move(xf), Vec::Zero(0), Vec::Zero(0)};
     }
     ++counters.factorizations;
+    const Index fallbacks_before = detail::condition_fallbacks(kkt);
     EqpResult res = solve_eqp(qp, ws, x_k, kkt, opts);
+    counters.dense_condition_fallbacks += detail::condition_fallbacks(kkt) - fallbacks_before;
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
     face.capture(ws, kkt);
@@ -4495,12 +4499,14 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.eqp_refine_iters += local_counters.eqp_refine_iters;
         counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
         counters.eqp_polish_steps += local_counters.eqp_polish_steps;
+        counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
         ++counters.terminal_polish_rejected;
         return false; // no mu-free solve: the walk's own point stands
     }
     counters.eqp_refine_iters += local_counters.eqp_refine_iters;
     counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
     counters.eqp_polish_steps += local_counters.eqp_polish_steps;
+    counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
     // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
     // here: at a terminal point the step is going to zero, so the proximal
     // penalty's own term delta*(x - x_k) is going to zero with it and the face's
@@ -5585,8 +5591,11 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     if (analysis.needed) {
         ++counters.symbolic_analyses;
     }
+    const Index fallbacks_before = detail::condition_fallbacks(border.kkt);
     detail::factorize_checked(border.kkt, k0.K, analysis);
     ++counters.factorizations;
+    counters.dense_condition_fallbacks +=
+        detail::condition_fallbacks(border.kkt) - fallbacks_before;
 
     // Commit, against a factorization that already succeeded: the two
     // members assigned here are built from locals above, so their

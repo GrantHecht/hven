@@ -954,9 +954,6 @@ class IpmSolverImpl {
     // phase init. See inertia_regularization.h for the δ_c reference.
     bool dc_latched_ = false;
 
-    // Whether the last factor_impl call left delta_c in the KKT buffer.
-    bool factor_dc_applied_ = false;
-
     // dense_residual_ratio's residual; sized at its first use.
     Eigen::VectorXd dense_residual_scratch_;
 
@@ -1684,10 +1681,11 @@ class IpmSolverImpl {
     // classic one; 0.0 means suppressed. `exhausted` is set, never cleared, when
     // the ladder runs out of attempts with inertia still wrong. `base_singular`
     // declares the base matrix singular: no base attempt, delta_c engaged (when
-    // available), the ladder entered at `ipurt`.
+    // available), the ladder entered at `ipurt`. `dc_applied` is set iff the call
+    // left delta_c in the KKT buffer.
     int factor_impl(bool docompute, bool ZFac, double ipurt, double incpurt0, double incpurt,
                     double &finalpert, double &cumpert, double base_prox, double dual_shift,
-                    bool &exhausted, bool base_singular);
+                    bool &exhausted, bool base_singular, bool &dc_applied);
 
     // ||K x - rhs|| / ||rhs|| on the KKT buffer (upper triangle); NaN for a
     // non-finite x, infinity for rhs == 0 with a nonzero residual.
@@ -1699,10 +1697,12 @@ class IpmSolverImpl {
     // ladder's perturbations are removed and factor_impl re-runs with
     // base_singular at max(ipurt, init, incpurt * cumpert), then `x` is
     // re-solved. Returns the re-run ladder's factorizations (0: no trigger);
-    // finalpert/cumpert/exhausted describe the last re-run.
+    // finalpert/cumpert/exhausted describe the last re-run; `dc_applied` enters as
+    // the step factorization's and leaves as the last re-run's.
     int dense_step_singularity_guard(const Eigen::VectorXd &rhs, Eigen::VectorXd &x, double ipurt,
                                      double incpurt, double &finalpert, double &cumpert,
-                                     double base_prox, double dual_shift, bool &exhausted);
+                                     double base_prox, double dual_shift, bool &exhausted,
+                                     bool &dc_applied);
 
     bool claim_kkt_analysis();
 

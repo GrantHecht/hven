@@ -716,6 +716,7 @@ IpqpEngine::IpqpEngine(const QpOptions &opts, int threads, hven::linear::DensePo
         KktFactorization::Options o;
         o.threads = threads;
         o.dense_factorization = dense;
+        o.dense_condition_check = true; // the SQP's check (M8 DN-1c), as sqp_kkt_options
         kkt_.reconfigure(o);
     }
 }
@@ -3036,6 +3037,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // field's "mirrors" a fact rather than a claim -- and so the four cannot drift.
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
+    out.dense_condition_fallbacks =
+        after.dense_condition_fallback_count - before.dense_condition_fallback_count;
     out.counters.ipqp_solves = after.solve_count - before.solve_count;
     out.counters.ipqp_symbolic_analyses = after.analyze_count - before.analyze_count;
     out.counters.ipqp_pattern_verifies = after.pattern_verify_count - before.pattern_verify_count;

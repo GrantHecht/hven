@@ -131,6 +131,17 @@ inline lapack_int LAPACKE_dsytrf_work(int matrix_layout, char uplo, lapack_int n
     return info;
 }
 
+inline lapack_int LAPACKE_dsycon_work(int matrix_layout, char uplo, lapack_int n, const double *a,
+                                      lapack_int lda, const lapack_int *ipiv, double anorm,
+                                      double *rcond, double *work, lapack_int *iwork) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
+    }
+    lapack_int info = 0;
+    dsycon_(&uplo, &n, a, &lda, ipiv, &anorm, rcond, work, iwork, &info);
+    return info;
+}
+
 inline lapack_int LAPACKE_dsytrs_work(int matrix_layout, char uplo, lapack_int n, lapack_int nrhs,
                                       const double *a, lapack_int lda, const lapack_int *ipiv,
                                       double *b, lapack_int ldb) {

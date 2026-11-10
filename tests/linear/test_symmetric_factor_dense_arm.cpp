@@ -801,6 +801,65 @@ TEST(DenseArm, CounterIdentityOnAMixedRun) {
     EXPECT_EQ(c.analyze_count, 2);
 }
 
+// M8 DN-1c: dense_condition_check. P is positive definite with det 2^-12 against
+// ||P|| ~ 2^40 (rcond ~ 1e-28): dsytrf takes it with nonzero pivots, the check does not.
+Mat near_singular_pd() {
+    Mat m(2, 2);
+    m << 1.0, std::ldexp(1.0, 20), std::ldexp(1.0, 20), std::ldexp(1.0, 40) + std::ldexp(1.0, -12);
+    return m;
+}
+
+SymmetricFactor::Options checked_options() {
+    SymmetricFactor::Options o = dense_options();
+    o.dense_condition_check = true;
+    return o;
+}
+
+TEST(DenseArmConditionCheck, SingularToWorkingPrecisionFallsBack) {
+    const SpMatRM P = upper_csr(near_singular_pd());
+    Mat good(2, 2);
+    good << 2.0, 1.0, 1.0, -1.0;
+    const SpMatRM G = upper_csr(good);
+
+    SymmetricFactor unchecked(dense_options());
+    unchecked.analyze(P);
+    EXPECT_EQ(unchecked.factorize(P).arm, FactorArm::kDense);
+    EXPECT_EQ(unchecked.counters().dense_condition_fallback_count, 0);
+
+    SymmetricFactor f(checked_options());
+    f.analyze(P);
+    const FactorizeOutcome o = f.factorize(P);
+    EXPECT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(o.arm, FactorArm::kSparse);
+    EXPECT_EQ(f.counters().dense_fallback_count, 1);
+    EXPECT_EQ(f.counters().dense_condition_fallback_count, 1);
+    Vec x(2);
+    f.solve(Vec::Ones(2), x); // the platform session's numerics
+    EXPECT_TRUE(x.allFinite());
+
+    // A well-conditioned matrix on the same engine: the dense arm takes it.
+    f.analyze(G);
+    EXPECT_EQ(f.factorize(G).arm, FactorArm::kDense);
+    EXPECT_EQ(f.counters().dense_condition_fallback_count, 1);
+    EXPECT_EQ(f.counters().factorize_count,
+              f.counters().dense_factorize_count + f.counters().dense_fallback_count);
+}
+
+TEST(DenseArmConditionCheck, RefusedUnderNeverAndCarriedByAFallbackHandle) {
+    SymmetricFactor::Options never;
+    never.dense_condition_check = true;
+    EXPECT_THROW(SymmetricFactor{never}, std::invalid_argument);
+
+    // The emitter's condition fallback leaves a platform-session handle; its adopter checks too.
+    const SpMatRM P = upper_csr(near_singular_pd());
+    SymmetricFactor e(checked_options());
+    e.analyze(P);
+    ASSERT_EQ(e.factorize(P).arm, FactorArm::kSparse);
+    SymmetricFactor a = SymmetricFactor::adopt(e.share());
+    EXPECT_EQ(a.factorize(P).arm, FactorArm::kSparse);
+    EXPECT_EQ(a.counters().dense_condition_fallback_count, 1);
+}
+
 // The threads count follows set_threads() on a dense engine, and survives into an adopter.
 TEST(DenseArm, ThreadsRoundTrip) {
     SymmetricFactor f(dense_options());
