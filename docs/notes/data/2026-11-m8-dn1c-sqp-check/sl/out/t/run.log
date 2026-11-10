@@ -1,0 +1,24 @@
+run_serial: cutest/ACOPP118/hven-sqp/default
+run_serial: cutest/ACOPP57/hven-sqp/default
+run_serial: cutest/ACOPR118/hven-sqp/default
+run_serial: cutest/ACOPR57/hven-sqp/default
+run_serial: cutest/BIGBANK/hven-sqp/default
+run_serial: cutest/BRITGAS/hven-sqp/default
+run_serial: cutest/DALLASM/hven-sqp/default
+run_serial: cutest/MSS2/hven-sqp/default
+run_serial: cutest/MSS3/hven-sqp/default
+run_serial: cutest/NET3/hven-sqp/default
+run_serial: cutest/READING6/hven-sqp/default
+run_serial: cutest/READING8/hven-sqp/default
+run_serial: cutest/SAWPATH/hven-sqp/default
+run_serial: cutest/SMBANK/hven-sqp/default
+run_serial: cutest/STEENBRB/hven-sqp/default
+run_serial: cutest/STEENBRC/hven-sqp/default
+run_serial: cutest/STEENBRD/hven-sqp/default
+run_serial: cutest/STEENBRE/hven-sqp/default
+run_serial: cutest/STEENBRG/hven-sqp/default
+run_serial: cutest/TAX213322/hven-sqp/default
+run_serial: cutest/TAX53322/hven-sqp/default
+run_serial: cutest/YORKNET/hven-sqp/default
+run_serial: cutest/ZAMB2-8/hven-sqp/default
+run_serial: 23 cells -> runs/dn1c-train/default/results.csv
