@@ -1,0 +1,4 @@
+43c43
+<     o.dense_condition_check = dense != hven::linear::DensePolicy::kNever;
+---
+>     o.dense_condition_check = false;

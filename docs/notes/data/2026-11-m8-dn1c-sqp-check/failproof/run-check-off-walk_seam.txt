@@ -1,0 +1,18 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/fp-check-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (3 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (1 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (10 ms)
+[----------] 4 tests from QpDenseArm (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (15 ms total)
+[  PASSED  ] 4 tests.
