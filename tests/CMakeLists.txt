@@ -558,6 +558,9 @@ add_executable(hven_sqp_seam_tests
     # M8 B5 riders: the backend-failure half of the exception contract through
     # the public handles, on the linear layer's analyze/factorize injectors.
     sqp/test_backend_error_seams.cpp
+    # M8 DN-1d: the IPM dense guard's failed re-run (DN-1b review F8), on the dense-attempt
+    # and platform-factorize injectors.
+    sqp/test_ipm_dense_guard_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

@@ -20,6 +20,7 @@
 //
 // In hven_qp_walk_seam_tests for the E2-D4 dump fixtures; no seam is read.
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -27,6 +28,7 @@
 
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/qp/eqp_solve.h>
 #include <hven/detail/qp/qp_engine.h>
 
 #include "../common_support/route_reference.h"
@@ -71,12 +73,232 @@ QpProblem tiny_pivot_qp() {
     return qp;
 }
 
-// M8 DN-1c: every SQP factor built by sqp_kkt_options runs the dense condition check under a
-// dense policy, and only there (the factor layer refuses it under kNever).
-TEST(QpDenseArm, SqpKktOptionsRunTheConditionCheckUnderADensePolicyOnly) {
-    EXPECT_FALSE(sqp_kkt_options(0, DensePolicy::kNever).dense_condition_check);
-    EXPECT_TRUE(sqp_kkt_options(0, DensePolicy::kAlways).dense_condition_check);
-    EXPECT_TRUE(sqp_kkt_options(0, DensePolicy::kAuto).dense_condition_check);
+// M8 DN-1d: every SQP factor built by sqp_kkt_options reports under a dense policy, and only
+// there (the factor layer refuses kReport under kNever).
+TEST(QpDenseArm, SqpKktOptionsReportUnderADensePolicyOnly) {
+    using hven::linear::DenseSingularPolicy;
+    EXPECT_EQ(sqp_kkt_options(0, DensePolicy::kNever).dense_singular_policy,
+              DenseSingularPolicy::kSparseFallback);
+    EXPECT_EQ(sqp_kkt_options(0, DensePolicy::kAlways).dense_singular_policy,
+              DenseSingularPolicy::kReport);
+    EXPECT_EQ(sqp_kkt_options(0, DensePolicy::kAuto).dense_singular_policy,
+              DenseSingularPolicy::kReport);
+}
+
+SpMatRM upper_of(const Eigen::MatrixXd &m) {
+    SpMatRM A = m.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    for (Index i = 0; i < m.rows(); ++i) {
+        A.coeffRef(i, i) += 0.0; // every diagonal stored
+    }
+    A.makeCompressed();
+    return A;
+}
+
+// THE HS90 CATASTROPHE (E0 roster, HS90 factorization 5, eqp site, mu = 0): a working row
+// 1.5e-17 x e_2 against an rhs of -0.13 -- inconsistent and singular to working precision. The
+// site response shifts it; kNever never responds.
+TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReportsTheFactoredRegularization) {
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+    m(0, 0) = m(1, 1) = 2.00000001;
+    m(1, 2) = m(2, 1) = -0x1.14b1907515e67p-56;
+    const SpMatRM K = upper_of(m);
+    const DenseShiftSite site{2, 1e-8, 0.0};
+
+    KktFactor sparse(0, DensePolicy::kNever);
+    const CheckedFactorization cs = factorize_checked(sparse, K, site);
+    EXPECT_FALSE(cs.shifted);
+    EXPECT_FALSE(sparse.dense_shifted);
+    EXPECT_EQ(cs.delta, 1e-8);
+    EXPECT_EQ(cs.mu, 0.0);
+
+    KktFactor dense(0, DensePolicy::kAlways);
+    Index flagged = 0;
+    Index refactors = 0;
+    Index retakes = 0;
+    CheckedFactorization cd;
+    {
+        const DenseTallyScope tally(dense, flagged, refactors, retakes);
+        cd = factorize_checked(dense, K, site);
+    }
+    const double tau = 0x1p-27 * 2.00000001;
+    EXPECT_TRUE(cd.shifted);
+    EXPECT_FALSE(cd.retaken);
+    EXPECT_TRUE(dense.dense_shifted);
+    EXPECT_EQ(cd.outcome.arm, FactorArm::kDense);
+    EXPECT_DOUBLE_EQ(cd.delta, 1e-8 + std::max(1e-8, tau));
+    EXPECT_DOUBLE_EQ(cd.mu, tau);
+    ASSERT_TRUE(cd.outcome.inertia.perturbed_pivots.has_value());
+    EXPECT_EQ(inertia_verdict(cd.outcome.inertia, 2, 1), InertiaVerdict::kSuspect);
+    EXPECT_EQ(flagged, 1);
+    EXPECT_EQ(refactors, 1);
+    EXPECT_EQ(retakes, 0);
+    Vec rhs(3);
+    rhs << 0.0, -0x1.fb815d5e24b25p-53, -0x1.0a2549bd45f2fp-3;
+    const Vec y = solve_vec(dense, rhs);
+    EXPECT_TRUE(y.allFinite());
+    EXPECT_LE(std::abs(y(0)), 1e-12);
+}
+
+// The one retry and the last resort. diag(1, 2^-60, t) with every row dual (n_primal = 0, mu = 0):
+// t = 2^-27 = the shift, so the first shifted factor is exactly singular and the 100x one is
+// taken; with a fourth entry 100 t the retry is exactly singular too and the platform retakes.
+TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
+    const double t = 0x1p-27;
+    const DenseShiftSite site{0, 0.0, 0.0};
+    {
+        Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+        m(0, 0) = 1.0;
+        m(1, 1) = std::ldexp(1.0, -60);
+        m(2, 2) = t;
+        KktFactor k(0, DensePolicy::kAlways);
+        Index flagged = 0, refactors = 0, retakes = 0;
+        CheckedFactorization c;
+        {
+            const DenseTallyScope tally(k, flagged, refactors, retakes);
+            c = factorize_checked(k, upper_of(m), site);
+        }
+        EXPECT_TRUE(c.shifted);
+        EXPECT_DOUBLE_EQ(c.mu, 100.0 * t);
+        EXPECT_EQ(flagged, 2); // the original and the exactly singular first shift
+        EXPECT_EQ(refactors, 2);
+        EXPECT_EQ(retakes, 0);
+    }
+    {
+        Eigen::MatrixXd m = Eigen::MatrixXd::Zero(4, 4);
+        m(0, 0) = 1.0;
+        m(1, 1) = std::ldexp(1.0, -60);
+        m(2, 2) = t;
+        m(3, 3) = 100.0 * t;
+        KktFactor k(0, DensePolicy::kAlways);
+        Index flagged = 0, refactors = 0, retakes = 0;
+        CheckedFactorization c;
+        {
+            const DenseTallyScope tally(k, flagged, refactors, retakes);
+            c = factorize_checked(k, upper_of(m), site);
+        }
+        EXPECT_FALSE(c.shifted);
+        EXPECT_TRUE(c.retaken);
+        EXPECT_FALSE(k.dense_shifted);
+        EXPECT_EQ(c.outcome.arm, FactorArm::kSparse);
+        EXPECT_EQ(flagged, 3);
+        EXPECT_EQ(refactors, 2);
+        EXPECT_EQ(retakes, 1);
+    }
+}
+
+// min 0.5 |x|^2 - x2 subject to rows of Ae at mu = 0, through solve_eqp on both arms.
+QpProblem rows_qp(const Eigen::MatrixXd &Ae, const Vec &be, double h2) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Identity(3, 3);
+    Hd(2, 2) = h2;
+    qp.H = Hd.sparseView();
+    qp.g = Vec::Zero(3);
+    qp.g(1) = -1.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = be;
+    qp.Ai.resize(0, 3);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(3, -10.0);
+    qp.upper = Vec::Constant(3, 10.0);
+    return qp;
+}
+
+struct EqpRun {
+    EqpResult res;
+    Index flagged = 0;
+    Index refactors = 0;
+    Index retakes = 0;
+};
+
+EqpRun eqp_on(DensePolicy policy, const QpProblem &qp, const QpOptions &opts) {
+    KktFactor k(0, policy);
+    EqpRun r;
+    const DenseTallyScope tally(k, r.flagged, r.refactors, r.retakes);
+    r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
+    return r;
+}
+
+// A RANK-DEFICIENT WORKING SET at mu = 0: duplicated rows, consistent and inconsistent. The dense
+// factor is flagged and shifted; the consistent answer is the sparse arm's, the inconsistent one
+// finite, and nothing reaches the platform.
+TEST(QpDenseArm, ARankDeficientWorkingSetAtMuZeroIsShiftedNotRetaken) {
+    QpOptions opts;
+    opts.dual_regularization = 0.0;
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    {
+        const QpProblem qp = rows_qp(Ae, Vec::Constant(2, 1.0), 1.0);
+        const EqpRun s = eqp_on(DensePolicy::kNever, qp, opts);
+        const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
+        EXPECT_EQ(d.flagged, 1);
+        EXPECT_EQ(d.refactors, 1);
+        EXPECT_EQ(d.retakes, 0);
+        EXPECT_FALSE(d.res.residual_refused);
+        EXPECT_NEAR(d.res.x(0) + d.res.x(1), 1.0, 1e-9);
+        EXPECT_LE((d.res.x - s.res.x).lpNorm<Eigen::Infinity>(), 1e-6);
+    }
+    {
+        Vec be(2);
+        be << 1.0, 1.5;
+        const QpProblem qp = rows_qp(Ae, be, 1.0);
+        const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
+        EXPECT_EQ(d.refactors, 1);
+        EXPECT_EQ(d.retakes, 0);
+        EXPECT_TRUE(d.res.x.allFinite());
+    }
+}
+
+// THE ACOPP30 SHAPE: a second row 1.76 x the first plus a 1e-16 perturbation, at mu = 0 -- a
+// near-null pivot the pivot factorization takes. Flagged, shifted, and the sparse arm's answer.
+TEST(QpDenseArm, ANearNullPivotIsShiftedToTheSparseAnswer) {
+    QpOptions opts;
+    opts.dual_regularization = 0.0;
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 2.0, 0.0, 1.76, 3.52 + 1e-16 * 3.52, 0.0;
+    Vec be(2);
+    be << 1.0, 1.76;
+    const QpProblem qp = rows_qp(Ae, be, 1.0);
+    const EqpRun s = eqp_on(DensePolicy::kNever, qp, opts);
+    const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
+    EXPECT_EQ(d.refactors, 1);
+    EXPECT_EQ(d.retakes, 0);
+    EXPECT_LE(std::abs(d.res.x(0) + 2.0 * d.res.x(1) - 1.0), 1e-9);
+    EXPECT_LE((d.res.x - s.res.x).lpNorm<Eigen::Infinity>(), 1e-6);
+}
+
+// AN EXACT-ZERO COLUMN: x3 has no curvature and no row, and the primal regularization is 0 --
+// the dense arm reports it exactly singular and the shift recovers x3 = 0.
+TEST(QpDenseArm, AnExactZeroColumnIsShiftedNotRetaken) {
+    QpOptions opts;
+    opts.primal_regularization = 0.0;
+    opts.dual_regularization = 0.0;
+    Eigen::MatrixXd Ae(1, 3);
+    Ae << 1.0, 1.0, 0.0;
+    const QpProblem qp = rows_qp(Ae, Vec::Constant(1, 1.0), 0.0);
+    const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
+    EXPECT_EQ(d.flagged, 1);
+    EXPECT_EQ(d.refactors, 1);
+    EXPECT_EQ(d.retakes, 0);
+    EXPECT_NEAR(d.res.x(2), 0.0, 1e-12);
+    EXPECT_NEAR(d.res.x(0) + d.res.x(1), 1.0, 1e-9);
+}
+
+// Badly scaled, well posed (curvature over 12 decades): never flagged, the sparse arm's answer.
+TEST(QpDenseArm, ABadlyScaledWellPosedFaceIsNotFlagged) {
+    QpOptions opts;
+    Eigen::MatrixXd Ae(1, 3);
+    Ae << 1.0, 1e-3, 1e3;
+    QpProblem qp = rows_qp(Ae, Vec::Constant(1, 1.0), 1e6);
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Identity(3, 3);
+    Hd(0, 0) = 1e-6;
+    Hd(2, 2) = 1e6;
+    qp.H = Hd.sparseView();
+    const EqpRun s = eqp_on(DensePolicy::kNever, qp, opts);
+    const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
+    EXPECT_EQ(d.flagged, 0);
+    EXPECT_EQ(d.refactors, 0);
+    EXPECT_LE((d.res.x - s.res.x).lpNorm<Eigen::Infinity>(),
+              1e-8 * std::max(1.0, s.res.x.lpNorm<Eigen::Infinity>()));
 }
 
 TEST(QpDenseArm, APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm) {

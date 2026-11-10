@@ -575,10 +575,12 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             if (analysis.needed) {
                 ++out->symbolic_analyses;
             }
-            const Index fallbacks_before = detail::condition_fallbacks(kkt_);
-            detail::factorize_checked(kkt_, k_, analysis);
+            const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
+                                                out->dense_singular_refactors,
+                                                out->dense_condition_fallbacks);
+            detail::factorize_checked(kkt_, k_, analysis,
+                                      detail::DenseShiftSite{n, eff_delta_, eff_mu_});
             ++out->factorizations;
-            out->dense_condition_fallbacks += detail::condition_fallbacks(kkt_) - fallbacks_before;
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
             }
@@ -886,10 +888,12 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         if (analysis.needed) {
             ++out->symbolic_analyses;
         }
-        const Index fallbacks_before = detail::condition_fallbacks(kkt_);
-        detail::factorize_checked(kkt_, k_, analysis);
+        const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
+                                            out->dense_singular_refactors,
+                                            out->dense_condition_fallbacks);
+        detail::factorize_checked(kkt_, k_, analysis,
+                                  detail::DenseShiftSite{deferred_pos_, eff_delta_, eff_mu_});
         ++out->factorizations;
-        out->dense_condition_fallbacks += detail::condition_fallbacks(kkt_) - fallbacks_before;
     } catch (const std::exception &e) {
         out->status = QpStatus::kNumericalError;
         out->escape_reason = SsnEscape::kSingular;

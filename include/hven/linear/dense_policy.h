@@ -23,4 +23,15 @@ enum class DensePolicy {
     kAuto,
 };
 
+/// @brief What the dense arm does with a factorization it finds singular.
+enum class DenseSingularPolicy {
+    /// An exactly singular factorization (a zero pivot, a zero 2x2 determinant,
+    /// a non-finite D) is retaken by the platform session in the same call. The
+    /// default.
+    kSparseFallback,
+    /// Rook pivoting plus a singularity detector; the factor layer reports and
+    /// the caller responds (SymmetricFactor::Options::dense_singular_policy).
+    kReport,
+};
+
 } // namespace hven::linear

@@ -483,9 +483,12 @@ struct IpqpResult {
     /// thing IpqpBox exists to keep from being re-derived differently.
     IpqpBox box;
 
-    /// Of `counters.ipqp_factorizations`, those the dense arm's condition check
-    /// handed to the platform session (QpCounters::dense_condition_fallbacks).
+    /// The dense singular response on this solve's factor (QpCounters'
+    /// dense_condition_fallbacks, dense_flagged_factorizations,
+    /// dense_singular_refactors).
     Index dense_condition_fallbacks = 0;
+    Index dense_flagged_factorizations = 0;
+    Index dense_singular_refactors = 0;
 };
 
 /// @brief The IP-PMM interior-point QP tier.

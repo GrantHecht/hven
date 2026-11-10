@@ -601,16 +601,19 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     ++counters_.analyze_count;
 }
 
-FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
+void SymmetricFactor::check_factorize_input(const SpMatRM &A, PatternCheck check,
+                                            const char *what) {
     if (!has_pattern_ || (!session_ && !dense_)) {
-        throw std::logic_error("SymmetricFactor::factorize: called before analyze() (or before "
-                               "adopting a factorization that carries a symbolic analysis)");
+        throw std::logic_error(
+            fmt::format("SymmetricFactor::{}: called before analyze() (or before adopting a "
+                        "factorization that carries a symbolic analysis)",
+                        what));
     }
     if (!A.isCompressed()) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor::factorize: matrix must be compressed (call "
+            fmt::format("SymmetricFactor::{}: matrix must be compressed (call "
                         "A.makeCompressed() first) -- got a {}x{} matrix with {} stored entries",
-                        A.rows(), A.cols(), A.nonZeros()));
+                        what, A.rows(), A.cols(), A.nonZeros()));
     }
 
     // The compressed-storage check above runs whatever `check` says: it is a
@@ -622,14 +625,15 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
         const std::uint64_t hash = hven::pattern_hash(A);
         if (hash != pattern_hash_) {
             throw std::invalid_argument(fmt::format(
-                "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not "
+                "SymmetricFactor::{}: the matrix's sparsity pattern (hash {:#018x}) is not "
                 "the analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() "
                 "for a new pattern",
-                hash, pattern_hash_));
+                what, hash, pattern_hash_));
         }
     }
 
-    // THE DENSE-ARM DISPATCH (here through factorize_dense() and the dense
+    // THE DENSE-ARM DISPATCH (here, factorize_dense(), factorize_on_platform(),
+    // factorize_shifted(), retake_on_platform() and the dense
     // branches of share()/adopt()/Factorization) is byte-identical in
     // symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp: mirror
     // every edit in both until the registered shared dispatch TU lands.
@@ -644,8 +648,12 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
         dense->analyze(A);
         dense_ = std::move(dense);
     }
+}
+
+FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
+    check_factorize_input(A, check, "factorize");
     if (dense_) {
-        return factorize_dense(A);
+        return factorize_dense(A, nullptr);
     }
 
     int backend_code;
@@ -692,12 +700,29 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
     return outcome;
 }
 
-FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
+FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
+                                                  const detail::DenseShift *shift) {
     FactorizeOutcome outcome;
-    const detail::DenseFactorizeResult dense_result = dense_->factorize(A, epoch() + 1);
-    if (dense_result == detail::DenseFactorizeResult::kTaken) {
+    const Index estimates_before = dense_->condition_estimates();
+    detail::DenseFactorizeResult dense_result;
+#ifdef HVEN_TESTING
+    // See hven/detail/linear/fault_injection.h: the attempt is skipped and read
+    // as exactly singular once `pass` attempts have run.
+    if (detail::testing::DenseFactorizeFaultInjector::active &&
+        detail::testing::DenseFactorizeFaultInjector::pass-- <= 0) {
+        dense_result = detail::DenseFactorizeResult::kSingular;
+    } else
+#endif
+    {
+        dense_result = dense_->factorize(A, epoch() + 1, shift);
+    }
+    counters_.dense_condition_estimate_count += dense_->condition_estimates() - estimates_before;
+    if (dense_result != detail::DenseFactorizeResult::kSingular) {
         ++counters_.factorize_count;
         ++counters_.dense_factorize_count;
+        if (dense_result == detail::DenseFactorizeResult::kNumericallySingular) {
+            ++counters_.dense_flagged_count;
+        }
         dense_active_ = true;
         outcome.status = FactorizeOutcome::Status::kOk;
         outcome.inertia = detail::dense_evidence_of(*dense_);
@@ -707,9 +732,52 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
         refused_epoch_ = 0;
         return outcome;
     }
+    if (opts_.dense_singular_policy == DenseSingularPolicy::kReport) {
+        // Reported, not retaken: the dense session holds no numerics, so the
+        // engine has none (dense_active_ with no numerics), and the epoch stays.
+        ++counters_.factorize_count;
+        ++counters_.dense_singular_count;
+        dense_active_ = true;
+        outcome.status = FactorizeOutcome::Status::kBackendError;
+        outcome.backend_code = kDenseSingular;
+        outcome.arm = FactorArm::kDense;
+        outcome.inertia.numerically_singular = true;
+        return outcome;
+    }
+    return factorize_on_platform(A);
+}
 
-    // Exactly singular, or singular to working precision under
-    // dense_condition_check: the platform session takes this factorization. It is
+FactorizeOutcome SymmetricFactor::factorize_shifted(const SpMatRM &A, Index n_primal, double primal,
+                                                    double dual, PatternCheck check) {
+    if (!std::isfinite(primal) || !std::isfinite(dual) || primal < 0.0 || dual < 0.0 ||
+        n_primal < 0 || n_primal > static_cast<Index>(A.rows())) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::factorize_shifted: needs finite shifts >= 0 and 0 <= n_primal <= "
+            "{}, got primal = {}, dual = {}, n_primal = {}",
+            A.rows(), primal, dual, n_primal));
+    }
+    check_factorize_input(A, check, "factorize_shifted");
+    if (!dense_ || opts_.dense_singular_policy != DenseSingularPolicy::kReport) {
+        throw std::logic_error("SymmetricFactor::factorize_shifted: needs a dense-selected pattern "
+                               "under DenseSingularPolicy::kReport");
+    }
+    ++counters_.dense_shift_refactor_count;
+    const detail::DenseShift shift{n_primal, primal, dual};
+    return factorize_dense(A, &shift);
+}
+
+FactorizeOutcome SymmetricFactor::retake_on_platform(const SpMatRM &A, PatternCheck check) {
+    check_factorize_input(A, check, "retake_on_platform");
+    if (!dense_) {
+        throw std::logic_error(
+            "SymmetricFactor::retake_on_platform: needs a dense-selected pattern");
+    }
+    ++counters_.dense_retake_count;
+    return factorize_on_platform(A);
+}
+
+FactorizeOutcome SymmetricFactor::factorize_on_platform(const SpMatRM &A) {
+    // The platform session takes this factorization. It is
     // reused iff it took the engine's previous factorization (its epoch is
     // then the engine's); otherwise a fresh one is analyzed on this pattern,
     // seeded with the engine's epoch, so the epoch never runs backwards.
@@ -721,6 +789,7 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
     // (a fork happens only when the dense session just lost its numerics,
     // or when there is no platform session), so solves throw and the epoch
     // does not advance, as on any failed factorize().
+    FactorizeOutcome outcome;
     if (!session_ || dense_active_) {
         auto session =
             std::make_shared<detail::FactorSession>(config_from(dense_->options()), epoch());
@@ -738,9 +807,6 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
         } catch (const hven::BackendError &) {
             ++counters_.factorize_count;
             ++counters_.dense_fallback_count;
-            if (dense_result == detail::DenseFactorizeResult::kIllConditioned) {
-                ++counters_.dense_condition_fallback_count;
-            }
             outcome.status = FactorizeOutcome::Status::kBackendError;
             outcome.backend_code = kDenseFallbackAnalyzeFailed;
             return outcome;
@@ -762,9 +828,6 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A) {
     }
     ++counters_.factorize_count;
     ++counters_.dense_fallback_count;
-    if (dense_result == detail::DenseFactorizeResult::kIllConditioned) {
-        ++counters_.dense_condition_fallback_count;
-    }
 
     outcome.backend_code = backend_code;
     if (backend_code == 0) {
@@ -854,7 +917,7 @@ std::shared_ptr<const Factorization> SymmetricFactor::share() {
     }
     return std::make_shared<const Factorization>(
         Factorization::PrivateTag{}, session_, pattern_hash_, session_->epoch(),
-        opts_.dense_factorization, opts_.max_dense_dimension, opts_.dense_condition_check);
+        opts_.dense_factorization, opts_.max_dense_dimension, opts_.dense_singular_policy);
 }
 
 // The session that took the most recent successful factorization (or, before
@@ -912,7 +975,7 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // dense-selected pattern's fallback session, or a sparse-selected one).
     opts.dense_factorization = handle->dense_factorization_;
     opts.max_dense_dimension = handle->max_dense_dimension_;
-    opts.dense_condition_check = handle->dense_condition_check_;
+    opts.dense_singular_policy = handle->dense_singular_policy_;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;
@@ -965,10 +1028,11 @@ void SymmetricFactor::require_solvable(const char *what) const {
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                              std::uint64_t pattern_hash, std::uint64_t epoch,
                              DensePolicy dense_factorization,
-                             std::optional<Index> max_dense_dimension, bool dense_condition_check)
+                             std::optional<Index> max_dense_dimension,
+                             DenseSingularPolicy dense_singular_policy)
     : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch),
       dense_factorization_(dense_factorization), max_dense_dimension_(max_dense_dimension),
-      dense_condition_check_(dense_condition_check) {}
+      dense_singular_policy_(dense_singular_policy) {}
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                              std::uint64_t pattern_hash, std::uint64_t epoch)

@@ -245,6 +245,14 @@ constexpr double kEqpResidualRefuseTol = 1e-1;
 // point.
 constexpr Index kEqpPolishSteps = 2;
 
+// THE SHIFTED FACTOR'S REFINEMENT (M8 DN-1d): a dense factorization the detector
+// flagged is refactored as K + S (detail::factorize_checked), so a solve answers
+// the shifted system. Refinement against K itself contracts each eigencomponent
+// by about tau / (lambda + tau): one or two steps restore every direction whose
+// curvature dwarfs the shift, and none can move the near-null ones. At most this
+// many, each kept only while ||rhs - K y||inf strictly falls.
+constexpr Index kEqpShiftRefineSteps = 10;
+
 // THE UNREGULARIZED POLISH's STEP CAP, relative to the answer's own size: a step
 // is kept only if it also moves the answer by no more than
 // kEqpPolishStepCap * max(1, ||y||inf).
@@ -300,7 +308,8 @@ struct EqpResult {
     /// own section). `row_residual` is ||(rhs - K y)_rows||inf for the answer the
     /// check accepted -- the answer's own miss against the REGULARIZED system it
     /// came out of, in the constraint rows, BEFORE the model's mu-free step;
-    /// `residual_refine_iters` the extra solves spent driving it down (0 on a
+    /// `residual_refine_iters` the extra solves spent driving it down (a shifted
+    /// factor's refine_shifted_solve() solves included; 0 on a
     /// healthy pass); `residual_refused` true iff it is still above
     /// kEqpResidualRefuseTol*(1 + ||rhs_rows||inf) -- or NaN -- after the budget,
     /// which means the answer does not solve its own system and the caller must
@@ -326,6 +335,32 @@ struct EqpResult {
     /// solve_eqp.
     bool border_uncertified = false;
 };
+
+// kEqpShiftRefineSteps' loop on `y`, a solve of K y = rhs through `kkt`; a no-op
+// unless `kkt` holds shifted numerics. Returns the solves spent (each counted
+// before its keep-or-reject test).
+inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const detail::KktFactor &kkt,
+                                  Vec &y) {
+    if (!kkt.dense_shifted) {
+        return 0;
+    }
+    Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
+    double r_inf = r.lpNorm<Eigen::Infinity>();
+    Index spent = 0;
+    while (spent < kEqpShiftRefineSteps) {
+        ++spent;
+        const Vec candidate = y + detail::solve_vec(kkt, r);
+        Vec cr = rhs - K.template selfadjointView<Eigen::Upper>() * candidate;
+        const double cr_inf = cr.lpNorm<Eigen::Infinity>();
+        if (!(cr_inf < r_inf)) {
+            break; // stagnated, diverging, or NaN -- keep the better answer
+        }
+        y = candidate;
+        r = std::move(cr);
+        r_inf = cr_inf;
+    }
+    return spent;
+}
 
 // THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11): the loop, and
 // then the whole-face entry point below solve_eqp.
@@ -436,8 +471,13 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         rhs(n_free + me + k) = qp.bi(row) - asm_.rhs_shift(n_free + me + k);
     }
 
-    detail::factorize_checked(kkt, asm_.K);
+    // A dense factorization the detector flags is refactored shifted (M8 DN-1d);
+    // kkt.dense_shifted then gates the one unconditional step below.
+    detail::factorize_checked(
+        kkt, asm_.K,
+        detail::DenseShiftSite{n_free, opts.primal_regularization, opts.dual_regularization});
     Vec y = detail::solve_vec(kkt, rhs);
+    const Index shift_iters = refine_shifted_solve(asm_.K, rhs, kkt, y);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -492,10 +532,12 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     Vec r_reg = regularized_residual(y);
     double ratio = ratio_of(y, r_reg);
     Index res_iters = 0;
+    Index res_spent = shift_iters;
     while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
         // COUNTED BEFORE THE SAFEGUARD: the solve below is spent whether or not
         // its candidate is kept (solver_counters.h's eqp_refine_iters).
         ++res_iters;
+        ++res_spent;
         const Vec candidate = y + detail::solve_vec(kkt, r_reg);
         Vec candidate_r = regularized_residual(candidate);
         const double candidate_ratio = ratio_of(candidate, candidate_r);
@@ -526,7 +568,17 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
 
-    y = y + detail::solve_vec(kkt, residual_of(y));
+    if (!kkt.dense_shifted) {
+        y = y + detail::solve_vec(kkt, residual_of(y));
+    } else {
+        // A shifted factor answers a different system: the step is kept only
+        // if it reduces the proximal residual (a NaN keeps nothing).
+        const Vec candidate = y + detail::solve_vec(kkt, residual_of(y));
+        if (residual_of(candidate).lpNorm<Eigen::Infinity>() <
+            residual_of(y).lpNorm<Eigen::Infinity>()) {
+            y = candidate;
+        }
+    }
 
     // ---- THE UNREGULARIZED POLISH (E4-11; polish_eqp_core, and the header's own
     // section) ----
@@ -551,7 +603,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     out.refine_steps = 0; // no iterated loop on this path -- see the header note
     out.row_residual = row_residual;
     out.residual_ratio = ratio;
-    out.residual_refine_iters = res_iters;
+    out.residual_refine_iters = res_spent;
     out.residual_refused = refused;
     return out;
 }

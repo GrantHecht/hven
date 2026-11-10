@@ -22,11 +22,26 @@
 #ifdef HVEN_USE_ACCELERATE_LAPACK
 #include "hven/detail/linear/lapacke_shim.h"
 using hven::linear::detail::lapack_int;
-using hven::linear::detail::LAPACKE_dsycon_work;
+using hven::linear::detail::LAPACKE_dsycon_rook_work;
+using hven::linear::detail::LAPACKE_dsytrf_rook_work;
 using hven::linear::detail::LAPACKE_dsytrf_work;
+using hven::linear::detail::LAPACKE_dsytrs_rook_work;
 using hven::linear::detail::LAPACKE_dsytrs_work;
 #else
+#include <mkl_lapack.h>
 #include <mkl_lapacke.h>
+namespace {
+// MKL's LAPACKE has no dsycon_rook; the Fortran entry, in LAPACKE's shape.
+lapack_int LAPACKE_dsycon_rook_work(int /*matrix_layout*/, char uplo, lapack_int n, const double *a,
+                                    lapack_int lda, const lapack_int *ipiv, double anorm,
+                                    double *rcond, double *work, lapack_int *iwork) {
+    MKL_INT info = 0;
+    const MKL_INT nn = n;
+    const MKL_INT ld = lda;
+    dsycon_rook(&uplo, &nn, a, &ld, ipiv, &anorm, rcond, work, iwork, &info);
+    return static_cast<lapack_int>(info);
+}
+} // namespace
 #endif
 
 // ipiv_ is a std::vector<int> handed to LAPACK as lapack_int*.
@@ -102,6 +117,56 @@ DenseInertiaCount dense_block_walk(const double *a, Index n, const int *ipiv) {
     return out;
 }
 
+DenseRookCount dense_rook_walk(const double *a, Index n, const int *ipiv) {
+    DenseRookCount out;
+    DenseInertiaCount &c = out.counts;
+    double dmin = std::numeric_limits<double>::infinity();
+    double dmax = 0.0;
+    Index k = 0;
+    while (k < n) {
+        if (ipiv[k] > 0) {
+            const double d = a[k * n + k];
+            if (!std::isfinite(d) || d == 0.0) {
+                c.singular = true;
+                return out;
+            }
+            if (d > 0.0) {
+                ++c.positive;
+            } else {
+                ++c.negative;
+            }
+            dmin = std::min(dmin, std::abs(d));
+            dmax = std::max(dmax, std::abs(d));
+            k += 1;
+        } else {
+            // dsytrf_rook marks a 2x2 block by two negative entries (each its own
+            // interchange); a zero entry or a block on the last index is not its
+            // output.
+            if (ipiv[k] == 0 || k + 1 >= n || ipiv[k + 1] >= 0) {
+                throw std::logic_error(fmt::format(
+                    "SymmetricFactor: malformed dsytrf_rook pivot data at index {} of {} (ipiv={}, "
+                    "next={})",
+                    k, n, ipiv[k], k + 1 < n ? ipiv[k + 1] : 0));
+            }
+            Block2x2 block;
+            bool det_zero = false;
+            if (!decode_2x2(a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + (k + 1)], block,
+                            det_zero) ||
+                det_zero) {
+                c.singular = true;
+                return out;
+            }
+            c.negative += block.neg;
+            c.positive += 2 - block.neg;
+            dmin = std::min({dmin, block.abs_first, block.abs_second});
+            dmax = std::max({dmax, block.abs_first, block.abs_second});
+            k += 2;
+        }
+    }
+    out.d_ratio = dmax > 0.0 ? dmin / dmax : 0.0;
+    return out;
+}
+
 DenseSession::DenseSession(const SymmetricFactor::Options &opts, std::uint64_t initial_epoch)
     : opts_(opts), epoch_(initial_epoch), session_id_(next_session_id()) {}
 
@@ -118,8 +183,12 @@ void DenseSession::analyze(const SpMatRM &A) {
     {
         const MklThreadScope threads(opts_.threads);
         const auto info = static_cast<int>(
-            LAPACKE_dsytrf_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n), a.data(),
-                                static_cast<lapack_int>(n), ipiv.data(), &query, -1));
+            report()
+                ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n),
+                                           a.data(), static_cast<lapack_int>(n), ipiv.data(),
+                                           &query, -1)
+                : LAPACKE_dsytrf_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n), a.data(),
+                                      static_cast<lapack_int>(n), ipiv.data(), &query, -1));
         if (info != 0) {
             throw hven::BackendError(fmt::format(
                 "SymmetricFactor::analyze: dense workspace query failed, info={}", info));
@@ -143,7 +212,7 @@ void DenseSession::analyze(const SpMatRM &A) {
     std::vector<double> colsum;
     std::vector<double> con_work;
     std::vector<int> con_iwork;
-    if (opts_.dense_condition_check) {
+    if (report()) {
         colsum.assign(static_cast<std::size_t>(n), 0.0);
         con_work.assign(2 * static_cast<std::size_t>(n), 0.0);
         con_iwork.assign(static_cast<std::size_t>(n), 0);
@@ -160,9 +229,12 @@ void DenseSession::analyze(const SpMatRM &A) {
     has_numerics_ = false;
     positive_ = 0;
     negative_ = 0;
+    numerically_singular_ = false;
+    shifted_pivots_ = 0;
 }
 
-DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch) {
+DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch,
+                                             const DenseShift *shift) {
     // The cheap bound guard that stands whatever the pattern check was: the
     // scatter below indexes a_ by the analyzed pattern.
     if (static_cast<Index>(A.rows()) != n_ || static_cast<Index>(A.cols()) != n_ ||
@@ -184,13 +256,22 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     for (std::size_t k = 0; k < nnz; ++k) {
         a[scatter_[k]] = values[k];
     }
+    if (shift != nullptr) {
+        for (Index i = 0; i < n_; ++i) {
+            a[i * n_ + i] += i < shift->n_primal ? shift->primal : -shift->dual;
+        }
+    }
 
     int info = 0;
     {
         const MklThreadScope threads(opts_.threads);
-        info = static_cast<int>(LAPACKE_dsytrf_work(
-            LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a, static_cast<lapack_int>(n_),
-            ipiv_.data(), work_.data(), static_cast<lapack_int>(work_.size())));
+        info = static_cast<int>(
+            report() ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
+                                                a, static_cast<lapack_int>(n_), ipiv_.data(),
+                                                work_.data(), static_cast<lapack_int>(work_.size()))
+                     : LAPACKE_dsytrf_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a,
+                                           static_cast<lapack_int>(n_), ipiv_.data(), work_.data(),
+                                           static_cast<lapack_int>(work_.size())));
     }
     if (info < 0) {
         throw hven::BackendError(fmt::format(
@@ -199,24 +280,38 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     if (info > 0) {
         return DenseFactorizeResult::kSingular;
     }
-    const DenseInertiaCount counts = dense_block_walk(a, n_, ipiv_.data());
-    if (counts.singular) {
-        return DenseFactorizeResult::kSingular;
-    }
-    if (opts_.dense_condition_check && !condition_ok(A)) {
-        return DenseFactorizeResult::kIllConditioned;
+    bool flagged = false;
+    DenseInertiaCount counts;
+    if (report()) {
+        const DenseRookCount rook = dense_rook_walk(a, n_, ipiv_.data());
+        counts = rook.counts;
+        if (counts.singular) {
+            return DenseFactorizeResult::kSingular;
+        }
+        // The screen, then the estimate; NaN flags.
+        if (rook.d_ratio < kDenseSingularScreen) {
+            flagged = !(rcond_estimate(A, shift) >= kDenseConditionSingular);
+        }
+    } else {
+        counts = dense_block_walk(a, n_, ipiv_.data());
+        if (counts.singular) {
+            return DenseFactorizeResult::kSingular;
+        }
     }
     positive_ = counts.positive;
     negative_ = counts.negative;
+    numerically_singular_ = flagged;
+    shifted_pivots_ = shift != nullptr ? n_ : 0;
     // Never back, never the same: a co-owner may have advanced this shared
     // session past the epoch the calling engine knows (see the header).
     epoch_ = std::max(epoch_ + 1, next_epoch);
     has_numerics_ = true;
-    return DenseFactorizeResult::kTaken;
+    return flagged ? DenseFactorizeResult::kNumericallySingular : DenseFactorizeResult::kTaken;
 }
 
-bool DenseSession::condition_ok(const SpMatRM &A) {
-    // ||A||_1 of the symmetric matrix from its stored upper triangle.
+double DenseSession::rcond_estimate(const SpMatRM &A, const DenseShift *shift) {
+    // ||A||_1 of the symmetric matrix from its stored upper triangle; a shifted
+    // diagonal (stored or not) counts at its shifted value.
     std::fill(colsum_.begin(), colsum_.end(), 0.0);
     const auto *outer = A.outerIndexPtr();
     const auto *inner = A.innerIndexPtr();
@@ -224,11 +319,28 @@ bool DenseSession::condition_ok(const SpMatRM &A) {
     for (Index i = 0; i < n_; ++i) {
         for (auto k = static_cast<Index>(outer[i]); k < static_cast<Index>(outer[i + 1]); ++k) {
             const auto j = static_cast<Index>(inner[k]);
+            if (j == i && shift != nullptr) {
+                continue;
+            }
             const double v = std::abs(values[k]);
             colsum_[static_cast<std::size_t>(j)] += v;
             if (j != i) {
                 colsum_[static_cast<std::size_t>(i)] += v;
             }
+        }
+    }
+    if (shift != nullptr) {
+        // The diagonal as factored: the scatter's value plus the shift.
+        for (Index i = 0; i < n_; ++i) {
+            double d = 0.0;
+            for (auto k = static_cast<Index>(outer[i]); k < static_cast<Index>(outer[i + 1]); ++k) {
+                if (static_cast<Index>(inner[k]) == i) {
+                    d = values[k];
+                    break;
+                }
+            }
+            d += i < shift->n_primal ? shift->primal : -shift->dual;
+            colsum_[static_cast<std::size_t>(i)] += std::abs(d);
         }
     }
     const double anorm = *std::max_element(colsum_.begin(), colsum_.end());
@@ -237,23 +349,30 @@ bool DenseSession::condition_ok(const SpMatRM &A) {
     {
         const MklThreadScope threads(opts_.threads);
         info = static_cast<int>(
-            LAPACKE_dsycon_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a_.data(),
-                                static_cast<lapack_int>(n_), ipiv_.data(), anorm, &rcond,
-                                con_work_.data(), con_iwork_.data()));
+            LAPACKE_dsycon_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a_.data(),
+                                     static_cast<lapack_int>(n_), ipiv_.data(), anorm, &rcond,
+                                     con_work_.data(), con_iwork_.data()));
     }
+    ++condition_estimates_;
     if (info != 0) {
         throw hven::BackendError(fmt::format(
-            "SymmetricFactor::factorize: dense dsycon failed, info={} (illegal argument)", info));
+            "SymmetricFactor::factorize: dense dsycon_rook failed, info={} (illegal argument)",
+            info));
     }
-    // NaN fails.
-    return rcond >= kDenseConditionSingular;
+    return rcond;
 }
 
 void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
     const MklThreadScope threads(opts_.threads);
-    const auto info = static_cast<int>(LAPACKE_dsytrs_work(
-        LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), static_cast<lapack_int>(nrhs),
-        a_.data(), static_cast<lapack_int>(n_), ipiv_.data(), b, static_cast<lapack_int>(ldb)));
+    const auto info = static_cast<int>(
+        report() ? LAPACKE_dsytrs_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
+                                            static_cast<lapack_int>(nrhs), a_.data(),
+                                            static_cast<lapack_int>(n_), ipiv_.data(), b,
+                                            static_cast<lapack_int>(ldb))
+                 : LAPACKE_dsytrs_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
+                                       static_cast<lapack_int>(nrhs), a_.data(),
+                                       static_cast<lapack_int>(n_), ipiv_.data(), b,
+                                       static_cast<lapack_int>(ldb)));
     if (info != 0) {
         throw hven::BackendError(
             fmt::format("SymmetricFactor::solve: dense dsytrs failed, info={}", info));
@@ -266,10 +385,15 @@ InertiaEvidence dense_evidence_of(const DenseSession &session) {
     evidence.positive = session.positive();
     evidence.negative = session.negative();
     // Counted: the walk found no zero pivot, no zero 2x2 determinant and no
-    // non-finite value (any of them sends the factorization to the fallback).
+    // non-finite value (any of them leaves the session without numerics).
     evidence.zero = 0;
     evidence.zero_is_derived = false;
-    // perturbed_pivots stays absent: Bunch-Kaufman perturbs nothing.
+    // Present only on a shifted factorization (the pivot factorization itself
+    // perturbs nothing), so the shifted inertia reads suspect.
+    if (session.shifted_pivots() > 0) {
+        evidence.perturbed_pivots = session.shifted_pivots();
+    }
+    evidence.numerically_singular = session.numerically_singular();
     return evidence;
 }
 
@@ -359,10 +483,20 @@ void validate_dense_options(const SymmetricFactor::Options &opts) {
         throw std::invalid_argument(fmt::format("SymmetricFactor: unknown DensePolicy value ({})",
                                                 static_cast<int>(opts.dense_factorization)));
     }
-    if (opts.dense_condition_check && opts.dense_factorization == DensePolicy::kNever) {
+    switch (opts.dense_singular_policy) {
+    case DenseSingularPolicy::kSparseFallback:
+        break;
+    case DenseSingularPolicy::kReport:
+        if (opts.dense_factorization == DensePolicy::kNever) {
+            throw std::invalid_argument(
+                "SymmetricFactor: DenseSingularPolicy::kReport configures the dense arm and is "
+                "refused under DensePolicy::kNever");
+        }
+        break;
+    default:
         throw std::invalid_argument(
-            "SymmetricFactor: dense_condition_check configures the dense arm and is refused under "
-            "DensePolicy::kNever");
+            fmt::format("SymmetricFactor: unknown DenseSingularPolicy value ({})",
+                        static_cast<int>(opts.dense_singular_policy)));
     }
     if (opts.conditional_reproducibility_threads > 0 &&
         opts.dense_factorization != DensePolicy::kNever) {

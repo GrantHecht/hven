@@ -2161,9 +2161,12 @@ int hven::detail::IpmSolverImpl::dense_step_singularity_guard(
         extra += this->factor_impl(false, false, target, incpurt, incpurt, finalpert, cumpert,
                                    base_prox, dual_shift, rerun_exhausted, true, dc_applied);
         exhausted = rerun_exhausted;
-        // A re-run that left no numerics ends the guard (as the init guard does).
-        if (this->kkt_sol_.info() != Eigen::Success)
+        // A re-run that left no numerics ends the guard (as the init guard does)
+        // and the step it was for is not taken (DN-1b review F8).
+        if (this->kkt_sol_.info() != Eigen::Success) {
+            exhausted = true;
             break;
+        }
         this->kkt_sol_.solve(rhs, x);
         if (rerun_exhausted)
             break;

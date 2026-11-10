@@ -940,6 +940,74 @@ DN-3 needs the IPM wired to measure it at all, and the IPM's default stays spars
 
 ---
 
+## 18. DN-1d: dense singular handling for the SQP — report, don't replace
+
+Ledger C276–C280 (design study C278, ruling C280). Replaces DN-1c's condition fallback.
+
+**Factor layer.** `Options::dense_singular_policy` (`DenseSingularPolicy`, `dense_policy.h`):
+`kSparseFallback` (default; DN-1: Bunch-Kaufman, exact singularity retaken by the platform session;
+IPM, tycho, tests) or `kReport` (refused under `kNever`). Under `kReport` the dense session factors
+with `dsytrf_rook`/`dsytrs_rook` and runs a two-stage detector: the rook block walk's D-ratio
+`min|λ(D)|/max|λ(D)|` (1×1 pivot `|d|`, 2×2 block from `decode_2x2`'s two magnitudes) below
+`kDenseSingularScreen = 1e-15` buys a `dsycon_rook` estimate (‖A‖₁ from the CSR, shift included);
+rcond `< 2^-53` or NaN flags. Flagged: numerics kept, `kOk`, `InertiaEvidence::numerically_singular`.
+Exactly singular (info > 0, a zero 2×2 determinant, non-finite D): `kBackendError`,
+`backend_code = kDenseSingular`, arm `kDense`, the bit set, no numerics. Nothing is retaken.
+Two responses: `factorize_shifted(A, n_primal, primal, dual)` (dense, `A + diag(+primal on the first
+n_primal rows, −dual on the rest)`, detector re-run; a taken outcome reports
+`perturbed_pivots = dim`, so every inertia verdict reads it suspect) and `retake_on_platform(A)`
+(the `kSparseFallback` path, counted). Counters: `dense_singular_count`, `dense_flagged_count`,
+`dense_condition_estimate_count` (dsycon calls), `dense_shift_refactor_count`,
+`dense_retake_count`; DN-1c's `dense_condition_fallback_count` is gone; `factorize_count =
+dense_factorize_count + dense_fallback_count + dense_singular_count + sparse-selected`.
+Accelerate: the shim gains `LAPACKE_dsytrf_rook_work`, `LAPACKE_dsytrs_rook_work`,
+`LAPACKE_dsycon_rook_work` (UNOBSERVED; macOS CI compiles them); MKL's LAPACKE has no
+`dsycon_rook`, so `dense_session.cpp` wraps the Fortran entry.
+
+**Bands (DN-1c review F3).** Pardiso perturbs pivots below ~1e-8 relative (the walk reads that
+suspect); the dense flag is at rcond 2^-53. A dense factorization between the two is taken and
+trusted where Pardiso's would have been suspect. Documented on the option; not a defect.
+
+**SQP response (`detail::factorize_checked(k, K, decision, DenseShiftSite{n_primal, δ, μ})`).**
+Flagged or exactly singular → `factorize_shifted` with `τp = max(δ, 2^-27·max|K|)`,
+`τd = max(μ, 2^-27·max|K|)` (on top of the assembled δ, μ, as E0 measured); still flagged →
+once more at 100×; still flagged → `retake_on_platform` (the last resort; criterion 0 on the
+roster); a failed outcome → `BackendError` as before. Returns `CheckedFactorization{outcome, δ, μ,
+shifted, retaken}`, δ/μ being the factored matrix's regularization; `KktFactor::dense_shifted`
+marks shifted numerics. A shifted solve is refined against K itself (`refine_shifted_solve`, at
+most `kEqpShiftRefineSteps = 10` steps, each kept only while ‖rhs − K y‖∞ falls): that restores
+every direction whose curvature dwarfs τ and cannot move the near-null ones. The polish
+(`polish_eqp_core`) forms its residual from the assembled K and the options' (δ, μ), so it needs
+nothing from the factor and stays a keep-while-falling refinement.
+Per consumer: `solve_eqp` (site `{n_free, δ, μ}`; the one unconditional proximal step becomes
+keep-while-falling on a shifted factor); the reread probe (`refine_eliminated_face_for_verdict`,
+same site, same step rule); μ-free polish / terminal / saddle (through `solve_eqp`, μ = 0);
+`rebuild_k0` (site `{n, δ, μ}`; the Schur border stack solves through K0 unchanged); SSN (both
+sites, `{n, eff_delta, eff_mu}`); IPQP (`kReport` at reconfigure; a flagged or exactly singular read
+is `kPerturbed`, the tier's own shift remedy; never shifted or retaken); the rank repair's Gram
+factor `kSparseFallback` (no detector); equality basis and predictor stay `kNever`. The IPM keeps
+`kSparseFallback` and DN-1b's guard (IPM `kReport` registered, R10).
+
+**Counting.** `QpCounters`/`SqpCounters`: `dense_condition_fallbacks` (now the last-resort retakes),
+`dense_flagged_factorizations` (flagged + exact, shifted refactors included),
+`dense_singular_refactors`; folded wherever `dense_condition_fallbacks` was; fed by
+`DenseTallyScope`, which adds the factor-counter deltas on scope exit, a throw included (DN-1c
+review F5). A retake that forks a fresh platform session pays a symbolic analysis
+`symbolic_analyses` does not count (F7, documented).
+
+**Known limit (measured in development, before any declaration).** The shift is uniform in
+max|K|. On a badly scaled K it damps legitimate directions whose curvature is below τ, and no
+keep-while-falling refinement restores them: `NearSingularHessianProblem` at 2^20 (τ = 8192)
+stalls to max_iter where kNever converges in one major (the shipped test uses 2^14), and SQP
+ALLINITC — whose flagged μ-free systems reach max|K| = 2.7e9, so τd reaches ~20 against a dual
+Schur curvature ~1e-9 — rejects every μ-free terminal polish and ends numerical_error, the same
+trajectory as DN-1c's platform retake. With the detector reporting and no response to finite
+flags (exact ones shifted), ALLINITC is optimal, bit-for-bit DN-1b's objective.
+
+**Riders.** `kIllConditioned` → `kNumericallySingular` (`DenseFactorizeResult`); DN-1b F8 (the IPM
+guard's failed re-run sets `exhausted`; defensive — `factor_impl` already reports it — pinned by
+`IpmDenseGuardSeam` on the new `DenseFactorizeFaultInjector`); stale shim prose.
+
 ## Appendix A. Binding inputs → answers
 
 | input (C259/C262) | answer | where |

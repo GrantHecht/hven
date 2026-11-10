@@ -63,6 +63,7 @@ class FactorSession;
 // LAPACK Bunch-Kaufman factorization of the densified matrix. Incomplete here
 // for the same reason as FactorSession.
 class DenseSession;
+struct DenseShift;
 
 // Eigen binds a vector to a matrix Ref and a matrix to a vector Ref, so a
 // pair of solve(vector) / solve(matrix) overloads spelled purely in terms of
@@ -124,6 +125,12 @@ struct InertiaEvidence {
     // Absence is the honest state and is never filled with a zero -- a zero
     // here means "the backend counted, and the answer was none".
     std::optional<Index> perturbed_pivots;
+
+    // DenseSingularPolicy::kReport only: the dense arm's detector found this
+    // factorization singular to working precision, or (on a kBackendError
+    // outcome with backend_code kDenseSingular) exactly singular. False
+    // everywhere else.
+    bool numerically_singular = false;
 };
 
 // What a factorization reports about its own size and cost. Per-backend
@@ -190,6 +197,11 @@ enum class FactorArm { kSparse, kDense };
 // platform's own code survives only in the message hven discards there.
 // INT_MIN, a value neither backend returns as a status.
 inline constexpr int kDenseFallbackAnalyzeFailed = std::numeric_limits<int>::min();
+
+// FactorizeOutcome::backend_code under DenseSingularPolicy::kReport when the
+// dense arm found the matrix exactly singular: no numerics, arm kDense,
+// InertiaEvidence::numerically_singular set. INT_MIN + 1.
+inline constexpr int kDenseSingular = std::numeric_limits<int>::min() + 1;
 
 // The result of one numeric factorization. A backend error is reported here,
 // not thrown: the caller decides whether a failed factorization is fatal or
@@ -644,12 +656,25 @@ class SymmetricFactor {
         // under the other two policies.
         std::optional<Index> max_dense_dimension;
 
-        // Under kAlways/kAuto: after a dense factorization the arm estimates
-        // its reciprocal condition number (LAPACK dsycon, 1-norm); below
-        // 2^-53 the matrix is singular to working precision (LAPACK xSYSVX's
-        // test) and the platform session retakes the factorization, as for an
-        // exactly singular one. Refused under kNever.
-        bool dense_condition_check = false;
+        // What the dense arm does with a singular factorization.
+        //   kSparseFallback  Bunch-Kaufman; an exactly singular matrix is
+        //                    retaken by the platform session (above).
+        //   kReport          rook pivoting (dsytrf_rook) and a detector: a
+        //                    factorization whose rook D-ratio
+        //                    min|lambda(D)|/max|lambda(D)| is below 1e-15 gets a
+        //                    dsycon_rook estimate, and rcond below 2^-53 (LAPACK
+        //                    xSYSVX's "singular to working precision") or NaN
+        //                    FLAGS it: numerics kept, kOk,
+        //                    InertiaEvidence::numerically_singular. An exactly
+        //                    singular one is kBackendError with backend_code
+        //                    kDenseSingular and no numerics. Nothing is
+        //                    retaken; the caller responds (factorize_shifted(),
+        //                    retake_on_platform()).
+        // Refused (kReport) under kNever. The flag band is far below the
+        // platform session's own suspect band (Pardiso perturbs pivots below
+        // about 1e-8 relative), so a dense factorization the detector passes
+        // can be one Pardiso would have perturbed.
+        DenseSingularPolicy dense_singular_policy = DenseSingularPolicy::kSparseFallback;
     };
 
     // The three factors of a symmetric factorization, solved against
@@ -735,14 +760,26 @@ class SymmetricFactor {
         Index dense_factorize_count = 0;
 
         // +1 per factorize() the dense arm attempted, found exactly singular
-        // (or, under dense_condition_check, singular to working precision)
-        // and handed to the platform session. factorize_count is
-        // dense_factorize_count + dense_fallback_count + the factorizations
-        // of sparse-selected patterns.
+        // and handed to the platform session (kSparseFallback), and per
+        // retake_on_platform(). factorize_count is dense_factorize_count +
+        // dense_fallback_count + dense_singular_count + the factorizations of
+        // sparse-selected patterns.
         Index dense_fallback_count = 0;
 
-        // The dense_fallback_count share that dense_condition_check sent.
-        Index dense_condition_fallback_count = 0;
+        // DenseSingularPolicy::kReport (M8 DN-1d), over factorize() and
+        // factorize_shifted() alike:
+        //   dense_singular_count       exactly singular (kDenseSingular);
+        //   dense_flagged_count        taken and flagged (numerically_singular);
+        //   dense_condition_estimate_count  dsycon_rook calls (screened ones);
+        //   dense_shift_refactor_count factorize_shifted() calls that reached
+        //                              the backend;
+        //   dense_retake_count         retake_on_platform() calls (each also in
+        //                              dense_fallback_count).
+        Index dense_singular_count = 0;
+        Index dense_flagged_count = 0;
+        Index dense_condition_estimate_count = 0;
+        Index dense_shift_refactor_count = 0;
+        Index dense_retake_count = 0;
     };
 
     explicit SymmetricFactor(Options opts);
@@ -837,6 +874,25 @@ class SymmetricFactor {
     // declares the adopted symbolic describes A, with nothing left to catch a
     // wrong handle.
     FactorizeOutcome factorize(const SpMatRM &A, PatternCheck check = PatternCheck::kVerify);
+
+    // DenseSingularPolicy::kReport's two responses, for a caller that saw a
+    // flagged or exactly singular outcome. Each is one factorization of A with
+    // factorize()'s pattern guard, counters and outcome contract.
+    //
+    // factorize_shifted(): the dense arm factorizes A + diag(+primal on the
+    // first n_primal rows, -dual on the rest) and runs the detector on it; a
+    // taken outcome reports perturbed_pivots = dim, so an inertia read of it
+    // is suspect. Throws std::logic_error unless the analyzed pattern is
+    // dense-selected under kReport, std::invalid_argument for a negative or
+    // non-finite shift or n_primal outside [0, dim].
+    //
+    // retake_on_platform(): the platform session factorizes A (the
+    // kSparseFallback path, arm kSparse). Throws std::logic_error unless the
+    // analyzed pattern is dense-selected.
+    FactorizeOutcome factorize_shifted(const SpMatRM &A, Index n_primal, double primal, double dual,
+                                       PatternCheck check = PatternCheck::kVerify);
+    FactorizeOutcome retake_on_platform(const SpMatRM &A,
+                                        PatternCheck check = PatternCheck::kVerify);
 
     // --- solves ---
 
@@ -1004,9 +1060,17 @@ class SymmetricFactor {
     // True iff this engine is entitled to the session's current numerics.
     bool has_usable_numerics() const;
 
-    // The dense arm's factorize(): the dense attempt, then the platform
-    // fallback on exact singularity.
-    FactorizeOutcome factorize_dense(const SpMatRM &A);
+    // factorize()'s and the responses' shared preamble: the analyzed-state,
+    // compressed-storage and pattern checks, and the adopted-handle dense build.
+    void check_factorize_input(const SpMatRM &A, PatternCheck check, const char *what);
+
+    // The dense arm's factorize(): the dense attempt (shifted when `shift` is
+    // non-null), then, under kSparseFallback, the platform fallback on exact
+    // singularity.
+    FactorizeOutcome factorize_dense(const SpMatRM &A, const detail::DenseShift *shift);
+
+    // The platform session takes A (a dense pattern's fallback or retake).
+    FactorizeOutcome factorize_on_platform(const SpMatRM &A);
 
     Options opts_;
     std::shared_ptr<detail::FactorSession> session_;
@@ -1055,7 +1119,8 @@ class Factorization {
     // them).
     Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
                   std::uint64_t pattern_hash, std::uint64_t epoch, DensePolicy dense_factorization,
-                  std::optional<Index> max_dense_dimension, bool dense_condition_check);
+                  std::optional<Index> max_dense_dimension,
+                  DenseSingularPolicy dense_singular_policy);
     // A handle on dense numerics (the dense session stores its Options whole).
     Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                   std::uint64_t pattern_hash, std::uint64_t epoch);
@@ -1111,7 +1176,7 @@ class Factorization {
     // The emitter's dense-arm policy, on a platform-session handle only.
     DensePolicy dense_factorization_ = DensePolicy::kNever;
     std::optional<Index> max_dense_dimension_;
-    bool dense_condition_check_ = false;
+    DenseSingularPolicy dense_singular_policy_ = DenseSingularPolicy::kSparseFallback;
 };
 
 } // namespace hven::linear

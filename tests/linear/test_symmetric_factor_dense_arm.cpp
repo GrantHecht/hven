@@ -7,6 +7,7 @@
 // fallback session is Pardiso on MKL and Accelerate on Apple, and every expectation about it is
 // "equal to a kNever factor's", never a backend-specific number.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
@@ -20,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
 #include <gtest/gtest.h>
 
@@ -801,63 +803,290 @@ TEST(DenseArm, CounterIdentityOnAMixedRun) {
     EXPECT_EQ(c.analyze_count, 2);
 }
 
-// M8 DN-1c: dense_condition_check. P is positive definite with det 2^-12 against
-// ||P|| ~ 2^40 (rcond ~ 1e-28): dsytrf takes it with nonzero pivots, the check does not.
+// M8 DN-1d: DenseSingularPolicy::kReport. P is positive definite with det 2^-12 against
+// ||P|| ~ 2^40 (rcond ~ 1e-28): the pivot factorization takes it with nonzero pivots.
 Mat near_singular_pd() {
     Mat m(2, 2);
     m << 1.0, std::ldexp(1.0, 20), std::ldexp(1.0, 20), std::ldexp(1.0, 40) + std::ldexp(1.0, -12);
     return m;
 }
 
-SymmetricFactor::Options checked_options() {
+SymmetricFactor::Options report_options() {
     SymmetricFactor::Options o = dense_options();
-    o.dense_condition_check = true;
+    o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
     return o;
 }
 
-TEST(DenseArmConditionCheck, SingularToWorkingPrecisionFallsBack) {
+// An exact-zero column (stored zero diagonal): exactly singular.
+Mat zero_column() {
+    Mat m = Mat::Zero(2, 2);
+    m(0, 0) = 1.0;
+    return m;
+}
+
+void expect_count_identity(const SymmetricFactor &f) {
+    const auto &c = f.counters();
+    EXPECT_EQ(c.factorize_count,
+              c.dense_factorize_count + c.dense_fallback_count + c.dense_singular_count);
+}
+
+TEST(DenseArmReport, FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics) {
     const SpMatRM P = upper_csr(near_singular_pd());
     Mat good(2, 2);
     good << 2.0, 1.0, 1.0, -1.0;
     const SpMatRM G = upper_csr(good);
 
-    SymmetricFactor unchecked(dense_options());
-    unchecked.analyze(P);
-    EXPECT_EQ(unchecked.factorize(P).arm, FactorArm::kDense);
-    EXPECT_EQ(unchecked.counters().dense_condition_fallback_count, 0);
+    SymmetricFactor bk(dense_options());
+    bk.analyze(P);
+    const FactorizeOutcome ob = bk.factorize(P);
+    EXPECT_EQ(ob.arm, FactorArm::kDense);
+    EXPECT_FALSE(ob.inertia.numerically_singular);
+    EXPECT_EQ(bk.counters().dense_condition_estimate_count, 0);
 
-    SymmetricFactor f(checked_options());
+    SymmetricFactor f(report_options());
     f.analyze(P);
     const FactorizeOutcome o = f.factorize(P);
     EXPECT_EQ(o.status, FactorizeOutcome::Status::kOk);
-    EXPECT_EQ(o.arm, FactorArm::kSparse);
-    EXPECT_EQ(f.counters().dense_fallback_count, 1);
-    EXPECT_EQ(f.counters().dense_condition_fallback_count, 1);
+    EXPECT_EQ(o.arm, FactorArm::kDense);
+    EXPECT_TRUE(o.inertia.numerically_singular);
+    EXPECT_FALSE(o.inertia.perturbed_pivots.has_value());
+    EXPECT_EQ(o.inertia.positive, 2);
+    EXPECT_TRUE(f.inertia().numerically_singular);
+    EXPECT_EQ(f.counters().dense_flagged_count, 1);
+    EXPECT_EQ(f.counters().dense_condition_estimate_count, 1);
+    EXPECT_EQ(f.counters().dense_fallback_count, 0);
     Vec x(2);
-    f.solve(Vec::Ones(2), x); // the platform session's numerics
+    f.solve(Vec::Ones(2), x); // the dense numerics, kept
     EXPECT_TRUE(x.allFinite());
 
-    // A well-conditioned matrix on the same engine: the dense arm takes it.
+    // A well-conditioned matrix: taken, not screened, not flagged.
     f.analyze(G);
-    EXPECT_EQ(f.factorize(G).arm, FactorArm::kDense);
-    EXPECT_EQ(f.counters().dense_condition_fallback_count, 1);
-    EXPECT_EQ(f.counters().factorize_count,
-              f.counters().dense_factorize_count + f.counters().dense_fallback_count);
+    const FactorizeOutcome og = f.factorize(G);
+    EXPECT_EQ(og.arm, FactorArm::kDense);
+    EXPECT_FALSE(og.inertia.numerically_singular);
+    EXPECT_EQ(f.counters().dense_condition_estimate_count, 1);
+    EXPECT_EQ(f.counters().dense_flagged_count, 1);
+    expect_count_identity(f);
 }
 
-TEST(DenseArmConditionCheck, RefusedUnderNeverAndCarriedByAFallbackHandle) {
+TEST(DenseArmReport, AnExactlySingularFactorIsReportedNotRetaken) {
+    const SpMatRM Z = upper_csr(zero_column());
+
+    SymmetricFactor fallback(dense_options());
+    fallback.analyze(Z);
+    EXPECT_EQ(fallback.factorize(Z).arm, FactorArm::kSparse);
+    EXPECT_EQ(fallback.counters().dense_fallback_count, 1);
+
+    SymmetricFactor f(report_options());
+    f.analyze(Z);
+    const FactorizeOutcome o = f.factorize(Z);
+    EXPECT_EQ(o.status, FactorizeOutcome::Status::kBackendError);
+    EXPECT_EQ(o.backend_code, hven::linear::kDenseSingular);
+    EXPECT_EQ(o.arm, FactorArm::kDense);
+    EXPECT_TRUE(o.inertia.numerically_singular);
+    EXPECT_EQ(f.inertia().state, InertiaEvidence::State::kUnavailable);
+    Vec x(2);
+    EXPECT_THROW(f.solve(Vec::Ones(2), x), std::logic_error);
+    EXPECT_EQ(f.counters().dense_singular_count, 1);
+    EXPECT_EQ(f.counters().dense_fallback_count, 0);
+    expect_count_identity(f);
+}
+
+TEST(DenseArmReport, TheShiftedRefactorReportsPerturbedPivots) {
+    const SpMatRM Z = upper_csr(zero_column());
+    SymmetricFactor f(report_options());
+    f.analyze(Z);
+    ASSERT_EQ(f.factorize(Z).status, FactorizeOutcome::Status::kBackendError);
+    const FactorizeOutcome o = f.factorize_shifted(Z, 1, 1e-8, 1e-6);
+    EXPECT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(o.arm, FactorArm::kDense);
+    EXPECT_FALSE(o.inertia.numerically_singular);
+    ASSERT_TRUE(o.inertia.perturbed_pivots.has_value());
+    EXPECT_EQ(*o.inertia.perturbed_pivots, 2);
+    EXPECT_EQ(o.inertia.positive, 1);
+    EXPECT_EQ(o.inertia.negative, 1);
+    ASSERT_TRUE(f.inertia().perturbed_pivots.has_value());
+    Vec x(2);
+    f.solve(Vec::Ones(2), x); // diag(1 + 1e-8, -1e-6)
+    EXPECT_NEAR(x(0), 1.0 / (1.0 + 1e-8), 1e-15);
+    EXPECT_NEAR(x(1), -1e6, 1e-6);
+    EXPECT_EQ(f.counters().dense_shift_refactor_count, 1);
+    EXPECT_EQ(f.counters().dense_singular_count, 1);
+    expect_count_identity(f);
+
+    // An unshifted factorization clears the perturbed report.
+    const SpMatRM P = upper_csr(near_singular_pd());
+    f.analyze(P);
+    ASSERT_EQ(f.factorize(P).status, FactorizeOutcome::Status::kOk);
+    EXPECT_FALSE(f.inertia().perturbed_pivots.has_value());
+
+    EXPECT_THROW(f.factorize_shifted(P, 1, -1.0, 0.0), std::invalid_argument);
+    EXPECT_THROW(f.factorize_shifted(P, 3, 1.0, 0.0), std::invalid_argument);
+    EXPECT_THROW(f.factorize_shifted(P, 1, std::nan(""), 0.0), std::invalid_argument);
+    SymmetricFactor bk(dense_options());
+    bk.analyze(P);
+    EXPECT_THROW(bk.factorize_shifted(P, 1, 1.0, 0.0), std::logic_error);
+    SymmetricFactor::Options small = report_options();
+    small.dense_factorization = DensePolicy::kAuto;
+    small.max_dense_dimension = 1;
+    SymmetricFactor sparse(small); // n = 2 is sparse-selected
+    sparse.analyze(P);
+    EXPECT_THROW(sparse.factorize_shifted(P, 1, 1.0, 0.0), std::logic_error);
+    EXPECT_THROW(sparse.retake_on_platform(P), std::logic_error);
+}
+
+TEST(DenseArmReport, RetakeOnPlatformTakesTheSparseArmAndCounts) {
+    const SpMatRM P = upper_csr(near_singular_pd());
+    SymmetricFactor never(SymmetricFactor::Options{});
+    never.analyze(P);
+    const FactorizeOutcome reference = never.factorize(P);
+
+    SymmetricFactor f(report_options());
+    f.analyze(P);
+    const FactorizeOutcome o = f.retake_on_platform(P);
+    EXPECT_EQ(o.arm, FactorArm::kSparse);
+    EXPECT_EQ(o.status, reference.status);
+    EXPECT_EQ(f.counters().dense_retake_count, 1);
+    EXPECT_EQ(f.counters().dense_fallback_count, 1);
+    // The next factorize() attempts the dense arm again.
+    EXPECT_EQ(f.factorize(P).arm, FactorArm::kDense);
+    expect_count_identity(f);
+}
+
+TEST(DenseArmReport, RefusedUnderNeverAndCarriedByHandles) {
     SymmetricFactor::Options never;
-    never.dense_condition_check = true;
+    never.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
     EXPECT_THROW(SymmetricFactor{never}, std::invalid_argument);
 
-    // The emitter's condition fallback leaves a platform-session handle; its adopter checks too.
     const SpMatRM P = upper_csr(near_singular_pd());
-    SymmetricFactor e(checked_options());
+    // A dense handle: the adopter reads the flag and reports on its own factorizations.
+    SymmetricFactor e(report_options());
     e.analyze(P);
-    ASSERT_EQ(e.factorize(P).arm, FactorArm::kSparse);
+    ASSERT_TRUE(e.factorize(P).inertia.numerically_singular);
     SymmetricFactor a = SymmetricFactor::adopt(e.share());
-    EXPECT_EQ(a.factorize(P).arm, FactorArm::kSparse);
-    EXPECT_EQ(a.counters().dense_condition_fallback_count, 1);
+    EXPECT_TRUE(a.inertia().numerically_singular);
+    EXPECT_TRUE(a.factorize(P).inertia.numerically_singular);
+    EXPECT_EQ(a.counters().dense_flagged_count, 1);
+    // A platform-session handle (after a retake) carries the policy too.
+    ASSERT_EQ(e.retake_on_platform(P).arm, FactorArm::kSparse);
+    SymmetricFactor b = SymmetricFactor::adopt(e.share());
+    const FactorizeOutcome ob = b.factorize(P);
+    EXPECT_EQ(ob.arm, FactorArm::kDense);
+    EXPECT_TRUE(ob.inertia.numerically_singular);
+}
+
+// diag(1, d): the rook D-ratio is d, and rcond (1-norm) is d. The screen at 1e-15 and the flag
+// at 2^-53 are each bracketed by a factor of 1.25.
+TEST(DenseArmReport, TheDetectorBracketsBothThresholds) {
+    const double eps2 = std::ldexp(1.0, -53);
+    struct Case {
+        double d;
+        Index estimates;
+        bool flagged;
+    };
+    for (const Case c : {Case{1.25e-15, 0, false}, Case{0.8e-15, 1, false},
+                         Case{1.25 * eps2, 1, false}, Case{0.8 * eps2, 1, true}}) {
+        Mat m = Mat::Zero(2, 2);
+        m(0, 0) = 1.0;
+        m(1, 1) = c.d;
+        const SpMatRM A = upper_csr(m);
+        SymmetricFactor f(report_options());
+        f.analyze(A);
+        const FactorizeOutcome o = f.factorize(A);
+        ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk) << c.d;
+        EXPECT_EQ(f.counters().dense_condition_estimate_count, c.estimates) << c.d;
+        EXPECT_EQ(o.inertia.numerically_singular, c.flagged) << c.d;
+    }
+}
+
+TEST(DenseArmReport, TheRookWalkReadsTwoByTwoBlocks) {
+    Mat m = Mat::Zero(3, 3);
+    m(0, 1) = m(1, 0) = 1.0;
+    m(2, 2) = 1.0;
+    const SpMatRM A = upper_csr(m);
+    SymmetricFactor f(report_options());
+    f.analyze(A);
+    const FactorizeOutcome o = f.factorize(A);
+    ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(o.inertia.positive, 2);
+    EXPECT_EQ(o.inertia.negative, 1);
+    EXPECT_FALSE(o.inertia.numerically_singular);
+    Vec x(3);
+    f.solve(Vec::Ones(3), x);
+    EXPECT_LE((dense_of(A) * x - Vec::Ones(3)).lpNorm<Eigen::Infinity>(), 1e-15);
+
+    // A lone negative entry, or one on the last index, is not dsytrf_rook's output.
+    const double a[4] = {0.0, 1.0, 1.0, 0.0};
+    const int bad_pair[2] = {-1, 2};
+    EXPECT_THROW((void)hven::linear::detail::dense_rook_walk(a, 2, bad_pair), std::logic_error);
+    const double b[4] = {1.0, 1.0, 1.0, 0.0};
+    const int bad_last[2] = {1, -2};
+    EXPECT_THROW((void)hven::linear::detail::dense_rook_walk(b, 2, bad_last), std::logic_error);
+}
+
+// Badly scaled but well posed (entries over 12 decades, rcond ~ 1e-12): not screened, and the
+// rook solve is accurate.
+TEST(DenseArmReport, ABadlyScaledWellPosedMatrixIsNotFlagged) {
+    Mat m(3, 3);
+    m << 1e6, 1.0, 0.0, 1.0, 2.0, 1e-3, 0.0, 1e-3, -1e-6;
+    const SpMatRM A = upper_csr(m);
+    SymmetricFactor f(report_options());
+    f.analyze(A);
+    const FactorizeOutcome o = f.factorize(A);
+    ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_FALSE(o.inertia.numerically_singular);
+    EXPECT_EQ(f.counters().dense_condition_estimate_count, 0);
+    const Vec b(Vec::Ones(3));
+    Vec x(3);
+    f.solve(b, x);
+    const Vec ref = m.ldlt().solve(b);
+    EXPECT_LE((x - ref).lpNorm<Eigen::Infinity>(), 1e-9 * ref.lpNorm<Eigen::Infinity>());
+}
+
+// THE CATASTROPHIC CLASS: an E0 roster factorization of MESH (eqp site, mu = 0) whose
+// Bunch-Kaufman solve misses its own system by ~1e8 of the walk's scale. Flagged under kReport;
+// the signed shift (tau = max(reg, 2^-27 max|K|)) answers it within the walk's row test.
+TEST(DenseArmReport, TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses) {
+    const SpMatRM K = load_fixture("mesh_sqp_eqp_1135");
+    const Index n = K.rows();
+    const Index np = 25;
+    Vec b(n);
+    {
+        std::ifstream f(std::string(HVEN_DN1_FIXTURES) + "/mesh_sqp_eqp_1135.rhs.txt");
+        std::string line;
+        std::getline(f, line);
+        for (Index i = 0; i < n; ++i) {
+            std::string tok;
+            f >> tok;
+            b(i) = std::strtod(tok.c_str(), nullptr);
+        }
+        ASSERT_TRUE(static_cast<bool>(f));
+    }
+    const Mat Kd = dense_of(K);
+    // The walk's row ratio at mu = 0: ||(b - K x)_rows||inf / (0.1 (1 + ||b_rows||inf)).
+    const auto row_ratio = [&](const Vec &x) {
+        const Vec r = b - Kd * x;
+        return r.tail(n - np).lpNorm<Eigen::Infinity>() /
+               (0.1 * (1.0 + b.tail(n - np).lpNorm<Eigen::Infinity>()));
+    };
+
+    SymmetricFactor bk(dense_options());
+    bk.analyze(K);
+    ASSERT_EQ(bk.factorize(K).arm, FactorArm::kDense);
+    Vec xb(n);
+    bk.solve(b, xb);
+    EXPECT_GT(row_ratio(xb), 1.0); // the premise
+
+    SymmetricFactor f(report_options());
+    f.analyze(K);
+    ASSERT_TRUE(f.factorize(K).inertia.numerically_singular);
+    const double tau = std::ldexp(K.coeffs().cwiseAbs().maxCoeff(), -27);
+    const FactorizeOutcome o = f.factorize_shifted(K, np, std::max(1e-8, tau), tau);
+    ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_FALSE(o.inertia.numerically_singular);
+    Vec x(n);
+    f.solve(b, x);
+    EXPECT_LE(row_ratio(x), 1.0);
 }
 
 // The threads count follows set_threads() on a dense engine, and survives into an adopter.

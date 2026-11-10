@@ -10,13 +10,15 @@
 // pointer) with no automatic workspace sizing, so `dsytrf_` needs the
 // caller-side workspace query (`lwork = -1`, read back `work[0]`) that
 // `LAPACKE_dsytrf` performs internally on MKL. This header implements ONLY
-// four entry points, column-major layout only, for two call sites:
+// the entry points two call sites use, column-major layout only:
 // `LAPACKE_dsytrf`/`LAPACKE_dsytrs` for `DenseSymmetricFactor`
 // (dense_symmetric_factor.cpp), and the caller-workspace
-// `LAPACKE_dsytrf_work`/`LAPACKE_dsytrs_work` for the dense arm
-// (dense_session.cpp). Neither call site needs `#ifdef` branching in its
-// factor/solve logic once these four names resolve, whether to MKL's own
-// LAPACKE header or to this shim.
+// `LAPACKE_dsytrf_work`/`LAPACKE_dsytrs_work` and their rook forms
+// `LAPACKE_dsytrf_rook_work`/`LAPACKE_dsytrs_rook_work`/
+// `LAPACKE_dsycon_rook_work` for the dense arm (dense_session.cpp; LAPACKE has
+// no dsycon_rook, so the MKL side wraps the Fortran entry there). Neither call
+// site needs `#ifdef` branching in its factor/solve logic once these names
+// resolve, whether to MKL's own LAPACKE header or to this shim.
 //
 // hven's build defines ACCELERATE_NEW_LAPACK project-wide on Apple, next to
 // USE_ACCELERATE_SPARSE (cmake/hven_sparse_backend.cmake). It selects
@@ -29,7 +31,7 @@
 // compile-time diagnostic here rather than a confusing error at the first
 // call site.
 //
-// All four follow LAPACKE's error-code contract (0 success, -i illegal
+// All of them follow LAPACKE's error-code contract (0 success, -i illegal
 // argument i, +i exact zero pivot at i) and never print or throw; the two
 // call sites fold nonzero info values into thrown exceptions or a reported
 // fallback, which is where hven's error-handling rules are satisfied.
@@ -131,17 +133,6 @@ inline lapack_int LAPACKE_dsytrf_work(int matrix_layout, char uplo, lapack_int n
     return info;
 }
 
-inline lapack_int LAPACKE_dsycon_work(int matrix_layout, char uplo, lapack_int n, const double *a,
-                                      lapack_int lda, const lapack_int *ipiv, double anorm,
-                                      double *rcond, double *work, lapack_int *iwork) {
-    if (matrix_layout != LAPACK_COL_MAJOR) {
-        return -1;
-    }
-    lapack_int info = 0;
-    dsycon_(&uplo, &n, a, &lda, ipiv, &anorm, rcond, work, iwork, &info);
-    return info;
-}
-
 inline lapack_int LAPACKE_dsytrs_work(int matrix_layout, char uplo, lapack_int n, lapack_int nrhs,
                                       const double *a, lapack_int lda, const lapack_int *ipiv,
                                       double *b, lapack_int ldb) {
@@ -150,6 +141,41 @@ inline lapack_int LAPACKE_dsytrs_work(int matrix_layout, char uplo, lapack_int n
     }
     lapack_int info = 0;
     dsytrs_(&uplo, &n, &nrhs, a, &lda, ipiv, b, &ldb, &info);
+    return info;
+}
+
+// DenseSingularPolicy::kReport's rook factorization (dense_session.cpp).
+inline lapack_int LAPACKE_dsytrf_rook_work(int matrix_layout, char uplo, lapack_int n, double *a,
+                                           lapack_int lda, lapack_int *ipiv, double *work,
+                                           lapack_int lwork) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
+    }
+    lapack_int info = 0;
+    dsytrf_rook_(&uplo, &n, a, &lda, ipiv, work, &lwork, &info);
+    return info;
+}
+
+inline lapack_int LAPACKE_dsytrs_rook_work(int matrix_layout, char uplo, lapack_int n,
+                                           lapack_int nrhs, const double *a, lapack_int lda,
+                                           const lapack_int *ipiv, double *b, lapack_int ldb) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
+    }
+    lapack_int info = 0;
+    dsytrs_rook_(&uplo, &n, &nrhs, a, &lda, ipiv, b, &ldb, &info);
+    return info;
+}
+
+inline lapack_int LAPACKE_dsycon_rook_work(int matrix_layout, char uplo, lapack_int n,
+                                           const double *a, lapack_int lda, const lapack_int *ipiv,
+                                           double anorm, double *rcond, double *work,
+                                           lapack_int *iwork) {
+    if (matrix_layout != LAPACK_COL_MAJOR) {
+        return -1;
+    }
+    lapack_int info = 0;
+    dsycon_rook_(&uplo, &n, a, &lda, ipiv, &anorm, rcond, work, iwork, &info);
     return info;
 }
 

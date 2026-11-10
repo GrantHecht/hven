@@ -218,8 +218,12 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     // function needs nothing of its own for it. `out.counters.eqp_polish_steps`
     // reports how many steps that took -- 0 on a flat face, where the proximal
     // answer is the only answer there is.
-    const EqpResult eqp = solve_eqp(qp, ws, face.x, kkt, eff_opts);
-    out.counters.dense_condition_fallbacks += detail::condition_fallbacks(kkt);
+    const EqpResult eqp = [&] {
+        const detail::DenseTallyScope tally(kkt, out.counters.dense_flagged_factorizations,
+                                            out.counters.dense_singular_refactors,
+                                            out.counters.dense_condition_fallbacks);
+        return solve_eqp(qp, ws, face.x, kkt, eff_opts);
+    }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
     out.counters.eqp_refine_iters += eqp.residual_refine_iters;
     out.counters.eqp_polish_steps += eqp.polish_steps;
@@ -3564,8 +3568,12 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         }
         // Charged for the ATTEMPT, eliminated_candidate's convention.
         ++counters.factorizations;
-        detail::factorize_checked(fresh, assembly.K, analysis);
-        counters.dense_condition_fallbacks += detail::condition_fallbacks(fresh);
+        const detail::DenseTallyScope tally(fresh, counters.dense_flagged_factorizations,
+                                            counters.dense_singular_refactors,
+                                            counters.dense_condition_fallbacks);
+        detail::factorize_checked(
+            fresh, assembly.K, analysis,
+            detail::DenseShiftSite{n_free, opts.primal_regularization, opts.dual_regularization});
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
     // reports a singular K as a status, so a throw from here is a genuine
@@ -3574,7 +3582,16 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     // Replay the CURRENT face's own incumbent -- solve_eqp's solve plus its one
     // mandatory step -- so every step below is one the walk declined.
     Vec best = detail::solve_vec(fac, rhs);
-    best = best + detail::solve_vec(fac, residual_of(best));
+    (void)detail::refine_shifted_solve(assembly.K, rhs, fac, best);
+    {
+        // solve_eqp's step rule: unconditional, or kept only while falling on a
+        // shifted factor (M8 DN-1d).
+        const Vec stepped = best + detail::solve_vec(fac, residual_of(best));
+        if (!fac.dense_shifted || residual_of(stepped).lpNorm<Eigen::Infinity>() <
+                                      residual_of(best).lpNorm<Eigen::Infinity>()) {
+            best = stepped;
+        }
+    }
     Vec best_x = point_of(best);
     double best_measure = measure_of(best_x);
     Index steps = 0;
@@ -3668,9 +3685,13 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         return EqpResult{std::move(xf), Vec::Zero(0), Vec::Zero(0)};
     }
     ++counters.factorizations;
-    const Index fallbacks_before = detail::condition_fallbacks(kkt);
-    EqpResult res = solve_eqp(qp, ws, x_k, kkt, opts);
-    counters.dense_condition_fallbacks += detail::condition_fallbacks(kkt) - fallbacks_before;
+    EqpResult res = [&] {
+        // Counted on a throw too (DN-1c review F5).
+        const detail::DenseTallyScope tally(kkt, counters.dense_flagged_factorizations,
+                                            counters.dense_singular_refactors,
+                                            counters.dense_condition_fallbacks);
+        return solve_eqp(qp, ws, x_k, kkt, opts);
+    }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
     // face's factorization and the verdict site may solve through it.
     face.capture(ws, kkt);
@@ -4500,6 +4521,8 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
         counters.eqp_polish_steps += local_counters.eqp_polish_steps;
         counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
+        counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
+        counters.dense_singular_refactors += local_counters.dense_singular_refactors;
         ++counters.terminal_polish_rejected;
         return false; // no mu-free solve: the walk's own point stands
     }
@@ -4507,6 +4530,8 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
     counters.eqp_polish_steps += local_counters.eqp_polish_steps;
     counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
+    counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
+    counters.dense_singular_refactors += local_counters.dense_singular_refactors;
     // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
     // here: at a terminal point the step is going to zero, so the proximal
     // penalty's own term delta*(x - x_k) is going to zero with it and the face's
@@ -5591,11 +5616,16 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     if (analysis.needed) {
         ++counters.symbolic_analyses;
     }
-    const Index fallbacks_before = detail::condition_fallbacks(border.kkt);
-    detail::factorize_checked(border.kkt, k0.K, analysis);
+    {
+        const detail::DenseTallyScope tally(border.kkt, counters.dense_flagged_factorizations,
+                                            counters.dense_singular_refactors,
+                                            counters.dense_condition_fallbacks);
+        detail::factorize_checked(border.kkt, k0.K, analysis,
+                                  detail::DenseShiftSite{static_cast<Index>(k0.free_of_full.size()),
+                                                         opts.primal_regularization,
+                                                         opts.dual_regularization});
+    }
     ++counters.factorizations;
-    counters.dense_condition_fallbacks +=
-        detail::condition_fallbacks(border.kkt) - fallbacks_before;
 
     // Commit, against a factorization that already succeeded: the two
     // members assigned here are built from locals above, so their

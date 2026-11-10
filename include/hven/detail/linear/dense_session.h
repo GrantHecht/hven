@@ -4,7 +4,8 @@
 #pragma once
 
 // The dense arm behind SymmetricFactor: LAPACK Bunch-Kaufman (dsytrf/dsytrs,
-// uplo 'U') on the densified upper triangle, selected per analyzed pattern by
+// uplo 'U'; rook, dsytrf_rook/dsytrs_rook, under DenseSingularPolicy::kReport)
+// on the densified upper triangle, selected per analyzed pattern by
 // SymmetricFactor::Options::dense_factorization. Internal: the platform
 // adapters (symmetric_factor_mkl.cpp, symmetric_factor_accelerate.cpp) drive
 // it; no public header includes this one.
@@ -43,15 +44,35 @@ struct DenseInertiaCount {
 };
 DenseInertiaCount dense_block_walk(const double *a, Index n, const int *ipiv);
 
-// Options::dense_condition_check's bound: LAPACK xSYSVX reports a matrix whose
-// estimated RCOND is below DLAMCH('Epsilon') = 2^-53 singular to working precision.
+// The rook block walk (dsytrf_rook, uplo 'U'): inertia as dense_block_walk,
+// a 2x2 block marked by two negative ipiv entries, plus the D-ratio
+// min|lambda(D)| / max|lambda(D)| over the blocks (0 when singular).
+struct DenseRookCount {
+    DenseInertiaCount counts;
+    double d_ratio = 0.0;
+};
+DenseRookCount dense_rook_walk(const double *a, Index n, const int *ipiv);
+
+// DenseSingularPolicy::kReport's detector (M8 DN-1d). A factorization whose rook
+// D-ratio is below kDenseSingularScreen gets a dsycon_rook estimate; it is
+// flagged when that rcond is below kDenseConditionSingular (LAPACK xSYSVX's
+// "singular to working precision", 2^-53) or NaN.
+inline constexpr double kDenseSingularScreen = 1e-15;
 inline constexpr double kDenseConditionSingular = 0.5 * std::numeric_limits<double>::epsilon();
 
 // What DenseSession::factorize() did with a matrix.
 enum class DenseFactorizeResult {
-    kTaken,         // numerics committed
-    kSingular,      // exactly singular: a zero pivot, a zero 2x2 det, a non-finite D
-    kIllConditioned // dense_condition_check: rcond < kDenseConditionSingular
+    kTaken,              // numerics committed
+    kSingular,           // exactly singular: a zero pivot, a zero 2x2 det, a non-finite D
+    kNumericallySingular // kReport: numerics committed, flagged by the detector
+};
+
+// A signed diagonal shift applied after densifying: +primal on the first
+// n_primal diagonals, -dual on the rest.
+struct DenseShift {
+    Index n_primal = 0;
+    double primal = 0.0;
+    double dual = 0.0;
 };
 
 class DenseSession {
@@ -67,16 +88,18 @@ class DenseSession {
     // CSR). Throws std::invalid_argument per validate_dense_dimension().
     void analyze(const SpMatRM &A);
 
-    // Densify A and factorize. Returns kTaken and commits
+    // Densify A (plus `shift` when given) and factorize: Bunch-Kaufman under
+    // kSparseFallback, rook under kReport. Returns kTaken and commits
     // max(epoch() + 1, next_epoch) when the dense arm takes the factorization
     // (an engine on its fallback session while a co-owner advanced this one
-    // proposes a `next_epoch` at or below epoch()); returns kSingular, with no
-    // numerics, when it is exactly singular (dense_block_walk's `singular`, or
-    // dsytrf info > 0), and kIllConditioned, with no numerics, when
-    // Options::dense_condition_check finds rcond < kDenseConditionSingular.
-    // Throws std::invalid_argument when A's dimension or entry count is not
-    // the analyzed pattern's, hven::BackendError on an illegal LAPACK argument.
-    DenseFactorizeResult factorize(const SpMatRM &A, std::uint64_t next_epoch);
+    // proposes a `next_epoch` at or below epoch()); kNumericallySingular, with
+    // numerics committed the same way, when kReport's detector flags it;
+    // kSingular, with no numerics, when it is exactly singular (the walk's
+    // `singular`, or info > 0). Throws std::invalid_argument when A's dimension
+    // or entry count is not the analyzed pattern's, hven::BackendError on an
+    // illegal LAPACK argument.
+    DenseFactorizeResult factorize(const SpMatRM &A, std::uint64_t next_epoch,
+                                   const DenseShift *shift = nullptr);
 
     // In-place solve of nrhs columns of b (leading dimension ldb >= dim()).
     // Requires has_numerics(). Throws hven::BackendError on a LAPACK error.
@@ -88,6 +111,12 @@ class DenseSession {
     std::uint64_t session_id() const noexcept { return session_id_; }
     Index positive() const noexcept { return positive_; }
     Index negative() const noexcept { return negative_; }
+    // Of the current numerics: kReport's flag, and the diagonals a DenseShift
+    // moved (0 without one).
+    bool numerically_singular() const noexcept { return numerically_singular_; }
+    Index shifted_pivots() const noexcept { return shifted_pivots_; }
+    // dsycon_rook calls made (kReport's screened factorizations).
+    Index condition_estimates() const noexcept { return condition_estimates_; }
     // n(n+1)/2: the entries of L and D stored.
     Index factor_entries() const noexcept { return n_ * (n_ + 1) / 2; }
 
@@ -96,8 +125,12 @@ class DenseSession {
     void set_num_threads(int num_threads) noexcept { opts_.threads = num_threads; }
 
   private:
-    // dense_condition_check's test on the factorization just computed from A.
-    bool condition_ok(const SpMatRM &A);
+    bool report() const noexcept {
+        return opts_.dense_singular_policy == DenseSingularPolicy::kReport;
+    }
+    // kReport's dsycon_rook estimate of the factorization in a_ (||A||_1 from
+    // A's stored upper triangle, `shift` included).
+    double rcond_estimate(const SpMatRM &A, const DenseShift *shift);
 
     SymmetricFactor::Options opts_;
     Index n_ = 0;
@@ -105,14 +138,17 @@ class DenseSession {
     std::vector<int> ipiv_;      // n
     std::vector<double> work_;   // dsytrf's optimal workspace
     std::vector<Index> scatter_; // one dense offset per stored CSR entry
-    // dense_condition_check only (empty otherwise): A's column sums of |a_ij|,
-    // dsycon's 2n workspace and n integers.
+    // kReport only (empty otherwise): column sums for ||A||_1, dsycon_rook's
+    // 2n workspace and n integers.
     std::vector<double> colsum_;
     std::vector<double> con_work_;
     std::vector<int> con_iwork_;
     bool has_numerics_ = false;
     Index positive_ = 0;
     Index negative_ = 0;
+    bool numerically_singular_ = false;
+    Index shifted_pivots_ = 0;
+    Index condition_estimates_ = 0;
     std::uint64_t epoch_ = 0;
     std::uint64_t session_id_ = 0;
 };

@@ -76,7 +76,9 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
     if (e.state != hven::linear::InertiaEvidence::State::kObserved) {
         return InertiaRead::kUnreadable;
     }
-    if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
+    // A dense factorization the detector flagged (M8 DN-1d) is answered like a
+    // perturbed one: its inertia is not evidence, and the remedy is a larger shift.
+    if ((e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) || e.numerically_singular) {
         return InertiaRead::kPerturbed;
     }
     const detail::InertiaVerdict v = detail::inertia_verdict(e, expected_pos, expected_neg);
@@ -716,7 +718,9 @@ IpqpEngine::IpqpEngine(const QpOptions &opts, int threads, hven::linear::DensePo
         KktFactorization::Options o;
         o.threads = threads;
         o.dense_factorization = dense;
-        o.dense_condition_check = true; // the SQP's check (M8 DN-1c), as sqp_kkt_options
+        // The SQP's report policy (M8 DN-1d), as sqp_kkt_options: a flagged read
+        // is answered by the tier's own perturbed-pivot remedy (classify_inertia).
+        o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
         kkt_.reconfigure(o);
     }
 }
@@ -1695,6 +1699,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // task 5's split: 2.2's policy permits a step against a factor that EXISTS but could not
         // be interrogated, and there is no factor at all here. `info()` is the discriminator.
         if (kkt_.info() != Eigen::Success) {
+            // An exactly singular dense factorization under kReport (M8 DN-1d) has
+            // no numerics but the same remedy as a flagged one; at the ceiling the
+            // non-kOk read stops the tier before any solve.
+            if (kkt_.inertia_evidence().numerically_singular) {
+                return InertiaRead::kPerturbed;
+            }
             return InertiaRead::kFactorFailed;
         }
         const hven::linear::InertiaEvidence &ev = evidence_for_read(kkt_, final_read);
@@ -3037,8 +3047,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // field's "mirrors" a fact rather than a claim -- and so the four cannot drift.
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
-    out.dense_condition_fallbacks =
-        after.dense_condition_fallback_count - before.dense_condition_fallback_count;
+    out.dense_condition_fallbacks = after.dense_retake_count - before.dense_retake_count;
+    out.dense_flagged_factorizations = (after.dense_flagged_count + after.dense_singular_count) -
+                                       (before.dense_flagged_count + before.dense_singular_count);
+    out.dense_singular_refactors =
+        after.dense_shift_refactor_count - before.dense_shift_refactor_count;
     out.counters.ipqp_solves = after.solve_count - before.solve_count;
     out.counters.ipqp_symbolic_analyses = after.analyze_count - before.analyze_count;
     out.counters.ipqp_pattern_verifies = after.pattern_verify_count - before.pattern_verify_count;

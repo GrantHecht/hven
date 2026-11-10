@@ -256,6 +256,16 @@ guarded by `#ifdef HVEN_TESTING`:
   the symbolic phase's own reordering/sizing failures unreachable from any
   fixture; the consumer is the interior-point engine's
   record-the-status-and-continue behavior on that path.
+- `DenseFactorizeFaultInjector` (both backends; M8 DN-1d) — `active`, `pass`. Once
+  `pass` dense attempts have run since it was armed, each later dense attempt in
+  `SymmetricFactor`'s shared dense dispatch is skipped and read as exactly
+  singular, so the platform session takes the factorization, where
+  `FactorizeFaultInjector` can fail it. Faithful under
+  `DenseSingularPolicy::kSparseFallback` only (the dense session is untouched,
+  and only that path stops reading its numerics). Its consumer is the IPM dense
+  guard's failed re-run (DN-1b review F8;
+  `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
+  `hven_sqp_seam_tests`), which no real backend reaches.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
   `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs
@@ -628,7 +638,8 @@ still carries the process-global pattern.** Checked as part of FIX-ROUND 1 and
 recorded so it is not rediscovered as a surprise. `IpqpInertiaEvidenceInjector`,
 `IpqpInertiaReadObserver`, `IpqpFirstIterateObserver` and `IpqpStepObserver`
 (`hven/detail/qp/ipqp_fault_injection.h`), and `FactorizeFaultInjector`,
-`AnalyzeFaultInjector`, `InertiaQueryFaultInjector`, `PardisoIparmObserver` and
+`AnalyzeFaultInjector`, `DenseFactorizeFaultInjector`, `InertiaQueryFaultInjector`,
+`PardisoIparmObserver` and
 `ThreadCountObserver` (`hven/detail/linear/fault_injection.h`), all declare their
 state as `static inline` with no `thread_local` and no synchronization. None of
 their fixtures runs two instrumented solves concurrently today, so none is

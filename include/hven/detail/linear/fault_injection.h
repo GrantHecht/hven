@@ -81,6 +81,20 @@ struct AnalyzeFaultInjector {
     static inline int injected_backend_code = -3;
 };
 
+// Fault injection for the dense arm's attempt in SymmetricFactor::factorize()
+// (BOTH backends; the shared dense dispatch, M8 DN-1d). When active, once
+// `pass` dense attempts have run since it was armed, every later attempt is
+// SKIPPED and read as exactly singular, so the platform session takes the
+// factorization (where FactorizeFaultInjector can fail it). FAITHFUL UNDER
+// kSparseFallback ONLY: the dense session is not touched, and only that path
+// stops using its numerics (under kReport they would stay readable). Its
+// consumer is the IPM dense guard's failed re-run (DN-1b review F8), which no
+// real backend produces.
+struct DenseFactorizeFaultInjector {
+    static inline bool active = false;
+    static inline int pass = 0;
+};
+
 // Fault injection for SymmetricFactor::inertia()'s SparseGetInertia call
 // (Accelerate only). SparseGetInertia is a side-effect-free query against an
 // already-successful factorization, so unlike the injector above, this one is
