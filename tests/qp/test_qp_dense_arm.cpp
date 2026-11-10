@@ -28,6 +28,7 @@
 
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
+#include <hven/detail/linear/fault_injection.h>
 #include <hven/detail/qp/eqp_solve.h>
 #include <hven/detail/qp/qp_engine.h>
 
@@ -96,8 +97,8 @@ SpMatRM upper_of(const Eigen::MatrixXd &m) {
 
 // THE HS90 CATASTROPHE (E0 roster, HS90 factorization 5, eqp site, mu = 0): a working row
 // 1.5e-17 x e_2 against an rhs of -0.13 -- inconsistent and singular to working precision. The
-// site response shifts it; kNever never responds.
-TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReportsTheFactoredRegularization) {
+// site response factors it equilibrated and shifted; kNever never responds.
+TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization) {
     Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
     m(0, 0) = m(1, 1) = 2.00000001;
     m(1, 2) = m(2, 1) = -0x1.14b1907515e67p-56;
@@ -108,6 +109,7 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReportsTheFactoredRegula
     const CheckedFactorization cs = factorize_checked(sparse, K, site);
     EXPECT_FALSE(cs.shifted);
     EXPECT_FALSE(sparse.dense_shifted);
+    EXPECT_EQ(sparse.dense_scale.size(), 0);
     EXPECT_EQ(cs.delta, 1e-8);
     EXPECT_EQ(cs.mu, 0.0);
 
@@ -120,14 +122,15 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReportsTheFactoredRegula
         const DenseTallyScope tally(dense, flagged, refactors, retakes);
         cd = factorize_checked(dense, K, site);
     }
-    const double tau = 0x1p-27 * 2.00000001;
     EXPECT_TRUE(cd.shifted);
     EXPECT_FALSE(cd.retaken);
     EXPECT_TRUE(dense.dense_shifted);
+    EXPECT_EQ(dense.dense_scale.size(), 3);
     EXPECT_EQ(cd.outcome.arm, FactorArm::kDense);
-    EXPECT_DOUBLE_EQ(cd.delta, 1e-8 + std::max(1e-8, tau));
-    EXPECT_DOUBLE_EQ(cd.mu, tau);
+    EXPECT_EQ(cd.delta, 1e-8);
+    EXPECT_EQ(cd.mu, 0.0);
     ASSERT_TRUE(cd.outcome.inertia.perturbed_pivots.has_value());
+    EXPECT_FALSE(cd.outcome.inertia.numerically_singular);
     EXPECT_EQ(inertia_verdict(cd.outcome.inertia, 2, 1), InertiaVerdict::kSuspect);
     EXPECT_EQ(flagged, 1);
     EXPECT_EQ(refactors, 1);
@@ -137,19 +140,36 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReportsTheFactoredRegula
     const Vec y = solve_vec(dense, rhs);
     EXPECT_TRUE(y.allFinite());
     EXPECT_LE(std::abs(y(0)), 1e-12);
+
+    // The next factorization of a healthy K clears the response.
+    const SpMatRM I3 = upper_of(Eigen::MatrixXd::Identity(3, 3));
+    KktFactor again(0, DensePolicy::kAlways);
+    (void)factorize_checked(again, K, site);
+    ASSERT_TRUE(again.dense_shifted);
+    (void)factorize_checked(again, I3, site);
+    EXPECT_FALSE(again.dense_shifted);
+    EXPECT_EQ(again.dense_scale.size(), 0);
 }
 
-// The one retry and the last resort. diag(1, 2^-60, t) with every row dual (n_primal = 0, mu = 0):
-// t = 2^-27 = the shift, so the first shifted factor is exactly singular and the 100x one is
-// taken; with a fourth entry 100 t the retry is exactly singular too and the platform retakes.
+// Ruiz on the upper triangle: rows of max 4 and 1/4 scale to max 1; a zero row keeps 1.
+TEST(QpDenseArm, EquilibrationScaleBalancesRowsAndKeepsZeroRows) {
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+    m(0, 0) = 4.0;
+    m(1, 1) = 0.25;
+    const Vec d = equilibration_scale(upper_of(m));
+    EXPECT_EQ(d(0), 0.5);
+    EXPECT_EQ(d(1), 2.0);
+    EXPECT_EQ(d(2), 1.0);
+}
+
+// The one retry and the last resort. [[1, 1], [1, 1]] with n_primal = 1 is exactly singular; its
+// equilibrated shift diag(+s, -s) has determinant -s^2, exactly zero in floating point at
+// s = 2^-30 and taken at 256 s. With both shifted attempts read as singular
+// (DenseFactorizeFaultInjector; the retake is the platform's own) the platform retakes.
 TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
-    const double t = 0x1p-27;
-    const DenseShiftSite site{0, 0.0, 0.0};
+    const DenseShiftSite site{1, 0.0, 0.0};
+    Eigen::MatrixXd m = Eigen::MatrixXd::Ones(2, 2);
     {
-        Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
-        m(0, 0) = 1.0;
-        m(1, 1) = std::ldexp(1.0, -60);
-        m(2, 2) = t;
         KktFactor k(0, DensePolicy::kAlways);
         Index flagged = 0, refactors = 0, retakes = 0;
         CheckedFactorization c;
@@ -158,29 +178,29 @@ TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
             c = factorize_checked(k, upper_of(m), site);
         }
         EXPECT_TRUE(c.shifted);
-        EXPECT_DOUBLE_EQ(c.mu, 100.0 * t);
-        EXPECT_EQ(flagged, 2); // the original and the exactly singular first shift
+        EXPECT_FALSE(c.retaken);
+        EXPECT_EQ(flagged, 1); // the original; the exactly singular first shift is a retry
         EXPECT_EQ(refactors, 2);
+        EXPECT_EQ(k.shifted_exact_singular, 1);
         EXPECT_EQ(retakes, 0);
     }
     {
-        Eigen::MatrixXd m = Eigen::MatrixXd::Zero(4, 4);
-        m(0, 0) = 1.0;
-        m(1, 1) = std::ldexp(1.0, -60);
-        m(2, 2) = t;
-        m(3, 3) = 100.0 * t;
+        using hven::linear::detail::testing::DenseFactorizeFaultInjector;
         KktFactor k(0, DensePolicy::kAlways);
         Index flagged = 0, refactors = 0, retakes = 0;
         CheckedFactorization c;
+        DenseFactorizeFaultInjector::pass = 1;
+        DenseFactorizeFaultInjector::active = true;
         {
             const DenseTallyScope tally(k, flagged, refactors, retakes);
             c = factorize_checked(k, upper_of(m), site);
         }
+        DenseFactorizeFaultInjector::active = false;
         EXPECT_FALSE(c.shifted);
         EXPECT_TRUE(c.retaken);
         EXPECT_FALSE(k.dense_shifted);
         EXPECT_EQ(c.outcome.arm, FactorArm::kSparse);
-        EXPECT_EQ(flagged, 3);
+        EXPECT_EQ(flagged, 1);
         EXPECT_EQ(refactors, 2);
         EXPECT_EQ(retakes, 1);
     }
@@ -208,20 +228,25 @@ struct EqpRun {
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
+    InertiaVerdict verdict = InertiaVerdict::kWrong;
 };
 
 EqpRun eqp_on(DensePolicy policy, const QpProblem &qp, const QpOptions &opts) {
     KktFactor k(0, policy);
     EqpRun r;
-    const DenseTallyScope tally(k, r.flagged, r.refactors, r.retakes);
-    r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
+    {
+        const DenseTallyScope tally(k, r.flagged, r.refactors, r.retakes);
+        r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
+    }
+    r.verdict = inertia_verdict(k.factor.inertia(), 3, qp.me());
     return r;
 }
 
 // A RANK-DEFICIENT WORKING SET at mu = 0: duplicated rows, consistent and inconsistent. The dense
-// factor is flagged and shifted; the consistent answer is the sparse arm's, the inconsistent one
-// finite, and nothing reaches the platform.
-TEST(QpDenseArm, ARankDeficientWorkingSetAtMuZeroIsShiftedNotRetaken) {
+// factor is flagged and shifted (its inertia reads kSuspect); the consistent answer solves K and is
+// the sparse arm's; the inconsistent one misses K by O(1) and is refused. Nothing reaches the
+// platform.
+TEST(QpDenseArm, ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified) {
     QpOptions opts;
     opts.dual_regularization = 0.0;
     Eigen::MatrixXd Ae(2, 3);
@@ -233,6 +258,8 @@ TEST(QpDenseArm, ARankDeficientWorkingSetAtMuZeroIsShiftedNotRetaken) {
         EXPECT_EQ(d.flagged, 1);
         EXPECT_EQ(d.refactors, 1);
         EXPECT_EQ(d.retakes, 0);
+        EXPECT_EQ(d.verdict, InertiaVerdict::kSuspect);
+        EXPECT_FALSE(d.res.shifted_refused);
         EXPECT_FALSE(d.res.residual_refused);
         EXPECT_NEAR(d.res.x(0) + d.res.x(1), 1.0, 1e-9);
         EXPECT_LE((d.res.x - s.res.x).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -244,7 +271,8 @@ TEST(QpDenseArm, ARankDeficientWorkingSetAtMuZeroIsShiftedNotRetaken) {
         const EqpRun d = eqp_on(DensePolicy::kAlways, qp, opts);
         EXPECT_EQ(d.refactors, 1);
         EXPECT_EQ(d.retakes, 0);
-        EXPECT_TRUE(d.res.x.allFinite());
+        EXPECT_TRUE(d.res.shifted_refused);
+        EXPECT_TRUE(d.res.residual_refused);
     }
 }
 
@@ -435,6 +463,101 @@ TEST(QpDenseArm, TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms) {
 #endif
         }
     }
+}
+
+// THE ALLINITC SHAPE (E0 roster: SQP ALLINITC's mu-free systems, K11 -> 2.7e9 against a working
+// row ~1.3e-8): H = [[2^31, -9.5], [-9.5, 13]], one row a e_1 with a = 2^-26, at mu = 0 -- the
+// polish's own system. Flagged for SCALING (D K D is well conditioned): a shift of 2^-27 max|K|
+// = 16 on the dual row would replace the dual curvature a^2/2^31 ~ 1e-25 outright; the
+// equilibrated shift answers the system the factor was handed, verified by its residual. The
+// reference is K's own solution in long double.
+TEST(QpDenseArm, TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm) {
+    const double h11 = std::ldexp(1.0, 31);
+    const double a = std::ldexp(1.0, -26);
+    QpProblem qp;
+    Eigen::MatrixXd Hd(2, 2);
+    Hd << h11, -9.5, -9.5, 13.0;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(2);
+    qp.g << 19.0 - a, -26.0;
+    Eigen::MatrixXd row(1, 2);
+    row << a, 0.0;
+    qp.Ae = row.sparseView();
+    qp.be = Vec::Zero(1);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    QpOptions opts;
+    opts.dual_regularization = 0.0;
+
+    KktFactor k(0, DensePolicy::kAlways);
+    Index flagged = 0, refactors = 0, retakes = 0;
+    EqpResult r;
+    {
+        const DenseTallyScope tally(k, flagged, refactors, retakes);
+        r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), k, opts);
+    }
+    EXPECT_EQ(flagged, 1);
+    EXPECT_EQ(refactors, 1);
+    EXPECT_EQ(retakes, 0);
+    EXPECT_TRUE(k.dense_shifted);
+    EXPECT_EQ(inertia_verdict(k.factor.inertia(), 2, 1), InertiaVerdict::kSuspect);
+    EXPECT_FALSE(r.shifted_refused);
+    EXPECT_FALSE(r.residual_refused);
+
+    // [[h11 + delta, -9.5, a], [-9.5, 13 + delta, 0], [a, 0, 0]] y = (-g1, -g2, 0).
+    using LD = long double;
+    const LD delta = opts.primal_regularization;
+    const LD x2 = LD{26} / (LD{13} + delta);
+    const LD lam = (-(LD{19} - LD{a}) + LD{9.5} * x2) / LD{a};
+    EXPECT_LE(std::abs(r.x(0)), 1e-15);
+    EXPECT_NEAR(r.x(1), static_cast<double>(x2), 1e-14);
+    EXPECT_NEAR(r.lambda_e(0), static_cast<double>(lam), 1e-6);
+}
+
+// THE EQUILIBRATED MONITOR. diag(K_A, t B) with K_A = 2.7e9 and t = 1.234e-18,
+// B = [[1, 0.7], [0.7, 0.49 (1 + 3e-8)]] (equilibrated near-null curvature ~8 sigma, so each
+// refinement step contracts that component ~9x): ||rhs - K y||inf is the big row's roundoff floor
+// from the first step on and stalls, refusing an answer whose equilibrated residual is still
+// ~1e-3; ||D (rhs - K y)||inf keeps falling to roundoff.
+TEST(QpDenseArm, TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges) {
+    const double t = 1.234e-18;
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+    m(0, 0) = 2707302431.897003;
+    m(1, 1) = t;
+    m(1, 2) = m(2, 1) = 0.7 * t;
+    m(2, 2) = 0.49 * t * (1.0 + 3e-8);
+    Vec b(3);
+    b << 27906.13193018271, 0.3 * std::sqrt(t), -0.1 * std::sqrt(t);
+    const SpMatRM K = upper_of(m);
+    KktFactor k(0, DensePolicy::kAlways);
+    ASSERT_TRUE(factorize_checked(k, K, DenseShiftSite{3, 0.0, 0.0}).shifted);
+    const Vec &d = k.dense_scale;
+    const auto residual = [&](const Vec &y) {
+        return Vec(b - K.selfadjointView<Eigen::Upper>() * y);
+    };
+    const auto rho = [&](const Vec &y) {
+        return residual(y).cwiseProduct(d).lpNorm<Eigen::Infinity>() /
+               b.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    };
+    const Vec y0 = solve_vec(k, b);
+    // The premise: refinement monitored in ||.||inf stops above the tolerance.
+    Vec yu = y0;
+    double un = residual(yu).lpNorm<Eigen::Infinity>();
+    for (Index step = 0; step < kEqpShiftRefineSteps; ++step) {
+        const Vec cand = yu + solve_vec(k, residual(yu));
+        const double cu = residual(cand).lpNorm<Eigen::Infinity>();
+        if (!(cu < un)) {
+            break;
+        }
+        yu = cand;
+        un = cu;
+    }
+    EXPECT_GT(rho(yu), 1e-4);
+    Vec y = y0;
+    (void)refine_shifted_solve(K, b, k, y);
+    EXPECT_LE(rho(y), kEqpShiftedResidualTol);
 }
 
 } // namespace

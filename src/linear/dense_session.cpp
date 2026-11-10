@@ -226,6 +226,7 @@ void DenseSession::analyze(const SpMatRM &A) {
     colsum_ = std::move(colsum);
     con_work_ = std::move(con_work);
     con_iwork_ = std::move(con_iwork);
+    scale_.clear();
     has_numerics_ = false;
     positive_ = 0;
     negative_ = 0;
@@ -246,6 +247,7 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     }
     // From here the buffer is overwritten: no numerics until this succeeds.
     has_numerics_ = false;
+    scale_.clear();
 
     double *a = a_.data();
     for (Index j = 0; j < n_; ++j) {
@@ -256,10 +258,19 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     for (std::size_t k = 0; k < nnz; ++k) {
         a[scatter_[k]] = values[k];
     }
+    double shifted_norm = 0.0;
     if (shift != nullptr) {
-        for (Index i = 0; i < n_; ++i) {
-            a[i * n_ + i] += i < shift->n_primal ? shift->primal : -shift->dual;
+        const double *d = shift->scale;
+        for (Index j = 0; j < n_; ++j) {
+            for (Index i = 0; i <= j; ++i) {
+                a[j * n_ + i] *= d[i] * d[j];
+            }
+            a[j * n_ + j] += j < shift->n_primal ? shift->sigma : -shift->sigma;
         }
+        if (report()) {
+            shifted_norm = dense_one_norm();
+        }
+        scale_.assign(d, d + n_);
     }
 
     int info = 0;
@@ -290,7 +301,8 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
         }
         // The screen, then the estimate; NaN flags.
         if (rook.d_ratio < kDenseSingularScreen) {
-            flagged = !(rcond_estimate(A, shift) >= kDenseConditionSingular);
+            const double anorm = shift != nullptr ? shifted_norm : csr_one_norm(A);
+            flagged = !(rcond_estimate(anorm) >= kDenseConditionSingular);
         }
     } else {
         counts = dense_block_walk(a, n_, ipiv_.data());
@@ -309,9 +321,8 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     return flagged ? DenseFactorizeResult::kNumericallySingular : DenseFactorizeResult::kTaken;
 }
 
-double DenseSession::rcond_estimate(const SpMatRM &A, const DenseShift *shift) {
-    // ||A||_1 of the symmetric matrix from its stored upper triangle; a shifted
-    // diagonal (stored or not) counts at its shifted value.
+double DenseSession::csr_one_norm(const SpMatRM &A) {
+    // ||A||_1 of the symmetric matrix from its stored upper triangle.
     std::fill(colsum_.begin(), colsum_.end(), 0.0);
     const auto *outer = A.outerIndexPtr();
     const auto *inner = A.innerIndexPtr();
@@ -319,9 +330,6 @@ double DenseSession::rcond_estimate(const SpMatRM &A, const DenseShift *shift) {
     for (Index i = 0; i < n_; ++i) {
         for (auto k = static_cast<Index>(outer[i]); k < static_cast<Index>(outer[i + 1]); ++k) {
             const auto j = static_cast<Index>(inner[k]);
-            if (j == i && shift != nullptr) {
-                continue;
-            }
             const double v = std::abs(values[k]);
             colsum_[static_cast<std::size_t>(j)] += v;
             if (j != i) {
@@ -329,21 +337,25 @@ double DenseSession::rcond_estimate(const SpMatRM &A, const DenseShift *shift) {
             }
         }
     }
-    if (shift != nullptr) {
-        // The diagonal as factored: the scatter's value plus the shift.
-        for (Index i = 0; i < n_; ++i) {
-            double d = 0.0;
-            for (auto k = static_cast<Index>(outer[i]); k < static_cast<Index>(outer[i + 1]); ++k) {
-                if (static_cast<Index>(inner[k]) == i) {
-                    d = values[k];
-                    break;
-                }
+    return *std::max_element(colsum_.begin(), colsum_.end());
+}
+
+double DenseSession::dense_one_norm() {
+    std::fill(colsum_.begin(), colsum_.end(), 0.0);
+    const double *a = a_.data();
+    for (Index j = 0; j < n_; ++j) {
+        for (Index i = 0; i <= j; ++i) {
+            const double v = std::abs(a[j * n_ + i]);
+            colsum_[static_cast<std::size_t>(j)] += v;
+            if (i != j) {
+                colsum_[static_cast<std::size_t>(i)] += v;
             }
-            d += i < shift->n_primal ? shift->primal : -shift->dual;
-            colsum_[static_cast<std::size_t>(i)] += std::abs(d);
         }
     }
-    const double anorm = *std::max_element(colsum_.begin(), colsum_.end());
+    return *std::max_element(colsum_.begin(), colsum_.end());
+}
+
+double DenseSession::rcond_estimate(double anorm) {
     double rcond = 0.0;
     int info = 0;
     {
@@ -363,6 +375,16 @@ double DenseSession::rcond_estimate(const SpMatRM &A, const DenseShift *shift) {
 }
 
 void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
+    const auto apply_scale = [&] {
+        for (Index c = 0; c < nrhs; ++c) {
+            for (Index i = 0; i < n_; ++i) {
+                b[c * ldb + i] *= scale_[static_cast<std::size_t>(i)];
+            }
+        }
+    };
+    if (!scale_.empty()) {
+        apply_scale();
+    }
     const MklThreadScope threads(opts_.threads);
     const auto info = static_cast<int>(
         report() ? LAPACKE_dsytrs_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
@@ -376,6 +398,9 @@ void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
     if (info != 0) {
         throw hven::BackendError(
             fmt::format("SymmetricFactor::solve: dense dsytrs failed, info={}", info));
+    }
+    if (!scale_.empty()) {
+        apply_scale();
     }
 }
 

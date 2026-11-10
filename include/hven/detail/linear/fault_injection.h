@@ -89,7 +89,8 @@ struct AnalyzeFaultInjector {
 // kSparseFallback ONLY: the dense session is not touched, and only that path
 // stops using its numerics (under kReport they would stay readable). Its
 // consumer is the IPM dense guard's failed re-run (DN-1b review F8), which no
-// real backend produces.
+// real backend produces; second, the SQP response's platform retake (both
+// equilibrated attempts read as failed, their numerics never read).
 struct DenseFactorizeFaultInjector {
     static inline bool active = false;
     static inline int pass = 0;

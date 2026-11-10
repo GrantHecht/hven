@@ -310,13 +310,11 @@ TEST(DenseArmEngines, IpmResidualGuardIsNeverEnteredOnSparseFactorizations) {
 
 namespace {
 
-// min 0.5 x'Hx - sum(x) on [-1, 1]^3 with H = [[1, 2^14, 0], [2^14, 2^28, 0], [0, 0, 1]] (PSD,
-// singular): the walk's K0 carries H + delta*I, singular to working precision (rcond ~ 4e-17)
-// although the pivot factorization takes it with nonzero pivots. (At 2^20 the shift's
-// 2^-27 max|K| = 8192 also damps the well-conditioned x3 by 8192x and the dense solve stalls;
-// recorded in the DN-1d design section.)
+// M8 DN-1c: min 0.5 x'Hx - sum(x) on [-1, 1]^3 with H = [[1, 2^20, 0], [2^20, 2^40, 0],
+// [0, 0, 1]] (PSD, singular): the walk's K0 carries H + delta*I, singular to working precision
+// (rcond ~ 1e-20) although the pivot factorization takes it with nonzero pivots.
 struct NearSingularHessianProblem final : hven::Nlp {
-    static double big() { return std::ldexp(1.0, 14); }
+    static double big() { return std::ldexp(1.0, 20); }
     hven::NlpDimensions dimensions() const override { return {3, 0, 0, 4}; }
     void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl.setConstant(-1.0);
@@ -359,8 +357,9 @@ hven::SqpResult solve_sqp(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
 } // namespace
 
 // The SQP's dense factors report (M8 DN-1d): the walk's singular-to-working-precision K0 is
-// flagged and answered with the signed shift on the dense arm -- no platform retake -- counted in
-// SqpCounters; the solve ends where the sparse arm's does, and kNever counts nothing.
+// flagged and answered with the equilibrated shift on the dense arm -- every flag answered, no
+// platform retake -- counted in SqpCounters; the solve ends where the sparse arm's does, and
+// kNever counts nothing.
 TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(3);
     const hven::SqpResult sparse =
@@ -376,4 +375,6 @@ TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
     EXPECT_EQ(dense.counters.dense_condition_fallbacks, 0);
     EXPECT_GT(dense.counters.dense_flagged_factorizations, 0);
     EXPECT_GT(dense.counters.dense_singular_refactors, 0);
+    EXPECT_EQ(dense.counters.dense_singular_refactors, dense.counters.dense_flagged_factorizations);
+    EXPECT_EQ(sparse.counters.dense_shifted_solve_refusals, 0);
 }

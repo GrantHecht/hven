@@ -633,7 +633,7 @@ void SymmetricFactor::check_factorize_input(const SpMatRM &A, PatternCheck check
     }
 
     // THE DENSE-ARM DISPATCH (here, factorize_dense(), factorize_on_platform(),
-    // factorize_shifted(), retake_on_platform() and the dense
+    // factorize_equilibrated(), retake_on_platform() and the dense
     // branches of share()/adopt()/Factorization) is byte-identical in
     // symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp: mirror
     // every edit in both until the registered shared dispatch TU lands.
@@ -720,7 +720,8 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
     if (dense_result != detail::DenseFactorizeResult::kSingular) {
         ++counters_.factorize_count;
         ++counters_.dense_factorize_count;
-        if (dense_result == detail::DenseFactorizeResult::kNumericallySingular) {
+        if (dense_result == detail::DenseFactorizeResult::kNumericallySingular &&
+            shift == nullptr) {
             ++counters_.dense_flagged_count;
         }
         dense_active_ = true;
@@ -747,22 +748,30 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
     return factorize_on_platform(A);
 }
 
-FactorizeOutcome SymmetricFactor::factorize_shifted(const SpMatRM &A, Index n_primal, double primal,
-                                                    double dual, PatternCheck check) {
-    if (!std::isfinite(primal) || !std::isfinite(dual) || primal < 0.0 || dual < 0.0 ||
-        n_primal < 0 || n_primal > static_cast<Index>(A.rows())) {
+FactorizeOutcome SymmetricFactor::factorize_equilibrated(const SpMatRM &A, Index n_primal,
+                                                         const double *scale, double sigma,
+                                                         PatternCheck check) {
+    if (!std::isfinite(sigma) || sigma < 0.0 || n_primal < 0 ||
+        n_primal > static_cast<Index>(A.rows()) || scale == nullptr) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor::factorize_shifted: needs finite shifts >= 0 and 0 <= n_primal <= "
-            "{}, got primal = {}, dual = {}, n_primal = {}",
-            A.rows(), primal, dual, n_primal));
+            "SymmetricFactor::factorize_equilibrated: needs a finite sigma >= 0, a scale and 0 <= "
+            "n_primal <= {}, got sigma = {}, n_primal = {}",
+            A.rows(), sigma, n_primal));
     }
-    check_factorize_input(A, check, "factorize_shifted");
+    for (Index i = 0; i < static_cast<Index>(A.rows()); ++i) {
+        if (!(scale[i] > 0.0) || !std::isfinite(scale[i])) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor::factorize_equilibrated: scale[{}] = {} is not positive finite", i,
+                scale[i]));
+        }
+    }
+    check_factorize_input(A, check, "factorize_equilibrated");
     if (!dense_ || opts_.dense_singular_policy != DenseSingularPolicy::kReport) {
-        throw std::logic_error("SymmetricFactor::factorize_shifted: needs a dense-selected pattern "
-                               "under DenseSingularPolicy::kReport");
+        throw std::logic_error("SymmetricFactor::factorize_equilibrated: needs a dense-selected "
+                               "pattern under DenseSingularPolicy::kReport");
     }
     ++counters_.dense_shift_refactor_count;
-    const detail::DenseShift shift{n_primal, primal, dual};
+    const detail::DenseShift shift{n_primal, scale, sigma};
     return factorize_dense(A, &shift);
 }
 

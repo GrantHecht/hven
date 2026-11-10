@@ -231,6 +231,9 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
         // THE EQP-SITE RESIDUAL CHECK (E4-4): the face's own solve does not solve
         // its own system, so there is no refined point to offer the caller.
         ++out.counters.eqp_residual_refusals;
+        if (eqp.shifted_refused) {
+            ++out.counters.dense_shifted_solve_refusals;
+        }
         return false;
     }
     if (detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(), me + n_working) !=
@@ -3707,6 +3710,9 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     if (res.residual_refused) {
         ++counters.eqp_residual_refusals;
     }
+    if (res.shifted_refused) {
+        ++counters.dense_shifted_solve_refusals;
+    }
     // solve_eqp leaves `kkt` holding the factorization of the
     // bound-ELIMINATED K, whose expected inertia is (n_free, me +
     // n_working, 0) -- the reduced form of the gate in section 4b.
@@ -4314,6 +4320,9 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     } catch (const std::runtime_error &) {
         return false; // no mu-free solve: the existing classification stands
     }
+    if (local.dense_shifted && r.residual_refused) {
+        return false; // a shifted factor's refused answer is not adopted (M8 DN-1d)
+    }
 
     // Up to kTerminalMuRefineSteps further steps against the residual of the
     // UNREGULARIZED system (primal_delta removed too), each kept only while
@@ -4523,6 +4532,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
         counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
         counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+        counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
         ++counters.terminal_polish_rejected;
         return false; // no mu-free solve: the walk's own point stands
     }
@@ -4532,6 +4542,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
     counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
     counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+    counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
     // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
     // here: at a terminal point the step is going to zero, so the proximal
     // penalty's own term delta*(x - x_k) is going to zero with it and the face's
@@ -4539,8 +4550,9 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     if (local_face.factorized) {
         (void)polish_eqp_unregularized(qp, ws, local, o, detail::kTerminalPolishSteps, r);
     }
+    // A shifted factor's refused answer is not adopted (M8 DN-1d).
     if (r.x.size() != qp.n() || !r.x.allFinite() || !r.lambda_e.allFinite() ||
-        !r.lambda_w.allFinite()) {
+        !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
         ++counters.terminal_polish_rejected;
         return false;
     }

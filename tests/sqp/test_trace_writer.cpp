@@ -2652,8 +2652,8 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 85 -> 86 at M8 DN-1c, `dense_condition_fallbacks`, the same route, by one key.
     //
     // 86 -> 88 at M8 DN-1d, `dense_flagged_factorizations` and `dense_singular_refactors`, the
-    // same route, by two keys.
-    EXPECT_EQ(kSqpCountersFieldCount, 88u);
+    // same route, by two keys; 88 -> 89, `dense_shifted_solve_refusals`, by one key.
+    EXPECT_EQ(kSqpCountersFieldCount, 89u);
     EXPECT_EQ(::hven::detail::kAggregateArity<SsnCounters>, kSsnCountersFieldCount);
     EXPECT_EQ(::hven::detail::kAggregateArity<IpqpCounters>, kIpqpCountersFieldCount);
     // PLUS TWO: `ssn` and `ipqp` are nested aggregates, one initializer each.
@@ -3322,7 +3322,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     //
     // RE-DERIVED AT M8 DN-1d, the same route: `dense_flagged_factorizations` and
     // `dense_singular_refactors` after `dense_condition_fallbacks`; the nested tables' distinct
-    // values shift up by two.
+    // values shift up by two; then `dense_shifted_solve_refusals`, up by one more.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kWorkLimit, 42, c,
                                                 /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09,
                                                 /*columns_active=*/true, 2048.0});
@@ -3358,32 +3358,33 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
               "_step_rollbacks\":80,\"restoration_feas_out\":81,\"scaled_convergence_refusals"
               "\":82,\"restoration_curvature_switches\":83,\"inertia_suspect_verdicts\":84,\""
               "inertia_wrong_verdicts\":85,\"dense_condition_fallbacks\":86,\"dense_flagged_f"
-              "actorizations\":87,\"dense_singular_refactors\":88,\"ssn\":{\"ssn_iters\":89,"
-              "\"ssn_bulk_flips\":90,\"ssn_backtracks\":91,\"ssn_prox_updates\":92,\"ssn_esca"
-              "pes\":93,\"ssn_uncertain_peak\":94,\"ssn_refinements\":95,\"ssn_refine_refused"
-              "\":96,\"ssn_refine_factorizations\":97,\"ssn_refine_neg_duals\":98,\"ssn_sign_"
-              "swept\":99,\"ssn_sign_sweep_max\":100,\"ssn_escape_budget\":101,\"ssn_escape_s"
-              "ingular\":102,\"ssn_escape_no_contraction\":103,\"ssn_escape_infeasible_suspec"
-              "t\":104,\"ssn_escape_indefinite\":105,\"ssn_escape_gate_refused\":106},\"ipqp"
-              "\":{\"ipqp_iters\":107,\"ipqp_factorizations\":108,\"ipqp_symbolic_analyses\":"
-              "109,\"ipqp_solves\":110,\"ipqp_pattern_verifies\":111,\"ipqp_rho_demanded_max"
-              "\":112,\"ipqp_rho_demanded_last\":113,\"ipqp_inertia_retries\":114,\"ipqp_iter"
-              "s_at_elevated_rho\":115,\"ipqp_ladder_reclimbs\":116,\"ipqp_pivot_reroute_prim"
-              "al\":117,\"ipqp_pivot_reroute_dual_fallback\":118,\"ipqp_iters_ladder_armed_no"
-              "_advance\":119,\"ipqp_final_inertia_read\":120,\"ipqp_reg_decreases\":121,\"ip"
-              "qp_reg_increases\":122,\"ipqp_prox_center_updates\":123,\"ipqp_restart_repairs"
-              "\":124,\"ipqp_restart_shift_max\":125,\"ipqp_mu_adopted\":126,\"ipqp_warm_rest"
-              "art_abandoned\":127,\"ipqp_declined_pinned\":128,\"ipqp_tier_retired_after\":1"
-              "29,\"ipqp_face_uncertain\":130,\"ipqp_refine_accepted\":131,\"ipqp_refine_refu"
-              "sed\":132,\"ipqp_to_refine\":133,\"ipqp_to_ssn\":134,\"ipqp_to_walk\":135,\"ip"
-              "qp_escapes\":136,\"ipqp_escape_budget\":137,\"ipqp_escape_stall\":138,\"ipqp_e"
-              "scape_indefinite\":139,\"ipqp_escape_numerical\":140,\"ipqp_escape_infeasible_"
-              "suspect\":141,\"ipqp_alpha_p_min\":142,\"ipqp_alpha_d_min\":143,\"ipqp_read_ke"
-              "pt_tight_sides\":144,\"ipqp_read_barrier_noise_sides\":145,\"ipqp_mu0_derived"
-              "\":146,\"ipqp_mu0_fallbacks\":147,\"ipqp_mu_floor_binds\":148,\"ipqp_ladder_ze"
-              "ro_trial_skips\":149}},\"scaling_active\":true,\"obj_scale\":0.25,\"row_scale_"
-              "min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.4999999999999993e-09,"
-              "\"columns_active\":true,\"col_spread\":2048}\n");
+              "actorizations\":87,\"dense_singular_refactors\":88,\"dense_shifted_solve_refus"
+              "als\":89,\"ssn\":{\"ssn_iters\":90,\"ssn_bulk_flips\":91,\"ssn_backtracks\":92"
+              ",\"ssn_prox_updates\":93,\"ssn_escapes\":94,\"ssn_uncertain_peak\":95,\"ssn_re"
+              "finements\":96,\"ssn_refine_refused\":97,\"ssn_refine_factorizations\":98,\"ss"
+              "n_refine_neg_duals\":99,\"ssn_sign_swept\":100,\"ssn_sign_sweep_max\":101,\"ss"
+              "n_escape_budget\":102,\"ssn_escape_singular\":103,\"ssn_escape_no_contraction"
+              "\":104,\"ssn_escape_infeasible_suspect\":105,\"ssn_escape_indefinite\":106,\"s"
+              "sn_escape_gate_refused\":107},\"ipqp\":{\"ipqp_iters\":108,\"ipqp_factorizatio"
+              "ns\":109,\"ipqp_symbolic_analyses\":110,\"ipqp_solves\":111,\"ipqp_pattern_ver"
+              "ifies\":112,\"ipqp_rho_demanded_max\":113,\"ipqp_rho_demanded_last\":114,\"ipq"
+              "p_inertia_retries\":115,\"ipqp_iters_at_elevated_rho\":116,\"ipqp_ladder_recli"
+              "mbs\":117,\"ipqp_pivot_reroute_primal\":118,\"ipqp_pivot_reroute_dual_fallback"
+              "\":119,\"ipqp_iters_ladder_armed_no_advance\":120,\"ipqp_final_inertia_read\":"
+              "121,\"ipqp_reg_decreases\":122,\"ipqp_reg_increases\":123,\"ipqp_prox_center_u"
+              "pdates\":124,\"ipqp_restart_repairs\":125,\"ipqp_restart_shift_max\":126,\"ipq"
+              "p_mu_adopted\":127,\"ipqp_warm_restart_abandoned\":128,\"ipqp_declined_pinned"
+              "\":129,\"ipqp_tier_retired_after\":130,\"ipqp_face_uncertain\":131,\"ipqp_refi"
+              "ne_accepted\":132,\"ipqp_refine_refused\":133,\"ipqp_to_refine\":134,\"ipqp_to"
+              "_ssn\":135,\"ipqp_to_walk\":136,\"ipqp_escapes\":137,\"ipqp_escape_budget\":13"
+              "8,\"ipqp_escape_stall\":139,\"ipqp_escape_indefinite\":140,\"ipqp_escape_numer"
+              "ical\":141,\"ipqp_escape_infeasible_suspect\":142,\"ipqp_alpha_p_min\":143,\"i"
+              "pqp_alpha_d_min\":144,\"ipqp_read_kept_tight_sides\":145,\"ipqp_read_barrier_n"
+              "oise_sides\":146,\"ipqp_mu0_derived\":147,\"ipqp_mu0_fallbacks\":148,\"ipqp_mu"
+              "_floor_binds\":149,\"ipqp_ladder_zero_trial_skips\":150}},\"scaling_active\":t"
+              "rue,\"obj_scale\":0.25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_"
+              "residual\":7.4999999999999993e-09,\"columns_active\":true,\"col_spread\":2048}"
+              "\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -3439,7 +3440,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // RE-DERIVED AT M7 W2 A2: the three `ipqp_mu*` keys, each 0 on this line.
     // RE-DERIVED AT M8 DN-1: `inertia_suspect_verdicts` and `inertia_wrong_verdicts`, each 0.
     // RE-DERIVED AT M8 DN-1c: `dense_condition_fallbacks`, 0.
-    // RE-DERIVED AT M8 DN-1d: `dense_flagged_factorizations` and `dense_singular_refactors`, 0.
+    // RE-DERIVED AT M8 DN-1d: `dense_flagged_factorizations` and `dense_singular_refactors`, 0;
+    // then `dense_shifted_solve_refusals`, 0.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical"
@@ -3472,30 +3474,31 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
               ",\"nonfinite_step_rollbacks\":0,\"restoration_feas_out\":0,\"scaled_convergenc"
               "e_refusals\":0,\"restoration_curvature_switches\":0,\"inertia_suspect_verdicts"
               "\":0,\"inertia_wrong_verdicts\":0,\"dense_condition_fallbacks\":0,\"dense_flag"
-              "ged_factorizations\":0,\"dense_singular_refactors\":0,\"ssn\":{\"ssn_iters\":0"
-              ",\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_escape"
-              "s\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,"
-              "\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":"
-              "0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,"
-              "\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_esca"
-              "pe_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\""
-              "ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_"
-              "pattern_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,"
-              "\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_recl"
-              "imbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":"
-              "0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipq"
-              "p_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\""
-              "ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\""
-              "ipqp_warm_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired"
-              "_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refi"
-              "ne_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipq"
-              "p_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_i"
-              "ndefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible_suspect\":0"
-              ",\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_tight_si"
-              "des\":0,\"ipqp_read_barrier_noise_sides\":0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_"
-              "fallbacks\":0,\"ipqp_mu_floor_binds\":0,\"ipqp_ladder_zero_trial_skips\":0}},"
-              "\"scaling_active\":false,\"obj_scale\":1,\"row_scale_min\":1,\"row_scale_max\""
-              ":1,\"scaled_kkt_residual\":0,\"columns_active\":false,\"col_spread\":1}\n");
+              "ged_factorizations\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_re"
+              "fusals\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,"
+              "\"ssn_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refine"
+              "ments\":0,\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refin"
+              "e_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_bud"
+              "get\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape"
+              "_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape_gate_refused"
+              "\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symbolic_ana"
+              "lyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_ma"
+              "x\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_"
+              "elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\""
+              "ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,"
+              "\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":"
+              "0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_restart_shi"
+              "ft_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_decl"
+              "ined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"i"
+              "pqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_"
+              "to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ip"
+              "qp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,"
+              "\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_"
+              "min\":null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":"
+              "0,\"ipqp_mu0_derived\":0,\"ipqp_mu0_fallbacks\":0,\"ipqp_mu_floor_binds\":0,\""
+              "ipqp_ladder_zero_trial_skips\":0}},\"scaling_active\":false,\"obj_scale\":1,\""
+              "row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0,\"columns_acti"
+              "ve\":false,\"col_spread\":1}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {

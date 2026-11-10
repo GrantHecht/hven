@@ -27,6 +27,7 @@
 
 #include "hven/core/errors.h"
 #include "hven/core/types.h"
+#include "hven/detail/kkt/kkt_calls.h"
 #include "hven/detail/linear/dense_session.h"
 #include "hven/linear/symmetric_factor.h"
 
@@ -892,12 +893,16 @@ TEST(DenseArmReport, AnExactlySingularFactorIsReportedNotRetaken) {
     expect_count_identity(f);
 }
 
-TEST(DenseArmReport, TheShiftedRefactorReportsPerturbedPivots) {
+TEST(DenseArmReport, TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace) {
     const SpMatRM Z = upper_csr(zero_column());
     SymmetricFactor f(report_options());
     f.analyze(Z);
     ASSERT_EQ(f.factorize(Z).status, FactorizeOutcome::Status::kBackendError);
-    const FactorizeOutcome o = f.factorize_shifted(Z, 1, 1e-8, 1e-6);
+    // D = diag(2, 4): D Z D + sigma S = diag(4 + sigma, -sigma), and a solve returns
+    // D (D Z D + sigma S)^-1 D b.
+    const double sigma = 1e-6;
+    const double d[2] = {2.0, 4.0};
+    const FactorizeOutcome o = f.factorize_equilibrated(Z, 1, d, sigma);
     EXPECT_EQ(o.status, FactorizeOutcome::Status::kOk);
     EXPECT_EQ(o.arm, FactorArm::kDense);
     EXPECT_FALSE(o.inertia.numerically_singular);
@@ -907,31 +912,46 @@ TEST(DenseArmReport, TheShiftedRefactorReportsPerturbedPivots) {
     EXPECT_EQ(o.inertia.negative, 1);
     ASSERT_TRUE(f.inertia().perturbed_pivots.has_value());
     Vec x(2);
-    f.solve(Vec::Ones(2), x); // diag(1 + 1e-8, -1e-6)
-    EXPECT_NEAR(x(0), 1.0 / (1.0 + 1e-8), 1e-15);
-    EXPECT_NEAR(x(1), -1e6, 1e-6);
+    f.solve(Vec::Ones(2), x);
+    EXPECT_NEAR(x(0), 4.0 / (4.0 + sigma), 1e-15);
+    EXPECT_NEAR(x(1), -16.0 / sigma, 1e-6);
     EXPECT_EQ(f.counters().dense_shift_refactor_count, 1);
     EXPECT_EQ(f.counters().dense_singular_count, 1);
     expect_count_identity(f);
 
-    // An unshifted factorization clears the perturbed report.
+    // An unshifted factorization clears the perturbed report and the scale.
+    const SpMatRM I2 = upper_csr(Mat::Identity(2, 2));
+    f.analyze(I2);
+    ASSERT_EQ(f.factorize_equilibrated(I2, 1, d, sigma).status, FactorizeOutcome::Status::kOk);
+    ASSERT_EQ(f.factorize(I2).status, FactorizeOutcome::Status::kOk);
+    EXPECT_FALSE(f.inertia().perturbed_pivots.has_value());
+    f.solve(Vec::Ones(2), x);
+    EXPECT_EQ(x(0), 1.0);
+    EXPECT_EQ(x(1), 1.0);
+
+    // A flagged equilibrated factorization is reported, not counted in dense_flagged_count.
     const SpMatRM P = upper_csr(near_singular_pd());
     f.analyze(P);
-    ASSERT_EQ(f.factorize(P).status, FactorizeOutcome::Status::kOk);
-    EXPECT_FALSE(f.inertia().perturbed_pivots.has_value());
+    const double ones[2] = {1.0, 1.0};
+    const Index flagged_before = f.counters().dense_flagged_count;
+    EXPECT_TRUE(f.factorize_equilibrated(P, 2, ones, 0.0).inertia.numerically_singular);
+    EXPECT_EQ(f.counters().dense_flagged_count, flagged_before);
 
-    EXPECT_THROW(f.factorize_shifted(P, 1, -1.0, 0.0), std::invalid_argument);
-    EXPECT_THROW(f.factorize_shifted(P, 3, 1.0, 0.0), std::invalid_argument);
-    EXPECT_THROW(f.factorize_shifted(P, 1, std::nan(""), 0.0), std::invalid_argument);
+    const double bad[2] = {1.0, 0.0};
+    EXPECT_THROW(f.factorize_equilibrated(P, 1, ones, -1.0), std::invalid_argument);
+    EXPECT_THROW(f.factorize_equilibrated(P, 3, ones, 1.0), std::invalid_argument);
+    EXPECT_THROW(f.factorize_equilibrated(P, 1, ones, std::nan("")), std::invalid_argument);
+    EXPECT_THROW(f.factorize_equilibrated(P, 1, nullptr, 1.0), std::invalid_argument);
+    EXPECT_THROW(f.factorize_equilibrated(P, 1, bad, 1.0), std::invalid_argument);
     SymmetricFactor bk(dense_options());
     bk.analyze(P);
-    EXPECT_THROW(bk.factorize_shifted(P, 1, 1.0, 0.0), std::logic_error);
+    EXPECT_THROW(bk.factorize_equilibrated(P, 1, ones, 1.0), std::logic_error);
     SymmetricFactor::Options small = report_options();
     small.dense_factorization = DensePolicy::kAuto;
     small.max_dense_dimension = 1;
     SymmetricFactor sparse(small); // n = 2 is sparse-selected
     sparse.analyze(P);
-    EXPECT_THROW(sparse.factorize_shifted(P, 1, 1.0, 0.0), std::logic_error);
+    EXPECT_THROW(sparse.factorize_equilibrated(P, 1, ones, 1.0), std::logic_error);
     EXPECT_THROW(sparse.retake_on_platform(P), std::logic_error);
 }
 
@@ -1045,7 +1065,7 @@ TEST(DenseArmReport, ABadlyScaledWellPosedMatrixIsNotFlagged) {
 
 // THE CATASTROPHIC CLASS: an E0 roster factorization of MESH (eqp site, mu = 0) whose
 // Bunch-Kaufman solve misses its own system by ~1e8 of the walk's scale. Flagged under kReport;
-// the signed shift (tau = max(reg, 2^-27 max|K|)) answers it within the walk's row test.
+// the equilibrated shift (sigma = 2^-30 on D K D) answers it within the walk's row test.
 TEST(DenseArmReport, TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses) {
     const SpMatRM K = load_fixture("mesh_sqp_eqp_1135");
     const Index n = K.rows();
@@ -1080,8 +1100,9 @@ TEST(DenseArmReport, TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses)
     SymmetricFactor f(report_options());
     f.analyze(K);
     ASSERT_TRUE(f.factorize(K).inertia.numerically_singular);
-    const double tau = std::ldexp(K.coeffs().cwiseAbs().maxCoeff(), -27);
-    const FactorizeOutcome o = f.factorize_shifted(K, np, std::max(1e-8, tau), tau);
+    const Vec d = hven::detail::equilibration_scale(K);
+    const FactorizeOutcome o =
+        f.factorize_equilibrated(K, np, d.data(), hven::detail::kDenseEquilibratedShift);
     ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk);
     EXPECT_FALSE(o.inertia.numerically_singular);
     Vec x(n);

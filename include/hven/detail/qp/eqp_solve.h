@@ -246,12 +246,17 @@ constexpr double kEqpResidualRefuseTol = 1e-1;
 constexpr Index kEqpPolishSteps = 2;
 
 // THE SHIFTED FACTOR'S REFINEMENT (M8 DN-1d): a dense factorization the detector
-// flagged is refactored as K + S (detail::factorize_checked), so a solve answers
-// the shifted system. Refinement against K itself contracts each eigencomponent
-// by about tau / (lambda + tau): one or two steps restore every direction whose
-// curvature dwarfs the shift, and none can move the near-null ones. At most this
-// many, each kept only while ||rhs - K y||inf strictly falls.
+// flagged is refactored as D K D + sigma S (detail::factorize_checked), so a solve
+// answers the shifted system. Refinement against K contracts each equilibrated
+// eigencomponent by about sigma / (lambda + sigma). At most this many steps, each
+// kept only while ||D (rhs - K y)||inf strictly falls (D = kkt.dense_scale: the
+// unscaled norm is dominated by the largest rows and stalls).
 constexpr Index kEqpShiftRefineSteps = 10;
+
+// solve_eqp on a shifted factor refuses an answer whose equilibrated relative
+// residual rho = ||D (rhs - K y)||inf / ||D rhs||inf exceeds this, or is NaN (M8
+// DN-1d; chosen on the E0/dev roster: consistent shifted solves reach 1e-17).
+constexpr double kEqpShiftedResidualTol = 1e-8;
 
 // THE UNREGULARIZED POLISH's STEP CAP, relative to the answer's own size: a step
 // is kept only if it also moves the answer by no more than
@@ -320,6 +325,9 @@ struct EqpResult {
     double residual_ratio = 0.0;
     Index residual_refine_iters = 0;
     bool residual_refused = false;
+    /// True iff the answer came from a dense shifted factor and missed
+    /// kEqpShiftedResidualTol (M8 DN-1d); implies `residual_refused`.
+    bool shifted_refused = false;
 
     /// THE UNREGULARIZED POLISH's output (M7 W2 E4 fix1, ruling E4-11): steps
     /// KEPT against the face's own exact KKT system, out of kEqpPolishSteps
@@ -344,14 +352,15 @@ inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const detail
     if (!kkt.dense_shifted) {
         return 0;
     }
+    const Vec &d = kkt.dense_scale;
     Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
-    double r_inf = r.lpNorm<Eigen::Infinity>();
+    double r_inf = r.cwiseProduct(d).lpNorm<Eigen::Infinity>();
     Index spent = 0;
     while (spent < kEqpShiftRefineSteps) {
         ++spent;
         const Vec candidate = y + detail::solve_vec(kkt, r);
         Vec cr = rhs - K.template selfadjointView<Eigen::Upper>() * candidate;
-        const double cr_inf = cr.lpNorm<Eigen::Infinity>();
+        const double cr_inf = cr.cwiseProduct(d).lpNorm<Eigen::Infinity>();
         if (!(cr_inf < r_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
@@ -478,6 +487,17 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         detail::DenseShiftSite{n_free, opts.primal_regularization, opts.dual_regularization});
     Vec y = detail::solve_vec(kkt, rhs);
     const Index shift_iters = refine_shifted_solve(asm_.K, rhs, kkt, y);
+    // A shifted factor's answer is used only if it solves K itself (rho, above).
+    bool shifted_refused = false;
+    if (kkt.dense_shifted) {
+        const Vec &d = kkt.dense_scale;
+        const double r_d = (rhs - asm_.K.template selfadjointView<Eigen::Upper>() * y)
+                               .cwiseProduct(d)
+                               .lpNorm<Eigen::Infinity>();
+        const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+        const double rho = (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+        shifted_refused = !(rho <= detail::kEqpShiftedResidualTol);
+    }
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -548,7 +568,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         r_reg = std::move(candidate_r);
         ratio = candidate_ratio;
     }
-    const bool refused = !(ratio <= 1.0);
+    const bool refused = !(ratio <= 1.0) || shifted_refused;
     const double row_residual = nc > 0 ? r_reg.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
 
     if (unrefined_out != nullptr) {
@@ -605,6 +625,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     out.residual_ratio = ratio;
     out.residual_refine_iters = res_spent;
     out.residual_refused = refused;
+    out.shifted_refused = shifted_refused;
     return out;
 }
 

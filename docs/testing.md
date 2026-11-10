@@ -265,7 +265,11 @@ guarded by `#ifdef HVEN_TESTING`:
   and only that path stops reading its numerics). Its consumer is the IPM dense
   guard's failed re-run (DN-1b review F8;
   `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
-  `hven_sqp_seam_tests`), which no real backend reaches.
+  `hven_sqp_seam_tests`), which no real backend reaches. Second consumer: the SQP
+  response's last resort (`QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform`
+  in `hven_qp_walk_seam_tests`), under `kReport` -- faithful there because both
+  equilibrated attempts are read as failed and nothing reads the skipped attempts'
+  numerics; the retake is the platform session's own factorization.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
   `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs

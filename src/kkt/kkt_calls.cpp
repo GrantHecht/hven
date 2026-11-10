@@ -58,6 +58,7 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision) {
     analyze_if_needed(k, K, decision);
     k.dense_shifted = false;
+    k.dense_scale.resize(0);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     if (flagged(outcome)) {
         // No site to shift on: the platform session retakes K.
@@ -70,12 +71,43 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
     return outcome;
 }
 
+Vec equilibration_scale(const SpMatRM &K) {
+    const auto n = static_cast<Index>(K.rows());
+    Vec d = Vec::Ones(n);
+    Vec r(n);
+    constexpr int kMaxSweeps = 8;
+    constexpr double kStop = 0.05;
+    for (int sweep = 0; sweep < kMaxSweeps; ++sweep) {
+        r.setZero();
+        for (Index i = 0; i < n; ++i) {
+            for (SpMatRM::InnerIterator e(K, i); e; ++e) {
+                const auto j = static_cast<Index>(e.col());
+                const double w = std::abs(e.value()) * d(i) * d(j);
+                r(i) = std::max(r(i), w);
+                r(j) = std::max(r(j), w);
+            }
+        }
+        double dev = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (r(i) > 0.0 && std::isfinite(r(i))) {
+                dev = std::max(dev, std::abs(1.0 - r(i)));
+                d(i) /= std::sqrt(r(i));
+            }
+        }
+        if (dev <= kStop) {
+            break;
+        }
+    }
+    return d;
+}
+
 CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
                                        const AnalysisDecision &decision,
                                        const DenseShiftSite &site) {
     using Check = hven::linear::SymmetricFactor::PatternCheck;
     analyze_if_needed(k, K, decision);
     k.dense_shifted = false;
+    k.dense_scale.resize(0);
     CheckedFactorization out;
     out.delta = site.delta;
     out.mu = site.mu;
@@ -83,30 +115,25 @@ CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
     if (flagged(out.outcome)) {
         // The pattern was verified by the call above; the responses factor the
         // same K.
-        double kmax = 0.0;
-        const double *v = K.valuePtr();
-        for (Index i = 0; i < static_cast<Index>(K.nonZeros()); ++i) {
-            kmax = std::max(kmax, std::abs(v[i]));
-        }
-        const double floor = kDenseShiftRelative * kmax;
-        double tau_p = std::max(site.delta, floor);
-        double tau_d = std::max(site.mu, floor);
+        Vec d = equilibration_scale(K);
+        double sigma = kDenseEquilibratedShift;
         bool done = false;
         for (int attempt = 0; attempt < 2 && !done; ++attempt) {
             if (attempt > 0) {
-                tau_p *= kDenseShiftRetryGrowth;
-                tau_d *= kDenseShiftRetryGrowth;
+                sigma *= kDenseShiftRetryGrowth;
             }
-            out.outcome =
-                k.factor.factorize_shifted(K, site.n_primal, tau_p, tau_d, Check::kAssumeAnalyzed);
+            out.outcome = k.factor.factorize_equilibrated(K, site.n_primal, d.data(), sigma,
+                                                          Check::kAssumeAnalyzed);
+            if (out.outcome.status != hven::linear::FactorizeOutcome::Status::kOk) {
+                ++k.shifted_exact_singular;
+            }
             done = !flagged(out.outcome) &&
                    out.outcome.status == hven::linear::FactorizeOutcome::Status::kOk;
         }
         if (done) {
             out.shifted = true;
-            out.delta = site.delta + tau_p;
-            out.mu = site.mu + tau_d;
             k.dense_shifted = true;
+            k.dense_scale = std::move(d);
         } else {
             out.outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
             out.retaken = true;

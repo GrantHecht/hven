@@ -93,8 +93,14 @@ struct KktFactor {
     bool analyzed = false;
     /// True iff the current numerics are a dense shift response (M8 DN-1d):
     /// a solve then answers a shifted system, so refinement against K is
-    /// kept only while its residual falls.
+    /// kept only while its residual falls, and `dense_scale` holds the
+    /// equilibration D the residual is measured in (empty otherwise).
     bool dense_shifted = false;
+    Vec dense_scale;
+    /// Equilibrated attempts that came out exactly singular (the factor counts
+    /// them in dense_singular_count); dense_response_tally() takes them back
+    /// out, so its `flagged` counts unshifted factorizations only.
+    Index shifted_exact_singular = 0;
 };
 
 // The analyze-or-not decision for K, carrying the pattern hash it was taken
@@ -142,21 +148,24 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);
 
 /// @brief A KKT site's layout for the dense singular response (M8 DN-1d): the
-/// first `n_primal` rows carry the primal regularization `delta`, the rest
-/// the dual `-mu`.
+/// first `n_primal` rows are primal, the rest dual; `delta`/`mu` are the
+/// site's regularization, returned as factored.
 struct DenseShiftSite {
     Index n_primal = 0;
     double delta = 0.0;
     double mu = 0.0;
 };
 
-/// The shift's scale relative to max|K| (tau = max(reg, 2^-27 max|K|)) and
-/// the one retry's growth.
-inline constexpr double kDenseShiftRelative = 0x1p-27;
-inline constexpr double kDenseShiftRetryGrowth = 100.0;
+/// The response's shift on the equilibrated matrix, and the one retry's growth.
+inline constexpr double kDenseEquilibratedShift = 0x1p-30;
+inline constexpr double kDenseShiftRetryGrowth = 256.0;
 
-/// @brief A site factorization's outcome and the regularization the factored
-/// matrix carries: (site.delta, site.mu), plus the shift when `shifted`.
+/// @brief Symmetric Ruiz equilibration of an upper-CSR K (infinity norm): at
+/// most 8 sweeps of d_i /= sqrt(r_i), r_i = max_j |K_ij| d_i d_j (rows with r_i
+/// zero or non-finite keep d_i), stopping once max|1 - r_i| <= 0.05.
+Vec equilibration_scale(const SpMatRM &K);
+
+/// @brief A site factorization's outcome and the site's (delta, mu).
 struct CheckedFactorization {
     hven::linear::FactorizeOutcome outcome;
     double delta = 0.0;
@@ -167,18 +176,19 @@ struct CheckedFactorization {
 
 /// @brief factorize_checked() with the dense singular response. Under
 /// DenseSingularPolicy::kReport a flagged or exactly singular outcome is
-/// refactored densely with K + diag(+tau_p on the primal rows, -tau_d on the
-/// rest), tau_p = max(delta, 2^-27 max|K|), tau_d = max(mu, 2^-27 max|K|);
-/// still flagged, once more at 100x; still flagged, the platform session
-/// retakes K (counted, last resort). Sets `k.dense_shifted`.
+/// refactored densely as D K D + sigma diag(+1 primal, -1 dual), D =
+/// equilibration_scale(K), sigma = 2^-30, accepted iff taken and unflagged;
+/// else once more at 256 sigma; else the platform session retakes K (counted,
+/// last resort). Sets `k.dense_shifted` and `k.dense_scale`.
 /// @throws hven::BackendError when no factorization succeeds.
 CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
                                        const AnalysisDecision &decision,
                                        const DenseShiftSite &site);
 CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K, const DenseShiftSite &site);
 
-/// @brief The factor's dense singular-response counts so far: factorizations
-/// the detector flagged (exact included), shift refactors, platform retakes.
+/// @brief The factor's dense singular-response counts so far: unshifted
+/// factorizations the detector flagged (exact included), equilibrated
+/// refactors, platform retakes. `refactors - flagged` is the retries.
 struct DenseResponseTally {
     Index flagged = 0;
     Index refactors = 0;
@@ -186,7 +196,8 @@ struct DenseResponseTally {
 };
 inline DenseResponseTally dense_response_tally(const KktFactor &k) {
     const auto &c = k.factor.counters();
-    return DenseResponseTally{c.dense_flagged_count + c.dense_singular_count,
+    return DenseResponseTally{c.dense_flagged_count + c.dense_singular_count -
+                                  k.shifted_exact_singular,
                               c.dense_shift_refactor_count, c.dense_retake_count};
 }
 

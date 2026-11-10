@@ -67,12 +67,13 @@ enum class DenseFactorizeResult {
     kNumericallySingular // kReport: numerics committed, flagged by the detector
 };
 
-// A signed diagonal shift applied after densifying: +primal on the first
-// n_primal diagonals, -dual on the rest.
+// The equilibrated shift (M8 DN-1d): the session factors D A D + sigma S,
+// D = diag(scale) (dim entries, positive), S = +1 on the first n_primal
+// diagonals and -1 on the rest; solves then answer A-space systems.
 struct DenseShift {
     Index n_primal = 0;
-    double primal = 0.0;
-    double dual = 0.0;
+    const double *scale = nullptr;
+    double sigma = 0.0;
 };
 
 class DenseSession {
@@ -88,7 +89,8 @@ class DenseSession {
     // CSR). Throws std::invalid_argument per validate_dense_dimension().
     void analyze(const SpMatRM &A);
 
-    // Densify A (plus `shift` when given) and factorize: Bunch-Kaufman under
+    // Densify A (equilibrated and shifted per `shift` when given; the scale is
+    // kept for solve() until the next analyze()/factorize()) and factorize: Bunch-Kaufman under
     // kSparseFallback, rook under kReport. Returns kTaken and commits
     // max(epoch() + 1, next_epoch) when the dense arm takes the factorization
     // (an engine on its fallback session while a co-owner advanced this one
@@ -101,7 +103,8 @@ class DenseSession {
     DenseFactorizeResult factorize(const SpMatRM &A, std::uint64_t next_epoch,
                                    const DenseShift *shift = nullptr);
 
-    // In-place solve of nrhs columns of b (leading dimension ldb >= dim()).
+    // In-place solve of nrhs columns of b (leading dimension ldb >= dim());
+    // under an equilibrated shift b <- D (D A D + sigma S)^-1 D b.
     // Requires has_numerics(). Throws hven::BackendError on a LAPACK error.
     void solve(double *b, Index nrhs, Index ldb) const;
 
@@ -128,9 +131,12 @@ class DenseSession {
     bool report() const noexcept {
         return opts_.dense_singular_policy == DenseSingularPolicy::kReport;
     }
-    // kReport's dsycon_rook estimate of the factorization in a_ (||A||_1 from
-    // A's stored upper triangle, `shift` included).
-    double rcond_estimate(const SpMatRM &A, const DenseShift *shift);
+    // ||A||_1 from A's stored upper triangle (kReport, unshifted).
+    double csr_one_norm(const SpMatRM &A);
+    // ||.||_1 of the densified upper triangle in a_ (before dsytrf).
+    double dense_one_norm();
+    // kReport's dsycon_rook estimate of the factorization in a_.
+    double rcond_estimate(double anorm);
 
     SymmetricFactor::Options opts_;
     Index n_ = 0;
@@ -143,6 +149,7 @@ class DenseSession {
     std::vector<double> colsum_;
     std::vector<double> con_work_;
     std::vector<int> con_iwork_;
+    std::vector<double> scale_; // the current numerics' equilibration (empty: none)
     bool has_numerics_ = false;
     Index positive_ = 0;
     Index negative_ = 0;

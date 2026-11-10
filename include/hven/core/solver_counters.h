@@ -585,14 +585,19 @@ struct QpCounters {
     Index inertia_wrong_verdicts = 0;
     // The dense singular response on this solve's KKT factors (M8 DN-1d;
     // detail::factorize_checked): dense_condition_fallbacks the platform
-    // retakes (the last resort), dense_flagged_factorizations the
+    // retakes (the last resort), dense_flagged_factorizations the unshifted
     // factorizations the detector flagged (exactly singular included),
-    // dense_singular_refactors the shifted dense refactors. 0 under
+    // dense_singular_refactors the equilibrated refactors (more than the flags
+    // only when a retry ran). 0 under
     // DensePolicy::kNever. A retake that forks a fresh platform session pays a
     // symbolic analysis `symbolic_analyses` does not count (DN-1c review F7).
     Index dense_condition_fallbacks = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
+    // EQP answers from a dense shifted factor refused because their
+    // equilibrated relative residual against K exceeded 1e-8 (M8 DN-1d; each
+    // also in eqp_residual_refusals where that site counts one).
+    Index dense_shifted_solve_refusals = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2283,6 +2288,9 @@ struct SqpCounters {
     Index dense_condition_fallbacks = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
+    /// @brief QpCounters' field summed the same way: shifted-factor EQP answers
+    ///        refused on their residual (M8 DN-1d). Appended last.
+    Index dense_shifted_solve_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2373,7 +2381,8 @@ struct SqpCounters {
     X(inertia_wrong_verdicts, counter_never_absent)                                                \
     X(dense_condition_fallbacks, counter_never_absent)                                             \
     X(dense_flagged_factorizations, counter_never_absent)                                          \
-    X(dense_singular_refactors, counter_never_absent)
+    X(dense_singular_refactors, counter_never_absent)                                              \
+    X(dense_shifted_solve_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

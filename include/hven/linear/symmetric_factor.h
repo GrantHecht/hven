@@ -668,8 +668,8 @@ class SymmetricFactor {
         //                    InertiaEvidence::numerically_singular. An exactly
         //                    singular one is kBackendError with backend_code
         //                    kDenseSingular and no numerics. Nothing is
-        //                    retaken; the caller responds (factorize_shifted(),
-        //                    retake_on_platform()).
+        //                    retaken; the caller responds
+        //                    (factorize_equilibrated(), retake_on_platform()).
         // Refused (kReport) under kNever. The flag band is far below the
         // platform session's own suspect band (Pardiso perturbs pivots below
         // about 1e-8 relative), so a dense factorization the detector passes
@@ -767,12 +767,13 @@ class SymmetricFactor {
         Index dense_fallback_count = 0;
 
         // DenseSingularPolicy::kReport (M8 DN-1d), over factorize() and
-        // factorize_shifted() alike:
+        // factorize_equilibrated() alike unless stated:
         //   dense_singular_count       exactly singular (kDenseSingular);
-        //   dense_flagged_count        taken and flagged (numerically_singular);
+        //   dense_flagged_count        taken and flagged (numerically_singular),
+        //                              unshifted factorizations only;
         //   dense_condition_estimate_count  dsycon_rook calls (screened ones);
-        //   dense_shift_refactor_count factorize_shifted() calls that reached
-        //                              the backend;
+        //   dense_shift_refactor_count factorize_equilibrated() calls that
+        //                              reached the backend;
         //   dense_retake_count         retake_on_platform() calls (each also in
         //                              dense_fallback_count).
         Index dense_singular_count = 0;
@@ -879,18 +880,22 @@ class SymmetricFactor {
     // flagged or exactly singular outcome. Each is one factorization of A with
     // factorize()'s pattern guard, counters and outcome contract.
     //
-    // factorize_shifted(): the dense arm factorizes A + diag(+primal on the
-    // first n_primal rows, -dual on the rest) and runs the detector on it; a
-    // taken outcome reports perturbed_pivots = dim, so an inertia read of it
-    // is suspect. Throws std::logic_error unless the analyzed pattern is
-    // dense-selected under kReport, std::invalid_argument for a negative or
-    // non-finite shift or n_primal outside [0, dim].
+    // factorize_equilibrated(): the dense arm factorizes D A D + sigma S,
+    // D = diag(scale) (dim positive finite entries, read during the call and
+    // copied), S = +1 on the first n_primal diagonals and -1 on the rest, and
+    // runs the detector on that matrix; solves until the next factorization
+    // answer A-space systems (b <- D (D A D + sigma S)^-1 D b). A taken outcome
+    // reports perturbed_pivots = dim, so an inertia read of it is suspect.
+    // Throws std::logic_error unless the analyzed pattern is dense-selected
+    // under kReport, std::invalid_argument for a negative or non-finite sigma,
+    // a null or non-positive/non-finite scale, or n_primal outside [0, dim].
     //
     // retake_on_platform(): the platform session factorizes A (the
     // kSparseFallback path, arm kSparse). Throws std::logic_error unless the
     // analyzed pattern is dense-selected.
-    FactorizeOutcome factorize_shifted(const SpMatRM &A, Index n_primal, double primal, double dual,
-                                       PatternCheck check = PatternCheck::kVerify);
+    FactorizeOutcome factorize_equilibrated(const SpMatRM &A, Index n_primal, const double *scale,
+                                            double sigma,
+                                            PatternCheck check = PatternCheck::kVerify);
     FactorizeOutcome retake_on_platform(const SpMatRM &A,
                                         PatternCheck check = PatternCheck::kVerify);
 
