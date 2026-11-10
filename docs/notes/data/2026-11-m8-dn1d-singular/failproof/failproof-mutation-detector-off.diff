@@ -1,0 +1,4 @@
+305c305
+<             flagged = !(rcond_estimate(anorm) >= kDenseConditionSingular);
+---
+>             flagged = false;
