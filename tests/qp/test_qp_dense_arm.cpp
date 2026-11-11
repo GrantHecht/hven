@@ -675,11 +675,12 @@ TEST(QpDenseArm, TheTerminalPolishRejectsARefusedShiftedAnswer) {
     EXPECT_EQ(counters.terminal_polish_adopted, 0);
 }
 
-// THE BORDER PATH NEVER SOLVES THROUGH A SHIFTED K0 (the walk's default algebra): the pass takes
-// the eliminated path, whose solve_eqp refuses by rho, so the walk escalates instead of stepping
-// on the Schur stack's answer (which its constraint-row check alone would accept). On the
-// refactorize algebra the same refusal, and no K0.
-TEST(QpDenseArm, AShiftedK0IsNeverSolvedThroughAndTheEngineCountsTheRefusals) {
+// THE BORDER PATH'S SHIFTED-K0 GATE, REFUSING (the walk's default algebra): K0 is the face's
+// whole KKT matrix, exactly singular, so it holds shifted numerics; the bordered answer meets the
+// rows but misses the unshifted bordered system by rho ~ 5e-7, so it is refused and the pass falls
+// to the eliminated path, whose solve_eqp refuses too and the walk escalates instead of stepping.
+// On the refactorize algebra the same eliminated refusal, and no K0.
+TEST(QpDenseArm, AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath) {
     const QpProblem qp = near_inconsistent_qp();
     for (const auto algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
@@ -692,12 +693,40 @@ TEST(QpDenseArm, AShiftedK0IsNeverSolvedThroughAndTheEngineCountsTheRefusals) {
         const QpSolution d = dense_engine.solve(qp);
         EXPECT_EQ(s.counters.dense_shifted_solve_refusals, 0);
         EXPECT_EQ(s.counters.dense_shifted_k0_fallbacks, 0);
-        EXPECT_GE(d.counters.dense_shifted_solve_refusals, 1);
         EXPECT_EQ(d.counters.dense_condition_fallbacks, 0);
         if (algebra == QpWorkingSetAlgebra::kSchurBorder) {
+            // Every border refusal is followed by the eliminated path's own refusal.
             EXPECT_GE(d.counters.dense_shifted_k0_fallbacks, 1);
+            EXPECT_GE(d.counters.dense_shifted_solve_refusals,
+                      2 * d.counters.dense_shifted_k0_fallbacks);
         } else {
+            EXPECT_GE(d.counters.dense_shifted_solve_refusals, 1);
             EXPECT_EQ(d.counters.dense_shifted_k0_fallbacks, 0);
         }
     }
+}
+
+// THE BORDER PATH'S SHIFTED-K0 GATE, PASSING: a consistent duplicated row at mu = 0 makes K0
+// exactly singular, so it holds shifted numerics; the bordered answer solves the unshifted
+// bordered system, is used (the border path's refinement runs, nothing falls back), and is the
+// sparse arm's answer.
+TEST(QpDenseArm, AShiftedK0BorderAnswerMeetingRhoIsUsed) {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    const QpProblem qp = rows_qp(Ae, Vec::Constant(2, 1.0), 1.0);
+    QpOptions o = mu_free_opts();
+    o.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    const QpEngine sparse_engine(o, 0, DensePolicy::kNever);
+    const QpEngine dense_engine(o, 0, DensePolicy::kAlways);
+    const QpSolution s = sparse_engine.solve(qp);
+    const QpSolution d = dense_engine.solve(qp);
+    EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_GE(d.counters.dense_singular_refactors, 1);
+    EXPECT_EQ(d.counters.dense_condition_fallbacks, 0);
+    EXPECT_GE(d.counters.border_refine_steps, 1);
+    EXPECT_EQ(d.counters.dense_shifted_k0_fallbacks, 0);
+    EXPECT_EQ(d.counters.dense_shifted_solve_refusals, 0);
+    EXPECT_EQ(d.counters.eqp_residual_refusals, 0);
+    EXPECT_NEAR(d.x(0) + d.x(1), 1.0, 1e-9);
+    EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6);
 }

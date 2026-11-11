@@ -577,13 +577,40 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // `x_k` is the PROXIMAL CENTRE, of size qp.n() -- the same required argument, with
 // the same meaning, as solve_eqp's; eqp_solve.h states the system both solve.
 //
+// THE SHIFTED-K0 GATE (M8 DN-1d): a K0 holding dense shifted numerics answers
+// D (D K0 D + sigma S)^-1 D b, so a bordered answer through it is verified
+// against the UNSHIFTED bordered system K_b -- K0 plus the live borders, the
+// regularized system the stack was handed:
+// rho = ||D (rhs - K_b sol)||inf / ||D rhs||inf, D = K0's equilibration scale
+// on K0's rows and 1 on the border rows (the Schur complement is formed and
+// factored in the borders' own unscaled coordinates). 0 when both vanish; a
+// NaN propagates.
+inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vector<Vec> &border_v,
+                                              const std::vector<double> &border_d, const Vec &rhs,
+                                              const Vec &sol, const Vec &k0_scale) {
+    const Index n0 = K0.rows();
+    Vec d = Vec::Ones(rhs.size());
+    d.head(n0) = k0_scale;
+    const double r_d = bordered_regularized_residual(K0, n0, border_v, border_d, rhs, sol)
+                           .cwiseProduct(d)
+                           .lpNorm<Eigen::Infinity>();
+    const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+}
+
 // Throws whatever SchurComplement::solve throws -- notably
 // hven::BackendError on an exactly singular Schur complement, which the caller is expected
 // to have ruled out via needs_refactorization() first.
+//
+// `k0_shift_scale` is K0's KktFactor::dense_scale when K0 holds dense shifted
+// numerics, else null: the first solve is then gated on
+// bordered_shifted_residual_ratio (no refinement before the gate), a miss of
+// kEqpShiftedResidualTol or a NaN sets shifted_refused and residual_refused.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,
-                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts) {
+                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts,
+                                    const Vec *k0_shift_scale) {
     const Index n = qp.n();
     const Index me = qp.me();
     const Index n0 = k0.K.rows();
@@ -597,6 +624,10 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
 
     Vec sol = schur.solve(sys.rhs);
+    const bool shifted_refused =
+        k0_shift_scale != nullptr &&
+        !(bordered_shifted_residual_ratio(k0.K, sys.border_v, sys.border_d, sys.rhs, sol,
+                                          *k0_shift_scale) <= detail::kEqpShiftedResidualTol);
 
     // ---- THE EQP-SITE RESIDUAL CHECK (E4-4), the border twin. Same object, same
     // tolerance, same budget, same two-block ratio as eqp_solve.h's -- read off the
@@ -661,7 +692,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     res.row_residual = row_residual;
     res.residual_ratio = ratio;
     res.residual_refine_iters = res_iters;
-    res.residual_refused = !(ratio <= 1.0);
+    res.residual_refused = !(ratio <= 1.0) || shifted_refused;
+    res.shifted_refused = shifted_refused;
     res.x = sol.head(n);
     for (Index i = 0; i < n; ++i) {
         const BoundState st = bound_state[static_cast<std::size_t>(i)];

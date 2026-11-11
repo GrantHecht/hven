@@ -3397,9 +3397,8 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
                                        const Vec &ae_row_norm1, const Vec &lambda_e,
                                        BorderState &border, QpCounters &counters,
                                        const QpOptions &opts) const {
-    if (!border.schur.has_value() || border.schur->needs_refactorization() ||
-        border.kkt.dense_shifted) {
-        return false; // nothing trustworthy to re-form (a shifted K0 is never solved through)
+    if (!border.schur.has_value() || border.schur->needs_refactorization()) {
+        return false; // nothing trustworthy to re-form -- see the declaration
     }
     const Index n = qp.n();
     // THE PROXIMAL CENTRE at the verdict site is the point the walk is standing
@@ -3441,6 +3440,14 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         best = border.schur->solve(sys.rhs);
         best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
                                               *border.schur, sys.rhs, best, opts);
+        // solve_bordered_eqp's shifted-K0 gate on the replay: a refused answer
+        // refines nothing (the eliminated twin's rule).
+        if (border.kkt.dense_shifted &&
+            !(bordered_shifted_residual_ratio(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
+                                              best, border.kkt.dense_scale) <=
+              detail::kEqpShiftedResidualTol)) {
+            return false;
+        }
         best_x = point_of(best);
         best_measure = measure_of(best_x);
         for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
@@ -3803,19 +3810,18 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
     bool rebuilt = false;
     bool k0_untrusted = false;
     if (border.schur.has_value()) {
-        // A SHIFTED K0 (a dense shift response) is never solved through. K0
-        // depends on the working ROWS alone (pins are borders) and the stack is
-        // reset whenever the values or the regularization move, so on the same
-        // rows a rebuild would refactor the same K0 into the same shift: the
-        // pass takes the eliminated path without one. Other rows rebuild below.
-        if (border.kkt.dense_shifted && border.k0_rows == ws.active_ineq()) {
-            ++counters.dense_shifted_k0_fallbacks;
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
+        // A SHIFTED K0 (a dense shift response) reports every pivot perturbed.
+        // K0 depends on the working ROWS alone (pins are borders) and the stack
+        // is reset whenever the values or the regularization move, so on the
+        // same rows a rebuild would refactor the same K0 into the same shift:
+        // none is taken, and the border answer is gated on rho
+        // (solve_bordered_eqp). Other rows rebuild below.
+        if (!(border.kkt.dense_shifted && border.k0_rows == ws.active_ineq())) {
+            const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
+            k0_untrusted = e.state != hven::linear::InertiaEvidence::State::kObserved ||
+                           (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) ||
+                           (!e.zero_is_derived && e.zero != 0);
         }
-        const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
-        k0_untrusted = e.state != hven::linear::InertiaEvidence::State::kObserved ||
-                       (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) ||
-                       (!e.zero_is_derived && e.zero != 0);
     }
     if (!border.schur.has_value() || k0_untrusted) {
         rebuild_k0(qp, ws, border, counters, opts); // the seed working set's K0
@@ -3841,14 +3847,6 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             [marked](detail::testing::QpWalkEqpEvidence &s) { s.needs_refactorization = marked; });
     }
 #endif
-    // THE SHIFTED-K0 GATE: a K0 whose numerics are a dense shift response
-    // answers D (D K0 D + sigma S)^-1 D b, and the Schur stack and its
-    // constraint-row check carry no rho test, so the pass takes the eliminated
-    // path, whose solve_eqp refines against K and gates on rho.
-    if (border.kkt.dense_shifted) {
-        ++counters.dense_shifted_k0_fallbacks;
-        return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
-    }
     if (border.schur->needs_refactorization()) {
         // Rebuilding re-derives K0 from the CURRENT working set, folding
         // the working ROWS that triggered it back into K0. It cannot do
@@ -3878,10 +3876,6 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             }
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
-        if (border.kkt.dense_shifted) { // the shifted-K0 gate above, on the rebuilt K0
-            ++counters.dense_shifted_k0_fallbacks;
-            return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
-        }
     }
 
     // SchurComplement::solve throws BackendError on an exactly
@@ -3905,8 +3899,11 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // Evaluated BEFORE the solve so a throw below cannot leave a
         // verdict describing a system that was never solved.
         verdict = border_inertia_verdict(qp, border);
-        EqpResult res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur,
-                                           border.ledger, ws, x_k, opts);
+        // A K0 holding dense shifted numerics: the answer is gated on rho
+        // against the unshifted bordered system (solve_bordered_eqp).
+        EqpResult res =
+            solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
+                               opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
         counters.eqp_refine_iters += res.residual_refine_iters;
@@ -3918,7 +3915,13 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
             // this path already answers by degrading to the bound-eliminated form,
             // so it takes THAT retreat rather than inventing one, and the
             // eliminated twin gets its own residual check on its own factor.
+            // A shifted-K0 gate refusal is one of these (shifted_refused implies
+            // residual_refused, as on the eliminated path).
             ++counters.eqp_residual_refusals;
+            if (res.shifted_refused) {
+                ++counters.dense_shifted_solve_refusals;
+                ++counters.dense_shifted_k0_fallbacks;
+            }
             return eliminated_candidate(qp, ws, x_k, kkt, face, counters, verdict, opts);
         }
         if (res.border_uncertified) {

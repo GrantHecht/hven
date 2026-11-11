@@ -1007,13 +1007,61 @@ documented).
 
 **Limits.** Equilibration can promote noise rows (HS90's inconsistent factor answers y ~ 1e33;
 refused by ρ and by feasibility); a y-growth cap is a candidate follow-up. Nonconvex faces are
-protected by the detector, the suspect verdict and the ρ gate only. The Schur border path solves
-through a shifted K0 without the ρ gate (audit beyond the first cut not done). Accelerate
+protected by the detector, the suspect verdict and the ρ gate only. (The first cut solved the
+Schur border path through a shifted K0 without the ρ gate; closed in r2, §18.1.) Accelerate
 UNOBSERVED.
 
 **Riders.** `kIllConditioned` → `kNumericallySingular` (`DenseFactorizeResult`); DN-1b F8 (the IPM
 guard's failed re-run sets `exhausted`; defensive — `factor_impl` already reports it — pinned by
 `IpmDenseGuardSeam` on the new `DenseFactorizeFaultInjector`); stale shim prose.
+
+### 18.1 DN-1d r2: every shifted answer verified (C283, C284)
+
+**Criterion (C283).** Every answer computed through shifted numerics is verified against the
+UNSHIFTED system before any consumer steps on it or adopts it: ρ = ‖D(rhs − K y)‖∞/‖D rhs‖∞ ≤
+`kEqpShiftedResidualTol` (1e-8, unchanged), NaN/Inf refusing. Per consumer site:
+
+| site | through shifted numerics | verification | on refusal |
+|---|---|---|---|
+| walk EQP, eliminated (`solve_eqp`) | the bound-eliminated K | `refine_shifted_solve` (≤ 10 keep-while-falling steps), then ρ against K | `shifted_refused` ⊂ `residual_refused`: the walk escalates |
+| walk EQP, border (`solve_bordered_eqp`) | K0 inside the Schur stack | ρ of the first Schur solve against the unshifted bordered system K_b (below) | `shifted_refused` ⊂ `residual_refused`: the pass takes the eliminated path, which gates its own answer |
+| SSN Newton step | the augmented KKT | `refine_shifted_solve`, then ρ | the proximal ladder escalates; `kSingular` at its ceiling |
+| terminal μ-free refinement, terminal polish | through `solve_eqp` (μ = 0) | `solve_eqp`'s | not adopted |
+| `refine_eliminated_face_on_face` | through `solve_eqp` | `solve_eqp`'s | returns false |
+| verdict refinement, eliminated twin | a fresh eliminated factor | `refine_shifted_solve`, then ρ on the replay | no refinement |
+| verdict refinement, border twin | K0 inside the Schur stack | ρ on the replay against K_b | no refinement |
+| `ws_independence` probes | either stack | none: a probe is never a step (a dependent verdict is certified by w = a − A_Wᵀv formed from the data; an independent one needs the unshifted residual to converge) | — |
+| IPQP | never shifted | a flagged or exactly singular read is `kPerturbed`/`NumericalIssue`, the tier's own remedy | — |
+
+**The border gate (C284, Option A).** K_b is K0 plus the live border rows and columns — the
+regularized system the stack was handed, so `bordered_regularized_residual` is its residual.
+D = K0's equilibration scale (`KktFactor::dense_scale`) on K0's rows and 1 on the border rows. Why 1:
+the shift and its equilibration exist only inside K0's factor; the Schur complement C = D_b − Vᵀ K0⁻¹ V
+is formed, factored and solved in the borders' own unscaled coordinates, so 1 is the scale the stack
+itself measures those rows in. A Ruiz scale of the whole K_b is not computed anywhere and would be a
+new construct; it was not tried. The gate reads the FIRST Schur solve, before the border path's
+residual loop, certificate refinement and polish (all of which then refine against K_b), the same
+gate point as `solve_eqp`'s less its `refine_shifted_solve`. No refinement before the border gate:
+`refine_shifted_solve` is the (K, `KktFactor`) primitive; a bordered twin would solve through the
+Schur stack and be a new primitive, so none was added. Counting: a border refusal is one
+`dense_shifted_solve_refusals` (the gate tally, every site that steps) AND one
+`dense_shifted_k0_fallbacks` (border answers not used because of a shifted K0 — today exactly the
+border refusals; kept as its own visible tally so the per-cell report separates border from
+eliminated/SSN refusals), and one `eqp_residual_refusals` as on the eliminated path. Same-rows rule:
+a shifted K0 reports every pivot perturbed, which would mark it for rebuild on every pass; K0 depends
+on the working rows alone, so on the same rows a rebuild refactors the same K0 into the same shift —
+none is taken and the answer is gated; other rows rebuild as before.
+
+**Record.** The first r2 implementation (ac665e4d0, Option B) routed every pass with a shifted K0 to
+the eliminated path. That met the criterion but moved SQP ALLINITC (optimal → numerical_error): a
+diagnostic build showed ALLINITC is the only roster cell solving through a shifted K0 (8 bordered
+solves, ρ 9e-14..2.6e-13 against K_b in this D-norm) and that the eliminated route, not a refusal,
+moved it. Option A was ruled AFTER that observation (disclosed in DECLARATION-r2, beside σ = 2^-30
+and 1e-8, both chosen on the same roster and unchanged).
+
+**Open items (registered, not this round).** (1) Eliminated-path quality on ALLINITC's face: under
+Option B the eliminated route left ALLINITC at stationarity 27.9 with no refusals. (2) Inertia trust
+between the bands (§18, Bands).
 
 ## Appendix A. Binding inputs → answers
 

@@ -595,11 +595,13 @@ struct QpCounters {
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     // Answers from a dense shifted factor refused by the rho gate
-    // (detail::kEqpShiftedResidualTol): walk EQP solves (each also in
-    // eqp_residual_refusals where that site counts one) and SSN Newton steps.
+    // (detail::kEqpShiftedResidualTol): walk EQP solves, eliminated and border
+    // (each also in eqp_residual_refusals where that site counts one), and SSN
+    // Newton steps.
     Index dense_shifted_solve_refusals = 0;
-    // Border passes served by the eliminated path because K0's numerics were a
-    // dense shift response (the Schur stack is never solved through them).
+    // Border passes whose bordered answer was not used because K0's numerics
+    // were a dense shift response (the gate refused it; the pass took the
+    // eliminated path). Each is also in dense_shifted_solve_refusals.
     Index dense_shifted_k0_fallbacks = 0;
 };
 
@@ -2292,11 +2294,12 @@ struct SqpCounters {
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     /// @brief QpCounters' field summed the same way: shifted-factor answers
-    ///        refused by the rho gate (walk EQP solves, SSN Newton steps).
-    ///        Appended last.
+    ///        refused by the rho gate (walk EQP solves, eliminated and border;
+    ///        SSN Newton steps). Appended last.
     Index dense_shifted_solve_refusals = 0;
-    /// @brief QpCounters' field summed the same way: border passes served by
-    ///        the eliminated path because K0 was shifted. Appended last.
+    /// @brief QpCounters' field summed the same way: border answers through a
+    ///        shifted K0 not used (refused; the eliminated path served the
+    ///        pass). Appended last.
     Index dense_shifted_k0_fallbacks = 0;
 };
 

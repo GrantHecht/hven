@@ -315,7 +315,9 @@ struct EqpResult {
     /// True iff the answer came from a dense shifted factor and its rho at gate
     /// time (after refine_shifted_solve, before the residual loop, the proximal
     /// step and the polish) missed kEqpShiftedResidualTol; implies
-    /// `residual_refused`.
+    /// `residual_refused`. On the border path: the first Schur solve through a
+    /// shifted K0, against the unshifted bordered system
+    /// (bordered_shifted_residual_ratio).
     bool shifted_refused = false;
 
     /// THE UNREGULARIZED POLISH's output (M7 W2 E4 fix1, ruling E4-11): steps
