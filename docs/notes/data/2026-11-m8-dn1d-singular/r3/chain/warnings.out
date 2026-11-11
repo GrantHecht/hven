@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T09:12:06-05:00
+a822b74e980a7aea73a466c0288807b712bf7a06800aa56763d70c04d351bf3c  /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/armA.build.log
+f84a4c46be4b38c59b01c90db678dc6cced11bd514169531852fd4ae51abf8bf  /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/build-rel.out
+arm A: 26 warning lines, 19 distinct (file, message)
+arm B: 26 warning lines, 19 distinct (file, message)
+WARNINGS_SET_EQUAL
+rc=0
+FOREGROUND_END 2026-11-11T09:12:06-05:00

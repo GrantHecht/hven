@@ -1,0 +1,4 @@
+952c952
+<             if (eqp_not_finite || eqp.shifted_refused) {
+---
+>             if (eqp_not_finite || (false && eqp.shifted_refused)) {

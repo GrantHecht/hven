@@ -1,0 +1,167 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-detector-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArm*
+[==========] Running 31 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from DenseArm
+[ RUN      ] DenseArm.LifecycleMatchesTheSparseArm
+[       OK ] DenseArm.LifecycleMatchesTheSparseArm (3 ms)
+[ RUN      ] DenseArm.EvidenceIsObservedCountedAndUnperturbed
+[       OK ] DenseArm.EvidenceIsObservedCountedAndUnperturbed (0 ms)
+[ RUN      ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+[       OK ] DenseArm.LakesMatrixCountsTheReferenceNegatives (0 ms)
+[ RUN      ] DenseArm.ExactlySingularFallsBackToThePlatformSession
+[       OK ] DenseArm.ExactlySingularFallsBackToThePlatformSession (0 ms)
+[ RUN      ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms
+[       OK ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms (0 ms)
+[ RUN      ] DenseArm.ShareAndAdoptOnDenseNumerics
+[       OK ] DenseArm.ShareAndAdoptOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership
+[       OK ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership (0 ms)
+[ RUN      ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy
+[       OK ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy (0 ms)
+[ RUN      ] DenseArm.HandleSolveAndInertiaOnDenseNumerics
+[       OK ] DenseArm.HandleSolveAndInertiaOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics
+[       OK ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.OptionsValidation
+[       OK ] DenseArm.OptionsValidation (0 ms)
+[ RUN      ] DenseArm.AutoSelectsByDimension
+[       OK ] DenseArm.AutoSelectsByDimension (0 ms)
+[ RUN      ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations
+[       OK ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations (0 ms)
+[ RUN      ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress
+[       OK ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress (0 ms)
+[ RUN      ] DenseArm.PatternGuardRunsAsOnTheSparseArm
+[       OK ] DenseArm.PatternGuardRunsAsOnTheSparseArm (0 ms)
+[ RUN      ] DenseArm.CounterIdentityOnAMixedRun
+[       OK ] DenseArm.CounterIdentityOnAMixedRun (0 ms)
+[ RUN      ] DenseArm.ThreadsRoundTrip
+[       OK ] DenseArm.ThreadsRoundTrip (0 ms)
+[----------] 17 tests from DenseArm (5 ms total)
+
+[----------] 5 tests from DenseArmBlockWalk
+[ RUN      ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative
+[       OK ] DenseArmBlockWalk.IllScaledNegativeDeterminantCountsOneNegative (0 ms)
+[ RUN      ] DenseArmBlockWalk.SignsFromDeterminantAndTrace
+[       OK ] DenseArmBlockWalk.SignsFromDeterminantAndTrace (0 ms)
+[ RUN      ] DenseArmBlockWalk.ZeroDeterminantIsSingular
+[       OK ] DenseArmBlockWalk.ZeroDeterminantIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.NonFiniteIsSingular
+[       OK ] DenseArmBlockWalk.NonFiniteIsSingular (0 ms)
+[ RUN      ] DenseArmBlockWalk.MalformedPivotDataThrows
+[       OK ] DenseArmBlockWalk.MalformedPivotDataThrows (0 ms)
+[----------] 5 tests from DenseArmBlockWalk (0 ms total)
+
+[----------] 9 tests from DenseArmReport
+[ RUN      ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:852: Failure
+Value of: o.inertia.numerically_singular
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:855: Failure
+Value of: f.inertia().numerically_singular
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:856: Failure
+Expected equality of these values:
+  f.counters().dense_flagged_count
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:857: Failure
+Expected equality of these values:
+  f.counters().dense_condition_estimate_count
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:868: Failure
+Expected equality of these values:
+  f.counters().dense_condition_estimate_count
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:869: Failure
+Expected equality of these values:
+  f.counters().dense_flagged_count
+    Which is: 0
+  1
+
+[  FAILED  ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics (0 ms)
+[ RUN      ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken
+[       OK ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken (0 ms)
+[ RUN      ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:937: Failure
+Value of: f.factorize_equilibrated(P, 2, ones, 0.0).inertia.numerically_singular
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace (0 ms)
+[ RUN      ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts
+[       OK ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts (0 ms)
+[ RUN      ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:985: Failure
+Value of: e.factorize(P).inertia.numerically_singular
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles (0 ms)
+[ RUN      ] DenseArmReport.TheDetectorBracketsBothThresholds
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:1017: Failure
+Expected equality of these values:
+  f.counters().dense_condition_estimate_count
+    Which is: 0
+  c.estimates
+    Which is: 1
+7.9999999999999998e-16
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:1017: Failure
+Expected equality of these values:
+  f.counters().dense_condition_estimate_count
+    Which is: 0
+  c.estimates
+    Which is: 1
+1.3877787807814457e-16
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:1017: Failure
+Expected equality of these values:
+  f.counters().dense_condition_estimate_count
+    Which is: 0
+  c.estimates
+    Which is: 1
+8.8817841970012528e-17
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:1018: Failure
+Expected equality of these values:
+  o.inertia.numerically_singular
+    Which is: false
+  c.flagged
+    Which is: true
+8.8817841970012528e-17
+
+[  FAILED  ] DenseArmReport.TheDetectorBracketsBothThresholds (0 ms)
+[ RUN      ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks
+[       OK ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks (0 ms)
+[ RUN      ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged
+[       OK ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged (0 ms)
+[ RUN      ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-detector-off/tests/linear/test_symmetric_factor_dense_arm.cpp:1102: Failure
+Value of: f.factorize(K).inertia.numerically_singular
+  Actual: false
+Expected: true
+
+[  FAILED  ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses (0 ms)
+[----------] 9 tests from DenseArmReport (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 31 tests from 3 test suites ran. (6 ms total)
+[  PASSED  ] 26 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics
+[  FAILED  ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace
+[  FAILED  ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles
+[  FAILED  ] DenseArmReport.TheDetectorBracketsBothThresholds
+[  FAILED  ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses
+
+ 5 FAILED TESTS
