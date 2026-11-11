@@ -66,10 +66,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include <Eigen/SparseCore>
+#include <fmt/format.h>
 
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
@@ -294,20 +297,29 @@ struct BorderedRefineOutcome {
     bool target_met = true;
 };
 
-inline Vec refine_bordered_solve_iterated(
-    const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
-    const std::vector<double> &border_d, const SchurComplement &schur, const Vec &rhs,
-    const Vec &sol, const QpOptions &opts, Index *steps_out = nullptr,
-    const BorderedResolution *resolution = nullptr, BorderedRefineOutcome *outcome = nullptr) {
+inline Vec
+refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
+                               const std::vector<double> &border_d, const SchurComplement &schur,
+                               const Vec &rhs, const Vec &sol, const QpOptions &opts,
+                               Index *steps_out = nullptr,
+                               const BorderedResolution *resolution = nullptr,
+                               BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
     };
-    Index steps = 1; // the mandatory step below
+    Index steps = 1; // the mandatory step below, spent whether or not it is kept
 
     // Step 1, unconditional: the step that backs the regularization out of
     // the answer, taken through the single-step primitive so that function
-    // remains what the border equivalence tests are written against.
+    // remains what the border equivalence tests are written against. On a
+    // K0 holding dense shifted numerics (`shifted_k0`) the step solves through
+    // a shifted system, so it is kept only if it reduces the residual it
+    // targets (a NaN keeps nothing) -- eqp_solve.h's rule for its own step.
     Vec best = refine_bordered_solve(K0, var_count, border_v, border_d, schur, rhs, sol, opts);
+    if (shifted_k0 && !(residual_of(best).lpNorm<Eigen::Infinity>() <
+                        residual_of(sol).lpNorm<Eigen::Infinity>())) {
+        best = sol;
+    }
     if (schur.dim() == 0) {
         if (steps_out != nullptr) {
             *steps_out = steps;
@@ -577,25 +589,48 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // `x_k` is the PROXIMAL CENTRE, of size qp.n() -- the same required argument, with
 // the same meaning, as solve_eqp's; eqp_solve.h states the system both solve.
 //
-// THE SHIFTED-K0 GATE (M8 DN-1d): a K0 holding dense shifted numerics answers
+// THE SHIFTED-K0 GATE: a K0 holding dense shifted numerics answers
 // D (D K0 D + sigma S)^-1 D b, so a bordered answer through it is verified
 // against the UNSHIFTED bordered system K_b -- K0 plus the live borders, the
-// regularized system the stack was handed:
-// rho = ||D (rhs - K_b sol)||inf / ||D rhs||inf, D = K0's equilibration scale
-// on K0's rows and 1 on the border rows (the Schur complement is formed and
-// factored in the borders' own unscaled coordinates). 0 when both vanish; a
-// NaN propagates.
+// regularized system the stack was handed -- one block at a time:
+//   rho = max(rho_K0, rho_border),
+//   rho_K0     = ||D (rhs - K_b sol)_K0||inf / ||D rhs_K0||inf   (D = K0's
+//                equilibration scale, the metric K0's shift lives in),
+//   rho_border = ||(rhs - K_b sol)_b||inf / ||rhs_b||inf         (unscaled: the
+//                Schur complement is formed and factored in the borders' own
+//                coordinates).
+// A block whose rhs is exactly zero has no scale of its own: its residual is
+// measured against the WHOLE rhs in that block's metric (||D' rhs||inf for the
+// K0 block, D' = D on K0's rows and 1 on the borders; ||rhs||inf for the border
+// block). A block with zero rhs and zero residual reads 0; no borders reads
+// rho_border = 0. A NaN propagates.
 inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vector<Vec> &border_v,
                                               const std::vector<double> &border_d, const Vec &rhs,
                                               const Vec &sol, const Vec &k0_scale) {
     const Index n0 = K0.rows();
-    Vec d = Vec::Ones(rhs.size());
-    d.head(n0) = k0_scale;
-    const double r_d = bordered_regularized_residual(K0, n0, border_v, border_d, rhs, sol)
-                           .cwiseProduct(d)
-                           .lpNorm<Eigen::Infinity>();
-    const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
-    return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+    const Index m = static_cast<Index>(border_v.size());
+    if (k0_scale.size() != n0 || rhs.size() != n0 + m || sol.size() != n0 + m) {
+        throw std::invalid_argument(fmt::format(
+            "bordered_shifted_residual_ratio: K0 has {} rows and {} borders, but the scale has "
+            "size {}, the rhs {} and the solution {}",
+            static_cast<long long>(n0), static_cast<long long>(m),
+            static_cast<long long>(k0_scale.size()), static_cast<long long>(rhs.size()),
+            static_cast<long long>(sol.size())));
+    }
+    const Vec r = bordered_regularized_residual(K0, n0, border_v, border_d, rhs, sol);
+    const auto ratio = [](double num, double den, double fallback_den) {
+        const double d = den != 0.0 ? den : fallback_den;
+        return (num == 0.0 && d == 0.0) ? 0.0 : num / d;
+    };
+    const double r_k0 = r.head(n0).cwiseProduct(k0_scale).lpNorm<Eigen::Infinity>();
+    const double b_k0 = rhs.head(n0).cwiseProduct(k0_scale).lpNorm<Eigen::Infinity>();
+    const double r_b = m > 0 ? r.tail(m).lpNorm<Eigen::Infinity>() : 0.0;
+    const double b_b = m > 0 ? rhs.tail(m).lpNorm<Eigen::Infinity>() : 0.0;
+    const double rho_k0 = ratio(r_k0, b_k0, std::max(b_k0, b_b));
+    const double rho_b = m > 0 ? ratio(r_b, b_b, rhs.lpNorm<Eigen::Infinity>()) : 0.0;
+    // std::max would drop a NaN in its second argument.
+    return (std::isnan(rho_k0) || std::isnan(rho_b)) ? std::numeric_limits<double>::quiet_NaN()
+                                                     : std::max(rho_k0, rho_b);
 }
 
 // Throws whatever SchurComplement::solve throws -- notably
@@ -603,9 +638,14 @@ inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vect
 // to have ruled out via needs_refactorization() first.
 //
 // `k0_shift_scale` is K0's KktFactor::dense_scale when K0 holds dense shifted
-// numerics, else null: the first solve is then gated on
-// bordered_shifted_residual_ratio (no refinement before the gate), a miss of
+// numerics, else null. The first solve is then gated on
+// bordered_shifted_residual_ratio (no refinement before the gate); a miss of
 // kEqpShiftedResidualTol or a NaN sets shifted_refused and residual_refused.
+// The gate holds AT GATE TIME, as solve_eqp's does: after it, every further
+// step through the shifted factor (the residual loop, the refinement's first
+// step and its iterated steps, the polish) is kept only while the residual it
+// targets strictly falls, and the returned answer is the gated one plus those
+// kept steps.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,
@@ -678,7 +718,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
                                          opts, &refine_steps, certify ? &resolution : nullptr,
-                                         certify ? &outcome : nullptr);
+                                         certify ? &outcome : nullptr, k0_shift_scale != nullptr);
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.
     const Index polish_kept =

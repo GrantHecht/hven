@@ -46,6 +46,11 @@ void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &d
                     outcome.backend_code));
 }
 
+void clear_shift_marker(KktFactor &k) {
+    k.dense_shifted = false;
+    k.dense_scale.resize(0);
+}
+
 bool flagged(const hven::linear::FactorizeOutcome &o) {
     return o.status == hven::linear::FactorizeOutcome::Status::kOk
                ? o.inertia.numerically_singular
@@ -56,12 +61,13 @@ bool flagged(const hven::linear::FactorizeOutcome &o) {
 
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision) {
-    // Cleared first: a throw below leaves no shifted marker on numerics that
-    // are no longer the shifted ones.
-    k.dense_shifted = false;
-    k.dense_scale.resize(0);
+    // THE MARKER MAY OVER-CLAIM, NEVER UNDER-CLAIM: a throw out of analyze()
+    // or factorize()'s input checks leaves the previous numerics solvable
+    // (both commit only on success), so the marker describing them is cleared
+    // only once factorize() has returned -- by then the old numerics are gone.
     analyze_if_needed(k, K, decision);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
+    clear_shift_marker(k);
     if (flagged(outcome)) {
         // No site to shift on: the platform session retakes K.
         outcome = k.factor.retake_on_platform(
@@ -108,15 +114,19 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const DenseShiftSite &site) {
     using Check = hven::linear::SymmetricFactor::PatternCheck;
     using Status = hven::linear::FactorizeOutcome::Status;
-    // Cleared first, as in the overload above.
-    k.dense_shifted = false;
-    k.dense_scale.resize(0);
+    // Cleared only once factorize() has returned, as in the overload above.
     analyze_if_needed(k, K, decision);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
+    clear_shift_marker(k);
     if (flagged(outcome)) {
         // The pattern was verified by the call above; the responses factor the
-        // same K.
+        // same K. The marker is SET before the first equilibrated attempt, so a
+        // throw from an attempt or from the retake leaves it over-claiming
+        // (the gate then verifies unshifted numerics against K, which costs
+        // nothing in safety), never under-claiming shifted ones.
         Vec d = equilibration_scale(K);
+        k.dense_shifted = true;
+        k.dense_scale = d;
         double sigma = kDenseEquilibratedShift;
         bool done = false;
         for (int attempt = 0; attempt < 2 && !done; ++attempt) {
@@ -130,11 +140,9 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
             }
             done = !flagged(outcome) && outcome.status == Status::kOk;
         }
-        if (done) {
-            k.dense_shifted = true;
-            k.dense_scale = std::move(d);
-        } else {
+        if (!done) {
             outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
+            clear_shift_marker(k);
         }
     }
     if (outcome.status == Status::kBackendError) {

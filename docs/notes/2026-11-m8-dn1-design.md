@@ -1030,7 +1030,7 @@ UNSHIFTED system before any consumer steps on it or adopts it: ρ = ‖D(rhs −
 | `refine_eliminated_face_on_face` | through `solve_eqp` | `solve_eqp`'s | returns false |
 | verdict refinement, eliminated twin | a fresh eliminated factor | `refine_shifted_solve`, then ρ on the replay | no refinement |
 | verdict refinement, border twin | K0 inside the Schur stack | ρ on the replay against K_b | no refinement |
-| `ws_independence` probes | either stack | none: a probe is never a step (a dependent verdict is certified by w = a − A_Wᵀv formed from the data; an independent one needs the unshifted residual to converge) | — |
+| `ws_independence` probes | either stack | none on the solves: a dependent verdict is certified by w = a − A_Wᵀv formed from the data; an independent one needs the unshifted residual to converge; the saddle exit's negative-curvature direction IS ridden, but only after q = dᵀHd/dᵀd ≤ −tol on H and `ride_stays_in_working_set(d)` — both formed from the data — accept it, and the ride's own ratio test sets its length (r3, F8) | — |
 | IPQP | never shifted | a flagged or exactly singular read is `kPerturbed`/`NumericalIssue`, the tier's own remedy | — |
 
 **The border gate (C284, Option A).** K_b is K0 plus the live border rows and columns — the
@@ -1062,6 +1062,57 @@ and 1e-8, both chosen on the same roster and unchanged).
 **Open items (registered, not this round).** (1) Eliminated-path quality on ALLINITC's face: under
 Option B the eliminated route left ALLINITC at stationarity 27.9 with no refusals. (2) Inertia trust
 between the bands (§18, Bands).
+
+### 18.2 DN-1d r3: the exhausted ladder, the border refinement, per-block ρ (C285)
+
+**Exhausted ladder (F1).** With the suspect ladder at `kMaxSuspectEscalations`, a residual refusal
+stays advisory (the walk steps; E4-27) — except a refused SHIFTED answer (`shifted_refused`), which
+is now terminal like a non-finite one: `kNumericalError` at the finite iterate the walk stands on,
+counted `dense_shifted_terminations` (provisional name; QpCounters and SqpCounters, folded like
+`dense_shifted_k0_fallbacks`). Why that status: the advisory rule rests on exhaustion being
+evidence about the ROWS (an irreducible residual); a shifted refusal is evidence about the ANSWER
+(it does not solve the unshifted system), so no verified step exists — the non-finite case's
+situation, and its existing exit; the SQP routes a walk `kNumericalError` through its existing QP
+failure handling (`qp_numerical_exits`, the retry/shrink ladder). The non-shifted residual refusal
+and the row-drift refusal are unchanged (default-path byte identity).
+
+**Border refinement (F2).** On a shifted K0 the first step of `refine_bordered_solve_iterated` (the
+"mandatory" step) is kept only if it reduces the bordered residual it targets — `solve_eqp`'s rule
+for its own step. Every later step on the border path (the residual loop, the iterated steps, the
+polish) was already keep-while-falling. Semantics, both paths: ρ is checked AT GATE TIME (the first
+solve, after `refine_shifted_solve` on the eliminated path); the returned answer is the gated one
+plus only steps that each strictly reduced the residual they target. A re-gate of the returned
+answer against K_b was not adopted: the refinement and polish deliberately leave K_b (they target
+the proximal and the unregularized systems), so measuring them against K_b would refuse correct
+answers by construction, and the eliminated path has the same structure. The verdict-site border
+replay gates at the same point (first Schur solve, before refinement; F5) and refines with the same
+step rule.
+
+**Per-block ρ (F3) — supersedes C284's single-norm form.** ρ = max(ρ_K0, ρ_border):
+ρ_K0 = ‖D r_K0‖∞/‖D b_K0‖∞ (D = K0's equilibration scale), ρ_border = ‖r_b‖∞/‖b_b‖∞ (unscaled),
+r = b − K_b y on the regularized bordered system; tolerance 1e-8 unchanged; NaN refuses; no borders
+gives ρ_border = 0 (C284's form exactly). A block whose rhs is exactly zero has no scale of its own:
+its residual is measured against the WHOLE rhs in that block's metric (‖D′b‖∞ for the K0 block,
+D′ = D on K0's rows and 1 on the borders; ‖b‖∞ for the border block); zero residual over zero
+scale reads 0. Chosen on structure, before any r3 data: each block's residual is compared with the
+data that drives it, in the units it is measured in, so a large K0 block can no longer hide a border
+miss (C284's mix could be orders looser); a homogeneous block (common: a pin at a zero bound, an
+inequality with b_j = 0) borrows the only scale the system carries, its rhs, which is also the
+quantity the eliminated path and C284 use; an absolute floor would add a constant with no tie to
+the problem's scale.
+
+**Smaller items.** F6: `factorize_checked` clears the shifted marker only after `factorize()`
+returns (a throw from `analyze()` or the input checks leaves the previous, possibly shifted,
+numerics solvable and both commit only on success) and sets it before the first equilibrated
+attempt, so on a throw the marker may over-claim (harmless: the gate verifies unshifted numerics
+against K) and never under-claims. F9: the ratio validates its sizes and throws. F7/F8: header tag
+removed; `ws_independence` comment and the §18.1 row state the actual safety argument.
+
+**Falsifier set (r3).** r2's ten mutations with `terminal-off` split into `terminal-refine-off`
+and `polish-off` (the polish's ρ rejection independently falsified by a fixture whose premise —
+the adoption test would take the refused answer — is asserted), plus `exhausted-shifted-step`
+(F1), `border-mandatory-step` (F2), `border-block-off` (F3's border term), `verdict-border-gate-off`
+and `verdict-elim-gate-off` (F4b), `same-rows-off` (F4c) and `marker-early-clear` (F6).
 
 ## Appendix A. Binding inputs → answers
 

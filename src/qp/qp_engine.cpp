@@ -920,8 +920,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 continue;
             }
             // THE EXHAUSTED LADDER IS ADVISORY FOR BOTH REFUSALS, and TERMINAL ONLY
-            // FOR A NON-FINITE ANSWER (E4-4 as amended, ruling E4-27; section 5
-            // states the rule).
+            // FOR A NON-FINITE ANSWER OR A REFUSED SHIFTED ONE (E4-4 as amended,
+            // ruling E4-27; section 5 states the rule).
             //
             // The exhaustion is itself evidence: three decades of primal_delta have
             // not brought the row residual down, so the residual is IRREDUCIBLE --
@@ -942,7 +942,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // accuracy at all: there is no step to take, and kNumericalError at the
             // finite iterate the walk stands on is the honest exit (E4-4's two NaN
             // cells).
-            if (eqp_not_finite) {
+            //
+            // SO DOES A REFUSED SHIFTED ANSWER. The exhaustion argument above reads
+            // an irreducible residual as evidence about the ROWS; a shifted answer's
+            // refusal is evidence about the ANSWER -- it was computed through a
+            // shifted factor and does not solve the unshifted system -- so there is
+            // no verified step to take, exactly as for a non-finite one. The same
+            // exit, at the same finite iterate.
+            if (eqp_not_finite || eqp.shifted_refused) {
+                if (eqp.shifted_refused) {
+                    ++counters.dense_shifted_terminations;
+                }
                 status = QpStatus::kNumericalError;
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
@@ -3438,16 +3448,18 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         // itself ran, so this starts exactly where the walk is and every step
         // below is one the shipped stopping rule declined to take.
         best = border.schur->solve(sys.rhs);
-        best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
-                                              *border.schur, sys.rhs, best, opts);
-        // solve_bordered_eqp's shifted-K0 gate on the replay: a refused answer
-        // refines nothing (the eliminated twin's rule).
+        // solve_bordered_eqp's shifted-K0 gate, at its own point: on the first
+        // Schur solve, before any refinement. A refused answer refines nothing
+        // (the eliminated twin's rule).
         if (border.kkt.dense_shifted &&
             !(bordered_shifted_residual_ratio(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
                                               best, border.kkt.dense_scale) <=
               detail::kEqpShiftedResidualTol)) {
             return false;
         }
+        best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
+                                              *border.schur, sys.rhs, best, opts, nullptr, nullptr,
+                                              nullptr, border.kkt.dense_shifted);
         best_x = point_of(best);
         best_measure = measure_of(best_x);
         for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {

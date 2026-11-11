@@ -113,11 +113,15 @@ struct DepSystem {
         comp.push_back(WsMember{kind, idx});
     }
 
-    // No rho gate on shifted numerics, because no verdict trusts the solve: a
-    // dependent verdict is certified by w = a - A_W' v formed from the data, and
-    // an independent one needs residual() -- the unshifted matrix -- to converge
-    // (otherwise undecidable, or the pre-E2 stall admission). A probe is never a
-    // step.
+    // No rho gate on shifted numerics, because nothing built on these solves is
+    // used unverified against the data: a dependent verdict is certified by
+    // w = a - A_W' v formed from the data; an independent one needs residual()
+    // -- the unshifted matrix -- to converge (otherwise undecidable, or the
+    // pre-E2 stall admission); and the saddle exit's negative-curvature
+    // direction (face_negative_curvature), which IS ridden, is only a
+    // proposal: it is kept only if q = d'Hd/d'd <= -curvature_tol on H itself
+    // and ride_stays_in_working_set(d) holds on the working rows -- both formed
+    // from the data -- and the ride's own ratio test sets its length.
     Vec solve(const Vec &rhs) const {
         return bordered ? f.schur->solve(rhs) : solve_vec(*f.eliminated, rhs);
     }

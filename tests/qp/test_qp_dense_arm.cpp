@@ -22,10 +22,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <string>
+#include <vector>
 
+#include <Eigen/Eigenvalues>
 #include <gtest/gtest.h>
 
+#include <hven/detail/kkt/bordered_eqp.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/linear/fault_injection.h>
@@ -50,6 +54,55 @@ struct QpEngineTestAccess {
         const EqpResult none; // no pass answer: stage 1 cannot adopt, stage 2 solves
         return eng.polish_terminal_point(qp, ws, none, x, lambda_e, lambda_i, z, counters, opts);
     }
+    // The polish's adoption test alone, on a candidate the caller supplies.
+    static bool polish_would_adopt(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
+                                   const EqpResult &cand, Vec x, Vec lambda_e, Vec lambda_i, Vec z,
+                                   const QpOptions &opts) {
+        const TerminalKkt before = terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
+        return eng.adopt_polished_candidate(qp, ws, cand, before, opts, x, lambda_e, lambda_i, z);
+    }
+    // K0 for `ws` and its borders, as border_candidate builds them.
+    static void build_border(const QpEngine &eng, const QpProblem &qp, const WorkingSet &k0_ws,
+                             const WorkingSet &ws, BorderState &border, QpCounters &counters,
+                             const QpOptions &opts) {
+        eng.rebuild_k0(qp, k0_ws, border, counters, opts);
+        eng.sync_borders(qp, ws, border, counters, opts);
+    }
+    // The two verdict-site face refinements, at an iterate with zero multipliers.
+    static bool border_verdict_refine(const QpEngine &eng, const QpProblem &qp,
+                                      const WorkingSet &ws, Vec &x, BorderState &border,
+                                      QpCounters &counters, const QpOptions &opts) {
+        const VerdictInputs in(qp, x);
+        return eng.refine_face_for_verdict(qp, ws, x, in.aix, in.ai_norm, in.lambda_i, in.ae_norm,
+                                           in.lambda_e, border, counters, opts);
+    }
+    static bool eliminated_verdict_refine(const QpEngine &eng, const QpProblem &qp,
+                                          const WorkingSet &ws, Vec &x, QpCounters &counters,
+                                          const QpOptions &opts) {
+        const VerdictInputs in(qp, x);
+        const KktFactor kkt(0, eng.dense_policy());
+        EliminatedFace face; // armed but not holding `ws`: the twin factorizes its own
+        face.factorized = true;
+        return eng.refine_eliminated_face_for_verdict(qp, ws, x, in.aix, in.ai_norm, in.lambda_i,
+                                                      in.ae_norm, in.lambda_e, kkt, face, counters,
+                                                      opts);
+    }
+
+  private:
+    struct VerdictInputs {
+        VerdictInputs(const QpProblem &qp, const Vec &x)
+            : aix(qp.mi() > 0 ? Vec(qp.Ai * x) : Vec(0)), ai_norm(Vec::Zero(qp.mi())),
+              lambda_i(Vec::Zero(qp.mi())), ae_norm(Vec::Zero(qp.me())),
+              lambda_e(Vec::Zero(qp.me())) {
+            for (Index j = 0; j < qp.mi(); ++j) {
+                ai_norm(j) = qp.Ai.row(j).cwiseAbs().sum();
+            }
+            for (Index j = 0; j < qp.me(); ++j) {
+                ae_norm(j) = qp.Ae.row(j).cwiseAbs().sum();
+            }
+        }
+        Vec aix, ai_norm, lambda_i, ae_norm, lambda_e;
+    };
 };
 } // namespace hven::detail
 
@@ -160,6 +213,27 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     (void)factorize_checked(again, I3, site);
     EXPECT_FALSE(again.dense_shifted);
     EXPECT_EQ(again.dense_scale.size(), 0);
+}
+
+// A THROW BEFORE THE NEXT FACTORIZATION (analyze()'s input check) leaves the shifted numerics
+// solvable, so it leaves the marker that describes them set: the marker may over-claim, never
+// under-claim.
+TEST(QpDenseArm, AThrowBeforeTheNextFactorizationKeepsTheShiftMarker) {
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+    m(0, 0) = m(1, 1) = 2.00000001;
+    m(1, 2) = m(2, 1) = -0x1.14b1907515e67p-56;
+    const SpMatRM K = upper_of(m);
+    KktFactor k(0, DensePolicy::kAlways);
+    (void)factorize_checked(k, K, DenseShiftSite{2});
+    ASSERT_TRUE(k.dense_shifted);
+    // A new pattern with an entry below the diagonal: analyze() refuses it.
+    SpMatRM bad = upper_of(Eigen::MatrixXd::Identity(3, 3));
+    bad.coeffRef(2, 0) = 1.0;
+    bad.makeCompressed();
+    EXPECT_THROW((void)factorize_checked(k, bad, DenseShiftSite{2}), std::invalid_argument);
+    EXPECT_TRUE(solve_vec(k, Vec::Ones(3)).allFinite()); // still solvable
+    EXPECT_TRUE(k.dense_shifted);
+    EXPECT_EQ(k.dense_scale.size(), 3);
 }
 
 // Ruiz on the upper triangle: rows of max 4 and 1/4 scale to max 1; a zero row keeps 1.
@@ -703,6 +777,14 @@ TEST(QpDenseArm, AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath) {
             EXPECT_GE(d.counters.dense_shifted_solve_refusals, 1);
             EXPECT_EQ(d.counters.dense_shifted_k0_fallbacks, 0);
         }
+        // AT THE EXHAUSTED LADDER the refused shifted answer is terminal, never stepped on: every
+        // pass is refused, the ladder escalates to its last rung, and the walk ends
+        // kNumericalError on the iterate it started from.
+        EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kNumericalError));
+        EXPECT_EQ(d.counters.suspect_escalations, kMaxSuspectEscalations);
+        EXPECT_EQ(d.counters.dense_shifted_terminations, 1);
+        EXPECT_EQ(d.x, Vec::Zero(3));
+        EXPECT_EQ(s.counters.dense_shifted_terminations, 0);
     }
 }
 
@@ -729,4 +811,281 @@ TEST(QpDenseArm, AShiftedK0BorderAnswerMeetingRhoIsUsed) {
     EXPECT_EQ(d.counters.eqp_residual_refusals, 0);
     EXPECT_NEAR(d.x(0) + d.x(1), 1.0, 1e-9);
     EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6);
+}
+
+namespace {
+
+// K0 = the free block of a QP with no rows (n0 = 3): [[1, 1, 0], [1, 1 - sigma, 0], [0, 0, 0]],
+// sigma = kDenseEquilibratedShift. Ruiz leaves it unscaled (every nonzero row's max is 1); x3 is
+// an exact zero column, so the factor is exactly singular and answered shifted; the leading block
+// carries an eigenvalue ~ -sigma/2, which the +sigma shift turns into ~ +sigma/2. Along that
+// eigenvector a step through the shifted factor maps the residual r to (1 - (-1)) r = 2r.
+SpMatRM sign_flip_k0() {
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
+    m(0, 0) = 1.0;
+    m(0, 1) = m(1, 0) = 1.0;
+    m(1, 1) = 1.0 - kDenseEquilibratedShift;
+    return upper_of(m);
+}
+
+QpOptions no_reg_opts() {
+    QpOptions o;
+    o.primal_regularization = 0.0;
+    o.dual_regularization = 0.0;
+    return o;
+}
+
+} // namespace
+
+// THE BORDER REFINEMENT'S FIRST STEP ON A SHIFTED K0 is kept only while its residual falls: from
+// sol = 0 with rhs on the sign-flipped eigenvector, the step doubles the residual, so the answer
+// stays where it was (and is the gated one). On an unshifted factor the step stays unconditional.
+TEST(QpDenseArm, TheBorderRefinementKeepsAShiftedFirstStepOnlyWhileItFalls) {
+    const SpMatRM K0 = sign_flip_k0();
+    KktFactor k(0, DensePolicy::kAlways);
+    (void)factorize_checked(k, K0, DenseShiftSite{3});
+    ASSERT_TRUE(k.dense_shifted);
+    const QpOptions opts = no_reg_opts();
+    SchurComplement schur(k, opts);
+    ASSERT_EQ(schur.dim(), 0);
+    const Eigen::MatrixXd upper = Eigen::MatrixXd(K0);
+    const Eigen::MatrixXd full = upper.selfadjointView<Eigen::Upper>();
+    const Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(full);
+    Index neg = 0;
+    for (Index i = 1; i < 3; ++i) {
+        if (es.eigenvalues()(i) < es.eigenvalues()(neg)) {
+            neg = i;
+        }
+    }
+    ASSERT_LT(es.eigenvalues()(neg), 0.0);
+    const Vec rhs = es.eigenvectors().col(neg);
+    const Vec sol = Vec::Zero(3);
+    const std::vector<Vec> no_v;
+    const std::vector<double> no_d;
+    const auto res_inf = [&](const Vec &y) {
+        return bordered_residual(K0, 3, no_v, no_d, rhs, y, opts).lpNorm<Eigen::Infinity>();
+    };
+    // The premise: the unconditional step doubles the residual.
+    const Vec stepped = refine_bordered_solve(K0, 3, no_v, no_d, schur, rhs, sol, opts);
+    ASSERT_GT(res_inf(stepped), 1.5 * res_inf(sol));
+    Index steps = 0;
+    const Vec kept = refine_bordered_solve_iterated(K0, 3, no_v, no_d, schur, rhs, sol, opts,
+                                                    &steps, nullptr, nullptr, /*shifted_k0=*/true);
+    EXPECT_EQ(kept, sol);
+    EXPECT_EQ(steps, 1); // spent, not kept
+    const Vec taken = refine_bordered_solve_iterated(K0, 3, no_v, no_d, schur, rhs, sol, opts,
+                                                     &steps, nullptr, nullptr,
+                                                     /*shifted_k0=*/false);
+    EXPECT_EQ(taken, stepped);
+}
+
+// THE PER-BLOCK RATIO, directly: one K0 block in D's metric and one border block unscaled, each
+// against its own rhs; a zero-rhs block against the whole rhs in its metric.
+TEST(QpDenseArm, TheBorderedShiftedRatioReadsEachBlockAgainstItsOwnRhs) {
+    Eigen::MatrixXd m = Eigen::MatrixXd::Identity(2, 2);
+    const SpMatRM K0 = upper_of(m);
+    const std::vector<Vec> v{Vec::Unit(2, 0)};
+    const std::vector<double> bd{0.0};
+    const Vec scale = Vec::Constant(2, 0.5);
+    // K_b = [[1, 0, 1], [0, 1, 0], [1, 0, 0]]; the exact answer of rhs = (b0, b1, c) is
+    // (c, b1, b0 - c).
+    const auto exact = [](const Vec &rhs) {
+        Vec y(3);
+        y << rhs(2), rhs(1), rhs(0) - rhs(2);
+        return y;
+    };
+    {
+        // K0 rows large, border row small: a border-row miss of 1e-7 relative to its own rhs
+        // refuses, though against the whole rhs it is 1e-13.
+        Vec rhs(3);
+        rhs << 1e6, 1e6, 1.0;
+        Vec y = exact(rhs);
+        EXPECT_LE(bordered_shifted_residual_ratio(K0, v, bd, rhs, y, scale), 1e-15);
+        y(0) += 1e-7; // the border row reads x0: its residual is 1e-7; K0's row 0 moves by 1e-7
+        const double rho = bordered_shifted_residual_ratio(K0, v, bd, rhs, y, scale);
+        EXPECT_GT(rho, kEqpShiftedResidualTol);
+        EXPECT_NEAR(rho, 1e-7, 1e-10);
+    }
+    {
+        // A zero-rhs border block reads against the whole rhs (unscaled), and a zero-rhs K0
+        // block against the whole rhs in D's metric (border rows weighted 1).
+        Vec rhs(3);
+        rhs << 4.0, 0.0, 0.0;
+        Vec y = exact(rhs);
+        y(0) += 1e-9; // border residual 1e-9 against ||rhs|| = 4; K0 row 0 residual 1e-9
+        // K0 row 0: 0.5e-9 against max(0.5 * 4, 0) = 2; the border row: 1e-9 against 4.
+        EXPECT_NEAR(bordered_shifted_residual_ratio(K0, v, bd, rhs, y, scale), 1e-9 / 4.0, 1e-16);
+        Vec rhs2(3);
+        rhs2 << 0.0, 0.0, 3.0;
+        Vec y2 = exact(rhs2);
+        y2(1) += 1e-9; // K0 row 1 residual 1e-9, scaled 0.5e-9, against max(0, 3) = 3
+        EXPECT_NEAR(bordered_shifted_residual_ratio(K0, v, bd, rhs2, y2, scale), 0.5e-9 / 3.0,
+                    1e-16);
+    }
+    {
+        // No borders: the K0 block alone (C284's form).
+        const std::vector<Vec> none;
+        const std::vector<double> nd;
+        Vec rhs(2);
+        rhs << 2.0, 1.0;
+        Vec y = rhs;
+        y(1) += 1e-6;
+        EXPECT_NEAR(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale), 1e-6 / 2.0,
+                    1e-12);
+        EXPECT_EQ(bordered_shifted_residual_ratio(K0, none, nd, Vec::Zero(2), Vec::Zero(2), scale),
+                  0.0);
+        y(0) = std::numeric_limits<double>::quiet_NaN();
+        EXPECT_TRUE(std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale)));
+    }
+    EXPECT_THROW(
+        (void)bordered_shifted_residual_ratio(K0, v, bd, Vec::Zero(3), Vec::Zero(3), Vec::Ones(3)),
+        std::invalid_argument);
+}
+
+namespace {
+
+// Two duplicated equality rows x0 + x1 = 1 (consistent: K0 exactly singular at mu = 0, so it
+// holds shifted numerics) and one inequality row a'x <= b the walk borders in.
+QpProblem rows_plus_ineq_qp(double a0, double a1, double b) {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    QpProblem qp = rows_qp(Ae, Vec::Constant(2, 1.0), 1.0);
+    Eigen::MatrixXd Ai(1, 3);
+    Ai << a0, a1, 0.0;
+    qp.Ai = Ai.sparseView();
+    qp.bi = Vec::Constant(1, b);
+    return qp;
+}
+
+struct BorderRun {
+    EqpResult res;
+    Index ledger = 0;
+    bool shifted = false;
+};
+
+// solve_bordered_eqp through a shifted K0 built on no working rows, with row 0 of Ai and a pin of
+// x2 at its upper bound bordered in (m = 2).
+BorderRun border_with_live_borders(const QpProblem &qp) {
+    const QpOptions o = mu_free_opts();
+    const QpEngine engine(o, 0, DensePolicy::kAlways);
+    BorderState border(0, DensePolicy::kAlways);
+    QpCounters counters;
+    const WorkingSet k0_ws(3, qp.mi());
+    WorkingSet ws(3, qp.mi());
+    ws.add_ineq(0);
+    ws.bound_state()[2] = BoundState::kAtUpper;
+    QpEngineTestAccess::build_border(engine, qp, k0_ws, ws, border, counters, o);
+    BorderRun r;
+    r.ledger = static_cast<Index>(border.ledger.size());
+    r.shifted = border.kkt.dense_shifted;
+    r.res = solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws,
+                               Vec::Zero(3), o, &border.kkt.dense_scale);
+    return r;
+}
+
+} // namespace
+
+// THE BORDER GATE WITH LIVE BORDERS, PASSING: an independent inequality row x0 - x1 <= 0 and a
+// pin, over a shifted K0; the bordered system is consistent and the answer is used.
+TEST(QpDenseArm, AShiftedK0AnswerWithLiveBordersMeetingRhoIsUsed) {
+    QpProblem qp = rows_plus_ineq_qp(1.0, -1.0, 0.0);
+    qp.upper(2) = 0.25;
+    const BorderRun r = border_with_live_borders(qp);
+    ASSERT_TRUE(r.shifted);
+    EXPECT_EQ(r.ledger, 2);
+    EXPECT_FALSE(r.res.shifted_refused);
+    EXPECT_FALSE(r.res.residual_refused);
+    EXPECT_NEAR(r.res.x(0), 0.5, 1e-9);
+    EXPECT_NEAR(r.res.x(1), 0.5, 1e-9);
+    EXPECT_EQ(r.res.x(2), 0.25);
+}
+
+// THE BORDER GATE WITH LIVE BORDERS, REFUSING: the bordered inequality row x0 + x1 <= 1 - 1e-6,
+// held at equality, contradicts the consistent duplicated rows K0 holds by 1e-6 -- the bordered
+// system is inconsistent, so no answer solves it and the gate refuses.
+TEST(QpDenseArm, AShiftedK0AnswerWithLiveBordersMissingRhoIsRefused) {
+    QpProblem qp = rows_plus_ineq_qp(1.0, 1.0, 1.0 - 1e-6);
+    qp.upper(2) = 0.25;
+    const BorderRun r = border_with_live_borders(qp);
+    ASSERT_TRUE(r.shifted);
+    EXPECT_EQ(r.ledger, 2);
+    EXPECT_TRUE(r.res.shifted_refused);
+    EXPECT_TRUE(r.res.residual_refused);
+}
+
+// THE SAME-ROWS RULE: a shifted K0 reports every pivot perturbed, yet on the same working rows it
+// is never rebuilt. The walk below runs several border passes on no working rows (the pin of x1
+// arrives as a border); K0 is factored once.
+TEST(QpDenseArm, AShiftedK0OnTheSameRowsIsFactoredOnce) {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    QpProblem qp = rows_qp(Ae, Vec::Constant(2, 1.0), 1.0);
+    qp.upper(1) = 0.25;
+    QpOptions o = mu_free_opts();
+    o.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    const QpEngine engine(o, 0, DensePolicy::kAlways);
+    const QpSolution d = engine.solve(qp);
+    EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_GE(d.counters.minor_iters, 2);
+    EXPECT_GE(d.counters.border_refine_steps, 2);
+    EXPECT_EQ(d.counters.dense_shifted_k0_fallbacks, 0);
+    EXPECT_EQ(d.counters.dense_singular_refactors, 1);
+    EXPECT_EQ(d.counters.factorizations, 1);
+    EXPECT_NEAR(d.x(1), 0.25, 1e-12);
+    EXPECT_NEAR(d.x(0), 0.75, 1e-9);
+}
+
+// THE VERDICT-SITE REFINEMENTS' REPLAY GATES: at the near-inconsistent face, both replays are
+// refused by rho and refine nothing, though the refused answer would close every row.
+TEST(QpDenseArm, TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho) {
+    const QpProblem qp = near_inconsistent_qp();
+    const QpOptions o = mu_free_opts();
+    const QpEngine engine(o, 0, DensePolicy::kAlways);
+    const WorkingSet ws(3, 0);
+    {
+        Vec x = Vec::Zero(3);
+        QpCounters counters;
+        EXPECT_FALSE(QpEngineTestAccess::eliminated_verdict_refine(engine, qp, ws, x, counters, o));
+        EXPECT_EQ(x, Vec::Zero(3));
+        EXPECT_EQ(counters.dense_singular_refactors, 1);
+    }
+    {
+        BorderState border(0, DensePolicy::kAlways);
+        QpCounters counters;
+        QpEngineTestAccess::build_border(engine, qp, ws, ws, border, counters, o);
+        ASSERT_TRUE(border.kkt.dense_shifted);
+        Vec x = Vec::Zero(3);
+        EXPECT_FALSE(
+            QpEngineTestAccess::border_verdict_refine(engine, qp, ws, x, border, counters, o));
+        EXPECT_EQ(x, Vec::Zero(3));
+    }
+}
+
+// THE TERMINAL POLISH'S RHO REJECTION, on its own: the incumbent carries multipliers large enough
+// that the polish's adoption test WOULD take the refused shifted answer (the premise, checked
+// directly); the rho rejection is what keeps it out.
+TEST(QpDenseArm, TheTerminalPolishRhoRejectionHoldsWhereAdoptionWouldSucceed) {
+    const QpProblem qp = near_inconsistent_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kAlways);
+    const WorkingSet ws(3, 0);
+    const Vec x0 = Vec::Zero(3);
+    const Vec le0 = Vec::Constant(2, 1e3);
+    const Vec li0 = Vec::Zero(0);
+    const Vec z0 = Vec::Zero(3);
+    const EqpRun d = eqp_on(DensePolicy::kAlways, qp, mu_free_opts());
+    ASSERT_TRUE(d.res.shifted_refused);
+    ASSERT_TRUE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, d.res, x0, le0, li0, z0, opts));
+    Vec x = x0;
+    Vec lambda_e = le0;
+    Vec lambda_i = li0;
+    Vec z = z0;
+    QpCounters counters;
+    EXPECT_FALSE(QpEngineTestAccess::terminal_polish(engine, qp, ws, x, lambda_e, lambda_i, z,
+                                                     counters, opts));
+    EXPECT_EQ(x, x0);
+    EXPECT_EQ(lambda_e, le0);
+    EXPECT_EQ(counters.terminal_polish_rejected, 1);
+    EXPECT_EQ(counters.terminal_polish_adopted, 0);
 }

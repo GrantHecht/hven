@@ -172,6 +172,8 @@ Vec equilibration_scale(const SpMatRM &K);
 /// and unflagged; else once more at kDenseShiftRetryGrowth sigma; else the
 /// platform session retakes K (counted, last resort). Sets `k.dense_shifted`
 /// and `k.dense_scale` (dense_response_tally() reports which response ran).
+/// On a throw the marker may read true over unshifted numerics, never false
+/// over shifted ones.
 /// @throws hven::BackendError when no factorization succeeds.
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision,

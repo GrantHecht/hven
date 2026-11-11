@@ -505,8 +505,10 @@
 //    section's TERMINAL SITE decides, because exhaustion says the residual is
 //    IRREDUCIBLE (what an inconsistent row set looks like) rather than
 //    untrustworthy, and the certificate is a claim about the point the walk stops
-//    at and never about the refused pass -- and only a NON-FINITE answer is
-//    TERMINAL (kNumericalError at the finite iterate the walk stands on).
+//    at and never about the refused pass -- and only a NON-FINITE answer, or one
+//    computed through a dense shifted factor and refused by its rho gate (no
+//    verified step exists; dense_shifted_terminations), is TERMINAL
+//    (kNumericalError at the finite iterate the walk stands on).
 //    MEASURED both ways: the terminal form cost an inconsistent pair its
 //    certified kInfeasible, and classifying AT the refused pass produced 16 false
 //    census certificates. `eqp_residual_refusals` and `eqp_row_drift_refusals`
