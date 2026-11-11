@@ -1,0 +1,3 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/det-build'
+[1/2] Building CXX object CMakeFiles/det.dir/det.cpp.o
+[2/2] Linking CXX executable det
