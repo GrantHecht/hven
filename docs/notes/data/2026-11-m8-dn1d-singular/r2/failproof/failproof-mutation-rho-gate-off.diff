@@ -1,0 +1,5 @@
+277c277,278
+<     return k.dense_shifted && !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
+---
+>     return false && k.dense_shifted &&
+>            !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);

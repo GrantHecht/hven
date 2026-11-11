@@ -1,0 +1,123 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-10T22:49:39-05:00
+policy-off sites 1 expected 1
+47c47
+<         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+---
+>         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
+policy-off hven_tests rc=0
+policy-off walk_seam rc=1
+policy-off drivers rc=1
+policy-off fault rc=0
+policy-off ipqp rc=0
+detector-off sites 1 expected 1
+312c312
+<             flagged = !(rcond_estimate(anorm) >= kDenseConditionSingular);
+---
+>             flagged = false;
+detector-off hven_tests rc=1
+detector-off walk_seam rc=1
+detector-off drivers rc=1
+detector-off fault rc=1
+detector-off ipqp rc=0
+shift-off sites 1 expected 1
+122c122
+<         for (int attempt = 0; attempt < 2 && !done; ++attempt) {
+---
+>         for (int attempt = 0; attempt < 0 && !done; ++attempt) {
+shift-off hven_tests rc=0
+shift-off walk_seam rc=1
+shift-off drivers rc=1
+shift-off fault rc=0
+shift-off ipqp rc=0
+equil-off sites 1 expected 1
+119c119
+<         Vec d = equilibration_scale(K);
+---
+>         Vec d = Vec::Ones(K.rows());
+equil-off hven_tests rc=0
+equil-off walk_seam rc=1
+equil-off drivers rc=1
+equil-off fault rc=0
+equil-off ipqp rc=0
+border-rho-off sites 1 expected 1
+628c628
+<         k0_shift_scale != nullptr &&
+---
+>         false && k0_shift_scale != nullptr &&
+border-rho-off hven_tests rc=0
+border-rho-off walk_seam rc=1
+border-rho-off drivers rc=0
+border-rho-off fault rc=0
+border-rho-off ipqp rc=0
+rho-gate-off sites 1 expected 1
+277c277,278
+<     return k.dense_shifted && !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
+---
+>     return false && k.dense_shifted &&
+>            !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
+rho-gate-off hven_tests rc=0
+rho-gate-off walk_seam rc=1
+rho-gate-off drivers rc=1
+rho-gate-off fault rc=0
+rho-gate-off ipqp rc=0
+refine-off sites 1 expected 1
+247c247
+<     while (spent < kEqpShiftRefineSteps) {
+---
+>     while (false && spent < kEqpShiftRefineSteps) {
+refine-off hven_tests rc=0
+refine-off walk_seam rc=1
+refine-off drivers rc=0
+refine-off fault rc=0
+refine-off ipqp rc=0
+terminal-off sites 2 expected 2
+4349c4349
+<     if (local.dense_shifted && r.residual_refused) {
+---
+>     if (false && r.residual_refused) {
+4581c4581
+<         !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
+---
+>         !r.lambda_w.allFinite() || (false && r.residual_refused)) {
+terminal-off hven_tests rc=0
+terminal-off walk_seam rc=1
+terminal-off drivers rc=0
+terminal-off fault rc=0
+terminal-off ipqp rc=0
+ipqp-map-off sites 1 expected 1
+57c57
+<     if (backend_code == hven::linear::kDenseSingular) {
+---
+>     if (false && backend_code == hven::linear::kDenseSingular) {
+ipqp-map-off hven_tests rc=0
+ipqp-map-off walk_seam rc=0
+ipqp-map-off drivers rc=0
+ipqp-map-off fault rc=0
+ipqp-map-off ipqp rc=1
+retake-drop-off sites 1 expected 1
+891d890
+<             dense_->drop_numerics();
+retake-drop-off hven_tests rc=0
+retake-drop-off walk_seam rc=0
+retake-drop-off drivers rc=0
+retake-drop-off fault rc=1
+retake-drop-off ipqp rc=0
+head hven_tests rc=0
+head walk_seam rc=0
+head drivers rc=0
+head fault rc=0
+head ipqp rc=0
+head           : 67 tests, failed none
+policy-off     : 67 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet', 'QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified', 'QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed', 'QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath', 'QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken', 'QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor', 'QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer', 'QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged', 'QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+detector-off   : 67 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable', 'DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics', 'DenseArmReport.RefusedUnderNeverAndCarriedByHandles', 'DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses', 'DenseArmReport.TheDetectorBracketsBothThresholds', 'DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+shift-off      : 67 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK', 'QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer', 'QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet', 'QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified', 'QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed', 'QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath', 'QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken', 'QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform', 'QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer', 'QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged', 'QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+equil-off      : 67 tests, failed ['DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm', 'DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK', 'QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm', 'QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+border-rho-off : 67 tests, failed ['QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath'] | OK
+rho-gate-off   : 67 tests, failed ['DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK', 'QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet', 'QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified', 'QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath', 'QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer', 'QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer'] | OK
+refine-off     : 67 tests, failed ['QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges'] | OK
+terminal-off   : 67 tests, failed ['QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer'] | OK
+ipqp-map-off   : 67 tests, failed ['IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure'] | OK
+retake-drop-off: 67 tests, failed ['DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable'] | OK
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-10T23:06:32-05:00

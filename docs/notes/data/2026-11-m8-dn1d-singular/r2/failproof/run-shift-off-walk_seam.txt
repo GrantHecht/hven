@@ -1,0 +1,310 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-shift-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpDenseArm.*
+[==========] Running 19 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 19 tests from QpDenseArm
+[ RUN      ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly
+[       OK ] QpDenseArm.SqpKktOptionsReportUnderADensePolicyOnly (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:140: Failure
+Value of: dense.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:141: Failure
+Expected equality of these values:
+  dense.dense_scale.size()
+    Which is: 0
+  3
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:142: Failure
+Expected equality of these values:
+  cd.arm
+    Which is: 4-byte object <00-00 00-00>
+  FactorArm::kDense
+    Which is: 4-byte object <01-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:147: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:148: Failure
+Expected equality of these values:
+  retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:159: Failure
+Value of: again.dense_shifted
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor (2 ms)
+[ RUN      ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows
+[       OK ] QpDenseArm.EquilibrationScaleBalancesRowsAndKeepsZeroRows (0 ms)
+[ RUN      ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:190: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:192: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:193: Failure
+Expected equality of these values:
+  k.shifted_exact_singular
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:194: Failure
+Expected equality of these values:
+  retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:211: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  2
+
+[  FAILED  ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform (0 ms)
+[ RUN      ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:235: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:237: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  2
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:239: Failure
+Expected equality of these values:
+  retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:241: Failure
+Expected equality of these values:
+  k.factor.counters().dense_condition_estimate_count
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged (0 ms)
+[ RUN      ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:294: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:295: Failure
+Expected equality of these values:
+  d.retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:307: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:308: Failure
+Expected equality of these values:
+  d.retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:309: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified (0 ms)
+[ RUN      ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:326: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:327: Failure
+Expected equality of these values:
+  d.retakes
+    Which is: 1
+  0
+
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer (0 ms)
+[ RUN      ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:343: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:344: Failure
+Expected equality of these values:
+  d.retakes
+    Which is: 1
+  0
+
+[  FAILED  ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken (0 ms)
+[ RUN      ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged
+[       OK ] QpDenseArm.ABadlyScaledWellPosedFaceIsNotFlagged (0 ms)
+[ RUN      ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm
+[       OK ] QpDenseArm.APerturbedK0ReadsSuspectOnPardisoAndOkOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm
+[       OK ] QpDenseArm.TheMuFreeRereadDoesNotCertifyASaddleOnEitherArm (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms
+[       OK ] QpDenseArm.TheMuFreeRereadCertifiesASingularPsdFaceOnBothArms (11 ms)
+[ RUN      ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:537: Failure
+Expected equality of these values:
+  refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:538: Failure
+Expected equality of these values:
+  retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:539: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:550: Failure
+The difference between r.x(1) and static_cast<double>(x2) is 1.5384615803526458e-09, which exceeds 1e-14, where
+r.x(1) evaluates to 2,
+static_cast<double>(x2) evaluates to 1.9999999984615384, and
+1e-14 evaluates to 1e-14.
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:551: Failure
+The difference between r.lambda_e(0) and static_cast<double>(lam) is 0.019178142305463618, which exceeds 1e-6, where
+r.lambda_e(0) evaluates to -6.6183304942616884e-17,
+static_cast<double>(lam) evaluates to 0.019178142305463552, and
+1e-6 evaluates to 9.9999999999999995e-07.
+
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm (0 ms)
+[ RUN      ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:571: Failure
+Value of: k.dense_shifted
+  Actual: false
+Expected: true
+
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges (0 ms)
+[ RUN      ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:630: Failure
+Expected equality of these values:
+  d.refactors
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:631: Failure
+Expected equality of these values:
+  d.retakes
+    Which is: 1
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:632: Failure
+Value of: d.res.shifted_refused
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:633: Failure
+Value of: d.res.residual_refused
+  Actual: false
+Expected: true
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:636: Failure
+Expected: (r.lpNorm<Eigen::Infinity>()) <= (1e-9), actual: 1.0000000085809424e-09 vs 1e-09
+
+[  FAILED  ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet (0 ms)
+[ RUN      ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:654: Failure
+Expected equality of these values:
+  counters.dense_shifted_solve_refusals
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:673: Failure
+Expected equality of these values:
+  counters.dense_shifted_solve_refusals
+    Which is: 0
+  1
+
+[  FAILED  ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:696: Failure
+Expected equality of these values:
+  d.counters.dense_condition_fallbacks
+    Which is: 2
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:687: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:699: Failure
+Expected: (d.counters.dense_shifted_k0_fallbacks) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:687: border
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:696: Failure
+Expected equality of these values:
+  d.counters.dense_condition_fallbacks
+    Which is: 2
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:687: refactorize
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:703: Failure
+Expected: (d.counters.dense_shifted_solve_refusals) >= (1), actual: 0 vs 1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:687: refactorize
+
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath (0 ms)
+[ RUN      ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:724: Failure
+Expected: (d.counters.dense_singular_refactors) >= (1), actual: 0 vs 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de2/fp-src-shift-off/tests/qp/test_qp_dense_arm.cpp:725: Failure
+Expected equality of these values:
+  d.counters.dense_condition_fallbacks
+    Which is: 2
+  0
+
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed (0 ms)
+[----------] 19 tests from QpDenseArm (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 1 test suite ran. (18 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 13 tests, listed below:
+[  FAILED  ] QpDenseArm.FactorizeCheckedShiftsAFlaggedFactor
+[  FAILED  ] QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform
+[  FAILED  ] QpDenseArm.TheRetryAnswersAShiftThatIsItselfFlagged
+[  FAILED  ] QpDenseArm.ARankDeficientWorkingSetAtMuZeroIsShiftedAndVerified
+[  FAILED  ] QpDenseArm.ANearNullPivotIsShiftedToTheSparseAnswer
+[  FAILED  ] QpDenseArm.AnExactZeroColumnIsShiftedNotRetaken
+[  FAILED  ] QpDenseArm.TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm
+[  FAILED  ] QpDenseArm.TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges
+[  FAILED  ] QpDenseArm.ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet
+[  FAILED  ] QpDenseArm.TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer
+[  FAILED  ] QpDenseArm.TheTerminalPolishRejectsARefusedShiftedAnswer
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMissingRhoFallsToTheEliminatedPath
+[  FAILED  ] QpDenseArm.AShiftedK0BorderAnswerMeetingRhoIsUsed
+
+13 FAILED TESTS
