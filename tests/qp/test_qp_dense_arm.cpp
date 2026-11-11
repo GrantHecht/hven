@@ -1035,19 +1035,66 @@ TEST(QpDenseArm, AShiftedK0OnTheSameRowsIsFactoredOnce) {
     EXPECT_NEAR(d.x(0), 0.75, 1e-9);
 }
 
-// THE VERDICT-SITE REFINEMENTS' REPLAY GATES: at the near-inconsistent face, both replays are
-// refused by rho and refine nothing, though the refused answer would close every row.
+// THE VERDICT-SITE REFINEMENTS' REPLAY GATES. x2 is free, flat (H22 = 0, mu = 0) and in no row,
+// so K's x2 row and column are exactly zero and its stationarity row g2 = -1e-6 is unanswerable:
+// the shifted answer puts x2 at |g2|/sigma and misses K by rho ~ 3e-7 there, on every refinement
+// step alike, so neither the solve's own refinement nor its step keeps anything and the face row
+// x0 + x1 = 1 is left open by its single shifted solve (~1e-9 against a target of ~1e-11 at
+// feasibility_tol = 1e-15). One verdict-site step closes that row (the premise, checked below on
+// the eliminated twin's own system), so the walk-point test would ADOPT the refused answer; both
+// replay gates refuse it first, and x is left alone.
+namespace {
+
+QpProblem flat_free_variable_qp() {
+    Eigen::MatrixXd Ae(1, 3);
+    Ae << 1.0, 1.0, 0.0;
+    QpProblem qp = rows_qp(Ae, Vec::Constant(1, 1.0), 0.0);
+    qp.g << 0.0, -3.0, -1e-6;
+    qp.lower = Vec::Constant(3, -1e6);
+    qp.upper = Vec::Constant(3, 1e6);
+    return qp;
+}
+
+QpOptions flat_free_variable_opts() {
+    QpOptions o = mu_free_opts();
+    o.primal_regularization = 0.0;
+    o.feasibility_tol = 1e-15;
+    return o;
+}
+
+} // namespace
+
 TEST(QpDenseArm, TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho) {
-    const QpProblem qp = near_inconsistent_qp();
-    const QpOptions o = mu_free_opts();
-    const QpEngine engine(o, 0, DensePolicy::kAlways);
+    const QpProblem qp = flat_free_variable_qp();
+    const QpOptions o = flat_free_variable_opts();
+    const QpEngine engine(mu_free_opts(), 0, DensePolicy::kAlways);
     const WorkingSet ws(3, 0);
+    {
+        // THE PREMISE, on the system the eliminated twin re-forms: the replay is refused, leaves
+        // the row open, and one step through the same factor closes it.
+        const KktAssembly a = assemble_kkt(qp, ws, o);
+        ASSERT_EQ(a.K.rows(), 4);
+        KktFactor k(0, DensePolicy::kAlways);
+        factorize_checked(k, a.K, DenseShiftSite{3});
+        ASSERT_TRUE(k.dense_shifted);
+        Vec rhs(4);
+        rhs << -qp.g(0), -qp.g(1), -qp.g(2), qp.be(0);
+        Vec y = solve_vec(k, rhs);
+        EXPECT_EQ(refine_shifted_solve(a.K, rhs, k, y), 1); // spent, and not kept
+        EXPECT_GT(shifted_residual_ratio(a.K, rhs, k, y), 10.0 * kEqpShiftedResidualTol);
+        // face_row_target at this point: its 1e-14 floor of row_scale = |row|_1 * xmag = 2 |x2|.
+        const double row_target = 1e-14 * 2.0 * std::abs(y(2));
+        EXPECT_GT(std::abs(y(0) + y(1) - 1.0), 10.0 * row_target);
+        const Vec stepped = y + solve_vec(k, rhs - a.K.selfadjointView<Eigen::Upper>() * y);
+        EXPECT_LT(std::abs(stepped(0) + stepped(1) - 1.0), row_target);
+    }
     {
         Vec x = Vec::Zero(3);
         QpCounters counters;
         EXPECT_FALSE(QpEngineTestAccess::eliminated_verdict_refine(engine, qp, ws, x, counters, o));
         EXPECT_EQ(x, Vec::Zero(3));
         EXPECT_EQ(counters.dense_singular_refactors, 1);
+        EXPECT_EQ(counters.verdict_refine_steps, 0);
     }
     {
         BorderState border(0, DensePolicy::kAlways);
@@ -1058,6 +1105,7 @@ TEST(QpDenseArm, TheVerdictRefinementsRefuseAShiftedReplayThatMissesRho) {
         EXPECT_FALSE(
             QpEngineTestAccess::border_verdict_refine(engine, qp, ws, x, border, counters, o));
         EXPECT_EQ(x, Vec::Zero(3));
+        EXPECT_EQ(counters.verdict_refine_steps, 0);
     }
 }
 
