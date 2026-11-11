@@ -53,7 +53,7 @@ struct DenseRookCount {
 };
 DenseRookCount dense_rook_walk(const double *a, Index n, const int *ipiv);
 
-// DenseSingularPolicy::kReport's detector (M8 DN-1d). A factorization whose rook
+// DenseSingularPolicy::kReport's detector. A factorization whose rook
 // D-ratio is below kDenseSingularScreen gets a dsycon_rook estimate; it is
 // flagged when that rcond is below kDenseConditionSingular (LAPACK xSYSVX's
 // "singular to working precision", 2^-53) or NaN.
@@ -67,7 +67,7 @@ enum class DenseFactorizeResult {
     kNumericallySingular // kReport: numerics committed, flagged by the detector
 };
 
-// The equilibrated shift (M8 DN-1d): the session factors D A D + sigma S,
+// The equilibrated shift: the session factors D A D + sigma S,
 // D = diag(scale) (dim entries, positive), S = +1 on the first n_primal
 // diagonals and -1 on the rest; solves then answer A-space systems.
 struct DenseShift {
@@ -107,6 +107,10 @@ class DenseSession {
     // under an equilibrated shift b <- D (D A D + sigma S)^-1 D b.
     // Requires has_numerics(). Throws hven::BackendError on a LAPACK error.
     void solve(double *b, Index nrhs, Index ldb) const;
+
+    // Forget the current numerics (the epoch stays): solves then throw until a
+    // factorize() commits again.
+    void drop_numerics() noexcept;
 
     Index dim() const noexcept { return n_; }
     bool has_numerics() const noexcept { return has_numerics_; }

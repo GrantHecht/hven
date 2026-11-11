@@ -258,18 +258,25 @@ guarded by `#ifdef HVEN_TESTING`:
   record-the-status-and-continue behavior on that path.
 - `DenseFactorizeFaultInjector` (both backends; M8 DN-1d) — `active`, `pass`. Once
   `pass` dense attempts have run since it was armed, each later dense attempt in
-  `SymmetricFactor`'s shared dense dispatch is skipped and read as exactly
-  singular, so the platform session takes the factorization, where
-  `FactorizeFaultInjector` can fail it. Faithful under
-  `DenseSingularPolicy::kSparseFallback` only (the dense session is untouched,
-  and only that path stops reading its numerics). Its consumer is the IPM dense
-  guard's failed re-run (DN-1b review F8;
+  `SymmetricFactor`'s shared dense dispatch (`factorize()` and
+  `factorize_equilibrated()`) is skipped, the dense session's numerics are dropped
+  (`DenseSession::drop_numerics()`), and the attempt is read as exactly singular.
+  Faithful under BOTH singular policies (M8 DN-1d r2): a real exactly singular
+  attempt also leaves the dense session without numerics (`DenseSession::factorize`
+  drops them before it factors), so under `kSparseFallback` the platform session
+  takes the factorization, where `FactorizeFaultInjector` can fail it, and under
+  `kReport` the outcome is `kBackendError`/`kDenseSingular` with nothing solvable --
+  exactly the real outcomes. (Before r2 the skipped attempt left the session's old
+  numerics in place, which only `kSparseFallback` never read.) Consumers: the IPM
+  dense guard's failed re-run (DN-1b review F8;
   `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
-  `hven_sqp_seam_tests`), which no real backend reaches. Second consumer: the SQP
-  response's last resort (`QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform`
-  in `hven_qp_walk_seam_tests`), under `kReport` -- faithful there because both
-  equilibrated attempts are read as failed and nothing reads the skipped attempts'
-  numerics; the retake is the platform session's own factorization.
+  `hven_sqp_seam_tests`), which no real backend reaches; the SQP response's last
+  resort (`QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform` in
+  `hven_qp_walk_seam_tests`: both equilibrated attempts read as failed; the retake
+  is the platform session's own factorization); and the IPQP's exactly singular
+  read (`IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure`
+  in `hven_ipqp_seam_tests`: every attempt exactly singular, which no assembled IPQP
+  system reaches -- the tier regularizes both blocks).
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
   `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs
@@ -356,7 +363,11 @@ where it does:
   the fork replaces anything. Faithful there for the same reason; it is the only
   way to reach that branch, which `factorize()` reports as `kBackendError` with
   `backend_code == kDenseFallbackAnalyzeFailed` instead of throwing
-  (`DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown`).
+  (`DenseArmFallbackFault.AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown`), and,
+  under `kReport`, the fork of a `retake_on_platform()` after a flagged dense
+  factorization kept its numerics: the failed fork drops them, so nothing is
+  solvable after the failed call
+  (`DenseArmFallbackFault.AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable`).
 
 - **`FactorizeFaultInjector` (both backends) is faithful in ONE scenario only:
   a session that has never previously factorized successfully.** The injector

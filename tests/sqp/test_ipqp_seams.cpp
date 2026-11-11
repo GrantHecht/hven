@@ -18,6 +18,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/linear/fault_injection.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/drivers/trace.h>
@@ -855,6 +856,65 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     EXPECT_TRUE(r.inertia_evidence_failed) << "the flag armed by the estimate's ladder stays armed";
     EXPECT_TRUE(r.certificate_downgraded);
     EXPECT_GT(r.counters.ipqp_iters, 0) << "the solve continued from the kFixed start";
+}
+
+// ---------------------------------------------------------------------------
+// The dense arm's singular reports (DenseSingularPolicy::kReport, the tier's policy under a dense
+// DensePolicy)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// A reading the dense detector FLAGGED: observed, correct counts, no perturbed-pivot count, the
+/// numerically_singular bit set.
+InertiaEvidence flagged(Index n_pos, Index n_neg) {
+    InertiaEvidence e;
+    e.state = InertiaEvidence::State::kObserved;
+    e.positive = n_pos;
+    e.negative = n_neg;
+    e.zero = 0;
+    e.zero_is_derived = false;
+    e.numerically_singular = true;
+    return e;
+}
+
+} // namespace
+
+TEST_F(IpqpSeamTest, AFlaggedTerminalReadIsPerturbedAndEscapesNumerical) {
+    // classify_inertia reads a flagged factor's inertia as kPerturbed -- not evidence -- whatever
+    // its counts say: the same `2` and kNumerical as a perturbed one. The counts are CORRECT.
+    Injector::active = true;
+    Injector::on_iteration_reads = false;
+    Injector::evidence = flagged(/*n_pos=*/3, /*n_neg=*/2);
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
+
+    EXPECT_EQ(Injector::injections, 1);
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 2);
+    EXPECT_TRUE(r.certificate_downgraded);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+}
+
+TEST_F(IpqpSeamTest, AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure) {
+    // Every dense attempt read as exactly singular (DenseFactorizeFaultInjector: kDenseSingular,
+    // no numerics -- a real exactly singular attempt's outcome under kReport). Each is a numeric
+    // read (Eigen::NumericalIssue), answered as kPerturbed by the tier's ladder, and the ONE
+    // symbolic analysis stands: a symbolic-failure reading would re-analyze per factorization.
+    using hven::linear::detail::testing::DenseFactorizeFaultInjector;
+    IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    DenseFactorizeFaultInjector::pass = 0;
+    DenseFactorizeFaultInjector::active = true;
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
+    DenseFactorizeFaultInjector::active = false;
+
+    EXPECT_NE(r.status, QpStatus::kOptimal);
+    EXPECT_GE(r.counters.ipqp_factorizations, 2);
+    EXPECT_EQ(r.counters.ipqp_symbolic_analyses, 1);
+    EXPECT_EQ(r.dense_flagged_factorizations, r.counters.ipqp_factorizations);
+    EXPECT_EQ(r.dense_singular_refactors, 0);
+    EXPECT_EQ(r.dense_condition_fallbacks, 0);
+    EXPECT_EQ(r.counters.ipqp_solves, 0);
 }
 
 } // namespace hven

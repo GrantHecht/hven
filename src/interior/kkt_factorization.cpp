@@ -27,6 +27,11 @@ namespace {
 // has always recorded for that backend's outcome codes.
 #ifdef USE_ACCELERATE_SPARSE
 Eigen::ComputationInfo computation_info_of(int backend_code) {
+    // The dense arm's exactly singular report (kReport) is a numeric outcome,
+    // never a symbolic failure, on either backend.
+    if (backend_code == hven::linear::kDenseSingular) {
+        return Eigen::NumericalIssue;
+    }
     switch (static_cast<SparseStatus_t>(backend_code)) {
     case SparseStatusOK:
         return Eigen::Success;
@@ -46,6 +51,11 @@ Eigen::ComputationInfo computation_info_of(int backend_code) {
 Eigen::ComputationInfo computation_info_of(int backend_code) {
     if (backend_code == 0) {
         return Eigen::Success;
+    }
+    // The dense arm's exactly singular report (kReport) is a numeric outcome,
+    // never a symbolic failure, on either backend.
+    if (backend_code == hven::linear::kDenseSingular) {
+        return Eigen::NumericalIssue;
     }
     // Pardiso's -4 / -7 (zero or near-zero pivot) is the ordinary outcome of
     // probing a perturbation during inertia correction, so it is recorded

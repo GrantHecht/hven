@@ -766,14 +766,15 @@ class SymmetricFactor {
         // sparse-selected patterns.
         Index dense_fallback_count = 0;
 
-        // DenseSingularPolicy::kReport (M8 DN-1d), over factorize() and
+        // DenseSingularPolicy::kReport, over factorize() and
         // factorize_equilibrated() alike unless stated:
         //   dense_singular_count       exactly singular (kDenseSingular);
         //   dense_flagged_count        taken and flagged (numerically_singular),
         //                              unshifted factorizations only;
-        //   dense_condition_estimate_count  dsycon_rook calls (screened ones);
+        //   dense_condition_estimate_count  dsycon_rook calls (screened ones) in
+        //                              calls that returned an outcome;
         //   dense_shift_refactor_count factorize_equilibrated() calls that
-        //                              reached the backend;
+        //                              returned an outcome;
         //   dense_retake_count         retake_on_platform() calls (each also in
         //                              dense_fallback_count).
         Index dense_singular_count = 0;

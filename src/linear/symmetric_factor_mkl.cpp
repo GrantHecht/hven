@@ -782,6 +782,7 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
     // as exactly singular once `pass` attempts have run.
     if (detail::testing::DenseFactorizeFaultInjector::active &&
         detail::testing::DenseFactorizeFaultInjector::pass-- <= 0) {
+        dense_->drop_numerics(); // a real exactly singular attempt leaves none
         dense_result = detail::DenseFactorizeResult::kSingular;
     } else
 #endif
@@ -842,9 +843,10 @@ FactorizeOutcome SymmetricFactor::factorize_equilibrated(const SpMatRM &A, Index
         throw std::logic_error("SymmetricFactor::factorize_equilibrated: needs a dense-selected "
                                "pattern under DenseSingularPolicy::kReport");
     }
-    ++counters_.dense_shift_refactor_count;
     const detail::DenseShift shift{n_primal, scale, sigma};
-    return factorize_dense(A, &shift);
+    FactorizeOutcome outcome = factorize_dense(A, &shift);
+    ++counters_.dense_shift_refactor_count;
+    return outcome;
 }
 
 FactorizeOutcome SymmetricFactor::retake_on_platform(const SpMatRM &A, PatternCheck check) {
@@ -866,10 +868,10 @@ FactorizeOutcome SymmetricFactor::factorize_on_platform(const SpMatRM &A) {
     // A fork whose symbolic phase fails is reported, not thrown (the
     // factorize() contract): kBackendError, arm kSparse, backend_code
     // kDenseFallbackAnalyzeFailed, counted as a fallback. session_ and
-    // dense_active_ stay as they were, and neither holds usable numerics
-    // (a fork happens only when the dense session just lost its numerics,
-    // or when there is no platform session), so solves throw and the epoch
-    // does not advance, as on any failed factorize().
+    // dense_active_ stay as they were and the dense session's numerics are
+    // dropped (a retake_on_platform() after a flagged factorization would
+    // otherwise leave them solvable), so solves throw and the epoch does not
+    // advance, as on any failed factorize().
     FactorizeOutcome outcome;
     if (!session_ || dense_active_) {
         auto session =
@@ -886,6 +888,7 @@ FactorizeOutcome SymmetricFactor::factorize_on_platform(const SpMatRM &A) {
 #endif
             backend_call([&] { session->analyze(A); });
         } catch (const hven::BackendError &) {
+            dense_->drop_numerics();
             ++counters_.factorize_count;
             ++counters_.dense_fallback_count;
             outcome.status = FactorizeOutcome::Status::kBackendError;

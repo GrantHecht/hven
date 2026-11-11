@@ -19,6 +19,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
@@ -377,4 +378,42 @@ TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
     EXPECT_GT(dense.counters.dense_singular_refactors, 0);
     EXPECT_EQ(dense.counters.dense_singular_refactors, dense.counters.dense_flagged_factorizations);
     EXPECT_EQ(sparse.counters.dense_shifted_solve_refusals, 0);
+}
+
+// THE SSN's NEWTON STEP through shifted numerics is refined against K and gated on rho: on a
+// nearly inconsistent duplicated row at mu = 0 (every row met to 5e-10, rho ~ 5e-7) the step is
+// refused and the engine answers it with its proximal ladder -- sigma also regularizes the dual
+// block, so the next factorization is no longer singular -- never by stepping on it.
+TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
+    hven::detail::QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Identity(3, 3);
+    qp.H = Hd.sparseView();
+    qp.g = Eigen::VectorXd::Zero(3);
+    qp.g(1) = -1e-3;
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    qp.Ae = Ae.sparseView();
+    qp.be = Eigen::VectorXd(2);
+    qp.be << 1e-3, 1e-3 + 1e-9;
+    qp.Ai.resize(0, 3);
+    qp.bi = Eigen::VectorXd(0);
+    qp.lower = Eigen::VectorXd::Constant(3, -10.0);
+    qp.upper = Eigen::VectorXd::Constant(3, 10.0);
+    hven::QpOptions opts;
+    opts.dual_regularization = 0.0;
+    for (const DensePolicy policy : {DensePolicy::kNever, DensePolicy::kAlways}) {
+        SCOPED_TRACE(policy == DensePolicy::kAlways ? "dense" : "sparse");
+        hven::detail::SsnEngine engine(opts, 0, policy);
+        hven::detail::SsnResult res;
+        engine.solve(qp, hven::detail::SsnStart{}, hven::detail::SsnOptions{}, &res);
+        if (policy == DensePolicy::kNever) {
+            EXPECT_EQ(res.dense_shifted_solve_refusals, 0);
+            EXPECT_EQ(res.dense_flagged_factorizations, 0);
+        } else {
+            EXPECT_GE(res.dense_flagged_factorizations, 1);
+            EXPECT_EQ(res.dense_condition_fallbacks, 0);
+            EXPECT_GE(res.dense_shifted_solve_refusals, 1);
+            EXPECT_GE(res.counters.ssn_prox_updates, 1);
+        }
+    }
 }

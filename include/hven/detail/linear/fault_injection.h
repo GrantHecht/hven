@@ -82,15 +82,15 @@ struct AnalyzeFaultInjector {
 };
 
 // Fault injection for the dense arm's attempt in SymmetricFactor::factorize()
-// (BOTH backends; the shared dense dispatch, M8 DN-1d). When active, once
-// `pass` dense attempts have run since it was armed, every later attempt is
-// SKIPPED and read as exactly singular, so the platform session takes the
-// factorization (where FactorizeFaultInjector can fail it). FAITHFUL UNDER
-// kSparseFallback ONLY: the dense session is not touched, and only that path
-// stops using its numerics (under kReport they would stay readable). Its
-// consumer is the IPM dense guard's failed re-run (DN-1b review F8), which no
-// real backend produces; second, the SQP response's platform retake (both
-// equilibrated attempts read as failed, their numerics never read).
+// and factorize_equilibrated() (BOTH backends; the shared dense dispatch). When
+// active, once `pass` dense attempts have run since it was armed, every later
+// attempt is SKIPPED, its session's numerics dropped, and read as exactly
+// singular: the outcome a real exactly singular attempt has under either
+// policy (kSparseFallback: the platform session takes the factorization, where
+// FactorizeFaultInjector can fail it; kReport: kDenseSingular, no numerics).
+// Consumers: the IPM dense guard's failed re-run; the SQP response's platform
+// retake (both equilibrated attempts read as failed); the IPQP's exactly
+// singular read. docs/testing.md records each.
 struct DenseFactorizeFaultInjector {
     static inline bool active = false;
     static inline int pass = 0;

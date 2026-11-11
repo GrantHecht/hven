@@ -56,9 +56,11 @@ bool flagged(const hven::linear::FactorizeOutcome &o) {
 
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision) {
-    analyze_if_needed(k, K, decision);
+    // Cleared first: a throw below leaves no shifted marker on numerics that
+    // are no longer the shifted ones.
     k.dense_shifted = false;
     k.dense_scale.resize(0);
+    analyze_if_needed(k, K, decision);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
     if (flagged(outcome)) {
         // No site to shift on: the platform session retakes K.
@@ -101,18 +103,17 @@ Vec equilibration_scale(const SpMatRM &K) {
     return d;
 }
 
-CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
-                                       const AnalysisDecision &decision,
-                                       const DenseShiftSite &site) {
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const AnalysisDecision &decision,
+                                                 const DenseShiftSite &site) {
     using Check = hven::linear::SymmetricFactor::PatternCheck;
-    analyze_if_needed(k, K, decision);
+    using Status = hven::linear::FactorizeOutcome::Status;
+    // Cleared first, as in the overload above.
     k.dense_shifted = false;
     k.dense_scale.resize(0);
-    CheckedFactorization out;
-    out.delta = site.delta;
-    out.mu = site.mu;
-    out.outcome = k.factor.factorize(K);
-    if (flagged(out.outcome)) {
+    analyze_if_needed(k, K, decision);
+    hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
+    if (flagged(outcome)) {
         // The pattern was verified by the call above; the responses factor the
         // same K.
         Vec d = equilibration_scale(K);
@@ -122,30 +123,28 @@ CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
             if (attempt > 0) {
                 sigma *= kDenseShiftRetryGrowth;
             }
-            out.outcome = k.factor.factorize_equilibrated(K, site.n_primal, d.data(), sigma,
-                                                          Check::kAssumeAnalyzed);
-            if (out.outcome.status != hven::linear::FactorizeOutcome::Status::kOk) {
+            outcome = k.factor.factorize_equilibrated(K, site.n_primal, d.data(), sigma,
+                                                      Check::kAssumeAnalyzed);
+            if (outcome.status != Status::kOk) {
                 ++k.shifted_exact_singular;
             }
-            done = !flagged(out.outcome) &&
-                   out.outcome.status == hven::linear::FactorizeOutcome::Status::kOk;
+            done = !flagged(outcome) && outcome.status == Status::kOk;
         }
         if (done) {
-            out.shifted = true;
             k.dense_shifted = true;
             k.dense_scale = std::move(d);
         } else {
-            out.outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
-            out.retaken = true;
+            outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
         }
     }
-    if (out.outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
-        throw_failed(out.outcome);
+    if (outcome.status == Status::kBackendError) {
+        throw_failed(outcome);
     }
-    return out;
+    return outcome;
 }
 
-CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K, const DenseShiftSite &site) {
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const DenseShiftSite &site) {
     return factorize_checked(k, K, analysis_decision(k, K), site);
 }
 

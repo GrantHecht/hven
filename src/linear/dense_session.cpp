@@ -234,6 +234,15 @@ void DenseSession::analyze(const SpMatRM &A) {
     shifted_pivots_ = 0;
 }
 
+void DenseSession::drop_numerics() noexcept {
+    has_numerics_ = false;
+    scale_.clear();
+    positive_ = 0;
+    negative_ = 0;
+    numerically_singular_ = false;
+    shifted_pivots_ = 0;
+}
+
 DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t next_epoch,
                                              const DenseShift *shift) {
     // The cheap bound guard that stands whatever the pattern check was: the
@@ -246,8 +255,7 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
             A.rows(), A.cols(), A.nonZeros(), n_, n_, scatter_.size()));
     }
     // From here the buffer is overwritten: no numerics until this succeeds.
-    has_numerics_ = false;
-    scale_.clear();
+    drop_numerics();
 
     double *a = a_.data();
     for (Index j = 0; j < n_; ++j) {
@@ -270,7 +278,6 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
         if (report()) {
             shifted_norm = dense_one_norm();
         }
-        scale_.assign(d, d + n_);
     }
 
     int info = 0;
@@ -314,6 +321,9 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
     negative_ = counts.negative;
     numerically_singular_ = flagged;
     shifted_pivots_ = shift != nullptr ? n_ : 0;
+    if (shift != nullptr) {
+        scale_.assign(shift->scale, shift->scale + n_);
+    }
     // Never back, never the same: a co-owner may have advanced this shared
     // session past the epoch the calling engine knows (see the header).
     epoch_ = std::max(epoch_ + 1, next_epoch);

@@ -877,7 +877,8 @@ group; `SqpOptions::hessian_mode`).
 | `dense_condition_fallbacks` | integer | `SqpCounters::dense_condition_fallbacks` | dense-arm factorizations (walk, SSN, IPQP tiers) the platform session retook as the dense singular response's LAST RESORT: flagged, then still flagged after the equilibrated shift and its one 256x retry (M8 DN-1d; M8 DN-1c's condition fallback before it). 0 under `DensePolicy::kNever`. Folded like `factorizations`. Follows `inertia_suspect_verdicts` and `inertia_wrong_verdicts` (M8 DN-1) |
 | `dense_flagged_factorizations` | integer | `SqpCounters::dense_flagged_factorizations` | dense-arm factorizations `DenseSingularPolicy::kReport`'s detector flagged (rook D-ratio below 1e-15 and `dsycon_rook` rcond below 2^-53, or exactly singular), unshifted factorizations only (M8 DN-1d). 0 under `DensePolicy::kNever`. Folded like `factorizations` |
 | `dense_singular_refactors` | integer | `SqpCounters::dense_singular_refactors` | equilibrated-shift dense refactors the response ran (M8 DN-1d): one per flagged site factorization, two when the first stays flagged. 0 under `DensePolicy::kNever`. Folded like `factorizations` |
-| `dense_shifted_solve_refusals` | integer | `SqpCounters::dense_shifted_solve_refusals` | EQP answers from a dense shifted factor refused because their equilibrated relative residual against K, ‖D(rhs − K y)‖∞/‖D rhs‖∞, exceeded 1e-8 or was NaN (M8 DN-1d). 0 under `DensePolicy::kNever`. Folded like `eqp_residual_refusals` |
+| `dense_shifted_solve_refusals` | integer | `SqpCounters::dense_shifted_solve_refusals` | answers from a dense shifted factor refused because their equilibrated relative residual against K, ‖D(rhs − K y)‖∞/‖D rhs‖∞, exceeded 1e-8 or was NaN at gate time (M8 DN-1d): walk EQP solves and SSN Newton steps. 0 under `DensePolicy::kNever`. Folded like `eqp_residual_refusals` |
+| `dense_shifted_k0_fallbacks` | integer | `SqpCounters::dense_shifted_k0_fallbacks` | border-mode walk passes served by the eliminated path because the Schur border stack's K0 held dense shifted numerics (M8 DN-1d r2): a shifted K0 is never solved through. 0 under `DensePolicy::kNever`. Folded like `dense_shifted_solve_refusals` from the walk's solutions |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -930,7 +931,8 @@ meaning moved to the response's last-resort retake; same route: two keys before 
 object, the nested tables' distinct values up by two, no sentinel, both golden lines
 re-derived ONCE with a "RE-DERIVED AT M8 DN-1d" note. Then ONE more,
 `dense_shifted_solve_refusals`, after `dense_singular_refactors`, the same route (the
-golden lines' DN-1d notes extended).
+golden lines' DN-1d notes extended). Then ONE more, `dense_shifted_k0_fallbacks`, after
+`dense_shifted_solve_refusals`, the same route.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

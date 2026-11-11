@@ -570,6 +570,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
 
         // --- factor and step ---------------------------------------
         Vec dw;
+        bool dw_refused = false;
         try {
             const detail::AnalysisDecision analysis = detail::analysis_decision(kkt_, k_);
             if (analysis.needed) {
@@ -578,11 +579,14 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
                                                 out->dense_singular_refactors,
                                                 out->dense_condition_fallbacks);
-            detail::factorize_checked(kkt_, k_, analysis,
-                                      detail::DenseShiftSite{n, eff_delta_, eff_mu_});
+            detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
             ++out->factorizations;
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
+                // A step through shifted numerics is refined against k_ and used
+                // only if it passes the rho gate (kkt_calls.h).
+                (void)detail::refine_shifted_solve(k_, rhs, kkt_, dw);
+                dw_refused = detail::shifted_solve_refused(k_, rhs, kkt_, dw);
             }
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;
@@ -700,6 +704,27 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                             "matrix is numerically singular at this iterate or the residual fed "
                             "into it was not finite (||F||inf = {})",
                             it, nrm.inf_norm);
+            break;
+        }
+
+        // A REFUSED SHIFTED STEP is answered as the inertia gate answers kWrong:
+        // the same iterate with a stiffer Jacobian (sigma moves the augmented
+        // primal block, the only place a KKT with D > 0 can be singular), and
+        // kSingular at the ladder's ceiling.
+        if (dw_refused) {
+            ++out->dense_shifted_solve_refusals;
+            if (escalate_prox(qp, n, me, mi, mb)) {
+                ++out->counters.ssn_prox_updates;
+                window_damped = true;
+                continue;
+            }
+            out->status = QpStatus::kNumericalError;
+            out->escape_reason = SsnEscape::kSingular;
+            out->escape_detail = fmt::format(
+                "SsnEngine: Newton step {} came from a dense shifted factorization and does "
+                "not solve the KKT system (relative residual above {}), and the proximal "
+                "ladder is at its ceiling (sigma = {})",
+                it, detail::kEqpShiftedResidualTol, prox_sigma_);
             break;
         }
 
@@ -891,8 +916,7 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
                                             out->dense_singular_refactors,
                                             out->dense_condition_fallbacks);
-        detail::factorize_checked(kkt_, k_, analysis,
-                                  detail::DenseShiftSite{deferred_pos_, eff_delta_, eff_mu_});
+        detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{deferred_pos_});
         ++out->factorizations;
     } catch (const std::exception &e) {
         out->status = QpStatus::kNumericalError;

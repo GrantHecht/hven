@@ -113,6 +113,11 @@ struct DepSystem {
         comp.push_back(WsMember{kind, idx});
     }
 
+    // No rho gate on shifted numerics, because no verdict trusts the solve: a
+    // dependent verdict is certified by w = a - A_W' v formed from the data, and
+    // an independent one needs residual() -- the unshifted matrix -- to converge
+    // (otherwise undecidable, or the pre-E2 stall admission). A probe is never a
+    // step.
     Vec solve(const Vec &rhs) const {
         return bordered ? f.schur->solve(rhs) : solve_vec(*f.eliminated, rhs);
     }

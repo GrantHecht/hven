@@ -13,6 +13,7 @@
 // active in a given build, mirroring the production backend split.
 
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -218,6 +219,38 @@ TEST(DenseArmFallbackFault, AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown) {
     if (again.status == FactorizeOutcome::Status::kOk) {
         EXPECT_EQ(factor.epoch(), 1U);
     }
+}
+
+// A retake whose platform fork fails, after a flagged dense factorization under kReport kept its
+// numerics: the dense numerics are dropped, so nothing is solvable after the failed call and no
+// inertia is read off the flagged factor. AnalyzeFaultInjector fails the fork's phase 11, its
+// faithful scope.
+TEST(DenseArmFallbackFault, AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+    SymmetricFactor factor{o};
+    Mat m(2, 2);
+    m << 1.0, std::ldexp(1.0, 20), std::ldexp(1.0, 20), std::ldexp(1.0, 40) + std::ldexp(1.0, -12);
+    const SpMatRM A = upper_csr(m);
+    factor.analyze(A);
+    const FactorizeOutcome flagged = factor.factorize(A);
+    ASSERT_EQ(flagged.status, FactorizeOutcome::Status::kOk);
+    ASSERT_TRUE(flagged.inertia.numerically_singular);
+    Vec x(2);
+    factor.solve(Vec::Ones(2), x); // the flagged numerics, kept
+    {
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = true;
+        FactorizeOutcome retake;
+        EXPECT_NO_THROW(
+            retake = factor.retake_on_platform(A, SymmetricFactor::PatternCheck::kAssumeAnalyzed));
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = false;
+        EXPECT_EQ(retake.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(retake.backend_code, hven::linear::kDenseFallbackAnalyzeFailed);
+    }
+    EXPECT_EQ(factor.counters().dense_retake_count, 1);
+    EXPECT_THROW(factor.solve(Vec::Ones(2), x), std::logic_error);
+    EXPECT_NE(factor.inertia().state, InertiaEvidence::State::kObserved);
 }
 
 #if !defined(__APPLE__)

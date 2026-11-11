@@ -245,19 +245,6 @@ constexpr double kEqpResidualRefuseTol = 1e-1;
 // point.
 constexpr Index kEqpPolishSteps = 2;
 
-// THE SHIFTED FACTOR'S REFINEMENT (M8 DN-1d): a dense factorization the detector
-// flagged is refactored as D K D + sigma S (detail::factorize_checked), so a solve
-// answers the shifted system. Refinement against K contracts each equilibrated
-// eigencomponent by about sigma / (lambda + sigma). At most this many steps, each
-// kept only while ||D (rhs - K y)||inf strictly falls (D = kkt.dense_scale: the
-// unscaled norm is dominated by the largest rows and stalls).
-constexpr Index kEqpShiftRefineSteps = 10;
-
-// solve_eqp on a shifted factor refuses an answer whose equilibrated relative
-// residual rho = ||D (rhs - K y)||inf / ||D rhs||inf exceeds this, or is NaN (M8
-// DN-1d; chosen on the E0/dev roster: consistent shifted solves reach 1e-17).
-constexpr double kEqpShiftedResidualTol = 1e-8;
-
 // THE UNREGULARIZED POLISH's STEP CAP, relative to the answer's own size: a step
 // is kept only if it also moves the answer by no more than
 // kEqpPolishStepCap * max(1, ||y||inf).
@@ -325,8 +312,10 @@ struct EqpResult {
     double residual_ratio = 0.0;
     Index residual_refine_iters = 0;
     bool residual_refused = false;
-    /// True iff the answer came from a dense shifted factor and missed
-    /// kEqpShiftedResidualTol (M8 DN-1d); implies `residual_refused`.
+    /// True iff the answer came from a dense shifted factor and its rho at gate
+    /// time (after refine_shifted_solve, before the residual loop, the proximal
+    /// step and the polish) missed kEqpShiftedResidualTol; implies
+    /// `residual_refused`.
     bool shifted_refused = false;
 
     /// THE UNREGULARIZED POLISH's output (M7 W2 E4 fix1, ruling E4-11): steps
@@ -343,33 +332,6 @@ struct EqpResult {
     /// solve_eqp.
     bool border_uncertified = false;
 };
-
-// kEqpShiftRefineSteps' loop on `y`, a solve of K y = rhs through `kkt`; a no-op
-// unless `kkt` holds shifted numerics. Returns the solves spent (each counted
-// before its keep-or-reject test).
-inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const detail::KktFactor &kkt,
-                                  Vec &y) {
-    if (!kkt.dense_shifted) {
-        return 0;
-    }
-    const Vec &d = kkt.dense_scale;
-    Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
-    double r_inf = r.cwiseProduct(d).lpNorm<Eigen::Infinity>();
-    Index spent = 0;
-    while (spent < kEqpShiftRefineSteps) {
-        ++spent;
-        const Vec candidate = y + detail::solve_vec(kkt, r);
-        Vec cr = rhs - K.template selfadjointView<Eigen::Upper>() * candidate;
-        const double cr_inf = cr.cwiseProduct(d).lpNorm<Eigen::Infinity>();
-        if (!(cr_inf < r_inf)) {
-            break; // stagnated, diverging, or NaN -- keep the better answer
-        }
-        y = candidate;
-        r = std::move(cr);
-        r_inf = cr_inf;
-    }
-    return spent;
-}
 
 // THE UNREGULARIZED POLISH (M7 W2 E4 fix round 1, ruling E4-11): the loop, and
 // then the whole-face entry point below solve_eqp.
@@ -480,24 +442,13 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         rhs(n_free + me + k) = qp.bi(row) - asm_.rhs_shift(n_free + me + k);
     }
 
-    // A dense factorization the detector flags is refactored shifted (M8 DN-1d);
+    // A dense factorization the detector flags is refactored shifted;
     // kkt.dense_shifted then gates the one unconditional step below.
-    detail::factorize_checked(
-        kkt, asm_.K,
-        detail::DenseShiftSite{n_free, opts.primal_regularization, opts.dual_regularization});
+    detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
     Vec y = detail::solve_vec(kkt, rhs);
-    const Index shift_iters = refine_shifted_solve(asm_.K, rhs, kkt, y);
-    // A shifted factor's answer is used only if it solves K itself (rho, above).
-    bool shifted_refused = false;
-    if (kkt.dense_shifted) {
-        const Vec &d = kkt.dense_scale;
-        const double r_d = (rhs - asm_.K.template selfadjointView<Eigen::Upper>() * y)
-                               .cwiseProduct(d)
-                               .lpNorm<Eigen::Infinity>();
-        const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
-        const double rho = (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
-        shifted_refused = !(rho <= detail::kEqpShiftedResidualTol);
-    }
+    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
+    // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;

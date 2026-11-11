@@ -5,6 +5,9 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
+
+#include <Eigen/SparseCore>
 
 #include <hven/core/pattern_hash.h>
 #include <hven/linear/symmetric_factor.h>
@@ -32,7 +35,7 @@ namespace hven::detail {
 /// parameter has a default, so every caller states its policy: a factor that
 /// stays on the platform session at kAlways (the warm-start predictor's)
 /// says kNever where it is built. Under a dense policy the factor reports
-/// singular factorizations (DenseSingularPolicy::kReport, M8 DN-1d) and
+/// singular factorizations (DenseSingularPolicy::kReport) and
 /// factorize_checked()'s site overloads respond.
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
                                                               hven::linear::DensePolicy dense) {
@@ -91,7 +94,7 @@ struct KktFactor {
     hven::linear::SymmetricFactor factor;
     std::uint64_t analyzed_pattern = 0;
     bool analyzed = false;
-    /// True iff the current numerics are a dense shift response (M8 DN-1d):
+    /// True iff the current numerics are a dense shift response:
     /// a solve then answers a shifted system, so refinement against K is
     /// kept only while its residual falls, and `dense_scale` holds the
     /// equilibration D the residual is measured in (empty otherwise).
@@ -147,13 +150,10 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision);
 
-/// @brief A KKT site's layout for the dense singular response (M8 DN-1d): the
-/// first `n_primal` rows are primal, the rest dual; `delta`/`mu` are the
-/// site's regularization, returned as factored.
+/// @brief A KKT site's layout for the dense singular response: the first
+/// `n_primal` rows are primal (shifted by +sigma), the rest dual (-sigma).
 struct DenseShiftSite {
     Index n_primal = 0;
-    double delta = 0.0;
-    double mu = 0.0;
 };
 
 /// The response's shift on the equilibrated matrix, and the one retry's growth.
@@ -165,26 +165,19 @@ inline constexpr double kDenseShiftRetryGrowth = 256.0;
 /// zero or non-finite keep d_i), stopping once max|1 - r_i| <= 0.05.
 Vec equilibration_scale(const SpMatRM &K);
 
-/// @brief A site factorization's outcome and the site's (delta, mu).
-struct CheckedFactorization {
-    hven::linear::FactorizeOutcome outcome;
-    double delta = 0.0;
-    double mu = 0.0;
-    bool shifted = false;
-    bool retaken = false;
-};
-
 /// @brief factorize_checked() with the dense singular response. Under
 /// DenseSingularPolicy::kReport a flagged or exactly singular outcome is
 /// refactored densely as D K D + sigma diag(+1 primal, -1 dual), D =
-/// equilibration_scale(K), sigma = 2^-30, accepted iff taken and unflagged;
-/// else once more at 256 sigma; else the platform session retakes K (counted,
-/// last resort). Sets `k.dense_shifted` and `k.dense_scale`.
+/// equilibration_scale(K), sigma = kDenseEquilibratedShift, accepted iff taken
+/// and unflagged; else once more at kDenseShiftRetryGrowth sigma; else the
+/// platform session retakes K (counted, last resort). Sets `k.dense_shifted`
+/// and `k.dense_scale` (dense_response_tally() reports which response ran).
 /// @throws hven::BackendError when no factorization succeeds.
-CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K,
-                                       const AnalysisDecision &decision,
-                                       const DenseShiftSite &site);
-CheckedFactorization factorize_checked(KktFactor &k, const SpMatRM &K, const DenseShiftSite &site);
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const AnalysisDecision &decision,
+                                                 const DenseShiftSite &site);
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const DenseShiftSite &site);
 
 /// @brief The factor's dense singular-response counts so far: unshifted
 /// factorizations the detector flagged (exact included), equilibrated
@@ -227,5 +220,61 @@ class DenseTallyScope {
 
 /// @brief Allocate and solve, returning the solution by value.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
+
+// THE SHIFTED FACTOR'S VERIFICATION. A solve through shifted numerics answers
+// D (D K D + sigma S)^-1 D b, not K^-1 b; every consumer that steps on or adopts
+// such an answer refines it against K and gates it on rho below.
+
+/// Refinement budget against K on shifted numerics; each step is kept only
+/// while ||D (rhs - K y)||inf strictly falls (D = KktFactor::dense_scale).
+inline constexpr Index kEqpShiftRefineSteps = 10;
+
+/// The gate: an answer from shifted numerics is used only if its rho at gate
+/// time is at most this (a NaN refuses).
+inline constexpr double kEqpShiftedResidualTol = 1e-8;
+
+/// @brief kEqpShiftRefineSteps' loop on `y`, a solve of K y = rhs through `k`
+/// (K upper-stored); a no-op unless `k.dense_shifted`. Returns the solves
+/// spent, each counted before its keep-or-reject test.
+inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFactor &k, Vec &y) {
+    if (!k.dense_shifted) {
+        return 0;
+    }
+    const Vec &d = k.dense_scale;
+    Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
+    double r_inf = r.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    Index spent = 0;
+    while (spent < kEqpShiftRefineSteps) {
+        ++spent;
+        const Vec candidate = y + solve_vec(k, r);
+        Vec cr = rhs - K.template selfadjointView<Eigen::Upper>() * candidate;
+        const double cr_inf = cr.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+        if (!(cr_inf < r_inf)) {
+            break; // stagnated, diverging, or NaN -- keep the better answer
+        }
+        y = candidate;
+        r = std::move(cr);
+        r_inf = cr_inf;
+    }
+    return spent;
+}
+
+/// @brief rho = ||D (rhs - K y)||inf / ||D rhs||inf with D = `k.dense_scale`
+/// (0 when both vanish; a NaN propagates). Requires `k.dense_shifted`.
+inline double shifted_residual_ratio(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
+                                     const Vec &y) {
+    const Vec &d = k.dense_scale;
+    const double r_d = (rhs - K.template selfadjointView<Eigen::Upper>() * y)
+                           .cwiseProduct(d)
+                           .lpNorm<Eigen::Infinity>();
+    const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+}
+
+/// @brief True iff `k` holds shifted numerics and `y` fails the gate.
+inline bool shifted_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
+                                  const Vec &y) {
+    return k.dense_shifted && !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
+}
 
 } // namespace hven::detail

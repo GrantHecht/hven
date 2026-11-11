@@ -35,6 +35,24 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
+namespace hven::detail {
+// QpEngine's named friend, DEFINED here for this executable (test_qp_engine_indefinite.cpp
+// defines its own in hven_tests): the two terminal sites, read directly.
+struct QpEngineTestAccess {
+    static bool terminal_mu_free(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
+                                 Vec &x, Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
+                                 const QpOptions &opts) {
+        return eng.refine_terminal_mu_free(qp, ws, x, lambda_e, lambda_i, z, counters, opts);
+    }
+    static bool terminal_polish(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
+                                Vec &x, Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
+                                const QpOptions &opts) {
+        const EqpResult none; // no pass answer: stage 1 cannot adopt, stage 2 solves
+        return eng.polish_terminal_point(qp, ws, none, x, lambda_e, lambda_i, z, counters, opts);
+    }
+};
+} // namespace hven::detail
+
 namespace {
 
 using namespace hven;
@@ -98,40 +116,33 @@ SpMatRM upper_of(const Eigen::MatrixXd &m) {
 // THE HS90 CATASTROPHE (E0 roster, HS90 factorization 5, eqp site, mu = 0): a working row
 // 1.5e-17 x e_2 against an rhs of -0.13 -- inconsistent and singular to working precision. The
 // site response factors it equilibrated and shifted; kNever never responds.
-TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactorAndReturnsTheSiteRegularization) {
+TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     Eigen::MatrixXd m = Eigen::MatrixXd::Zero(3, 3);
     m(0, 0) = m(1, 1) = 2.00000001;
     m(1, 2) = m(2, 1) = -0x1.14b1907515e67p-56;
     const SpMatRM K = upper_of(m);
-    const DenseShiftSite site{2, 1e-8, 0.0};
+    const DenseShiftSite site{2};
 
     KktFactor sparse(0, DensePolicy::kNever);
-    const CheckedFactorization cs = factorize_checked(sparse, K, site);
-    EXPECT_FALSE(cs.shifted);
+    (void)factorize_checked(sparse, K, site);
     EXPECT_FALSE(sparse.dense_shifted);
     EXPECT_EQ(sparse.dense_scale.size(), 0);
-    EXPECT_EQ(cs.delta, 1e-8);
-    EXPECT_EQ(cs.mu, 0.0);
 
     KktFactor dense(0, DensePolicy::kAlways);
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
-    CheckedFactorization cd;
+    hven::linear::FactorizeOutcome cd;
     {
         const DenseTallyScope tally(dense, flagged, refactors, retakes);
         cd = factorize_checked(dense, K, site);
     }
-    EXPECT_TRUE(cd.shifted);
-    EXPECT_FALSE(cd.retaken);
     EXPECT_TRUE(dense.dense_shifted);
     EXPECT_EQ(dense.dense_scale.size(), 3);
-    EXPECT_EQ(cd.outcome.arm, FactorArm::kDense);
-    EXPECT_EQ(cd.delta, 1e-8);
-    EXPECT_EQ(cd.mu, 0.0);
-    ASSERT_TRUE(cd.outcome.inertia.perturbed_pivots.has_value());
-    EXPECT_FALSE(cd.outcome.inertia.numerically_singular);
-    EXPECT_EQ(inertia_verdict(cd.outcome.inertia, 2, 1), InertiaVerdict::kSuspect);
+    EXPECT_EQ(cd.arm, FactorArm::kDense);
+    ASSERT_TRUE(cd.inertia.perturbed_pivots.has_value());
+    EXPECT_FALSE(cd.inertia.numerically_singular);
+    EXPECT_EQ(inertia_verdict(cd.inertia, 2, 1), InertiaVerdict::kSuspect);
     EXPECT_EQ(flagged, 1);
     EXPECT_EQ(refactors, 1);
     EXPECT_EQ(retakes, 0);
@@ -167,18 +178,16 @@ TEST(QpDenseArm, EquilibrationScaleBalancesRowsAndKeepsZeroRows) {
 // s = 2^-30 and taken at 256 s. With both shifted attempts read as singular
 // (DenseFactorizeFaultInjector; the retake is the platform's own) the platform retakes.
 TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
-    const DenseShiftSite site{1, 0.0, 0.0};
+    const DenseShiftSite site{1};
     Eigen::MatrixXd m = Eigen::MatrixXd::Ones(2, 2);
     {
         KktFactor k(0, DensePolicy::kAlways);
         Index flagged = 0, refactors = 0, retakes = 0;
-        CheckedFactorization c;
         {
             const DenseTallyScope tally(k, flagged, refactors, retakes);
-            c = factorize_checked(k, upper_of(m), site);
+            (void)factorize_checked(k, upper_of(m), site);
         }
-        EXPECT_TRUE(c.shifted);
-        EXPECT_FALSE(c.retaken);
+        EXPECT_TRUE(k.dense_shifted);
         EXPECT_EQ(flagged, 1); // the original; the exactly singular first shift is a retry
         EXPECT_EQ(refactors, 2);
         EXPECT_EQ(k.shifted_exact_singular, 1);
@@ -188,7 +197,7 @@ TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
         using hven::linear::detail::testing::DenseFactorizeFaultInjector;
         KktFactor k(0, DensePolicy::kAlways);
         Index flagged = 0, refactors = 0, retakes = 0;
-        CheckedFactorization c;
+        hven::linear::FactorizeOutcome c;
         DenseFactorizeFaultInjector::pass = 1;
         DenseFactorizeFaultInjector::active = true;
         {
@@ -196,14 +205,40 @@ TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
             c = factorize_checked(k, upper_of(m), site);
         }
         DenseFactorizeFaultInjector::active = false;
-        EXPECT_FALSE(c.shifted);
-        EXPECT_TRUE(c.retaken);
         EXPECT_FALSE(k.dense_shifted);
-        EXPECT_EQ(c.outcome.arm, FactorArm::kSparse);
+        EXPECT_EQ(c.arm, FactorArm::kSparse);
         EXPECT_EQ(flagged, 1);
         EXPECT_EQ(refactors, 2);
         EXPECT_EQ(retakes, 1);
     }
+}
+
+// THE RETRY ON A REAL MATRIX: a shifted factor flagged again. K = diag(P1, P2), all primal, every
+// row's largest entry exactly 1 (so D = I): P1 = [[1, 1], [1, 1]] is exactly singular; P2 =
+// [[1, 1], [1, 1 - 2s + 2^-52]] at s = 2^-30 has an eigenvalue ~ -s, so P2 + sI keeps a pivot of
+// 2^-52 (rcond ~ 5e-17: flagged, not exact) and P2 + 256 s I is taken.
+TEST(QpDenseArm, TheRetryAnswersAShiftThatIsItselfFlagged) {
+    const double s = kDenseEquilibratedShift;
+    Eigen::MatrixXd m = Eigen::MatrixXd::Zero(4, 4);
+    m.topLeftCorner(2, 2).setOnes();
+    m(2, 2) = 1.0;
+    m(2, 3) = m(3, 2) = 1.0;
+    m(3, 3) = 1.0 - 2.0 * s + std::ldexp(1.0, -52);
+    const SpMatRM K = upper_of(m);
+    ASSERT_EQ(equilibration_scale(K), Vec::Ones(4));
+    KktFactor k(0, DensePolicy::kAlways);
+    Index flagged = 0, refactors = 0, retakes = 0;
+    {
+        const DenseTallyScope tally(k, flagged, refactors, retakes);
+        (void)factorize_checked(k, K, DenseShiftSite{4});
+    }
+    EXPECT_TRUE(k.dense_shifted);
+    EXPECT_EQ(flagged, 1);
+    EXPECT_EQ(refactors, 2);
+    EXPECT_EQ(k.shifted_exact_singular, 0); // the first shift was flagged, not exactly singular
+    EXPECT_EQ(retakes, 0);
+    // One estimate: the exact singularity and the 256 s factor's D-ratio need none.
+    EXPECT_EQ(k.factor.counters().dense_condition_estimate_count, 1);
 }
 
 // min 0.5 |x|^2 - x2 subject to rows of Ae at mu = 0, through solve_eqp on both arms.
@@ -532,7 +567,8 @@ TEST(QpDenseArm, TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges) {
     b << 27906.13193018271, 0.3 * std::sqrt(t), -0.1 * std::sqrt(t);
     const SpMatRM K = upper_of(m);
     KktFactor k(0, DensePolicy::kAlways);
-    ASSERT_TRUE(factorize_checked(k, K, DenseShiftSite{3, 0.0, 0.0}).shifted);
+    (void)factorize_checked(k, K, DenseShiftSite{3});
+    ASSERT_TRUE(k.dense_shifted);
     const Vec &d = k.dense_scale;
     const auto residual = [&](const Vec &y) {
         return Vec(b - K.selfadjointView<Eigen::Upper>() * y);
@@ -561,3 +597,107 @@ TEST(QpDenseArm, TheUnscaledMonitorStallsWhereTheEquilibratedOneConverges) {
 }
 
 } // namespace
+
+namespace {
+
+// A NEARLY INCONSISTENT DUPLICATED ROW on a small right-hand side: x0 + x1 = 1e-3 and
+// x0 + x1 = 1e-3 + 1e-9, g = (0, -1e-3, 0), at mu = 0. Every KKT matrix of the face is exactly
+// singular, so the dense arm answers it equilibrated and shifted. The shifted answer meets each
+// row to 5e-10 -- inside feas_tol = 1e-9 at the rows' unit scale -- but misses K by
+// rho ~ 5e-7 > kEqpShiftedResidualTol: a refused answer every row-based acceptance would take.
+QpProblem near_inconsistent_qp() {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    Vec be(2);
+    be << 1e-3, 1e-3 + 1e-9;
+    QpProblem qp = rows_qp(Ae, be, 1.0);
+    qp.g(1) = -1e-3;
+    return qp;
+}
+
+QpOptions mu_free_opts() {
+    QpOptions o;
+    o.dual_regularization = 0.0;
+    return o;
+}
+
+} // namespace
+
+// The premise of the three fixtures below, at solve_eqp: refused by rho, and every row met.
+TEST(QpDenseArm, ANearlyInconsistentFaceIsRefusedByRhoWithItsRowsMet) {
+    const QpProblem qp = near_inconsistent_qp();
+    const EqpRun d = eqp_on(DensePolicy::kAlways, qp, mu_free_opts());
+    EXPECT_EQ(d.refactors, 1);
+    EXPECT_EQ(d.retakes, 0);
+    EXPECT_TRUE(d.res.shifted_refused);
+    EXPECT_TRUE(d.res.residual_refused);
+    ASSERT_TRUE(d.res.x.allFinite());
+    const Vec r = qp.Ae * d.res.x - qp.be;
+    EXPECT_LE(r.lpNorm<Eigen::Infinity>(), 1e-9);
+}
+
+// THE TERMINAL MU-FREE REFINEMENT does not adopt a refused shifted answer, though its
+// row-and-bound adoption test would.
+TEST(QpDenseArm, TheMuFreeTerminalRefinementRejectsARefusedShiftedAnswer) {
+    const QpProblem qp = near_inconsistent_qp();
+    const QpOptions opts; // the walk's options: refine_terminal_mu_free zeroes mu itself
+    const QpEngine engine(opts, 0, DensePolicy::kAlways);
+    const WorkingSet ws(3, 0);
+    Vec x = Vec::Zero(3);
+    Vec lambda_e = Vec::Zero(2);
+    Vec lambda_i = Vec::Zero(0);
+    Vec z = Vec::Zero(3);
+    QpCounters counters;
+    EXPECT_FALSE(QpEngineTestAccess::terminal_mu_free(engine, qp, ws, x, lambda_e, lambda_i, z,
+                                                      counters, opts));
+    EXPECT_EQ(x, Vec::Zero(3));
+    EXPECT_EQ(counters.dense_shifted_solve_refusals, 1);
+    EXPECT_EQ(counters.terminal_mu_refine_rescues, 0);
+}
+
+// THE TERMINAL POLISH does not adopt a refused shifted answer, though it improves every KKT
+// residual of the incumbent (x = 0, rows violated by 1e-3).
+TEST(QpDenseArm, TheTerminalPolishRejectsARefusedShiftedAnswer) {
+    const QpProblem qp = near_inconsistent_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kAlways);
+    const WorkingSet ws(3, 0);
+    Vec x = Vec::Zero(3);
+    Vec lambda_e = Vec::Zero(2);
+    Vec lambda_i = Vec::Zero(0);
+    Vec z = Vec::Zero(3);
+    QpCounters counters;
+    EXPECT_FALSE(QpEngineTestAccess::terminal_polish(engine, qp, ws, x, lambda_e, lambda_i, z,
+                                                     counters, opts));
+    EXPECT_EQ(x, Vec::Zero(3));
+    EXPECT_EQ(counters.dense_shifted_solve_refusals, 1);
+    EXPECT_EQ(counters.terminal_polish_rejected, 1);
+    EXPECT_EQ(counters.terminal_polish_adopted, 0);
+}
+
+// THE BORDER PATH NEVER SOLVES THROUGH A SHIFTED K0 (the walk's default algebra): the pass takes
+// the eliminated path, whose solve_eqp refuses by rho, so the walk escalates instead of stepping
+// on the Schur stack's answer (which its constraint-row check alone would accept). On the
+// refactorize algebra the same refusal, and no K0.
+TEST(QpDenseArm, AShiftedK0IsNeverSolvedThroughAndTheEngineCountsTheRefusals) {
+    const QpProblem qp = near_inconsistent_qp();
+    for (const auto algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions o = mu_free_opts();
+        o.working_set_algebra = algebra;
+        const QpEngine sparse_engine(o, 0, DensePolicy::kNever);
+        const QpEngine dense_engine(o, 0, DensePolicy::kAlways);
+        const QpSolution s = sparse_engine.solve(qp);
+        const QpSolution d = dense_engine.solve(qp);
+        EXPECT_EQ(s.counters.dense_shifted_solve_refusals, 0);
+        EXPECT_EQ(s.counters.dense_shifted_k0_fallbacks, 0);
+        EXPECT_GE(d.counters.dense_shifted_solve_refusals, 1);
+        EXPECT_EQ(d.counters.dense_condition_fallbacks, 0);
+        if (algebra == QpWorkingSetAlgebra::kSchurBorder) {
+            EXPECT_GE(d.counters.dense_shifted_k0_fallbacks, 1);
+        } else {
+            EXPECT_EQ(d.counters.dense_shifted_k0_fallbacks, 0);
+        }
+    }
+}
