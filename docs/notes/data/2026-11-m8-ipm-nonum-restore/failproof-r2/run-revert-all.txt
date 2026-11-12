@@ -1,0 +1,254 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-revert-all/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:*/IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*
+[==========] Running 19 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from BackendErrorSeam
+[ RUN      ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine (3 ms)
+[ RUN      ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine (0 ms)
+[ RUN      ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult
+[       OK ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult (2 ms)
+[----------] 3 tests from BackendErrorSeam (6 ms total)
+
+[----------] 2 tests from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (2 ms)
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:786: Failure
+Expected equality of these values:
+  r.last_feasibility_restoration_entries.value_or(0)
+    Which is: 0
+  1
+numerical error: the dense step guard's refactorization at iteration 0 failed (numerical issue); no step can be computed
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:766: scale 1.76, pass 3, iteration 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:787: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration]
+    Which is: 0
+  1
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:766: scale 1.76, pass 3, iteration 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:788: Failure
+Expected: (run.event_x.size()) > (i + 1), actual: 1 vs 1
+the solve did not continue past the entering iteration
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:766: scale 1.76, pass 3, iteration 0
+
+[  FAILED  ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep (3 ms)
+[----------] 2 tests from IpmDenseGuardSeam (6 ms total)
+
+[----------] 8 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:273: Failure
+Expected: (r.message.find("neither an elastic re-centre nor feasibility restoration was " "available")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:484: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <06-00 00-00>
+  hven::SolveStatus::kAcceptable
+    Which is: 4-byte object <01-00 00-00>
+numerical error: the inertia-correction ladder at iteration 8 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:488: Failure
+Expected: (r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration ")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 8 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:490: Failure
+Expected: (r.message.find(" left no numerics")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 8 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:273: Failure
+Expected: (r.message.find("neither an elastic re-centre nor feasibility restoration was " "available")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration
+[       OK ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:679: Failure
+Expected: (row.barr_obj - bound_term) > (1e-4), actual: -4.0030212290764755e-08 vs 0.0001
+barr_obj 0.018869969392874532, bound term 0.018870009423086823, mu 0.001
+
+[  FAILED  ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:702: Failure
+Expected: (run.rows.size()) >= (2U), actual: 1 vs 2
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:743: Failure
+Expected: (run.rows.size()) >= (2U), actual: 1 vs 2
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop (0 ms)
+[----------] 8 tests from IpmNoNumericsSeam (5 ms total)
+
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:546: Failure
+Expected equality of these values:
+  r.last_feasibility_restoration_entries.value_or(0)
+    Which is: 0
+  1
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:550: Failure
+Expected: (run.event_x.size()) > (1U), actual: 1 vs 1
+the solve continued past the iteration that entered it
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:556: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[kRecoveryDepthRestoration]
+    Which is: 0
+  nested ? 2 : 1
+    Which is: 1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:557: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[kRecoveryDepthUnresolved]
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:560: Failure
+Expected equality of these values:
+  named_iteration(r.message)
+    Which is: 0
+  abort_iteration
+    Which is: 1
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:561: Failure
+Expected equality of these values:
+  run.rows.size()
+    Which is: 1
+  static_cast<std::size_t>(abort_iteration + 1)
+    Which is: 2
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:546: Failure
+Expected equality of these values:
+  r.last_feasibility_restoration_entries.value_or(0)
+    Which is: 0
+  1
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:550: Failure
+Expected: (run.event_x.size()) > (1U), actual: 1 vs 1
+the solve continued past the iteration that entered it
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:556: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[kRecoveryDepthRestoration]
+    Which is: 0
+  nested ? 2 : 1
+    Which is: 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:557: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[kRecoveryDepthUnresolved]
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:560: Failure
+Expected equality of these values:
+  named_iteration(r.message)
+    Which is: 0
+  abort_iteration
+    Which is: 2
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:561: Failure
+Expected equality of these values:
+  run.rows.size()
+    Which is: 1
+  static_cast<std::size_t>(abort_iteration + 1)
+    Which is: 3
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:585: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <06-00 00-00>
+  hven::SolveStatus::kAcceptable
+    Which is: 4-byte object <01-00 00-00>
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:589: Failure
+Expected: (r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration " "0 left no numerics")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:585: Failure
+Expected equality of these values:
+  r.status
+    Which is: 4-byte object <06-00 00-00>
+  hven::SolveStatus::kAcceptable
+    Which is: 4-byte object <01-00 00-00>
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:589: Failure
+Expected: (r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration " "0 left no numerics")) != (std::string::npos), actual: 18446744073709551615 vs 18446744073709551615
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:617: Failure
+Expected: (r.last_feasibility_restoration_entries.value_or(0)) >= (1), actual: 0 vs 1
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:618: Failure
+Value of: success(r.status)
+  Actual: false
+Expected: true
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00> (1 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:617: Failure
+Expected: (r.last_feasibility_restoration_entries.value_or(0)) >= (1), actual: 0 vs 1
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-revert-all/tests/sqp/test_ipm_dense_guard_seams.cpp:618: Failure
+Value of: success(r.status)
+  Actual: false
+Expected: true
+numerical error: the inertia-correction ladder at iteration 0 ended on a failed KKT factorization (numerical issue); no step can be computed
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (1 ms)
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 4 test suites ran. (22 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 13 tests, listed below:
+[  FAILED  ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+[  FAILED  ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[  FAILED  ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+[  FAILED  ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+[  FAILED  ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch, where GetParam() = 4-byte object <01-00 00-00>
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+
+13 FAILED TESTS

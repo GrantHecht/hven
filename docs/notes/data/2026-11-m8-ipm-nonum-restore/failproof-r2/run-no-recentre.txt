@@ -1,0 +1,83 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-recentre/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:*/IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*
+[==========] Running 19 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from BackendErrorSeam
+[ RUN      ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine (3 ms)
+[ RUN      ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine (0 ms)
+[ RUN      ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult
+[       OK ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult (1 ms)
+[----------] 3 tests from BackendErrorSeam (6 ms total)
+
+[----------] 2 tests from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (2 ms)
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep (3 ms)
+[----------] 2 tests from IpmDenseGuardSeam (6 ms total)
+
+[----------] 8 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (1 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration
+[       OK ] IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective
+[       OK ] IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop
+[       OK ] IpmNoNumericsSeam.AnAcceptableRestorationRowIsNeverAnAcceptableStop (0 ms)
+[ RUN      ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop
+[       OK ] IpmNoNumericsSeam.AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop (0 ms)
+[----------] 8 tests from IpmNoNumericsSeam (5 ms total)
+
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-no-recentre/tests/sqp/test_ipm_dense_guard_seams.cpp:556: Failure
+Expected equality of these values:
+  r.recovery_depth_histogram[kRecoveryDepthRestoration]
+    Which is: 1
+  nested ? 2 : 1
+    Which is: 2
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-no-recentre/tests/sqp/test_ipm_dense_guard_seams.cpp:560: Failure
+Expected equality of these values:
+  named_iteration(r.message)
+    Which is: 1
+  abort_iteration
+    Which is: 2
+numerical error: the inertia-correction ladder at iteration 1 ended on a failed KKT factorization (numerical issue); no step can be computed and neither an elastic re-centre nor feasibility restoration was available
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-no-recentre/tests/sqp/test_ipm_dense_guard_seams.cpp:561: Failure
+Expected equality of these values:
+  run.rows.size()
+    Which is: 2
+  static_cast<std::size_t>(abort_iteration + 1)
+    Which is: 3
+
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00> (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/ProximalSwitch (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.AnAcceptableIterateStopsBeforeRestorationIsEntered/L1Nested (0 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch (1 ms)
+[ RUN      ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested
+[       OK ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested (1 ms)
+[----------] 6 tests from BothStrategies/IpmNoNumericsRestorationSeam (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 19 tests from 4 test suites ran. (22 ms total)
+[  PASSED  ] 18 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested, where GetParam() = 4-byte object <02-00 00-00>
+
+ 1 FAILED TEST
