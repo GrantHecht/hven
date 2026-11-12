@@ -1277,14 +1277,22 @@ TEST(DenseArmThreads, ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne) {
     }
     mkl_set_num_threads(global_before);
     ASSERT_EQ(info, 0);
+    // MKL caps the count at the machine's cores, so the premise is only that the bare call
+    // ran threaded (> 1), not that it ran at exactly 4.
     bool saw = false;
+    int premise_thr = 0;
     for (const auto &[name, nthr] : mkl_verbose_calls(premise_out)) {
         if (name.rfind("DSYTRF", 0) == 0) {
             saw = true;
-            EXPECT_EQ(nthr, 4) << name;
+            premise_thr = nthr;
         }
     }
     EXPECT_TRUE(saw) << premise_out;
+    if (premise_thr <= 1) {
+        GTEST_SKIP() << "the bare dsytrf ran at NThr:" << premise_thr
+                     << " under a global count of 4: the pin is unobservable on this machine";
+    }
+    EXPECT_GT(premise_thr, 1);
     ASSERT_EQ(fo.status, FactorizeOutcome::Status::kOk);
     ASSERT_EQ(fo.arm, FactorArm::kDense);
     const auto calls = mkl_verbose_calls(arm_out);
