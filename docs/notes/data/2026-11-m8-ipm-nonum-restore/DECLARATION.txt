@@ -1,0 +1,124 @@
+M8 IPM no-numerics restoration routing (review of the IPM ladder status round, findings F1-F7) -- DECLARATION
+(committed before the first identity leg; never edited afterwards; a failed or void leg is answered by DECLARATION-r2,
+this file and its outputs kept; criteria are never changed after data; every invocation below uses ABSOLUTE paths)
+================================================================================
+Base        b9626e7e5 (origin/m8).
+Code head   632ba77cc -- one commit on the base. Evidence commits (this directory) follow and touch no source.
+Arm A       the base: `git archive b9626e7e5` exported to build-nonum/base-src (dep/eigen, dep/fmt copied from the
+            worktree's submodules at bc3b39870/407c905e4), built Release by legs/build.sh in build-nonum/armA-rel (target
+            hven_sqp_corpus), frozen to build-nonum/armAbin/hven_sqp_corpus, sha256
+            5ba57d305a57f3e14820e67f9bc0686a58806914bb2d9daa4dc7f78b997139fb. (Its source path differs from arm B's; only
+            embedded path strings can differ from a same-tree build, never code.)
+Arm B       the code head: build-nonum/rel (Release, every target), hven_sqp_corpus sha256
+            a0a715886a3a85dee64b2163629797e72b0da742b04baadbc03995ce3bf8f7a3, frozen by runtime/run_all.sh to
+            build-nonum/armBbin. build-nonum/dbg (Debug, every target) at the head.
+Toolchain   clang 22.1.8, HVEN_FP_MODE=SAFER_FAST (Release: -O3 -march=native -ffast-math -fno-finite-math-only), Eigen
+            5.0.1 (dep/eigen bc3b3987), MKL 2026.2, MKL_NUM_THREADS=1. AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, perf
+            7.2.12. Apple/Accelerate and Windows: UNOBSERVED (macOS CI is the settler's).
+Worktree    /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122. Scratch build-nonum/ (git-ignored).
+Instruments legs/build.sh, legs/ctest.sh, legs/replay.sh, legs/interior.sh, legs/chain.sh =
+            ../2026-11-m8-ipm-ladder-status/legs/'s, copied and re-pointed in code lines (worktree, build-nonum/, this
+            directory; replay outputs nnr-*; failproof base b9626e7e5); legs/failproof.sh rewritten for this round's
+            mutations (P4); runtime/ = ../2026-11-m8-ipm-ladder-status/runtime/, re-pointed (runtime/DECLARATION.txt, which
+            records the path-depth check: five levels, as the source). No pch leg: no include list changed.
+
+THE FINDINGS AND THE ROUTING (lines at the code head, src/drivers/ipm_solver.cpp)
+--------------------------------------------------------------------------------
+F1  3808 kkt_no_numerics after factor_impl (no stop_detail_ written there any more); 4017-4019 split on the kind of the
+    last factorization's info(): kkt_no_numerics_numeric (Eigen::NumericalIssue) / kkt_no_numerics_hard (anything else).
+    4224 the exhausted-inertia dispatch is entered on `(kkt_exhausted && GoodStep) || kkt_no_numerics_numeric`:
+    elastic re-centre (nested active; closed-form, no solve) -> restoration entry 4244 (dispatch_restoration_entry ->
+    enter_feasibility_restoration: reads the residual vectors, barr_obj, mu; no solve -- verified by reading
+    ipm_solver.cpp:1473-1545, 1730-1736) -> abort. A hard error terminates at the tail (4538) as before.
+F2  4000-4003 the dense guard's failed re-run sets kkt_no_numerics (+ kkt_no_numerics_at_guard for the message); DXSL is
+    zeroed (the guard-rejected step discarded), and the same split/routing applies. No stale DXSL / GoodStep route.
+F3  3919 when the governor is skipped (3898), its tail runs WITHOUT the update: barr_obj = detail::barrier_objective
+    (slacks, mu), dual_grad = detail::barrier_gradient(slacks, iq_lmults, mu) at the current mu (no PROBE solve); the
+    bound term is then added at the existing site.
+F4  the 3803-3807 comment's "at its committed iterate" is gone (the comment now says the routing is decided later);
+    docs/testing.md and the test file qualify it: with return_best off; with it on, the best recorded iterate,
+    flagged returned_best_iterate (new test).
+F5  stop reason pinned kNone; the guard route's x pinned unmoved; restoration configured (entered, no throw) and
+    unavailable (kNumericalError) tests; InvalidInput pinned ("(backend error)") through FactorizeFaultInjector with a
+    per-platform hard code on a session that never factorized (its faithful scope); the sparse arm's non-injectability
+    noted next to the tests and in docs/testing.md.
+F6  include/hven/core/errors.h: a backend code RETURNED by an interior-point KKT factorization is a status; an exception
+    THROWN by the linear layer (memory, session) propagates as BackendError.
+F7  FALLS OUT of F1: 4248-4254 the no-numerics abort stops kAcceptable (exit_at_acceptable) when the committed iterate
+    passes interior_point_iterate_acceptable -- the un-evaluable dispatch's rule -- and otherwise sets
+    no_numerics_abort (4103). Only at abort (restoration preferred when available). The wrong-inertia (kkt_exhausted)
+    abort keeps SINGULAR_KKT decisive, unchanged.
+    Tail: 4509 the !GoodStep DIVERGING override excludes kkt_no_numerics (no direction is not a non-finite one); 4538
+    kNumericalError + kNone + stop_detail_ only for a hard error or no_numerics_abort; 4151 Citer.accepted = false on
+    no numerics.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY at the defaults)
+--------------------------------------------------------------------------------
+D0  THE ROUTING above. Behaviour differs ONLY when an iteration's last KKT factorization (the ladder's or the dense guard
+    re-run's) reports info() != Success. MKL Pardiso perturbs through every fixture (it never refuses), so no cell of
+    any battery reaches it.
+D1  ENGINES AT THE DEFAULTS: NO MOVERS -- replay P2, interior P3, runtime counter identity P5. If any identity cell
+    moves: STOP and hand back.
+D2  API: no new public name, status, stop reason or counter. Message wording (PROVISIONAL): a numeric refusal nothing
+    resolved -- "numerical error: the inertia-correction ladder at iteration <i> ended on a failed KKT factorization
+    (numerical issue); no step can be computed and neither an elastic re-centre nor feasibility restoration was
+    available" (the guard's: "the dense step guard's refactorization at iteration <i> failed (numerical issue); ...");
+    a hard error -- "...(backend error); no step can be computed". A no-numerics iteration now increments
+    recovery_depth_histogram (restoration or unresolved bucket) as the exhausted-inertia dispatch always has.
+D3  TESTS: 3592 registered (base 3585 + 7), hven_sqp_seam_tests: IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusMidSolve
+    renamed ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere (now kAcceptable, F7); new
+    IpmNoNumericsSeam.{ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest,
+    AHardBackendErrorEndsTheSolveWithoutRestoration, TheAbortedIterationsRowCarriesItsBarrierObjective} and
+    BothStrategies/IpmNoNumericsRestorationSeam.{ANumericRefusalEntersRestoration,
+    ANumericRefusalIsRecoveredThroughRestoration}/{ProximalSwitch,L1Nested}; IpmNoNumericsSeam.{...AtTheFirstIteration,
+    ...BeforeTheProbePredictor} and IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep strengthened (stop
+    reason kNone, message kind, x unmoved; the pass search admits kAcceptable for non-route passes). Injected codes are
+    per platform (MKL -4 numeric / -1 hard; Accelerate SparseFactorizationFailed / SparseInternalError).
+D4  No iparm change, no IPARM-SURFACE label; no notices/ change; no trace key; no include list change in src/include.
+
+PROOFS AND PASS CRITERIA (legs/, runtime/; each under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` empty first)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-nonum/rel) and Debug (build-nonum/dbg), -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3590" in both (3592 registered minus the two pre-existing DISABLED tests
+    EqpRefinementAb.FootprintRuleProbe and EqpRefinementAb.FullBattery, which ctest's summary excludes); skips
+    identical in kind to the ladder round's (Release: FailByDesignControl only; Debug: that plus the YORKNET/STEENBRB/
+    ACOPP118 fixtures) (legs/ctest.sh; logs suites/). (Measured on a dev run of the same sources before this
+    declaration: 3590 / 3590 both trees.)
+P2  27-cell replay x (walk, ssn, ipm) on arm B's tree: EXACT against docs/notes/data/2026-10-m7-wx2-gates/gates/replay/
+    head-*.csv via scripts/compare_replay.py, 0 differences each (x3) (legs/replay.sh; replay/).
+P3  interior: arm A vs arm B, 27 cells, compare_replay.py EXACT 0 differences (unmoved); arm B under the promoted
+    baseline's invocation against bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv EXACT 0 differences
+    (promoted) (legs/interior.sh; interior/).
+P4  THE FALSIFIER (legs/failproof.sh; eight mutations of the code head's `git archive` export, each fail closed unless
+    its site occurs exactly once; Release, hven_sqp_seam_tests; filter
+    IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:*/IpmNoNumericsRestorationSeam.*:BackendErrorSeam.*, 14 tests; failproof/):
+    FAILPROOF_AS_DECLARED -- the head runs 14 and fails none, its route property reads "scale 1.76 pass 3"; each
+    mutation fails EXACTLY (BS = BothStrategies/IpmNoNumericsRestorationSeam, NN = IpmNoNumericsSeam):
+      revert-all (ipm_solver.cpp := b9626e7e5's): 8 -- BS.ANumericRefusalEntersRestoration/{L1Nested,ProximalSwitch},
+        BS.ANumericRefusalIsRecoveredThroughRestoration/{L1Nested,ProximalSwitch},
+        NN.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere, NN.ALadderEndingWithoutNumericsIsAStatusAt
+        TheFirstIteration, NN.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor,
+        NN.TheAbortedIterationsRowCarriesItsBarrierObjective;
+      no-route (kkt_no_numerics_numeric := false): 8 -- the four BS, IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolve
+        WithoutItsStep, NN.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere, NN...AtTheFirstIteration,
+        NN...BeforeTheProbePredictor;
+      no-barrier-tail: 1 -- NN.TheAbortedIterationsRowCarriesItsBarrierObjective;
+      no-acceptable-exit: 1 -- NN.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere;
+      no-guard-site: 1 -- IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep;
+      no-probe-guard: 2 -- NN...BeforeTheProbePredictor, NN.TheAbortedIterationsRowCarriesItsBarrierObjective (LOQO
+        moves mu to 1e-12 when the governor runs);
+      diverging-override: 5 -- the four BS, NN.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere;
+      hard-continues: 1 -- NN.AHardBackendErrorEndsTheSolveWithoutRestoration.
+    The exact name lists are failproof.sh's WANT_* lines. The three BackendErrorSeam tests and
+    NN.ALadderEndingWithoutNumericsReturnsTheBestIterateUnderReturnBest pass under every arm. (Measured on a dev run
+    before this declaration: build-nonum/dev-fp, exactly these sets.)
+P5  runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode (interior, ipm, ssn, walk),
+    THROTTLE 0, filtered B/A in [0.995, 1.005] per mode; perf record period 400000. Run because the change touches
+    the interior-point engine's per-iteration loop. Run FIRST and alone.
+NOT RUN (proportionate): census, S/T legs, objects/flags diffs, install smoke, pch neutrality, Accelerate sweep. They are
+run only if P2, P3 or P5 fails identity.
+ORDER: P5 alone first, then legs/chain.sh (P1, P2, P3, P4):
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/docs/notes/data/2026-11-m8-ipm-nonum-restore/runtime/run_all.sh a0a715886a3a85dee64b2163629797e72b0da742b04baadbc03995ce3bf8f7a3
+  flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/docs/notes/data/2026-11-m8-ipm-nonum-restore/legs/chain.sh 632ba77cc a0a715886a3a85dee64b2163629797e72b0da742b04baadbc03995ce3bf8f7a3
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data. If identity (P2, P3, P5 counters)
+moves any cell: STOP and hand back with the diagnosis.
