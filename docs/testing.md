@@ -271,13 +271,29 @@ guarded by `#ifdef HVEN_TESTING`:
   dense guard's failed re-run (DN-1b review F8;
   `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
   `hven_sqp_seam_tests`), which no real backend reaches; the IPM's
-  no-numerics exits (`IpmNoNumericsSeam.*`, same file and target: armed from a
-  later pass on a `kAlways` solve, with `FactorizeFaultInjector` failing the
-  platform session that never factorized -- its faithful scope -- every
+  no-numerics routing (`IpmNoNumericsSeam.*` and
+  `BothStrategies/IpmNoNumericsRestorationSeam.*`, same file and target: armed
+  from a later pass on a `kAlways` solve, with `FactorizeFaultInjector` failing
+  the platform session that never factorized -- its faithful scope -- every
   factorization from that pass on leaves no numerics, which is what a backend
-  refusing every rung of the inertia-correction ladder looks like; the solve
-  must return `kNumericalError` at its committed iterate, at the step solve, at
-  the PROBE predictor's solve and at the guard's failed re-run); the SQP response's last
+  refusing every rung of the inertia-correction ladder looks like. The injected
+  code is chosen per platform so that each kind is reached on each backend: a
+  numeric refusal (Pardiso -4, Accelerate `SparseFactorizationFailed`) takes the
+  exhausted-inertia dispatch -- restoration is entered when configured, and
+  with neither re-centre nor restoration available the solve stops `kAcceptable`
+  at an acceptable-tier iterate or ends `kNumericalError` (stop reason `kNone`),
+  without throwing, at the step solve, at the PROBE predictor's solve and at the
+  guard's failed re-run; a hard backend error (Pardiso -1, Accelerate
+  `SparseInternalError`) ends `kNumericalError` at once, restoration never
+  entered. "At the committed iterate" holds with `return_best` off; with it on,
+  the best recorded iterate is returned and flagged. The restoration recovery
+  case disarms both injectors from the iteration callback once restoration has
+  begun; every later dense attempt is then a real one, so that stays inside the
+  faithful scope. THE SPARSE ARM IS NOT FAITHFULLY INJECTABLE for any of this:
+  on a sparse solve the platform session's initial factorization succeeds, and
+  failing a later one is the succeeded-then-fails scenario this injector does
+  not model; the sparse arm runs the same alg_impl code after `factor_impl`,
+  which is inspection-only there); the SQP response's last
   resort (`QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform` in
   `hven_qp_walk_seam_tests`: both equilibrated attempts read as failed; the retake
   is the platform session's own factorization); and the IPQP's exactly singular

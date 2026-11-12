@@ -3799,21 +3799,14 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         Citer.h_facs =
             this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum, base_prox,
                               dual_shift, kkt_exhausted, false, kkt_dc_applied);
-        // A LADDER THAT ENDED ON A FAILED FACTORIZATION LEFT NO NUMERICS: a
-        // status, never the linear layer's precondition error from a solve
-        // (the init path's rule, applied to every iteration). Nothing below
-        // reads the factorization -- not the PROBE predictor, not the step
-        // solve -- and the phase ends kNumericalError at the loop tail, at the
-        // committed iterate, with no step taken (see kkt_no_numerics there).
+        // A LADDER THAT ENDED ON A FAILED FACTORIZATION LEFT NO NUMERICS. Nothing
+        // below reads the factorization -- not the PROBE predictor, not the step
+        // solve -- so the iteration has no direction. What happens instead is
+        // decided by the failure's kind once the step solve's site has been
+        // passed (the dense guard's re-run can end the same way; see
+        // kkt_no_numerics_numeric there).
         bool kkt_no_numerics = this->kkt_sol_.info() != Eigen::Success;
-        if (kkt_no_numerics) [[unlikely]] {
-            this->stop_detail_ =
-                fmt::format("the inertia-correction ladder at iteration {} ended on a failed KKT "
-                            "factorization ({}); no step can be computed",
-                            i,
-                            this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue"
-                                                                           : "backend error");
-        }
+        bool kkt_no_numerics_at_guard = false;
 
         if (Citer.h_facs > 0) {
             // Hpert0 warm-start MUST keep consuming nhpert (the last perturbation
@@ -3923,6 +3916,15 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 mu = governor_->update_barrier(barmode, mu, avgcomp, mincomp, XSL, RHS, DXSL, Temp,
                                                *mechanism_, ctx, barr_obj, Citer, mu_event);
             }
+        } else if (kkt_no_numerics && (this->inequal_cons_ > 0 || this->bounds_)) [[unlikely]] {
+            // THE GOVERNOR'S TAIL WITHOUT ITS UPDATE: the slack barrier objective
+            // and dual gradient at the CURRENT mu, the arithmetic every governor's
+            // tail runs (detail::barrier_objective / barrier_gradient), so the
+            // iterate row and a restoration entry below read this iterate's own
+            // barrier account at the mu they are handed. mu does not move: no
+            // oracle runs, and the PROBE predictor would solve.
+            barr_obj = detail::barrier_objective(v_xsl.slacks(), mu, this->inequal_cons_);
+            detail::barrier_gradient(v_xsl.slacks(), v_xsl.iq_lmults(), mu, v_rhs.dual_grad());
         }
 
         // Variable-bound contribution to THIS iterate's barrier objective. Every
@@ -3991,19 +3993,30 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                         rho_k = hven::detail::prox_reg_decay(
                             base_prox + nhpert, opts_.advanced.inertia_correction_decrease);
                 }
-                // The guard's re-run left no numerics: the step it was for is not
-                // taken and, as for the ladder above, the phase ends here.
+                // The guard's re-run left no numerics: the step the guard rejected
+                // is discarded (DXSL is zeroed below, whatever the solve left in
+                // it) and the iteration is routed exactly as a ladder that ended
+                // without numerics.
                 if (this->kkt_sol_.info() != Eigen::Success) [[unlikely]] {
                     kkt_no_numerics = true;
-                    this->stop_detail_ = fmt::format(
-                        "the dense step guard's refactorization at iteration {} failed ({}); no "
-                        "step can be computed",
-                        i,
-                        this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue"
-                                                                       : "backend error");
+                    kkt_no_numerics_at_guard = true;
                 }
             }
         }
+        // NO NUMERICS, SPLIT ON THE FAILURE'S KIND (Wächter & Biegler 2006,
+        // Algorithm IC: a matrix the inertia correction cannot make usable is
+        // treated like wrong inertia past the largest perturbation -- the
+        // direction is abandoned, no line search runs, and the iteration goes to
+        // restoration; the solve gives up only when restoration cannot help).
+        //   * A numeric refusal (Eigen::NumericalIssue: Pardiso -4/-7, a dense
+        //     exactly singular read, Accelerate's factorization-failed/singular)
+        //     takes the exhausted-inertia dispatch below -- elastic re-centre,
+        //     then restoration entry, then abort -- with no step.
+        //   * Any other failure is a hard backend error: the phase ends
+        //     kNumericalError at the loop tail (kkt_no_numerics_hard).
+        const bool kkt_no_numerics_numeric =
+            kkt_no_numerics && this->kkt_sol_.info() == Eigen::NumericalIssue;
+        const bool kkt_no_numerics_hard = kkt_no_numerics && !kkt_no_numerics_numeric;
         if (kkt_no_numerics) [[unlikely]] {
             DXSL.setZero();
             alpha = 0.0;
@@ -4070,7 +4083,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // below.
         const int eval_errs_before = this->eval_error_log_.count_;
 
-        // Set only by the un-evaluable-step bypass below, when the committed
+        // Set by the un-evaluable-step bypass below and by the no-numerics
+        // abort, when the committed
         // iterate already satisfies the acceptable tier: it forces this
         // iteration to be the last one, so the solve reports the acceptable
         // level instead of aborting. Read once, next to the !GoodStep
@@ -4082,6 +4096,11 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // Terminates the phase as SINGULAR_KKT at the loop tail (same idiom as
         // exit_at_acceptable / exit_stage_stalled).
         bool singular_abort = false;
+        // Set by the same dispatch when it was entered for a factorization that
+        // left no numerics (a numeric refusal) and nothing could resolve it and
+        // the committed iterate is not acceptable. Ends the phase kNumericalError
+        // (stop reason kNone, the message naming the failed factorization).
+        bool no_numerics_abort = false;
 
         // Set by the un-evaluable dispatch below when nothing can recover: every
         // trial evaluation failed, the iterate is not acceptable and restoration
@@ -4129,7 +4148,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // dedicated dispatch below decides what happens instead. The non-finite
         // case (!GoodStep) already exits as DIVERGING at the loop tail -- the
         // non-finite verdict dominates and needs no special-casing here.
-        if (kkt_exhausted)
+        if (kkt_exhausted || kkt_no_numerics)
             Citer.accepted = false;
 
         Funtimer.stop();
@@ -4190,7 +4209,19 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // divert this route: SINGULAR_KKT is decisive over the un-evaluable
         // dispatch's acceptable-tier exit (see the loop tail), and the
         // exception count still lands in the iterate via eval_exceptions_.
-        if (kkt_exhausted && GoodStep) {
+        //
+        // A FACTORIZATION THAT LEFT NO NUMERICS ON A NUMERIC REFUSAL takes this
+        // route too (Algorithm IC treats a singular matrix like wrong inertia),
+        // with no step at all: DXSL is zero and alpha 0, and none of the three
+        // outcomes below solves -- the re-centre is closed-form on the saved
+        // residuals, the restoration entry reads the residual vectors, the
+        // iterate's barrier account (the governor's tail at the current mu, run
+        // above in place of the governor) and mu. Its abort differs in one
+        // respect: it has no wrong-inertia numerics to call decisive, so an
+        // iterate already at the acceptable tier stops there, as the
+        // un-evaluable dispatch's does, and anything else ends kNumericalError
+        // with the failed factorization named.
+        if ((kkt_exhausted && GoodStep) || kkt_no_numerics_numeric) {
             int resolved_depth = kRecoveryDepthUnresolved;
             if (nested_active && this->try_recenter_elastics(step_mu)) {
                 // Nested l1 restoration active: re-center the elastic pairs in
@@ -4214,6 +4245,14 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                                                      feas_stall);
                     alpha = 0.0;
                     resolved_depth = kRecoveryDepthRestoration;
+                } else if (kkt_no_numerics_numeric) {
+                    // Nothing can resolve a factorization that left no numerics:
+                    // stop at an acceptable iterate, otherwise abort.
+                    alpha = 0.0;
+                    if (interior_point_iterate_acceptable(Citer, opts_))
+                        exit_at_acceptable = true;
+                    else
+                        no_numerics_abort = true;
                 } else {
                     // Nothing can resolve it: discard the step and abort the
                     // phase as SINGULAR_KKT at the loop tail.
@@ -4464,7 +4503,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // and the two dispatch sites above.
 
         ExitCode = this->converge_check(iters);
-        if (!GoodStep)
+        // A factorization that left no numerics has no direction, not a
+        // non-finite one: it is never DIVERGING (it ends below, or continues
+        // from the dispatch's outcome).
+        if (!GoodStep && !kkt_no_numerics)
             ExitCode = SolveStatus::kDiverging;
         // Un-evaluable exhaustion at an already-acceptable iterate (see the
         // bypass above): report the acceptable level so the exit block below
@@ -4474,9 +4516,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // "current point is acceptable, stop here" verdict. A stronger verdict
         // already reached (CONVERGED) is left alone; DIVERGING is unreachable
         // here both because the bypass only runs on a usable step direction
-        // (the !GoodStep override above is mutually exclusive with it) and
-        // because an acceptable iterate is finite and inside the divergence
-        // thresholds (validate() enforces acc <= div).
+        // or on no direction at all (the !GoodStep override above excludes
+        // both) and because an acceptable iterate is finite and inside the
+        // divergence thresholds (validate() enforces acc <= div). The
+        // no-numerics dispatch's abort sets it on the same terms.
         if (exit_at_acceptable && ExitCode == SolveStatus::kIterationLimit)
             ExitCode = SolveStatus::kAcceptable;
 
@@ -4487,12 +4530,23 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             ExitCode = SolveStatus::kNumericalError;
 
         // No numerics to solve on (the ladder's or the dense guard's last
-        // factorization failed): kNumericalError with no reason of its own, as
-        // a failed initial factorization; stop_detail_ says what failed. The
-        // step was not taken. Decisive over the !GoodStep DIVERGING override.
-        if (kkt_no_numerics) [[unlikely]] {
+        // factorization failed) and the iteration cannot continue -- a hard
+        // backend error, or a numeric refusal nothing resolved at an iterate
+        // short of the acceptable tier: kNumericalError with no reason of its
+        // own, as a failed initial factorization; stop_detail_ says what failed.
+        // No step was taken.
+        if (kkt_no_numerics_hard || no_numerics_abort) [[unlikely]] {
             ExitCode = SolveStatus::kNumericalError;
             this->last_stop_reason_ = IpmStopReason::kNone;
+            this->stop_detail_ = fmt::format(
+                "{} at iteration {} {} ({}); no step can be computed{}",
+                kkt_no_numerics_at_guard ? "the dense step guard's refactorization"
+                                         : "the inertia-correction ladder",
+                i, kkt_no_numerics_at_guard ? "failed" : "ended on a failed KKT factorization",
+                kkt_no_numerics_hard ? "backend error" : "numerical issue",
+                kkt_no_numerics_hard ? ""
+                                     : " and neither an elastic re-centre nor feasibility "
+                                       "restoration was available");
         }
 
         // An un-evaluable iteration nothing could recover (see the dispatch

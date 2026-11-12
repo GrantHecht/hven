@@ -11,12 +11,17 @@
 //   * Contract violations -- bad sizes or bounds, invalid options, a structure
 //     change between solves, a Hessian-less problem on the interior-point
 //     engine, a pieces problem on the SQP engine -- throw std::invalid_argument.
-//   * Backend failures the engine cannot report as a status (a factorization
-//     library error, backend memory exhaustion) throw BackendError. A failed
-//     factorization the engine CAN report -- every interior-point KKT
-//     factorization that leaves no numerics, the initial one and an
-//     iteration's last inertia-correction attempt among them -- is a status
-//     (kNumericalError), never a throw.
+//   * Backend failures the engine cannot report as a status throw BackendError.
+//     On the interior-point engine the line is drawn by HOW the failure
+//     arrives: a backend code RETURNED by a KKT factorization is a status,
+//     never a throw -- the initial factorization's, an iteration's last
+//     inertia-correction attempt's, the dense step guard's re-run's (a numeric
+//     refusal goes to the solver's recovery first: elastic re-centre, then
+//     feasibility restoration; kNumericalError when neither can act, short of
+//     an acceptable-tier iterate, which stops kAcceptable -- and any other
+//     code is kNumericalError at once); an exception THROWN by the linear layer
+//     (backend memory exhaustion, a session failure) propagates as
+//     BackendError.
 //   * EvaluationError is the model's own signal that it cannot evaluate at the
 //     point it was handed. Thrown at a TRIAL point (a line-search or trust-region
 //     trial, a second-order correction, a restoration trial, or the derivatives
