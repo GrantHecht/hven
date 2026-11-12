@@ -52,8 +52,7 @@ namespace hven::linear::detail {
 namespace {
 
 // The dense arm's per-call thread pin at kDenseArmThreads, restored on exit.
-// MKL: MklThreadScope. Accelerate: BLASSetThreading where the SDK declares it
-// and the running OS has it (thread-local, binary); elsewhere a no-op.
+// MKL: MklThreadScope. Accelerate: no-op; it runs at its default threading.
 #if !defined(HVEN_USE_ACCELERATE_LAPACK)
 class DenseArmThreadPin {
   public:
@@ -61,31 +60,6 @@ class DenseArmThreadPin {
 
   private:
     MklThreadScope scope_;
-};
-#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
-static_assert(kDenseArmThreads == 1, "BLASSetThreading pins single-threaded only");
-class DenseArmThreadPin {
-  public:
-    DenseArmThreadPin() {
-        if (__builtin_available(macOS 15.0, *)) {
-            previous_ = static_cast<int>(BLASGetThreading());
-            engaged_ = true;
-            BLASSetThreading(BLAS_THREADING_SINGLE_THREADED);
-        }
-    }
-    ~DenseArmThreadPin() {
-        if (engaged_) {
-            if (__builtin_available(macOS 15.0, *)) {
-                BLASSetThreading(static_cast<BLAS_THREADING>(previous_));
-            }
-        }
-    }
-    DenseArmThreadPin(const DenseArmThreadPin &) = delete;
-    DenseArmThreadPin &operator=(const DenseArmThreadPin &) = delete;
-
-  private:
-    bool engaged_ = false;
-    int previous_ = 0;
 };
 #else
 class DenseArmThreadPin {};

@@ -60,9 +60,9 @@ DenseRookCount dense_rook_walk(const double *a, Index n, const int *ipiv);
 inline constexpr double kDenseSingularScreen = 1e-15;
 inline constexpr double kDenseConditionSingular = 0.5 * std::numeric_limits<double>::epsilon();
 
-// Every LAPACK call the dense arm makes runs at this thread count, under every
-// dense policy (threaded dsytrf inertia is not reproducible on undecidable
-// matrices). Options::threads is stored (num_threads()) and configures the
+// Every MKL LAPACK call the dense arm makes runs at this thread count, under
+// every dense policy (threaded dsytrf inertia is not reproducible on undecidable
+// matrices). Accelerate runs at its default threading. Options::threads is stored (num_threads()) and configures the
 // platform session only.
 inline constexpr int kDenseArmThreads = 1;
 
@@ -135,7 +135,7 @@ class DenseSession {
 
     const SymmetricFactor::Options &options() const noexcept { return opts_; }
     // The configured count, stored for the platform session; the dense arm's own
-    // calls run at kDenseArmThreads.
+    // MKL calls run at kDenseArmThreads.
     int num_threads() const noexcept { return opts_.threads; }
     void set_num_threads(int num_threads) noexcept { opts_.threads = num_threads; }
 

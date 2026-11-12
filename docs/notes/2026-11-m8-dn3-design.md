@@ -215,6 +215,10 @@ samples were 0 % on OpenMP worker threads). The pin moves `kAlways` at the defau
 which is a declared event in the implementation round, and moves nothing at `MKL_NUM_THREADS=1`.
 **Q4**: pin under every dense policy (proposed), or under `kAuto` only.
 
+*Note, 2026-11-12 (owner ruling):* the Apple arm of the pin (`BLASSetThreading` around each dense
+call, macOS 15+) was removed. The pin is `MklThreadScope(1)` on MKL and a no-op on Accelerate, which
+runs at its default threading. Accelerate dense-arm threading is UNOBSERVED.
+
 ## 4. The measurement protocol
 
 The full criteria are in the DECLARATION. In summary:
