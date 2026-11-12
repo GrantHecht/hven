@@ -1,0 +1,99 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T21:58:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T21:58:24-05:00
+
+The following tests did not run:
+	755 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2267 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2268 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-11T21:59:54-05:00
+STEP ctest-rel rc=0 2026-11-11T21:59:54-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T21:59:54-05:00
+	578 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	579 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	755 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2267 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2268 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-11T22:06:49-05:00
+STEP ctest-dbg rc=0 2026-11-11T22:06:49-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T22:06:49-05:00
+ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78  /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-11T22:06:50-05:00
+run rc=0
+compare rc=0
+=== nan-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-11T22:11:38-05:00
+run rc=0
+compare rc=0
+=== nan-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-11T22:11:58-05:00
+run rc=0
+compare rc=0
+=== nan-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-11T22:12:24-05:00
+STEP replay rc=0 2026-11-11T22:12:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T22:12:24-05:00
+a86ef490b29e2e7cf3a98905270d37d769cecc390a576ac748704d08a1c92c8b  /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/armAbin/hven_sqp_corpus
+ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78  /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/nan/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-11T22:12:58-05:00
+STEP interior rc=0 2026-11-11T22:12:58-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T22:12:58-05:00
+MUTATED helper-lpnorm
+build helper-lpnorm rc=0
+helper-lpnorm hven_tests rc=1
+helper-lpnorm walk_seam rc=1
+helper-lpnorm sqp rc=1
+[  PASSED  ] 4 tests.
+[  PASSED  ] 1 test.
+[  PASSED  ] 0 tests.
+helper-lpnorm failing=8: NanStickyInfNorm.ANaNAtEveryIndexReadsNaN NanStickyInfNorm.ANaNFirstMiddleOrLastReadsNaNThroughExpressions NanStickyInfNorm.AnInfReadsInfAndANaNBesideAnInfReadsNaN QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN SqpRestorationNanGate.TheSubgradientCertificateRefusesANonFirstNaN 
+MUTATED max-std
+build max-std rc=0
+max-std hven_tests rc=1
+max-std walk_seam rc=1
+max-std sqp rc=0
+[  PASSED  ] 6 tests.
+[  PASSED  ] 4 tests.
+[  PASSED  ] 1 test.
+max-std failing=2: NanStickyMax.ANaNInEitherArgumentIsKept QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow 
+head hven_tests rc=0
+head walk_seam rc=0
+head sqp rc=0
+[  PASSED  ] 7 tests.
+[  PASSED  ] 5 tests.
+[  PASSED  ] 1 test.
+head failing=0: 
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-11T22:18:25-05:00
+STEP failproof rc=0 2026-11-11T22:18:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T22:18:25-05:00
+   object count matches the compile database: 57/57
+   libhven.a: identical
+   objects compared: 58, differing: 0
+
+PASS: PCH engaged on 4 translation units, and all 58
+      emitted artifacts are byte-identical with and without it.
+rc=0
+FOREGROUND_END 2026-11-11T22:19:32-05:00
+STEP pch rc=0 2026-11-11T22:19:32-05:00
+worst=0
+FOREGROUND_END 2026-11-11T22:19:32-05:00

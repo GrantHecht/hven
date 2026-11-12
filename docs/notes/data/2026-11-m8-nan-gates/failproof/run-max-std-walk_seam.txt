@@ -1,0 +1,36 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-max-std/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpNanGates.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from QpNanGates
+[ RUN      ] QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses
+[       OK ] QpNanGates.TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses (2 ms)
+[ RUN      ] QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN
+[       OK ] QpNanGates.TheBorderedShiftedRatioReadsANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN
+[       OK ] QpNanGates.TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN
+[       OK ] QpNanGates.TheUnregularizedPolishDoesNotFallToANonFirstNaN (0 ms)
+[ RUN      ] QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-max-std/tests/qp/test_qp_dense_arm.cpp:1387: Failure
+Value of: std::isnan(QpEngineTestAccess::face_measure(engine, qp, ws, x, o))
+  Actual: false
+Expected: true
+1
+
+/home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/fp-src-max-std/tests/qp/test_qp_dense_arm.cpp:1387: Failure
+Value of: std::isnan(QpEngineTestAccess::face_measure(engine, qp, ws, x, o))
+  Actual: false
+Expected: true
+2
+
+[  FAILED  ] QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow (0 ms)
+[----------] 5 tests from QpNanGates (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpNanGates.TheVerdictFaceMeasureKeepsANaNInALaterRow
+
+ 1 FAILED TEST
