@@ -1,0 +1,52 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T20:52:36-05:00
+== rel flags: -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -m64 -O3 -DNDEBUG -std=c++20 -pthread -mllvm -inline-threshold=225 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only
+clang++: warning: argument unused during compilation: '-mllvm -inline-threshold=225' [-Wunused-command-line-argument]
+clang++: warning: argument unused during compilation: '-fno-finite-math-only' [-Wunused-command-line-argument]
+n=    1  NaN-positions=    1  finite-returned: lpNorm=0 cwiseProduct.lpNorm=0 segment(1,n-1).lpNorm=0 (a-b).lpNorm=0 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    2  NaN-positions=    2  finite-returned: lpNorm=1 cwiseProduct.lpNorm=1 segment(1,n-1).lpNorm=0 (a-b).lpNorm=1 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    3  NaN-positions=    3  finite-returned: lpNorm=2 cwiseProduct.lpNorm=2 segment(1,n-1).lpNorm=1 (a-b).lpNorm=2 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    4  NaN-positions=    4  finite-returned: lpNorm=3 cwiseProduct.lpNorm=3 segment(1,n-1).lpNorm=2 (a-b).lpNorm=3 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    5  NaN-positions=    5  finite-returned: lpNorm=4 cwiseProduct.lpNorm=4 segment(1,n-1).lpNorm=3 (a-b).lpNorm=4 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    7  NaN-positions=    7  finite-returned: lpNorm=6 cwiseProduct.lpNorm=6 segment(1,n-1).lpNorm=5 (a-b).lpNorm=6 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    8  NaN-positions=    8  finite-returned: lpNorm=7 cwiseProduct.lpNorm=7 segment(1,n-1).lpNorm=6 (a-b).lpNorm=7 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    9  NaN-positions=    9  finite-returned: lpNorm=8 cwiseProduct.lpNorm=8 segment(1,n-1).lpNorm=7 (a-b).lpNorm=8 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   11  NaN-positions=   11  finite-returned: lpNorm=10 cwiseProduct.lpNorm=10 segment(1,n-1).lpNorm=9 (a-b).lpNorm=10 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   15  NaN-positions=   15  finite-returned: lpNorm=14 cwiseProduct.lpNorm=14 segment(1,n-1).lpNorm=13 (a-b).lpNorm=14 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   16  NaN-positions=   16  finite-returned: lpNorm=15 cwiseProduct.lpNorm=15 segment(1,n-1).lpNorm=14 (a-b).lpNorm=15 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   17  NaN-positions=   17  finite-returned: lpNorm=16 cwiseProduct.lpNorm=16 segment(1,n-1).lpNorm=15 (a-b).lpNorm=16 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   31  NaN-positions=   31  finite-returned: lpNorm=30 cwiseProduct.lpNorm=30 segment(1,n-1).lpNorm=29 (a-b).lpNorm=30 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   32  NaN-positions=   32  finite-returned: lpNorm=31 cwiseProduct.lpNorm=31 segment(1,n-1).lpNorm=30 (a-b).lpNorm=31 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   33  NaN-positions=   33  finite-returned: lpNorm=32 cwiseProduct.lpNorm=32 segment(1,n-1).lpNorm=31 (a-b).lpNorm=32 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   64  NaN-positions=   64  finite-returned: lpNorm=63 cwiseProduct.lpNorm=63 segment(1,n-1).lpNorm=62 (a-b).lpNorm=63 | PropagateNaN=0 PropagateNaN(prod)=0
+n=  100  NaN-positions=  100  finite-returned: lpNorm=99 cwiseProduct.lpNorm=99 segment(1,n-1).lpNorm=98 (a-b).lpNorm=99 | PropagateNaN=0 PropagateNaN(prod)=0
+n= 1001  NaN-positions= 1001  finite-returned: lpNorm=1000 cwiseProduct.lpNorm=1000 segment(1,n-1).lpNorm=999 (a-b).lpNorm=1000 | PropagateNaN=0 PropagateNaN(prod)=0
+finite identity (n=1001): EQUAL
+inf: lpNorm=inf sticky=inf
+inf+NaN: lpNorm=inf sticky=nan
+TOTAL positions=1359 finite-returned: lpNorm=1341 prod=1341 seg=1324 diff=1341 sticky=0 sticky_prod=0
+== dbg flags: -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -m64 -g -std=c++20 -pthread -mllvm -inline-threshold=225 -ggdb3
+clang++: warning: argument unused during compilation: '-mllvm -inline-threshold=225' [-Wunused-command-line-argument]
+n=    1  NaN-positions=    1  finite-returned: lpNorm=0 cwiseProduct.lpNorm=0 segment(1,n-1).lpNorm=0 (a-b).lpNorm=0 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    2  NaN-positions=    2  finite-returned: lpNorm=1 cwiseProduct.lpNorm=1 segment(1,n-1).lpNorm=0 (a-b).lpNorm=1 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    3  NaN-positions=    3  finite-returned: lpNorm=2 cwiseProduct.lpNorm=2 segment(1,n-1).lpNorm=1 (a-b).lpNorm=2 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    4  NaN-positions=    4  finite-returned: lpNorm=3 cwiseProduct.lpNorm=3 segment(1,n-1).lpNorm=2 (a-b).lpNorm=3 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    5  NaN-positions=    5  finite-returned: lpNorm=4 cwiseProduct.lpNorm=4 segment(1,n-1).lpNorm=3 (a-b).lpNorm=4 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    7  NaN-positions=    7  finite-returned: lpNorm=6 cwiseProduct.lpNorm=6 segment(1,n-1).lpNorm=5 (a-b).lpNorm=6 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    8  NaN-positions=    8  finite-returned: lpNorm=7 cwiseProduct.lpNorm=7 segment(1,n-1).lpNorm=6 (a-b).lpNorm=7 | PropagateNaN=0 PropagateNaN(prod)=0
+n=    9  NaN-positions=    9  finite-returned: lpNorm=8 cwiseProduct.lpNorm=8 segment(1,n-1).lpNorm=7 (a-b).lpNorm=8 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   11  NaN-positions=   11  finite-returned: lpNorm=10 cwiseProduct.lpNorm=10 segment(1,n-1).lpNorm=9 (a-b).lpNorm=10 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   15  NaN-positions=   15  finite-returned: lpNorm=14 cwiseProduct.lpNorm=14 segment(1,n-1).lpNorm=13 (a-b).lpNorm=14 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   16  NaN-positions=   16  finite-returned: lpNorm=15 cwiseProduct.lpNorm=15 segment(1,n-1).lpNorm=14 (a-b).lpNorm=15 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   17  NaN-positions=   17  finite-returned: lpNorm=16 cwiseProduct.lpNorm=16 segment(1,n-1).lpNorm=15 (a-b).lpNorm=16 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   31  NaN-positions=   31  finite-returned: lpNorm=30 cwiseProduct.lpNorm=30 segment(1,n-1).lpNorm=29 (a-b).lpNorm=30 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   32  NaN-positions=   32  finite-returned: lpNorm=31 cwiseProduct.lpNorm=31 segment(1,n-1).lpNorm=30 (a-b).lpNorm=31 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   33  NaN-positions=   33  finite-returned: lpNorm=32 cwiseProduct.lpNorm=32 segment(1,n-1).lpNorm=31 (a-b).lpNorm=32 | PropagateNaN=0 PropagateNaN(prod)=0
+n=   64  NaN-positions=   64  finite-returned: lpNorm=63 cwiseProduct.lpNorm=63 segment(1,n-1).lpNorm=62 (a-b).lpNorm=63 | PropagateNaN=0 PropagateNaN(prod)=0
+n=  100  NaN-positions=  100  finite-returned: lpNorm=99 cwiseProduct.lpNorm=99 segment(1,n-1).lpNorm=98 (a-b).lpNorm=99 | PropagateNaN=0 PropagateNaN(prod)=0
+n= 1001  NaN-positions= 1001  finite-returned: lpNorm=1000 cwiseProduct.lpNorm=1000 segment(1,n-1).lpNorm=999 (a-b).lpNorm=1000 | PropagateNaN=0 PropagateNaN(prod)=0
+finite identity (n=1001): EQUAL
+inf: lpNorm=inf sticky=inf
+inf+NaN: lpNorm=inf sticky=nan
+TOTAL positions=1359 finite-returned: lpNorm=1341 prod=1341 seg=1324 diff=1341 sticky=0 sticky_prod=0
+FOREGROUND_END 2026-11-11T20:52:42-05:00
