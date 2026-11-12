@@ -1,0 +1,22 @@
+M8 DN-3a r2 -- runtime neutrality gate (../DECLARATION-r2.txt P5) -- DECLARATION
+(committed with ../DECLARATION-r2.txt before the first r2 leg; never edited; a failed or void leg is answered by a
+successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../runtime/ (r1's instrument), re-pointed: run_all.sh's evidence directory -> runtime-r2/; one provenance line
+added to each shell file; runtime_leg.sh, analyze_r5.py, analyze_r11.py and fixture/ otherwise byte copies. Same path depth
+(five levels below the repository root). Period 400000; analyzer analyze_r11.py; fixture pre-flight first.
+ARMS
+  A  r1's: b70e45cfb (origin/m8), build-dn3a/armAbin/hven_sqp_corpus, sha256
+     3e2ae414a7d9341b6887c3c1329eb4af8210062c26a06d92a955bcbc483d4b6c.
+  B  the r2 code head 83c8d3774: build-dn3a/rel/bench/hven_sqp_corpus copied by run_all.sh to build-dn3a/armBbin/,
+     sha256 07a5a9db986ad1697dcc8118b89d739a0caed260eb909a27ba8cb0df95923042. run_all.sh refuses to start on a mismatch
+     for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults (kNever). VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY at the defaults: no dense session exists, so the pin, the checks and their scratch never run; per
+SSN step one FactorArm comparison and one FactorizeOutcome kept; per IPQP solve one FactorArm comparison; the IPQP
+iteration's step solves inside a loop that, at kNever, runs once (two flags, one deferred ipqp_mu_floor_binds increment);
+the ladder lambda's one extra bool argument; per rank-repair Gram factorization (rare) one predicate call (r1's). The ssn
+and ipm modes run the SSN and IPQP code; walk and interior are the unchanged-code controls.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
