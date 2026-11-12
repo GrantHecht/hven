@@ -267,7 +267,10 @@ guarded by `#ifdef HVEN_TESTING`:
   takes the factorization, where `FactorizeFaultInjector` can fail it, and under
   `kReport` the outcome is `kBackendError`/`kDenseSingular` with nothing solvable --
   exactly the real outcomes. (Before r2 the skipped attempt left the session's old
-  numerics in place, which only `kSparseFallback` never read.) Consumers: the IPM
+  numerics in place, which only `kSparseFallback` never read.) Consumers (the IPM
+  ones below under `kSparseFallback` through the seventh seam since M8 DN-3b, and
+  the IPM's production-policy routes under `kReport` through `IpmDenseReportSeam.*`;
+  see "A seventh seam" below): the IPM
   dense guard's failed re-run (DN-1b review F8;
   `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
   `hven_sqp_seam_tests`), which no real backend reaches; the IPM's
@@ -1184,6 +1187,35 @@ reading the iterate after a forced failure reads a better point than the engine
 would hand back. Fixtures: `tests/sqp/test_sqp_ladder_seams.cpp`
 (`SqpLadderSeam.*`), compiled into `hven_sqp_seam_tests` beside the fifth seam's.
 No new target, no `notices/` entry.
+
+## A seventh seam, in the IPM driver: the dense singular policy (M8 DN-3b)
+
+`hven/detail/drivers/ipm_dense_testing.h` declares
+`hven::detail::testing::IpmDenseSparseFallbackOverride`, `#ifdef HVEN_TESTING`
+only, read at one guarded point in `src/drivers/ipm_solver.cpp`'s
+`set_qp_params` (an Apache-2.0 file this repository wrote; no deviation). Since
+M8 DN-3b the IPM factors its KKT under `DenseSingularPolicy::kReport` whenever
+the dense arm is enabled: a singular dense attempt is reported and the
+inertia-correction ladder answers it on the dense arm, so the platform session
+never takes a dense-selected factorization. That removes the only faithful
+vehicle the no-numerics dispatch's HARD-BACKEND-ERROR route had
+(`IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration`: a dense
+attempt read singular, then `FactorizeFaultInjector` failing the platform
+session that never factorized -- its faithful scope; the sparse arm's own
+initial factorization succeeds, so it cannot carry the route), and the routes
+the DN-1b/DN-1d fixtures pinned through the platform session. While `active`
+the IPM keeps `kSparseFallback`, the policy those fixtures were written
+against. `tests/sqp/test_ipm_dense_guard_seams.cpp`'s `record_solve` sets it
+for every pre-DN-3b fixture (`IpmDenseGuardSeam.*`, `IpmNoNumericsSeam.*`,
+`BothStrategies/IpmNoNumericsRestorationSeam.*`) and clears it for the
+production-policy fixtures (`IpmDenseReportSeam.*`,
+`BothStrategies/IpmDenseReportRestorationSeam.*`: `DenseFactorizeFaultInjector`
+alone decides, every refusal is the dense arm's own `kDenseSingular` report,
+and the platform injector, though armed, is never reached --
+`dense_fallback_count` reads 0). It is faithful by construction: it selects a
+policy the factor layer supports and the IPM shipped until DN-3b, and changes
+nothing else. Compiled into `hven_sqp_seam_tests`. No new target, no
+`notices/` entry.
 
 ## The linear injectors through the public handles (M8 B5 riders)
 

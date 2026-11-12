@@ -3,10 +3,10 @@
 
 // BOTH ENGINES ON THE DENSE ARM (M8 DN-1, design §13 T12 and T14): kAlways solves as kNever
 // does on HS071 and on a problem whose KKT matrix is exactly singular (two identical equality
-// rows, so the dense arm falls back to the platform session); both validate()s accept kNever and
-// kAlways and still refuse kAuto, an engaged threshold, and (IPM) CNR with the dense arm; the
-// options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a numerically
-// singular dense factor, and its absence under kNever.
+// rows: the IPM's ladder answers the dense arm's singular report, M8 DN-3b); both validate()s
+// accept kNever and kAlways and still refuse kAuto, an engaged threshold, and (IPM) CNR with the
+// dense arm; the options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a
+// numerically singular dense factor, and its absence under kNever.
 
 #include <gtest/gtest.h>
 
@@ -16,16 +16,19 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 #include <Eigen/QR>
 
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/ssn_engine.h>
+#include <hven/drivers/ipm_iterate.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
+#include <hven/drivers/trace.h>
 #include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 
@@ -147,12 +150,15 @@ template <class Problem> void expect_ipm_arms_agree(const Eigen::VectorXd &x0) {
     }
     EXPECT_EQ(r[0].kkt_factor_counters.dense_factorize_count, 0);
     EXPECT_EQ(r[0].kkt_factor_counters.dense_fallback_count, 0);
+    EXPECT_EQ(r[0].kkt_factor_counters.dense_singular_count, 0);
+    // The dense arm took or reported every factorization; none went to the platform session.
     EXPECT_EQ(r[1].kkt_factor_counters.factorize_count,
               r[1].kkt_factor_counters.dense_factorize_count +
-                  r[1].kkt_factor_counters.dense_fallback_count);
-    EXPECT_GT(r[1].kkt_factor_counters.dense_factorize_count +
-                  r[1].kkt_factor_counters.dense_fallback_count,
-              0);
+                  r[1].kkt_factor_counters.dense_singular_count);
+    EXPECT_GT(r[1].kkt_factor_counters.dense_factorize_count, 0);
+    EXPECT_EQ(r[1].kkt_factor_counters.dense_fallback_count, 0);
+    EXPECT_EQ(r[1].kkt_factor_counters.dense_retake_count, 0);
+    EXPECT_EQ(r[1].kkt_factor_counters.dense_shift_refactor_count, 0);
 }
 
 template <class Problem> void expect_sqp_arms_agree(const Eigen::VectorXd &x0) {
@@ -309,6 +315,116 @@ TEST(DenseArmEngines, IpmResidualGuardIsNeverEnteredOnSparseFactorizations) {
     EXPECT_EQ(solve_ipm(DensePolicy::kNever, std::make_shared<DuplicateRowsProblem>(), x0)
                   .dense_residual_ratio_triggers,
               0);
+}
+
+namespace {
+
+// Every iterate row of a solve, through the trace.
+class RowSink final : public hven::TraceSink {
+  public:
+    explicit RowSink(std::vector<hven::IpmIterate> &rows) : rows_(rows) {}
+    void on_ipm_iter(const hven::IpmIterTraceEvent &event) override {
+        rows_.push_back(event.iterate);
+    }
+
+  private:
+    std::vector<hven::IpmIterate> &rows_;
+};
+
+hven::IpmResult solve_ipm_rows(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
+                               const Eigen::VectorXd &x0, std::vector<hven::IpmIterate> &rows) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.linear.dense_factorization = policy;
+    hven::IpmSolver solver(o);
+    RowSink sink(rows);
+    solver.attach_trace(&sink);
+    hven::Problem problem(std::move(nlp));
+    return solver.solve(problem, x0);
+}
+
+// min 0.5 (x0 - 1)^2 + 0.5 e (x1 - 2)^2, e = 1e-17, unconstrained: the KKT matrix is H itself,
+// diagonal and positive definite with condition 1e17, so the dense arm's detector flags it
+// (rcond < 2^-53) although every solve on it is exact to rounding. Ill-conditioning of this kind
+// is what barrier scaling produces on every late IPM iterate.
+struct IllConditionedDiagonalProblem final : hven::Nlp {
+    static constexpr double kE = 1e-17;
+    hven::NlpDimensions dimensions() const override { return {2, 0, 0, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl << -inf, -inf;
+        xu << inf, inf;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return 0.5 * (x[0] - 1.0) * (x[0] - 1.0) + 0.5 * kE * (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g[0] = x[0] - 1.0;
+        g[1] = kE * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << obj_factor, obj_factor * kE;
+    }
+    std::string name() const override { return "IllConditionedDiagonalProblem"; }
+};
+
+} // namespace
+
+// M8 DN-3b: an exactly singular dense KKT is reported, not retaken on the platform session; the
+// ladder reads it singular, engages delta_c with its first delta_w rung, and refactors on the
+// dense arm, which then takes the factorization.
+TEST(DenseArmEngines, IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm) {
+    Eigen::VectorXd x0(2);
+    x0 << 3.0, -1.0;
+    std::vector<hven::IpmIterate> rows;
+    const hven::IpmResult sparse =
+        solve_ipm(DensePolicy::kNever, std::make_shared<DuplicateRowsProblem>(), x0);
+    const hven::IpmResult dense =
+        solve_ipm_rows(DensePolicy::kAlways, std::make_shared<DuplicateRowsProblem>(), x0, rows);
+    ASSERT_TRUE(success(sparse.status));
+    EXPECT_EQ(dense.status, sparse.status);
+    EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
+    const auto &c = dense.kkt_factor_counters;
+    EXPECT_GT(c.dense_singular_count, 0);
+    EXPECT_EQ(c.dense_fallback_count, 0);
+    EXPECT_EQ(c.dense_retake_count, 0);
+    EXPECT_EQ(c.factorize_count, c.dense_factorize_count + c.dense_singular_count);
+    ASSERT_FALSE(rows.empty());
+    // The first iteration's base factorization is singular: one rung of the ladder answers it.
+    EXPECT_GE(rows.front().h_facs, 1);
+    EXPECT_GT(rows.front().h_pert, 0.0);
+}
+
+// M8 DN-3b: a flagged dense factorization whose inertia is the expected one is trusted; the step
+// solve's residual ratio (the DN-1b guard), not the flag, decides whether the system is treated
+// as singular. Here every solve is exact, so no rung of the ladder runs.
+TEST(DenseArmEngines, IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate) {
+    Eigen::VectorXd x0(2);
+    x0 << 3.0, -1.0;
+    std::vector<hven::IpmIterate> rows;
+    const hven::IpmResult sparse =
+        solve_ipm(DensePolicy::kNever, std::make_shared<IllConditionedDiagonalProblem>(), x0);
+    const hven::IpmResult dense = solve_ipm_rows(
+        DensePolicy::kAlways, std::make_shared<IllConditionedDiagonalProblem>(), x0, rows);
+    ASSERT_TRUE(success(sparse.status));
+    EXPECT_EQ(dense.status, sparse.status);
+    EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
+    EXPECT_GT(dense.kkt_factor_counters.dense_flagged_count, 0);
+    EXPECT_EQ(dense.kkt_factor_counters.dense_singular_count, 0);
+    EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
+    EXPECT_EQ(dense.dense_residual_ratio_triggers, 0);
+    ASSERT_FALSE(rows.empty());
+    for (const hven::IpmIterate &row : rows) {
+        EXPECT_EQ(row.h_facs, 0) << "iteration " << row.iter;
+    }
 }
 
 namespace {

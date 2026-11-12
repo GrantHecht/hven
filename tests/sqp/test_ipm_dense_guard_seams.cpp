@@ -66,6 +66,7 @@
 
 #include "../drivers/support/hs071_problem.h"
 #include <hven/core/errors.h>
+#include <hven/detail/drivers/ipm_dense_testing.h>
 #include <hven/detail/globalization/recovery_chain.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/drivers/ipm_enums.h>
@@ -78,6 +79,7 @@
 
 namespace {
 
+using hven::detail::testing::IpmDenseSparseFallbackOverride;
 using hven::linear::DensePolicy;
 using hven::linear::detail::testing::DenseFactorizeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
@@ -195,8 +197,25 @@ class RowSink final : public hven::TraceSink {
 
 using EventHook = std::function<void(const hven::IterationEvent &)>;
 
+// Which singular policy the IPM's dense arm runs under. The production policy is kReport (M8
+// DN-3b); the tests written before it pin routes through the platform session, which only
+// kSparseFallback reaches (FactorizeFaultInjector fails it there), so they keep that policy through
+// the IPM's own seam (hven/detail/drivers/ipm_dense_testing.h).
+enum class SingularPolicy { kSparseFallback, kReport };
+
+struct PolicyScope {
+    explicit PolicyScope(SingularPolicy p) {
+        IpmDenseSparseFallbackOverride::active = p == SingularPolicy::kSparseFallback;
+    }
+    ~PolicyScope() { IpmDenseSparseFallbackOverride::active = false; }
+    PolicyScope(const PolicyScope &) = delete;
+    PolicyScope &operator=(const PolicyScope &) = delete;
+};
+
 RecordedSolve record_solve(const hven::IpmOptions &o, std::shared_ptr<hven::Nlp> nlp,
-                           const Eigen::VectorXd &x0, const EventHook &on_event = {}) {
+                           const Eigen::VectorXd &x0, const EventHook &on_event = {},
+                           SingularPolicy policy = SingularPolicy::kSparseFallback) {
+    const PolicyScope scope(policy);
     hven::IpmSolver solver(o);
     RecordedSolve out;
     RowSink sink(out.rows);
@@ -792,3 +811,96 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunUnderRestorationDiscardsItsStep) {
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
     EXPECT_TRUE(r.x.allFinite());
 }
+
+// THE PRODUCTION POLICY (M8 DN-3b): under DenseSingularPolicy::kReport a dense attempt read exactly
+// singular is reported (kDenseSingular, a numeric refusal, no numerics) and never handed to the
+// platform session; the inertia-correction ladder answers it, refactoring on the dense arm at every
+// rung. The same two injectors are armed as above, but the platform session is never asked, so the
+// platform injector cannot fire: every refusal below is the dense arm's own report.
+namespace {
+
+RecordedSolve solve_hs071_report(const hven::IpmOptions &o, const EventHook &on_event = {}) {
+    return record_solve(o, std::make_shared<hven_drivers_tests::Hs071Problem>(),
+                        hven_drivers_tests::hs071_start(), on_event, SingularPolicy::kReport);
+}
+
+void expect_no_platform_factorization(const hven::IpmResult &r) {
+    EXPECT_EQ(r.kkt_factor_counters.dense_fallback_count, 0);
+    EXPECT_EQ(r.kkt_factor_counters.dense_retake_count, 0);
+    EXPECT_EQ(r.kkt_factor_counters.dense_shift_refactor_count, 0);
+    EXPECT_EQ(r.kkt_factor_counters.factorize_count,
+              r.kkt_factor_counters.dense_factorize_count +
+                  r.kkt_factor_counters.dense_singular_count);
+}
+
+} // namespace
+
+// From the first iteration's ladder on every dense attempt reads singular: the ladder climbs
+// through every rung, each one a dense refactorization reported singular, and ends without
+// numerics; restoration is off, so the solve ends kNumericalError at the committed iterate. No
+// throw, and no factorization on the platform session.
+TEST(IpmDenseReportSeam, ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath) {
+    const hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_report(o));
+    }
+    const hven::IpmResult &r = run.result;
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_NE(r.message.find("ended on a failed KKT factorization (numerical issue)"),
+              std::string::npos)
+        << r.message;
+    EXPECT_NE(r.message.find("neither an elastic re-centre nor feasibility restoration was "
+                             "available"),
+              std::string::npos)
+        << r.message;
+    EXPECT_EQ(r.last_kkt_info, Eigen::NumericalIssue);
+    EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, 1);
+    // Every rung was refactored on the dense arm and reported.
+    EXPECT_GE(r.kkt_factor_counters.dense_singular_count,
+              o.advanced.max_inertia_correction_attempts);
+    expect_no_platform_factorization(r);
+    expect_x_unmoved(run);
+}
+
+// Restoration configured, the dense arm recovered once restoration has begun: the exhausted
+// ladder's singular reports enter restoration (the exhausted-inertia dispatch), which carries the
+// solve on to success, every factorization on the dense arm.
+class IpmDenseReportRestorationSeam : public ::testing::TestWithParam<hven::IpmRestorationMode> {};
+
+TEST_P(IpmDenseReportRestorationSeam,
+       AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration) {
+    hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
+    o.advanced.restoration_mode = GetParam();
+    const RecordedSolve clean = solve_hs071_report(o);
+    ASSERT_TRUE(success(clean.result.status)) << clean.result.message;
+    ASSERT_EQ(clean.result.last_feasibility_restoration_entries.value_or(0), 0);
+    ASSERT_EQ(clean.result.kkt_factor_counters.dense_singular_count, 0);
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_report(o, [](const hven::IterationEvent &e) {
+                            if (e.iteration >= 1) {
+                                disarm();
+                            }
+                        }));
+    }
+    const hven::IpmResult &r = run.result;
+    EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_TRUE(success(r.status)) << r.message;
+    EXPECT_TRUE(r.x.allFinite());
+    EXPECT_GE(r.kkt_factor_counters.dense_singular_count,
+              o.advanced.max_inertia_correction_attempts);
+    expect_no_platform_factorization(r);
+}
+
+INSTANTIATE_TEST_SUITE_P(BothStrategies, IpmDenseReportRestorationSeam,
+                         ::testing::Values(hven::IpmRestorationMode::kProximalSwitch,
+                                           hven::IpmRestorationMode::kL1Nested),
+                         [](const ::testing::TestParamInfo<hven::IpmRestorationMode> &info) {
+                             return info.param == hven::IpmRestorationMode::kProximalSwitch
+                                        ? std::string("ProximalSwitch")
+                                        : std::string("L1Nested");
+                         });

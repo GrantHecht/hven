@@ -21,6 +21,7 @@
 #include "hven/detail/drivers/finite_screen.h"
 #include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
+#include "hven/detail/drivers/ipm_dense_testing.h"
 
 #include <algorithm>
 #include <atomic>
@@ -197,6 +198,16 @@ void hven::detail::IpmSolverImpl::set_qp_params() {
     opts.max_refinement_steps = opts_.linear.max_refinement_steps;
     opts.ordering = linear_ordering_of(opts_.linear.ordering);
     opts.dense_factorization = opts_.linear.dense_factorization;
+    // A singular or flagged dense factorization is reported, never retaken on the platform
+    // session: the inertia-correction ladder answers it (a failed factorization reads singular,
+    // which engages delta_c and climbs delta_w) and refactors on the dense arm. The dense
+    // session's own equilibrated shift is a consumer response the IPM never calls.
+    if (opts.dense_factorization != hven::linear::DensePolicy::kNever)
+        opts.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+#ifdef HVEN_TESTING
+    if (hven::detail::testing::IpmDenseSparseFallbackOverride::active)
+        opts.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
+#endif
 
 #ifdef USE_ACCELERATE_SPARSE
     // Accelerate carries no weighted-matching, scaling, pivoting-strategy,
@@ -5071,7 +5082,13 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
     // layer's precondition error from the solve below. The multiplier solve is
     // skipped and the failure left for the phase's first iterate, which ends
     // the phase kNumericalError at the (finite) point it evaluates there.
-    if (this->kkt_sol_.info() != Eigen::Success) [[unlikely]] {
+    //
+    // Except a dense-arm singular report (DenseSingularPolicy::kReport): the
+    // system is singular, which is this system's one singular rule's case
+    // below, so it takes that rule's answer instead.
+    const bool dense_singular = this->kkt_sol_.info() == Eigen::NumericalIssue &&
+                                this->kkt_sol_.arm() == hven::linear::FactorArm::kDense;
+    if (this->kkt_sol_.info() != Eigen::Success && !dense_singular) [[unlikely]] {
         this->result_.last_kkt_info = this->kkt_sol_.info();
         this->pending_entry_failure_ = fmt::format(
             "the initial KKT factorization failed ({}); no step can be computed",
@@ -5088,16 +5105,25 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
     // See the solve-into comment in alg_impl: solve straight into the
     // destination, then negate in place, in that order.
     Eigen::VectorXd dx(this->kkt_dim_);
-    this->kkt_sol_.solve(RHS, dx);
+    if (!dense_singular) [[likely]]
+        this->kkt_sol_.solve(RHS, dx);
     // The step solve's singularity guard, on this system's one singular rule:
     // its (1,1) block is the identity, so only the constraint rows can be
     // deficient and delta_c is the shift that answers them. A solve still above
     // the threshold after it gives no estimate (Waechter & Biegler 2006,
-    // sec. 3.6: an unreliable least-squares estimate is discarded).
+    // sec. 3.6: an unreliable least-squares estimate is discarded), and neither
+    // does a factorization that still left no numerics.
     bool estimate_discarded = false;
     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
-        if (!(this->dense_residual_ratio(RHS, dx) <= hven::detail::kDenseResidualRatioSingular)) {
+        bool singular = dense_singular;
+        if (dense_singular) {
+            this->result_.last_kkt_info = this->kkt_sol_.info();
+        } else if (!(this->dense_residual_ratio(RHS, dx) <=
+                     hven::detail::kDenseResidualRatioSingular)) {
             ++this->result_.dense_residual_ratio_triggers;
+            singular = true;
+        }
+        if (singular) {
             this->nlp_->perturb_kkt_c_diags(-hven::detail::dual_regularization(mu),
                                             this->kkt_sol_.matrix());
             this->kkt_sol_.refactorize(this->kkt_pattern_check());
@@ -5111,6 +5137,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
                                     hven::detail::kDenseResidualRatioSingular));
         }
     }
+    if (estimate_discarded)
+        dx.setZero();
     dx = -dx;
     KktVector v_dx = kkt_view(dx);
 

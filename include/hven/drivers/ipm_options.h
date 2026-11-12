@@ -71,7 +71,10 @@ struct IpmLinearOptions {
     /// When the dense factorization arm is used: `kNever` (the default) or
     /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
     /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
-    /// `validate()` refuses it until the selection rule lands.
+    /// `validate()` refuses it until the selection rule lands. On the dense arm a
+    /// singular KKT factorization is answered by the inertia-correction ladder
+    /// (delta_c, then a larger delta_w) and refactored on the dense arm, never
+    /// handed to the sparse backend (`DenseSingularPolicy::kReport`).
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
     /// finite and > 0 on every backend; ignored on MKL.
