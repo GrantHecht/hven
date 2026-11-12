@@ -913,7 +913,7 @@ TEST_F(IpqpSeamTest, AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailu
     EXPECT_EQ(r.counters.ipqp_symbolic_analyses, 1);
     EXPECT_EQ(r.dense_flagged_factorizations, r.counters.ipqp_factorizations);
     EXPECT_EQ(r.dense_singular_refactors, 0);
-    EXPECT_EQ(r.dense_condition_fallbacks, 0);
+    EXPECT_EQ(r.dense_platform_retakes, 0);
     EXPECT_EQ(r.counters.ipqp_solves, 0);
 }
 

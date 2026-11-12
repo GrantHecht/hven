@@ -584,14 +584,14 @@ struct QpCounters {
     Index inertia_suspect_verdicts = 0;
     Index inertia_wrong_verdicts = 0;
     // The dense singular response on this solve's KKT factors
-    // (detail::factorize_checked): dense_condition_fallbacks the platform
+    // (detail::factorize_checked): dense_platform_retakes the platform
     // retakes (the last resort), dense_flagged_factorizations the unshifted
     // factorizations the detector flagged (exactly singular included),
     // dense_singular_refactors the equilibrated refactors (more than the flags
     // only when a retry ran). 0 under DensePolicy::kNever. A retake that forks a
     // fresh platform session pays a symbolic analysis `symbolic_analyses` does
     // not count.
-    Index dense_condition_fallbacks = 0;
+    Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     // Answers from a dense shifted factor refused by the rho gate
@@ -2295,7 +2295,7 @@ struct SqpCounters {
     ///        factorizations, shifted dense refactors. 0 under DensePolicy::kNever.
     ///        A retake's forked platform analysis is not in `symbolic_analyses`.
     ///        Appended last.
-    Index dense_condition_fallbacks = 0;
+    Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     /// @brief QpCounters' field summed the same way: shifted-factor answers
@@ -2398,7 +2398,7 @@ struct SqpCounters {
     X(restoration_curvature_switches, counter_never_absent)                                        \
     X(inertia_suspect_verdicts, counter_never_absent)                                              \
     X(inertia_wrong_verdicts, counter_never_absent)                                                \
-    X(dense_condition_fallbacks, counter_never_absent)                                             \
+    X(dense_platform_retakes, counter_never_absent)                                                \
     X(dense_flagged_factorizations, counter_never_absent)                                          \
     X(dense_singular_refactors, counter_never_absent)                                              \
     X(dense_shifted_solve_refusals, counter_never_absent)                                          \

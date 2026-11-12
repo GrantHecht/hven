@@ -578,7 +578,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             }
             const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
                                                 out->dense_singular_refactors,
-                                                out->dense_condition_fallbacks);
+                                                out->dense_platform_retakes);
             detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
             ++out->factorizations;
             if (!verifying) {
@@ -915,7 +915,7 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         }
         const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
                                             out->dense_singular_refactors,
-                                            out->dense_condition_fallbacks);
+                                            out->dense_platform_retakes);
         detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{deferred_pos_});
         ++out->factorizations;
     } catch (const std::exception &e) {

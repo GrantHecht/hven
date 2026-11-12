@@ -484,9 +484,9 @@ struct IpqpResult {
     IpqpBox box;
 
     /// The dense singular response on this solve's factor (QpCounters'
-    /// dense_condition_fallbacks, dense_flagged_factorizations,
+    /// dense_platform_retakes, dense_flagged_factorizations,
     /// dense_singular_refactors).
-    Index dense_condition_fallbacks = 0;
+    Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
 };

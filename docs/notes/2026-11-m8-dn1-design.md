@@ -990,17 +990,17 @@ the uniform τ = 2^-27·max|K| of the first cut re-imposed τd ≈ 20 on ALLINIT
 chosen on the E0/dev roster (plateau 2^-30..2^-34; consistent shifted solves reach ρ ~ 1e-17).
 Per consumer: `solve_eqp` (site `{n_free, δ, μ}`; the one unconditional proximal step becomes
 keep-while-falling on a shifted factor); the reread probe (`refine_eliminated_face_for_verdict`,
-same site, same step rule); μ-free polish / terminal / saddle (through `solve_eqp`, μ = 0);
+same site, same gate and first-step rule, then the verdict loop's own working-face keep rule); μ-free polish / terminal / saddle (through `solve_eqp`, μ = 0);
 `rebuild_k0` (site `{n, δ, μ}`; the Schur border stack solves through K0 unchanged); SSN (both
 sites, `{n, eff_delta, eff_mu}`); IPQP (`kReport` at reconfigure; a flagged or exactly singular read
 is `kPerturbed`, the tier's own shift remedy; never shifted or retaken); the rank repair's Gram
 factor `kSparseFallback` (no detector); equality basis and predictor stay `kNever`. The IPM keeps
 `kSparseFallback` and DN-1b's guard (IPM `kReport` registered, R10).
 
-**Counting.** `QpCounters`/`SqpCounters`: `dense_condition_fallbacks` (now the last-resort retakes),
+**Counting.** `QpCounters`/`SqpCounters`: `dense_platform_retakes` (renamed from `dense_condition_fallbacks`, C287; now the last-resort retakes),
 `dense_flagged_factorizations` (raw flags, exact included), `dense_singular_refactors`
 (equilibrated refactors; equal to the flags when no retry runs), `dense_shifted_solve_refusals`
-(ρ refusals); folded wherever `dense_condition_fallbacks` was; fed by `DenseTallyScope`, which adds
+(ρ refusals); folded wherever `dense_platform_retakes` was; fed by `DenseTallyScope`, which adds
 the factor-counter deltas on scope exit, a throw included (DN-1c review F5). A retake that forks a
 fresh platform session pays a symbolic analysis `symbolic_analyses` does not count (F7,
 documented).
@@ -1081,12 +1081,20 @@ and the row-drift refusal are unchanged (default-path byte identity).
 for its own step. Every later step on the border path (the residual loop, the iterated steps, the
 polish) was already keep-while-falling. Semantics, both paths: ρ is checked AT GATE TIME (the first
 solve, after `refine_shifted_solve` on the eliminated path); the returned answer is the gated one
-plus only steps that each strictly reduced the residual they target. A re-gate of the returned
+plus the steps its loops kept, each under that loop's own keep rule: the first step on a shifted
+factor, only if it strictly reduces the residual it targets (`solve_eqp`'s proximal step; the border
+refinement's first step); the residual loops (`eqp_solve.h`, `bordered_eqp.h`), only while the
+residual RATIO strictly falls; the iterated refinement and the polish, only while the residual they
+target strictly falls. A re-gate of the returned
 answer against K_b was not adopted: the refinement and polish deliberately leave K_b (they target
 the proximal and the unregularized systems), so measuring them against K_b would refuse correct
 answers by construction, and the eliminated path has the same structure. The verdict-site border
-replay gates at the same point (first Schur solve, before refinement; F5) and refines with the same
-step rule.
+replay gates at the same point (first Schur solve, before refinement; F5). Its refinement is the
+solve's own (the same first step and iterated steps); the verdict loops that follow
+(`qp_engine.cpp`, border and eliminated twins alike) keep a step only while the WORKING-FACE
+measure strictly falls, not the residual, and adopt only a closed face strictly better than the
+walk's own point. The twins agree stage for stage: the same gate point, the same first-step rule,
+the same keep rule in each loop.
 
 **Per-block ρ (F3) — supersedes C284's single-norm form.** ρ = max(ρ_K0, ρ_border):
 ρ_K0 = ‖D r_K0‖∞/‖D b_K0‖∞ (D = K0's equilibration scale), ρ_border = ‖r_b‖∞/‖b_b‖∞ (unscaled),

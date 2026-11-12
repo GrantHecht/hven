@@ -221,7 +221,7 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     const EqpResult eqp = [&] {
         const detail::DenseTallyScope tally(kkt, out.counters.dense_flagged_factorizations,
                                             out.counters.dense_singular_refactors,
-                                            out.counters.dense_condition_fallbacks);
+                                            out.counters.dense_platform_retakes);
         return solve_eqp(qp, ws, face.x, kkt, eff_opts);
     }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
@@ -3593,7 +3593,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         ++counters.factorizations;
         const detail::DenseTallyScope tally(fresh, counters.dense_flagged_factorizations,
                                             counters.dense_singular_refactors,
-                                            counters.dense_condition_fallbacks);
+                                            counters.dense_platform_retakes);
         detail::factorize_checked(fresh, assembly.K, analysis, detail::DenseShiftSite{n_free});
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
@@ -3713,7 +3713,7 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         // Counted on a throw too (DN-1c review F5).
         const detail::DenseTallyScope tally(kkt, counters.dense_flagged_factorizations,
                                             counters.dense_singular_refactors,
-                                            counters.dense_condition_fallbacks);
+                                            counters.dense_platform_retakes);
         return solve_eqp(qp, ws, x_k, kkt, opts);
     }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
@@ -4567,7 +4567,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.eqp_refine_iters += local_counters.eqp_refine_iters;
         counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
         counters.eqp_polish_steps += local_counters.eqp_polish_steps;
-        counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
+        counters.dense_platform_retakes += local_counters.dense_platform_retakes;
         counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
         counters.dense_singular_refactors += local_counters.dense_singular_refactors;
         counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
@@ -4577,7 +4577,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     counters.eqp_refine_iters += local_counters.eqp_refine_iters;
     counters.eqp_residual_refusals += local_counters.eqp_residual_refusals;
     counters.eqp_polish_steps += local_counters.eqp_polish_steps;
-    counters.dense_condition_fallbacks += local_counters.dense_condition_fallbacks;
+    counters.dense_platform_retakes += local_counters.dense_platform_retakes;
     counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
     counters.dense_singular_refactors += local_counters.dense_singular_refactors;
     counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
@@ -5669,7 +5669,7 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     {
         const detail::DenseTallyScope tally(border.kkt, counters.dense_flagged_factorizations,
                                             counters.dense_singular_refactors,
-                                            counters.dense_condition_fallbacks);
+                                            counters.dense_platform_retakes);
         detail::factorize_checked(
             border.kkt, k0.K, analysis,
             detail::DenseShiftSite{static_cast<Index>(k0.free_of_full.size())});

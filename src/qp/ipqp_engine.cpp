@@ -3047,7 +3047,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // field's "mirrors" a fact rather than a claim -- and so the four cannot drift.
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
-    out.dense_condition_fallbacks = after.dense_retake_count - before.dense_retake_count;
+    out.dense_platform_retakes = after.dense_retake_count - before.dense_retake_count;
     out.dense_flagged_factorizations = (after.dense_flagged_count + after.dense_singular_count) -
                                        (before.dense_flagged_count + before.dense_singular_count);
     out.dense_singular_refactors =

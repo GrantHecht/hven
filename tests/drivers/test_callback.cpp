@@ -2112,7 +2112,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(restoration_curvature_switches)                                                              \
     X(inertia_suspect_verdicts)                                                                    \
     X(inertia_wrong_verdicts)                                                                      \
-    X(dense_condition_fallbacks)                                                                   \
+    X(dense_platform_retakes)                                                                      \
     X(dense_flagged_factorizations)                                                                \
     X(dense_singular_refactors)                                                                    \
     X(dense_shifted_solve_refusals)                                                                \
@@ -2216,7 +2216,7 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // `ipqp_mu*` Index in IpqpCounters, 312 -> 336); 1144 -> 1152 at M7 W2 A3
     // (`ipqp_ladder_zero_trial_skips`, IpqpCounters 336 -> 344); 1152 -> 1168 at M8 DN-1
     // (`inertia_suspect_verdicts`, `inertia_wrong_verdicts`); 1168 -> 1176 at M8 DN-1c
-    // (`dense_condition_fallbacks`); 1176 -> 1192 at M8 DN-1d (`dense_flagged_factorizations`,
+    // (`dense_platform_retakes`); 1176 -> 1192 at M8 DN-1d (`dense_flagged_factorizations`,
     // `dense_singular_refactors`); 1192 -> 1200 at M8 DN-1d final (`dense_shifted_solve_refusals`);
     // 1200 -> 1208 at M8 DN-1d r2 (`dense_shifted_k0_fallbacks`); 1208 -> 1216 at M8 DN-1d r3
     // (`dense_shifted_terminations`).

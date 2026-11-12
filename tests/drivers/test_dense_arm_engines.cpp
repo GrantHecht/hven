@@ -370,10 +370,10 @@ TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
     ASSERT_TRUE(success(sparse.status));
     EXPECT_EQ(dense.status, sparse.status);
     EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
-    EXPECT_EQ(sparse.counters.dense_condition_fallbacks, 0);
+    EXPECT_EQ(sparse.counters.dense_platform_retakes, 0);
     EXPECT_EQ(sparse.counters.dense_flagged_factorizations, 0);
     EXPECT_EQ(sparse.counters.dense_singular_refactors, 0);
-    EXPECT_EQ(dense.counters.dense_condition_fallbacks, 0);
+    EXPECT_EQ(dense.counters.dense_platform_retakes, 0);
     EXPECT_GT(dense.counters.dense_flagged_factorizations, 0);
     EXPECT_GT(dense.counters.dense_singular_refactors, 0);
     EXPECT_EQ(dense.counters.dense_singular_refactors, dense.counters.dense_flagged_factorizations);
@@ -411,7 +411,7 @@ TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
             EXPECT_EQ(res.dense_flagged_factorizations, 0);
         } else {
             EXPECT_GE(res.dense_flagged_factorizations, 1);
-            EXPECT_EQ(res.dense_condition_fallbacks, 0);
+            EXPECT_EQ(res.dense_platform_retakes, 0);
             EXPECT_GE(res.dense_shifted_solve_refusals, 1);
             EXPECT_GE(res.counters.ssn_prox_updates, 1);
         }

@@ -2649,7 +2649,7 @@ TEST(SqpCountersFieldTables, EachTableEnumeratesItsWholeStruct) {
     // 83 -> 85 at M8 DN-1, `inertia_suspect_verdicts` and `inertia_wrong_verdicts`, the same
     // route, by two keys.
     //
-    // 85 -> 86 at M8 DN-1c, `dense_condition_fallbacks`, the same route, by one key.
+    // 85 -> 86 at M8 DN-1c, `dense_platform_retakes`, the same route, by one key.
     //
     // 86 -> 88 at M8 DN-1d, `dense_flagged_factorizations` and `dense_singular_refactors`, the
     // same route, by two keys; 88 -> 89, `dense_shifted_solve_refusals`, by one key; 89 -> 90,
@@ -3318,11 +3318,11 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     // `inertia_wrong_verdicts` after `restoration_curvature_switches`; the nested tables'
     // distinct values shift up by two.
     //
-    // RE-DERIVED AT M8 DN-1c, the same route: `dense_condition_fallbacks` after
+    // RE-DERIVED AT M8 DN-1c, the same route: `dense_platform_retakes` after
     // `inertia_wrong_verdicts`; the nested tables' distinct values shift up by one.
     //
     // RE-DERIVED AT M8 DN-1d, the same route: `dense_flagged_factorizations` and
-    // `dense_singular_refactors` after `dense_condition_fallbacks`; the nested tables' distinct
+    // `dense_singular_refactors` after `dense_platform_retakes`; the nested tables' distinct
     // values shift up by two; then `dense_shifted_solve_refusals`, up by one more; then
     // `dense_shifted_k0_fallbacks`, up by one more; then `dense_shifted_terminations`, up by one
     // more.
@@ -3361,7 +3361,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
         "seen\":77,\"qn_nonpd_seen\":78,\"qn_dimension\":79,\"nonfinite_step_rollbacks\""
         ":80,\"restoration_feas_out\":81,\"scaled_convergence_refusals\":82,\"restorat"
         "ion_curvature_switches\":83,\"inertia_suspect_verdicts\":84,\"inertia_wrong_"
-        "verdicts\":85,\"dense_condition_fallbacks\":86,\"dense_flagged_factorization"
+        "verdicts\":85,\"dense_platform_retakes\":86,\"dense_flagged_factorization"
         "s\":87,\"dense_singular_refactors\":88,\"dense_shifted_solve_refusals\":89,\"d"
         "ense_shifted_k0_fallbacks\":90,\"dense_shifted_terminations\":91,\"ssn\":{\"ss"
         "n_iters\":92,\"ssn_bulk_flips\":93,\"ssn_backtracks\":94,\"ssn_prox_updates\":9"
@@ -3443,7 +3443,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // RE-DERIVED AT M7 W2 RST: `restoration_curvature_switches`, 0 on this line.
     // RE-DERIVED AT M7 W2 A2: the three `ipqp_mu*` keys, each 0 on this line.
     // RE-DERIVED AT M8 DN-1: `inertia_suspect_verdicts` and `inertia_wrong_verdicts`, each 0.
-    // RE-DERIVED AT M8 DN-1c: `dense_condition_fallbacks`, 0.
+    // RE-DERIVED AT M8 DN-1c: `dense_platform_retakes`, 0.
     // RE-DERIVED AT M8 DN-1d: `dense_flagged_factorizations` and `dense_singular_refactors`, 0;
     // then `dense_shifted_solve_refusals`, 0; then `dense_shifted_k0_fallbacks`, 0; then
     // `dense_shifted_terminations`, 0.
@@ -3479,7 +3479,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
         "n_kwrong_seen\":0,\"qn_nonpd_seen\":0,\"qn_dimension\":0,\"nonfinite_step_roll"
         "backs\":0,\"restoration_feas_out\":0,\"scaled_convergence_refusals\":0,\"resto"
         "ration_curvature_switches\":0,\"inertia_suspect_verdicts\":0,\"inertia_wrong"
-        "_verdicts\":0,\"dense_condition_fallbacks\":0,\"dense_flagged_factorizations"
+        "_verdicts\":0,\"dense_platform_retakes\":0,\"dense_flagged_factorizations"
         "\":0,\"dense_singular_refactors\":0,\"dense_shifted_solve_refusals\":0,\"dense"
         "_shifted_k0_fallbacks\":0,\"dense_shifted_terminations\":0,\"ssn\":{\"ssn_iter"
         "s\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_esc"

@@ -692,10 +692,10 @@ struct SsnResult {
     SsnCounters counters;
 
     // The dense singular response on this solve's factor (QpCounters'
-    // dense_condition_fallbacks, dense_flagged_factorizations,
+    // dense_platform_retakes, dense_flagged_factorizations,
     // dense_singular_refactors), and the Newton steps through shifted numerics
     // the rho gate refused (dense_shifted_solve_refusals).
-    Index dense_condition_fallbacks = 0;
+    Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     Index dense_shifted_solve_refusals = 0;

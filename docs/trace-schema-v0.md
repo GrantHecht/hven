@@ -874,7 +874,7 @@ group; `SqpOptions::hessian_mode`).
 | `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `CommonOptions::feasibility_tol`. So `restoration_feas_out <= feasibility_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
 | `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feasibility_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
 | `restoration_curvature_switches` | integer | `SqpCounters::restoration_curvature_switches` | restoration sub-solves on the exact model stopped for the phase's curvature switch (M7 W2 RST, `SqpOptions::restoration_curvature = kModelThenRegularized`, the default): at their first failed walk subproblem, or at an exhausted elastic tier's nested restoration request. Counted at the stop; the phase then restarts there on the regularized model unless its budget is spent or the model is not finite there. At most one per restoration entry; 0 under `kModel`, `kRegularized` and `kLbfgsDamped`. Folded from the restoration sub-solve |
-| `dense_condition_fallbacks` | integer | `SqpCounters::dense_condition_fallbacks` | dense-arm factorizations (walk, SSN, IPQP tiers) the platform session retook as the dense singular response's LAST RESORT: flagged, then still flagged after the equilibrated shift and its one 256x retry (M8 DN-1d; M8 DN-1c's condition fallback before it). 0 under `DensePolicy::kNever`. Folded like `factorizations`. Follows `inertia_suspect_verdicts` and `inertia_wrong_verdicts` (M8 DN-1) |
+| `dense_platform_retakes` | integer | `SqpCounters::dense_platform_retakes` | dense-arm factorizations (walk, SSN, IPQP tiers) the platform session retook as the dense singular response's LAST RESORT: flagged, then still flagged after the equilibrated shift and its one 256x retry (M8 DN-1d; M8 DN-1c's condition fallback before it). 0 under `DensePolicy::kNever`. Folded like `factorizations`. Follows `inertia_suspect_verdicts` and `inertia_wrong_verdicts` (M8 DN-1) |
 | `dense_flagged_factorizations` | integer | `SqpCounters::dense_flagged_factorizations` | dense-arm factorizations `DenseSingularPolicy::kReport`'s detector flagged (rook D-ratio below 1e-15 and `dsycon_rook` rcond below 2^-53, or exactly singular), unshifted factorizations only (M8 DN-1d). 0 under `DensePolicy::kNever`. Folded like `factorizations` |
 | `dense_singular_refactors` | integer | `SqpCounters::dense_singular_refactors` | equilibrated-shift dense refactors the response ran (M8 DN-1d): one per flagged site factorization, two when the first stays flagged. 0 under `DensePolicy::kNever`. Folded like `factorizations` |
 | `dense_shifted_solve_refusals` | integer | `SqpCounters::dense_shifted_solve_refusals` | answers from a dense shifted factor refused because their equilibrated relative residual against K, ‖D(rhs − K y)‖∞/‖D rhs‖∞, exceeded 1e-8 or was NaN at gate time (M8 DN-1d): walk EQP solves (eliminated, and bordered through a shifted K0 against the unshifted bordered system) and SSN Newton steps. 0 under `DensePolicy::kNever`. Folded like `eqp_residual_refusals` |
@@ -921,13 +921,13 @@ table row above). LAST in the struct, after `scaled_convergence_refusals`, same 
 one key before the `ssn` object, the nested tables' distinct values up by one, no
 sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 RST" note.
 
-**THE DIRECT COUNTER M8 DN-1c APPENDED — ONE** (`dense_condition_fallbacks`, the table
+**THE DIRECT COUNTER M8 DN-1c APPENDED — ONE** (`dense_platform_retakes`, the table
 row above), after M8 DN-1's `inertia_suspect_verdicts` and `inertia_wrong_verdicts`,
 same route: one key before the `ssn` object, the nested tables' distinct values up by
 one, no sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M8 DN-1c" note.
 
 **THE DIRECT COUNTERS M8 DN-1d APPENDED — TWO** (`dense_flagged_factorizations`,
-`dense_singular_refactors`, the table rows above), after `dense_condition_fallbacks`, whose
+`dense_singular_refactors`, the table rows above), after `dense_platform_retakes`, whose
 meaning moved to the response's last-resort retake; same route: two keys before the `ssn`
 object, the nested tables' distinct values up by two, no sentinel, both golden lines
 re-derived ONCE with a "RE-DERIVED AT M8 DN-1d" note. Then ONE more,
