@@ -279,11 +279,13 @@ guarded by `#ifdef HVEN_TESTING`:
   refusing every rung of the inertia-correction ladder looks like. The injected
   code is chosen per platform so that each kind is reached on each backend: a
   numeric refusal (Pardiso -4, Accelerate `SparseFactorizationFailed`) takes the
-  exhausted-inertia dispatch -- restoration is entered when configured, and
-  with neither re-centre nor restoration available the solve stops `kAcceptable`
-  at an acceptable-tier iterate or ends `kNumericalError` (stop reason `kNone`),
-  without throwing, at the step solve, at the PROBE predictor's solve and at the
-  guard's failed re-run; a hard backend error (Pardiso -1, Accelerate
+  exhausted-inertia dispatch in the un-evaluable dispatch's order -- an
+  acceptable-tier iterate outside restoration stops `kAcceptable` first (never
+  inside it: a restoration row's residuals are the subproblem's), then the
+  elastic re-centre of an active nested phase, then restoration entry when
+  configured, and with none of them available the solve ends `kNumericalError`
+  (stop reason `kNone`), without throwing, at the step solve, at the PROBE
+  predictor's solve and at the guard's failed re-run; a hard backend error (Pardiso -1, Accelerate
   `SparseInternalError`) ends `kNumericalError` at once, restoration never
   entered. "At the committed iterate" holds with `return_best` off; with it on,
   the best recorded iterate is returned and flagged. The restoration recovery

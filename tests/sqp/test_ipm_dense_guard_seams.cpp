@@ -32,11 +32,13 @@
 // inertia-correction ladder looks like. What the solve then does depends on the code's kind
 // (Wächter & Biegler 2006, Algorithm IC):
 //   * a NUMERIC refusal (kNumericRefusal) abandons the direction and takes the exhausted-inertia
-//     dispatch: elastic re-centre, then feasibility restoration; with neither available it stops
-//     at an acceptable-tier iterate (kAcceptable) or ends kNumericalError (stop reason kNone) at
-//     the committed iterate (return_best off; with it on, the best recorded one), with no step
-//     taken -- at the step solve, at the PROBE predictor's
-//     solve (which runs first), and at the dense guard's failed re-run;
+//     dispatch in the un-evaluable dispatch's order: an acceptable-tier iterate OUTSIDE
+//     restoration stops there (kAcceptable; inside restoration a row's residuals are the
+//     subproblem's and never stop the solve), then the elastic re-centre of an active nested
+//     phase, then feasibility restoration; with none available it ends kNumericalError (stop
+//     reason kNone) at the committed iterate (return_best off; with it on, the best recorded one),
+//     with no step taken -- at the step solve, at the PROBE predictor's solve (which runs first),
+//     and at the dense guard's failed re-run;
 //   * a HARD backend error (kHardBackendError) ends kNumericalError at once, restoration or not.
 //
 // THE SPARSE ARM IS NOT FAITHFULLY INJECTABLE HERE: on a sparse solve the platform session's
@@ -45,9 +47,11 @@
 // solve for that reason; the sparse arm's no-numerics exit runs the same code after factor_impl.
 
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -61,6 +65,8 @@
 #endif
 
 #include "../drivers/support/hs071_problem.h"
+#include <hven/core/errors.h>
+#include <hven/detail/globalization/recovery_chain.h>
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/drivers/ipm_enums.h>
 #include <hven/drivers/ipm_iterate.h>
@@ -273,6 +279,110 @@ void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
     expect_x_unmoved(run);
 }
 
+// The engine's acceptable-tier test on one row (ipm_solver.cpp's
+// interior_point_iterate_acceptable), for the preconditions of the restoration tests: their
+// fixtures are meaningful only if the row the solve ends on would pass it.
+bool row_acceptable(const hven::IpmIterate &row, const hven::IpmOptions &o) {
+    return row.kkt_inf < o.termination.acceptable_kkt_tol &&
+           row.econ_inf < o.termination.acceptable_equality_tol &&
+           row.icon_inf < o.termination.acceptable_inequality_tol &&
+           row.barr_inf < o.termination.acceptable_barrier_tol;
+}
+
+// The iteration a no-numerics message names ("... at iteration <i> ..."), or -1.
+int named_iteration(const std::string &message) {
+    const std::size_t at = message.find(" at iteration ");
+    int i = -1;
+    if (at == std::string::npos ||
+        std::sscanf(message.c_str() + at + 14, "%d", &i) != 1) { // NOLINT(cert-err34-c)
+        return -1;
+    }
+    return i;
+}
+
+// Where IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep pins the route, located the
+// same way (restoration off): the first family member and pass whose injected run ends at the
+// step guard's failed re-run, and the iteration that re-run belonged to.
+struct GuardRoute {
+    double scale = 0.0;
+    int pass = 0;
+    int iteration = -1;
+};
+
+std::optional<GuardRoute> find_guard_route() {
+    for (const double scale : scale_family()) {
+        const hven::IpmResult clean = solve_dense(scale).result;
+        if (!success(clean.status) || clean.kkt_factor_counters.dense_fallback_count != 0 ||
+            clean.dense_residual_ratio_triggers == 0) {
+            continue;
+        }
+        const int attempts = static_cast<int>(clean.kkt_factor_counters.dense_factorize_count);
+        for (int pass = 0; pass < attempts; ++pass) {
+            RecordedSolve run;
+            {
+                const Armed armed(pass);
+                run = solve_dense(scale);
+            }
+            if (run.result.message.find("dense step guard's refactorization") !=
+                std::string::npos) {
+                return GuardRoute{scale, pass, named_iteration(run.result.message)};
+            }
+        }
+    }
+    return std::nullopt;
+}
+
+// HS071 whose model refuses (EvaluationError) every evaluation away from `safe` once `refusing` is
+// set: the line search's trial points are refused while the committed point -- which the
+// iteration callback hands over as `safe` -- still evaluates. A model that cannot be evaluated at
+// any trial step is the un-evaluable dispatch's real scenario.
+class TrialRefusingHs071 final : public hven::Nlp {
+  public:
+    bool refusing = false;
+    Eigen::VectorXd safe;
+
+    hven::NlpDimensions dimensions() const override { return inner_.dimensions(); }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        inner_.bounds(xl, xu, gl, gu);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        check(x);
+        return inner_.eval_f(x);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        check(x);
+        inner_.eval_grad_f(x, g);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        check(x);
+        inner_.eval_g(x, g);
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        inner_.jacobian_structure(r, c);
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        inner_.hessian_structure(r, c);
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        check(x);
+        inner_.eval_jacobian(x, v);
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        check(x);
+        inner_.eval_hessian(x, obj_factor, lambda, v);
+    }
+    std::string name() const override { return "TrialRefusingHs071"; }
+
+  private:
+    void check(hven::ConstVecRef x) const {
+        if (refusing && (safe.size() != x.size() || x != safe)) {
+            throw hven::EvaluationError("trial point refused");
+        }
+    }
+    hven_drivers_tests::Hs071Problem inner_;
+};
+
 } // namespace
 
 TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
@@ -373,6 +483,11 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsTh
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kAcceptable) << r.message;
     EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_NE(
+        r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration "),
+        std::string::npos)
+        << r.message;
+    EXPECT_NE(r.message.find(" left no numerics"), std::string::npos) << r.message;
     EXPECT_NE(r.last_kkt_info, Eigen::Success);
     EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, attempts - 1);
     EXPECT_GT(run.event_x.size(), 2U);
@@ -412,8 +527,11 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsReturnsTheBestIterateUnderRe
 
 // Restoration configured: the numeric refusal at the first iteration enters it, with no step and
 // no throw. The injectors stay armed, so every later factorization -- restoration's own -- leaves
-// no numerics too; restoration is then already active, nothing is left to route to, and the solve
-// ends kNumericalError.
+// no numerics too. Under the nested strategy the next refusal re-centres the elastic pairs (its
+// one-shot budget) and the one after finds nothing left; under the proximal one the first refusal
+// inside restoration finds nothing left. Either way the solve ends kNumericalError: entry, (re-
+// centre,) abort, one iteration each, counted in the recovery-depth histogram's restoration and
+// unresolved buckets.
 class IpmNoNumericsRestorationSeam : public ::testing::TestWithParam<hven::IpmRestorationMode> {};
 
 TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
@@ -431,6 +549,49 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
     EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
     EXPECT_GT(run.event_x.size(), 1U) << "the solve continued past the iteration that entered it";
     EXPECT_TRUE(r.x.allFinite());
+    const bool nested = GetParam() == hven::IpmRestorationMode::kL1Nested;
+    // The entry (and the nested re-centre) resolved into the restoration bucket; the abort did not.
+    using hven::detail::kRecoveryDepthRestoration;
+    using hven::detail::kRecoveryDepthUnresolved;
+    EXPECT_EQ(r.recovery_depth_histogram[kRecoveryDepthRestoration], nested ? 2 : 1);
+    EXPECT_EQ(r.recovery_depth_histogram[kRecoveryDepthUnresolved], 1);
+    // The entry at iteration 0, the nested re-centre at 1, the abort at the next.
+    const int abort_iteration = nested ? 2 : 1;
+    EXPECT_EQ(named_iteration(r.message), abort_iteration) << r.message;
+    EXPECT_EQ(run.rows.size(), static_cast<std::size_t>(abort_iteration + 1));
+}
+
+// The order: at an acceptable-tier iterate outside restoration the refusal stops there --
+// kAcceptable, the reason in the message, x unmoved -- and restoration, configured and
+// entry-permitted (the start is far from feasible), is never entered. The acceptable tolerances
+// are opened up so that the start itself is at the tier; converge_check's own acceptable verdict
+// needs `acceptable_iterations` such rows, so nothing else stops the solve at iteration 0.
+TEST_P(IpmNoNumericsRestorationSeam, AnAcceptableIterateStopsBeforeRestorationIsEntered) {
+    hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
+    o.advanced.restoration_mode = GetParam();
+    o.termination.acceptable_kkt_tol = 1e6;
+    o.termination.acceptable_equality_tol = 1e6;
+    o.termination.acceptable_inequality_tol = 1e6;
+    o.termination.acceptable_barrier_tol = 1e6;
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_dense(o));
+    }
+    const hven::IpmResult &r = run.result;
+    ASSERT_FALSE(run.rows.empty());
+    EXPECT_GT(run.rows.front().econ_inf, o.common.feasibility_tol)
+        << "the start must be one restoration would admit";
+    EXPECT_EQ(r.status, hven::SolveStatus::kAcceptable) << r.message;
+    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_NE(r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration "
+                             "0 left no numerics"),
+              std::string::npos)
+        << r.message;
+    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 0);
+    EXPECT_EQ(r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
+    EXPECT_EQ(run.rows.size(), 1U);
+    expect_x_unmoved(run);
 }
 
 // The same entry with the backend recovered once restoration has begun (the injectors disarmed at
@@ -517,4 +678,117 @@ TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesItsBarrierObjective) {
     // without the tail the difference is rounding (the row carries the bound term alone).
     EXPECT_GT(row.barr_obj - bound_term, 1e-4)
         << "barr_obj " << row.barr_obj << ", bound term " << bound_term << ", mu " << row.mu;
+}
+
+// Inside restoration a row's residuals are the restoration subproblem's (here the nested phase's
+// condensed elastic residual), so a row at the acceptable tier must never become an acceptable
+// stop. The injectors stay armed through restoration; the acceptable tolerances are set so that
+// the start is NOT at the tier (its inequality residual is 1.05e-3) while the restoration rows ARE
+// (1.03e-3) -- asserted below, so the fixture fails loudly if a platform moves either row. The
+// solve must end as ANumericRefusalEntersRestoration's does.
+TEST(IpmNoNumericsSeam, AnAcceptableRestorationRowIsNeverAnAcceptableStop) {
+    hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
+    o.termination.acceptable_kkt_tol = 1e6;
+    o.termination.acceptable_equality_tol = 1e6;
+    o.termination.acceptable_inequality_tol = 1.04e-3;
+    o.termination.acceptable_barrier_tol = 1e6;
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_dense(o));
+    }
+    const hven::IpmResult &r = run.result;
+    ASSERT_GE(run.rows.size(), 2U) << r.message;
+    ASSERT_FALSE(row_acceptable(run.rows.front(), o)) << "icon " << run.rows.front().icon_inf;
+    ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "icon " << run.rows.back().icon_inf;
+    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
+}
+
+// The same hole in the un-evaluable dispatch (pre-existing): a model that refuses every trial
+// point once restoration has run for a while. The refusal at iteration 0 enters nested
+// restoration (the injectors are disarmed from the next event on, so every later factorization is
+// a real one); from iteration 2 every trial point is refused. Outside restoration an un-evaluable
+// iteration enters restoration from a row short of the tier; inside it the first re-centres the
+// elastics and the next finds nothing left. The row the solve ends on is at the acceptable tier
+// under the tolerance chosen here (stationarity 2.2 against the start's 14.8 -- asserted, as
+// above), and the solve must still end kNumericalError (kEvaluationFailure), never kAcceptable.
+TEST(IpmNoNumericsSeam, AnUnevaluableStepInsideRestorationIsNeverAnAcceptableStop) {
+    hven::IpmOptions o = hs071_options(hven::IpmBarrierMode::kLoqo);
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kL1Nested;
+    o.termination.acceptable_kkt_tol = 5.0;
+    o.termination.acceptable_equality_tol = 1e6;
+    o.termination.acceptable_inequality_tol = 1e6;
+    o.termination.acceptable_barrier_tol = 1e6;
+    auto nlp = std::make_shared<TrialRefusingHs071>();
+    TrialRefusingHs071 *model = nlp.get();
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = record_solve(o, nlp, hven_drivers_tests::hs071_start(),
+                                           [model](const hven::IterationEvent &e) {
+                                               if (e.iteration >= 1) {
+                                                   disarm();
+                                               }
+                                               if (e.iteration >= 2) {
+                                                   model->safe = e.x;
+                                                   model->refusing = true;
+                                               }
+                                           }));
+    }
+    const hven::IpmResult &r = run.result;
+    ASSERT_GE(run.rows.size(), 2U) << r.message;
+    ASSERT_FALSE(row_acceptable(run.rows.front(), o)) << "kkt " << run.rows.front().kkt_inf;
+    ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "kkt " << run.rows.back().kkt_inf;
+    EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kEvaluationFailure);
+    EXPECT_NE(r.message.find("could not be evaluated at any trial step"), std::string::npos)
+        << r.message;
+    EXPECT_NE(r.message.find("already active"), std::string::npos) << r.message;
+}
+
+// The guard route on a CONTINUING solve: restoration (proximal) configured, so the guard's failed
+// re-run enters restoration instead of ending the solve. The step the guard rejected must be
+// discarded there too: x at the next iteration is the x the entering iteration started from. The
+// route is located as AFailedGuardReRunEndsTheSolveWithoutItsStep locates it (restoration off);
+// the proximal strategy is dead until entered, so the same pass reaches the same re-run with it
+// configured (asserted: the clean solves factorize alike). The injectors stay armed, so the solve
+// then ends inside restoration (kNumericalError).
+TEST(IpmDenseGuardSeam, AFailedGuardReRunUnderRestorationDiscardsItsStep) {
+    const std::optional<GuardRoute> route = find_guard_route();
+    ASSERT_TRUE(route.has_value()) << "no member of the family reached the guard's failed re-run";
+    ASSERT_GE(route->iteration, 0);
+    SCOPED_TRACE(fmt::format("scale {:.2f}, pass {}, iteration {}", route->scale, route->pass,
+                             route->iteration));
+    hven::IpmOptions o = dense_options();
+    o.advanced.restoration_mode = hven::IpmRestorationMode::kProximalSwitch;
+    Eigen::VectorXd x0(2);
+    x0 << 3.0, -1.0;
+    const RecordedSolve clean_off = solve_dense(route->scale);
+    const RecordedSolve clean_on =
+        record_solve(o, std::make_shared<NearDuplicateRows>(route->scale), x0);
+    ASSERT_EQ(clean_on.result.kkt_factor_counters.dense_factorize_count,
+              clean_off.result.kkt_factor_counters.dense_factorize_count);
+    ASSERT_EQ(clean_on.result.last_feasibility_restoration_entries.value_or(0), 0);
+    RecordedSolve run;
+    {
+        const Armed armed(route->pass);
+        ASSERT_NO_THROW(run =
+                            record_solve(o, std::make_shared<NearDuplicateRows>(route->scale), x0));
+    }
+    const hven::IpmResult &r = run.result;
+    const auto i = static_cast<std::size_t>(route->iteration);
+    EXPECT_GE(r.dense_residual_ratio_triggers, 1);
+    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 1);
+    ASSERT_GT(run.event_x.size(), i + 1)
+        << "the solve did not continue past the entering iteration";
+    EXPECT_EQ(run.event_x[i + 1], run.event_x[i])
+        << "a step was taken from the iterate the entering iteration started from";
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+    EXPECT_TRUE(r.x.allFinite());
 }

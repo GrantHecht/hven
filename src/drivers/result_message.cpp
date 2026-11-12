@@ -71,6 +71,12 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
     case SolveStatus::kOptimal:
         return "converged: optimality and feasibility tolerances met";
     case SolveStatus::kAcceptable:
+        // detail: empty on every exit but the stop at an acceptable iterate when
+        // an iteration's KKT factorization left no numerics.
+        if (!detail.empty()) {
+            return fmt::format(
+                "converged to an acceptable level: the acceptable tolerances were met; {}", detail);
+        }
         return "converged to an acceptable level: the acceptable tolerances were met";
     case SolveStatus::kIterationLimit:
         return iteration_limit_message(effective_iteration_cap(common, budget));

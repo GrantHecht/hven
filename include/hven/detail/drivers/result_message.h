@@ -26,7 +26,8 @@ namespace hven::detail {
 /// @param reason The stop reason of the last phase that ran.
 /// @param detail The engine's words for @p reason (IpmSolverImpl::
 ///        last_stop_detail()): the non-finite quantity, the last evaluation
-///        failure, the exception's description. May be empty.
+///        failure, the exception's description, why an acceptable stop came
+///        early. May be empty.
 /// @param options The options the solve ran under.
 /// @param budget The per-call budget the solve ran under.
 std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
