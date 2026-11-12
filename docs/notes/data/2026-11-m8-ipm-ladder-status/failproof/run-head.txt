@@ -1,0 +1,30 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/ipmlad/build-ipmlad/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpmDenseGuardSeam.*:IpmNoNumericsSeam.*:BackendErrorSeam.*
+[==========] Running 7 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from BackendErrorSeam
+[ RUN      ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine (4 ms)
+[ RUN      ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine
+[       OK ] BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine (0 ms)
+[ RUN      ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult
+[       OK ] BackendErrorSeam.ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult (2 ms)
+[----------] 3 tests from BackendErrorSeam (6 ms total)
+
+[----------] 1 test from IpmDenseGuardSeam
+[ RUN      ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep
+[       OK ] IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep (2 ms)
+[----------] 1 test from IpmDenseGuardSeam (2 ms total)
+
+[----------] 3 tests from IpmNoNumericsSeam
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusMidSolve
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusMidSolve (0 ms)
+[ RUN      ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor
+[       OK ] IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor (0 ms)
+[----------] 3 tests from IpmNoNumericsSeam (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 3 test suites ran. (11 ms total)
+[  PASSED  ] 7 tests.
