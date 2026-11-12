@@ -933,6 +933,7 @@ QpSolution detail::ssn_result_to_qp_solution(const SsnResult &res) {
     qs.counters.dense_flagged_factorizations = res.dense_flagged_factorizations;
     qs.counters.dense_singular_refactors = res.dense_singular_refactors;
     qs.counters.dense_shifted_solve_refusals = res.dense_shifted_solve_refusals;
+    qs.counters.dense_solve_residual_refusals = res.dense_solve_residual_refusals;
     return qs;
 }
 
@@ -970,6 +971,7 @@ void detail::charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res
     total.dense_flagged_factorizations += res.dense_flagged_factorizations;
     total.dense_singular_refactors += res.dense_singular_refactors;
     total.dense_shifted_solve_refusals += res.dense_shifted_solve_refusals;
+    total.dense_solve_residual_refusals += res.dense_solve_residual_refusals;
 }
 
 void detail::charge_refused_face_refinement(SqpCounters &total, const QpSolution &refined,
@@ -1135,6 +1137,7 @@ QpSolution detail::ipqp_result_to_qp_solution(const IpqpResult &res) {
     qs.counters.dense_platform_retakes = res.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = res.dense_flagged_factorizations;
     qs.counters.dense_singular_refactors = res.dense_singular_refactors;
+    qs.counters.dense_solve_residual_refusals = res.dense_solve_residual_refusals;
     return qs;
 }
 
@@ -1147,6 +1150,7 @@ void detail::charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &r
     total.dense_platform_retakes += res.dense_platform_retakes;
     total.dense_flagged_factorizations += res.dense_flagged_factorizations;
     total.dense_singular_refactors += res.dense_singular_refactors;
+    total.dense_solve_residual_refusals += res.dense_solve_residual_refusals;
 }
 
 namespace {
@@ -1352,6 +1356,7 @@ QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic
     qs.counters.dense_platform_retakes = ires.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = ires.dense_flagged_factorizations;
     qs.counters.dense_singular_refactors = ires.dense_singular_refactors;
+    qs.counters.dense_solve_residual_refusals = ires.dense_solve_residual_refusals;
     return qs;
 }
 
@@ -1440,6 +1445,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         out.dense_shifted_solve_refusals += qs_e.counters.dense_shifted_solve_refusals;
         out.dense_shifted_k0_fallbacks += qs_e.counters.dense_shifted_k0_fallbacks;
         out.dense_shifted_terminations += qs_e.counters.dense_shifted_terminations;
+        out.dense_solve_residual_refusals += qs_e.counters.dense_solve_residual_refusals;
         out.terminal_polish_solves += qs_e.counters.terminal_polish_solves;
         out.terminal_polish_rejected += qs_e.counters.terminal_polish_rejected;
         out.terminal_polish_adopted += qs_e.counters.terminal_polish_adopted;
@@ -6083,6 +6089,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.dense_shifted_solve_refusals += phase.counters.dense_shifted_solve_refusals;
         st.out.counters.dense_shifted_k0_fallbacks += phase.counters.dense_shifted_k0_fallbacks;
         st.out.counters.dense_shifted_terminations += phase.counters.dense_shifted_terminations;
+        st.out.counters.dense_solve_residual_refusals +=
+            phase.counters.dense_solve_residual_refusals;
         st.out.counters.terminal_polish_solves += phase.counters.terminal_polish_solves;
         st.out.counters.terminal_polish_rejected += phase.counters.terminal_polish_rejected;
         st.out.counters.terminal_polish_adopted += phase.counters.terminal_polish_adopted;
@@ -7735,6 +7743,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.dense_shifted_solve_refusals += mj.qs.counters.dense_shifted_solve_refusals;
     st.out.counters.dense_shifted_k0_fallbacks += mj.qs.counters.dense_shifted_k0_fallbacks;
     st.out.counters.dense_shifted_terminations += mj.qs.counters.dense_shifted_terminations;
+    st.out.counters.dense_solve_residual_refusals += mj.qs.counters.dense_solve_residual_refusals;
     st.out.counters.terminal_polish_solves += mj.qs.counters.terminal_polish_solves;
     st.out.counters.terminal_polish_rejected += mj.qs.counters.terminal_polish_rejected;
     st.out.counters.terminal_polish_adopted += mj.qs.counters.terminal_polish_adopted;
@@ -7842,6 +7851,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             retried.counters.dense_shifted_solve_refusals;
         st.out.counters.dense_shifted_k0_fallbacks += retried.counters.dense_shifted_k0_fallbacks;
         st.out.counters.dense_shifted_terminations += retried.counters.dense_shifted_terminations;
+        st.out.counters.dense_solve_residual_refusals +=
+            retried.counters.dense_solve_residual_refusals;
         st.out.counters.terminal_polish_solves += retried.counters.terminal_polish_solves;
         st.out.counters.terminal_polish_rejected += retried.counters.terminal_polish_rejected;
         st.out.counters.terminal_polish_adopted += retried.counters.terminal_polish_adopted;
@@ -8403,6 +8414,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             mj.qs_soc.counters.dense_shifted_solve_refusals;
         st.out.counters.dense_shifted_k0_fallbacks += mj.qs_soc.counters.dense_shifted_k0_fallbacks;
         st.out.counters.dense_shifted_terminations += mj.qs_soc.counters.dense_shifted_terminations;
+        st.out.counters.dense_solve_residual_refusals +=
+            mj.qs_soc.counters.dense_solve_residual_refusals;
         st.out.counters.terminal_polish_solves += mj.qs_soc.counters.terminal_polish_solves;
         st.out.counters.terminal_polish_rejected += mj.qs_soc.counters.terminal_polish_rejected;
         st.out.counters.terminal_polish_adopted += mj.qs_soc.counters.terminal_polish_adopted;

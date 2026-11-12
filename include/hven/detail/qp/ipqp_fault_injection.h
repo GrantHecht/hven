@@ -228,6 +228,34 @@ struct IpqpStepObserver {
     }
 };
 
+// A WRONG DENSE STEP SOLVE. Within a window of the tier's dense-arm step solves
+// (`solve_system` calls: the mu-estimate's, then each iteration's affine and corrector, in
+// order), every backend solve that call makes -- the answer and each refinement correction --
+// is multiplied by `scale`: the answer a dense factor of K / scale would give, which no detector
+// flagged. With `scale = 3` the answer misses by rho = 2 and refinement diverges, so the check
+// refuses it.
+//
+// FAITHFUL FOR the check's verdict and the tier's response to it: both read only the answers
+// and K. NOT FAITHFUL FOR the factorization's own evidence (its inertia is the real K's, which a
+// real wrong factor need not report) -- no fixture asserts on that.
+struct IpqpDenseSolveInjector {
+    static inline bool active = false;
+    /// Dense step solves passed through untouched before the window opens.
+    static inline Index skip_first = 0;
+    /// Solves corrupted once the window is open; -1 = no limit.
+    static inline Index max_injections = -1;
+    static inline double scale = 3.0;
+    static inline Index injections = 0;
+
+    static void reset() {
+        active = false;
+        skip_first = 0;
+        max_injections = -1;
+        scale = 3.0;
+        injections = 0;
+    }
+};
+
 } // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

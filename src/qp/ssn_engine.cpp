@@ -591,8 +591,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                 (void)detail::refine_shifted_solve(k_, rhs, kkt_, dw);
                 dw_refused = detail::shifted_solve_refused(k_, rhs, kkt_, dw);
                 // A step through unshifted dense numerics is checked per solve
-                // (M8 DN-3a, kkt_calls.h).
-                dw_dense_refused = detail::unshifted_dense_solve_refused(k_, rhs, kkt_, fo.arm, dw);
+                // (kkt_calls.h).
+                dw_dense_refused = detail::unshifted_dense_solve_refused(
+                    k_, rhs, kkt_, fo.arm, dw, dense_check_r_, dense_check_c_);
             }
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;
@@ -734,9 +735,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             break;
         }
 
-        // A REFUSED UNSHIFTED DENSE STEP (M8 DN-3a) gets the same answer.
+        // A REFUSED UNSHIFTED DENSE STEP gets the same answer.
         if (dw_dense_refused) {
-            detail::count_refusal(detail::dense_solve_check_tally().ssn_refusals);
+            ++out->dense_solve_residual_refusals;
             if (escalate_prox(qp, n, me, mi, mb)) {
                 ++out->counters.ssn_prox_updates;
                 window_damped = true;

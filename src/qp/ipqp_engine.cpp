@@ -196,6 +196,23 @@ void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const V
         Obs::met_target_at_min_step = met_target;
     }
 }
+
+/// IpqpDenseSolveInjector's factor for one dense step solve: `scale` inside its window, else 1.
+double dense_solve_wound() {
+    using Inj = detail::testing::IpqpDenseSolveInjector;
+    if (!Inj::active) {
+        return 1.0;
+    }
+    if (Inj::skip_first > 0) {
+        --Inj::skip_first;
+        return 1.0;
+    }
+    if (Inj::max_injections >= 0 && Inj::injections >= Inj::max_injections) {
+        return 1.0;
+    }
+    ++Inj::injections;
+    return Inj::scale;
+}
 #endif // HVEN_TESTING
 
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
@@ -620,6 +637,8 @@ struct IpqpEngine::Workspace {
 
     // The linear system.
     Vec rhs, sol, dscale, dsq, ruiz_work;
+    // The dense solve check's scratch, sized on its first use (dense arm only).
+    Vec check_r, check_c;
 
     // The three `max(1, ...)` folds the relative residual divides by, kept so the SCHEDULE'S
     // gate can be stated on the same scale as the STOPPING rule -- see kIpqpRegGateContract for
@@ -1780,7 +1799,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Assemble at `(rho_sched, rho_dem, delta)` and factorize, climbing Algorithm IC's ladder
     // until the inertia is the section 4.1 target or the ceiling is reached. `rho_dem`/`delta`
     // are in/out so the caller sees where the ladder stopped; `rho_sched` is never touched.
-    auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta) {
+    //
+    // `solve_refused`: re-enter at the current rung, without re-assembling, after a dense step
+    // solve on its factorization was refused (`solve_system`). The rung is read as perturbed, so
+    // it takes the perturbed-pivot remedy below, and the ladder climbs from there as usual.
+    auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta,
+                                     bool solve_refused) {
         // WHETHER A `rho_dem_last / kIpqpLadderDown` VALUE IS CURRENTLY BEING TRIED, and whether
         // its refusal has already been charged as a reclimb. ONE CHARGE PER ITERATION: the
         // counter answers "did the memory's guess come back too small", not "how many rungs".
@@ -1791,17 +1815,21 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         //
         // (While an evidence failure stands the trial is the POLICY FLOOR, not IC's probe, so its
         // refusal is not a reclimb.)
-        bool trying_memory_value = rho_dem > 0.0 && !evidence_failed;
+        bool trying_memory_value = !solve_refused && rho_dem > 0.0 && !evidence_failed;
         bool reclimb_charged = false;
         // Consecutive primal escalations spent on an unresolved perturbed-pivot
         // report, and whether this iteration has given up on the primal route;
         // see `kIpqpPivotReroutePrimalMax`.
         int perturbed_primal_run = 0;
         bool perturbed_dual_latched = false;
-        assemble(rho_sched, rho_dem, delta, /*weak_scale=*/0.0);
+        if (!solve_refused) {
+            assemble(rho_sched, rho_dem, delta, /*weak_scale=*/0.0);
+        }
 
         for (;;) {
-            const InertiaRead read = factor_and_read(/*final_read=*/false);
+            const InertiaRead read =
+                solve_refused ? InertiaRead::kPerturbed : factor_and_read(/*final_read=*/false);
+            solve_refused = false;
             if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
                 if (read == InertiaRead::kOk && rho_dem > 0.0) {
                     // IC UPDATES ITS MEMORY ONLY ON A SUCCESSFUL **MODIFIED** FACTORIZATION. A
@@ -1974,9 +2002,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // gives `u = D^-1 v` for `K v = b`, so the recovered step is `D u` -- and everything leaving
     // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
     //
-    // THE DENSE SOLVE CHECK (M8 DN-3a): a solve the dense arm answered is checked on the system
-    // the backend factored (scaled when equilibrated, so rho is in D's metric); true iff it
-    // refused, after which the caller answers as it answers a non-finite step.
+    // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored
+    // (scaled when equilibrated, so rho is in D's metric), refined below kDenseSolveResidualTol
+    // and refused only above kDenseResidualRatioSingular -- rho normalized by the rhs has a floor
+    // near n eps kappa on late interior systems, and the check is aimed at wrong factors. Returns
+    // true iff refused.
     auto solve_system = [&]() -> bool {
         if (iopts.ruiz_equilibration) {
             w.rhs.array() *= w.dscale.array();
@@ -1984,16 +2014,22 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         kkt_.solve(w.rhs, w.sol);
         bool refused = false;
         if (kkt_.arm() == hven::linear::FactorArm::kDense) {
+#ifdef HVEN_TESTING
+            const double wound = dense_solve_wound();
+            w.sol *= wound;
+#endif
             refused = detail::dense_solve_check_refused(
-                kkt_.matrix(), w.rhs, Vec(),
-                [&](const Vec &r) {
-                    Vec u(r.size());
-                    kkt_.solve(r, u);
-                    return u;
+                kkt_.matrix(), w.rhs, detail::kDenseResidualRatioSingular,
+                [&](const Vec &in, Vec &u) {
+                    u.resize(in.size());
+                    kkt_.solve(in, u);
+#ifdef HVEN_TESTING
+                    u *= wound;
+#endif
                 },
-                w.sol);
+                w.sol, w.check_r, w.check_c);
             if (refused) {
-                detail::count_refusal(detail::dense_solve_check_tally().ipqp_refusals);
+                ++out.dense_solve_residual_refusals;
             }
         }
         if (iopts.ruiz_equilibration) {
@@ -2113,7 +2149,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         const double saved_rho_dem_max = rho_dem_max;
         double rho_dem = ladder_trial();
         double delta = delta_sched;
-        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
+        const InertiaRead read =
+            factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/false);
         rho_dem_last = saved_rho_dem_last;
         rho_dem_max = saved_rho_dem_max;
 
@@ -2482,12 +2519,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         double delta = delta_sched;
 
-        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
+        InertiaRead read =
+            factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/false);
 
         // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS ACTUALLY TAKEN. `rho`
         // is in/out, so this reads the level the step would run at; the increment waits until the
         // step has been applied, since the counter's doc says "iterations TAKEN".
-        const bool elevated = rho_dem > 0.0;
+        bool elevated = rho_dem > 0.0;
         // IC-1'S SKIP RULE COUNTS ITERATIONS, NOT RUNGS: an iteration "needed a modification" iff
         // the reading the tier acted on was taken with `rho_dem > 0`. Updated here, once the
         // ladder has settled and before any rejection path below can leave the loop.
@@ -2497,84 +2535,125 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             consec_modified = 0;
         }
 
-        if (fact_budget_hit) {
-            // The cap refused a factorization: a BUDGET stop, tested before the reading because no
-            // factorization ran and there is no verdict to classify. Section 6.3's exhaustion
-            // route gets the same look it gets at the two caps above.
-            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
-                                                             : IpqpEscape::kBudget;
-            break;
-        }
-        if (read == InertiaRead::kUnreadable) {
-            // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder): this iteration's
-            // modification is already at the conservative floor and re-factorized there. NOT an
-            // escape and NOT a break -- what the solve can no longer produce is a CERTIFICATE.
-        } else if (read != InertiaRead::kOk) {
-            // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. A solve-scoped `saw_readable_wrong`
-            // flag used to make a terminal PERTURBED/UNREADABLE stop come out `kIndefinite`; plan
-            // section 7 note (h) makes an evidence-invalid terminal state NUMERICAL.
-            escape =
-                (read == InertiaRead::kWrong) ? IpqpEscape::kIndefinite : IpqpEscape::kNumerical;
-            break;
-        }
-
-        // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
-        // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored at
-        // `zeta`, never from the inertia-demanded modification, whose gradient here is zero.
-        build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
-        const bool affine_refused = solve_system();
-        recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
-        if (affine_refused || !w.sol.allFinite()) {
-            escape = IpqpEscape::kNumerical;
-            break;
-        }
-
-        double alpha_ap = 1.0;
-        double alpha_ad = 1.0;
-        steps_to_boundary(w.dx_a, w.ds_a, w.dyi_a, w.dzl_a, w.dzu_a, alpha_ap, alpha_ad);
-
-        // 2. sigma = (mu_aff / mu)^3, Mehrotra's own oracle. The tier computes
-        //    it itself: `ClassicAdaptiveGovernor::mpc_mu` is private and takes
-        //    a SolverContext this tier does not have (spec 3.3).
+        // THE STEP SOLVES, RE-TAKEN AFTER A REFUSED DENSE SOLVE. A refused affine or corrector
+        // solve sends its factorization back to the ladder as a perturbed rung (the IPM's dense
+        // step guard re-runs its ladder the same way); the tier escapes only once the ladder is
+        // exhausted, through the reading checks at the top of this loop.
+        bool step_escaped = false;
+        bool floor_bound = false;
         double sigma_m = 0.0;
         double mu_t = 0.0;
-        if (npairs > 0 && mu_meas > 0.0) {
-            w.tx = w.x + alpha_ap * w.dx_a;
-            if (mi > 0) {
-                w.ts = w.s + alpha_ap * w.ds_a;
-                w.tyi = w.yi + alpha_ad * w.dyi_a;
+        for (;;) {
+            if (fact_budget_hit) {
+                // The cap refused a factorization: a BUDGET stop, tested before the reading
+                // because no factorization ran and there is no verdict to classify. Section 6.3's
+                // exhaustion route gets the same look it gets at the two caps above.
+                escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                                 : IpqpEscape::kBudget;
+                step_escaped = true;
+                break;
             }
-            w.tzl = w.zl + alpha_ad * w.dzl_a;
-            w.tzu = w.zu + alpha_ad * w.dzu_a;
-            double mu_aff = 0.0, lo = 0.0, hi = 0.0;
-            complementarity(w.tx, w.ts, w.tyi, w.tzl, w.tzu, mu_aff, lo, hi);
-            const double ratio = std::max(0.0, mu_aff / mu_meas);
-            sigma_m = std::min(1.0, ratio * ratio * ratio);
-            // Spec 3.3's clamp. The FLOOR matters as much as the ceiling: a
-            // target driven to exactly zero turns the corrector into a second
-            // affine step and gives up the centering the corrector exists for.
-            double target = sigma_m * mu_meas;
-            if (iopts.barrier_residual_floor) {
-                // A2 / A1-R1: the infeasible-IPM neighbourhood's floor (the A2 page section 4).
-                const double r = std::max({res.primal_eq, res.primal_iq, res.stationarity});
-                const double floor_k = floor_mu_s * r / std::max(1.0, floor_r_s);
-                if (floor_k > target && floor_k > iopts.barrier_min) {
-                    target = floor_k;
-                    ++out.counters.ipqp_mu_floor_binds;
+            if (read == InertiaRead::kUnreadable) {
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder): this iteration's
+                // modification is already at the conservative floor and re-factorized there. NOT
+                // an escape and NOT a break -- what the solve can no longer produce is a
+                // CERTIFICATE.
+            } else if (read != InertiaRead::kOk) {
+                // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. A solve-scoped
+                // `saw_readable_wrong` flag used to make a terminal PERTURBED/UNREADABLE stop come
+                // out `kIndefinite`; plan section 7 note (h) makes an evidence-invalid terminal
+                // state NUMERICAL.
+                escape = (read == InertiaRead::kWrong) ? IpqpEscape::kIndefinite
+                                                       : IpqpEscape::kNumerical;
+                step_escaped = true;
+                break;
+            }
+            // A refused solve's re-entry into the ladder; `elevated` and IC-1's run follow the
+            // rung the step is now taken at.
+            const auto reladder = [&]() {
+                read = factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/true);
+                if (!elevated && rho_dem > 0.0) {
+                    elevated = true;
+                    ++consec_modified;
                 }
-            }
-            mu_t = std::clamp(target, iopts.barrier_min, iopts.barrier_initial);
-        }
+            };
 
-        // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's re-entrancy
-        //    assertion: `KktFactorization::solve` is const and does not mutate the factor, so two
-        //    solves against one factorization are well-formed; W1 asserts this executably).
-        build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
-        const bool corrector_refused = solve_system();
-        recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
-        if (corrector_refused || !w.sol.allFinite()) {
-            escape = IpqpEscape::kNumerical;
+            // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
+            // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored
+            // at `zeta`, never from the inertia-demanded modification, whose gradient is zero.
+            build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
+            const bool affine_refused = solve_system();
+            if (affine_refused) {
+                reladder();
+                continue;
+            }
+            recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
+            if (!w.sol.allFinite()) {
+                escape = IpqpEscape::kNumerical;
+                step_escaped = true;
+                break;
+            }
+
+            double alpha_ap = 1.0;
+            double alpha_ad = 1.0;
+            steps_to_boundary(w.dx_a, w.ds_a, w.dyi_a, w.dzl_a, w.dzu_a, alpha_ap, alpha_ad);
+
+            // 2. sigma = (mu_aff / mu)^3, Mehrotra's own oracle. The tier computes
+            //    it itself: `ClassicAdaptiveGovernor::mpc_mu` is private and takes
+            //    a SolverContext this tier does not have (spec 3.3).
+            sigma_m = 0.0;
+            mu_t = 0.0;
+            floor_bound = false;
+            if (npairs > 0 && mu_meas > 0.0) {
+                w.tx = w.x + alpha_ap * w.dx_a;
+                if (mi > 0) {
+                    w.ts = w.s + alpha_ap * w.ds_a;
+                    w.tyi = w.yi + alpha_ad * w.dyi_a;
+                }
+                w.tzl = w.zl + alpha_ad * w.dzl_a;
+                w.tzu = w.zu + alpha_ad * w.dzu_a;
+                double mu_aff = 0.0, lo = 0.0, hi = 0.0;
+                complementarity(w.tx, w.ts, w.tyi, w.tzl, w.tzu, mu_aff, lo, hi);
+                const double ratio = std::max(0.0, mu_aff / mu_meas);
+                sigma_m = std::min(1.0, ratio * ratio * ratio);
+                // Spec 3.3's clamp. The FLOOR matters as much as the ceiling: a
+                // target driven to exactly zero turns the corrector into a second
+                // affine step and gives up the centering the corrector exists for.
+                double target = sigma_m * mu_meas;
+                if (iopts.barrier_residual_floor) {
+                    // A2 / A1-R1: the infeasible-IPM neighbourhood's floor (the A2 page section 4).
+                    const double r = std::max({res.primal_eq, res.primal_iq, res.stationarity});
+                    const double floor_k = floor_mu_s * r / std::max(1.0, floor_r_s);
+                    if (floor_k > target && floor_k > iopts.barrier_min) {
+                        target = floor_k;
+                        floor_bound = true;
+                    }
+                }
+                mu_t = std::clamp(target, iopts.barrier_min, iopts.barrier_initial);
+            }
+
+            // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's
+            //    re-entrancy assertion: `KktFactorization::solve` is const and does not mutate the
+            //    factor, so two solves against one factorization are well-formed; W1 asserts this
+            //    executably). A refusal re-takes the affine step too, on the new factorization.
+            build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
+            const bool corrector_refused = solve_system();
+            if (corrector_refused) {
+                reladder();
+                continue;
+            }
+            recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
+            if (!w.sol.allFinite()) {
+                escape = IpqpEscape::kNumerical;
+                step_escaped = true;
+            }
             break;
+        }
+        if (step_escaped) {
+            break;
+        }
+        if (floor_bound) {
+            ++out.counters.ipqp_mu_floor_binds;
         }
 
         double alpha_p = 1.0;

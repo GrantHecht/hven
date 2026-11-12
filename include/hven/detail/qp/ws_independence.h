@@ -338,11 +338,10 @@ constexpr Index kRankDenseRows = 1000;
 constexpr double kRankReleaseTol = 1e-8;
 constexpr double kRankConsistencyFactor = 10.0;
 
-/// @brief True iff the rank repair refuses its Gram factorization of G + tI (mr rows). Both arms:
-/// a failed status, or a perturbed pivot (the platform's evidence). The dense arm (M8 DN-3a)
-/// reports no perturbation and runs no detector under kSparseFallback, so its evidence is the
-/// inertia: G + tI is positive definite (lambda_min >= t), and a factorization that does not read
-/// (mr, 0) observed has not factored it reliably.
+/// @brief True iff the rank repair refuses its Gram factorization of G + tI (mr rows): a failed
+/// status or a perturbed pivot on either arm; on the dense arm (no detector and no perturbation
+/// report under kSparseFallback) also any inertia but (mr, 0) observed, G + tI being positive
+/// definite.
 inline bool rank_gram_factor_refused(const hven::linear::FactorizeOutcome &fo, Index mr) {
     if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
         (fo.inertia.perturbed_pivots.has_value() && *fo.inertia.perturbed_pivots != 0)) {

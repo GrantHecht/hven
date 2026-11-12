@@ -49,6 +49,50 @@ static_assert(std::is_same_v<lapack_int, int>, "the dense arm requires an LP64 L
 
 namespace hven::linear::detail {
 
+namespace {
+
+// The dense arm's per-call thread pin at kDenseArmThreads, restored on exit.
+// MKL: MklThreadScope. Accelerate: BLASSetThreading where the SDK declares it
+// and the running OS has it (thread-local, binary); elsewhere a no-op.
+#if !defined(HVEN_USE_ACCELERATE_LAPACK)
+class DenseArmThreadPin {
+  public:
+    DenseArmThreadPin() : scope_(kDenseArmThreads) {}
+
+  private:
+    MklThreadScope scope_;
+};
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
+static_assert(kDenseArmThreads == 1, "BLASSetThreading pins single-threaded only");
+class DenseArmThreadPin {
+  public:
+    DenseArmThreadPin() {
+        if (__builtin_available(macOS 15.0, *)) {
+            previous_ = static_cast<int>(BLASGetThreading());
+            engaged_ = true;
+            BLASSetThreading(BLAS_THREADING_SINGLE_THREADED);
+        }
+    }
+    ~DenseArmThreadPin() {
+        if (engaged_) {
+            if (__builtin_available(macOS 15.0, *)) {
+                BLASSetThreading(static_cast<BLAS_THREADING>(previous_));
+            }
+        }
+    }
+    DenseArmThreadPin(const DenseArmThreadPin &) = delete;
+    DenseArmThreadPin &operator=(const DenseArmThreadPin &) = delete;
+
+  private:
+    bool engaged_ = false;
+    int previous_ = 0;
+};
+#else
+class DenseArmThreadPin {};
+#endif
+
+} // namespace
+
 void validate_dense_dimension(Index n) {
     if (n < 1) {
         throw std::invalid_argument(
@@ -181,7 +225,7 @@ void DenseSession::analyze(const SpMatRM &A) {
 
     double query = 0.0;
     {
-        const MklThreadScope threads(kDenseArmThreads);
+        const DenseArmThreadPin threads;
         const auto info = static_cast<int>(
             report()
                 ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n),
@@ -282,7 +326,7 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
 
     int info = 0;
     {
-        const MklThreadScope threads(kDenseArmThreads);
+        const DenseArmThreadPin threads;
         info = static_cast<int>(
             report() ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
                                                 a, static_cast<lapack_int>(n_), ipiv_.data(),
@@ -369,7 +413,7 @@ double DenseSession::rcond_estimate(double anorm) {
     double rcond = 0.0;
     int info = 0;
     {
-        const MklThreadScope threads(kDenseArmThreads);
+        const DenseArmThreadPin threads;
         info = static_cast<int>(
             LAPACKE_dsycon_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a_.data(),
                                      static_cast<lapack_int>(n_), ipiv_.data(), anorm, &rcond,
@@ -395,7 +439,7 @@ void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
     if (!scale_.empty()) {
         apply_scale();
     }
-    const MklThreadScope threads(kDenseArmThreads);
+    const DenseArmThreadPin threads;
     const auto info = static_cast<int>(
         report() ? LAPACKE_dsytrs_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
                                             static_cast<lapack_int>(nrhs), a_.data(),

@@ -489,6 +489,12 @@ struct IpqpResult {
     Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
+    /// Step solves through dense numerics the dense solve check refused
+    /// (QpCounters' dense_solve_residual_refusals): an affine or corrector
+    /// refusal is answered by the inertia ladder's perturbed-pivot remedy
+    /// (kNumerical only once that ladder is exhausted); a mu-estimate refusal
+    /// takes the estimate's non-finite fallback.
+    Index dense_solve_residual_refusals = 0;
 };
 
 /// @brief The IP-PMM interior-point QP tier.

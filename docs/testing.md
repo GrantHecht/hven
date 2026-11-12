@@ -551,7 +551,7 @@ boundary carries everything else, so the boundary is where it stays.
 
 `hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
 the linear layer, and it is the first use of it outside `linear/`. It declares
-four `static inline` structs under `hven::detail::testing`, entirely
+five `static inline` structs under `hven::detail::testing`, entirely
 guarded by `#ifdef HVEN_TESTING`:
 
 - `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
@@ -592,6 +592,27 @@ guarded by `#ifdef HVEN_TESTING`:
   smallest update on those six is 4.9e-07, so that freeze shows as a budget
   escape with ordinary-sized steps, not as a vanishing one. The pin covers the
   vanishing-step class only, and `IpqpStepObserver`'s own doc comment says so.
+- `IpqpDenseSolveInjector` (M8 DN-3a) — `active`, `skip_first`,
+  `max_injections`, `scale`, `injections`. An injector, with a window over the
+  tier's dense-arm step solves (`solve_system` calls on a `kDense`
+  factorization, in order: the μ-estimate's under `kComplementarity`, then each
+  iteration's affine and corrector). Inside the window every backend solve that
+  call makes — the answer and each refinement correction — is multiplied by
+  `scale` (default 3): the answer a dense factor of `K / scale` would give, a
+  wrong factor the detector did not flag. With `scale = 3` the first answer
+  misses by ρ = 2 and the keep-while-falling refinement diverges, so the dense
+  solve check refuses it. WHY: no legal subproblem was found whose dense step
+  solve misses ρ by more than the eps·κ floor — a 4-variable rotated
+  near-singular Hessian refuses at ρ = 1.5e-5, against a 1e-5 threshold — so
+  the response per site (the μ-estimate's fallback; the affine and corrector's
+  perturbed-pivot rung; `kNumerical` at the exhausted ladder) is otherwise
+  unpinnable. FAITHFUL FOR the check's verdict and the tier's response: both
+  read only the answers and `K`. NOT FAITHFUL FOR the factorization's own
+  evidence — its inertia is the real `K`'s, which a real wrong factor need not
+  report; no fixture asserts on it. Consumers:
+  `IpqpDenseSolveSeamTest.*` in `hven_ipqp_seam_tests`. The hook is
+  `#ifdef HVEN_TESTING` inside `solve_system`'s dense branch (call site and
+  helper both guarded), in this Apache-2.0 file; no session file is touched.
 
 Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
 `src/qp/ipqp_engine.cpp` rather than riding `evidence_for_read`: they observe

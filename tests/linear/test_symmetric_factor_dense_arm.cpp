@@ -1133,7 +1133,7 @@ TEST(DenseArm, ThreadsRoundTrip) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// M8 DN-3a: the dense arm's thread pin (settler Q4) and the unshifted dense solve check (Q5).
+// The dense arm's thread pin and the unshifted dense solve check.
 // ---------------------------------------------------------------------------------------------
 
 // A dense symmetric indefinite n x n matrix, diagonally weighted so it is far from singular.
@@ -1236,6 +1236,63 @@ TEST(DenseArmThreads, EveryDenseLapackCallRunsAtOneThread) {
         EXPECT_EQ(trs, 1) << out;
     }
 }
+
+// THE PIN HOLDS AT threads = 0, the count every SQP factor is built with ("leave the backend's
+// default alone"), under a GLOBAL MKL count of 4: a dsytrf issued outside the dense arm runs at 4
+// (the premise), every dense-arm call at 1.
+TEST(DenseArmThreads, ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne) {
+    const Index n = 300;
+    const Mat m = indefinite_matrix(n);
+    const SpMatRM A = upper_csr(m);
+    const int global_before = mkl_get_max_threads();
+    mkl_set_num_threads(4);
+    std::string premise_out;
+    std::string arm_out;
+    lapack_int info = 0;
+    FactorizeOutcome fo;
+    {
+        Mat a = m;
+        std::vector<lapack_int> ipiv(static_cast<std::size_t>(n));
+        mkl_verbose(1);
+        testing::internal::CaptureStdout();
+        info = LAPACKE_dsytrf(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n), a.data(),
+                              static_cast<lapack_int>(n), ipiv.data());
+        std::fflush(stdout);
+        premise_out = testing::internal::GetCapturedStdout();
+        mkl_verbose(0);
+    }
+    {
+        SymmetricFactor::Options o = dense_options();
+        o.threads = 0;
+        SymmetricFactor f(o);
+        mkl_verbose(1);
+        testing::internal::CaptureStdout();
+        f.analyze(A);
+        fo = f.factorize(A);
+        Vec x(n);
+        f.solve(Vec::Ones(n), x);
+        std::fflush(stdout);
+        arm_out = testing::internal::GetCapturedStdout();
+        mkl_verbose(0);
+    }
+    mkl_set_num_threads(global_before);
+    ASSERT_EQ(info, 0);
+    bool saw = false;
+    for (const auto &[name, nthr] : mkl_verbose_calls(premise_out)) {
+        if (name.rfind("DSYTRF", 0) == 0) {
+            saw = true;
+            EXPECT_EQ(nthr, 4) << name;
+        }
+    }
+    EXPECT_TRUE(saw) << premise_out;
+    ASSERT_EQ(fo.status, FactorizeOutcome::Status::kOk);
+    ASSERT_EQ(fo.arm, FactorArm::kDense);
+    const auto calls = mkl_verbose_calls(arm_out);
+    EXPECT_GE(calls.size(), 3U) << arm_out;
+    for (const auto &[name, nthr] : calls) {
+        EXPECT_EQ(nthr, 1) << name;
+    }
+}
 #endif
 
 // A 6 x 6 matrix Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (Q orthogonal, from a Householder QR):
@@ -1273,9 +1330,11 @@ TEST(DenseSolveCheck, AnUnflaggedIllConditionedDenseSolveIsRefused) {
     ASSERT_FALSE(k.dense_shifted);
     const Vec rhs = small_eigenvector();
     Vec y = hven::detail::solve_vec(k, rhs);
-    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+    Vec r;
+    Vec c;
+    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, r),
               hven::detail::kDenseSolveResidualTol); // the premise: the first solve misses
-    EXPECT_TRUE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y));
+    EXPECT_TRUE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
 }
 
 // Dense arm only: the same system on the platform session, and the same answer labelled sparse,
@@ -1287,16 +1346,18 @@ TEST(DenseSolveCheck, OnlyUnshiftedDenseNumericsAreChecked) {
     const FactorizeOutcome so = hven::detail::factorize_checked(sparse, K);
     ASSERT_EQ(so.arm, FactorArm::kSparse);
     Vec ys = hven::detail::solve_vec(sparse, rhs);
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, sparse, so.arm, ys));
+    Vec r;
+    Vec c;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, sparse, so.arm, ys, r, c));
     hven::detail::KktFactor dense = kkt_factor(DensePolicy::kAlways);
     const FactorizeOutcome d =
         hven::detail::factorize_checked(dense, K, hven::detail::DenseShiftSite{kRotatedN});
     Vec yd = hven::detail::solve_vec(dense, rhs);
     const Vec before = yd;
     EXPECT_FALSE(
-        hven::detail::unshifted_dense_solve_refused(K, rhs, dense, FactorArm::kSparse, yd));
+        hven::detail::unshifted_dense_solve_refused(K, rhs, dense, FactorArm::kSparse, yd, r, c));
     dense.dense_shifted = true; // as factorize_checked marks a shift response
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, d.arm, yd));
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, d.arm, yd, r, c));
     EXPECT_EQ(yd, before);
 }
 
@@ -1311,13 +1372,14 @@ TEST(DenseSolveCheck, APassingDenseSolveIsUsedUnchanged) {
     const Vec rhs = Vec::LinSpaced(12, -1.0, 2.0);
     Vec y = hven::detail::solve_vec(k, rhs);
     const Vec before = y;
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y));
+    Vec r;
+    Vec c;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
     EXPECT_EQ(y, before);
 }
 
 // THE REFINEMENT: a solve through numerics of a nearby matrix misses rho at first, and the
-// keep-while-falling refinement against K brings it under the tolerance -- accepted, refined.
-// Without refinement the same solve would be refused.
+// keep-while-falling refinement against K brings it under the trigger -- accepted, refined.
 TEST(DenseSolveCheck, RefinementRescuesASolveThatMissesAtFirst) {
     const Mat Kd = indefinite_matrix(8);
     const SpMatRM K = upper_csr(Kd);
@@ -1325,38 +1387,73 @@ TEST(DenseSolveCheck, RefinementRescuesASolveThatMissesAtFirst) {
     Pd(0, 0) *= 1.0 + 1e-6; // the numerics solved against are K's to 1e-6
     const Eigen::LDLT<Mat> near(Pd);
     ASSERT_EQ(near.info(), Eigen::Success);
-    const auto solve = [&](const Vec &r) -> Vec { return near.solve(r); };
+    const auto solve = [&](const Vec &in, Vec &out) { out = near.solve(in); };
     const Vec rhs = Vec::Ones(8);
-    Vec y = solve(rhs);
+    Vec y;
+    solve(rhs, y);
     const Vec first = y;
-    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+    Vec r;
+    Vec c;
+    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, r),
               hven::detail::kDenseSolveResidualTol); // the premise
-    EXPECT_FALSE(hven::detail::dense_solve_check_refused(K, rhs, Vec(), solve, y));
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(
+        K, rhs, hven::detail::kDenseSolveResidualTol, solve, y, r, c));
     EXPECT_NE(y, first);
-    EXPECT_LE(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+    EXPECT_LE(hven::detail::dense_residual_ratio(K, rhs, y, r),
               hven::detail::kDenseSolveResidualTol);
 }
 
-// A NaN refuses (the NaN-sticky norm), and so does a non-finite solve; rho reads D's metric.
-TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndRhoReadsTheMetric) {
+// THE TWO THRESHOLDS: refinement is triggered above kDenseSolveResidualTol, the refusal is the
+// consumer's own threshold. A solve whose rho stays at 1e-6 (refinement cannot move it: the
+// correction solve returns zero) passes a 1e-5 refusal threshold and fails a 1e-8 one.
+TEST(DenseSolveCheck, TheRefusalThresholdIsTheConsumersAndRefinementStillRuns) {
     const SpMatRM K = upper_csr(Mat::Identity(2, 2));
     const Vec rhs = Vec::Ones(2);
-    const auto nan_solve = [](const Vec &r) -> Vec {
-        return Vec::Constant(r.size(), std::numeric_limits<double>::quiet_NaN());
+    Vec y0(2);
+    y0 << 1.0, 1.0 + 1e-6; // rho = 1e-6
+    Index calls = 0;
+    const auto zero_solve = [&](const Vec &in, Vec &out) {
+        ++calls;
+        out.setZero(in.size());
     };
-    Vec y(2);
-    y << 1.0, std::numeric_limits<double>::quiet_NaN();
-    EXPECT_TRUE(hven::detail::dense_solve_check_refused(K, rhs, Vec(), nan_solve, y));
-    Vec z(2);
-    z << 1.0, 0.5; // residual (0, 0.5)
-    Vec d(2);
-    d << 1.0, 1e-3;
-    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, Vec()), 0.5);
-    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, d), 0.5e-3);
-    EXPECT_EQ(hven::detail::dense_residual_ratio(K, Vec::Zero(2), Vec::Zero(2), Vec()), 0.0);
+    Vec r;
+    Vec c;
+    Vec y = y0;
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(K, rhs, 1e-5, zero_solve, y, r, c));
+    EXPECT_EQ(calls, 1); // the trigger fired; the stalled step is not kept
+    EXPECT_EQ(y, y0);
+    y = y0;
+    EXPECT_TRUE(hven::detail::dense_solve_check_refused(
+        K, rhs, hven::detail::kDenseSolveResidualTol, zero_solve, y, r, c));
+    Vec y1(2);
+    y1 << 1.0, 1.0 + 1e-9; // rho = 1e-9: under the trigger, no refinement
+    y = y1;
+    calls = 0;
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(K, rhs, 1e-5, zero_solve, y, r, c));
+    EXPECT_EQ(calls, 0);
 }
 
-// THE RANK-REPAIR GRAM'S REFUSAL on the dense arm (M8 DN-3a): the dense arm reports no
+// A NaN refuses (the NaN-sticky norm), and so does a non-finite solve; rho is ||K y - rhs|| over
+// ||rhs|| in the inf-norm, 0 when both vanish, and leaves K y - rhs in the scratch.
+TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio) {
+    const SpMatRM K = upper_csr(Mat::Identity(2, 2));
+    const Vec rhs = Vec::Ones(2);
+    const auto nan_solve = [](const Vec &in, Vec &out) {
+        out = Vec::Constant(in.size(), std::numeric_limits<double>::quiet_NaN());
+    };
+    Vec r;
+    Vec c;
+    Vec y(2);
+    y << 1.0, std::numeric_limits<double>::quiet_NaN();
+    EXPECT_TRUE(hven::detail::dense_solve_check_refused(K, rhs, 1e-5, nan_solve, y, r, c));
+    Vec z(2);
+    z << 1.0, 0.5; // residual (0, -0.5)
+    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, r), 0.5);
+    EXPECT_DOUBLE_EQ(r(1), -0.5);
+    EXPECT_EQ(hven::detail::dense_residual_ratio(K, Vec::Zero(2), Vec::Zero(2), r), 0.0);
+}
+
+// THE RANK-REPAIR GRAM'S REFUSAL on the dense arm: the dense arm reports no
 // perturbation, so its evidence is the inertia an SPD G + tI must read. A real dense factor of an
 // indefinite matrix is refused; of an SPD one, accepted. On the platform session the rule is the
 // perturbed-pivot rule it always was.
@@ -1398,6 +1495,38 @@ TEST(DenseSolveCheck, TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite) {
         wrong.inertia.negative = 1;
         EXPECT_FALSE(hven::detail::rank_gram_factor_refused(wrong, n));
     }
+}
+
+// THE GRAM'S OWN REGIME: G = B B' of rank 3 in 6 rows, shifted as the rank repair shifts it
+// (t = kRankGramShift ||G||inf, so kappa(G + tI) is about 1e6). The plain dsytrf path (the Gram's
+// kSparseFallback policy) reads it (6, 0) and the refusal rule accepts it: the inertia clause
+// refuses wrong factors, not the rank-deficient Grams it exists to factor.
+TEST(DenseSolveCheck, ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused) {
+    constexpr Index mr = 6;
+    Mat B(mr, 3);
+    for (Index i = 0; i < mr; ++i) {
+        for (Index j = 0; j < 3; ++j) {
+            B(i, j) = std::sin(static_cast<double>(2 + 5 * i + 11 * j));
+        }
+    }
+    Mat G = B * B.transpose();
+    const double g_inf = G.cwiseAbs().rowwise().sum().maxCoeff();
+    const double t = hven::detail::kRankGramShift * g_inf;
+    G.diagonal().array() += t;
+    const Eigen::SelfAdjointEigenSolver<Mat> eig(G);
+    ASSERT_GT(eig.eigenvalues().maxCoeff() / eig.eigenvalues().minCoeff(), 1e5); // the premise
+    SymmetricFactor::Options o = dense_options();
+    o.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
+    SymmetricFactor f(o);
+    const SpMatRM A = upper_csr(G);
+    f.analyze(A);
+    const FactorizeOutcome fo = f.factorize(A);
+    ASSERT_EQ(fo.status, FactorizeOutcome::Status::kOk);
+    ASSERT_EQ(fo.arm, FactorArm::kDense);
+    EXPECT_EQ(fo.inertia.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(fo.inertia.positive, mr);
+    EXPECT_EQ(fo.inertia.negative, 0);
+    EXPECT_FALSE(hven::detail::rank_gram_factor_refused(fo, mr));
 }
 
 } // namespace

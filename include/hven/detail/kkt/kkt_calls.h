@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -280,76 +279,67 @@ inline bool shifted_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFac
     return k.dense_shifted && !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
 }
 
-// THE UNSHIFTED DENSE SOLVE CHECK (M8 DN-3a). A dense factorization the detector
-// did not flag is still checked per solve where a consumer steps on the answer:
-// rho is taken, and only a solve that misses kDenseSolveResidualTol is refined
-// (keep-while-falling, kEqpShiftRefineSteps) and taken again, so a passing solve
-// is used unchanged. Dense arm only: the platform session's answers are not
-// checked here.
+// THE UNSHIFTED DENSE SOLVE CHECK. A dense-arm solve a consumer steps on is
+// checked against K: only a solve whose rho misses kDenseSolveResidualTol is
+// refined (keep-while-falling, kEqpShiftRefineSteps), and it is refused only if
+// rho still exceeds the consumer's refusal threshold (>= kDenseSolveResidualTol).
+// A passing solve is used unchanged. Platform-session answers are not checked.
 
-/// @brief The check's refusals so far in this process, per consumer (M8 DN-3a).
-/// INTERIM AND DETAIL-ONLY: no public counter carries these (one is proposed for
-/// owner approval); a process that runs one solve reads its own counts here.
-/// Relaxed atomics, touched only on a refusal.
-struct DenseSolveCheckTally {
-    std::atomic<std::uint64_t> ssn_refusals{0};  ///< SSN Newton steps (escalate_prox)
-    std::atomic<std::uint64_t> ipqp_refusals{0}; ///< IPQP step solves (kNumerical)
-    std::atomic<std::uint64_t> gram_refusals{0}; ///< rank-repair Gram factors (kRefused)
-};
-inline DenseSolveCheckTally &dense_solve_check_tally() {
-    static DenseSolveCheckTally tally;
-    return tally;
-}
-inline void count_refusal(std::atomic<std::uint64_t> &c) {
-    c.fetch_add(1, std::memory_order_relaxed);
-}
-
-/// The check's tolerance on rho (a NaN refuses).
+/// Refinement trigger on rho (and the refusal threshold where a consumer
+/// passes no looser one).
 inline constexpr double kDenseSolveResidualTol = 1e-8;
 
-/// @brief rho = ||D (rhs - K y)||inf / ||D rhs||inf (K upper-stored; D = `d`,
-/// unit when `d` is empty); 0 when both vanish, a NaN propagates.
-inline double dense_residual_ratio(const SpMatRM &K, const Vec &rhs, const Vec &y, const Vec &d) {
-    const Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
-    const double r_d =
-        d.size() == 0 ? nan_sticky_inf_norm(r) : nan_sticky_inf_norm(r.cwiseProduct(d));
-    const double b_d =
-        d.size() == 0 ? nan_sticky_inf_norm(rhs) : nan_sticky_inf_norm(rhs.cwiseProduct(d));
-    return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+/// @brief rho = ||K y - rhs||inf / ||rhs||inf (K upper-stored); 0 when both
+/// vanish, a NaN propagates. Leaves K y - rhs in `r` (resized to rhs.size()).
+inline double dense_residual_ratio(const SpMatRM &K, const Vec &rhs, const Vec &y, Vec &r) {
+    r.resize(rhs.size());
+    r.noalias() = K.template selfadjointView<Eigen::Upper>() * y;
+    r -= rhs;
+    const double r_inf = nan_sticky_inf_norm(r);
+    const double b_inf = nan_sticky_inf_norm(rhs);
+    return (r_inf == 0.0 && b_inf == 0.0) ? 0.0 : r_inf / b_inf;
 }
 
 /// @brief The check on `y`, a solve of K y = rhs through `solve` (a callable
-/// `Vec(const Vec &)` against the same numerics): true iff rho misses the
-/// tolerance after refinement. `y` changes only when the first rho misses.
+/// `void(const Vec &in, Vec &out)` against the same numerics): true iff rho
+/// exceeds `refuse_tol` (or is NaN) after refinement. `y` changes only when the
+/// first rho exceeds kDenseSolveResidualTol. `r` and `c` are caller-held
+/// scratch (no allocation once sized).
 template <typename Solve>
-inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, const Vec &d, Solve &&solve,
-                                      Vec &y) {
-    double rho = dense_residual_ratio(K, rhs, y, d);
+inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, double refuse_tol,
+                                      Solve &&solve, Vec &y, Vec &r, Vec &c) {
+    double rho = dense_residual_ratio(K, rhs, y, r);
     if (rho <= kDenseSolveResidualTol) {
         return false;
     }
     for (Index step = 0; step < kEqpShiftRefineSteps; ++step) {
-        const Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
-        const Vec candidate = y + solve(r);
-        const double c_rho = dense_residual_ratio(K, rhs, candidate, d);
+        solve(r, c); // K^-1 (K y - rhs)
+        c = y - c;
+        const double c_rho = dense_residual_ratio(K, rhs, c, r);
         if (!(c_rho < rho)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
-        y = candidate;
+        y = c;
         rho = c_rho;
     }
-    return !(rho <= kDenseSolveResidualTol);
+    return !(rho <= refuse_tol);
 }
 
-/// @brief The KktFactor form: true iff the factorization `arm` names was taken by
-/// the dense arm unshifted (`!k.dense_shifted`) and `y` fails the check (unit D).
+/// @brief The KktFactor form at kDenseSolveResidualTol: true iff the
+/// factorization `arm` names was taken by the dense arm unshifted
+/// (`!k.dense_shifted`) and `y` fails the check.
 inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
-                                          hven::linear::FactorArm arm, Vec &y) {
+                                          hven::linear::FactorArm arm, Vec &y, Vec &r, Vec &c) {
     if (arm != hven::linear::FactorArm::kDense || k.dense_shifted) {
         return false;
     }
     return dense_solve_check_refused(
-        K, rhs, Vec(), [&](const Vec &r) { return solve_vec(k, r); }, y);
+        K, rhs, kDenseSolveResidualTol,
+        [&](const Vec &in, Vec &out) {
+            out.resize(in.size());
+            k.factor.solve(in, out);
+        },
+        y, r, c);
 }
 
 } // namespace hven::detail

@@ -2117,7 +2117,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(dense_singular_refactors)                                                                    \
     X(dense_shifted_solve_refusals)                                                                \
     X(dense_shifted_k0_fallbacks)                                                                  \
-    X(dense_shifted_terminations)
+    X(dense_shifted_terminations)                                                                  \
+    X(dense_solve_residual_refusals)
 
 // The 18 fields of SsnCounters and the 42 of IpqpCounters (39 until M7 W2 A2), the two nested
 // groups SqpCounters carries.
@@ -2219,8 +2220,8 @@ void expect_same_counters(const hven::SqpCounters &a, const hven::SqpCounters &b
     // (`dense_platform_retakes`); 1176 -> 1192 at M8 DN-1d (`dense_flagged_factorizations`,
     // `dense_singular_refactors`); 1192 -> 1200 at M8 DN-1d final (`dense_shifted_solve_refusals`);
     // 1200 -> 1208 at M8 DN-1d r2 (`dense_shifted_k0_fallbacks`); 1208 -> 1216 at M8 DN-1d r3
-    // (`dense_shifted_terminations`).
-    static_assert(sizeof(hven::SqpCounters) == 1216,
+    // (`dense_shifted_terminations`); 1216 -> 1224 at M8 DN-3a (`dense_solve_residual_refusals`).
+    static_assert(sizeof(hven::SqpCounters) == 1224,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

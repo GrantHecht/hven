@@ -20,6 +20,7 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
@@ -419,11 +420,11 @@ TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
     }
 }
 
-// THE SSN's NEWTON STEP through UNSHIFTED dense numerics is checked per solve (M8 DN-3a): H is
+// THE SSN's NEWTON STEP through UNSHIFTED dense numerics is checked per solve: H is
 // Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (no rows, no bounds, no regularization), the detector
 // passes its factorization, and the first step, along the small eigenvector, misses rho even
 // after refinement -- refused and answered with the proximal ladder, as a refused shifted step
-// is. The sparse arm is not checked here; the tally reads 0 under kNever.
+// is. The sparse arm is not checked here; the count reads 0 under kNever.
 TEST(DenseArmEngines, TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK) {
     constexpr Eigen::Index n = 6;
     Eigen::MatrixXd S(n, n);
@@ -453,18 +454,24 @@ TEST(DenseArmEngines, TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK) {
     opts.dual_regularization = 0.0;
     for (const DensePolicy policy : {DensePolicy::kNever, DensePolicy::kAlways}) {
         SCOPED_TRACE(policy == DensePolicy::kAlways ? "dense" : "sparse");
-        const auto before = hven::detail::dense_solve_check_tally().ssn_refusals.load();
         hven::detail::SsnEngine engine(opts, 0, policy);
         hven::detail::SsnResult res;
         engine.solve(qp, hven::detail::SsnStart{}, hven::detail::SsnOptions{}, &res);
-        const auto refusals = hven::detail::dense_solve_check_tally().ssn_refusals.load() - before;
+        const auto refusals = res.dense_solve_residual_refusals;
         if (policy == DensePolicy::kNever) {
-            EXPECT_EQ(refusals, 0U);
+            EXPECT_EQ(refusals, 0);
         } else {
             EXPECT_EQ(res.dense_flagged_factorizations, 0); // the premise: unflagged numerics
             EXPECT_EQ(res.dense_shifted_solve_refusals, 0);
-            EXPECT_GE(refusals, 1U);
+            EXPECT_GE(refusals, 1);
             EXPECT_GE(res.counters.ssn_prox_updates, refusals);
+            // Carried to the QP solution's counters and the SQP fold as the shifted count is.
+            EXPECT_EQ(
+                hven::detail::ssn_result_to_qp_solution(res).counters.dense_solve_residual_refusals,
+                refusals);
+            hven::SqpCounters total;
+            hven::detail::charge_ssn_subproblem_cost(total, res);
+            EXPECT_EQ(total.dense_solve_residual_refusals, refusals);
         }
     }
 }

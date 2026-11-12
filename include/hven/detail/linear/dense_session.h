@@ -61,10 +61,9 @@ inline constexpr double kDenseSingularScreen = 1e-15;
 inline constexpr double kDenseConditionSingular = 0.5 * std::numeric_limits<double>::epsilon();
 
 // Every LAPACK call the dense arm makes runs at this thread count, under every
-// dense policy (M8 DN-3a): threaded dsytrf inertia was unreliable on
-// undecidable matrices (DN-1 A-thr) and the dense arm's sizes have nothing to
-// gain from threads. Options::threads is still stored (num_threads()) and
-// configures the platform session.
+// dense policy (threaded dsytrf inertia is not reproducible on undecidable
+// matrices). Options::threads is stored (num_threads()) and configures the
+// platform session only.
 inline constexpr int kDenseArmThreads = 1;
 
 // What DenseSession::factorize() did with a matrix.

@@ -917,4 +917,107 @@ TEST_F(IpqpSeamTest, AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailu
     EXPECT_EQ(r.counters.ipqp_solves, 0);
 }
 
+// ---------------------------------------------------------------------------
+// THE DENSE SOLVE CHECK'S RESPONSE (M8 DN-3a): a wrong dense step solve, by site
+// ---------------------------------------------------------------------------
+
+namespace {
+
+using DenseSolve = detail::testing::IpqpDenseSolveInjector;
+
+IpqpResult dense_convex_solve(const IpqpOptions &io = IpqpOptions{}) {
+    IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    return tier.solve(convex_qp(), nullptr, io, QpSolveOverrides{});
+}
+
+// The rule under which the solve-entry mu-estimate solve runs (the default skips it), with a
+// barrier ceiling this fixture's estimate falls under, so the estimate is adopted when its solve
+// stands.
+IpqpOptions with_mu_estimate() {
+    IpqpOptions io;
+    io.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
+    io.barrier_initial = 1e3;
+    return io;
+}
+
+class IpqpDenseSolveSeamTest : public ::testing::Test {
+  protected:
+    void SetUp() override {
+        DenseSolve::reset();
+        base_ = dense_convex_solve();
+    }
+    void TearDown() override { DenseSolve::reset(); }
+    IpqpResult base_;
+};
+
+} // namespace
+
+TEST_F(IpqpDenseSolveSeamTest, TheControlSolveRefusesNothing) {
+    EXPECT_EQ(base_.status, QpStatus::kOptimal);
+    EXPECT_EQ(base_.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(base_.counters.ipqp_mu0_derived, 0); // no estimate solve under the default rule
+    const IpqpResult e = dense_convex_solve(with_mu_estimate());
+    EXPECT_EQ(e.status, QpStatus::kOptimal);
+    EXPECT_EQ(e.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(e.counters.ipqp_mu0_derived, 1); // the estimate site runs under kComplementarity
+    EXPECT_EQ(e.counters.ipqp_mu0_fallbacks, 0);
+}
+
+// The mu-estimate's solve refused: the estimate's own non-finite fallback, nothing else moves
+// into the ladder.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedMuEstimateSolveTakesTheEstimatesFallback) {
+    DenseSolve::active = true;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve(with_mu_estimate());
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_mu0_derived, 0);
+    EXPECT_EQ(r.counters.ipqp_mu0_fallbacks, 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+}
+
+// The first iteration's affine solve refused: one perturbed-pivot rung on its factorization, the
+// step re-taken on the new one, and the solve finishes.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes) {
+    DenseSolve::active = true;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+}
+
+// The first iteration's corrector solve refused (its affine passed on the same factorization):
+// the same one rung, and both solves re-taken.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes) {
+    DenseSolve::active = true;
+    DenseSolve::skip_first = 1;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+}
+
+// Every step solve from the first affine on refused: each refusal is one rung, and the tier
+// escapes kNumerical only when the ladder is at its ceiling -- the last refusal is the terminal
+// rejection (a retry without an increase), and no step was ever taken.
+TEST_F(IpqpDenseSolveSeamTest, RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical) {
+    DenseSolve::active = true;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(r.status, QpStatus::kNumericalError);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+    EXPECT_EQ(r.counters.ipqp_iters, 0);
+    EXPECT_GE(r.dense_solve_residual_refusals, 2);
+    EXPECT_EQ(DenseSolve::injections, r.dense_solve_residual_refusals);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, r.dense_solve_residual_refusals);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, r.dense_solve_residual_refusals - 1);
+}
+
 } // namespace hven

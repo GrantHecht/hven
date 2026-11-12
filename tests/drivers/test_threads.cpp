@@ -484,9 +484,9 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `inertia_wrong_verdicts`; 85 until M8 DN-1c appended `dense_platform_retakes`; 86 until
 // M8 DN-1d appended `dense_flagged_factorizations` and `dense_singular_refactors`, then
 // `dense_shifted_solve_refusals`, then `dense_shifted_k0_fallbacks`, then
-// `dense_shifted_terminations`.)
+// `dense_shifted_terminations`; 92 since M8 DN-3a appended `dense_solve_residual_refusals`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 91 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 92 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -580,6 +580,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, dense_shifted_solve_refusals);
     HVEN_EXPECT_SAME(a, b, dense_shifted_k0_fallbacks);
     HVEN_EXPECT_SAME(a, b, dense_shifted_terminations);
+    HVEN_EXPECT_SAME(a, b, dense_solve_residual_refusals);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

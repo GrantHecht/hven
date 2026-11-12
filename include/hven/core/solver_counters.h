@@ -608,6 +608,12 @@ struct QpCounters {
     // exhausted (0 or 1 per walk). The refusal is also in
     // dense_shifted_solve_refusals.
     Index dense_shifted_terminations = 0;
+    // Step solves through dense numerics the dense solve check refused
+    // (rho = ||K y - rhs||inf / ||rhs||inf above the consumer's threshold after
+    // refinement, or NaN): SSN Newton steps (answered by the proximal ladder)
+    // and IPQP step solves (affine/corrector: the inertia ladder; mu-estimate:
+    // its fallback). 0 under DensePolicy::kNever.
+    Index dense_solve_residual_refusals = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2310,6 +2316,10 @@ struct SqpCounters {
     ///        on a refused shifted answer at an exhausted suspect ladder.
     ///        Appended last.
     Index dense_shifted_terminations = 0;
+    /// @brief QpCounters' field summed the same way: SSN and IPQP step solves
+    ///        through dense numerics the dense solve check refused. Appended
+    ///        last.
+    Index dense_solve_residual_refusals = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2403,7 +2413,8 @@ struct SqpCounters {
     X(dense_singular_refactors, counter_never_absent)                                              \
     X(dense_shifted_solve_refusals, counter_never_absent)                                          \
     X(dense_shifted_k0_fallbacks, counter_never_absent)                                            \
-    X(dense_shifted_terminations, counter_never_absent)
+    X(dense_shifted_terminations, counter_never_absent)                                            \
+    X(dense_solve_residual_refusals, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

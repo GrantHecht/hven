@@ -693,12 +693,15 @@ struct SsnResult {
 
     // The dense singular response on this solve's factor (QpCounters'
     // dense_platform_retakes, dense_flagged_factorizations,
-    // dense_singular_refactors), and the Newton steps through shifted numerics
-    // the rho gate refused (dense_shifted_solve_refusals).
+    // dense_singular_refactors), the Newton steps through shifted numerics
+    // the rho gate refused (dense_shifted_solve_refusals), and those through
+    // unshifted dense numerics the dense solve check refused
+    // (dense_solve_residual_refusals; each answered by escalate_prox).
     Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     Index dense_shifted_solve_refusals = 0;
+    Index dense_solve_residual_refusals = 0;
 };
 
 // The engine.
@@ -1071,6 +1074,9 @@ class SsnEngine {
     detail::KktFactor kkt_;
     SpMatRM k_;
     Index dim_ = 0;
+    // The dense solve check's residual and refinement-candidate scratch.
+    Vec dense_check_r_;
+    Vec dense_check_c_;
     std::vector<detail::SsnBoundRow> bound_rows_;
     std::vector<double> real_lower_, real_upper_;
     // The pattern cache: the structure key k_ was built for -- both conjuncts

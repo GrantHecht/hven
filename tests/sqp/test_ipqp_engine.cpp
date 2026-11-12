@@ -1197,13 +1197,14 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     EXPECT_GE(r.rho, IpqpOptions{}.regularization_min);
 }
 
-// THE IPQP's STEP SOLVES ARE CHECKED on the dense arm (M8 DN-3a). Two equality rows that differ
-// by 1e-4 in one coefficient (consistent: x = (1, 0, *)): as the schedule drives the dual
-// regularization down, the KKT the dense arm factors unflagged becomes ill-conditioned along the
-// rows' difference, and a step solve misses rho after refinement -- the tier ends kNumerical, its
-// answer to a non-finite step. The platform session's solves are not checked (tally 0 under
-// kNever), whatever that solve then does.
-TEST(IpqpDenseSolveCheck, ADenseStepSolveThatMissesRhoEndsTheTierNumerical) {
+// THE IPQP's DENSE STEP SOLVES ARE CHECKED AGAINST TWO THRESHOLDS: refinement above 1e-8,
+// refusal only above the IPM's kDenseResidualRatioSingular (1e-5). Two equality rows that differ
+// by 1e-4 in one coefficient (consistent: x = (1, 0, *)): late in the solve the KKT the dense arm
+// factors unflagged is ill-conditioned along the rows' difference and its step solves sit
+// between the two (a 1e-8 refusal threshold refused one and ended the tier). They are correct
+// solves: nothing is refused and the dense arm converges. The platform session, unchecked, runs
+// out of iterations on this fixture (MKL; the Accelerate session's outcome is not asserted).
+TEST(IpqpDenseSolveCheck, LateInteriorSolvesBetweenTheThresholdsAreNotRefused) {
     QpProblem qp;
     qp.H = dense_upper({{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}});
     qp.g = vec({0.0, 0.0, 0.0});
@@ -1213,22 +1214,37 @@ TEST(IpqpDenseSolveCheck, ADenseStepSolveThatMissesRhoEndsTheTierNumerical) {
     qp.bi = Vec(0);
     qp.lower = vec({-10.0, -10.0, -10.0});
     qp.upper = vec({10.0, 10.0, 10.0});
-    for (const auto policy :
-         {hven::linear::DensePolicy::kNever, hven::linear::DensePolicy::kAlways}) {
-        SCOPED_TRACE(policy == hven::linear::DensePolicy::kAlways ? "dense" : "sparse");
-        const auto before = dense_solve_check_tally().ipqp_refusals.load();
-        IpqpEngine tier(tight_opts(), 0, policy);
+    {
+        IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kNever);
         const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
-        const auto refusals = dense_solve_check_tally().ipqp_refusals.load() - before;
-        if (policy == hven::linear::DensePolicy::kNever) {
-            EXPECT_EQ(refusals, 0U);
-        } else {
-            EXPECT_EQ(r.dense_flagged_factorizations, 0); // the premise: unflagged numerics
-            EXPECT_EQ(refusals, 1U);
-            EXPECT_EQ(r.status, QpStatus::kNumericalError);
-            EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
-        }
+        EXPECT_EQ(r.dense_solve_residual_refusals, 0);
+#if !defined(__APPLE__)
+        EXPECT_EQ(r.escape_reason, IpqpEscape::kBudget);
+#endif
     }
+    IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
+    EXPECT_EQ(r.dense_flagged_factorizations, 0); // the premise: unflagged numerics
+    EXPECT_EQ(r.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+    EXPECT_NEAR(r.x(0), 1.0, 1e-3);
+}
+
+// THE CHECK READS THE SYSTEM THE BACKEND FACTORED: on a badly scaled QP Ruiz's D is far from the
+// identity, and the check takes rho on D K D against the scaled right-hand side and the solve
+// before it is unscaled -- no refusal, and the dense arm's answer is the platform session's.
+TEST(IpqpDenseSolveCheck, TheCheckReadsTheEquilibratedSystem) {
+    const QpProblem qp = scaled_qp(1e6);
+    IpqpEngine sparse(tight_opts(), 0, hven::linear::DensePolicy::kNever);
+    const IpqpResult s = sparse.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
+    IpqpEngine dense(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    const IpqpResult d = dense.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
+    ASSERT_EQ(s.status, QpStatus::kOptimal);
+    EXPECT_EQ(d.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(d.status, QpStatus::kOptimal);
+    EXPECT_EQ(d.counters.ipqp_inertia_retries, s.counters.ipqp_inertia_retries);
+    EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6 * (1.0 + s.x.lpNorm<Eigen::Infinity>()));
 }
 
 } // namespace hven
