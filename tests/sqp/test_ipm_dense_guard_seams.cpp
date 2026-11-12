@@ -23,6 +23,15 @@
 // (the guard fires); on macOS CI, Accelerate did not reach the step guard at 1.76 at all. So the
 // test searches a fixed family of scales, 1.76 first, for a member whose step guard fires, and
 // pins the route on the first one.
+//
+// A FACTORIZATION THAT LEFT NO NUMERICS IS A STATUS (IpmNoNumericsSeam). The same two injectors,
+// armed from a later pass, make every factorization from that pass on leave no numerics -- the
+// dense attempt reads exactly singular and drops its numerics, and the platform session, which
+// never factorized on a kAlways solve, refuses (the one scenario FactorizeFaultInjector is faithful
+// for). That is what a backend refusing every rung of the inertia-correction ladder looks like, and
+// the solve must end kNumericalError at the iterate it had committed, with no step taken and no
+// exception: at the step solve, at the PROBE predictor's solve (which runs first), and at the dense
+// guard's failed re-run (the pass search above, whose other passes now return that status too).
 
 #include <cmath>
 #include <limits>
@@ -35,6 +44,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include "../drivers/support/hs071_problem.h"
 #include <hven/detail/linear/fault_injection.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
@@ -135,6 +145,51 @@ bool success(hven::SolveStatus s) {
     return s == hven::SolveStatus::kOptimal || s == hven::SolveStatus::kAcceptable;
 }
 
+// HS071 on the dense arm, recording the x of every iteration event: the last is the iterate the
+// final iteration started from, which a solve that takes no step there returns unchanged.
+struct RecordedSolve {
+    hven::IpmResult result;
+    std::vector<Eigen::VectorXd> event_x;
+};
+
+RecordedSolve solve_hs071_dense(hven::IpmBarrierMode barrier_mode) {
+    hven::IpmOptions o;
+    o.common.verbosity = hven::Verbosity::kSilent;
+    o.linear.dense_factorization = DensePolicy::kAlways;
+    o.advanced.optimize_barrier_mode = barrier_mode;
+    o.advanced.solve_barrier_mode = barrier_mode;
+    hven::IpmSolver solver(o);
+    RecordedSolve out;
+    solver.set_iteration_callback([&out](const hven::IterationEvent &e) {
+        out.event_x.emplace_back(e.x);
+        return hven::CallbackAction::kContinue;
+    });
+    hven::Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    out.result = solver.solve(problem, hven_drivers_tests::hs071_start());
+    return out;
+}
+
+// The contract every no-numerics exit keeps: a status, the ladder's words, the last factorization's
+// failure recorded, and the iterate the failing iteration started from returned unmoved.
+void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
+    const hven::IpmResult &r = run.result;
+    EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+    EXPECT_NE(r.message.find("inertia-correction ladder at iteration"), std::string::npos)
+        << r.message;
+    EXPECT_NE(r.message.find("ended on a failed KKT factorization"), std::string::npos)
+        << r.message;
+    EXPECT_NE(r.last_kkt_info, Eigen::Success);
+    EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, pass);
+    EXPECT_GT(r.kkt_factor_counters.dense_fallback_count, 0);
+    ASSERT_FALSE(run.event_x.empty());
+    const Eigen::VectorXd &start = run.event_x.back();
+    ASSERT_EQ(r.x.size(), start.size());
+    EXPECT_TRUE(r.x.allFinite());
+    EXPECT_LE((r.x - start).lpNorm<Eigen::Infinity>(),
+              1e-12 * (1.0 + start.lpNorm<Eigen::Infinity>()))
+        << "a step was taken from the iterate the failing iteration started from";
+}
+
 } // namespace
 
 TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
@@ -158,31 +213,30 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
 
         // Every dense attempt from `pass` on fails (dense read singular, platform refuses), and
         // `pass < attempts`, so the injector always fires: a run identical to the clean one is
-        // never mistaken for the route. Of the injected runs, one whose failure no guard absorbs
-        // either ends before any dense solve (no trigger) or reaches the step solve without
-        // numerics (std::logic_error, outside this test's scope); one that still counts a trigger
-        // and returns had its failure absorbed by the step guard's re-run.
+        // never mistaken for the route. EVERY injected run returns a status, never an exception:
+        // one whose failure no guard absorbs ends at the initial factorization or at an
+        // iteration's inertia-correction ladder (kNumericalError, its message naming which); the
+        // route is the run whose message names the step guard's failed re-run.
         for (int pass = 0; pass < static_cast<int>(attempts); ++pass) {
+            SCOPED_TRACE(fmt::format("scale {:.2f}, pass {}", scale, pass));
             hven::IpmResult r;
-            bool threw = false;
             {
                 const Armed armed(pass);
-                try {
-                    r = solve_dense(scale);
-                } catch (const std::logic_error &) {
-                    threw = true;
-                }
+                ASSERT_NO_THROW(r = solve_dense(scale));
             }
-            if (threw || r.dense_residual_ratio_triggers == 0) {
+            EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
+            EXPECT_TRUE(r.x.allFinite());
+            if (r.message.find("dense step guard's refactorization") == std::string::npos) {
                 continue;
             }
             found = true;
-            SCOPED_TRACE(fmt::format("scale {:.2f}, pass {}", scale, pass));
+            // The member and pass the route was pinned on (Linux MKL and OpenBLAS: 1.76, 3).
+            ::testing::Test::RecordProperty("route",
+                                            fmt::format("scale {:.2f} pass {}", scale, pass));
             EXPECT_GE(r.dense_residual_ratio_triggers, 1);
             EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, pass);
             EXPECT_GT(r.kkt_factor_counters.dense_fallback_count, 0);
-            EXPECT_FALSE(success(r.status));
-            EXPECT_TRUE(r.x.allFinite());
+            EXPECT_NE(r.last_kkt_info, Eigen::Success);
             break;
         }
         if (found) {
@@ -191,4 +245,47 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
         survey += " -- no injected run reached the step guard's re-run";
     }
     EXPECT_TRUE(found) << "no member of the family reached the guard's failed re-run:" << survey;
+}
+
+// The step solve's site: from the first iteration's ladder on, every factorization leaves no
+// numerics (pass 1: only the initial factorization succeeds), so the ladder ends on a failed one
+// and the step solve has nothing to solve on.
+TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration) {
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_dense(hven::IpmBarrierMode::kLoqo));
+    }
+    expect_ladder_exit(run, 1);
+    EXPECT_NE(run.result.message.find("at iteration 0 "), std::string::npos) << run.result.message;
+}
+
+// The same site mid-solve: only the clean solve's last factorization fails, so the solve has taken
+// steps, and ends at the iterate its last iteration started from instead of throwing.
+TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsIsAStatusMidSolve) {
+    const RecordedSolve clean = solve_hs071_dense(hven::IpmBarrierMode::kLoqo);
+    ASSERT_EQ(clean.result.status, hven::SolveStatus::kOptimal) << clean.result.message;
+    ASSERT_EQ(clean.result.kkt_factor_counters.dense_fallback_count, 0);
+    const hven::Index attempts = clean.result.kkt_factor_counters.dense_factorize_count;
+    ASSERT_GT(clean.event_x.size(), 2U) << "the fixture must take steps before the failure";
+    RecordedSolve run;
+    {
+        const Armed armed(static_cast<int>(attempts - 1));
+        ASSERT_NO_THROW(run = solve_hs071_dense(hven::IpmBarrierMode::kLoqo));
+    }
+    expect_ladder_exit(run, attempts - 1);
+    EXPECT_GT(run.event_x.size(), 2U);
+}
+
+// The PROBE predictor's site: under the PROBE barrier mode the governor solves on the iteration's
+// factorization before the step solve does, so it must not run on one that left no numerics.
+TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor) {
+    const RecordedSolve clean = solve_hs071_dense(hven::IpmBarrierMode::kProbe);
+    ASSERT_TRUE(success(clean.result.status)) << clean.result.message;
+    RecordedSolve run;
+    {
+        const Armed armed(1);
+        ASSERT_NO_THROW(run = solve_hs071_dense(hven::IpmBarrierMode::kProbe));
+    }
+    expect_ladder_exit(run, 1);
 }

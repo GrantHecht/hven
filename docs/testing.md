@@ -270,7 +270,14 @@ guarded by `#ifdef HVEN_TESTING`:
   numerics in place, which only `kSparseFallback` never read.) Consumers: the IPM
   dense guard's failed re-run (DN-1b review F8;
   `IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep` in
-  `hven_sqp_seam_tests`), which no real backend reaches; the SQP response's last
+  `hven_sqp_seam_tests`), which no real backend reaches; the IPM's
+  no-numerics exits (`IpmNoNumericsSeam.*`, same file and target: armed from a
+  later pass on a `kAlways` solve, with `FactorizeFaultInjector` failing the
+  platform session that never factorized -- its faithful scope -- every
+  factorization from that pass on leaves no numerics, which is what a backend
+  refusing every rung of the inertia-correction ladder looks like; the solve
+  must return `kNumericalError` at its committed iterate, at the step solve, at
+  the PROBE predictor's solve and at the guard's failed re-run); the SQP response's last
   resort (`QpDenseArm.FactorizeCheckedRetriesOnceThenRetakesOnThePlatform` in
   `hven_qp_walk_seam_tests`: both equilibrated attempts read as failed; the retake
   is the platform session's own factorization); and the IPQP's exactly singular

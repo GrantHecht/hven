@@ -89,8 +89,10 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
         case IpmStopReason::kNonFiniteIterate:
         case IpmStopReason::kEvaluationFailure:
         case IpmStopReason::kNone:
-            // kNone: empty on every exit but a failed initial factorization,
-            // whose words say what failed (M8 B5 riders).
+            // kNone: empty on every exit but a factorization that left no
+            // numerics (the initial one, an iteration's inertia-correction
+            // ladder, or the dense step guard's re-run), whose words say what
+            // failed.
             return with_detail("numerical error", detail);
         default:
             return "numerical error";

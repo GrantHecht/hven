@@ -3799,6 +3799,21 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         Citer.h_facs =
             this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum, base_prox,
                               dual_shift, kkt_exhausted, false, kkt_dc_applied);
+        // A LADDER THAT ENDED ON A FAILED FACTORIZATION LEFT NO NUMERICS: a
+        // status, never the linear layer's precondition error from a solve
+        // (the init path's rule, applied to every iteration). Nothing below
+        // reads the factorization -- not the PROBE predictor, not the step
+        // solve -- and the phase ends kNumericalError at the loop tail, at the
+        // committed iterate, with no step taken (see kkt_no_numerics there).
+        bool kkt_no_numerics = this->kkt_sol_.info() != Eigen::Success;
+        if (kkt_no_numerics) [[unlikely]] {
+            this->stop_detail_ =
+                fmt::format("the inertia-correction ladder at iteration {} ended on a failed KKT "
+                            "factorization ({}); no step can be computed",
+                            i,
+                            this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue"
+                                                                           : "backend error");
+        }
 
         if (Citer.h_facs > 0) {
             // Hpert0 warm-start MUST keep consuming nhpert (the last perturbation
@@ -3885,8 +3900,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // not reach the barrier tolerance at all. The oracles handle an empty
         // slack block on their own -- the objective sums nothing, the dual
         // gradient writes an empty segment, and loqo_mu reads the aggregates the
-        // bound pairs now populate. Provably false off the bound path.
-        if (this->inequal_cons_ > 0 || this->bounds_) {
+        // bound pairs now populate. Provably false off the bound path. Not run on
+        // a factorization that left no numerics: the PROBE predictor solves on it.
+        if (!kkt_no_numerics && (this->inequal_cons_ > 0 || this->bounds_)) {
             if (force_monotone_barrier) {
                 // Ipopt's default restoration mu_strategy is MONOTONE: while the
                 // nested l1 phase is active the barrier parameter must follow the
@@ -3955,28 +3971,47 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // comment): the solution is written straight into DXSL and negated in
         // place, keeping the existing order (solve, then negate) so nothing
         // about the arithmetic moves.
-        this->kkt_sol_.solve(RHS, DXSL);
-        // A dense-arm factorization's inertia cannot see numerical singularity
-        // (Bunch-Kaufman counts a tiny pivot as nonzero); the solve's residual
-        // ratio can. Never entered on a sparse factorization.
-        if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
-            const int extra = this->dense_step_singularity_guard(RHS, DXSL, Hpert0, Incr, nhpert,
-                                                                 nhpert_cum, base_prox, dual_shift,
-                                                                 kkt_exhausted, kkt_dc_applied);
-            if (extra > 0) {
-                Citer.h_facs += extra;
-                Hpert0 = std::max(opts_.advanced.inertia_correction_initial,
-                                  nhpert * opts_.advanced.inertia_correction_decrease);
-                FirstPert = false;
-                Citer.h_pert = nhpert;
-                Citer.h_pert_cum = nhpert_cum;
-                if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization)
-                    rho_k = hven::detail::prox_reg_decay(
-                        base_prox + nhpert, opts_.advanced.inertia_correction_decrease);
+        if (!kkt_no_numerics) [[likely]] {
+            this->kkt_sol_.solve(RHS, DXSL);
+            // A dense-arm factorization's inertia cannot see numerical singularity
+            // (Bunch-Kaufman counts a tiny pivot as nonzero); the solve's residual
+            // ratio can. Never entered on a sparse factorization.
+            if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+                const int extra = this->dense_step_singularity_guard(
+                    RHS, DXSL, Hpert0, Incr, nhpert, nhpert_cum, base_prox, dual_shift,
+                    kkt_exhausted, kkt_dc_applied);
+                if (extra > 0) {
+                    Citer.h_facs += extra;
+                    Hpert0 = std::max(opts_.advanced.inertia_correction_initial,
+                                      nhpert * opts_.advanced.inertia_correction_decrease);
+                    FirstPert = false;
+                    Citer.h_pert = nhpert;
+                    Citer.h_pert_cum = nhpert_cum;
+                    if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization)
+                        rho_k = hven::detail::prox_reg_decay(
+                            base_prox + nhpert, opts_.advanced.inertia_correction_decrease);
+                }
+                // The guard's re-run left no numerics: the step it was for is not
+                // taken and, as for the ladder above, the phase ends here.
+                if (this->kkt_sol_.info() != Eigen::Success) [[unlikely]] {
+                    kkt_no_numerics = true;
+                    this->stop_detail_ = fmt::format(
+                        "the dense step guard's refactorization at iteration {} failed ({}); no "
+                        "step can be computed",
+                        i,
+                        this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue"
+                                                                       : "backend error");
+                }
             }
         }
+        if (kkt_no_numerics) [[unlikely]] {
+            DXSL.setZero();
+            alpha = 0.0;
+        }
         DXSL = -DXSL;
-        bool GoodStep = std::isfinite(DXSL.squaredNorm());
+        // No direction from a factorization that left no numerics: like a
+        // non-finite one it runs no line search and no recovery.
+        bool GoodStep = !kkt_no_numerics && std::isfinite(DXSL.squaredNorm());
 
         // Far slack pairs take their multiplier step from their own complementarity
         // equation (barrier_math.h, kFarSlackWidth). First, so every consumer below
@@ -4450,6 +4485,15 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // such even at an otherwise-acceptable iterate.
         if (singular_abort)
             ExitCode = SolveStatus::kNumericalError;
+
+        // No numerics to solve on (the ladder's or the dense guard's last
+        // factorization failed): kNumericalError with no reason of its own, as
+        // a failed initial factorization; stop_detail_ says what failed. The
+        // step was not taken. Decisive over the !GoodStep DIVERGING override.
+        if (kkt_no_numerics) [[unlikely]] {
+            ExitCode = SolveStatus::kNumericalError;
+            this->last_stop_reason_ = IpmStopReason::kNone;
+        }
 
         // An un-evaluable iteration nothing could recover (see the dispatch
         // above): kNumericalError, labelled with the reason the message names.
