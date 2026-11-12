@@ -4662,4 +4662,30 @@ TEST(SqpDriverRestorationExcursion, AWorkLimitBindingInsideTheSubSolvePropagates
 #endif
 }
 
+// THE CERTIFICATE'S RESIDUAL IS NaN-STICKY: a NaN at a non-first index of J'lambda - z reads NaN,
+// so the certificate gate cannot certify on it (inf_norm.h). Sizes 9 and 17 put the last index in
+// the scalar tail of every packet width.
+TEST(SqpRestorationNanGate, TheSubgradientCertificateRefusesANonFirstNaN) {
+    for (const Index n : {Index{9}, Index{17}}) {
+        hven::detail::NlpEval ev;
+        ev.Je.resize(0, n);
+        ev.Ji.resize(0, n);
+        const Vec none(0);
+        const auto bundle = [&] { return ev; };
+        Vec z = Vec::Constant(n, 1e-9);
+        ASSERT_EQ(hven::detail::subgradient_certificate_residual_inf(ev, none, none, z), 1e-9);
+        ASSERT_TRUE(hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, z, bundle));
+        for (const Index j : {Index{1}, n / 2, n - 1}) {
+            Vec zj = z;
+            zj(j) = std::numeric_limits<double>::quiet_NaN();
+            EXPECT_TRUE(
+                std::isnan(hven::detail::subgradient_certificate_residual_inf(ev, none, none, zj)))
+                << n << " " << j;
+            EXPECT_FALSE(
+                hven::detail::feasibility_subsolve_certifies(0.5, 1e-6, none, none, zj, bundle))
+                << n << " " << j;
+        }
+    }
+}
+
 HVEN_SUPPRESS_DEPRECATED_END

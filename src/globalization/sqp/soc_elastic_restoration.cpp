@@ -17,6 +17,8 @@
 // definition they depend on and fail to compile.
 #include <hven/detail/drivers/sqp_solver_impl.h>
 
+#include <hven/core/detail/inf_norm.h>
+
 using namespace hven::detail;
 
 namespace hven {
@@ -692,7 +694,7 @@ double detail::subgradient_certificate_residual_inf(const NlpEval &ev, const Vec
     if (ev.Ji.rows() > 0) {
         r += ev.Ji.transpose() * lambda_i;
     }
-    return r.lpNorm<Eigen::Infinity>();
+    return detail::nan_sticky_inf_norm(r);
 }
 
 } // namespace hven

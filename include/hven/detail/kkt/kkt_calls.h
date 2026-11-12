@@ -9,6 +9,7 @@
 
 #include <Eigen/SparseCore>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
@@ -244,13 +245,13 @@ inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFac
     }
     const Vec &d = k.dense_scale;
     Vec r = rhs - K.template selfadjointView<Eigen::Upper>() * y;
-    double r_inf = r.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    double r_inf = nan_sticky_inf_norm(r.cwiseProduct(d));
     Index spent = 0;
     while (spent < kEqpShiftRefineSteps) {
         ++spent;
         const Vec candidate = y + solve_vec(k, r);
         Vec cr = rhs - K.template selfadjointView<Eigen::Upper>() * candidate;
-        const double cr_inf = cr.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+        const double cr_inf = nan_sticky_inf_norm(cr.cwiseProduct(d));
         if (!(cr_inf < r_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
@@ -266,10 +267,9 @@ inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFac
 inline double shifted_residual_ratio(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
                                      const Vec &y) {
     const Vec &d = k.dense_scale;
-    const double r_d = (rhs - K.template selfadjointView<Eigen::Upper>() * y)
-                           .cwiseProduct(d)
-                           .lpNorm<Eigen::Infinity>();
-    const double b_d = rhs.cwiseProduct(d).lpNorm<Eigen::Infinity>();
+    const double r_d =
+        nan_sticky_inf_norm((rhs - K.template selfadjointView<Eigen::Upper>() * y).cwiseProduct(d));
+    const double b_d = nan_sticky_inf_norm(rhs.cwiseProduct(d));
     return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
 }
 

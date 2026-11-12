@@ -80,6 +80,7 @@
 // public header only forward-declares IpmPolishData -- see its note there.
 #include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/warmstart/ipm_polish_extension.h"
+#include "hven/core/detail/inf_norm.h"
 
 using namespace hven::detail;
 
@@ -695,11 +696,11 @@ void hven::detail::IpmSolverImpl::install_primal_diags_with_sigma(ConstEigenRef<
 double hven::detail::IpmSolverImpl::dual_infeasibility_inf(
     ConstEigenRef<Eigen::VectorXd> prim_base) const {
     if (!this->bounds_)
-        return prim_base.lpNorm<Eigen::Infinity>();
+        return hven::detail::nan_sticky_inf_norm(prim_base);
     this->bound_resid_scratch_ = prim_base;
     detail::accumulate_bound_dual_terms(*this->bounds_, this->bound_duals_,
                                         this->bound_resid_scratch_);
-    return this->bound_resid_scratch_.lpNorm<Eigen::Infinity>();
+    return hven::detail::nan_sticky_inf_norm(this->bound_resid_scratch_);
 }
 
 // NLP eval dispatch methods
@@ -1273,7 +1274,7 @@ void hven::detail::IpmSolverImpl::fill_residual_info(KktVector &xsl, KktVector &
     double mincomp = 0;
     double maxcomp = 0;
     if (inequal_cons_ > 0) {
-        iter.icon_inf = rhs.iq_cons().lpNorm<Eigen::Infinity>();
+        iter.icon_inf = hven::detail::nan_sticky_inf_norm(rhs.iq_cons());
         iter.max_i_mult = xsl.iq_lmults().lpNorm<Eigen::Infinity>();
     }
     // The barrier account covers the inequality slack pairs AND the variable-
@@ -1296,7 +1297,7 @@ void hven::detail::IpmSolverImpl::fill_residual_info(KktVector &xsl, KktVector &
         iter.barr_inf = maxcomp;
     }
     if (equal_cons_ > 0) {
-        iter.econ_inf = rhs.eq_cons().lpNorm<Eigen::Infinity>();
+        iter.econ_inf = hven::detail::nan_sticky_inf_norm(rhs.eq_cons());
         iter.max_e_mult = xsl.eq_lmults().lpNorm<Eigen::Infinity>();
     }
 }

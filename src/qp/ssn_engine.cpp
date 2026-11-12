@@ -44,6 +44,7 @@
 
 #include <Eigen/SparseCore>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/qp/ssn_engine.h>
 
@@ -1490,7 +1491,8 @@ bool SsnEngine::farkas_certificate(const QpProblem &qp, const Vec &dle, const Ve
     }
 
     const double rel_resid =
-        n > 0 ? r.cwiseAbs().maxCoeff() / std::max(1.0, r_abs.maxCoeff()) : 0.0;
+        n > 0 ? detail::nan_sticky_inf_norm(r) / std::max(1.0, detail::nan_sticky_inf_norm(r_abs))
+              : 0.0;
     const double rel_gap = gap / std::max(1.0, gap_abs);
     *resid_out = rel_resid;
     *gap_out = rel_gap;

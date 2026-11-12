@@ -74,6 +74,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/schur_complement.h>
@@ -316,8 +317,8 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
     // a shifted system, so it is kept only if it reduces the residual it
     // targets (a NaN keeps nothing) -- eqp_solve.h's rule for its own step.
     Vec best = refine_bordered_solve(K0, var_count, border_v, border_d, schur, rhs, sol, opts);
-    if (shifted_k0 && !(residual_of(best).lpNorm<Eigen::Infinity>() <
-                        residual_of(sol).lpNorm<Eigen::Infinity>())) {
+    if (shifted_k0 && !(detail::nan_sticky_inf_norm(residual_of(best)) <
+                        detail::nan_sticky_inf_norm(residual_of(sol)))) {
         best = sol;
     }
     if (schur.dim() == 0) {
@@ -333,10 +334,7 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         double m = 0.0;
         for (Index i = 0; i < var_count; ++i) {
             if ((*resolution->bound_state)[static_cast<std::size_t>(i)] == BoundState::kFree) {
-                const double a = std::abs(v(i));
-                if (!(a <= m)) {
-                    m = a;
-                }
+                m = detail::nan_sticky_max(m, std::abs(v(i)));
             }
         }
         return m;
@@ -353,12 +351,12 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
 
     const Vec reg = bordered_regularization(K0.rows(), var_count, border_d, opts);
     const double rel_floor =
-        detail::kBorderRefineRelFloor * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
+        detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs));
 
     Vec best_residual = residual_of(best);
-    double best_norm = best_residual.lpNorm<Eigen::Infinity>();
+    double best_norm = detail::nan_sticky_inf_norm(best_residual);
     for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
-        const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
+        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
         const bool on_target = !(best_norm > std::max(footprint, rel_floor));
         if (on_target && step_resolved()) {
             break; // the first step did its job (or NaN, which no step can mend)
@@ -366,7 +364,7 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         const Vec correction = schur.solve(best_residual);
         const Vec candidate = best + correction;
         Vec candidate_residual = residual_of(candidate);
-        const double candidate_norm = candidate_residual.lpNorm<Eigen::Infinity>();
+        const double candidate_norm = detail::nan_sticky_inf_norm(candidate_residual);
         if (!(candidate_norm < best_norm)) {
             break; // stagnated or diverging -- keep the better iterate
         }
@@ -385,7 +383,7 @@ refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::ve
         *steps_out = steps;
     }
     if (outcome != nullptr) {
-        const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
+        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
         outcome->target_met = !(best_norm > std::max(footprint, rel_floor));
     }
     return best;
@@ -447,17 +445,18 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
                    reg.cwiseProduct(ss));
     };
     Vec res = residual_of(sol);
-    double res_inf = res.lpNorm<Eigen::Infinity>();
+    double res_inf = detail::nan_sticky_inf_norm(res);
     Index kept = 0;
     for (Index step = 0; step < max_steps; ++step) {
         const Vec delta = schur.solve(res);
-        const double cap = detail::kEqpPolishStepCap * std::max(1.0, sol.lpNorm<Eigen::Infinity>());
-        if (!(delta.lpNorm<Eigen::Infinity>() <= cap)) {
+        const double cap =
+            detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(sol));
+        if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
             break; // not a polish: see eqp_solve.h's kEqpPolishStepCap
         }
         const Vec candidate = sol + delta;
         Vec cres = residual_of(candidate);
-        const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+        const double cres_inf = detail::nan_sticky_inf_norm(cres);
         if (!(cres_inf < res_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
@@ -565,7 +564,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
 // (fix 9's fixture) and sent it to a cap; asked on the rows only, it fires there 0
 // times and that walk is unchanged.
 inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const QpOptions &opts) {
-    const double xmag = x.lpNorm<Eigen::Infinity>();
+    const double xmag = detail::nan_sticky_inf_norm(x);
     for (Index j = 0; j < qp.me(); ++j) {
         double row_norm1 = 0.0;
         double ax = 0.0;
@@ -622,12 +621,12 @@ inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vect
         const double d = den != 0.0 ? den : fallback_den;
         return (num == 0.0 && d == 0.0) ? 0.0 : num / d;
     };
-    const double r_k0 = r.head(n0).cwiseProduct(k0_scale).lpNorm<Eigen::Infinity>();
-    const double b_k0 = rhs.head(n0).cwiseProduct(k0_scale).lpNorm<Eigen::Infinity>();
-    const double r_b = m > 0 ? r.tail(m).lpNorm<Eigen::Infinity>() : 0.0;
-    const double b_b = m > 0 ? rhs.tail(m).lpNorm<Eigen::Infinity>() : 0.0;
+    const double r_k0 = detail::nan_sticky_inf_norm(r.head(n0).cwiseProduct(k0_scale));
+    const double b_k0 = detail::nan_sticky_inf_norm(rhs.head(n0).cwiseProduct(k0_scale));
+    const double r_b = m > 0 ? detail::nan_sticky_inf_norm(r.tail(m)) : 0.0;
+    const double b_b = m > 0 ? detail::nan_sticky_inf_norm(rhs.tail(m)) : 0.0;
     const double rho_k0 = ratio(r_k0, b_k0, std::max(b_k0, b_b));
-    const double rho_b = m > 0 ? ratio(r_b, b_b, rhs.lpNorm<Eigen::Infinity>()) : 0.0;
+    const double rho_b = m > 0 ? ratio(r_b, b_b, detail::nan_sticky_inf_norm(rhs)) : 0.0;
     // std::max would drop a NaN in its second argument.
     return (std::isnan(rho_k0) || std::isnan(rho_b)) ? std::numeric_limits<double>::quiet_NaN()
                                                      : std::max(rho_k0, rho_b);
@@ -676,7 +675,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     // IS a constraint row). Runs BEFORE the model's refinement, for the reason
     // stated there: afterwards the row residual is the model's own mu*lambda.
     const Index nc = n0 + m - n;
-    const double rhs_rows_inf = nc > 0 ? sys.rhs.segment(n, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(sys.rhs.segment(n, nc)) : 0.0;
     // The constraint rows only, for the reason (and with the measurement)
     // eqp_solve.h states at its own copy of this rule.
     const auto ratio_of = [&](const Vec &ss, const Vec &r) {
@@ -685,8 +684,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         }
         const double scale =
             std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                     opts.dual_regularization * ss.segment(n, nc).lpNorm<Eigen::Infinity>());
-        return r.segment(n, nc).lpNorm<Eigen::Infinity>() / scale;
+                     opts.dual_regularization * detail::nan_sticky_inf_norm(ss.segment(n, nc)));
+        return detail::nan_sticky_inf_norm(r.segment(n, nc)) / scale;
     };
     Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, sol);
     double ratio = ratio_of(sol, r_reg);
@@ -704,7 +703,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         r_reg = std::move(candidate_r);
         ratio = candidate_ratio;
     }
-    const double row_residual = nc > 0 ? r_reg.segment(n, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n, nc)) : 0.0;
 
     Index refine_steps = 0;
     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
@@ -713,7 +712,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     BorderedResolution resolution;
     resolution.x_k = &x_k;
     resolution.bound_state = &bound_state;
-    resolution.step_tol = opts.feasibility_tol * std::max(1.0, x_k.lpNorm<Eigen::Infinity>());
+    resolution.step_tol = opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
     BorderedRefineOutcome outcome;
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,

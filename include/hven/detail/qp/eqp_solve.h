@@ -167,6 +167,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
@@ -356,17 +357,18 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
         return Vec((rhs0 - Kyy) + reg.cwiseProduct(yy));
     };
     Vec res = residual_of(y);
-    double res_inf = res.lpNorm<Eigen::Infinity>();
+    double res_inf = detail::nan_sticky_inf_norm(res);
     Index kept = 0;
     for (Index step = 0; step < max_steps; ++step) {
         const Vec delta = detail::solve_vec(kkt, res);
-        const double cap = detail::kEqpPolishStepCap * std::max(1.0, y.lpNorm<Eigen::Infinity>());
-        if (!(delta.lpNorm<Eigen::Infinity>() <= cap)) {
+        const double cap =
+            detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(y));
+        if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
             break; // not a polish: see kEqpPolishStepCap
         }
         const Vec candidate = y + delta;
         Vec cres = residual_of(candidate);
-        const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+        const double cres_inf = detail::nan_sticky_inf_norm(cres);
         if (!(cres_inf < res_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better point
         }
@@ -472,7 +474,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec(rhs - Kyy);
     };
-    const double rhs_rows_inf = nc > 0 ? rhs.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs.segment(n_free, nc)) : 0.0;
     // THE SCALES CARRY THE REGULARIZATION'S OWN FOOTPRINT ON THIS ANSWER --
     // delta*||x_F|| on the free block, mu*||lambda|| on the rows. Those are the
     // sizes of terms that are IN the regularized equations, so a residual at or
@@ -497,10 +499,10 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         if (nc == 0) {
             return 0.0;
         }
-        const double scale =
-            std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                     opts.dual_regularization * yy.segment(n_free, nc).lpNorm<Eigen::Infinity>());
-        return r.segment(n_free, nc).lpNorm<Eigen::Infinity>() / scale;
+        const double scale = std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
+                                      opts.dual_regularization *
+                                          detail::nan_sticky_inf_norm(yy.segment(n_free, nc)));
+        return detail::nan_sticky_inf_norm(r.segment(n_free, nc)) / scale;
     };
     Vec r_reg = regularized_residual(y);
     double ratio = ratio_of(y, r_reg);
@@ -522,7 +524,8 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         ratio = candidate_ratio;
     }
     const bool refused = !(ratio <= 1.0) || shifted_refused;
-    const double row_residual = nc > 0 ? r_reg.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double row_residual =
+        nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
 
     if (unrefined_out != nullptr) {
         *unrefined_out = scatter(y);
@@ -547,8 +550,8 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         // A shifted factor answers a different system: the step is kept only
         // if it reduces the proximal residual (a NaN keeps nothing).
         const Vec candidate = y + detail::solve_vec(kkt, residual_of(y));
-        if (residual_of(candidate).lpNorm<Eigen::Infinity>() <
-            residual_of(y).lpNorm<Eigen::Infinity>()) {
+        if (detail::nan_sticky_inf_norm(residual_of(candidate)) <
+            detail::nan_sticky_inf_norm(residual_of(y))) {
             y = candidate;
         }
     }

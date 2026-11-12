@@ -34,6 +34,7 @@
 #include <bit>
 #include <exception>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/qp/qp_engine.h>
 
 #include <optional>
@@ -3387,14 +3388,14 @@ double QpEngine::working_face_measure(const QpProblem &qp, const WorkingSet &ws,
         const Vec resid = qp.Ae * x - qp.be;
         for (Index j = 0; j < qp.me(); ++j) {
             const double row_scale = std::max({1.0, std::abs(qp.be(j)), ae_row_norm1(j) * xmag});
-            worst =
-                std::max(worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts));
+            worst = detail::nan_sticky_max(
+                worst, std::abs(resid(j)) / face_row_target(row_scale, lambda_e(j), opts));
         }
     }
     for (const Index j : ws.active_ineq()) {
         const double row_scale = std::max({1.0, std::abs(qp.bi(j)), ai_row_norm1(j) * xmag});
-        worst = std::max(worst, std::abs(Aix(j) - qp.bi(j)) /
-                                    face_row_target(row_scale, lambda_i(j), opts));
+        worst = detail::nan_sticky_max(worst, std::abs(Aix(j) - qp.bi(j)) /
+                                                  face_row_target(row_scale, lambda_i(j), opts));
     }
     return worst;
 }
@@ -3611,8 +3612,8 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         // solve_eqp's step rule: unconditional, or kept only while falling on a
         // shifted factor (M8 DN-1d).
         const Vec stepped = best + detail::solve_vec(fac, residual_of(best));
-        if (!fac.dense_shifted || residual_of(stepped).lpNorm<Eigen::Infinity>() <
-                                      residual_of(best).lpNorm<Eigen::Infinity>()) {
+        if (!fac.dense_shifted || detail::nan_sticky_inf_norm(residual_of(stepped)) <
+                                      detail::nan_sticky_inf_norm(residual_of(best))) {
             best = stepped;
         }
     }

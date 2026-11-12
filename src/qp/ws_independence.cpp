@@ -12,6 +12,7 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/QR>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/bordered_eqp.h>
 
 namespace hven::detail {
@@ -267,12 +268,12 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
     Vec y = sys.solve(rhs);
     ++t.solves;
     Vec res = sys.residual(qp, rhs, y, opts);
-    double res_norm = res.lpNorm<Eigen::Infinity>();
+    double res_norm = nan_sticky_inf_norm(res);
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++t.solves;
         Vec cres = sys.residual(qp, rhs, cand, opts);
-        const double cn = cres.lpNorm<Eigen::Infinity>();
+        const double cn = nan_sticky_inf_norm(cres);
         if (!(cn < res_norm)) {
             break;
         }
@@ -724,13 +725,13 @@ Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f
     Vec y = sys.solve(rhs);
     ++solves;
     Vec res = sys.residual(qp, rhs, y, opts);
-    double res_norm = res.lpNorm<Eigen::Infinity>();
-    const double target = 1e-14 * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
+    double res_norm = nan_sticky_inf_norm(res);
+    const double target = 1e-14 * std::max(1.0, nan_sticky_inf_norm(rhs));
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++solves;
         Vec cres = sys.residual(qp, rhs, cand, opts);
-        const double cn = cres.lpNorm<Eigen::Infinity>();
+        const double cn = nan_sticky_inf_norm(cres);
         if (!(cn < res_norm)) {
             break;
         }

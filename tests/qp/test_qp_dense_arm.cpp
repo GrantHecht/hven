@@ -88,6 +88,14 @@ struct QpEngineTestAccess {
                                                       opts);
     }
 
+    // The verdict refinements' acceptance measure, at zero multipliers.
+    static double face_measure(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
+                               const Vec &x, const QpOptions &opts) {
+        const VerdictInputs in(qp, x);
+        return eng.working_face_measure(qp, ws, x, in.aix, in.ai_norm, in.lambda_i, in.ae_norm,
+                                        in.lambda_e, opts);
+    }
+
   private:
     struct VerdictInputs {
         VerdictInputs(const QpProblem &qp, const Vec &x)
@@ -1234,4 +1242,148 @@ TEST(QpDenseArm, TheTerminalPolishRhoRejectionHoldsWhereAdoptionWouldSucceed) {
     EXPECT_EQ(lambda_e, le0);
     EXPECT_EQ(counters.terminal_polish_rejected, 1);
     EXPECT_EQ(counters.terminal_polish_adopted, 0);
+}
+
+// A NaN AT A NON-FIRST INDEX REFUSES (inf_norm.h): every gate and keep-while-falling monitor
+// reads its residual NaN-sticky, so a NaN past element 0 -- in the middle, or last, past every
+// packet width -- refuses or stops exactly as one in element 0 does. Sizes 9 and 17 put the last
+// index in the scalar tail of the 2-, 4- and 8-lane reductions.
+namespace {
+
+constexpr Index kNanSizes[] = {9, 17};
+
+std::vector<Index> nan_indices(Index n) { return {1, n / 2, n - 1}; }
+
+// A factor of the diagonal 2*I on the platform session, whose sparse factor keeps a NaN where it
+// was put; `shifted` marks it as dense shifted numerics with D = 1, which is all the shifted
+// gates and refine_shifted_solve read.
+KktFactor diagonal_factor(const SpMatRM &K, bool shifted) {
+    KktFactor k(0, DensePolicy::kNever);
+    (void)factorize_checked(k, K, DenseShiftSite{K.rows()});
+    k.dense_shifted = shifted;
+    k.dense_scale = shifted ? Vec(Vec::Ones(K.rows())) : Vec();
+    return k;
+}
+
+} // namespace
+
+TEST(QpNanGates, TheShiftedRatioReadsANonFirstNaNAndTheGateRefuses) {
+    for (const Index n : kNanSizes) {
+        const SpMatRM K = upper_of(2.0 * Eigen::MatrixXd::Identity(n, n));
+        const KktFactor k = diagonal_factor(K, true);
+        const Vec rhs = Vec::Constant(n, 2.0);
+        ASSERT_EQ(shifted_residual_ratio(K, rhs, k, Vec::Ones(n)), 0.0);
+        ASSERT_FALSE(shifted_solve_refused(K, rhs, k, Vec::Ones(n)));
+        for (const Index j : nan_indices(n)) {
+            Vec y = Vec::Ones(n);
+            y(j) = std::numeric_limits<double>::quiet_NaN();
+            EXPECT_TRUE(std::isnan(shifted_residual_ratio(K, rhs, k, y))) << n << " " << j;
+            EXPECT_TRUE(shifted_solve_refused(K, rhs, k, y)) << n << " " << j;
+        }
+    }
+}
+
+TEST(QpNanGates, TheBorderedShiftedRatioReadsANonFirstNaN) {
+    for (const Index n : kNanSizes) {
+        const SpMatRM K0 = upper_of(Eigen::MatrixXd::Identity(n, n));
+        const Vec scale = Vec::Constant(n, 0.5);
+        const std::vector<Vec> none;
+        const std::vector<double> nd;
+        const std::vector<Vec> v{Vec::Unit(n, 0)};
+        const std::vector<double> bd{0.0};
+        Vec rhs = Vec::Constant(n, 1.0);
+        ASSERT_EQ(bordered_shifted_residual_ratio(K0, none, nd, rhs, rhs, scale), 0.0);
+        // With one border reading x0: rhs (1, ..., 1, c), exact answer (c, 1, ..., 1, 1 - c).
+        Vec rhs_b(n + 1);
+        rhs_b << rhs, 0.25;
+        Vec exact_b(n + 1);
+        exact_b << rhs, 0.75;
+        exact_b(0) = 0.25;
+        ASSERT_LE(bordered_shifted_residual_ratio(K0, v, bd, rhs_b, exact_b, scale), 1e-15);
+        for (const Index j : nan_indices(n)) {
+            Vec y = rhs;
+            y(j) = std::numeric_limits<double>::quiet_NaN();
+            EXPECT_TRUE(std::isnan(bordered_shifted_residual_ratio(K0, none, nd, rhs, y, scale)))
+                << n << " " << j;
+            Vec yb = exact_b;
+            yb(j) = std::numeric_limits<double>::quiet_NaN();
+            EXPECT_TRUE(std::isnan(bordered_shifted_residual_ratio(K0, v, bd, rhs_b, yb, scale)))
+                << n << " " << j;
+        }
+        // The border block's own entry, last of all.
+        Vec yb = exact_b;
+        yb(n) = std::numeric_limits<double>::quiet_NaN();
+        EXPECT_TRUE(std::isnan(bordered_shifted_residual_ratio(K0, v, bd, rhs_b, yb, scale)));
+    }
+}
+
+TEST(QpNanGates, TheShiftedRefinementMonitorDoesNotFallToANonFirstNaN) {
+    for (const Index n : kNanSizes) {
+        const SpMatRM K = upper_of(2.0 * Eigen::MatrixXd::Identity(n, n));
+        const KktFactor k = diagonal_factor(K, true);
+        const Vec rhs = Vec::Constant(n, 2.0);
+        {
+            // The premise, finite: from 0.5 one step lands on the answer and is kept.
+            Vec y = Vec::Constant(n, 0.5);
+            EXPECT_EQ(refine_shifted_solve(K, rhs, k, y), 2);
+            EXPECT_EQ(y, Vec::Ones(n));
+        }
+        for (const Index j : nan_indices(n)) {
+            // The same start with a NaN at j: the residual reads NaN, so the first step's
+            // candidate cannot read as falling and nothing is kept.
+            Vec y0 = Vec::Constant(n, 0.5);
+            y0(j) = std::numeric_limits<double>::quiet_NaN();
+            Vec y = y0;
+            EXPECT_EQ(refine_shifted_solve(K, rhs, k, y), 1) << n << " " << j;
+            for (Index i = 0; i < n; ++i) {
+                if (i != j) {
+                    EXPECT_EQ(y(i), y0(i)) << n << " " << j << " " << i;
+                }
+            }
+        }
+    }
+}
+
+TEST(QpNanGates, TheUnregularizedPolishDoesNotFallToANonFirstNaN) {
+    for (const Index n : kNanSizes) {
+        KktAssembly a;
+        a.K = upper_of(2.0 * Eigen::MatrixXd::Identity(n, n));
+        a.rhs_shift = Vec::Zero(n);
+        KktFactor k = diagonal_factor(a.K, false);
+        QpOptions o;
+        o.primal_regularization = 0.0;
+        o.dual_regularization = 0.0;
+        const Vec rhs0 = Vec::Constant(n, 2.0);
+        {
+            // The premise, finite: a 1e-8 miss is polished away.
+            Vec y = Vec::Constant(n, 1.0 + 1e-8);
+            EXPECT_GE(polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y), 1);
+        }
+        for (const Index j : nan_indices(n)) {
+            Vec y0 = Vec::Constant(n, 1.0 + 1e-8);
+            y0(j) = std::numeric_limits<double>::quiet_NaN();
+            Vec y = y0;
+            EXPECT_EQ(polish_eqp_core(a, rhs0, o, k, n, 0, kEqpPolishSteps, y), 0) << n << " " << j;
+            for (Index i = 0; i < n; ++i) {
+                if (i != j) {
+                    EXPECT_EQ(y(i), y0(i)) << n << " " << j << " " << i;
+                }
+            }
+        }
+    }
+}
+
+TEST(QpNanGates, TheVerdictFaceMeasureKeepsANaNInALaterRow) {
+    // Three equality rows x_i = 1; a NaN in x reaches only its own row's residual.
+    const Eigen::MatrixXd Ae = Eigen::MatrixXd::Identity(3, 3);
+    const QpProblem qp = rows_qp(Ae, Vec::Ones(3), 1.0);
+    const QpOptions o;
+    const QpEngine engine(o, 0, DensePolicy::kNever);
+    const WorkingSet ws(3, qp.mi());
+    ASSERT_EQ(QpEngineTestAccess::face_measure(engine, qp, ws, Vec::Ones(3), o), 0.0);
+    for (const Index j : {1, 2}) {
+        Vec x = Vec::Ones(3);
+        x(j) = std::numeric_limits<double>::quiet_NaN();
+        EXPECT_TRUE(std::isnan(QpEngineTestAccess::face_measure(engine, qp, ws, x, o))) << j;
+    }
 }

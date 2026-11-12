@@ -166,6 +166,7 @@ set(HVEN_TEST_SOURCES
     core/test_version.cpp
     core/test_sparse_backend_link.cpp
     core/test_pattern_hash.cpp
+    core/test_inf_norm.cpp
     # The include-graph regression net for CLAUDE.md section 2's tier order:
     # scans include/hven/core/'s own headers and fails if any of them includes a
     # header from a tier ABOVE core/. It reads source text rather than linking

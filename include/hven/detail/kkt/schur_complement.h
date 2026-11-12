@@ -78,6 +78,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/core/errors.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/linear/dense_symmetric_factor.h>
@@ -467,7 +468,7 @@ class SchurComplement {
         Vec z(m);
         for (int step = 0; step < detail::kConditionDirectionSteps; ++step) {
             apply(y, z);
-            const double s = z.lpNorm<Eigen::Infinity>();
+            const double s = detail::nan_sticky_inf_norm(z);
             if (!std::isfinite(s) || s == 0.0) {
                 return {};
             }
