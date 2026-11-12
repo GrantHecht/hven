@@ -200,8 +200,11 @@ inline constexpr int kDenseFallbackAnalyzeFailed = std::numeric_limits<int>::min
 
 // FactorizeOutcome::backend_code under DenseSingularPolicy::kReport when the
 // dense arm found the matrix exactly singular: no numerics, arm kDense,
-// InertiaEvidence::numerically_singular set. INT_MIN + 1.
-inline constexpr int kDenseSingular = std::numeric_limits<int>::min() + 1;
+// InertiaEvidence::numerically_singular set. INT_MIN + 2, a value neither
+// backend returns as a status: NOT INT_MIN + 1, which is Accelerate's
+// SparseStatusReleased (-INT_MAX), a hard error (symmetric_factor_accelerate.cpp
+// static_asserts the separation).
+inline constexpr int kDenseSingular = std::numeric_limits<int>::min() + 2;
 
 // The result of one numeric factorization. A backend error is reported here,
 // not thrown: the caller decides whether a failed factorization is fatal or

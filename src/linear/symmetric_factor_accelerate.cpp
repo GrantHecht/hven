@@ -43,6 +43,20 @@
 
 namespace {
 
+// hven's own FactorizeOutcome::backend_code sentinels must never read as one of
+// Accelerate's statuses: SparseStatusReleased is -INT_MAX (INT_MIN + 1), which
+// kDenseSingular once was, and computation_info_of (kkt_factorization.cpp)
+// then mapped a released-factorization hard error to a numeric outcome.
+constexpr bool is_accelerate_status(int code) {
+    return code == SparseStatusOK || code == SparseFactorizationFailed ||
+           code == SparseMatrixIsSingular || code == SparseInternalError ||
+           code == SparseParameterError || code == SparseStatusReleased;
+}
+static_assert(!is_accelerate_status(hven::linear::kDenseSingular),
+              "kDenseSingular collides with an Accelerate SparseStatus_t value");
+static_assert(!is_accelerate_status(hven::linear::kDenseFallbackAnalyzeFailed),
+              "kDenseFallbackAnalyzeFailed collides with an Accelerate SparseStatus_t value");
+
 // THE BACKEND'S OWN FAILURE, AS BackendError (M8 B5). The session layer
 // reports a failed symbolic analysis or solve -- the backend's error code in
 // the message -- as std::runtime_error; this adapter is where hven's contract
