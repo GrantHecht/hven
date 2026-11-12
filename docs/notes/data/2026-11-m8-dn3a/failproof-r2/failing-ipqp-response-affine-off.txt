@@ -1,0 +1,2 @@
+IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes
+IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical

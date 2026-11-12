@@ -1,0 +1,163 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-gram-unwired/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmThreads.*:DenseSolveCheck.*:DenseArm.*:DenseArmReport.*
+[==========] Running 37 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from DenseArm
+[ RUN      ] DenseArm.LifecycleMatchesTheSparseArm
+[       OK ] DenseArm.LifecycleMatchesTheSparseArm (2 ms)
+[ RUN      ] DenseArm.EvidenceIsObservedCountedAndUnperturbed
+[       OK ] DenseArm.EvidenceIsObservedCountedAndUnperturbed (0 ms)
+[ RUN      ] DenseArm.LakesMatrixCountsTheReferenceNegatives
+[       OK ] DenseArm.LakesMatrixCountsTheReferenceNegatives (0 ms)
+[ RUN      ] DenseArm.ExactlySingularFallsBackToThePlatformSession
+[       OK ] DenseArm.ExactlySingularFallsBackToThePlatformSession (0 ms)
+[ RUN      ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms
+[       OK ] DenseArm.EpochIsMonotoneAndSessionIdsAreDistinctAcrossArms (0 ms)
+[ RUN      ] DenseArm.ShareAndAdoptOnDenseNumerics
+[       OK ] DenseArm.ShareAndAdoptOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership
+[       OK ] DenseArm.SharedDenseEpochNeverRewindsUnderCoOwnership (0 ms)
+[ RUN      ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy
+[       OK ] DenseArm.AdoptOfAFallbackHandleKeepsTheDensePolicy (0 ms)
+[ RUN      ] DenseArm.HandleSolveAndInertiaOnDenseNumerics
+[       OK ] DenseArm.HandleSolveAndInertiaOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics
+[       OK ] DenseArm.PartialSolvesAreRefusedOnDenseNumerics (0 ms)
+[ RUN      ] DenseArm.OptionsValidation
+[       OK ] DenseArm.OptionsValidation (0 ms)
+[ RUN      ] DenseArm.AutoSelectsByDimension
+[       OK ] DenseArm.AutoSelectsByDimension (0 ms)
+[ RUN      ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations
+[       OK ] DenseArm.PardisoOnlyKnobsAreInertOnDenseTakenFactorizations (0 ms)
+[ RUN      ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress
+[       OK ] DenseArm.SizeCheckRefusesWhatLapackOrMemoryCannotAddress (0 ms)
+[ RUN      ] DenseArm.PatternGuardRunsAsOnTheSparseArm
+[       OK ] DenseArm.PatternGuardRunsAsOnTheSparseArm (0 ms)
+[ RUN      ] DenseArm.CounterIdentityOnAMixedRun
+[       OK ] DenseArm.CounterIdentityOnAMixedRun (0 ms)
+[ RUN      ] DenseArm.ThreadsRoundTrip
+[       OK ] DenseArm.ThreadsRoundTrip (0 ms)
+[----------] 17 tests from DenseArm (4 ms total)
+
+[----------] 9 tests from DenseArmReport
+[ RUN      ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics
+[       OK ] DenseArmReport.FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics (0 ms)
+[ RUN      ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken
+[       OK ] DenseArmReport.AnExactlySingularFactorIsReportedNotRetaken (0 ms)
+[ RUN      ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace
+[       OK ] DenseArmReport.TheEquilibratedRefactorReportsPerturbedPivotsAndSolvesInASpace (0 ms)
+[ RUN      ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts
+[       OK ] DenseArmReport.RetakeOnPlatformTakesTheSparseArmAndCounts (0 ms)
+[ RUN      ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles
+[       OK ] DenseArmReport.RefusedUnderNeverAndCarriedByHandles (0 ms)
+[ RUN      ] DenseArmReport.TheDetectorBracketsBothThresholds
+[       OK ] DenseArmReport.TheDetectorBracketsBothThresholds (0 ms)
+[ RUN      ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks
+[       OK ] DenseArmReport.TheRookWalkReadsTwoByTwoBlocks (0 ms)
+[ RUN      ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged
+[       OK ] DenseArmReport.ABadlyScaledWellPosedMatrixIsNotFlagged (0 ms)
+[ RUN      ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses
+[       OK ] DenseArmReport.TheCatastrophicMeshFactorIsFlaggedAndTheShiftedSolvePasses (0 ms)
+[----------] 9 tests from DenseArmReport (0 ms total)
+
+[----------] 3 tests from DenseArmThreads
+[ RUN      ] DenseArmThreads.TheVerboseRecordSeesALocalThreadOverride
+[       OK ] DenseArmThreads.TheVerboseRecordSeesALocalThreadOverride (826 ms)
+[ RUN      ] DenseArmThreads.EveryDenseLapackCallRunsAtOneThread
+[       OK ] DenseArmThreads.EveryDenseLapackCallRunsAtOneThread (4 ms)
+[ RUN      ] DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne
+[       OK ] DenseArmThreads.ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne (2 ms)
+[----------] 3 tests from DenseArmThreads (833 ms total)
+
+[----------] 8 tests from DenseSolveCheck
+[ RUN      ] DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused
+[       OK ] DenseSolveCheck.AnUnflaggedIllConditionedDenseSolveIsRefused (0 ms)
+[ RUN      ] DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked
+[       OK ] DenseSolveCheck.OnlyUnshiftedDenseNumericsAreChecked (0 ms)
+[ RUN      ] DenseSolveCheck.APassingDenseSolveIsUsedUnchanged
+[       OK ] DenseSolveCheck.APassingDenseSolveIsUsedUnchanged (0 ms)
+[ RUN      ] DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst
+[       OK ] DenseSolveCheck.RefinementRescuesASolveThatMissesAtFirst (0 ms)
+[ RUN      ] DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns
+[       OK ] DenseSolveCheck.TheRefusalThresholdIsTheConsumersAndRefinementStillRuns (0 ms)
+[ RUN      ] DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio
+[       OK ] DenseSolveCheck.ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio (0 ms)
+[ RUN      ] DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite
+[       OK ] DenseSolveCheck.TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite (0 ms)
+[ RUN      ] DenseSolveCheck.ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused
+[       OK ] DenseSolveCheck.ARankDeficientShiftedGramReadsPositiveDefiniteAndIsNotRefused (0 ms)
+[----------] 8 tests from DenseSolveCheck (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 37 tests from 4 test suites ran. (839 ms total)
+[  PASSED  ] 37 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-gram-unwired/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmEngines.*
+[==========] Running 13 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 13 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+[       OK ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK (0 ms)
+[----------] 13 tests from DenseArmEngines (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 1 test suite ran. (19 ms total)
+[  PASSED  ] 13 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-gram-unwired/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpqpDenseSolveCheck.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from IpqpDenseSolveCheck
+[ RUN      ] IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused
+[       OK ] IpqpDenseSolveCheck.LateInteriorSolvesBetweenTheThresholdsAreNotRefused (2 ms)
+[ RUN      ] IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem
+[       OK ] IpqpDenseSolveCheck.TheCheckReadsTheEquilibratedSystem (0 ms)
+[----------] 2 tests from IpqpDenseSolveCheck (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (3 ms total)
+[  PASSED  ] 2 tests.
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-acfc8f7d568381148/build-dn3a/fp2-gram-unwired/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = IpqpDenseSolveSeamTest.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from IpqpDenseSolveSeamTest
+[ RUN      ] IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing
+[       OK ] IpqpDenseSolveSeamTest.TheControlSolveRefusesNothing (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback
+[       OK ] IpqpDenseSolveSeamTest.ARefusedMuEstimateSolveTakesTheEstimatesFallback (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes
+[       OK ] IpqpDenseSolveSeamTest.ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes
+[       OK ] IpqpDenseSolveSeamTest.ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes (0 ms)
+[ RUN      ] IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical
+[       OK ] IpqpDenseSolveSeamTest.RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical (0 ms)
+[----------] 5 tests from IpqpDenseSolveSeamTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 5 tests.
