@@ -181,7 +181,7 @@ void DenseSession::analyze(const SpMatRM &A) {
 
     double query = 0.0;
     {
-        const MklThreadScope threads(opts_.threads);
+        const MklThreadScope threads(kDenseArmThreads);
         const auto info = static_cast<int>(
             report()
                 ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n),
@@ -282,7 +282,7 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
 
     int info = 0;
     {
-        const MklThreadScope threads(opts_.threads);
+        const MklThreadScope threads(kDenseArmThreads);
         info = static_cast<int>(
             report() ? LAPACKE_dsytrf_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
                                                 a, static_cast<lapack_int>(n_), ipiv_.data(),
@@ -369,7 +369,7 @@ double DenseSession::rcond_estimate(double anorm) {
     double rcond = 0.0;
     int info = 0;
     {
-        const MklThreadScope threads(opts_.threads);
+        const MklThreadScope threads(kDenseArmThreads);
         info = static_cast<int>(
             LAPACKE_dsycon_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), a_.data(),
                                      static_cast<lapack_int>(n_), ipiv_.data(), anorm, &rcond,
@@ -395,7 +395,7 @@ void DenseSession::solve(double *b, Index nrhs, Index ldb) const {
     if (!scale_.empty()) {
         apply_scale();
     }
-    const MklThreadScope threads(opts_.threads);
+    const MklThreadScope threads(kDenseArmThreads);
     const auto info = static_cast<int>(
         report() ? LAPACKE_dsytrs_rook_work(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_),
                                             static_cast<lapack_int>(nrhs), a_.data(),

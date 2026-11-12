@@ -23,12 +23,19 @@
 
 #include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
+#include <Eigen/QR>
 #include <gtest/gtest.h>
+
+#if !defined(__APPLE__)
+#include <mkl_lapacke.h>
+#include <mkl_service.h>
+#endif
 
 #include "hven/core/errors.h"
 #include "hven/core/types.h"
 #include "hven/detail/kkt/kkt_calls.h"
 #include "hven/detail/linear/dense_session.h"
+#include "hven/detail/qp/ws_independence.h"
 #include "hven/linear/symmetric_factor.h"
 
 namespace {
@@ -1123,6 +1130,274 @@ TEST(DenseArm, ThreadsRoundTrip) {
     Vec x(2);
     g.solve(Vec::Ones(2), x);
     EXPECT_EQ(x(0), 1.0);
+}
+
+// ---------------------------------------------------------------------------------------------
+// M8 DN-3a: the dense arm's thread pin (settler Q4) and the unshifted dense solve check (Q5).
+// ---------------------------------------------------------------------------------------------
+
+// A dense symmetric indefinite n x n matrix, diagonally weighted so it is far from singular.
+Mat indefinite_matrix(Index n) {
+    Mat m(n, n);
+    for (Index i = 0; i < n; ++i) {
+        for (Index j = 0; j <= i; ++j) {
+            const double v = std::sin(static_cast<double>(1 + 7 * i + 13 * j));
+            m(i, j) = v;
+            m(j, i) = v;
+        }
+        m(i, i) += (i % 2 == 0 ? 1.0 : -1.0) * static_cast<double>(n);
+    }
+    return m;
+}
+
+#if !defined(__APPLE__)
+// MKL's own verbose record of each LAPACK call names its routine and NThr, the thread count the
+// call ran under: the observation is MKL's, taken outside hven.
+std::vector<std::pair<std::string, int>> mkl_verbose_calls(const std::string &out) {
+    std::vector<std::pair<std::string, int>> calls;
+    std::istringstream in(out);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.rfind("MKL_VERBOSE D", 0) != 0) {
+            continue;
+        }
+        const auto open = line.find('(');
+        const auto nthr = line.find("NThr:");
+        if (open == std::string::npos || nthr == std::string::npos) {
+            continue;
+        }
+        calls.emplace_back(line.substr(12, open - 12), std::stoi(line.substr(nthr + 5)));
+    }
+    return calls;
+}
+
+// THE PREMISE: the observation tells thread counts apart -- a dsytrf issued under a local
+// override of 4 is recorded NThr:4, so a record of 1 below is a measurement, not a constant.
+TEST(DenseArmThreads, TheVerboseRecordSeesALocalThreadOverride) {
+    const Index n = 300;
+    Mat a = indefinite_matrix(n);
+    std::vector<lapack_int> ipiv(static_cast<std::size_t>(n));
+    const int previous = mkl_set_num_threads_local(4);
+    mkl_verbose(1); // off again below: its return value is not the prior state
+    testing::internal::CaptureStdout();
+    const lapack_int info = LAPACKE_dsytrf(LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n),
+                                           a.data(), static_cast<lapack_int>(n), ipiv.data());
+    std::fflush(stdout);
+    const std::string out = testing::internal::GetCapturedStdout();
+    mkl_verbose(0);
+    mkl_set_num_threads_local(previous);
+    ASSERT_EQ(info, 0);
+    const auto calls = mkl_verbose_calls(out);
+    ASSERT_FALSE(calls.empty()) << out;
+    bool saw = false;
+    for (const auto &[name, nthr] : calls) {
+        if (name.rfind("DSYTRF", 0) == 0) {
+            saw = true;
+            EXPECT_EQ(nthr, 4) << name;
+        }
+    }
+    EXPECT_TRUE(saw) << out;
+}
+
+// Every LAPACK call the dense arm makes runs at one thread under both dense singular policies,
+// though the factor is configured for 4 (and still reports 4: the count configures the platform
+// session).
+TEST(DenseArmThreads, EveryDenseLapackCallRunsAtOneThread) {
+    const Index n = 300;
+    const SpMatRM A = upper_csr(indefinite_matrix(n));
+    for (const auto policy : {hven::linear::DenseSingularPolicy::kSparseFallback,
+                              hven::linear::DenseSingularPolicy::kReport}) {
+        SCOPED_TRACE(policy == hven::linear::DenseSingularPolicy::kReport ? "report" : "fallback");
+        SymmetricFactor::Options o = dense_options();
+        o.threads = 4;
+        o.dense_singular_policy = policy;
+        SymmetricFactor f(o);
+        mkl_verbose(1); // off again below: its return value is not the prior state
+        testing::internal::CaptureStdout();
+        f.analyze(A);
+        const FactorizeOutcome fo = f.factorize(A);
+        Vec x(n);
+        f.solve(Vec::Ones(n), x);
+        std::fflush(stdout);
+        const std::string out = testing::internal::GetCapturedStdout();
+        mkl_verbose(0);
+        ASSERT_EQ(fo.status, FactorizeOutcome::Status::kOk);
+        ASSERT_EQ(fo.arm, FactorArm::kDense);
+        EXPECT_EQ(f.threads(), 4);
+        const auto calls = mkl_verbose_calls(out);
+        Index trf = 0;
+        Index trs = 0;
+        for (const auto &[name, nthr] : calls) {
+            trf += name.rfind("DSYTRF", 0) == 0 ? 1 : 0;
+            trs += name.rfind("DSYTRS", 0) == 0 ? 1 : 0;
+            EXPECT_EQ(nthr, 1) << name;
+        }
+        EXPECT_GE(trf, 2) << out; // the workspace query and the factorization
+        EXPECT_EQ(trs, 1) << out;
+    }
+}
+#endif
+
+// A 6 x 6 matrix Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (Q orthogonal, from a Householder QR):
+// its rook D-ratio stays above the detector's screen, so the dense arm takes it unflagged, and a
+// right-hand side along the small eigenvector gives a solve whose residual is ~eps * cond relative
+// to it -- far above the tolerance, and beyond what refinement can remove.
+constexpr Index kRotatedN = 6;
+Mat rotation() {
+    const Eigen::HouseholderQR<Mat> qr(indefinite_matrix(kRotatedN));
+    return qr.householderQ() * Mat::Identity(kRotatedN, kRotatedN);
+}
+SpMatRM rotated_ill_conditioned() {
+    Vec ev(kRotatedN);
+    ev << 1.0, 0.5, 0.25, 0.1, 0.01, 1e-13;
+    const Mat Q = rotation();
+    Mat m = Q * ev.asDiagonal() * Q.transpose();
+    m = 0.5 * (m + m.transpose()).eval();
+    return upper_csr(m);
+}
+Vec small_eigenvector() { return rotation().col(kRotatedN - 1); }
+
+hven::detail::KktFactor kkt_factor(DensePolicy policy) {
+    return hven::detail::KktFactor(0, policy);
+}
+
+// THE CHECK REFUSES an unflagged dense solve that does not solve K: refinement cannot bring rho
+// under the tolerance (the residual's own rounding is ~eps * cond), so the KktFactor form refuses.
+TEST(DenseSolveCheck, AnUnflaggedIllConditionedDenseSolveIsRefused) {
+    const SpMatRM K = rotated_ill_conditioned();
+    hven::detail::KktFactor k = kkt_factor(DensePolicy::kAlways);
+    const FactorizeOutcome fo =
+        hven::detail::factorize_checked(k, K, hven::detail::DenseShiftSite{kRotatedN});
+    ASSERT_EQ(fo.arm, FactorArm::kDense);
+    ASSERT_FALSE(fo.inertia.numerically_singular); // the premise: the detector passes it
+    ASSERT_FALSE(k.dense_shifted);
+    const Vec rhs = small_eigenvector();
+    Vec y = hven::detail::solve_vec(k, rhs);
+    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+              hven::detail::kDenseSolveResidualTol); // the premise: the first solve misses
+    EXPECT_TRUE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y));
+}
+
+// Dense arm only: the same system on the platform session, and the same answer labelled sparse,
+// are not checked here; a shifted factor is the rho gate's (shifted_solve_refused), not this one's.
+TEST(DenseSolveCheck, OnlyUnshiftedDenseNumericsAreChecked) {
+    const SpMatRM K = rotated_ill_conditioned();
+    const Vec rhs = small_eigenvector();
+    hven::detail::KktFactor sparse = kkt_factor(DensePolicy::kNever);
+    const FactorizeOutcome so = hven::detail::factorize_checked(sparse, K);
+    ASSERT_EQ(so.arm, FactorArm::kSparse);
+    Vec ys = hven::detail::solve_vec(sparse, rhs);
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, sparse, so.arm, ys));
+    hven::detail::KktFactor dense = kkt_factor(DensePolicy::kAlways);
+    const FactorizeOutcome d =
+        hven::detail::factorize_checked(dense, K, hven::detail::DenseShiftSite{kRotatedN});
+    Vec yd = hven::detail::solve_vec(dense, rhs);
+    const Vec before = yd;
+    EXPECT_FALSE(
+        hven::detail::unshifted_dense_solve_refused(K, rhs, dense, FactorArm::kSparse, yd));
+    dense.dense_shifted = true; // as factorize_checked marks a shift response
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, d.arm, yd));
+    EXPECT_EQ(yd, before);
+}
+
+// A solve that meets the tolerance is used UNCHANGED (no refinement runs), so the check moves
+// nothing where it passes.
+TEST(DenseSolveCheck, APassingDenseSolveIsUsedUnchanged) {
+    const SpMatRM K = upper_csr(indefinite_matrix(12));
+    hven::detail::KktFactor k = kkt_factor(DensePolicy::kAlways);
+    const FactorizeOutcome fo =
+        hven::detail::factorize_checked(k, K, hven::detail::DenseShiftSite{6});
+    ASSERT_EQ(fo.arm, FactorArm::kDense);
+    const Vec rhs = Vec::LinSpaced(12, -1.0, 2.0);
+    Vec y = hven::detail::solve_vec(k, rhs);
+    const Vec before = y;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y));
+    EXPECT_EQ(y, before);
+}
+
+// THE REFINEMENT: a solve through numerics of a nearby matrix misses rho at first, and the
+// keep-while-falling refinement against K brings it under the tolerance -- accepted, refined.
+// Without refinement the same solve would be refused.
+TEST(DenseSolveCheck, RefinementRescuesASolveThatMissesAtFirst) {
+    const Mat Kd = indefinite_matrix(8);
+    const SpMatRM K = upper_csr(Kd);
+    Mat Pd = Kd;
+    Pd(0, 0) *= 1.0 + 1e-6; // the numerics solved against are K's to 1e-6
+    const Eigen::LDLT<Mat> near(Pd);
+    ASSERT_EQ(near.info(), Eigen::Success);
+    const auto solve = [&](const Vec &r) -> Vec { return near.solve(r); };
+    const Vec rhs = Vec::Ones(8);
+    Vec y = solve(rhs);
+    const Vec first = y;
+    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+              hven::detail::kDenseSolveResidualTol); // the premise
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(K, rhs, Vec(), solve, y));
+    EXPECT_NE(y, first);
+    EXPECT_LE(hven::detail::dense_residual_ratio(K, rhs, y, Vec()),
+              hven::detail::kDenseSolveResidualTol);
+}
+
+// A NaN refuses (the NaN-sticky norm), and so does a non-finite solve; rho reads D's metric.
+TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndRhoReadsTheMetric) {
+    const SpMatRM K = upper_csr(Mat::Identity(2, 2));
+    const Vec rhs = Vec::Ones(2);
+    const auto nan_solve = [](const Vec &r) -> Vec {
+        return Vec::Constant(r.size(), std::numeric_limits<double>::quiet_NaN());
+    };
+    Vec y(2);
+    y << 1.0, std::numeric_limits<double>::quiet_NaN();
+    EXPECT_TRUE(hven::detail::dense_solve_check_refused(K, rhs, Vec(), nan_solve, y));
+    Vec z(2);
+    z << 1.0, 0.5; // residual (0, 0.5)
+    Vec d(2);
+    d << 1.0, 1e-3;
+    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, Vec()), 0.5);
+    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, d), 0.5e-3);
+    EXPECT_EQ(hven::detail::dense_residual_ratio(K, Vec::Zero(2), Vec::Zero(2), Vec()), 0.0);
+}
+
+// THE RANK-REPAIR GRAM'S REFUSAL on the dense arm (M8 DN-3a): the dense arm reports no
+// perturbation, so its evidence is the inertia an SPD G + tI must read. A real dense factor of an
+// indefinite matrix is refused; of an SPD one, accepted. On the platform session the rule is the
+// perturbed-pivot rule it always was.
+TEST(DenseSolveCheck, TheRankGramRefusesADenseFactorThatIsNotPositiveDefinite) {
+    SymmetricFactor::Options o = dense_options();
+    o.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback; // the Gram's
+    const Index n = 6;
+    const SpMatRM indefinite = upper_csr(indefinite_matrix(n));
+    Mat spd = indefinite_matrix(n);
+    spd = spd * spd.transpose() + Mat::Identity(n, n);
+    const SpMatRM positive = upper_csr(spd);
+    {
+        SymmetricFactor f(o);
+        f.analyze(indefinite);
+        const FactorizeOutcome fo = f.factorize(indefinite);
+        ASSERT_EQ(fo.status, FactorizeOutcome::Status::kOk);
+        ASSERT_EQ(fo.arm, FactorArm::kDense);
+        ASSERT_FALSE(fo.inertia.perturbed_pivots.has_value()); // the premise
+        EXPECT_TRUE(hven::detail::rank_gram_factor_refused(fo, n));
+    }
+    {
+        SymmetricFactor f(o);
+        f.analyze(positive);
+        const FactorizeOutcome fo = f.factorize(positive);
+        ASSERT_EQ(fo.arm, FactorArm::kDense);
+        EXPECT_FALSE(hven::detail::rank_gram_factor_refused(fo, n));
+        EXPECT_TRUE(hven::detail::rank_gram_factor_refused(fo, n + 1)); // a count short of mr
+    }
+    {
+        SymmetricFactor f(SymmetricFactor::Options{});
+        f.analyze(positive);
+        const FactorizeOutcome fo = f.factorize(positive);
+        ASSERT_EQ(fo.arm, FactorArm::kSparse);
+        EXPECT_FALSE(hven::detail::rank_gram_factor_refused(fo, n));
+        FactorizeOutcome perturbed = fo;
+        perturbed.inertia.perturbed_pivots = 1;
+        EXPECT_TRUE(hven::detail::rank_gram_factor_refused(perturbed, n));
+        FactorizeOutcome wrong = fo; // the platform's counts are not this rule's evidence
+        wrong.inertia.negative = 1;
+        EXPECT_FALSE(hven::detail::rank_gram_factor_refused(wrong, n));
+    }
 }
 
 } // namespace

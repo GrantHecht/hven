@@ -18,6 +18,7 @@
 #include <string>
 
 #include <Eigen/Core>
+#include <Eigen/QR>
 
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/ipm_solver.h>
@@ -414,6 +415,56 @@ TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
             EXPECT_EQ(res.dense_platform_retakes, 0);
             EXPECT_GE(res.dense_shifted_solve_refusals, 1);
             EXPECT_GE(res.counters.ssn_prox_updates, 1);
+        }
+    }
+}
+
+// THE SSN's NEWTON STEP through UNSHIFTED dense numerics is checked per solve (M8 DN-3a): H is
+// Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (no rows, no bounds, no regularization), the detector
+// passes its factorization, and the first step, along the small eigenvector, misses rho even
+// after refinement -- refused and answered with the proximal ladder, as a refused shifted step
+// is. The sparse arm is not checked here; the tally reads 0 under kNever.
+TEST(DenseArmEngines, TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK) {
+    constexpr Eigen::Index n = 6;
+    Eigen::MatrixXd S(n, n);
+    for (Eigen::Index i = 0; i < n; ++i) {
+        for (Eigen::Index j = 0; j < n; ++j) {
+            S(i, j) = std::sin(static_cast<double>(1 + 7 * i + 13 * j));
+        }
+    }
+    const Eigen::HouseholderQR<Eigen::MatrixXd> qr(S);
+    const Eigen::MatrixXd Q = qr.householderQ() * Eigen::MatrixXd::Identity(n, n);
+    Eigen::VectorXd ev(n);
+    ev << 1.0, 0.5, 0.25, 0.1, 0.01, 1e-13;
+    Eigen::MatrixXd Hd = Q * ev.asDiagonal() * Q.transpose();
+    Hd = 0.5 * (Hd + Hd.transpose()).eval();
+    hven::detail::QpProblem qp;
+    qp.H = Eigen::MatrixXd(Hd.triangularView<Eigen::Upper>()).sparseView();
+    qp.g = 1e-3 * Q.col(n - 1);
+    qp.Ae.resize(0, n);
+    qp.be = Eigen::VectorXd(0);
+    qp.Ai.resize(0, n);
+    qp.bi = Eigen::VectorXd(0);
+    const double inf = std::numeric_limits<double>::infinity();
+    qp.lower = Eigen::VectorXd::Constant(n, -inf);
+    qp.upper = Eigen::VectorXd::Constant(n, inf);
+    hven::QpOptions opts;
+    opts.primal_regularization = 0.0;
+    opts.dual_regularization = 0.0;
+    for (const DensePolicy policy : {DensePolicy::kNever, DensePolicy::kAlways}) {
+        SCOPED_TRACE(policy == DensePolicy::kAlways ? "dense" : "sparse");
+        const auto before = hven::detail::dense_solve_check_tally().ssn_refusals.load();
+        hven::detail::SsnEngine engine(opts, 0, policy);
+        hven::detail::SsnResult res;
+        engine.solve(qp, hven::detail::SsnStart{}, hven::detail::SsnOptions{}, &res);
+        const auto refusals = hven::detail::dense_solve_check_tally().ssn_refusals.load() - before;
+        if (policy == DensePolicy::kNever) {
+            EXPECT_EQ(refusals, 0U);
+        } else {
+            EXPECT_EQ(res.dense_flagged_factorizations, 0); // the premise: unflagged numerics
+            EXPECT_EQ(res.dense_shifted_solve_refusals, 0);
+            EXPECT_GE(refusals, 1U);
+            EXPECT_GE(res.counters.ssn_prox_updates, refusals);
         }
     }
 }

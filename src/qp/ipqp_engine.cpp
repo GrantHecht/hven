@@ -1973,14 +1973,33 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // One backend solve: scale the right-hand side in, unscale the solution out. `D K D u = D b`
     // gives `u = D^-1 v` for `K v = b`, so the recovered step is `D u` -- and everything leaving
     // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
-    auto solve_system = [&]() {
+    //
+    // THE DENSE SOLVE CHECK (M8 DN-3a): a solve the dense arm answered is checked on the system
+    // the backend factored (scaled when equilibrated, so rho is in D's metric); true iff it
+    // refused, after which the caller answers as it answers a non-finite step.
+    auto solve_system = [&]() -> bool {
         if (iopts.ruiz_equilibration) {
             w.rhs.array() *= w.dscale.array();
         }
         kkt_.solve(w.rhs, w.sol);
+        bool refused = false;
+        if (kkt_.arm() == hven::linear::FactorArm::kDense) {
+            refused = detail::dense_solve_check_refused(
+                kkt_.matrix(), w.rhs, Vec(),
+                [&](const Vec &r) {
+                    Vec u(r.size());
+                    kkt_.solve(r, u);
+                    return u;
+                },
+                w.sol);
+            if (refused) {
+                detail::count_refusal(detail::dense_solve_check_tally().ipqp_refusals);
+            }
+        }
         if (iopts.ruiz_equilibration) {
             w.sol.array() *= w.dscale.array();
         }
+        return refused;
     };
 
     // Build the right-hand side for one step. `mu_t` is the uniform complementarity target (0 on
@@ -2103,9 +2122,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         bool ok = !fact_budget_hit && read == InertiaRead::kOk;
         if (ok) {
             build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
-            solve_system();
+            const bool refused = solve_system();
             recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
-            ok = w.sol.allFinite();
+            ok = !refused && w.sol.allFinite();
         }
         double mu_derived = 0.0;
         if (ok) {
@@ -2503,9 +2522,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored at
         // `zeta`, never from the inertia-demanded modification, whose gradient here is zero.
         build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
-        solve_system();
+        const bool affine_refused = solve_system();
         recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
-        if (!w.sol.allFinite()) {
+        if (affine_refused || !w.sol.allFinite()) {
             escape = IpqpEscape::kNumerical;
             break;
         }
@@ -2551,9 +2570,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         //    assertion: `KktFactorization::solve` is const and does not mutate the factor, so two
         //    solves against one factorization are well-formed; W1 asserts this executably).
         build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
-        solve_system();
+        const bool corrector_refused = solve_system();
         recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
-        if (!w.sol.allFinite()) {
+        if (corrector_refused || !w.sol.allFinite()) {
             escape = IpqpEscape::kNumerical;
             break;
         }

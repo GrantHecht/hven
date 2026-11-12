@@ -572,6 +572,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         // --- factor and step ---------------------------------------
         Vec dw;
         bool dw_refused = false;
+        bool dw_dense_refused = false;
         try {
             const detail::AnalysisDecision analysis = detail::analysis_decision(kkt_, k_);
             if (analysis.needed) {
@@ -580,7 +581,8 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
                                                 out->dense_singular_refactors,
                                                 out->dense_platform_retakes);
-            detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
+            const hven::linear::FactorizeOutcome fo =
+                detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
             ++out->factorizations;
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
@@ -588,6 +590,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                 // only if it passes the rho gate (kkt_calls.h).
                 (void)detail::refine_shifted_solve(k_, rhs, kkt_, dw);
                 dw_refused = detail::shifted_solve_refused(k_, rhs, kkt_, dw);
+                // A step through unshifted dense numerics is checked per solve
+                // (M8 DN-3a, kkt_calls.h).
+                dw_dense_refused = detail::unshifted_dense_solve_refused(k_, rhs, kkt_, fo.arm, dw);
             }
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;
@@ -726,6 +731,24 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                 "not solve the KKT system (relative residual above {}), and the proximal "
                 "ladder is at its ceiling (sigma = {})",
                 it, detail::kEqpShiftedResidualTol, prox_sigma_);
+            break;
+        }
+
+        // A REFUSED UNSHIFTED DENSE STEP (M8 DN-3a) gets the same answer.
+        if (dw_dense_refused) {
+            detail::count_refusal(detail::dense_solve_check_tally().ssn_refusals);
+            if (escalate_prox(qp, n, me, mi, mb)) {
+                ++out->counters.ssn_prox_updates;
+                window_damped = true;
+                continue;
+            }
+            out->status = QpStatus::kNumericalError;
+            out->escape_reason = SsnEscape::kSingular;
+            out->escape_detail = fmt::format(
+                "SsnEngine: Newton step {} came from a dense factorization and does not solve "
+                "the KKT system (relative residual above {} after refinement), and the "
+                "proximal ladder is at its ceiling (sigma = {})",
+                it, detail::kDenseSolveResidualTol, prox_sigma_);
             break;
         }
 

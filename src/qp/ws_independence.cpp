@@ -931,7 +931,9 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
     } else {
         const double t = kRankGramShift * omega;
         // No detector (kSparseFallback): the shift t bounds rcond near kRankGramShift,
-        // and the inverse iteration below solves with a near-singular G on purpose.
+        // and the inverse iteration below solves with a near-singular G on purpose. The
+        // factorization is refused on either arm's own evidence (rank_gram_factor_refused);
+        // its solves only span the block whose Ritz pairs are then read from M_F itself.
         hven::linear::SymmetricFactor::Options gram_options = sqp_kkt_options(threads, dense);
         gram_options.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
         hven::linear::SymmetricFactor factor(gram_options);
@@ -972,9 +974,10 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
                 try {
                     factor.analyze(A);
                     const hven::linear::FactorizeOutcome fo = factor.factorize(A);
-                    if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
-                        (fo.inertia.perturbed_pivots.has_value() &&
-                         *fo.inertia.perturbed_pivots != 0)) {
+                    if (rank_gram_factor_refused(fo, mr)) {
+                        if (fo.arm == hven::linear::FactorArm::kDense) {
+                            count_refusal(dense_solve_check_tally().gram_refusals);
+                        }
                         out.outcome = RankRepair::Outcome::kRefused;
                         return out;
                     }

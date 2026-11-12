@@ -1197,4 +1197,38 @@ TEST(IpqpCounterTest, TheGatedScheduleMovesAndAdvancesTheProximalCentre) {
     EXPECT_GE(r.rho, IpqpOptions{}.regularization_min);
 }
 
+// THE IPQP's STEP SOLVES ARE CHECKED on the dense arm (M8 DN-3a). Two equality rows that differ
+// by 1e-4 in one coefficient (consistent: x = (1, 0, *)): as the schedule drives the dual
+// regularization down, the KKT the dense arm factors unflagged becomes ill-conditioned along the
+// rows' difference, and a step solve misses rho after refinement -- the tier ends kNumerical, its
+// answer to a non-finite step. The platform session's solves are not checked (tally 0 under
+// kNever), whatever that solve then does.
+TEST(IpqpDenseSolveCheck, ADenseStepSolveThatMissesRhoEndsTheTierNumerical) {
+    QpProblem qp;
+    qp.H = dense_upper({{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}});
+    qp.g = vec({0.0, 0.0, 0.0});
+    qp.Ae = dense_rows({{1.0, 1.0, 0.0}, {1.0, 1.0 + 1e-4, 0.0}}, 3);
+    qp.be = vec({1.0, 1.0});
+    qp.Ai = dense_rows({}, 3);
+    qp.bi = Vec(0);
+    qp.lower = vec({-10.0, -10.0, -10.0});
+    qp.upper = vec({10.0, 10.0, 10.0});
+    for (const auto policy :
+         {hven::linear::DensePolicy::kNever, hven::linear::DensePolicy::kAlways}) {
+        SCOPED_TRACE(policy == hven::linear::DensePolicy::kAlways ? "dense" : "sparse");
+        const auto before = dense_solve_check_tally().ipqp_refusals.load();
+        IpqpEngine tier(tight_opts(), 0, policy);
+        const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
+        const auto refusals = dense_solve_check_tally().ipqp_refusals.load() - before;
+        if (policy == hven::linear::DensePolicy::kNever) {
+            EXPECT_EQ(refusals, 0U);
+        } else {
+            EXPECT_EQ(r.dense_flagged_factorizations, 0); // the premise: unflagged numerics
+            EXPECT_EQ(refusals, 1U);
+            EXPECT_EQ(r.status, QpStatus::kNumericalError);
+            EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+        }
+    }
+}
+
 } // namespace hven
