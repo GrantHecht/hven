@@ -1,0 +1,13 @@
+cell | arm | status | raw | s_init | s_proc | solver
+hs-hven-ipm-hs026 | N | THREW: common.threads must be >= 1, got 0 | 4595148 | 0.0000 | 0.9575 | 195260
+hs-hven-ipm-hs026 | A | THREW: common.threads must be >= 1, got 0 | 4595224 | 0.0000 | 0.9616 | 176352
+hs-hven-ipm-hs026 | A/N | raw 1.000 | solver 0.903
+sd-hven-ipm-HS67 | N | THREW: common.threads must be >= 1, got 0 | 5296291 | 0.0000 | 0.8586 | 748814
+sd-hven-ipm-HS67 | A | THREW: common.threads must be >= 1, got 0 | 5296377 | 0.0000 | 0.8398 | 848743
+sd-hven-ipm-HS67 | A/N | raw 1.000 | solver 1.133
+hs-hven-sqp-hs043 | N | optimal | 56155439 | 0.0767 | 0.2759 | 36353060
+hs-hven-sqp-hs043 | A | optimal | 8395082 | 0.1651 | 0.5767 | 2167049
+hs-hven-sqp-hs043 | A/N | raw 0.149 | solver 0.060
+sd-hven-sqp-HS84 | N | optimal | 133859448 | 0.0382 | 0.1363 | 110503137
+sd-hven-sqp-HS84 | A | optimal | 11216457 | 0.1186 | 0.4416 | 4932491
+sd-hven-sqp-HS84 | A/N | raw 0.084 | solver 0.045
