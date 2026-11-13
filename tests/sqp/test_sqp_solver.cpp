@@ -3510,6 +3510,10 @@ TEST(SqpDriverQpFailure, SuspectEscalationsAggregateToTheDriver) {
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         SqpOptions opts;
+        // M8 DN-3 flip: the control below reads the platform backend's ratio-test rescue (MKL)
+        // or its subspace-clean solves (Accelerate), so the sparse arm on purpose: kNever
+        // explicitly. Under kAuto the MKL control spends 10 rungs, as Accelerate's does.
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         opts.trust_region_initial = 1e13; // must exceed x1's bound -- see the model's note
         opts.trust_region_max = 1e13;
         opts.common.max_iterations = 10;
@@ -6012,6 +6016,10 @@ TEST(SqpDriverElastic, ElasticSurvivesALargeConstraintScale) {
         InconsistentLinearizationModel model(1e8);
         SqpOptions opts; // trust_region_initial = 1.0, primal_delta = 1e-8 -> runaway limit 1e7
         opts.qp.working_set_algebra = algebra;
+        // M8 DN-3 flip: the residual-scaling fix was proven on the sparse arm, the default
+        // before the flip; kNever explicitly. Under kAuto both algebras end kNumericalError
+        // here with the first subproblem refused and no elastic activation (registered).
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         record_history(sol, "scaled_1e8");
@@ -6590,6 +6598,9 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         x0 << -5.0, -5.0;
         ScaledRowModel model(a, lo, x0);
         SqpOptions opts;
+        // M8 DN-3 flip: this block's premise was measured on the sparse arm (the default
+        // before the flip); kNever explicitly. Under kAuto Debug sees a decade drop.
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         opts.trust_region_initial = 0.01;
         opts.common.optimality_tol = 1e-10;
         opts.common.feasibility_tol = 1e-10;
@@ -12300,6 +12311,9 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
     // corpus sweep cells and 81 replay cells never enter the loop at all -- so what transfers is
     // the PER-ENTRY bound (`kMaxVerdictRefineSteps`), not this total.
     SqpOptions opts;
+    // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
+    // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
     opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     Index worst = 0;
@@ -12477,6 +12491,9 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         {QpMode::kWalk, "walk", {}}, {QpMode::kSsn, "ssn", {}}, {QpMode::kIpqp, "ipm", {}}};
     for (Arm &arm : arms) {
         SqpOptions opts;
+        // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
+        // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.qp_mode = arm.mode;
@@ -12573,6 +12590,9 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
 TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization) {
     auto run = [](SqpElasticRungEngine rung) {
         SqpOptions opts;
+        // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
+        // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.qp_mode = QpMode::kIpqp;

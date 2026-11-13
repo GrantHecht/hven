@@ -604,3 +604,24 @@ What the implementation answers, against §3 and §7.3:
   so a positive count is exactly "a pattern of order <= T was factorized"). SQP: `DenseTallyScope` (every walk/SSN
   factorization site) plus the IPQP and the Gram; IPM: a monotone lifetime reading like `work.factorizations`.
 - R5 (border resets at threads 0) and R6 (inertia trust between the bands) stay registered.
+
+---
+
+## §DN-3 flip. The default event (2026-11-13)
+
+Owner ruling 2026-11-13: DN-3's adoption tallies (`docs/notes/data/2026-11-m8-dn3/RESULTS.txt`; IPM HS 22/0/0, SD
+64/11/22; SQP HS 21/0/1, SD 81/0/16) are applied and the S-A4 STOP records are accepted as immaterial. So
+`IpmLinearOptions::dense_factorization` and `SqpLinearOptions::dense_factorization` default to `kAuto` (thresholds
+unchanged: T_IPM = 167, T_SQP = 105). No public `max_dense_dimension` (owner: not now; it stays reserved).
+
+- One consequence by construction: `IpmLinearOptions::conditional_reproducibility = true` is refused at the default
+  (it requires `kNever`, `src/drivers/ipm_options.cpp`), so a CNR caller now sets both.
+- Test fixtures that read the platform backend on purpose (fault injectors, Pardiso's own pivot count, the backend
+  option sweep), and scenario fixtures whose routes were derived on the sparse arm, set `kNever` explicitly; corpus
+  pins of the shipped default are re-derived. Every re-pin and every kNever fixture is listed, with its kAuto
+  reading, in `docs/notes/data/2026-11-m8-dn3/DECLARATION-r4.md`, which also carries the I set (r0 §2) on the flip
+  commit.
+- Registered with the flip, not fixed: T_IPM = 167 is a tuning candidate (the 11 IPM small-dense losses, solver A/N
+  1.13-2.83, are mid-size KKT systems near T); the kAuto fixture outcomes r4 lists (robustness readings worse than the
+  sparse arm's on a few constructed SQP fixtures); F3n50's `border_refine` not being stable across processes on the
+  dense arm.

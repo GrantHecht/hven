@@ -1114,8 +1114,17 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // warm arms performed no majors past their first point and so had no
     // engagement to report -- and HS26/HS40/HS77 are UNCHANGED, which is the
     // control saying the repair did not disturb the equality-only third.
+    // RE-DERIVED, M8 DN-3 flip (a DECLARED default event, docs/notes/data/2026-11-m8-dn3/
+    // DECLARATION-r4.md): SqpLinearOptions::dense_factorization moved kNever -> kAuto, so
+    // every HS factor is now on the dense arm. HS10's warm arm is CONFIG-SPLIT from here:
+    // Release reads 28 / 42 (was 26 / 40), Debug holds at 26 / 40.
+#ifdef NDEBUG
+    EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#endif
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
     // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
     // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
@@ -1138,12 +1147,14 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // HS15, HS33, HS40, HS77 and all five cold arms -- holds in BOTH configurations,
     // which is the control that says this is one cell's rounding and not a routing
     // change.
+    // RE-DERIVED, M8 DN-3 flip (declared, as HS10 above): on the dense arm the split
+    // swaps -- Release reads 13 / 30 (was 12 / 29), Debug 12 / 29 (was 13 / 30).
 #ifdef NDEBUG
-    EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
-#else
     EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#else
+    EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
 #endif
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(16, problem("HS33").cell[kArmWarm][kOn][kOn].majors);
@@ -1351,10 +1362,12 @@ void check_soc_costs_what_it_costs() {
     // (bordered_eqp.h) refines answers whose step is undecided at the zero-motion scale; the
     // corpus total moves by 2 minors and every status in the table is unchanged.
     // Debug's corpus does not move: CONFIG-SPLIT from here.
+    // M8 DN-3 flip (declared; the corpus now factors on the dense arm): Release 3340 -> 3347,
+    // Debug 3342 -> 3338. Every other assertion of this test, statuses included, holds.
 #ifdef NDEBUG
-    EXPECT_EQ(3340, total_minors) << corpus_table();
+    EXPECT_EQ(3347, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3342, total_minors) << corpus_table();
+    EXPECT_EQ(3338, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads
@@ -1541,12 +1554,14 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // with the step; Debug holds off at 30 / 89 / 32 / 3 and reads 33 / 95 / 38 / 6.
     // M7 W2 BPS (declared mover): Release's step arm 34 / 99 / 39 / 7 -> 33 / 95 / 38 / 6, now
     // Debug's own reading; the held-off arm, the failure count and every objective unchanged.
+    // M8 DN-3 flip (declared; HS15 now factors on the dense arm): Release's step arm
+    // 33 / 95 / 38 / 6 -> 34 / 99 / 39 / 7; Debug's and the held-off arm's majors unchanged.
     EXPECT_EQ(off.majors, 30);
 #ifdef NDEBUG
-    EXPECT_EQ(on.majors, 33);
-    EXPECT_EQ(on.minors, 95);
-    EXPECT_EQ(on.factorizations, 38);
-    EXPECT_EQ(on.rejected, 6);
+    EXPECT_EQ(on.majors, 34);
+    EXPECT_EQ(on.minors, 99);
+    EXPECT_EQ(on.factorizations, 39);
+    EXPECT_EQ(on.rejected, 7);
 #else
     EXPECT_EQ(on.majors, 33);
     EXPECT_EQ(on.minors, 95);

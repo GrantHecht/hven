@@ -63,21 +63,22 @@ struct IpmLinearOptions {
     /// Conditional numerical reproducibility: pins the backend to
     /// `common.threads` CNR threads, making the factorization bit-reproducible
     /// across thread counts. Read when the factorization is configured. Default
-    /// false. Pardiso only.
+    /// false. Pardiso only. Requires `dense_factorization = kNever` (the dense
+    /// arm's LAPACK has no reproducibility mode), so set both.
     bool conditional_reproducibility = false;
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-    /// When the dense factorization arm is used: `kNever` (the default), `kAlways`,
-    /// which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
-    /// `SymmetricFactor::Options::dense_factorization`), or `kAuto`: the dense arm
-    /// for a KKT pattern of order n_kkt <= 167, the library's threshold for this
-    /// engine, the sparse backend above it. The dense arm runs single-threaded on
-    /// MKL (Accelerate: its default threading). On the dense arm a
-    /// singular KKT factorization is answered by the inertia-correction ladder
-    /// (delta_c, then a larger delta_w) and refactored on the dense arm, never
-    /// handed to the sparse backend (`DenseSingularPolicy::kReport`).
-    hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
+    /// When the dense factorization arm is used: `kAuto` (the default; M8 DN-3):
+    /// the dense arm for a KKT pattern of order n_kkt <= 167, the library's
+    /// threshold for this engine, the sparse backend above it; `kNever`: the
+    /// sparse backend always; or `kAlways`, which allocates 8*n_kkt^2 bytes per
+    /// analyzed KKT pattern (see `SymmetricFactor::Options::dense_factorization`). The dense arm
+    /// runs single-threaded on MKL (Accelerate: its default threading). On the dense arm a singular
+    /// KKT factorization is answered by the inertia-correction ladder (delta_c, then a larger
+    /// delta_w) and refactored on the dense arm, never handed to the sparse backend
+    /// (`DenseSingularPolicy::kReport`).
+    hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kAuto;
     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
     /// finite and > 0 on every backend; ignored on MKL.
     double accelerate_zero_tol = 1e-4 * std::numeric_limits<double>::epsilon();

@@ -224,7 +224,8 @@ TEST(OptionsDump, EnumsPrintEnumeratorNames) {
     EXPECT_TRUE(has_line(ipm, "advanced.solve_phase_mode = kSolveEquations")) << ipm;
     EXPECT_TRUE(has_line(ipm, "advanced.optimize_barrier_mode = kLoqo")) << ipm;
     EXPECT_TRUE(has_line(ipm, "advanced.restoration_mode = kOff")) << ipm;
-    EXPECT_TRUE(has_line(ipm, "linear.dense_factorization = kNever")) << ipm;
+    // M8 DN-3 flip (declared): the default moved from kNever to kAuto.
+    EXPECT_TRUE(has_line(ipm, "linear.dense_factorization = kAuto")) << ipm;
     EXPECT_TRUE(has_line(ipm, "common.verbosity = kSilent")) << ipm;
     EXPECT_TRUE(has_line(ipm, "phases = [kOptimize]")) << ipm;
 }

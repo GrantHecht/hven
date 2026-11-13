@@ -1477,23 +1477,24 @@ void check_pinned_corpus_totals() {
             const CellStats &c = f.cell[0][a];
             const Pin &p = fp.arm[a];
             SCOPED_TRACE(fmt::format("{} / {}", fp.name, arm_name(a)));
-#ifdef USE_ACCELERATE_SPARSE
-            // M7 WX B1 (design section 2.2; settler C149/C150). F3n50 cold / cold@pred read
-            // border_refine 57 on the Accelerate lane against the pinned 58. Pinned run 1 of 3
-            // is macOS run 40905599627 (57 in both cells); recorded, not pinned, until three
-            // pinned runs agree. Every other column of every cell is still asserted.
-            // TODO(register M3-8/WX-R6): pin 57 on Accelerate after pinned run 3.
-            const bool lane_unpinned =
-                std::string(fp.name) == "F3n50" && (a == kArmCold || a == kArmColdPred);
-            if (lane_unpinned) {
+            // M8 DN-3 flip (declared): F3n50's KKT patterns are below the SQP's kAuto threshold,
+            // so the shipped default factors them on the dense arm, and on MKL border_refine is
+            // NOT stable across processes of one binary there: Release read the warm and hot
+            // cells at 34 in five stand-alone runs and one ctest run and at the pinned 35 in
+            // another ctest run; Debug reads 59 / 36 / 17 / 36 / 59 against 57 / 35 / 16 / 35 /
+            // 57. Recorded, not pinned, on every F3n50 arm on every platform (registered with
+            // the flip; Accelerate's dense-arm reading is UNOBSERVED); every other column of
+            // every cell is still asserted, and the pins stay the sparse arm's readings. This
+            // subsumes M7 WX B1's Accelerate-only exemption (settler C149/C150: F3n50 cold /
+            // cold@pred read 57 on the Accelerate lane's sparse arm against the pinned 58,
+            // macOS run 40905599627; TODO(register M3-8/WX-R6) stays open for that arm).
+            const bool dense_unpinned = std::string(fp.name) == "F3n50";
+            if (dense_unpinned) {
                 ::testing::Test::RecordProperty(
                     fmt::format("{}_{}_border_refine", fp.name, arm_name(a)),
                     static_cast<int>(c.border_refine));
             }
-            check_pin(c, p, corpus_table(), !lane_unpinned);
-#else
-            check_pin(c, p, corpus_table());
-#endif
+            check_pin(c, p, corpus_table(), !dense_unpinned);
             // NOTHING IN THIS CORPUS REACHES THE SECOND-ORDER CORRECTION OR
             // THE ELIMINATION-PATH EQP REFINEMENT, and that is pinned so a
             // future change routing work through either says so here instead

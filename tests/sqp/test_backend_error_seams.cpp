@@ -71,15 +71,20 @@ struct BackendSeamArmedFactorize {
     ~BackendSeamArmedFactorize() { FactorizeFaultInjector::active = false; }
 };
 
+// The injectors sit in the platform session's adapter, so these fixtures run on
+// the sparse arm on purpose: kNever explicitly (M8 DN-3 flip; HS071's KKT patterns
+// are below both engines' kAuto thresholds and would never reach the platform).
 IpmOptions backend_seam_ipm() {
     IpmOptions o;
     o.common.verbosity = Verbosity::kSilent;
+    o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
     return o;
 }
 
 SqpOptions backend_seam_sqp() {
     SqpOptions o;
     o.common.verbosity = Verbosity::kSilent;
+    o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
     return o;
 }
 

@@ -769,6 +769,9 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     {
         auto o = solver.options();
         o.common.verbosity = hven::Verbosity::kSilent;
+        // The count is the PLATFORM backend's own, so the sparse arm on purpose
+        // (M8 DN-3 flip: HS071 is below kAuto's threshold; the dense arm reports none).
+        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;

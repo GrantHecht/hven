@@ -632,7 +632,11 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
                              x0);
     for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
         SCOPED_TRACE(static_cast<int>(mode));
-        const SqpOptions o = opts_for(mode);
+        // M8 DN-3 flip: F9 was derived on the sparse arm, the default before the flip, so
+        // kNever is set explicitly. Under kAuto every mode ends kIterationLimit at max_iter
+        // after the hand-off (registered with the flip).
+        SqpOptions o = opts_for(mode);
+        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         SqpSolver solver(o);
         const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE

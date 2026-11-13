@@ -320,6 +320,9 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     {
         IpmOptions o = solver.options();
         o.common.verbosity = hven::Verbosity::kSilent;
+        // The fields are the sparse backend's, conditional_reproducibility among them,
+        // which requires kNever: the sparse arm on purpose (M8 DN-3 flip).
+        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
         solver.set_options(std::move(o));
     }
     hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), hs071_start());

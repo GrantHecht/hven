@@ -25,6 +25,13 @@
 //                              +inf degeneracy, both measured against the
 //                              behaviour they replaced.
 //
+// THE DN-3 FLIP (M8, declared): the SQP's default dense policy moved from kNever to
+// kAuto. The driver fixtures marked "DN-3 flip" construct their restoration, seed,
+// excursion, entry-cap and radius scenarios from numerics derived on the sparse arm,
+// so they set kNever explicitly; under kAuto those scenarios mostly do not arise
+// (no restoration entry, no seed offer, a different radius history). The list and
+// the kAuto outcomes are in docs/notes/data/2026-11-m8-dn3/DECLARATION-r4.md.
+//
 // EVERY ITERATION COUNT HERE IS AN OBSERVATION ON THIS MACHINE and the
 // assertions are looser than the observation, per test_sqp_solver.cpp's
 // standing convention. The two fixtures' OPTIMA and CERTIFICATES, by contrast,
@@ -1361,6 +1368,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         // M7 W2 E2 (S7): the two algebras' different points on the face belong
@@ -1450,6 +1458,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.common.max_iterations = 200;
@@ -1884,6 +1893,7 @@ TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel) {
         SCOPED_TRACE(fmt::format("trust_region_min {:g}", run.tr_min));
         InfeasibleCircleLineModel model(1.0, 0.0);
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         opts.trust_region_min = run.tr_min;
         FunnelLog log;
         record_funnel_into(opts, &log);
@@ -2335,6 +2345,7 @@ TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
 TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
     InfeasibleCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
     // on).
     opts.qp.independent_working_set = false;
@@ -2378,6 +2389,7 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         // M7 W2 E2: the entry repair releases a seed pin dependent on the
         // equalities on this knife-edge model, and the candidate premise below
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -2441,6 +2453,7 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         // M7 W2 E2 (S7): the taken seed on this knife-edge model belongs to the
         // pre-E2 walk's trajectory (the ipm mode takes none with the option on).
         opts.qp.independent_working_set = false;
@@ -2580,6 +2593,7 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         SCOPED_TRACE(fmt::format("k = {}", k));
         JacobianPoisonedAtOrdinalModel model(k);
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         // M7 W2 E2: the entry repair releases a seed pin dependent on the
         // equalities on this knife-edge model, and the candidate premise below
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -2653,6 +2667,7 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
 TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts;
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     opts.trust_region_min = 1e-5;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -2761,6 +2776,7 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // M7 W2 E2: the entry repair releases a seed pin dependent on the
     // equalities on this knife-edge model, and the candidate premise below
     // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -3038,6 +3054,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     InfeasibleCircleLineModel model;
 
     SqpOptions roomy;
+    roomy.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     roomy.advanced.equality_basis = false;
     roomy.common.max_iterations = 200;
@@ -3065,6 +3082,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
 #endif
 
     SqpOptions cramped;
+    cramped.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.advanced.equality_basis = false;
     // CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2, for the reason
@@ -3158,6 +3176,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // ARM 1 -- requested, refused for budget, NEVER RAN.
     RunawayValleyModel valley_refused;
     SqpOptions refused;
+    refused.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     refused.advanced.equality_basis = false;
     refused.trust_region_initial = 8.0;
@@ -3196,6 +3215,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // as arm 1.
     RunawayValleyModel valley_resumed;
     SqpOptions resumed;
+    resumed.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     resumed.advanced.equality_basis = false;
     resumed.trust_region_initial = 8.0;
@@ -3227,6 +3247,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // feas_tol, so the parent reports that status as its own.
     InfeasibleCircleLineModel circle;
     SqpOptions cramped;
+    cramped.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.advanced.equality_basis = false;
     // THE BUDGET IS CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared), so that the
@@ -3515,6 +3536,7 @@ constexpr double kCancellationKktTol = 4.475e-7;
 TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // M7 W2 E2: in Debug the E2 walk's end point satisfies the exact residual
     // (5.5e-7 < 6.3e-7) and is then rightly certified; premise 2 belongs to the
     // pre-E2 walk's trajectory.
@@ -3575,6 +3597,7 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
 TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
+    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
     // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
     // on).
     opts.qp.independent_working_set = false;
@@ -4408,6 +4431,7 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         SCOPED_TRACE(fmt::format("max_restoration_entries = {}", cap));
         RunawayValleyModel model;
         SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
         opts.trust_region_initial = 8.0;
         opts.common.max_iterations = 200;
         opts.advanced.max_restoration_entries = cap;

@@ -229,7 +229,10 @@ TEST(DenseArmEngines, IpmValidateAcceptsEveryPolicyAndNoThreshold) {
     validate_policies<hven::IpmOptions>();
     hven::IpmOptions cnr;
     cnr.linear.conditional_reproducibility = true;
-    EXPECT_TRUE(refusal(cnr).empty());
+    // M8 DN-3 flip: the default is kAuto, so CNR alone is refused; with kNever it is accepted.
+    EXPECT_NE(refusal(cnr).find("conditional_reproducibility"), std::string::npos);
+    cnr.linear.dense_factorization = DensePolicy::kNever;
+    EXPECT_TRUE(refusal(cnr).empty()) << refusal(cnr);
     cnr.linear.dense_factorization = DensePolicy::kAlways;
     EXPECT_NE(refusal(cnr).find("conditional_reproducibility"), std::string::npos);
     cnr.linear.dense_factorization = DensePolicy::kAuto;
