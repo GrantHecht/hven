@@ -93,20 +93,32 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
 // the three limit doors fold into kNone (the status names them); every other
 // value maps to its namesake, both stops apart.
 TEST(SolveStatus, TheIpmPhaseStopMapsOntoStopReason) {
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNone), StopReason::kNone);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kIterationLimit), StopReason::kNone);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kWorkLimit), StopReason::kNone);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kTimeLimit), StopReason::kNone);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kCallbackStop), StopReason::kCallbackStop);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStopRequested), StopReason::kStopRequested);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStageStalled), StopReason::kStageStalled);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kRestorationLocallyInfeasible),
-              StopReason::kRestorationLocallyInfeasible);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteStart), StopReason::kNonFiniteStart);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteIterate), StopReason::kNonFiniteIterate);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kEvaluationFailure), StopReason::kEvaluationFailure);
-    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kException), StopReason::kException);
-    EXPECT_THROW((void)to_stop_reason(static_cast<IpmPhaseStop>(99)), std::invalid_argument);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNone, SolveStatus::kIterationLimit), StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kIterationLimit, SolveStatus::kIterationLimit),
+              StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kWorkLimit, SolveStatus::kIterationLimit),
+              StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kTimeLimit, SolveStatus::kIterationLimit),
+              StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kCallbackStop, SolveStatus::kIterationLimit),
+              StopReason::kCallbackStop);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStopRequested, SolveStatus::kIterationLimit),
+              StopReason::kStopRequested);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStageStalled, SolveStatus::kIterationLimit),
+              StopReason::kStageStalled);
+    EXPECT_EQ(
+        to_stop_reason(IpmPhaseStop::kRestorationLocallyInfeasible, SolveStatus::kIterationLimit),
+        StopReason::kRestorationLocallyInfeasible);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteStart, SolveStatus::kIterationLimit),
+              StopReason::kNonFiniteStart);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteIterate, SolveStatus::kIterationLimit),
+              StopReason::kNonFiniteIterate);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kEvaluationFailure, SolveStatus::kIterationLimit),
+              StopReason::kEvaluationFailure);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kException, SolveStatus::kIterationLimit),
+              StopReason::kException);
+    EXPECT_THROW((void)to_stop_reason(static_cast<IpmPhaseStop>(99), SolveStatus::kIterationLimit),
+                 std::invalid_argument);
     // Both stops resolve the cap verdict to kInterrupted.
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kCallbackStop),
               SolveStatus::kInterrupted);
@@ -114,6 +126,21 @@ TEST(SolveStatus, TheIpmPhaseStopMapsOntoStopReason) {
               SolveStatus::kInterrupted);
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, IpmPhaseStop::kStopRequested),
               SolveStatus::kOptimal);
+    // A converged status names its own cause: a stall or restoration verdict
+    // recorded beside kOptimal / kAcceptable reads kNone.
+    for (const SolveStatus converged : {SolveStatus::kOptimal, SolveStatus::kAcceptable}) {
+        for (const IpmPhaseStop stop :
+             {IpmPhaseStop::kStageStalled, IpmPhaseStop::kRestorationLocallyInfeasible,
+              IpmPhaseStop::kNone}) {
+            EXPECT_EQ(to_stop_reason(stop, converged), StopReason::kNone);
+        }
+    }
+    // The stall at an acceptable iterate resolves kAcceptable (see above): the
+    // reason a result then carries is kNone.
+    EXPECT_EQ(to_stop_reason(
+                  IpmPhaseStop::kStageStalled,
+                  resolve_ipm_phase_status(SolveStatus::kAcceptable, IpmPhaseStop::kStageStalled)),
+              StopReason::kNone);
 }
 
 // THE SQP MAPPING IS GONE with the enum it mapped from (M6 W5 T8.4): the SQP

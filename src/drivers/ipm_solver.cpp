@@ -6505,7 +6505,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             report.iterations = this->result_.iterations - iters_before_phase;
             report.phase_seconds =
                 double(phase_timer.count<std::chrono::microseconds>()) / 1000000.0;
-            report.stop_reason = to_stop_reason(this->last_stop_reason_);
+            report.stop_reason = to_stop_reason(this->last_stop_reason_, this->result_.status);
             report.ran = true;
         }
 
@@ -6600,6 +6600,18 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // A WORK OR TIME LIMIT ENDS THE SEQUENCE TOO: both bound the whole solve.
         if (this->limit_stop_) {
             break;
+        }
+        // A TOKEN REQUESTED ON A PHASE'S CONVERGING ROW (M8 AP-5 G1 review): the
+        // phase's converged verdict stands ("converged beats stop"), but the
+        // remaining phases are skipped, as a callback stop on that row skips them --
+        // without the next phase's init_impl factorization the iteration-top poll
+        // would otherwise need before it could see the request.
+        if (!is_last && !this->interrupt_requested_ &&
+            (result_.status == SolveStatus::kOptimal ||
+             result_.status == SolveStatus::kAcceptable) &&
+            this->stop_token_.stop_requested()) {
+            this->interrupt_requested_ = true;
+            this->stop_requested_latched_ = true;
         }
         if (this->interrupt_requested_) {
             {

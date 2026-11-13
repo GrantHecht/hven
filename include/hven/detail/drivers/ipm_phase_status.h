@@ -70,7 +70,11 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmPhaseStop stop)
 /// @brief The public StopReason for a recorded phase stop. The three limit doors
 ///        (kIterationLimit, kWorkLimit, kTimeLimit) map to StopReason::kNone:
 ///        the status names them. Every other value maps to its namesake.
+///        A converged status (kOptimal, kAcceptable) maps to kNone whatever the
+///        recorded stop (a stall at an acceptable iterate resolves kAcceptable).
+/// @param stop     The stop recorded for the phase.
+/// @param resolved The phase's resolved status.
 /// @throws std::invalid_argument if @p stop is not one of the twelve.
-StopReason to_stop_reason(IpmPhaseStop stop);
+StopReason to_stop_reason(IpmPhaseStop stop, SolveStatus resolved);
 
 } // namespace hven::detail

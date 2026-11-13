@@ -8728,6 +8728,20 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 mj.interrupted_exit = true;
                 mj.token_exit = !st.interrupted;
                 check_major_pushed_once(iter);
+                // THE STEP IS NOT TAKEN, so nothing of its acceptance stands: the
+                // funnel width an h-type acceptance tightened goes back (the
+                // warm start below must describe x_k, not the untaken step), and the
+                // acceptance counters bumped on the way here are undone, consistent
+                // with steps_accepted, which the commit below owns and never reaches.
+                if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
+                    funnel->retract_last_judgement();
+                }
+                if (mj.failure_step) {
+                    --st.out.counters.qp_failure_steps_accepted;
+                }
+                if (mj.soc_applied) {
+                    --st.out.counters.soc_applied;
+                }
                 publish_stop(interrupt_reason(mj), std::string());
                 return finish(seam, std::move(st.out), SolveStatus::kInterrupted, st.x, st.lambda_e,
                               st.lambda_i, mj.kkt, mj.row.f,

@@ -71,7 +71,9 @@ flag the solver only reads; the solve ends at its next iteration boundary with
 `kInterrupted` and `StopReason::kStopRequested`. The token is per call, so N
 concurrent solves take N independent sources; a source whose stop was already
 requested stops the next solve it is handed to at that solve's first boundary
-("a token is per solve"). The evidence is
+("a token is per solve"). Until group G2 the token is not forwarded into the
+SQP restoration sub-solve: a request made during restoration takes effect when
+that sub-solve returns. The evidence is
 `StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint` and
 `StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial`
 (`tests/drivers/test_stop_token.cpp`), with a local ThreadSanitizer run of the

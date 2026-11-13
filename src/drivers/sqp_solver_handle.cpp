@@ -59,7 +59,6 @@ void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
 
 int SqpSolver::ssn_tier_threads() const { return impl().ssn_tier_num_threads(); }
 
-
 const SqpResult &SqpSolver::last_result() const { return impl().last_result(); }
 
 int SqpSolver::ipqp_tier_threads() const { return impl().ipqp_tier_num_threads(); }
@@ -93,6 +92,9 @@ void finish_interrupted_result(SqpSolverImpl &engine, const Problem &problem,
                                const SolveBudget &budget, const Vec &x0, const std::string &what,
                                SqpResult &result) noexcept {
     result.status = SolveStatus::kInterrupted;
+    // Set before the try: the report steps may throw, and a kept partial must
+    // never read kNone after an escaped exception.
+    result.stop_reason = StopReason::kException;
     try {
         result.message = "interrupted by an exception that escaped the solve";
         if (result.x.size() == 0) {

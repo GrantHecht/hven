@@ -58,7 +58,13 @@ SolveStatus detail::resolve_ipm_phase_status(SolveStatus raw_verdict, IpmPhaseSt
         "resolve_ipm_phase_status: unrecognized IpmPhaseStop ({})", static_cast<int>(reason)));
 }
 
-StopReason detail::to_stop_reason(IpmPhaseStop stop) {
+StopReason detail::to_stop_reason(IpmPhaseStop stop, SolveStatus resolved) {
+    if (resolved == SolveStatus::kOptimal || resolved == SolveStatus::kAcceptable) {
+        // A converged verdict names its own cause: a stall or a restoration
+        // verdict recorded beside it (a stall at an acceptable iterate resolves
+        // kAcceptable) is not a stop cause.
+        return StopReason::kNone;
+    }
     switch (stop) {
     case IpmPhaseStop::kNone:
     case IpmPhaseStop::kIterationLimit:

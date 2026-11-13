@@ -79,7 +79,9 @@ struct SolveBudget {
     /// polled at the exit test before each subproblem, and right after each
     /// accepted step's row is recorded, so the step is not taken. A source
     /// already stopped stops the solve at its first boundary: a token is per
-    /// solve.
+    /// solve. UNTIL G2 the token is not forwarded into the SQP restoration
+    /// sub-solve: a request made during restoration takes effect when that
+    /// sub-solve returns.
     StopToken stop;
 };
 

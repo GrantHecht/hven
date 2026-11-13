@@ -36,7 +36,7 @@ void finish_result(const IpmSolverImpl &engine, const Problem &problem, const So
                    IpmResult &result) {
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
-    result.stop_reason = detail::to_stop_reason(engine.last_stop_reason());
+    result.stop_reason = detail::to_stop_reason(engine.last_stop_reason(), result.status);
     result.message = detail::ipm_result_message(
         result, result.stop_reason, engine.last_stop_detail(), engine.options(), budget);
 }
@@ -51,6 +51,9 @@ void finish_interrupted_result(IpmSolverImpl &engine, const Problem &problem,
                                const SolveBudget &budget, const Vec &x0, const std::string &what,
                                IpmResult &result) noexcept {
     result.status = SolveStatus::kInterrupted;
+    // Set before the try: the report steps below may throw, and a kept partial
+    // must never read kNone after an escaped exception.
+    result.stop_reason = StopReason::kException;
     try {
         result.message = "interrupted by an exception that escaped the solve";
         if (result.x.size() == 0) {
@@ -59,7 +62,7 @@ void finish_interrupted_result(IpmSolverImpl &engine, const Problem &problem,
         engine.note_exception_stop(what);
         detail::ProblemAccess::report(problem, result);
         detail::ProblemAccess::report_work(problem, result);
-        result.stop_reason = detail::to_stop_reason(engine.last_stop_reason());
+        result.stop_reason = detail::to_stop_reason(engine.last_stop_reason(), result.status);
         result.message = detail::ipm_result_message(
             result, result.stop_reason, engine.last_stop_detail(), engine.options(), budget);
     } catch (...) {
@@ -91,7 +94,6 @@ IpmSolver &IpmSolver::operator=(IpmSolver &&) noexcept = default;
 const IpmOptions &IpmSolver::options() const { return impl().options(); }
 
 void IpmSolver::set_options(IpmOptions o) { impl().set_options(std::move(o)); }
-
 
 const IpmResult &IpmSolver::last_result() const { return impl().last_result(); }
 

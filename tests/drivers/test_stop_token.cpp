@@ -29,6 +29,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <atomic>
 #include <bit>
 #include <cmath>
@@ -39,11 +40,13 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "hven/core/stop.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
@@ -162,6 +165,28 @@ TEST(StopToken, EveryTokenOfASourceSeesItsStop) {
     EXPECT_TRUE(a.stop_requested());
     StopSource other;
     EXPECT_FALSE(other.token().stop_requested()) << "sources are independent";
+}
+
+TEST(StopToken, AMovedFromSourceHasNoStateLikeStdStopSource) {
+    StopSource source;
+    const StopToken before = source.token();
+    StopSource moved(std::move(source));
+    // NOLINTBEGIN(bugprone-use-after-move): the moved-from state is the subject.
+    EXPECT_FALSE(source.stop_requested());
+    EXPECT_FALSE(source.request_stop()) << "no state: nothing to request";
+    EXPECT_FALSE(source.stop_requested());
+    const StopToken empty = source.token();
+    EXPECT_FALSE(empty.stop_possible());
+    EXPECT_FALSE(empty.stop_requested());
+    // NOLINTEND(bugprone-use-after-move)
+    EXPECT_FALSE(before.stop_requested()) << "the moved-from request touched nothing";
+    EXPECT_TRUE(moved.request_stop()) << "the first request on a live source returns true";
+    EXPECT_FALSE(moved.request_stop()) << "an already-requested source returns false";
+    EXPECT_TRUE(before.stop_requested());
+    StopSource assigned;
+    assigned = std::move(moved);
+    EXPECT_FALSE(moved.stop_requested()); // NOLINT(bugprone-use-after-move)
+    EXPECT_TRUE(assigned.stop_requested());
 }
 
 // ---------------------------------------------------------------------------
@@ -462,6 +487,186 @@ TEST(StopTokenSolve, T13ATokenEndsTheIpmPhaseSequence) {
     EXPECT_EQ(r.phases[0].stop_reason, StopReason::kStopRequested);
     EXPECT_FALSE(r.phases[1].ran) << "a stop ends the phase SEQUENCE, not only the phase";
     EXPECT_EQ(r.phases[1].stop_reason, StopReason::kNone);
+}
+
+// ---------------------------------------------------------------------------
+// The SQP's post-push poll, pinned (G1 review): a stop requested by the event
+// of an ACCEPTED row ends the solve at that row's own point, the step untaken.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+struct SqpStopped {
+    SqpResult result;
+    std::vector<Eigen::VectorXd> seen_x;
+    std::vector<Eigen::VectorXd> seen_lambda;
+};
+
+// One SQP solve whose callback requests the token at event `signal_at` (and, when
+// `also_callback_stop`, returns kStop there too).
+SqpStopped sqp_stopped_at(Index signal_at, bool also_callback_stop = false) {
+    Problem problem(std::make_shared<Hs071Problem>());
+    SqpSolver solver(quiet_sqp());
+    StopSource source;
+    SolveBudget budget;
+    budget.stop = source.token();
+    SqpStopped out;
+    solver.set_iteration_callback([&](const IterationEvent &ev) {
+        out.seen_x.emplace_back(ev.x);
+        out.seen_lambda.emplace_back(ev.lambda);
+        if (ev.iteration == signal_at) {
+            source.request_stop();
+            if (also_callback_stop) {
+                return CallbackAction::kStop;
+            }
+        }
+        return CallbackAction::kContinue;
+    });
+    out.result = solver.solve(problem, hs071_start(), {}, budget);
+    return out;
+}
+
+} // namespace
+
+TEST(StopTokenSolve, T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep) {
+    constexpr Index kSignalAt = 2;
+    const SqpStopped s = sqp_stopped_at(kSignalAt);
+    const SqpResult &r = s.result;
+    ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+    EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
+    // The request came from row kSignalAt's own event, after its QP was solved
+    // and its step accepted; the solve ends AT that row: no further event, the
+    // history ends on it, and the accepted step is not committed.
+    EXPECT_EQ(static_cast<Index>(s.seen_x.size()), kSignalAt + 1);
+    ASSERT_EQ(static_cast<Index>(r.history.size()), r.counters.major_iters);
+    EXPECT_TRUE(r.history.back().qp_solved);
+    EXPECT_EQ(r.counters.steps_accepted, kSignalAt)
+        << "rows 0..kSignalAt-1 committed; the stopped row's accepted step did not";
+    EXPECT_LE(r.counters.soc_applied, r.counters.steps_accepted);
+    EXPECT_LE(r.counters.qp_failure_steps_accepted, r.counters.steps_accepted);
+    // The returned point is the last event's, with that row's multipliers, and g
+    // is the problem's row values at the returned point.
+    EXPECT_TRUE(bit_equal(r.x, s.seen_x.back()));
+    EXPECT_TRUE(bit_equal(r.lambda, s.seen_lambda.back()));
+    ASSERT_EQ(r.g.size(), 2);
+    EXPECT_DOUBLE_EQ(r.g[0], r.x[0] * r.x[1] * r.x[2] * r.x[3]);
+    EXPECT_DOUBLE_EQ(r.g[1], r.x.squaredNorm());
+}
+
+TEST(StopTokenSolve, ACallbackStopWinsTheLabelWhenTheTokenIsRequestedToo) {
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        SCOPED_TRACE(name(e));
+        StopSource source;
+        SolveBudget budget;
+        budget.stop = source.token();
+        const SolveResult r = solve_once(e, budget, [&](const IterationEvent &ev) {
+            if (ev.iteration == 2) {
+                source.request_stop();
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        });
+        EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The post-push poll leaves the funnel as it stood at x_k: the warm start of a
+// token-stopped SQP solve carries the same funnel width as an iteration-capped
+// solve that ends at the same point.
+// ---------------------------------------------------------------------------
+
+TEST(StopTokenSolve, ATokenStoppedSqpSolveHandsBackTheFunnelWidthOfItsPoint) {
+    int compared = 0;
+    for (Index k = 1; k <= 6; ++k) {
+        const SqpStopped s = sqp_stopped_at(k);
+        if (s.result.status != SolveStatus::kInterrupted ||
+            s.result.stop_reason != StopReason::kStopRequested) {
+            break; // the solve converged before event k
+        }
+        const double stopped_width =
+            hven::detail::SqpWarmAccess::state(s.result.sqp_warm_start).funnel_width;
+        // The reference: the same point reached as an ordinary terminal exit.
+        for (Index cap = 0; cap <= k + 1; ++cap) {
+            Problem problem(std::make_shared<Hs071Problem>());
+            SqpSolver solver(quiet_sqp());
+            SolveBudget budget;
+            budget.max_iterations = std::max<Index>(cap, 1);
+            const SqpResult ref = solver.solve(problem, hs071_start(), {}, budget);
+            if (ref.status != SolveStatus::kIterationLimit || !bit_equal(ref.x, s.result.x)) {
+                continue;
+            }
+            const double ref_width =
+                hven::detail::SqpWarmAccess::state(ref.sqp_warm_start).funnel_width;
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(stopped_width),
+                      std::bit_cast<std::uint64_t>(ref_width))
+                << "k = " << k << ", cap = " << cap;
+            ++compared;
+            break;
+        }
+    }
+    EXPECT_GT(compared, 0) << "fixture premise: some stop point matched a capped solve's point";
+}
+
+// ---------------------------------------------------------------------------
+// A token requested on a phase's converging row skips the remaining phases
+// without the next phase's factorization (as a callback kStop does).
+// ---------------------------------------------------------------------------
+
+TEST(StopTokenSolve, ATokenOnAPhasesConvergingRowSkipsTheNextPhaseWithoutAnEvent) {
+    IpmOptions o = quiet_ipm();
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+    // The reference: no stop; the number of events phase 0 delivers.
+    Index phase0_events = 0;
+    {
+        Problem problem(std::make_shared<Hs071Problem>());
+        IpmSolver solver(o);
+        solver.set_iteration_callback([&](const IterationEvent &ev) {
+            if (ev.phase.value_or(0) == 0) {
+                ++phase0_events;
+            }
+            return CallbackAction::kContinue;
+        });
+        const IpmResult ref = solver.solve(problem, hs071_start(), {}, {});
+        ASSERT_EQ(ref.phases.size(), 2u);
+        ASSERT_TRUE(ref.phases[1].ran) << "fixture premise: the reference runs both phases";
+        ASSERT_TRUE(ref.phases[0].status == SolveStatus::kOptimal ||
+                    ref.phases[0].status == SolveStatus::kAcceptable)
+            << "fixture premise: phase 0 converges";
+    }
+    ASSERT_GT(phase0_events, 0);
+
+    auto run = [&](bool by_token) {
+        Problem problem(std::make_shared<Hs071Problem>());
+        IpmSolver solver(o);
+        StopSource source;
+        SolveBudget budget;
+        budget.stop = source.token();
+        Index events = 0;
+        solver.set_iteration_callback([&](const IterationEvent &) {
+            if (++events == phase0_events) {
+                if (by_token) {
+                    source.request_stop();
+                } else {
+                    return CallbackAction::kStop;
+                }
+            }
+            return CallbackAction::kContinue;
+        });
+        const IpmResult r = solver.solve(problem, hs071_start(), {}, budget);
+        return std::pair<IpmResult, Index>{r, events};
+    };
+    const auto [tok, tok_events] = run(true);
+    const auto [cb, cb_events] = run(false);
+    EXPECT_EQ(tok_events, phase0_events) << "no event of the second phase";
+    EXPECT_EQ(cb_events, phase0_events);
+    ASSERT_EQ(tok.phases.size(), 2u);
+    EXPECT_TRUE(tok.phases[0].ran);
+    EXPECT_FALSE(tok.phases[1].ran) << "the second phase was skipped";
+    EXPECT_EQ(tok.stop_reason, StopReason::kNone) << "converged beats stop";
+    EXPECT_TRUE(tok.status == SolveStatus::kOptimal || tok.status == SolveStatus::kAcceptable);
+    EXPECT_EQ(tok.phases[1].ran, cb.phases[1].ran) << "as a callback stop on that row";
 }
 
 // ---------------------------------------------------------------------------

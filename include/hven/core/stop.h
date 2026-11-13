@@ -65,10 +65,20 @@ class StopSource {
     ///        allocation and no lock, so it is safe from a GUI thread and from
     ///        an async-signal handler that uses an EXISTING source (not one
     ///        that copy-constructs a source).
-    void request_stop() noexcept { flag_->store(true, std::memory_order_release); }
+    ///
+    ///        As std::stop_source: a MOVED-FROM source has no state; request_stop()
+    ///        on it returns false and does nothing, stop_requested() is false, and
+    ///        token() is an empty token.
+    /// @return True if this call moved the flag from clear to requested.
+    bool request_stop() noexcept {
+        return flag_ != nullptr && !flag_->exchange(true, std::memory_order_acq_rel);
+    }
 
-    /// @brief True once `request_stop()` has been called on this source.
-    bool stop_requested() const noexcept { return flag_->load(std::memory_order_acquire); }
+    /// @brief True once `request_stop()` has been called on this source (false on
+    ///        a moved-from source).
+    bool stop_requested() const noexcept {
+        return flag_ != nullptr && flag_->load(std::memory_order_acquire);
+    }
 
   private:
     std::shared_ptr<std::atomic<bool>> flag_;
