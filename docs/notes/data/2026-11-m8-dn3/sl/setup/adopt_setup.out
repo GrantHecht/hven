@@ -1,0 +1,31 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T21:45:40-05:00
+HB_PATCH_G_OK
+HB_PATCH_H_OK
+HB_PATCH_I_OK
+ cmake/hven_pin.cmake           |  6 +++---
+ lanes/hven/hven_bench_cell.cpp | 29 ++++++++++++++++++++++++++++-
+ 2 files changed, 31 insertions(+), 4 deletions(-)
+8722b90 EVIDENCE-ONLY (local clone, never pushed): pin hven 96ac1a27d (m8-dn3) + hven docs/notes/data/2026-11-m8-dn3/sl/hb_patch_g.py + hb_patch_h.py + hb_patch_i.py (M8 DN-3 enumeration and adoption legs)
+HVEN_PIN_SHA 96ac1a27d085853ccc84326dfb36783fb63dab2e
+launcher-wrapped compile commands: 58
+10c10
+< --dependency-file=lanes/hven/CMakeFiles/hven_bench_cell.dir/link.d
+---
+> --dependency-file=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/cfi-link.d
+13c13
+< lanes/hven/hven_bench_cell
+---
+> /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/hven_bench_cell.cfi
+27c27
+< /home/ghecht/Projects/hven-bench-dn1/.hven/install-96ac1a27d085/lib64/libhven.a
+---
+> /home/ghecht/Projects/hven-bench-dn1/.scratch/dn3-legs-cfi/install/lib64/libhven.a
+CODE_IDENTITY_OK
+INCLUDE_TREES_IDENTICAL
+3199459cbc87fe3438ec28d05945ad47a21c49fab09bf85f1ee4d30d8b3ac268  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/hven_bench_cell
+20200e3fd610fa64c7a08baf6b121f773747df4626f8404e00635d499b44367f  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/hven_bench_cell.cfi
+70bb4d28abd3d06f02128e88387c09728e7db1156963256053fc38700365dd17  /home/ghecht/Projects/hven-bench-dn1/.hven/install-96ac1a27d085/lib64/libhven.a
+69b7cd1b11e14e3cb67c2c71164dd33c08692430f54e784e581093b1cd9a4807  /home/ghecht/Projects/hven-bench-dn1/.scratch/dn3-legs-cfi/install/lib64/libhven.a
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+FOREGROUND_END 2026-11-12T21:47:59-05:00

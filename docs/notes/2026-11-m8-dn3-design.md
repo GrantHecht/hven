@@ -574,3 +574,33 @@ singular report. Dev probe on the DN-0 population (238 cells), declared in advan
   leg's flags with no loss beyond the declared movers are the evidence; R6 stays registered.
 - No new public name. Q6's proposed `dense_factorizations` counter is unaffected; the factor counters already on
   `IpmResult::kkt_factor_counters` report singular reports, flags and the (zero) fallbacks.
+
+---
+
+## §DN-3. The implementation round (2026-11-12)
+
+Rulings applied: Q1 P-A (T_SQP = 105, T_IPM = 167), Q2 per engine, Q3 settled by DN-3b, Q4 and Q5 landed in DN-3a, Q6
+`dense_factorizations` approved, Q7 kAuto ships opt-in, Q8 side factors selected by their own n with an enumeration leg
+before adoption. Code head `96ac1a27d`; declaration and evidence `docs/notes/data/2026-11-m8-dn3/` (`DECLARATION-r1.md`
+supersedes the held r0). Linux x86-64, MKL 2026.2; Apple/Accelerate and Windows UNOBSERVED.
+
+What the implementation answers, against §3 and §7.3:
+- **The threshold reaches every factor through one place per engine** (R2): `sqp_kkt_options()` sets
+  `max_dense_dimension` under kAuto, so every walk and SSN `KktFactor` and the rank repair's Gram take it without a
+  per-site change; the IPQP sets it beside its policy in its one reconfigure; the IPM in `set_qp_params()`. The constants
+  are `detail` (`include/hven/detail/kkt/dense_selection.h`). The design's "an internal value carrying policy plus
+  threshold" reduced to this: within an engine the threshold is a function of the policy, so the policy is the value
+  threaded and the factory derives the threshold; no site can drop it.
+- **`max_dense_dimension` stays reserved** at the engines (the round's ruling: no public knob). §3.1's "accepted only
+  under kAuto" is NOT implemented; it is proposed for owner approval in the round's report.
+- **The hot-handle key** folds kAuto's threshold (kNever's and kAlways' keys unchanged), so two engines that could select
+  different arms for one pattern never share a K0.
+- **R4 done**: `BorderState`, `SsnEngine`, `QpEngine` have no defaults; `IpqpEngine` and `rank_repair` keep theirs
+  (registered; every library call passes the policy).
+- **The rank-repair Gram cannot go dense under kAuto**: its factor path runs only past `kRankDenseRows` = 1000 working
+  rows (fewer use Eigen's eigensolver), far above 105. Its count exists for kAlways.
+- **`dense_factorizations`** counts the factor layer's `dense_factorize_count + dense_singular_count` deltas
+  (factorizations whose arm was dense, shifted refactors included; under kReport no dense attempt goes to the platform,
+  so a positive count is exactly "a pattern of order <= T was factorized"). SQP: `DenseTallyScope` (every walk/SSN
+  factorization site) plus the IPQP and the Gram; IPM: a monotone lifetime reading like `work.factorizations`.
+- R5 (border resets at threads 0) and R6 (inertia trust between the bands) stay registered.
