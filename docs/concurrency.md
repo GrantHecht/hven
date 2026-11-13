@@ -63,6 +63,20 @@ two `SqpSolver` cells, two `IpmSolver` cells, each over its own problem, every
 options value at `common.threads = 1` — against the same four solves run
 serially first in the same process.
 
+**Stopping a solve from another thread** (M8 AP-5 G1). Hand the solve a
+`StopToken` through `SolveBudget::stop` (`include/hven/core/stop.h`) and call
+`StopSource::request_stop()` from any thread — a GUI thread included — with no
+callback attached and no lock. It is one release store to a lock-free atomic
+flag the solver only reads; the solve ends at its next iteration boundary with
+`kInterrupted` and `StopReason::kStopRequested`. The token is per call, so N
+concurrent solves take N independent sources; a source whose stop was already
+requested stops the next solve it is handed to at that solve's first boundary
+("a token is per solve"). The evidence is
+`StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint` and
+`StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial`
+(`tests/drivers/test_stop_token.cpp`), with a local ThreadSanitizer run of the
+cross-thread case recorded in `docs/notes/data/2026-11-m8-ap5-g1/`.
+
 ## What a consumer may NOT do
 
 - **Share one solver instance across threads.** A solver owns a live backend

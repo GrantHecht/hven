@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // Display-string switches, and the reporting order, for the solver enums whose
-// headers live in core/: SolveStatus and IpmStopReason (core/solver_status.h)
+// headers live in core/: SolveStatus and StopReason (core/solver_status.h)
 // and StartLevel (core/start_level.h). Defined here so a core/ TU never links
 // against a drivers/ object -- core/ledger.cpp calls to_string(SolveStatus).
 // FP-arithmetic-free: no double is read, written or compared in this file.
@@ -118,62 +118,44 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status) {
         "to_restoration_sub_status: unrecognized SolveStatus ({})", static_cast<int>(status)));
 }
 
-const char *to_string(IpmStopReason reason) {
+// ONE STOP-REASON VOCABULARY (M8 AP-5 G1), the union of the two retired enums.
+// A value both had keeps its spelling; the two stops are spelled apart
+// (`callback_stop`, `stop_requested`).
+const char *to_string(StopReason reason) {
     switch (reason) {
-    case IpmStopReason::kNone:
+    case StopReason::kNone:
         return "none";
-    case IpmStopReason::kIterationLimit:
-        return "iteration_cap";
-    case IpmStopReason::kRestorationLocallyInfeasible:
-        return "restoration_locally_infeasible";
-    case IpmStopReason::kInterrupted:
-        return "interrupted";
-    case IpmStopReason::kStageStalled:
-        return "stage_stalled";
-    case IpmStopReason::kWorkLimit:
-        return "work_limit";
-    case IpmStopReason::kTimeLimit:
-        return "time_limit";
-    case IpmStopReason::kNonFiniteStart:
+    case StopReason::kCallbackStop:
+        return "callback_stop";
+    case StopReason::kStopRequested:
+        return "stop_requested";
+    case StopReason::kException:
+        return "exception";
+    case StopReason::kNonFiniteStart:
         return "non_finite_start";
-    case IpmStopReason::kNonFiniteIterate:
+    case StopReason::kNonFiniteIterate:
         return "non_finite_iterate";
-    case IpmStopReason::kEvaluationFailure:
+    case StopReason::kEvaluationFailure:
         return "evaluation_failure";
-    case IpmStopReason::kException:
-        return "exception";
-    }
-    throw std::invalid_argument(
-        fmt::format("to_string(IpmStopReason): unrecognized value ({})", static_cast<int>(reason)));
-}
-
-const char *to_string(SqpStopReason reason) {
-    switch (reason) {
-    case SqpStopReason::kNone:
-        return "none";
-    case SqpStopReason::kInterrupted:
-        return "interrupted";
-    case SqpStopReason::kException:
-        return "exception";
-    case SqpStopReason::kNonFiniteStart:
-        return "non_finite_start";
-    case SqpStopReason::kNonFiniteIterate:
-        return "non_finite_iterate";
-    case SqpStopReason::kSubproblemFailure:
+    case StopReason::kStageStalled:
+        return "stage_stalled";
+    case StopReason::kRestorationLocallyInfeasible:
+        return "restoration_locally_infeasible";
+    case StopReason::kSubproblemFailure:
         return "subproblem_failure";
-    case SqpStopReason::kInconsistentEqualities:
+    case StopReason::kInconsistentEqualities:
         return "inconsistent_equalities";
-    case SqpStopReason::kRestorationRefused:
+    case StopReason::kRestorationRefused:
         return "restoration_refused";
-    case SqpStopReason::kRestorationNonFinite:
+    case StopReason::kRestorationNonFinite:
         return "restoration_non_finite";
-    case SqpStopReason::kRestorationNoClaim:
+    case StopReason::kRestorationNoClaim:
         return "restoration_no_claim";
-    case SqpStopReason::kRestorationFailed:
+    case StopReason::kRestorationFailed:
         return "restoration_failed";
     }
     throw std::invalid_argument(
-        fmt::format("to_string(SqpStopReason): unrecognized value ({})", static_cast<int>(reason)));
+        fmt::format("to_string(StopReason): unrecognized value ({})", static_cast<int>(reason)));
 }
 
 // THE NINE MESSAGE KINDS (M6 W5 T8.7b). Lower snake, which is both the display

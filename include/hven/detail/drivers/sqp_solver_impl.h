@@ -751,8 +751,8 @@ class SqpSolverImpl {
     // --- THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5) ------------------
 
     /// @brief Why the most recent solve ended, beside its status; see
-    ///        SqpStopReason. kException after a solve an exception escaped.
-    SqpStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
+    ///        StopReason. kException after a solve an exception escaped.
+    StopReason last_stop_reason() const noexcept { return last_stop_reason_; }
     /// @brief The words the result message uses for last_stop_reason(): the
     ///        non-finite quantity and where it was met, or the exception's
     ///        description. Empty when the reason needs none.
@@ -775,7 +775,7 @@ class SqpSolverImpl {
     }
     /// @brief Labels the call an exception ended (kException, @p what).
     void note_exception_stop(std::string what) noexcept {
-        last_stop_reason_ = SqpStopReason::kException;
+        last_stop_reason_ = StopReason::kException;
         stop_detail_ = std::move(what);
     }
 
@@ -844,10 +844,14 @@ class SqpSolverImpl {
     /// whose events reach the SAME callback through a forwarder this driver
     /// installs.
     ///
-    /// WHAT kStop DOES: the stop is LATCHED and honoured before the next
-    /// subproblem is built, so no QP is solved for an answer the caller no
-    /// longer wants; the solve then takes its ORDINARY terminal exit at the
-    /// CURRENT iterate and reports kInterrupted. Precedence at that exit is
+    /// WHAT kStop DOES: the stop is LATCHED. On a row that records an ACCEPTED
+    /// step it is honoured right after the push, before the commit (M8 AP-5 G1,
+    /// ruling Q15): the step is not taken and the solve returns the row's own
+    /// point, kInterrupted, the history ending on that row. On any other row it
+    /// is honoured before the next subproblem is built, so no QP is solved for
+    /// an answer the caller no longer wants; the solve then takes its ORDINARY
+    /// terminal exit at the CURRENT iterate and reports kInterrupted. The stop
+    /// token (SolveBudget::stop) is polled at the same two points. Precedence at that exit is
     /// converged > interrupted > probe-exhausted > cap: a stop on a CONVERGED
     /// row reports kOptimal (converged beats stop), and under
     /// SqpOptions::return_best_on_max_iterations an interrupt takes the ordinary exit rather than
@@ -1535,7 +1539,12 @@ class SqpSolverImpl {
     /// @return What this major decided.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
                            NlpModelAssembly &bridge, const detail::SqpWarmState &warm,
-                           SolveBudget budget, Index iter);
+                           const SolveBudget &budget, Index iter);
+
+    /// @brief The reason a kInterrupted exit reports (M8 AP-5 G1):
+    ///        StopReason::kStopRequested when the stop token ended @p mj,
+    ///        kCallbackStop when a latched callback stop did.
+    static StopReason interrupt_reason(const MajorState &mj) noexcept;
 
     /// @brief Builds ONE IterationEvent from the row being pushed and hands it
     ///        to the installed per-iteration callback (M6 W5 T8.6).
@@ -2004,13 +2013,13 @@ class SqpSolverImpl {
     // THE STOP REASON AND THE INTERRUPTED SOLVE (M8 B5): see last_stop_reason(),
     // last_stop_detail(), take_interrupted_result() and last_result(). The first
     // three are reset at every solve_impl entry.
-    SqpStopReason last_stop_reason_ = SqpStopReason::kNone;
+    StopReason last_stop_reason_ = StopReason::kNone;
     std::string stop_detail_;
     SqpResult interrupted_result_;
     bool interrupted_ready_ = false;
     SqpResult last_result_;
     // Publishes an exit's reason and detail.
-    void publish_stop(SqpStopReason reason, std::string detail) {
+    void publish_stop(StopReason reason, std::string detail) {
         last_stop_reason_ = reason;
         stop_detail_ = std::move(detail);
     }

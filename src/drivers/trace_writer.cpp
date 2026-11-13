@@ -396,7 +396,7 @@ const char *to_json(IpmMessageKind v) { return to_string(v); }
 
 const char *to_json(IpmKktFactorStatus v) { return to_string(v); }
 
-const char *to_json(IpmStopReason v) { return to_string(v); }
+const char *to_json(StopReason v) { return to_string(v); }
 
 const char *to_json(IpmPhase v) {
     switch (v) {

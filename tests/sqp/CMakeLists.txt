@@ -181,8 +181,10 @@ target_compile_definitions(hven_sqp_tests PRIVATE
 # M8 B7 (C238 (1)) RE-POINTS IT at the file re-derived at the absent-bound
 # threshold's default (the declared B7 event; banner in the file); the
 # 2026-09-t8-ipm-leg one stays on disk, unrewritten, as the pre-B7 record.
+# M8 AP-5 G1 RE-POINTS IT at the file re-derived through the declared stop-reason
+# column map (iteration_cap -> none; banner in the file); the B7 file is frozen.
 target_compile_definitions(hven_sqp_tests PRIVATE
-    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv")
+    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv")
 
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests

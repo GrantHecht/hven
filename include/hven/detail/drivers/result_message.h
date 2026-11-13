@@ -23,20 +23,21 @@ namespace hven::detail {
 
 /// @brief The message of an interior-point solve.
 /// @param result The engine's result (status, returned_best_iterate).
-/// @param reason The stop reason of the last phase that ran.
+/// @param reason The public stop reason (SolveResult::stop_reason): the last
+///        ran phase's, mapped by detail::to_stop_reason.
 /// @param detail The engine's words for @p reason (IpmSolverImpl::
 ///        last_stop_detail()): the non-finite quantity, the last evaluation
 ///        failure, the exception's description, why an acceptable stop came
 ///        early. May be empty.
 /// @param options The options the solve ran under.
 /// @param budget The per-call budget the solve ran under.
-std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
+std::string ipm_result_message(const SolveResult &result, StopReason reason,
                                const std::string &detail, const IpmOptions &options,
                                const SolveBudget &budget);
 
 /// @brief The message of an SQP solve; @p reason and @p detail as above, from
 ///        SqpSolverImpl::last_stop_reason() / last_stop_detail().
-std::string sqp_result_message(const SqpResult &result, SqpStopReason reason,
+std::string sqp_result_message(const SqpResult &result, StopReason reason,
                                const std::string &detail, const SqpOptions &options,
                                const SolveBudget &budget);
 

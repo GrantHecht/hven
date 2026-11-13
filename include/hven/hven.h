@@ -17,6 +17,7 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
+#include <hven/core/stop.h>
 #include <hven/core/type_storage.h>
 #include <hven/core/types.h>
 #include <hven/core/version.h>

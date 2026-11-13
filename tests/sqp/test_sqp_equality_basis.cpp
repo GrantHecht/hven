@@ -182,7 +182,7 @@ TEST_P(EqualityBasisModes, F2InconsistentRedundantRowIsCertifiedInfeasible) {
     const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_EQ(res.status, SolveStatus::kInfeasible);
     // The equality-basis exit, named (M8 B5).
-    EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kInconsistentEqualities);
+    EXPECT_EQ(res.stop_reason, StopReason::kInconsistentEqualities);
     EXPECT_EQ(res.message,
               "locally infeasible (uncertified: the equality constraints are inconsistent)");
     const SqpEqualityBasisReport &rep = res.equality_basis;

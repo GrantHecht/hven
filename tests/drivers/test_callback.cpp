@@ -591,9 +591,12 @@ TEST(Callback, SqpTerminalEventDiagnosticsAreTheResultsOwn) {
 // ===========================================================================
 
 TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
-    // THE STOP INDEX. The callback stops on the event of history row 1; the
-    // latch is then read at the NEXT major's exit conjunction, which sits above
-    // build_subproblem -- so that major pushes its own row and solves nothing.
+    // THE STOP INDEX. The callback stops on the event of history row 1, an
+    // ACCEPTED step on this fixture. RE-DERIVED at M8 AP-5 G1 (ruling Q15, the
+    // declared behaviour change for callback-stopped SQP solves): the stop is
+    // honoured right after that row is recorded, so the accepted step is never
+    // committed and no further major runs. It was read at the NEXT major's exit
+    // conjunction, one step later, which pushed a terminal row of its own.
     constexpr Index kStopAtRow = 1;
 
     for (const bool budget_mode : {false, true}) {
@@ -617,11 +620,17 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
         EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
         EXPECT_FALSE(sol.returned_best_iterate);
 
-        // THE SHAPE. One more row than majors, exactly as a capped solve: the
-        // interrupted major pushed its row and built no subproblem.
-        EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(kStopAtRow) + 2u);
+        // THE SHAPE. The history ENDS ON THE STOPPED ROW, whose subproblem was
+        // solved (the "stopped on a subproblem" family of SqpCounters' note):
+        // as many rows as majors, and no terminal row of its own.
+        EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(kStopAtRow) + 1u);
         EXPECT_EQ(sol.counters.major_iters, kStopAtRow + 1);
-        EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters + 1);
+        EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
+        ASSERT_FALSE(sol.history.empty());
+        EXPECT_TRUE(sol.history.back().qp_solved);
+        EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+        // THE STEP WAS NOT TAKEN: no accepted step was committed after the stop.
+        EXPECT_EQ(sol.counters.steps_accepted, kStopAtRow);
 
         // ONE EVENT PER ROW STILL, the stop's own row included, and the LAST
         // event describes the point that is returned.
@@ -721,8 +730,19 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
 
     // (d) AND NO FURTHER TOP-LEVEL MAJOR: the parent's own subproblem count
     //     stops where the restoration request left it.
+    //
+    //     RE-DERIVED at M8 AP-5 G1 (ruling Q15, declared): the forwarder hands the
+    //     kStop to the SUB-SOLVE too, and the sub-solve now honours it right after
+    //     the stopped row (an accepted step there) instead of one row later, where
+    //     its convergence used to outrank it. The sub-solve therefore returns its
+    //     own kInterrupted -- route (a) -- and the parent leaves through the
+    //     restoration-return exit of the major that requested restoration, with no
+    //     terminal row of its own: history.size() == major_iters. Before Q15 the
+    //     sub-solve converged, the parent resumed, and the next major's exit
+    //     conjunction pushed a terminal row (major_iters + 1). (c) above still
+    //     holds: the restoration iterations are the reference's.
     EXPECT_LT(sol.counters.major_iters, reference.counters.major_iters);
-    EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters + 1);
+    EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
 }
 
 TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
@@ -1357,11 +1377,11 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
     const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), hs071_start());
 
     EXPECT_EQ(r.status, SolveStatus::kInterrupted);
-    EXPECT_EQ(solver.last_stop_reason(), hven::IpmStopReason::kInterrupted);
+    EXPECT_EQ(r.stop_reason, hven::StopReason::kCallbackStop);
     ASSERT_EQ(r.phases.size(), 2u);
     EXPECT_TRUE(r.phases[0].ran);
     EXPECT_EQ(r.phases[0].status, SolveStatus::kInterrupted);
-    EXPECT_EQ(r.phases[0].stop_reason, hven::IpmStopReason::kInterrupted);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::StopReason::kCallbackStop);
     EXPECT_FALSE(r.phases[1].ran) << "a stop ends the phase SEQUENCE, not only the phase";
 
     // NO WORK WAS SPENT ON THE STOPPED ITERATION. The stop is honoured

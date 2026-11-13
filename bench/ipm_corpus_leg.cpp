@@ -840,7 +840,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.soc_steps = result.second_order_corrections;
     row.watchdog_activations = result.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
-    row.stop_reason = to_string(ipm.last_stop_reason());
+    row.stop_reason = to_string(result.stop_reason);
     row.variant = variant.name;
 
     // THE PER-PHASE ACCOUNT, packed into one column so the schema does not grow

@@ -1925,14 +1925,14 @@ void refresh_derivatives_at(AssemblyEvalSeam &seam, NlpEval &ev, const Vec &x,
 }
 
 // A restoration sub-solve's own reason, for the parent's message.
-std::string describe_sub_solve_failure(SqpStopReason reason, const std::string &detail) {
+std::string describe_sub_solve_failure(StopReason reason, const std::string &detail) {
     if (!detail.empty()) {
         return detail;
     }
     switch (reason) {
-    case SqpStopReason::kRestorationRefused:
+    case StopReason::kRestorationRefused:
         return "a restoration request inside it could not be serviced";
-    case SqpStopReason::kSubproblemFailure:
+    case StopReason::kSubproblemFailure:
         return "its QP subproblem failed";
     default:
         return to_string(reason);
@@ -3154,7 +3154,7 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
         ~SolveInFlightGuard() { flag_ = false; }
     } solve_guard(solve_in_flight_);
     // THE STOP REASON AND THE INTERRUPTED RESULT ARE THIS CALL'S (M8 B5).
-    last_stop_reason_ = SqpStopReason::kNone;
+    last_stop_reason_ = StopReason::kNone;
     stop_detail_.clear();
     interrupted_ready_ = false;
     validate(budget);
@@ -3825,7 +3825,7 @@ struct SqpSolverImpl::SolveState {
         bool multipliers_are_caller_scale = false;
         // Which restoration exit set `status` (M8 B5), read by the two tagged
         // finish arms beside it, and its words where the exit has any.
-        SqpStopReason reason = SqpStopReason::kNone;
+        StopReason reason = StopReason::kNone;
         std::string detail;
         bool moved_x = false;
         // TRUE ON THE ARM THAT CLEARS THE MULTIPLIERS AFTER THE LAST
@@ -3936,7 +3936,7 @@ struct SqpSolverImpl::SolveState {
     std::string derivative_failure;
     // The reason and detail an exit inside run_major decided, for the caller's
     // switch to publish (kFinishManual, kFinishQpFailure).
-    SqpStopReason exit_reason = SqpStopReason::kNone;
+    StopReason exit_reason = StopReason::kNone;
     std::string exit_detail;
 
     // ---- the globalization strategy, by POINTER IDENTITY ------------------
@@ -4288,6 +4288,13 @@ struct SqpSolverImpl::MajorState {
     // THE ACCEPTED TRIAL IS A FAILED SUBPROBLEM'S OWN STEP (M7 W2 R2): the
     // commit keeps the multipliers and does not grow the radius.
     bool failure_step = false;
+
+    // THE STOP TOKEN, NOT THE CALLBACK, ENDED THIS MAJOR (M8 AP-5 G1): set with
+    // `interrupted_exit` at the exit conjunction, and at the post-push poll of
+    // an accepted step, when `SolveBudget::stop` was found requested and no
+    // callback stop was latched. Selects StopReason::kStopRequested over
+    // kCallbackStop and nothing else.
+    bool token_exit = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -5666,7 +5673,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // kInfeasible is the certified arm's alone. kStalled is not used:
         // the SQP engine reports it on no exit (solver_status.h).
         st.resto.status = SolveStatus::kNumericalError;
-        st.resto.reason = SqpStopReason::kRestorationRefused;
+        st.resto.reason = StopReason::kRestorationRefused;
         st.resto.detail.clear();
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
@@ -5678,7 +5685,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // such rather than borrowing the verdict the phase never
         // got to render.
         st.resto.status = SolveStatus::kIterationLimit;
-        st.resto.reason = SqpStopReason::kNone;
+        st.resto.reason = StopReason::kNone;
         st.resto.detail.clear();
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
@@ -5919,7 +5926,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // failed walk subproblem (`stop_on_qp_failure`).
     // WHY THE LAST SUB-SOLVE ENDED (M8 B5), in its own words, for the message of
     // a parent exit that a failed sub-solve decides.
-    SqpStopReason sub_reason = SqpStopReason::kNone;
+    StopReason sub_reason = StopReason::kNone;
     std::string sub_detail;
     const auto run_phase = [&](const RestorationModel &wrapper, int max_iter,
                                bool stop_on_qp_failure) -> SqpResult {
@@ -6303,7 +6310,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.lambda_e.setZero();
         st.lambda_i.setZero();
         st.resto.status = SolveStatus::kNumericalError;
-        st.resto.reason = SqpStopReason::kRestorationNonFinite;
+        st.resto.reason = StopReason::kRestorationNonFinite;
         st.resto.detail.clear();
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
@@ -6530,12 +6537,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // measure is the convergence test's own, as CERT-1's is.
         if (!optimal_claims) {
             st.resto.status = SolveStatus::kNumericalError;
-            st.resto.reason = SqpStopReason::kRestorationNoClaim;
+            st.resto.reason = StopReason::kRestorationNoClaim;
             st.resto.detail.clear();
             break;
         }
         st.resto.status = SolveStatus::kInfeasible;
-        st.resto.reason = SqpStopReason::kNone;
+        st.resto.reason = StopReason::kNone;
         st.resto.detail.clear();
         st.out.infeasibility_certified = feasibility_subsolve_certifies(
             opts_.advanced.restoration_proximity, opts_.common.optimality_tol, rs_lambda_e,
@@ -6551,12 +6558,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // feasibility problem is stuck and NO CLAIM is made about the
         // model, so it is never passed on as kInfeasible.
         st.resto.status = SolveStatus::kNumericalError;
-        st.resto.reason = SqpStopReason::kRestorationNoClaim;
+        st.resto.reason = StopReason::kRestorationNoClaim;
         st.resto.detail.clear();
         break;
     case SolveStatus::kIterationLimit:
         st.resto.status = SolveStatus::kIterationLimit;
-        st.resto.reason = SqpStopReason::kNone;
+        st.resto.reason = StopReason::kNone;
         st.resto.detail.clear();
         break;
     case SolveStatus::kWorkLimit:
@@ -6565,7 +6572,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // left of this solve's limits, so the limit is this solve's own: reported
         // with the restored point, as every non-certified restoration exit is.
         st.resto.status = rs.status;
-        st.resto.reason = SqpStopReason::kNone;
+        st.resto.reason = StopReason::kNone;
         st.resto.detail.clear();
         break;
     case SolveStatus::kInterrupted:
@@ -6577,16 +6584,22 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // `default`, leaving `st.resto.status` at whatever the previous
         // restoration of this solve left there.
         st.resto.status = SolveStatus::kInterrupted;
-        st.resto.reason = SqpStopReason::kInterrupted;
+        st.resto.reason = StopReason::kCallbackStop;
         st.resto.detail.clear();
         break;
     case SolveStatus::kNumericalError:
         st.resto.status = SolveStatus::kNumericalError;
-        st.resto.reason = SqpStopReason::kRestorationFailed;
+        st.resto.reason = StopReason::kRestorationFailed;
         st.resto.detail = describe_sub_solve_failure(sub_reason, sub_detail);
         break;
     }
     return RestorationOutcome::kExited;
+}
+
+// THE kInterrupted EXIT'S REASON (M8 AP-5 G1): the stop token's when it, and
+// not a latched callback stop, ended the major.
+StopReason SqpSolverImpl::interrupt_reason(const MajorState &mj) noexcept {
+    return mj.token_exit ? StopReason::kStopRequested : StopReason::kCallbackStop;
 }
 
 // ---------------------------------------------------------------------------
@@ -6744,7 +6757,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                                      AssemblyEvalSeam &seam,
                                                      NlpModelAssembly &bridge,
                                                      const detail::SqpWarmState &warm,
-                                                     SolveBudget budget, Index iter) {
+                                                     const SolveBudget &budget, Index iter) {
     // The QPs' equality rows changed (a new split, a refusal, a hand-off): every
     // warm state held in the previous rows' coordinates is dropped.
     auto drop_row_coordinate_carries = [this](SolveState &state) {
@@ -7071,7 +7084,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // THE STOP REASON (M8 B5): the start point, or an iterate no rollback
         // could turn back, with the quantity named.
         st.exit_reason =
-            at_start_point(st) ? SqpStopReason::kNonFiniteStart : SqpStopReason::kNonFiniteIterate;
+            at_start_point(st) ? StopReason::kNonFiniteStart : StopReason::kNonFiniteIterate;
         st.exit_detail = describe_nonfinite_point(st, iter);
         st.derivative_failure.clear();
         push_history(mj.row);
@@ -7430,12 +7443,18 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // ORDINARY terminal exit at the CURRENT iterate without a subproblem being
     // solved for it. `history.size() == major_iters + 1` therefore holds on an
     // interrupted solve exactly as it does on a capped one.
-    if (mj.converged || st.interrupted || probe_exhausted || work_exhausted || time_exhausted ||
-        iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
+    // THE STOP TOKEN (SolveBudget::stop, M8 AP-5 G1) joins it on the latch's
+    // terms: never costing an answer already found, never buying another major.
+    // A default token is a null test; a callback stop already latched wins the
+    // label.
+    const bool token_stop = !mj.converged && !st.interrupted && budget.stop.stop_requested();
+    if (mj.converged || st.interrupted || token_stop || probe_exhausted || work_exhausted ||
+        time_exhausted || iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
         // READ BEFORE THIS ROW'S OWN EVENT FIRES. A kStop returned on the
         // TERMINAL row is a no-op: the exit and the verdict were already
         // decided when the callback was shown that row.
-        mj.interrupted_exit = st.interrupted && !mj.converged;
+        mj.interrupted_exit = (st.interrupted || token_stop) && !mj.converged;
+        mj.token_exit = token_stop;
         push_history(mj.row);
         if (probe_exhausted && !mj.interrupted_exit) {
             // The one field that tells this exit apart from an
@@ -7572,7 +7591,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             return MajorOutcome::kContinue;
         }
         st.exit_reason =
-            at_start_point(st) ? SqpStopReason::kNonFiniteStart : SqpStopReason::kNonFiniteIterate;
+            at_start_point(st) ? StopReason::kNonFiniteStart : StopReason::kNonFiniteIterate;
         st.exit_detail = describe_nonfinite_point(st, iter);
         st.derivative_failure.clear();
         ++st.out.counters.nonfinite_subproblems;
@@ -8694,6 +8713,31 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         case MajorOutcome::kContinue:
             continue;
         case MajorOutcome::kCommitAccepted: {
+            // THE POST-PUSH STOP POLL (M8 AP-5 G1, ruling Q15). The accepted row is
+            // already in `history` and its event has fired; the commit below would
+            // move the iterate. A stop latched by that event's callback, or a
+            // requested stop token, is honoured HERE instead, so it spends no
+            // further step: the solve returns the point the row describes -- the
+            // iterate this major started from, whose evaluation and prices are
+            // still `st.ev`, `st.lambda_*` and `mj.kkt` -- with the arguments the
+            // ordinary terminal exit uses at that point. The history ends on this
+            // row (qp_solved true, history.size() == major_iters). Stop path only:
+            // without a latched stop and with a default token this is one bool
+            // read and one null test.
+            if (st.interrupted || budget.stop.stop_requested()) {
+                mj.interrupted_exit = true;
+                mj.token_exit = !st.interrupted;
+                check_major_pushed_once(iter);
+                publish_stop(interrupt_reason(mj), std::string());
+                return finish(seam, std::move(st.out), SolveStatus::kInterrupted, st.x, st.lambda_e,
+                              st.lambda_i, mj.kkt, mj.row.f,
+                              make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
+                                              st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                              opts_.qp.primal_regularization, st.strategy.get(),
+                                              engine_->hot_state()),
+                              stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i,
+                                                         seam.lower(), seam.upper()));
+            }
             // THE NON-FINITE STEP ROLLBACK'S SNAPSHOT (M7 W2 R2-1), taken before the
             // radius grows and before the commit below moves the iterate: the point,
             // its evaluation and prices, the radius the step was taken under and the
@@ -8808,8 +8852,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
             check_major_pushed_once(iter);
-            publish_stop(!mj.converged && mj.interrupted_exit ? SqpStopReason::kInterrupted
-                                                              : SqpStopReason::kNone,
+            publish_stop(!mj.converged && mj.interrupted_exit ? interrupt_reason(mj)
+                                                              : StopReason::kNone,
                          std::string());
             // THE EVALUATION IS LIVE HERE: `st.ev` is at `st.x`, which is the
             // point being returned, and `mj.kkt` was measured from it this
@@ -8827,7 +8871,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                           stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
                                                      seam.upper()));
         case MajorOutcome::kFinishInconsistentEqualities:
-            publish_stop(SqpStopReason::kInconsistentEqualities, std::string());
+            publish_stop(StopReason::kInconsistentEqualities, std::string());
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out), SolveStatus::kInfeasible, st.x, st.lambda_e,
                           st.lambda_i, mj.kkt, mj.row.f,
@@ -8867,8 +8911,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the pre-trial iterate `mj.qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
-            publish_stop(st.exit_reason != SqpStopReason::kNone ? st.exit_reason
-                                                                : SqpStopReason::kSubproblemFailure,
+            publish_stop(st.exit_reason != StopReason::kNone ? st.exit_reason
+                                                             : StopReason::kSubproblemFailure,
                          st.exit_detail);
             check_major_pushed_once(iter);
             // THE NON-FINITE SUBPROBLEM EXIT CLEARS THE MULTIPLIERS (M8 B5 riders),
@@ -8876,8 +8920,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // engine's non-finite exits do: the point's derivatives are not
             // finite, so no price at it is evidence. The residuals stay what was
             // measured at the point.
-            const bool nonfinite_exit = st.exit_reason == SqpStopReason::kNonFiniteStart ||
-                                        st.exit_reason == SqpStopReason::kNonFiniteIterate;
+            const bool nonfinite_exit = st.exit_reason == StopReason::kNonFiniteStart ||
+                                        st.exit_reason == StopReason::kNonFiniteIterate;
             if (nonfinite_exit) {
                 st.lambda_e.setZero();
                 st.lambda_i.setZero();
@@ -8905,7 +8949,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // seed, which is why it has a tag of its own (unless restoration
             // moved x away from what the seed describes; see
             // st.resto.moved_x's own note).
-            publish_stop(mj.interrupted_exit ? SqpStopReason::kInterrupted : st.resto.reason,
+            publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                          mj.interrupted_exit ? std::string() : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(
@@ -8940,7 +8984,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // rejected trial's own kOptimal solution -- and it still describes
             // the region around x unless restoration itself moved x; see
             // st.resto.moved_x's own note.
-            publish_stop(mj.interrupted_exit ? SqpStopReason::kInterrupted : st.resto.reason,
+            publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                          mj.interrupted_exit ? std::string() : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out),
@@ -9653,7 +9697,7 @@ void SqpSolverImpl::record_interrupted_solve(SolveState &st,
         }
         interrupted_result_ = std::move(out);
         interrupted_ready_ = true;
-        last_stop_reason_ = SqpStopReason::kException;
+        last_stop_reason_ = StopReason::kException;
     } catch (...) {
         interrupted_ready_ = false;
     }

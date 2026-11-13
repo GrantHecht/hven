@@ -711,30 +711,40 @@ const char *spec_spelling(IpmPhase v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(IpmStopReason v) {
+const char *spec_spelling(StopReason v) {
+    // M8 AP-5 G1: ONE vocabulary for both engines; the IPM's three limit
+    // reasons fold into `none` and `interrupted` became `callback_stop`.
     switch (v) {
-    case IpmStopReason::kNone:
+    case StopReason::kNone:
         return "\"none\"";
-    case IpmStopReason::kIterationLimit:
-        return "\"iteration_cap\"";
-    case IpmStopReason::kRestorationLocallyInfeasible:
-        return "\"restoration_locally_infeasible\"";
-    case IpmStopReason::kStageStalled:
-        return "\"stage_stalled\"";
-    case IpmStopReason::kInterrupted:
-        return "\"interrupted\"";
-    case IpmStopReason::kWorkLimit:
-        return "\"work_limit\"";
-    case IpmStopReason::kTimeLimit:
-        return "\"time_limit\"";
-    case IpmStopReason::kNonFiniteStart:
-        return "\"non_finite_start\"";
-    case IpmStopReason::kNonFiniteIterate:
-        return "\"non_finite_iterate\"";
-    case IpmStopReason::kEvaluationFailure:
-        return "\"evaluation_failure\"";
-    case IpmStopReason::kException:
+    case StopReason::kCallbackStop:
+        return "\"callback_stop\"";
+    case StopReason::kStopRequested:
+        return "\"stop_requested\"";
+    case StopReason::kException:
         return "\"exception\"";
+    case StopReason::kNonFiniteStart:
+        return "\"non_finite_start\"";
+    case StopReason::kNonFiniteIterate:
+        return "\"non_finite_iterate\"";
+    case StopReason::kEvaluationFailure:
+        return "\"evaluation_failure\"";
+    case StopReason::kStageStalled:
+        return "\"stage_stalled\"";
+    case StopReason::kRestorationLocallyInfeasible:
+        return "\"restoration_locally_infeasible\"";
+    case StopReason::kSubproblemFailure:
+        return "\"subproblem_failure\"";
+    case StopReason::kInconsistentEqualities:
+        return "\"inconsistent_equalities\"";
+    case StopReason::kRestorationRefused:
+        return "\"restoration_refused\"";
+    case StopReason::kRestorationNonFinite:
+        return "\"restoration_non_finite\"";
+    case StopReason::kRestorationNoClaim:
+        return "\"restoration_no_claim\"";
+    case StopReason::kRestorationFailed:
+        return "\"restoration_failed\"";
     }
     return kUnspelled;
 }
@@ -824,7 +834,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpmRestorationMode::kL1Nested) == 3 - 1, "3 restoration modes");
     // M6 W5 T8.7b's four.
     static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
-    static_assert(static_cast<int>(IpmStopReason::kException) == 11 - 1, "11 stop reasons");
+    static_assert(static_cast<int>(StopReason::kRestorationFailed) == 15 - 1, "15 stop reasons");
     static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
                   "4 factorization statuses");
     static_assert(static_cast<int>(IpmMessageKind::kInterruptSkippingPhases) == 9 - 1,
@@ -1030,7 +1040,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     ipm_phase(IpmPhase::kOptimize);
     ipm_phase(IpmPhase::kSolve);
 
-    const auto stop_reason = [](IpmStopReason v) {
+    const auto stop_reason = [](StopReason v) {
         const IpmIterate row;
         IpmPhaseReport report;
         report.stop_reason = v;
@@ -1039,17 +1049,16 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_phase_exit(IpmPhaseExitTraceEvent{report, row});
         EXPECT_EQ(raw_field(os.str(), "stop_reason"), spec_spelling(v));
     };
-    stop_reason(IpmStopReason::kNone);
-    stop_reason(IpmStopReason::kIterationLimit);
-    stop_reason(IpmStopReason::kRestorationLocallyInfeasible);
-    stop_reason(IpmStopReason::kStageStalled);
-    stop_reason(IpmStopReason::kInterrupted);
-    stop_reason(IpmStopReason::kWorkLimit);
-    stop_reason(IpmStopReason::kTimeLimit);
-    stop_reason(IpmStopReason::kNonFiniteStart);
-    stop_reason(IpmStopReason::kNonFiniteIterate);
-    stop_reason(IpmStopReason::kEvaluationFailure);
-    stop_reason(IpmStopReason::kException);
+    for (const StopReason v :
+         {StopReason::kNone, StopReason::kCallbackStop, StopReason::kStopRequested,
+          StopReason::kException, StopReason::kNonFiniteStart, StopReason::kNonFiniteIterate,
+          StopReason::kEvaluationFailure, StopReason::kStageStalled,
+          StopReason::kRestorationLocallyInfeasible, StopReason::kSubproblemFailure,
+          StopReason::kInconsistentEqualities, StopReason::kRestorationRefused,
+          StopReason::kRestorationNonFinite, StopReason::kRestorationNoClaim,
+          StopReason::kRestorationFailed}) {
+        stop_reason(v);
+    }
 
     const auto kkt_status = [](IpmKktFactorStatus v) {
         const IpmIterate row;
@@ -4297,7 +4306,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     report.status = SolveStatus::kAcceptable;
     report.iterations = 12;
     report.phase_seconds = 0.25;
-    report.stop_reason = IpmStopReason::kStageStalled;
+    report.stop_reason = StopReason::kStageStalled;
     report.ran = true;
     IpmPhaseExitTraceEvent e{report, row};
     e.phase = 1;
@@ -4424,9 +4433,9 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     IpmPhaseReport report;
     sink.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
     sink.on_ipm_kkt_analysis(IpmKktAnalysisTraceEvent{});
-    for (const IpmStopReason reason : {IpmStopReason::kNone, IpmStopReason::kIterationLimit,
-                                       IpmStopReason::kRestorationLocallyInfeasible,
-                                       IpmStopReason::kStageStalled, IpmStopReason::kInterrupted}) {
+    for (const StopReason reason :
+         {StopReason::kNone, StopReason::kRestorationLocallyInfeasible, StopReason::kStageStalled,
+          StopReason::kCallbackStop, StopReason::kStopRequested}) {
         report.stop_reason = reason;
         for (const SolveStatus st :
              {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kIterationLimit,

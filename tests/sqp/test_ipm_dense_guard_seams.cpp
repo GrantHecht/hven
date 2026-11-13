@@ -179,7 +179,7 @@ bool success(hven::SolveStatus s) {
 // `ipm.iter` row is kept as well.
 struct RecordedSolve {
     hven::IpmResult result;
-    hven::IpmStopReason stop_reason = hven::IpmStopReason::kNone;
+    hven::StopReason stop_reason = hven::StopReason::kNone;
     std::vector<Eigen::VectorXd> event_x;
     std::vector<hven::IpmIterate> rows;
 };
@@ -229,7 +229,7 @@ RecordedSolve record_solve(const hven::IpmOptions &o, std::shared_ptr<hven::Nlp>
     });
     hven::Problem problem(std::move(nlp));
     out.result = solver.solve(problem, x0);
-    out.stop_reason = solver.last_stop_reason();
+    out.stop_reason = out.result.stop_reason;
     return out;
 }
 
@@ -281,7 +281,7 @@ void expect_x_unmoved(const RecordedSolve &run) {
 void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("inertia-correction ladder at iteration"), std::string::npos)
         << r.message;
     EXPECT_NE(r.message.find("ended on a failed KKT factorization (numerical issue)"),
@@ -451,7 +451,7 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
             ::testing::Test::RecordProperty("route",
                                             fmt::format("scale {:.2f} pass {}", scale, pass));
             EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-            EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+            EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
             EXPECT_NE(r.message.find("failed (numerical issue)"), std::string::npos) << r.message;
             EXPECT_GE(r.dense_residual_ratio_triggers, 1);
             EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, pass);
@@ -501,7 +501,7 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsTh
     }
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kAcceptable) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(
         r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration "),
         std::string::npos)
@@ -538,7 +538,7 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsReturnsTheBestIterateUnderRe
     }
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_TRUE(r.returned_best_iterate);
     ASSERT_EQ(r.x.size(), 4);
     EXPECT_TRUE(r.x.allFinite());
@@ -564,7 +564,7 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
     EXPECT_GT(run.event_x.size(), 1U) << "the solve continued past the iteration that entered it";
     EXPECT_TRUE(r.x.allFinite());
@@ -602,7 +602,7 @@ TEST_P(IpmNoNumericsRestorationSeam, AnAcceptableIterateStopsBeforeRestorationIs
     EXPECT_GT(run.rows.front().econ_inf, o.common.feasibility_tol)
         << "the start must be one restoration would admit";
     EXPECT_EQ(r.status, hven::SolveStatus::kAcceptable) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("stopped at an acceptable iterate: the KKT factorization at iteration "
                              "0 left no numerics"),
               std::string::npos)
@@ -660,7 +660,7 @@ TEST(IpmNoNumericsSeam, AHardBackendErrorEndsTheSolveWithoutRestoration) {
     }
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("the inertia-correction ladder at iteration 0 ended on a failed KKT "
                              "factorization (backend error); no step can be computed"),
               std::string::npos)
@@ -723,7 +723,7 @@ TEST(IpmNoNumericsSeam, AnAcceptableRestorationRowIsNeverAnAcceptableStop) {
     ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "icon " << run.rows.back().icon_inf;
     EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
 }
 
@@ -764,7 +764,7 @@ TEST(IpmNoNumericsSeam, AnUnevaluableStepInsideRestorationIsNeverAnAcceptableSto
     ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "kkt " << run.rows.back().kkt_inf;
     EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kEvaluationFailure);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kEvaluationFailure);
     EXPECT_NE(r.message.find("could not be evaluated at any trial step"), std::string::npos)
         << r.message;
     EXPECT_NE(r.message.find("already active"), std::string::npos) << r.message;
@@ -848,7 +848,7 @@ TEST(IpmDenseReportSeam, ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheS
     }
     const hven::IpmResult &r = run.result;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(run.stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("ended on a failed KKT factorization (numerical issue)"),
               std::string::npos)
         << r.message;

@@ -19,11 +19,13 @@
 #include <hven/core/solver_counters.h>
 #include <hven/detail/drivers/ipm_phase_status.h>
 
-using hven::IpmStopReason;
 using hven::severity;
 using hven::SolveStatus;
+using hven::StopReason;
 using hven::to_string;
+using hven::detail::IpmPhaseStop;
 using hven::detail::resolve_ipm_phase_status;
+using hven::detail::to_stop_reason;
 
 namespace {
 
@@ -53,39 +55,65 @@ TEST(SolveStatus, SeverityIsTotalAndOrderedAsDocumented) {
 }
 
 TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
-    EXPECT_EQ(
-        resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kIterationLimit),
-        SolveStatus::kIterationLimit);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kStageStalled),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kIterationLimit),
+              SolveStatus::kIterationLimit);
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kStageStalled),
               SolveStatus::kStalled);
     EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit,
-                                       IpmStopReason::kRestorationLocallyInfeasible),
+                                       IpmPhaseStop::kRestorationLocallyInfeasible),
               SolveStatus::kStalled);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmStopReason::kNone),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kNone),
               SolveStatus::kIterationLimit);
     // The stronger verdict survives the stall: the mapping reads the flag first.
     // This is the rule the live pins cannot reach -- ACCEPTABLE needs fifty
     // consecutive acceptable iterates coinciding with a stall.
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kAcceptable, IpmStopReason::kStageStalled),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kAcceptable, IpmPhaseStop::kStageStalled),
               SolveStatus::kAcceptable);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, IpmStopReason::kStageStalled),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, IpmPhaseStop::kStageStalled),
               SolveStatus::kOptimal);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kNumericalError, IpmStopReason::kNone),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kNumericalError, IpmPhaseStop::kNone),
               SolveStatus::kNumericalError);
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kDiverging, IpmStopReason::kNone),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kDiverging, IpmPhaseStop::kNone),
               SolveStatus::kDiverging);
     // Reachability, stated: the interior-point engine reports neither of these.
     for (const SolveStatus f :
          {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kIterationLimit,
           SolveStatus::kDiverging, SolveStatus::kNumericalError}) {
-        for (const IpmStopReason r :
-             {IpmStopReason::kNone, IpmStopReason::kIterationLimit,
-              IpmStopReason::kRestorationLocallyInfeasible, IpmStopReason::kStageStalled}) {
+        for (const IpmPhaseStop r :
+             {IpmPhaseStop::kNone, IpmPhaseStop::kIterationLimit,
+              IpmPhaseStop::kRestorationLocallyInfeasible, IpmPhaseStop::kStageStalled}) {
             const SolveStatus s = resolve_ipm_phase_status(f, r);
             EXPECT_NE(s, SolveStatus::kInfeasible);
             EXPECT_NE(s, SolveStatus::kInterrupted);
         }
     }
+}
+
+// THE INTERIOR-POINT ENGINE'S PHASE STOP ON THE PUBLIC VOCABULARY (M8 AP-5 G1):
+// the three limit doors fold into kNone (the status names them); every other
+// value maps to its namesake, both stops apart.
+TEST(SolveStatus, TheIpmPhaseStopMapsOntoStopReason) {
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNone), StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kIterationLimit), StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kWorkLimit), StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kTimeLimit), StopReason::kNone);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kCallbackStop), StopReason::kCallbackStop);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStopRequested), StopReason::kStopRequested);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kStageStalled), StopReason::kStageStalled);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kRestorationLocallyInfeasible),
+              StopReason::kRestorationLocallyInfeasible);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteStart), StopReason::kNonFiniteStart);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kNonFiniteIterate), StopReason::kNonFiniteIterate);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kEvaluationFailure), StopReason::kEvaluationFailure);
+    EXPECT_EQ(to_stop_reason(IpmPhaseStop::kException), StopReason::kException);
+    EXPECT_THROW((void)to_stop_reason(static_cast<IpmPhaseStop>(99)), std::invalid_argument);
+    // Both stops resolve the cap verdict to kInterrupted.
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kCallbackStop),
+              SolveStatus::kInterrupted);
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kIterationLimit, IpmPhaseStop::kStopRequested),
+              SolveStatus::kInterrupted);
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, IpmPhaseStop::kStopRequested),
+              SolveStatus::kOptimal);
 }
 
 // THE SQP MAPPING IS GONE with the enum it mapped from (M6 W5 T8.4): the SQP
@@ -103,32 +131,45 @@ TEST(SolveStatus, TheDisplayNamesArePinnedLiterals) {
     EXPECT_STREQ(to_string(SolveStatus::kDiverging), "diverging");
     EXPECT_STREQ(to_string(SolveStatus::kNumericalError), "numerical_error");
     EXPECT_STREQ(to_string(SolveStatus::kInterrupted), "interrupted");
-    EXPECT_STREQ(to_string(IpmStopReason::kNone), "none");
-    EXPECT_STREQ(to_string(IpmStopReason::kIterationLimit), "iteration_cap");
-    EXPECT_STREQ(to_string(IpmStopReason::kRestorationLocallyInfeasible),
+    // THE ONE STOP-REASON VOCABULARY (M8 AP-5 G1), every spelling: the trace's
+    // `stop_reason` key and the interior corpus leg's column.
+    EXPECT_STREQ(to_string(StopReason::kNone), "none");
+    EXPECT_STREQ(to_string(StopReason::kCallbackStop), "callback_stop");
+    EXPECT_STREQ(to_string(StopReason::kStopRequested), "stop_requested");
+    EXPECT_STREQ(to_string(StopReason::kException), "exception");
+    EXPECT_STREQ(to_string(StopReason::kNonFiniteStart), "non_finite_start");
+    EXPECT_STREQ(to_string(StopReason::kNonFiniteIterate), "non_finite_iterate");
+    EXPECT_STREQ(to_string(StopReason::kEvaluationFailure), "evaluation_failure");
+    EXPECT_STREQ(to_string(StopReason::kStageStalled), "stage_stalled");
+    EXPECT_STREQ(to_string(StopReason::kRestorationLocallyInfeasible),
                  "restoration_locally_infeasible");
-    EXPECT_STREQ(to_string(IpmStopReason::kStageStalled), "stage_stalled");
+    EXPECT_STREQ(to_string(StopReason::kSubproblemFailure), "subproblem_failure");
+    EXPECT_STREQ(to_string(StopReason::kInconsistentEqualities), "inconsistent_equalities");
+    EXPECT_STREQ(to_string(StopReason::kRestorationRefused), "restoration_refused");
+    EXPECT_STREQ(to_string(StopReason::kRestorationNonFinite), "restoration_non_finite");
+    EXPECT_STREQ(to_string(StopReason::kRestorationNoClaim), "restoration_no_claim");
+    EXPECT_STREQ(to_string(StopReason::kRestorationFailed), "restoration_failed");
     // Out-of-range values are refused, not silently mapped: the CSV column and
     // the printed status come from these switches. Every switch in the TU has
     // its boundary here -- both to_string families, severity, and
     // resolve_ipm_phase_status's reason switch, which only the cap verdict
     // reaches.
     EXPECT_THROW((void)to_string(static_cast<SolveStatus>(99)), std::invalid_argument);
-    EXPECT_THROW((void)to_string(static_cast<IpmStopReason>(99)), std::invalid_argument);
+    EXPECT_THROW((void)to_string(static_cast<StopReason>(99)), std::invalid_argument);
     EXPECT_THROW((void)severity(static_cast<SolveStatus>(99)), std::invalid_argument);
     // An out-of-range VERDICT is now passed through untouched rather than
     // refused: resolve_ipm_phase_status reinterprets one verdict (the cap exit)
     // and returns every other unchanged, so it has no switch over the verdict
     // to guard. to_string() and severity() above are where an out-of-range
     // status is refused.
-    EXPECT_EQ(resolve_ipm_phase_status(static_cast<SolveStatus>(99), IpmStopReason::kNone),
+    EXPECT_EQ(resolve_ipm_phase_status(static_cast<SolveStatus>(99), IpmPhaseStop::kNone),
               static_cast<SolveStatus>(99));
-    EXPECT_THROW((void)resolve_ipm_phase_status(SolveStatus::kIterationLimit,
-                                                static_cast<IpmStopReason>(99)),
-                 std::invalid_argument);
+    EXPECT_THROW(
+        (void)resolve_ipm_phase_status(SolveStatus::kIterationLimit, static_cast<IpmPhaseStop>(99)),
+        std::invalid_argument);
     // An out-of-range reason under a STRONGER verdict is ignored, not refused:
     // that switch never reaches the reason at all.
-    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, static_cast<IpmStopReason>(99)),
+    EXPECT_EQ(resolve_ipm_phase_status(SolveStatus::kOptimal, static_cast<IpmPhaseStop>(99)),
               SolveStatus::kOptimal);
 }
 

@@ -276,7 +276,7 @@ TEST(Limits, IpmWorkLimitStopsAtTheBoundaryWithTheCurrentPoint) {
     const IpmResult capped = ipm_solve(o);
     EXPECT_EQ(capped.status, SolveStatus::kWorkLimit);
     ASSERT_EQ(capped.phases.size(), 1u);
-    EXPECT_EQ(capped.phases[0].stop_reason, hven::IpmStopReason::kWorkLimit);
+    EXPECT_EQ(capped.phases[0].stop_reason, hven::StopReason::kNone);
     EXPECT_GE(capped.kkt_factor_counters.factorize_count, 3);
     EXPECT_LT(capped.kkt_factor_counters.factorize_count, free_facts);
     EXPECT_LT(capped.iterations, free_run.iterations);
@@ -433,7 +433,7 @@ TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
         o.common.max_factorizations = limit;
         const IpmResult r = ipm_solve(o);
         if (r.status != SolveStatus::kWorkLimit || r.phases.size() != 3u ||
-            r.phases[0].stop_reason == hven::IpmStopReason::kWorkLimit) {
+            r.phases[0].status == SolveStatus::kWorkLimit) {
             continue; // the limit bound in the first phase (or not at all)
         }
         found = true;
@@ -441,7 +441,7 @@ TEST(Limits, AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere) {
         EXPECT_NE(r.phases[0].status, SolveStatus::kWorkLimit); // phase 0 completed on its own
         EXPECT_TRUE(r.phases[1].ran);
         EXPECT_EQ(r.phases[1].status, SolveStatus::kWorkLimit);
-        EXPECT_EQ(r.phases[1].stop_reason, hven::IpmStopReason::kWorkLimit);
+        EXPECT_EQ(r.phases[1].stop_reason, hven::StopReason::kNone);
         EXPECT_FALSE(r.phases[2].ran) << "a limit bounds the whole solve: the sequence ends";
         EXPECT_GE(r.kkt_factor_counters.factorize_count, limit);
         EXPECT_TRUE(r.x.allFinite());
@@ -551,14 +551,14 @@ TEST(Limits, AnIpmCapAndLimitTieReportsTheLimit) {
     capped.common.max_iterations = 3;
     const IpmResult cap_only = ipm_solve(capped);
     ASSERT_EQ(cap_only.status, SolveStatus::kIterationLimit);
-    ASSERT_EQ(cap_only.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
+    ASSERT_EQ(cap_only.phases[0].stop_reason, hven::StopReason::kNone);
     const hven::Index spent = cap_only.kkt_factor_counters.factorize_count;
 
     IpmOptions tie = capped;
     tie.common.max_factorizations = spent;
     const IpmResult tied = ipm_solve(tie);
     EXPECT_EQ(tied.status, SolveStatus::kWorkLimit);
-    EXPECT_EQ(tied.phases[0].stop_reason, hven::IpmStopReason::kWorkLimit);
+    EXPECT_EQ(tied.phases[0].stop_reason, hven::StopReason::kNone);
     EXPECT_EQ(tied.kkt_factor_counters.factorize_count, spent);
     EXPECT_EQ(tied.iterations, cap_only.iterations);
     for (Eigen::Index i = 0; i < cap_only.x.size(); ++i) {
@@ -569,7 +569,7 @@ TEST(Limits, AnIpmCapAndLimitTieReportsTheLimit) {
     loose.common.max_factorizations = spent + 1;
     const IpmResult not_tied = ipm_solve(loose);
     EXPECT_EQ(not_tied.status, SolveStatus::kIterationLimit);
-    EXPECT_EQ(not_tied.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
+    EXPECT_EQ(not_tied.phases[0].stop_reason, hven::StopReason::kNone);
 
     // A tie in the first phase of a sequence also ends the sequence.
     IpmOptions two_phase = tie;

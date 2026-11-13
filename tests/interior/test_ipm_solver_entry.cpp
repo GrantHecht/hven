@@ -1680,7 +1680,8 @@ TEST(IpmPhaseSemantics, SolveAndOptimizeEachRunExactlyOnePhase) {
     }
 }
 
-// The LIVE iteration-cap pin on last_stop_reason() (M6 W5 T8.2). HS071 takes
+// The LIVE iteration-cap pin on the stop reason (M6 W5 T8.2; since M8 AP-5 G1
+// the public reason is kNone on a cap -- the status names it). HS071 takes
 // nine iterations, so one is a cap exhaustion and nothing else; the two labelled
 // doors are pinned in test_ipm_stop_reason.cpp.
 TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
@@ -1698,9 +1699,7 @@ TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
     result = solver.solve(hven::detail::problem_ref(*program), x0);
     const hven::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::SolveStatus::kIterationLimit);
-    EXPECT_EQ(solver.last_stop_reason(), hven::IpmStopReason::kIterationLimit);
-    EXPECT_EQ(hven::detail::resolve_ipm_phase_status(flag, solver.last_stop_reason()),
-              hven::SolveStatus::kIterationLimit);
+    EXPECT_EQ(result.stop_reason, hven::StopReason::kNone);
 }
 
 // A converged solve takes no labelled door, and the reason is reset per call:
@@ -1723,7 +1722,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
     }
     result = solver.solve(hven::detail::problem_ref(*program), x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kIterationLimit);
-    ASSERT_EQ(solver.last_stop_reason(), hven::IpmStopReason::kIterationLimit);
+    ASSERT_EQ(result.stop_reason, hven::StopReason::kNone);
 
     {
         auto o = solver.options();
@@ -1733,9 +1732,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
     result = solver.solve(hven::detail::problem_ref(*program), x0);
     const hven::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::SolveStatus::kOptimal);
-    EXPECT_EQ(solver.last_stop_reason(), hven::IpmStopReason::kNone);
-    EXPECT_EQ(hven::detail::resolve_ipm_phase_status(flag, solver.last_stop_reason()),
-              hven::SolveStatus::kOptimal);
+    EXPECT_EQ(result.stop_reason, hven::StopReason::kNone);
 }
 
 // The MULTI-PHASE cap pin (M6 W5 T8.2 fix round 1). solve_optimize runs the
@@ -1807,10 +1804,8 @@ TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     EXPECT_LT(phase_terminal[0], kCap - 1) << "the feasibility phase was expected to end on its "
                                               "own verdict, not on the cap";
     EXPECT_EQ(phase_terminal[1], kCap - 1);
-    EXPECT_EQ(solver.last_stop_reason(), hven::IpmStopReason::kIterationLimit);
+    EXPECT_EQ(result.stop_reason, hven::StopReason::kNone);
     EXPECT_EQ(flag, hven::SolveStatus::kIterationLimit);
-    EXPECT_EQ(hven::detail::resolve_ipm_phase_status(flag, solver.last_stop_reason()),
-              hven::SolveStatus::kIterationLimit);
 
     // THE PER-PHASE ACCOUNT, ADDED BESIDE THE ABOVE RATHER THAN REPLACING IT
     // (M6 W5 T8.4). The pin above was written when the verdict's lifetime was
@@ -1829,12 +1824,12 @@ TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     EXPECT_TRUE(r.phases[1].ran);
     // Phase 1 hit the cap and says so; phase 0 did not and says that.
     EXPECT_EQ(r.phases[1].status, hven::SolveStatus::kIterationLimit);
-    EXPECT_EQ(r.phases[1].stop_reason, hven::IpmStopReason::kIterationLimit);
-    EXPECT_EQ(r.phases[0].stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::StopReason::kNone);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::StopReason::kNone);
     // The call reports the LAST RAN phase, and the solve-level stop reason is
     // that phase's -- the same value, read two ways.
     EXPECT_EQ(r.status, r.phases[1].status);
-    EXPECT_EQ(solver.last_stop_reason(), r.phases[1].stop_reason);
+    EXPECT_EQ(result.stop_reason, r.phases[1].stop_reason);
     // And the per-phase iteration counts sum to the call's.
     EXPECT_EQ(r.iterations, r.phases[0].iterations + r.phases[1].iterations);
 }
@@ -1877,14 +1872,14 @@ int converging_loop_index() {
     x0 << 1.0, 5.0, 5.0, 1.0;
     pilot_result = pilot.solve(hven::detail::problem_ref(*pilot_program), x0);
     EXPECT_EQ(pilot_result.status, hven::SolveStatus::kOptimal);
-    EXPECT_EQ(pilot.last_stop_reason(), hven::IpmStopReason::kNone);
+    EXPECT_EQ(pilot_result.stop_reason, hven::StopReason::kNone);
     return last;
 }
 
 // One capped run, reporting the verdict, the label and the terminal loop index.
 struct CappedRun {
     hven::SolveStatus flag = hven::SolveStatus::kIterationLimit;
-    hven::IpmStopReason reason = hven::IpmStopReason::kNone;
+    hven::StopReason reason = hven::StopReason::kNone;
     int terminal_index = -1;
 };
 
@@ -1907,7 +1902,7 @@ CappedRun run_capped(int cap) {
     x0 << 1.0, 5.0, 5.0, 1.0;
     result = solver.solve(hven::detail::problem_ref(*program), x0);
     out.flag = result.status;
-    out.reason = solver.last_stop_reason();
+    out.reason = result.stop_reason;
     return out;
 }
 
@@ -1926,9 +1921,7 @@ TEST(IpmSolverEntry, AConvergenceOnTheCapIterationRecordsNoStopReason) {
                                           "iteration the uncapped pilot converged on";
     EXPECT_EQ(run.terminal_index, (idx + 1) - 1) << "and that iteration is the cap iteration";
     EXPECT_EQ(run.flag, hven::SolveStatus::kOptimal);
-    EXPECT_EQ(run.reason, hven::IpmStopReason::kNone);
-    EXPECT_EQ(hven::detail::resolve_ipm_phase_status(run.flag, run.reason),
-              hven::SolveStatus::kOptimal);
+    EXPECT_EQ(run.reason, hven::StopReason::kNone);
 }
 
 TEST(IpmSolverEntry, OneIterationShortOfConvergenceRecordsTheCap) {
@@ -1940,9 +1933,7 @@ TEST(IpmSolverEntry, OneIterationShortOfConvergenceRecordsTheCap) {
     const hs071_cap_boundary::CappedRun run = hs071_cap_boundary::run_capped(idx);
     EXPECT_EQ(run.terminal_index, idx - 1) << "the run was expected to end on its cap iteration";
     EXPECT_EQ(run.flag, hven::SolveStatus::kIterationLimit);
-    EXPECT_EQ(run.reason, hven::IpmStopReason::kIterationLimit);
-    EXPECT_EQ(hven::detail::resolve_ipm_phase_status(run.flag, run.reason),
-              hven::SolveStatus::kIterationLimit);
+    EXPECT_EQ(run.reason, hven::StopReason::kNone);
 }
 
 // ===========================================================================

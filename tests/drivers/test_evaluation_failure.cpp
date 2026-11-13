@@ -61,7 +61,6 @@ using hven::Index;
 using hven::IpmOptions;
 using hven::IpmResult;
 using hven::IpmSolver;
-using hven::IpmStopReason;
 using hven::IterationEvent;
 using hven::Problem;
 using hven::SolveResult;
@@ -69,7 +68,7 @@ using hven::SolveStatus;
 using hven::SqpOptions;
 using hven::SqpResult;
 using hven::SqpSolver;
-using hven::SqpStopReason;
+using hven::StopReason;
 using hven::Verbosity;
 using hven_drivers_tests::hs071_start;
 using hven_drivers_tests::Hs071Problem;
@@ -440,11 +439,11 @@ TEST_P(NonFiniteStart, EndsNumericalErrorWithAMessageNamingIt) {
         if (c.engine == Engine::kIpm) {
             IpmSolver solver(quiet_ipm());
             ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
-            EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteStart);
+            EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteStart);
         } else {
             SqpSolver solver(quiet_sqp());
             ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
-            EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kNonFiniteStart);
+            EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteStart);
         }
         EXPECT_GE(nlp->fired, 1);
         EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
@@ -483,12 +482,12 @@ TEST(StartPointEvaluationError, PropagatesOnBothEnginesFromEveryCallback) {
                 IpmSolver solver(quiet_ipm());
                 EXPECT_THROW(solver.solve(problem, interior_start()), EvaluationError);
                 EXPECT_EQ(solver.last_result().status, SolveStatus::kInterrupted);
-                EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kException);
+                EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
             } else {
                 SqpSolver solver(quiet_sqp());
                 EXPECT_THROW(solver.solve(problem, interior_start()), EvaluationError);
                 EXPECT_EQ(solver.last_result().status, SolveStatus::kInterrupted);
-                EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kException);
+                EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
             }
             EXPECT_EQ(nlp->fired, 1);
         }
@@ -589,11 +588,11 @@ TEST(ForeignException, ANonStdExceptionPropagatesAsThrownOnBothEngines) {
         if (e == Engine::kIpm) {
             IpmSolver solver(quiet_ipm());
             check(solver);
-            EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kException);
+            EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
         } else {
             SqpSolver solver(quiet_sqp());
             check(solver);
-            EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kException);
+            EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
         }
     }
 }
@@ -659,23 +658,23 @@ TEST(InterruptKinds, TheStopReasonAndTheMessageTellTheCallbackFromAnException) {
             solver.set_iteration_callback(stop_at_two);
             const auto stopped = solver.solve(problem, hs071_start());
             EXPECT_EQ(stopped.status, SolveStatus::kInterrupted);
-            EXPECT_EQ(solver.last_stop_reason(), callback_reason);
+            EXPECT_EQ(stopped.stop_reason, callback_reason);
             EXPECT_EQ(stopped.message, "interrupted by the iteration callback");
 
             solver.set_iteration_callback(throw_at_two);
             EXPECT_THROW((void)solver.solve(problem, hs071_start()), Sentinel);
             EXPECT_EQ(solver.last_result().status, SolveStatus::kInterrupted);
-            EXPECT_EQ(solver.last_stop_reason(), exception_reason);
+            EXPECT_EQ(solver.last_result().stop_reason, exception_reason);
             EXPECT_EQ(solver.last_result().message,
                       "interrupted by an exception that escaped the solve: sentinel from the "
                       "model");
         };
         if (e == Engine::kIpm) {
             IpmSolver solver(quiet_ipm());
-            check(solver, IpmStopReason::kInterrupted, IpmStopReason::kException);
+            check(solver, StopReason::kCallbackStop, StopReason::kException);
         } else {
             SqpSolver solver(quiet_sqp());
-            check(solver, SqpStopReason::kInterrupted, SqpStopReason::kException);
+            check(solver, StopReason::kCallbackStop, StopReason::kException);
         }
     }
 }
@@ -835,7 +834,7 @@ TEST(RiderRollback, AChainOfRollbacksReachesTheCapFloorAndEndsAtTheFailedPoint) 
     IpmResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     const Index max_rollbacks = quiet_ipm().advanced.max_line_search_backtracks;
     EXPECT_GE(r.nonfinite_step_rollbacks, 2) << "a CHAIN of rollbacks, not one";
     EXPECT_LE(r.nonfinite_step_rollbacks, max_rollbacks)
@@ -865,11 +864,11 @@ TEST(RiderRollback, BothEnginesReturnTheFailedPointWithMultipliersClearedOnANonF
         if (e == Engine::kIpm) {
             IpmSolver solver(quiet_ipm());
             ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
-            EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+            EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
         } else {
             SqpSolver solver(quiet_sqp());
             ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
-            EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kNonFiniteIterate);
+            EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
         }
         EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
         EXPECT_NE(r.message.find("Hessian"), std::string::npos) << r.message;
@@ -893,7 +892,7 @@ TEST(RiderRollback, AFailureWhileRestorationIsActiveIsNeverRolledBack) {
     ASSERT_NO_THROW(r = solver.solve(problem, infeasible_start()));
     ASSERT_EQ(nlp->fired, 1) << "the fault never reached restoration";
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     EXPECT_EQ(r.nonfinite_step_rollbacks, 0) << "the snapshot carries no elastic variables";
     ASSERT_TRUE(r.last_feasibility_restoration_entries.has_value());
     EXPECT_EQ(*r.last_feasibility_restoration_entries, 1);
@@ -932,7 +931,7 @@ TEST(RiderRollback, AFailureAtAPhasesFirstIterateEndsTheSolveWithoutARollback) {
     ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     ASSERT_EQ(nlp->fired, 1);
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     EXPECT_EQ(r.nonfinite_step_rollbacks, 0);
     ASSERT_EQ(r.phases.size(), 2u);
     EXPECT_TRUE(r.phases[0].ran);
@@ -954,7 +953,7 @@ TEST(RiderStartScreen, ANonFiniteStartJacobianNeverReachesTheFactorization) {
         IpmResult r;
         ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
         EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-        EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteStart);
+        EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteStart);
         EXPECT_EQ(r.work.factorizations, 0) << "the initial factorization never ran";
         EXPECT_NE(r.message.find("Jacobian"), std::string::npos) << r.message;
         EXPECT_TRUE(all_zero(r.lambda));
@@ -992,7 +991,7 @@ TEST(RiderStartScreen, ANonFiniteStartHessianNeverReachesTheFactorization) {
     IpmResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteStart);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteStart);
     EXPECT_LE(r.work.factorizations, 1) << "the Hessian-free initial factorization at most";
     EXPECT_EQ(hook_calls, 0) << "the screen ends the iteration before the KKT hook sees it";
 }
@@ -1032,7 +1031,7 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
         IpmSolver solver(restoring_ipm());
         expect_sentinel(solver, [&] { (void)solver.solve(problem, infeasible_start()); });
         EXPECT_EQ(nlp->fired, 1);
-        EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kException);
+        EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
         EXPECT_GE(solver.last_result().iterations, 1);
     }
     {
@@ -1052,7 +1051,7 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
             hven::IterationPayload::kScalars, hven::CallbackScope::kIncludeRestoration);
         expect_sentinel(solver, [&] { (void)solver.solve(problem, infeasible_start()); });
         EXPECT_EQ(nlp->fired, 1) << "the restoration sub-solve never ran";
-        EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kException);
+        EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
     }
 }
 
@@ -1108,7 +1107,7 @@ TEST(RiderForeignException, ThrownByTheKktHookPropagatesUnchanged) {
     });
     expect_sentinel(solver, [&] { (void)solver.solve(problem, hs071_start()); });
     EXPECT_EQ(calls, 3);
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kException);
+    EXPECT_EQ(solver.last_result().stop_reason, StopReason::kException);
     EXPECT_GE(solver.last_result().iterations, 2);
     solver.clear_kkt_hook();
     EXPECT_EQ(solver.solve(problem, hs071_start()).status, SolveStatus::kOptimal);
@@ -1299,7 +1298,7 @@ TEST(RiderInterrupted, AnObjectiveScaledSolveIsReportedInTheCallersUnits) {
     }
 }
 
-// --- SqpStopReason::kRestorationNonFinite, reached without a seam --------------
+// --- StopReason::kRestorationNonFinite, reached without a seam --------------
 
 // The restoration sub-solve minimizes the violation alone and ends near the
 // origin, where the objective -- which the sub-solve never reads -- is NaN: the
@@ -1313,7 +1312,7 @@ TEST(RiderRestorationStop, ARestorationEndingWhereTheModelIsNotFiniteIsReportedA
     SqpResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, infeasible_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kRestorationNonFinite) << r.message;
+    EXPECT_EQ(r.stop_reason, StopReason::kRestorationNonFinite) << r.message;
     EXPECT_TRUE(r.x.allFinite());
     EXPECT_GE(r.x.norm(), nlp->nan_f_radius) << "the requesting point, not the restored one";
     EXPECT_TRUE(all_zero(r.lambda));
@@ -1350,7 +1349,7 @@ TEST(RiderReturnBest, ANonFiniteAbortWithABestIterateReturnsItInFull) {
     IpmResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     EXPECT_TRUE(r.returned_best_iterate);
     EXPECT_NE(r.message.find("Hessian"), std::string::npos) << r.message;
     EXPECT_NE(r.message.find("non-finite"), std::string::npos) << r.message;
@@ -1382,7 +1381,7 @@ TEST(RiderReturnBest, ANonFiniteStartWithNoBestIterateReturnsTheStartPointAndNoC
     IpmResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, interior_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteStart);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteStart);
     EXPECT_FALSE(r.returned_best_iterate);
     EXPECT_EQ(r.message.find("best iterate"), std::string::npos) << r.message;
     EXPECT_TRUE(r.x == interior_start());
@@ -1399,7 +1398,7 @@ TEST(RiderReturnBest, WithReturnBestOffTheFailedPointRuleIsUnchanged) {
     IpmResult r;
     ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNonFiniteIterate);
+    EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     EXPECT_FALSE(r.returned_best_iterate);
     EXPECT_EQ(r.message.find("best iterate"), std::string::npos) << r.message;
     EXPECT_FALSE(nlp->was_seen_public(r.x)) << "the failed point";

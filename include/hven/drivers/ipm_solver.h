@@ -107,12 +107,6 @@ class IpmSolver {
     ///         callback).
     void set_options(IpmOptions o);
 
-    /// Which exit the last phase of the most recent call left its iteration
-    /// loop by. Reset at each phase start. A phase that converges on exactly
-    /// its cap iteration reads `kNone`: the convergence, not the cap, ended it.
-    /// `kException` after a solve an exception escaped.
-    IpmStopReason last_stop_reason() const;
-
     /// True when `problem`'s interior-point transcription is the one the solver's
     /// current symbolic analysis was laid against and no structural event has
     /// happened to it since. Compared by identity token, never by address. False

@@ -29,9 +29,10 @@ struct IpmPhaseReport {
     Index iterations = 0;
     /// Wall-clock seconds inside this phase. Informational.
     double phase_seconds = 0.0;
-    /// Why this phase left its iteration loop; `kNone` when the verdict is the
-    /// whole explanation.
-    IpmStopReason stop_reason = IpmStopReason::kNone;
+    /// Why this phase left its iteration loop; `kNone` when the status names
+    /// the cause (kOptimal, kAcceptable and the three limits among them), on
+    /// SolveResult::stop_reason's rule.
+    StopReason stop_reason = StopReason::kNone;
     /// False for a conditional phase the sequence skipped.
     bool ran = false;
 };

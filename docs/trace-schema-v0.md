@@ -545,7 +545,7 @@ give one analysis's size for another's.
 | `status` | string (`SolveStatus`, §4.2's spellings) | the embedded report's RESOLVED verdict |
 | `iterations` | integer | the embedded report's own count |
 | `phase_seconds` | double | the embedded report's; WALL-CLOCK, informational |
-| `stop_reason` | string `none\|iteration_cap\|restoration_locally_infeasible\|stage_stalled\|interrupted\|work_limit\|time_limit\|non_finite_start\|non_finite_iterate\|evaluation_failure\|exception` | the embedded report's; `exception` never reaches a line (an exception leaves the phase before its exit event) |
+| `stop_reason` | string `none\|callback_stop\|stop_requested\|stage_stalled\|restoration_locally_infeasible\|non_finite_start\|non_finite_iterate\|evaluation_failure\|exception` (the interior-point subset of `StopReason`) | the embedded report's; `exception` never reaches a line (an exception leaves the phase before its exit event). M8 AP-5 G1 (declared): one `StopReason` vocabulary for both engines -- `iteration_cap`, `work_limit` and `time_limit` became `none` (the `status` names them) and `interrupted` became `callback_stop`; `stop_requested` is new |
 | `ran` | bool | the embedded report's; always `true` on a line that exists |
 
 **`last_kkt_info` IS PER PHASE.** `alg_impl` resets `IpmResult::last_kkt_info`

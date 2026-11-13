@@ -33,6 +33,7 @@
 #include <string>
 
 #include <hven/core/solver_status.h>
+#include <hven/core/stop.h>
 #include <hven/core/types.h>
 #include <hven/warmstart/warm_start.h>
 
@@ -65,6 +66,21 @@ struct SolveBudget {
     /// `SqpCounters::probe_budget_stops`. INTERIOR-POINT: ignored; that engine
     /// has no minor loop.
     std::optional<Index> max_minor_iterations;
+
+    /// A cooperative stop request for THIS solve, from a StopSource the caller
+    /// owns (core/stop.h). Default-constructed: no source, `stop_possible()`
+    /// false, and the solve pays one null test per iteration. When the source's
+    /// `request_stop()` is called -- from any thread -- the solve ends at its
+    /// next iteration boundary with SolveStatus::kInterrupted and
+    /// StopReason::kStopRequested, returning the current iterate (the point of
+    /// the last iteration event). A converged or acceptable verdict reached at
+    /// the same boundary outranks it. INTERIOR-POINT: polled at the top of each
+    /// iteration, before its factorization; a stop ends the phase sequence. SQP:
+    /// polled at the exit test before each subproblem, and right after each
+    /// accepted step's row is recorded, so the step is not taken. A source
+    /// already stopped stops the solve at its first boundary: a token is per
+    /// solve.
+    StopToken stop;
 };
 
 /// @brief Refuses an engaged SolveBudget member below 1, and a `max_iterations`
@@ -124,6 +140,14 @@ struct EvaluationErrors {
 struct SolveResult {
     /// @brief How the solve ended.
     SolveStatus status = SolveStatus::kNumericalError;
+
+    /// @brief Which of the engine's exits produced @ref status. kNone when the
+    ///        status names the cause on its own (kOptimal, kAcceptable,
+    ///        kIterationLimit, kWorkLimit, kTimeLimit, a certified kInfeasible).
+    ///        The interior-point engine reports its last phase's reason
+    ///        (IpmPhaseReport::stop_reason). After a solve an exception escaped,
+    ///        the solver's `last_result()` carries kException.
+    StopReason stop_reason = StopReason::kNone;
 
     /// @brief One line saying why the solve stopped, for a log or a console.
     ///        Built once per solve from the status and the engine's own stop
@@ -283,7 +307,8 @@ enum class CallbackAction {
     /// point they are standing on, with the ordinary cleanup, trace end event
     /// and ledger record. See each engine's set_iteration_callback() for the
     /// exact moment the stop takes effect and for the one case that outranks it
-    /// (a converged iterate still reports kOptimal).
+    /// (a converged iterate still reports kOptimal). The result's stop_reason
+    /// is StopReason::kCallbackStop.
     kStop = 1,
 };
 

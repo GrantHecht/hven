@@ -49,3 +49,17 @@ programs are the reference for the new surface, and the full rename table is
   `linear::Decomposition` (was `FactorKind`, without the refused `kLlt`/`kLu`), every internal in
   `hven::detail`, `warmstart/warm_start.h` and `drivers/json_lines_trace_sink.h`, and
   `IpmLinearOptions::accelerate_zero_tol` on every platform. Trace keys and strings are unchanged.
+
+## Unreleased — the M8 AP-5 interface groups
+
+Migration lines for these groups: `docs/migration-0.2.md`.
+
+- **G1 — the stop token and one stop reason.** Before: a solve could be stopped only from
+  its iteration callback; the engines reported why they stopped through two enums
+  (`IpmStopReason`, `SqpStopReason`) read off the solver (`last_stop_reason()`), and the SQP
+  honoured a callback stop one step late. After: `StopSource`/`StopToken`
+  (`core/stop.h`) and `SolveBudget::stop` stop a solve from any thread at its next
+  iteration boundary; one `StopReason` on the result (`SolveResult::stop_reason`,
+  `IpmPhaseReport::stop_reason`) with `kCallbackStop` and `kStopRequested`, `kNone`
+  whenever the status names the cause; the SQP honours a callback stop at the row it was
+  returned on. The trace's `stop_reason` strings follow (declared).

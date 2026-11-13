@@ -3598,7 +3598,7 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
-        EXPECT_EQ(driver.last_stop_reason(), SqpStopReason::kSubproblemFailure);
+        EXPECT_EQ(sol.stop_reason, StopReason::kSubproblemFailure);
         EXPECT_EQ(sol.message,
                   "numerical error: the QP subproblem failed and its retry budget was spent");
         ASSERT_EQ(sol.history.size(), 2u);
@@ -3855,7 +3855,7 @@ TEST(SqpDriverQpFailure, ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall) {
     ASSERT_NO_THROW(sol = driver.solve(hven::detail::problem_ref(model), (model).start_point()));
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     // The start point's own Hessian is infinite (M8 B5: named, at the start).
-    EXPECT_EQ(driver.last_stop_reason(), SqpStopReason::kNonFiniteStart);
+    EXPECT_EQ(sol.stop_reason, StopReason::kNonFiniteStart);
     EXPECT_EQ(sol.message,
               "numerical error: non-finite Lagrangian Hessian entry at the start point");
     EXPECT_EQ(sol.counters.nonfinite_subproblems, 1);
@@ -4090,7 +4090,7 @@ TEST(SqpDriverNonfiniteRollback, NoRollbackIsTakenAcrossTheRadiusFloor) {
     ASSERT_NO_THROW(sol = driver.solve(hven::detail::problem_ref(model), (model).start_point()));
     EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
     // An iterate a step reached, no rollback possible (M8 B5).
-    EXPECT_EQ(driver.last_stop_reason(), SqpStopReason::kNonFiniteIterate);
+    EXPECT_EQ(sol.stop_reason, StopReason::kNonFiniteIterate);
     EXPECT_NE(sol.message.find("non-finite"), std::string::npos) << sol.message;
     EXPECT_NE(sol.message.find("at major 1"), std::string::npos) << sol.message;
     EXPECT_EQ(sol.counters.nonfinite_step_rollbacks, 0);

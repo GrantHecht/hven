@@ -1414,10 +1414,13 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// - stopped AT an iterate (kOptimal, kIterationLimit, the non-finite-iterate
 ///   kNumericalError): history.size() == major_iters + 1, the last row has
 ///   qp_solved == false;
-/// - stopped ON a subproblem (a QP-propagated kNumericalError, or any of the three
-///   kRestore routes): history.size() == major_iters, every row has qp_solved ==
-///   true, and the last row carries the failing qp_status -- except on the
-///   kRestore routes, where `verdict` carries the reason.
+/// - stopped ON a subproblem (a QP-propagated kNumericalError, any of the three
+///   kRestore routes, or a stop -- the callback's kStop or the stop token --
+///   honoured right after an accepted step's row, M8 AP-5 G1):
+///   history.size() == major_iters, every row has qp_solved == true, and the
+///   last row carries the failing qp_status -- except on the kRestore routes,
+///   where `verdict` carries the reason, and on the stop, whose last row is the
+///   accepted step that was not taken.
 /// So `history[counters.major_iters]` is in bounds on the first family and out of
 /// bounds on the second. Use history.back() and read qp_solved.
 ///

@@ -254,6 +254,7 @@ int standalone_include_dense_policy();
 int standalone_include_interior_point_solver();
 int standalone_include_sqp_driver();
 int standalone_include_core_solver_status();
+int standalone_include_core_stop();
 int standalone_include_common_options();
 int standalone_include_ipm_solver_types();
 int standalone_include_solve_result();
@@ -293,6 +294,7 @@ int main() {
                                hven_install_smoke::standalone_include_interior_point_solver() +
                                hven_install_smoke::standalone_include_sqp_driver() +
                                hven_install_smoke::standalone_include_core_solver_status() +
+                               hven_install_smoke::standalone_include_core_stop() +
                                hven_install_smoke::standalone_include_common_options() +
                                hven_install_smoke::standalone_include_ipm_solver_types() +
                                hven_install_smoke::standalone_include_solve_result() +
@@ -313,8 +315,8 @@ int main() {
                                hven_install_smoke::standalone_include_type_storage() +
                                hven_install_smoke::standalone_include_ipm_iterate() +
                                hven_install_smoke::standalone_include_hven();
-    if (standalone_tus != 36) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 36\n",
+    if (standalone_tus != 37) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 37\n",
                      standalone_tus);
         return 1;
     }

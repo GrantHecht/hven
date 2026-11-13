@@ -313,10 +313,10 @@ TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
     // verdict is still readable beside it.
     EXPECT_EQ(r.status, r.phases[1].status);
     EXPECT_EQ(r.phases[1].status, hven::SolveStatus::kIterationLimit);
-    EXPECT_EQ(r.phases[1].stop_reason, hven::IpmStopReason::kIterationLimit);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::StopReason::kNone);
     // The feasibility phase ended on its own verdict, not on the cap.
     EXPECT_LT(r.phases[0].iterations, o.common.max_iterations);
-    EXPECT_EQ(r.phases[0].stop_reason, hven::IpmStopReason::kNone);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::StopReason::kNone);
     // Both phases are timed separately, and neither timing is the call's.
     EXPECT_GE(r.phases[0].phase_seconds, 0.0);
     EXPECT_GE(r.phases[1].phase_seconds, 0.0);
@@ -346,7 +346,7 @@ TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
     EXPECT_EQ(capped.status, hven::SolveStatus::kIterationLimit);
     EXPECT_LE(capped.iterations, 2);
     ASSERT_EQ(capped.phases.size(), 1u);
-    EXPECT_EQ(capped.phases[0].stop_reason, hven::IpmStopReason::kIterationLimit);
+    EXPECT_EQ(capped.phases[0].stop_reason, hven::StopReason::kNone);
 
     // TIGHTEN ONLY: a budget ABOVE the engine's own limit does not raise it.
     hven::IpmOptions tight = o;
@@ -896,7 +896,7 @@ TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
     const hven::IpmResult r =
         solver.solve(hven::detail::problem_ref(*model), two_var_start(1.0, 1.0));
     ASSERT_EQ(r.status, hven::SolveStatus::kStalled);
-    ASSERT_EQ(r.phases.back().stop_reason, hven::IpmStopReason::kRestorationLocallyInfeasible);
+    ASSERT_EQ(r.phases.back().stop_reason, hven::StopReason::kRestorationLocallyInfeasible);
 
     EXPECT_TRUE(std::isnan(r.stationarity));
     EXPECT_TRUE(std::isnan(hven::detail::engine_rows(r).feasibility_e));

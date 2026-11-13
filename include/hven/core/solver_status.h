@@ -5,8 +5,8 @@
 
 // The solve-outcome vocabulary: QpStatus, the verdict on ONE QP subproblem, and
 // SolveStatus, the verdict on a WHOLE solve on EITHER engine -- with the stop
-// reason the interior-point engine records beside it, both display-string
-// helpers and the reporting order.
+// reason both engines record beside it, the display-string helpers and the
+// reporting order.
 //
 // SolveStatus lives here, at the bottom tier, and not in drivers/: core/
 // ledger.h reports a status, and a core header may depend on no tier above it
@@ -121,95 +121,74 @@ enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
     kTimeLimit = 11,
 };
 
-/// @brief Why the interior-point engine's last phase left its iteration loop.
+/// @brief Why a solve ended, beside its SolveStatus -- one vocabulary for both
+///        engines, read from `SolveResult::stop_reason` (and per phase from
+///        `IpmPhaseReport::stop_reason`).
 ///
-/// kNone means the phase did not end NOTCONVERGED: the verdict itself says what
-/// happened. Recorded per phase and reset at each phase start.
-enum class IpmStopReason {
+/// kNone means the status names the cause on its own: kOptimal, kAcceptable,
+/// kIterationLimit, kWorkLimit, kTimeLimit and a certified kInfeasible. Every
+/// other value names which of the engine's exits produced the status beside it.
+/// As with SolveStatus, each engine reaches a subset; the engines column below
+/// says which.
+enum class StopReason {
+    /// The status names the cause. Both engines.
     kNone = 0,
-    kIterationLimit = 1,
-    kRestorationLocallyInfeasible = 2,
-    kStageStalled = 3,
-    /// The per-iteration callback returned CallbackAction::kStop.
-    /// A CALLER'S DECISION, not a verdict about the problem -- which is why it
-    /// is a stop reason and why resolve_ipm_phase_status still lets a verdict
-    /// the convergence check already holds win over it.
-    kInterrupted = 4,
-    /// `CommonOptions::max_factorizations` was reached at an iteration boundary.
-    kWorkLimit = 5,
-    /// `CommonOptions::time_limit_seconds` was reached at an iteration boundary.
-    kTimeLimit = 6,
+    /// The per-iteration callback returned CallbackAction::kStop (on the SQP, at
+    /// the top level or inside a restoration sub-solve). Verdict kInterrupted. A
+    /// CALLER'S DECISION, not a verdict about the problem: a converged or
+    /// acceptable verdict reached at the same point outranks it. Both engines.
+    kCallbackStop = 1,
+    /// The `SolveBudget::stop` token's source requested the stop, and the solve
+    /// honoured it at an iteration boundary. Verdict kInterrupted; a converged or
+    /// acceptable verdict reached at the same point outranks it. Both engines.
+    kStopRequested = 2,
+    /// An exception escaped the solve (a user callback's own, or one raised
+    /// inside hven). Verdict kInterrupted; the partial result is the solver's
+    /// `last_result()`. Both engines.
+    kException = 3,
     /// The model returned a non-finite value (objective, gradient, constraint or
     /// derivative entry) at the solve's start point. Verdict kNumericalError,
     /// reached before anything is factorized. The returned point is the start
-    /// point, its multipliers cleared.
-    kNonFiniteStart = 7,
+    /// point, its multipliers cleared. Both engines.
+    kNonFiniteStart = 4,
     /// The model returned a non-finite value, or threw EvaluationError, at an
-    /// iterate a step had reached, and the step could not be rolled back (no
-    /// previous iterate this phase, an active restoration or a point
-    /// restoration just moved to, or the step cap at its floor). Verdict
-    /// kNumericalError. The returned point is that iterate -- the one whose
-    /// evaluation failed -- with its multipliers cleared; the residual fields
-    /// report what its evaluation measured, NaN where it measured nothing. The
-    /// SQP engine's kNonFiniteIterate returns the same.
-    kNonFiniteIterate = 8,
+    /// iterate a step had reached, and the step could not be rolled back.
+    /// Verdict kNumericalError. The returned point is that iterate -- the one
+    /// whose evaluation failed -- with its multipliers cleared; the residual
+    /// fields report what its evaluation measured, NaN where it measured
+    /// nothing. Both engines.
+    kNonFiniteIterate = 5,
     /// Every trial evaluation of an iteration failed (EvaluationError or a
     /// non-finite value), the iterate was not acceptable and feasibility
-    /// restoration could not take over. Verdict kNumericalError.
-    kEvaluationFailure = 9,
-    /// An exception escaped the solve (a user callback's own, or one raised
-    /// inside hven). The verdict is kInterrupted and the partial result is the
-    /// solver's `last_result()`.
-    kException = 10,
-};
-
-/// @brief Why the SQP engine's solve ended, beside its SolveStatus -- the
-///        counterpart of IpmStopReason, read through
-///        SqpSolver::last_stop_reason().
-///
-/// kNone means the status names the cause on its own (kOptimal, kIterationLimit,
-/// kWorkLimit, kTimeLimit and a certified kInfeasible). Every other value
-/// names which of the engine's exits produced the status beside it.
-enum class SqpStopReason {
-    kNone = 0,
-    /// The per-iteration callback returned CallbackAction::kStop -- at the top
-    /// level or inside a restoration sub-solve. Verdict kInterrupted.
-    kInterrupted = 1,
-    /// An exception escaped the solve. Verdict kInterrupted; the partial result
-    /// is the solver's `last_result()`.
-    kException = 2,
-    /// The model returned a non-finite value at the start point. Verdict
-    /// kNumericalError. The returned point is the start point, its multipliers
-    /// cleared.
-    kNonFiniteStart = 3,
-    /// The model returned a non-finite value, or threw EvaluationError, at an
-    /// iterate a step had reached, and the step could not be rolled back (the
-    /// radius floor, or the full-step funnel mode). Verdict kNumericalError.
-    /// The returned point is that iterate -- the one whose evaluation failed --
-    /// with its multipliers cleared, as on the interior-point engine; the
-    /// residual fields report what was measured there, NaN where nothing was.
-    kNonFiniteIterate = 4,
+    /// restoration could not take over. Verdict kNumericalError. Interior-point.
+    kEvaluationFailure = 6,
+    /// A stage of the interior-point iteration stopped making progress. Verdict
+    /// kStalled. Interior-point.
+    kStageStalled = 7,
+    /// Feasibility restoration converged to a point that is still infeasible.
+    /// Verdict kStalled. Interior-point.
+    kRestorationLocallyInfeasible = 8,
     /// The QP subproblem failed and its retry budget was spent. Verdict
     /// kNumericalError, or kInfeasible (uncertified) for an infeasible
-    /// subproblem.
-    kSubproblemFailure = 5,
+    /// subproblem. SQP.
+    kSubproblemFailure = 9,
     /// The equality constraints were judged inconsistent (the equality-basis
-    /// exit). Verdict kInfeasible, uncertified.
-    kInconsistentEqualities = 6,
+    /// exit). Verdict kInfeasible, uncertified. SQP.
+    kInconsistentEqualities = 10,
     /// Feasibility restoration was requested and could not be serviced: the
     /// request came from inside a restoration sub-solve, or the per-solve entry
-    /// cap was spent. Verdict kNumericalError.
-    kRestorationRefused = 7,
+    /// cap was spent. Verdict kNumericalError. SQP.
+    kRestorationRefused = 11,
     /// Restoration ended at a point where the model is not finite. Verdict
-    /// kNumericalError.
-    kRestorationNonFinite = 8,
+    /// kNumericalError. SQP.
+    kRestorationNonFinite = 12,
     /// The restoration sub-solve converged without a claim: the point is
     /// neither feasible enough to resume from nor infeasible enough to certify.
-    /// Verdict kNumericalError.
-    kRestorationNoClaim = 9,
+    /// Verdict kNumericalError. SQP.
+    kRestorationNoClaim = 13,
     /// The restoration sub-solve itself ended kNumericalError. Verdict
-    /// kNumericalError.
-    kRestorationFailed = 10,
+    /// kNumericalError. SQP.
+    kRestorationFailed = 14,
 };
 
 /// @brief WHICH DIAGNOSTIC MESSAGE the interior-point engine emitted (schema
@@ -250,8 +229,10 @@ enum class IpmMessageKind {
     /// `a` is the infeasibility now, `b` the infeasibility at the last
     /// restoration entry.
     kFeasibilityStall = 5,
-    /// The per-iteration callback returned `kStop`; `iter` is the row it
-    /// stopped on.
+    /// A stop was honoured at an iteration: the per-iteration callback
+    /// returned `kStop`, or (M8 AP-5 G1) the `SolveBudget::stop` token was
+    /// requested -- `SolveResult::stop_reason` tells them apart. `iter` is the
+    /// row it stopped on.
     kInterruptAtIteration = 6,
     /// A phase reached kDiverging or worse, so the remaining phases are
     /// skipped. No payload.
@@ -313,17 +294,12 @@ const char *to_string(IpmMessageKind kind);
 /// @throws std::invalid_argument if @p status is not one of the four.
 const char *to_string(IpmKktFactorStatus status);
 
-/// @brief Maps a stop reason to its lower-case display name.
+/// @brief Maps a stop reason to its lower-case snake name (the trace's
+///        `stop_reason` spelling).
 /// @param reason The stop reason.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the eleven.
-const char *to_string(IpmStopReason reason);
-
-/// @brief Maps an SQP stop reason to its lower-case display name.
-/// @param reason The stop reason.
-/// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the eleven.
-const char *to_string(SqpStopReason reason);
+/// @throws std::invalid_argument if @p reason is not one of the fifteen.
+const char *to_string(StopReason reason);
 
 /// @brief The reporting order over all ten statuses, weakest verdict first.
 ///

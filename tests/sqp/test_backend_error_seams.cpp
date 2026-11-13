@@ -41,12 +41,11 @@ using hven::BackendError;
 using hven::IpmOptions;
 using hven::IpmResult;
 using hven::IpmSolver;
-using hven::IpmStopReason;
 using hven::Problem;
 using hven::SolveStatus;
 using hven::SqpOptions;
 using hven::SqpSolver;
-using hven::SqpStopReason;
+using hven::StopReason;
 using hven::Verbosity;
 using hven::linear::detail::testing::AnalyzeFaultInjector;
 using hven::linear::detail::testing::FactorizeFaultInjector;
@@ -100,7 +99,7 @@ TEST(BackendErrorSeam, AFailedInitialAnalysisIsAStatusOnTheInteriorPointEngine) 
         ASSERT_NO_THROW(r = solver.solve(problem, hs071_start()));
     }
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
-    EXPECT_EQ(solver.last_stop_reason(), IpmStopReason::kNone);
+    EXPECT_EQ(r.stop_reason, StopReason::kNone);
     EXPECT_NE(r.message.find("initial KKT factorization failed"), std::string::npos) << r.message;
     EXPECT_EQ(r.work.factorizations, 0) << "the analysis failed, so nothing was factorized";
     // Not left claiming the analysis: the next solve analyzes afresh and converges.
@@ -144,7 +143,7 @@ TEST(BackendErrorSeam, ABackendErrorSurfacesThroughTheSqpHandleIntoLastResult) {
     ASSERT_TRUE(caught) << "a BackendError, through the handle";
     const auto &partial = solver.last_result();
     EXPECT_EQ(partial.status, SolveStatus::kInterrupted);
-    EXPECT_EQ(solver.last_stop_reason(), SqpStopReason::kException);
+    EXPECT_EQ(partial.stop_reason, StopReason::kException);
     EXPECT_NE(partial.message.find("interrupted by an exception that escaped the solve"),
               std::string::npos)
         << partial.message;

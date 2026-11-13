@@ -223,7 +223,7 @@ struct InteriorRow {
     int watchdog_activations = -1;
     std::string fixed_treatment;
     /// The stop reason the engine recorded for the last phase; `none` on every
-    /// converged row. hven::to_string(IpmStopReason) writes it.
+    /// converged row. hven::to_string(StopReason) writes it, from IpmResult::stop_reason.
     std::string stop_reason;
     /// The variant's name, carried in the row KEY rather than in a column;
     /// empty on a base row.

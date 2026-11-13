@@ -22,7 +22,7 @@ int standalone_include_core_solver_status() {
     // that declared them without defining what they need would compile above
     // and fail here.
     const hven::SolveStatus s = hven::SolveStatus::kOptimal;
-    const hven::IpmStopReason r = hven::IpmStopReason::kIterationLimit;
+    const hven::StopReason r = hven::StopReason::kStopRequested;
     return (hven::to_string(s) != nullptr && hven::to_string(r) != nullptr &&
             hven::severity(s) >= 0)
                ? 1

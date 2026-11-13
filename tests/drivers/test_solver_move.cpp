@@ -151,7 +151,7 @@ TEST(SolverMove, AMovedFromIpmSolverRefusesUseByName) {
     EXPECT_THROW(source.set_options(ipm_options()), std::logic_error);
     EXPECT_THROW(source.clear_iteration_callback(), std::logic_error);
     EXPECT_THROW((void)source.options(), std::logic_error);
-    EXPECT_THROW((void)source.last_stop_reason(), std::logic_error);
+    EXPECT_THROW((void)source.last_result(), std::logic_error);
     EXPECT_THROW((void)source.iteration_payload(), std::logic_error);
 }
 

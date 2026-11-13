@@ -166,27 +166,27 @@ LinearOptions::SolveParallelism linear_solve_parallelism_of(hven::IpmSolveParall
 
 } // namespace
 
-hven::IpmStopReason hven::detail::IpmSolverImpl::limit_reached() const {
+hven::detail::IpmPhaseStop hven::detail::IpmSolverImpl::limit_reached() const {
     const CommonOptions &c = this->opts_.common;
     if (c.max_factorizations &&
         this->lifetime_factorize_count() - this->limit_factorize_base_ >= *c.max_factorizations) {
-        return IpmStopReason::kWorkLimit;
+        return IpmPhaseStop::kWorkLimit;
     }
     if (c.time_limit_seconds &&
         std::chrono::duration<double>(std::chrono::steady_clock::now() - this->limit_clock_start_)
                 .count() >= *c.time_limit_seconds) {
-        return IpmStopReason::kTimeLimit;
+        return IpmPhaseStop::kTimeLimit;
     }
-    return IpmStopReason::kNone;
+    return IpmPhaseStop::kNone;
 }
 
 // The label for a phase that stopped on its iteration cap: a work or time limit
 // reached at the same boundary takes it instead, and ends the solve's phase
 // sequence.
-hven::IpmStopReason hven::detail::IpmSolverImpl::cap_or_limit_reason() {
-    const IpmStopReason limit = this->limit_reached();
-    if (limit == IpmStopReason::kNone)
-        return IpmStopReason::kIterationLimit;
+hven::detail::IpmPhaseStop hven::detail::IpmSolverImpl::cap_or_limit_reason() {
+    const IpmPhaseStop limit = this->limit_reached();
+    if (limit == IpmPhaseStop::kNone)
+        return IpmPhaseStop::kIterationLimit;
     this->limit_stop_ = true;
     return limit;
 }
@@ -2855,7 +2855,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // Where no rollback is possible -- the start point, a phase's first
         // iterate, an active restoration (or a point restoration just moved
         // to), the floor -- the phase ends kNumericalError at the point whose
-        // evaluation failed (IpmStopReason::kNonFiniteStart /
+        // evaluation failed (IpmPhaseStop::kNonFiniteStart /
         // kNonFiniteIterate), with its multipliers cleared: nothing at that
         // point is trusted. With IpmOptions::return_best on and a finite best
         // iterate recorded, the exit returns THAT iterate in full instead (x,
@@ -2969,11 +2969,11 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // kNumericalError with no reason of its own, as a singular KKT
                 // system is; the message carries what failed. The phase-entry
                 // reset cleared the record the initial factorization wrote.
-                this->last_stop_reason_ = IpmStopReason::kNone;
+                this->last_stop_reason_ = IpmPhaseStop::kNone;
                 this->result_.last_kkt_info = this->kkt_sol_.info();
             } else {
-                this->last_stop_reason_ = this->solve_at_start_ ? IpmStopReason::kNonFiniteStart
-                                                                : IpmStopReason::kNonFiniteIterate;
+                this->last_stop_reason_ = this->solve_at_start_ ? IpmPhaseStop::kNonFiniteStart
+                                                                : IpmPhaseStop::kNonFiniteIterate;
             }
             ExitCode = SolveStatus::kNumericalError;
             this->result_.status = ExitCode;
@@ -3364,7 +3364,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 ExitCode = SolveStatus::kIterationLimit;
                 // The first of the two labelled NOTCONVERGED doors; see
                 // last_stop_reason(). A store into a member nothing else reads.
-                this->last_stop_reason_ = IpmStopReason::kRestorationLocallyInfeasible;
+                this->last_stop_reason_ = IpmPhaseStop::kRestorationLocallyInfeasible;
                 // THE ROW THIS DOOR RETURNS, ON THE `ipm.iter` STREAM (M6 W5
                 // T8.6 fix1, the SQP lane's I2). This exit KEEPS the record
                 // pushed at the top of this iteration -- `result_.iterations`
@@ -3670,7 +3670,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     // The second labelled door, recorded here rather than at the
                     // terminal conjunction so a stall on the cap iteration wins
                     // the tie by program order; see last_stop_reason().
-                    this->last_stop_reason_ = IpmStopReason::kStageStalled;
+                    this->last_stop_reason_ = IpmPhaseStop::kStageStalled;
                     IpmMessageTraceEvent msg;
                     msg.kind = IpmMessageKind::kFeasibilityStall;
                     msg.phase = this->trace_phase_;
@@ -3722,13 +3722,23 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // NO return_best SUBSTITUTION, unlike the two NOTCONVERGED exits below:
         // a stop is a caller's decision about a POINT it has just been shown,
         // and handing back a different iterate than the one it stopped on would
-        // make the event a lie. The verdict is kIterationLimit + kInterrupted, which
+        // make the event a lie. The verdict is kIterationLimit + kCallbackStop, which
         // resolve_ipm_phase_status maps to kInterrupted.
-        if (this->interrupt_requested_) {
+        //
+        // THE STOP TOKEN (SolveBudget::stop, M8 AP-5 G1) IS POLLED HERE TOO, on
+        // the same terms: the current iterate, pre-factorization, after a
+        // converged/acceptable/diverging iterate has already left. A default
+        // token is a null test. A callback stop already latched wins the label;
+        // a token stop latches `interrupt_requested_` so that it ends the phase
+        // sequence exactly as the callback's does.
+        const bool callback_stop = this->interrupt_requested_;
+        if (callback_stop || this->stop_token_.stop_requested()) {
+            this->interrupt_requested_ = true;
             iters.back().mu = mu;
             QPtimer.stop();
             ExitCode = SolveStatus::kIterationLimit;
-            this->last_stop_reason_ = IpmStopReason::kInterrupted;
+            this->last_stop_reason_ =
+                callback_stop ? IpmPhaseStop::kCallbackStop : IpmPhaseStop::kStopRequested;
             this->result_.status = ExitCode;
             // The row this event belongs to, so the trace still has one line per
             // event on this path too.
@@ -3754,7 +3764,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // after a converged/acceptable/diverging iterate has already left. Both
         // are empty by default, and an empty limit reads nothing. The count is
         // the whole solve's, every phase included.
-        if (const IpmStopReason limit = this->limit_reached(); limit != IpmStopReason::kNone) {
+        if (const IpmPhaseStop limit = this->limit_reached(); limit != IpmPhaseStop::kNone) {
             iters.back().mu = mu;
             QPtimer.stop();
             ExitCode = SolveStatus::kIterationLimit;
@@ -4129,7 +4139,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // Set by the un-evaluable dispatch below when nothing can recover: every
         // trial evaluation failed, the iterate is not acceptable and restoration
         // cannot take over. Ends the phase kNumericalError at the loop tail
-        // (IpmStopReason::kEvaluationFailure), the same idiom as singular_abort.
+        // (IpmPhaseStop::kEvaluationFailure), the same idiom as singular_abort.
         bool evaluation_abort = false;
 
         Funtimer.start();
@@ -4582,7 +4592,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // No step was taken.
         if (kkt_no_numerics_hard || no_numerics_abort) [[unlikely]] {
             ExitCode = SolveStatus::kNumericalError;
-            this->last_stop_reason_ = IpmStopReason::kNone;
+            this->last_stop_reason_ = IpmPhaseStop::kNone;
             this->stop_detail_ = fmt::format(
                 "{} at iteration {} {} ({}); no step can be computed{}",
                 kkt_no_numerics_at_guard ? "the dense step guard's refactorization"
@@ -4598,7 +4608,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // above): kNumericalError, labelled with the reason the message names.
         if (evaluation_abort) {
             ExitCode = SolveStatus::kNumericalError;
-            this->last_stop_reason_ = IpmStopReason::kEvaluationFailure;
+            this->last_stop_reason_ = IpmPhaseStop::kEvaluationFailure;
         }
 
         // exit_stage_stalled (see the stall dispatch above) forces the exit
@@ -4626,7 +4636,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // engine: the label is the limit's and the sequence ends. With both
             // limits empty limit_reached() reads nothing.
             if (i == (this->effective_max_iters_ - 1) && ExitCode == SolveStatus::kIterationLimit &&
-                this->last_stop_reason_ == IpmStopReason::kNone) {
+                this->last_stop_reason_ == IpmPhaseStop::kNone) {
                 this->last_stop_reason_ = this->cap_or_limit_reason();
             }
 
@@ -4736,7 +4746,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // there is no local verdict to agree with and nothing else to distinguish.
     // result_.status is NOT read, for the reason door 1 gives -- its
     // lifetime is the CALL and this label's is the PHASE.
-    if (this->last_stop_reason_ == IpmStopReason::kNone && i >= this->effective_max_iters_) {
+    if (this->last_stop_reason_ == IpmPhaseStop::kNone && i >= this->effective_max_iters_) {
         this->last_stop_reason_ = this->cap_or_limit_reason();
     }
 
@@ -4930,7 +4940,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // (abort_without_best) it returns the failed point and claims nothing.
     const bool return_best_applied =
         (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
-         this->last_stop_reason_ != IpmStopReason::kInterrupted && !abort_without_best);
+         this->last_stop_reason_ != IpmPhaseStop::kCallbackStop &&
+         this->last_stop_reason_ != IpmPhaseStop::kStopRequested && !abort_without_best);
     const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
@@ -6011,6 +6022,10 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // for it.
     this->interrupt_requested_ = false;
     this->limit_stop_ = false;
+    // THE CALL'S STOP TOKEN (M8 AP-5 G1), read at every iteration top beside the
+    // callback's stop. Replaced at every entry, so no earlier call's token is
+    // ever read.
+    this->stop_token_ = budget.stop;
     this->limit_factorize_base_ = this->lifetime_factorize_count();
     this->limit_clock_start_ = std::chrono::steady_clock::now();
 
@@ -6453,7 +6468,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // Phase-scoped like the resets above, and placed after the conditional
         // skip so a skipped phase leaves the previous phase's reason standing
         // beside the verdict it belongs to. See last_stop_reason().
-        this->last_stop_reason_ = IpmStopReason::kNone;
+        this->last_stop_reason_ = IpmPhaseStop::kNone;
         this->stop_detail_.clear();
         // AND THE VERDICT WITH IT (M6 W5 T8.4). This one line is the whole of
         // the fix for the defect design §2.3 registered for this task: the
@@ -6487,7 +6502,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             report.iterations = this->result_.iterations - iters_before_phase;
             report.phase_seconds =
                 double(phase_timer.count<std::chrono::microseconds>()) / 1000000.0;
-            report.stop_reason = this->last_stop_reason_;
+            report.stop_reason = to_stop_reason(this->last_stop_reason_);
             report.ran = true;
         }
 
@@ -7095,7 +7110,7 @@ void hven::detail::IpmSolverImpl::finish_interrupted_result() noexcept {
         this->finish_declared_result(this->analyses_at_entry_);
         this->result_.status = SolveStatus::kInterrupted;
         this->result_.returned_best_iterate = false;
-        this->last_stop_reason_ = IpmStopReason::kException;
+        this->last_stop_reason_ = IpmPhaseStop::kException;
         this->interrupted_result_ready_ = true;
     } catch (...) {
         this->interrupted_result_ready_ = false;

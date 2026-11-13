@@ -50,6 +50,7 @@ find_package(hven REQUIRED)
 # (solver_indexing_data, sizable_spec, piece_interfaces), and the umbrella
 # hven/hven.h and drivers/ipm_iterate.h joined, 35 -> 37. B8 riders: model/pieces.h
 # deleted (the umbrella covers it), trace_writer.h renamed json_lines_trace_sink.h, 37 -> 36.
+# M8 AP-5 G1: core/stop.h (StopSource, StopToken) joined, 36 -> 37.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_json_lines_trace_sink.cpp
     include_trace.cpp
@@ -67,6 +68,7 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_ipm_solver.cpp
     include_sqp_solver.cpp
     include_core_solver_status.cpp
+    include_core_stop.cpp
     include_common_options.cpp
     include_ipm_solver_types.cpp
     include_solve_result.cpp

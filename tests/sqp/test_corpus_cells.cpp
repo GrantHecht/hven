@@ -2691,8 +2691,11 @@ struct ExpectedExitRow {
 // exit.
 const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
     static const std::vector<ExpectedExitRow> kRows{
-        {"f7_n1000_bound_neutral/MakeParameter/cap1", "max_iter", "iteration_cap"},
-        {"hs071_x1_fixed/MakeParameter/cap1", "max_iter", "iteration_cap"},
+        // RE-DERIVED at M8 AP-5 G1 (2026-11-13): the stop reason was
+        // `iteration_cap` and is `none` -- StopReason's kNone rule, under which
+        // the status (`max_iter`) names the cap. The declared column map.
+        {"f7_n1000_bound_neutral/MakeParameter/cap1", "max_iter", "none"},
+        {"hs071_x1_fixed/MakeParameter/cap1", "max_iter", "none"},
         // RE-DERIVED at M7 W2 D1 (2026-09-18): the stop reason was
         // `stage_stalled` and is `restoration_locally_infeasible`. The status
         // is still `stalled`. Under the shipped default (filter over the

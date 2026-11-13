@@ -312,7 +312,7 @@ class IpmSolverImpl {
     /// caller mid-callback has no result to read yet.
     ///
     /// @return The stop reason recorded by the last phase that ran.
-    IpmStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
+    IpmPhaseStop last_stop_reason() const noexcept { return last_stop_reason_; }
 
     /// @brief What last_stop_reason() stands for, in the words the result
     ///        message uses: the non-finite quantity and where it was met, or the
@@ -337,7 +337,7 @@ class IpmSolverImpl {
     /// @brief Labels the call an exception ended: last_stop_reason() reads
     ///        kException and last_stop_detail() the exception's description.
     void note_exception_stop(std::string what) noexcept {
-        last_stop_reason_ = IpmStopReason::kException;
+        last_stop_reason_ = IpmPhaseStop::kException;
         stop_detail_ = std::move(what);
     }
 
@@ -517,7 +517,7 @@ class IpmSolverImpl {
     ///
     /// WHAT kStop DOES: the solve ends at the point the event just described --
     /// pre-factorization, so no work is spent on an answer the caller no longer
-    /// wants -- and reports kInterrupted (IpmStopReason::kInterrupted). A stop
+    /// wants -- and reports kInterrupted (IpmPhaseStop::kCallbackStop). A stop
     /// returned at a phase's LAST event is read too: the phase's own verdict
     /// stands (a CONVERGED iterate still reports kOptimal -- converged beats
     /// stop), and the remaining phases do not run, reporting `ran == false`.
@@ -1537,18 +1537,22 @@ class IpmSolverImpl {
     Index limit_factorize_base_ = 0;
     std::chrono::steady_clock::time_point limit_clock_start_{};
     /// Which limit, if any, the solve has reached; kNone when neither.
-    IpmStopReason limit_reached() const;
+    IpmPhaseStop limit_reached() const;
     /// The label for a phase that stopped on its iteration cap: the limit
     /// reached at the same boundary, if any (setting `limit_stop_`), else
     /// kIterationLimit.
-    IpmStopReason cap_or_limit_reason();
+    IpmPhaseStop cap_or_limit_reason();
 
     /// Which door the current phase left its loop by; see last_stop_reason().
     /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two
     /// abnormal exits and two cap doors, read by nothing inside the engine
     /// except those stores' own kNone guards. LAST data member on purpose:
     /// appending it moves no existing member's offset.
-    IpmStopReason last_stop_reason_ = IpmStopReason::kNone;
+    IpmPhaseStop last_stop_reason_ = IpmPhaseStop::kNone;
+    /// The call's `SolveBudget::stop` (M8 AP-5 G1), copied at run_phase_sequence's
+    /// entry and polled at each iteration top beside `interrupt_requested_`.
+    /// Appended after last_stop_reason_, so no existing member's offset moves.
+    StopToken stop_token_;
 
     // KktVector — the compound-KKT segment view — lives in
     // detail/interior/kkt_vector.h as hven::detail::KktVector, shared with

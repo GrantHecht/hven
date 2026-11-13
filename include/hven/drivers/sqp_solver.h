@@ -176,12 +176,6 @@ class SqpSolver {
     /// @throws std::logic_error on a moved-from solver.
     const SqpResult &last_result() const;
 
-    /// Why the most recent solve ended, beside its status: which of the
-    /// engine's exits produced it (SqpStopReason). `kNone` when the status names
-    /// the cause on its own; `kException` after a solve an exception escaped.
-    /// The counterpart of IpmSolver::last_stop_reason().
-    SqpStopReason last_stop_reason() const;
-
     /// Installs the per-iteration callback that both engines accept. An empty
     /// function clears it.
     ///
@@ -194,16 +188,21 @@ class SqpSolver {
     /// whose events reach the callback only under
     /// `CallbackScope::kIncludeRestoration`.
     ///
-    /// Returning `CallbackAction::kStop` latches a stop that is honoured before
-    /// the next subproblem is built. The solve then takes its ordinary
-    /// terminal exit at the current iterate and reports `kInterrupted`.
-    /// Precedence at that exit is converged, then interrupted, then
+    /// Returning `CallbackAction::kStop` stops the solve with `kInterrupted`
+    /// and `StopReason::kCallbackStop`, returning the point the stopping row
+    /// describes, and no further step is taken (M8 AP-5 G1). On a row that
+    /// records an ACCEPTED step the stop is honoured right after the row is
+    /// recorded: the step is not committed, the history ends on that row
+    /// (`qp_solved == true`, `history.size() == counters.major_iters`) and the
+    /// result is that row's point. On any other row it is honoured at the next
+    /// exit test, before a subproblem is built: the solve takes its ordinary
+    /// terminal exit at the current iterate, whose own terminal row is
+    /// recorded. Precedence at that exit is converged, then interrupted, then
     /// probe-exhausted, then the iteration cap: a stop on a converged row still
-    /// reports `kOptimal`. A stop returned on row `k` is honoured at row
-    /// `k + 1`'s exit, so the solve returns after that row. A stop returned
-    /// inside a restoration sub-solve (under `kIncludeRestoration`) latches on
-    /// this solver too. A stop on
-    /// the public call's own terminal row is a no-op.
+    /// reports `kOptimal`. A stop returned inside a restoration sub-solve
+    /// (under `kIncludeRestoration`) latches on this solver too. A stop on the
+    /// public call's own terminal row is a no-op. `SolveBudget::stop` is
+    /// honoured at the same two points.
     ///
     /// The callback may throw. The exception propagates out of `solve()`, no
     /// `sqp.solve.end` event and no ledger record are emitted for the abandoned

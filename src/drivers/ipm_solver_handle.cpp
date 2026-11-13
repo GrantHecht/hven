@@ -31,13 +31,14 @@ namespace {
 }
 
 // What the handle adds to the engine's result: the row-space blocks, the callback
-// tally and the stop message.
+// tally, the stop reason and the stop message.
 void finish_result(const IpmSolverImpl &engine, const Problem &problem, const SolveBudget &budget,
                    IpmResult &result) {
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
+    result.stop_reason = detail::to_stop_reason(engine.last_stop_reason());
     result.message = detail::ipm_result_message(
-        result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+        result, result.stop_reason, engine.last_stop_detail(), engine.options(), budget);
 }
 
 // THE SAME FINISHING FOR A SOLVE AN EXCEPTION INTERRUPTED (M8 B5): what the
@@ -58,8 +59,9 @@ void finish_interrupted_result(IpmSolverImpl &engine, const Problem &problem,
         engine.note_exception_stop(what);
         detail::ProblemAccess::report(problem, result);
         detail::ProblemAccess::report_work(problem, result);
+        result.stop_reason = detail::to_stop_reason(engine.last_stop_reason());
         result.message = detail::ipm_result_message(
-            result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+            result, result.stop_reason, engine.last_stop_detail(), engine.options(), budget);
     } catch (...) {
     }
 }
@@ -90,7 +92,6 @@ const IpmOptions &IpmSolver::options() const { return impl().options(); }
 
 void IpmSolver::set_options(IpmOptions o) { impl().set_options(std::move(o)); }
 
-IpmStopReason IpmSolver::last_stop_reason() const { return impl().last_stop_reason(); }
 
 const IpmResult &IpmSolver::last_result() const { return impl().last_result(); }
 

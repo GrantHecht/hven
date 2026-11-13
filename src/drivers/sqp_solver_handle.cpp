@@ -59,7 +59,6 @@ void SqpSolver::set_options(SqpOptions o) { impl().set_options(std::move(o)); }
 
 int SqpSolver::ssn_tier_threads() const { return impl().ssn_tier_num_threads(); }
 
-SqpStopReason SqpSolver::last_stop_reason() const { return impl().last_stop_reason(); }
 
 const SqpResult &SqpSolver::last_result() const { return impl().last_result(); }
 
@@ -76,14 +75,15 @@ bool reads_exact_hessian(const SqpOptions &options) {
 }
 
 // What the handle adds to the engine's result: the row-space blocks, the work
-// tally and the stop message.
+// tally, the stop reason and the stop message.
 void finish_result(const SqpSolverImpl &engine, const Problem &problem, const SolveBudget &budget,
                    SqpResult &result) {
     detail::ProblemAccess::report(problem, result);
     detail::ProblemAccess::report_work(problem, result);
     result.work.factorizations = result.counters.factorizations;
+    result.stop_reason = engine.last_stop_reason();
     result.message = detail::sqp_result_message(
-        result, engine.last_stop_reason(), engine.last_stop_detail(), engine.options(), budget);
+        result, result.stop_reason, engine.last_stop_detail(), engine.options(), budget);
 }
 
 // THE SAME FINISHING FOR A SOLVE AN EXCEPTION INTERRUPTED (M8 B5); see the

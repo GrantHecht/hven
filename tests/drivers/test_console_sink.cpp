@@ -458,7 +458,7 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
     opt_report.status = SolveStatus::kIterationLimit;
     opt_report.iterations = 6;
     opt_report.phase_seconds = 0.0078125;
-    opt_report.stop_reason = IpmStopReason::kIterationLimit;
+    opt_report.stop_reason = StopReason::kNone;
     opt_report.ran = true;
     IpmPhaseExitTraceEvent opt_exit{opt_report, rows[5]};
     opt_exit.phase = 0;
@@ -483,7 +483,7 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
     soe_report.status = SolveStatus::kOptimal;
     soe_report.iterations = 6;
     soe_report.phase_seconds = 0.00390625;
-    soe_report.stop_reason = IpmStopReason::kNone;
+    soe_report.stop_reason = StopReason::kNone;
     soe_report.ran = true;
     IpmPhaseExitTraceEvent soe_exit{soe_report, rows[11]};
     soe_exit.phase = 1;

@@ -63,7 +63,19 @@ std::string exception_message(const std::string &detail) {
     return with_detail("interrupted by an exception that escaped the solve", detail);
 }
 
-std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
+// THE THREE kInterrupted EXITS (M8 AP-5 G1): an escaped exception, the
+// callback's kStop and the stop token.
+std::string interrupted_message(StopReason reason, const std::string &detail) {
+    if (reason == StopReason::kException) {
+        return exception_message(detail);
+    }
+    if (reason == StopReason::kStopRequested) {
+        return "interrupted by a stop request (SolveBudget::stop)";
+    }
+    return "interrupted by the iteration callback";
+}
+
+std::string ipm_status_message(const SolveResult &result, StopReason reason,
                                const std::string &detail, const IpmOptions &options,
                                const SolveBudget &budget) {
     const CommonOptions &common = options.common;
@@ -83,7 +95,7 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
     case SolveStatus::kInfeasible:
         return "locally infeasible";
     case SolveStatus::kStalled:
-        if (reason == IpmStopReason::kRestorationLocallyInfeasible) {
+        if (reason == StopReason::kRestorationLocallyInfeasible) {
             return "stalled: restoration reached a locally infeasible point";
         }
         return "stalled: the iteration stopped making progress";
@@ -91,10 +103,10 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
         return "diverging: the iterates grew without bound";
     case SolveStatus::kNumericalError:
         switch (reason) {
-        case IpmStopReason::kNonFiniteStart:
-        case IpmStopReason::kNonFiniteIterate:
-        case IpmStopReason::kEvaluationFailure:
-        case IpmStopReason::kNone:
+        case StopReason::kNonFiniteStart:
+        case StopReason::kNonFiniteIterate:
+        case StopReason::kEvaluationFailure:
+        case StopReason::kNone:
             // kNone: empty on every exit but a factorization that left no
             // numerics (the initial one, an iteration's inertia-correction
             // ladder, or the dense step guard's re-run), whose words say what
@@ -104,10 +116,7 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
             return "numerical error";
         }
     case SolveStatus::kInterrupted:
-        if (reason == IpmStopReason::kException) {
-            return exception_message(detail);
-        }
-        return "interrupted by the iteration callback";
+        return interrupted_message(reason, detail);
     case SolveStatus::kWorkLimit:
         return factorization_limit_message(common);
     case SolveStatus::kTimeLimit:
@@ -116,7 +125,7 @@ std::string ipm_status_message(const SolveResult &result, IpmStopReason reason,
     return "unrecognized status";
 }
 
-std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
+std::string sqp_status_message(const SqpResult &result, StopReason reason,
                                const std::string &detail, const SqpOptions &options,
                                const SolveBudget &budget) {
     const CommonOptions &common = options.common;
@@ -132,10 +141,10 @@ std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
             return "locally infeasible (certified: restoration reached a stationary point of the "
                    "infeasibility measure)";
         }
-        if (reason == SqpStopReason::kInconsistentEqualities) {
+        if (reason == StopReason::kInconsistentEqualities) {
             return "locally infeasible (uncertified: the equality constraints are inconsistent)";
         }
-        if (reason == SqpStopReason::kSubproblemFailure) {
+        if (reason == StopReason::kSubproblemFailure) {
             return "locally infeasible (uncertified: the QP subproblem is infeasible)";
         }
         return "locally infeasible (uncertified: no claim is made about the model)";
@@ -145,30 +154,27 @@ std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
         return "diverging: the iterates grew without bound";
     case SolveStatus::kNumericalError:
         switch (reason) {
-        case SqpStopReason::kNonFiniteStart:
-        case SqpStopReason::kNonFiniteIterate:
+        case StopReason::kNonFiniteStart:
+        case StopReason::kNonFiniteIterate:
             return with_detail("numerical error", detail);
-        case SqpStopReason::kSubproblemFailure:
+        case StopReason::kSubproblemFailure:
             return "numerical error: the QP subproblem failed and its retry budget was spent";
-        case SqpStopReason::kRestorationRefused:
+        case StopReason::kRestorationRefused:
             return "numerical error: feasibility restoration was requested and could not be "
                    "serviced (a request from inside restoration, or the entry cap spent)";
-        case SqpStopReason::kRestorationNonFinite:
+        case StopReason::kRestorationNonFinite:
             return "numerical error: feasibility restoration ended where the model is not finite";
-        case SqpStopReason::kRestorationNoClaim:
+        case StopReason::kRestorationNoClaim:
             return "numerical error: feasibility restoration converged without a claim (the "
                    "point is neither feasible enough to resume nor infeasible enough to certify)";
-        case SqpStopReason::kRestorationFailed:
+        case StopReason::kRestorationFailed:
             return with_detail("numerical error: the feasibility restoration sub-solve failed",
                                detail);
         default:
             return "numerical error";
         }
     case SolveStatus::kInterrupted:
-        if (reason == SqpStopReason::kException) {
-            return exception_message(detail);
-        }
-        return "interrupted by the iteration callback";
+        return interrupted_message(reason, detail);
     case SolveStatus::kWorkLimit:
         if (result.counters.probe_budget_stops > 0) {
             if (budget.max_minor_iterations) {
@@ -186,14 +192,14 @@ std::string sqp_status_message(const SqpResult &result, SqpStopReason reason,
 
 } // namespace
 
-std::string ipm_result_message(const SolveResult &result, IpmStopReason reason,
+std::string ipm_result_message(const SolveResult &result, StopReason reason,
                                const std::string &detail, const IpmOptions &options,
                                const SolveBudget &budget) {
     return with_best_clause(ipm_status_message(result, reason, detail, options, budget),
                             result.returned_best_iterate);
 }
 
-std::string sqp_result_message(const SqpResult &result, SqpStopReason reason,
+std::string sqp_result_message(const SqpResult &result, StopReason reason,
                                const std::string &detail, const SqpOptions &options,
                                const SolveBudget &budget) {
     return with_best_clause(sqp_status_message(result, reason, detail, options, budget),
