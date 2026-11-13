@@ -1,0 +1,14 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:42:41-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:42:41-05:00
+	2276 - CorpusBaseline.TheCommittedSsnBatteryScoresToItsDocumentedVerdict (Failed)
+	2430 - IpqpAcceptanceA2.ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWithTheWalk (Failed)
+	3494 - SqpConsole.TheLiveConsoleEqualsFormatIterationTable (Failed)
+	3497 - SqpConsole.TheRestorationSubDriverIsTheOneDriverThatNeverPrints (Failed)
+Errors while running CTest
+rc=8
+FOREGROUND_END 2026-11-12T22:43:57-05:00
+STEP ctest-rel rc=8 2026-11-12T22:43:57-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:43:57-05:00
