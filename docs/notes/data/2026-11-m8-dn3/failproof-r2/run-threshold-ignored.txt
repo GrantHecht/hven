@@ -1,0 +1,322 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-threshold-ignored/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseAuto.*:DenseArmEngines.*:Limits.*
+[==========] Running 46 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsEveryPolicyAndNoThreshold
+[       OK ] DenseArmEngines.IpmValidateAcceptsEveryPolicyAndNoThreshold (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold
+[       OK ] DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm
+[       OK ] DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate
+[       OK ] DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate (0 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+[       OK ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK (0 ms)
+[----------] 15 tests from DenseArmEngines (22 ms total)
+
+[----------] 12 tests from DenseAuto
+[ RUN      ] DenseAuto.EachEngineHasItsOwnThreshold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:172: Failure
+Expected equality of these values:
+  dense_selection_threshold(DensePolicy::kAuto, 7)
+    Which is: (1099511627776)
+  7
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:177: Failure
+Expected equality of these values:
+  hven::detail::sqp_kkt_options(0, DensePolicy::kAuto).max_dense_dimension
+    Which is: (1099511627776)
+  hven::detail::kSqpDenseSelectionThreshold
+    Which is: 105
+
+[  FAILED  ] DenseAuto.EachEngineHasItsOwnThreshold (0 ms)
+[ RUN      ] DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:211: Failure
+Expected equality of these values:
+  above.arm
+    Which is: 4-byte object <01-00 00-00>
+  hven::linear::FactorArm::kSparse
+    Which is: 4-byte object <00-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:213: Failure
+Expected equality of these values:
+  dense
+    Which is: 2
+  1
+
+[  FAILED  ] DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder (0 ms)
+[ RUN      ] DenseAuto.TheWalkKeySeparatesThePolicies
+[       OK ] DenseAuto.TheWalkKeySeparatesThePolicies (0 ms)
+[ RUN      ] DenseAuto.IpmBelowItsThresholdIsTheDenseArm
+[       OK ] DenseAuto.IpmBelowItsThresholdIsTheDenseArm (1 ms)
+[ RUN      ] DenseAuto.IpmAboveItsThresholdIsThePlatformSession
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:143: Failure
+Expected equality of these values:
+  a.f
+    Which is: 48.39007677263006
+  b.f
+    Which is: 48.390076772630053
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:144: Failure
+Expected equality of these values:
+  a.x
+    Which is: { 0.84621508021688463, 0.76385996020414715, 0.25018900270384015, -0.39501570342713865, -0.47096759003457089, 0.12462981607434109, 0.89706741971339277, 1.1825167242182002, 0.77060363258792375, 0.075760744981679395, -0.73864772221371244, -0.33829434048954371, 0.46018762860473372, 0.98333220873007243, 0.79528153944688529, 0.11813384527232704, -0.37714910042456551, -0.18765758682133737, 0.5641354233038004, 1.222842790842493, 0.70735775009514623, 0.077185104761246542, -0.53684918986716168, -0.50954972664038234, 0.17910322859462269, 0.94517066303227282, 1.1327290079665855, 0.61688684299035179, -0.076348264015927203, -0.27381126519396515, -0.26944983772125164, 0.51829637662681194, ... }
+  b.x
+    Which is: { 0.84621508021688463, 0.76385996020414726, 0.25018900270384026, -0.39501570342713865, -0.47096759003457089, 0.12462981607434082, 0.8970674197133921, 1.1825167242182006, 0.7706036325879233, 0.075760744981679395, -0.73864772221371244, -0.33829434048954354, 0.46018762860473383, 0.98333220873007243, 0.79528153944688507, 0.11813384527232701, -0.37714910042456606, -0.18765758682133687, 0.56413542330379995, 1.2228427908424933, 0.70735775009514612, 0.077185104761246737, -0.53684918986716168, -0.50954972664038212, 0.17910322859462235, 0.94517066303227282, 1.1327290079665848, 0.61688684299035257, -0.076348264015927758, -0.27381126519396493, -0.26944983772125186, 0.51829637662681205, ... }
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:146: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 2
+  b.dense_factorizations
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:150: Failure
+Expected equality of these values:
+  a.kkt_factor_counters.dense_factorize_count
+    Which is: 2
+  b.kkt_factor_counters.dense_factorize_count
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:256: Failure
+Expected equality of these values:
+  automatic.dense_factorizations
+    Which is: 2
+  0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:257: Failure
+Expected equality of these values:
+  automatic.kkt_factor_counters.dense_factorize_count
+    Which is: 2
+  0
+
+[  FAILED  ] DenseAuto.IpmAboveItsThresholdIsThePlatformSession (2 ms)
+[ RUN      ] DenseAuto.IpmCountsTheDenseArmsFactorizations
+[       OK ] DenseAuto.IpmCountsTheDenseArmsFactorizations (1 ms)
+[ RUN      ] DenseAuto.IpmCountsPerCall
+[       OK ] DenseAuto.IpmCountsPerCall (0 ms)
+[ RUN      ] DenseAuto.SqpBelowItsThresholdIsTheDenseArm
+[       OK ] DenseAuto.SqpBelowItsThresholdIsTheDenseArm (2 ms)
+[ RUN      ] DenseAuto.SqpAboveItsThresholdIsThePlatformSession
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:157: Failure
+Expected equality of these values:
+  a.x
+    Which is: { 0.93431184024085634, 0.76221781468185634, 0.37086548281085002, -0.19493920570757906, -0.22465237573071642, 0.36415148183015444, 1.1208421250841982, 1.4332494649109133, 1.0908115235514584, 0.51966920107674608, -0.76949587451376034, -0.30806529281082257, 0.57232424823171613, 1.1856969551687302, 1.0409836193543756, 0.35781979989449819, -0.15341841612282558, 0.063086949281281723, 0.88434015369677665, 1.6667520938098885, 0.67650937087634166, 0.10741421324266534, -0.42471258653221311, -0.30718497583628723, 0.42480530733239757, 1.1848566179678683, 1.3564596921843435, 0.86763137911547417, 0.24385646637101893, 0.17009803777504617, -0.30029821694048919, 0.54852548510834664, ... }
+  b.x
+    Which is: { 0.93431184024085634, 0.76221781468185645, 0.37086548281084997, -0.19493920570757889, -0.22465237573071656, 0.36415148183015433, 1.1208421250841984, 1.4332494649109131, 1.0908115235514584, 0.51966920107674608, -0.76949587451376045, -0.30806529281082251, 0.57232424823171613, 1.1856969551687302, 1.0409836193543756, 0.35781979989449808, -0.15341841612282564, 0.063086949281281945, 0.88434015369677643, 1.6667520938098888, 0.67650937087634144, 0.10741421324266537, -0.424712586532213, -0.30718497583628723, 0.42480530733239752, 1.1848566179678683, 1.3564596921843437, 0.86763137911547406, 0.24385646637101893, 0.17009803777504617, -0.30029821694048925, 0.54852548510834664, ... }
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:160: Failure
+Expected equality of these values:
+  a.counters.dense_factorizations
+    Which is: 2
+  b.counters.dense_factorizations
+    Which is: 0
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:317: Failure
+Expected equality of these values:
+  automatic.counters.dense_factorizations
+    Which is: 2
+  0
+
+[  FAILED  ] DenseAuto.SqpAboveItsThresholdIsThePlatformSession (22 ms)
+[ RUN      ] DenseAuto.TheWalkSelectsByTheSqpThreshold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:370: Failure
+Expected equality of these values:
+  a.x
+    Which is: { -0.037987967229117278, -0.038732584947875237, 0.037924056776508834, 0.12150419506285196, 0.13516463622024619, 0.074100681071564978, -0.013501502137185966, -0.046899767079842641, 0.004612097007883449, 0.093674319842869322, 0.14615815190674272, 0.10585444953473645, 0.010019353899831456, -0.053236790037427928, -0.025756575261779352, 0.07494946291817893, 0.14833690692264864, 0.12713478225966318, 0.030836224565763876, -0.052022316318830433, -0.037506432601933232, 0.05308228866373333, 0.13665809800001266, 0.13638178173272153, 0.052507383763709649, -0.030096713796287894, -0.043440435105757368, 0.02494547875170865, 0.11218733395335587, 0.13807537116321852, 0.086562895783978897, -0.0029455103894761164, ... }
+  t.x
+    Which is: { -0.037987967229117271, -0.038732584947875237, 0.037924056776508848, 0.12150419506285197, 0.13516463622024621, 0.074100681071564978, -0.013501502137185971, -0.046899767079842634, 0.0046120970078834559, 0.093674319842869322, 0.14615815190674275, 0.10585444953473645, 0.01001935389983147, -0.053236790037427914, -0.025756575261779345, 0.07494946291817893, 0.14833690692264864, 0.12713478225966318, 0.030836224565763893, -0.05202231631883044, -0.037506432601933225, 0.053082288663733337, 0.13665809800001263, 0.13638178173272153, 0.052507383763709649, -0.030096713796287887, -0.043440435105757361, 0.024945478751708661, 0.11218733395335588, 0.13807537116321852, 0.086562895783978897, -0.0029455103894761186, ... }
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:360: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:372: Failure
+Expected equality of these values:
+  a.counters.dense_factorizations
+    Which is: 1
+  t.counters.dense_factorizations
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:360: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:376: Failure
+Expected equality of these values:
+  a.counters.dense_factorizations
+    Which is: 1
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:360: 110
+
+[  FAILED  ] DenseAuto.TheWalkSelectsByTheSqpThreshold (1 ms)
+[ RUN      ] DenseAuto.TheSsnTierSelectsByTheSqpThreshold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:394: Failure
+Expected equality of these values:
+  a.x
+    Which is: { -0.03798796641550669, -0.038732584129561536, 0.037924056828176067, 0.12150419428137429, 0.13516463530511491, 0.074100680764064925, -0.013501501571233553, -0.04689976617976753, 0.004612097395560566, 0.09367431934272416, 0.14615815087852385, 0.10585444890689065, 0.010019354230601525, -0.053236789071146255, -0.025756574567376719, 0.074949462602189348, 0.14833690586989332, 0.12713478141904472, 0.030836224691147281, -0.052022315361717864, -0.037506431793138943, 0.053082288563714677, 0.136658097064142, 0.13638178080243826, 0.052507383675316169, -0.030096713061605614, -0.043440434240355756, 0.024945478933187614, 0.1121873332650655, 0.13807537021897404, 0.086562895351831773, -0.0029455099291047365, ... }
+  t.x
+    Which is: { -0.037987966415506724, -0.038732584129561556, 0.037924056828176025, 0.12150419428137431, 0.13516463530511488, 0.074100680764064897, -0.01350150157123357, -0.046899766179767592, 0.0046120973955605478, 0.093674319342724147, 0.14615815087852385, 0.10585444890689062, 0.010019354230601482, -0.053236789071146269, -0.025756574567376723, 0.074949462602189321, 0.14833690586989329, 0.12713478141904469, 0.030836224691147263, -0.052022315361717857, -0.037506431793138964, 0.053082288563714657, 0.13665809706414195, 0.13638178080243823, 0.052507383675316162, -0.030096713061605638, -0.043440434240355777, 0.024945478933187576, 0.11218733326506547, 0.13807537021897406, 0.086562895351831745, -0.0029455099291047612, ... }
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:384: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:396: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 2
+  t.dense_factorizations
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:384: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:401: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 2
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:384: 110
+
+[  FAILED  ] DenseAuto.TheSsnTierSelectsByTheSqpThreshold (2 ms)
+[ RUN      ] DenseAuto.TheIpqpTierSelectsByTheSqpThreshold
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:419: Failure
+Expected equality of these values:
+  a.x
+    Which is: { -0.037987951767889369, -0.038732569348286686, 0.037924058144512447, 0.12150418091377857, 0.13516461953493283, 0.074100675723131421, -0.013501491221838859, -0.046899749963990468, 0.0046121045602492911, 0.093674310860382692, 0.14615813318058007, 0.10585443829122104, 0.010019360448443714, -0.053236771745207752, -0.025756562071489936, 0.074949457412165965, 0.14833688779211193, 0.12713476706537413, 0.030836227249525942, -0.052022298252211545, -0.037506417230103964, 0.053082287217559754, 0.1366580810376857, 0.13638176482157055, 0.052507382424013052, -0.03009669980009962, -0.043440418632139474, 0.024945482529232042, 0.11218732153399133, 0.13807535393751674, 0.086562888121890266, -0.0029455014338869161, ... }
+  t.x
+    Which is: { -0.037987951767889376, -0.038732569348286686, 0.037924058144512454, 0.12150418091377857, 0.13516461953493283, 0.074100675723131421, -0.013501491221838862, -0.046899749963990468, 0.0046121045602492859, 0.093674310860382706, 0.14615813318058007, 0.10585443829122103, 0.010019360448443719, -0.053236771745207759, -0.025756562071489939, 0.074949457412165951, 0.14833688779211193, 0.12713476706537413, 0.030836227249525935, -0.052022298252211545, -0.037506417230103964, 0.05308228721755974, 0.1366580810376857, 0.13638176482157055, 0.052507382424013052, -0.03009669980009963, -0.043440418632139481, 0.024945482529232042, 0.11218732153399133, 0.13807535393751674, 0.086562888121890266, -0.002945501433886923, ... }
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:408: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:421: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 7
+  t.dense_factorizations
+    Which is: 0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:408: 110
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:425: Failure
+Expected equality of these values:
+  a.dense_factorizations
+    Which is: 7
+  0
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/drivers/test_dense_auto.cpp:408: 110
+
+[  FAILED  ] DenseAuto.TheIpqpTierSelectsByTheSqpThreshold (1 ms)
+[----------] 12 tests from DenseAuto (35 ms total)
+
+[----------] 19 tests from Limits
+[ RUN      ] Limits.IpmValidateRefusesTheNewCommonValues
+[       OK ] Limits.IpmValidateRefusesTheNewCommonValues (0 ms)
+[ RUN      ] Limits.SqpValidateRefusesTheNewCommonValues
+[       OK ] Limits.SqpValidateRefusesTheNewCommonValues (0 ms)
+[ RUN      ] Limits.BothEnginesRefuseACommonValueWithTheSameText
+[       OK ] Limits.BothEnginesRefuseACommonValueWithTheSameText (0 ms)
+[ RUN      ] Limits.AnEngagedQpMaxIterBelowOneIsRefused
+[       OK ] Limits.AnEngagedQpMaxIterBelowOneIsRefused (0 ms)
+[ RUN      ] Limits.RelaxBoundsNeedsAPositiveRelaxFactor
+[       OK ] Limits.RelaxBoundsNeedsAPositiveRelaxFactor (0 ms)
+[ RUN      ] Limits.IpmValidateRefusesTheTerminationAndLinearValues
+[       OK ] Limits.IpmValidateRefusesTheTerminationAndLinearValues (0 ms)
+[ RUN      ] Limits.ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines
+[       OK ] Limits.ABudgetMemberBelowOneIsRefusedAtSolveEntryOnBothEngines (1 ms)
+[ RUN      ] Limits.IpmWorkLimitStopsAtTheBoundaryWithTheCurrentPoint
+[       OK ] Limits.IpmWorkLimitStopsAtTheBoundaryWithTheCurrentPoint (1 ms)
+[ RUN      ] Limits.AnIpmWorkLimitEndsThePhaseSequence
+[       OK ] Limits.AnIpmWorkLimitEndsThePhaseSequence (0 ms)
+[ RUN      ] Limits.ANeverBindingIpmLimitIsTheUnlimitedSolveBitForBit
+[       OK ] Limits.ANeverBindingIpmLimitIsTheUnlimitedSolveBitForBit (1 ms)
+[ RUN      ] Limits.SqpWorkLimitStopsAtTheBoundaryWithTheCurrentPoint
+[       OK ] Limits.SqpWorkLimitStopsAtTheBoundaryWithTheCurrentPoint (2 ms)
+[ RUN      ] Limits.ANeverBindingSqpLimitIsTheUnlimitedSolveBitForBit
+[       OK ] Limits.ANeverBindingSqpLimitIsTheUnlimitedSolveBitForBit (3 ms)
+[ RUN      ] Limits.TheSqpMinorBudgetReportsWorkLimit
+[       OK ] Limits.TheSqpMinorBudgetReportsWorkLimit (0 ms)
+[ RUN      ] Limits.AnUnmeetableTimeLimitReportsTimeLimitOnBothEngines
+[       OK ] Limits.AnUnmeetableTimeLimitReportsTimeLimitOnBothEngines (0 ms)
+[ RUN      ] Limits.AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere
+[       OK ] Limits.AnIpmLimitBindingInASecondPhaseEndsTheSequenceThere (3 ms)
+[ RUN      ] Limits.ALimitExitIgnoresReturnBest
+[       OK ] Limits.ALimitExitIgnoresReturnBest (14 ms)
+[ RUN      ] Limits.SetOptionsBetweenSolvesRearmsTheIpmLimit
+[       OK ] Limits.SetOptionsBetweenSolvesRearmsTheIpmLimit (0 ms)
+[ RUN      ] Limits.SetOptionsBetweenSolvesRearmsTheSqpLimit
+[       OK ] Limits.SetOptionsBetweenSolvesRearmsTheSqpLimit (3 ms)
+[ RUN      ] Limits.AnIpmCapAndLimitTieReportsTheLimit
+[       OK ] Limits.AnIpmCapAndLimitTieReportsTheLimit (2 ms)
+[----------] 19 tests from Limits (36 ms total)
+
+[----------] Global test environment tear-down
+[==========] 46 tests from 3 test suites ran. (94 ms total)
+[  PASSED  ] 39 tests.
+[  FAILED  ] 7 tests, listed below:
+[  FAILED  ] DenseAuto.EachEngineHasItsOwnThreshold
+[  FAILED  ] DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder
+[  FAILED  ] DenseAuto.IpmAboveItsThresholdIsThePlatformSession
+[  FAILED  ] DenseAuto.SqpAboveItsThresholdIsThePlatformSession
+[  FAILED  ] DenseAuto.TheWalkSelectsByTheSqpThreshold
+[  FAILED  ] DenseAuto.TheSsnTierSelectsByTheSqpThreshold
+[  FAILED  ] DenseAuto.TheIpqpTierSelectsByTheSqpThreshold
+
+ 7 FAILED TESTS
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-threshold-ignored/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = WsRankRepair.*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from WsRankRepair
+[ RUN      ] WsRankRepair.InconsistentRowIsReleasedByItsOrientation
+[       OK ] WsRankRepair.InconsistentRowIsReleasedByItsOrientation (0 ms)
+[ RUN      ] WsRankRepair.ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale
+[       OK ] WsRankRepair.ALargePinnedBoundElsewhereDoesNotInflateTheConsistencyScale (0 ms)
+[ RUN      ] WsRankRepair.NineNullDirectionsDoubleTheBlock
+[       OK ] WsRankRepair.NineNullDirectionsDoubleTheBlock (11 ms)
+[ RUN      ] WsRankRepair.ABlockPastTheCapRefuses
+[       OK ] WsRankRepair.ABlockPastTheCapRefuses (2 ms)
+[ RUN      ] WsRankRepair.InconsistentWithNoAdmissibleMemberIsStuck
+[       OK ] WsRankRepair.InconsistentWithNoAdmissibleMemberIsStuck (0 ms)
+[ RUN      ] WsRankRepair.ConsistentRowIsReleasedUnlessShiftDriven
+[       OK ] WsRankRepair.ConsistentRowIsReleasedUnlessShiftDriven (0 ms)
+[ RUN      ] WsRankRepair.PinsCarryTheRowsDependencyAndItsOrientation
+[       OK ] WsRankRepair.PinsCarryTheRowsDependencyAndItsOrientation (0 ms)
+[ RUN      ] WsRankRepair.MandatoryOnlyDependenceReleasesNothing
+[       OK ] WsRankRepair.MandatoryOnlyDependenceReleasesNothing (0 ms)
+[ RUN      ] WsRankRepair.BlockPathFindsTwoInconsistentDirections
+[       OK ] WsRankRepair.BlockPathFindsTwoInconsistentDirections (2 ms)
+[ RUN      ] WsRankRepair.TheGramFactorCountsItsDenseFactorization
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/fp-src-threshold-ignored/tests/sqp/test_qp_ws_independence.cpp:1168: Failure
+Expected equality of these values:
+  automatic.dense_factorizations
+    Which is: 1
+  0
+
+[  FAILED  ] WsRankRepair.TheGramFactorCountsItsDenseFactorization (59 ms)
+[----------] 10 tests from WsRankRepair (76 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (76 ms total)
+[  PASSED  ] 9 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] WsRankRepair.TheGramFactorCountsItsDenseFactorization
+
+ 1 FAILED TEST

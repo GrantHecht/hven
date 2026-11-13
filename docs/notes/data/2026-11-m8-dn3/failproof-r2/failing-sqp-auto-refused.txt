@@ -1,0 +1,4 @@
+DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold
+DenseAuto.SqpAboveItsThresholdIsThePlatformSession
+DenseAuto.SqpBelowItsThresholdIsTheDenseArm
+Limits.SqpValidateRefusesTheNewCommonValues

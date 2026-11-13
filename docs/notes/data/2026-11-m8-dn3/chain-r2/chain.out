@@ -1,0 +1,152 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:51:05-05:00
+TMPDIR=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/tmp
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:51:05-05:00
+
+The following tests did not run:
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T22:52:19-05:00
+STEP ctest-rel rc=0 2026-11-12T22:52:19-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:52:19-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T22:58:55-05:00
+STEP ctest-dbg rc=0 2026-11-12T22:58:55-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T22:58:55-05:00
+3cb0aafba25eb7c310ef85863834819fc5d66459db342fa695c9e41ec0ba0c3f  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-12T22:58:55-05:00
+run rc=0
+compare rc=0
+=== dn3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-12T23:03:44-05:00
+run rc=0
+compare rc=0
+=== dn3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-12T23:04:05-05:00
+run rc=0
+compare rc=0
+=== dn3-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-12T23:04:31-05:00
+STEP replay rc=0 2026-11-12T23:04:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T23:04:31-05:00
+e53c29d22745fa6a3eb8b49e8b9199ad893957b9ab5ee69ce07ba5301d77a952  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/armAbin/hven_sqp_corpus
+3cb0aafba25eb7c310ef85863834819fc5d66459db342fa695c9e41ec0ba0c3f  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-12T23:05:05-05:00
+STEP interior rc=0 2026-11-12T23:05:05-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T23:05:05-05:00
+MUTATED threshold-ignored
+build threshold-ignored rc=0
+threshold-ignored tests/drivers/hven_drivers_tests rc=1
+threshold-ignored tests/sqp/hven_sqp_tests rc=1
+threshold-ignored passed=48 failing=8: DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder DenseAuto.EachEngineHasItsOwnThreshold DenseAuto.IpmAboveItsThresholdIsThePlatformSession DenseAuto.SqpAboveItsThresholdIsThePlatformSession DenseAuto.TheIpqpTierSelectsByTheSqpThreshold DenseAuto.TheSsnTierSelectsByTheSqpThreshold DenseAuto.TheWalkSelectsByTheSqpThreshold WsRankRepair.TheGramFactorCountsItsDenseFactorization 
+MUTATED ipm-sqp-threshold
+build ipm-sqp-threshold rc=0
+ipm-sqp-threshold tests/drivers/hven_drivers_tests rc=1
+ipm-sqp-threshold tests/sqp/hven_sqp_tests rc=0
+ipm-sqp-threshold passed=55 failing=1: DenseAuto.IpmBelowItsThresholdIsTheDenseArm 
+MUTATED ipqp-ipm-threshold
+build ipqp-ipm-threshold rc=0
+ipqp-ipm-threshold tests/drivers/hven_drivers_tests rc=1
+ipqp-ipm-threshold tests/sqp/hven_sqp_tests rc=0
+ipqp-ipm-threshold passed=55 failing=1: DenseAuto.TheIpqpTierSelectsByTheSqpThreshold 
+MUTATED sqp-auto-refused
+build sqp-auto-refused rc=0
+sqp-auto-refused tests/drivers/hven_drivers_tests rc=1
+sqp-auto-refused tests/sqp/hven_sqp_tests rc=0
+sqp-auto-refused passed=52 failing=4: DenseArmEngines.SqpValidateAcceptsEveryPolicyAndNoThreshold DenseAuto.SqpAboveItsThresholdIsThePlatformSession DenseAuto.SqpBelowItsThresholdIsTheDenseArm Limits.SqpValidateRefusesTheNewCommonValues 
+MUTATED ipm-auto-refused
+build ipm-auto-refused rc=0
+ipm-auto-refused tests/drivers/hven_drivers_tests rc=1
+ipm-auto-refused tests/sqp/hven_sqp_tests rc=0
+ipm-auto-refused passed=50 failing=6: DenseArmEngines.IpmValidateAcceptsEveryPolicyAndNoThreshold DenseAuto.IpmAboveItsThresholdIsThePlatformSession DenseAuto.IpmBelowItsThresholdIsTheDenseArm DenseAuto.IpmCountsPerCall DenseAuto.IpmCountsTheDenseArmsFactorizations Limits.IpmValidateRefusesTheNewCommonValues 
+MUTATED sqp-counter-off
+build sqp-counter-off rc=0
+sqp-counter-off tests/drivers/hven_drivers_tests rc=1
+sqp-counter-off tests/sqp/hven_sqp_tests rc=0
+sqp-counter-off passed=51 failing=5: DenseAuto.AKktFactorSelectsEachPatternByItsOwnOrder DenseAuto.SqpAboveItsThresholdIsThePlatformSession DenseAuto.SqpBelowItsThresholdIsTheDenseArm DenseAuto.TheSsnTierSelectsByTheSqpThreshold DenseAuto.TheWalkSelectsByTheSqpThreshold 
+MUTATED ipm-counter-off
+build ipm-counter-off rc=0
+ipm-counter-off tests/drivers/hven_drivers_tests rc=1
+ipm-counter-off tests/sqp/hven_sqp_tests rc=0
+ipm-counter-off passed=53 failing=3: DenseAuto.IpmBelowItsThresholdIsTheDenseArm DenseAuto.IpmCountsPerCall DenseAuto.IpmCountsTheDenseArmsFactorizations 
+MUTATED ipqp-counter-off
+build ipqp-counter-off rc=0
+ipqp-counter-off tests/drivers/hven_drivers_tests rc=1
+ipqp-counter-off tests/sqp/hven_sqp_tests rc=0
+ipqp-counter-off passed=55 failing=1: DenseAuto.TheIpqpTierSelectsByTheSqpThreshold 
+MUTATED gram-counter-off
+build gram-counter-off rc=0
+gram-counter-off tests/drivers/hven_drivers_tests rc=0
+gram-counter-off tests/sqp/hven_sqp_tests rc=1
+gram-counter-off passed=55 failing=1: WsRankRepair.TheGramFactorCountsItsDenseFactorization 
+MUTATED fingerprint-no-threshold
+build fingerprint-no-threshold rc=0
+fingerprint-no-threshold tests/drivers/hven_drivers_tests rc=1
+fingerprint-no-threshold tests/sqp/hven_sqp_tests rc=0
+fingerprint-no-threshold passed=55 failing=1: DenseAuto.TheWalkKeySeparatesThePolicies 
+head tests/drivers/hven_drivers_tests rc=0
+head tests/sqp/hven_sqp_tests rc=0
+head passed=56 failing=0: 
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-12T23:30:23-05:00
+STEP failproof rc=0 2026-11-12T23:30:23-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T23:30:23-05:00
+SMOKE_START default 2026-11-12T23:30:23-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-12T23:31:27-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-12T23:32:08-05:00
+STEP install-smoke rc=0 2026-11-12T23:32:08-05:00
+worst=0
+FOREGROUND_END 2026-11-12T23:32:08-05:00
