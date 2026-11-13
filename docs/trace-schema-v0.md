@@ -608,6 +608,8 @@ two.
 | `interrupt_at_iteration` | `iter` = the row the callback stopped on |
 | `phase_diverged` | none |
 | `interrupt_skipping_phases` | none |
+| `stop_requested_at_iteration` | `iter` = the row a `SolveBudget::stop` token's request was honoured on (M8 AP-5 G1) |
+| `stop_requested_skipping_phases` | none; a token stop ending the phase sequence (M8 AP-5 G1) |
 
 **SEVERAL PER ITERATION ARE NORMAL.** `rank_deficiency` and
 `factorization_hard_error` are raised at THREE ladder sites inside one

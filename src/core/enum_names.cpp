@@ -158,10 +158,10 @@ const char *to_string(StopReason reason) {
         fmt::format("to_string(StopReason): unrecognized value ({})", static_cast<int>(reason)));
 }
 
-// THE NINE MESSAGE KINDS (M6 W5 T8.7b). Lower snake, which is both the display
-// form and -- unlike to_string(StartLevel) below -- the schema's own spelling,
-// so trace_writer.cpp's to_json(IpmMessageKind) forwards here rather than
-// keeping a second copy that could drift.
+// THE ELEVEN MESSAGE KINDS (M6 W5 T8.7b; two added by M8 AP-5 G1). Lower snake, which is both the
+// display form and -- unlike to_string(StartLevel) below -- the schema's own spelling, so
+// trace_writer.cpp's to_json(IpmMessageKind) forwards here rather than keeping a second copy that
+// could drift.
 const char *to_string(IpmMessageKind kind) {
     switch (kind) {
     case IpmMessageKind::kSolverInitialized:
@@ -182,6 +182,10 @@ const char *to_string(IpmMessageKind kind) {
         return "phase_diverged";
     case IpmMessageKind::kInterruptSkippingPhases:
         return "interrupt_skipping_phases";
+    case IpmMessageKind::kStopRequestedAtIteration:
+        return "stop_requested_at_iteration";
+    case IpmMessageKind::kStopRequestedSkippingPhases:
+        return "stop_requested_skipping_phases";
     }
     throw std::invalid_argument(
         fmt::format("to_string(IpmMessageKind): unrecognized value ({})", static_cast<int>(kind)));

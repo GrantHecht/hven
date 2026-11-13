@@ -36,5 +36,8 @@ Breaks:
 | SQP: a callback `kStop` on row `k` was honoured at row `k+1`'s exit (one more step taken) | honoured right after row `k` when `k` records an accepted step: the step is not committed, the history ends on row `k` (`qp_solved == true`, `history.size() == counters.major_iters`), the result is row `k`'s point. On any other row, unchanged (the next exit test, at the same point) | a consumer that indexed `history[counters.major_iters]` after a callback stop reads `history.back()` (SqpCounters' note already says so) |
 | `SolveBudget` was trivially copyable | it carries a `StopToken` (a `shared_ptr`) | nothing to rewrite: it is still an aggregate, and `SolveBudget{cap, minors}` still compiles |
 
-The `ipm.message` kind `interrupt_at_iteration` is emitted on a token stop too
-(`SolveResult::stop_reason` tells the two stops apart).
+A token stop has its own `ipm.message` kinds, `stop_requested_at_iteration` and
+`stop_requested_skipping_phases` (console: "Solve stopped by a stop request
+(SolveBudget::stop) ..."); the callback's `interrupt_at_iteration` and
+`interrupt_skipping_phases` are unchanged and are not emitted on a token stop.
+A trace reader that switches over the kind exhaustively adds the two.

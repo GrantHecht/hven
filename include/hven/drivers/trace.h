@@ -652,7 +652,7 @@ struct IpmPhaseExitTraceEvent {
 /// @brief One diagnostic message the interior-point engine emitted (schema
 /// `ipm.message`).
 ///
-/// THE NINE DIAGNOSTIC MESSAGES, as events. The console renders each at the
+/// THE ELEVEN DIAGNOSTIC MESSAGES, as events. The console renders each at the
 /// tier `print_level` selects; a caller's own sink receives the fact instead
 /// of losing it to stdout.
 ///
@@ -672,6 +672,8 @@ struct IpmPhaseExitTraceEvent {
 /// | `interrupt_at_iteration` | `iter` = the row it stopped on |
 /// | `phase_diverged` | none |
 /// | `interrupt_skipping_phases` | none |
+/// | `stop_requested_at_iteration` | `iter` = the row it stopped on |
+/// | `stop_requested_skipping_phases` | none |
 ///
 /// SEVERAL PER ITERATION ARE NORMAL. `rank_deficiency` and
 /// `factorization_hard_error` are raised from lambdas invoked at THREE ladder

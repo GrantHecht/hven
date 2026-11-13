@@ -700,7 +700,7 @@ const char *spec_spelling(IpmInertiaMode v) {
 
 /// M6 W5 T8.7b's four alphabets: the phase vocabulary `ipm.phase.*` carries,
 /// the stop reason and the factorization status `ipm.phase.exit` carries, and
-/// the nine message kinds.
+/// the eleven message kinds.
 const char *spec_spelling(IpmPhase v) {
     switch (v) {
     case IpmPhase::kOptimize:
@@ -783,6 +783,10 @@ const char *spec_spelling(IpmMessageKind v) {
         return "\"phase_diverged\"";
     case IpmMessageKind::kInterruptSkippingPhases:
         return "\"interrupt_skipping_phases\"";
+    case IpmMessageKind::kStopRequestedAtIteration:
+        return "\"stop_requested_at_iteration\"";
+    case IpmMessageKind::kStopRequestedSkippingPhases:
+        return "\"stop_requested_skipping_phases\"";
     }
     return kUnspelled;
 }
@@ -837,8 +841,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(StopReason::kRestorationFailed) == 15 - 1, "15 stop reasons");
     static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
                   "4 factorization statuses");
-    static_assert(static_cast<int>(IpmMessageKind::kInterruptSkippingPhases) == 9 - 1,
-                  "9 message kinds");
+    static_assert(static_cast<int>(IpmMessageKind::kStopRequestedSkippingPhases) == 11 - 1,
+                  "11 message kinds");
 
     const auto reg_dir = [](IpqpTraceRegDirection d) {
         IpqpRegTraceEvent e;
@@ -1092,6 +1096,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     message_kind(IpmMessageKind::kInterruptAtIteration);
     message_kind(IpmMessageKind::kPhaseDiverged);
     message_kind(IpmMessageKind::kInterruptSkippingPhases);
+    message_kind(IpmMessageKind::kStopRequestedAtIteration);
+    message_kind(IpmMessageKind::kStopRequestedSkippingPhases);
 
     start_level(StartLevel::kCold);
     start_level(StartLevel::kSeeded);
@@ -4456,7 +4462,8 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
           IpmMessageKind::kFactorizationHardError, IpmMessageKind::kInertiaExhausted,
           IpmMessageKind::kRestorationLocallyInfeasible, IpmMessageKind::kFeasibilityStall,
           IpmMessageKind::kInterruptAtIteration, IpmMessageKind::kPhaseDiverged,
-          IpmMessageKind::kInterruptSkippingPhases}) {
+          IpmMessageKind::kInterruptSkippingPhases, IpmMessageKind::kStopRequestedAtIteration,
+          IpmMessageKind::kStopRequestedSkippingPhases}) {
         IpmMessageTraceEvent m;
         m.kind = kind;
         sink.on_ipm_message(m);

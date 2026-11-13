@@ -568,6 +568,16 @@ void ConsoleTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
                    "Solve interrupted by the iteration callback; skipping remaining "
                    "phases.\n");
         break;
+    case IpmMessageKind::kStopRequestedAtIteration:
+        fmt::print(out_, yellow,
+                   "Solve stopped by a stop request (SolveBudget::stop) at iteration {}.\n",
+                   event.iter);
+        break;
+    case IpmMessageKind::kStopRequestedSkippingPhases:
+        fmt::print(out_, yellow,
+                   "Solve stopped by a stop request (SolveBudget::stop); skipping remaining "
+                   "phases.\n");
+        break;
     }
     std::fflush(out_);
 }

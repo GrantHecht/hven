@@ -62,4 +62,6 @@ Migration lines for these groups: `docs/migration-0.2.md`.
   iteration boundary; one `StopReason` on the result (`SolveResult::stop_reason`,
   `IpmPhaseReport::stop_reason`) with `kCallbackStop` and `kStopRequested`, `kNone`
   whenever the status names the cause; the SQP honours a callback stop at the row it was
-  returned on. The trace's `stop_reason` strings follow (declared).
+  returned on. The trace's `stop_reason` strings follow (declared). A token stop prints its
+  own console lines ("Solve stopped by a stop request (SolveBudget::stop) ...") from two new
+  `ipm.message` kinds, `stop_requested_at_iteration` and `stop_requested_skipping_phases`.

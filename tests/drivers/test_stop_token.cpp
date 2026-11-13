@@ -5,9 +5,9 @@
 // one StopReason vocabulary, on both engines. The cases are the interface
 // design's test plan rows (docs/notes/2026-11-m8-ap5-interface-design.md §3.6):
 //
-//   T1  a token stopped before solve() -> kInterrupted at the start, 0
-//       iterations, kStopRequested; the start is NOT converged (a converged
-//       start would outrank the stop).
+//   T1  a token stopped before solve() -> kInterrupted at the start, no step
+//       taken (SQP 0 iterations; IPM 1, its start row), kStopRequested; the
+//       start is NOT converged (a converged start would outrank the stop).
 //   T2  a cross-thread stop: the callback at event k signals a second thread,
 //       which calls request_stop() and acknowledges; the returned x is the last
 //       delivered event's x. Deterministic (std::latch handshake, no sleeps, no
@@ -19,6 +19,10 @@
 //   T13 multi-phase IPM: a token ends the sequence; the remaining phases have
 //       ran == false.
 //
+// The orchestrator's ruling (G1): a token stop has its OWN console message
+// kinds, distinct from the callback's interrupt text -- pinned below on the
+// console sink for both stops, so neither borrows the other's words.
+//
 // An unfired token is free on the trajectory: the AReadOnly... style identity
 // for an armed-but-unfired token is pinned here too (both engines, counter for
 // counter on the shared result).
@@ -29,15 +33,18 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <latch>
 #include <memory>
 #include <optional>
+#include <string>
 #include <thread>
 #include <vector>
 
 #include <Eigen/Core>
 
 #include "hven/core/stop.h"
+#include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
@@ -193,9 +200,24 @@ TEST(StopTokenSolve, T1ATokenStoppedBeforeTheSolveEndsItAtTheStart) {
         // same count a callback kStop on the first event reports, one event per
         // row).
         EXPECT_EQ(r.iterations, e == Engine::kIpm ? 1 : 0);
-        EXPECT_EQ(r.iterations, cb_stop.iterations);
-        EXPECT_EQ(r.work.factorizations, cb_stop.work.factorizations)
-            << "the token stop spends exactly what the first event's callback stop spends";
+        if (e == Engine::kIpm) {
+            // The IPM's first event is the start row, delivered before any
+            // factorization of the loop: the token stop at the first iteration
+            // top spends exactly what a callback stop on that event spends.
+            EXPECT_EQ(r.iterations, cb_stop.iterations);
+            EXPECT_EQ(r.work.factorizations, cb_stop.work.factorizations)
+                << "the token stop spends exactly what the first event's callback stop spends";
+        } else {
+            // The SQP's first event is row 0, delivered AFTER the first
+            // subproblem was solved (that row records the accepted step the
+            // callback's kStop then declines, Q15): the callback stop has paid
+            // for one subproblem. The token is polled at the exit conjunction
+            // BEFORE the first subproblem, so it pays for none -- the same point
+            // (asserted below), strictly less work.
+            EXPECT_EQ(cb_stop.iterations, 1);
+            EXPECT_EQ(r.work.factorizations, 0);
+            EXPECT_LT(r.work.factorizations, cb_stop.work.factorizations);
+        }
         EXPECT_EQ(r.message, "interrupted by a stop request (SolveBudget::stop)");
         EXPECT_TRUE(bit_equal(r.x, *first_x)) << "the start, as the first event describes it";
         EXPECT_TRUE(bit_equal(r.x, cb_stop.x));
@@ -440,4 +462,85 @@ TEST(StopTokenSolve, T13ATokenEndsTheIpmPhaseSequence) {
     EXPECT_EQ(r.phases[0].stop_reason, StopReason::kStopRequested);
     EXPECT_FALSE(r.phases[1].ran) << "a stop ends the phase SEQUENCE, not only the phase";
     EXPECT_EQ(r.phases[1].stop_reason, StopReason::kNone);
+}
+
+// ---------------------------------------------------------------------------
+// The console's words: a token stop has its own message kinds.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// A two-phase interior-point solve stopped on its second event in phase 0,
+// by the token (`by_token`) or by the callback, with a console sink attached;
+// returns everything the sink printed.
+std::string console_of_a_stopped_two_phase_solve(bool by_token) {
+    IpmOptions o = quiet_ipm();
+    o.phases = {hven::IpmPhase::kSolve, hven::IpmPhase::kOptimize};
+    Problem problem(std::make_shared<Hs071Problem>());
+    IpmSolver solver(o);
+    StopSource source;
+    SolveBudget budget;
+    budget.stop = source.token();
+    int events = 0;
+    solver.set_iteration_callback([&](const IterationEvent &) {
+        if (++events == 2) {
+            if (!by_token) {
+                return CallbackAction::kStop;
+            }
+            source.request_stop();
+        }
+        return CallbackAction::kContinue;
+    });
+    std::FILE *f = std::tmpfile();
+    EXPECT_NE(f, nullptr);
+    if (f == nullptr) {
+        return {};
+    }
+    std::string text;
+    {
+        hven::ConsoleTraceSink sink(
+            hven::ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
+        solver.attach_trace(&sink);
+        const IpmResult r = solver.solve(problem, hs071_start(), {}, budget);
+        solver.attach_trace(nullptr);
+        EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        EXPECT_EQ(r.stop_reason, by_token ? StopReason::kStopRequested : StopReason::kCallbackStop);
+        std::fflush(f);
+        std::rewind(f);
+        char buf[4096];
+        std::size_t n = 0;
+        while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+            text.append(buf, n);
+        }
+    }
+    std::fclose(f);
+    return text;
+}
+
+} // namespace
+
+TEST(StopTokenSolve, ATokenStopPrintsItsOwnConsoleMessagesNotTheCallbacks) {
+    const std::string printed = console_of_a_stopped_two_phase_solve(/*by_token=*/true);
+    EXPECT_NE(printed.find("Solve stopped by a stop request (SolveBudget::stop) at iteration "),
+              std::string::npos)
+        << printed;
+    EXPECT_NE(printed.find("Solve stopped by a stop request (SolveBudget::stop); skipping "
+                           "remaining phases."),
+              std::string::npos)
+        << printed;
+    EXPECT_EQ(printed.find("iteration callback"), std::string::npos)
+        << "a token stop never borrows the callback's words\n"
+        << printed;
+}
+
+TEST(StopTokenSolve, ACallbackStopKeepsItsOwnConsoleMessages) {
+    const std::string printed = console_of_a_stopped_two_phase_solve(/*by_token=*/false);
+    EXPECT_NE(printed.find("Solve interrupted by the iteration callback at iteration "),
+              std::string::npos)
+        << printed;
+    EXPECT_NE(printed.find("Solve interrupted by the iteration callback; skipping remaining "
+                           "phases."),
+              std::string::npos)
+        << printed;
+    EXPECT_EQ(printed.find("stop request"), std::string::npos) << printed;
 }

@@ -2809,7 +2809,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         IpmIterate Citer;
         Citer.iter = i;
         // WHICH ITERATION A MESSAGE BELONGS TO (M6 W5 T8.7b). `factor_impl`
-        // raises three of the nine message kinds and does not see `i` at all;
+        // raises three of the eleven message kinds and does not see `i` at all;
         // this one store per iteration is what lets those events carry it
         // without an instrumentation parameter in that function's signature.
         // Cleared below the loop, so a message raised outside an iteration
@@ -3734,6 +3734,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         const bool callback_stop = this->interrupt_requested_;
         if (callback_stop || this->stop_token_.stop_requested()) {
             this->interrupt_requested_ = true;
+            this->stop_requested_latched_ = !callback_stop;
             iters.back().mu = mu;
             QPtimer.stop();
             ExitCode = SolveStatus::kIterationLimit;
@@ -3751,7 +3752,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             }
             {
                 IpmMessageTraceEvent msg;
-                msg.kind = IpmMessageKind::kInterruptAtIteration;
+                msg.kind = callback_stop ? IpmMessageKind::kInterruptAtIteration
+                                         : IpmMessageKind::kStopRequestedAtIteration;
                 msg.phase = this->trace_phase_;
                 msg.iter = iters.back().iter;
                 this->emit_message(msg);
@@ -6021,6 +6023,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // per-phase reset beside last_stop_reason_ is deliberately NOT the place
     // for it.
     this->interrupt_requested_ = false;
+    this->stop_requested_latched_ = false;
     this->limit_stop_ = false;
     // THE CALL'S STOP TOKEN (M8 AP-5 G1), read at every iteration top beside the
     // callback's stop. Replaced at every entry, so no earlier call's token is
@@ -6601,7 +6604,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         if (this->interrupt_requested_) {
             {
                 IpmMessageTraceEvent msg;
-                msg.kind = IpmMessageKind::kInterruptSkippingPhases;
+                msg.kind = this->stop_requested_latched_
+                               ? IpmMessageKind::kStopRequestedSkippingPhases
+                               : IpmMessageKind::kInterruptSkippingPhases;
                 msg.phase = this->trace_phase_;
                 this->emit_message(msg);
             }

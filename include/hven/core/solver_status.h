@@ -229,17 +229,22 @@ enum class IpmMessageKind {
     /// `a` is the infeasibility now, `b` the infeasibility at the last
     /// restoration entry.
     kFeasibilityStall = 5,
-    /// A stop was honoured at an iteration: the per-iteration callback
-    /// returned `kStop`, or (M8 AP-5 G1) the `SolveBudget::stop` token was
-    /// requested -- `SolveResult::stop_reason` tells them apart. `iter` is the
-    /// row it stopped on.
+    /// The per-iteration callback's `kStop` was honoured at an iteration.
+    /// `iter` is the row it stopped on. (A token stop has its own kind,
+    /// kStopRequestedAtIteration.)
     kInterruptAtIteration = 6,
     /// A phase reached kDiverging or worse, so the remaining phases are
     /// skipped. No payload.
     kPhaseDiverged = 7,
-    /// A stop was honoured between phases, so the remaining phases are skipped.
-    /// No payload.
+    /// The callback's stop was honoured between phases, so the remaining
+    /// phases are skipped. No payload.
     kInterruptSkippingPhases = 8,
+    /// (M8 AP-5 G1) A `SolveBudget::stop` token's request was honoured at an
+    /// iteration. `iter` is the row it stopped on.
+    kStopRequestedAtIteration = 9,
+    /// (M8 AP-5 G1) A token stop was honoured between phases, so the remaining
+    /// phases are skipped. No payload.
+    kStopRequestedSkippingPhases = 10,
 };
 
 /// @brief The last non-Success factorization status the interior-point engine
@@ -285,7 +290,7 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status);
 /// @brief Maps a message kind to its lower-case snake name.
 /// @param kind The kind.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p kind is not one of the nine.
+/// @throws std::invalid_argument if @p kind is not one of the eleven.
 const char *to_string(IpmMessageKind kind);
 
 /// @brief Maps a factorization status to its lower-case snake name.

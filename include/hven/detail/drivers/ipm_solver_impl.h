@@ -1553,6 +1553,12 @@ class IpmSolverImpl {
     /// entry and polled at each iteration top beside `interrupt_requested_`.
     /// Appended after last_stop_reason_, so no existing member's offset moves.
     StopToken stop_token_;
+    /// Whether THIS call's stop was the token's rather than the callback's (M8
+    /// AP-5 G1, the orchestrator's ruling: a token stop has its own console
+    /// message kinds). Set where the token stop latches `interrupt_requested_`,
+    /// reset beside it at every call's entry; read only to pick the message
+    /// kind. Appended last, so no existing member's offset moves.
+    bool stop_requested_latched_ = false;
 
     // KktVector — the compound-KKT segment view — lives in
     // detail/interior/kkt_vector.h as hven::detail::KktVector, shared with
