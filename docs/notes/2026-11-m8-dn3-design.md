@@ -458,3 +458,119 @@ No other public name.
   Raised now so the settler knows the STOP may fire.
 - **Q9, the scope valve.** DN-3 sits behind valve item 1 (brief `:103-106`, Q4). This page assumes
   the schedule allows it.
+
+---
+
+## §DN-3b. The IPM's answer to a singular dense KKT factorization (2026-11-12)
+
+Settler ruling on Q3 (owner-aligned): option (ii). Under the dense arm the IPM answers a singular or flagged
+dense KKT factorization with its own regularization (Wächter & Biegler 2006, Algorithm IC: δ_c on a singular
+Jacobian, a larger δ_w) and a DENSE refactorization, never with the sparse library. `kSparseFallback` was
+interim. Base `m8` at `ccd2e951f`; code head `1101cc38b`; declaration and evidence
+`docs/notes/data/2026-11-m8-dn3b/`. Linux x86-64, MKL 2026.2; Apple/Accelerate and Windows UNOBSERVED.
+
+### 1. What the ladder sees, per case
+
+The ladder (`factor_impl`, `src/drivers/ipm_solver.cpp:1929`) reads three things after each factorization:
+`Singular()` (`:1941`, observed counts not summing to n), `Inertia()` (negatives minus m), and
+`SingularitySignal()` (`:2027`, `Singular() || Inertia() < 0`), which engages δ_c once per call and latches it
+for the phase. No new constant: the δ schedule is the ladder's own (`inertia_correction_initial` 1e-5,
+`_increase` 8, `_decrease` 1/3, 15 attempts; δ_c = `dual_regularization(μ)` = 1e-8 μ^0.25).
+
+| case | factor outcome under `kReport` | what the ladder reads | answer |
+|---|---|---|---|
+| (a) exactly singular (rook `info > 0`, a zero 2×2 det, non-finite D) | `kBackendError`, `kDenseSingular`, arm `kDense`, no numerics, `numerically_singular` | `computation_info_of` → `NumericalIssue` (`src/interior/kkt_factorization.cpp:32, 57`); the failed projection's counts (MKL: −1/−1 passed through; Accelerate: zeroed) never sum to n, so `Singular()` and `SingularitySignal()` hold | δ_c engages, δ_w climbs, the next rung refactors on the dense arm: the singular branch Pardiso's refusals already take. **No ladder code changes** |
+| (b) flagged (rook D-ratio < 1e-15 and rcond < 2^-53) | `kOk`, numerics kept, observed inertia, `numerically_singular` | the observed counts, trusted | accepted if the inertia is right. Whether the system is singular in the sense that matters (the step is wrong) is decided by the step solve's residual ratio: the DN-1b guard (`dense_step_singularity_guard`, `:2148`; `kDenseResidualRatioSingular` = 1e-5, Ipopt's `residual_ratio_singular`) |
+| (c) guard residual-ratio failure | — | the guard strips the ladder's shifts and re-runs `factor_impl` declared singular (`base_singular`): δ_c engaged, δ_w at max(previous, initial, 8·cumulative), ≤ 3 attempts | unchanged from DN-1b; every re-run factorization is now dense (a singular one is case (a) inside the re-run) |
+
+Why (b) is not mapped to `Singular()`, measured: barrier scaling makes IPM KKT matrices ill-conditioned by
+construction while a dense solve on them stays accurate (DN-1 design §1.4: 611 of 2669 dense-taken IPM
+matrices, 517 of them decidable, have a pivot ≤ 1e-14·max|a|). On the DN-0 population under `kAlways` the
+detector flags **1903 of 5831** IPM factorizations (dev probe, DECLARATION disclosures). A dev variant that read a
+flag as singular (probe commit `c168f86`, never merged) turned **36 of 119** IPM cells into status/objective
+movers against today's `kAlways`, 29 of them a success → `numerical_error`, and S1 against kNever fell to
+80/112 (from 109/112): the flag persists under every δ_w
+(the ill-conditioning is the barrier's, not the Hessian's), the ladder exhausts, and the iteration ends
+"persistently singular". Ipopt's own singularity evidence is the factorization's zero pivots plus the solve's
+residual ratio, not a condition estimate; this design matches that. A flag is counted
+(`SymmetricFactor::Counters::dense_flagged_count`) and acts on nothing.
+
+The least-squares multiplier estimate (`[I Jᵀ; J 0]`, `:5089`) had the same gap: an exactly singular dense
+report there used to end the phase ("the initial KKT factorization failed"). It now takes that system's one
+singular rule, the guard's (δ_c, refactor); a refactor that still leaves no numerics, or a solve still above the
+ratio, discards the estimate (Wächter & Biegler §3.6) and the phase proceeds. Unreachable under `kNever` and
+`kSparseFallback` (`arm == kDense && info == NumericalIssue` needs `kReport`).
+
+### 2. The dense session's σ-shift does not run under the IPM
+
+`kReport` means "report; the engine regularizes". The session never shifts on its own: the equilibrated σ-shift
+(`factorize_equilibrated`) and the platform retake (`retake_on_platform`) are consumer responses that the SQP's
+`factorize_checked` calls. The IPM calls neither:
+- **Two regularizers would fight.** σ on D K D (+σ on primal rows, −σ on dual rows, fixed 2^-30) is itself a
+  δ_w/δ_c-type perturbation, but in equilibrated coordinates and invisible to the ladder's accounting (the Hpert0
+  warm start, `rho_k` decay, the δ_c latch). The ladder would then tune δ_w against a matrix it did not build.
+- **A shifted factor reports `perturbed_pivots = dim`.** The IPM ladder reads only counts (`ppivs()` is unused),
+  so the shifted inertia would be read as exact.
+- **Shifted numerics need the C283 discipline** (refine against the unshifted K, ρ-gate). The IPM's guard measures
+  the residual against `kkt_sol_.matrix()`, which carries exactly the IPM's own shifts, so it is consistent only
+  while the IPM owns every shift.
+- **Algorithm IC already is the singular response**, with a convergent schedule and a defined exhaustion. The SQP
+  needed σ because the walk's EQP faces have no regularization ladder of their own.
+
+Counted: `dense_shift_refactor_count` and `dense_retake_count` read 0 on every IPM row (FA leg; P4 tests).
+
+### 3. Exhaustion
+
+A ladder that exhausts on an exactly singular rung leaves no numerics with `info == NumericalIssue`
+(`kkt_no_numerics`, `:3819`; `kkt_no_numerics_numeric`, `:4031`), which takes the existing exhausted-inertia
+dispatch (the no-numerics routing round): acceptable-tier stop outside restoration, then the elastic re-centre,
+then restoration entry, then `kNumericalError` with stop reason `kNone`. Never a throw (no solve runs on no
+numerics), never the sparse path (the policy has no fallback). A ladder that exhausts WITH numerics (a flagged or
+wrong-inertia last rung) takes the existing exhausted-with-numerics path, unchanged. Pinned by
+`IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath` and
+`BothStrategies/IpmDenseReportRestorationSeam.*`; falsified by `dense-singular-hard`.
+
+### 4. Option wiring
+
+No public field. `IpmSolverImpl::set_qp_params` (`:199-210`) sets `dense_singular_policy = kReport` whenever
+`linear.dense_factorization != kNever`, as the SQP's `sqp_kkt_options` does (`kkt_calls.h:47-49`). Under
+`kNever` the policy stays at the factor layer's default (`kReport` is refused under `kNever` at construction;
+falsifier `report-under-never`), so the default path is byte-identical (P2, P3, P5). `ipm_options.cpp`'s
+validation needs no change: `kAlways` was already the only accepted dense policy, and `kAuto` stays refused until
+DN-3 proper. The public doc comment on `IpmLinearOptions::dense_factorization` states the behaviour. A public
+`IpmLinearOptions::dense_singular_policy` was considered and is not proposed: one policy per engine, and
+`kSparseFallback` is retired for the IPM rather than offered.
+
+`kSparseFallback` stays reachable for tests only, through one HVEN_TESTING seam
+(`IpmDenseSparseFallbackOverride`, `include/hven/detail/drivers/ipm_dense_testing.h`; docs/testing.md "A seventh
+seam"). It keeps the faithful vehicle of the hard-backend-error route and of the DN-1b/DN-1d platform-route
+fixtures, which only the platform session's injector reaches.
+
+### 5. What moves under `kAlways` (a declared event)
+
+`kAlways` changes three ways for the IPM: the dense kernel is rook (`dsytrf_rook`/`dsytrs_rook`, kReport's), exact
+singularity is answered by the ladder instead of Pardiso's perturbation, and the multiplier estimate survives a
+singular report. Dev probe on the DN-0 population (238 cells), declared in advance (DECLARATION "FA MOVERS"):
+- 0 sparse fallbacks (today's `kAlways`: 15, in BT8 10, HS61 2, LEWISPOL 2, LSNNODOC 1); 4 singular reports
+  (BT8 1, HS61 2, LSNNODOC 1), each answered by the ladder on the dense arm.
+- 4 status/objective movers against today's `kAlways`: **BT8** (optimal → optimal, f 1 + 9.5e-7 → 1 − 2.8e-15,
+  11 → 40 iterations: the dense arm reads the true inertia where Pardiso's perturbation fabricated the expected
+  one, and the ladder corrects it with δ_w up to 2.5e1 — Algorithm IC's answer, paid in iterations);
+  **CRESC100** (acceptable → optimal; no singular report: the rook kernel's rounding moves a path DN-1d already
+  showed sensitive); **LEWISPOL** (optimal → optimal, f 3.0000293 → 2.9999965; its two singular factorizations are
+  now the ladder's; kNever ends max_iter, so no reference); **MESH** (diverging → numerical_error at |f| ≈ 3e28:
+  unbounded under every arm, kNever diverging; the ladder exhausts with numerics, inertia off by one).
+- S1 against kNever: 109/112, misses ALLINITC and CRESC100 (DN-1d's declared pair) and BT8 (above). ACOPP30
+  keeps status and objective.
+
+### 6. Deltas for DN-3 proper
+
+- Q3 resolves to (ii): the IPM's `kAuto` inherits `kReport` with no further change (the condition is
+  "policy ≠ kNever").
+- The IPM adoption measurement (§4-§5) must run on this head: the rook kernel and the singular response move IPM
+  `kAlways` rows (BT8's iterations especially), so DN-1's and DN-3a's IPM `kAlways` rows are not the arm.
+- The §3.3 IPM bullet and §7.2's "Its singular policy is Q3" are superseded by this section.
+- R6 (inertia trust between the bands) now reaches the IPM: a flagged factorization's inertia is trusted. The FA
+  leg's flags with no loss beyond the declared movers are the evidence; R6 stays registered.
+- No new public name. Q6's proposed `dense_factorizations` counter is unaffected; the factor counters already on
+  `IpmResult::kkt_factor_counters` report singular reports, flags and the (zero) fallbacks.
