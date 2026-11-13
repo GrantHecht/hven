@@ -1118,7 +1118,9 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // DECLARATION-r4.md): SqpLinearOptions::dense_factorization moved kNever -> kAuto, so
     // every HS factor is now on the dense arm. HS10's warm arm is CONFIG-SPLIT from here:
     // Release reads 28 / 42 (was 26 / 40), Debug holds at 26 / 40.
-#ifdef NDEBUG
+    // macOS (Accelerate) Release reads the Debug column here: 26 / 40, observed on CI run
+    // 43485700149 (dense_factorizations nonzero, so the dense arm IS selected there).
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
 #else
@@ -1149,7 +1151,9 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // change.
     // RE-DERIVED, M8 DN-3 flip (declared, as HS10 above): on the dense arm the split
     // swaps -- Release reads 13 / 30 (was 12 / 29), Debug 12 / 29 (was 13 / 30).
-#ifdef NDEBUG
+    // macOS (Accelerate) Release reads the Debug column here: 12 / 29, observed on CI run
+    // 43485700149.
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
 #else
@@ -1557,7 +1561,9 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     // M8 DN-3 flip (declared; HS15 now factors on the dense arm): Release's step arm
     // 33 / 95 / 38 / 6 -> 34 / 99 / 39 / 7; Debug's and the held-off arm's majors unchanged.
     EXPECT_EQ(off.majors, 30);
-#ifdef NDEBUG
+    // macOS (Accelerate) Release reads the Debug column here: 33 / 95 / 38 / 6, observed on CI
+    // run 43485700149.
+#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(on.majors, 34);
     EXPECT_EQ(on.minors, 99);
     EXPECT_EQ(on.factorizations, 39);
