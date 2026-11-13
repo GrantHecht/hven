@@ -1194,13 +1194,16 @@ void cert_presented(CertSide side, double v, Vec &x, Vec &z) {
     }
 }
 
-/// THE PREDICATE'S TWO THRESHOLDS for a bound with row_scale 1 and multiplier
+/// THE PREDICATE'S THRESHOLD for a bound with row_scale 1 and multiplier
 /// `zval`, written with the production expressions' own operation order
-/// (QpEngine::row_tolerance, QpEngine::violation_is_structural), so each is
-/// the certificate's value to the bit rather than an approximation of it.
+/// (QpEngine::row_tolerance, QpEngine::violation_is_structural), so it is the
+/// certificate's value to the bit rather than an approximation of it.
 struct CertThresholds {
-    double margin;        ///< v <= margin: tolerated, condition (a)
-    double residue_floor; ///< past the margin, structural iff v >= this
+    double margin; ///< v <= margin: tolerated; past it, structural
+    /// The footprint floor the predicate's former condition (b) read,
+    /// 0.1 * dual_mu * |z|: past the margin and below it a violation used to be
+    /// TOLERATED. Kept to place the M8 walk cap's moved band, not as a rule.
+    double former_floor;
 };
 
 CertThresholds cert_thresholds(double feas_tol, double dual_mu, double zval) {
@@ -1208,8 +1211,7 @@ CertThresholds cert_thresholds(double feas_tol, double dual_mu, double zval) {
     const double t =
         std::max(feas_tol * row_scale,
                  std::min(dual_mu * std::abs(zval), detail::kInfeasibilityAbsorbTol * row_scale));
-    return {detail::kInfeasibilityMarginFactor * t,
-            detail::kStructuralResidualFrac * dual_mu * std::abs(zval)};
+    return {detail::kInfeasibilityMarginFactor * t, 0.1 * dual_mu * std::abs(zval)};
 }
 
 /// Presents (x, z) to the certificate of one fresh solve and returns it.
@@ -1286,7 +1288,7 @@ TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructura
     // E4's TOLERANCE-PRESERVING HALF (Codex E4 review, Important 1). A point
     // OUTSIDE its box by a positive v that the rows' own structural test
     // tolerates must still certify kOptimal: strictly INSIDE the margin
-    // (v = margin / 2) and ON it (v = margin, which condition (a)'s `<=`
+    // (v = margin / 2) and ON it (v = margin, which the margin test's `<=`
     // admits). Both sides of the box, both working-set algebras, and two
     // dual_mu: 1e-8, where dual_mu * |z| = 5e-8 sets the margin, and 1e-4,
     // where dual_mu * |z| = 5e-4 is capped at kInfeasibilityAbsorbTol. A
@@ -1312,17 +1314,20 @@ TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructura
 
 TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargin) {
     CertSeamGuard guard;
-    // THE BOUNDARY, stated: past the margin a violation is structural iff it
-    // also reaches kStructuralResidualFrac * dual_mu * |z| (the residue the
-    // regularization could own), and a structural one exits kNumericalError
-    // (SDL-4; it read kInfeasible on this feasible QP before).
-    //   dual_mu 1e-8: the floor (5e-10) is below the margin (5e-7), so the
-    //     first double past the margin is already refused.
-    //   dual_mu 1e-4: the floor (5e-5) is above the margin (1e-5), so the
-    //     first double past the margin and the last one below the floor are
-    //     still TOLERATED, and the floor itself is refused.
-    // Plus a far-outside point (100x the larger threshold) in both. Both
+    // THE BOUNDARY, stated: past the margin a violation is structural, and a
+    // structural one exits kNumericalError (SDL-4; it read kInfeasible on this
+    // feasible QP before). The first double past the margin is refused at both
+    // dual_mu, plus a far-outside point (100x the larger threshold). Both
     // sides, both algebras.
+    //
+    // M8 WALK CAP (declared mover, docs/notes/data/2026-11-m8-walk-cap/). At
+    // dual_mu 1e-4 the former footprint floor (0.1 * dual_mu * |z| = 5e-5) sat
+    // above the margin (1e-5), and the band between them -- a box leak of up to
+    // five times its own tolerance -- was TOLERATED and certified kOptimal: the
+    // uncapped footprint excuse, on a bound, where no regularization term can
+    // own a residual at all. The band is now refused: past-margin, the last
+    // double below the former floor, and the floor itself all exit
+    // kNumericalError.
     const QpProblem qp = certificate_box_qp();
     for (const QpWorkingSetAlgebra algebra :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
@@ -1334,24 +1339,21 @@ TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargi
             opts.dual_regularization = mu;
             const CertThresholds th = cert_thresholds(opts.feasibility_tol, mu, 5.0);
             const double past_margin = std::nextafter(th.margin, 1.0);
-            const double far = 100.0 * std::max(th.margin, th.residue_floor);
-            // Which regime each dual_mu is in is ASSERTED, so the two
-            // branches below cannot silently collapse into one.
+            const double far = 100.0 * std::max(th.margin, th.former_floor);
+            // Which regime each dual_mu is in is ASSERTED, so the moved band
+            // below cannot silently vanish.
             if (mu == 1e-8) {
-                ASSERT_LE(th.residue_floor, th.margin);
+                ASSERT_LE(th.former_floor, th.margin);
             } else {
-                ASSERT_GT(th.residue_floor, past_margin);
+                ASSERT_GT(th.former_floor, past_margin);
             }
             for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
-                if (th.residue_floor <= past_margin) {
-                    expect_certificate_verdict(qp, opts, side, past_margin, true, "past-margin");
-                } else {
-                    expect_certificate_verdict(qp, opts, side, past_margin, false,
-                                               "past-margin-below-floor");
-                    expect_certificate_verdict(qp, opts, side,
-                                               std::nextafter(th.residue_floor, 0.0), false,
-                                               "just-below-floor");
-                    expect_certificate_verdict(qp, opts, side, th.residue_floor, true, "at-floor");
+                expect_certificate_verdict(qp, opts, side, past_margin, true, "past-margin");
+                if (th.former_floor > past_margin) {
+                    expect_certificate_verdict(qp, opts, side, std::nextafter(th.former_floor, 0.0),
+                                               true, "just-below-former-floor");
+                    expect_certificate_verdict(qp, opts, side, th.former_floor, true,
+                                               "at-former-floor");
                 }
                 expect_certificate_verdict(qp, opts, side, far, true, "far-outside");
             }

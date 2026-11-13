@@ -95,42 +95,46 @@ TEST(SqpEqualityBasisSeam, T6DisabledHandOffRunsF9ToMaxIter) {
     x0 << 1.0005, 0.0;
     const QpAsNlpModel model(make_qp(A, b, h, g, Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
                              x0);
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
-        SCOPED_TRACE(static_cast<int>(mode));
-        // M8 DN-3 flip: F9 was derived on the sparse arm, the default before the flip, so
-        // kNever is set explicitly. Under kAuto every mode ends kIterationLimit at max_iter
-        // after the hand-off (registered with the flip).
-        SqpOptions o = opts_for(mode);
-        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
-        // The control arm: the seam off reproduces F9.
-        Seam::disable_hand_off = false;
-        SqpSolver with(o);
-        const SqpResult on = with.solve(hven::detail::problem_ref(model), (model).start_point());
+    // BOTH ARMS. M8 DN-3 flip: kNever was pinned because under kAuto every mode ended
+    // kIterationLimit after the hand-off; M8 WALK CAP (declared mover): a walk defect, fixed
+    // (see F9 in test_sqp_equality_basis.cpp), so the default arm is the test again.
+    for (const auto policy :
+         {SqpOptions{}.linear.dense_factorization, hven::linear::DensePolicy::kNever})
+        for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
+            SCOPED_TRACE(static_cast<int>(mode));
+            SCOPED_TRACE(static_cast<int>(policy));
+            SqpOptions o = opts_for(mode);
+            o.linear.dense_factorization = policy;
+            // The control arm: the seam off reproduces F9.
+            Seam::disable_hand_off = false;
+            SqpSolver with(o);
+            const SqpResult on =
+                with.solve(hven::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(on.status, SolveStatus::kInfeasible);
-        EXPECT_TRUE(on.equality_basis.handed_off);
-        EXPECT_LT(on.counters.major_iters, o.common.max_iterations);
+            EXPECT_EQ(on.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(on.equality_basis.handed_off);
+            EXPECT_LT(on.counters.major_iters, o.common.max_iterations);
 #else
-        // WX-R3: the ladder after the hand-off is not known to finish kInfeasible off the
-        // reference build; record it, assert the hand-off, never bless kIterationLimit.
-        hven::test_support::record_off_reference_route(
-            std::string("t6_control_") + std::to_string(static_cast<int>(mode)),
-            std::string("status=") + std::to_string(static_cast<int>(on.status)) +
-                " major_iters=" + std::to_string(on.counters.major_iters));
-        EXPECT_NE(on.status, SolveStatus::kOptimal);
-        EXPECT_TRUE(on.equality_basis.handed_off);
-        EXPECT_LE(on.counters.major_iters, o.common.max_iterations);
+            // WX-R3: the ladder after the hand-off is not known to finish kInfeasible off the
+            // reference build; record it, assert the hand-off, never bless kIterationLimit.
+            hven::test_support::record_off_reference_route(
+                std::string("t6_control_") + std::to_string(static_cast<int>(mode)),
+                std::string("status=") + std::to_string(static_cast<int>(on.status)) +
+                    " major_iters=" + std::to_string(on.counters.major_iters));
+            EXPECT_NE(on.status, SolveStatus::kOptimal);
+            EXPECT_TRUE(on.equality_basis.handed_off);
+            EXPECT_LE(on.counters.major_iters, o.common.max_iterations);
 #endif
-        // The negative control.
-        Seam::disable_hand_off = true;
-        SqpSolver without(o);
-        const SqpResult off =
-            without.solve(hven::detail::problem_ref(model), (model).start_point());
-        EXPECT_FALSE(off.equality_basis.handed_off);
-        EXPECT_EQ(off.counters.major_iters, o.common.max_iterations);
-        EXPECT_EQ(off.status, SolveStatus::kIterationLimit);
-        EXPECT_EQ(off.equality_basis.inconsistent_row, -1);
-    }
+            // The negative control.
+            Seam::disable_hand_off = true;
+            SqpSolver without(o);
+            const SqpResult off =
+                without.solve(hven::detail::problem_ref(model), (model).start_point());
+            EXPECT_FALSE(off.equality_basis.handed_off);
+            EXPECT_EQ(off.counters.major_iters, o.common.max_iterations);
+            EXPECT_EQ(off.status, SolveStatus::kIterationLimit);
+            EXPECT_EQ(off.equality_basis.inconsistent_row, -1);
+        }
 }
 
 // HS7 (ln(1 + x1^2) - x2 s.t. (1 + x1^2)^2 + x2^2 = 4) with its equality row

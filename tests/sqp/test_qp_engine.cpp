@@ -844,7 +844,8 @@ TEST(QpEngine, EffectivelyInfiniteBoundsStillDetectTheRunaway) {
 }
 
 // The a = 1e-3 cell: kInfeasible by an EXACT Farkas certificate on the independent working
-// set (the default), and kOptimal -- wrong -- with the option off. Shared by the two tests below.
+// set (the default), and -- since the M8 walk cap -- kInfeasible on a verified certificate with
+// the option off too. Shared by the two tests below.
 namespace {
 void expect_objective_inflated_1e3_cell(const QpOptions &base) {
     const QpSolution s = QpEngine(base, 0, hven::linear::DensePolicy::kNever)
@@ -856,27 +857,30 @@ void expect_objective_inflated_1e3_cell(const QpOptions &base) {
     QpOptions off = base;
     off.independent_working_set = false;
     // The footprint miss, TRUSTWORTHY RANGE (ii): the violation route was kOptimal, which is
-    // wrong. The SDL sign half now reads the shifted row's wrong-signed multiplier and refuses.
-    EXPECT_EQ(QpEngine(off, 0, hven::linear::DensePolicy::kNever)
-                  .solve(objective_inflated_lambda_qp(1e-3, 3e-4))
-                  .status,
-              QpStatus::kNumericalError);
+    // wrong; the SDL sign half then read the shifted row's wrong-signed multiplier and refused
+    // (kNumericalError). M8 WALK CAP (declared mover, an improvement): the gap (3e-4) is far past
+    // the margin, and the footprint excuse that hid it under 0.1*dual_mu*|lambda| is capped, so
+    // the violation route now reaches the verdict -- kInfeasible, on a verified certificate.
+    const QpSolution o = QpEngine(off, 0, hven::linear::DensePolicy::kNever)
+                             .solve(objective_inflated_lambda_qp(1e-3, 3e-4));
+    EXPECT_EQ(o.status, QpStatus::kInfeasible);
+    EXPECT_GE(o.counters.terminal_farkas_certificates, 1);
 }
 } // namespace
 
 TEST(QpEngine, ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndependentWorkingSet) {
     // Both problems below are genuinely INFEASIBLE (an equality demanding
     // a(x0+x1) = 1 alongside an inequality capping it at 1 - 3e-4). Detection BY
-    // THE VIOLATION rests on it reaching kStructuralResidualFrac of the
-    // regularization footprint dual_mu*|lambda|. Here |lambda| is inflated by
-    // the OBJECTIVE (it grows as 1/(2a^2) as the row is scaled down) while the
-    // contradiction's gap stays fixed, so shrinking `a` inflates the footprint
-    // out from under a fixed violation until the contradiction hides beneath
-    // it: at a = 1e-3 the violation route reads kOptimal, which is WRONG. That
-    // is the false-kOptimal direction of the kStructuralResidualFrac trade-off
-    // (TRUSTWORTHY RANGE (ii) in qp_engine.h), the mirror of the
-    // false-kInfeasible direction pinned by IllScaledFeasibleRowsAreNotDeclaredInfeasible,
-    // and it is still what the walk returns with independent_working_set off.
+    // THE VIOLATION once rested on it reaching 0.1 of the regularization footprint
+    // dual_mu*|lambda|, uncapped. Here |lambda| is inflated by the OBJECTIVE (it
+    // grows as 1/(2a^2) as the row is scaled down) while the contradiction's gap
+    // stays fixed, so shrinking `a` inflated the footprint out from under a fixed
+    // violation until the contradiction hid beneath it: at a = 1e-3 the violation
+    // route read kOptimal, which is WRONG (TRUSTWORTHY RANGE (ii) in qp_engine.h,
+    // the mirror of the false-kInfeasible direction pinned by
+    // IllScaledFeasibleRowsAreNotDeclaredInfeasible). The M8 walk cap removed that
+    // excuse: with independent_working_set off the violation route now decides
+    // kInfeasible on a verified certificate (expect_objective_inflated_1e3_cell).
     //
     // On the independent working set (the default) the inequality row is an
     // exact multiple of the equality. Its dependency test converges in the grey
@@ -903,7 +907,8 @@ TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
     // the classified point, so the two algebras must agree cell for cell -- and this family is
     // where a widened tolerance would first certify a contradiction kOptimal. The a = 1e-3
     // cell was pinned kOptimal (the footprint miss); since E2 fix6 both algebras certify it
-    // kInfeasible exactly through the grey re-read (above).
+    // kInfeasible exactly through the grey re-read (above), and since the M8 walk cap the
+    // option-off arm does too, on its own verified certificate.
     for (const QpWorkingSetAlgebra alg :
          {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
         QpOptions opts;

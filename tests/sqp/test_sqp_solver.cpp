@@ -11505,52 +11505,40 @@ TEST(SqpDriverElasticSeed, T6bTheBandsHIGHRungsReachTheOptimum) {
     // ExchangePick) releases a pin locked only by having entered at that vertex under the
     // min-ratio rule, and the walk reaches the optimum of the consistent problem, x = (2.5, 2.5)
     // with the slack shut and the row satisfied. The residue is gone, not relabelled.
-    // M7 W2 E4 FIX ROUND 2 (declared mover, and it goes the OTHER WAY -- this is the
-    // one place in the round where a reading regresses, and it is disclosed rather
-    // than relabelled). E4's walk reaches this cell's locked vertex by a different
-    // route and R-B's unlock does NOT fire (`dep_unlocks` 0 against >= 1), so the
-    // walk stands at the box-blocked point x_orig = (10, 10) and reports kOptimal
-    // there with the slack shut and the elastic row off by 15 -- the SAME reading the
-    // fixture's own banner records at 23e884a, i.e. CONDITION (b)'s BLIND SPOT is
-    // observable on this cell again. It is a blind spot and not a new defect: with
-    // rho = 1e+08 in the objective the working multipliers are O(1e+08), so
-    // `violation_is_structural`'s condition (b) --
-    // `v >= kStructuralResidualFrac * dual_mu * |lambda|` -- reads 15 against
-    // 1e-04 * 1e+08 = 1e+04 and calls the violation noise.
+    // M7 W2 E4 FIX ROUND 2 (declared mover, and it went the OTHER WAY). E4's walk reached this
+    // cell's locked vertex by a different route and R-B's unlock did NOT fire, so the walk stood
+    // at the box-blocked point x_orig = (10, 10) and reported kOptimal there with the slack shut
+    // and the elastic row off by 15 -- CONDITION (b)'s BLIND SPOT: with rho = 1e+08 in the
+    // objective the working multipliers are O(1e+08), and `violation_is_structural`'s former
+    // footprint condition, `v >= 0.1 * dual_mu * |lambda|`, uncapped, read 15 against
+    // 1e-04 * 1e+08 = 1e+04 and called the violation noise.
     //
-    // WHAT PROTECTS PRODUCTION, and why this is a disclosure rather than a STOP: the
-    // driver never places a rung here. T5's placement bound is
-    // `kElasticRhoDualMuSafety / dual_mu` subject to the `kElasticRhoInit` floor, and
-    // at the shipped `dual_mu = 1e-08` that bound is four decades below this cell's
-    // rho; `T6bCoversTheBandWhereThePlacementMarginIsUnachievable` above measures
-    // what the driver actually gets at dual_mu = 1e-04 (the FLOOR rung, row residual
-    // 1.6e-06, closed), and it is green. This fixture probes a (rho, dual_mu) pair
-    // reachable only by hand.
+    // That disclosure argued production was protected because "the driver never places a rung
+    // here". That was wrong: T5's bound places only the FIRST rung; the ladder then escalates by
+    // kElasticRhoFactor to kElasticRhoMax = 1e+08, so a climbing ladder reaches every rho of this
+    // cell at any dual_mu. At the shipped dual_mu = 1e-08 the same blind spot opens past rho ~
+    // 5e+05 for a 5e-04 gap, and it did: a false kOptimal at s = 0 on F9's inconsistent pair
+    // (test_sqp_equality_basis.cpp, the dense arm) that the driver then committed as a zero step
+    // to kIterationLimit.
     //
-    // REGISTERED: condition (b)'s blind spot is observable again at
-    // (rho 1e+08, dual_mu 1e-04). The repair is an engine-level one -- condition (b)
-    // needs a cap on what `dual_mu * |lambda|` may absorb, the same way
-    // `kInfeasibilityAbsorbTol` caps `row_tolerance` -- and it is not this round's.
+    // M8 WALK CAP (declared mover, the repair this fixture registered): the footprint condition
+    // is capped like row_tolerance's own (kInfeasibilityAbsorbTol * row_scale), which makes it
+    // implied by the margin -- a residual of 15 is structural. The walk no longer stops at the
+    // box-blocked vertex: R-B's unlock fires (dep_unlocks 1) and the walk reaches the optimum of
+    // the consistent problem, x = (2.5, 2.5), the slack shut and the row met to 8.9e-16 -- the E2
+    // fix5 reading, restored.
     const QpProblem qp = w2_box_blocked_qp(10.0);
     const W2ElasticWalk high =
         w2_walk_elastic(qp, 1.0e8, 1.0e-4, QpWorkingSetAlgebra::kSchurBorder);
     EXPECT_EQ(high.status, QpStatus::kOptimal);
     EXPECT_LE(high.slack_l1, SqpOptions{}.common.feasibility_tol) << "the slack is shut";
-    EXPECT_EQ(high.unlocks, 0) << "R-B's unlock fires again: the E2 fix5 reading is back and the "
-                                  "assertions above can be restored";
-    EXPECT_NEAR(high.worst_resid, 15.0, 1.0e-6) << "condition (b)'s blind spot, disclosed";
-    EXPECT_NEAR(high.x_orig(0), 10.0, 1.0e-6);
-    EXPECT_NEAR(high.x_orig(1), 10.0, 1.0e-6);
-    EXPECT_EQ(high.verdict_refine_steps, 0) << "the classifier never called it structural";
+    EXPECT_GE(high.unlocks, 1) << "R-B's unlock (E2 fix5) releases the locked vertex";
+    EXPECT_LE(high.worst_resid, 1.0e-12) << "the row is met: the blind spot is closed";
+    EXPECT_NEAR(high.x_orig(0), 2.5, 1.0e-9);
+    EXPECT_NEAR(high.x_orig(1), 2.5, 1.0e-9);
     // M7 W2 QC-8 (the implied blocker), pinned per the Fable review: the rule does NOT act
-    // on this cell. Without its leak budget it did -- a dependent slack pin whose face
-    // satisfies it by 15 was passed over on a rate of 1.3e3, which is the mu * lambda leak at
-    // dual_mu 1e-04 and lambda ~ 1e8, and the walk ended at (10, -5) with the row met and
-    // three refinement steps (measured on 7540d6c1; still not (2.5, 2.5)). With R1 the pass
-    // is refused (the predicted violation is above the members' allowance) and R3 returns the
-    // exchange, so the disclosure above reads exactly as before. Measured 0 in both configs.
-    EXPECT_EQ(high.implied_passovers, 0)
-        << "the implied blocker passes over on this cell again: the disclosure above moves";
+    // on this cell (measured 0 in both configs, before and after the walk cap).
+    EXPECT_EQ(high.implied_passovers, 0) << "the implied blocker passes over on this cell again";
 }
 
 // ===========================================================================

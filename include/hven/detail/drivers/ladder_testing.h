@@ -48,6 +48,16 @@ struct SqpLadderSeam {
     static inline int exhaust_restoration_elastic = 0;
     /// How many restoration sub-driver exits were forced (read by the test).
     static inline int forced_restoration = 0;
+    /// M8 WALK CAP: how many elastic ladders (any caller, either rung engine) have their
+    /// FINAL kOptimal rung replaced by the shape the uncapped footprint excuse produced --
+    /// the original block at the rung's p_ref (a zero step), every slack 0, status kOptimal,
+    /// the relaxed rows left violated; 0 = off.
+    static inline int off_rows_rungs = 0;
+    /// M8 WALK CAP: the ladder's report judges `closed`/`reduced` on the slacks alone, the
+    /// verdict before the rung-residual bound, so the driver's zero-step guard has a fixture.
+    static inline bool report_reads_slacks_only = false;
+    /// How many rungs `off_rows_rungs` replaced (read by the test).
+    static inline int off_rows_forced = 0;
 
     static void reset() {
         fail_walk_qps = 0;
@@ -61,6 +71,9 @@ struct SqpLadderSeam {
         fail_restoration_walk_qps = 0;
         exhaust_restoration_elastic = 0;
         forced_restoration = 0;
+        off_rows_rungs = 0;
+        report_reads_slacks_only = false;
+        off_rows_forced = 0;
     }
 };
 

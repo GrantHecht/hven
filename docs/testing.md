@@ -1174,7 +1174,17 @@ inside a phase -- has a fixture too. The small models the suite does run unseame
 reach the switch: `SecondOrderInfeasibleModel` under kSsn at the shipped levers is a
 SECOND-ENTRY fixture, not a switch one -- its phase QPs all solve on the exact model, and
 `SqpDriverSsnMode.AtTheShippedRestorationLeversThePhaseReEntersWithoutASwitch` pins that
-(two entries, zero switches).
+(two entries, zero switches). Two knobs added at the M8 walk cap, read in
+`run_elastic_ladder` (any caller, either rung engine): `off_rows_rungs` replaces that
+many ladders' final kOptimal rung by the shape the walk's uncapped footprint excuse
+returned before the cap -- the original block at the rung's `p_ref` (a zero step),
+every slack 0, status kOptimal, the relaxed rows left violated -- and
+`report_reads_slacks_only` judges the report's `closed`/`reduced` on the slacks alone,
+the verdict before the rung-residual bound. The first pins the bound (such a rung is not
+closed); the two together hand the driver a usable zero elastic step at `h > feas_tol`,
+which pins the driver's own guard (exhaustion, not KLV's unjudged zero-step accept).
+With the cap in place the engine no longer returns that rung, so no unseamed fixture can
+reach either guard: they are the second and third layers behind the cap.
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

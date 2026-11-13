@@ -17,10 +17,15 @@
 //   CERT-1 (M7 W2 C12) a restoration that converges where every row is inside
 //       feas_tol but their l1 sum is not certifies nothing (BRITGAS under W1); since
 //       SNR it resumes, the resume test reading the convergence test's inf-norm.
+//   WC  (M8 walk cap) an elastic rung returned kOptimal OFF its rows at s = 0 -- what the
+//       uncapped footprint excuse produced -- is not `closed` (the rung-residual bound),
+//       and a zero elastic step at h > feas_tol that a report DID call usable is
+//       exhaustion, not an unjudged accept: both route to restoration.
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -1114,6 +1119,127 @@ class CountingCircleHalfPlaneModel final : public NlpModel {
     Vec start_point() const override { return Vec::Constant(2, 2.0); }
 };
 } // namespace
+
+namespace {
+// F9's inconsistent duplicate pair (test_sqp_equality_basis.cpp) WITHOUT the equality basis:
+// c0 = x0 - 1, c1 = x0 - 1.001, the start (1.0005, 0) their least-squares point and the
+// objective's own stationary point, so QP 0 is inconsistent and its elastic optimum is the zero
+// step with both slacks open (l1 0.001): an exhausted ladder at h = 0.001.
+QpAsNlpModel inconsistent_pair_model() {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.g = Vec(2);
+    qp.g << -2.0 * 1.0005, 0.0;
+    Eigen::MatrixXd A(2, 2);
+    A << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = A.sparseView();
+    qp.be = vec2(1.0, 1.001);
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return QpAsNlpModel(std::move(qp), vec2(1.0005, 0.0));
+}
+
+// The pair's first major under the seam: the ladder ran, the row is an elastic row that
+// asked for restoration, and the solve ended where the unseamed control does, far inside
+// max_iter -- never the zero step committed to the iteration cap.
+void expect_first_major_restores(const SqpResult &sol, const SqpResult &control,
+                                 const SqpOptions &o) {
+    EXPECT_GE(Seam::off_rows_forced, 1);
+    EXPECT_GE(sol.counters.elastic_activations, 1);
+    EXPECT_GE(sol.counters.restoration_entries, 1);
+    // The solve's first elastic row (QP 0's, with the equality basis off).
+    const auto row = std::find_if(sol.history.begin(), sol.history.end(),
+                                  [](const SqpIterate &r) { return r.elastic_applied; });
+    ASSERT_NE(row, sol.history.end());
+    EXPECT_EQ(row->verdict, StepVerdict::kRestore);
+    EXPECT_NE(sol.status, SolveStatus::kIterationLimit);
+    EXPECT_LT(sol.counters.major_iters, o.common.max_iterations);
+    EXPECT_EQ(sol.status, control.status);
+}
+} // namespace
+
+// WC (3): the rung the excuse returned -- p = 0, s = 0, kOptimal, both rows open by 5e-4 -- read
+// `closed` on its slacks and handed the driver a usable zero step. The rung-residual bound reads
+// the open rows: not closed, not reduced, no objective promise, so the ladder is exhausted. The
+// pair's QP 0 directly (p0 = -5e-4 and p0 = +5e-4), both arms; `report_reads_slacks_only` shows
+// the seam reproduces the defect's verdict.
+TEST(SqpLadderSeam, WalkCapARungOffItsRowsIsNotClosed) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd A(2, 2);
+    A << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = A.sparseView();
+    qp.be = vec2(-5.0e-4, 5.0e-4);
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec2(-10.0 - 1.0005, -10.0);
+    qp.upper = vec2(10.0 - 1.0005, 10.0);
+    for (const auto policy :
+         {SqpOptions{}.linear.dense_factorization, hven::linear::DensePolicy::kNever}) {
+        for (const bool slacks_only : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "policy " << static_cast<int>(policy)
+                                              << " slacks_only " << slacks_only);
+            const SeamReset guard;
+            Seam::off_rows_rungs = 1;
+            Seam::report_reads_slacks_only = slacks_only;
+            const SqpOptions o = quiet();
+            QpEngine engine(o.qp, 0, policy);
+            SqpCounters counters;
+            const ElasticLadderReport report =
+                run_elastic_ladder(engine, qp, ElasticSeedSource{},
+                                   std::numeric_limits<double>::infinity(), o, counters);
+            ASSERT_EQ(Seam::off_rows_forced, 1);
+            ASSERT_EQ(report.qp_status, QpStatus::kOptimal);
+            EXPECT_EQ(report.slack_l1, 0.0) << "the seam's rung: every slack shut";
+            EXPECT_EQ(report.step_norm, 0.0) << "the seam's rung: the zero step";
+            EXPECT_NEAR(report.rung_residual_l1, 1.0e-3, 1e-15) << "both rows open by 5e-4";
+            EXPECT_FALSE(report.promises_f);
+            if (slacks_only) {
+                EXPECT_TRUE(report.closed) << "the defect's verdict, reproduced";
+                EXPECT_TRUE(report.usable);
+            } else {
+                EXPECT_FALSE(report.closed);
+                EXPECT_FALSE(report.reduced);
+                EXPECT_FALSE(report.usable) << "exhausted: the driver restores";
+            }
+        }
+    }
+}
+
+// WC (2): the same rung judged on its slacks alone (the report before the bound) is closed and
+// usable, so the driver receives a zero elastic step at h = 0.001 > feas_tol. KLV's ||d|| = 0
+// short-circuit would commit it unjudged at every major; it is exhaustion, routed to restoration.
+TEST(SqpLadderSeam, WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion) {
+    for (const auto policy :
+         {SqpOptions{}.linear.dense_factorization, hven::linear::DensePolicy::kNever}) {
+        SCOPED_TRACE(static_cast<int>(policy));
+        QpAsNlpModel model = inconsistent_pair_model();
+        SqpOptions o = quiet();
+        o.linear.dense_factorization = policy;
+        o.common.max_iterations = 100;
+        o.advanced.equality_basis = false; // QP 0 carries both rows: the elastic tier's own
+        Seam::reset();
+        const SqpResult control =
+            SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+        ASSERT_FALSE(control.history.empty());
+        ASSERT_TRUE(control.history.front().elastic_applied);
+        ASSERT_EQ(control.history.front().verdict, StepVerdict::kRestore)
+            << "fixture premise: the genuine ladder is exhausted at major 0";
+        const SeamReset guard;
+        Seam::off_rows_rungs = 1000;
+        Seam::report_reads_slacks_only = true;
+        const SqpResult sol =
+            SqpSolver(o).solve(hven::detail::problem_ref(model), (model).start_point());
+        expect_first_major_restores(sol, control, o);
+    }
+}
 
 TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
     for (const int forced : {0, 1}) {

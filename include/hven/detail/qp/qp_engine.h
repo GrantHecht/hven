@@ -548,17 +548,19 @@
 //
 //    TRUSTWORTHY RANGE, both directions, known and accepted:
 //    (i) FALSE kInfeasible on a feasible row whose residual at the classified
-//        point still clears kStructuralResidualFrac. COVERED, on both paths, by
-//        The verdict-site face refinement below. STILL UNCOVERED: any (i) case
-//        whose face the refinement cannot close inside its budget.
+//        point still clears the margin. COVERED, on both paths, by the
+//        verdict-site face refinement below, then the terminal mu-free
+//        refinement, and in the last resort by the Farkas gate: an unrefinable
+//        residual with no verified certificate ends kNumericalError, never
+//        kInfeasible. STILL UNCOVERED: none known as a false kInfeasible.
 //    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
-//        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
-//        catch it re-breaks (i). The SQP driver is the second detection layer;
-//        a caller using the engine alone should scale its rows or shrink
-//        dual_mu. On the independent working set a contradiction that rides a
-//        DEPENDENT row is read by the dependency test instead and ends
-//        kInfeasible on a Farkas certificate (E2 fix6's grey re-read closes
-//        objective_inflated_lambda_qp(1e-3, 3e-4)); (ii) stands for the rest.
+//        the margin, kInfeasibilityMarginFactor * row_tolerance -- at most
+//        kInfeasibilityMarginFactor * max(feas_tol, kInfeasibilityAbsorbTol)
+//        in row units, whatever |lambda| is (M8 walk cap: an uncapped footprint
+//        ratio used to excuse any gap below 0.1*dual_mu*|lambda|, which on an
+//        elastic rung at rho ~ 1e6 is 5e-4 and returned kOptimal at a point
+//        violating its rows; docs/notes/data/2026-11-m8-walk-cap/). A gap below
+//        the margin is beneath the classifier's resolution by construction.
 //    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
 //        beyond unbounded_artifact_scale(). Tune primal_delta rather than treat
 //        this kNumericalError as load-bearing.
@@ -929,9 +931,8 @@ constexpr double kUnboundedArtifactFactor = 0.1;
 inline double unbounded_artifact_scale(const QpOptions &opts) {
     return kUnboundedArtifactFactor / opts.primal_regularization;
 }
-// Multiple of a row's tolerance a violation must clear before it is even
-// considered as evidence of infeasibility (condition (a); see
-// violation_is_structural).
+// Multiple of a row's tolerance a violation must clear before it counts as
+// evidence of infeasibility (see violation_is_structural).
 constexpr double kInfeasibilityMarginFactor = 10.0;
 // The Farkas certificate's rounding floor (settler S25'): its residual is EXACT
 // iff <= kCertExactTol = kCertExactKappa * (n + m) * eps * ||y||_1 * max_k ||a_k||
@@ -943,10 +944,6 @@ constexpr double kInfeasibilityMarginFactor = 10.0;
 // both; kappa = 10 is the safety factor. ||y||_1 counts the blocker's own unit
 // coefficient, max_k runs over c and the rows with y_k != 0, m = me + |W|.
 constexpr double kCertExactKappa = 10.0;
-// Fraction of the regularization footprint dual_mu*|lambda| that a violation
-// must reach before it counts as STRUCTURAL rather than solver noise
-// (condition (b); see violation_is_structural).
-constexpr double kStructuralResidualFrac = 0.1;
 // Hard floor, relative to the row's own scale, beneath the verdict-site face
 // refinement's per-row target (see QpEngine::face_row_target). A residual
 // flattens out at ~1e-16 of the row's scale and then oscillates in the last
@@ -2152,20 +2149,23 @@ class QpEngine {
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &ae_row_norm1, const QpOptions &opts) const;
 
-    // Is a single row's violation genuine evidence of infeasibility, rather
-    // than the regularized solve's own noise? Both conditions must hold.
+    // Is a single row's violation evidence of infeasibility, rather than the
+    // regularized solve's own noise? Iff it clears the row's tolerance by
+    // kInfeasibilityMarginFactor. Evidence, not a verdict: what decides is
+    // downstream -- the verdict-site and mu-free refinements re-solve a
+    // footprint a consistent row can shed, and kInfeasible needs a verified
+    // Farkas certificate (kNumericalError without one).
     //
-    //  (a) The violation clears the row's tolerance by a real margin.
-    //  (b) The violation is STRUCTURAL: it reaches an appreciable fraction of
-    //      the regularization footprint dual_mu*|lambda|. On an INCONSISTENT
-    //      row the identity Ai x - dual_mu*lambda = bi is exact and
-    //      irreducible, so the residual sits AT the footprint (ratio ~ 1); on
-    //      a merely ill-scaled but CONSISTENT row the same footprint is a
-    //      first-order error refinement knocks down by orders of magnitude.
-    //
-    // Testing the RATIO rather than |lambda| against a fixed scale matters: a
-    // contradiction with a small gap produces a correspondingly small lambda
-    // and would slip under any absolute multiplier threshold.
+    // WHY NO FOOTPRINT-RATIO CONDITION (M8 walk cap). A second condition once
+    // excused any violation below 0.1*dual_mu*|lambda|, uncapped, on the theory
+    // that a consistent row's residual is a first-order footprint refinement
+    // removes. Uncapped, it excused gaps of any size once |lambda| was large --
+    // an elastic rung at rho ~ 5e5 (|lambda| ~ rho, dual_mu 1e-8) excused 5e-4
+    // and the walk returned kOptimal at a point violating both its rows. Capped
+    // like row_tolerance's own footprint term (kInfeasibilityAbsorbTol *
+    // row_scale) it is implied by the margin -- v > 10*row_tolerance >=
+    // 10*min(dual_mu*|lambda|, cap) -- so the cap IS its removal; the job it was
+    // doing belongs to the refinements and the certificate above.
     bool violation_is_structural(double v, double row_scale, double lambda,
                                  const QpOptions &opts) const;
 
@@ -2182,7 +2182,7 @@ class QpEngine {
     // row's own units: the classifier's own threshold,
     // kInfeasibilityMarginFactor * row_tolerance, floored at
     // kVerdictRefineRelFloor * row_scale. Reaching it is exactly what makes
-    // condition (a) stop calling the row's residual evidence, so the loop asks
+    // the margin test stop calling the row's residual evidence, so the loop asks
     // for the least accuracy that settles the verdict and no more.
     double face_row_target(double row_scale, double lambda, const QpOptions &opts) const;
 

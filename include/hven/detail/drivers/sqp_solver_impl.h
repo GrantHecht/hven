@@ -501,12 +501,15 @@ void charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &res);
 /// on, and the four-flag verdict on that rung. The history-row fields are
 /// carried as values so a consumer needs no second read of `qs_e`.
 struct ElasticLadderReport {
-    ElasticQp elastic;       ///< The augmented problem, at the LAST rung's rho.
-    QpSolution qs_e;         ///< The rung the ladder stopped on, AUGMENTED space.
-    Vec p_elastic;           ///< Its original-variable block, or Zero(n) if not kOptimal.
-    double slack_l1 = 0.0;   ///< l1 of the ACTUAL violations at qs_e; 0.0 when not kOptimal.
-    bool closed = false;     ///< kOptimal && slack_l1 <= feas_tol: the relaxation shut.
-    bool reduced = false;    ///< kOptimal && slack_l1 <= violation_l1 - feas_tol.
+    ElasticQp elastic;     ///< The augmented problem, at the LAST rung's rho.
+    QpSolution qs_e;       ///< The rung the ladder stopped on, AUGMENTED space.
+    Vec p_elastic;         ///< Its original-variable block, or Zero(n) if not kOptimal.
+    double slack_l1 = 0.0; ///< l1 of the ACTUAL violations at qs_e; 0.0 when not kOptimal.
+    /// l1 residual of the rung's OWN rows at qs_e (equalities |.|, inequalities positive
+    /// part); 0.0 when not kOptimal. slack_l1 + this bounds the step's linearized violation.
+    double rung_residual_l1 = 0.0;
+    bool closed = false;  ///< kOptimal && slack_l1 + rung_residual_l1 <= feas_tol: shut.
+    bool reduced = false; ///< kOptimal && slack_l1 + rung_residual_l1 <= violation_l1 - feas_tol.
     bool promises_f = false; ///< kOptimal and predicted_decrease(qp, p_elastic) > 0.
     bool usable = false;     ///< kOptimal && (closed || reduced || promises_f).
     QpStatus qp_status = QpStatus::kOptimal; ///< qs_e.status, for the history row.

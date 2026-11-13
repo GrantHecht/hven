@@ -630,36 +630,43 @@ TEST(SqpEqualityBasis, F9ZeroStepAtAnInconsistencyHandsOffToTheLadder) {
     x0 << 1.0005, 0.0;
     const QpAsNlpModel model(make_qp(A, b, h, g, Vec::Constant(2, -10.0), Vec::Constant(2, 10.0)),
                              x0);
-    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
-        SCOPED_TRACE(static_cast<int>(mode));
-        // M8 DN-3 flip: F9 was derived on the sparse arm, the default before the flip, so
-        // kNever is set explicitly. Under kAuto every mode ends kIterationLimit at max_iter
-        // after the hand-off (registered with the flip).
-        SqpOptions o = opts_for(mode);
-        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
-        SqpSolver solver(o);
-        const SqpResult res = solver.solve(hven::detail::problem_ref(model), (model).start_point());
+    // BOTH ARMS. M8 DN-3 flip: under the new default (kAuto, the dense arm) every mode ended
+    // kIterationLimit at max_iter after the hand-off, so the flip pinned kNever. M8 WALK CAP
+    // (declared mover): that was a walk defect, not an arm property -- an elastic rung at rho ~
+    // 1e6 returned a false kOptimal at s = 0 (the uncapped footprint excuse) and the driver
+    // committed the zero step unjudged 98 times. With the excuse capped both arms end
+    // kInfeasible, so the default arm is the test again and kNever stays as the second arm.
+    for (const auto policy :
+         {SqpOptions{}.linear.dense_factorization, hven::linear::DensePolicy::kNever})
+        for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
+            SCOPED_TRACE(static_cast<int>(mode));
+            SCOPED_TRACE(static_cast<int>(policy));
+            SqpOptions o = opts_for(mode);
+            o.linear.dense_factorization = policy;
+            SqpSolver solver(o);
+            const SqpResult res =
+                solver.solve(hven::detail::problem_ref(model), (model).start_point());
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(res.status, SolveStatus::kInfeasible);
-        EXPECT_TRUE(res.equality_basis.handed_off);
-        EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
-        EXPECT_GE(res.equality_basis.split_changes, 1);
-        EXPECT_LT(res.counters.major_iters, o.common.max_iterations);
+            EXPECT_EQ(res.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(res.equality_basis.handed_off);
+            EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
+            EXPECT_GE(res.equality_basis.split_changes, 1);
+            EXPECT_LT(res.counters.major_iters, o.common.max_iterations);
 #else
-        // Off the reference build the ladder after the hand-off is not known to finish
-        // kInfeasible (WX-R3: observed kIterationLimit at the cap on Accelerate). The route is
-        // recorded, never blessed: only the hand-off fields and an honest status hold.
-        hven::test_support::record_off_reference_route(
-            std::string("f9_ladder_") + std::to_string(static_cast<int>(mode)),
-            fmt::format("status={} major_iters={} max_iter={}", static_cast<int>(res.status),
-                        res.counters.major_iters, o.common.max_iterations));
-        EXPECT_NE(res.status, SolveStatus::kOptimal); // the system is inconsistent
-        EXPECT_TRUE(res.equality_basis.handed_off);
-        EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
-        EXPECT_GE(res.equality_basis.split_changes, 1);
-        EXPECT_LE(res.counters.major_iters, o.common.max_iterations);
+            // Off the reference build the ladder after the hand-off is not known to finish
+            // kInfeasible (WX-R3: observed kIterationLimit at the cap on Accelerate). The route is
+            // recorded, never blessed: only the hand-off fields and an honest status hold.
+            hven::test_support::record_off_reference_route(
+                std::string("f9_ladder_") + std::to_string(static_cast<int>(mode)),
+                fmt::format("status={} major_iters={} max_iter={}", static_cast<int>(res.status),
+                            res.counters.major_iters, o.common.max_iterations));
+            EXPECT_NE(res.status, SolveStatus::kOptimal); // the system is inconsistent
+            EXPECT_TRUE(res.equality_basis.handed_off);
+            EXPECT_EQ(res.equality_basis.inconsistent_row, -1);
+            EXPECT_GE(res.equality_basis.split_changes, 1);
+            EXPECT_LE(res.counters.major_iters, o.common.max_iterations);
 #endif
-    }
+        }
 }
 
 // The parent's first judgement is kRestore; everything else is the funnel's.

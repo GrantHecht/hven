@@ -3274,10 +3274,9 @@ double QpEngine::row_tolerance(double row_scale, double lambda, const QpOptions 
 
 bool QpEngine::violation_is_structural(double v, double row_scale, double lambda,
                                        const QpOptions &opts) const {
-    if (v <= detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts)) {
-        return false; // (a) within tolerance, nothing to explain
-    }
-    return v >= detail::kStructuralResidualFrac * opts.dual_regularization * std::abs(lambda);
+    // The margin is the whole test: see the declaration for why the footprint
+    // ratio this once also required is subsumed by it once capped.
+    return v > detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts);
 }
 
 double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, const Vec &Aix,

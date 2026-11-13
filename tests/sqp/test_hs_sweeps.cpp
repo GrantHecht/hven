@@ -1368,10 +1368,16 @@ void check_soc_costs_what_it_costs() {
     // Debug's corpus does not move: CONFIG-SPLIT from here.
     // M8 DN-3 flip (declared; the corpus now factors on the dense arm): Release 3340 -> 3347,
     // Debug 3342 -> 3338. Every other assertion of this test, statuses included, holds.
+    // M8 walk cap (declared mover, docs/notes/data/2026-11-m8-walk-cap/): Release 3347 -> 3355,
+    // Debug 3338 -> 3346, +8 in both, ALL OF IT HS15's COLD ARM (Release table: 1062 -> 1070
+    // minors in the SOC-off KD/SOC cells, 1067 -> 1075 in the SOC-on ones; majors 86,
+    // factorizations 184, acc/rej 70/16, elastic 48/288 and every status unchanged). An elastic
+    // rung whose row residual the uncapped footprint once excused is now refined before its
+    // verdict: more QP work on the same answers.
 #ifdef NDEBUG
-    EXPECT_EQ(3347, total_minors) << corpus_table();
+    EXPECT_EQ(3355, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3338, total_minors) << corpus_table();
+    EXPECT_EQ(3346, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads

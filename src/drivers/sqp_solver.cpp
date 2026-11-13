@@ -1529,6 +1529,15 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         }
     }
 
+#ifdef HVEN_TESTING
+    // THE WALK-CAP SEAM (ladder_testing.h): the rung the uncapped footprint excuse returned.
+    if (detail::testing::SqpLadderSeam::off_rows_rungs > 0 && qs_e.status == QpStatus::kOptimal) {
+        --detail::testing::SqpLadderSeam::off_rows_rungs;
+        ++detail::testing::SqpLadderSeam::off_rows_forced;
+        qs_e.x.head(elastic.n_orig) = elastic.p_ref;
+        qs_e.x.segment(elastic.n_orig, elastic.ns).setZero();
+    }
+#endif
     // THE EXHAUSTION SIGNATURE (see the note): the ladder is
     // spent and the tier has nothing to offer -- the relaxation
     // is still materially open, no admissible step reduces the
@@ -1539,13 +1548,37 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     const double slack_l1 = s_final.size() > 0 ? s_final.lpNorm<1>() : 0.0;
     const Vec p_elastic =
         qs_e.status == QpStatus::kOptimal ? Vec(qs_e.x.head(qp.n())) : Vec::Zero(qp.n());
+    // THE RUNG'S OWN ROWS (M8 walk cap). The slacks measure the step's linearized
+    // violation only if the rung meets its own rows: a^T p + sigma*s = b is what
+    // makes sigma*s the residual of a^T p = b. A rung returned kOptimal OFF its rows
+    // (the engine's footprint excuse, now capped, did exactly that at s = 0) would
+    // read closed on a step that closes nothing. So the step's violation is bounded
+    // above -- |a^T p - b| <= sigma*s + |a^T p + sigma*s - b| -- and both tests read
+    // the bound; on a rung that meets its rows it is slack_l1 to within the rows'
+    // rounding.
+    double rung_residual_l1 = 0.0;
+    if (qs_e.status == QpStatus::kOptimal) {
+        const QpProblem &eq = elastic.qp;
+        if (eq.me() > 0) {
+            rung_residual_l1 += (eq.Ae * qs_e.x - eq.be).lpNorm<1>();
+        }
+        if (eq.mi() > 0) {
+            rung_residual_l1 += (eq.Ai * qs_e.x - eq.bi).cwiseMax(0.0).sum();
+        }
+    }
+    double step_violation_bound = slack_l1 + rung_residual_l1;
+#ifdef HVEN_TESTING
+    if (detail::testing::SqpLadderSeam::report_reads_slacks_only) {
+        step_violation_bound = slack_l1;
+    }
+#endif
     // GUARDED LIKE promises_f/usable (fix round 1): on a non-kOptimal rung s_final
     // is Zero(0), so an unguarded `closed` would read TRUE off a VACUOUS zero --
     // inert at today's call site, a landmine for T3's consumer of the report.
     const bool closed =
-        qs_e.status == QpStatus::kOptimal && slack_l1 <= opts.common.feasibility_tol;
+        qs_e.status == QpStatus::kOptimal && step_violation_bound <= opts.common.feasibility_tol;
     const bool reduced = qs_e.status == QpStatus::kOptimal &&
-                         slack_l1 <= elastic.violation_l1 - opts.common.feasibility_tol;
+                         step_violation_bound <= elastic.violation_l1 - opts.common.feasibility_tol;
     // EXACT ZERO, DELIBERATELY: see THE KNIFE-EDGE RULING above
     // for why a tolerance was considered and not added here.
     const bool promises_f = qs_e.status == QpStatus::kOptimal &&
@@ -1558,6 +1591,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     // flags and the three row fields have read them.
     ElasticLadderReport report;
     report.slack_l1 = slack_l1;
+    report.rung_residual_l1 = rung_residual_l1;
     report.p_elastic = p_elastic;
     report.closed = closed;
     report.reduced = reduced;
@@ -8370,11 +8404,22 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         return MajorOutcome::kContinue;
     }
 
-    StepVerdict verdict =
-        zero_step ? StepVerdict::kAcceptObjectiveStep : st.strategy->judge(mj.ctx);
+    // A ZERO STEP FROM THE ELASTIC TIER WHILE THE ITERATE IS INFEASIBLE IS EXHAUSTION
+    // (M8 walk cap), not KLV's ||d|| = 0 stationarity: the short-circuit's premise is a
+    // subproblem whose answer is zero, and an elastic answer of zero at h_old > feas_tol
+    // leaves the linearized violation exactly where it was -- the tier made no progress
+    // and has nothing more to offer. Unjudged, it was committed again at every major
+    // (98 times to kIterationLimit on F9's inconsistent pair on the dense arm). It is
+    // the ladder's own exhaustion signature, routed the same way: restoration, with no
+    // candidate -- a zero step IS x (see the elastic requester's have_p).
+    const bool zero_elastic_exhaustion =
+        zero_step && elastic_applied && mj.ctx.h_old > opts_.common.feasibility_tol;
+    StepVerdict verdict = zero_elastic_exhaustion ? StepVerdict::kRestore
+                          : zero_step             ? StepVerdict::kAcceptObjectiveStep
+                                                  : st.strategy->judge(mj.ctx);
     // A ZERO-STEP COMMIT HAS NO JUDGEMENT (M7 W2 R2-1 rider R2): a non-finite step
     // rollback of this commit must not retract the funnel move of an EARLIER major.
-    if (zero_step) {
+    if (zero_step && !zero_elastic_exhaustion) {
         if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
             funnel->note_unjudged_commit();
         }
@@ -8594,9 +8639,12 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     if (verdict == StepVerdict::kRestore) {
         // The funnel's own restoration signature (globalization.h's
         // five conjuncts). Same offer as the floor site above, and SOC is
-        // equally out of the picture here (it is gated on kReject).
-        const RestorationOutcome outcome =
-            enter_restoration(st, mj, seam, bridge, iter, {&mj.x_trial, &mj.ev_trial});
+        // equally out of the picture here (it is gated on kReject). The
+        // zero-step elastic exhaustion offers nothing: its trial IS x.
+        const RestorationCandidate offer = zero_elastic_exhaustion
+                                               ? RestorationCandidate{}
+                                               : RestorationCandidate{&mj.x_trial, &mj.ev_trial};
+        const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter, offer);
         // The parent's latch, read before this row's own event fires; see the
         // elastic requester above (ruling R4).
         mj.interrupted_exit = st.interrupted;
