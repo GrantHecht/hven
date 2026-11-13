@@ -385,7 +385,10 @@ It has since bitten twice more, in the trap's two directions, both in M7 W0:
   (`docs/notes/2026-09-m7-ledger.md:100-101`); the brief's is "the harness checks CLEAN
   before a sweep" (`docs/notes/2026-09-m7-brief.md:215-216`). That the configure-time stamp
   is stale once a commit lands is the observed consequence of the trap, not a fourth
-  trigger.
+  trigger. The hven half of M7-16 (M8 EX-3) guards it: the configure re-runs when git's
+  HEAD, ref or index moves, and `scripts/check_bench_stamp.sh` (target
+  `hven_bench_stamp_check`) exits 1 with a STALE message when the configured stamp
+  differs from a live `git describe` (an unstaged edit moves none of the watched files).
 - **A `-dirty` stamp "fails the gate's provenance requirement"**, and the census runner
   checks before starting a multi-hour sweep, with the preflight command spelled out
   (`scripts/run_walk_census.sh:51-61`; the M6 close gate's clean reading at
