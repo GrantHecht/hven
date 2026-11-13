@@ -1,0 +1,177 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3'
+[1/82] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/82] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/82] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[4/82] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[5/82] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/82] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[7/82] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[8/82] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[9/82] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[10/82] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[11/82] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[12/82] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[13/82] Building CXX object CMakeFiles/hven.dir/src/linear/dense_session.cpp.o
+[14/82] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[15/82] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[16/82] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[17/82] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[18/82] Building CXX object CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o
+[19/82] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[20/82] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[21/82] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[22/82] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[23/82] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[24/82] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[25/82] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[26/82] Building CXX object CMakeFiles/hven.dir/src/drivers/common_options.cpp.o
+[27/82] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[28/82] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/build-g3/tsan-r3/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[29/82] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[30/82] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[31/82] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[32/82] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[33/82] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[34/82] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[35/82] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[36/82] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[37/82] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[38/82] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[39/82] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[40/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[41/82] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[42/82] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[43/82] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[44/82] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[45/82] Linking CXX static library lib/libgtest.a
+[46/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[47/82] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[48/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[49/82] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[50/82] Linking CXX static library lib/libgtest_main.a
+[51/82] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[52/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[53/82] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[54/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[55/82] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[56/82] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[57/82] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/src/drivers/sqp_solver.cpp:6476:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6476 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[58/82] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[59/82] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[60/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmTerminationOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+7 warnings generated.
+[61/82] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[62/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+[63/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_dense_auto.cpp.o
+[64/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+[65/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o
+[66/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+[67/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+[68/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+[69/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_dense_arm_engines.cpp.o
+[70/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_stop_token.cpp.o
+[71/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o
+[72/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o
+[73/82] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[74/82] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[75/82] Linking CXX static library libhven.a
+[76/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_callback.cpp:539:67: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/detail/model/nlp_model.h:85:7: note: 'eval_grad' has been explicitly marked deprecated here
+   85 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_callback.cpp:539:85: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                                     ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/detail/model/nlp_model.h:113:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  113 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_callback.cpp:540:19: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/detail/model/nlp_model.h:117:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  117 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_callback.cpp:540:38: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/detail/model/nlp_model.h:89:7: note: 'eval_ce' has been explicitly marked deprecated here
+   89 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/tests/drivers/test_callback.cpp:540:54: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/include/hven/detail/model/nlp_model.h:93:7: note: 'eval_ci' has been explicitly marked deprecated here
+   93 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[77/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_problem.cpp.o
+[78/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+[79/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+[80/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+[81/82] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o
+[82/82] Linking CXX executable tests/drivers/hven_drivers_tests
