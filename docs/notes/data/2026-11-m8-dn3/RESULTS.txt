@@ -77,3 +77,38 @@ DISCLOSURES ADDED AFTER THE DECLARATIONS
 - R-e's IPM rows: see above (the `t0-` prefix predates the IPM's threads >= 1 rule).
 - The P leg waited 63 minutes for the box lock behind another lane's serial run; r3's retake waited behind its next run.
 No re-run beyond the declared ones. Apple/Accelerate and Windows: UNOBSERVED.
+
+================================================================================
+THE FLIP (owner ruling 2026-11-13; DECLARATION-r4.md b5af742de, DECLARATION-r5.md 72df57a8b, each committed before its
+first leg; written after the legs; criteria unchanged)
+================================================================================
+The owner applied the A5 tallies above and accepted the S-A4 records as immaterial: IpmLinearOptions and
+SqpLinearOptions ::dense_factorization default to kAuto (T_IPM 167, T_SQP 105); max_dense_dimension stays reserved.
+Flip commit 2d6d89cd0 (two defaults, doc comments, design note section "DN-3 flip", 31 declared test re-pins in 13
+files: DECLARATION-r4 section 3). r5 code head 297649961 = the flip + a bench-only pre-flip dense pin for the interior
+leg (HVEN_LEG_IPM_PRE_DN3_DEFAULT). Linux x86-64, Ryzen 7 5800X3D, clang 22.1.8, MKL 2026.2, MKL_NUM_THREADS=1.
+
+r4  (r4/orchestrate.out, 06:33-06:58) F1 MET (Release and Debug 100% of 3633); I1 MET (27 cells x walk/ssn/ipm x3, 0
+    differences in 9 comparisons); I3a MET (kNever iparm dump byte-identical to the B8-riders pin); I3b as stated (0
+    pardiso calls at the default; parallel_solve=2 and both CNR configs refused). I3c FAILED: 26 residual differences,
+    all on three small interior fixtures below T_IPM (hs071_x1_fixed 23, infeas2_spike 2, infeas2_stationary 1), no
+    status or iteration column, no f7 row. r4 had assumed every interior cell is F7. Stopped; record kept (63bf818c5).
+r5  (r5/orchestrate.out, 07:05-13:42) ALL_LEGS_PASSED:
+    F1  MET  "100% tests passed, 0 tests failed out of 3633", Release and Debug (r5/suites/).
+    I1  MET  27 cells x walk / ssn / ipm, three times, against the wx2 replay reference: 0 differences in all 9.
+    I3a MET  iparm (kNever) byte-identical to iparm-b8r.txt (sha256 34bb45c0...). I3b as stated (r5/iparm/).
+    I3c MET  N1 pinned 27-cell vs the head 96ac1a27d: 0; N2 pinned baseline invocation vs the B7 baseline: 0; A1 default
+             vs r4's flip run: 0; A2 default vs the head: 26 differences, MOVERS_AS_DECLARED (the three fixtures only);
+             A3 default baseline invocation vs r4's: 0 (r5/interior/).
+    F3  MET  install smoke and export contract rc 0, default (GCC) and clang++ front ends (r5/install-smoke/).
+    I4  MET  I4_PASS on all 238 TRAIN cells: I4a flip `default` == DN-3 `auto-default` 238/238 (227 rows with dense
+             factorizations > 0, the E candidates); I4b flip `never-default` (kNever explicit) == DN-3 `default`
+             238/238; every key, exit code and options dump byte-equal, 0 residual values needing the gate
+             (r5/identity/identity.txt). Serial, 476 cell processes, 07:32-07:37.
+    I2  MET  CENSUS_AS_DECLARED: 57 cells, 42 exact, PF-1's 2 declared movers as declared, 13 deadline-bound
+             (r5/census/; the runner's declared parallel-tiered v1 protocol; wall-clock informational).
+So: above the thresholds nothing moved (replay, census, interior f7 rows, iparm at kNever); kNever explicit reproduces
+the pre-flip default on every TRAIN cell and on the interior leg; the new default reproduces DN-3's measured kAuto rows
+exactly. Re-derived baseline (declared): bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv.
+L5 (macOS / Windows CI on the flip) NOT RUN: no push; the settler's. Apple/Accelerate and Windows: UNOBSERVED.
+HOLDOUT: never run.

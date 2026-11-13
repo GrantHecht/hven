@@ -1,0 +1,198 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:05:32-05:00
+LEG F1-rel start 2026-11-13T07:05:32-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:05:32-05:00
+
+The following tests did not run:
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T07:06:45-05:00
+LEG F1-rel rc=0 2026-11-13T07:06:45-05:00
+LEG F1-dbg start 2026-11-13T07:06:45-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:06:45-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2316 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2317 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-13T07:13:18-05:00
+LEG F1-dbg rc=0 2026-11-13T07:13:18-05:00
+LEG I1 start 2026-11-13T07:13:18-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:13:18-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/flipbin/hven_sqp_corpus sha256 12cd2b9f95074d73e55e3af279b1c77e6e21ff34683a534c2cc698ea52e6e03c
+RUN k=1 mode=walk 2026-11-13T07:13:18-05:00
+run rc=0
+compare rc=0
+=== r4-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ssn 2026-11-13T07:18:06-05:00
+run rc=0
+compare rc=0
+=== r4-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=1 mode=ipm 2026-11-13T07:18:26-05:00
+run rc=0
+compare rc=0
+=== r4-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=walk 2026-11-13T07:18:52-05:00
+run rc=0
+compare rc=0
+=== r4-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ssn 2026-11-13T07:23:40-05:00
+run rc=0
+compare rc=0
+=== r4-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=2 mode=ipm 2026-11-13T07:24:00-05:00
+run rc=0
+compare rc=0
+=== r4-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=walk 2026-11-13T07:24:26-05:00
+run rc=0
+compare rc=0
+=== r4-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ssn 2026-11-13T07:29:14-05:00
+run rc=0
+compare rc=0
+=== r4-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN k=3 mode=ipm 2026-11-13T07:29:35-05:00
+run rc=0
+compare rc=0
+=== r4-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-13T07:30:00-05:00
+LEG I1 rc=0 2026-11-13T07:30:00-05:00
+LEG I3ab start 2026-11-13T07:30:00-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:30:01-05:00
+dump never rc=0
+dump default rc=0
+I3a IPARM_BYTE_IDENTICAL
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r5/iparm/iparm-never.txt
+568655771da0987813dda0b6858427c8af6c548798aecae2c97f32b8a53f90c6  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r5/iparm/iparm-default.txt
+I3b (reported): the flipped default's dump, status lines per config:
+  == config default	status=optimal iterations=10 calls=0
+  == config ordering=minimum_degree	status=optimal iterations=10 calls=0
+  == config ordering=parallel_nested_dissection	status=optimal iterations=10 calls=0
+  == config pivoting=one_by_one	status=optimal iterations=10 calls=0
+  == config matching=off	status=optimal iterations=10 calls=0
+  == config scaling=on	status=optimal iterations=10 calls=0
+  == config pivot_perturbation=13	status=optimal iterations=10 calls=0
+  == config refinement_steps=2	status=optimal iterations=10 calls=0
+  == config parallel_solve=1	status=optimal iterations=10 calls=0
+  == config parallel_solve=2	REFUSED (std::invalid_argument) calls=0
+  == config cnr=on	REFUSED (std::invalid_argument) calls=0
+  == config skip_unperturbed=off	status=optimal iterations=10 calls=0
+  == config force_analysis=on	status=optimal iterations=10 calls=0
+  == config threads=2	status=optimal iterations=10 calls=0
+  == config cnr=on+threads=2	REFUSED (std::invalid_argument) calls=0
+I3b pardiso calls recorded in total: 0
+FOREGROUND_END 2026-11-13T07:30:08-05:00
+LEG I3ab rc=0 2026-11-13T07:30:08-05:00
+LEG I3c start 2026-11-13T07:30:08-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:30:08-05:00
+12cd2b9f95074d73e55e3af279b1c77e6e21ff34683a534c2cc698ea52e6e03c  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/flipbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+5cf7c4019d758343160638c10920b5c188dbc27dd808544ef9d7da0d129cfd9a  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/interior-r2/interior-B.csv
+04a86a0afbd9f819d85a96c1bfdeaaea419464c9081ace55f2dcac54a4b9cef3  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r4/interior/interior-flip.csv
+47608d9228c5d54fe21229ebb341f848a63ee8c64536ad2ea302c84ba27fd3fe  /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/docs/notes/data/2026-11-m8-dn3/r4/interior/interior-flip-baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+run default rc=0
+pre_dn3_dense_pin=off
+run default-baseline rc=0
+pre_dn3_dense_pin=off
+run pinned rc=0
+pre_dn3_dense_pin=on
+run pinned-baseline rc=0
+pre_dn3_dense_pin=on
+=== I3c-N1 === cells compared: 43  columns compared: 30  differences: 0
+compare I3c-N1 rc=0
+=== I3c-N2 === cells compared: 43  columns compared: 30  differences: 0
+compare I3c-N2 rc=0
+=== I3c-A1 === cells compared: 43  columns compared: 30  differences: 0
+compare I3c-A1 rc=0
+=== I3c-A2 === cells compared: 43  columns compared: 30  differences: 26
+compare I3c-A2 rc=1
+differences: 26 (parsed 26)
+  hs071_x1_fixed: 23
+  infeas2_spike: 2
+  infeas2_stationary: 1
+MOVERS_AS_DECLARED
+mover_check rc=0
+=== I3c-A3 === cells compared: 43  columns compared: 30  differences: 0
+compare I3c-A3 rc=0
+worst=0
+FOREGROUND_END 2026-11-13T07:30:52-05:00
+LEG I3c rc=0 2026-11-13T07:30:52-05:00
+LEG F3 start 2026-11-13T07:30:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:30:52-05:00
+SMOKE_START default 2026-11-13T07:30:52-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-13T07:31:55-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 36 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-13T07:32:36-05:00
+LEG F3 rc=0 2026-11-13T07:32:36-05:00
+LEG I4 start 2026-11-13T07:32:36-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:32:36-05:00
+cells run: 238 2026-11-13T07:37:25-05:00
+I4a (flip default == DN-3 auto-default): 238 of 238 equal; flip-default rows with dense factorizations > 0: 227
+I4b (flip never-default == DN-3 default): 238 of 238 equal
+residual values equal within the gate but not byte-equal: 0
+I4_PASS
+identity rc=0
+FOREGROUND_END 2026-11-13T07:37:25-05:00
+LEG I4 rc=0 2026-11-13T07:37:25-05:00
+LEG I2 start 2026-11-13T07:37:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-13T07:37:25-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/flipbin/hven_sqp_corpus sha256 12cd2b9f95074d73e55e3af279b1c77e6e21ff34683a534c2cc698ea52e6e03c
+census rc=0
+WARN: serial_confirm_list.txt and is NOT a regression until it has been
+WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+serial-confirm list: 2 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/agent-a739270f237b3e30c/build-flip/census-run/serial_confirm_list.txt
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+DECLARED_MOVER ok f7_n1000_path_corrupted: base Optimal,29828,30001,0,4,19871;9955;1;1,8.699885755e-12 -> fresh Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12 (declared Optimal,3590,4762,0,3,3588;1;1,8.699734455e-12)
+DECLARED_MOVER ok f7_n2000_path_corrupted: base WorkLimit,59745,60000,0,3,19872;20001;19872,9.843817033e-02 -> fresh WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02 (declared WorkLimit,59746,60000,0,3,19873;20001;19872,9.843817033e-02)
+cells=57 exact=42 declared_movers=2 deadline_bound=13
+CENSUS_AS_DECLARED
+census_check rc=0
+FOREGROUND_END 2026-11-13T13:42:39-05:00
+LEG I2 rc=0 2026-11-13T13:42:39-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-13T13:42:39-05:00
