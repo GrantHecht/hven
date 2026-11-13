@@ -495,6 +495,9 @@ struct IpqpResult {
     /// (kNumerical only once that ladder is exhausted); a mu-estimate refusal
     /// takes the estimate's non-finite fallback.
     Index dense_solve_residual_refusals = 0;
+    /// Factorizations of this solve's factor on the dense arm (QpCounters'
+    /// dense_factorizations).
+    Index dense_factorizations = 0;
 };
 
 /// @brief The IP-PMM interior-point QP tier.

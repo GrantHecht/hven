@@ -185,7 +185,7 @@ inline QpDump load_qp_dump(const std::string &path) {
 
 /// Re-solve the dump on a fresh engine, with the dumped options except those the caller changed.
 inline hven::detail::QpSolution solve_qp_dump(const QpDump &d, const hven::QpOptions &opts) {
-    const hven::detail::QpEngine engine(opts, d.threads);
+    const hven::detail::QpEngine engine(opts, d.threads, hven::linear::DensePolicy::kNever);
     return d.has_seed ? engine.solve(d.qp, d.seed, d.overrides) : engine.solve(d.qp, d.overrides);
 }
 

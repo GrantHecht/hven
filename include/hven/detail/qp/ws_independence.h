@@ -368,6 +368,9 @@ struct RankRepair {
     std::vector<char> release_consistent;
     Index deficiency = 0;         // null directions found (mandatory ones included)
     Index inconsistent_steps = 0; // releases chosen by the inconsistency's orientation
+    // The Gram factor's factorizations on the dense arm (0 or 1; QpCounters'
+    // dense_factorizations).
+    Index dense_factorizations = 0;
 };
 
 /// The dead-end rank repair's analysis of `ws` (above); reads `opts.feas_tol` only. `threads` is

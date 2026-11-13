@@ -11,6 +11,7 @@
 
 #include <hven/core/detail/inf_norm.h>
 #include <hven/core/pattern_hash.h>
+#include <hven/detail/kkt/dense_selection.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
@@ -37,13 +38,16 @@ namespace hven::detail {
 /// stays on the platform session at kAlways (the warm-start predictor's)
 /// says kNever where it is built. Under a dense policy the factor reports
 /// singular factorizations (DenseSingularPolicy::kReport) and
-/// factorize_checked()'s site overloads respond.
+/// factorize_checked()'s site overloads respond. Under kAuto the threshold is
+/// the SQP's (kSqpDenseSelectionThreshold), set here and only here, so every
+/// factor this factory configures selects its arm by its own pattern's order.
 inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads,
                                                               hven::linear::DensePolicy dense) {
     hven::linear::SymmetricFactor::Options o;
     o.decomposition = hven::linear::Decomposition::kLdlt;
     o.threads = threads;
     o.dense_factorization = dense;
+    o.max_dense_dimension = dense_selection_threshold(dense, kSqpDenseSelectionThreshold);
     if (dense != hven::linear::DensePolicy::kNever) {
         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
     }
@@ -182,30 +186,35 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const DenseShiftSite &site);
 
-/// @brief The factor's dense singular-response counts so far: unshifted
+/// @brief The factor's dense counts so far: factorizations on the dense arm
+/// (taken or reported exactly singular, shifted refactors included), unshifted
 /// factorizations the detector flagged (exact included), equilibrated
 /// refactors, platform retakes. `refactors - flagged` is the retries.
 struct DenseResponseTally {
+    Index dense = 0;
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
 };
 inline DenseResponseTally dense_response_tally(const KktFactor &k) {
     const auto &c = k.factor.counters();
-    return DenseResponseTally{c.dense_flagged_count + c.dense_singular_count -
+    return DenseResponseTally{c.dense_factorize_count + c.dense_singular_count,
+                              c.dense_flagged_count + c.dense_singular_count -
                                   k.shifted_exact_singular,
                               c.dense_shift_refactor_count, c.dense_retake_count};
 }
 
-/// @brief Adds a factor's tally delta to three counters when it leaves scope,
+/// @brief Adds a factor's tally delta to four counters when it leaves scope,
 /// a throw included.
 class DenseTallyScope {
   public:
-    DenseTallyScope(const KktFactor &k, Index &flagged, Index &refactors, Index &retakes)
-        : k_(k), flagged_(flagged), refactors_(refactors), retakes_(retakes),
+    DenseTallyScope(const KktFactor &k, Index &dense, Index &flagged, Index &refactors,
+                    Index &retakes)
+        : k_(k), dense_(dense), flagged_(flagged), refactors_(refactors), retakes_(retakes),
           before_(dense_response_tally(k)) {}
     ~DenseTallyScope() {
         const DenseResponseTally after = dense_response_tally(k_);
+        dense_ += after.dense - before_.dense;
         flagged_ += after.flagged - before_.flagged;
         refactors_ += after.refactors - before_.refactors;
         retakes_ += after.retakes - before_.retakes;
@@ -215,6 +224,7 @@ class DenseTallyScope {
 
   private:
     const KktFactor &k_;
+    Index &dense_;
     Index &flagged_;
     Index &refactors_;
     Index &retakes_;

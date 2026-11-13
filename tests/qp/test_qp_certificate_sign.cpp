@@ -99,7 +99,7 @@ QpSolution present(const QpProblem &qp, const QpOptions &opts, double z0, double
     Cert::z = Vec(3);
     Cert::z << z0, z1, 0.0;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(qp);
     Cert::armed = false;
     return s;
@@ -128,7 +128,7 @@ constexpr QpWorkingSetAlgebra kAlgebras[] = {QpWorkingSetAlgebra::kSchurBorder,
 TEST(QpCertificateSign, SeamUnarmedCertifiesTheOptimumWithNoRefusal) {
     SignSeamGuard guard;
     for (const auto alg : kAlgebras) {
-        QpEngine engine{sign_opts(alg)};
+        QpEngine engine{sign_opts(alg), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(sign_box_qp());
         ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(Cert::presentations, 0);
@@ -211,7 +211,7 @@ QpSolution present_off_box(const QpOptions &opts, double x0) {
     Cert::z = Vec(3);
     Cert::z << 5.0, -5.0, 0.0;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(sign_box_qp());
     Cert::armed = false;
     return s;
@@ -301,7 +301,7 @@ QpSolution present_polished(const QpOptions &opts, bool first_only) {
     Cert::z << 0.0, 0.0, -7.0; // the polished pin priced onto the wrong side
     Cert::first_only = first_only;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(polish_qp());
     Cert::armed = false;
     return s;
@@ -311,7 +311,7 @@ TEST(QpCertificateSign, PolishPremiseTheTerminalPolishIsAdoptedUnarmed) {
     SignSeamGuard guard;
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
-        QpEngine engine{polish_opts(alg)};
+        QpEngine engine{polish_opts(alg), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(polish_qp());
         ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_GE(s.counters.terminal_polish_adopted, 1);
@@ -358,7 +358,7 @@ QpSolution present_polished_off_box(const QpOptions &opts, bool first_only) {
     Cert::z << 0.0, 0.0, 3.0;
     Cert::first_only = first_only;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(polish_qp());
     Cert::armed = false;
     return s;

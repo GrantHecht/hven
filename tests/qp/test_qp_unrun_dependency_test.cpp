@@ -92,7 +92,7 @@ TEST_P(QpE2Fix7Unrun, AMovingBlockerWithNoFactorIsAnOrdinaryAdd) {
 
     Obs::reset();
     Obs::active = true;
-    const QpEngine engine(o);
+    const QpEngine engine(o, 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = engine.solve(qp);
     const std::vector<Record> records = Obs::records;
     Obs::active = false;
@@ -342,7 +342,7 @@ TEST_P(QpE2Fix8Budget, ARepairThatNeedsMorePinsThanItsBudgetStopsAndTheWalkFails
         o.max_iterations = 500;
         Obs::reset();
         Obs::active = true;
-        const QpEngine engine(o);
+        const QpEngine engine(o, 0, hven::linear::DensePolicy::kNever);
         const QpSolution s = engine.solve(qp);
         const std::vector<Record> records = Obs::records;
         Obs::active = false;

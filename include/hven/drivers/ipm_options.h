@@ -68,10 +68,12 @@ struct IpmLinearOptions {
     /// Force a fresh symbolic analysis on every solve instead of once per
     /// solver. Numeric refactorizations are unaffected. Default false.
     bool force_analysis = false;
-    /// When the dense factorization arm is used: `kNever` (the default) or
-    /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
-    /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
-    /// `validate()` refuses it until the selection rule lands. On the dense arm a
+    /// When the dense factorization arm is used: `kNever` (the default), `kAlways`,
+    /// which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
+    /// `SymmetricFactor::Options::dense_factorization`), or `kAuto`: the dense arm
+    /// for a KKT pattern of order n_kkt <= 167, the library's threshold for this
+    /// engine, the sparse backend above it. The dense arm runs single-threaded on
+    /// MKL (Accelerate: its default threading). On the dense arm a
     /// singular KKT factorization is answered by the inertia-correction ladder
     /// (delta_c, then a larger delta_w) and refactored on the dense arm, never
     /// handed to the sparse backend (`DenseSingularPolicy::kReport`).
@@ -79,9 +81,8 @@ struct IpmLinearOptions {
     /// Accelerate's zero (drop) tolerance. Default 1e-4 * epsilon. Must be
     /// finite and > 0 on every backend; ignored on MKL.
     double accelerate_zero_tol = 1e-4 * std::numeric_limits<double>::epsilon();
-    /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
-    /// empty uses the library's rule. RESERVED: `validate()` accepts only the
-    /// empty value until `kAuto` is available.
+    /// RESERVED for a caller's `DensePolicy::kAuto` threshold: `validate()`
+    /// accepts only the empty value, which uses the library's (167).
     std::optional<Index> max_dense_dimension;
 };
 

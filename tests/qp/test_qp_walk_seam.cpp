@@ -393,7 +393,7 @@ void run_one_thread(const Case &c, bool arm, ThreadResult &out, StartGate &gate)
     Obs::reset();
     Obs::active = arm;
     const QpProblem qp = c.build();
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     // EVERYTHING EXPENSIVE THAT IS NOT THE SOLVE HAPPENS ABOVE THIS LINE, so
     // what the gate releases into is `QpEngine::run` and not problem assembly.
     gate.arrive_and_wait();
@@ -413,7 +413,7 @@ void run_one_thread(const Case &c, bool arm, ThreadResult &out, StartGate &gate)
 QpSolution baseline_for(const Case &c) {
     Obs::reset();
     const QpProblem qp = c.build();
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     return run_case(c, qp, engine);
 }
 
@@ -449,14 +449,14 @@ TEST(QpWalkSeam, AttachingTheObserverChangesNoCounterAndNoAnswer) {
         const QpProblem qp = c.build();
 
         Obs::reset();
-        QpEngine unobserved{QpOptions{}};
+        QpEngine unobserved{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         const QpSolution without = run_case(c, qp, unobserved);
         ASSERT_FALSE(Obs::active);
         EXPECT_TRUE(Obs::records.empty()) << "an inactive observer recorded something";
 
         ObserverGuard guard;
         Obs::active = true;
-        QpEngine observed{QpOptions{}};
+        QpEngine observed{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         const QpSolution with = run_case(c, qp, observed);
 
         EXPECT_EQ(static_cast<int>(without.status), static_cast<int>(with.status));
@@ -480,13 +480,13 @@ TEST(QpWalkSeam, TheObserverIsNeutralOnAWarmRESOLVETOO) {
     const QpProblem qp = many_minor_qp();
 
     Obs::reset();
-    QpEngine a{QpOptions{}};
+    QpEngine a{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution first_without = a.solve(qp);
     const QpSolution second_without = a.solve(qp, first_without);
 
     ObserverGuard guard;
     Obs::active = true;
-    QpEngine b{QpOptions{}};
+    QpEngine b{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution first_with = b.solve(qp);
     const QpSolution second_with = b.solve(qp, first_with);
 
@@ -658,7 +658,7 @@ TEST(QpWalkSeam, CaptureSolveSelectsOneSolveAndTheRestAreNotRecorded) {
     Obs::active = true;
     Obs::capture_solve = 1; // the SECOND solve only
 
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution first = engine.solve(qp);
     engine.solve(qp, first);
 
@@ -678,7 +678,7 @@ TEST(QpWalkSeam, TheTraceAgreesWithTheCountersItMustNotHaveTouched) {
         const QpProblem qp = cs.build();
         ObserverGuard guard;
         Obs::active = true;
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = run_case(cs, qp, engine);
         const QpCounters &c = sol.counters;
 
@@ -747,7 +747,7 @@ TEST(QpWalkSeam, TheWorkingSetSignatureTracksTheActionsThatChangeIt) {
         const QpProblem qp = c.build();
         ObserverGuard guard;
         Obs::active = true;
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         run_case(c, qp, engine);
         ASSERT_FALSE(Obs::records.empty());
 
@@ -836,7 +836,7 @@ TEST(QpWalkSeam, ADropRecordsItsRouteItsMultiplierAndTheToleranceItWasComparedAg
 
     ObserverGuard guard;
     Obs::active = true;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution sol = engine.solve(qp, seed);
     ASSERT_GE(sol.counters.ws_drops, 1) << "the seeded walk dropped nothing";
 
@@ -871,7 +871,7 @@ TEST(QpWalkSeam, ADegenerateStepIsAnAdditionThatMovedNoFurtherThanTheStepToleran
         const QpProblem qp = c.build();
         ObserverGuard guard;
         Obs::active = true;
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         run_case(c, qp, engine);
         for (const Record &r : Obs::records) {
             if (!r.degenerate) {
@@ -900,7 +900,7 @@ TEST(QpWalkSeam, EveryPassRecordsTheMainVerdictAndThePathThatProducedIt) {
         ObserverGuard guard;
         Obs::active = true;
         const QpProblem qp = c.build();
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = run_case(c, qp, engine);
         (void)sol;
         ASSERT_FALSE(Obs::records.empty());
@@ -1049,7 +1049,7 @@ TEST(QpWalkSeam, ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotal
         ObserverGuard guard;
         Obs::active = true;
         const QpProblem qp = c.build();
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = run_case(c, qp, engine);
         ASSERT_FALSE(Obs::records.empty());
 
@@ -1092,7 +1092,7 @@ TEST(QpWalkSeam, APostDropPassRecordsWhatWasReleasedAndWhyTheRideDidOrDidNotRun)
         ObserverGuard guard;
         Obs::active = true;
         const QpProblem qp = c.build();
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         (void)run_case(c, qp, engine);
         const std::vector<Record> recs = Obs::records;
         ASSERT_FALSE(recs.empty());
@@ -1181,7 +1181,7 @@ TEST(QpWalkSeam, TheDropCandidateSetIsRecordedLargestViolationFirst) {
         ObserverGuard guard;
         Obs::active = true;
         const QpProblem qp = c.build();
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         (void)run_case(c, qp, engine);
         ASSERT_FALSE(Obs::records.empty());
 
@@ -1234,7 +1234,7 @@ TEST(QpWalkSeam, TheRegularizationAndResidualsAreRecordedOnEveryPass) {
         ObserverGuard guard;
         Obs::active = true;
         const QpProblem qp = c.build();
-        QpEngine engine{QpOptions{}};
+        QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         (void)run_case(c, qp, engine);
         ASSERT_FALSE(Obs::records.empty());
 
@@ -1303,7 +1303,7 @@ TEST(QpWalkSeam, ResetClearsEverythingTheObserverHolds) {
     Obs::active = true;
     Obs::capture_solve = 3;
     Obs::max_records = 7;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     engine.solve(simple_box_qp());
     Obs::reset();
     EXPECT_FALSE(Obs::active);
@@ -1326,7 +1326,7 @@ TEST(QpWalkSeam, TheRecordCapIsHonouredAndReported) {
     ObserverGuard guard;
     Obs::active = true;
     Obs::max_records = 1;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     engine.solve(many_minor_qp());
     EXPECT_EQ(1u, Obs::records.size());
     EXPECT_TRUE(Obs::truncated);
@@ -1342,7 +1342,7 @@ TEST(QpWalkSeam, TheNeutralityComparisonWouldCatchAMoveIfThereWereOne) {
     // forgets), and the bit comparison on the returned vectors.
     ObserverGuard guard;
     Obs::active = true;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution sol = engine.solve(many_minor_qp());
     ASSERT_GT(sol.counters.minor_iters, 0);
 

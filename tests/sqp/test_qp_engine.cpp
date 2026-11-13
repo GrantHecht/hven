@@ -618,7 +618,7 @@ TEST(QpEngine, OracleBattery) {
     for (const auto &c : battery()) {
         SCOPED_TRACE(c.name);
         const auto oracle = solve_dense_oracle(c.qp);
-        const auto sol = QpEngine{QpOptions{}}.solve(c.qp);
+        const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(c.qp);
 
         ASSERT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_LT((sol.x - oracle.x).norm(), 1e-8);
@@ -643,7 +643,7 @@ TEST(QpEngine, FixedVariableReachesOptimalWithPricedMultiplier) {
     // kAtUpper), and must price z(0) per the documented stationarity formula
     // -- see kfixed_probe_qp()'s comment for the by-hand value.
     const QpProblem qp = kfixed_probe_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
@@ -658,7 +658,7 @@ TEST(QpEngine, DegenerateDuplicateRowsAgreeOnMultiplierSum) {
     // unique: it is the multiplier of the single distinct constraint).
     const QpProblem qp = degenerate_qp();
     const auto oracle = solve_dense_oracle(qp);
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_LT((sol.x - oracle.x).norm(), 1e-8);
@@ -671,7 +671,7 @@ TEST(QpEngine, DegenerateDuplicateRowsAgreeOnMultiplierSum) {
 
 TEST(QpEngine, StartInfeasibleDrivesShiftsToZero) {
     const QpProblem qp = start_infeasible_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_LT(primal_violation(qp, sol.x), 1e-9);
@@ -685,7 +685,7 @@ TEST(QpEngine, BadlyScaledRowIsNotMistakenForInfeasibility) {
     // The scale-aware shift clamp (see badly_scaled_qp) is what keeps this
     // feasible problem from being reported kInfeasible.
     const QpProblem qp = badly_scaled_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), -50.0, 1e-6);
@@ -707,7 +707,7 @@ TEST(QpEngine, CrossedBoundsAreInfeasibleNotCertifiedOptimal) {
     // certifying a point that violates the very bound that made the box
     // empty in the first place.
     const QpProblem qp = crossed_bounds_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     ASSERT_TRUE(sol.x.allFinite());
@@ -728,7 +728,7 @@ TEST(QpEngine, ContradictoryInequalityRowsAreInfeasible) {
     // contradiction sharpens. An uncapped dual_mu*|lambda| allowance
     // therefore always covers the violation and kInfeasible is unreachable.
     const QpProblem qp = infeasible_bounds_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     // The true violation here is order 0.5, nowhere near any tolerance.
@@ -745,7 +745,7 @@ TEST(QpEngine, ContradictoryInequalityRowsAreInfeasible) {
 
 TEST(QpEngine, ContradictoryInequalitiesWithEqualitiesPresentAreInfeasible) {
     const QpProblem qp = infeasible_with_equality_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     EXPECT_GT(primal_violation(qp, sol.x), 1e-3);
@@ -757,7 +757,7 @@ TEST(QpEngine, InconsistentEqualitiesAreInfeasible) {
     // mi == 0, so the shift machinery sees nothing at all; only an explicit
     // equality-residual check at the optimality gate can catch this.
     const QpProblem qp = inconsistent_equalities_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     EXPECT_GT((qp.Ae * sol.x - qp.be).lpNorm<Eigen::Infinity>(), 1e-3);
@@ -765,7 +765,7 @@ TEST(QpEngine, InconsistentEqualitiesAreInfeasible) {
 
 TEST(QpEngine, EqualityOutsideTheBoxIsInfeasible) {
     const QpProblem qp = equality_outside_box_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kInfeasible);
     EXPECT_GT((qp.Ae * sol.x - qp.be).lpNorm<Eigen::Infinity>(), 1e-3);
@@ -784,7 +784,7 @@ TEST(QpEngine, RowHalfInfeasibleVerdictsCarryAVerifiedCertificate) {
                                                            {equality_outside_box_qp(), false},
                                                            {unbounded, true}};
     for (const auto &[qp, terminal] : cases) {
-        const auto sol = QpEngine{QpOptions{}}.solve(qp);
+        const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
         EXPECT_EQ(sol.status, QpStatus::kInfeasible);
         EXPECT_EQ(sol.counters.terminal_farkas_certificates +
                       sol.counters.dep_infeasible_certificates,
@@ -800,7 +800,7 @@ TEST(QpEngine, UnboundedProblemIsReportedAsNumericalErrorNotOptimal) {
     // x0 runs to ~1/primal_delta: the regularization talking, not an optimum;
     // reporting kOptimal there would be a lie.
     const QpProblem qp = psd_singular_unbounded_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kNumericalError);
     EXPECT_GT(std::abs(sol.x(0)), 1e7);
@@ -817,7 +817,7 @@ TEST(QpEngine, RunawayWithActiveRowClearsItsMultipliers) {
     // reaches kNumericalError with a genuinely active row whose multiplier is
     // 1. Deleting the kNumericalError arm of the clearing makes this fail.
     const QpProblem qp = runaway_with_active_row_qp();
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kNumericalError);
     EXPECT_GT(std::abs(sol.x(0)), 1e7); // x0 ran away
@@ -837,7 +837,7 @@ TEST(QpEngine, EffectivelyInfiniteBoundsStillDetectTheRunaway) {
     QpProblem qp = psd_singular_unbounded_qp();
     qp.lower = Vec::Constant(2, -1e18);
     qp.upper = Vec::Constant(2, 1e18);
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     EXPECT_EQ(sol.status, QpStatus::kNumericalError);
     EXPECT_GT(std::abs(sol.x(0)), 1e7);
@@ -847,7 +847,8 @@ TEST(QpEngine, EffectivelyInfiniteBoundsStillDetectTheRunaway) {
 // set (the default), and kOptimal -- wrong -- with the option off. Shared by the two tests below.
 namespace {
 void expect_objective_inflated_1e3_cell(const QpOptions &base) {
-    const QpSolution s = QpEngine{base}.solve(objective_inflated_lambda_qp(1e-3, 3e-4));
+    const QpSolution s = QpEngine(base, 0, hven::linear::DensePolicy::kNever)
+                             .solve(objective_inflated_lambda_qp(1e-3, 3e-4));
     EXPECT_EQ(s.status, QpStatus::kInfeasible);
     ASSERT_TRUE(s.farkas.present);
     EXPECT_LE(s.farkas.residual, s.farkas.exact_tol);
@@ -856,7 +857,9 @@ void expect_objective_inflated_1e3_cell(const QpOptions &base) {
     off.independent_working_set = false;
     // The footprint miss, TRUSTWORTHY RANGE (ii): the violation route was kOptimal, which is
     // wrong. The SDL sign half now reads the shifted row's wrong-signed multiplier and refuses.
-    EXPECT_EQ(QpEngine{off}.solve(objective_inflated_lambda_qp(1e-3, 3e-4)).status,
+    EXPECT_EQ(QpEngine(off, 0, hven::linear::DensePolicy::kNever)
+                  .solve(objective_inflated_lambda_qp(1e-3, 3e-4))
+                  .status,
               QpStatus::kNumericalError);
 }
 } // namespace
@@ -884,9 +887,13 @@ TEST(QpEngine, ObjectiveInflatedMultiplierContradictionIsCertifiedOnTheIndepende
     // admissible member the verified Farkas certificate is EXACT and the walk
     // ends kInfeasible -- the correct answer, an honest improvement over the
     // earlier pinned kOptimal (E2 fix6 re-pin).
-    EXPECT_EQ(QpEngine{QpOptions{}}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
+    EXPECT_EQ(QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever)
+                  .solve(objective_inflated_lambda_qp(1e-2, 3e-4))
+                  .status,
               QpStatus::kInfeasible);
-    EXPECT_EQ(QpEngine{QpOptions{}}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
+    EXPECT_EQ(QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever)
+                  .solve(objective_inflated_lambda_qp(3e-3, 3e-4))
+                  .status,
               QpStatus::kInfeasible);
     expect_objective_inflated_1e3_cell(QpOptions{});
 }
@@ -902,9 +909,13 @@ TEST(QpEngine, T6bObjectiveInflatedMultiplierBehavesTheSameInBothAlgebras) {
         QpOptions opts;
         opts.working_set_algebra = alg;
         SCOPED_TRACE(alg == QpWorkingSetAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize");
-        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(1e-2, 3e-4)).status,
+        EXPECT_EQ(QpEngine(opts, 0, hven::linear::DensePolicy::kNever)
+                      .solve(objective_inflated_lambda_qp(1e-2, 3e-4))
+                      .status,
                   QpStatus::kInfeasible);
-        EXPECT_EQ(QpEngine{opts}.solve(objective_inflated_lambda_qp(3e-3, 3e-4)).status,
+        EXPECT_EQ(QpEngine(opts, 0, hven::linear::DensePolicy::kNever)
+                      .solve(objective_inflated_lambda_qp(3e-3, 3e-4))
+                      .status,
                   QpStatus::kInfeasible);
         expect_objective_inflated_1e3_cell(opts);
     }
@@ -932,8 +943,10 @@ TEST(QpEngine, T6bANonFiniteDualMuLeavesTheRowToleranceFinite) {
     // CERTIFIED. An uncapped `dual_mu * |lambda|` absorbency would make kInfeasible
     // unreachable engine-wide; an infinite tolerance must not turn either of these two
     // genuinely infeasible problems into a claim.
-    const QpSolution eq = QpEngine{opts}.solve(inconsistent_equalities_qp());
-    const QpSolution bx = QpEngine{opts}.solve(infeasible_bounds_qp());
+    const QpSolution eq =
+        QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(inconsistent_equalities_qp());
+    const QpSolution bx =
+        QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(infeasible_bounds_qp());
     EXPECT_EQ(eq.status, QpStatus::kNumericalError);
     EXPECT_EQ(bx.status, QpStatus::kNumericalError);
     EXPECT_FALSE(eq.farkas.present) << "an infinite row tolerance must certify nothing";
@@ -958,7 +971,7 @@ TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {
     };
     for (const auto &p : probes) {
         SCOPED_TRACE(p.name);
-        const auto sol = QpEngine{QpOptions{}}.solve(p.qp);
+        const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(p.qp);
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
         EXPECT_NEAR(sol.x(0), p.expect_x0, 1e-3 * p.expect_x0);
         EXPECT_LT(primal_violation(p.qp, sol.x), 1e-6);
@@ -966,7 +979,8 @@ TEST(QpEngine, LargeButLegitimateSolutionsAreOptimalNotNumericalError) {
 }
 
 TEST(QpEngine, BoundPinnedLargeSolutionKeepsItsBoundLabel) {
-    const auto sol = QpEngine{QpOptions{}}.solve(large_bound_pinned_qp());
+    const auto sol =
+        QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(large_bound_pinned_qp());
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_EQ(sol.bound_state[0], BoundState::kAtUpper);
     EXPECT_NEAR(sol.x(0), 1e5, 1e-6);
@@ -985,11 +999,13 @@ TEST(QpEngine, IllScaledFeasibleRowsAreNotDeclaredInfeasible) {
     // point optimal -- see the header contract's trustworthy-range note.
     for (double a : {1e-2, 3e-3, 1e-3, 3e-4}) {
         SCOPED_TRACE(a);
-        const auto ineq = QpEngine{QpOptions{}}.solve(ill_scaled_ineq_qp(a));
+        const auto ineq = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever)
+                              .solve(ill_scaled_ineq_qp(a));
         EXPECT_EQ(ineq.status, QpStatus::kOptimal);
         EXPECT_NEAR(ineq.x(0), -1.0 / (2.0 * a), 1e-2 * std::abs(1.0 / (2.0 * a)));
 
-        const auto eq = QpEngine{QpOptions{}}.solve(ill_scaled_eq_qp(a));
+        const auto eq =
+            QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(ill_scaled_eq_qp(a));
         EXPECT_EQ(eq.status, QpStatus::kOptimal);
         EXPECT_NEAR(eq.x(0), -1.0 / (2.0 * a), 1e-2 * std::abs(1.0 / (2.0 * a)));
     }
@@ -1005,7 +1021,7 @@ TEST(QpEngine, DropRuleRunsBeforeInfeasibilityIsDeclared) {
     // kInfeasible -- verified by reverting the ordering locally.
     const QpProblem qp = drop_before_infeasible_qp();
     const auto oracle = solve_dense_oracle(qp);
-    const auto sol = QpEngine{QpOptions{}}.solve(qp);
+    const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), 1.0, 1e-8);
@@ -1020,7 +1036,7 @@ TEST(QpEngine, RandomizedAgainstOracle) {
     for (unsigned seed = 0; seed < 50; ++seed) {
         const QpProblem qp = random_strictly_convex(5, 3, seed);
         const auto oracle = solve_dense_oracle(qp);
-        const auto sol = QpEngine{QpOptions{}}.solve(qp);
+        const auto sol = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
         ASSERT_EQ(sol.status, QpStatus::kOptimal) << "seed " << seed;
         EXPECT_LT((sol.x - oracle.x).norm(), 1e-7) << "seed " << seed;
@@ -1058,7 +1074,7 @@ TEST(QpEngine, RandomizedWithEqualityRowAgainstOracle) {
              {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
             QpOptions opts;
             opts.working_set_algebra = algebra;
-            const auto sol = QpEngine{opts}.solve(qp);
+            const auto sol = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
             SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
 
             ASSERT_EQ(sol.status, QpStatus::kOptimal);
@@ -1075,10 +1091,10 @@ TEST(QpEngine, RandomizedWithEqualityRowAgainstOracle) {
 
 TEST(QpEngine, WarmStartFromOptimalSolutionConvergesImmediately) {
     const QpProblem qp = random_strictly_convex(5, 3, 3);
-    const auto cold = QpEngine{QpOptions{}}.solve(qp);
+    const auto cold = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
-    const auto warm = QpEngine{QpOptions{}}.solve(qp, cold);
+    const auto warm = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp, cold);
     ASSERT_EQ(warm.status, QpStatus::kOptimal);
     EXPECT_LT((warm.x - cold.x).norm(), 1e-9);
     EXPECT_EQ(warm.bound_state, cold.bound_state);
@@ -1089,7 +1105,8 @@ TEST(QpEngine, WarmStartFromOptimalSolutionConvergesImmediately) {
 TEST(QpEngine, MaxIterBudgetIsReported) {
     QpOptions opts;
     opts.max_iterations = 1;
-    const auto sol = QpEngine{opts}.solve(all_bounds_active_qp());
+    const auto sol =
+        QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(all_bounds_active_qp());
     EXPECT_EQ(sol.status, QpStatus::kIterationLimit);
     EXPECT_EQ(sol.counters.minor_iters, 1);
 }
@@ -1150,7 +1167,7 @@ TEST(QpEngineExportInvariant, AFreeVariableCarriesNoBoundPriceAtACappedExit) {
 
     QpOptions opts;
     opts.max_iterations = 1;
-    const auto sol = QpEngine{opts}.solve(qp, seed);
+    const auto sol = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp, seed);
 
     ASSERT_EQ(sol.status, QpStatus::kIterationLimit) << "the fixture must reach the capped exit";
     ASSERT_EQ(sol.counters.minor_iters, 1);
@@ -1195,7 +1212,7 @@ TEST(QpEngineExportInvariant, HoldsOnEveryBatteryFixtureAndEveryStatus) {
             if (cap > 0) {
                 opts.max_iterations = cap;
             }
-            const auto sol = QpEngine{opts}.solve(c.qp);
+            const auto sol = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(c.qp);
             for (Index i = 0; i < c.qp.n(); ++i) {
                 if (sol.bound_state[static_cast<std::size_t>(i)] == BoundState::kFree) {
                     EXPECT_EQ(sol.z(i), 0.0) << c.name << " cap=" << cap << " index " << i
@@ -1256,14 +1273,14 @@ TEST(QpEngineSizeDerivedCap, AnExplicitCapWinsOutrightAndTheSentinelDerives) {
     // after exactly one minor, on a problem whose derived cap is 500.
     QpOptions opts;
     opts.max_iterations = 1;
-    const auto capped = QpEngine{opts}.solve(qp);
+    const auto capped = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     EXPECT_EQ(capped.status, QpStatus::kIterationLimit);
     EXPECT_EQ(capped.counters.minor_iters, 1);
 
     // The default sentinel solves the same problem to optimality.
     QpOptions defaults;
     ASSERT_FALSE(defaults.max_iterations.has_value()) << "the shipped default must be empty";
-    const auto solved = QpEngine{defaults}.solve(qp);
+    const auto solved = QpEngine(defaults, 0, hven::linear::DensePolicy::kNever).solve(qp);
     EXPECT_EQ(solved.status, QpStatus::kOptimal);
 }
 
@@ -1318,7 +1335,7 @@ TEST(QpEngineFaceRefine, AnExactFaceSolveLandsOnTheAnalyticEqpAnswer) {
         face_of(off, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{true});
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     ASSERT_TRUE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
 
     EXPECT_NEAR(0.0, out.x(0), 1e-12);
@@ -1345,7 +1362,7 @@ TEST(QpEngineFaceRefine, AFaceThatLeavesTheBoxIsRefusedAndTheCallerKeepsItsAnswe
         face_of(at, {BoundState::kFree, BoundState::kAtUpper}, std::vector<bool>{true});
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
 
     EXPECT_EQ(face.x, out.x) << "REFUSED means UNCHANGED -- the caller's certificate stands";
@@ -1365,7 +1382,7 @@ TEST(QpEngineFaceRefine, AnOverDeterminedFaceIsRefusedWithoutFactorizing) {
                                     std::vector<bool>{true}); // 1 row, 0 free
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
     EXPECT_EQ(0, out.counters.factorizations);
 }
@@ -1381,7 +1398,7 @@ TEST(QpEngineFaceRefine, AFullyPinnedFaceIsRefusedAndCostsNothing) {
         face_of(at, {BoundState::kAtUpper, BoundState::kAtUpper}, std::vector<bool>{});
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out));
     EXPECT_EQ(0, out.counters.factorizations);
 }
@@ -1408,7 +1425,7 @@ TEST(QpEngineFaceRefine, ATrustRegionPinIsHonouredAsPartOfTheFaceAndPricesNothin
     overrides.trust_region_radius = 0.5;
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     ASSERT_TRUE(engine.refine_on_face(qp, face, overrides, out));
     EXPECT_NEAR(0.5, out.x(0), 1e-12);
     EXPECT_NEAR(0.5, out.x(1), 1e-12) << "the TR pin held";
@@ -1454,7 +1471,7 @@ TEST(QpEngineFaceRefine, AFaceThatViolatesARowItLeftOffIsRefused) {
 
     Vec at(2);
     at << 0.5, 0.5;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
 
     QpSolution refused;
     EXPECT_FALSE(engine.refine_on_face(
@@ -1511,7 +1528,7 @@ TEST(QpEngineFaceRefine, AnIndefiniteFaceIsRefusedByTheInertiaGate) {
         face_of(at, {BoundState::kFree, BoundState::kFree}, std::vector<bool>{});
 
     QpSolution out;
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     EXPECT_FALSE(engine.refine_on_face(qp, face, QpSolveOverrides{}, out))
         << "expected inertia (2, 0); this face's free block is (1, 1)";
     EXPECT_EQ(1, out.counters.factorizations)

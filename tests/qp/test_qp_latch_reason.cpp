@@ -99,7 +99,7 @@ constexpr Index kCap = 6;
 // dominant one on pin 0; pin 3 sits in neither.
 TEST(QpLatchReason, SchurExtremeDirectionsFindTheirBorders) {
     QpOptions opts;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     ASSERT_TRUE(b.schur->needs_refactorization()); // cond ~1e11 > schur_cond_max
 
@@ -119,12 +119,12 @@ TEST(QpLatchReason, SchurExtremeDirectionsFindTheirBorders) {
 
 TEST(QpLatchReason, SchurDirectionsAreEmptyWithoutBorders) {
     QpOptions opts;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 3, {}, opts);
     EXPECT_EQ(b.schur->near_null_direction().size(), 0);
     EXPECT_EQ(b.schur->dominant_direction().size(), 0);
 
-    BorderState c;
+    BorderState c(0, hven::linear::DensePolicy::kNever);
     pin_borders(c, 3, {{0, -1.0}, {1, 2.0}}, opts); // indefinite
     EXPECT_EQ(c.schur->near_null_direction().size(), 2);
     EXPECT_EQ(c.schur->dominant_direction().size(), 2);
@@ -134,13 +134,13 @@ TEST(QpLatchReason, SchurDirectionsAreEmptyWithoutBorders) {
 // one either (the power step vanishes).
 TEST(QpLatchReason, SchurExactlySingularHasNoNearNullDirection) {
     QpOptions opts;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 2, {{0, 0.0}}, opts);
     ASSERT_TRUE(b.schur->needs_refactorization());
     EXPECT_EQ(b.schur->near_null_direction().size(), 0);
     EXPECT_EQ(b.schur->dominant_direction().size(), 0);
 
-    BorderState c;
+    BorderState c(0, hven::linear::DensePolicy::kNever);
     pin_borders(c, 2, {{0, 0.0}, {1, -2.0}}, opts); // singular, a nonzero dominant direction
     ASSERT_TRUE(c.schur->needs_refactorization());
     EXPECT_EQ(c.schur->near_null_direction().size(), 0);
@@ -155,7 +155,7 @@ TEST(QpLatchReason, SchurExactlySingularHasNoNearNullDirection) {
 TEST(QpLatchReason, TakeLatchPastTheCapRecordsTheCapReason) {
     QpOptions opts;
     opts.max_schur_border_dimension = 2;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 4, {{0, -1.0}, {1, -1.0}, {2, -1.0}}, opts);
     const WorkingSet ws = ws_with(4, 0, {0, 1, 2});
     QpCounters c;
@@ -171,7 +171,7 @@ TEST(QpLatchReason, TakeLatchPastTheCapRecordsTheCapReason) {
 TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
     QpOptions opts;
     opts.max_schur_border_dimension = 3;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
     QpCounters c;
@@ -194,7 +194,7 @@ TEST(QpLatchReason, TakeLatchUnderTheCapRecordsTheMembersAndTheCulprits) {
 TEST(QpLatchReason, TakeLatchOnAnUpdatedStackRecordsOnlyTheReason) {
     QpOptions opts;
     opts.max_schur_border_dimension = 3;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 4, {{0, -1e11}, {1, -1.0}, {3, -1e3}}, opts);
     WorkingSet ws = ws_with(4, 2, {0, 1, 3}, {1});
     QpCounters c;
@@ -216,7 +216,7 @@ TEST(QpLatchReason, TakeLatchOnAnUpdatedStackRecordsOnlyTheReason) {
 TEST(QpLatchReason, TakeLatchJudgesWhetherItsCIsMild) {
     QpOptions opts;
     const auto latch_on = [&](double c0, double c1, double c2) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         pin_borders(b, 3, {{0, c0}, {1, c1}, {2, c2}}, opts);
         EXPECT_TRUE(b.schur->needs_refactorization()) << c2;
         const WorkingSet ws = ws_with(3, 0, {0, 1, 2});
@@ -239,7 +239,7 @@ TEST(QpLatchReason, TakeLatchJudgesWhetherItsCIsMild) {
 // No usable direction (an exactly singular C): every pin is a culprit.
 TEST(QpLatchReason, TakeLatchOnASingularCMakesEveryPinACulprit) {
     QpOptions opts;
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     pin_borders(b, 3, {{0, 0.0}, {2, -1.0}}, opts);
     ASSERT_TRUE(b.schur->needs_refactorization());
     const WorkingSet ws = ws_with(3, 0, {0, 2});
@@ -254,7 +254,7 @@ TEST(QpLatchReason, TakeLatchOnASingularCMakesEveryPinACulprit) {
 
 TEST(QpLatchReason, PinsPastTheCapHoldEitherReasonAndCountNothing) {
     for (const LatchReason why : {LatchReason::kCap, LatchReason::kConditioning}) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         hand_conditioning_latch(b, true);
         b.latch_reason = why;
         const WorkingSet ws = ws_with(kN, kMi, {2, 3, 4, 5, 6, 7, 0}); // 7 > kCap, culprit 1 gone
@@ -266,7 +266,7 @@ TEST(QpLatchReason, PinsPastTheCapHoldEitherReasonAndCountNothing) {
 }
 
 TEST(QpLatchReason, ACapLatchReleasesUnderTheCap) {
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     hand_conditioning_latch(b, false);
     b.latch_reason = LatchReason::kCap;
     const WorkingSet ws = ws_with(kN, kMi, {0, 1, 2, 3}, {1}); // the very latch-time set
@@ -279,7 +279,7 @@ TEST(QpLatchReason, ACapLatchReleasesUnderTheCap) {
 // it releases at the next entry under the cap even on the very set it latched on, and holds
 // past the cap like any other.
 TEST(QpLatchReason, ALatchOnAnUpdatedStackIsVerifiedOnARebuiltOne) {
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     hand_conditioning_latch(b, false);
     b.latch_rebuilt = false;
     QpCounters c;
@@ -293,7 +293,7 @@ TEST(QpLatchReason, ALatchOnAnUpdatedStackIsVerifiedOnARebuiltOne) {
 TEST(QpLatchReason, AConditioningLatchReleasesWhenTheRowsMove) {
     for (const std::vector<Index> &rows :
          {std::vector<Index>{}, std::vector<Index>{1, 2}, std::vector<Index>{0}}) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         hand_conditioning_latch(b, false);
         const WorkingSet ws = ws_with(kN, kMi, {0, 1, 2, 3}, rows);
         QpCounters c;
@@ -303,7 +303,7 @@ TEST(QpLatchReason, AConditioningLatchReleasesWhenTheRowsMove) {
 
 TEST(QpLatchReason, AConditioningLatchReleasesWhenACulpritLeaves) {
     for (const Index gone : {0, 1}) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         hand_conditioning_latch(b, false);
         std::vector<Index> pins = {0, 1, 2, 3, 5};
         pins.erase(std::find(pins.begin(), pins.end(), gone));
@@ -320,7 +320,7 @@ TEST(QpLatchReason, ASevereLatchHoldsThroughNonCulpritChanges) {
     const WorkingSet swap = ws_with(kN, kMi, {0, 1, 3, 6}, {1});
     const WorkingSet grow = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1});
     for (const WorkingSet *ws : {&leave, &swap, &grow}) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         hand_conditioning_latch(b, false);
         QpCounters c;
         EXPECT_TRUE(detail::latch_still_holds(*ws, b, c, kCap));
@@ -335,7 +335,7 @@ TEST(QpLatchReason, AMildLatchReleasesOnAnyChange) {
     const WorkingSet swap = ws_with(kN, kMi, {0, 1, 3, 6}, {1});
     const WorkingSet grow = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1});
     for (const WorkingSet *ws : {&leave, &swap, &grow}) {
-        BorderState b;
+        BorderState b(0, hven::linear::DensePolicy::kNever);
         hand_conditioning_latch(b, true);
         QpCounters c;
         EXPECT_FALSE(detail::latch_still_holds(*ws, b, c, kCap));
@@ -345,7 +345,7 @@ TEST(QpLatchReason, AMildLatchReleasesOnAnyChange) {
 
 // The latch-time set re-forms the identical C: it holds without spending the bound, however often.
 TEST(QpLatchReason, TheLatchTimeSetHoldsWithoutSpendingTheBound) {
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     hand_conditioning_latch(b, true);
     const WorkingSet ws = ws_with(kN, kMi, {0, 1, 2, 3}, {1});
     QpCounters c;
@@ -358,7 +358,7 @@ TEST(QpLatchReason, TheLatchTimeSetHoldsWithoutSpendingTheBound) {
 
 // On any other set the latch holds kLatchChangedEntries - 1 entries and releases on the next.
 TEST(QpLatchReason, TheChangedEntryBoundReleases) {
-    BorderState b;
+    BorderState b(0, hven::linear::DensePolicy::kNever);
     hand_conditioning_latch(b, false);
     const WorkingSet other = ws_with(kN, kMi, {0, 1, 2, 3, 6}, {1}); // an arrival; severe: holds
     const WorkingSet same = ws_with(kN, kMi, {0, 1, 2, 3}, {1});
@@ -413,12 +413,12 @@ TEST(QpLatchReason, TheWalkHoldsASevereConditioningLatchThroughArrivals) {
 
     QpOptions ref_opts = opts;
     ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
-    const QpSolution ref = QpEngine{ref_opts}.solve(qp);
+    const QpSolution ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
     QpOptions bor_opts = opts;
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
-    const QpSolution bor = QpEngine{bor_opts}.solve(qp);
+    const QpSolution bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
     EXPECT_LT((bor.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-8);
     EXPECT_EQ(bor.bound_state, ref.bound_state);
@@ -444,7 +444,7 @@ TEST(QpLatchReason, TheWalkRecordsACapLatchAsBefore) {
     QpOptions opts;
     opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     opts.max_schur_border_dimension = 1;
-    const QpSolution s = QpEngine{opts}.solve(qp);
+    const QpSolution s = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_GE(s.counters.border_latches_cap, 1);
     EXPECT_EQ(s.counters.border_latches_conditioning, 0);

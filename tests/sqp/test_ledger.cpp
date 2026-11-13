@@ -65,7 +65,7 @@ TEST(Ledger, ColdWarmPairRecordsAndSummary) {
     // Assert two records, warm flag on second, and summary_table() contains labels
     // and non-zero counters.
     auto qp = random_strictly_convex(6, 4, 7);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
 
     Ledger ledger;
     engine.attach_ledger(&ledger, "test");
@@ -107,7 +107,7 @@ TEST(Ledger, ExceptionDoesNotAdvanceCounter) {
     // mismatch so validate() throws), expect the exception, assert records()
     // is empty, then solve a good problem and verify it gets label prefix_0
     // (counter did not advance on failed solve).
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
 
     Ledger ledger;
     engine.attach_ledger(&ledger, "exc");

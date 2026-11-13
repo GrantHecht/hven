@@ -59,7 +59,7 @@ Walk observed(const QpProblem &qp, const QpSolution *seed, const QpOptions &o) {
     Obs::reset();
     Obs::active = true;
     Walk w;
-    const QpEngine engine{o};
+    const QpEngine engine{o, 0, hven::linear::DensePolicy::kNever};
     w.solution = seed != nullptr ? engine.solve(qp, *seed) : engine.solve(qp);
     w.records = Obs::records;
     Obs::active = false;

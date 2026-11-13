@@ -674,17 +674,20 @@ struct SqpAdvancedOptions {
 
 /// @brief The SQP engine's factorization settings.
 struct SqpLinearOptions {
-    /// When the dense factorization arm is used: `kNever` (the default) or
-    /// `kAlways`, which allocates 8*n_kkt^2 bytes per analyzed KKT pattern (see
-    /// `SymmetricFactor::Options::dense_factorization`). `kAuto` is RESERVED:
-    /// `validate()` refuses it until the selection rule lands. It reaches the
-    /// QP walk's, the SSN tier's and the IPQP subproblem's KKT factors; the
+    /// When the dense factorization arm is used: `kNever` (the default), `kAlways`,
+    /// which allocates 8*n^2 bytes per analyzed KKT pattern (see
+    /// `SymmetricFactor::Options::dense_factorization`), or `kAuto`: the dense arm
+    /// for each analyzed pattern of order n <= 105, the library's threshold for
+    /// this engine, the sparse backend above it, so one solve can use both. The
+    /// dense arm runs single-threaded on MKL (Accelerate: its default threading).
+    /// `SqpCounters::dense_factorizations` counts what it took. It reaches the
+    /// QP walk's, the SSN tier's and the IPQP subproblem's KKT factors and the
+    /// rank repair's Gram factor; the
     /// warm-start predictor's factor and the equality-basis Gram and
     /// certificate factors stay on the platform session at every value.
     hven::linear::DensePolicy dense_factorization = hven::linear::DensePolicy::kNever;
-    /// The dimension at or below which `DensePolicy::kAuto` takes the dense arm;
-    /// empty uses the library's rule. RESERVED: `validate()` accepts only the
-    /// empty value until `kAuto` is available.
+    /// RESERVED for a caller's `DensePolicy::kAuto` threshold: `validate()`
+    /// accepts only the empty value, which uses the library's (105).
     std::optional<Index> max_dense_dimension;
 };
 

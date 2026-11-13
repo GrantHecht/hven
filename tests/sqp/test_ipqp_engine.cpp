@@ -269,7 +269,7 @@ namespace {
 
 void expect_agrees_with_walk(const QpProblem &qp, double tol = 1e-6) {
     QpOptions o = tight_opts();
-    QpEngine walk(o);
+    QpEngine walk(o, 0, hven::linear::DensePolicy::kNever);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
@@ -307,7 +307,7 @@ TEST(IpqpConvergenceTest, ATrustRegionWindowIsHonouredAndAgreesWithTheWalk) {
     const QpProblem qp = box_qp(-10.0, 10.0);
     QpOptions o = tight_opts();
     o.trust_region_radius = 0.5;
-    QpEngine walk(o);
+    QpEngine walk(o, 0, hven::linear::DensePolicy::kNever);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
@@ -855,7 +855,7 @@ TEST(IpqpDeterminismTest, TwoColdSolvesOfTheSameProblemAgreeBitForBit) {
 TEST(IpqpRuizTest, EquilibrationRoundTripsAndBothArmsLandOnTheWalksOwnPoint) {
     const QpProblem qp = scaled_qp(1.0e6);
     QpOptions o = tight_opts();
-    QpEngine walk(o);
+    QpEngine walk(o, 0, hven::linear::DensePolicy::kNever);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
@@ -886,7 +886,7 @@ TEST(IpqpRuizTest, ABadlyScaledSubproblemStillAgreesWithTheWalk) {
     for (const double S : {1.0, 1.0e2, 1.0e4, 1.0e6}) {
         const QpProblem qp = scaled_qp(S);
         QpOptions o = tight_opts();
-        QpEngine walk(o);
+        QpEngine walk(o, 0, hven::linear::DensePolicy::kNever);
         const QpSolution ref = walk.solve(qp);
         ASSERT_EQ(ref.status, QpStatus::kOptimal) << "S = " << S;
         IpqpEngine tier(o);
@@ -911,7 +911,7 @@ TEST(IpqpRuizTest, TheRelativeStoppingRuleIsFOLDEDGLOBALLYAndThatHasAMeasuredPri
     qp.upper = vec({10.0, 10.0});
 
     QpOptions o = tight_opts();
-    QpEngine walk(o);
+    QpEngine walk(o, 0, hven::linear::DensePolicy::kNever);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
     IpqpEngine tier(o);

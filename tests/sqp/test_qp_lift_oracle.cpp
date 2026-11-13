@@ -233,7 +233,7 @@ Out solve_mode(Mode m, const QpProblem &qp, double radius, bool known_convex,
     case Mode::kWalkRefactorize: {
         o.working_set_algebra = m == Mode::kWalkBorder ? QpWorkingSetAlgebra::kSchurBorder
                                                        : QpWorkingSetAlgebra::kRefactorize;
-        QpEngine eng(o);
+        QpEngine eng(o, 0, hven::linear::DensePolicy::kNever);
         const QpSolution s = seed != nullptr ? eng.solve(qp, *seed, ov) : eng.solve(qp, ov);
         out.status = s.status;
         out.x = s.x;
@@ -266,7 +266,7 @@ Out solve_mode(Mode m, const QpProblem &qp, double radius, bool known_convex,
         break;
     }
     case Mode::kSsn: {
-        SsnEngine eng(o);
+        SsnEngine eng(o, 0, hven::linear::DensePolicy::kNever);
         SsnStart start;
         if (start_x != nullptr) {
             start.x = *start_x;

@@ -974,6 +974,8 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
                 try {
                     factor.analyze(A);
                     const hven::linear::FactorizeOutcome fo = factor.factorize(A);
+                    out.dense_factorizations = factor.counters().dense_factorize_count +
+                                               factor.counters().dense_singular_count;
                     if (rank_gram_factor_refused(fo, mr)) {
                         out.outcome = RankRepair::Outcome::kRefused;
                         return out;

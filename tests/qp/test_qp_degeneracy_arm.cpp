@@ -290,7 +290,7 @@ struct Walk {
 Walk observed_walk(const QpProblem &qp, const QpOptions &opts) {
     Obs::reset();
     Obs::active = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     Walk w;
     w.solution = engine.solve(qp);
     w.minors = w.solution.counters.minor_iters;
@@ -314,7 +314,7 @@ Walk observed_walk(const QpProblem &qp, const QpOptions &opts) {
 }
 
 QpSolution plain_solve(const QpProblem &qp, const QpOptions &opts) {
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     return engine.solve(qp);
 }
 
@@ -822,7 +822,7 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
         Deg::arm = DegArm::kScaledDrop;
         Deg::diag_post_drop_inertia = true;
         gate.arrive_and_wait();
-        QpEngine engine{opts};
+        QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
         loud_result = engine.solve(loud);
         loud_refused = Deg::scaled_candidates_refused;
         Deg::reset();
@@ -831,7 +831,7 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
         Deg::reset();
         quiet_arm_seen = Deg::any_on();
         gate.arrive_and_wait();
-        QpEngine engine{opts};
+        QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
         quiet_result = engine.solve(quiet);
         quiet_refused = Deg::scaled_candidates_refused;
         Deg::reset();
@@ -1446,7 +1446,7 @@ TEST(QpDegeneracyArm, ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInv
     Deg::arm = DegArm::kIndependentAdd;
     Obs::reset();
     Obs::active = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     const QpSolution armed = engine.solve(qp, seed);
     Obs::active = false;
 
@@ -1476,7 +1476,7 @@ TEST(QpDegeneracyArm, ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInv
     // not the engine's, which is what makes it an experiment rather than a
     // change.
     Deg::reset();
-    QpEngine plain_engine{opts};
+    QpEngine plain_engine{opts, 0, hven::linear::DensePolicy::kNever};
     const QpSolution plain = plain_engine.solve(qp, seed);
     EXPECT_EQ(Deg::indep_entry_members_removed, 0);
     EXPECT_EQ(static_cast<int>(plain.status), static_cast<int>(QpStatus::kOptimal));
@@ -1543,7 +1543,7 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
         Deg::reset();
         Deg::arm = DegArm::kIndependentAdd;
         gate.arrive_and_wait();
-        QpEngine engine{opts};
+        QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
         loud_result = engine.solve(loud);
         loud_passed = Deg::indep_candidates_passed_over;
         Deg::reset();
@@ -1552,7 +1552,7 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
         Deg::reset();
         quiet_arm_seen = Deg::any_on();
         gate.arrive_and_wait();
-        QpEngine engine{opts};
+        QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
         quiet_result = engine.solve(quiet);
         quiet_passed = Deg::indep_candidates_passed_over;
         quiet_examined = Deg::indep_candidates_examined;

@@ -1560,15 +1560,13 @@ enum class LatchReason : std::uint8_t { kCap, kConditioning };
 
 struct BorderState {
     /// @param threads The owning engine's thread count, handed to K0's factor
-    ///                at construction (M6 W5 T8.8). 0 -- the default, and what
-    ///                every construction site passed before that task -- leaves
-    ///                the backend's own default alone, so a default-argument
-    ///                construction is bit-for-bit the old one.
+    ///                at construction (M6 W5 T8.8). 0 leaves the backend's own
+    ///                default alone.
     ///
-    /// @param dense   The owning engine's dense-arm policy (M8 DN-1).
-    explicit BorderState(int threads = 0,
-                         hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
-        : kkt(threads, dense) {}
+    /// @param dense   The owning engine's dense-arm policy (M8 DN-1). Neither
+    ///                parameter has a default (M8 DN-3), so a construction site
+    ///                that forgets the engine's policy does not compile.
+    explicit BorderState(int threads, hven::linear::DensePolicy dense) : kkt(threads, dense) {}
 
     BorderState(const BorderState &) = delete;
     BorderState &operator=(const BorderState &) = delete;
@@ -1744,17 +1742,16 @@ class QpEngine {
     // keyed on -- qp_types.h's options_fingerprint) and APPLIES it: K0's factor
     // takes it here, and run()/refine_on_face()/
     // refine_eliminated_face_for_verdict()'s temporary and fallback factors take
-    // it at their own construction. Defaulted so every existing construction
-    // site keeps compiling and keeps hashing the 0 the SQP lane has always
-    // passed -- and 0 means "leave the backend's own default alone", so a
-    // defaulted engine is bit-for-bit the pre-T8.8 one.
+    // it at their own construction. 0 means "leave the backend's own default
+    // alone".
     //
     // `dense` is the dense-arm policy every factor this engine builds takes (M8
-    // DN-1). A policy other than kNever is folded into the hot-handle key, so
-    // two engines on different arms never share a K0; kNever leaves the key as
-    // options_fingerprint(opts, threads) has always made it.
-    explicit QpEngine(const QpOptions &opts, int threads = 0,
-                      hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+    // DN-1). A policy other than kNever is folded into the hot-handle key, with
+    // kAuto's threshold (M8 DN-3), so two engines that could select different
+    // arms for one pattern never share a K0; kNever leaves the key as
+    // options_fingerprint(opts, threads) has always made it. Neither `threads`
+    // nor `dense` has a default (M8 DN-3): every construction states both.
+    explicit QpEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
         : opts_(opts), threads_(threads), dense_policy_(dense),
           options_hash_(engine_fingerprint(opts, threads, dense)),
           border_(std::make_shared<BorderState>(threads, dense)) {}
@@ -1776,14 +1773,22 @@ class QpEngine {
     // The dense-arm policy this engine's factors are built with.
     hven::linear::DensePolicy dense_policy() const noexcept { return dense_policy_; }
 
-    // options_fingerprint(opts, threads), with a policy other than kNever mixed in.
+    // options_fingerprint(opts, threads), with a policy other than kNever mixed in,
+    // and under kAuto the threshold the factors select by (sqp_kkt_options'), so
+    // the key names the arm every pattern takes.
     static std::uint64_t engine_fingerprint(const QpOptions &opts, int threads,
                                             hven::linear::DensePolicy dense) {
         const std::uint64_t h = options_fingerprint(opts, threads);
         if (dense == hven::linear::DensePolicy::kNever) {
             return h;
         }
-        return h ^ (0x9E3779B97F4A7C15ULL * (static_cast<std::uint64_t>(dense) + 1));
+        const std::uint64_t policy =
+            h ^ (0x9E3779B97F4A7C15ULL * (static_cast<std::uint64_t>(dense) + 1));
+        const std::optional<Index> threshold = sqp_kkt_options(threads, dense).max_dense_dimension;
+        if (!threshold) {
+            return policy;
+        }
+        return policy ^ (0xC2B2AE3D27D4EB4FULL * (static_cast<std::uint64_t>(*threshold) + 1));
     }
 
     // Attach a ledger for instrumentation (nullptr = off, default off).

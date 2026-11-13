@@ -218,8 +218,8 @@ std::vector<double> radii_of(const SqpResult &sol) {
 ColdWarmMinors replay_cold_vs_warm(const NlpModel &model, const SqpOptions &opts, Index majors,
                                    const std::vector<double> &radii) {
     ColdWarmMinors out;
-    QpEngine cold_engine(opts.qp);
-    QpEngine warm_engine(opts.qp);
+    QpEngine cold_engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
+    QpEngine warm_engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     QpSolveOverrides overrides; // tr_radius is set per major, from `radii`, below
 
     Vec x = model.start_point();
@@ -5322,7 +5322,7 @@ TEST(SqpDriverSoc, SocSeedMustBeZeroedNotToRecenterTheWindow) {
     qp.upper = Vec::Constant(2, 6.0);
     ASSERT_NO_THROW(qp.validate());
 
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const QpSolution far = engine.solve(qp); // stands in for the rejected solve's qs
     ASSERT_EQ(far.status, QpStatus::kOptimal);
     EXPECT_NEAR(far.x(0), 6.0, 1e-9);
@@ -5798,7 +5798,7 @@ TEST(SqpDriverElastic, ElasticReformulationRecoversAFeasibleQpsSolution) {
         SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
         QpOptions qopts;
         qopts.working_set_algebra = algebra;
-        QpEngine engine(qopts);
+        QpEngine engine(qopts, 0, hven::linear::DensePolicy::kNever);
 
         // What the ORIGINAL subproblem would have returned had it not lied.
         const QpSolution truth = engine.solve(qp);
@@ -9563,7 +9563,7 @@ W2LadderRun w2_run_ladder(const QpProblem &qp, const IpqpInfeasibilityEvidence *
     // THE PLACEMENT BOUND'S SECOND CAP reads `dual_mu`, so a pin that must say WHICH cap bound
     // needs to move it; the engine is built from the same options object the ladder reads.
     opts.qp.dual_regularization = dual_mu;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     W2LadderRun run;
     const ElasticSeedSource source{nullptr, evidence};
     run.report = run_elastic_ladder(engine, qp, source, window, opts, run.counters);
@@ -9977,7 +9977,7 @@ W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEviden
     // THE SECOND CAP'S OWN LEVER (T5): the placement bound reads `dual_mu`, so a pin on that cap
     // must be able to move it -- the engine below is built from the same options object.
     opts.qp.dual_regularization = dual_mu;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     const NlpEval ev;
     const QpSolveOverrides overrides;
     // PRIMED: the engine has already solved THIS qp once, which is the state the driver's own
@@ -9999,7 +9999,7 @@ QpSolution w2_cold_walk(const QpProblem &qp,
                         bool prime = false) {
     SqpOptions opts;
     opts.qp.trust_region_radius = engine_tr;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     if (prime) {
         (void)engine.solve(qp, QpSolveOverrides{});
     }
@@ -10300,7 +10300,7 @@ TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRathe
     // drives SqpSolver's escape branch onto an ATTACHED report (measured -- the ternary is
     // reached only with an empty optional). Its driver-level pin is registered for T7.
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     const ElasticSeedSource failed_arm{&run.qs, nullptr};
     const ElasticLadderReport rerun = run_elastic_ladder(
         engine, qp, failed_arm, std::numeric_limits<double>::infinity(), opts, run.counters);
@@ -10402,7 +10402,7 @@ TEST(SqpDriverCertifiedFallback, P4bTheCeilingDeclineIsGONEUnderThePlacementBoun
     // ladder now CLOSES. The verdict-site face refinement removes border mode's own residue at
     // the classified point (row residual 6.5e-7 -> 1.7e-13, one refinement step).
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     SqpCounters counters;
     const ElasticSeedSource evidence_arm{nullptr, &at_ceiling};
     const ElasticLadderReport misfire =
@@ -10423,7 +10423,7 @@ TEST(SqpDriverCertifiedFallback, AnOverriddenPlacementIsVALIDATEDAndClampedIntoT
     const ElasticSeedSource arm{nullptr, &evidence};
     const double inf = std::numeric_limits<double>::infinity();
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     SqpCounters counters;
     EXPECT_THROW(run_elastic_ladder(engine, qp, arm, inf, opts, counters,
                                     std::numeric_limits<double>::quiet_NaN()),
@@ -10491,7 +10491,7 @@ TEST(SqpDriverCertifiedFallback, T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoA
     ASSERT_EQ(run.counters.elastic_activations, 1);
 
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     const ElasticSeedSource failed_arm{&run.qs, nullptr};
     const ElasticLadderReport second = run_elastic_ladder(
         engine, qp, failed_arm, std::numeric_limits<double>::infinity(), opts, run.counters);
@@ -10506,7 +10506,7 @@ TEST(SqpDriverCertifiedFallback, T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoA
     ASSERT_EQ(measured.qs.status, QpStatus::kInfeasible);
     ASSERT_EQ(measured.counters.elastic_activations, 2);
     EXPECT_EQ(measured.counters.elastic_floor_retries, 1);
-    QpEngine measured_engine(opts.qp);
+    QpEngine measured_engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     const ElasticSeedSource measured_arm{&measured.qs, nullptr};
     (void)run_elastic_ladder(measured_engine, qp, measured_arm,
                              std::numeric_limits<double>::infinity(), opts, measured.counters);
@@ -10657,7 +10657,7 @@ TEST(SqpDriverCertifiedFallback, ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryP
     for (const double bad : {-1.0, nan}) {
         EXPECT_THROW(w2_run_fallback(qp, fired, bad), std::invalid_argument);
         SqpOptions opts;
-        QpEngine engine(opts.qp);
+        QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
         SqpCounters out;
         const ElasticSeedSource no_hint;
         EXPECT_THROW((void)run_elastic_ladder(engine, qp, no_hint, bad, opts, out),
@@ -10710,7 +10710,7 @@ TEST(SqpDriverCertifiedFallback, ThePartitionOverFallbackEntriesIsCOMPLETEAndSum
     for (const Entry &e : entries) {
         SqpOptions opts;
         opts.qp.trust_region_radius = e.engine_tr;
-        QpEngine engine(opts.qp);
+        QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
         SqpIterate row;
         std::optional<ElasticLadderReport> report;
         SqpFallbackVerdictTraceEvent verdict;
@@ -11071,7 +11071,8 @@ W2ElasticWalk w2_walk_elastic(const QpProblem &qp, double rho, double dual_mu,
     opts.qp.working_set_algebra = alg;
     const ElasticQp e = build_elastic_subproblem(qp, std::numeric_limits<double>::infinity(), rho,
                                                  opts.common.feasibility_tol);
-    const QpSolution s = QpEngine(opts.qp).solve(e.qp, QpSolveOverrides{});
+    const QpSolution s =
+        QpEngine(opts.qp, 0, hven::linear::DensePolicy::kNever).solve(e.qp, QpSolveOverrides{});
     W2ElasticWalk out;
     out.status = s.status;
     out.slack_l1 = e.ns > 0 ? e.slack_violations(s.x).lpNorm<1>() : 0.0;
@@ -11095,7 +11096,9 @@ QpStatus w2_plain_verdict(const QpProblem &qp, double dual_mu, QpWorkingSetAlgeb
     QpOptions opts;
     opts.dual_regularization = dual_mu;
     opts.working_set_algebra = alg;
-    return QpEngine(opts).solve(qp, QpSolveOverrides{}).status;
+    return QpEngine(opts, 0, hven::linear::DensePolicy::kNever)
+        .solve(qp, QpSolveOverrides{})
+        .status;
 }
 
 /// BOTH working-set algebras, in the order every mode-paired pin below reports them.
@@ -11441,7 +11444,7 @@ TEST(SqpDriverElasticSeed, T6bTheUncontainedInBranchRouteNoLongerDeclines) {
     ASSERT_EQ(failed.status, QpStatus::kInfeasible) << "or W1's in-branch route is never entered";
 
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     SqpCounters counters;
     const ElasticSeedSource failed_arm{&failed, nullptr};
     const ElasticLadderReport report = run_elastic_ladder(
@@ -11927,7 +11930,7 @@ TEST(SqpDriverCertifiedFallback, T7AnInfiniteOverridePlacesTheLadderAtItsCeiling
     const ElasticSeedSource arm{nullptr, &evidence};
     const double inf = std::numeric_limits<double>::infinity();
     SqpOptions opts;
-    QpEngine engine(opts.qp);
+    QpEngine engine(opts.qp, 0, hven::linear::DensePolicy::kNever);
     SqpCounters counters;
     const ElasticLadderReport infinite =
         run_elastic_ladder(engine, qp, arm, inf, opts, counters, inf);
@@ -12007,7 +12010,8 @@ W2T7PlainWalk w2t7_plain_walk(const QpProblem &qp, double dual_mu, QpWorkingSetA
     opts.dual_regularization = dual_mu;
     opts.working_set_algebra = alg;
     opts.max_schur_border_dimension = schur_cap;
-    const QpSolution s = QpEngine(opts).solve(qp, QpSolveOverrides{});
+    const QpSolution s =
+        QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp, QpSolveOverrides{});
     W2T7PlainWalk out;
     out.status = s.status;
     out.x0 = s.x(0);
@@ -12184,7 +12188,7 @@ QpSolution w2_fix4_solve(const QpProblem &qp, double dual_mu, QpWorkingSetAlgebr
     QpOptions opts;
     opts.dual_regularization = dual_mu;
     opts.working_set_algebra = alg;
-    return QpEngine(opts).solve(qp, QpSolveOverrides{});
+    return QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(qp, QpSolveOverrides{});
 }
 
 } // namespace

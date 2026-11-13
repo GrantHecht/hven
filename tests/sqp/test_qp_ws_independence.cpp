@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/detail/kkt/dense_selection.h>
 #include <hven/detail/qp/eqp_solve.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ws_independence.h>
@@ -67,7 +68,7 @@ TEST_P(WsIndependence, EntryDetectorRemovesDuplicatedSeedRow) {
     seed.bound_state.assign(2, BoundState::kFree);
     seed.ineq_active = {true, true};
 
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_EQ(s.counters.entry_dependency_removals, 1);
@@ -82,7 +83,7 @@ TEST_P(WsIndependence, EntryDetectorRemovesDuplicatedSeedRow) {
         EXPECT_GE(s.counters.dep_dependent, 1);
     }
 
-    const QpEngine off(opts_for(GetParam(), false));
+    const QpEngine off(opts_for(GetParam(), false), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s0 = off.solve(qp, seed);
     EXPECT_EQ(s0.counters.dep_test_solves, 0);
     EXPECT_EQ(s0.counters.entry_dependency_removals, 0);
@@ -105,11 +106,11 @@ TEST_P(WsIndependence, EntryDetectorClearsOverCount) {
     seed.bound_state.assign(2, BoundState::kFree);
     seed.ineq_active = {true, true, true};
 
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_EQ(s.counters.entry_dependency_removals, 1);
-    const QpEngine off(opts_for(GetParam(), false));
+    const QpEngine off(opts_for(GetParam(), false), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s0 = off.solve(qp, seed);
     ASSERT_EQ(s0.status, QpStatus::kOptimal);
     EXPECT_NEAR((s.x - s0.x).lpNorm<Eigen::Infinity>(), 0.0, 1e-7);
@@ -123,7 +124,7 @@ TEST_P(WsIndependence, MandatoryDependencyIsCountedNotRemoved) {
     be << 1, 2;
     const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(3, 3), Vec::Zero(3), Ae, be,
                                  Eigen::MatrixXd(0, 3), Vec(0), -10.0, 10.0);
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_EQ(s.counters.mandatory_dependent_entries, 1);
@@ -143,8 +144,8 @@ TEST_P(WsIndependence, CleanStartIsUntouched) {
     bi << 1;
     const QpProblem qp = make_qp(Eigen::MatrixXd::Identity(2, 2), g, Eigen::MatrixXd(0, 2), Vec(0),
                                  Ai, bi, 0.0, 10.0);
-    const QpEngine on(opts_for(GetParam()));
-    const QpEngine off(opts_for(GetParam(), false));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
+    const QpEngine off(opts_for(GetParam(), false), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp);
     const QpSolution s0 = off.solve(qp);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
@@ -182,7 +183,7 @@ TEST_P(WsIndependence, AnOptionalPinInADependentEqualityChainIsRemoved) {
     seed.x = Vec::Zero(4);
     seed.bound_state = {BoundState::kFixed, BoundState::kFree, BoundState::kAtLower,
                         BoundState::kFree};
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_EQ(s.counters.entry_dependency_removals, 1);
@@ -312,7 +313,7 @@ TEST_P(WsIndependence, AnUncertifiedPinIsKeptAndACertifiedRowRemoved) {
     QpSolution seed;
     seed.x = Vec::Zero(3);
     seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kAtLower};
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_EQ(s.counters.shift_adds, 2);
@@ -607,7 +608,7 @@ TEST_P(WsIndependence, AStalledTestAboveTheUndecidableBandIsAdmittedAndCounted) 
     seed.x = Vec::Zero(3);
     seed.bound_state.assign(3, BoundState::kFree);
     seed.ineq_active = {true, true, false};
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_GE(s.counters.dep_stall_admits, 1);
@@ -706,7 +707,7 @@ TEST_P(WsIndependence, TheUncertifiedFallbackStillEndsAtAFirstOrderPoint) {
     QpSolution seed;
     seed.x = Vec::Zero(3);
     seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kAtLower};
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     EXPECT_GE(s.counters.dep_uncertified_fallbacks, 1);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
@@ -769,7 +770,7 @@ TEST_P(WsIndependence, DependentShiftAddIsRefused) {
     seed.x = Vec::Constant(2, 1.0);
     seed.bound_state.assign(2, BoundState::kFree);
     seed.ineq_active = {true, false};
-    const QpEngine on(opts_for(GetParam()));
+    const QpEngine on(opts_for(GetParam()), 0, hven::linear::DensePolicy::kNever);
     const QpSolution s = on.solve(qp, seed);
     ASSERT_EQ(s.status, QpStatus::kOptimal);
     EXPECT_GE(s.counters.shift_adds, 1);
@@ -1122,6 +1123,53 @@ TEST(WsRankRepair, BlockPathFindsTwoInconsistentDirections) {
     EXPECT_TRUE(released(r, detail::WsMember::Kind::kRow, 0));
     EXPECT_TRUE(released(r, detail::WsMember::Kind::kPin, 2) ||
                 released(r, detail::WsMember::Kind::kPin, 3));
+}
+
+// THE GRAM FACTOR'S DENSE COUNT (M8 DN-3): the block path factors G + tI once, on the dense arm
+// under kAlways (counted), on the platform session under kNever, and on the platform session
+// under kAuto too -- the block path runs only past kRankDenseRows rows, far above the SQP's
+// threshold -- with the same decision on every policy.
+TEST(WsRankRepair, TheGramFactorCountsItsDenseFactorization) {
+    const Index me = 1050;
+    const Index n = 2 * me;
+    ASSERT_GT(detail::kRankDenseRows, detail::kSqpDenseSelectionThreshold);
+    std::vector<Eigen::Triplet<double>> te;
+    for (Index i = 0; i < me; ++i) {
+        te.emplace_back(i, 2 * i, 1.0);
+        te.emplace_back(i, 2 * i + 1, 1.0);
+    }
+    QpProblem qp;
+    qp.H.resize(n, n);
+    qp.H.setIdentity();
+    qp.g = Vec::Zero(n);
+    qp.Ae.resize(me, n);
+    qp.Ae.setFromTriplets(te.begin(), te.end());
+    qp.be = Vec::Ones(me);
+    std::vector<Eigen::Triplet<double>> ti{{0, 0, 1.0}, {0, 1, 1.0}};
+    qp.Ai.resize(1, n);
+    qp.Ai.setFromTriplets(ti.begin(), ti.end());
+    qp.bi = Vec::Constant(1, 2.0);
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 10.0);
+    WorkingSet ws(n, 1);
+    ws.add_ineq(0);
+    ws.bound_state()[2] = BoundState::kAtLower;
+    ws.bound_state()[3] = BoundState::kAtLower;
+    using hven::linear::DensePolicy;
+    const auto run = [&](DensePolicy policy) {
+        return detail::rank_repair(qp, ws, Vec::Zero(1), QpOptions{}, 0, detail::kRankBlockCap,
+                                   policy);
+    };
+    const detail::RankRepair never = run(DensePolicy::kNever);
+    const detail::RankRepair always = run(DensePolicy::kAlways);
+    const detail::RankRepair automatic = run(DensePolicy::kAuto);
+    EXPECT_EQ(never.dense_factorizations, 0);
+    EXPECT_EQ(always.dense_factorizations, 1);
+    EXPECT_EQ(automatic.dense_factorizations, 0);
+    for (const detail::RankRepair *r : {&never, &always, &automatic}) {
+        EXPECT_EQ(r->outcome, RankOutcome::kRelease);
+        EXPECT_EQ(r->deficiency, 2);
+    }
 }
 
 } // namespace

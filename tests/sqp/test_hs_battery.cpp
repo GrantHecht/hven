@@ -468,13 +468,13 @@ TEST(HsBattery, BorderModeFalseInfeasible) {
     QpOptions refac_opts;
     refac_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     refac_opts.trust_region_radius = 1.0;
-    QpEngine refac(refac_opts);
+    QpEngine refac(refac_opts, 0, hven::linear::DensePolicy::kNever);
     const QpSolution good = refac.solve(qp);
 
     QpOptions border_opts;
     border_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     border_opts.trust_region_radius = 1.0;
-    QpEngine border(border_opts);
+    QpEngine border(border_opts, 0, hven::linear::DensePolicy::kNever);
     const QpSolution bor = border.solve(qp);
 
     // THE ORACLE HALF: kRefactorize is this project's equivalence oracle
@@ -551,7 +551,7 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     QpOptions border_opts;
     border_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     border_opts.trust_region_radius = 1.0;
-    const QpSolution bor = QpEngine{border_opts}.solve(qp);
+    const QpSolution bor = QpEngine(border_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
 
     ::testing::Test::RecordProperty(
@@ -599,7 +599,7 @@ TEST(HsBattery, RefinementStepCountersOnBorderRepro) {
     QpOptions refac_opts;
     refac_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
     refac_opts.trust_region_radius = 1.0;
-    const QpSolution refac = QpEngine{refac_opts}.solve(qp);
+    const QpSolution refac = QpEngine(refac_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(refac.status, QpStatus::kOptimal);
     EXPECT_EQ(refac.counters.border_refine_steps, 0)
         << "refactorize mode never enters the bordered path";

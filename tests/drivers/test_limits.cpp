@@ -137,11 +137,14 @@ template <typename Options> void refuses_the_common_values() {
         expect_refused(o, "common.verbosity");
     }
     {
-        // M8 DN-1: kAlways is accepted; kAuto and an engaged threshold stay refused until DN-3.
+        // M8 DN-3: every policy is accepted; a value past kAuto and an engaged threshold are
+        // refused.
         Options o;
         o.linear.dense_factorization = hven::linear::DensePolicy::kAlways;
         EXPECT_NO_THROW(hven::validate(o));
         o.linear.dense_factorization = hven::linear::DensePolicy::kAuto;
+        EXPECT_NO_THROW(hven::validate(o));
+        o.linear.dense_factorization = static_cast<hven::linear::DensePolicy>(3);
         expect_refused(o, "linear.dense_factorization");
         Options d;
         d.linear.max_dense_dimension = 50;

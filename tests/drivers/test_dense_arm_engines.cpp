@@ -4,8 +4,8 @@
 // BOTH ENGINES ON THE DENSE ARM (M8 DN-1, design §13 T12 and T14): kAlways solves as kNever
 // does on HS071 and on a problem whose KKT matrix is exactly singular (two identical equality
 // rows: the IPM's ladder answers the dense arm's singular report, M8 DN-3b); both validate()s
-// accept kNever and kAlways and still refuse kAuto, an engaged threshold, and (IPM) CNR with the
-// dense arm; the options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a
+// accept every policy (kAuto since M8 DN-3) and refuse an engaged threshold and (IPM) CNR with
+// the dense arm; the options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a
 // numerically singular dense factor, and its absence under kNever.
 
 #include <gtest/gtest.h>
@@ -213,24 +213,30 @@ template <class Options> void validate_policies() {
     o.linear.dense_factorization = DensePolicy::kAlways;
     EXPECT_TRUE(refusal(o).empty()) << refusal(o);
     o.linear.dense_factorization = DensePolicy::kAuto;
+    EXPECT_TRUE(refusal(o).empty()) << refusal(o);
+    o.linear.dense_factorization = static_cast<DensePolicy>(3);
     EXPECT_NE(refusal(o).find("linear.dense_factorization"), std::string::npos);
     Options t;
     t.linear.max_dense_dimension = 100;
     EXPECT_NE(refusal(t).find("linear.max_dense_dimension"), std::string::npos);
     t.linear.dense_factorization = DensePolicy::kAlways;
     EXPECT_NE(refusal(t).find("linear.max_dense_dimension"), std::string::npos);
+    t.linear.dense_factorization = DensePolicy::kAuto;
+    EXPECT_NE(refusal(t).find("linear.max_dense_dimension"), std::string::npos);
 }
 
-TEST(DenseArmEngines, IpmValidateAcceptsNeverAndAlwaysOnly) {
+TEST(DenseArmEngines, IpmValidateAcceptsEveryPolicyAndNoThreshold) {
     validate_policies<hven::IpmOptions>();
     hven::IpmOptions cnr;
     cnr.linear.conditional_reproducibility = true;
     EXPECT_TRUE(refusal(cnr).empty());
     cnr.linear.dense_factorization = DensePolicy::kAlways;
     EXPECT_NE(refusal(cnr).find("conditional_reproducibility"), std::string::npos);
+    cnr.linear.dense_factorization = DensePolicy::kAuto;
+    EXPECT_NE(refusal(cnr).find("conditional_reproducibility"), std::string::npos);
 }
 
-TEST(DenseArmEngines, SqpValidateAcceptsNeverAndAlwaysOnly) {
+TEST(DenseArmEngines, SqpValidateAcceptsEveryPolicyAndNoThreshold) {
     validate_policies<hven::SqpOptions>();
 }
 

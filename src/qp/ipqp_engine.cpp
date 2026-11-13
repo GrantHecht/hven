@@ -46,6 +46,7 @@
 #include <hven/core/detail/inf_norm.h>
 #include <hven/detail/globalization/inertia_regularization.h>
 #include <hven/detail/interior/barrier_math.h>
+#include <hven/detail/kkt/dense_selection.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_math.h>
@@ -739,6 +740,9 @@ IpqpEngine::IpqpEngine(const QpOptions &opts, int threads, hven::linear::DensePo
         KktFactorization::Options o;
         o.threads = threads;
         o.dense_factorization = dense;
+        // kAuto's threshold is the SQP's, as sqp_kkt_options sets it (M8 DN-3).
+        o.max_dense_dimension =
+            detail::dense_selection_threshold(dense, detail::kSqpDenseSelectionThreshold);
         // The SQP's report policy (M8 DN-1d), as sqp_kkt_options: a flagged read
         // is answered by the tier's own perturbed-pivot remedy (classify_inertia).
         o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
@@ -3148,6 +3152,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
     out.dense_platform_retakes = after.dense_retake_count - before.dense_retake_count;
+    out.dense_factorizations = (after.dense_factorize_count + after.dense_singular_count) -
+                               (before.dense_factorize_count + before.dense_singular_count);
     out.dense_flagged_factorizations = (after.dense_flagged_count + after.dense_singular_count) -
                                        (before.dense_flagged_count + before.dense_singular_count);
     out.dense_singular_refactors =

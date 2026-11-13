@@ -290,12 +290,12 @@ TEST(QpScaleSmoke, ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart) {
     // so this fixture exercises the schur_cap-forced-rebuild path a real
     // caller would hit out of the box at this scale (see assertion (b)
     // below and the companion note for what that costs).
-    QpEngine engine_border{QpOptions{}};
+    QpEngine engine_border{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     engine_border.attach_ledger(&ledger, "border");
 
     QpOptions refactorize_opts;
     refactorize_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
-    QpEngine engine_refactorize{refactorize_opts};
+    QpEngine engine_refactorize{refactorize_opts, 0, hven::linear::DensePolicy::kNever};
     engine_refactorize.attach_ledger(&ledger, "refactorize");
 
     const auto t0 = std::chrono::steady_clock::now();

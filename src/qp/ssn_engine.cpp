@@ -578,9 +578,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             if (analysis.needed) {
                 ++out->symbolic_analyses;
             }
-            const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
-                                                out->dense_singular_refactors,
-                                                out->dense_platform_retakes);
+            const detail::DenseTallyScope tally(
+                kkt_, out->dense_factorizations, out->dense_flagged_factorizations,
+                out->dense_singular_refactors, out->dense_platform_retakes);
             const hven::linear::FactorizeOutcome fo =
                 detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
             ++out->factorizations;
@@ -938,9 +938,9 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         if (analysis.needed) {
             ++out->symbolic_analyses;
         }
-        const detail::DenseTallyScope tally(kkt_, out->dense_flagged_factorizations,
-                                            out->dense_singular_refactors,
-                                            out->dense_platform_retakes);
+        const detail::DenseTallyScope tally(
+            kkt_, out->dense_factorizations, out->dense_flagged_factorizations,
+            out->dense_singular_refactors, out->dense_platform_retakes);
         detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{deferred_pos_});
         ++out->factorizations;
     } catch (const std::exception &e) {

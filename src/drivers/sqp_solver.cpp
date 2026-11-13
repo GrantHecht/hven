@@ -931,6 +931,7 @@ QpSolution detail::ssn_result_to_qp_solution(const SsnResult &res) {
     qs.counters.symbolic_analyses = res.symbolic_analyses;
     qs.counters.dense_platform_retakes = res.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = res.dense_flagged_factorizations;
+    qs.counters.dense_factorizations = res.dense_factorizations;
     qs.counters.dense_singular_refactors = res.dense_singular_refactors;
     qs.counters.dense_shifted_solve_refusals = res.dense_shifted_solve_refusals;
     qs.counters.dense_solve_residual_refusals = res.dense_solve_residual_refusals;
@@ -969,6 +970,7 @@ void detail::charge_ssn_subproblem_cost(SqpCounters &total, const SsnResult &res
     total.symbolic_analyses += res.symbolic_analyses;
     total.dense_platform_retakes += res.dense_platform_retakes;
     total.dense_flagged_factorizations += res.dense_flagged_factorizations;
+    total.dense_factorizations += res.dense_factorizations;
     total.dense_singular_refactors += res.dense_singular_refactors;
     total.dense_shifted_solve_refusals += res.dense_shifted_solve_refusals;
     total.dense_solve_residual_refusals += res.dense_solve_residual_refusals;
@@ -987,6 +989,7 @@ void detail::charge_refused_face_refinement(SqpCounters &total, const QpSolution
     total.eqp_polish_steps += refined.counters.eqp_polish_steps;
     total.dense_platform_retakes += refined.counters.dense_platform_retakes;
     total.dense_flagged_factorizations += refined.counters.dense_flagged_factorizations;
+    total.dense_factorizations += refined.counters.dense_factorizations;
     total.dense_singular_refactors += refined.counters.dense_singular_refactors;
     total.dense_shifted_solve_refusals += refined.counters.dense_shifted_solve_refusals;
     total.ssn.ssn_refine_factorizations += refined.counters.factorizations;
@@ -1136,6 +1139,7 @@ QpSolution detail::ipqp_result_to_qp_solution(const IpqpResult &res) {
     qs.counters.symbolic_analyses = res.counters.ipqp_symbolic_analyses;
     qs.counters.dense_platform_retakes = res.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = res.dense_flagged_factorizations;
+    qs.counters.dense_factorizations = res.dense_factorizations;
     qs.counters.dense_singular_refactors = res.dense_singular_refactors;
     qs.counters.dense_solve_residual_refusals = res.dense_solve_residual_refusals;
     return qs;
@@ -1149,6 +1153,7 @@ void detail::charge_ipqp_subproblem_cost(SqpCounters &total, const IpqpResult &r
     total.symbolic_analyses += res.counters.ipqp_symbolic_analyses;
     total.dense_platform_retakes += res.dense_platform_retakes;
     total.dense_flagged_factorizations += res.dense_flagged_factorizations;
+    total.dense_factorizations += res.dense_factorizations;
     total.dense_singular_refactors += res.dense_singular_refactors;
     total.dense_solve_residual_refusals += res.dense_solve_residual_refusals;
 }
@@ -1355,6 +1360,7 @@ QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic
     qs.counters.symbolic_analyses = ires.counters.ipqp_symbolic_analyses;
     qs.counters.dense_platform_retakes = ires.dense_platform_retakes;
     qs.counters.dense_flagged_factorizations = ires.dense_flagged_factorizations;
+    qs.counters.dense_factorizations = ires.dense_factorizations;
     qs.counters.dense_singular_refactors = ires.dense_singular_refactors;
     qs.counters.dense_solve_residual_refusals = ires.dense_solve_residual_refusals;
     return qs;
@@ -1441,6 +1447,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         out.eqp_polish_steps += qs_e.counters.eqp_polish_steps;
         out.dense_platform_retakes += qs_e.counters.dense_platform_retakes;
         out.dense_flagged_factorizations += qs_e.counters.dense_flagged_factorizations;
+        out.dense_factorizations += qs_e.counters.dense_factorizations;
         out.dense_singular_refactors += qs_e.counters.dense_singular_refactors;
         out.dense_shifted_solve_refusals += qs_e.counters.dense_shifted_solve_refusals;
         out.dense_shifted_k0_fallbacks += qs_e.counters.dense_shifted_k0_fallbacks;
@@ -5032,6 +5039,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         const Index refine_polish = refined.counters.eqp_polish_steps;
         const Index refine_cond = refined.counters.dense_platform_retakes;
         const Index refine_flagged = refined.counters.dense_flagged_factorizations;
+        const Index refine_dense = refined.counters.dense_factorizations;
         const Index refine_refactors = refined.counters.dense_singular_refactors;
         const Index refine_shifted_refusals = refined.counters.dense_shifted_solve_refusals;
         if (took) {
@@ -5067,6 +5075,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         qs.counters.eqp_polish_steps += refine_polish;
         qs.counters.dense_platform_retakes += refine_cond;
         qs.counters.dense_flagged_factorizations += refine_flagged;
+        qs.counters.dense_factorizations += refine_dense;
         qs.counters.dense_singular_refactors += refine_refactors;
         qs.counters.dense_shifted_solve_refusals += refine_shifted_refusals;
         ssn_budget_charge += refine_facts;
@@ -5351,6 +5360,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
         const Index refine_polish = refined.counters.eqp_polish_steps;
         const Index refine_cond = refined.counters.dense_platform_retakes;
         const Index refine_flagged = refined.counters.dense_flagged_factorizations;
+        const Index refine_dense = refined.counters.dense_factorizations;
         const Index refine_refactors = refined.counters.dense_singular_refactors;
         const Index refine_shifted_refusals = refined.counters.dense_shifted_solve_refusals;
         if (took) {
@@ -5369,6 +5379,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             qs.counters.eqp_polish_steps += refine_polish;
             qs.counters.dense_platform_retakes += refine_cond;
             qs.counters.dense_flagged_factorizations += refine_flagged;
+            qs.counters.dense_factorizations += refine_dense;
             qs.counters.dense_singular_refactors += refine_refactors;
             qs.counters.dense_shifted_solve_refusals += refine_shifted_refusals;
             ipqp_budget_charge += refine_facts;
@@ -5387,6 +5398,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             out.counters.eqp_polish_steps += refine_polish;
             out.counters.dense_platform_retakes += refine_cond;
             out.counters.dense_flagged_factorizations += refine_flagged;
+            out.counters.dense_factorizations += refine_dense;
             out.counters.dense_singular_refactors += refine_refactors;
             out.counters.dense_shifted_solve_refusals += refine_shifted_refusals;
             ipqp_budget_charge += refine_facts;
@@ -6085,6 +6097,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.eqp_polish_steps += phase.counters.eqp_polish_steps;
         st.out.counters.dense_platform_retakes += phase.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations += phase.counters.dense_flagged_factorizations;
+        st.out.counters.dense_factorizations += phase.counters.dense_factorizations;
         st.out.counters.dense_singular_refactors += phase.counters.dense_singular_refactors;
         st.out.counters.dense_shifted_solve_refusals += phase.counters.dense_shifted_solve_refusals;
         st.out.counters.dense_shifted_k0_fallbacks += phase.counters.dense_shifted_k0_fallbacks;
@@ -7739,6 +7752,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.eqp_polish_steps += mj.qs.counters.eqp_polish_steps;
     st.out.counters.dense_platform_retakes += mj.qs.counters.dense_platform_retakes;
     st.out.counters.dense_flagged_factorizations += mj.qs.counters.dense_flagged_factorizations;
+    st.out.counters.dense_factorizations += mj.qs.counters.dense_factorizations;
     st.out.counters.dense_singular_refactors += mj.qs.counters.dense_singular_refactors;
     st.out.counters.dense_shifted_solve_refusals += mj.qs.counters.dense_shifted_solve_refusals;
     st.out.counters.dense_shifted_k0_fallbacks += mj.qs.counters.dense_shifted_k0_fallbacks;
@@ -7846,6 +7860,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.dense_platform_retakes += retried.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations +=
             retried.counters.dense_flagged_factorizations;
+        st.out.counters.dense_factorizations += retried.counters.dense_factorizations;
         st.out.counters.dense_singular_refactors += retried.counters.dense_singular_refactors;
         st.out.counters.dense_shifted_solve_refusals +=
             retried.counters.dense_shifted_solve_refusals;
@@ -8409,6 +8424,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.dense_platform_retakes += mj.qs_soc.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations +=
             mj.qs_soc.counters.dense_flagged_factorizations;
+        st.out.counters.dense_factorizations += mj.qs_soc.counters.dense_factorizations;
         st.out.counters.dense_singular_refactors += mj.qs_soc.counters.dense_singular_refactors;
         st.out.counters.dense_shifted_solve_refusals +=
             mj.qs_soc.counters.dense_shifted_solve_refusals;
@@ -9197,6 +9213,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     const Index refine_polish = refined.counters.eqp_polish_steps;
     const Index refine_cond = refined.counters.dense_platform_retakes;
     const Index refine_flagged = refined.counters.dense_flagged_factorizations;
+    const Index refine_dense = refined.counters.dense_factorizations;
     const Index refine_refactors = refined.counters.dense_singular_refactors;
     const Index refine_shifted_refusals = refined.counters.dense_shifted_solve_refusals;
     if (took) {
@@ -9220,6 +9237,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     qs.counters.eqp_polish_steps += refine_polish;
     qs.counters.dense_platform_retakes += refine_cond;
     qs.counters.dense_flagged_factorizations += refine_flagged;
+    qs.counters.dense_factorizations += refine_dense;
     qs.counters.dense_singular_refactors += refine_refactors;
     qs.counters.dense_shifted_solve_refusals += refine_shifted_refusals;
     ssn_budget_charge += refine_facts;

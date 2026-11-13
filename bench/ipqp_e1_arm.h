@@ -525,7 +525,7 @@ inline SolveRow solve(const Cell &cell, const IpqpOptions &iopts) {
     row.e2e_factorizations = r.counters.ipqp_factorizations;
     row.e2e_usable = ipqp_exit_is_a_usable_step(r, qopts, iopts);
     if (row.e2e_usable) {
-        QpEngine polish(qopts);
+        QpEngine polish(qopts, 0, hven::linear::DensePolicy::kNever);
         QpSolution refined;
         row.e2e_polished = polish.refine_on_face(cell.qp, ipqp_result_to_qp_solution(r),
                                                  QpSolveOverrides{}, refined);

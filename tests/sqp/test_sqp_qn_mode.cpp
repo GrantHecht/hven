@@ -807,7 +807,7 @@ TEST(SqpQnBridge, TheCacheServesTheSameLiftAndPredictedDecreaseReadsB) {
     const Vec p = Vec::LinSpaced(n, 0.3, -0.2);
     EXPECT_NEAR(bridge.predicted_decrease(qp, p), -(qp.g.dot(p) + 0.5 * p.dot(B * p)), 1e-12);
     // A walk solve through the bridge returns the unlifted sizes.
-    const QpEngine engine(QpOptions{});
+    const QpEngine engine(QpOptions{}, 0, hven::linear::DensePolicy::kNever);
     QpSolveOverrides ov;
     ov.trust_region_radius = 1.0;
     const QpSolution qs = bridge.solve(engine, qp, ov);

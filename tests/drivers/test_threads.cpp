@@ -484,9 +484,10 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // `inertia_wrong_verdicts`; 85 until M8 DN-1c appended `dense_platform_retakes`; 86 until
 // M8 DN-1d appended `dense_flagged_factorizations` and `dense_singular_refactors`, then
 // `dense_shifted_solve_refusals`, then `dense_shifted_k0_fallbacks`, then
-// `dense_shifted_terminations`; 92 since M8 DN-3a appended `dense_solve_residual_refusals`.)
+// `dense_shifted_terminations`; 92 until M8 DN-3a appended `dense_solve_residual_refusals`; 93
+// since M8 DN-3 appended `dense_factorizations`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 92 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 93 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -581,6 +582,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, dense_shifted_k0_fallbacks);
     HVEN_EXPECT_SAME(a, b, dense_shifted_terminations);
     HVEN_EXPECT_SAME(a, b, dense_solve_residual_refusals);
+    HVEN_EXPECT_SAME(a, b, dense_factorizations);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }
@@ -637,8 +639,8 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     // default 0 reaches each engine's own factor. The driver-level reads are
     // inside the solve loop below.
     const QpOptions qopts;
-    const QpEngine walk(qopts);
-    const SsnEngine ssn(qopts);
+    const QpEngine walk(qopts, 0, hven::linear::DensePolicy::kNever);
+    const SsnEngine ssn(qopts, 0, hven::linear::DensePolicy::kNever);
     const IpqpEngine ipqp(qopts);
     EXPECT_EQ(walk.num_threads(), 0) << "the walk tier's K0 factor";
     EXPECT_EQ(walk.carried_num_threads(), 0);
@@ -722,8 +724,8 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // Three engines built HERE, not by a driver (the lane's M4): what these
     // lines pin is the constructor plumbing. The driver-level readings that
     // pin the HAND-OFF follow further down.
-    const QpEngine walk(qopts, kAskedFor);
-    const SsnEngine ssn(qopts, kAskedFor);
+    const QpEngine walk(qopts, kAskedFor, hven::linear::DensePolicy::kNever);
+    const SsnEngine ssn(qopts, kAskedFor, hven::linear::DensePolicy::kNever);
     const IpqpEngine ipqp(qopts, kAskedFor);
     EXPECT_EQ(walk.num_threads(), kAskedFor) << "the LIVE K0 factor, not the carried int";
     EXPECT_EQ(walk.carried_num_threads(), kAskedFor)

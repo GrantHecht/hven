@@ -459,19 +459,15 @@ void validate(const SqpOptions &opts) {
                                                 opts.advanced.max_restoration_entries));
     }
 
-    // THE DENSE ARM: kNever and kAlways. kAuto and its threshold stay refused
-    // until the selection rule lands (DN-3).
-    if (opts.linear.dense_factorization != hven::linear::DensePolicy::kNever &&
-        opts.linear.dense_factorization != hven::linear::DensePolicy::kAlways) {
-        throw std::invalid_argument(fmt::format(
-            "SqpSolver: linear.dense_factorization = {} is reserved: automatic dense selection is "
-            "not available yet; DensePolicy::kNever and kAlways are accepted",
-            static_cast<int>(opts.linear.dense_factorization)));
-    }
+    // THE DENSE ARM: kNever, kAlways and kAuto (M8 DN-3: the dense arm for each analyzed
+    // pattern whose order is at most the library's threshold,
+    // detail::kSqpDenseSelectionThreshold). The threshold is not a caller's option yet.
+    enum_in_range(opts.linear.dense_factorization, hven::linear::DensePolicy::kAuto,
+                  "linear.dense_factorization");
     if (opts.linear.max_dense_dimension) {
         throw std::invalid_argument(
-            "SqpSolver: linear.max_dense_dimension is reserved: automatic dense selection is not "
-            "available yet; leave it empty");
+            "SqpSolver: linear.max_dense_dimension is reserved: DensePolicy::kAuto uses the "
+            "library's threshold; leave it empty");
     }
 }
 

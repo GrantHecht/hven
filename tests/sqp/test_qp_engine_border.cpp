@@ -512,8 +512,8 @@ void expect_border_matches_refactorize(const QpProblem &qp) {
     QpOptions bor_opts;
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
-    const auto ref = QpEngine{ref_opts}.solve(qp);
-    const auto bor = QpEngine{bor_opts}.solve(qp);
+    const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
+    const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(bor.status, ref.status);
     if (ref.status == QpStatus::kInfeasible || ref.status == QpStatus::kNumericalError) {
@@ -705,13 +705,13 @@ TEST(QpEngineBorder, BorderModeMatchesRefactorizeModeWarmStarted) {
     ref_opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
 
     const QpProblem qp = random_strictly_convex(5, 3, 3);
-    const auto cold = QpEngine{ref_opts}.solve(qp);
+    const auto cold = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
     QpOptions bor_opts;
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
-    const auto ref_warm = QpEngine{ref_opts}.solve(qp, cold);
-    const auto bor_warm = QpEngine{bor_opts}.solve(qp, cold);
+    const auto ref_warm = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp, cold);
+    const auto bor_warm = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp, cold);
 
     ASSERT_EQ(bor_warm.status, ref_warm.status);
     EXPECT_LT((bor_warm.x - ref_warm.x).lpNorm<Eigen::Infinity>(), 1e-8);
@@ -745,8 +745,8 @@ TEST(QpEngineBorder, BorderModeMatchesRefactorizeModeFromOverfullWarmStart) {
         bogus.ineq_active.assign(static_cast<std::size_t>(qp.mi()), true);
         bogus.bound_state.assign(static_cast<std::size_t>(qp.n()), BoundState::kAtLower);
 
-        const auto ref = QpEngine{ref_opts}.solve(qp, bogus);
-        const auto bor = QpEngine{bor_opts}.solve(qp, bogus);
+        const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp, bogus);
+        const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp, bogus);
 
         ASSERT_EQ(bor.status, ref.status);
         ASSERT_EQ(ref.status, QpStatus::kOptimal);
@@ -830,7 +830,7 @@ QpProblem box_with_moving_rows(Index n, Index pairs) {
 TEST(QpEngineBorder, BorderModeCountsUpdates) {
     QpOptions opts;
     opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
-    const auto sol = QpEngine{opts}.solve(simple_box_qp());
+    const auto sol = QpEngine(opts, 0, hven::linear::DensePolicy::kNever).solve(simple_box_qp());
 
     ASSERT_EQ(sol.status, QpStatus::kOptimal);
     EXPECT_GE(sol.counters.schur_updates, 2);
@@ -856,8 +856,8 @@ TEST(QpEngineBorder, RebuildUnderTinySchurCapMatchesRefactorize) {
     Index cases_that_rebuilt = 0;
     for (const auto &[name, qp] : equivalence_battery()) {
         SCOPED_TRACE(name);
-        const auto ref = QpEngine{ref_opts}.solve(qp);
-        const auto bor = QpEngine{bor_opts}.solve(qp);
+        const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
+        const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
         ASSERT_EQ(bor.status, ref.status);
         if (ref.status == QpStatus::kInfeasible || ref.status == QpStatus::kNumericalError) {
@@ -919,8 +919,8 @@ TEST(QpEngineBorder, PinsPastSchurCapDoNotRebuildQuadratically) {
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     bor_opts.max_schur_border_dimension = 16;
 
-    const auto ref = QpEngine{ref_opts}.solve(qp);
-    const auto bor = QpEngine{bor_opts}.solve(qp);
+    const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
+    const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
@@ -981,8 +981,8 @@ TEST(QpEngineBorder, LatchedBorderModeDoesNotThrashOnRowChanges) {
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
     bor_opts.max_schur_border_dimension = kCap;
 
-    const auto ref = QpEngine{ref_opts}.solve(qp);
-    const auto bor = QpEngine{bor_opts}.solve(qp);
+    const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
+    const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
     ASSERT_EQ(bor.status, QpStatus::kOptimal);
@@ -1108,11 +1108,12 @@ TEST(QpEngineBorder, SingularBorderTriggersRebuild) {
     QpOptions bor_opts = opts;
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
-    const auto ref = QpEngine{ref_opts}.solve(qp);
+    const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
 
     QpSolution bor;
-    EXPECT_NO_THROW(bor = QpEngine{bor_opts}.solve(qp)); // no throw escapes solve()
+    EXPECT_NO_THROW(bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever)
+                              .solve(qp)); // no throw escapes solve()
 
     ASSERT_EQ(bor.status, ref.status);
     EXPECT_LT((bor.x - ref.x).lpNorm<Eigen::Infinity>(), 1e-8);
@@ -1140,8 +1141,8 @@ TEST(QpEngineBorder, BorderModeWithNonDefaultOptions) {
     QpOptions bor_opts = opts;
     bor_opts.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
-    const auto ref = QpEngine{ref_opts}.solve(qp);
-    const auto bor = QpEngine{bor_opts}.solve(qp);
+    const auto ref = QpEngine(ref_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
+    const auto bor = QpEngine(bor_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
 
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
     ASSERT_EQ(bor.status, ref.status);

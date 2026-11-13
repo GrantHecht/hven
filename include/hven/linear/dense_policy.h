@@ -11,8 +11,8 @@ namespace hven::linear {
 
 /// @brief When the dense factorization arm is used for a KKT system.
 ///
-/// Both engines' `validate()` accept `kNever` and `kAlways` and refuse `kAuto`
-/// until its selection rule lands; `SymmetricFactor::Options` implements all three.
+/// `SymmetricFactor::Options` implements all three. Both engines accept all
+/// three; under `kAuto` each supplies its own dimension threshold.
 enum class DensePolicy {
     /// Always the sparse backend. The default.
     kNever,

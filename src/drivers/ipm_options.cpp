@@ -259,19 +259,16 @@ void hven::validate(const IpmOptions &o) {
     enum_in_range(lin.solve_parallelism, IpmSolveParallelism::kSequential,
                   "linear.solve_parallelism");
     pos_finite(lin.accelerate_zero_tol, "linear.accelerate_zero_tol");
-    // THE DENSE ARM: kNever and kAlways. kAuto and its threshold stay refused
-    // until the selection rule lands (DN-3). CNR is a per-session Pardiso
-    // guarantee the dense arm cannot keep.
-    if (lin.dense_factorization != hven::linear::DensePolicy::kNever &&
-        lin.dense_factorization != hven::linear::DensePolicy::kAlways)
-        throw std::invalid_argument(
-            fmt::format("linear.dense_factorization = {} is reserved: automatic dense selection "
-                        "is not available yet; DensePolicy::kNever and kAlways are accepted",
-                        static_cast<int>(lin.dense_factorization)));
+    // THE DENSE ARM: kNever, kAlways and kAuto (M8 DN-3: the dense arm iff the KKT
+    // pattern's order is at most the library's threshold, detail::kIpmDenseSelectionThreshold).
+    // The threshold is not a caller's option yet. CNR is a per-session Pardiso guarantee the
+    // dense arm cannot keep.
+    enum_in_range(lin.dense_factorization, hven::linear::DensePolicy::kAuto,
+                  "linear.dense_factorization");
     if (lin.max_dense_dimension)
         throw std::invalid_argument(
-            "linear.max_dense_dimension is reserved: automatic dense selection is not available "
-            "yet; leave it empty");
+            "linear.max_dense_dimension is reserved: DensePolicy::kAuto uses the library's "
+            "threshold; leave it empty");
     if (lin.dense_factorization != hven::linear::DensePolicy::kNever &&
         lin.conditional_reproducibility)
         throw std::invalid_argument(

@@ -614,6 +614,12 @@ struct QpCounters {
     // and IPQP step solves (affine/corrector: the inertia ladder; mu-estimate:
     // its fallback). 0 under DensePolicy::kNever.
     Index dense_solve_residual_refusals = 0;
+    // Factorizations on the dense arm (SymmetricFactor's dense_factorize_count +
+    // dense_singular_count: taken, or reported exactly singular; shifted
+    // refactors included) of this solve's KKT factors and the rank repair's Gram
+    // factor. 0 under DensePolicy::kNever; under kAuto, 0 when every analyzed
+    // pattern was above the threshold (M8 DN-3).
+    Index dense_factorizations = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2320,6 +2326,12 @@ struct SqpCounters {
     ///        through dense numerics the dense solve check refused. Appended
     ///        last.
     Index dense_solve_residual_refusals = 0;
+    /// @brief Factorizations on the dense arm (QpCounters' field, plus the SSN's
+    ///        and the IPQP tiers'), summed over every subproblem the factorizations
+    ///        count covers: taken or reported exactly singular, shifted refactors
+    ///        included. 0 under DensePolicy::kNever; under kAuto, 0 when every
+    ///        analyzed pattern was above the threshold. Appended last.
+    Index dense_factorizations = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2414,7 +2426,8 @@ struct SqpCounters {
     X(dense_shifted_solve_refusals, counter_never_absent)                                          \
     X(dense_shifted_k0_fallbacks, counter_never_absent)                                            \
     X(dense_shifted_terminations, counter_never_absent)                                            \
-    X(dense_solve_residual_refusals, counter_never_absent)
+    X(dense_solve_residual_refusals, counter_never_absent)                                         \
+    X(dense_factorizations, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

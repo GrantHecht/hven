@@ -300,7 +300,7 @@ TEST(IpqpBarrierInitialRule, TheBandIsTheOptionsOwnCeiling) {
 // 1e6 the derived start is taken. Either way the tier converges to the walk's answer.
 TEST(IpqpBarrierInitialRule, AQpWithEveryBlockConvergesToTheWalksAnswerOnBothPaths) {
     for (const QpProblem &qp : {general_qp(), many_rows_qp()}) {
-        QpEngine walk(untrusted_region());
+        QpEngine walk(untrusted_region(), 0, hven::linear::DensePolicy::kNever);
         const QpSolution ref = walk.solve(qp);
         ASSERT_EQ(ref.status, QpStatus::kOptimal);
         for (const double ceiling : {IpqpOptions{}.barrier_initial, 1e6}) {
@@ -431,7 +431,7 @@ TEST(IpqpMuResidualFloor, TheCounterIsTheNeighbourhoodRuleReadOffTheTrace) {
 
 TEST(IpqpMuResidualFloor, ItBindsOnARowPopulationAndStopsAtTheTiersContract) {
     const QpProblem qp = many_rows_qp();
-    QpEngine walk(untrusted_region());
+    QpEngine walk(untrusted_region(), 0, hven::linear::DensePolicy::kNever);
     const QpSolution ref = walk.solve(qp);
     ASSERT_EQ(ref.status, QpStatus::kOptimal);
     const Traced on = solve_traced(qp, with_floor(true));

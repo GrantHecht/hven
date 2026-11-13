@@ -1418,6 +1418,15 @@ class IpmSolverImpl {
         return retired_factorizations_ + kkt_sol_.counters().factorize_count;
     }
 
+    /// Factorizations on the dense arm (taken or reported exactly singular) since
+    /// construction, monotone the same way; IpmResult::dense_factorizations is the
+    /// difference of two readings (M8 DN-3).
+    Index retired_dense_factorizations_ = 0;
+    Index lifetime_dense_factorize_count() const {
+        return retired_dense_factorizations_ + kkt_sol_.counters().dense_factorize_count +
+               kkt_sol_.counters().dense_singular_count;
+    }
+
     /// The 0-based index of the phase `alg_impl` is currently running, written
     /// by run_phase_sequence() before each call and read only by the `ipm.iter`
     /// emit sites. A member rather than an alg_impl parameter because it is
@@ -1515,6 +1524,8 @@ class IpmSolverImpl {
     // lifetime_factorize_count() at this call's public entry, for the work of
     // an interrupted call.
     Index factorizations_at_entry_ = 0;
+    // lifetime_dense_factorize_count() at this call's public entry.
+    Index dense_factorizations_at_entry_ = 0;
     // See last_stop_detail(); reset per phase with last_stop_reason_.
     std::string stop_detail_;
     // See last_result().

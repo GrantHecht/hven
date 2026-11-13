@@ -66,7 +66,7 @@ TEST(QpWarmStart, PerturbedSequenceCollapsesMinorIterations) {
     // the oracle on the perturbed problem, (b) warm minor_iters <= 2, and
     // (c) warm minor_iters < cold minor_iters on the perturbed problem.
     auto qp = random_strictly_convex(6, 4, 7);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     qp.g.array() += 1e-3;
     auto oracle = solve_dense_oracle(qp);
@@ -86,7 +86,7 @@ TEST(QpWarmStart, WarmStartMarginAtBusierOptimum) {
     // fixture where the warm-start payoff is larger, not a repeat of the
     // plan-mandated seed-7 case above (left untouched).
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     qp.g.array() += 1e-3;
     auto oracle = solve_dense_oracle(qp);
@@ -122,7 +122,7 @@ TEST(QpWarmStart, StaleSeedStillConverges) {
     seed.lambda_i = Vec::Zero(qp.mi());
     seed.z = Vec::Zero(qp.n());
 
-    const auto warm = QpEngine{QpOptions{}}.solve(qp, seed);
+    const auto warm = QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp, seed);
 
     ASSERT_EQ(warm.status, QpStatus::kOptimal);
     EXPECT_LT((warm.x - oracle.x).norm(), 1e-7);
@@ -165,7 +165,7 @@ TEST(QpWarmStart, WarmResolveWithUnchangedHReusesFactorization) {
     // exit working set, so all three reuse conditions hold and the engine
     // must skip K0's assembly and factorization entirely.
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
@@ -193,7 +193,7 @@ TEST(QpWarmStart, DeltaMuOverrideForcesRefactorization) {
     // resolved (primal_delta, dual_mu) pair, and still land on the right
     // answer for the NEW, larger dual_mu.
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
@@ -227,7 +227,7 @@ TEST(QpWarmStart, HChangeForcesRefactorization) {
     // engine refactorizes K0 exactly once (symbolic reuse still applies
     // inside the factor helper since the sparsity PATTERN is unchanged).
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
@@ -248,7 +248,7 @@ TEST(QpWarmStart, SeedWorkingSetMismatchForcesRefactorization) {
     // -- so the persisted border stack does not represent this seed and
     // reuse must not be taken.
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
@@ -299,7 +299,7 @@ TEST(QpWarmStart, InfeasibleExitInvalidatesReuseCache) {
     qp.lower = Vec::Constant(2, -10.0);
     qp.upper = Vec::Constant(2, 10.0);
 
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto infeasible = engine.solve(qp);
     ASSERT_EQ(infeasible.status, QpStatus::kInfeasible);
 
@@ -352,7 +352,7 @@ TEST(QpWarmStart, StructureChangeAtConstantValueBytesForcesRefactorization) {
     qp1.lower = Vec::Constant(2, -10.0);
     qp1.upper = Vec::Constant(2, 10.0);
 
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold1 = engine.solve(qp1);
     ASSERT_EQ(cold1.status, QpStatus::kOptimal);
     ASSERT_TRUE(cold1.ineq_active[0]);
@@ -392,7 +392,7 @@ TEST(QpWarmStart, ExceptionBetweenSolvesInvalidatesReuseCache) {
     // border_valid_ even though the throw happens before border_candidate
     // (or even ws construction) ever runs.
     auto qp = random_strictly_convex(6, 4, 20);
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     auto cold = engine.solve(qp);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
 
@@ -453,7 +453,7 @@ TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     opts.max_schur_border_dimension = 1;
 
     QpProblem qpA = row_and_bound_qp(1.0, 2.0, 1.0); // optimum (0, 1): row + x0 bound active
-    QpEngine engine_p{opts};
+    QpEngine engine_p{opts, 0, hven::linear::DensePolicy::kNever};
     const QpSolution sol_a = engine_p.solve(qpA);
     ASSERT_EQ(sol_a.status, QpStatus::kOptimal);
     const auto h1 = engine_p.hot_state();
@@ -468,7 +468,7 @@ TEST(QpWarmStart, HotStateEmitsCommittedIdentityNotLive) {
     QpProblem qpB = row_and_bound_qp(-1.0, -1.0, 5.0);
     QpSolution seed = sol_a;
     seed.x = Vec::Zero(2);
-    QpEngine engine_c{opts};
+    QpEngine engine_c{opts, 0, hven::linear::DensePolicy::kNever};
     const QpSolution sol_c = engine_c.solve(qpB, seed, QpSolveOverrides{}, h1);
     ASSERT_EQ(sol_c.status, QpStatus::kOptimal);
     ASSERT_TRUE(sol_c.counters.k0_reused)

@@ -120,7 +120,7 @@ void expect_rung_before_after(const char *cell, double f_star, double rel,
     if (::testing::Test::HasFatalFailure()) {
         return;
     }
-    const QpEngine engine(p.d1.opts, p.d1.threads);
+    const QpEngine engine(p.d1.opts, p.d1.threads, hven::linear::DensePolicy::kNever);
 
     const QpSolution before = engine.solve(p.d1.qp, p.d1.seed, p.d1.overrides);
     const double before_off = worst_violation(p.d1.qp, before.x);
@@ -260,13 +260,13 @@ LadderArms run_ladder_arms(const char *cell) {
     EXPECT_NE(p.d0.result.find("status=2"), std::string::npos) << p.d0.result;
     SqpOptions opts;
     opts.qp = p.d0.opts;
-    QpEngine engine0(p.d0.opts, p.d0.threads);
+    QpEngine engine0(p.d0.opts, p.d0.threads, hven::linear::DensePolicy::kNever);
     const QpSolution failed = engine0.solve(p.d0.qp, p.d0.overrides);
     EXPECT_EQ(failed.status, QpStatus::kInfeasible) << "qp0's replay at this head";
     for (int arm = 0; arm < 3; ++arm) {
         opts.advanced.elastic_witness_start = arm >= 1;
         opts.advanced.elastic_last_optimal_rung = arm == 2;
-        QpEngine engine(p.d0.opts, p.d0.threads);
+        QpEngine engine(p.d0.opts, p.d0.threads, hven::linear::DensePolicy::kNever);
         a.rep[arm] = run_elastic_ladder(engine, p.d0.qp, ElasticSeedSource{&failed, nullptr},
                                         p.d0.overrides.trust_region_radius, opts, a.out[arm]);
         std::printf("[ p1e ] %s ladder arm=%d (witness %d, last %d): usable=%d closed=%d "

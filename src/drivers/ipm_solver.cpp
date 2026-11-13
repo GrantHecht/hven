@@ -22,6 +22,7 @@
 #include "hven/detail/drivers/callback_rows.h"
 #include "hven/detail/drivers/ipm_solver_impl.h"
 #include "hven/detail/drivers/ipm_dense_testing.h"
+#include "hven/detail/kkt/dense_selection.h"
 
 #include <algorithm>
 #include <atomic>
@@ -198,6 +199,10 @@ void hven::detail::IpmSolverImpl::set_qp_params() {
     opts.max_refinement_steps = opts_.linear.max_refinement_steps;
     opts.ordering = linear_ordering_of(opts_.linear.ordering);
     opts.dense_factorization = opts_.linear.dense_factorization;
+    // kAuto's threshold is the IPM's (M8 DN-3): the KKT pattern is one per solve, so a solve
+    // is all-dense or all-sparse.
+    opts.max_dense_dimension = hven::detail::dense_selection_threshold(
+        opts.dense_factorization, hven::detail::kIpmDenseSelectionThreshold);
     // A singular or flagged dense factorization is reported, never retaken on the platform
     // session: the inertia-correction ladder answers it (a failed factorization reads singular,
     // which engages delta_c and climbs delta_w) and refactors on the dense arm. The dense
@@ -265,6 +270,8 @@ void hven::detail::IpmSolverImpl::set_qp_params() {
     // of that call -- so the retirement is complete and it never lands
     // mid-solve.
     this->retired_factorizations_ += this->kkt_sol_.counters().factorize_count;
+    this->retired_dense_factorizations_ += this->kkt_sol_.counters().dense_factorize_count +
+                                           this->kkt_sol_.counters().dense_singular_count;
     this->kkt_sol_.reconfigure(opts);
 }
 
@@ -6744,10 +6751,13 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     // make the record depend on when the ledger was attached.
     const Index factorizations_at_entry = this->lifetime_factorize_count();
     this->factorizations_at_entry_ = factorizations_at_entry;
+    this->dense_factorizations_at_entry_ = this->lifetime_dense_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
+    result.dense_factorizations =
+        this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     this->record_solve(result, factorizations_at_entry);
     return result;
 }
@@ -6808,10 +6818,13 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     // See the cold overload above.
     const Index factorizations_at_entry = this->lifetime_factorize_count();
     this->factorizations_at_entry_ = factorizations_at_entry;
+    this->dense_factorizations_at_entry_ = this->lifetime_dense_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
+    result.dense_factorizations =
+        this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     this->record_solve(result, factorizations_at_entry);
     return result;
 }
@@ -7096,5 +7109,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::take_interrupted_result() {
         out = std::move(this->result_);
     }
     out.work.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;
+    out.dense_factorizations =
+        this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     return out;
 }

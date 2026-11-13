@@ -195,7 +195,7 @@ Walk observed(const QpProblem &qp, const QpOptions &o) {
     Obs::reset();
     Obs::active = true;
     Walk w;
-    const QpEngine engine{o};
+    const QpEngine engine{o, 0, hven::linear::DensePolicy::kNever};
     w.solution = engine.solve(qp);
     w.records = Obs::records;
     const bool truncated = Obs::truncated;

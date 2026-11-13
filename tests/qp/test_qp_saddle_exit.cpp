@@ -299,7 +299,7 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         // The PREMISE, on the arm this round does not touch: with the option off the exit is
         // not tried, and the walk ends at the saddle.
         o.independent_working_set = false;
-        const QpSolution off = QpEngine{o}.solve(qp);
+        const QpSolution off = QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp);
         EXPECT_EQ(static_cast<int>(off.status), static_cast<int>(QpStatus::kNumericalError));
         EXPECT_EQ(off.counters.saddle_exits + off.counters.saddle_exit_misses, 0);
         EXPECT_EQ(off.counters.ascent_rides, 0);
@@ -310,7 +310,7 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         // From x = 0: the guard rides -p off the indefinite face, and the saddle is never
         // reached.
         {
-            const QpSolution g = QpEngine{o}.solve(qp);
+            const QpSolution g = QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp);
             EXPECT_EQ(static_cast<int>(g.status), static_cast<int>(QpStatus::kOptimal));
             EXPECT_GE(g.counters.ascent_rides, 1);
             EXPECT_EQ(g.counters.saddle_exits + g.counters.saddle_exit_misses, 0);
@@ -320,7 +320,8 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         QpSolution at_saddle;
         at_saddle.x = Vec(2);
         at_saddle.x << -0.05, 0.0;
-        const Walk w = observed([&] { return QpEngine{o}.solve(qp, at_saddle); });
+        const Walk w = observed(
+            [&] { return QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp, at_saddle); });
         const QpSolution &s = w.solution;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(s.counters.saddle_exits, 1);
@@ -485,7 +486,8 @@ TEST(QpNc3SaddleExit, ADegenerateSaddleVertexIsNeverCertifiedThroughTwoZeroLengt
         o.max_iterations = 100;
         o.working_set_algebra = alg;
         o.independent_working_set = true;
-        const Walk w = observed([&] { return QpEngine{o}.solve(qp, seed); });
+        const Walk w = observed(
+            [&] { return QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp, seed); });
         const QpSolution &s = w.solution;
         const bool at_vertex = s.x.norm() < 1e-6;
         std::printf("[ nc3fix1 ] %s status=%d |x|=%.3g f=%.6g saddle_exits=%ld misses=%ld\n",

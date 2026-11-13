@@ -175,8 +175,8 @@ TEST(QpEngineTr, TrOffIsBitIdenticalDefault) {
         explicit_inf_opts.working_set_algebra = algebra;
         explicit_inf_opts.trust_region_radius = std::numeric_limits<double>::infinity();
 
-        QpEngine eng_default{default_opts};
-        QpEngine eng_explicit{explicit_inf_opts};
+        QpEngine eng_default{default_opts, 0, hven::linear::DensePolicy::kNever};
+        QpEngine eng_explicit{explicit_inf_opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution a = eng_default.solve(qp);
         const QpSolution b = eng_explicit.solve(qp);
 
@@ -205,7 +205,7 @@ TEST(QpEngineTr, TrClampsTheStep) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.trust_region_radius = 1.0;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = eng.solve(qp);
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -235,7 +235,7 @@ TEST(QpEngineTr, TrInsideRealBounds) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.trust_region_radius = 1.0;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = eng.solve(qp);
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -276,7 +276,7 @@ TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
         QpOptions cold_opts;
         cold_opts.working_set_algebra = algebra;
         cold_opts.trust_region_radius = 1.0;
-        QpEngine cold_eng{cold_opts};
+        QpEngine cold_eng{cold_opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution cold = cold_eng.solve(qp);
 
         ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -290,7 +290,7 @@ TEST(QpEngineTr, WarmSeedIgnoresTrActivity) {
         QpOptions warm_opts;
         warm_opts.working_set_algebra = algebra;
         warm_opts.trust_region_radius = 5.0;
-        QpEngine warm_eng{warm_opts};
+        QpEngine warm_eng{warm_opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution warm = warm_eng.solve(qp, cold);
 
         // New x0 = clamp(cold.x = (1,1), real bounds [-100,100]) = (1,1).
@@ -337,7 +337,7 @@ TEST(QpEngineTr, IndefiniteInteractionWithSaddleBox) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.trust_region_radius = 0.5;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
         const QpSolution sol = eng.solve(qp);
 
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -386,7 +386,8 @@ TEST(QpEngineTr, SameInstanceWarmSolveWithShiftedTrWindow) {
         QpOptions opts;
         opts.working_set_algebra = algebra;
         opts.trust_region_radius = 1.0;
-        QpEngine eng{opts}; // ONE instance for both solves below.
+        QpEngine eng{opts, 0,
+                     hven::linear::DensePolicy::kNever}; // ONE instance for both solves below.
 
         const QpSolution cold = eng.solve(qp);
         ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -531,7 +532,8 @@ TEST(QpEngineTr, ShrinkRadiusRetryReusesHotStart) {
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
-        QpEngine eng{opts}; // ONE instance for both retry radii.
+        QpEngine eng{opts, 0,
+                     hven::linear::DensePolicy::kNever}; // ONE instance for both retry radii.
 
         QpSolveOverrides cold_overrides;
         cold_overrides.trust_region_radius = 1.0;
@@ -586,7 +588,7 @@ TEST(QpEngineTr, OverridesResolveCorrectlyUnderRefactorizeMode) {
 
     QpOptions opts;
     opts.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
-    QpEngine eng{opts};
+    QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
 
     QpSolveOverrides overrides;
     overrides.primal_regularization = 1e-6;
@@ -624,8 +626,8 @@ TEST(QpEngineTr, PlainOverloadsForwardDefaultOverridesByteIdentically) {
         opts.working_set_algebra = algebra;
         opts.trust_region_radius = 1.0;
 
-        QpEngine plain_eng{opts};
-        QpEngine overrides_eng{opts};
+        QpEngine plain_eng{opts, 0, hven::linear::DensePolicy::kNever};
+        QpEngine overrides_eng{opts, 0, hven::linear::DensePolicy::kNever};
 
         const QpSolution plain_cold = plain_eng.solve(qp);
         const QpSolution overrides_cold = overrides_eng.solve(qp, QpSolveOverrides{});
@@ -672,7 +674,7 @@ TEST(QpEngineTr, OverrideValidationRejectsNegativeRadius) {
     qp.lower = Vec::Constant(2, -2.0);
     qp.upper = Vec::Constant(2, 2.0);
 
-    QpEngine eng{QpOptions{}};
+    QpEngine eng{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
 
     QpSolveOverrides bad;
     bad.trust_region_radius = -0.5;
@@ -695,7 +697,7 @@ TEST(QpEngineTr, OverrideValidationRejectsNegativeRadius) {
 // legitimate sentinel is any NEGATIVE value, never NaN).
 TEST(QpEngineTr, OverrideValidationRejectsNaN) {
     const QpProblem qp = unconstrained_quadratic_qp();
-    QpEngine eng{QpOptions{}};
+    QpEngine eng{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     QpSolveOverrides nan_radius;
@@ -730,7 +732,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNegativeRadiusOnPlainOverloads) {
 
     QpOptions bad_opts;
     bad_opts.trust_region_radius = -0.5;
-    QpEngine eng{bad_opts};
+    QpEngine eng{bad_opts, 0, hven::linear::DensePolicy::kNever};
 
     EXPECT_THROW(eng.solve(qp), std::invalid_argument);
 
@@ -760,7 +762,7 @@ TEST(QpEngineTr, StoredRadiusValidationRejectsNaNOnPlainOverloads) {
 
     QpOptions nan_opts;
     nan_opts.trust_region_radius = std::numeric_limits<double>::quiet_NaN();
-    QpEngine eng{nan_opts};
+    QpEngine eng{nan_opts, 0, hven::linear::DensePolicy::kNever};
 
     EXPECT_THROW(eng.solve(qp), std::invalid_argument);
 }
@@ -782,7 +784,7 @@ TEST(QpEngineTr, StoredRadiusValidationLeavesWellFormedRadiiUntouched) {
 
         QpOptions opts;
         opts.trust_region_radius = radius;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
 
         const QpSolution sol = eng.solve(qp);
         EXPECT_EQ(sol.status, QpStatus::kOptimal);
@@ -813,12 +815,12 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
 
         QpOptions bad_delta;
         bad_delta.primal_regularization = bad;
-        QpEngine delta_eng{bad_delta};
+        QpEngine delta_eng{bad_delta, 0, hven::linear::DensePolicy::kNever};
         EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
 
         QpOptions bad_mu;
         bad_mu.dual_regularization = bad;
-        QpEngine mu_eng{bad_mu};
+        QpEngine mu_eng{bad_mu, 0, hven::linear::DensePolicy::kNever};
         EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
     }
 
@@ -827,7 +829,7 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
     // QpSolveOverrides, whose negative value is a legitimate sentinel.
     QpOptions bad_delta;
     bad_delta.primal_regularization = -1.0;
-    QpEngine delta_eng{bad_delta};
+    QpEngine delta_eng{bad_delta, 0, hven::linear::DensePolicy::kNever};
     try {
         delta_eng.solve(qp);
         FAIL() << "expected std::invalid_argument";
@@ -838,7 +840,7 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNegativeOnPlainOverloads) 
 
     QpOptions bad_mu;
     bad_mu.dual_regularization = -1.0;
-    QpEngine mu_eng{bad_mu};
+    QpEngine mu_eng{bad_mu, 0, hven::linear::DensePolicy::kNever};
     try {
         mu_eng.solve(qp);
         FAIL() << "expected std::invalid_argument";
@@ -854,12 +856,12 @@ TEST(QpEngineTr, StoredRegularizationValidationRejectsNaNOnPlainOverloads) {
 
     QpOptions nan_delta;
     nan_delta.primal_regularization = nan;
-    QpEngine delta_eng{nan_delta};
+    QpEngine delta_eng{nan_delta, 0, hven::linear::DensePolicy::kNever};
     EXPECT_THROW(delta_eng.solve(qp), std::invalid_argument);
 
     QpOptions nan_mu;
     nan_mu.dual_regularization = nan;
-    QpEngine mu_eng{nan_mu};
+    QpEngine mu_eng{nan_mu, 0, hven::linear::DensePolicy::kNever};
     EXPECT_THROW(mu_eng.solve(qp), std::invalid_argument);
 }
 
@@ -874,7 +876,7 @@ TEST(QpEngineTr, StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt) {
     QpOptions bad_both;
     bad_both.primal_regularization = -1.0;
     bad_both.dual_regularization = std::numeric_limits<double>::quiet_NaN();
-    QpEngine eng{bad_both};
+    QpEngine eng{bad_both, 0, hven::linear::DensePolicy::kNever};
 
     QpSolveOverrides good;
     good.primal_regularization = 1e-8;
@@ -892,7 +894,8 @@ TEST(QpEngineTr, StoredRegularizationIsNotCheckedWhenAnOverrideSupersedesIt) {
 TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) {
     const QpProblem qp = simple_box_qp();
 
-    const QpSolution baseline = QpEngine{QpOptions{}}.solve(qp);
+    const QpSolution baseline =
+        QpEngine(QpOptions{}, 0, hven::linear::DensePolicy::kNever).solve(qp);
     ASSERT_EQ(baseline.status, QpStatus::kOptimal);
 
     for (const double good : {0.0, 1e-12, 1e-8, 1e-4}) {
@@ -900,12 +903,13 @@ TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) 
 
         QpOptions delta_opts;
         delta_opts.primal_regularization = good;
-        const QpSolution by_delta = QpEngine{delta_opts}.solve(qp);
+        const QpSolution by_delta =
+            QpEngine(delta_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
         EXPECT_EQ(by_delta.status, QpStatus::kOptimal);
 
         QpOptions mu_opts;
         mu_opts.dual_regularization = good;
-        const QpSolution by_mu = QpEngine{mu_opts}.solve(qp);
+        const QpSolution by_mu = QpEngine(mu_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
         EXPECT_EQ(by_mu.status, QpStatus::kOptimal);
     }
 
@@ -924,7 +928,7 @@ TEST(QpEngineTr, StoredRegularizationValidationLeavesWellFormedValuesUntouched) 
     QpOptions zero_opts;
     zero_opts.primal_regularization = 0.0;
     zero_opts.dual_regularization = 0.0;
-    const QpSolution zeroed = QpEngine{zero_opts}.solve(qp);
+    const QpSolution zeroed = QpEngine(zero_opts, 0, hven::linear::DensePolicy::kNever).solve(qp);
     EXPECT_EQ(zeroed.status, baseline.status);
     EXPECT_EQ(zeroed.counters.minor_iters, baseline.counters.minor_iters);
     EXPECT_EQ(zeroed.counters.factorizations, baseline.counters.factorizations);
@@ -980,7 +984,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
 
         QpSolveOverrides cold_overrides;
         cold_overrides.trust_region_radius = 1.0;
@@ -1055,7 +1059,7 @@ TEST(QpEngineTr, SeededOppositeBoundPinDoesNotRecenterTheWindow) {
 
         QpOptions opts;
         opts.working_set_algebra = algebra;
-        QpEngine eng{opts};
+        QpEngine eng{opts, 0, hven::linear::DensePolicy::kNever};
 
         const QpSolution far = eng.solve(qp); // no radius: straight to the real bound
         ASSERT_EQ(far.status, QpStatus::kOptimal);

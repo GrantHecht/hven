@@ -903,7 +903,7 @@ TEST(IpqpDispatch, TheFeasibilityHookTakesTheEvidenceAndRunsItsTwoRungLadder) {
     qp.upper = Vec::Constant(1, 10.0);
 
     QpOptions qopts;
-    QpEngine engine(qopts);
+    QpEngine engine(qopts, 0, hven::linear::DensePolicy::kNever);
     QpSolveOverrides overrides;
 
     // A POPULATED evidence block: the least-infeasible point and its

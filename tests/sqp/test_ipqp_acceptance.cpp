@@ -414,7 +414,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     EXPECT_EQ(r.restart_grade, IpqpRestartGrade::kBaseWarm) << "the dumped state was consumed";
     EXPECT_TRUE(test_support::assert_ipqp_escape_census_sums(r.counters));
 
-    QpEngine walk(tight_opts());
+    QpEngine walk(tight_opts(), 0, hven::linear::DensePolicy::kNever);
     const QpSolution w = walk.solve(got.qp);
     ASSERT_EQ(w.status, QpStatus::kOptimal);
 
@@ -549,7 +549,7 @@ TEST(IpqpAcceptanceA5, AColdWideWindowSubproblemAtSizeIsSolvedInBudget) {
     EXPECT_EQ(r.counters.ipqp_factorizations, kA5Factorizations);
 #endif
 
-    QpEngine walk(tight_opts());
+    QpEngine walk(tight_opts(), 0, hven::linear::DensePolicy::kNever);
     const QpSolution w = walk.solve(qp);
     ASSERT_EQ(w.status, QpStatus::kOptimal);
     const double scale = std::max(1.0, w.x.lpNorm<Eigen::Infinity>());

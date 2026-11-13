@@ -190,12 +190,13 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     EXPECT_EQ(sparse.dense_scale.size(), 0);
 
     KktFactor dense(0, DensePolicy::kAlways);
+    Index dense_count = 0;
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
     hven::linear::FactorizeOutcome cd;
     {
-        const DenseTallyScope tally(dense, flagged, refactors, retakes);
+        const DenseTallyScope tally(dense, dense_count, flagged, refactors, retakes);
         cd = factorize_checked(dense, K, site);
     }
     EXPECT_TRUE(dense.dense_shifted);
@@ -204,6 +205,7 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     ASSERT_TRUE(cd.inertia.perturbed_pivots.has_value());
     EXPECT_FALSE(cd.inertia.numerically_singular);
     EXPECT_EQ(inertia_verdict(cd.inertia, 2, 1), InertiaVerdict::kSuspect);
+    EXPECT_EQ(dense_count, 2); // the flagged factorization and its shifted refactor (M8 DN-3)
     EXPECT_EQ(flagged, 1);
     EXPECT_EQ(refactors, 1);
     EXPECT_EQ(retakes, 0);
@@ -277,9 +279,9 @@ TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
     Eigen::MatrixXd m = Eigen::MatrixXd::Ones(2, 2);
     {
         KktFactor k(0, DensePolicy::kAlways);
-        Index flagged = 0, refactors = 0, retakes = 0;
+        Index dense_count = 0, flagged = 0, refactors = 0, retakes = 0;
         {
-            const DenseTallyScope tally(k, flagged, refactors, retakes);
+            const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
             (void)factorize_checked(k, upper_of(m), site);
         }
         EXPECT_TRUE(k.dense_shifted);
@@ -291,12 +293,12 @@ TEST(QpDenseArm, FactorizeCheckedRetriesOnceThenRetakesOnThePlatform) {
     {
         using hven::linear::detail::testing::DenseFactorizeFaultInjector;
         KktFactor k(0, DensePolicy::kAlways);
-        Index flagged = 0, refactors = 0, retakes = 0;
+        Index dense_count = 0, flagged = 0, refactors = 0, retakes = 0;
         hven::linear::FactorizeOutcome c;
         DenseFactorizeFaultInjector::pass = 1;
         DenseFactorizeFaultInjector::active = true;
         {
-            const DenseTallyScope tally(k, flagged, refactors, retakes);
+            const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
             c = factorize_checked(k, upper_of(m), site);
         }
         DenseFactorizeFaultInjector::active = false;
@@ -322,9 +324,9 @@ TEST(QpDenseArm, TheRetryAnswersAShiftThatIsItselfFlagged) {
     const SpMatRM K = upper_of(m);
     ASSERT_EQ(equilibration_scale(K), Vec::Ones(4));
     KktFactor k(0, DensePolicy::kAlways);
-    Index flagged = 0, refactors = 0, retakes = 0;
+    Index dense_count = 0, flagged = 0, refactors = 0, retakes = 0;
     {
-        const DenseTallyScope tally(k, flagged, refactors, retakes);
+        const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
         (void)factorize_checked(k, K, DenseShiftSite{4});
     }
     EXPECT_TRUE(k.dense_shifted);
@@ -355,6 +357,7 @@ QpProblem rows_qp(const Eigen::MatrixXd &Ae, const Vec &be, double h2) {
 
 struct EqpRun {
     EqpResult res;
+    Index dense = 0;
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
@@ -365,7 +368,7 @@ EqpRun eqp_on(DensePolicy policy, const QpProblem &qp, const QpOptions &opts) {
     KktFactor k(0, policy);
     EqpRun r;
     {
-        const DenseTallyScope tally(k, r.flagged, r.refactors, r.retakes);
+        const DenseTallyScope tally(k, r.dense, r.flagged, r.refactors, r.retakes);
         r.res = solve_eqp(qp, WorkingSet(3, 0), Vec::Zero(3), k, opts);
     }
     r.verdict = inertia_verdict(k.factor.inertia(), 3, qp.me());
@@ -622,10 +625,10 @@ TEST(QpDenseArm, TheAllinitcShapeMuFreeSystemIsAnsweredOnTheDenseArm) {
     opts.dual_regularization = 0.0;
 
     KktFactor k(0, DensePolicy::kAlways);
-    Index flagged = 0, refactors = 0, retakes = 0;
+    Index dense_count = 0, flagged = 0, refactors = 0, retakes = 0;
     EqpResult r;
     {
-        const DenseTallyScope tally(k, flagged, refactors, retakes);
+        const DenseTallyScope tally(k, dense_count, flagged, refactors, retakes);
         r = solve_eqp(qp, WorkingSet(2, 0), Vec::Zero(2), k, opts);
     }
     EXPECT_EQ(flagged, 1);

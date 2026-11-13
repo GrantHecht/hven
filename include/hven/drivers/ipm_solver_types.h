@@ -248,6 +248,11 @@ struct IpmResult : SolveResult {
     /// answered as a singular system (refactorization, re-solve). Always 0
     /// when `linear.dense_factorization` is `kNever`.
     Index dense_residual_ratio_triggers = 0;
+
+    /// Factorizations of this call's KKT systems on the dense arm (taken, or
+    /// reported exactly singular), out of `work.factorizations`. Always 0 when
+    /// `linear.dense_factorization` is `kNever`.
+    Index dense_factorizations = 0;
 };
 
 } // namespace hven

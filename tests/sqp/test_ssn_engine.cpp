@@ -68,7 +68,7 @@ std::string partition_string(const SsnResult &res) {
 // kernels share qp_problem.h, the sign convention and the regularizers, and
 // nothing else, so agreement is real evidence rather than a tautology.
 QpSolution walk_solution(const QpProblem &qp) {
-    QpEngine engine(default_opts());
+    QpEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     return engine.solve(qp);
 }
 
@@ -79,7 +79,7 @@ QpSolution walk_solution(const QpProblem &qp) {
 // =============================================================================
 TEST(SsnEngineLocal, CorrectHintFromExactPrimalIsOneIteration) {
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.x = Vec(2);
@@ -115,7 +115,7 @@ TEST(SsnEngineLocal, CorrectHintFromExactPrimalIsOneIteration) {
     EXPECT_EQ(res.iters, 1);
     EXPECT_EQ(res.factorizations, 2);
     {
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare_res;
         bare_engine.solve(qp, start, bare_opts(), &bare_res);
         EXPECT_EQ(bare_res.status, QpStatus::kOptimal);
@@ -151,7 +151,7 @@ TEST(SsnEngineLocal, ExactPrimalDualSeedCostsNoStep) {
     start.lambda_i << 1.0, 0.0;
 
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, start, SsnOptions{}, &res);
 
@@ -166,7 +166,7 @@ TEST(SsnEngineLocal, ExactPrimalDualSeedCostsNoStep) {
         EXPECT_EQ(res.counters.ssn_prox_updates, 0);
     }
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, start, bare_opts(), &res);
 
@@ -208,7 +208,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
     saddle.x << 0.5, 0.125;
 
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, saddle, bare_opts(), &res);
         // ===== THE POSITIVE CONTROL: bare mode returns the WRONG ANSWER =====
@@ -217,7 +217,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
         EXPECT_NEAR(res.x(1), 0.125, 1e-12);
     }
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, saddle, SsnOptions{}, &res);
         EXPECT_NE(res.status, QpStatus::kOptimal);
@@ -230,7 +230,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
         // The escape is reported at EVERY budget, including the one that
         // forbids steps outright -- the verification is not a step.
         for (const Index budget : {Index{0}, Index{1}, Index{25}}) {
-            SsnEngine e2(default_opts());
+            SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
             SsnOptions s;
             s.hard_budget = budget;
             SsnResult r2;
@@ -249,7 +249,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
         // certify the saddle. The engine drops sigma to 0 for the verification,
         // gets kWrong, escapes -- and restores the ladder's own sigma for
         // reporting, which the last assertion pins.
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnOptions s;
         s.prox_sigma_init = 100.0;
         SsnResult res;
@@ -261,7 +261,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
     }
     {
         // Seeded at the TRUE solution, the same gate certifies.
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnStart opt;
         opt.x = Vec(2);
         opt.x << 0.5, -1.0;
@@ -287,7 +287,7 @@ TEST(SsnEngineLocal, SaddleSeedIsNotCertifiedWithoutInertiaEvidence) {
 // it.)
 TEST(SsnEngineLocal, CorrectHintFromInteriorSeedSnapsOntoTheConstraint) {
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.x = Vec::Zero(2); // strictly interior: both slacks positive
@@ -391,7 +391,7 @@ TEST(SsnEngineLocal, CorrectHintFromInteriorSeedSnapsOntoTheConstraint) {
 // ============ MKL-OBSERVED, NOT RE-VERIFIED ON ACCELERATE. ============
 TEST(SsnEngineLocal, WrongHintRecoversWithABulkFlip) {
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.x = Vec(2);
@@ -438,7 +438,7 @@ TEST(SsnEngineLocal, WrongHintRecoversWithABulkFlip) {
 TEST(SsnEngineLocal, BoxQpFromScrambledHint) {
     const Index n = 50;
     const QpProblem qp = box_qp(n);
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.activity_hint.bounds.assign(static_cast<std::size_t>(n), BoundState::kFree);
@@ -484,7 +484,7 @@ TEST(SsnEngineLocal, BoxQpFromScrambledHint) {
 // =============================================================================
 TEST(SsnEngineLocal, EqualityOnlyIsOneKktSolve) {
     const QpProblem qp = equality_only_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnOptions sopts;
     SsnResult res;
@@ -520,7 +520,7 @@ TEST(SsnEngineLocal, MixedEqualityInequalityAndBoundsMatchesTheWalk) {
     ASSERT_EQ(qp.me(), 1);
     ASSERT_EQ(qp.mi(), 3);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnOptions sopts;
     SsnResult res;
     engine.solve(qp, SsnStart{}, sopts, &res);
@@ -572,7 +572,7 @@ TEST(SsnEngineLocal, MixedEqualityInequalityAndBoundsMatchesTheWalk) {
 TEST(SsnEngineLocal, ActivityExportAgreesWithTheWalk) {
     const QpProblem cases[] = {mixed_block_qp(), box_qp(20), two_row_qp()};
     for (const QpProblem &qp : cases) {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
         ASSERT_EQ(res.status, QpStatus::kOptimal);
@@ -600,7 +600,7 @@ TEST(SsnEngineLocal, ActivityExportAgreesWithTheWalk) {
 // history, so there is no path on which it can be missing.
 TEST(SsnEngineLocal, ActivityExportIsPopulatedOnEveryExit) {
     const QpProblem qp = mixed_block_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnOptions budget_zero;
     budget_zero.hard_budget = 0;
@@ -634,7 +634,7 @@ TEST(SsnEngineLocal, ActivityExportIsPopulatedOnEveryExit) {
 // =============================================================================
 TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
     QpProblem qp = two_row_qp(); // both bounds at the +/-1e20 sentinel
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
 
     SsnStart lower_side;
@@ -665,7 +665,7 @@ TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
 // still throws.
 TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
     const QpProblem qp = two_row_qp(); // both bounds at the +/-1e20 sentinel
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult clean;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &clean);
 
@@ -695,7 +695,7 @@ TEST(SsnEngineLocal, ARoundOffPriceOnAnAbsentBoundIsZero) {
 TEST(SsnEngineLocal, TheAbsentPriceBandScalesWithTheSeedsOwnMagnitude) {
     QpProblem qp = two_row_qp();
     qp.lower(0) = -5.0; // variable 0 has its lower bound; variable 1 has neither
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     SsnStart in_band;
     in_band.z = Vec::Zero(2);
@@ -772,7 +772,7 @@ TEST(SsnEngineLocal, TheBoxCentreIsHonouredAndIsNotTheStartPoint) {
     // permits -- and the two spellings permit different things: centred on the
     // ORIGIN it is 1.0, centred on the START it would be 4.0. That gap is what
     // makes this a pin rather than a restatement.
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart start;
     start.x = (Vec(2) << 0.0, 3.0).finished();
     start.box_center = Vec::Zero(2);
@@ -792,7 +792,7 @@ TEST(SsnEngineLocal, TheBoxCentreIsHonouredAndIsNotTheStartPoint) {
     // with the centre DISENGAGED falls back to the historical rule and lands
     // 3.0 away, at the start-centred face. A build that ignored `box_center`
     // would produce this answer for the call above.
-    SsnEngine centreless(default_opts());
+    SsnEngine centreless(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart at_start = start;
     at_start.box_center.reset();
     SsnResult from_start;
@@ -812,13 +812,13 @@ TEST(SsnEngineLocal, ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoin
     ov.trust_region_radius = 1.0;
     SsnOptions sopts;
 
-    SsnEngine a(default_opts());
+    SsnEngine a(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart disengaged;
     disengaged.x = Vec::Zero(2);
     SsnResult without;
     a.solve(qp, disengaged, sopts, ov, &without);
 
-    SsnEngine b(default_opts());
+    SsnEngine b(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart explicit_centre = disengaged;
     explicit_centre.box_center = Vec::Zero(2); // == start.x, the fall-back
     SsnResult with;
@@ -841,7 +841,7 @@ TEST(SsnEngineLocal, AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite) {
     QpSolveOverrides ov;
     SsnOptions sopts;
     SsnResult res;
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     // ENGAGED-BUT-EMPTY is the likeliest spelling of the mistake, and it is
     // refused rather than read as "absent": this field does not share the
@@ -893,7 +893,7 @@ TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
     QpSolveOverrides ov; // +inf radius: no trust region, so no window in the way
     SsnOptions sopts;
 
-    SsnEngine warm(default_opts());
+    SsnEngine warm(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart at_the_answer;
     at_the_answer.x = (Vec(2) << 3.0, -2.0).finished();
     SsnResult from_answer;
@@ -907,7 +907,7 @@ TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
 
     // NON-VACUITY: the same solve from the origin does take steps, so the zero
     // above is the start point's doing rather than the problem's.
-    SsnEngine cold(default_opts());
+    SsnEngine cold(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart origin;
     SsnResult from_origin;
     cold.solve(qp, origin, sopts, ov, &from_origin);
@@ -924,7 +924,7 @@ TEST(SsnEngineLocal, TrustRegionPinsAreSeparatedFromRealBounds) {
     QpSolveOverrides ov;
     ov.trust_region_radius = 1.0; // about the start point x0 = 0
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart start;
     start.x = Vec::Zero(2);
     SsnOptions sopts;
@@ -951,7 +951,7 @@ TEST(SsnEngineLocal, TrustRegionPinsAreSeparatedFromRealBounds) {
     // The walk, solving the SAME QP under the SAME override, agrees on every
     // one of those four exports -- which is what makes this the walk's contract
     // rather than a private convention.
-    QpEngine walk_engine(default_opts());
+    QpEngine walk_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     const QpSolution walk = walk_engine.solve(qp, ov);
     ASSERT_EQ(walk.status, QpStatus::kOptimal);
     for (Index j = 0; j < 2; ++j) {
@@ -993,7 +993,7 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
     // --- an ESCAPED exit may be far outside the radius, and reports it ----
     double worst_factor = 0.0;
     for (const Index budget : {Index{1}, Index{2}, Index{3}, Index{4}, Index{5}}) {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnOptions s;
         s.hard_budget = budget;
         SsnResult res;
@@ -1017,7 +1017,7 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
     // the radius out. A binding trust region is not a benign perturbation of a
     // solve, and Task 5 must budget for a subproblem that escapes under one.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, SsnOptions{}, ov, &res);
         EXPECT_NE(res.status, QpStatus::kOptimal);
@@ -1036,7 +1036,7 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
         const QpProblem mixed = mixed_block_qp();
         QpSolveOverrides tight;
         tight.trust_region_radius = 0.2;
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(mixed, SsnStart{}, SsnOptions{}, tight, &res);
         ASSERT_EQ(res.status, QpStatus::kOptimal);
@@ -1065,11 +1065,11 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
 
     // --- no radius: the field is exactly zero, on every exit --------------
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
         EXPECT_DOUBLE_EQ(res.tr_violation, 0.0);
-        SsnEngine e2(default_opts());
+        SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnOptions s;
         s.hard_budget = 2;
         SsnResult r2;
@@ -1085,14 +1085,14 @@ TEST(SsnEngineLocal, TrustRegionIsSoftAndTheExitContractSaysSo) {
 TEST(SsnEngineLocal, LooseTrustRegionIsBitIdenticalToNoOverride) {
     const QpProblem qp = box_qp(20); // every bound finite, |x| <= 1
 
-    SsnEngine plain_engine(default_opts());
+    SsnEngine plain_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult plain;
     plain_engine.solve(qp, SsnStart{}, SsnOptions{}, &plain);
     ASSERT_EQ(plain.status, QpStatus::kOptimal);
 
     QpSolveOverrides loose;
     loose.trust_region_radius = 1e6;
-    SsnEngine tr_engine(default_opts());
+    SsnEngine tr_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult with_tr;
     tr_engine.solve(qp, SsnStart{}, SsnOptions{}, loose, &with_tr);
 
@@ -1117,7 +1117,7 @@ TEST(SsnEngineLocal, LooseTrustRegionIsBitIdenticalToNoOverride) {
 TEST(SsnEngineLocal, TrustRegionRadiusIsNotPartOfTheStructureKey) {
     QpProblem qp = tr_probe_qp();
     qp.lower(1) = -1e20; // one genuinely unbounded side, so the row counts differ
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.x = Vec::Zero(2);
@@ -1167,7 +1167,7 @@ TEST(SsnEngineLocal, RegularizerOverridesResolveLikeTheWalks) {
     SsnStart start;
     start.activity_hint.ineq = {true, true};
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult defaulted;
     engine.solve(qp, start, SsnOptions{}, &defaulted);
     ASSERT_EQ(defaulted.status, QpStatus::kOptimal);
@@ -1222,7 +1222,7 @@ TEST(SsnEngineLocal, PrimalDeltaOverrideChangesWhetherTheSolveConverges) {
     qp.lower = Vec::Constant(2, -1e20);
     qp.upper = Vec::Constant(2, 1e20);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult defaulted;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &defaulted);
     ASSERT_EQ(defaulted.status, QpStatus::kOptimal);
@@ -1241,7 +1241,7 @@ TEST(SsnEngineLocal, PrimalDeltaOverrideChangesWhetherTheSolveConverges) {
 
 TEST(SsnEngineLocal, OverrideValidationMatchesTheWalksPrecondition) {
     const QpProblem qp = tr_probe_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
 
     QpSolveOverrides negative;
@@ -1337,7 +1337,7 @@ TEST(SsnEngineLocal, FbIsEvaluatedWithoutCancellation) {
 // is that choice's contract: it must converge, and to the right point.
 TEST(SsnEngineLocal, ContradictoryFixedHintRecovers) {
     QpProblem qp = box_qp(12); // l = -1 < u = 1 on every variable
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     // Every variable hinted "fixed" though none is: the first step asks for
@@ -1380,7 +1380,7 @@ TEST(SsnEngineLocal, FixedVariableHintIsHonouredAsBothRowsActive) {
     qp.lower(0) = 0.5; // variable 0 is genuinely FIXED at 0.5
     qp.upper(0) = 0.5;
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart start;
     start.activity_hint.bounds = {BoundState::kFixed, BoundState::kFree, BoundState::kFree};
 
@@ -1404,7 +1404,7 @@ TEST(SsnEngineLocal, FixedVariableHintIsHonouredAsBothRowsActive) {
     EXPECT_EQ(res.iters, 2);
 
     // The hint is nonetheless doing real work -- without it the same QP costs 6.
-    SsnEngine cold_engine(default_opts());
+    SsnEngine cold_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult cold;
     cold_engine.solve(qp, SsnStart{}, sopts, &cold);
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
@@ -1435,7 +1435,7 @@ TEST(SsnEngineLocal, FixedVariableHintIsHonouredAsBothRowsActive) {
 // a slot) and ZERO for a later QP of the same structure on the same engine.
 TEST(SsnEngineLocal, SymbolicAnalysisIsPaidOncePerStructure) {
     QpProblem qp = box_qp(20);
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart start;
     start.activity_hint.bounds.assign(20, BoundState::kAtLower);
@@ -1472,7 +1472,7 @@ TEST(SsnEngineLocal, SymbolicAnalysisIsPaidOncePerStructure) {
 // matrix structure, so the second solve re-analyzes nothing.
 TEST(SsnEngineLocal, BranchChangeDoesNotChangeThePattern) {
     const QpProblem qp = box_qp(12);
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnStart all_lower;
     all_lower.activity_hint.bounds.assign(12, BoundState::kAtLower);
@@ -1501,7 +1501,7 @@ TEST(SsnEngineLocal, BranchChangeDoesNotChangeThePattern) {
 // `pattern_rebuilds` is the other half.
 TEST(SsnEngineLocal, PatternIsReusedAcrossSolvesOfTheSameStructure) {
     QpProblem qp = mixed_block_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnResult first;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &first);
@@ -1589,7 +1589,7 @@ TEST(SsnEngineLocal, PatternKeyIsExactForUncompressedInput) {
     QpProblem qp = make(1); // row 1 stores columns {1, 2}
     ASSERT_FALSE(qp.Ai.isCompressed());
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult first;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &first);
     ASSERT_EQ(first.status, QpStatus::kOptimal);
@@ -1662,7 +1662,7 @@ TEST(SsnEngineLocal, PatternKeySeparatesBoundLayoutsOfEqualSize) {
     const QpProblem a = with_lower_on(0, 1);
     const QpProblem b = with_lower_on(0, 2);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult ra;
     engine.solve(a, SsnStart{}, SsnOptions{}, &ra);
     ASSERT_EQ(ra.status, QpStatus::kOptimal);
@@ -1733,7 +1733,7 @@ TEST(SsnEngineLocal, SignFlipAtConstantBoundLayoutForcesRebuild) {
     const QpProblem a = box_on_var1(true);
     const QpProblem b = box_on_var1(false);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult ra;
     engine.solve(a, SsnStart{}, SsnOptions{}, &ra);
     ASSERT_EQ(ra.status, QpStatus::kOptimal);
@@ -1807,7 +1807,7 @@ TEST(SsnEngineLocal, BoxQpCountGrowsSlowlyInN) {
     for (const Cell &c : cells) {
         const QpProblem qp = box_qp(c.n);
         for (int hinted = 0; hinted < 2; ++hinted) {
-            SsnEngine engine(default_opts());
+            SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
             SsnStart start;
             if (hinted != 0) {
                 start.activity_hint.bounds.assign(static_cast<std::size_t>(c.n), BoundState::kFree);
@@ -1834,7 +1834,7 @@ TEST(SsnEngineLocal, BoxQpCountGrowsSlowlyInN) {
 // =============================================================================
 TEST(SsnEngineLocal, HardBudgetStopsWithABudgetEscape) {
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
 
     SsnOptions sopts;
     sopts.hard_budget = 1; // not enough from a cold seed
@@ -1877,7 +1877,7 @@ TEST(SsnEngineLocal, NonFiniteStepIsReportedNotThrown) {
     qp.lower = Vec::Constant(2, -1e20);
     qp.upper = Vec::Constant(2, 1e20);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     ASSERT_NO_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, &res));
     EXPECT_EQ(res.status, QpStatus::kNumericalError);
@@ -1915,7 +1915,7 @@ TEST(SsnEngineLocal, DualRegularizationPicksTheMinimumNormMultiplier) {
     qp.lower = Vec::Constant(2, -1e20);
     qp.upper = Vec::Constant(2, 1e20);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnStart start;
     start.activity_hint.ineq = {true, true};
     SsnResult res;
@@ -1955,7 +1955,7 @@ TEST(SsnEngineLocal, FbTolDerivationAndItsBound) {
 
 TEST(SsnEngineLocal, CallerErrorsThrow) {
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
 
     EXPECT_THROW(engine.solve(qp, SsnStart{}, SsnOptions{}, nullptr), std::invalid_argument);
@@ -2010,7 +2010,7 @@ TEST(SsnEngineLocal, CallerErrorsThrow) {
 TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     // (a) exact primal seed + correct hint -> 1 iteration.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnStart start;
         start.x = Vec(2);
         start.x << 1.0, 1.0;
@@ -2022,7 +2022,7 @@ TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     }
     // (b) wrong hint -> exactly 6, one bulk flip.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnStart start;
         start.x = Vec(2);
         start.x << 1.0, 1.0;
@@ -2035,7 +2035,7 @@ TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     }
     // (c) n = 50 box, scrambled hint -> exactly 8.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnStart start;
         start.activity_hint.bounds.assign(50, BoundState::kFree);
         for (Index j = 0; j < 50; ++j) {
@@ -2050,7 +2050,7 @@ TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     }
     // (d) equality only -> exactly 1.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(equality_only_qp(), SsnStart{}, bare_opts(), &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -2058,7 +2058,7 @@ TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     }
     // The mixed-block fixture -> exactly 8.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(mixed_block_qp(), SsnStart{}, bare_opts(), &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -2067,7 +2067,7 @@ TEST(SsnEngineLocal, BareModeReproducesTheTask3Trajectories) {
     // And every safeguard counter stays structurally zero, on every one of
     // them -- the assertion Task 3 left behind, kept where it is still true.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         const QpProblem cases[] = {two_row_qp(), box_qp(20), equality_only_qp(), mixed_block_qp()};
         for (const QpProblem &qp : cases) {
             SsnResult res;
@@ -2134,7 +2134,7 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
         ASSERT_EQ(walk.status, QpStatus::kOptimal) << c.name;
 
         // --- positive control: BARE burns the whole budget and orbits -------
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare;
         bare_engine.solve(c.qp, c.start, bare_opts(), &bare);
         EXPECT_EQ(bare.status, QpStatus::kIterationLimit) << c.name;
@@ -2147,7 +2147,7 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
         // at a separation of >= 2 within ten steps.
         std::vector<std::string> trace;
         for (Index k = 0; k <= 10; ++k) {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             SsnOptions so = bare_opts();
             so.hard_budget = k;
             SsnResult r;
@@ -2167,7 +2167,7 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
         EXPECT_TRUE(orbited) << c.name << ": no partition repeated within ten bare steps";
 
         // --- the safeguarded engine solves it -------------------------------
-        SsnEngine full_engine(default_opts());
+        SsnEngine full_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult full;
         full_engine.solve(c.qp, c.start, SsnOptions{}, &full);
         EXPECT_EQ(full.status, QpStatus::kOptimal) << c.name;
@@ -2253,7 +2253,7 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     ASSERT_FALSE(walk.ineq_active[1]);
 
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -2308,12 +2308,12 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         start.x = Vec(2);
         start.x << 6.0, -5.0;
 
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare;
         bare_engine.solve(qp, start, bare_opts(), &bare);
         EXPECT_EQ(bare.status, QpStatus::kOptimal);
 
-        SsnEngine full_engine(default_opts());
+        SsnEngine full_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult full;
         full_engine.solve(qp, start, SsnOptions{}, &full);
         EXPECT_EQ(full.status, QpStatus::kOptimal);
@@ -2354,7 +2354,7 @@ TEST(SsnEngineLocal, InfeasibleQpIsSuspectedNotCertified) {
         SsnOptions sopts;
         sopts.hard_budget = budget;
 
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, sopts, &res);
         EXPECT_EQ(res.status, QpStatus::kInfeasible) << "budget " << budget;
@@ -2371,7 +2371,7 @@ TEST(SsnEngineLocal, InfeasibleQpIsSuspectedNotCertified) {
         // budget problem, at every budget.
         SsnOptions bare = bare_opts();
         bare.hard_budget = budget;
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare_res;
         bare_engine.solve(qp, SsnStart{}, bare, &bare_res);
         EXPECT_EQ(bare_res.escape_reason, SsnEscape::kBudget) << "budget " << budget;
@@ -2430,7 +2430,7 @@ TEST(SsnEngineLocal, InfeasibilityIsReachedByBothRoutesAndOnBothShapes) {
     for (Cell &c : cells) {
         EXPECT_EQ(walk_solution(c.qp).status, QpStatus::kInfeasible) << c.name;
 
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(c.qp, SsnStart{}, SsnOptions{}, &res);
         EXPECT_EQ(res.status, QpStatus::kInfeasible) << c.name;
@@ -2441,7 +2441,7 @@ TEST(SsnEngineLocal, InfeasibilityIsReachedByBothRoutesAndOnBothShapes) {
             << c.name << " took the wrong route: " << res.escape_detail;
 
         // And bare mode reads every one of them as a budget problem.
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare;
         bare_engine.solve(c.qp, SsnStart{}, bare_opts(), &bare);
         EXPECT_EQ(bare.escape_reason, SsnEscape::kBudget) << c.name;
@@ -2483,7 +2483,7 @@ TEST(SsnEngineLocal, FeasibleButBadlyScaledIsNeverReportedInfeasible) {
     ASSERT_GT(walk.lambda_i.cwiseAbs().maxCoeff(), 1e5)
         << "and its multipliers must clear the growth threshold, or it proves nothing";
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
 
@@ -2529,7 +2529,7 @@ TEST(SsnEngineLocal, StallWindowGuardsKeepABrutallyScaledFeasibleQpHonest) {
                 ((qp.lower - feasible).array() <= 0.0).all());
     EXPECT_NE(walk_solution(qp).status, QpStatus::kInfeasible);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
 
@@ -2555,7 +2555,7 @@ TEST(SsnEngineLocal, TheVerificationAttemptMovesNoStepCounter) {
     const QpSolution walk = walk_solution(qp);
     ASSERT_EQ(walk.status, QpStatus::kOptimal);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
 
@@ -2579,7 +2579,7 @@ TEST(SsnEngineLocal, BudgetsAreEnforcedAndCountersAreTruthful) {
     {
         SsnOptions sopts;
         sopts.hard_budget = 3;
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(cycling_qp_3var(), SsnStart{}, sopts, &res);
         EXPECT_EQ(res.status, QpStatus::kIterationLimit);
@@ -2596,7 +2596,7 @@ TEST(SsnEngineLocal, BudgetsAreEnforcedAndCountersAreTruthful) {
     // solve still converges, and the answer does not move.
     {
         const QpProblem qp = weakly_active_qp();
-        SsnEngine relaxed_engine(default_opts());
+        SsnEngine relaxed_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult relaxed;
         relaxed_engine.solve(qp, SsnStart{}, SsnOptions{}, &relaxed);
         ASSERT_EQ(relaxed.status, QpStatus::kOptimal);
@@ -2605,7 +2605,7 @@ TEST(SsnEngineLocal, BudgetsAreEnforcedAndCountersAreTruthful) {
 
         SsnOptions tight;
         tight.soft_budget = 2;
-        SsnEngine tight_engine(default_opts());
+        SsnEngine tight_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult armed;
         tight_engine.solve(qp, SsnStart{}, tight, &armed);
         EXPECT_EQ(armed.status, QpStatus::kOptimal);
@@ -2641,14 +2641,14 @@ TEST(SsnEngineLocal, LineSearchExemptsAHintedFirstStepInBothPolarities) {
     {
         SsnOptions seed_only;
         seed_only.hard_budget = 0;
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult at_seed;
         engine.solve(qp, wrong, seed_only, &at_seed);
         EXPECT_NEAR(at_seed.fb_residual, 1.0, 1e-12);
 
         SsnOptions one_step;
         one_step.hard_budget = 1;
-        SsnEngine engine2(default_opts());
+        SsnEngine engine2(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult after;
         engine2.solve(qp, wrong, one_step, &after);
         EXPECT_EQ(after.iters, 1); // taken, not rejected
@@ -2664,7 +2664,7 @@ TEST(SsnEngineLocal, LineSearchExemptsAHintedFirstStepInBothPolarities) {
 
         SsnOptions bare_step = bare_opts();
         bare_step.hard_budget = 1;
-        SsnEngine engine3(default_opts());
+        SsnEngine engine3(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare_after;
         engine3.solve(qp, wrong, bare_step, &bare_after);
         EXPECT_NEAR(bare_after.fb_residual, 5.0, 1e-6); // the review's figure
@@ -2672,7 +2672,7 @@ TEST(SsnEngineLocal, LineSearchExemptsAHintedFirstStepInBothPolarities) {
 
     // The whole solve still converges, and to the right answer.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, wrong, SsnOptions{}, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -2687,7 +2687,7 @@ TEST(SsnEngineLocal, LineSearchExemptsAHintedFirstStepInBothPolarities) {
         right.x = Vec(2);
         right.x << 1.0, 1.0;
         right.activity_hint.ineq = {true, false};
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, right, SsnOptions{}, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -2704,14 +2704,14 @@ TEST(SsnEngineLocal, LineSearchExemptsAHintedFirstStepInBothPolarities) {
     // every other one, which on this fixture costs four backtracks and one
     // extra iteration against bare mode's undamped six.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
         EXPECT_EQ(res.iters, 7);
         EXPECT_EQ(res.counters.ssn_backtracks, 4);
 
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare;
         bare_engine.solve(qp, SsnStart{}, bare_opts(), &bare);
         EXPECT_EQ(bare.iters, 6);
@@ -2749,7 +2749,7 @@ TEST(SsnEngineLocal, DualProjectionKeepsMultipliersFeasible) {
         {"mixed", mixed_block_qp(), SsnStart{}},
     };
     for (Cell &c : cells) {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(c.qp, c.start, SsnOptions{}, &res);
         for (Index k = 0; k < c.qp.mi(); ++k) {
@@ -2796,7 +2796,7 @@ TEST(SsnEngineLocal, IndefiniteHessianEscapesRatherThanCertifyingASaddle) {
     EXPECT_NEAR(walk.x(1), -1.0, 1e-9);
 
     // The positive control, and it is a WRONG ANSWER rather than a slow one.
-    SsnEngine bare_engine(default_opts());
+    SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult bare;
     bare_engine.solve(qp, SsnStart{}, bare_opts(), &bare);
     EXPECT_EQ(bare.status, QpStatus::kOptimal);
@@ -2811,7 +2811,7 @@ TEST(SsnEngineLocal, IndefiniteHessianEscapesRatherThanCertifyingASaddle) {
     EXPECT_GT(bare_obj, walk_obj + 1.0); // -0.109 against -1.375
 
     // The safeguarded engine refuses.
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     engine.solve(qp, SsnStart{}, SsnOptions{}, &res);
     EXPECT_NE(res.status, QpStatus::kOptimal);
@@ -2853,7 +2853,7 @@ TEST(SsnEngineLocal, UncertainBandGeometryAndValidation) {
     EXPECT_GT(detail::kSsnUncertainLeaveRatio, 1.0); // a band, not a point
 
     const QpProblem qp = two_row_qp();
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     SsnOptions bad;
     bad.uncertain_tol = 1.0;
@@ -2892,7 +2892,7 @@ TEST(SsnEngineLocal, UncertainBandGeometryAndValidation) {
     {
         SsnOptions wide;
         wide.uncertain_tol = 0.9;
-        SsnEngine wide_engine(default_opts());
+        SsnEngine wide_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult wide_res;
         wide_engine.solve(cycling_qp_3var(), SsnStart{}, wide, &wide_res);
         EXPECT_EQ(wide_res.status, QpStatus::kIterationLimit);
@@ -2907,7 +2907,7 @@ TEST(SsnEngineLocal, UncertainBandGeometryAndValidation) {
     // that a "<= 0" test would otherwise capture.
     SsnOptions off;
     off.uncertain_tol = 0.0;
-    SsnEngine off_engine(default_opts());
+    SsnEngine off_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult off_res;
     off_engine.solve(weakly_active_qp(), SsnStart{}, off, &off_res);
     EXPECT_EQ(off_res.status, QpStatus::kOptimal);
@@ -2943,10 +2943,10 @@ TEST(SsnEngineLocal, SafeguardsAreFreeOnTheBenignFixtures) {
         {"mixed", mixed_block_qp(), 8, 8},
     };
     for (Cell &c : cells) {
-        SsnEngine bare_engine(default_opts());
+        SsnEngine bare_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult bare;
         bare_engine.solve(c.qp, SsnStart{}, bare_opts(), &bare);
-        SsnEngine full_engine(default_opts());
+        SsnEngine full_engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult full;
         full_engine.solve(c.qp, SsnStart{}, SsnOptions{}, &full);
 
@@ -2998,7 +2998,7 @@ TEST(SsnEngineLocal, TheEscapeReasonCensusMatchesTheReportedReason) {
     // kIndefinite -- the saddle-seeded indefinite fixture, whose escape reason
     // IndefiniteHessianEscapesRatherThanCertifyingASaddle already pins.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(indefinite_qp(), SsnStart{}, SsnOptions{}, &res);
         ASSERT_NE(res.escape_reason, SsnEscape::kNone) << "the fixture's own premise";
@@ -3031,7 +3031,7 @@ TEST(SsnEngineLocal, TheEscapeReasonCensusMatchesTheReportedReason) {
 
     // kBudget -- a hard budget of 1 on a fixture that needs more than one step.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnOptions s;
         s.hard_budget = 1;
         SsnResult res;
@@ -3044,7 +3044,7 @@ TEST(SsnEngineLocal, TheEscapeReasonCensusMatchesTheReportedReason) {
     // A CERTIFYING solve writes nothing at all -- the opposite error, and the
     // one that would make every corpus row look like a hand-off.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(cycling_qp_3var(), SsnStart{}, SsnOptions{}, &res);
         ASSERT_EQ(res.escape_reason, SsnEscape::kNone) << "the fixture's own premise";
@@ -3056,14 +3056,14 @@ TEST(SsnEngineLocal, TheEscapeReasonCensusMatchesTheReportedReason) {
 TEST(SsnEngineLocal, SafeguardCountersAreLive) {
     // ssn_backtracks: the cycling fixture backtracks its way out of the orbit.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(cycling_qp_3var(), SsnStart{}, SsnOptions{}, &res);
         EXPECT_EQ(res.counters.ssn_backtracks, 16);
     }
     // ssn_prox_updates: the indefinite fixture climbs the whole ladder.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(indefinite_qp(), SsnStart{}, SsnOptions{}, &res);
         // **SEVEN RUNGS, NOT EIGHT** (review fix round 1, I1). The ladder is
@@ -3094,7 +3094,7 @@ TEST(SsnEngineLocal, SafeguardCountersAreLive) {
     // back from an older build would hand in) must read as AT the ceiling, not
     // as one rung below it.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnOptions s;
         s.prox_sigma_init = detail::kSsnProxMax * (1.0 - 1e-15);
         SsnResult res;
@@ -3105,7 +3105,7 @@ TEST(SsnEngineLocal, SafeguardCountersAreLive) {
     }
     // ssn_uncertain_peak: the weakly active row.
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         engine.solve(weakly_active_qp(), SsnStart{}, SsnOptions{}, &res);
         EXPECT_EQ(res.counters.ssn_uncertain_peak, 1);
@@ -3153,14 +3153,14 @@ TEST(SsnEngineLocal, DeferredCertificationRelocatesExactlyOneFactorization) {
 
     SsnResult shipped;
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         engine.solve(qp, SsnStart{}, SsnOptions{}, &shipped);
     }
     ASSERT_EQ(shipped.status, QpStatus::kOptimal);
     ASSERT_FALSE(shipped.certification_deferred);
     EXPECT_EQ(shipped.factorizations, certified_factorizations(shipped.iters));
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnOptions sopts;
     sopts.defer_certification = true;
     SsnResult res;
@@ -3197,13 +3197,13 @@ TEST(SsnEngineLocal, DeferredCertificationWithdrawsTheSaddleCertificate) {
 
     SsnResult shipped;
     {
-        SsnEngine engine(default_opts());
+        SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
         engine.solve(qp, at_saddle, SsnOptions{}, &shipped);
     }
     ASSERT_EQ(shipped.escape_reason, SsnEscape::kIndefinite) << "section 7b's own fixture";
     ASSERT_EQ(shipped.counters.ssn_escape_indefinite, 1);
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnOptions sopts;
     sopts.defer_certification = true;
     SsnResult res;
@@ -3229,7 +3229,7 @@ TEST(SsnEngineLocal, APendingDeferredCertificationMayNotBeAbandoned) {
     SsnOptions sopts;
     sopts.defer_certification = true;
 
-    SsnEngine engine(default_opts());
+    SsnEngine engine(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     engine.solve(qp, SsnStart{}, sopts, &res);
     ASSERT_TRUE(engine.has_deferred_certification());
@@ -3251,7 +3251,7 @@ TEST(SsnEngineLocal, APendingDeferredCertificationMayNotBeAbandoned) {
     // caller that only ever sees escapes.
     SsnOptions escaping = sopts;
     escaping.hard_budget = 1;
-    SsnEngine e2(default_opts());
+    SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult esc;
     e2.solve(cycling_qp_3var(), SsnStart{}, escaping, &esc);
     EXPECT_NE(esc.escape_reason, SsnEscape::kNone);
@@ -3261,7 +3261,7 @@ TEST(SsnEngineLocal, APendingDeferredCertificationMayNotBeAbandoned) {
     // Under kBare the option is inert: bare mode has no verification to defer.
     SsnOptions bare_deferring = bare_opts();
     bare_deferring.defer_certification = true;
-    SsnEngine e3(default_opts());
+    SsnEngine e3(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult bres;
     e3.solve(qp, SsnStart{}, bare_deferring, &bres);
     EXPECT_EQ(bres.status, QpStatus::kOptimal);
@@ -3310,7 +3310,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleIsInertUntilTheLadderArms) {
         SCOPED_TRACE(c.name);
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(c.qp, c.start, SsnOptions{}, &shipped);
         }
         ASSERT_EQ(shipped.status, QpStatus::kOptimal);
@@ -3318,7 +3318,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleIsInertUntilTheLadderArms) {
 
         SsnOptions armed;
         armed.sigma_rule = SsnSigmaRule::kResidualArmed;
-        SsnEngine e2(default_opts());
+        SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e2.solve(c.qp, c.start, armed, &res);
         EXPECT_EQ(res.iters, shipped.iters);
@@ -3330,7 +3330,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleIsInertUntilTheLadderArms) {
 
         SsnOptions always;
         always.sigma_rule = SsnSigmaRule::kResidualAlways;
-        SsnEngine e3(default_opts());
+        SsnEngine e3(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult ares;
         e3.solve(c.qp, c.start, always, &ares);
         EXPECT_GT(ares.counters.ssn_prox_updates, 0) << "kResidualAlways is never inert";
@@ -3345,7 +3345,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor) {
     const QpProblem qp = indefinite_qp();
     SsnResult shipped;
     {
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         e.solve(qp, SsnStart{}, SsnOptions{}, &shipped);
     }
     ASSERT_EQ(shipped.escape_reason, SsnEscape::kNoContraction);
@@ -3355,7 +3355,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor) {
     for (const SsnSigmaRule rule : {SsnSigmaRule::kResidualArmed, SsnSigmaRule::kResidualAlways}) {
         SsnOptions s;
         s.sigma_rule = rule;
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, SsnStart{}, s, &res);
         // The ROUTE is unchanged: the ladder still climbs, still tops out, and
@@ -3386,7 +3386,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor) {
         s.sigma_rule = SsnSigmaRule::kResidualArmed;
         s.soft_budget = 0;
         s.hard_budget = 1;
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(brutally_scaled_feasible_qp(), SsnStart{}, s, &res);
         EXPECT_DOUBLE_EQ(res.prox_sigma, detail::kSsnLmSigmaC)
@@ -3400,7 +3400,7 @@ TEST(SsnEngineLocal, TheResidualSigmaRuleKeepsTheLadderAsAMonotoneFloor) {
         // numbers.
         SsnOptions ladder = s;
         ladder.sigma_rule = SsnSigmaRule::kLadder;
-        SsnEngine e2(default_opts());
+        SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult lres;
         e2.solve(brutally_scaled_feasible_qp(), SsnStart{}, ladder, &lres);
         EXPECT_DOUBLE_EQ(lres.prox_sigma, detail::kSsnProxInit * detail::kSsnProxGrowth);
@@ -3440,7 +3440,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
         wd.watchdog_q = q;
 
         // --- the correct polarity: identical to the exemption, to the unit ---
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, right, wd, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -3451,7 +3451,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
             << "a hint that works must never reach the watchdog's judgement";
 
         // --- the wrong polarity: the same answer, reached differently -------
-        SsnEngine e2(default_opts());
+        SsnEngine e2(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult wres;
         e2.solve(qp, wrong, wd, &wres);
         EXPECT_EQ(wres.status, QpStatus::kOptimal);
@@ -3498,7 +3498,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
 
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(qp, cold_wrong, SsnOptions{}, &shipped);
         }
         EXPECT_EQ(shipped.iters, 6);
@@ -3507,7 +3507,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
         SsnOptions wd;
         wd.hint_rule = SsnHintRule::kWatchdog;
         wd.watchdog_q = 1;
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, cold_wrong, wd, &res);
         EXPECT_EQ(res.status, QpStatus::kOptimal);
@@ -3520,7 +3520,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
 
     // The shipped rule never sets the instrument, on either polarity.
     for (const SsnStart &st : {right, wrong}) {
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, st, SsnOptions{}, &res);
         EXPECT_EQ(res.watchdog_returns, 0);
@@ -3530,7 +3530,7 @@ TEST(SsnEngineLocal, TheWatchdogIsInvisibleOnACorrectHintAndReturnsOnAWrongOne) 
     SsnOptions bad;
     bad.hint_rule = SsnHintRule::kWatchdog;
     bad.watchdog_q = 0;
-    SsnEngine e(default_opts());
+    SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
     SsnResult res;
     EXPECT_THROW(e.solve(qp, right, bad, &res), std::invalid_argument);
 }
@@ -3559,14 +3559,14 @@ TEST(SsnEngineLocal, TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap) {
     {
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(contradictory_qp(), SsnStart{}, SsnOptions{}, &shipped);
         }
         ASSERT_EQ(shipped.escape_reason, SsnEscape::kInfeasibleSuspect);
         EXPECT_EQ(shipped.farkas_fired, 0) << "the shipped rule has no certificate to fire";
         EXPECT_EQ(shipped.farkas_refusals, 0);
 
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(contradictory_qp(), SsnStart{}, gated, &res);
         EXPECT_EQ(res.status, QpStatus::kInfeasible);
@@ -3579,20 +3579,20 @@ TEST(SsnEngineLocal, TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap) {
     // --- (b) the FEASIBLE cell the shipped rule mislabels ----------------
     {
         const QpProblem qp = false_infeasible_trap_qp();
-        QpEngine walk(default_opts());
+        QpEngine walk(default_opts(), 0, hven::linear::DensePolicy::kNever);
         const QpSolution truth = walk.solve(qp);
         ASSERT_EQ(truth.status, QpStatus::kOptimal) << "the premise: this QP is FEASIBLE";
 
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(qp, SsnStart{}, SsnOptions{}, &shipped);
         }
         ASSERT_EQ(shipped.status, QpStatus::kInfeasible)
             << "the premise: the shipped conjuncts get this one wrong";
         ASSERT_EQ(shipped.escape_reason, SsnEscape::kInfeasibleSuspect);
 
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, SsnStart{}, gated, &res);
         EXPECT_NE(res.status, QpStatus::kInfeasible) << "no Farkas direction, no certificate";
@@ -3610,19 +3610,19 @@ TEST(SsnEngineLocal, TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap) {
     // strip's width and the identical construction IS an infeasible pair.
     {
         const QpProblem qp = narrow_strip_feasible_qp();
-        QpEngine walk(default_opts());
+        QpEngine walk(default_opts(), 0, hven::linear::DensePolicy::kNever);
         const QpSolution truth = walk.solve(qp);
         ASSERT_EQ(truth.status, QpStatus::kOptimal) << "the premise: the strip is NON-EMPTY";
 
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(qp, SsnStart{}, SsnOptions{}, &shipped);
         }
         ASSERT_EQ(shipped.status, QpStatus::kInfeasible)
             << "the premise: the shipped conjuncts get this one wrong too";
 
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, SsnStart{}, gated, &res);
         EXPECT_NE(res.status, QpStatus::kInfeasible);
@@ -3643,13 +3643,13 @@ TEST(SsnEngineLocal, TheFarkasGateKeepsTheDiagnosisAndRefusesTheFeasibleTrap) {
         const QpProblem qp = sign_cone_discriminating_infeasible_qp();
         SsnResult shipped;
         {
-            SsnEngine e(default_opts());
+            SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
             e.solve(qp, SsnStart{}, SsnOptions{}, &shipped);
         }
         ASSERT_EQ(shipped.status, QpStatus::kInfeasible)
             << "the premise: the shipped symptoms diagnose this one";
 
-        SsnEngine e(default_opts());
+        SsnEngine e(default_opts(), 0, hven::linear::DensePolicy::kNever);
         SsnResult res;
         e.solve(qp, SsnStart{}, gated, &res);
         EXPECT_NE(res.status, QpStatus::kInfeasible);

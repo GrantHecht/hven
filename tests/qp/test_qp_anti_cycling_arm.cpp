@@ -215,7 +215,7 @@ struct Walk {
 Walk observed_walk(const QpProblem &qp, const QpOptions &opts) {
     Obs::reset();
     Obs::active = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     Walk w;
     w.solution = engine.solve(qp);
     w.minors = w.solution.counters.minor_iters;
@@ -241,7 +241,7 @@ Walk observed_walk(const QpProblem &qp, const QpOptions &opts) {
 }
 
 QpSolution plain_solve(const QpProblem &qp, const QpOptions &opts) {
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     return engine.solve(qp);
 }
 
@@ -1009,7 +1009,7 @@ TEST(QpAntiCyclingArm, ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned) {
 
     Obs::reset();
     Obs::active = true;
-    QpEngine engine{capped(60)};
+    QpEngine engine{capped(60), 0, hven::linear::DensePolicy::kNever};
     const QpSolution sol = engine.solve(qp);
     Index ride_stepped = 0;
     Index ride_bound_adds = 0;
@@ -1183,7 +1183,7 @@ TEST(QpAntiCyclingArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) 
         Ac::reset();
         Ac::arm = Arm::kExpand;
         const QpProblem mine = period2_cycle_qp();
-        QpEngine engine{opts};
+        QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
         // EVERYTHING EXPENSIVE THAT IS NOT THE SOLVE IS ABOVE THIS LINE.
         gate.arrive_and_wait();
         armed_out = engine.solve(mine);
@@ -1194,7 +1194,7 @@ TEST(QpAntiCyclingArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) 
         unarmed_saw_an_arm_at_entry = Ac::any_on();
         Ac::reset();
         const QpProblem mine = non_degenerate_qp();
-        QpEngine engine{quiet_opts};
+        QpEngine engine{quiet_opts, 0, hven::linear::DensePolicy::kNever};
         gate.arrive_and_wait();
         unarmed_out = engine.solve(mine);
         unarmed_switches = Ac::min_steps + Ac::pivot_switches + Ac::lex_drop_switches +
@@ -1642,7 +1642,7 @@ TEST(QpE2WorkingSet, ALockedPositiveMemberStillGetsTheVerifiedCertificate) {
     seed.bound_state = {BoundState::kFree, BoundState::kFree, BoundState::kFixed};
     for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
-        const QpEngine engine{e2_opts(alg, 40)};
+        const QpEngine engine{e2_opts(alg, 40), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(qp, seed);
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
         EXPECT_EQ(s.counters.dep_infeasible_certificates, 1);
@@ -1891,7 +1891,7 @@ TEST(QpE2WorkingSet, ATolerancedCertificateOnAnUnboundedCoordinateEndsNumericalE
 
     for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
-        const QpEngine engine{e2_opts(alg, 40)};
+        const QpEngine engine{e2_opts(alg, 40), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(qp, seed);
         const QpCounters &c = s.counters;
         // (c) the verdict: kNumericalError, inside the box, rows satisfied.
@@ -1957,7 +1957,7 @@ TEST(QpE2WorkingSet, AnExactlyDependentBlockerOnFreeVariablesIsCertifiedInfeasib
 
     for (const QpWorkingSetAlgebra alg : kE2Algebras) {
         SCOPED_TRACE(e2_name(alg));
-        const QpEngine engine{e2_opts(alg, 40)};
+        const QpEngine engine{e2_opts(alg, 40), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(qp);
         const QpCounters &c = s.counters;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
@@ -2515,7 +2515,7 @@ RideWalk declined_ride_walk(const QpOptions &o) {
     Obs::reset();
     Obs::active = true;
     RideWalk w;
-    const QpEngine engine{o};
+    const QpEngine engine{o, 0, hven::linear::DensePolicy::kNever};
     w.solution = engine.solve(declined_ride_qp(), declined_ride_seed());
     w.records = Obs::records;
     Obs::active = false;

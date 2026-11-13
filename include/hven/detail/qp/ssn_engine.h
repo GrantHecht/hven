@@ -702,6 +702,9 @@ struct SsnResult {
     Index dense_singular_refactors = 0;
     Index dense_shifted_solve_refusals = 0;
     Index dense_solve_residual_refusals = 0;
+    // Factorizations of this solve's factor on the dense arm (QpCounters'
+    // dense_factorizations).
+    Index dense_factorizations = 0;
 };
 
 // The engine.
@@ -719,16 +722,14 @@ class SsnEngine {
     /// @param threads The thread count in force -- SqpSolver passes
     ///                SqpOptions::common.threads (M6 W5 T8.8). It configures
     ///                THE ONE persistent factor this tier holds, at
-    ///                construction; 0 (the default, and what every pre-T8.8
-    ///                construction site passed) leaves the backend's own
-    ///                default alone, so a defaulted engine is bit-for-bit the
-    ///                pre-T8.8 one. `QpOptions` deliberately carries no thread
+    ///                construction; 0 leaves the backend's own default alone.
+    ///                `QpOptions` deliberately carries no thread
     ///                field: the count is fingerprinted separately
     ///                (qp_types.h's options_fingerprint).
     /// @param dense   The dense-arm policy for `kkt_` (SqpOptions::linear.dense_factorization,
-    ///                M8 DN-1); kNever is the configuration before the arm.
-    explicit SsnEngine(const QpOptions &opts, int threads = 0,
-                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever)
+    ///                M8 DN-1); kNever is the configuration before the arm. Neither
+    ///                `threads` nor `dense` has a default (M8 DN-3).
+    explicit SsnEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
         : opts_(opts), kkt_(threads, dense) {}
 
     SsnEngine(const SsnEngine &) = delete;

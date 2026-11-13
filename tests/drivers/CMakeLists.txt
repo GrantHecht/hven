@@ -28,6 +28,9 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_console_sink.cpp
     # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.
     test_dense_arm_engines.cpp
+    # M8 DN-3: DensePolicy::kAuto at both engines and the QP tiers; the dense_factorizations
+    # counters.
+    test_dense_auto.cpp
     # AP-2 B5: evaluation failure and the exception contract on both engines --
     # trial-point failures rejected, the start point, foreign exceptions
     # propagated unchanged with last_result() kept, the stop reasons.
