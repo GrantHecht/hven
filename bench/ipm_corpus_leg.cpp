@@ -563,6 +563,17 @@ void configure_interior_solver(IpmSolver &ipm, IpmFixedVariableTreatment treatme
         o.common.max_iterations = 500;
     }
 
+    // THE PRE-FLIP DENSE PIN (M8 DN-3 flip, 2026-11-13), a declared probe and never a
+    // product path, the same shape as the pin above. With HVEN_LEG_IPM_PRE_DN3_DEFAULT set
+    // in the environment, linear.dense_factorization is written back to kNever, the value
+    // IpmOptions{} carried before the flip to kAuto. The leg's three small fixtures
+    // (hs071_x1_fixed, infeas2_spike, infeas2_stationary) are below the IPM's kAuto
+    // threshold and move at the default; with the pin every row reproduces the pre-flip
+    // CSV. See docs/notes/data/2026-11-m8-dn3/DECLARATION-r5.md.
+    if (std::getenv("HVEN_LEG_IPM_PRE_DN3_DEFAULT") != nullptr) {
+        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+    }
+
     o.common.infinite_bound = interior_leg_infinite_bound();
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
@@ -1031,10 +1042,13 @@ std::string interior_globalization_stamp() {
         return std::string("<absent>");
     };
 
+    // M8 DN-3 flip: the pre-flip dense pin is stamped beside the D1 pin.
+    const bool dense_pinned = std::getenv("HVEN_LEG_IPM_PRE_DN3_DEFAULT") != nullptr;
     return fmt::format("acceptance_strategy={} barrier_governor={} "
-                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={}",
+                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={} "
+                       "pre_dn3_dense_pin={}",
                        field("acceptance_strategy"), field("barrier_governor"),
-                       pinned ? "on" : "off");
+                       pinned ? "on" : "off", dense_pinned ? "on" : "off");
 }
 
 std::string interior_csv_header() {
