@@ -819,6 +819,8 @@ Mat near_singular_pd() {
     return m;
 }
 
+Mat indefinite_matrix(Index n); // defined with the dense solve check's fixtures
+
 SymmetricFactor::Options report_options() {
     SymmetricFactor::Options o = dense_options();
     o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
@@ -862,6 +864,9 @@ TEST(DenseArmReport, FlagsASingularToWorkingPrecisionFactorAndKeepsItsNumerics) 
     EXPECT_TRUE(f.inertia().numerically_singular);
     EXPECT_EQ(f.counters().dense_flagged_count, 1);
     EXPECT_EQ(f.counters().dense_condition_estimate_count, 1);
+    // Singular to working precision whatever its scaling (a rank-one matrix plus 2^-52 of its
+    // norm): the equilibrated re-estimate confirms the flag.
+    EXPECT_EQ(f.counters().dense_equilibrated_estimate_count, 1);
     EXPECT_EQ(f.counters().dense_fallback_count, 0);
     Vec x(2);
     f.solve(Vec::Ones(2), x); // the dense numerics, kept
@@ -1002,17 +1007,20 @@ TEST(DenseArmReport, RefusedUnderNeverAndCarriedByHandles) {
     EXPECT_TRUE(ob.inertia.numerically_singular);
 }
 
-// diag(1, d): the rook D-ratio is d, and rcond (1-norm) is d. The screen at 1e-15 and the flag
-// at 2^-53 are each bracketed by a factor of 1.25.
+// diag(1, d): the rook D-ratio is d, and the raw rcond (1-norm) is d. The screen at 1e-15 and the
+// raw estimate's threshold at 2^-53 are each bracketed by a factor of 1.25. Below 2^-53 the
+// equilibrated re-estimate runs, and a diagonal matrix equilibrates to the identity: scaling alone
+// never flags (M8 dense gate; this case read flagged before it).
 TEST(DenseArmReport, TheDetectorBracketsBothThresholds) {
     const double eps2 = std::ldexp(1.0, -53);
     struct Case {
         double d;
         Index estimates;
+        Index equilibrated;
         bool flagged;
     };
-    for (const Case c : {Case{1.25e-15, 0, false}, Case{0.8e-15, 1, false},
-                         Case{1.25 * eps2, 1, false}, Case{0.8 * eps2, 1, true}}) {
+    for (const Case c : {Case{1.25e-15, 0, 0, false}, Case{0.8e-15, 1, 0, false},
+                         Case{1.25 * eps2, 1, 0, false}, Case{0.8 * eps2, 1, 1, false}}) {
         Mat m = Mat::Zero(2, 2);
         m(0, 0) = 1.0;
         m(1, 1) = c.d;
@@ -1022,8 +1030,84 @@ TEST(DenseArmReport, TheDetectorBracketsBothThresholds) {
         const FactorizeOutcome o = f.factorize(A);
         ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk) << c.d;
         EXPECT_EQ(f.counters().dense_condition_estimate_count, c.estimates) << c.d;
+        EXPECT_EQ(f.counters().dense_equilibrated_estimate_count, c.equilibrated) << c.d;
         EXPECT_EQ(o.inertia.numerically_singular, c.flagged) << c.d;
     }
+}
+
+// THE EQUILIBRATED RE-ESTIMATE: a well-conditioned indefinite KKT matrix with one primal and one
+// dual row scaled by 1e8 (the row scale an SQP constraint carries) reads rcond ~ 1e-33 raw and is
+// screened and raw-flagged, but S A S is A's own conditioning: not flagged, numerics untouched, and
+// the solve is accurate. The same scaling of a matrix singular to working precision stays flagged.
+TEST(DenseArmReport, RowScalingAloneNeverFlags) {
+    Mat a(4, 4);
+    a << 4.0, 1.0, 1.0, 0.5, 1.0, 3.0, 0.0, 1.0, 1.0, 0.0, -1e-8, 0.0, 0.5, 1.0, 0.0, -1e-8;
+    Vec s(4);
+    s << 1.0, 1e8, 1e8, 1.0;
+    const Mat m = s.asDiagonal() * a * s.asDiagonal();
+    const SpMatRM A = upper_csr(m);
+    SymmetricFactor f(report_options());
+    f.analyze(A);
+    const FactorizeOutcome o = f.factorize(A);
+    ASSERT_EQ(o.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(f.counters().dense_condition_estimate_count, 1);    // the premise: screened
+    EXPECT_EQ(f.counters().dense_equilibrated_estimate_count, 1); // and raw-flagged
+    EXPECT_FALSE(o.inertia.numerically_singular);
+    EXPECT_FALSE(o.inertia.perturbed_pivots.has_value());
+    EXPECT_EQ(o.inertia.positive, 2);
+    EXPECT_EQ(o.inertia.negative, 2);
+    EXPECT_EQ(f.counters().dense_flagged_count, 0);
+    const Vec b = m * Vec::LinSpaced(4, 1.0, 4.0);
+    Vec x(4);
+    f.solve(b, x);
+    EXPECT_LE((x - Vec::LinSpaced(4, 1.0, 4.0)).lpNorm<Eigen::Infinity>(), 1e-6);
+
+    const Mat p = near_singular_pd();
+    Vec s2(2);
+    s2 << 1e8, 1.0;
+    const SpMatRM P = upper_csr(s2.asDiagonal() * p * s2.asDiagonal());
+    SymmetricFactor g(report_options());
+    g.analyze(P);
+    const FactorizeOutcome op = g.factorize(P);
+    ASSERT_EQ(op.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(g.counters().dense_equilibrated_estimate_count, 1);
+    EXPECT_TRUE(op.inertia.numerically_singular);
+}
+
+// Higham's estimator (xLACN2's algorithm) against the exact ||B||_1 of small symmetric matrices:
+// a lower bound, within a factor 3, and exact on a diagonal.
+TEST(DenseArmReport, TheOneNormEstimatorIsALowerBoundWithinAFactorThree) {
+    for (const Index n : {1, 2, 3, 7, 12, 40}) {
+        const Mat B = indefinite_matrix(n).inverse();
+        const double exact = B.cwiseAbs().colwise().sum().maxCoeff();
+        std::vector<double> x(static_cast<std::size_t>(n));
+        std::vector<double> v(static_cast<std::size_t>(n));
+        std::vector<int> sgn(static_cast<std::size_t>(n));
+        Index applies = 0;
+        const auto apply = [&](double *p) {
+            ++applies;
+            const Vec in = Eigen::Map<const Vec>(p, n);
+            Eigen::Map<Vec>(p, n) = B * in;
+        };
+        const double est = hven::linear::detail::estimate_symmetric_one_norm(n, apply, x.data(),
+                                                                             v.data(), sgn.data());
+        EXPECT_LE(est, exact * (1.0 + 1e-12)) << n;
+        EXPECT_GE(est, exact / 3.0) << n;
+        EXPECT_LE(applies, 12) << n; // xLACN2: at most 2 + 2 ITMAX - 1 applies, plus the probe
+    }
+    Vec dg(5);
+    dg << 1.0, -7.0, 0.25, 3.0, -0.5;
+    std::vector<double> x(5);
+    std::vector<double> v(5);
+    std::vector<int> sgn(5);
+    const auto diag_apply = [&](double *p) {
+        for (Index i = 0; i < 5; ++i) {
+            p[i] *= dg(i);
+        }
+    };
+    EXPECT_DOUBLE_EQ(hven::linear::detail::estimate_symmetric_one_norm(5, diag_apply, x.data(),
+                                                                       v.data(), sgn.data()),
+                     7.0);
 }
 
 TEST(DenseArmReport, TheRookWalkReadsTwoByTwoBlocks) {
@@ -1306,7 +1390,7 @@ TEST(DenseArmThreads, ThePinHoldsAtThreadsZeroUnderAGlobalCountAboveOne) {
 // A 6 x 6 matrix Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (Q orthogonal, from a Householder QR):
 // its rook D-ratio stays above the detector's screen, so the dense arm takes it unflagged, and a
 // right-hand side along the small eigenvector gives a solve whose residual is ~eps * cond relative
-// to it -- far above the tolerance, and beyond what refinement can remove.
+// to the rhs -- yet the solve is backward stable: its normwise backward error is ~eps.
 constexpr Index kRotatedN = 6;
 Mat rotation() {
     const Eigen::HouseholderQR<Mat> qr(indefinite_matrix(kRotatedN));
@@ -1326,9 +1410,18 @@ hven::detail::KktFactor kkt_factor(DensePolicy policy) {
     return hven::detail::KktFactor(0, policy);
 }
 
-// THE CHECK REFUSES an unflagged dense solve that does not solve K: refinement cannot bring rho
-// under the tolerance (the residual's own rounding is ~eps * cond), so the KktFactor form refuses.
-TEST(DenseSolveCheck, AnUnflaggedIllConditionedDenseSolveIsRefused) {
+// eta = ||K y - rhs||inf / (||K||inf ||y||inf + ||rhs||inf), the check's measure.
+double eta_of(const SpMatRM &K, const Vec &rhs, const Vec &y, Vec &r) {
+    Vec acc;
+    return hven::detail::dense_backward_error(K, hven::detail::symmetric_inf_norm(K, nullptr, acc),
+                                              rhs, y, r);
+}
+
+// THE CHECK JUDGES THE SOLVE, NOT THE SYSTEM (M8 dense gate): an unflagged solve of an
+// ill-conditioned K misses the rhs by ~eps * cond relative to it -- refused while the check read
+// ||r|| / ||rhs|| -- but its normwise backward error is ~eps: a correct answer to a system within
+// rounding of K, accepted and used unchanged.
+TEST(DenseSolveCheck, AnIllConditionedBackwardStableDenseSolveIsAccepted) {
     const SpMatRM K = rotated_ill_conditioned();
     hven::detail::KktFactor k = kkt_factor(DensePolicy::kAlways);
     const FactorizeOutcome fo =
@@ -1338,11 +1431,35 @@ TEST(DenseSolveCheck, AnUnflaggedIllConditionedDenseSolveIsRefused) {
     ASSERT_FALSE(k.dense_shifted);
     const Vec rhs = small_eigenvector();
     Vec y = hven::detail::solve_vec(k, rhs);
+    const Vec before = y;
     Vec r;
     Vec c;
-    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, r),
-              hven::detail::kDenseSolveResidualTol); // the premise: the first solve misses
-    EXPECT_TRUE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
+    const Vec res = K.selfadjointView<Eigen::Upper>() * y - rhs;
+    // The premise: the rhs-relative residual is far above the tolerance.
+    ASSERT_GT(res.lpNorm<Eigen::Infinity>() / rhs.lpNorm<Eigen::Infinity>(), 1e-6);
+    EXPECT_LE(eta_of(K, rhs, y, r), 1e-14);
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
+    EXPECT_EQ(y, before);
+}
+
+// A SOLVE THROUGH THE WRONG NUMERICS is refused: the same K answered through the LDL^T of
+// K + 1e-6 e1 e1' misses eta by more than ten times the threshold, and refinement cannot repair
+// it (along K's 1e-13 eigenvector each correction moves the answer by almost nothing).
+TEST(DenseSolveCheck, ASolveThroughTheWrongNumericsIsRefused) {
+    const SpMatRM K = rotated_ill_conditioned();
+    Mat Pd = dense_of(K);
+    Pd(0, 0) += 1e-6;
+    const Eigen::LDLT<Mat> wrong(Pd);
+    ASSERT_EQ(wrong.info(), Eigen::Success);
+    const auto solve = [&](const Vec &in, Vec &out) { out = wrong.solve(in); };
+    const Vec rhs = small_eigenvector();
+    Vec y;
+    solve(rhs, y);
+    Vec r;
+    Vec c;
+    ASSERT_GT(eta_of(K, rhs, y, r), 10.0 * hven::detail::kDenseSolveBackwardErrorTol); // premise
+    EXPECT_TRUE(hven::detail::dense_solve_check_refused(
+        K, rhs, hven::detail::kDenseSolveBackwardErrorTol, solve, y, r, c));
 }
 
 // Dense arm only: the same system on the platform session, and the same answer labelled sparse,
@@ -1386,7 +1503,7 @@ TEST(DenseSolveCheck, APassingDenseSolveIsUsedUnchanged) {
     EXPECT_EQ(y, before);
 }
 
-// THE REFINEMENT: a solve through numerics of a nearby matrix misses rho at first, and the
+// THE REFINEMENT: a solve through numerics of a nearby matrix misses eta at first, and the
 // keep-while-falling refinement against K brings it under the trigger -- accepted, refined.
 TEST(DenseSolveCheck, RefinementRescuesASolveThatMissesAtFirst) {
     const Mat Kd = indefinite_matrix(8);
@@ -1402,23 +1519,21 @@ TEST(DenseSolveCheck, RefinementRescuesASolveThatMissesAtFirst) {
     const Vec first = y;
     Vec r;
     Vec c;
-    ASSERT_GT(hven::detail::dense_residual_ratio(K, rhs, y, r),
-              hven::detail::kDenseSolveResidualTol); // the premise
+    ASSERT_GT(eta_of(K, rhs, y, r), hven::detail::kDenseSolveBackwardErrorTol); // the premise
     EXPECT_FALSE(hven::detail::dense_solve_check_refused(
-        K, rhs, hven::detail::kDenseSolveResidualTol, solve, y, r, c));
+        K, rhs, hven::detail::kDenseSolveBackwardErrorTol, solve, y, r, c));
     EXPECT_NE(y, first);
-    EXPECT_LE(hven::detail::dense_residual_ratio(K, rhs, y, r),
-              hven::detail::kDenseSolveResidualTol);
+    EXPECT_LE(eta_of(K, rhs, y, r), hven::detail::kDenseSolveBackwardErrorTol);
 }
 
-// THE TWO THRESHOLDS: refinement is triggered above kDenseSolveResidualTol, the refusal is the
-// consumer's own threshold. A solve whose rho stays at 1e-6 (refinement cannot move it: the
+// THE TWO THRESHOLDS: refinement is triggered above kDenseSolveBackwardErrorTol, the refusal is
+// the caller's threshold. A solve whose eta stays at ~5e-7 (refinement cannot move it: the
 // correction solve returns zero) passes a 1e-5 refusal threshold and fails a 1e-8 one.
 TEST(DenseSolveCheck, TheRefusalThresholdIsTheConsumersAndRefinementStillRuns) {
     const SpMatRM K = upper_csr(Mat::Identity(2, 2));
     const Vec rhs = Vec::Ones(2);
     Vec y0(2);
-    y0 << 1.0, 1.0 + 1e-6; // rho = 1e-6
+    y0 << 1.0, 1.0 + 1e-6; // eta = 1e-6 / (2 + 1e-6)
     Index calls = 0;
     const auto zero_solve = [&](const Vec &in, Vec &out) {
         ++calls;
@@ -1432,18 +1547,19 @@ TEST(DenseSolveCheck, TheRefusalThresholdIsTheConsumersAndRefinementStillRuns) {
     EXPECT_EQ(y, y0);
     y = y0;
     EXPECT_TRUE(hven::detail::dense_solve_check_refused(
-        K, rhs, hven::detail::kDenseSolveResidualTol, zero_solve, y, r, c));
+        K, rhs, hven::detail::kDenseSolveBackwardErrorTol, zero_solve, y, r, c));
     Vec y1(2);
-    y1 << 1.0, 1.0 + 1e-9; // rho = 1e-9: under the trigger, no refinement
+    y1 << 1.0, 1.0 + 1e-9; // eta ~ 5e-10: under the trigger, no refinement
     y = y1;
     calls = 0;
     EXPECT_FALSE(hven::detail::dense_solve_check_refused(K, rhs, 1e-5, zero_solve, y, r, c));
     EXPECT_EQ(calls, 0);
 }
 
-// A NaN refuses (the NaN-sticky norm), and so does a non-finite solve; rho is ||K y - rhs|| over
-// ||rhs|| in the inf-norm, 0 when both vanish, and leaves K y - rhs in the scratch.
-TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio) {
+// A NaN refuses (the NaN-sticky norm), and so does a non-finite solve; eta is
+// ||K y - rhs|| / (||K|| ||y|| + ||rhs||) in the inf-norm, 0 when both vanish, and leaves K y - rhs
+// in the scratch. ||K||inf is the symmetric matrix's, read from its upper triangle.
+TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndEtaIsTheNormwiseBackwardError) {
     const SpMatRM K = upper_csr(Mat::Identity(2, 2));
     const Vec rhs = Vec::Ones(2);
     const auto nan_solve = [](const Vec &in, Vec &out) {
@@ -1455,10 +1571,16 @@ TEST(DenseSolveCheck, ANonFiniteSolveIsRefusedAndRhoIsTheInfNormRatio) {
     y << 1.0, std::numeric_limits<double>::quiet_NaN();
     EXPECT_TRUE(hven::detail::dense_solve_check_refused(K, rhs, 1e-5, nan_solve, y, r, c));
     Vec z(2);
-    z << 1.0, 0.5; // residual (0, -0.5)
-    EXPECT_DOUBLE_EQ(hven::detail::dense_residual_ratio(K, rhs, z, r), 0.5);
+    z << 1.0, 0.5; // residual (0, -0.5); 0.5 / (1 * 1 + 1)
+    EXPECT_DOUBLE_EQ(eta_of(K, rhs, z, r), 0.25);
     EXPECT_DOUBLE_EQ(r(1), -0.5);
-    EXPECT_EQ(hven::detail::dense_residual_ratio(K, Vec::Zero(2), Vec::Zero(2), r), 0.0);
+    EXPECT_EQ(eta_of(K, Vec::Zero(2), Vec::Zero(2), r), 0.0);
+    Mat m(3, 3);
+    m << 1.0, -2.0, 0.0, -2.0, 0.5, 3.0, 0.0, 3.0, -1.0;
+    Vec acc;
+    EXPECT_DOUBLE_EQ(hven::detail::symmetric_inf_norm(upper_csr(m), nullptr, acc), 5.5);
+    const Vec d = Vec::Constant(3, 2.0);
+    EXPECT_DOUBLE_EQ(hven::detail::symmetric_inf_norm(upper_csr(m), &d, acc), 22.0);
 }
 
 // THE RANK-REPAIR GRAM'S REFUSAL on the dense arm: the dense arm reports no

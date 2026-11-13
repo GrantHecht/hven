@@ -587,7 +587,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             if (!verifying) {
                 dw = detail::solve_vec(kkt_, rhs);
                 // A step through shifted numerics is refined against k_ and used
-                // only if it passes the rho gate (kkt_calls.h).
+                // only if it passes the backward-error gate (kkt_calls.h).
                 (void)detail::refine_shifted_solve(k_, rhs, kkt_, dw);
                 dw_refused = detail::shifted_solve_refused(k_, rhs, kkt_, dw);
                 // A step through unshifted dense numerics is checked per solve
@@ -729,9 +729,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             out->escape_reason = SsnEscape::kSingular;
             out->escape_detail = fmt::format(
                 "SsnEngine: Newton step {} came from a dense shifted factorization and does "
-                "not solve the KKT system (relative residual above {}), and the proximal "
+                "not solve the KKT system (normwise backward error above {}), and the proximal "
                 "ladder is at its ceiling (sigma = {})",
-                it, detail::kEqpShiftedResidualTol, prox_sigma_);
+                it, detail::kDenseShiftedBackwardErrorTol, prox_sigma_);
             break;
         }
 
@@ -747,9 +747,9 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             out->escape_reason = SsnEscape::kSingular;
             out->escape_detail = fmt::format(
                 "SsnEngine: Newton step {} came from a dense factorization and does not solve "
-                "the KKT system (relative residual above {} after refinement), and the "
+                "the KKT system (normwise backward error above {} after refinement), and the "
                 "proximal ladder is at its ceiling (sigma = {})",
-                it, detail::kDenseSolveResidualTol, prox_sigma_);
+                it, detail::kDenseSolveBackwardErrorTol, prox_sigma_);
             break;
         }
 

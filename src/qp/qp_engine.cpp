@@ -3453,9 +3453,9 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         // Schur solve, before any refinement. A refused answer refines nothing
         // (the eliminated twin's rule).
         if (border.kkt.dense_shifted &&
-            !(bordered_shifted_residual_ratio(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
+            !(bordered_shifted_backward_error(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
                                               best, border.kkt.dense_scale) <=
-              detail::kEqpShiftedResidualTol)) {
+              detail::kDenseShiftedBackwardErrorTol)) {
             return false;
         }
         best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,

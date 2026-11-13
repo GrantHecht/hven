@@ -776,6 +776,7 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
                                                   const detail::DenseShift *shift) {
     FactorizeOutcome outcome;
     const Index estimates_before = dense_->condition_estimates();
+    const Index equilibrated_before = dense_->equilibrated_estimates();
     detail::DenseFactorizeResult dense_result;
 #ifdef HVEN_TESTING
     // See hven/detail/linear/fault_injection.h: the attempt is skipped and read
@@ -790,6 +791,8 @@ FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
         dense_result = dense_->factorize(A, epoch() + 1, shift);
     }
     counters_.dense_condition_estimate_count += dense_->condition_estimates() - estimates_before;
+    counters_.dense_equilibrated_estimate_count +=
+        dense_->equilibrated_estimates() - equilibrated_before;
     if (dense_result != detail::DenseFactorizeResult::kSingular) {
         ++counters_.factorize_count;
         ++counters_.dense_factorize_count;

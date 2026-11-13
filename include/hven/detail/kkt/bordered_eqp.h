@@ -591,45 +591,53 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // THE SHIFTED-K0 GATE: a K0 holding dense shifted numerics answers
 // D (D K0 D + sigma S)^-1 D b, so a bordered answer through it is verified
 // against the UNSHIFTED bordered system K_b -- K0 plus the live borders, the
-// regularized system the stack was handed -- one block at a time:
-//   rho = max(rho_K0, rho_border),
-//   rho_K0     = ||D (rhs - K_b sol)_K0||inf / ||D rhs_K0||inf   (D = K0's
-//                equilibration scale, the metric K0's shift lives in),
-//   rho_border = ||(rhs - K_b sol)_b||inf / ||rhs_b||inf         (unscaled: the
-//                Schur complement is formed and factored in the borders' own
-//                coordinates).
-// A block whose rhs is exactly zero has no scale of its own: its residual is
-// measured against the WHOLE rhs in that block's metric (||D' rhs||inf for the
-// K0 block, D' = D on K0's rows and 1 on the borders; ||rhs||inf for the border
-// block). A block with zero rhs and zero residual reads 0; no borders reads
-// rho_border = 0. A NaN propagates.
-inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vector<Vec> &border_v,
+// regularized system the stack was handed -- by the normwise backward error
+// (kkt_calls.h) of the whole bordered system in the shift's metric
+// D' = diag(D, 1) (D = K0's equilibration scale; the borders keep their own
+// coordinates, where the Schur complement is formed and factored):
+//   eta = ||D' (rhs - K_b sol)||inf / (||D' K_b D'||inf ||D'^-1 sol||inf
+//                                      + ||D' rhs||inf),
+// 0 when residual and denominator vanish; a NaN propagates.
+inline double bordered_shifted_backward_error(const SpMatRM &K0, const std::vector<Vec> &border_v,
                                               const std::vector<double> &border_d, const Vec &rhs,
                                               const Vec &sol, const Vec &k0_scale) {
     const Index n0 = K0.rows();
     const Index m = static_cast<Index>(border_v.size());
-    if (k0_scale.size() != n0 || rhs.size() != n0 + m || sol.size() != n0 + m) {
+    if (k0_scale.size() != n0 || rhs.size() != n0 + m || sol.size() != n0 + m ||
+        static_cast<Index>(border_d.size()) != m) {
         throw std::invalid_argument(fmt::format(
-            "bordered_shifted_residual_ratio: K0 has {} rows and {} borders, but the scale has "
-            "size {}, the rhs {} and the solution {}",
+            "bordered_shifted_backward_error: K0 has {} rows and {} borders ({} diagonals), but "
+            "the scale has size {}, the rhs {} and the solution {}",
             static_cast<long long>(n0), static_cast<long long>(m),
-            static_cast<long long>(k0_scale.size()), static_cast<long long>(rhs.size()),
-            static_cast<long long>(sol.size())));
+            static_cast<long long>(border_d.size()), static_cast<long long>(k0_scale.size()),
+            static_cast<long long>(rhs.size()), static_cast<long long>(sol.size())));
     }
+    for (Index i = 0; i < m; ++i) {
+        if (border_v[static_cast<std::size_t>(i)].size() != n0) {
+            throw std::invalid_argument(fmt::format(
+                "bordered_shifted_backward_error: border {} has {} entries, K0 has {} rows",
+                static_cast<long long>(i),
+                static_cast<long long>(border_v[static_cast<std::size_t>(i)].size()),
+                static_cast<long long>(n0)));
+        }
+    }
+    Vec dp = Vec::Ones(n0 + m);
+    dp.head(n0) = k0_scale;
     const Vec r = bordered_regularized_residual(K0, n0, border_v, border_d, rhs, sol);
-    const auto ratio = [](double num, double den, double fallback_den) {
-        const double d = den != 0.0 ? den : fallback_den;
-        return (num == 0.0 && d == 0.0) ? 0.0 : num / d;
-    };
-    const double r_k0 = detail::nan_sticky_inf_norm(r.head(n0).cwiseProduct(k0_scale));
-    const double b_k0 = detail::nan_sticky_inf_norm(rhs.head(n0).cwiseProduct(k0_scale));
-    const double r_b = m > 0 ? detail::nan_sticky_inf_norm(r.tail(m)) : 0.0;
-    const double b_b = m > 0 ? detail::nan_sticky_inf_norm(rhs.tail(m)) : 0.0;
-    const double rho_k0 = ratio(r_k0, b_k0, std::max(b_k0, b_b));
-    const double rho_b = m > 0 ? ratio(r_b, b_b, detail::nan_sticky_inf_norm(rhs)) : 0.0;
-    // std::max would drop a NaN in its second argument.
-    return (std::isnan(rho_k0) || std::isnan(rho_b)) ? std::numeric_limits<double>::quiet_NaN()
-                                                     : std::max(rho_k0, rho_b);
+    // ||D' K_b D'||inf: K0's weighted row sums, plus each border's column on
+    // K0's rows and its row (with its diagonal) below.
+    Vec acc;
+    (void)detail::symmetric_inf_norm(K0, &k0_scale, acc);
+    acc.conservativeResize(n0 + m);
+    for (Index i = 0; i < m; ++i) {
+        const Vec w = border_v[static_cast<std::size_t>(i)].cwiseAbs().cwiseProduct(k0_scale);
+        acc.head(n0) += w;
+        acc(n0 + i) = w.sum() + std::abs(border_d[static_cast<std::size_t>(i)]);
+    }
+    return detail::backward_error_of(detail::nan_sticky_inf_norm(r.cwiseProduct(dp)),
+                                     detail::nan_sticky_inf_norm(acc),
+                                     detail::nan_sticky_inf_norm(sol.cwiseQuotient(dp)),
+                                     detail::nan_sticky_inf_norm(rhs.cwiseProduct(dp)));
 }
 
 // Throws whatever SchurComplement::solve throws -- notably
@@ -638,8 +646,9 @@ inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vect
 //
 // `k0_shift_scale` is K0's KktFactor::dense_scale when K0 holds dense shifted
 // numerics, else null. The first solve is then gated on
-// bordered_shifted_residual_ratio (no refinement before the gate); a miss of
-// kEqpShiftedResidualTol or a NaN sets shifted_refused and residual_refused.
+// bordered_shifted_backward_error (no refinement before the gate); a miss of
+// kDenseShiftedBackwardErrorTol or a NaN sets shifted_refused and
+// residual_refused.
 // The gate holds AT GATE TIME, as solve_eqp's does: after it, every further
 // step through the shifted factor (the residual loop, the refinement's first
 // step and its iterated steps, the polish) is kept only while the residual it
@@ -663,10 +672,10 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
 
     Vec sol = schur.solve(sys.rhs);
-    const bool shifted_refused =
-        k0_shift_scale != nullptr &&
-        !(bordered_shifted_residual_ratio(k0.K, sys.border_v, sys.border_d, sys.rhs, sol,
-                                          *k0_shift_scale) <= detail::kEqpShiftedResidualTol);
+    const bool shifted_refused = k0_shift_scale != nullptr &&
+                                 !(bordered_shifted_backward_error(k0.K, sys.border_v, sys.border_d,
+                                                                   sys.rhs, sol, *k0_shift_scale) <=
+                                   detail::kDenseShiftedBackwardErrorTol);
 
     // ---- THE EQP-SITE RESIDUAL CHECK (E4-4), the border twin. Same object, same
     // tolerance, same budget, same two-block ratio as eqp_solve.h's -- read off the

@@ -594,25 +594,26 @@ struct QpCounters {
     Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
-    // Answers from a dense shifted factor refused by the rho gate
-    // (detail::kEqpShiftedResidualTol): walk EQP solves, eliminated and border
-    // (each also in eqp_residual_refusals where that site counts one), and SSN
-    // Newton steps.
+    // Answers from a dense shifted factor refused by the backward-error gate
+    // (detail::kDenseShiftedBackwardErrorTol): walk EQP solves, eliminated and
+    // border (each also in eqp_residual_refusals where that site counts one),
+    // and SSN Newton steps.
     Index dense_shifted_solve_refusals = 0;
     // Border passes whose bordered answer was not used because K0's numerics
     // were a dense shift response (the gate refused it; the pass took the
     // eliminated path). Each is also in dense_shifted_solve_refusals.
     Index dense_shifted_k0_fallbacks = 0;
     // Walks ended kNumericalError because the pass's answer came from a dense
-    // shifted factor, was refused by the rho gate, and the suspect ladder was
-    // exhausted (0 or 1 per walk). The refusal is also in
+    // shifted factor, was refused by the backward-error gate, and the suspect
+    // ladder was exhausted (0 or 1 per walk). The refusal is also in
     // dense_shifted_solve_refusals.
     Index dense_shifted_terminations = 0;
     // Step solves through dense numerics the dense solve check refused
-    // (rho = ||K y - rhs||inf / ||rhs||inf above the consumer's threshold after
-    // refinement, or NaN): SSN Newton steps (answered by the proximal ladder)
-    // and IPQP step solves (affine/corrector: the inertia ladder; mu-estimate:
-    // its fallback). 0 under DensePolicy::kNever.
+    // (eta = ||K y - rhs||inf / (||K||inf ||y||inf + ||rhs||inf) above
+    // detail::kDenseSolveBackwardErrorTol after refinement, or NaN): SSN Newton
+    // steps (answered by the proximal ladder) and IPQP step solves
+    // (affine/corrector: the inertia ladder; mu-estimate: its fallback). 0 under
+    // DensePolicy::kNever.
     Index dense_solve_residual_refusals = 0;
     // Factorizations on the dense arm (SymmetricFactor's dense_factorize_count +
     // dense_singular_count: taken, or reported exactly singular; shifted

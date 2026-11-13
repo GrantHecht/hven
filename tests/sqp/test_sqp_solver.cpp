@@ -6016,10 +6016,12 @@ TEST(SqpDriverElastic, ElasticSurvivesALargeConstraintScale) {
         InconsistentLinearizationModel model(1e8);
         SqpOptions opts; // trust_region_initial = 1.0, primal_delta = 1e-8 -> runaway limit 1e7
         opts.qp.working_set_algebra = algebra;
-        // M8 DN-3 flip: the residual-scaling fix was proven on the sparse arm, the default
-        // before the flip; kNever explicitly. Under kAuto both algebras end kNumericalError
-        // here with the first subproblem refused and no elastic activation (registered).
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+        // The default (dense) arm since the M8 dense gate. At x0 the working rows are a
+        // dependent opposite pair at scale 1e8: singular to working precision whatever the
+        // scaling (equilibrated rcond 5e-17), so the detector flags it and the shift answers.
+        // Those answers miss the rhs by ~100% (rho = 1.0, which the DN-1d gate refused every
+        // time: kNumericalError, no elastic activation, so the DN-3 flip pinned this test to
+        // kNever) but their normwise backward error is ~4e-11, inside the gate.
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         record_history(sol, "scaled_1e8");

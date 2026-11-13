@@ -665,9 +665,11 @@ class SymmetricFactor {
         //   kReport          rook pivoting (dsytrf_rook) and a detector: a
         //                    factorization whose rook D-ratio
         //                    min|lambda(D)|/max|lambda(D)| is below 1e-15 gets a
-        //                    dsycon_rook estimate, and rcond below 2^-53 (LAPACK
-        //                    xSYSVX's "singular to working precision") or NaN
-        //                    FLAGS it: numerics kept, kOk,
+        //                    dsycon_rook estimate; rcond below 2^-53 (LAPACK
+        //                    xSYSVX's "singular to working precision") or NaN,
+        //                    confirmed on the Ruiz-equilibrated matrix (row and
+        //                    column scaling alone never flag), FLAGS it:
+        //                    numerics kept, kOk,
         //                    InertiaEvidence::numerically_singular. An exactly
         //                    singular one is kBackendError with backend_code
         //                    kDenseSingular and no numerics. Nothing is
@@ -776,6 +778,10 @@ class SymmetricFactor {
         //                              unshifted factorizations only;
         //   dense_condition_estimate_count  dsycon_rook calls (screened ones) in
         //                              calls that returned an outcome;
+        //   dense_equilibrated_estimate_count  equilibrated re-estimates (an
+        //                              unshifted factorization whose raw
+        //                              estimate was below 2^-53) in calls
+        //                              that returned an outcome;
         //   dense_shift_refactor_count factorize_equilibrated() calls that
         //                              returned an outcome;
         //   dense_retake_count         retake_on_platform() calls (each also in
@@ -783,6 +789,7 @@ class SymmetricFactor {
         Index dense_singular_count = 0;
         Index dense_flagged_count = 0;
         Index dense_condition_estimate_count = 0;
+        Index dense_equilibrated_estimate_count = 0;
         Index dense_shift_refactor_count = 0;
         Index dense_retake_count = 0;
     };

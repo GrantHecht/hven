@@ -412,10 +412,11 @@ TEST(DenseArmEngines, IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm) {
     EXPECT_GT(rows.front().h_pert, 0.0);
 }
 
-// M8 DN-3b: a flagged dense factorization whose inertia is the expected one is trusted; the step
-// solve's residual ratio (the DN-1b guard), not the flag, decides whether the system is treated
-// as singular. Here every solve is exact, so no rung of the ladder runs.
-TEST(DenseArmEngines, IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate) {
+// M8 DN-3b: the step solve's residual ratio (the DN-1b guard), not the detector's flag, decides
+// whether the system is treated as singular. diag(1, 1e-17) curvature is singular by SCALE only:
+// screened and raw-flagged, then cleared by the equilibrated re-estimate (M8 dense gate; DN-3b read
+// it flagged), and every solve is exact, so no rung of the ladder runs.
+TEST(DenseArmEngines, IpmTrustsADenseFactorSingularOnlyByScale) {
     Eigen::VectorXd x0(2);
     x0 << 3.0, -1.0;
     std::vector<hven::IpmIterate> rows;
@@ -426,7 +427,8 @@ TEST(DenseArmEngines, IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate) {
     ASSERT_TRUE(success(sparse.status));
     EXPECT_EQ(dense.status, sparse.status);
     EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
-    EXPECT_GT(dense.kkt_factor_counters.dense_flagged_count, 0);
+    EXPECT_EQ(dense.kkt_factor_counters.dense_flagged_count, 0);
+    EXPECT_GT(dense.kkt_factor_counters.dense_equilibrated_estimate_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_singular_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
     EXPECT_EQ(dense.dense_residual_ratio_triggers, 0);
@@ -472,6 +474,40 @@ struct NearSingularHessianProblem final : hven::Nlp {
     std::string name() const override { return "NearSingularHessianProblem"; }
 };
 
+// The same shape singular whatever its scaling: a = 2^20 (x0 + x1), H = 2^40 [[1, 1], [1, 1]]
+// (+ [0, 0, 1]); the walk's K0 carries H + delta*I, whose equilibrated rcond is ~delta / 2^40.
+struct SingularHessianProblem final : hven::Nlp {
+    static double big() { return std::ldexp(1.0, 20); }
+    hven::NlpDimensions dimensions() const override { return {3, 0, 0, 4}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
+        xl.setConstant(-1.0);
+        xu.setConstant(1.0);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        const double a = big() * (x[0] + x[1]);
+        return 0.5 * a * a + 0.5 * x[2] * x[2] - x.sum();
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        const double a = big() * (x[0] + x[1]);
+        g[0] = big() * a - 1.0;
+        g[1] = big() * a - 1.0;
+        g[2] = x[2] - 1.0;
+    }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 1, 2;
+        c << 0, 0, 1, 2;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        const double b2 = obj_factor * big() * big();
+        v << b2, b2, b2, obj_factor;
+    }
+    std::string name() const override { return "SingularHessianProblem"; }
+};
+
 hven::SqpResult solve_sqp(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
                           const Eigen::VectorXd &x0) {
     hven::SqpOptions o;
@@ -484,16 +520,35 @@ hven::SqpResult solve_sqp(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
 
 } // namespace
 
-// The SQP's dense factors report (M8 DN-1d): the walk's singular-to-working-precision K0 is
-// flagged and answered with the equilibrated shift on the dense arm -- every flag answered, no
-// platform retake -- counted in SqpCounters; the solve ends where the sparse arm's does, and
-// kNever counts nothing.
-TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
+// The walk's K0 on NearSingularHessianProblem reads rcond ~ 1e-20 raw, but equilibrated it is
+// [[1, 1], [1, 1]] + delta diag(1, 2^-40): singular by SCALE only (rcond ~ delta / 4), so the
+// detector does not flag it (M8 dense gate; DN-1d flagged and shifted it) and the raw factor's
+// solve ends where the sparse arm's does.
+TEST(DenseArmEngines, SqpDoesNotFlagAKktSingularOnlyByScale) {
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(3);
     const hven::SqpResult sparse =
         solve_sqp(DensePolicy::kNever, std::make_shared<NearSingularHessianProblem>(), x0);
     const hven::SqpResult dense =
         solve_sqp(DensePolicy::kAlways, std::make_shared<NearSingularHessianProblem>(), x0);
+    ASSERT_TRUE(success(sparse.status));
+    EXPECT_EQ(dense.status, sparse.status);
+    EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
+    EXPECT_EQ(dense.counters.dense_platform_retakes, 0);
+    EXPECT_EQ(dense.counters.dense_flagged_factorizations, 0);
+    EXPECT_EQ(dense.counters.dense_singular_refactors, 0);
+    EXPECT_GT(dense.counters.dense_factorizations, 0);
+}
+
+// The SQP's dense factors report (M8 DN-1d): the walk's K0, singular to working precision whatever
+// its scaling, is flagged and answered with the equilibrated shift on the dense arm -- every flag
+// answered, no platform retake -- counted in SqpCounters; the solve ends where the sparse arm's
+// does, and kNever counts nothing.
+TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(3);
+    const hven::SqpResult sparse =
+        solve_sqp(DensePolicy::kNever, std::make_shared<SingularHessianProblem>(), x0);
+    const hven::SqpResult dense =
+        solve_sqp(DensePolicy::kAlways, std::make_shared<SingularHessianProblem>(), x0);
     ASSERT_TRUE(success(sparse.status));
     EXPECT_EQ(dense.status, sparse.status);
     EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
@@ -507,11 +562,11 @@ TEST(DenseArmEngines, SqpShiftsASingularKktOnTheDenseArm) {
     EXPECT_EQ(sparse.counters.dense_shifted_solve_refusals, 0);
 }
 
-// THE SSN's NEWTON STEP through shifted numerics is refined against K and gated on rho: on a
-// nearly inconsistent duplicated row at mu = 0 (every row met to 5e-10, rho ~ 5e-7) the step is
-// refused and the engine answers it with its proximal ladder -- sigma also regularizes the dual
-// block, so the next factorization is no longer singular -- never by stepping on it.
-TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
+// THE SSN's NEWTON STEP through shifted numerics is refined against K and gated on its backward
+// error: on a nearly inconsistent duplicated row at mu = 0 (every row met to 5e-10) the shifted
+// step's backward error is ~sigma -- DN-1d's rho (~5e-7) refused it and the engine climbed its
+// proximal ladder -- so it is accepted and stepped on (M8 dense gate).
+TEST(DenseArmEngines, TheSsnStepsOnAShiftedNewtonStepWithASmallBackwardError) {
     hven::detail::QpProblem qp;
     Eigen::MatrixXd Hd = Eigen::MatrixXd::Identity(3, 3);
     qp.H = Hd.sparseView();
@@ -539,18 +594,17 @@ TEST(DenseArmEngines, TheSsnRefusesAShiftedNewtonStepThatMissesK) {
         } else {
             EXPECT_GE(res.dense_flagged_factorizations, 1);
             EXPECT_EQ(res.dense_platform_retakes, 0);
-            EXPECT_GE(res.dense_shifted_solve_refusals, 1);
-            EXPECT_GE(res.counters.ssn_prox_updates, 1);
+            EXPECT_EQ(res.dense_shifted_solve_refusals, 0);
         }
     }
 }
 
 // THE SSN's NEWTON STEP through UNSHIFTED dense numerics is checked per solve: H is
 // Q diag(1, 0.5, 0.25, 0.1, 0.01, 1e-13) Q' (no rows, no bounds, no regularization), the detector
-// passes its factorization, and the first step, along the small eigenvector, misses rho even
-// after refinement -- refused and answered with the proximal ladder, as a refused shifted step
-// is. The sparse arm is not checked here; the count reads 0 under kNever.
-TEST(DenseArmEngines, TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK) {
+// passes its factorization, and the first step, along the small eigenvector, misses the rhs by
+// ~eps * cond relative to it -- DN-3a's rho refused it -- but its backward error is ~eps: a correct
+// step, accepted (M8 dense gate). The count reads 0 on both arms.
+TEST(DenseArmEngines, TheSsnAcceptsABackwardStableUnshiftedDenseNewtonStep) {
     constexpr Eigen::Index n = 6;
     Eigen::MatrixXd S(n, n);
     for (Eigen::Index i = 0; i < n; ++i) {
@@ -588,8 +642,7 @@ TEST(DenseArmEngines, TheSsnRefusesAnUnshiftedDenseNewtonStepThatMissesK) {
         } else {
             EXPECT_EQ(res.dense_flagged_factorizations, 0); // the premise: unflagged numerics
             EXPECT_EQ(res.dense_shifted_solve_refusals, 0);
-            EXPECT_GE(refusals, 1);
-            EXPECT_GE(res.counters.ssn_prox_updates, refusals);
+            EXPECT_EQ(refusals, 0);
             // Carried to the QP solution's counters and the SQP fold as the shifted count is.
             EXPECT_EQ(
                 hven::detail::ssn_result_to_qp_solution(res).counters.dense_solve_residual_refusals,

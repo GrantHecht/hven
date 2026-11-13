@@ -4,6 +4,7 @@
 #include <hven/detail/kkt/kkt_calls.h>
 
 #include <hven/core/errors.h>
+#include <hven/detail/linear/dense_session.h>
 
 #include <algorithm>
 #include <cmath>
@@ -80,32 +81,12 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 }
 
 Vec equilibration_scale(const SpMatRM &K) {
+    // The dense detector's own scale: one definition, so the shift response
+    // factors exactly the matrix the detector judged.
     const auto n = static_cast<Index>(K.rows());
-    Vec d = Vec::Ones(n);
+    Vec d(n);
     Vec r(n);
-    constexpr int kMaxSweeps = 8;
-    constexpr double kStop = 0.05;
-    for (int sweep = 0; sweep < kMaxSweeps; ++sweep) {
-        r.setZero();
-        for (Index i = 0; i < n; ++i) {
-            for (SpMatRM::InnerIterator e(K, i); e; ++e) {
-                const auto j = static_cast<Index>(e.col());
-                const double w = std::abs(e.value()) * d(i) * d(j);
-                r(i) = std::max(r(i), w);
-                r(j) = std::max(r(j), w);
-            }
-        }
-        double dev = 0.0;
-        for (Index i = 0; i < n; ++i) {
-            if (r(i) > 0.0 && std::isfinite(r(i))) {
-                dev = std::max(dev, std::abs(1.0 - r(i)));
-                d(i) /= std::sqrt(r(i));
-            }
-        }
-        if (dev <= kStop) {
-            break;
-        }
-    }
+    hven::linear::detail::ruiz_symmetric_scale(K, d.data(), r.data());
     return d;
 }
 

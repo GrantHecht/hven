@@ -230,10 +230,14 @@ void DenseSession::analyze(const SpMatRM &A) {
     std::vector<double> colsum;
     std::vector<double> con_work;
     std::vector<int> con_iwork;
+    std::vector<double> eq_work;
+    std::vector<int> eq_sgn;
     if (report()) {
         colsum.assign(static_cast<std::size_t>(n), 0.0);
         con_work.assign(2 * static_cast<std::size_t>(n), 0.0);
         con_iwork.assign(static_cast<std::size_t>(n), 0);
+        eq_work.assign(4 * static_cast<std::size_t>(n), 0.0);
+        eq_sgn.assign(static_cast<std::size_t>(n), 0);
     }
 
     n_ = n;
@@ -244,6 +248,8 @@ void DenseSession::analyze(const SpMatRM &A) {
     colsum_ = std::move(colsum);
     con_work_ = std::move(con_work);
     con_iwork_ = std::move(con_iwork);
+    eq_work_ = std::move(eq_work);
+    eq_sgn_ = std::move(eq_sgn);
     scale_.clear();
     has_numerics_ = false;
     positive_ = 0;
@@ -324,10 +330,14 @@ DenseFactorizeResult DenseSession::factorize(const SpMatRM &A, std::uint64_t nex
         if (counts.singular) {
             return DenseFactorizeResult::kSingular;
         }
-        // The screen, then the estimate; NaN flags.
+        // The screen, then the estimate; NaN flags. An unshifted matrix the
+        // raw estimate flags is judged again equilibrated (the header).
         if (rook.d_ratio < kDenseSingularScreen) {
             const double anorm = shift != nullptr ? shifted_norm : csr_one_norm(A);
             flagged = !(rcond_estimate(anorm) >= kDenseConditionSingular);
+            if (flagged && shift == nullptr) {
+                flagged = !(equilibrated_rcond_estimate(A) >= kDenseConditionSingular);
+            }
         }
     } else {
         counts = dense_block_walk(a, n_, ipiv_.data());
@@ -400,6 +410,86 @@ double DenseSession::rcond_estimate(double anorm) {
             info));
     }
     return rcond;
+}
+
+void ruiz_symmetric_scale(const SpMatRM &A, double *d, double *r) {
+    const auto n = static_cast<Index>(A.rows());
+    std::fill(d, d + n, 1.0);
+    constexpr int kMaxSweeps = 8;
+    constexpr double kStop = 0.05;
+    for (int sweep = 0; sweep < kMaxSweeps; ++sweep) {
+        std::fill(r, r + n, 0.0);
+        for (Index i = 0; i < n; ++i) {
+            for (SpMatRM::InnerIterator e(A, i); e; ++e) {
+                const auto j = static_cast<Index>(e.col());
+                const double w = std::abs(e.value()) * d[i] * d[j];
+                r[i] = std::max(r[i], w);
+                r[j] = std::max(r[j], w);
+            }
+        }
+        double dev = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (r[i] > 0.0 && std::isfinite(r[i])) {
+                dev = std::max(dev, std::abs(1.0 - r[i]));
+                d[i] /= std::sqrt(r[i]);
+            }
+        }
+        if (dev <= kStop) {
+            break;
+        }
+    }
+}
+
+double DenseSession::equilibrated_rcond_estimate(const SpMatRM &A) {
+    const auto un = static_cast<std::size_t>(n_);
+    double *d = eq_work_.data();
+    double *x = d + 2 * un;
+    double *v = d + 3 * un;
+    ruiz_symmetric_scale(A, d, d + un);
+
+    // ||D A D||_1 from the stored upper triangle (symmetric: column sums).
+    std::fill(colsum_.begin(), colsum_.end(), 0.0);
+    for (Index i = 0; i < n_; ++i) {
+        for (SpMatRM::InnerIterator e(A, i); e; ++e) {
+            const auto j = static_cast<Index>(e.col());
+            const double w = std::abs(e.value()) * d[i] * d[j];
+            colsum_[static_cast<std::size_t>(j)] += w;
+            if (j != i) {
+                colsum_[static_cast<std::size_t>(i)] += w;
+            }
+        }
+    }
+    const double anorm = *std::max_element(colsum_.begin(), colsum_.end());
+
+    // x <- D^-1 A^-1 D^-1 x through the unshifted factors in a_.
+    int info = 0;
+    const auto apply = [&](double *p) {
+        for (Index i = 0; i < n_; ++i) {
+            p[i] /= d[i];
+        }
+        if (info == 0) {
+            const DenseArmThreadPin threads;
+            info = static_cast<int>(LAPACKE_dsytrs_rook_work(
+                LAPACK_COL_MAJOR, 'U', static_cast<lapack_int>(n_), 1, a_.data(),
+                static_cast<lapack_int>(n_), ipiv_.data(), p, static_cast<lapack_int>(n_)));
+        }
+        for (Index i = 0; i < n_; ++i) {
+            p[i] /= d[i];
+        }
+    };
+    const double ainv = estimate_symmetric_one_norm(n_, apply, x, v, eq_sgn_.data());
+    ++equilibrated_estimates_;
+    if (info != 0) {
+        throw hven::BackendError(fmt::format(
+            "SymmetricFactor::factorize: dense dsytrs_rook failed in the equilibrated condition "
+            "estimate, info={} (illegal argument)",
+            info));
+    }
+    // xSYCON's convention: rcond = 0 for a zero norm; a NaN propagates.
+    if (anorm == 0.0 || ainv == 0.0) {
+        return 0.0;
+    }
+    return (1.0 / ainv) / anorm;
 }
 
 void DenseSession::solve(double *b, Index nrhs, Index ldb) const {

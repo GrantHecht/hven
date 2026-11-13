@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -167,7 +168,9 @@ inline constexpr double kDenseShiftRetryGrowth = 256.0;
 
 /// @brief Symmetric Ruiz equilibration of an upper-CSR K (infinity norm): at
 /// most 8 sweeps of d_i /= sqrt(r_i), r_i = max_j |K_ij| d_i d_j (rows with r_i
-/// zero or non-finite keep d_i), stopping once max|1 - r_i| <= 0.05.
+/// zero or non-finite keep d_i), stopping once max|1 - r_i| <= 0.05. The dense
+/// detector's scale (hven::linear::detail::ruiz_symmetric_scale), so the
+/// response shifts the matrix the detector judged singular.
 Vec equilibration_scale(const SpMatRM &K);
 
 /// @brief factorize_checked() with the dense singular response. Under
@@ -234,17 +237,62 @@ class DenseTallyScope {
 /// @brief Allocate and solve, returning the solution by value.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 
+// THE DENSE ARM'S SOLVE GATES judge an answer y to K y = b by its normwise
+// backward error (Rigal-Gaches; Higham, Accuracy and Stability of Numerical
+// Algorithms, 2nd ed., Thm 7.1), inf-norms throughout:
+//   eta(y) = ||b - K y|| / (||K|| ||y|| + ||b||),
+// the smallest relative perturbation of K and b that y solves exactly.
+// Ill-conditioning alone does not raise it: a backward-stable rook LDL^T solve
+// of order n has eta <= p(n) u (1 + rho_n) (Thm 11.3, growth rho_n), about
+// 1e-14 at the dense orders (<= 167) with modest growth. One threshold, 1e-8:
+// the relative size of the platform session's own static pivot perturbation
+// (Pardiso iparm[9] = 8), and with u = 2^-53 a bound only a growth factor
+// above ~5e5 could reach on a correct factorization -- the signature of a
+// broken factor, not of rounding.
+
+/// ||K||inf of the symmetric matrix stored as K's upper triangle, entries
+/// weighted d_i d_j when `d` is non-null (||D K D||inf). `acc` is scratch
+/// (resized to K.rows()). A NaN propagates.
+inline double symmetric_inf_norm(const SpMatRM &K, const Vec *d, Vec &acc) {
+    const auto n = static_cast<Index>(K.rows());
+    acc.setZero(n);
+    for (Index i = 0; i < n; ++i) {
+        for (SpMatRM::InnerIterator e(K, i); e; ++e) {
+            const auto j = static_cast<Index>(e.col());
+            const double w =
+                d != nullptr ? std::abs(e.value()) * (*d)(i) * (*d)(j) : std::abs(e.value());
+            acc(i) += w;
+            if (j != i) {
+                acc(j) += w;
+            }
+        }
+    }
+    return nan_sticky_inf_norm(acc);
+}
+
+/// eta from its parts: ||r|| / (k_norm ||y|| + ||b||); 0 when the residual and
+/// the denominator both vanish; a NaN propagates.
+inline double backward_error_of(double r_inf, double k_norm, double y_inf, double b_inf) {
+    const double den = k_norm * y_inf + b_inf;
+    return (r_inf == 0.0 && den == 0.0) ? 0.0 : r_inf / den;
+}
+
 // THE SHIFTED FACTOR'S VERIFICATION. A solve through shifted numerics answers
 // D (D K D + sigma S)^-1 D b, not K^-1 b; every consumer that steps on or adopts
-// such an answer refines it against K and gates it on rho below.
+// such an answer refines it against K and gates it on eta in the shift's own
+// metric, the equilibrated system (D K D) (D^-1 y) = D b. Unrefined, a
+// first-attempt answer reads eta <= sigma / ||D K D||: inside the threshold, so
+// what the gate refuses is a factorization that solves no nearby system.
 
 /// Refinement budget against K on shifted numerics; each step is kept only
 /// while ||D (rhs - K y)||inf strictly falls (D = KktFactor::dense_scale).
 inline constexpr Index kEqpShiftRefineSteps = 10;
 
-/// The gate: an answer from shifted numerics is used only if its rho at gate
-/// time is at most this (a NaN refuses).
-inline constexpr double kEqpShiftedResidualTol = 1e-8;
+/// The gate: an answer from shifted numerics is used only if its eta at gate
+/// time is at most this (a NaN refuses). The unshifted check's threshold: the
+/// shift's own contribution (<= sigma = 2^-30 at the first attempt) sits below
+/// it, the retry's (256 sigma ~ 2.4e-7) only once refinement removes it.
+inline constexpr double kDenseShiftedBackwardErrorTol = 1e-8;
 
 /// @brief kEqpShiftRefineSteps' loop on `y`, a solve of K y = rhs through `k`
 /// (K upper-stored); a no-op unless `k.dense_shifted`. Returns the solves
@@ -272,70 +320,77 @@ inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFac
     return spent;
 }
 
-/// @brief rho = ||D (rhs - K y)||inf / ||D rhs||inf with D = `k.dense_scale`
-/// (0 when both vanish; a NaN propagates). Requires `k.dense_shifted`.
-inline double shifted_residual_ratio(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
+/// @brief eta of `y` on the equilibrated system: ||D (rhs - K y)||inf /
+/// (||D K D||inf ||D^-1 y||inf + ||D rhs||inf), D = `k.dense_scale` (0 when
+/// residual and denominator vanish; a NaN propagates). Requires
+/// `k.dense_shifted`.
+inline double shifted_backward_error(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
                                      const Vec &y) {
     const Vec &d = k.dense_scale;
+    Vec acc;
     const double r_d =
         nan_sticky_inf_norm((rhs - K.template selfadjointView<Eigen::Upper>() * y).cwiseProduct(d));
-    const double b_d = nan_sticky_inf_norm(rhs.cwiseProduct(d));
-    return (r_d == 0.0 && b_d == 0.0) ? 0.0 : r_d / b_d;
+    return backward_error_of(r_d, symmetric_inf_norm(K, &d, acc),
+                             nan_sticky_inf_norm(y.cwiseQuotient(d)),
+                             nan_sticky_inf_norm(rhs.cwiseProduct(d)));
 }
 
 /// @brief True iff `k` holds shifted numerics and `y` fails the gate.
 inline bool shifted_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
                                   const Vec &y) {
-    return k.dense_shifted && !(shifted_residual_ratio(K, rhs, k, y) <= kEqpShiftedResidualTol);
+    return k.dense_shifted &&
+           !(shifted_backward_error(K, rhs, k, y) <= kDenseShiftedBackwardErrorTol);
 }
 
 // THE UNSHIFTED DENSE SOLVE CHECK. A dense-arm solve a consumer steps on is
-// checked against K: only a solve whose rho misses kDenseSolveResidualTol is
-// refined (keep-while-falling, kEqpShiftRefineSteps), and it is refused only if
-// rho still exceeds the consumer's refusal threshold (>= kDenseSolveResidualTol).
-// A passing solve is used unchanged. Platform-session answers are not checked.
+// checked against K: only a solve whose eta misses kDenseSolveBackwardErrorTol
+// is refined (keep-while-falling, kEqpShiftRefineSteps), and it is refused only
+// if eta still exceeds the consumer's refusal threshold. A passing solve is used
+// unchanged. Platform-session answers are not checked.
 
-/// Refinement trigger on rho (and the refusal threshold where a consumer
-/// passes no looser one).
-inline constexpr double kDenseSolveResidualTol = 1e-8;
+/// Refinement trigger on eta, and the refusal threshold.
+inline constexpr double kDenseSolveBackwardErrorTol = 1e-8;
 
-/// @brief rho = ||K y - rhs||inf / ||rhs||inf (K upper-stored); 0 when both
-/// vanish, a NaN propagates. Leaves K y - rhs in `r` (resized to rhs.size()).
-inline double dense_residual_ratio(const SpMatRM &K, const Vec &rhs, const Vec &y, Vec &r) {
+/// @brief eta = ||K y - rhs||inf / (k_norm ||y||inf + ||rhs||inf), K
+/// upper-stored and k_norm = ||K||inf (symmetric_inf_norm); 0 when residual and
+/// denominator vanish, a NaN propagates. Leaves K y - rhs in `r` (resized to
+/// rhs.size()).
+inline double dense_backward_error(const SpMatRM &K, double k_norm, const Vec &rhs, const Vec &y,
+                                   Vec &r) {
     r.resize(rhs.size());
     r.noalias() = K.template selfadjointView<Eigen::Upper>() * y;
     r -= rhs;
-    const double r_inf = nan_sticky_inf_norm(r);
-    const double b_inf = nan_sticky_inf_norm(rhs);
-    return (r_inf == 0.0 && b_inf == 0.0) ? 0.0 : r_inf / b_inf;
+    return backward_error_of(nan_sticky_inf_norm(r), k_norm, nan_sticky_inf_norm(y),
+                             nan_sticky_inf_norm(rhs));
 }
 
 /// @brief The check on `y`, a solve of K y = rhs through `solve` (a callable
-/// `void(const Vec &in, Vec &out)` against the same numerics): true iff rho
+/// `void(const Vec &in, Vec &out)` against the same numerics): true iff eta
 /// exceeds `refuse_tol` (or is NaN) after refinement. `y` changes only when the
-/// first rho exceeds kDenseSolveResidualTol. `r` and `c` are caller-held
+/// first eta exceeds kDenseSolveBackwardErrorTol. `r` and `c` are caller-held
 /// scratch (no allocation once sized).
 template <typename Solve>
 inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, double refuse_tol,
                                       Solve &&solve, Vec &y, Vec &r, Vec &c) {
-    double rho = dense_residual_ratio(K, rhs, y, r);
-    if (rho <= kDenseSolveResidualTol) {
+    const double k_norm = symmetric_inf_norm(K, nullptr, c);
+    double eta = dense_backward_error(K, k_norm, rhs, y, r);
+    if (eta <= kDenseSolveBackwardErrorTol) {
         return false;
     }
     for (Index step = 0; step < kEqpShiftRefineSteps; ++step) {
         solve(r, c); // K^-1 (K y - rhs)
         c = y - c;
-        const double c_rho = dense_residual_ratio(K, rhs, c, r);
-        if (!(c_rho < rho)) {
+        const double c_eta = dense_backward_error(K, k_norm, rhs, c, r);
+        if (!(c_eta < eta)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
         y = c;
-        rho = c_rho;
+        eta = c_eta;
     }
-    return !(rho <= refuse_tol);
+    return !(eta <= refuse_tol);
 }
 
-/// @brief The KktFactor form at kDenseSolveResidualTol: true iff the
+/// @brief The KktFactor form at kDenseSolveBackwardErrorTol: true iff the
 /// factorization `arm` names was taken by the dense arm unshifted
 /// (`!k.dense_shifted`) and `y` fails the check.
 inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
@@ -344,7 +399,7 @@ inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, cons
         return false;
     }
     return dense_solve_check_refused(
-        K, rhs, kDenseSolveResidualTol,
+        K, rhs, kDenseSolveBackwardErrorTol,
         [&](const Vec &in, Vec &out) {
             out.resize(in.size());
             k.factor.solve(in, out);

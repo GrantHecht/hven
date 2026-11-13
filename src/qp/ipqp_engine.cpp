@@ -2007,9 +2007,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
     //
     // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored
-    // (scaled when equilibrated, so rho is in D's metric), refined below kDenseSolveResidualTol
-    // and refused only above kDenseResidualRatioSingular -- rho normalized by the rhs has a floor
-    // near n eps kappa on late interior systems, and the check is aimed at wrong factors. Returns
+    // (scaled when equilibrated, so eta is in D's metric) by its normwise backward error, refined
+    // and refused above kDenseSolveBackwardErrorTol (kkt_calls.h). eta has no condition-number
+    // floor, so the late interior systems pass and the check sees wrong factors only. Returns
     // true iff refused.
     auto solve_system = [&]() -> bool {
         if (iopts.ruiz_equilibration) {
@@ -2023,7 +2023,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             w.sol *= wound;
 #endif
             refused = detail::dense_solve_check_refused(
-                kkt_.matrix(), w.rhs, detail::kDenseResidualRatioSingular,
+                kkt_.matrix(), w.rhs, detail::kDenseSolveBackwardErrorTol,
                 [&](const Vec &in, Vec &u) {
                     u.resize(in.size());
                     kkt_.solve(in, u);
