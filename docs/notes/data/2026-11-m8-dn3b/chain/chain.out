@@ -1,0 +1,96 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:09:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:09:31-05:00
+
+The following tests did not run:
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2304 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2305 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T20:10:45-05:00
+STEP ctest-rel rc=0 2026-11-12T20:10:45-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:10:45-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	789 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2304 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2305 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T20:17:30-05:00
+STEP ctest-dbg rc=0 2026-11-12T20:17:30-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:17:30-05:00
+6d0b99671af5508fb7f11ef0e7ee94e038926841626f499ef740fb0a375a0802  /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-12T20:17:30-05:00
+run rc=0
+compare rc=0
+=== dn3b-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-12T20:22:17-05:00
+run rc=0
+compare rc=0
+=== dn3b-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-12T20:22:38-05:00
+run rc=0
+compare rc=0
+=== dn3b-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-12T20:23:04-05:00
+STEP replay rc=0 2026-11-12T20:23:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:23:04-05:00
+1e6ee31966f20b6d238933286ed25b4dce1d69c2bee9785c854406193bc3d4e9  /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/armAbin/hven_sqp_corpus
+6d0b99671af5508fb7f11ef0e7ee94e038926841626f499ef740fb0a375a0802  /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/build-dn3b/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-a24a4442b0864282f/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-12T20:23:37-05:00
+STEP interior rc=0 2026-11-12T20:23:37-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T20:23:37-05:00
+MUTATED report-off
+build report-off rc=0
+report-off tests/drivers/hven_drivers_tests rc=1
+report-off tests/hven_sqp_seam_tests rc=1
+report-off passed=28 failing=6: BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath 
+MUTATED report-under-never
+build report-under-never rc=0
+report-under-never tests/drivers/hven_drivers_tests rc=1
+report-under-never tests/hven_sqp_seam_tests rc=0
+report-under-never passed=27 failing=7: DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate 
+MUTATED init-rescue-off
+build init-rescue-off rc=0
+init-rescue-off tests/drivers/hven_drivers_tests rc=1
+init-rescue-off tests/hven_sqp_seam_tests rc=0
+init-rescue-off passed=32 failing=2: DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes 
+MUTATED dc-off-on-failed
+build dc-off-on-failed rc=0
+dc-off-on-failed tests/drivers/hven_drivers_tests rc=1
+dc-off-on-failed tests/hven_sqp_seam_tests rc=0
+dc-off-on-failed passed=32 failing=2: DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes 
+MUTATED dense-singular-hard
+build dense-singular-hard rc=0
+dense-singular-hard tests/drivers/hven_drivers_tests rc=1
+dense-singular-hard tests/hven_sqp_seam_tests rc=1
+dense-singular-hard passed=29 failing=5: BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/ProximalSwitch DenseArmEngines.IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes IpmDenseReportSeam.ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheSparsePath 
+MUTATED flag-as-singular
+build flag-as-singular rc=0
+flag-as-singular tests/drivers/hven_drivers_tests rc=1
+flag-as-singular tests/hven_sqp_seam_tests rc=1
+flag-as-singular passed=32 failing=2: BothStrategies/IpmDenseReportRestorationSeam.AnExhaustedLadderOfSingularReportsIsRecoveredThroughRestoration/L1Nested DenseArmEngines.IpmTrustsAFlaggedDenseFactorWhoseSolveIsAccurate 
+head tests/drivers/hven_drivers_tests rc=0
+head tests/hven_sqp_seam_tests rc=0
+head passed=34 failing=0: 
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-12T20:33:58-05:00
+STEP failproof rc=0 2026-11-12T20:33:58-05:00
+worst=0
+FOREGROUND_END 2026-11-12T20:33:58-05:00
