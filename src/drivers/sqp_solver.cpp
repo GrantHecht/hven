@@ -1366,6 +1366,20 @@ QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic
     return qs;
 }
 
+// The rung's own row residual: the l1 gap between the augmented point and the rung's rows
+// (the sum of its equality gaps and positive inequality gaps). 0 when the rung meets its rows.
+double elastic_rung_row_residual_l1(const ElasticQp &elastic, const Vec &x_aug) {
+    const QpProblem &eq = elastic.qp;
+    double r = 0.0;
+    if (eq.me() > 0) {
+        r += (eq.Ae * x_aug - eq.be).lpNorm<1>();
+    }
+    if (eq.mi() > 0) {
+        r += (eq.Ai * x_aug - eq.bi).cwiseMax(0.0).sum();
+    }
+    return r;
+}
+
 } // namespace
 
 ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
@@ -1481,9 +1495,21 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         // MATERIALLY NONZERO IS MEASURED ON THE VIOLATION, not on
         // the scaled variable: feas_tol is a tolerance on
         // constraint violation, and sigma_j is a change of units.
+#ifdef HVEN_TESTING
+        // THE WALK-CAP SEAM, mid-ladder (ladder_testing.h): this rung off its rows.
+        if (detail::testing::SqpLadderSeam::off_rows_inloop_rungs > 0) {
+            --detail::testing::SqpLadderSeam::off_rows_inloop_rungs;
+            ++detail::testing::SqpLadderSeam::off_rows_forced;
+            qs_e.x.head(elastic.n_orig) = elastic.p_ref;
+            qs_e.x.segment(elastic.n_orig, elastic.ns).setZero();
+        }
+#endif
         const Vec v = elastic.slack_violations(qs_e.x);
         const double v_max = v.size() > 0 ? v.maxCoeff() : 0.0;
-        if (v_max <= opts.common.feasibility_tol || !(rho < kElasticRhoMax)) {
+        // SHUT means the step's violation bound is within tolerance: the slacks AND the rung's
+        // own rows, the bound `closed` reads below. A rung off its rows is not shut.
+        const double rung_row_residual = elastic_rung_row_residual_l1(elastic, qs_e.x);
+        if (v_max + rung_row_residual <= opts.common.feasibility_tol || !(rho < kElasticRhoMax)) {
             break;
         }
         // THE STALL EARLY-EXIT. This rung left the augmented
@@ -1556,16 +1582,8 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
     // above -- |a^T p - b| <= sigma*s + |a^T p + sigma*s - b| -- and both tests read
     // the bound; on a rung that meets its rows it is slack_l1 to within the rows'
     // rounding.
-    double rung_residual_l1 = 0.0;
-    if (qs_e.status == QpStatus::kOptimal) {
-        const QpProblem &eq = elastic.qp;
-        if (eq.me() > 0) {
-            rung_residual_l1 += (eq.Ae * qs_e.x - eq.be).lpNorm<1>();
-        }
-        if (eq.mi() > 0) {
-            rung_residual_l1 += (eq.Ai * qs_e.x - eq.bi).cwiseMax(0.0).sum();
-        }
-    }
+    const double rung_residual_l1 =
+        qs_e.status == QpStatus::kOptimal ? elastic_rung_row_residual_l1(elastic, qs_e.x) : 0.0;
     double step_violation_bound = slack_l1 + rung_residual_l1;
 #ifdef HVEN_TESTING
     if (detail::testing::SqpLadderSeam::report_reads_slacks_only) {
@@ -8404,14 +8422,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         return MajorOutcome::kContinue;
     }
 
-    // A ZERO STEP FROM THE ELASTIC TIER WHILE THE ITERATE IS INFEASIBLE IS EXHAUSTION
-    // (M8 walk cap), not KLV's ||d|| = 0 stationarity: the short-circuit's premise is a
-    // subproblem whose answer is zero, and an elastic answer of zero at h_old > feas_tol
-    // leaves the linearized violation exactly where it was -- the tier made no progress
-    // and has nothing more to offer. Unjudged, it was committed again at every major
-    // (98 times to kIterationLimit on F9's inconsistent pair on the dense arm). It is
-    // the ladder's own exhaustion signature, routed the same way: restoration, with no
-    // candidate -- a zero step IS x (see the elastic requester's have_p).
+    // A ZERO STEP FROM THE ELASTIC TIER WHILE h_old > feas_tol IS EXHAUSTION, not KLV's
+    // ||d|| = 0 stationarity: the linearized violation is left where it was. Routed as the
+    // ladder's own exhaustion: restoration with no candidate (a zero step IS x). See
+    // docs/notes/data/2026-11-m8-walk-cap/.
     const bool zero_elastic_exhaustion =
         zero_step && elastic_applied && mj.ctx.h_old > opts_.common.feasibility_tol;
     StepVerdict verdict = zero_elastic_exhaustion ? StepVerdict::kRestore
@@ -8645,6 +8659,13 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                                ? RestorationCandidate{}
                                                : RestorationCandidate{&mj.x_trial, &mj.ev_trial};
         const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter, offer);
+        // The phase's curvature switch, as at the ladder-unusable site above: a nested
+        // refusal inside a sub-solve told to switch is counted, so the parent restarts the
+        // phase on the regularized model.
+        if (zero_elastic_exhaustion && outcome == RestorationOutcome::kRefused &&
+            stop_phase_on_qp_failure_ && !allow_restoration_) {
+            ++st.out.counters.restoration_curvature_switches;
+        }
         // The parent's latch, read before this row's own event fires; see the
         // elastic requester above (ruling R4).
         mj.interrupted_exit = st.interrupted;

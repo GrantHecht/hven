@@ -548,19 +548,17 @@
 //
 //    TRUSTWORTHY RANGE, both directions, known and accepted:
 //    (i) FALSE kInfeasible on a feasible row whose residual at the classified
-//        point still clears the margin. COVERED, on both paths, by the
-//        verdict-site face refinement below, then the terminal mu-free
-//        refinement, and in the last resort by the Farkas gate: an unrefinable
-//        residual with no verified certificate ends kNumericalError, never
-//        kInfeasible. STILL UNCOVERED: none known as a false kInfeasible.
-//    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
-//        the margin, kInfeasibilityMarginFactor * row_tolerance -- at most
-//        kInfeasibilityMarginFactor * max(feas_tol, kInfeasibilityAbsorbTol)
-//        in row units, whatever |lambda| is (M8 walk cap: an uncapped footprint
-//        ratio used to excuse any gap below 0.1*dual_mu*|lambda|, which on an
-//        elastic rung at rho ~ 1e6 is 5e-4 and returned kOptimal at a point
-//        violating its rows; docs/notes/data/2026-11-m8-walk-cap/). A gap below
-//        the margin is beneath the classifier's resolution by construction.
+//        point still clears the margin. Covered by the verdict-site face
+//        refinement, then the terminal mu-free refinement, then the Farkas
+//        gate: an unrefinable residual with no verified certificate ends
+//        kNumericalError, never kInfeasible. The option-off arm
+//        (independent_working_set = false) has no mu-free refinement: the
+//        band goes face refinement -> Farkas certificate / kNumericalError.
+//    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath the
+//        margin, kInfeasibilityMarginFactor * row_tolerance -- at most
+//        kInfeasibilityMarginFactor * max(feas_tol, kInfeasibilityAbsorbTol) in
+//        row units, whatever |lambda| is. Beneath the classifier's resolution
+//        by construction (docs/notes/data/2026-11-m8-walk-cap/).
 //    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
 //        beyond unbounded_artifact_scale(). Tune primal_delta rather than treat
 //        this kNumericalError as load-bearing.
@@ -2156,16 +2154,9 @@ class QpEngine {
     // footprint a consistent row can shed, and kInfeasible needs a verified
     // Farkas certificate (kNumericalError without one).
     //
-    // WHY NO FOOTPRINT-RATIO CONDITION (M8 walk cap). A second condition once
-    // excused any violation below 0.1*dual_mu*|lambda|, uncapped, on the theory
-    // that a consistent row's residual is a first-order footprint refinement
-    // removes. Uncapped, it excused gaps of any size once |lambda| was large --
-    // an elastic rung at rho ~ 5e5 (|lambda| ~ rho, dual_mu 1e-8) excused 5e-4
-    // and the walk returned kOptimal at a point violating both its rows. Capped
-    // like row_tolerance's own footprint term (kInfeasibilityAbsorbTol *
-    // row_scale) it is implied by the margin -- v > 10*row_tolerance >=
-    // 10*min(dual_mu*|lambda|, cap) -- so the cap IS its removal; the job it was
-    // doing belongs to the refinements and the certificate above.
+    // No footprint-ratio condition: capped like row_tolerance's footprint term it is
+    // implied by the margin, so the margin test alone decides
+    // (docs/notes/data/2026-11-m8-walk-cap/).
     bool violation_is_structural(double v, double row_scale, double lambda,
                                  const QpOptions &opts) const;
 

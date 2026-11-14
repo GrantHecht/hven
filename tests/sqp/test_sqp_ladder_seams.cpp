@@ -1241,6 +1241,45 @@ TEST(SqpLadderSeam, WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion) {
     }
 }
 
+// A RUNG OFF ITS ROWS DOES NOT STOP THE CLIMB. Consistent rows (x0 = 5e-4, twice): the genuine
+// first rung is shut and the ladder stops there. With that rung replaced by the zero step off
+// its rows (slacks 0, rows open by 1e-3) the slacks read shut but the rows do not, so the ladder
+// escalates.
+TEST(SqpLadderSeam, WalkCapARungOffItsRowsDoesNotStopTheEscalation) {
+    QpProblem qp;
+    qp.H = SpMatRM(2, 2);
+    qp.H.insert(0, 0) = 2.0;
+    qp.H.insert(1, 1) = 2.0;
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd A(2, 2);
+    A << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = A.sparseView();
+    qp.be = vec2(5.0e-4, 5.0e-4);
+    qp.Ai = SpMatRM(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = vec2(-10.0 - 1.0005, -10.0);
+    qp.upper = vec2(10.0 - 1.0005, 10.0);
+    Index escalations_control = -1;
+    for (const int forced : {0, 1}) {
+        SCOPED_TRACE(forced);
+        const SeamReset guard;
+        Seam::off_rows_inloop_rungs = forced;
+        const SqpOptions o = quiet();
+        QpEngine engine(o.qp, 0, SqpOptions{}.linear.dense_factorization);
+        SqpCounters counters;
+        const ElasticLadderReport report = run_elastic_ladder(
+            engine, qp, ElasticSeedSource{}, std::numeric_limits<double>::infinity(), o, counters);
+        ASSERT_EQ(Seam::off_rows_forced, forced);
+        ASSERT_EQ(report.qp_status, QpStatus::kOptimal);
+        if (forced == 0) {
+            escalations_control = counters.elastic_escalations;
+            EXPECT_EQ(escalations_control, 0) << "fixture premise: the genuine rung is shut";
+        } else {
+            EXPECT_GE(counters.elastic_escalations, 1) << "the off-rows rung is not shut";
+        }
+    }
+}
+
 TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
     for (const int forced : {0, 1}) {
         SCOPED_TRACE(forced);

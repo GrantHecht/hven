@@ -1183,8 +1183,12 @@ every slack 0, status kOptimal, the relaxed rows left violated -- and
 the verdict before the rung-residual bound. The first pins the bound (such a rung is not
 closed); the two together hand the driver a usable zero elastic step at `h > feas_tol`,
 which pins the driver's own guard (exhaustion, not KLV's unjudged zero-step accept).
-With the cap in place the engine no longer returns that rung, so no unseamed fixture can
-reach either guard: they are the second and third layers behind the cap.
+With the cap in place the engine no longer returns that rung, and there is no known
+unseamed fixture that reaches either guard (a zero elastic step is `step_norm <=
+1e-12 * x_scale`, so a rounding-size usable step could in principle reach the driver's):
+they are the second and third layers behind the cap. A third knob, `off_rows_inloop_rungs`,
+replaces rungs as the ladder runs rather than the final one, to pin the ladder's own
+escalation test (a rung off its rows is not shut).
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

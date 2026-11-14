@@ -17,8 +17,10 @@ namespace hven::detail::testing {
 /// the engine's own N3 exit does: status kNumericalError, multipliers cleared,
 /// the iterate kept. It stands in for a QP the engine does not solve (E2-D3: the
 /// DALLASM major-1 QP at a feasible point, the READING6 E2 terminations), which
-/// no small model reproduces. The restoration sub-driver is touched only by
-/// `fail_restoration_walk_qps` and `exhaust_restoration_elastic`.
+/// no small model reproduces. The restoration sub-driver is touched by
+/// `fail_restoration_walk_qps` and `exhaust_restoration_elastic`, and by the walk-cap knobs
+/// (`off_rows_rungs`, `off_rows_inloop_rungs`, `report_reads_slacks_only`), which apply to any
+/// caller's elastic ladder, the sub-driver's included.
 struct SqpLadderSeam {
     /// How many walk subproblems to end kNumericalError; 0 = off.
     static inline int fail_walk_qps = 0;
@@ -56,7 +58,10 @@ struct SqpLadderSeam {
     /// M8 WALK CAP: the ladder's report judges `closed`/`reduced` on the slacks alone, the
     /// verdict before the rung-residual bound, so the driver's zero-step guard has a fixture.
     static inline bool report_reads_slacks_only = false;
-    /// How many rungs `off_rows_rungs` replaced (read by the test).
+    /// M8 WALK CAP: as `off_rows_rungs`, but each of the next N kOptimal rungs is replaced
+    /// as the ladder runs, before its closure test, not only the final one; 0 = off.
+    static inline int off_rows_inloop_rungs = 0;
+    /// How many rungs `off_rows_rungs` / `off_rows_inloop_rungs` replaced (read by the test).
     static inline int off_rows_forced = 0;
 
     static void reset() {
@@ -72,6 +77,7 @@ struct SqpLadderSeam {
         exhaust_restoration_elastic = 0;
         forced_restoration = 0;
         off_rows_rungs = 0;
+        off_rows_inloop_rungs = 0;
         report_reads_slacks_only = false;
         off_rows_forced = 0;
     }
