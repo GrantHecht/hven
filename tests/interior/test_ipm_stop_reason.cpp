@@ -18,6 +18,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/core/stop.h>
 #include <hven/detail/drivers/ipm_phase_status.h>
 #include <hven/detail/drivers/ipm_solver_impl.h>
 #include <hven/detail/globalization/recovery_chain.h>
@@ -1143,4 +1144,100 @@ TEST(IpmStopReason, TheLagrangianMeritVariantAbsorbsUnevaluableTrials) {
 
 TEST(IpmStopReason, TheL1MeritVariantAbsorbsUnevaluableTrials) {
     expect_variant_absorbs_unevaluable_trials(hven::IpmLineSearchMode::kL1, "kL1");
+}
+
+// ===========================================================================
+// M8 AP-5 G2 (T5, the two restoration-entry doors the driver-level fixtures do
+// not reach). A TOKEN stop inside restoration returns the point restoration was
+// ENTERED from. Entry takes no step (alpha = 0), so the first recovering event's
+// primals are the entry point's: that is the oracle for a door whose entry
+// iterate no earlier event described.
+// ===========================================================================
+
+namespace {
+
+struct StopInRestoration {
+    hven::IpmResult result;
+    std::vector<Eigen::VectorXd> recovering_x; // x of every recovering event, in order
+    int events = 0;
+};
+
+// Runs `c` with a token requested at the `stop_at`-th recovering event.
+StopInRestoration token_stop_at_recovering_event(hven_interior_tests::IpmCase &c,
+                                                 const Eigen::VectorXd &x0, std::size_t stop_at) {
+    StopInRestoration out;
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    c.engine->set_iteration_callback(
+        [&](const hven::IterationEvent &e) {
+            ++out.events;
+            if (e.recovering) {
+                out.recovering_x.push_back(e.x);
+                if (out.recovering_x.size() == stop_at) {
+                    source.request_stop();
+                }
+            }
+            return hven::CallbackAction::kContinue;
+        },
+        hven::IterationPayload::kAll);
+    out.result = c.engine->solve(hven::detail::problem_ref(*c.program), x0, {}, budget);
+    return out;
+}
+
+} // namespace
+
+// THE FEASIBILITY-STALL DOOR: the stall fixture's one restoration episode is
+// entered from the pre-factorization stall check (the mu-form right-hand side is
+// NOT installed there, which the stash must not "undo"). The episode lasts one
+// recovering iteration here, so the stop is requested on that first recovering
+// event, whose primals are the entry iterate's (the entry takes no step); the
+// stash exit is identified by its message, which only that exit writes.
+TEST(IpmStopReason, G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint) {
+    auto probe = stop_reason_test::make_stall_solver(600);
+    const StopInRestoration unstopped = token_stop_at_recovering_event(
+        probe, stop_reason_test::two_var_start(0.0, 0.0), std::size_t{1} << 30);
+    ASSERT_GE(unstopped.recovering_x.size(), 1u)
+        << "premise: the stall fixture enters restoration and delivers its rows";
+
+    auto solver = stop_reason_test::make_stall_solver(600);
+    const StopInRestoration r =
+        token_stop_at_recovering_event(solver, stop_reason_test::two_var_start(0.0, 0.0), 1);
+    ASSERT_EQ(r.recovering_x.size(), 1u);
+    EXPECT_EQ(r.result.status, hven::SolveStatus::kInterrupted) << r.result.message;
+    EXPECT_EQ(r.result.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_NE(r.result.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << r.result.message;
+    EXPECT_TRUE((r.result.x.array() == r.recovering_x.front().array()).all())
+        << "returned " << r.result.x.transpose() << ", entry "
+        << r.recovering_x.front().transpose();
+}
+
+// THE SOFT-STEP ESCALATION DOOR (nested l1): an un-evaluable line search with
+// restoration available enters restoration through the recovery chain's
+// soft-feasibility-step escalation, after the factorization.
+TEST(IpmStopReason, G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEntryPoint) {
+    auto make = [] {
+        return stop_reason_test::make_anchor_only_solver(
+            /*acceptable_tier_contains_the_iterate=*/false, /*restoration_on=*/true,
+            hven::IpmLineSearchMode::kAugmentedLagrangian, /*max_iters=*/3);
+    };
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    auto probe = make();
+    const StopInRestoration unstopped =
+        token_stop_at_recovering_event(probe, x0, std::size_t{1} << 30);
+    ASSERT_GE(unstopped.recovering_x.size(), 1u)
+        << "premise: restoration is entered and delivers rows";
+
+    auto solver = make();
+    const StopInRestoration r = token_stop_at_recovering_event(solver, x0, 1);
+    ASSERT_EQ(r.recovering_x.size(), 1u);
+    EXPECT_EQ(r.result.status, hven::SolveStatus::kInterrupted) << r.result.message;
+    EXPECT_EQ(r.result.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_NE(r.result.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << r.result.message;
+    EXPECT_TRUE((r.result.x.array() == r.recovering_x.front().array()).all());
 }

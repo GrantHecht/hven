@@ -1549,6 +1549,11 @@ class SqpSolverImpl {
     ///        kCallbackStop when a latched callback stop did.
     static StopReason interrupt_reason(const MajorState &mj) noexcept;
 
+    /// @brief The words that follow a kInterrupted exit's label (M8 AP-5 G2):
+    ///        empty, except when the stop landed inside the restoration phase
+    ///        and the exit returned the point restoration was entered from.
+    static std::string interrupt_detail(const SolveState &st);
+
     /// @brief Builds ONE IterationEvent from the row being pushed and hands it
     ///        to the installed per-iteration callback (M6 W5 T8.6).
     ///

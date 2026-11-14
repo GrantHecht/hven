@@ -789,8 +789,14 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // way, and the TIMED WINDOW is what it always was: it brackets the solve
     // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
-    const hven::IpmResult measured =
-        payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
+    // M8 AP-5 G2: the armed leg's token half (see corpus_leg_token in
+    // corpus_cells.h): a never-requested token with HVEN_LEG_UNFIRED_TOKEN set,
+    // the default empty budget otherwise.
+    hven::SolveBudget leg_budget;
+    leg_budget.stop = corpus_leg_token();
+    const hven::IpmResult measured = payload.has_value()
+                                         ? ipm.solve(program, x0, *payload, leg_budget)
+                                         : ipm.solve(program, x0, {}, leg_budget);
     const double wall_s = seconds_since(t0);
     const hven::SolveStatus flag = measured.status;
     const hven::IpmResult &warm_result = measured;

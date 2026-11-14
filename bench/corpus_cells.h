@@ -108,6 +108,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <set>
@@ -118,6 +119,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/stop.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_model_assembly.h>
@@ -1662,6 +1664,15 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpResult &sol,
 // minors) without needing a fixture that burns through 50000 real minors to
 // exercise the same code path. Every call site in run_cell_walk below uses
 // the default.
+// M8 AP-5 G2: THE ARMED LEG'S TOKEN HALF. With HVEN_LEG_UNFIRED_TOKEN set in the
+// environment every corpus solve carries a stop token whose source is never
+// requested; unset (the default) the budget is byte-for-byte what it always was
+// (a default, stateless token). The armed leg byte-compares the two captures.
+inline hven::StopToken corpus_leg_token() {
+    static hven::StopSource source;
+    return std::getenv("HVEN_LEG_UNFIRED_TOKEN") != nullptr ? source.token() : hven::StopToken{};
+}
+
 inline SqpResult
 budgeted_solve(SqpSolver &driver, const hven::detail::NlpModel &model, const Vec &x0,
                const hven::detail::SqpWarmState &warm = hven::detail::SqpWarmState{},
@@ -1672,7 +1683,7 @@ budgeted_solve(SqpSolver &driver, const hven::detail::NlpModel &model, const Vec
     // value and every corpus row is byte-unchanged.
     return driver.solve(hven::detail::problem_ref(model), x0,
                         hven::detail::SqpWarmAccess::wrap(warm),
-                        SolveBudget{.max_minor_iterations = budget});
+                        SolveBudget{.max_minor_iterations = budget, .stop = corpus_leg_token()});
 }
 
 // kPhysicsInformed's own rollout: the family's analytic optimum displaced by

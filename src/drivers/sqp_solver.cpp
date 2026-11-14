@@ -3890,6 +3890,10 @@ struct SqpSolverImpl::SolveState {
         // exit is told so rather than reporting a residual at prices nobody
         // gets back.
         bool duals_cleared = false;
+        // A STOP LANDED INSIDE THE RESTORATION PHASE (M8 AP-5 G2): the exit
+        // returns the point restoration was entered from (moved_x false), and the
+        // two tagged finish arms say so in the message.
+        bool stopped_in_recovery = false;
         // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, filled inside
         // `enter_restoration` on the moved_x path and read only there. It is
         // the ONLY place that evaluation exists: `ev_r` is a local of that
@@ -4177,6 +4181,14 @@ struct SqpSolverImpl::SolveState {
     // subproblem. So a stop never buys another QP, whichever push site the
     // event that carried it belonged to.
     bool interrupted = false;
+    // THE CALL'S STOP TOKEN (SolveBudget::stop, M8 AP-5 G2), kept on the solve
+    // state so `enter_restoration` can forward it into the restoration sub-solve.
+    StopToken stop_token;
+    // THE LATCH WAS SET BY THE TOKEN, not by a callback: the restoration
+    // sub-solve returned kInterrupted with no callback stop latched on this
+    // driver. Always set together with `interrupted`; selects
+    // StopReason::kStopRequested at the four restoration-return sites.
+    bool token_interrupt = false;
     // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
     // `events_fired == rows_pushed` is what proves nothing but `push_history`
     // fires the callback, exactly as `rows_pushed == history.size()` proves
@@ -5698,6 +5710,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // its declaration above for what it is for.
     st.resto.moved_x = false;
     st.resto.duals_cleared = false;
+    st.resto.stopped_in_recovery = false;
 
     // Majors already spent, on both phases, at this point.
     const Index spent = iter + 1 + st.out.counters.restoration_iters;
@@ -5745,6 +5758,26 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     }
     st.resto.used = true;
     ++st.resto.entries;
+
+    // THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point restoration was entered
+    // from -- x, the multipliers and `at_start` -- copied only when a stop is armed
+    // (a callback installed, or a token that can fire). Everything below this
+    // function moves before it returns (`st.x`, the multipliers, and on a resume
+    // `st.ev`), and a stop that landed inside the phase returns THIS point, whatever
+    // the phase went on to do. Pure observation: an armed solve that never stops
+    // never reads it.
+    struct EntryStash {
+        bool valid = false;
+        Vec x, lambda_e, lambda_i;
+        bool at_start = false;
+    } entry_stash;
+    if (iteration_callback_ || st.stop_token.stop_possible()) {
+        entry_stash.x = st.x;
+        entry_stash.lambda_e = st.lambda_e;
+        entry_stash.lambda_i = st.lambda_i;
+        entry_stash.at_start = st.at_start;
+        entry_stash.valid = true;
+    }
 
     // THE ONE MODEL IDENTITY READ ON THIS PATH, and it is not an
     // evaluation. RestorationModel is a Level 1 WRAPPER in the
@@ -6085,6 +6118,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                     }
                     const IterationEvent nested{
                         .iteration = e.iteration,
+                        .recovering = true,
                         .phase = e.phase,
                         .depth = e.depth.value_or(0) + 1,
                         .f = e.f,
@@ -6123,7 +6157,12 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         };
         restoration_sub_ = &sub;
         const ActiveSubGuard active_sub_guard{this};
-        SqpResult phase_result = sub.solve(wrapper, wrapper.start_point());
+        // THE TOKEN TRAVELS INTO THE SUB-SOLVE (M8 AP-5 G2): it polls it at its own
+        // boundaries and returns kInterrupted, which the stop-in-recovery handling
+        // below turns into this solve's stop at the restoration-entry point.
+        SolveBudget sub_budget;
+        sub_budget.stop = st.stop_token;
+        SqpResult phase_result = sub.solve(wrapper, wrapper.start_point(), sub_budget);
         sub_reason = sub.last_stop_reason();
         sub_detail = sub.last_stop_detail();
         return phase_result;
@@ -6305,8 +6344,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     // (its switch row included) is honoured here: no restart, the latch's exit below.
     std::optional<RestorationModel> regularized_restart;
     const RestorationModel *phase_wrapper = &feasibility;
-    if (regularize_on_failure && !st.interrupted && rs.status != SolveStatus::kWorkLimit &&
-        rs.status != SolveStatus::kTimeLimit && rs.counters.restoration_curvature_switches > 0) {
+    if (regularize_on_failure && !st.interrupted && rs.status != SolveStatus::kInterrupted &&
+        rs.status != SolveStatus::kWorkLimit && rs.status != SolveStatus::kTimeLimit &&
+        rs.counters.restoration_curvature_switches > 0) {
         const Vec x_switch = feasibility.original_x(rs.x);
         const int left = ropts.common.max_iterations - static_cast<int>(rs.counters.major_iters);
         if (x_switch.allFinite() && left > 0) {
@@ -6329,6 +6369,30 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             }
         }
     }
+    // A STOP LANDED INSIDE THE PHASE (M8 AP-5 G2): a callback's kStop latched on
+    // the parent by the forwarder, or the forwarded token ending the sub-solve (its
+    // kInterrupted with no callback latch is the token's). Either way this solve
+    // ends here at the point restoration was entered from, whatever the phase
+    // itself reached; the phase's own verdict is still computed below, so a
+    // certificate it earned is kept (converged beats stop inside it).
+    if (rs.status == SolveStatus::kInterrupted && !st.interrupted) {
+        st.interrupted = true;
+        st.token_interrupt = true;
+    }
+    const bool stopped_in_recovery = st.interrupted && entry_stash.valid;
+    // Puts the entry point back and marks the exit; called at both exits below.
+    const auto return_entry_point = [&] {
+        st.x = entry_stash.x;
+        st.lambda_e = entry_stash.lambda_e;
+        st.lambda_i = entry_stash.lambda_i;
+        st.at_start = entry_stash.at_start;
+        st.resto.moved_x = false;
+        st.resto.duals_cleared = false;
+        st.resto.multipliers_are_caller_scale = false;
+        st.resto.kkt = mj.kkt;
+        st.resto.f = st.ev.f;
+        st.resto.stopped_in_recovery = true;
+    };
     // The phase's equality multipliers over every model row: zero on the rows it
     // did not carry, so J^T lambda (and the certificate below) is the phase's own.
     Vec rs_lambda_e = detail::engine_rows(rs).lambda_e;
@@ -6372,6 +6436,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // a declared stationarity read off it would be a residual at prices
         // this call does not return. See the flag's own note.
         st.resto.duals_cleared = true;
+        if (stopped_in_recovery) {
+            return_entry_point();
+        }
         return RestorationOutcome::kExited;
     }
     const double h_r = constraint_violation_l1(ev_r);
@@ -6404,7 +6471,10 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         h_r <= opts_.advanced.restoration_resume_reduction * excursion_h_in &&
         (rs.status == SolveStatus::kNumericalError ||
          (rs.status == SolveStatus::kOptimal && !optimal_claims));
-    if (feasible_resume || reduction_resume) {
+    // A STOPPED PHASE NEVER RESUMES (M8 AP-5 G2): the solve ends at the entry point
+    // through the not-feasible-enough exit below, with the phase's verdict computed
+    // as usual and the entry point put back before it returns.
+    if ((feasible_resume || reduction_resume) && !stopped_in_recovery) {
         if (reduction_resume) {
             ++st.out.counters.restoration_reduction_resumes;
         }
@@ -6645,6 +6715,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.detail = describe_sub_solve_failure(sub_reason, sub_detail);
         break;
     }
+    if (stopped_in_recovery) {
+        return_entry_point();
+    }
     return RestorationOutcome::kExited;
 }
 
@@ -6652,6 +6725,14 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
 // not a latched callback stop, ended the major.
 StopReason SqpSolverImpl::interrupt_reason(const MajorState &mj) noexcept {
     return mj.token_exit ? StopReason::kStopRequested : StopReason::kCallbackStop;
+}
+
+// THE kInterrupted EXIT'S WORDS (M8 AP-5 G2): empty, except when the stop landed
+// inside the restoration phase and the exit returned the point it was entered from.
+std::string SqpSolverImpl::interrupt_detail(const SolveState &st) {
+    return st.resto.stopped_in_recovery ? std::string("returned the point before feasibility "
+                                                      "restoration")
+                                        : std::string();
 }
 
 // ---------------------------------------------------------------------------
@@ -6704,6 +6785,7 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &expor
     }
     IterationEvent event{
         .iteration = static_cast<Index>(st.out.history.size()),
+        .recovering = false,
         .phase = std::nullopt,
         .depth = Index{0},
         .f = exported.f,
@@ -8117,6 +8199,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // reads it above its own: a kStop returned on THIS row, which is the
             // public call's terminal row on the kExited routes, is a no-op.
             mj.interrupted_exit = st.interrupted;
+            mj.token_exit = st.token_interrupt;
             push_history(mj.row);
             if (elastic_outcome == RestorationOutcome::kResumed) {
                 return MajorOutcome::kContinue;
@@ -8316,6 +8399,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 // The parent's latch, read before this row's own event fires;
                 // see the elastic requester above (ruling R4).
                 mj.interrupted_exit = st.interrupted;
+                mj.token_exit = st.token_interrupt;
                 push_history(mj.row);
                 if (outcome == RestorationOutcome::kResumed) {
                     return MajorOutcome::kContinue;
@@ -8630,6 +8714,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // The parent's latch, read before this row's own event fires; see
             // the elastic requester above (ruling R4).
             mj.interrupted_exit = st.interrupted;
+            mj.token_exit = st.token_interrupt;
             push_history(mj.row);
             if (outcome == RestorationOutcome::kResumed) {
                 return MajorOutcome::kContinue;
@@ -8669,6 +8754,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // The parent's latch, read before this row's own event fires; see the
         // elastic requester above (ruling R4).
         mj.interrupted_exit = st.interrupted;
+        mj.token_exit = st.token_interrupt;
         push_history(mj.row);
         if (outcome == RestorationOutcome::kResumed) {
             return MajorOutcome::kContinue;
@@ -8719,6 +8805,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
     st.eff_max_iter = budget.max_iterations
                           ? std::min<Index>(*budget.max_iterations, opts_.common.max_iterations)
                           : opts_.common.max_iterations;
+    st.stop_token = budget.stop;
     st.limit_clock_start = std::chrono::steady_clock::now();
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
     struct BasisViewGuard {
@@ -9033,7 +9120,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // moved x away from what the seed describes; see
             // st.resto.moved_x's own note).
             publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
-                         mj.interrupted_exit ? std::string() : st.resto.detail);
+                         mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(
                 seam, std::move(st.out),
@@ -9068,7 +9155,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // the region around x unless restoration itself moved x; see
             // st.resto.moved_x's own note.
             publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
-                         mj.interrupted_exit ? std::string() : st.resto.detail);
+                         mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
             return finish(seam, std::move(st.out),
                           // The parent's latch outranks the phase's verdict; see the seed

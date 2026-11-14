@@ -57,6 +57,9 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # M8 AP-5 G1: the stop token (SolveBudget::stop) and StopReason on both engines
     # -- the interface design's T1, T2, T6, T8, T10, T13.
     test_stop_token.cpp
+    # M8 AP-5 G2: the recovery-aware stop on the interior-point engine -- the
+    # interface design's T5 (IPM half), T9 (IPM half) and T14.
+    test_stop_recovery.cpp
     # AP-2 B1: the solvers are movable handles; a move preserves the engine.
     test_solver_move.cpp
     test_threads.cpp

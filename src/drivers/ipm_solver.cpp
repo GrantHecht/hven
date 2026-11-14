@@ -1566,11 +1566,33 @@ void hven::detail::IpmSolverImpl::enter_feasibility_restoration(Eigen::VectorXd 
 
 // Restoration-entry dispatch: one owner of the note_dispatch / entry /
 // reset_window ordering. See the declaration in ipm_solver.h.
-void hven::detail::IpmSolverImpl::dispatch_restoration_entry(Eigen::VectorXd &XSL,
-                                                             const Eigen::VectorXd &RHS,
-                                                             double prim_obj, double barr_obj,
-                                                             double &mu, double theta,
-                                                             FeasibilityStallDetector &feas_stall) {
+void hven::detail::IpmSolverImpl::dispatch_restoration_entry(
+    Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu,
+    double theta, FeasibilityStallDetector &feas_stall, const IpmIterate &entry_row,
+    bool newton_form_installed) {
+    // THE RESTORATION-ENTRY STASH (M8 AP-5 G2), taken here -- the one function
+    // every entry door goes through -- and BEFORE enter_feasibility_restoration
+    // writes anything (its nested arm zeroes the equality multipliers and clamps
+    // the slack ones). Armed only: with no callback and a default token nothing
+    // below runs. Observation only; it writes no solver state but the stash.
+    if (this->iteration_callback_ || this->stop_token_.stop_possible()) {
+        RestorationStash &stash = this->resto_stash_;
+        stash.xsl = XSL;
+        stash.rhs = RHS;
+        if (newton_form_installed && this->bounds_) {
+            // Every post-factorization door sees the primal block with the
+            // mu-form bound terms installed ([NEWTON FORM IN]); the stash holds
+            // the form an iteration top builds, so the declared stationarity read
+            // from it is the iterate's own.
+            KktVector v_stash_rhs = kkt_view(stash.rhs);
+            v_stash_rhs.prim_grad() = this->bound_grad_scratch_;
+        }
+        stash.bound_duals = this->bound_duals_;
+        stash.prov = this->cur_eval_prov_;
+        stash.row = entry_row;
+        stash.mu = mu;
+        stash.valid = true;
+    }
     // A stage resumed after an episode restarts its stall window, and this entry
     // becomes the handback the stall exit measures net progress against.
     feas_stall.note_dispatch(theta);
@@ -2528,6 +2550,7 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
 
     IterationEvent event{
         .iteration = static_cast<Index>(iter.iter),
+        .recovering = restoration_contaminated,
         .phase = this->trace_phase_,
         .depth = std::nullopt,
         .f = f_declared,
@@ -2660,6 +2683,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // provenance standing beside this phase's right-hand side.
     this->cur_eval_prov_ = ExitEvalProvenance{};
     this->best_eval_prov_ = ExitEvalProvenance{};
+    // Fresh phase, no restoration episode yet: a stash from an earlier phase is
+    // never the entry point of this one (M8 AP-5 G2).
+    this->resto_stash_.valid = false;
 
     Eigen::VectorXd Temp(this->kkt_dim_);
 
@@ -2675,6 +2701,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // assembly at this function's tail, which must report the BEST iterate's
     // objective when it did.
     bool best_substituted = false;
+    // Whether a token stop inside restoration replaced the pair with the
+    // restoration-entry stash (M8 AP-5 G2). Read at the result assembly below.
+    bool stash_exit = false;
     // Whether a finite best iterate was recorded by this phase (set where the
     // tracker runs). Read by the non-finite abort exit: with return_best on it
     // returns that iterate in full, and without one it returns the failed point.
@@ -3644,7 +3673,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     // seams above and unlike the post-line-search seams, which pass a
                     // live barrier objective.
                     this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu, theta_fs,
-                                                     feas_stall);
+                                                     feas_stall, Citer, false);
                     // Same clause (b) as the four restoration RETURNS below:
                     // the entry re-anchors XSL/RHS and the loop goes round
                     // again, so this right-hand side describes the iterate
@@ -3736,6 +3765,29 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->interrupt_requested_ = true;
             this->stop_requested_latched_ = !callback_stop;
             iters.back().mu = mu;
+            // A TOKEN STOP INSIDE FEASIBILITY RESTORATION RETURNS THE POINT
+            // RESTORATION WAS ENTERED FROM (M8 AP-5 G2, design page section 3.2),
+            // not the restoration iterate: the pair, the bound duals and the
+            // evaluation's provenance are put back from the stash dispatch took
+            // before the entry's multiplier initialisation, and the teardown below
+            // leaves restoration exactly as it does on every other exit that finds
+            // it active. A CALLBACK stop returns the point the callback was shown,
+            // even on a `recovering` event (the event must not be a lie), so it
+            // takes no stash. With no stash (nothing armed cannot reach a token
+            // stop, so this is a defence) the old behaviour stands.
+            if (!callback_stop && this->resto_stash_.valid && this->restoration_ &&
+                this->restoration_->is_active()) {
+                const RestorationStash &stash = this->resto_stash_;
+                XSL = stash.xsl;
+                RHS = stash.rhs;
+                this->bound_duals_ = stash.bound_duals;
+                this->cur_eval_prov_ = stash.prov;
+                this->cur_eval_prov_.at_returned_point = true;
+                this->cur_eval_prov_.substituted = true;
+                mu = stash.mu;
+                stash_exit = true;
+                this->stop_detail_ = "returned the point before feasibility restoration";
+            }
             QPtimer.stop();
             ExitCode = SolveStatus::kIterationLimit;
             this->last_stop_reason_ =
@@ -4290,7 +4342,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     // exhausted factorization produced -- the same precedent as
                     // the un-evaluable-step dispatch in the chain below.
                     this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu, violation_sk,
-                                                     feas_stall);
+                                                     feas_stall, Citer, true);
                     alpha = 0.0;
                     resolved_depth = kRecoveryDepthRestoration;
                 } else if (kkt_no_numerics_numeric) {
@@ -4385,7 +4437,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     } else if (this->restoration_ && !this->restoration_->is_active() &&
                                this->restoration_->entry_permitted(violation_ue, ctx)) {
                         this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu,
-                                                         violation_ue, feas_stall);
+                                                         violation_ue, feas_stall, Citer, true);
                         alpha = 0.0;
                         Citer.accepted = false;
                         // Deliberately overwrites resolved_depth on a watchdog-resolved
@@ -4437,7 +4489,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // this Action, and only when restoration_ is non-null and inactive
                 // (so the calls below are safe).
                 this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu,
-                                                 this->constraint_violation_l1(v_rhs), feas_stall);
+                                                 this->constraint_violation_l1(v_rhs), feas_stall,
+                                                 Citer, true);
                 alpha = 0.0;
                 break;
             }
@@ -4469,7 +4522,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 } else {
                     this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu,
                                                      this->constraint_violation_l1(v_rhs),
-                                                     feas_stall);
+                                                     feas_stall, Citer, true);
                     alpha = 0.0;
                 }
                 break;
@@ -4885,6 +4938,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // in the header for what is contaminated and why the core blocks are not
     // the same question.
     this->solve_exit_restoration_active_ = restoration_was_active;
+    this->solve_exit_stash_point_ = stash_exit;
 
     if (this->bounds_) {
         // Combine the two per-side multipliers into the single signed z that
@@ -4945,14 +4999,18 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
          this->last_stop_reason_ != IpmPhaseStop::kCallbackStop &&
          this->last_stop_reason_ != IpmPhaseStop::kStopRequested && !abort_without_best);
     const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
+    // THE ROW THE RESULT DESCRIBES: the restoration-entry stash's when a token
+    // stop inside restoration returned that point (M8 AP-5 G2), otherwise the row
+    // selected just above.
+    const IpmIterate &ret_row = stash_exit ? this->resto_stash_.row : iters[retiter];
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
     // SolveResult's field note.
     this->result_.returned_best_iterate = return_best_applied;
-    this->result_.convergence.kkt = iters[retiter].kkt_inf;
-    this->result_.convergence.barrier = iters[retiter].barr_inf;
-    this->result_.convergence.equality = iters[retiter].econ_inf;
-    this->result_.convergence.inequality = iters[retiter].icon_inf;
+    this->result_.convergence.kkt = ret_row.kkt_inf;
+    this->result_.convergence.barrier = ret_row.barr_inf;
+    this->result_.convergence.equality = ret_row.econ_inf;
+    this->result_.convergence.inequality = ret_row.icon_inf;
     // WHAT THE PHASE-EXIT EVENT NEEDS, LEFT WHERE `print_exit_stats()` STOOD
     // (M6 W5 T8.7b). `run_phase_sequence` emits `ipm.phase.exit` one statement
     // after this function returns -- after it has filled the phase's
@@ -4963,7 +5021,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // THE ROW IS COPIED because `iters` is this frame's local: the event holds
     // a reference, and by the time it is emitted this vector is gone.
     this->trace_iter_ = -1;
-    this->phase_exit_.row = iters[retiter];
+    this->phase_exit_.row = ret_row;
     this->phase_exit_.best_substituted = return_best_applied;
     this->phase_exit_.total_s = tottime;
     this->phase_exit_.func_s = nlptime;
@@ -6885,8 +6943,12 @@ void hven::detail::IpmSolverImpl::finish_declared_result(Index analyses_before) 
     //     block as "unmeasured" and a zero-length vector cannot be read as
     //     a feasible point the way a copied one can.
     const ExitEvalProvenance &prov = this->exit_eval_prov_;
+    // THE RESTORATION-ENTRY STASH IS A POINT OUTSIDE RESTORATION (M8 AP-5 G2):
+    // its evaluation was taken in optimality mode and its right-hand side is the
+    // declared one, so the exit-flag half of the gate does not apply to it.
     const bool restoration_contaminated =
-        prov.restoration_active || this->solve_exit_restoration_active_;
+        prov.restoration_active ||
+        (this->solve_exit_restoration_active_ && !this->solve_exit_stash_point_);
     if (restoration_contaminated) {
         hven::detail::engine_rows(this->result_).ce = Eigen::VectorXd();
         hven::detail::engine_rows(this->result_).ci = Eigen::VectorXd();

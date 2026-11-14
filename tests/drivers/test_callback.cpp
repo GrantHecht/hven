@@ -51,6 +51,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/ledger.h>
+#include <hven/core/stop.h>
 #include <hven/detail/drivers/declared_diagnostics.h>
 #include <hven/detail/drivers/result_access.h>
 #include <hven/detail/drivers/sqp_solver_impl.h>
@@ -95,6 +96,7 @@ constexpr double kInfBound = std::numeric_limits<double>::infinity();
 // ---------------------------------------------------------------------------
 struct Seen {
     Index iteration = 0;
+    bool recovering = false;
     std::optional<Index> phase;
     std::optional<Index> depth;
     double f = 0.0;
@@ -111,6 +113,7 @@ struct Seen {
 Seen copy_of(const IterationEvent &e) {
     Seen s;
     s.iteration = e.iteration;
+    s.recovering = e.recovering;
     s.phase = e.phase;
     s.depth = e.depth;
     s.f = e.f;
@@ -219,6 +222,67 @@ class StalledValleyModel : public NlpModel {
         x << 0.0, 0.5;
         return x;
     }
+};
+
+// ---------------------------------------------------------------------------
+// FIXTURE: THE CLASSIC MARATOS CIRCLE (VERBATIM from tests/sqp/test_sqp_solver.cpp's
+// MaratosModel; min 2(x0^2 + x1^2 - 1) - x0 s.t. x0^2 + x1^2 = 1, start on the
+// circle at angle theta). At theta = 0.1 the solve's SECOND major is a Maratos
+// rejection rescued by a second-order correction that is PROMOTED
+// (soc_applied == 1 on history[1]) -- the one stopping row on which G1's
+// post-push stop undo of `soc_applied` is observable.
+// ---------------------------------------------------------------------------
+class MaratosModel : public NlpModel {
+  public:
+    explicit MaratosModel(double theta) : theta_(theta) {}
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override {
+        return 2.0 * (x(0) * x(0) + x(1) * x(1) - 1.0) - x(0);
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 4.0 * x(0) - 1.0, 4.0 * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) * x(0) + x(1) * x(1) - 1.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &le, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale * 4.0 + le(0) * 2.0;
+        h.insert(1, 1) = obj_scale * 4.0 + le(0) * 2.0;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 2.0 * x(0);
+        j.insert(0, 1) = 2.0 * x(1);
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << std::cos(theta_), std::sin(theta_);
+        return x;
+    }
+
+  private:
+    double theta_;
 };
 
 // ---------------------------------------------------------------------------
@@ -743,6 +807,31 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     //     holds: the restoration iterations are the reference's.
     EXPECT_LT(sol.counters.major_iters, reference.counters.major_iters);
     EXPECT_EQ(static_cast<Index>(sol.history.size()), sol.counters.major_iters);
+
+    // (e) RE-DERIVED at M8 AP-5 G2 (declared, stop path only): THE POINT RETURNED
+    //     IS THE ONE RESTORATION WAS ENTERED FROM, not the restored point the
+    //     sub-solve walked to. The requesting row's own event fires after the
+    //     phase returns, at the entry point, so it is the LAST depth-0 event
+    //     delivered -- and the result is that event's point, bit for bit. Before
+    //     G2 the result was the restored point.
+    const Seen *requesting = nullptr;
+    for (const Seen &e : seen) {
+        if (e.depth.value_or(0) == 0) {
+            requesting = &e;
+        }
+    }
+    ASSERT_NE(requesting, nullptr);
+    EXPECT_FALSE(requesting->recovering);
+    EXPECT_TRUE(bit_equal(sol.x, requesting->x))
+        << "a stop inside restoration returns the restoration-entry point";
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_NE(sol.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << sol.message;
+    // And the flag says which events are the sub-problem's: exactly depth >= 1.
+    for (const Seen &e : seen) {
+        EXPECT_EQ(e.recovering, e.depth.value_or(0) >= 1);
+    }
 }
 
 TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
@@ -787,6 +876,40 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
     // about the model, and must not be allowed to say otherwise.
     EXPECT_FALSE(sol.infeasibility_certified);
     EXPECT_TRUE(reference.infeasibility_certified);
+
+    // RE-DERIVED at M8 AP-5 G2 (declared, stop path only): the result is the
+    // restoration-ENTRY point -- the last depth-0 event's, which the requesting
+    // row fires after the phase returns -- not the restored point. Recorded by a
+    // second, identical run (the first installs no recorder).
+    SqpSolver again(opts);
+    std::vector<Seen> seen;
+    bool stopped_again = false;
+    again.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped_again && e.depth.value_or(0) == 1) {
+                stopped_again = true;
+                return CallbackAction::kStop;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol2 = again.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped_again);
+    const Seen *requesting = nullptr;
+    for (const Seen &e : seen) {
+        if (e.depth.value_or(0) == 0) {
+            requesting = &e;
+        }
+    }
+    ASSERT_NE(requesting, nullptr);
+    EXPECT_EQ(sol2.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(bit_equal(sol2.x, requesting->x))
+        << "a stop inside restoration returns the restoration-entry point";
+    EXPECT_NE(sol2.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << sol2.message;
+    EXPECT_FALSE(sol2.infeasibility_certified);
 }
 
 // ===========================================================================
@@ -997,6 +1120,256 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
     // it was earned.
     EXPECT_TRUE(sol.infeasibility_certified);
     EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+}
+
+// M8 AP-5 G2 -- T5, the TOKEN half. A requested stop token is forwarded into the
+// restoration sub-solve; the sub-solve honours it at its own boundary, and the
+// parent exits kInterrupted/kStopRequested at the point restoration was entered
+// from. Both restoration fixtures: the resuming one (whose sub-solve would
+// otherwise hand a feasible restored point back and carry on) and the one that
+// runs to a certificate.
+namespace {
+
+struct TokenStopInRestoration {
+    SqpResult sol;
+    std::vector<Seen> seen;
+    bool fired = false;
+};
+
+template <class Model>
+TokenStopInRestoration solve_with_token_on_first_depth1_row(const Model &model,
+                                                            const SqpOptions &opts) {
+    TokenStopInRestoration out;
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            out.seen.push_back(copy_of(e));
+            if (!out.fired && e.depth.value_or(0) == 1) {
+                out.fired = true;
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    out.sol = driver.solve(hven::detail::problem_ref(model), model.start_point(), hven::WarmStart{},
+                           budget);
+    return out;
+}
+
+const Seen *last_depth0(const std::vector<Seen> &seen) {
+    const Seen *last = nullptr;
+    for (const Seen &e : seen) {
+        if (e.depth.value_or(0) == 0) {
+            last = &e;
+        }
+    }
+    return last;
+}
+
+} // namespace
+
+TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_GE(reference.counters.restoration_iters, 1);
+
+    const TokenStopInRestoration r = solve_with_token_on_first_depth1_row(model, opts);
+    ASSERT_TRUE(r.fired) << "no depth-1 event ever fired";
+    EXPECT_EQ(r.sol.status, SolveStatus::kInterrupted) << r.sol.message;
+    EXPECT_EQ(r.sol.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_NE(r.sol.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << r.sol.message;
+    const Seen *entry = last_depth0(r.seen);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_TRUE(bit_equal(r.sol.x, entry->x))
+        << "the restoration-entry point, not the restored one";
+    EXPECT_LT(r.sol.counters.restoration_iters, reference.counters.restoration_iters + 1);
+    EXPECT_LT(r.sol.counters.major_iters, reference.counters.major_iters)
+        << "the solve did not resume and run on";
+    EXPECT_EQ(static_cast<Index>(r.sol.history.size()), r.sol.counters.major_iters);
+    for (const Seen &e : r.seen) {
+        EXPECT_EQ(e.recovering, e.depth.value_or(0) >= 1);
+    }
+}
+
+TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(reference.infeasibility_certified);
+    ASSERT_GE(reference.counters.restoration_iters, 2);
+
+    const TokenStopInRestoration r = solve_with_token_on_first_depth1_row(model, opts);
+    ASSERT_TRUE(r.fired);
+    EXPECT_EQ(r.sol.status, SolveStatus::kInterrupted) << r.sol.message;
+    EXPECT_EQ(r.sol.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_FALSE(r.sol.infeasibility_certified)
+        << "a phase the caller stopped has proved nothing about the model";
+    EXPECT_LT(r.sol.counters.restoration_iters, reference.counters.restoration_iters);
+    const Seen *entry = last_depth0(r.seen);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_TRUE(bit_equal(r.sol.x, entry->x));
+    EXPECT_NE(r.sol.message.find("; returned the point before feasibility restoration"),
+              std::string::npos)
+        << r.sol.message;
+}
+
+// T5, the converged-beats-stop corner: a token requested on the sub-solve's own
+// converged terminal row. The certificate it earned is kept (as the callback
+// twin above pins), and the parent still ends at the entry point.
+TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificateAtTheEntryPoint) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(reference.infeasibility_certified);
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if (e.depth.value_or(0) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    ASSERT_GE(last_depth1, 0);
+
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (e.depth.value_or(0) == 1 && e.iteration == last_depth1) {
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point(),
+                                       hven::WarmStart{}, budget);
+    EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+    // Whether the parent reports the sub-solve's own verdict or the stop depends on
+    // which boundary the token met; either way the point is the entry point.
+    const Seen *entry = last_depth0(seen);
+    ASSERT_NE(entry, nullptr);
+    if (sol.status == SolveStatus::kInterrupted) {
+        EXPECT_TRUE(bit_equal(sol.x, entry->x));
+    }
+}
+
+// T9, the SQP half: an armed-and-unfired solve through a restoration episode is
+// the unarmed solve, counter for counter (a read-only callback at
+// kIncludeRestoration, so the forwarder runs, plus a token that never fires).
+TEST(Callback, SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
+    for (int which = 0; which < 2; ++which) {
+        SCOPED_TRACE(which == 0 ? "resuming fixture" : "certificate fixture");
+        StalledValleyModel valley;
+        InfeasibleCircleLineModel circle;
+        const NlpModel &model = which == 0 ? static_cast<const NlpModel &>(valley)
+                                           : static_cast<const NlpModel &>(circle);
+        SqpOptions opts = quiet_sqp();
+        if (which == 0) {
+            opts.trust_region_initial = 8.0;
+            opts.common.max_iterations = 60;
+        }
+        SqpSolver plain_driver(opts);
+        const SqpResult plain =
+            plain_driver.solve(hven::detail::problem_ref(model), model.start_point());
+        ASSERT_GE(plain.counters.restoration_iters, 1) << "premise: restoration runs";
+
+        hven::StopSource source;
+        hven::SolveBudget budget;
+        budget.stop = source.token();
+        SqpSolver armed_driver(opts);
+        Recorder rec;
+        armed_driver.set_iteration_callback(rec.hook(), IterationPayload::kAll,
+                                            CallbackScope::kIncludeRestoration);
+        const SqpResult armed = armed_driver.solve(hven::detail::problem_ref(model),
+                                                   model.start_point(), hven::WarmStart{}, budget);
+        EXPECT_EQ(armed.status, plain.status);
+        EXPECT_EQ(armed.stop_reason, plain.stop_reason);
+        EXPECT_EQ(armed.message, plain.message);
+        EXPECT_EQ(armed.infeasibility_certified, plain.infeasibility_certified);
+        EXPECT_EQ(armed.counters.major_iters, plain.counters.major_iters);
+        EXPECT_EQ(armed.counters.restoration_iters, plain.counters.restoration_iters);
+        EXPECT_EQ(armed.counters.qp_minor_iters, plain.counters.qp_minor_iters);
+        EXPECT_EQ(armed.counters.factorizations, plain.counters.factorizations);
+        EXPECT_EQ(armed.counters.evals_full, plain.counters.evals_full);
+        EXPECT_EQ(armed.counters.evals_values, plain.counters.evals_values);
+        EXPECT_EQ(armed.history.size(), plain.history.size());
+        EXPECT_TRUE(bit_equal(armed.x, plain.x));
+        EXPECT_TRUE(bit_equal(armed.z, plain.z));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(armed).lambda_e,
+                              hven::detail::engine_rows(plain).lambda_e));
+        EXPECT_TRUE(bit_equal(hven::detail::engine_rows(armed).lambda_i,
+                              hven::detail::engine_rows(plain).lambda_i));
+    }
+}
+
+// G1's post-push stop undoes the acceptance counters of the step it does not take
+// (`soc_applied`, and `qp_failure_steps_accepted` for a failure step). HS071 fires
+// neither on a stopping row, so G1's pin of the undo was weak. The Maratos circle
+// at theta = 0.1 promotes a second-order correction on its second major
+// (history[1]): a stop on THAT row must leave `soc_applied` at 0 (the untaken
+// step's promotion is undone) while `soc_steps` still counts the attempt.
+// (A failure-step acceptance is not reachable from a small public fixture; its
+// undo is the sibling line in the same arm and is pinned by mutation, disclosed
+// in the G2 evidence.)
+TEST(Callback, ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied) {
+    MaratosModel model(0.1);
+    SqpOptions opts = quiet_sqp();
+    opts.common.optimality_tol = 1e-8;
+    opts.common.feasibility_tol = 1e-8;
+    SqpSolver reference_driver(opts);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), model.start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    ASSERT_EQ(reference.counters.soc_applied, 1) << "fixture premise: the rescue is promoted";
+    ASSERT_GE(reference.history.size(), 2u);
+    ASSERT_TRUE(reference.history[1].soc_applied);
+
+    hven::StopSource source;
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver driver(opts);
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (e.iteration == 1) {
+                source.request_stop();
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kScalars);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point(),
+                                       hven::WarmStart{}, budget);
+    ASSERT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kStopRequested);
+    ASSERT_EQ(sol.history.size(), 2u) << "the history ends on the stopped row";
+    EXPECT_TRUE(sol.history[1].soc_applied) << "the row records that its step was a SOC step";
+    EXPECT_EQ(sol.counters.soc_steps, 1);
+    EXPECT_EQ(sol.counters.soc_applied, 0) << "the untaken step's promotion is undone";
+    EXPECT_EQ(sol.counters.steps_accepted, 1) << "only the first step was committed";
 }
 
 // M1 (M6 W5 T8.6 fix1, the SQP lane's): a callback that CLEARS ITSELF from

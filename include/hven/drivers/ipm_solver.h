@@ -203,8 +203,14 @@ class IpmSolver {
     /// last event is read too: a converged iterate still reports `kOptimal`,
     /// and the remaining phases do not run.
     ///
-    /// Nested l1 restoration is silent: its iterations fire nothing, and a stop
-    /// is honoured once control is back in the outer loop.
+    /// Feasibility restoration, proximal or nested l1, runs in place in the same
+    /// loop, so its iterations are ordinary iterations: they fire events (under
+    /// either scope) with `IterationEvent::recovering` set, and their `f` and
+    /// diagnostics are NaN. A `kStop` returned on such an event ends the solve at
+    /// the point that event showed. A stop REQUESTED through `SolveBudget::stop`
+    /// while restoration is active returns the point restoration was entered from
+    /// instead (taken before its multiplier initialisation), and the message says
+    /// so.
     ///
     /// The callback may throw. The exception propagates out of `solve()`, no
     /// solve-end trace event is emitted, and the solver stays usable.

@@ -507,13 +507,13 @@ class IpmSolverImpl {
     /// already fired at the top of that iteration and "one event per `ipm.iter`
     /// row" is the identity that placement buys.
     ///
-    /// NESTED RESTORATION IS SILENT. Under a nested l1 restoration the
-    /// feasibility subproblem is solved by a DISTINCT IpmSolver, which
-    /// carries no callback of its own: its iterations fire nothing, and a kStop
-    /// is honoured only once control is back in this solver's loop. The SQP
-    /// engine forwards into its restoration sub-solve and this one does not;
-    /// forwarding here is registered as a T8-close disposition item rather than
-    /// done in T8.6.
+    /// RESTORATION IS IN PLACE, NOT SILENT. Proximal and nested l1 restoration run
+    /// in this solver's own iteration loop (l1_restoration.h: an in-place phase,
+    /// not a nested solver instance), so their iterations fire events like any
+    /// other, flagged `IterationEvent::recovering` and under either callback
+    /// scope. A kStop returned on one ends the solve at the point it showed. A
+    /// token stop (SolveBudget::stop) inside restoration returns the
+    /// restoration-entry stash instead (M8 AP-5 G2).
     ///
     /// WHAT kStop DOES: the solve ends at the point the event just described --
     /// pre-factorization, so no work is spent on an answer the caller no longer
@@ -1560,6 +1560,35 @@ class IpmSolverImpl {
     /// kind. Appended last, so no existing member's offset moves.
     bool stop_requested_latched_ = false;
 
+    /// THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point feasibility
+    /// restoration was entered from, copied by dispatch_restoration_entry BEFORE
+    /// the entry's multiplier initialisation, and only when a stop is armed (a
+    /// callback installed, or the call's token `stop_possible()`). The same five
+    /// things track_best_iterate snapshots -- the pair, the bound duals and the
+    /// evaluation's provenance -- plus the iteration row and the barrier
+    /// parameter, because a stop that lands inside restoration returns THIS
+    /// point (a token stop; a callback stop returns the point it was shown).
+    /// Pure observation: an armed solve that never stops is bitwise the unarmed
+    /// one. `rhs` is stored in the form the top of an iteration builds (the
+    /// primal block as grad f + J'lambda, with no mu-form bound terms), whichever
+    /// door the entry was taken through.
+    struct RestorationStash {
+        bool valid = false;
+        Eigen::VectorXd xsl;
+        Eigen::VectorXd rhs;
+        BoundDualState bound_duals;
+        ExitEvalProvenance prov;
+        IpmIterate row;
+        double mu = 0.0;
+    };
+    RestorationStash resto_stash_;
+    /// The point the last phase returned was the restoration-entry stash (a
+    /// token stop inside restoration). Written beside solve_exit_restoration_active_;
+    /// it keeps the declared diagnostics of a point that is outside restoration
+    /// from being emptied by that flag (the warm-start capture still treats the
+    /// exit conservatively).
+    bool solve_exit_stash_point_ = false;
+
     // KktVector — the compound-KKT segment view — lives in
     // detail/interior/kkt_vector.h as hven::detail::KktVector, shared with
     // the globalization components (which are non-member, non-friend).
@@ -1917,9 +1946,16 @@ class IpmSolverImpl {
     // `theta` stays a parameter: each site already has the constraint violation
     // it needs in hand, and computing it here instead would add a reduction at
     // two of them.
+    //
+    // M8 AP-5 G2: when a stop is armed it also takes the restoration-entry stash
+    // (resto_stash_) from `entry_row` and the XSL/RHS/bound duals as they stand,
+    // before anything is written. `newton_form_installed` says whether RHS's
+    // primal block carries the mu-form bound terms (every door taken after the
+    // factorization's [NEWTON FORM IN]); the stash undoes them.
     void dispatch_restoration_entry(Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
                                     double prim_obj, double barr_obj, double &mu, double theta,
-                                    FeasibilityStallDetector &feas_stall);
+                                    FeasibilityStallDetector &feas_stall,
+                                    const IpmIterate &entry_row, bool newton_form_installed);
 
     // The restoration EXIT protocol, in the one order every exit site must use:
     // optionally restore the stashed outer mu and reset the governor (only a

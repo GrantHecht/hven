@@ -69,10 +69,13 @@ std::string interrupted_message(StopReason reason, const std::string &detail) {
     if (reason == StopReason::kException) {
         return exception_message(detail);
     }
-    if (reason == StopReason::kStopRequested) {
-        return "interrupted by a stop request (SolveBudget::stop)";
-    }
-    return "interrupted by the iteration callback";
+    // `detail` is empty except where the stop landed inside feasibility
+    // restoration and the engine returned the point restoration was entered from
+    // (M8 AP-5 G2); its words then follow the label.
+    const char *label = reason == StopReason::kStopRequested
+                            ? "interrupted by a stop request (SolveBudget::stop)"
+                            : "interrupted by the iteration callback";
+    return detail.empty() ? std::string(label) : fmt::format("{}; {}", label, detail);
 }
 
 std::string ipm_status_message(const SolveResult &result, StopReason reason,

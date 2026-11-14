@@ -79,9 +79,13 @@ struct SolveBudget {
     /// polled at the exit test before each subproblem, and right after each
     /// accepted step's row is recorded, so the step is not taken. A source
     /// already stopped stops the solve at its first boundary: a token is per
-    /// solve. UNTIL G2 the token is not forwarded into the SQP restoration
-    /// sub-solve: a request made during restoration takes effect when that
-    /// sub-solve returns.
+    /// solve. INSIDE FEASIBILITY RESTORATION the stop returns the point
+    /// restoration was entered from, not the restoration iterate: INTERIOR-POINT
+    /// polls at the iteration top while restoration is active; SQP forwards the
+    /// token into the restoration sub-solve, which polls at its own boundaries.
+    /// The result's `message` then ends "; returned the point before feasibility
+    /// restoration". (A callback stop on a `recovering` interior-point event
+    /// still returns the point that event showed; see IterationEvent::recovering.)
     StopToken stop;
 };
 
@@ -420,6 +424,16 @@ struct IterationEvent {
     ///        `major` field of its `sqp.major` trace line. INTERIOR-POINT: the
     ///        per-phase iterate index, which is `ipm.iter`'s own.
     Index iteration = 0;
+    /// @brief The event describes a point INSIDE feasibility restoration, not an
+    ///        iterate of the caller's own problem. INTERIOR-POINT: restoration
+    ///        is in place, so its rows are part of `iterations` and are
+    ///        delivered under either CallbackScope with this flag set; `f` and
+    ///        the three diagnostics are NaN there (no declared evaluation of the
+    ///        point exists). SQP: true exactly when `depth >= 1` (only under
+    ///        CallbackScope::kIncludeRestoration, which delivers those rows); the
+    ///        point is then in the feasibility sub-problem's own space. A
+    ///        consumer that plots caller-space quantities filters on it.
+    bool recovering = false;
     /// @brief INTERIOR-POINT ONLY: the index of the phase this iterate belongs
     ///        to, in IpmResult::phases. nullopt on the SQP.
     std::optional<Index> phase;
