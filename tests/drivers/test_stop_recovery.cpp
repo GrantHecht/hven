@@ -286,6 +286,10 @@ TEST(StopRecovery, T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint)
                "if the stash kept the mu-form right-hand side)";
         EXPECT_TRUE(same_scalar(r.feasibility, entry.feasibility));
         EXPECT_TRUE(same_scalar(r.complementarity, entry.complementarity));
+        // The convergence column's row is the stash's (the entry iterate's), not an
+        // empty or restoration row: its equality residual is the declared |c| the
+        // entry event reported (one equality, no inequality, no scaling on it).
+        EXPECT_NEAR(r.convergence.equality, entry.feasibility, 1e-12 * (1.0 + entry.feasibility));
         ASSERT_EQ(r.g.size(), 1) << "g is the declared constraint value at the entry point";
         EXPECT_NEAR(r.g[0], r.x[0] * r.x[0] + r.x[1] * r.x[1] + 1.0, 1e-12);
         // THE WARM START OF A STASH EXIT (pins the migration-0.2.md row): it is the
