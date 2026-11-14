@@ -593,7 +593,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
                 // A step through unshifted dense numerics is checked per solve
                 // (kkt_calls.h).
                 dw_dense_refused = detail::unshifted_dense_solve_refused(
-                    k_, rhs, kkt_, fo.arm, dw, dense_check_r_, dense_check_c_);
+                    k_, rhs, kkt_, fo.arm, dw, dense_check_r_, dense_check_c_, dense_check_d_);
             }
         } catch (const std::exception &e) {
             out->status = QpStatus::kNumericalError;
@@ -770,9 +770,16 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         // THE WATCHDOG REPLACES THE CONDITION, NOT THE MECHANISM. Under
         // the shipped kIterationZeroFree rule `wd_relaxed` is structurally
         // false and `(it == 0 && use_hint)` is the exemption verbatim.
+        //
+        // NO EXEMPTION FOR A STEP FROM A SHIFTED FACTOR (kkt_.dense_shifted),
+        // under either safeguard level: the backward-error gate passes the
+        // answer of a system within 1e-8 of K, and on a singular K that answer
+        // can carry multipliers of order 1/sigma, so the step always faces the
+        // merit test. (A relaxed watchdog step it denies still spends its slot.)
         double step = 1.0;
         bool accepted = false;
-        if (!guarded || (watchdog_rule ? wd_relaxed : (it == 0 && use_hint))) {
+        if (!kkt_.dense_shifted &&
+            (!guarded || (watchdog_rule ? wd_relaxed : (it == 0 && use_hint)))) {
             accepted = true;
             trial_point(out->x, out->lambda_e, out->lambda_i, lambda_b, dw, 1.0, guarded, n, me, mi,
                         mb, t_x, t_le, t_li, t_lb);

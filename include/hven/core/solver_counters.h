@@ -606,7 +606,9 @@ struct QpCounters {
     // Walks ended kNumericalError because the pass's answer came from a dense
     // shifted factor, was refused by the backward-error gate, and the suspect
     // ladder was exhausted (0 or 1 per walk). The refusal is also in
-    // dense_shifted_solve_refusals.
+    // dense_shifted_solve_refusals. A broken-factor counter: a correct shifted
+    // factorization's answer passes the gate (eta <= sigma / ||D K D||), so an
+    // inconsistent row set reaches the terminal site as on the platform arm.
     Index dense_shifted_terminations = 0;
     // Step solves through dense numerics the dense solve check refused
     // (eta = ||K y - rhs||inf / (||K||inf ||y||inf + ||rhs||inf) above
@@ -2315,16 +2317,16 @@ struct SqpCounters {
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
     /// @brief QpCounters' field summed the same way: shifted-factor answers
-    ///        refused by the rho gate (walk EQP solves, eliminated and border;
-    ///        SSN Newton steps). Appended last.
+    ///        refused by the backward-error gate (walk EQP solves, eliminated
+    ///        and border; SSN Newton steps). Appended last.
     Index dense_shifted_solve_refusals = 0;
     /// @brief QpCounters' field summed the same way: border answers through a
     ///        shifted K0 not used (refused; the eliminated path served the
     ///        pass). Appended last.
     Index dense_shifted_k0_fallbacks = 0;
     /// @brief QpCounters' field summed the same way: walks ended kNumericalError
-    ///        on a refused shifted answer at an exhausted suspect ladder.
-    ///        Appended last.
+    ///        on a refused shifted answer at an exhausted suspect ladder -- a
+    ///        broken shifted factor, not an inconsistent row set. Appended last.
     Index dense_shifted_terminations = 0;
     /// @brief QpCounters' field summed the same way: SSN and IPQP step solves
     ///        through dense numerics the dense solve check refused. Appended

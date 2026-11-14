@@ -1110,6 +1110,26 @@ TEST(DenseArmReport, TheOneNormEstimatorIsALowerBoundWithinAFactorThree) {
                      7.0);
 }
 
+// THE NO-GROWTH EXIT KEEPS THE LARGER ESTIMATE (C341 F7). For a symmetric B the exit fires in exact
+// arithmetic only on a tie (each unit-vector product dominates the estimate before it), so the
+// guard is for rounding; it is exercised here through an apply that is not symmetric, where the
+// second unit vector's product (5) falls below the first's (9): every estimate is ||B x||_1 at
+// ||x||_1 = 1, a lower bound, so the larger is kept.
+TEST(DenseArmReport, TheOneNormEstimatorKeepsTheLargerEstimateOnNoGrowth) {
+    Mat B(3, 3);
+    B << 2.0, 2.0, 3.0, -2.0, 1.0, -3.0, -4.0, -2.0, 3.0;
+    std::vector<double> x(3);
+    std::vector<double> v(3);
+    std::vector<int> sgn(3);
+    const auto apply = [&](double *p) {
+        const Vec in = Eigen::Map<const Vec>(p, 3);
+        Eigen::Map<Vec>(p, 3) = B * in;
+    };
+    EXPECT_DOUBLE_EQ(
+        hven::linear::detail::estimate_symmetric_one_norm(3, apply, x.data(), v.data(), sgn.data()),
+        9.0);
+}
+
 TEST(DenseArmReport, TheRookWalkReadsTwoByTwoBlocks) {
     Mat m = Mat::Zero(3, 3);
     m(0, 1) = m(1, 0) = 1.0;
@@ -1434,12 +1454,55 @@ TEST(DenseSolveCheck, AnIllConditionedBackwardStableDenseSolveIsAccepted) {
     const Vec before = y;
     Vec r;
     Vec c;
+    Vec dd;
     const Vec res = K.selfadjointView<Eigen::Upper>() * y - rhs;
     // The premise: the rhs-relative residual is far above the tolerance.
     ASSERT_GT(res.lpNorm<Eigen::Infinity>() / rhs.lpNorm<Eigen::Infinity>(), 1e-6);
     EXPECT_LE(eta_of(K, rhs, y, r), 1e-14);
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c, dd));
     EXPECT_EQ(y, before);
+}
+
+// THE CHECK'S METRIC IS THE EQUILIBRATED ONE (C341 F1). K = S K0 S with one primal and one dual row
+// at scale 1e8: an answer whose UNIT rows miss by 1e-4 reads eta ~ 1e-12 raw (||K|| ||y|| is
+// 1e8-sized) and passes; in D's metric it reads ~1e-5 and is refused. The correct answer passes
+// both.
+TEST(DenseSolveCheck, ARowScaleCannotHideAUnitRowMiss) {
+    Mat k0(4, 4);
+    k0 << 4.0, 1.0, 1.0, 0.5, 1.0, 3.0, 0.0, 1.0, 1.0, 0.0, -1e-2, 0.0, 0.5, 1.0, 0.0, -1e-2;
+    Vec s(4);
+    s << 1.0, 1e8, 1e8, 1.0;
+    const Mat Kd = s.asDiagonal() * k0 * s.asDiagonal();
+    const SpMatRM K = upper_csr(Kd);
+    const Vec y_true = Vec::LinSpaced(4, 1.0, 4.0).cwiseQuotient(s);
+    const Vec rhs = Kd * y_true;
+    Vec y = y_true;
+    y(0) += 1e-4; // a unit-row miss
+    y(3) -= 1e-4;
+    const auto zero_solve = [](const Vec &in, Vec &out) { out = Vec::Zero(in.size()); };
+    Vec r;
+    Vec c;
+    Vec d;
+    Vec scratch;
+    ASSERT_LE(eta_of(K, rhs, y, r), 1e-10); // the premise: the raw metric passes it
+    hven::detail::equilibration_scale_into(K, d, scratch);
+    Vec yr = y;
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(
+        K, rhs, hven::detail::kDenseSolveBackwardErrorTol, zero_solve, yr, r, c));
+    EXPECT_TRUE(hven::detail::dense_solve_check_refused(
+        K, &d, rhs, hven::detail::kDenseSolveBackwardErrorTol, zero_solve, y, r, c));
+    Vec yt = y_true;
+    EXPECT_FALSE(hven::detail::dense_solve_check_refused(
+        K, &d, rhs, hven::detail::kDenseSolveBackwardErrorTol, zero_solve, yt, r, c));
+    // The KktFactor form measures in D's metric: a correct dense factor's answer passes.
+    hven::detail::KktFactor kf = kkt_factor(DensePolicy::kAlways);
+    const FactorizeOutcome fo =
+        hven::detail::factorize_checked(kf, K, hven::detail::DenseShiftSite{2});
+    ASSERT_EQ(fo.arm, FactorArm::kDense);
+    ASSERT_FALSE(kf.dense_shifted);
+    Vec ys = hven::detail::solve_vec(kf, rhs);
+    Vec dd;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, kf, fo.arm, ys, r, c, dd));
 }
 
 // A SOLVE THROUGH THE WRONG NUMERICS is refused: the same K answered through the LDL^T of
@@ -1463,7 +1526,8 @@ TEST(DenseSolveCheck, ASolveThroughTheWrongNumericsIsRefused) {
 }
 
 // Dense arm only: the same system on the platform session, and the same answer labelled sparse,
-// are not checked here; a shifted factor is the rho gate's (shifted_solve_refused), not this one's.
+// are not checked here; a shifted factor is the shifted gate's (shifted_solve_refused), not this
+// one's.
 TEST(DenseSolveCheck, OnlyUnshiftedDenseNumericsAreChecked) {
     const SpMatRM K = rotated_ill_conditioned();
     const Vec rhs = small_eigenvector();
@@ -1473,16 +1537,17 @@ TEST(DenseSolveCheck, OnlyUnshiftedDenseNumericsAreChecked) {
     Vec ys = hven::detail::solve_vec(sparse, rhs);
     Vec r;
     Vec c;
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, sparse, so.arm, ys, r, c));
+    Vec dd;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, sparse, so.arm, ys, r, c, dd));
     hven::detail::KktFactor dense = kkt_factor(DensePolicy::kAlways);
     const FactorizeOutcome d =
         hven::detail::factorize_checked(dense, K, hven::detail::DenseShiftSite{kRotatedN});
     Vec yd = hven::detail::solve_vec(dense, rhs);
     const Vec before = yd;
-    EXPECT_FALSE(
-        hven::detail::unshifted_dense_solve_refused(K, rhs, dense, FactorArm::kSparse, yd, r, c));
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, FactorArm::kSparse, yd,
+                                                             r, c, dd));
     dense.dense_shifted = true; // as factorize_checked marks a shift response
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, d.arm, yd, r, c));
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, dense, d.arm, yd, r, c, dd));
     EXPECT_EQ(yd, before);
 }
 
@@ -1499,7 +1564,8 @@ TEST(DenseSolveCheck, APassingDenseSolveIsUsedUnchanged) {
     const Vec before = y;
     Vec r;
     Vec c;
-    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c));
+    Vec dd;
+    EXPECT_FALSE(hven::detail::unshifted_dense_solve_refused(K, rhs, k, fo.arm, y, r, c, dd));
     EXPECT_EQ(y, before);
 }
 

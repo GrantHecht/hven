@@ -90,6 +90,13 @@ Vec equilibration_scale(const SpMatRM &K) {
     return d;
 }
 
+void equilibration_scale_into(const SpMatRM &K, Vec &d, Vec &scratch) {
+    const auto n = static_cast<Index>(K.rows());
+    d.resize(n);
+    scratch.resize(n);
+    hven::linear::detail::ruiz_symmetric_scale(K, d.data(), scratch.data());
+}
+
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const AnalysisDecision &decision,
                                                  const DenseShiftSite &site) {

@@ -305,6 +305,41 @@ guarded by `#ifdef HVEN_TESTING`:
   read (`IpqpSeamTest.AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure`
   in `hven_ipqp_seam_tests`: every attempt exactly singular, which no assembled IPQP
   system reaches -- the tier regularizes both blocks).
+- `DenseSolveFaultInjector` (both backends; M8 dense gate, C341) — `active`,
+  `skip`, `scale`, `max_numerics`; read-outs `numerics_wounded`,
+  `solves_wounded`. A WOUNDED DENSE FACTOR. Hooked in `SymmetricFactor::solve()`
+  and `solve_single()` of both adapters, after the dense session's solve (the
+  platform session's solves are never touched): once `skip` dense solves have
+  passed untouched, the next one wounds the numerics it ran on -- the dense
+  session's `(session_id, epoch)`, which names one set of numerics -- and every
+  solve through those numerics from then on, refinement solves included, has its
+  answer multiplied by `scale`: the answer a factor of `K / scale` would give, a
+  broken factor no detector flagged. Up to `max_numerics` distinct sets are
+  wounded (default 1, `-1` no limit); later numerics are healthy. THE WOUND
+  MUST NOT CONTRACT for a refusal fixture: keep-while-falling refinement maps an
+  answer's error `e` to `(1 - scale) e`, so `0 < scale < 2` is healed and tests
+  nothing; the default `-1` (a sign flip) and any `scale >= 2` leave every
+  refinement step no better than the last. A contracting wound has one use, and
+  it is deliberate: telling WHERE a gate sits (on the first solve, or after
+  refinement). WHY: after the M8 dense gate no correct dense factorization's
+  answer misses the normwise backward error 1e-8 (design note
+  `docs/notes/2026-11-m8-dense-gate-design.md` section 3), so every dense solve
+  gate's refusal branch and its consumer's response is otherwise unreachable.
+  FAITHFUL FOR every gate's verdict and the consumer's response: both read only
+  the answers and `K`. NOT FAITHFUL FOR the factorization's own evidence --
+  inertia, the detector's flag and the shift marker are the real `K`'s, which a
+  real broken factor need not report; no fixture asserts on them under a wound.
+  Consumers: the walk's shifted refusal (one wound: a suspect rung and recovery;
+  every factor wounded: the exhausted ladder's terminal exit), the border path's
+  shifted-K0 fallback to the eliminated path, and the border verdict gate's
+  placement (`QpDenseArmWound.*` in `hven_qp_walk_seam_tests`); the SSN tier's
+  unshifted and shifted refusals and its proximal ladder
+  (`SsnDenseSolveWound.*` in `hven_sqp_seam_tests`); and the IPQP tier's dense
+  solve check by site (`IpqpDenseSolveSeamTest.*` in `hven_ipqp_seam_tests`),
+  which carried a private wound of its own in `ipqp_engine.cpp` from M8 DN-3a
+  until this one replaced it. Both hooks are `#ifdef HVEN_TESTING` in the
+  Apache-2.0 adapters (helper and call sites alike); no session file is
+  touched, so no `notices/` entry.
 - `InertiaQueryFaultInjector` (Accelerate) — `active`, `injected_rc`.
 - `PardisoIparmObserver` (MKL) — `last_ordering_iparm`,
   `last_weighted_matching_iparm`, the per-knob did-the-write-execute pairs
@@ -595,27 +630,12 @@ guarded by `#ifdef HVEN_TESTING`:
   smallest update on those six is 4.9e-07, so that freeze shows as a budget
   escape with ordinary-sized steps, not as a vanishing one. The pin covers the
   vanishing-step class only, and `IpqpStepObserver`'s own doc comment says so.
-- `IpqpDenseSolveInjector` (M8 DN-3a) — `active`, `skip_first`,
-  `max_injections`, `scale`, `injections`. An injector, with a window over the
-  tier's dense-arm step solves (`solve_system` calls on a `kDense`
-  factorization, in order: the μ-estimate's under `kComplementarity`, then each
-  iteration's affine and corrector). Inside the window every backend solve that
-  call makes — the answer and each refinement correction — is multiplied by
-  `scale` (default 3): the answer a dense factor of `K / scale` would give, a
-  wrong factor the detector did not flag. With `scale = 3` the first answer
-  misses by ρ = 2 and the keep-while-falling refinement diverges, so the dense
-  solve check refuses it. WHY: no legal subproblem was found whose dense step
-  solve misses ρ by more than the eps·κ floor — a 4-variable rotated
-  near-singular Hessian refuses at ρ = 1.5e-5, against a 1e-5 threshold — so
-  the response per site (the μ-estimate's fallback; the affine and corrector's
-  perturbed-pivot rung; `kNumerical` at the exhausted ladder) is otherwise
-  unpinnable. FAITHFUL FOR the check's verdict and the tier's response: both
-  read only the answers and `K`. NOT FAITHFUL FOR the factorization's own
-  evidence — its inertia is the real `K`'s, which a real wrong factor need not
-  report; no fixture asserts on it. Consumers:
-  `IpqpDenseSolveSeamTest.*` in `hven_ipqp_seam_tests`. The hook is
-  `#ifdef HVEN_TESTING` inside `solve_system`'s dense branch (call site and
-  helper both guarded), in this Apache-2.0 file; no session file is touched.
+- The IPQP tier's dense solve check is wounded through the linear layer's
+  `DenseSolveFaultInjector` (above; `IpqpDenseSolveSeamTest.*`). Its private
+  `IpqpDenseSolveInjector` (M8 DN-3a), which multiplied every solve of a
+  `solve_system` call inside a window by `scale`, was replaced by it in C341:
+  the adapter's wound persists over the numerics rather than a call, which is
+  what a broken factor does, and the four site fixtures read as before.
 
 Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
 `src/qp/ipqp_engine.cpp` rather than riding `evidence_for_read`: they observe
@@ -702,7 +722,8 @@ still carries the process-global pattern.** Checked as part of FIX-ROUND 1 and
 recorded so it is not rediscovered as a surprise. `IpqpInertiaEvidenceInjector`,
 `IpqpInertiaReadObserver`, `IpqpFirstIterateObserver` and `IpqpStepObserver`
 (`hven/detail/qp/ipqp_fault_injection.h`), and `FactorizeFaultInjector`,
-`AnalyzeFaultInjector`, `DenseFactorizeFaultInjector`, `InertiaQueryFaultInjector`,
+`AnalyzeFaultInjector`, `DenseFactorizeFaultInjector`, `DenseSolveFaultInjector`,
+`InertiaQueryFaultInjector`,
 `PardisoIparmObserver` and
 `ThreadCountObserver` (`hven/detail/linear/fault_injection.h`), all declare their
 state as `static inline` with no `thread_local` and no synchronization. None of

@@ -387,6 +387,7 @@ add_executable(hven_ipqp_seam_tests
     ${HVEN_SRC_DIR}/drivers/sqp_options.cpp
     ${HVEN_SRC_DIR}/drivers/trace.cpp
     ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_calls.cpp
     ${HVEN_SRC_DIR}/qp/ipqp_engine.cpp
     ${HVEN_SRC_DIR}/qp/ipqp_kkt_layout.cpp
     sqp/test_ipqp_seams.cpp
@@ -562,6 +563,8 @@ add_executable(hven_sqp_seam_tests
     # M8 DN-1d: the IPM dense guard's failed re-run (DN-1b review F8), on the dense-attempt
     # and platform-factorize injectors.
     sqp/test_ipm_dense_guard_seams.cpp
+    # C341: the SSN tier's dense solve gates under a wounded factor (DenseSolveFaultInjector).
+    sqp/test_dense_solve_wound_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

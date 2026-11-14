@@ -242,13 +242,8 @@ Vec solve_vec(const KktFactor &k, const Vec &rhs);
 // Algorithms, 2nd ed., Thm 7.1), inf-norms throughout:
 //   eta(y) = ||b - K y|| / (||K|| ||y|| + ||b||),
 // the smallest relative perturbation of K and b that y solves exactly.
-// Ill-conditioning alone does not raise it: a backward-stable rook LDL^T solve
-// of order n has eta <= p(n) u (1 + rho_n) (Thm 11.3, growth rho_n), about
-// 1e-14 at the dense orders (<= 167) with modest growth. One threshold, 1e-8:
-// the relative size of the platform session's own static pivot perturbation
-// (Pardiso iparm[9] = 8), and with u = 2^-53 a bound only a growth factor
-// above ~5e5 could reach on a correct factorization -- the signature of a
-// broken factor, not of rounding.
+// One threshold, 1e-8, for every gate (argued in
+// docs/notes/2026-11-m8-dense-gate-design.md section 3).
 
 /// ||K||inf of the symmetric matrix stored as K's upper triangle, entries
 /// weighted d_i d_j when `d` is non-null (||D K D||inf). `acc` is scratch
@@ -347,40 +342,63 @@ inline bool shifted_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFac
 // is refined (keep-while-falling, kEqpShiftRefineSteps), and it is refused only
 // if eta still exceeds the consumer's refusal threshold. A passing solve is used
 // unchanged. Platform-session answers are not checked.
+//
+// THE METRIC. eta is measured on the equilibrated system (D K D)(D^-1 y) = D b,
+// as the shifted gate is, whenever K is not already equilibrated: in the raw
+// metric a row at scale s carries ||K|| ||y|| (and ||b||) to s-size, and a
+// unit-scale row's residual up to 1e-8 s then passes -- the gate goes vacuous on
+// exactly the rows an SQP constraint scale leaves at unit size. Always, not on
+// a raw-eta trigger: the disparity can sit in either term of the denominator,
+// so no cheap raw reading tells a vacuous pass from a real one without D, and D
+// costs O(nnz) per sweep against the O(n^3) factorization it checks (design
+// note section 3).
 
 /// Refinement trigger on eta, and the refusal threshold.
 inline constexpr double kDenseSolveBackwardErrorTol = 1e-8;
 
+/// @brief The equilibration of K (equilibration_scale) into `d`, with `scratch`
+/// as Ruiz's row-norm workspace; both are resized to K.rows() (no allocation
+/// once sized).
+void equilibration_scale_into(const SpMatRM &K, Vec &d, Vec &scratch);
+
 /// @brief eta = ||K y - rhs||inf / (k_norm ||y||inf + ||rhs||inf), K
 /// upper-stored and k_norm = ||K||inf (symmetric_inf_norm); 0 when residual and
 /// denominator vanish, a NaN propagates. Leaves K y - rhs in `r` (resized to
-/// rhs.size()).
+/// rhs.size()). With `d` non-null, every norm is taken in D's metric
+/// (||D r||, ||D^-1 y||, ||D rhs||; k_norm must then be ||D K D||inf); `r`
+/// stays unscaled.
 inline double dense_backward_error(const SpMatRM &K, double k_norm, const Vec &rhs, const Vec &y,
-                                   Vec &r) {
+                                   Vec &r, const Vec *d = nullptr) {
     r.resize(rhs.size());
     r.noalias() = K.template selfadjointView<Eigen::Upper>() * y;
     r -= rhs;
+    if (d != nullptr) {
+        return backward_error_of(nan_sticky_inf_norm(r.cwiseProduct(*d)), k_norm,
+                                 nan_sticky_inf_norm(y.cwiseQuotient(*d)),
+                                 nan_sticky_inf_norm(rhs.cwiseProduct(*d)));
+    }
     return backward_error_of(nan_sticky_inf_norm(r), k_norm, nan_sticky_inf_norm(y),
                              nan_sticky_inf_norm(rhs));
 }
 
 /// @brief The check on `y`, a solve of K y = rhs through `solve` (a callable
-/// `void(const Vec &in, Vec &out)` against the same numerics): true iff eta
-/// exceeds `refuse_tol` (or is NaN) after refinement. `y` changes only when the
-/// first eta exceeds kDenseSolveBackwardErrorTol. `r` and `c` are caller-held
-/// scratch (no allocation once sized).
+/// `void(const Vec &in, Vec &out)` against the same numerics), with eta in D's
+/// metric when `d` is non-null (raw when K is already equilibrated): true iff
+/// eta exceeds `refuse_tol` (or is NaN) after refinement. `y` changes only when
+/// the first eta exceeds kDenseSolveBackwardErrorTol. `r` and `c` are
+/// caller-held scratch (no allocation once sized).
 template <typename Solve>
-inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, double refuse_tol,
-                                      Solve &&solve, Vec &y, Vec &r, Vec &c) {
-    const double k_norm = symmetric_inf_norm(K, nullptr, c);
-    double eta = dense_backward_error(K, k_norm, rhs, y, r);
+inline bool dense_solve_check_refused(const SpMatRM &K, const Vec *d, const Vec &rhs,
+                                      double refuse_tol, Solve &&solve, Vec &y, Vec &r, Vec &c) {
+    const double k_norm = symmetric_inf_norm(K, d, c);
+    double eta = dense_backward_error(K, k_norm, rhs, y, r, d);
     if (eta <= kDenseSolveBackwardErrorTol) {
         return false;
     }
     for (Index step = 0; step < kEqpShiftRefineSteps; ++step) {
         solve(r, c); // K^-1 (K y - rhs)
         c = y - c;
-        const double c_eta = dense_backward_error(K, k_norm, rhs, c, r);
+        const double c_eta = dense_backward_error(K, k_norm, rhs, c, r, d);
         if (!(c_eta < eta)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
@@ -390,16 +408,27 @@ inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, double r
     return !(eta <= refuse_tol);
 }
 
-/// @brief The KktFactor form at kDenseSolveBackwardErrorTol: true iff the
+/// @brief The raw-metric form, for a K that is already equilibrated.
+template <typename Solve>
+inline bool dense_solve_check_refused(const SpMatRM &K, const Vec &rhs, double refuse_tol,
+                                      Solve &&solve, Vec &y, Vec &r, Vec &c) {
+    return dense_solve_check_refused(K, nullptr, rhs, refuse_tol, std::forward<Solve>(solve), y, r,
+                                     c);
+}
+
+/// @brief The KktFactor form at kDenseSolveBackwardErrorTol, in K's
+/// equilibrated metric (`d` receives equilibration_scale(K)): true iff the
 /// factorization `arm` names was taken by the dense arm unshifted
-/// (`!k.dense_shifted`) and `y` fails the check.
+/// (`!k.dense_shifted`) and `y` fails the check. `r`, `c`, `d` are scratch.
 inline bool unshifted_dense_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
-                                          hven::linear::FactorArm arm, Vec &y, Vec &r, Vec &c) {
+                                          hven::linear::FactorArm arm, Vec &y, Vec &r, Vec &c,
+                                          Vec &d) {
     if (arm != hven::linear::FactorArm::kDense || k.dense_shifted) {
         return false;
     }
+    equilibration_scale_into(K, d, r);
     return dense_solve_check_refused(
-        K, rhs, kDenseSolveBackwardErrorTol,
+        K, &d, rhs, kDenseSolveBackwardErrorTol,
         [&](const Vec &in, Vec &out) {
             out.resize(in.size());
             k.factor.solve(in, out);

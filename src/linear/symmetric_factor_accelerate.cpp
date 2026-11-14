@@ -402,6 +402,19 @@ detail::SubfactorPhase accelerate_phase_of(SymmetricFactor::SolvePhase phase) {
         "SymmetricFactor::solve_partial: unknown solve phase ({})", static_cast<int>(phase)));
 }
 
+#ifdef HVEN_TESTING
+// DenseSolveFaultInjector's wound (fault_injection.h) on one dense solve's
+// answer, keyed on the numerics the solve ran on. Compiles to nothing outside
+// the HVEN_TESTING targets.
+template <typename Out> void wound_dense_solve(const detail::DenseSession &dense, Out &&X) {
+    const double f =
+        detail::testing::DenseSolveFaultInjector::factor_for(dense.session_id(), dense.epoch());
+    if (f != 1.0) {
+        X *= f;
+    }
+}
+#endif
+
 } // namespace
 
 // SymmetricFactor
@@ -875,6 +888,11 @@ SolveInfo SymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     require_solvable("solve");
     const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, RHS, X, "solve")
                                          : run_solve(*session_, RHS, X, "solve");
+#ifdef HVEN_TESTING
+    if (dense_active_) {
+        wound_dense_solve(*dense_, X); // DenseSolveFaultInjector (fault_injection.h)
+    }
+#endif
     if (X.cols() > 0) {
         ++counters_.solve_count;
     }
@@ -885,6 +903,11 @@ SolveInfo SymmetricFactor::solve_single(ConstVecRef rhs, VecRef x) const {
     require_solvable("solve");
     const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, rhs, x, "solve")
                                          : run_solve(*session_, rhs, x, "solve");
+#ifdef HVEN_TESTING
+    if (dense_active_) {
+        wound_dense_solve(*dense_, x); // DenseSolveFaultInjector (fault_injection.h)
+    }
+#endif
     ++counters_.solve_count;
     return info;
 }

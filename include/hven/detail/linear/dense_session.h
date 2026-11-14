@@ -17,6 +17,7 @@
 // that share()/adopt() co-owners advance in turn never rewinds and never
 // repeats an epoch: every (session_id, epoch) names one set of numerics.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -83,8 +84,8 @@ double estimate_symmetric_one_norm(Index n, Apply &&apply, double *x, double *v,
 
 // Every MKL LAPACK call the dense arm makes runs at this thread count, under
 // every dense policy (threaded dsytrf inertia is not reproducible on undecidable
-// matrices). Accelerate runs at its default threading. Options::threads is stored (num_threads()) and configures the
-// platform session only.
+// matrices). Accelerate runs at its default threading. Options::threads is stored (num_threads())
+// and configures the platform session only.
 inline constexpr int kDenseArmThreads = 1;
 
 // What DenseSession::factorize() did with a matrix.
@@ -275,8 +276,14 @@ double estimate_symmetric_one_norm(Index n, Apply &&apply, double *x, double *v,
         for (Index i = 0; i < n && repeated; ++i) {
             repeated = sign_of(x[i]) == sgn[i];
         }
-        // A repeated sign vector, or no growth (NaN included): converged.
-        if (repeated || !(est > est_old)) {
+        // A repeated sign vector, or no growth (NaN included): converged. On no
+        // growth the larger of the two estimates is kept (each is ||B x||_1 for a
+        // unit-1-norm x, so both are lower bounds); a NaN propagates.
+        if (repeated) {
+            break;
+        }
+        if (!(est > est_old)) {
+            est = std::isnan(est) ? est : std::max(est, est_old);
             break;
         }
         for (Index i = 0; i < n; ++i) {

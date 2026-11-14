@@ -313,7 +313,7 @@ struct EqpResult {
     double residual_ratio = 0.0;
     Index residual_refine_iters = 0;
     bool residual_refused = false;
-    /// True iff the answer came from a dense shifted factor and its rho at gate
+    /// True iff the answer came from a dense shifted factor and its eta at gate
     /// time (after refine_shifted_solve, before the residual loop, the proximal
     /// step and the polish) missed kDenseShiftedBackwardErrorTol; implies
     /// `residual_refused`. On the border path: the first Schur solve through a

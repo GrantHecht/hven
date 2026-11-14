@@ -198,22 +198,6 @@ void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const V
     }
 }
 
-/// IpqpDenseSolveInjector's factor for one dense step solve: `scale` inside its window, else 1.
-double dense_solve_wound() {
-    using Inj = detail::testing::IpqpDenseSolveInjector;
-    if (!Inj::active) {
-        return 1.0;
-    }
-    if (Inj::skip_first > 0) {
-        --Inj::skip_first;
-        return 1.0;
-    }
-    if (Inj::max_injections >= 0 && Inj::injections >= Inj::max_injections) {
-        return 1.0;
-    }
-    ++Inj::injections;
-    return Inj::scale;
-}
 #endif // HVEN_TESTING
 
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
@@ -639,7 +623,7 @@ struct IpqpEngine::Workspace {
     // The linear system.
     Vec rhs, sol, dscale, dsq, ruiz_work;
     // The dense solve check's scratch, sized on its first use (dense arm only).
-    Vec check_r, check_c;
+    Vec check_r, check_c, check_d;
 
     // The three `max(1, ...)` folds the relative residual divides by, kept so the SCHEDULE'S
     // gate can be stated on the same scale as the STOPPING rule -- see kIpqpRegGateContract for
@@ -2006,11 +1990,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // gives `u = D^-1 v` for `K v = b`, so the recovered step is `D u` -- and everything leaving
     // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
     //
-    // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored
-    // (scaled when equilibrated, so eta is in D's metric) by its normwise backward error, refined
-    // and refused above kDenseSolveBackwardErrorTol (kkt_calls.h). eta has no condition-number
-    // floor, so the late interior systems pass and the check sees wrong factors only. Returns
-    // true iff refused.
+    // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored by
+    // its normwise backward error in an equilibrated metric -- the tier's own Ruiz D when it
+    // equilibrates, else the check's (kkt_calls.h) -- refined and refused above
+    // kDenseSolveBackwardErrorTol. eta has no condition-number floor, so the late interior
+    // systems pass and the check sees wrong factors only. Returns true iff refused.
     auto solve_system = [&]() -> bool {
         if (iopts.ruiz_equilibration) {
             w.rhs.array() *= w.dscale.array();
@@ -2018,18 +2002,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         kkt_.solve(w.rhs, w.sol);
         bool refused = false;
         if (kkt_.arm() == hven::linear::FactorArm::kDense) {
-#ifdef HVEN_TESTING
-            const double wound = dense_solve_wound();
-            w.sol *= wound;
-#endif
+            const Vec *metric = nullptr;
+            if (!iopts.ruiz_equilibration) {
+                detail::equilibration_scale_into(kkt_.matrix(), w.check_d, w.check_r);
+                metric = &w.check_d;
+            }
             refused = detail::dense_solve_check_refused(
-                kkt_.matrix(), w.rhs, detail::kDenseSolveBackwardErrorTol,
+                kkt_.matrix(), metric, w.rhs, detail::kDenseSolveBackwardErrorTol,
                 [&](const Vec &in, Vec &u) {
                     u.resize(in.size());
                     kkt_.solve(in, u);
-#ifdef HVEN_TESTING
-                    u *= wound;
-#endif
                 },
                 w.sol, w.check_r, w.check_c);
             if (refused) {

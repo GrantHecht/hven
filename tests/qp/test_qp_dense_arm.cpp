@@ -18,7 +18,8 @@
 // pinned. That path is argued, not tested here; DN-1's S3 leg (dep_inertia_reread_flips per
 // cell, kNever vs kAlways, over DN-0's roster) is its first observation.
 //
-// In hven_qp_walk_seam_tests for the E2-D4 dump fixtures; no seam is read.
+// In hven_qp_walk_seam_tests for the E2-D4 dump fixtures; the C341 fixtures at the end arm the
+// dense-solve wound seam (DenseSolveFaultInjector).
 
 #include <algorithm>
 #include <cmath>
@@ -1413,5 +1414,266 @@ TEST(QpNanGates, TheVerdictFaceMeasureKeepsANaNInALaterRow) {
         Vec x = Vec::Ones(3);
         x(j) = std::numeric_limits<double>::quiet_NaN();
         EXPECT_TRUE(std::isnan(QpEngineTestAccess::face_measure(engine, qp, ws, x, o))) << j;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// THE SHIFTED GATES UNDER A WOUNDED FACTOR (C341, the dense-solve wound seam). After the M8 dense
+// gate no correct shifted factorization's answer misses its backward error, so the refusal routes
+// are reached through DenseSolveFaultInjector (hven/detail/linear/fault_injection.h): a wounded
+// set of numerics answers every solve times `scale`, refinement solves included. A sign flip
+// (the default) cannot be healed by keep-while-falling refinement; a wound 0 < scale < 2 is, which
+// is what the placement fixture uses.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+using Wound = hven::linear::detail::testing::DenseSolveFaultInjector;
+
+void arm_wound(int max_numerics, double scale = -1.0) {
+    Wound::reset();
+    Wound::max_numerics = max_numerics;
+    Wound::scale = scale;
+    Wound::active = true;
+}
+
+class QpDenseArmWound : public ::testing::Test {
+  protected:
+    void TearDown() override { Wound::reset(); }
+};
+
+// The consistent duplicated rows x0 + x1 = 1 (twice) at mu = 0: every KKT matrix of the face is
+// exactly singular, so every dense factorization is a shift response.
+QpProblem duplicated_consistent_qp() {
+    Eigen::MatrixXd Ae(2, 3);
+    Ae << 1.0, 1.0, 0.0, 1.0, 1.0, 0.0;
+    return rows_qp(Ae, Vec::Constant(2, 1.0), 1.0);
+}
+
+} // namespace
+
+// THE SEAM, at solve_eqp: a wounded shifted factor's answer is refused by the shifted gate (its
+// refinement keeps nothing), and so by the residual check; a contracting wound is healed by the
+// refinement and passes. Unwounded, the same answer passes.
+TEST_F(QpDenseArmWound, AWoundedShiftedAnswerIsRefusedAndAContractingWoundIsHealed) {
+    const QpProblem qp = duplicated_consistent_qp();
+    {
+        arm_wound(1);
+        const EqpRun d = eqp_on(DensePolicy::kAlways, qp, mu_free_opts());
+        EXPECT_EQ(d.refactors, 1);
+        EXPECT_EQ(Wound::numerics_wounded, 1);
+        EXPECT_GE(Wound::solves_wounded, 2); // the answer and the refinement it spent
+        EXPECT_TRUE(d.res.shifted_refused);
+        EXPECT_TRUE(d.res.residual_refused);
+    }
+    {
+        arm_wound(1, 1.001);
+        const EqpRun d = eqp_on(DensePolicy::kAlways, qp, mu_free_opts());
+        EXPECT_EQ(Wound::numerics_wounded, 1);
+        EXPECT_FALSE(d.res.shifted_refused);
+        EXPECT_FALSE(d.res.residual_refused);
+        EXPECT_NEAR(d.res.x(0) + d.res.x(1), 1.0, 1e-9);
+    }
+}
+
+// THE WALK'S SHIFTED REFUSAL, ONE WOUND (kRefactorize, so every pass is the eliminated path): the
+// refused pass takes one rung of the suspect ladder, the rung's refactorization is healthy, and the
+// walk ends where the sparse arm's does.
+TEST_F(QpDenseArmWound, AWalkRefusalTakesASuspectRungAndRecovers) {
+    const QpProblem qp = duplicated_consistent_qp();
+    QpOptions o = mu_free_opts();
+    o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
+    const QpSolution s = QpEngine(o, 0, DensePolicy::kNever).solve(qp);
+    const QpSolution base = QpEngine(o, 0, DensePolicy::kAlways).solve(qp);
+    ASSERT_EQ(base.counters.dense_shifted_solve_refusals, 0);
+    arm_wound(1);
+    const QpSolution d = QpEngine(o, 0, DensePolicy::kAlways).solve(qp);
+    EXPECT_EQ(Wound::numerics_wounded, 1);
+    EXPECT_EQ(d.counters.dense_shifted_solve_refusals, 1);
+    EXPECT_EQ(d.counters.suspect_escalations, base.counters.suspect_escalations + 1);
+    EXPECT_EQ(d.counters.dense_shifted_terminations, 0);
+    EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6);
+}
+
+// THE WALK'S SHIFTED REFUSAL, EVERY FACTOR WOUNDED: each refusal is a rung until the ladder is
+// exhausted, and the refused shifted answer is then TERMINAL (no verified step exists):
+// kNumericalError at the finite iterate the walk stands on, one dense_shifted_terminations.
+TEST_F(QpDenseArmWound, AWalkRefusalAtTheExhaustedLadderIsTerminal) {
+    const QpProblem qp = duplicated_consistent_qp();
+    QpOptions o = mu_free_opts();
+    o.working_set_algebra = QpWorkingSetAlgebra::kRefactorize;
+    arm_wound(-1);
+    const QpSolution d = QpEngine(o, 0, DensePolicy::kAlways).solve(qp);
+    EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kNumericalError));
+    EXPECT_EQ(d.counters.dense_shifted_terminations, 1);
+    EXPECT_EQ(d.counters.suspect_escalations, kMaxSuspectEscalations);
+    EXPECT_EQ(d.counters.dense_shifted_solve_refusals, kMaxSuspectEscalations + 1);
+    EXPECT_TRUE(d.x.allFinite());
+}
+
+// THE BORDER PATH'S SHIFTED-K0 FALLBACK: K0 (the face's whole KKT, shifted) is wounded; the
+// bordered answer fails the gate and the pass takes the eliminated path, whose own factor is
+// healthy. The same-rows rule keeps the wounded K0, so every border pass falls back; the walk ends
+// where the sparse arm's does.
+TEST_F(QpDenseArmWound, AWoundedShiftedK0FallsBackToTheEliminatedPath) {
+    const QpProblem qp = duplicated_consistent_qp();
+    QpOptions o = mu_free_opts();
+    o.working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
+    const QpSolution s = QpEngine(o, 0, DensePolicy::kNever).solve(qp);
+    arm_wound(1);
+    const QpSolution d = QpEngine(o, 0, DensePolicy::kAlways).solve(qp);
+    EXPECT_EQ(Wound::numerics_wounded, 1);
+    EXPECT_GE(d.counters.dense_shifted_k0_fallbacks, 1);
+    EXPECT_EQ(d.counters.dense_shifted_solve_refusals, d.counters.dense_shifted_k0_fallbacks);
+    EXPECT_EQ(d.counters.dense_shifted_terminations, 0);
+    EXPECT_EQ(static_cast<int>(d.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_LE((d.x - s.x).lpNorm<Eigen::Infinity>(), 1e-6);
+}
+
+// THE BORDER VERDICT GATE'S PLACEMENT: on the first Schur solve, before any refinement. A
+// contracting wound (scale 1.001) on K0 makes the first solve miss the gate while the refined
+// replay meets it (both measured below): a gate placed after refinement would take the verdict
+// step; the gate at its placement refuses the replay and the refinement does nothing.
+TEST_F(QpDenseArmWound, TheBorderVerdictGateJudgesTheFirstSchurSolve) {
+    QpProblem qp = rows_plus_ineq_qp(0.0, 0.0, 0.25 + 1e-3);
+    Eigen::MatrixXd Ai(1, 3);
+    Ai << 0.0, 3e-6, 1.0;
+    qp.Ai = Ai.sparseView();
+    qp.g(0) = 1e8;
+    qp.g(1) = 1e8;
+    qp.upper(2) = 0.25;
+    QpOptions o = mu_free_opts();
+    o.schur_condition_max = 1e16;
+    o.feasibility_tol = 1e-15;
+    const QpEngine engine(o, 0, DensePolicy::kAlways);
+    BorderState border(0, DensePolicy::kAlways);
+    QpCounters counters;
+    const WorkingSet k0_ws(3, qp.mi());
+    WorkingSet ws(3, qp.mi());
+    ws.add_ineq(0);
+    ws.bound_state()[2] = BoundState::kAtUpper;
+    QpEngineTestAccess::build_border(engine, qp, k0_ws, ws, border, counters, o);
+    ASSERT_TRUE(border.kkt.dense_shifted);
+    ASSERT_EQ(border.ledger.size(), 2U);
+    arm_wound(1, 1.001); // K0's numerics, from its next solve on
+    Vec x = Vec::Zero(3);
+    {
+        const BorderedSystem sys =
+            build_bordered_system(qp, border.k0, border.k0_rows, border.ledger, ws, x, o);
+        const Vec first = border.schur->solve(sys.rhs);
+        const Vec refined = refine_bordered_solve_iterated(
+            border.k0.K, 3, sys.border_v, sys.border_d, *border.schur, sys.rhs, first, o, nullptr,
+            nullptr, nullptr, true);
+        EXPECT_GT(bordered_shifted_backward_error(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
+                                                  first, border.kkt.dense_scale),
+                  kDenseShiftedBackwardErrorTol);
+        EXPECT_LE(bordered_shifted_backward_error(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
+                                                  refined, border.kkt.dense_scale),
+                  kDenseShiftedBackwardErrorTol);
+    }
+    ASSERT_EQ(Wound::numerics_wounded, 1);
+    EXPECT_FALSE(QpEngineTestAccess::border_verdict_refine(engine, qp, ws, x, border, counters, o));
+    EXPECT_EQ(x, Vec::Zero(3));
+    EXPECT_EQ(counters.verdict_refine_steps, 0);
+}
+
+namespace {
+using LMat = Eigen::Matrix<long double, Eigen::Dynamic, Eigen::Dynamic>;
+using LVec = Eigen::Matrix<long double, Eigen::Dynamic, 1>;
+// K = S K0 S at mu = 0, delta = 0: variables (x0, x1, x2), rows (r0 scaled, r1 unit);
+// S = diag(1, 1, s | s, 1): x2 at curvature s^2 (coupled to the unit block when `coupled`), row r0
+// at scale s. K0 is well conditioned, so the exact answer is S^-1 K0^-1 (S rhs), K0 solved in long
+// double.
+struct F3 {
+    QpProblem qp;
+    Vec ystar; // S^-1 y0, y0 from K0 in long double
+};
+F3 f3_qp(double s, bool coupled) {
+    Eigen::MatrixXd H0(3, 3);
+    if (coupled) {
+        H0 << 2.0, 0.5, 0.3, 0.5, 1.0, 0.2, 0.3, 0.2, 1.0;
+    } else {
+        H0 << 2.0, 0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0, 1.0;
+    }
+    Eigen::MatrixXd A0(2, 3);
+    A0 << 1.0, 1.0, 1.0, 1.0, -1.0, 0.5;
+    Vec g0(3);
+    g0 << -1.0, 0.3, 0.7;
+    Vec b0(2);
+    b0 << 0.4, 0.2;
+    Vec sv(3);
+    sv << 1.0, 1.0, s;
+    Vec sr(2);
+    sr << s, 1.0;
+    F3 f;
+    const Eigen::MatrixXd H = sv.asDiagonal() * H0 * sv.asDiagonal();
+    f.qp.H = H.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    f.qp.g = g0.cwiseProduct(sv);
+    const Eigen::MatrixXd A = sr.asDiagonal() * A0 * sv.asDiagonal();
+    f.qp.Ae = A.sparseView();
+    f.qp.be = b0.cwiseProduct(sr);
+    f.qp.Ai.resize(0, 3);
+    f.qp.bi = Vec(0);
+    f.qp.lower = Vec::Constant(3, -1e30);
+    f.qp.upper = Vec::Constant(3, 1e30);
+    LMat K0 = LMat::Zero(5, 5);
+    K0.topLeftCorner(3, 3) = H0.cast<long double>();
+    K0.bottomLeftCorner(2, 3) = A0.cast<long double>();
+    K0.topRightCorner(3, 2) = A0.transpose().cast<long double>();
+    LVec r0(5);
+    r0 << -g0.cast<long double>(), b0.cast<long double>();
+    const LVec y0 = K0.fullPivLu().solve(r0);
+    Vec S(5);
+    S << sv, sr;
+    f.ystar = y0.cast<double>().cwiseQuotient(S);
+    return f;
+}
+} // namespace
+
+// THE RAW FACTORS OF A SCALE-CLEARED KKT ARE ACCURATE IN EVERY BLOCK (C341 F3). The detector clears
+// K = S K0 S (raw rcond ~ 1/s^2, screened and raw-flagged, equilibrated rcond K0's) and the dense
+// arm keeps dsytrf_rook's factors of the RAW matrix. Rook LDL^T's backward error is relative to
+// ||K||, so the concern was a unit-scale block carrying u * s error. MEASURED, s = 1e8, 1e10, 1e12,
+// with and without the scaled variable coupled to the unit block: every component of the raw solve
+// -- unit primal block, scaled variable, the scaled row's multiplier and the unit row's -- has
+// relative error <= ~1e-15, as do the walk's EQP answer and the walk's solution; a factorization of
+// D K D (sigma = 0) is no more accurate (measured, ~1e-15). The pivot order, not the scaling,
+// decides an LDL^T's rounding, so the factors of S K0 S are S times K0's to rounding. (On the
+// coupled fixture at s >= 1e8 the platform session's perturbed, scaled Pardiso factor is the one
+// that loses accuracy; not pinned here.)
+TEST(QpDenseArm, TheRawFactorsOfAScaleClearedKktAreAccurateInEveryBlock) {
+    for (const bool coupled : {false, true}) {
+        for (const double s : {1e8, 1e10, 1e12}) {
+            SCOPED_TRACE(::testing::Message() << "coupled " << coupled << " s " << s);
+            const F3 f = f3_qp(s, coupled);
+            QpOptions o = mu_free_opts();
+            o.primal_regularization = 0.0;
+            const WorkingSet ws(3, 0);
+            const KktAssembly a = assemble_kkt(f.qp, ws, o);
+            Vec rhs(5);
+            rhs << -f.qp.g, f.qp.be;
+            const auto worst_relerr = [&](const Vec &y) {
+                return (y - f.ystar).cwiseAbs().cwiseQuotient(f.ystar.cwiseAbs()).maxCoeff();
+            };
+            KktFactor k(0, DensePolicy::kAlways);
+            const hven::linear::FactorizeOutcome fo = factorize_checked(k, a.K, DenseShiftSite{3});
+            ASSERT_EQ(fo.arm, FactorArm::kDense);
+            EXPECT_EQ(k.factor.counters().dense_equilibrated_estimate_count, 1); // raw-flagged
+            EXPECT_FALSE(fo.inertia.numerically_singular);                       // and cleared
+            EXPECT_FALSE(k.dense_shifted);
+            EXPECT_LE(worst_relerr(solve_vec(k, rhs)), 1e-14);
+            KktFactor kd(0, DensePolicy::kAlways);
+            const EqpResult e = solve_eqp(f.qp, ws, Vec::Zero(3), kd, o);
+            Vec ye(5);
+            ye << e.x, e.lambda_e;
+            EXPECT_FALSE(e.residual_refused);
+            EXPECT_LE(worst_relerr(ye), 1e-14);
+            const QpSolution w = QpEngine(o, 0, DensePolicy::kAlways).solve(f.qp);
+            Vec yw(5);
+            yw << w.x, w.lambda_e;
+            EXPECT_EQ(static_cast<int>(w.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_LE(worst_relerr(yw), 1e-14);
+        }
     }
 }

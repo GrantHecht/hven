@@ -918,12 +918,15 @@ TEST_F(IpqpSeamTest, AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailu
 }
 
 // ---------------------------------------------------------------------------
-// THE DENSE SOLVE CHECK'S RESPONSE (M8 DN-3a): a wrong dense step solve, by site
+// THE DENSE SOLVE CHECK'S RESPONSE (M8 DN-3a): a wrong dense step solve, by site.
+// The wound is the linear layer's adapter seam (DenseSolveFaultInjector,
+// fault_injection.h; C341 replaced the tier's private one): a wounded set of
+// numerics answers every solve times `scale`, refinement solves included.
 // ---------------------------------------------------------------------------
 
 namespace {
 
-using DenseSolve = detail::testing::IpqpDenseSolveInjector;
+using DenseSolve = hven::linear::detail::testing::DenseSolveFaultInjector;
 
 IpqpResult dense_convex_solve(const IpqpOptions &io = IpqpOptions{}) {
     IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
@@ -938,6 +941,15 @@ IpqpOptions with_mu_estimate() {
     io.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
     io.barrier_initial = 1e3;
     return io;
+}
+
+// Armed: a 3x wound (refinement maps the error e to -2 e, so it never heals).
+void arm_wound(int skip, int max_numerics) {
+    DenseSolve::reset();
+    DenseSolve::skip = skip;
+    DenseSolve::max_numerics = max_numerics;
+    DenseSolve::scale = 3.0;
+    DenseSolve::active = true;
 }
 
 class IpqpDenseSolveSeamTest : public ::testing::Test {
@@ -966,10 +978,9 @@ TEST_F(IpqpDenseSolveSeamTest, TheControlSolveRefusesNothing) {
 // The mu-estimate's solve refused: the estimate's own non-finite fallback, nothing else moves
 // into the ladder.
 TEST_F(IpqpDenseSolveSeamTest, ARefusedMuEstimateSolveTakesTheEstimatesFallback) {
-    DenseSolve::active = true;
-    DenseSolve::max_injections = 1;
+    arm_wound(0, 1);
     const IpqpResult r = dense_convex_solve(with_mu_estimate());
-    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(DenseSolve::numerics_wounded, 1);
     EXPECT_EQ(r.dense_solve_residual_refusals, 1);
     EXPECT_EQ(r.counters.ipqp_mu0_derived, 0);
     EXPECT_EQ(r.counters.ipqp_mu0_fallbacks, 1);
@@ -979,10 +990,10 @@ TEST_F(IpqpDenseSolveSeamTest, ARefusedMuEstimateSolveTakesTheEstimatesFallback)
 // The first iteration's affine solve refused: one perturbed-pivot rung on its factorization, the
 // step re-taken on the new one, and the solve finishes.
 TEST_F(IpqpDenseSolveSeamTest, ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes) {
-    DenseSolve::active = true;
-    DenseSolve::max_injections = 1;
+    arm_wound(0, 1);
     const IpqpResult r = dense_convex_solve();
-    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(DenseSolve::numerics_wounded, 1);
+    EXPECT_GE(DenseSolve::solves_wounded, 2); // the answer and the refinement it spent
     EXPECT_EQ(r.dense_solve_residual_refusals, 1);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
     EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
@@ -993,11 +1004,9 @@ TEST_F(IpqpDenseSolveSeamTest, ARefusedAffineSolveTakesOneLadderRungAndTheSolveF
 // The first iteration's corrector solve refused (its affine passed on the same factorization):
 // the same one rung, and both solves re-taken.
 TEST_F(IpqpDenseSolveSeamTest, ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes) {
-    DenseSolve::active = true;
-    DenseSolve::skip_first = 1;
-    DenseSolve::max_injections = 1;
+    arm_wound(1, 1);
     const IpqpResult r = dense_convex_solve();
-    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(DenseSolve::numerics_wounded, 1);
     EXPECT_EQ(r.dense_solve_residual_refusals, 1);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
     EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
@@ -1009,13 +1018,13 @@ TEST_F(IpqpDenseSolveSeamTest, ARefusedCorrectorSolveTakesOneLadderRungAndTheSol
 // escapes kNumerical only when the ladder is at its ceiling -- the last refusal is the terminal
 // rejection (a retry without an increase), and no step was ever taken.
 TEST_F(IpqpDenseSolveSeamTest, RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical) {
-    DenseSolve::active = true;
+    arm_wound(0, -1);
     const IpqpResult r = dense_convex_solve();
     EXPECT_EQ(r.status, QpStatus::kNumericalError);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
     EXPECT_EQ(r.counters.ipqp_iters, 0);
     EXPECT_GE(r.dense_solve_residual_refusals, 2);
-    EXPECT_EQ(DenseSolve::injections, r.dense_solve_residual_refusals);
+    EXPECT_EQ(DenseSolve::numerics_wounded, r.dense_solve_residual_refusals);
     EXPECT_EQ(r.counters.ipqp_inertia_retries, r.dense_solve_residual_refusals);
     EXPECT_EQ(r.counters.ipqp_reg_increases, r.dense_solve_residual_refusals - 1);
 }

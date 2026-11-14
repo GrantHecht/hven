@@ -44,6 +44,8 @@
 
 #ifdef HVEN_TESTING
 
+#include <cstdint>
+
 namespace hven::linear::detail::testing {
 
 // Fault injection for SymmetricFactor::factorize()'s call into the backend
@@ -94,6 +96,77 @@ struct AnalyzeFaultInjector {
 struct DenseFactorizeFaultInjector {
     static inline bool active = false;
     static inline int pass = 0;
+};
+
+// A WOUNDED DENSE FACTOR (BOTH backends; use sites in SymmetricFactor::solve()
+// and solve_single(), symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp).
+// When active, the dense solve that comes after `skip` untouched dense solves
+// wounds the numerics it ran on -- the dense session's (session_id, epoch),
+// which names one set of numerics -- and EVERY solve through those numerics,
+// that one and each later one (a consumer's refinement solves included), has its
+// answer multiplied by `scale`: the answer a factor of K / scale would give, a
+// broken factor no detector flagged. Numerics committed later are healthy unless
+// the wound has numerics left (`max_numerics` distinct sets; -1 = no limit), in
+// which case the next dense solve on new numerics wounds them too.
+//
+// THE WOUND MUST NOT CONTRACT. Keep-while-falling refinement against K maps an
+// answer's error e to (1 - scale) e, so a wound 0 < scale < 2 is healed by
+// refinement and tests nothing; `scale` <= 0 or >= 2 (default -1, a sign flip)
+// leaves every refinement step no better than the last, which is what a broken
+// factor looks like to a gate.
+//
+// FAITHFUL FOR every consumer's solve gate and its response (they read only the
+// answers and K). NOT FAITHFUL FOR the factorization's own evidence: inertia,
+// the detector's flag and the shift marker are the real K's, which a real broken
+// factor need not report. Platform-session solves are never touched.
+struct DenseSolveFaultInjector {
+    static inline bool active = false;
+    static inline int skip = 0;
+    static inline double scale = -1.0;
+    static inline int max_numerics = 1;
+    // Read-outs: numerics wounded so far, and solves whose answer was scaled.
+    static inline int numerics_wounded = 0;
+    static inline int solves_wounded = 0;
+    static inline bool engaged = false;
+    static inline std::uint64_t wounded_session = 0;
+    static inline std::uint64_t wounded_epoch = 0;
+
+    static void reset() {
+        active = false;
+        skip = 0;
+        scale = -1.0;
+        max_numerics = 1;
+        numerics_wounded = 0;
+        solves_wounded = 0;
+        engaged = false;
+        wounded_session = 0;
+        wounded_epoch = 0;
+    }
+
+    // The factor for one dense solve on the numerics (session_id, epoch): `scale`
+    // on wounded numerics, else 1.
+    static double factor_for(std::uint64_t session_id, std::uint64_t epoch) {
+        if (!active) {
+            return 1.0;
+        }
+        if (engaged && session_id == wounded_session && epoch == wounded_epoch) {
+            ++solves_wounded;
+            return scale;
+        }
+        if (skip > 0) {
+            --skip;
+            return 1.0;
+        }
+        if (max_numerics >= 0 && numerics_wounded >= max_numerics) {
+            return 1.0;
+        }
+        engaged = true;
+        wounded_session = session_id;
+        wounded_epoch = epoch;
+        ++numerics_wounded;
+        ++solves_wounded;
+        return scale;
+    }
 };
 
 // Fault injection for SymmetricFactor::inertia()'s SparseGetInertia call

@@ -114,7 +114,7 @@ struct DepSystem {
         comp.push_back(WsMember{kind, idx});
     }
 
-    // No rho gate on shifted numerics, because nothing built on these solves is
+    // No backward-error gate on shifted numerics, because nothing built on these solves is
     // used unverified against the data: a dependent verdict is certified by
     // w = a - A_W' v formed from the data; an independent one needs residual()
     // -- the unshifted matrix -- to converge (otherwise undecidable, or the

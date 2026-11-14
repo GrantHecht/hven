@@ -3827,7 +3827,7 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws, 
         // K0 depends on the working ROWS alone (pins are borders) and the stack
         // is reset whenever the values or the regularization move, so on the
         // same rows a rebuild would refactor the same K0 into the same shift:
-        // none is taken, and the border answer is gated on rho
+        // none is taken, and the border answer is gated on its backward error
         // (solve_bordered_eqp). Other rows rebuild below.
         if (!(border.kkt.dense_shifted && border.k0_rows == ws.active_ineq())) {
             const hven::linear::InertiaEvidence e = border.kkt.factor.inertia();
@@ -3912,8 +3912,9 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // Evaluated BEFORE the solve so a throw below cannot leave a
         // verdict describing a system that was never solved.
         verdict = border_inertia_verdict(qp, border);
-        // A K0 holding dense shifted numerics: the answer is gated on rho
-        // against the unshifted bordered system (solve_bordered_eqp).
+        // A K0 holding dense shifted numerics: the answer is gated on its
+        // backward error against the unshifted bordered system
+        // (solve_bordered_eqp).
         EqpResult res =
             solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
                                opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
