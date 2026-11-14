@@ -1,0 +1,137 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:17:33-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:17:33-05:00
+
+The following tests did not run:
+	809 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2366 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2367 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T17:18:45-05:00
+STEP ctest-rel rc=0 2026-11-14T17:18:45-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:18:45-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	809 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2366 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2367 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T17:25:22-05:00
+STEP ctest-dbg rc=0 2026-11-14T17:25:22-05:00
+          Start  861: GoldenRigAudit.StaticScanSelfTest
+ 150/3685 Test  #861: GoldenRigAudit.StaticScanSelfTest ..................................................................................................................................................................................   Passed    0.09 sec
+          Start 1739: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions
+1205/3685 Test #1739: WarmProtocol.ColdCeilingStillRefusesAWrongStampAtTheRightDimensions ................................................................................................................................................   Passed    0.01 sec
+          Start 1004: SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide
+1756/3685 Test #1004: SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide ...................................................................................................................................................   Passed    0.01 sec
+          Start 1243: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts
+2753/3685 Test #1243: NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts ......................................................................................................................................   Passed    0.00 sec
+STEP golden-rig-listing rc=0 2026-11-14T17:25:22-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:25:22-05:00
+d80ce1bfd2512b7e830d693eefae6b9d4da48c757add091b5e55bab5cfe31334  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armAbin/hven_sqp_corpus
+bd63871d04868a8d3fe89e439060f19faedf406c05f056749e19c3d00848fc7b  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-14T17:25:22-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-14T17:30:09-05:00
+run rc=0
+compare rc=0
+=== g2-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-14T17:34:59-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-14T17:35:19-05:00
+run rc=0
+compare rc=0
+=== g2-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-14T17:35:40-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-14T17:36:06-05:00
+run rc=0
+compare rc=0
+=== g2-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-14T17:36:32-05:00
+run rc=0
+compare armed rc=0
+=== g2-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-14T17:41:21-05:00
+run rc=0
+compare armed rc=0
+=== g2-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-14T17:41:41-05:00
+run rc=0
+compare armed rc=0
+=== g2-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-14T17:42:07-05:00
+STEP replay rc=0 2026-11-14T17:42:07-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:42:07-05:00
+d80ce1bfd2512b7e830d693eefae6b9d4da48c757add091b5e55bab5cfe31334  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armAbin/hven_sqp_corpus
+bd63871d04868a8d3fe89e439060f19faedf406c05f056749e19c3d00848fc7b  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-14T17:42:52-05:00
+STEP interior rc=0 2026-11-14T17:42:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:42:52-05:00
+SMOKE_START default 2026-11-14T17:42:52-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-14T17:43:55-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/agent-a41fdd4ad89efc301/build-g2/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-14T17:44:35-05:00
+STEP install-smoke rc=0 2026-11-14T17:44:35-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T17:44:35-05:00
+[83/83] Linking CXX executable tests/drivers/hven_drivers_tests
+[----------] 5 tests from StopRecovery (197 ms total)
+
+[----------] Global test environment tear-down
+[==========] 14 tests from 4 test suites ran. (387 ms total)
+[  PASSED  ] 14 tests.
+tsan rc=0 reports=0
+TSAN_VERDICT PASS
+FOREGROUND_END 2026-11-14T17:45:38-05:00
+STEP tsan rc=0 2026-11-14T17:45:38-05:00
+worst=0
+FOREGROUND_END 2026-11-14T17:45:38-05:00
