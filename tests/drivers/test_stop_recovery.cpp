@@ -267,6 +267,7 @@ TEST(StopRecovery, T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint)
         EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
         EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
         EXPECT_EQ(events, stop_event + 1) << "stopped at the chosen recovering iteration top";
+        EXPECT_TRUE(r.returned_pre_restoration_point) << r.message;
         EXPECT_NE(r.message.find("; returned the point before feasibility restoration"),
                   std::string::npos)
             << r.message;
@@ -330,6 +331,7 @@ TEST(StopRecovery, T5BACallbackStopOnARecoveringEventReturnsTheShownPoint) {
 
         EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
         EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
+        EXPECT_FALSE(r.returned_pre_restoration_point);
         EXPECT_EQ(r.message.find("before feasibility restoration"), std::string::npos) << r.message;
         EXPECT_TRUE(bit_equal(r.x, shown.x)) << "the point the callback was shown";
     }
@@ -365,6 +367,7 @@ TEST(StopRecovery, T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate)
         EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
         EXPECT_FALSE(last.recovering);
         EXPECT_TRUE(bit_equal(r.x, last.x));
+        EXPECT_FALSE(r.returned_pre_restoration_point);
         EXPECT_EQ(r.message.find("before feasibility restoration"), std::string::npos) << r.message;
     }
 }

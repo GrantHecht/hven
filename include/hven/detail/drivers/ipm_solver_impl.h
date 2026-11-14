@@ -1562,8 +1562,8 @@ class IpmSolverImpl {
 
     /// THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point feasibility
     /// restoration was entered from, copied by dispatch_restoration_entry BEFORE
-    /// the entry's multiplier initialisation, and only when a stop is armed (a
-    /// callback installed, or the call's token `stop_possible()`). The same five
+    /// the entry's multiplier initialisation, and only when the call's token
+    /// `stop_possible()` (a callback stop never reads it). The same five
     /// things track_best_iterate snapshots -- the pair, the bound duals and the
     /// evaluation's provenance -- plus the iteration row and the barrier
     /// parameter, because a stop that lands inside restoration returns THIS
@@ -1947,7 +1947,7 @@ class IpmSolverImpl {
     // it needs in hand, and computing it here instead would add a reduction at
     // two of them.
     //
-    // M8 AP-5 G2: when a stop is armed it also takes the restoration-entry stash
+    // M8 AP-5 G2: when a token can fire it also takes the restoration-entry stash
     // (resto_stash_) from `entry_row` and the XSL/RHS/bound duals as they stand,
     // before anything is written. `newton_form_installed` says whether RHS's
     // primal block carries the mu-form bound terms (every door taken after the

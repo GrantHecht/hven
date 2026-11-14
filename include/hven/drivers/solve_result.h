@@ -79,13 +79,9 @@ struct SolveBudget {
     /// polled at the exit test before each subproblem, and right after each
     /// accepted step's row is recorded, so the step is not taken. A source
     /// already stopped stops the solve at its first boundary: a token is per
-    /// solve. INSIDE FEASIBILITY RESTORATION the stop returns the point
-    /// restoration was entered from, not the restoration iterate: INTERIOR-POINT
-    /// polls at the iteration top while restoration is active; SQP forwards the
-    /// token into the restoration sub-solve, which polls at its own boundaries.
-    /// The result's `message` then ends "; returned the point before feasibility
-    /// restoration". (A callback stop on a `recovering` interior-point event
-    /// still returns the point that event showed; see IterationEvent::recovering.)
+    /// solve. A stop landing inside feasibility restoration returns the point
+    /// restoration was entered from (SolveResult::returned_pre_restoration_point);
+    /// the per-engine mechanics are in docs/migration-0.2.md.
     StopToken stop;
 };
 
@@ -178,6 +174,13 @@ struct SolveResult {
     /// whenever it is set.
     bool returned_best_iterate = false;
 
+    /// @brief True when the returned point is the one feasibility restoration was
+    ///        entered from, because a stop (a callback kStop on an SQP restoration
+    ///        row, or a requested SolveBudget::stop) cut restoration short. Only
+    ///        with SolveStatus::kInterrupted; the message gains
+    ///        "; returned the point before feasibility restoration".
+    bool returned_pre_restoration_point = false;
+
     /// @brief SQP engine only (the interior-point engine leaves it false). True
     ///        only on the certified infeasibility exit: the restoration phase ran
     ///        to its own KKT test, that test passed, and the returned point fails
@@ -190,6 +193,10 @@ struct SolveResult {
     /// (kNumericalError). At `SqpOptions::restoration_proximity > 0` the driver
     /// also recomputes the certificate residual explicitly at the restored point
     /// and requires it to be <= kkt_tol.
+    ///
+    /// Never set on an interrupted exit: a stop landing on the restoration phase's
+    /// converged row leaves that phase's verdict alone (converged beats stop), so the
+    /// exit stays kInfeasible and certified.
     ///
     /// False on every other exit, including other kInfeasible ones, and it is not
     /// derivable from the status or the counters: it is the only field that tells
@@ -433,6 +440,9 @@ struct IterationEvent {
     ///        CallbackScope::kIncludeRestoration, which delivers those rows); the
     ///        point is then in the feasibility sub-problem's own space. A
     ///        consumer that plots caller-space quantities filters on it.
+    ///        INTERIOR-POINT: the point a token stop returns from inside
+    ///        restoration is the last non-recovering event's, also at the stall
+    ///        door (that iteration is popped before dispatch).
     bool recovering = false;
     /// @brief INTERIOR-POINT ONLY: the index of the phase this iterate belongs
     ///        to, in IpmResult::phases. nullopt on the SQP.

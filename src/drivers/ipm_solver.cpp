@@ -1573,9 +1573,10 @@ void hven::detail::IpmSolverImpl::dispatch_restoration_entry(
     // THE RESTORATION-ENTRY STASH (M8 AP-5 G2), taken here -- the one function
     // every entry door goes through -- and BEFORE enter_feasibility_restoration
     // writes anything (its nested arm zeroes the equality multipliers and clamps
-    // the slack ones). Armed only: with no callback and a default token nothing
-    // below runs. Observation only; it writes no solver state but the stash.
-    if (this->iteration_callback_ || this->stop_token_.stop_possible()) {
+    // the slack ones). Armed only when a token can fire -- a callback stop returns
+    // the point it was shown and never reads the stash -- otherwise nothing below
+    // runs. Observation only; it writes no solver state but the stash.
+    if (this->stop_token_.stop_possible()) {
         RestorationStash &stash = this->resto_stash_;
         stash.xsl = XSL;
         stash.rhs = RHS;
@@ -5007,6 +5008,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // phase, last phase wins. Scales and the restoration-mode caveat:
     // SolveResult's field note.
     this->result_.returned_best_iterate = return_best_applied;
+    this->result_.returned_pre_restoration_point = stash_exit;
     this->result_.convergence.kkt = ret_row.kkt_inf;
     this->result_.convergence.barrier = ret_row.barr_inf;
     this->result_.convergence.equality = ret_row.econ_inf;
@@ -7189,6 +7191,7 @@ void hven::detail::IpmSolverImpl::finish_interrupted_result() noexcept {
         this->finish_declared_result(this->analyses_at_entry_);
         this->result_.status = SolveStatus::kInterrupted;
         this->result_.returned_best_iterate = false;
+        this->result_.returned_pre_restoration_point = false;
         this->last_stop_reason_ = IpmPhaseStop::kException;
         this->interrupted_result_ready_ = true;
     } catch (...) {

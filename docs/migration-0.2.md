@@ -68,6 +68,18 @@ A trace reader that switches over the kind exhaustively adds the two.
 
 ## G2 -- recovery-aware stop
 
+Mechanics behind `SolveBudget::stop` and the callback's `kStop` inside feasibility
+restoration. Interior-point: the token is polled at the top of every iteration,
+restoration iterations included; the point restoration was entered from is stashed
+at entry (only when a token that can fire is installed), and a callback `kStop` on a
+`recovering` event instead returns the point that event showed. SQP: the token is
+forwarded into the restoration sub-solve, which polls at its own boundaries; a
+callback `kStop` on a depth-1 row is forwarded the same way (under
+`CallbackScope::kIncludeRestoration`); the entry point is stashed only when one of
+the two can reach the sub-solve. Open for the API revisit: the two engines differ on a
+callback `kStop` on a recovering event (interior-point returns the shown point, SQP
+the entry point).
+
 New, no rewrite needed:
 
 - `IterationEvent::recovering` (`bool`, declared right after `iteration`): the
@@ -76,7 +88,14 @@ New, no rewrite needed:
   either `CallbackScope`) with the flag set; `f` and the three diagnostics are
   NaN there. SQP: `depth >= 1` (those rows exist only under
   `kIncludeRestoration`). A consumer that plots caller-space quantities filters
-  on it.
+  on it. Interior-point: the point a token stop returns from inside restoration is
+  the last non-recovering event's, also at the stall door (that iteration is
+  popped before dispatch).
+- `SolveResult::returned_pre_restoration_point` (`bool`, beside
+  `returned_best_iterate`): true when the returned point is the one feasibility
+  restoration was entered from, because a stop cut restoration short (token, or a
+  callback `kStop` on an SQP restoration row). Only with `kInterrupted`. The
+  `message` suffix stays; read the field, not the text.
 
 Behaviour changes (stop path only; a solve nobody stops is bitwise unchanged):
 
@@ -84,7 +103,8 @@ Behaviour changes (stop path only; a solve nobody stops is bitwise unchanged):
 |---|---|---|
 | IPM: a `SolveBudget::stop` request landing while restoration (proximal or nested l1) was active returned the restoration iterate | returns the point restoration was entered from (taken before the entry's multiplier initialisation: its `x`, `lambda`, `z`, `f`, diagnostics and `g`), and `message` ends "; returned the point before feasibility restoration". A callback `kStop` on a `recovering` event is unchanged: the point that event showed | a consumer that read `result.x` after a token stop as "the iterate restoration was working on" reads it as the last non-restoration point; filter on `IterationEvent::recovering` to tell which kind of point a callback is being shown |
 | IPM: the `warm_start` of such a stop | the entry point's, with no polish extension (the same conservative capture every restoration-flagged exit takes) | none |
-| SQP: a stop (callback `kStop` on a depth-1 event, or a requested token) inside the restoration sub-solve returned the restored point `x_r` (or resumed first and stopped at the next major) | the token is forwarded into the sub-solve; the solve ends `kInterrupted` at the point restoration was entered from (the requesting major's iterate and multipliers) and never resumes; `message` ends "; returned the point before feasibility restoration". A certificate the sub-solve had already earned is kept (`infeasibility_certified`), as before | a consumer that read `result.x` after such a stop as the restored point reads the requesting iterate; the sub-solve's own point is no longer returned |
+| SQP: a stop (callback `kStop` on a depth-1 event, or a requested token) inside the restoration sub-solve returned the restored point `x_r` (or resumed first and stopped at the next major) | the token is forwarded into the sub-solve; a stop that cuts the sub-solve short ends the solve `kInterrupted` at the point restoration was entered from (the requesting major's iterate and multipliers), never resumes, earns no certificate, and sets `returned_pre_restoration_point` | a consumer that read `result.x` after such a stop as the restored point reads the requesting iterate; the sub-solve's own point is no longer returned |
+| SQP: a callback `kStop` on the restoration sub-solve's converged terminal row exited `kInterrupted` around the certificate it had earned | converged beats stop inside the sub-solve, so the stop is a no-op for it: the exit is the unstopped run's (`kInfeasible` at `x_r`, `infeasibility_certified`, `(x, lambda, z)` the certificate), as the token already behaved on that row. When that phase instead resumes (a feasible restored point), the latched stop ends the solve at the restored point at its next boundary, `returned_pre_restoration_point` false | a consumer that treated `kInterrupted` + `infeasibility_certified` as the pair for this row reads `kInfeasible` |
 | SQP: a token stop during restoration took effect only when the sub-solve returned (G1's interim note) | takes effect at the sub-solve's own next boundary | none; the interim caveat is gone |
 | the interior-point `set_iteration_callback` documentation called nested l1 restoration "silent" | corrected: restoration is in place and its rows are delivered with `recovering` set | none |
 | `IterationEvent` positional aggregate initialisation | `recovering` is the second member, so a positional `IterationEvent{iteration, phase, ...}` shifts by one | use designated initialisers, or insert `false` after `iteration` |

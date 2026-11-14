@@ -200,14 +200,12 @@ class SqpSolver {
     /// recorded. Precedence at that exit is converged, then interrupted, then
     /// probe-exhausted, then the iteration cap: a stop on a converged row still
     /// reports `kOptimal`. A stop returned inside a restoration sub-solve
-    /// (under `kIncludeRestoration`) latches on this solver too, and so does a
-    /// requested `SolveBudget::stop`, which is forwarded into the sub-solve: the
-    /// solve then ends `kInterrupted` at the point restoration was entered from
-    /// (the requesting major's iterate and multipliers), never at the restoration
-    /// iterate, and the message ends "; returned the point before feasibility
-    /// restoration". A certificate the sub-solve had already earned is kept. A
-    /// stop on the public call's own terminal row is a no-op. `SolveBudget::stop`
-    /// is honoured at the same two points of the main loop.
+    /// (under `kIncludeRestoration`) latches on this solver too; when it cuts the
+    /// sub-solve short the solve ends `kInterrupted` at the point restoration was
+    /// entered from (SolveResult::returned_pre_restoration_point), and a stop on
+    /// the sub-solve's converged row changes nothing. A stop on the public call's
+    /// own terminal row is a no-op. `SolveBudget::stop` is honoured at the same
+    /// two points of the main loop and inside the sub-solve.
     ///
     /// The callback may throw. The exception propagates out of `solve()`, no
     /// `sqp.solve.end` event and no ledger record are emitted for the abandoned

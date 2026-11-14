@@ -1159,6 +1159,7 @@ namespace {
 struct StopInRestoration {
     hven::IpmResult result;
     std::vector<Eigen::VectorXd> recovering_x; // x of every recovering event, in order
+    Eigen::VectorXd last_plain_lambda;         // lambda of the last non-recovering event
     int events = 0;
 };
 
@@ -1172,6 +1173,9 @@ StopInRestoration token_stop_at_recovering_event(hven_interior_tests::IpmCase &c
     c.engine->set_iteration_callback(
         [&](const hven::IterationEvent &e) {
             ++out.events;
+            if (!e.recovering) {
+                out.last_plain_lambda = e.lambda;
+            }
             if (e.recovering) {
                 out.recovering_x.push_back(e.x);
                 if (out.recovering_x.size() == stop_at) {
@@ -1206,12 +1210,17 @@ TEST(IpmStopReason, G2ATokenStopInsideAStallDoorRestorationReturnsTheEntryPoint)
     ASSERT_EQ(r.recovering_x.size(), 1u);
     EXPECT_EQ(r.result.status, hven::SolveStatus::kInterrupted) << r.result.message;
     EXPECT_EQ(r.result.stop_reason, hven::StopReason::kStopRequested);
+    EXPECT_TRUE(r.result.returned_pre_restoration_point) << r.result.message;
     EXPECT_NE(r.result.message.find("; returned the point before feasibility restoration"),
               std::string::npos)
         << r.result.message;
     EXPECT_TRUE((r.result.x.array() == r.recovering_x.front().array()).all())
         << "returned " << r.result.x.transpose() << ", entry "
         << r.recovering_x.front().transpose();
+    // The stash point's declared blocks survive: the unstashed exit empties the
+    // constraint block and leaves the diagnostics NaN.
+    EXPECT_GT(r.result.g.size(), 0) << "the stash point's constraint values were emptied";
+    EXPECT_FALSE(std::isnan(r.result.feasibility));
 }
 
 // THE SOFT-STEP ESCALATION DOOR (nested l1): an un-evaluable line search with
@@ -1236,8 +1245,15 @@ TEST(IpmStopReason, G2ATokenStopInsideASoftStepEscalatedRestorationReturnsTheEnt
     ASSERT_EQ(r.recovering_x.size(), 1u);
     EXPECT_EQ(r.result.status, hven::SolveStatus::kInterrupted) << r.result.message;
     EXPECT_EQ(r.result.stop_reason, hven::StopReason::kStopRequested);
-    EXPECT_NE(r.result.message.find("; returned the point before feasibility restoration"),
-              std::string::npos)
-        << r.result.message;
+    EXPECT_TRUE(r.result.returned_pre_restoration_point) << r.result.message;
     EXPECT_TRUE((r.result.x.array() == r.recovering_x.front().array()).all());
+    EXPECT_GT(r.result.g.size(), 0) << "the stash point's constraint values were emptied";
+    EXPECT_FALSE(std::isnan(r.result.feasibility));
+    // The multipliers are the entry iterate's, not the nested arm's re-initialised
+    // ones: the last event before restoration showed them.
+    ASSERT_GT(r.last_plain_lambda.size(), 0);
+    ASSERT_EQ(r.result.lambda.size(), r.last_plain_lambda.size());
+    EXPECT_TRUE((r.result.lambda.array() == r.last_plain_lambda.array()).all())
+        << "returned " << r.result.lambda.transpose() << ", entry "
+        << r.last_plain_lambda.transpose();
 }

@@ -825,6 +825,7 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     EXPECT_TRUE(bit_equal(sol.x, requesting->x))
         << "a stop inside restoration returns the restoration-entry point";
     EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_TRUE(sol.returned_pre_restoration_point) << sol.message;
     EXPECT_NE(sol.message.find("; returned the point before feasibility restoration"),
               std::string::npos)
         << sol.message;
@@ -906,6 +907,7 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
     EXPECT_EQ(sol2.status, SolveStatus::kInterrupted);
     EXPECT_TRUE(bit_equal(sol2.x, requesting->x))
         << "a stop inside restoration returns the restoration-entry point";
+    EXPECT_TRUE(sol2.returned_pre_restoration_point) << sol2.message;
     EXPECT_NE(sol2.message.find("; returned the point before feasibility restoration"),
               std::string::npos)
         << sol2.message;
@@ -1059,15 +1061,14 @@ TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
     EXPECT_EQ(interrupted.status, SolveStatus::kInterrupted);
 }
 
-// RULING R4 (M6 W5 T8.6 fix1), the arm astra's review named: a stop returned on
-// the restoration sub-solve's own CONVERGED terminal row. The sub-solve's
-// verdict stays kOptimal -- converged beats stop inside it too -- so the
-// certificate is EARNED and kept, while the PARENT, whose latch the forwarder
-// set, exits kInterrupted at the point it holds now that restoration has
-// returned. Two facts about two solves, and neither is allowed to overwrite the
-// other: `infeasibility_certified` is a fact about the SUB-SOLVE, orthogonal to
-// the parent's status.
-TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertificate) {
+// RULING R4 (M6 W5 T8.6 fix1), the arm astra's review named, RE-DERIVED at M8
+// AP-5 G2 (C346 R1, declared, stop path only): a stop returned on the restoration
+// sub-solve's own CONVERGED terminal row. Converged beats stop inside the
+// sub-solve, so its stop is a no-op for that solve: the certified exit stays
+// kInfeasible at the restored point, with the certificate (x, lambda, z) the
+// phase earned, exactly as the unstopped run. (Before G2 the PARENT latched the
+// stop and reported kInterrupted around the same certificate.)
+TEST(Callback, SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit) {
     InfeasibleCircleLineModel model;
     const SqpOptions opts = quiet_sqp();
 
@@ -1110,16 +1111,19 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
     ASSERT_TRUE(stopped);
 
-    // THE PARENT IS INTERRUPTED, on the restoration-return arm itself: the
-    // sub-solve came back kOptimal (its own converged verdict), and before fix1
-    // the parent reported that phase's kInfeasible as if nothing had stopped
-    // it.
-    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
-    // AND THE CERTIFICATE IS KEPT, because the sub-solve really did converge at
-    // an infeasible point. A real proof is not withheld for a stop taken after
-    // it was earned.
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << sol.message;
+    EXPECT_NE(sol.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(sol.stop_reason, reference.stop_reason);
     EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
     EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+    // THE POINT AND THE CERTIFICATE ARE THE UNSTOPPED RUN'S, bit for bit.
+    EXPECT_TRUE(bit_equal(sol.x, reference.x));
+    EXPECT_TRUE(bit_equal(sol.z, reference.z));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_e,
+                          hven::detail::engine_rows(reference).lambda_e));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_i,
+                          hven::detail::engine_rows(reference).lambda_i));
 }
 
 // M8 AP-5 G2 -- T5, the TOKEN half. A requested stop token is forwarded into the
@@ -1186,9 +1190,7 @@ TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFix
     ASSERT_TRUE(r.fired) << "no depth-1 event ever fired";
     EXPECT_EQ(r.sol.status, SolveStatus::kInterrupted) << r.sol.message;
     EXPECT_EQ(r.sol.stop_reason, hven::StopReason::kStopRequested);
-    EXPECT_NE(r.sol.message.find("; returned the point before feasibility restoration"),
-              std::string::npos)
-        << r.sol.message;
+    EXPECT_TRUE(r.sol.returned_pre_restoration_point) << r.sol.message;
     const Seen *entry = last_depth0(r.seen);
     ASSERT_NE(entry, nullptr);
     EXPECT_TRUE(bit_equal(r.sol.x, entry->x))
@@ -1221,15 +1223,18 @@ TEST(Callback, SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheC
     const Seen *entry = last_depth0(r.seen);
     ASSERT_NE(entry, nullptr);
     EXPECT_TRUE(bit_equal(r.sol.x, entry->x));
+    EXPECT_TRUE(r.sol.returned_pre_restoration_point) << r.sol.message;
     EXPECT_NE(r.sol.message.find("; returned the point before feasibility restoration"),
               std::string::npos)
         << r.sol.message;
 }
 
-// T5, the converged-beats-stop corner: a token requested on the sub-solve's own
-// converged terminal row. The certificate it earned is kept (as the callback
-// twin above pins), and the parent still ends at the entry point.
-TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificateAtTheEntryPoint) {
+// T5, the converged-beats-stop corner, RE-DERIVED at M8 AP-5 G2 (C346 R1 and R3):
+// a token requested on the sub-solve's own converged terminal row. The phase had
+// already converged, so the request cuts nothing short: the solve ends exactly as
+// the unstopped run, kInfeasible at the restored point with the certificate, and
+// the callback twin above agrees on that row.
+TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit) {
     InfeasibleCircleLineModel model;
     const SqpOptions opts = quiet_sqp();
     SqpSolver reference_driver(opts);
@@ -1242,6 +1247,7 @@ TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificate
         IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult reference =
         reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(reference.infeasibility_certified);
     Index last_depth1 = -1;
     for (const Seen &e : ref_seen) {
@@ -1255,11 +1261,11 @@ TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificate
     hven::SolveBudget budget;
     budget.stop = source.token();
     SqpSolver driver(opts);
-    std::vector<Seen> seen;
+    bool requested = false;
     driver.set_iteration_callback(
         [&](const IterationEvent &e) {
-            seen.push_back(copy_of(e));
             if (e.depth.value_or(0) == 1 && e.iteration == last_depth1) {
+                requested = true;
                 source.request_stop();
             }
             return CallbackAction::kContinue;
@@ -1267,14 +1273,155 @@ TEST(Callback, SqpTokenRequestedOnTheRestorationsConvergedRowKeepsTheCertificate
         IterationPayload::kAll, CallbackScope::kIncludeRestoration);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point(),
                                        hven::WarmStart{}, budget);
+    ASSERT_TRUE(requested);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << sol.message;
+    EXPECT_EQ(sol.stop_reason, reference.stop_reason);
     EXPECT_TRUE(sol.infeasibility_certified);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
     EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
-    // Whether the parent reports the sub-solve's own verdict or the stop depends on
-    // which boundary the token met; either way the point is the entry point.
-    const Seen *entry = last_depth0(seen);
-    ASSERT_NE(entry, nullptr);
-    if (sol.status == SolveStatus::kInterrupted) {
-        EXPECT_TRUE(bit_equal(sol.x, entry->x));
+    EXPECT_TRUE(bit_equal(sol.x, reference.x));
+    EXPECT_TRUE(bit_equal(sol.z, reference.z));
+    EXPECT_TRUE(bit_equal(hven::detail::engine_rows(sol).lambda_e,
+                          hven::detail::engine_rows(reference).lambda_e));
+}
+
+// C346 R1, the resuming half: a stop returned on the restoration sub-solve's
+// converged terminal row when that phase hands back a FEASIBLE point. The phase
+// completed, so the solve resumes from the restored point and the latched stop
+// ends it there at its next boundary: the returned point is the restored one, not
+// the entry point, and it is not flagged as the pre-restoration point.
+TEST(Callback, SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference =
+        reference_driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if (e.depth.value_or(0) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    ASSERT_GE(last_depth1, 1) << "premise: the phase has a converged terminal row after its first";
+
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            return e.depth.value_or(0) == 1 && e.iteration == last_depth1
+                       ? CallbackAction::kStop
+                       : CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.message.find("before feasibility restoration"), std::string::npos) << sol.message;
+    EXPECT_FALSE(sol.infeasibility_certified);
+    // The restored point is feasible, and it is the point of the last depth-0 event
+    // (the resumed solve's terminal row), which is not the entry point.
+    const Seen *last = last_depth0(seen);
+    ASSERT_NE(last, nullptr);
+    EXPECT_TRUE(bit_equal(sol.x, last->x));
+    EXPECT_LE(sol.feasibility, opts.common.feasibility_tol);
+    EXPECT_EQ(sol.counters.restoration_iters, reference.counters.restoration_iters);
+}
+
+// C346 R2: THE NEVER-RESUME GATE. A stop that cuts the restoration sub-solve short
+// on a mid-phase row whose point already passes the resume test (feasible within
+// feasibility_tol, the phase not yet converged) must still end the solve at the
+// point restoration was entered from: the phase was stopped, so it hands nothing
+// back, however feasible its point looks. With the proximal term on, the phase
+// reaches feasibility a row before its own convergence on this fixture. Both stop
+// routes: a callback kStop, and a requested token.
+TEST(Callback, SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+    opts.advanced.restoration_proximity = 1.0;
+    Vec x0 = model.start_point();
+    x0(0) = 0.01;
+
+    SqpSolver reference_driver(opts);
+    std::vector<Seen> ref_seen;
+    reference_driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            ref_seen.push_back(copy_of(e));
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult reference = reference_driver.solve(hven::detail::problem_ref(model), x0);
+    ASSERT_EQ(reference.status, SolveStatus::kOptimal);
+
+    // The mid-phase row: a depth-1 row after the first, before the last, at which the
+    // original variables are already feasible.
+    Index last_depth1 = -1;
+    for (const Seen &e : ref_seen) {
+        if (e.depth.value_or(0) == 1) {
+            last_depth1 = e.iteration;
+        }
+    }
+    Index mid = -1;
+    for (const Seen &e : ref_seen) {
+        if (e.depth.value_or(0) == 1 && e.iteration > 0 && e.iteration < last_depth1 &&
+            model.eval_ce(Vec(e.x.head(2))).lpNorm<Eigen::Infinity>() <=
+                opts.common.feasibility_tol) {
+            mid = e.iteration;
+            break;
+        }
+    }
+    ASSERT_GE(mid, 0) << "premise: a mid-phase row is feasible before the phase converges";
+
+    for (int route = 0; route < 2; ++route) {
+        SCOPED_TRACE(route == 0 ? "callback kStop" : "requested token");
+        hven::StopSource source;
+        hven::SolveBudget budget;
+        budget.stop = source.token();
+        SqpSolver driver(opts);
+        std::vector<Seen> seen;
+        bool fired = false;
+        driver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                seen.push_back(copy_of(e));
+                if (e.depth.value_or(0) == 1 && e.iteration == mid) {
+                    fired = true;
+                    if (route == 1) {
+                        source.request_stop();
+                    } else {
+                        return CallbackAction::kStop;
+                    }
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(model), x0, hven::WarmStart{}, budget);
+        ASSERT_TRUE(fired);
+        EXPECT_EQ(sol.status, SolveStatus::kInterrupted) << sol.message;
+        EXPECT_EQ(sol.stop_reason,
+                  route == 0 ? hven::StopReason::kCallbackStop : hven::StopReason::kStopRequested);
+        EXPECT_TRUE(sol.returned_pre_restoration_point) << sol.message;
+        const Seen *entry = last_depth0(seen);
+        ASSERT_NE(entry, nullptr);
+        EXPECT_TRUE(bit_equal(sol.x, entry->x)) << "the entry point, not the feasible restored one";
+        EXPECT_GT(sol.feasibility, opts.common.feasibility_tol)
+            << "the returned point is the infeasible entry point";
+        EXPECT_LT(sol.counters.major_iters, reference.counters.major_iters)
+            << "the solve did not resume and run on";
     }
 }
 

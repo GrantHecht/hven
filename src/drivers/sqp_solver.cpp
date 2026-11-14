@@ -5760,8 +5760,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     ++st.resto.entries;
 
     // THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point restoration was entered
-    // from -- x, the multipliers and `at_start` -- copied only when a stop is armed
-    // (a callback installed, or a token that can fire). Everything below this
+    // from -- x, the multipliers and `at_start` -- copied only when something can
+    // cut the phase short (a token that can fire, or a forwarder installing a
+    // callback's stop into the sub-solve). Everything below this
     // function moves before it returns (`st.x`, the multipliers, and on a resume
     // `st.ev`), and a stop that landed inside the phase returns THIS point, whatever
     // the phase went on to do. Pure observation: an armed solve that never stops
@@ -5771,7 +5772,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         Vec x, lambda_e, lambda_i;
         bool at_start = false;
     } entry_stash;
-    if (iteration_callback_ || st.stop_token.stop_possible()) {
+    if (st.stop_token.stop_possible() ||
+        (iteration_callback_ && iteration_scope_ == CallbackScope::kIncludeRestoration)) {
         entry_stash.x = st.x;
         entry_stash.lambda_e = st.lambda_e;
         entry_stash.lambda_i = st.lambda_i;
@@ -6369,17 +6371,21 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             }
         }
     }
-    // A STOP LANDED INSIDE THE PHASE (M8 AP-5 G2): a callback's kStop latched on
-    // the parent by the forwarder, or the forwarded token ending the sub-solve (its
-    // kInterrupted with no callback latch is the token's). Either way this solve
-    // ends here at the point restoration was entered from, whatever the phase
-    // itself reached; the phase's own verdict is still computed below, so a
-    // certificate it earned is kept (converged beats stop inside it).
+    // A STOP CUT THE PHASE SHORT (M8 AP-5 G2): the sub-solve itself ended
+    // kInterrupted, from a callback's kStop forwarded into it or from the forwarded
+    // token (an interrupt with no callback latch is the token's). This solve then
+    // ends at the point restoration was entered from, never resumes, and the phase
+    // earned no verdict. A stop that did NOT end the sub-solve -- one returned on its
+    // converged terminal row -- leaves its verdict alone (converged beats stop):
+    // on the exits below it is a no-op, and on a resume the latch ends the solve at
+    // the restored point at the next boundary.
     if (rs.status == SolveStatus::kInterrupted && !st.interrupted) {
         st.interrupted = true;
         st.token_interrupt = true;
     }
-    const bool stopped_in_recovery = st.interrupted && entry_stash.valid;
+    const bool stopped_in_recovery = rs.status == SolveStatus::kInterrupted && entry_stash.valid;
+    // The latch a converged phase's own terminal row raised belongs to the phase.
+    const bool latch_is_phase_terminal_stop = st.interrupted && rs.status == SolveStatus::kOptimal;
     // Puts the entry point back and marks the exit; called at both exits below.
     const auto return_entry_point = [&] {
         st.x = entry_stash.x;
@@ -6392,6 +6398,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
         st.resto.stopped_in_recovery = true;
+        st.out.returned_pre_restoration_point = true;
     };
     // The phase's equality multipliers over every model row: zero on the rows it
     // did not carry, so J^T lambda (and the certificate below) is the phase's own.
@@ -6438,6 +6445,8 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.resto.duals_cleared = true;
         if (stopped_in_recovery) {
             return_entry_point();
+        } else if (latch_is_phase_terminal_stop) {
+            st.interrupted = false;
         }
         return RestorationOutcome::kExited;
     }
@@ -6717,6 +6726,10 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
     }
     if (stopped_in_recovery) {
         return_entry_point();
+    } else if (latch_is_phase_terminal_stop) {
+        // The stop landed on the converged phase's own terminal row: no-op, so the
+        // certified (or no-claim) verdict above is the exit.
+        st.interrupted = false;
     }
     return RestorationOutcome::kExited;
 }
@@ -8193,11 +8206,12 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // T8.6 fix1, ruling R4). A stop taken INSIDE the restoration
             // sub-solve -- through the forwarder, or as the sub-solve's own
             // kInterrupted arriving in the status switch -- has already set it,
-            // and the parent must then exit kInterrupted at the point it holds
-            // now that restoration has returned, on EVERY restoration-return
-            // arm. Read ABOVE the push for the same reason the exit conjunction
-            // reads it above its own: a kStop returned on THIS row, which is the
-            // public call's terminal row on the kExited routes, is a no-op.
+            // and the parent must then exit kInterrupted on EVERY
+            // restoration-return arm (M8 AP-5 G2: except that a stop on a
+            // CONVERGED phase's terminal row is cleared by enter_restoration on the
+            // exits, and the verdict stands). Read ABOVE the push for the same reason the exit
+            // conjunction reads it above its own: a kStop returned on THIS row, which is the public
+            // call's terminal row on the kExited routes, is a no-op.
             mj.interrupted_exit = st.interrupted;
             mj.token_exit = st.token_interrupt;
             push_history(mj.row);
@@ -9132,7 +9146,8 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 // the one place it is still reported is
                 // `infeasibility_certified`, which enter_restoration set (or
                 // did not) from the sub-solve's OWN status and which this
-                // choice does not touch.
+                // choice does not touch. (A latch raised on a converged
+                // phase's own terminal row never reaches here: M8 AP-5 G2.)
                 mj.interrupted_exit ? SolveStatus::kInterrupted : st.resto.status, st.x,
                 st.lambda_e, st.lambda_i, st.resto.kkt, st.resto.f,
                 make_warm_start(seam, (!st.resto.moved_x && st.have_seed) ? &st.seed : nullptr,
@@ -9834,6 +9849,7 @@ void SqpSolverImpl::record_interrupted_solve(SolveState &st,
         SqpResult out = std::move(st.out);
         out.status = SolveStatus::kInterrupted;
         out.returned_best_iterate = false;
+        out.returned_pre_restoration_point = false;
         out.infeasibility_certified = false;
         out.iterations = out.counters.major_iters;
         out.x = st.x.size() == seam.n() ? st.x : Vec();
