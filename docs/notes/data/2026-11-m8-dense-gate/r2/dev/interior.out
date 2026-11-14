@@ -1,0 +1,14 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T09:26:19-05:00
+db46a7a11cfefba25cd1e7659aa03a0648f067110222649269284d4b4948c6bd  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/build-dg/dgbin-r2/hven_sqp_corpus
+0752d9c807d4952330970f189f40a54ccb78acb4a1bd9aa93eea1b6c27349b31  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/bench/baselines/2026-11-m8-dn3-flip-ipm-leg/interior_baseline.csv
+b09d13fa78e770301a0630ee9b5a9820cf7697747d8bc240b90169daea41e976  /home/ghecht/Projects/hven/.claude/worktrees/agent-a44d4824b0beb0ea7/docs/notes/data/2026-11-m8-dn3/r5/interior/interior-default.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+run default rc=0
+run default-baseline rc=0
+=== I3-1 === cells compared: 43  columns compared: 30  differences: 2
+compare I3-1 rc=1
+=== I3-2 === cells compared: 43  columns compared: 30  differences: 2
+compare I3-2 rc=1
+worst=1
+FOREGROUND_END 2026-11-14T09:26:42-05:00
