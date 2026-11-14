@@ -1,0 +1,26 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/fp/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from QpReleaseReadmission
+[ RUN      ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+[ pf1 ] status=1 minors=400 facts=271 dual_regularization_decreases=0 f=0.139462433848741 f_cap=0.139462433848742
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/fp-src/tests/qp/test_qp_release_readmission.cpp:67: Failure
+Expected equality of these values:
+  s.counters.dual_regularization_decreases
+    Which is: 0
+  1
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/fp-src/tests/qp/test_qp_release_readmission.cpp:70: Failure
+Expected: (f) < (f_cap - 1e-3), actual: 0.13946243384874144 vs 0.13846243384874157
+
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint (8482 ms)
+[----------] 1 test from QpReleaseReadmission (8482 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8482 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+
+ 1 FAILED TEST

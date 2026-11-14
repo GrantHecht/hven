@@ -167,15 +167,14 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
-
-namespace detail {
+namespace hven::detail {
 
 // THE SHARED REFINEMENT BUDGET AND FLOOR. Both EQP paths refine under one
 // rule, so both read one pair of constants; they live in the header
@@ -287,8 +286,6 @@ constexpr double kEqpPolishStepCap = 1e-6;
 // end, so every step it takes is one the verdict asked for.
 constexpr Index kMaxVerdictRefineSteps = 10;
 
-} // namespace detail
-
 struct EqpResult {
     Vec x, lambda_e, lambda_w;
 
@@ -304,7 +301,8 @@ struct EqpResult {
     /// own section). `row_residual` is ||(rhs - K y)_rows||inf for the answer the
     /// check accepted -- the answer's own miss against the REGULARIZED system it
     /// came out of, in the constraint rows, BEFORE the model's mu-free step;
-    /// `residual_refine_iters` the extra solves spent driving it down (0 on a
+    /// `residual_refine_iters` the extra solves spent driving it down (a shifted
+    /// factor's refine_shifted_solve() solves included; 0 on a
     /// healthy pass); `residual_refused` true iff it is still above
     /// kEqpResidualRefuseTol*(1 + ||rhs_rows||inf) -- or NaN -- after the budget,
     /// which means the answer does not solve its own system and the caller must
@@ -315,6 +313,13 @@ struct EqpResult {
     double residual_ratio = 0.0;
     Index residual_refine_iters = 0;
     bool residual_refused = false;
+    /// True iff the answer came from a dense shifted factor and its rho at gate
+    /// time (after refine_shifted_solve, before the residual loop, the proximal
+    /// step and the polish) missed kEqpShiftedResidualTol; implies
+    /// `residual_refused`. On the border path: the first Schur solve through a
+    /// shifted K0, against the unshifted bordered system
+    /// (bordered_shifted_residual_ratio).
+    bool shifted_refused = false;
 
     /// THE UNREGULARIZED POLISH's output (M7 W2 E4 fix1, ruling E4-11): steps
     /// KEPT against the face's own exact KKT system, out of kEqpPolishSteps
@@ -345,24 +350,25 @@ inline Index polish_eqp_core(const KktAssembly &asm_, const Vec &rhs0, const QpO
         return 0;
     }
     Vec reg = Vec::Zero(y.size());
-    reg.head(n_free).setConstant(opts.primal_delta);
-    reg.segment(n_free, n_rows).setConstant(-opts.dual_mu);
+    reg.head(n_free).setConstant(opts.primal_regularization);
+    reg.segment(n_free, n_rows).setConstant(-opts.dual_regularization);
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec((rhs0 - Kyy) + reg.cwiseProduct(yy));
     };
     Vec res = residual_of(y);
-    double res_inf = res.lpNorm<Eigen::Infinity>();
+    double res_inf = detail::nan_sticky_inf_norm(res);
     Index kept = 0;
     for (Index step = 0; step < max_steps; ++step) {
         const Vec delta = detail::solve_vec(kkt, res);
-        const double cap = detail::kEqpPolishStepCap * std::max(1.0, y.lpNorm<Eigen::Infinity>());
-        if (!(delta.lpNorm<Eigen::Infinity>() <= cap)) {
+        const double cap =
+            detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(y));
+        if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
             break; // not a polish: see kEqpPolishStepCap
         }
         const Vec candidate = y + delta;
         Vec cres = residual_of(candidate);
-        const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+        const double cres_inf = detail::nan_sticky_inf_norm(cres);
         if (!(cres_inf < res_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better point
         }
@@ -430,7 +436,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     Vec rhs(dim);
     for (Index k = 0; k < n_free; ++k) {
         const Index i = asm_.free_of_full[static_cast<std::size_t>(k)];
-        rhs(k) = -qp.g(i) - asm_.rhs_shift(k) + opts.primal_delta * x_k(i);
+        rhs(k) = -qp.g(i) - asm_.rhs_shift(k) + opts.primal_regularization * x_k(i);
     }
     for (Index r = 0; r < me; ++r) {
         rhs(n_free + r) = qp.be(r) - asm_.rhs_shift(n_free + r);
@@ -440,8 +446,13 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         rhs(n_free + me + k) = qp.bi(row) - asm_.rhs_shift(n_free + me + k);
     }
 
-    detail::factorize_checked(kkt, asm_.K);
+    // A dense factorization the detector flags is refactored shifted;
+    // kkt.dense_shifted then gates the one unconditional step below.
+    detail::factorize_checked(kkt, asm_.K, detail::DenseShiftSite{n_free});
     Vec y = detail::solve_vec(kkt, rhs);
+    const Index shift_iters = detail::refine_shifted_solve(asm_.K, rhs, kkt, y);
+    // A shifted factor's answer is used only if it solves K itself (kkt_calls.h).
+    const bool shifted_refused = detail::shifted_solve_refused(asm_.K, rhs, kkt, y);
 
     auto scatter = [&](const Vec &yy) {
         EqpResult res;
@@ -463,7 +474,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec(rhs - Kyy);
     };
-    const double rhs_rows_inf = nc > 0 ? rhs.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(rhs.segment(n_free, nc)) : 0.0;
     // THE SCALES CARRY THE REGULARIZATION'S OWN FOOTPRINT ON THIS ANSWER --
     // delta*||x_F|| on the free block, mu*||lambda|| on the rows. Those are the
     // sizes of terms that are IN the regularized equations, so a residual at or
@@ -488,18 +499,20 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         if (nc == 0) {
             return 0.0;
         }
-        const double scale =
-            std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                     opts.dual_mu * yy.segment(n_free, nc).lpNorm<Eigen::Infinity>());
-        return r.segment(n_free, nc).lpNorm<Eigen::Infinity>() / scale;
+        const double scale = std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
+                                      opts.dual_regularization *
+                                          detail::nan_sticky_inf_norm(yy.segment(n_free, nc)));
+        return detail::nan_sticky_inf_norm(r.segment(n_free, nc)) / scale;
     };
     Vec r_reg = regularized_residual(y);
     double ratio = ratio_of(y, r_reg);
     Index res_iters = 0;
+    Index res_spent = shift_iters;
     while (!(ratio <= 1.0) && res_iters < detail::kEqpResidualRefineIters) {
         // COUNTED BEFORE THE SAFEGUARD: the solve below is spent whether or not
         // its candidate is kept (solver_counters.h's eqp_refine_iters).
         ++res_iters;
+        ++res_spent;
         const Vec candidate = y + detail::solve_vec(kkt, r_reg);
         Vec candidate_r = regularized_residual(candidate);
         const double candidate_ratio = ratio_of(candidate, candidate_r);
@@ -510,8 +523,9 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         r_reg = std::move(candidate_r);
         ratio = candidate_ratio;
     }
-    const bool refused = !(ratio <= 1.0);
-    const double row_residual = nc > 0 ? r_reg.segment(n_free, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const bool refused = !(ratio <= 1.0) || shifted_refused;
+    const double row_residual =
+        nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n_free, nc)) : 0.0;
 
     if (unrefined_out != nullptr) {
         *unrefined_out = scatter(y);
@@ -523,14 +537,24 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // delta stays in the target because it is a term of the model -- see the
     // header's Iterative refinement section.
     Vec reg = Vec::Zero(dim);
-    reg.segment(n_free, nc).setConstant(-opts.dual_mu);
+    reg.segment(n_free, nc).setConstant(-opts.dual_regularization);
 
     const auto residual_of = [&](const Vec &yy) {
         const Vec Kyy = asm_.K.template selfadjointView<Eigen::Upper>() * yy;
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
 
-    y = y + detail::solve_vec(kkt, residual_of(y));
+    if (!kkt.dense_shifted) {
+        y = y + detail::solve_vec(kkt, residual_of(y));
+    } else {
+        // A shifted factor answers a different system: the step is kept only
+        // if it reduces the proximal residual (a NaN keeps nothing).
+        const Vec candidate = y + detail::solve_vec(kkt, residual_of(y));
+        if (detail::nan_sticky_inf_norm(residual_of(candidate)) <
+            detail::nan_sticky_inf_norm(residual_of(y))) {
+            y = candidate;
+        }
+    }
 
     // ---- THE UNREGULARIZED POLISH (E4-11; polish_eqp_core, and the header's own
     // section) ----
@@ -545,7 +569,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     // structural, not tuned: see polish_eqp_core.
     Vec rhs0 = rhs;
     for (Index k = 0; k < n_free; ++k) {
-        rhs0(k) -= opts.primal_delta * x_k(asm_.free_of_full[static_cast<std::size_t>(k)]);
+        rhs0(k) -= opts.primal_regularization * x_k(asm_.free_of_full[static_cast<std::size_t>(k)]);
     }
     const Index polish_kept =
         polish_eqp_core(asm_, rhs0, opts, kkt, n_free, nc, detail::kEqpPolishSteps, y);
@@ -555,8 +579,9 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
     out.refine_steps = 0; // no iterated loop on this path -- see the header note
     out.row_residual = row_residual;
     out.residual_ratio = ratio;
-    out.residual_refine_iters = res_iters;
+    out.residual_refine_iters = res_spent;
     out.residual_refused = refused;
+    out.shifted_refused = shifted_refused;
     return out;
 }
 
@@ -647,4 +672,4 @@ inline Index polish_eqp_unregularized(const QpProblem &qp, const WorkingSet &ws,
     return kept;
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

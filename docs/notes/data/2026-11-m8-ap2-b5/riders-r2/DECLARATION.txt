@@ -1,0 +1,72 @@
+M8 AP-2 group B5, riders round 2 (return_best on a non-finite abort) -- DECLARATION (committed before
+the first proof leg; never edited afterwards; a failed leg is followed by a fix and a successor
+DECLARATION-r2.txt in this directory, the failed record kept; criteria never change after data)
+================================================================================
+Base        m8-b5 at a5e91632 (riders evidence head; riders code head f45ca070).
+Code head   60e7bf30 (m8-b5). Commits after a5e91632, oldest first:
+              c589b383 fix:  return_best on a non-finite / entry-failure abort (src/drivers/ipm_solver.cpp)
+              02e8cf37 test: three RiderReturnBest pins (tests/drivers/test_evaluation_failure.cpp)
+              60e7bf30 docs: SolveResult::returned_best_iterate and SolveStatus text
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as riders/.
+
+THE DEFECT AND THE CHANGE
+--------------------------------------------------------------------------------
+Defect   With IpmOptions::return_best on, a non-finite abort (kNumericalError with kNonFiniteIterate /
+         kNonFiniteStart, the cap-floor exit, a failed phase-first iterate, a failed initial
+         factorization) set return_best_applied from the status alone: the residual columns and
+         returned_best_iterate described BestIter while x was the failed point P with multipliers
+         cleared (R7).
+Ruling   (settler) With return_best on and a finite best iterate recorded, the abort returns the best
+         iterate IN FULL (x, multipliers, bound duals, objective, every residual column;
+         returned_best_iterate = true; the message names the cause and, via the existing clause,
+         "; returned the best iterate"). With none recorded (start / phase-first-iterate / entry
+         failures) it returns P with multipliers cleared and returned_best_iterate = false (R7).
+         return_best off: unchanged.
+Code     alg_impl records best_recorded where the tracker runs; the nonfinite_abort branch substitutes
+         the best pair, bound duals and provenance (the converge-check exits' substitution) when
+         return_best && best_recorded, else clears multipliers and sets abort_without_best, which
+         clears return_best_applied at the tail. result_message.cpp needs no change (its best clause
+         already rides on every status the flag is set with).
+SQP      No equivalent defect: the SQP engine's only best-iterate substitution is the budget_mode
+         kMaxIter door (kFinishBudgetBest); its non-finite exits return the failed point with cleared
+         multipliers and returned_best_iterate false, already consistent. Unchanged.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D1  BEHAVIOUR, return_best ON, IPM, non-finite / entry-failure aborts ONLY: the result is the best
+    iterate in full when one was recorded; with none recorded, returned_best_iterate is now false
+    (it was true with residual columns from the wrong row). No other exit, engine or option moves.
+D2  Tests: 3399 -> 3402 (exactly +3 ctest entries: RiderReturnBest.ANonFiniteAbortWithABestIterate
+    ReturnsItInFull, ...ANonFiniteStartWithNoBestIterateReturnsTheStartPointAndNoClaim,
+    ...WithReturnBestOffTheFailedPointRuleIsUnchanged). No existing test changes.
+D3  Docs: comments and header text only.
+D4  Per-iteration cost: one bool store where the tracker runs, and an isfinite on a double, only with
+    return_best on. No library TU added.
+
+ARGUMENT FOR NOT RE-RUNNING THE CENSUS AND THE RUNTIME GATE
+--------------------------------------------------------------------------------
+The change is a post-loop exit-path decision taken only inside the nonfinite_abort branch (and a flag
+read at the tail) -- reached only on a non-finite / entry-failure abort. No corpus cell takes such an
+exit; the replay leg (EXACT, 0 differences, counters and statuses) shows it for the 27 cells x 3
+engines, and the riders census (57/57) and runtime gate already cover every other path, on which this
+code is not executed (the added work is a bool store and an isfinite, only with return_best on, which
+the corpus defaults do not use on the hot path). A counter or status moving in the replay is a
+failed leg, not a declared difference.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock; chain.sh)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b5/rel) and Debug (build-b5/dbg), full, -j4 under setsid, after clean
+    incremental rebuilds at the code head: every test passes, 3402 each.
+P2  27-cell replay x (walk, ssn, ipm), legs/replay.sh (riders/'s leg re-pointed at riders-r2/):
+    scripts/compare_replay.py against docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over
+    the cells of docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P3  off-reference CLEAN build (legs/offref.sh): fresh directory build-b5/offref-r, linux-clang-release
+    preset, -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then
+    ctest Release: build rc 0, 3402/3402.
+P4  scripts/check_pch_neutrality.sh (legs/misc.sh pch): PASS.
+PATH CHECK  every copied script was read for its paths before this commit: the worktree, build-b5 and
+    the evidence directory are THIS worktree's; evidence paths are passed ABSOLUTE.
+BOX PROTOCOL  every leg a script run as `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the
+    lock and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4
+    under setsid; FOREGROUND_START/END markers.

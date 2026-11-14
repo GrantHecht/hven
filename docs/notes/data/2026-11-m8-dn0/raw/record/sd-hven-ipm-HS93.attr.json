@@ -1,0 +1,125 @@
+{
+ "samples": 5045,
+ "period": 1000003,
+ "instr_sampled_all": 5066960135,
+ "instr_sampled_solver": 5058932111,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 5014015,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 5053918096,
+  "B_eng": 0,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.000991121226769908,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9990088787732301,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0015843866511888395,
+ "rule_instr": 5066960135,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9960356788899901,
+ "init_instr": 5051911090,
+ "steady_state_instr": 7021021,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.7141432848584273,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.28585671514157274,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   5014015
+  ]
+ ],
+ "mkl_serv_instr": 5052911093,
+ "kmp_instr": 4014012,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "rml::internal::internalMalloc",
+    1007003
+   ],
+   [
+    "mkl_blas_def_xdsyr",
+    1007003
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ],
+   [
+    "__libmkl_libc_getenv_from_proc",
+    1000003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    3207065579
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1416975233
+   ],
+   [
+    "__vdso_time",
+    222987666
+   ],
+   [
+    "difftime@plt",
+    188812564
+   ],
+   [
+    "time@plt",
+    16070048
+   ],
+   [
+    "__memchr_avx2",
+    1007003
+   ],
+   [
+    "std::pair<std::_Rb_tree_iterator<std::pair<int, int> >, bool> std::_Rb_tree<std::pair<int, int>, std::pair<int, int>, std::_Identity<std::pair<int, int> >, std::less<std::pair<int, int> >, std::allocator<std::pair<int, int> > >::_M_insert_unique<std::pair<int, int> const&>",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    3007009
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    3007009
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1007003
+   ],
+   [
+    "strcmp",
+    1007003
+   ]
+  ]
+ }
+}

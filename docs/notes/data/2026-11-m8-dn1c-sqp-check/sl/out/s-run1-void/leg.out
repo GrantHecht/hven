@@ -1,0 +1,959 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-10T06:39:41-05:00
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs003.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs003.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs003.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs003.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs005.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs005.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs005.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs005.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs006.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs006.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs006.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs006.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs007.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs007.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs007.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs007.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs010.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs010.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs010.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs010.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs011.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs011.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs011.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs011.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs012.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs012.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs012.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs012.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs014.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs014.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs014.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs014.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs022.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs022.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs022.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs022.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs025.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs025.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs025.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs025.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs026.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs026.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs026.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs026.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs027.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs027.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs027.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs027.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs028.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs028.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs028.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs028.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs030.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs030.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs030.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs030.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs033.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs033.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs033.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs033.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs035.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs035.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs035.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs035.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs039.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs039.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs039.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs039.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs043.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs043.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs043.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs043.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs045.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs045.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs045.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs045.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs077.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs077.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs077.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs077.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs079.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs079.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs079.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs079.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs071.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs071.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-ipm-hs071.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-ipm-hs071.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs003.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs003.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs003.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs003.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs005.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs005.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs005.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs005.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs006.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs006.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs006.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs006.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs007.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs007.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs007.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs007.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs010.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs010.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs010.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs010.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs011.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs011.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs011.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs011.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs012.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs012.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs012.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs012.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs014.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs014.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs014.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs014.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs022.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs022.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs022.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs022.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs025.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs025.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs025.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs025.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs026.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs026.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs026.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs026.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs027.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs027.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs027.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs027.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs028.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs028.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs028.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs028.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs030.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs030.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs030.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs030.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs033.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs033.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs033.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs033.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs035.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs035.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs035.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs035.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs039.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs039.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs039.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs039.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs043.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs043.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs043.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs043.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs045.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs045.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs045.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs045.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs077.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs077.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs077.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs077.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs079.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs079.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs079.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs079.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs071.default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs071.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/hs-hven-sqp-hs071.dense-default.out: No such file or directory
+tee: sl/out/s/cells/hs-hven-sqp-hs071.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ACOPP30.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ACOPP30.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ACOPP30.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ACOPP30.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ALLINITC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ALLINITC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ALLINITC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ALLINITC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ALSOTAME.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ALSOTAME.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ALSOTAME.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ALSOTAME.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT11.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT11.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT11.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT11.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT12.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT12.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT12.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT12.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT8.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT8.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BT8.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BT8.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BURKEHAN.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BURKEHAN.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-BURKEHAN.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-BURKEHAN.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC100.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC100.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC100.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC100.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC50.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC50.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-CRESC50.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-CRESC50.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DECONVC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DECONVC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DECONVC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DECONVC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DEMBO7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DEMBO7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DEMBO7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DEMBO7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DIXCHLNG.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DIXCHLNG.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DIXCHLNG.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DIXCHLNG.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DNIEPER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DNIEPER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-DNIEPER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-DNIEPER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-FLETCHER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-FLETCHER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-FLETCHER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-FLETCHER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP3.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP3.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP3.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP3.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HIMMELP6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HIMMELP6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100LNP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100LNP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100LNP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100LNP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100MOD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100MOD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS100MOD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS100MOD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS101.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS101.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS101.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS101.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS102.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS102.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS102.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS102.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS103.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS103.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS103.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS103.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS104.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS104.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS104.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS104.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS107.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS107.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS107.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS107.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS108.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS108.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS108.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS108.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS11.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS11.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS11.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS11.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS111LNP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS111LNP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS111LNP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS111LNP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS113.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS113.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS113.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS113.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS117.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS117.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS117.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS117.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS15.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS15.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS15.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS15.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS17.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS17.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS17.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS17.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS19.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS19.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS19.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS19.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS22.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS22.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS22.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS22.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS26.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS26.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS26.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS26.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS27.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS27.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS27.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS27.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS30.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS30.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS30.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS30.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS31.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS31.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS31.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS31.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS32.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS32.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS32.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS32.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS33.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS33.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS33.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS33.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS40.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS40.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS40.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS40.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS42.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS42.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS42.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS42.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS43.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS43.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS43.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS43.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS46.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS46.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS46.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS46.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS56.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS56.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS56.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS56.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS59.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS59.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS59.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS59.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS60.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS60.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS60.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS60.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS61.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS61.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS61.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS61.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS63.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS63.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS63.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS63.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS64.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS64.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS64.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS64.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS67.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS67.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS67.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS67.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS68.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS68.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS68.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS68.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS70.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS70.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS70.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS70.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS74.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS74.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS74.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS74.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS75.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS75.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS75.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS75.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS79.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS79.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS79.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS79.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS80.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS80.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS80.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS80.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS81.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS81.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS81.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS81.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS83.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS83.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS83.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS83.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS84.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS84.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS84.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS84.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS85.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS85.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS85.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS85.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS88.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS88.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS88.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS88.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS89.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS89.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS89.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS89.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS90.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS90.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS90.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS90.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS91.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS91.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS91.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS91.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS92.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS92.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS92.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS92.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS93.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS93.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS93.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS93.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS99EXP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS99EXP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-HS99EXP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-HS99EXP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LAKES.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LAKES.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LAKES.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LAKES.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LAUNCH.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LAUNCH.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LAUNCH.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LAUNCH.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LEWISPOL.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LEWISPOL.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LEWISPOL.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LEWISPOL.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LOOTSMA.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LOOTSMA.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LOOTSMA.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LOOTSMA.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LSNNODOC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LSNNODOC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-LSNNODOC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-LSNNODOC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MATRIX2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MATRIX2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MATRIX2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MATRIX2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MESH.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MESH.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MESH.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MESH.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MISTAKE.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MISTAKE.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MISTAKE.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MISTAKE.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MSS1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MSS1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MSS1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MSS1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MWRIGHT.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MWRIGHT.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-MWRIGHT.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-MWRIGHT.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-NET1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-NET1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-NET1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-NET1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-OPTPRLOC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-OPTPRLOC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-OPTPRLOC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-OPTPRLOC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-S365.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-S365.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-S365.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-S365.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-S365MOD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-S365MOD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-S365MOD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-S365MOD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-SPANHYD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-SPANHYD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-SPANHYD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-SPANHYD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-SYNTHES1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-SYNTHES1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-SYNTHES1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-SYNTHES1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-TRY-B.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-TRY-B.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-TRY-B.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-TRY-B.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-TWOBARS.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-TWOBARS.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-TWOBARS.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-TWOBARS.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-WATER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-WATER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-WATER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-WATER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZECEVIC3.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZECEVIC3.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZECEVIC3.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZECEVIC3.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZECEVIC4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZECEVIC4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZECEVIC4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZECEVIC4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZY2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZY2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-ipm-ZY2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-ipm-ZY2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ACOPP30.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ACOPP30.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ACOPP30.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ACOPP30.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ALLINITC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ALLINITC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ALLINITC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ALLINITC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ALSOTAME.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ALSOTAME.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ALSOTAME.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ALSOTAME.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT11.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT11.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT11.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT11.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT12.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT12.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT12.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT12.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT8.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT8.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BT8.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BT8.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BURKEHAN.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BURKEHAN.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-BURKEHAN.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-BURKEHAN.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC100.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC100.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC100.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC100.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC50.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC50.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-CRESC50.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-CRESC50.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DECONVC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DECONVC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DECONVC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DECONVC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DEMBO7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DEMBO7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DEMBO7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DEMBO7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DIXCHLNG.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DIXCHLNG.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DIXCHLNG.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DIXCHLNG.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DNIEPER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DNIEPER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-DNIEPER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-DNIEPER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-FLETCHER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-FLETCHER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-FLETCHER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-FLETCHER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP3.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP3.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP3.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP3.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HIMMELP6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HIMMELP6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100LNP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100LNP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100LNP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100LNP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100MOD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100MOD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS100MOD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS100MOD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS101.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS101.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS101.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS101.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS102.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS102.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS102.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS102.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS103.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS103.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS103.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS103.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS104.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS104.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS104.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS104.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS107.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS107.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS107.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS107.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS108.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS108.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS108.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS108.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS11.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS11.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS11.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS11.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS111LNP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS111LNP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS111LNP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS111LNP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS113.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS113.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS113.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS113.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS117.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS117.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS117.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS117.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS15.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS15.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS15.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS15.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS17.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS17.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS17.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS17.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS19.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS19.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS19.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS19.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS22.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS22.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS22.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS22.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS26.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS26.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS26.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS26.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS27.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS27.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS27.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS27.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS30.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS30.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS30.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS30.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS31.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS31.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS31.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS31.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS32.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS32.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS32.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS32.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS33.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS33.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS33.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS33.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS40.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS40.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS40.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS40.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS42.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS42.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS42.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS42.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS43.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS43.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS43.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS43.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS46.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS46.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS46.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS46.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS56.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS56.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS56.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS56.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS59.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS59.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS59.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS59.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS6.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS6.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS6.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS6.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS60.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS60.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS60.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS60.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS61.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS61.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS61.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS61.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS63.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS63.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS63.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS63.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS64.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS64.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS64.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS64.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS67.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS67.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS67.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS67.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS68.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS68.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS68.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS68.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS7.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS7.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS7.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS7.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS70.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS70.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS70.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS70.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS74.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS74.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS74.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS74.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS75.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS75.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS75.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS75.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS79.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS79.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS79.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS79.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS80.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS80.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS80.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS80.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS81.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS81.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS81.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS81.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS83.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS83.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS83.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS83.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS84.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS84.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS84.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS84.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS85.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS85.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS85.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS85.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS88.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS88.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS88.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS88.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS89.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS89.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS89.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS89.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS90.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS90.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS90.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS90.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS91.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS91.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS91.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS91.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS92.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS92.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS92.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS92.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS93.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS93.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS93.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS93.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS99EXP.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS99EXP.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-HS99EXP.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-HS99EXP.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LAKES.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LAKES.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LAKES.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LAKES.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LAUNCH.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LAUNCH.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LAUNCH.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LAUNCH.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LEWISPOL.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LEWISPOL.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LEWISPOL.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LEWISPOL.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LOOTSMA.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LOOTSMA.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LOOTSMA.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LOOTSMA.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LSNNODOC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LSNNODOC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-LSNNODOC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-LSNNODOC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MATRIX2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MATRIX2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MATRIX2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MATRIX2.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MESH.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MESH.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MESH.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MESH.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MISTAKE.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MISTAKE.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MISTAKE.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MISTAKE.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MSS1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MSS1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MSS1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MSS1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MWRIGHT.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MWRIGHT.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-MWRIGHT.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-MWRIGHT.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-NET1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-NET1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-NET1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-NET1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-OPTPRLOC.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-OPTPRLOC.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-OPTPRLOC.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-OPTPRLOC.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-S365.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-S365.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-S365.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-S365.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-S365MOD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-S365MOD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-S365MOD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-S365MOD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-SPANHYD.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-SPANHYD.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-SPANHYD.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-SPANHYD.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-SYNTHES1.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-SYNTHES1.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-SYNTHES1.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-SYNTHES1.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-TRY-B.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-TRY-B.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-TRY-B.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-TRY-B.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-TWOBARS.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-TWOBARS.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-TWOBARS.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-TWOBARS.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-WATER.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-WATER.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-WATER.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-WATER.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZECEVIC3.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZECEVIC3.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZECEVIC3.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZECEVIC3.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZECEVIC4.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZECEVIC4.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZECEVIC4.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZECEVIC4.dense-default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZY2.default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZY2.default.result: No such file or directory
+/home/ghecht/Projects/hven/.claude/worktrees/dn1c/docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/dn1_cell.sh: line 29: sl/out/s/cells/sd-hven-sqp-ZY2.dense-default.out: No such file or directory
+tee: sl/out/s/cells/sd-hven-sqp-ZY2.dense-default.result: No such file or directory
+ls: cannot access 'sl/out/s/cells/*.result': No such file or directory
+cells done 2026-11-10T06:39:45-05:00: 0 results
+analysis rc=1
+FOREGROUND_END 2026-11-10T06:39:45-05:00
+LEG s rc=0 2026-11-10T06:39:45-05:00

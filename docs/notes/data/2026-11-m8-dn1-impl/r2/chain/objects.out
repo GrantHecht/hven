@@ -1,0 +1,25 @@
+objects A 56, B 57; added: ./src/linear/dense_session.cpp.o ; removed: none
+in both 56; identical 35; differing 21:
+  ./src/core/ledger.cpp.o
+  ./src/drivers/equality_basis.cpp.o
+  ./src/drivers/ipm_options.cpp.o
+  ./src/drivers/ipm_solver.cpp.o
+  ./src/drivers/ipm_solver_handle.cpp.o
+  ./src/drivers/sqp_options.cpp.o
+  ./src/drivers/sqp_print.cpp.o
+  ./src/drivers/sqp_solver.cpp.o
+  ./src/drivers/sqp_solver_handle.cpp.o
+  ./src/drivers/trace_writer.cpp.o
+  ./src/globalization/sqp/mixed_lift.cpp.o
+  ./src/globalization/sqp/qn_lift_bridge.cpp.o
+  ./src/globalization/sqp/soc_elastic_restoration.cpp.o
+  ./src/interior/kkt_factorization.cpp.o
+  ./src/kkt/kkt_calls.cpp.o
+  ./src/linear/symmetric_factor_mkl.cpp.o
+  ./src/qp/ipqp_engine.cpp.o
+  ./src/qp/qp_engine.cpp.o
+  ./src/qp/ssn_engine.cpp.o
+  ./src/qp/ws_independence.cpp.o
+  ./src/warmstart/continuation.cpp.o
+dense_symmetric_factor.cpp.o BYTE-IDENTICAL
+OBJECTS_AS_DECLARED

@@ -14,13 +14,14 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 // --- fixture helpers, repeated from test_ipqp_engine.cpp / test_ipqp_
@@ -87,7 +88,7 @@ QpProblem box_qp(double lo, double up) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = std::numeric_limits<double>::infinity();
+    o.trust_region_radius = std::numeric_limits<double>::infinity();
     return o;
 }
 
@@ -110,7 +111,7 @@ QpProblem convex_qp() {
 /// early-stall detector to fire on `convex_qp()` (a genuine `kStall`).
 IpqpOptions crawling_opts(double tau) {
     IpqpOptions io;
-    io.ipqp_tau = tau;
+    io.fraction_to_boundary = tau;
     return io;
 }
 
@@ -133,21 +134,21 @@ QpProblem infeasible_scalar_qp() {
 /// order, so a test can inspect exactly what the emit sites built.
 class RecordingTraceSink : public TraceSink {
   public:
-    std::vector<IpqpTraceIterEvent> iters;
-    std::vector<IpqpTraceRegEvent> regs;
-    std::vector<IpqpTraceRestartEvent> restarts;
-    std::vector<IpqpTraceRouteEvent> routes;
-    std::vector<IpqpTraceCertifyEvent> certifies;
-    std::vector<IpqpTraceEscapeEvent> escapes;
+    std::vector<IpqpIterTraceEvent> iters;
+    std::vector<IpqpRegTraceEvent> regs;
+    std::vector<IpqpRestartTraceEvent> restarts;
+    std::vector<IpqpRouteTraceEvent> routes;
+    std::vector<IpqpCertifyTraceEvent> certifies;
+    std::vector<IpqpEscapeTraceEvent> escapes;
     std::vector<QpModeTraceEvent> modes;
     std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
 
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &e) override { regs.push_back(e); }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &e) override { restarts.push_back(e); }
-    void on_ipqp_route(const IpqpTraceRouteEvent &e) override { routes.push_back(e); }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { certifies.push_back(e); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override { escapes.push_back(e); }
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { iters.push_back(e); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &e) override { regs.push_back(e); }
+    void on_ipqp_restart(const IpqpRestartTraceEvent &e) override { restarts.push_back(e); }
+    void on_ipqp_route(const IpqpRouteTraceEvent &e) override { routes.push_back(e); }
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &e) override { certifies.push_back(e); }
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &e) override { escapes.push_back(e); }
     void on_qp_mode(const QpModeTraceEvent &e) override { modes.push_back(e); }
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &e) override {
         fallbacks.push_back(e);
@@ -206,13 +207,14 @@ TEST(IpqpTrace, LedgerRecordsOneSolveRecordPerSubproblemWithTheIpqpPrefix) {
     Ledger ledger;
     engine.attach_ledger(&ledger, "ipqp");
 
-    const IpqpResult ok = engine.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ok =
+        engine.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(ok.status, QpStatus::kOptimal);
 
     QpProblem declined = box_qp(-1.0, 1.0);
     declined.lower(1) = 0.25;
     declined.upper(1) = 0.25;
-    const IpqpResult dec = engine.solve(declined, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult dec = engine.solve(declined, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_TRUE(dec.declined_pinned) << "the fixture must decline, or the second row is vacuous";
 
     ASSERT_EQ(ledger.records().size(), 2u) << "one row per subproblem, decline included (I9)";
@@ -233,7 +235,7 @@ TEST(IpqpTrace, LedgerRecordsOneSolveRecordPerSubproblemWithTheIpqpPrefix) {
 
     // NON-VACUITY: detached, a third solve must not grow this ledger.
     engine.attach_ledger(nullptr, "");
-    (void)engine.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, SolveOverrides{});
+    (void)engine.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(ledger.records().size(), 2u);
 }
 
@@ -251,14 +253,14 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     EXPECT_EQ(tier.last_trace_solve_id(), 0) << "no solve has run with the sink attached yet";
 
     const IpqpResult first =
-        tier.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, SolveOverrides{});
+        tier.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(first.status, QpStatus::kOptimal);
     ASSERT_FALSE(sink.iters.empty()) << "a converged solve took at least one iteration";
     EXPECT_EQ(tier.last_trace_solve_id(), 0);
 
     double min_alpha_p = std::numeric_limits<double>::infinity();
     double min_alpha_d = std::numeric_limits<double>::infinity();
-    for (const IpqpTraceIterEvent &ev : sink.iters) {
+    for (const IpqpIterTraceEvent &ev : sink.iters) {
         EXPECT_EQ(ev.solve, 0);
         EXPECT_EQ(ev.major, 0) << "no driver set it -- the engine's own default";
         EXPECT_GT(ev.alpha_p, 0.0);
@@ -297,7 +299,7 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
     // Cold-start duals make res_c bit-exact against ipqp_init_mu here (x0 ==
     // box centre, unit distances); a res_d/res_c swap breaks this. See
     // .superpowers/w1-t8-report.md FIX ROUND 3.
-    EXPECT_DOUBLE_EQ(sink.iters.front().res_c, IpqpOptions{}.ipqp_init_mu)
+    EXPECT_DOUBLE_EQ(sink.iters.front().res_c, IpqpOptions{}.barrier_initial)
         << "cold-start complementarity is exactly mu_0 by construction on this fixture";
     // `it` is a dense 1..N sequence, one entry per completed iteration.
     for (std::size_t i = 0; i < sink.iters.size(); ++i) {
@@ -315,11 +317,11 @@ TEST(IpqpTrace, IterEventsCarryTheDriverSetMajorAndCrossCheckAgainstTheResult) {
 
     tier.set_trace_major(7);
     const IpqpResult second =
-        tier.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, SolveOverrides{});
+        tier.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(second.status, QpStatus::kOptimal);
     EXPECT_EQ(tier.last_trace_solve_id(), 1);
-    std::vector<IpqpTraceIterEvent> second_events;
-    for (const IpqpTraceIterEvent &ev : sink.iters) {
+    std::vector<IpqpIterTraceEvent> second_events;
+    for (const IpqpIterTraceEvent &ev : sink.iters) {
         if (ev.solve == 1) {
             EXPECT_EQ(ev.major, 7);
             second_events.push_back(ev);
@@ -346,7 +348,7 @@ TEST(IpqpTrace, RegEventsPartitionIntoTheLadderClimbAndTheScheduleDecrease) {
     IpqpEngine tier(tight_opts());
     RecordingTraceSink sink;
     tier.attach_trace(&sink);
-    const IpqpResult r = tier.solve(indefinite_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(indefinite_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_GT(r.counters.ipqp_reg_increases, 0) << "the fixture must arm the ladder";
 
     // R3: rho/delta bounded against IpqpOptions' own bands, not just >= 0.
@@ -355,21 +357,21 @@ TEST(IpqpTrace, RegEventsPartitionIntoTheLadderClimbAndTheScheduleDecrease) {
     const IpqpOptions defaults;
     Index up_count = 0;
     Index down_count = 0;
-    for (const IpqpTraceRegEvent &ev : sink.regs) {
+    for (const IpqpRegTraceEvent &ev : sink.regs) {
         EXPECT_GT(ev.delta, 0.0);
-        EXPECT_LE(ev.delta, defaults.ipqp_reg_max);
-        if (ev.dir == IpqpTraceRegDir::kUp) {
+        EXPECT_LE(ev.delta, defaults.regularization_max);
+        if (ev.dir == IpqpTraceRegDirection::kUp) {
             ++up_count;
             // A real MKL run never reports evidence failure on this legal
             // fixture (docs/testing.md: that path is a seam-only injection).
             EXPECT_EQ(ev.reason, IpqpTraceRegReason::kInertia);
             EXPECT_GT(ev.rho, 0.0);
-            EXPECT_LE(ev.rho, 2.0 * defaults.ipqp_reg_max);
+            EXPECT_LE(ev.rho, 2.0 * defaults.regularization_max);
         } else {
             ++down_count;
             EXPECT_EQ(ev.reason, IpqpTraceRegReason::kAccept);
-            EXPECT_GE(ev.rho, defaults.ipqp_reg_floor);
-            EXPECT_LE(ev.rho, defaults.ipqp_reg_max);
+            EXPECT_GE(ev.rho, defaults.regularization_min);
+            EXPECT_LE(ev.rho, defaults.regularization_max);
         }
     }
     EXPECT_EQ(up_count, r.counters.ipqp_reg_increases)
@@ -384,7 +386,7 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     tier.attach_trace(&sink);
 
     const QpProblem qp = box_qp(-1.0, 1.0);
-    const IpqpResult cold = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult cold = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(cold.status, QpStatus::kOptimal);
     ASSERT_EQ(sink.restarts.size(), 1u);
     EXPECT_EQ(sink.restarts[0].grade, IpqpTraceRestartGrade::kCold);
@@ -392,7 +394,7 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     EXPECT_FALSE(sink.restarts[0].abandoned);
     // Cold-start determinism (ipqp_engine.cpp's own `cold_start` comment):
     // mu0 == ipqp_init_mu exactly, and no seed means no payload.
-    EXPECT_EQ(sink.restarts[0].mu0, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_EQ(sink.restarts[0].mu0, IpqpOptions{}.barrier_initial);
     EXPECT_EQ(sink.restarts[0].mu_payload, 0.0);
 
     // ALIASING: `warm_carry()` points INTO the engine, and solve() commits
@@ -402,15 +404,15 @@ TEST(IpqpTrace, RestartEventReportsTheGradeAndTheRepairFactsAsMeasured) {
     ASSERT_NE(carry, nullptr) << "a finite converged solve arms the cross-major carry";
     const double carry_mu_before = carry->mu;
     const double carry_sum_z_before = carry->zl.sum() + carry->zu.sum();
-    const IpqpResult warm = tier.solve(qp, carry, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult warm = tier.solve(qp, carry, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(warm.status, QpStatus::kOptimal);
     ASSERT_EQ(sink.restarts.size(), 2u);
-    const IpqpTraceRestartEvent &rev = sink.restarts[1];
+    const IpqpRestartTraceEvent &rev = sink.restarts[1];
     EXPECT_NE(rev.grade, IpqpTraceRestartGrade::kCold) << "a real seed was offered";
     EXPECT_EQ(rev.repaired, warm.counters.ipqp_restart_repairs != 0);
     EXPECT_DOUBLE_EQ(rev.mu_payload, carry_mu_before);
-    EXPECT_GE(rev.mu0, IpqpOptions{}.ipqp_min_mu);
-    EXPECT_LE(rev.mu0, IpqpOptions{}.ipqp_init_mu);
+    EXPECT_GE(rev.mu0, IpqpOptions{}.barrier_min);
+    EXPECT_LE(rev.mu0, IpqpOptions{}.barrier_initial);
     // R3/R4: shift_p/shift_d recomputed from the SAY formula, not merely
     // bounded -- npd=4 and sum_d=upper-lower are dimension-derived; sum_z
     // uses the seed's raw prices. See w1-t8-report.md FIX ROUND 2's derivation.
@@ -435,7 +437,7 @@ TEST(IpqpTrace, CertifyEventReportsTheFinalReadAndFiresOnlyWhenOneWasTaken) {
     IpqpEngine tier(tight_opts());
     RecordingTraceSink sink;
     tier.attach_trace(&sink);
-    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.status, QpStatus::kOptimal);
     ASSERT_EQ(r.counters.ipqp_final_inertia_read, 0);
     ASSERT_EQ(sink.certifies.size(), 1u);
@@ -448,8 +450,8 @@ TEST(IpqpTrace, CertifyEventReportsTheFinalReadAndFiresOnlyWhenOneWasTaken) {
     RecordingTraceSink sink2;
     tier2.attach_trace(&sink2);
     IpqpOptions io2;
-    io2.ipqp_require_final_inertia = false;
-    const IpqpResult r2 = tier2.solve(qp, nullptr, io2, SolveOverrides{});
+    io2.require_final_inertia = false;
+    const IpqpResult r2 = tier2.solve(qp, nullptr, io2, QpSolveOverrides{});
     ASSERT_EQ(r2.counters.ipqp_final_inertia_read, 3);
     EXPECT_TRUE(sink2.certifies.empty());
 }
@@ -458,7 +460,7 @@ TEST(IpqpTrace, EscapeEventReportsTheReasonAndFiresOnlyOnAGenuineEscape) {
     IpqpEngine tier(tight_opts());
     RecordingTraceSink sink;
     tier.attach_trace(&sink);
-    const IpqpResult r = tier.solve(indefinite_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(indefinite_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(r.escape_reason, IpqpEscape::kNumerical);
     ASSERT_EQ(sink.escapes.size(), 1u);
     EXPECT_EQ(sink.escapes[0].reason, IpqpTraceEscapeReason::kNumerical);
@@ -471,7 +473,8 @@ TEST(IpqpTrace, EscapeEventReportsTheReasonAndFiresOnlyOnAGenuineEscape) {
     IpqpEngine tier2(tight_opts());
     RecordingTraceSink sink2;
     tier2.attach_trace(&sink2);
-    const IpqpResult ok = tier2.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult ok =
+        tier2.solve(box_qp(-1.0, 1.0), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(ok.escape_reason, IpqpEscape::kNone);
     EXPECT_TRUE(sink2.escapes.empty());
 }
@@ -485,7 +488,7 @@ TEST(IpqpTrace, EscapeEventCarriesTheFullEvidenceBlockVerbatim) {
         RecordingTraceSink sink;
         tier.attach_trace(&sink);
         const IpqpResult r =
-            tier.solve(convex_qp(), nullptr, crawling_opts(1e-3), SolveOverrides{});
+            tier.solve(convex_qp(), nullptr, crawling_opts(1e-3), QpSolveOverrides{});
         // T10b MOVED THIS CRAWL RATE TO 1e-4 AND FIX ROUND 1 MOVES IT BACK: on the REPAIRED
         // fixture the second window improves 0.18% at the shipped `ipqp_init_mu` (0.25% at
         // 0.1), both under 6.2's 1% floor. `.superpowers/w1-t10b-fix1-report.md` item A.
@@ -505,7 +508,7 @@ TEST(IpqpTrace, EscapeEventCarriesTheFullEvidenceBlockVerbatim) {
         RecordingTraceSink sink;
         tier.attach_trace(&sink);
         const IpqpResult r =
-            tier.solve(infeasible_scalar_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+            tier.solve(infeasible_scalar_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
         ASSERT_EQ(r.escape_reason, IpqpEscape::kInfeasibleSuspect);
         ASSERT_EQ(sink.escapes.size(), 1u);
         EXPECT_EQ(sink.escapes[0].reason, IpqpTraceEscapeReason::kInfeasibleSuspect);
@@ -530,11 +533,12 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     for (int number : {6, 3, 10}) {
         auto p = test_support::make_hs(number);
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
+        o.qp_mode = QpMode::kIpqp;
+        o.common.max_iterations = 60;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
-        const SqpResult s = driver.solve(*p.model);
+        const SqpResult s =
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const IpqpCounters &c = s.counters.ipqp;
         refine_accepted += c.ipqp_refine_accepted;
         to_ssn += c.ipqp_to_ssn;
@@ -549,15 +553,15 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     Index refine_events = 0, ssn_events = 0, walk_events = 0;
     Index uncertain_sum = 0;
     Index face_rows_sum = 0, face_bounds_sum = 0;
-    for (const IpqpTraceRouteEvent &ev : sink.routes) {
+    for (const IpqpRouteTraceEvent &ev : sink.routes) {
         switch (ev.to) {
-        case IpqpTraceRouteTo::kRefine:
+        case IpqpTraceRouteTarget::kRefine:
             ++refine_events;
             break;
-        case IpqpTraceRouteTo::kSsn:
+        case IpqpTraceRouteTarget::kSsn:
             ++ssn_events;
             break;
-        case IpqpTraceRouteTo::kWalk:
+        case IpqpTraceRouteTarget::kWalk:
             ++walk_events;
             break;
         }
@@ -579,31 +583,31 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     // bound -- every `uncertain` value is accounted for, not merely >= 0.
     EXPECT_EQ(uncertain_sum, total_uncertain);
     // RE-DERIVED AT M6 W4 T2(b), AND AGAIN AT T5 (both declared, both additive).
-    // Until T2 the kIpm arm was the only emitter, so `routes` and `modes` were
+    // Until T2 the kIpqp arm was the only emitter, so `routes` and `modes` were
     // the same length.
     //
     // T2: the WALK writes its own `qp.mode` line at the invocation, so a
     // subproblem the tier declines or retires past adds a walk line with no
     // route beside it.
     //
-    // T5: EVERY kernel call site writes one, tagged by `site`. Under kIpm that
+    // T5: EVERY kernel call site writes one, tagged by `site`. Under kIpqp that
     // adds the SSN WARM GRADE's own line -- mode `ssn`, site `ssn_warm_grade`,
     // which is NOT the kSsn arm -- and the elastic/fallback/SOC walks.
     //
     // So the partition below is by SITE first: the tier pairs with `dispatch`.
     Index ipqp_mode_events = 0, walk_dispatch_events = 0, non_dispatch_events = 0;
     for (const QpModeTraceEvent &ev : sink.modes) {
-        if (ev.site != QpModeSite::kDispatch) {
-            EXPECT_NE(ev.mode, IpqpTraceQpMode::kIpqp)
+        if (ev.site != QpTraceModeSite::kDispatch) {
+            EXPECT_NE(ev.mode, QpTraceMode::kIpqp)
                 << "the tier is only ever reached through the dispatch";
             ++non_dispatch_events;
             continue;
         }
-        if (ev.mode == IpqpTraceQpMode::kIpqp) {
+        if (ev.mode == QpTraceMode::kIpqp) {
             ++ipqp_mode_events;
         } else {
-            EXPECT_EQ(ev.mode, IpqpTraceQpMode::kWalk) << "the kSsn ARM cannot run under kIpm";
-            EXPECT_NE(ev.outcome, IpqpTraceOutcome::kRouted) << "the walk has no successor";
+            EXPECT_EQ(ev.mode, QpTraceMode::kWalk) << "the kSsn ARM cannot run under kIpm";
+            EXPECT_NE(ev.outcome, QpTraceOutcome::kRouted) << "the walk has no successor";
             ++walk_dispatch_events;
         }
     }
@@ -619,16 +623,16 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     Index optimal_count = 0, routed_count = 0, escaped_count = 0;
     Index iters_sum = 0;
     for (const QpModeTraceEvent &ev : sink.modes) {
-        if (ev.mode != IpqpTraceQpMode::kIpqp) {
+        if (ev.mode != QpTraceMode::kIpqp) {
             continue;
         }
-        EXPECT_EQ(ev.site, QpModeSite::kDispatch);
+        EXPECT_EQ(ev.site, QpTraceModeSite::kDispatch);
         EXPECT_EQ(ev.facts, "");
         EXPECT_GE(ev.iters, 0);
         iters_sum += ev.iters;
-        if (ev.outcome == IpqpTraceOutcome::kOptimal) {
+        if (ev.outcome == QpTraceOutcome::kOptimal) {
             ++optimal_count;
-        } else if (ev.outcome == IpqpTraceOutcome::kRouted) {
+        } else if (ev.outcome == QpTraceOutcome::kRouted) {
             ++routed_count;
         } else {
             ++escaped_count;
@@ -706,7 +710,7 @@ class RowActiveOnlyModel : public NlpModel {
         return j;
     }
     const Vec &lower() const override {
-        static const Vec l = vec({-1e20, -1e20}); // "no bound", ipqp_math.h's kIpqpInfBound
+        static const Vec l = vec({-1e20, -1e20}); // "no bound" at the default infinite_bound
         return l;
     }
     const Vec &upper() const override {
@@ -720,15 +724,15 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
     {
         RecordingTraceSink sink;
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
+        o.qp_mode = QpMode::kIpqp;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         BoundActiveOnlyModel model;
-        const SqpResult s = driver.solve(model);
+        const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
-        for (const IpqpTraceRouteEvent &ev : sink.routes) {
+        for (const IpqpRouteTraceEvent &ev : sink.routes) {
             face_rows_sum += ev.face_rows;
             face_bounds_sum += ev.face_bounds;
         }
@@ -738,15 +742,15 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
     {
         RecordingTraceSink sink;
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
+        o.qp_mode = QpMode::kIpqp;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
         RowActiveOnlyModel model;
-        const SqpResult s = driver.solve(model);
+        const SqpResult s = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
-        for (const IpqpTraceRouteEvent &ev : sink.routes) {
+        for (const IpqpRouteTraceEvent &ev : sink.routes) {
             face_rows_sum += ev.face_rows;
             face_bounds_sum += ev.face_bounds;
         }
@@ -764,11 +768,12 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
     for (int number : {10, 38}) {
         auto p = test_support::make_hs(number);
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
+        o.qp_mode = QpMode::kIpqp;
+        o.common.max_iterations = 60;
         SqpSolver driver(o);
         driver.attach_trace(&sink);
-        const SqpResult s = driver.solve(*p.model);
+        const SqpResult s =
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         disproved += s.counters.ipqp_suspicion_disproved;
         rung_b += s.counters.ipqp_fallback_rung_b;
         from_escape += s.counters.elastic_from_ipqp_escape;
@@ -783,12 +788,12 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
 
     Index unfired_events = 0, disproved_events = 0, rung_b_events = 0, fired_events = 0;
     for (const SqpFallbackVerdictTraceEvent &ev : sink.fallbacks) {
-        unfired_events += ev.verdict == SqpFallbackVerdict::kUnfired ? 1 : 0;
-        disproved_events += ev.verdict == SqpFallbackVerdict::kDisproved ? 1 : 0;
-        rung_b_events += ev.verdict == SqpFallbackVerdict::kRungB ? 1 : 0;
+        unfired_events += ev.verdict == SqpTraceFallbackVerdict::kUnfired ? 1 : 0;
+        disproved_events += ev.verdict == SqpTraceFallbackVerdict::kDisproved ? 1 : 0;
+        rung_b_events += ev.verdict == SqpTraceFallbackVerdict::kRungB ? 1 : 0;
         fired_events += ev.entered_rung_a ? 1 : 0;
         EXPECT_EQ(ev.rho_0.has_value(), ev.entered_rung_a);
-        EXPECT_EQ(ev.verdict == SqpFallbackVerdict::kUnfired, !ev.entered_rung_a);
+        EXPECT_EQ(ev.verdict == SqpTraceFallbackVerdict::kUnfired, !ev.entered_rung_a);
     }
     ASSERT_GT(unfired_events, 0) << "HS38's entry never fires -- the kUnfired arm is real";
     EXPECT_EQ(disproved_events, disproved);
@@ -797,4 +802,4 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

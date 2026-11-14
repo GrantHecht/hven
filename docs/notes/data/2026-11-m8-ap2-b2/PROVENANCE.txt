@@ -1,0 +1,110 @@
+M8 AP-2 group B2 -- evidence provenance (CLAUDE.md section 7 stamp)
+================================================================================
+Declaration   DECLARATION.txt (committed 80af3f57 before the first leg; not edited)
+Amendment     AMENDMENT-B2a.txt (committed 12d96b12 before the first declared B2-a leg) --
+              A CRITERION CHANGE, reported as one: the B2-a subset is the ten dual-binding
+              cells the page defines, not the 27 the declaration named.
+Branch        m8-b2, cut from origin/m8 = 03d5d121; not pushed
+Code head     e99143e3 (every later commit is docs/evidence only)
+Pin           origin/m8 = 03d5d121, exported (git archive) to build-b2/pin-src and built
+              UNCHANGED in build-b2/pin (Release, the flags below); runtime arm A =
+              build-b2/armA/hven_sqp_corpus, sha256 0ba5d824...c9225656
+Arm B         build-b2/armB/hven_sqp_corpus (copy of build-b2/rel at e99143e3), sha256
+              7beeca67...8edca3e0
+Toolchain     clang 22.1.8 (Fedora 22.1.8-4.fc44); GCC 16.2.1 for the default install-smoke
+              arm; cmake 4.3.0; ninja; perf 7.2.12-200.fc44; MKL; MKL_NUM_THREADS=1
+Hardware      AMD Ryzen 7 5800X3D (8 cores / 16 threads, SMT on), 31 GiB, Linux 7.2.12-200.fc44
+Date          2026-11-01
+Configure     -G Ninja -DCMAKE_BUILD_TYPE=Release|Debug -DHVEN_FP_MODE=SAFER_FAST
+              -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_BENCH=ON -DHVEN_BUILD_EXAMPLES=ON
+              (build-b2/rel, build-b2/dbg; legs/build.sh)
+Apple / Windows  UNOBSERVED. Nothing here was taken on Mac or Windows hardware.
+
+BOX PROTOCOL
+Every build, test, replay, smoke, example and runtime leg ran as one script under
+`flock /tmp/box-build.lock`, with `pgrep -a hven_bench_cell` empty before the lock (its own
+command) and PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END inside it, MKL_NUM_THREADS=1,
+no `timeout` wrapper. ctest -j4 under setsid. Runtime legs serial, one process at a time,
+taskset -c 2. Legs that outlived the tool's foreground window were waited on by pid
+(`while kill -0`). Scripts: legs/, runtime/.
+
+LEGS AND VERDICTS
+ 1  both suites          Release 3265/3265, Debug 3265/3265 at e99143e3 (suites/). The first
+                         Debug run, at 12d96b12, failed one test:
+                         SqpDriverContract.MisSizedCallbackReturnsAreRejectedByName aborted on an
+                         Eigen bounds assert -- the Problem census indexed a deliberately
+                         mis-sized internal model box at construction. Fixed in e99143e3 (the
+                         census reads a box only when both sides have the variable count); both
+                         suites were then re-run in full. The Release suite had passed at
+                         12d96b12 (3265/3265): Release reads past the end silently, which is
+                         what the Debug lane exists to catch.
+ 2  install smoke        default (GCC) and clang arms both PASSED; 19 standalone-include TUs
+                         (install-smoke/).
+ 3  export contract      check_export_contract.sh OK on both arms: "no public header includes
+                         detail/ beyond the shrink-only allow-list (10 residual pairs)" -- 19 at
+                         B1, the nine B2 lines deleted. The script itself is unchanged (sha256
+                         83717987..., as declared); the allow-list is its own file.
+ 4  golden rig           the native-arm rig suite runs inside both ctest suites; the two
+                         OLD-SEAM arms are not configured in this tree (HVEN_RIG_PSIOPT_SEAM /
+                         HVEN_RIG_SQP_SEAM empty), as in every earlier gate -- not claimed.
+ 5  27-cell replay x3    EXACT: 27 cells x 75 columns, 0 differences, walk / ssn / ipm, against
+                         docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv (replay/).
+ 6  census               NOT RUN (declared). The tripwire (any proof-5 difference, any B2-R1
+                         counter difference) did not trip.
+ B2-a public vs internal  walk / ssn / ipm: 10 cells x 75 columns, 0 differences, EXACT.
+                         interior: 41 rows x 30 columns, 0 differences, EXACT; the only unmatched
+                         rows are the two parts2 rows excluded by name (AMENDMENT-B2a.txt). The
+                         secondary gate reading ran only because compare_replay.py exits 1 on
+                         unmatched rows; it also reads 0 differences (route-pin/).
+ B2-b pins              tests/drivers/test_problem.cpp (10 tests) and
+                         StringPiece.APiecesProblemIsSolvedByTheIpmAndRefusedByNameByTheSqp, in
+                         both suites.
+ B2-c examples          all eight build (HVEN_BUILD_EXAMPLES=ON) and exit 0 (examples/run.log).
+ B2-d compile flags     flags-diff.txt: 55 library TUs in both builds, 0 differing flag lists;
+                         the two added TUs (src/model/nlp.cpp, src/model/problem.cpp) carry the
+                         baseline flags. The pin's compile_commands.json was re-rooted from the
+                         exported source tree to the worktree first (legs/flags.sh).
+ B2-R1 runtime          FAILED in one mode (interior); see RUNTIME below. The group is stopped
+                         at this leg and reported.
+ B2-R2 runtime          informational; see RUNTIME below.
+
+RUNTIME (runtime/; wrapper runtime_all.sh, leg runtime_leg.sh = the B1 leg re-pathed,
+analyzer analyze.py = the B1 analyzer verbatim)
+B2-R1 pass A, three rounds alternated, the 27 replay cells, default (internal) route,
+corpus instructions:u B/A (B = e99143e3, A = the pin 03d5d121):
+    walk      1.000003   WITHIN   (81 (round,cell) pairs counter-identical)
+    ssn       1.000188   WITHIN   (81 pairs counter-identical)
+    ipm       1.000128   WITHIN   (81 pairs counter-identical)
+    interior  1.008006   OUTSIDE the declared 0.995-1.005 band  (3 rounds counter-identical;
+              per-round A 1.06702e11 / 1.06739e11 / 1.06741e11, B 1.07599e11 / 1.07593e11 /
+              1.07542e11; within-arm spread 0.05 %)
+  -> B2-R1 FAILS by its declared criterion. No criterion is changed.
+  Pass B (Zen 3 front-end events) was declared explanatory and optional; it was NOT taken: it
+  reads front-end stalls, and what moved is an instruction count.
+
+EXPLANATORY DIAGNOSIS (undeclared, after the failure; it changes no verdict).
+runtime/diagnose_interior.sh: one `perf record -c 200000 -e instructions:u` run per arm of the
+same interior leg (fixed-period sampling, so samples are proportional to instructions), and
+runtime/diff_symbols.py over the two (runtime/diagnose-interior/symbol-diff.txt):
+    all samples                         A=525955 B=535403  B/A=1.01796
+    difftime, difftime@plt,
+    mkl_serv_get_clocks_frequency,
+    __vdso_time                         A=3876   B=13319
+    all samples less those four         A=522079 B=522084  B/A=1.000010
+None of the four symbols is hven code (no hven source names difftime); they are MKL's
+clock-frequency service and the time() polling it drives -- a wall-clock-dependent spin whose
+instruction count depends on when in the second the process runs, not on the code under test.
+The interior leg is ONE process per arm per round, run back to back in a fixed order, so its
+spin count can be phase-correlated with the arm; the three SQP modes run one process per cell
+(27 per arm per round) and average it out. hven's own new work in this leg is visible and
+small: count_program + materialize_variable_bounds (the internal-route Problem's census, once
+per program) = 249 samples, about 5e7 instructions, 0.05 % of the leg.
+This diagnosis is a reading for the reviewer, not a re-run of the criterion: the leg failed as
+declared.
+
+B2-R2 (informational, no band): B2's binary, nlp-public vs nlp-internal, one round, the ten
+dual-binding cells: walk instructions B/A 1.001046 (10 cells counter-identical); interior
+0.983598 (counter-identical; the interior leg carries the same spin, so this single-process
+reading is not interpretable at the per-mille level).
+
+WALL-CLOCK: informational only, never quoted; carried in runtime/passA-*/perf.

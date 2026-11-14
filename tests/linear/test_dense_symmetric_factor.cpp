@@ -223,7 +223,7 @@ TEST(DenseSymmetricFactor, SolveBeforeFactorizeThrows) {
     DenseSymmetricFactor f;
     Mat RHS = Mat::Identity(2, 2);
     Mat X(2, 2);
-    EXPECT_THROW({ f.solve(RHS, X); }, std::runtime_error);
+    EXPECT_THROW({ f.solve(RHS, X); }, std::logic_error);
 }
 
 TEST(DenseSymmetricFactor, NonSquareFactorizeThrows) {
@@ -340,13 +340,13 @@ TEST(DenseSymmetricFactor, RefactorizeWithDifferentDimLeavesNoStaleState) {
 // The default and the validation rule are backend-neutral and pinned here.
 TEST(DenseSymmetricFactor, ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives) {
     DenseSymmetricFactor f;
-    EXPECT_EQ(f.num_threads(), 0) << "0 = leave the backend's own default alone";
+    EXPECT_EQ(f.threads(), 0) << "0 = leave the backend's own default alone";
 
-    f.set_num_threads(2);
-    EXPECT_EQ(f.num_threads(), 2);
+    f.set_threads(2);
+    EXPECT_EQ(f.threads(), 2);
 
-    EXPECT_THROW(f.set_num_threads(-1), std::invalid_argument);
-    EXPECT_EQ(f.num_threads(), 2) << "a rejected count leaves the factor exactly as it was";
+    EXPECT_THROW(f.set_threads(-1), std::invalid_argument);
+    EXPECT_EQ(f.threads(), 2) << "a rejected count leaves the factor exactly as it was";
 
     // Moving the count invalidates nothing: a cached factorization stays
     // usable, because LAPACK reads the count at call scope.
@@ -354,7 +354,7 @@ TEST(DenseSymmetricFactor, ThreadCountDefaultsToTheBackendDefaultAndRefusesNegat
     A << 2, -1, -1, 2;
     f.factorize(A);
     ASSERT_TRUE(f.factorized());
-    f.set_num_threads(1);
+    f.set_threads(1);
     EXPECT_TRUE(f.factorized());
     Mat X(2, 1);
     Mat B(2, 1);
@@ -382,7 +382,7 @@ TEST(DenseSymmetricFactor, ACallScopedThreadCountRestoresTheCallersOwnOverride) 
     const int entry = mkl_set_num_threads_local(kCallerOverride);
 
     DenseSymmetricFactor f;
-    f.set_num_threads(kHvenThreads);
+    f.set_threads(kHvenThreads);
     Mat A(2, 2);
     A << 2, -1, -1, 2;
     f.factorize(A); // dsytrf, bracketed

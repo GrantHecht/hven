@@ -1,0 +1,127 @@
+M8 AP-2 group B5 (exceptions and evaluation failure) -- DECLARATION (committed before the first proof
+leg; never edited afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and
+the failed record is kept)
+================================================================================
+Base        m8 at b70fda28 (B4 landed, riders evidence).
+Code head   2142af0a (m8-b5). Commits after the base, oldest first:
+              45d7e087 feat: exceptions and evaluation failure -- the contract on both engines
+              2142af0a test: evaluation failure and exception pins on both engines
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B4.
+Scratch     build trees under build-b5/ (git-ignored): rel, dbg, offref-r, smoke-*, pch-check,
+            iparm-build, armA (+ armA-src detached worktree at b70fda28), armAbin, armBbin.
+
+THE CHANGE UNDER TEST (AP-1 §4.6 and §13 B5 with the 1ec52f56 amendment; B4-review carries I3, I4)
+--------------------------------------------------------------------------------
+C1  core/errors.h: hven::solvers::Error : std::runtime_error; EvaluationError, BackendError : Error. The
+    exception contract stated there and on both solve entries.
+C2  IPM: the seven trial-point catch sites absorb EvaluationError only (the declared narrowing). Every
+    trial evaluator screens its objective/constraint values (and, on ls_lang, the first-order blocks);
+    the soft-feasibility trial screens its full evaluation. A non-finite trial throws EvaluationError
+    internally and takes the rejection path.
+C3  IPM: the committed point's evaluation (objective, gradient, KKT matrix values, right-hand side) is
+    screened every iteration. Non-finite, or an EvaluationError, at a point a step reached: the step is
+    rolled back (previous iterate and bound multipliers restored) and the next step capped at
+    alpha_prev*cap_prev/backtrack_divisor (compute_step's two halves with the direction scaled between
+    them), bounded below by backtrack_divisor^-line_search_max_backtracks; no rollback possible -> the
+    phase ends kNumericalError, IpmStopReason::kNonFiniteStart (point never moved) or kNonFiniteIterate.
+    An EvaluationError at the solve's start point propagates. The "line search failed ... could not be
+    evaluated" std::runtime_error becomes kNumericalError with IpmStopReason::kEvaluationFailure.
+    IpmResult::nonfinite_step_rollbacks counts rollbacks.
+C4  SQP: EvaluationError at every trial evaluation (trial, SOC point, failure step, box projection,
+    restoration candidate and exit point, the regularized-restart point) and at derivative refreshes and
+    the exact Hessian becomes an un-evaluable bundle the existing rejection/rollback machinery handles;
+    at the start point of a caller's solve it propagates. A non-finite values bundle carries f = NaN
+    (a -Inf inequality row has violation 0 and was judged on f alone and could be ACCEPTED: pre-existing
+    defect, fixed). No SOC on a non-finite trial (it fed infinite data to the dense factor, which threw
+    std::runtime_error out of the solve: pre-existing defect, fixed).
+C5  SqpStopReason (11 values) published at every exit, SqpSolver::last_stop_reason(); IpmStopReason gains
+    kNonFiniteStart, kNonFiniteIterate, kEvaluationFailure, kException (7-10). Result messages name the
+    reason on both engines (kNumericalError causes, kInterrupted callback vs exception, the two uncertified
+    kInfeasible exits with a reason); a restoration sub-solve's own reason travels in the message.
+C6  Foreign exceptions: recorder guards (std::uncaught_exceptions) in alg_impl, run_phase_sequence and
+    solve_impl_body keep the interrupted solve; the handles finish it (row space, work, message) into
+    last_result() (new on both handles), status kInterrupted, reason kException, and rethrow the same
+    object (I4). last_result() also holds every returned result; cleared at each solve.
+C7  EvaluationErrors moves to SolveResult (both engines): rejected evaluations, thrown or non-finite.
+C8  thread_pool.h: a dispatch rethrows ONE captured exception unchanged, preferring a non-EvaluationError
+    (was: a composed std::runtime_error when several workers threw).
+C9  BackendError at the backend boundaries: the MKL/Accelerate adapters' analyze and solve_partial
+    (session runtime_errors re-thrown as BackendError, message unchanged; the analyze fault injector
+    throws BackendError), KktFactor::factorize_checked, DenseSymmetricFactor LAPACK dsytrf/dsytrs info.
+    Session files untouched. No iparm field touched.
+C10 docs/trace-schema-v0.md: ipm.phase.exit stop_reason lists every value (work_limit/time_limit were
+    missing; the four new ones added).
+Notes in this directory: HVEN-BENCH-AUDIT.txt (the obligation-before-landing audit; the change it
+proposes is hven-bench's, made when its pin moves), TYCHO-CATCH-UP.txt (registered catch-up, not a gate).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+X1  API: new public header core/errors.h; new members IpmSolver::last_result(), SqpSolver::last_result(),
+    SqpSolver::last_stop_reason(); new enum SqpStopReason; IpmStopReason values 7-10;
+    SolveResult::evaluation_errors (moved from IpmResult; IpmResult reads it unchanged);
+    IpmResult::nonfinite_step_rollbacks; new detail header detail/drivers/finite_screen.h. sizeof of
+    SolveResult, IpmResult, SqpResult, IpmSolverImpl, SqpSolverImpl moves. No new TU (PCH source count
+    unchanged).
+X2  BEHAVIOUR, FAULT PATHS ONLY (a model throwing, or returning NaN/Inf): C2-C4, C6, C8, C9 as above. No
+    path a finite, non-throwing model takes is changed, except the per-iteration work C3 adds (the screen,
+    O(n + m + nnz(KKT)), and the rollback snapshot copy, O(n + m)) and the per-solve recorder checks.
+X3  Messages: kNumericalError and kInterrupted messages carry the reason; uncertified kInfeasible carries
+    the inconsistent-equalities or infeasible-subproblem reason. Every other message text unchanged.
+X4  Tests: 3314 -> 3375 (+61: tests/drivers/test_evaluation_failure.cpp 59 ctest entries -- 40 trial
+    cases, 10 start cases, 9 single tests; test_soc.cpp +2 net). Existing fixtures re-pinned to the
+    narrowing (models throw EvaluationError; SOC foreign faults propagate; the un-evaluable abort is a
+    kNumericalError status) and gain SqpStopReason pins on the exits they reach.
+X5  Trace schema doc only (C10); no trace golden changes.
+CORPUS (measured before this declaration on the B5 code, dev runs under the lock, not evidence):
+    27-cell replay walk/ssn/ipm 0 differences each; interior top-level leg 43 cells x 30 columns 0
+    differences against the B4-riders arm-B CSV (b70fda28 code); walk census tier 1 only -- 41 of the 57 rows (the dev run was stopped after tier 1 to
+    spare the 6-hour tiers 2-3; the leg runs all 57): 0 mismatches.
+    EXPECTED: no corpus row moves (no corpus cell throws or meets a non-finite trial that the old code
+    treated differently). If one moves at a leg it is a failed leg (stop, keep the record, successor
+    declaration), not a declared difference.
+SqpStopReason REACHABILITY (P1 pins): kNone (optimal solves), kInterrupted / kException
+    (InterruptKinds, ForeignException), kNonFiniteStart (NonFiniteStart.sqp_*,
+    SqpDriverQpFailure.ANonFiniteSubproblemEndsTheSolveWithoutAKernelCall), kNonFiniteIterate
+    (SqpDriverNonfiniteRollback.NoRollbackIsTakenAcrossTheRadiusFloor), kSubproblemFailure
+    (SqpDriverQpFailure.RepeatedQpNumericalErrorStillPropagates), kInconsistentEqualities
+    (EqualityBasisModes.F2InconsistentRedundantRowIsCertifiedInfeasible), kRestorationRefused
+    (SqpDriverRestoration.SecondRequestIsCappedAndReported), kRestorationFailed (SqpLadderSeam
+    TheReductionResume... off arm, AnExhaustedElasticTierInsideThePhase... kModel arm; message pins).
+    ARGUED, no fixture: kRestorationNoClaim (the parent's arm for a sub-solve that returns kOptimal
+    without a claim, or kInfeasible; the ladder fixtures that reach "no claim" end inside the sub-solve,
+    which the parent reports as kRestorationFailed) and kRestorationNonFinite (restoration ending at a
+    point where the caller's model is not finite; set at the one arm that tests x_r / kkt_r finiteness).
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b5/rel) and Debug (build-b5/dbg), full, -j4 under setsid: every test
+    passes (3375 expected; legs/ctest.sh).
+P2  examples: all 8 build and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences.
+P4  iparm (legs/iparm.sh): the dumper (byte copy of B4's, iparm/) against an install of the B5 head:
+    BYTE-IDENTICAL to docs/notes/data/2026-11-m8-ap2-b4/iparm/iparm-b4.txt, 15 configurations. (C9
+    touches symmetric_factor_mkl.cpp; no iparm field; no IPARM-SURFACE label is claimed or needed.)
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on arm B.
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass,
+    the detail-include rule armed and NO allow-list (none exists; none may be added).
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh directory (build-b5/offref-r),
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass (legs/offref.sh; the evidence directory is passed ABSOLUTE).
+P9  Accelerate syntax sweep, pass A as B4 (legs/accelerate_sweep.py): no OTHER; no class beyond B4's
+    (KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED.
+P10 compile-flags diff (legs/flags.sh, B4's instrument): library TUs of arm A (b70fda28, build-b5/armA) vs
+    the B5 head (build-b5/rel): IDENTICAL flags, the same TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = the b70fda28 binary, arm B = 2142af0a; band
+    0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm order
+    alternated.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock); `pgrep -a hven_bench_cell` empty before the lock
+and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under
+setsid; FOREGROUND_START/END markers; ABSOLUTE evidence paths.
+DEV CHECKS before this declaration (not evidence): Release and Debug full suites 3375/3375 at the code
+head; the dev replay and census above.

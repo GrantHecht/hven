@@ -19,31 +19,31 @@
 #include <gtest/gtest.h>
 
 #include "hven/detail/interior/fixed_variable_row.h"
-#include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/model/nlp_adapter.h"
+#include "hven/detail/model/non_linear_program.h"
 #include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/model/solver_indexing_data.h"
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 
+using hven::AssemblyDeclaration;
+using hven::AssemblyPiece;
+using hven::CandidateFirstOrder;
+using hven::CandidatePoint;
+using hven::CandidateValues;
+using hven::ConstraintAssemblyPiece;
+using hven::EvalRequest;
+using hven::KktLocationTable;
+using hven::KktScatterView;
+using hven::ObjectiveAssemblyPiece;
+using hven::RhsArenaView;
+using hven::RhsLocationTable;
+using hven::RhsScatterView;
+using hven::VariableBound;
 using hven::Vec;
-using hven::solvers::AssemblyDeclaration;
-using hven::solvers::AssemblyPiece;
-using hven::solvers::CandidateFirstOrder;
-using hven::solvers::CandidatePoint;
-using hven::solvers::CandidateValues;
-using hven::solvers::ConstraintAssemblyPiece;
-using hven::solvers::EvalRequest;
-using hven::solvers::KktLocationTable;
-using hven::solvers::KktScatterView;
-using hven::solvers::ObjectiveAssemblyPiece;
-using hven::solvers::RhsArenaView;
-using hven::solvers::RhsLocationTable;
-using hven::solvers::RhsScatterView;
-using hven::solvers::VariableBound;
 
 // ---------------------------------------------------------------------------
 // The piece concept
@@ -85,30 +85,25 @@ static_assert(!AssemblyPiece<ContractProbeSizedOnly, ContractProbeIndexData>,
 
 // The pieces that exist today satisfy the concept unchanged -- the concept
 // states the contract they already meet, it does not impose a new one.
-static_assert(AssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
-static_assert(AssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
-static_assert(
-    ObjectiveAssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
-static_assert(
-    ConstraintAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
+static_assert(ObjectiveAssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>);
+static_assert(ConstraintAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
 
-// The objective-kind concept is NOT weaker than the seam that stores an
-// objective: that seam forwards the constraint surface too, so a type carrying
-// only the three scalar methods is not storable however objective-shaped it
-// looks. A constraint piece has the constraint surface and not the objective
-// one, and must fail the objective-kind concept for that reason alone.
+// The objective-kind concept is exactly what the seam that stores an objective
+// forwards: the piece surface and the three scalar methods, no constraint surface
+// (AP-2 B6, friction #19). A constraint piece has the constraint surface and not
+// the objective one, and fails the objective-kind concept for that reason alone.
+static_assert(!ObjectiveAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
 static_assert(
-    !ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
-static_assert(!hven::solvers::ObjectiveAssemblySurface<hven::solvers::NLPConstraintPiece,
-                                                       hven::solvers::SolverIndexingData>);
+    !hven::ObjectiveAssemblySurface<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>);
 static_assert(!ObjectiveAssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
 
-/// The scalar objective surface alone, with no constraint surface behind it:
-/// objective-shaped, and still not storable as an objective.
+/// The piece surface and the scalar objective surface, with no constraint surface
+/// and no output count behind it: an objective piece.
 struct ContractProbeObjectiveSurfaceOnly {
     std::string name() const { return "objective-surface-only"; }
     int input_rows() const { return 2; }
-    int output_rows() const { return 1; }
     bool thread_safe() const { return true; }
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &, int, bool,
@@ -127,10 +122,12 @@ struct ContractProbeObjectiveSurfaceOnly {
                                     const ContractProbeIndexData &) const {}
 };
 
-static_assert(hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
-                                                      ContractProbeIndexData>);
-static_assert(!ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
-              "the objective-kind concept must be no weaker than the seam that stores one");
+static_assert(
+    hven::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>);
+static_assert(ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+              "an objective piece needs no constraint surface and no output count");
+static_assert(!ConstraintAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+              "a piece without the constraint surface is not a constraint piece");
 
 } // namespace
 
@@ -139,21 +136,21 @@ TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
     // regression in them is reported as a named failure rather than only as a
     // build break.
     EXPECT_TRUE((AssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>));
-    EXPECT_TRUE(
-        (AssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>));
-    EXPECT_TRUE(
-        (AssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>));
+    EXPECT_TRUE((AssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>));
+    EXPECT_TRUE((AssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>));
 }
 
-TEST(AggregatePieceConcept, TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne) {
-    EXPECT_TRUE((ObjectiveAssemblyPiece<hven::solvers::NLPObjectivePiece,
-                                        hven::solvers::SolverIndexingData>));
-    EXPECT_TRUE((hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
-                                                         ContractProbeIndexData>));
-    EXPECT_FALSE(
+TEST(AggregatePieceConcept, TheObjectiveKindCarriesNoConstraintSurface) {
+    EXPECT_TRUE(
+        (ObjectiveAssemblyPiece<hven::detail::NlpObjectivePiece, hven::SolverIndexingData>));
+    EXPECT_TRUE((
+        hven::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
+    EXPECT_TRUE(
         (ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
-    EXPECT_FALSE((ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece,
-                                         hven::solvers::SolverIndexingData>));
+    EXPECT_FALSE(
+        (ConstraintAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
+    EXPECT_FALSE(
+        (ObjectiveAssemblyPiece<hven::detail::NlpConstraintPiece, hven::SolverIndexingData>));
 }
 
 // ---------------------------------------------------------------------------
@@ -164,10 +161,10 @@ namespace {
 
 AssemblyDeclaration consistent_declaration() {
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = 4;
-    declaration.equality_rows_ = 0;
-    declaration.inequality_rows_ = 0;
-    declaration.partition_count_ = 2;
+    declaration.primal_vars = 4;
+    declaration.equality_rows = 0;
+    declaration.inequality_rows = 0;
+    declaration.partition_count = 2;
     return declaration;
 }
 
@@ -197,28 +194,28 @@ TEST(AggregateDeclarationTest, AcceptsRowCountsWhenNoPiecesAreDeclared) {
     // the sum is wrong, is pinned against a real piece-sourced declaration in the
     // engine's own aggregate suite.
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.equality_rows_ = 3;
-    declaration.inequality_rows_ = 5;
+    declaration.equality_rows = 3;
+    declaration.inequality_rows = 5;
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, RejectsANonPositivePartitionCount) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.partition_count_ = 0;
+    declaration.partition_count = 0;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
-    declaration.partition_count_ = -2;
+    declaration.partition_count = -2;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
 TEST(AggregateDeclarationTest, RejectsANegativeDimension) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.primal_vars_ = -1;
+    declaration.primal_vars = -1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
 TEST(AggregateDeclarationTest, RejectsABoundOutsideTheVariableRange) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{7, 0.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{7, 0.0, 1.0});
     const std::string message = invalid_argument_message(declaration);
     EXPECT_NE(message.find('7'), std::string::npos) << message;
     EXPECT_NE(message.find('4'), std::string::npos) << message;
@@ -226,20 +223,20 @@ TEST(AggregateDeclarationTest, RejectsABoundOutsideTheVariableRange) {
 
 TEST(AggregateDeclarationTest, RejectsANotANumberBound) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(
+    declaration.variable_bounds.push_back(
         VariableBound{1, std::numeric_limits<double>::quiet_NaN(), 1.0});
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
 TEST(AggregateDeclarationTest, AcceptsAnInRangeBound) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{3, 0.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{3, 0.0, 1.0});
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, RejectsAnInvertedBoundRecord) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{2, 4.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{2, 4.0, 1.0});
     const std::string message = invalid_argument_message(declaration);
     EXPECT_NE(message.find("inverted"), std::string::npos) << message;
     EXPECT_NE(message.find('4'), std::string::npos) << message;
@@ -249,8 +246,8 @@ TEST(AggregateDeclarationTest, RejectsAnInvertedBoundRecord) {
 TEST(AggregateDeclarationTest, RejectsABoundHistoryWhoseIntersectionIsEmpty) {
     // Each record is fine on its own; together they leave the variable nothing.
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 1.0});
-    declaration.variable_bounds_.push_back(VariableBound{2, 3.0, 4.0});
+    declaration.variable_bounds.push_back(VariableBound{2, 0.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{2, 3.0, 4.0});
     const std::string message = invalid_argument_message(declaration);
     EXPECT_NE(message.find("empty"), std::string::npos) << message;
     EXPECT_NE(message.find('2'), std::string::npos) << message;
@@ -258,31 +255,31 @@ TEST(AggregateDeclarationTest, RejectsABoundHistoryWhoseIntersectionIsEmpty) {
 
 TEST(AggregateDeclarationTest, AcceptsABoundHistoryThatMerelyNarrows) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 4.0});
-    declaration.variable_bounds_.push_back(VariableBound{2, 1.0, 3.0});
+    declaration.variable_bounds.push_back(VariableBound{2, 0.0, 4.0});
+    declaration.variable_bounds.push_back(VariableBound{2, 1.0, 3.0});
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, MaterializesOneRecordPerVariableTightestWins) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{1, 0.0, 4.0});
-    declaration.variable_bounds_.push_back(VariableBound{1, 1.0, 3.0});
+    declaration.variable_bounds.push_back(VariableBound{1, 0.0, 4.0});
+    declaration.variable_bounds.push_back(VariableBound{1, 1.0, 3.0});
 
     const std::vector<VariableBound> materialized = declaration.materialize_variable_bounds();
-    ASSERT_EQ(materialized.size(), static_cast<std::size_t>(declaration.primal_vars_));
+    ASSERT_EQ(materialized.size(), static_cast<std::size_t>(declaration.primal_vars));
     for (std::size_t index = 0; index < materialized.size(); ++index) {
-        EXPECT_EQ(materialized[index].index_, static_cast<int>(index));
+        EXPECT_EQ(materialized[index].index, static_cast<int>(index));
     }
-    EXPECT_DOUBLE_EQ(materialized[1].lower_, 1.0);
-    EXPECT_DOUBLE_EQ(materialized[1].upper_, 3.0);
+    EXPECT_DOUBLE_EQ(materialized[1].lower, 1.0);
+    EXPECT_DOUBLE_EQ(materialized[1].upper, 3.0);
     // An undeclared variable materializes unbounded on both sides.
-    EXPECT_EQ(materialized[0].lower_, -std::numeric_limits<double>::infinity());
-    EXPECT_EQ(materialized[0].upper_, std::numeric_limits<double>::infinity());
+    EXPECT_EQ(materialized[0].lower, -std::numeric_limits<double>::infinity());
+    EXPECT_EQ(materialized[0].upper, std::numeric_limits<double>::infinity());
 }
 
 TEST(AggregateDeclarationTest, MaterializationRejectsWhatValidationRejects) {
     AssemblyDeclaration declaration = consistent_declaration();
-    declaration.variable_bounds_.push_back(VariableBound{9, 0.0, 1.0});
+    declaration.variable_bounds.push_back(VariableBound{9, 0.0, 1.0});
     EXPECT_THROW(declaration.materialize_variable_bounds(), std::invalid_argument);
 }
 
@@ -296,9 +293,9 @@ TEST(CandidateStorageValidation, ValuesBlocksMustMatchTheirDimensions) {
     Vec inequality(3);
     CandidateValues values{objective, equality, inequality};
 
-    EXPECT_NO_THROW(hven::solvers::validate_candidate_values(values, 2, 3));
-    EXPECT_THROW(hven::solvers::validate_candidate_values(values, 4, 3), std::invalid_argument);
-    EXPECT_THROW(hven::solvers::validate_candidate_values(values, 2, 1), std::invalid_argument);
+    EXPECT_NO_THROW(hven::validate_candidate_values(values, 2, 3));
+    EXPECT_THROW(hven::validate_candidate_values(values, 4, 3), std::invalid_argument);
+    EXPECT_THROW(hven::validate_candidate_values(values, 2, 1), std::invalid_argument);
 }
 
 TEST(CandidateStorageValidation, TheMessageNamesTheBlockAndBothNumbers) {
@@ -307,7 +304,7 @@ TEST(CandidateStorageValidation, TheMessageNamesTheBlockAndBothNumbers) {
     Vec inequality(3);
     CandidateValues values{objective, equality, inequality};
     try {
-        hven::solvers::validate_candidate_values(values, 4, 3);
+        hven::validate_candidate_values(values, 4, 3);
         FAIL() << "a mis-sized equality block must be rejected";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -326,9 +323,8 @@ TEST(CandidateStorageValidation, FirstOrderBlocksMustMatchTheirDimensions) {
     CandidateFirstOrder out{CandidateValues{objective, equality, inequality}, objective_gradient,
                             adjoint_gradient};
 
-    EXPECT_NO_THROW(hven::solvers::validate_candidate_first_order(out, 4, 2, 3));
-    EXPECT_THROW(hven::solvers::validate_candidate_first_order(out, 5, 2, 3),
-                 std::invalid_argument);
+    EXPECT_NO_THROW(hven::validate_candidate_first_order(out, 4, 2, 3));
+    EXPECT_THROW(hven::validate_candidate_first_order(out, 5, 2, 3), std::invalid_argument);
 }
 
 TEST(CandidateStorageValidation, MultiplierBlocksAreEitherEmptyOrExact) {
@@ -338,18 +334,16 @@ TEST(CandidateStorageValidation, MultiplierBlocksAreEitherEmptyOrExact) {
     Vec none;
 
     EXPECT_NO_THROW(
-        hven::solvers::validate_candidate_point(CandidatePoint{x, exact_equality, none}, 4, 2, 3));
-    EXPECT_NO_THROW(
-        hven::solvers::validate_candidate_point(CandidatePoint{x, none, none}, 4, 2, 3));
-    EXPECT_THROW(
-        hven::solvers::validate_candidate_point(CandidatePoint{x, wrong_equality, none}, 4, 2, 3),
-        std::invalid_argument);
+        hven::validate_candidate_point(CandidatePoint{x, exact_equality, none}, 4, 2, 3));
+    EXPECT_NO_THROW(hven::validate_candidate_point(CandidatePoint{x, none, none}, 4, 2, 3));
+    EXPECT_THROW(hven::validate_candidate_point(CandidatePoint{x, wrong_equality, none}, 4, 2, 3),
+                 std::invalid_argument);
 }
 
 TEST(CandidateStorageValidation, ThePrimalBlockIsNeverOptional) {
     Vec x(3);
     Vec none;
-    EXPECT_THROW(hven::solvers::validate_candidate_point(CandidatePoint{x, none, none}, 4, 2, 3),
+    EXPECT_THROW(hven::validate_candidate_point(CandidatePoint{x, none, none}, 4, 2, 3),
                  std::invalid_argument);
 }
 
@@ -360,18 +354,16 @@ TEST(CandidateStorageValidation, MultipliersMustBeFullLengthWhereTheyAreRead) {
     Vec inequality(3);
     Vec short_inequality(1);
 
-    EXPECT_NO_THROW(
-        hven::solvers::validate_full_multipliers(CandidatePoint{x, equality, inequality}, 2, 3));
+    EXPECT_NO_THROW(hven::validate_full_multipliers(CandidatePoint{x, equality, inequality}, 2, 3));
     // Empty is legal where they are NOT read, and a missing input where they
     // are: this checker is only ever reached on the paths that read them.
+    EXPECT_THROW(hven::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3),
+                 std::invalid_argument);
+    EXPECT_THROW(hven::validate_full_multipliers(CandidatePoint{x, equality, none}, 2, 3),
+                 std::invalid_argument);
     EXPECT_THROW(
-        hven::solvers::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3),
+        hven::validate_full_multipliers(CandidatePoint{x, equality, short_inequality}, 2, 3),
         std::invalid_argument);
-    EXPECT_THROW(hven::solvers::validate_full_multipliers(CandidatePoint{x, equality, none}, 2, 3),
-                 std::invalid_argument);
-    EXPECT_THROW(hven::solvers::validate_full_multipliers(
-                     CandidatePoint{x, equality, short_inequality}, 2, 3),
-                 std::invalid_argument);
 }
 
 TEST(CandidateStorageValidation, TheFullMultiplierMessageNamesTheBlockAndBothSizes) {
@@ -379,7 +371,7 @@ TEST(CandidateStorageValidation, TheFullMultiplierMessageNamesTheBlockAndBothSiz
     Vec none;
     Vec inequality(3);
     try {
-        hven::solvers::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3);
+        hven::validate_full_multipliers(CandidatePoint{x, none, inequality}, 2, 3);
         FAIL() << "an empty multiplier block must be rejected where the multipliers are read";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -497,11 +489,11 @@ TEST(ScatterViewTest, DefaultConstructedViewsAreEmpty) {
     const RhsArenaView arena;
     EXPECT_TRUE(arena.empty());
     const RhsScatterView rhs;
-    EXPECT_TRUE(rhs.objective_gradient_.empty());
-    EXPECT_TRUE(rhs.constraint_adjoint_gradient_.empty());
-    EXPECT_TRUE(rhs.equality_residuals_.empty());
-    EXPECT_TRUE(rhs.inequality_residuals_.empty());
-    EXPECT_EQ(rhs.objective_, nullptr);
+    EXPECT_TRUE(rhs.objective_gradient.empty());
+    EXPECT_TRUE(rhs.constraint_adjoint_gradient.empty());
+    EXPECT_TRUE(rhs.equality_residuals.empty());
+    EXPECT_TRUE(rhs.inequality_residuals.empty());
+    EXPECT_EQ(rhs.objective, nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -581,15 +573,15 @@ struct ContractProbeDestinations {
 
     RhsScatterView rhs_view() {
         RhsScatterView rhs;
-        rhs.objective_ = &objective;
-        rhs.objective_gradient_ =
+        rhs.objective = &objective;
+        rhs.objective_gradient =
             RhsArenaView{objective_gradient.data(), FakeAggregate::kPrimalVars, &gradient_table};
-        rhs.constraint_adjoint_gradient_ =
+        rhs.constraint_adjoint_gradient =
             RhsArenaView{adjoint_gradient.data(), FakeAggregate::kPrimalVars, &gradient_table};
-        rhs.equality_residuals_ =
+        rhs.equality_residuals =
             RhsArenaView{equality_residuals.data(), FakeAggregate::kEqualityRows, &equality_table};
-        rhs.inequality_residuals_ = RhsArenaView{inequality_residuals.data(),
-                                                 FakeAggregate::kInequalityRows, &inequality_table};
+        rhs.inequality_residuals = RhsArenaView{inequality_residuals.data(),
+                                                FakeAggregate::kInequalityRows, &inequality_table};
         return rhs;
     }
 
@@ -621,8 +613,8 @@ TEST(AggregateAssembleContract, AnObjectiveOnlyRequestWritesOnlyTheObjectiveSlot
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec none;
 
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveOnly, out.kkt_view(),
+                       out.rhs_view());
 
     EXPECT_NE(out.objective, kUntouchedSentinel);
     EXPECT_TRUE(out.kkt_untouched());
@@ -639,7 +631,7 @@ TEST(AggregateAssembleContract, TheConstraintKktShapeWritesNoObjectiveOutput) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
 
     aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                       hven::solvers::kRequestConstraintKkt, out.kkt_view(), out.rhs_view());
+                       hven::kRequestConstraintKkt, out.kkt_view(), out.rhs_view());
 
     EXPECT_EQ(out.objective, kUntouchedSentinel);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.objective_gradient));
@@ -658,10 +650,9 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNotNameMayBeLeftEmpty) {
     // The objective-only shape touches no arena, so an entirely empty KKT view
     // and an RHS view carrying only the scalar out slot are legal.
     RhsScatterView rhs;
-    rhs.objective_ = &out.objective;
-    EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
-                                       hven::solvers::kRequestObjectiveOnly, KktScatterView{},
-                                       rhs));
+    rhs.objective = &out.objective;
+    EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveOnly,
+                                       KktScatterView{}, rhs));
     EXPECT_NE(out.objective, kUntouchedSentinel);
 }
 
@@ -677,11 +668,11 @@ TEST(AggregateAssembleContract, AnArenaTheRequestDoesNameMayNotBeLeftEmpty) {
     Vec none;
 
     RhsScatterView rhs = out.rhs_view();
-    rhs.equality_residuals_ = hven::solvers::RhsArenaView{};
+    rhs.equality_residuals = hven::RhsArenaView{};
 
     try {
-        aggregate.assemble(CandidatePoint{x, none, none},
-                           hven::solvers::kRequestObjectiveAndConstraints, out.kkt_view(), rhs);
+        aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveAndConstraints,
+                           out.kkt_view(), rhs);
         FAIL() << "a request naming an arena whose view is empty must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -704,13 +695,12 @@ TEST(AggregateAssembleContract, AZeroLengthGradientViewIsRefusedEvenWithStorage)
     Vec none;
 
     RhsScatterView rhs = out.rhs_view();
-    rhs.objective_gradient_ =
-        hven::solvers::RhsArenaView{out.objective_gradient.data(), 0, &out.gradient_table};
+    rhs.objective_gradient =
+        hven::RhsArenaView{out.objective_gradient.data(), 0, &out.gradient_table};
 
     try {
         aggregate.assemble(CandidatePoint{x, none, none},
-                           hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
-                           rhs);
+                           hven::kRequestObjectiveGradientAndConstraints, out.kkt_view(), rhs);
         FAIL() << "a named gradient arena of zero length must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -730,8 +720,8 @@ TEST(AggregateAssembleContract, AKktBearingRequestMayNotBeGivenAnEmptyKktView) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
 
     EXPECT_THROW(aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                                    hven::solvers::kRequestConstraintResidualsAndJacobian,
-                                    KktScatterView{}, out.rhs_view()),
+                                    hven::kRequestConstraintResidualsAndJacobian, KktScatterView{},
+                                    out.rhs_view()),
                  std::invalid_argument);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.equality_residuals));
 }
@@ -751,14 +741,13 @@ TEST(AggregateAssembleContract, ABoundProviderRefusesAViewNamingAnotherDestinati
     aggregate.bind_kkt_destination(out.kkt_values.data());
     EXPECT_NO_THROW(aggregate.assemble(
         CandidatePoint{x, multipliers.equality, multipliers.inequality},
-        hven::solvers::kRequestConstraintResidualsAndJacobian, out.kkt_view(), out.rhs_view()));
+        hven::kRequestConstraintResidualsAndJacobian, out.kkt_view(), out.rhs_view()));
 
     KktScatterView wrong = out.kkt_view();
-    wrong.values_ = elsewhere.data();
+    wrong.values = elsewhere.data();
     try {
         aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                           hven::solvers::kRequestConstraintResidualsAndJacobian, wrong,
-                           out.rhs_view());
+                           hven::kRequestConstraintResidualsAndJacobian, wrong, out.rhs_view());
         FAIL() << "a bound provider must refuse a view naming a different destination";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -778,10 +767,10 @@ TEST(AggregateAssembleContract, AnUnboundProviderAcceptsWhateverDestinationItIsG
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
 
     KktScatterView anywhere = out.kkt_view();
-    anywhere.values_ = elsewhere.data();
-    EXPECT_NO_THROW(aggregate.assemble(
-        CandidatePoint{x, multipliers.equality, multipliers.inequality},
-        hven::solvers::kRequestConstraintResidualsAndJacobian, anywhere, out.rhs_view()));
+    anywhere.values = elsewhere.data();
+    EXPECT_NO_THROW(
+        aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
+                           hven::kRequestConstraintResidualsAndJacobian, anywhere, out.rhs_view()));
     EXPECT_NE(elsewhere[0], 0.0);
 }
 
@@ -833,10 +822,10 @@ TEST(AggregateAssembleContract, RequestMaskingMovesNeitherLayoutNorDigestNorEpoc
     const auto epoch_before = aggregate.structure_epoch();
     const int layout_before = aggregate.layout_serial();
 
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveOnly, out.kkt_view(),
+                       out.rhs_view());
     aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
+                       hven::kRequestFullKkt, out.kkt_view(), out.rhs_view());
 
     EXPECT_EQ(aggregate.model_structure_key(), key_before);
     EXPECT_EQ(aggregate.structure_epoch(), epoch_before);
@@ -853,11 +842,11 @@ TEST(AggregateAssembleContract, SuccessiveCallsAccumulateIntoOneDestination) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec none;
 
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveOnly, out.kkt_view(),
+                       out.rhs_view());
     const double after_one = out.objective;
-    aggregate.assemble(CandidatePoint{x, none, none}, hven::solvers::kRequestObjectiveOnly,
-                       out.kkt_view(), out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveOnly, out.kkt_view(),
+                       out.rhs_view());
 
     EXPECT_DOUBLE_EQ(out.objective - after_one, after_one - kUntouchedSentinel);
     EXPECT_NE(out.objective, after_one);
@@ -871,16 +860,14 @@ TEST(AggregateAssembleContract, AnRhsArenaIsAccumulatedIntoNotAssigned) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec none;
 
-    aggregate.assemble(CandidatePoint{x, none, none},
-                       hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
-                       out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveGradientAndConstraints,
+                       out.kkt_view(), out.rhs_view());
     const Vec gradient_after_one = out.objective_gradient;
     const Vec residuals_after_one = out.equality_residuals;
     ASSERT_FALSE(ContractProbeDestinations::untouched(out.objective_gradient));
 
-    aggregate.assemble(CandidatePoint{x, none, none},
-                       hven::solvers::kRequestObjectiveGradientAndConstraints, out.kkt_view(),
-                       out.rhs_view());
+    aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestObjectiveGradientAndConstraints,
+                       out.kkt_view(), out.rhs_view());
 
     // The second pass added the same increment again, entry for entry.
     const Vec gradient_increment =
@@ -903,12 +890,12 @@ TEST(AggregateAssembleContract, AKktArenaClaimIsAccumulatedIntoNotAssigned) {
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
 
     aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
+                       hven::kRequestFullKkt, out.kkt_view(), out.rhs_view());
     ASSERT_FALSE(out.kkt_untouched());
     const std::vector<double> after_one = out.kkt_values;
 
     aggregate.assemble(CandidatePoint{x, multipliers.equality, multipliers.inequality},
-                       hven::solvers::kRequestFullKkt, out.kkt_view(), out.rhs_view());
+                       hven::kRequestFullKkt, out.kkt_view(), out.rhs_view());
 
     for (std::size_t slot = 0; slot < out.kkt_values.size(); ++slot) {
         const double increment = after_one[slot] - kUntouchedSentinel;
@@ -925,7 +912,7 @@ TEST(AggregateNonVirtualEntryContract, ValidationIsAPropertyOfTheTypeNotOfTheImp
     // NlpAssembly& knows an unmapped request and a mis-sized point were
     // refused before a value moved, whoever wrote the implementation.
     FakeAggregate aggregate;
-    hven::solvers::NlpAssembly &surface = aggregate;
+    hven::NlpAssembly &surface = aggregate;
     ContractProbeDestinations out;
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec short_x = Vec::Zero(FakeAggregate::kPrimalVars - 1);
@@ -935,9 +922,8 @@ TEST(AggregateNonVirtualEntryContract, ValidationIsAPropertyOfTheTypeNotOfTheImp
                                   EvalRequest::kConstraintJacobian | EvalRequest::kObjectiveHessian,
                                   out.kkt_view(), out.rhs_view()),
                  std::invalid_argument);
-    EXPECT_THROW(surface.assemble(CandidatePoint{short_x, none, none},
-                                  hven::solvers::kRequestObjectiveOnly, out.kkt_view(),
-                                  out.rhs_view()),
+    EXPECT_THROW(surface.assemble(CandidatePoint{short_x, none, none}, hven::kRequestObjectiveOnly,
+                                  out.kkt_view(), out.rhs_view()),
                  std::invalid_argument);
     EXPECT_TRUE(out.kkt_untouched());
     EXPECT_EQ(out.objective, kUntouchedSentinel);
@@ -990,9 +976,8 @@ TEST(AggregateAssembleContract, AnAdjointRequestWithEmptyMultipliersIsRefused) {
     // Legal shape, missing input: the adjoint gradient contracts a derivative
     // against the multipliers, so empty is a forgotten block rather than a zero
     // vector, and serving it would return a wrong adjoint with no diagnostic.
-    EXPECT_THROW(aggregate.assemble(CandidatePoint{x, none, none},
-                                    hven::solvers::kRequestFirstOrderRhs, out.kkt_view(),
-                                    out.rhs_view()),
+    EXPECT_THROW(aggregate.assemble(CandidatePoint{x, none, none}, hven::kRequestFirstOrderRhs,
+                                    out.kkt_view(), out.rhs_view()),
                  std::invalid_argument);
     EXPECT_TRUE(ContractProbeDestinations::untouched(out.adjoint_gradient));
 }
@@ -1004,11 +989,11 @@ TEST(AggregateAssembleContract, AValuesOnlyRequestStillAcceptsEmptyMultipliers) 
     Vec none;
 
     EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
-                                       hven::solvers::kRequestObjectiveAndConstraints,
-                                       out.kkt_view(), out.rhs_view()));
+                                       hven::kRequestObjectiveAndConstraints, out.kkt_view(),
+                                       out.rhs_view()));
     EXPECT_NO_THROW(aggregate.assemble(CandidatePoint{x, none, none},
-                                       hven::solvers::kRequestConstraintResidualsAndJacobian,
-                                       out.kkt_view(), out.rhs_view()));
+                                       hven::kRequestConstraintResidualsAndJacobian, out.kkt_view(),
+                                       out.rhs_view()));
 }
 
 TEST(AggregateCandidateContract, FirstOrderAlwaysRequiresFullMultipliers) {
@@ -1046,27 +1031,27 @@ TEST(AggregateCandidateContract, TheValuesPathStillAcceptsEmptyMultipliers) {
 
 TEST(AggregateCapabilityContract, AnAggregateDeclaresNothingUnlessItSaysOtherwise) {
     FakeAggregate aggregate;
-    EXPECT_EQ(aggregate.capabilities(), hven::solvers::AssemblyCapability::kNone);
-    EXPECT_FALSE(has_capability(aggregate.capabilities(),
-                                hven::solvers::AssemblyCapability::kValuesFastPath));
+    EXPECT_EQ(aggregate.capabilities(), hven::AssemblyCapability::kNone);
+    EXPECT_FALSE(
+        has_capability(aggregate.capabilities(), hven::AssemblyCapability::kValuesFastPath));
 
-    aggregate.set_capabilities(hven::solvers::AssemblyCapability::kValuesFastPath);
-    EXPECT_TRUE(has_capability(aggregate.capabilities(),
-                               hven::solvers::AssemblyCapability::kValuesFastPath));
-    EXPECT_FALSE(has_capability(aggregate.capabilities(),
-                                hven::solvers::AssemblyCapability::kDirectScatter));
+    aggregate.set_capabilities(hven::AssemblyCapability::kValuesFastPath);
+    EXPECT_TRUE(
+        has_capability(aggregate.capabilities(), hven::AssemblyCapability::kValuesFastPath));
+    EXPECT_FALSE(
+        has_capability(aggregate.capabilities(), hven::AssemblyCapability::kDirectScatter));
 }
 
 TEST(AggregateContract, TheStructureKeyIsReachableThroughTheFreeFunctionSpelling) {
     FakeAggregate aggregate;
-    const hven::solvers::NlpAssembly &surface = aggregate;
-    EXPECT_EQ(hven::solvers::model_structure_key(surface), aggregate.model_structure_key());
+    const hven::NlpAssembly &surface = aggregate;
+    EXPECT_EQ(hven::model_structure_key(surface), aggregate.model_structure_key());
 }
 
 TEST(AggregateContract, TheAdoptedPartitionCountIsTheKeysPartitionConjunct) {
     FakeAggregate aggregate;
     aggregate.negotiate_partition_count(FakeAggregate::kMaxPartitions + 2);
-    EXPECT_EQ(aggregate.model_structure_key().partition_count_, FakeAggregate::kMaxPartitions);
+    EXPECT_EQ(aggregate.model_structure_key().partition_count, FakeAggregate::kMaxPartitions);
 }
 
 /// A scalar objective over one variable per application, written out here
@@ -1090,10 +1075,10 @@ struct AdoptDeclarationObjectivePiece {
     int num_kkt_elements(bool dojac, bool) const { return dojac ? 1 : 0; }
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>, int &freeloc, int,
-                       bool dojac, bool, hven::solvers::SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(data.num_appl());
+                       bool dojac, bool, hven::SolverIndexingData &data) {
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int v = 0; v < data.num_appl(); v++) {
-            data.inner_kkt_starts_[v] = freeloc;
+            data.inner_kkt_starts[v] = freeloc;
             if (dojac) {
                 freeloc++;
             }
@@ -1101,48 +1086,46 @@ struct AdoptDeclarationObjectivePiece {
     }
 
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
-                     const hven::solvers::SolverIndexingData &) const {}
+                     const hven::SolverIndexingData &) const {}
     void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
                                      const Eigen::Ref<const Eigen::VectorXd> &,
                                      Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
-                                     const hven::solvers::SolverIndexingData &) const {}
+                                     const hven::SolverIndexingData &) const {}
     void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
                               Eigen::Ref<Eigen::VectorXd>,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                               Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
-                              std::vector<std::mutex> &,
-                              const hven::solvers::SolverIndexingData &) const {}
+                              std::vector<std::mutex> &, const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient_adjointhessian(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
 
     void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
-                   const hven::solvers::SolverIndexingData &) const {}
+                   const hven::SolverIndexingData &) const {}
     void objective_gradient(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
-                            Eigen::Ref<Eigen::VectorXd>,
-                            const hven::solvers::SolverIndexingData &) const {}
+                            Eigen::Ref<Eigen::VectorXd>, const hven::SolverIndexingData &) const {}
     void objective_gradient_hessian(double, const Eigen::Ref<const Eigen::VectorXd> &, double &,
                                     Eigen::Ref<Eigen::VectorXd>,
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                                     Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
                                     std::vector<std::mutex> &,
-                                    const hven::solvers::SolverIndexingData &) const {}
+                                    const hven::SolverIndexingData &) const {}
 };
 
-namespace hven::solvers {
+namespace hven {
 template <>
 struct SolverInterfaceAdapter<AdoptDeclarationObjectivePiece>
     : DirectFunctionModel<AdoptDeclarationObjectivePiece> {};
-} // namespace hven::solvers
+} // namespace hven
 
 // ---------------------------------------------------------------------------
 // Adopting a declaration
@@ -1157,15 +1140,15 @@ struct SolverInterfaceAdapter<AdoptDeclarationObjectivePiece>
 
 namespace {
 
-using hven::solvers::ConstraintFunction;
-using hven::solvers::ConstraintInterface;
-using hven::solvers::FixedVariableRow;
-using hven::solvers::FixedVariableTreatments;
-using hven::solvers::ModelStructureKey;
-using hven::solvers::NonLinearProgram;
-using hven::solvers::ObjectiveFunction;
-using hven::solvers::ObjectiveInterface;
-using hven::solvers::ThreadingFlags;
+using hven::ConstraintFunction;
+using hven::ConstraintInterface;
+using hven::IpmFixedVariableTreatment;
+using hven::ModelStructureKey;
+using hven::ObjectiveFunction;
+using hven::ObjectiveInterface;
+using hven::ThreadingFlags;
+using hven::detail::FixedVariableRow;
+using hven::detail::NonLinearProgram;
 
 /// Applications per piece, and pieces. The product is the KKT element count,
 /// which has to clear kMinKktElementsPerPartition per partition or the lay's
@@ -1237,11 +1220,11 @@ std::shared_ptr<NonLinearProgram> adopt_build(const std::vector<ThreadingFlags> 
     int inequality_rows = 0;
     if (kinds == AdoptPieceKinds::kAllThreeLists) {
         ObjectiveFunction objective = adopt_objective_piece();
-        objective.set_thread_mode(ThreadingFlags::MainThread);
+        objective.set_thread_mode(ThreadingFlags::kMainThread);
         nlp->objectives_.push_back(std::move(objective));
 
         ConstraintFunction inequality = adopt_inequality_piece();
-        inequality.set_thread_mode(ThreadingFlags::RoundRobin);
+        inequality.set_thread_mode(ThreadingFlags::kRoundRobin);
         nlp->inequality_constraints_.push_back(std::move(inequality));
         inequality_rows = kAdoptInequalityRows;
     }
@@ -1284,7 +1267,7 @@ concept AdoptCanThawThreadMode = requires(Piece &piece) { piece.clear_thread_mod
 
 template <class Piece>
 concept AdoptCanSetThreadMode =
-    requires(Piece &piece) { piece.set_thread_mode(ThreadingFlags::MainThread); };
+    requires(Piece &piece) { piece.set_thread_mode(ThreadingFlags::kMainThread); };
 
 static_assert(!AdoptCanFreezeThreadMode<ConstraintFunction>);
 static_assert(!AdoptCanFreezeThreadMode<ObjectiveFunction>);
@@ -1298,7 +1281,7 @@ static_assert(AdoptCanSetThreadMode<ConstraintFunction>);
 static_assert(AdoptCanSetThreadMode<ObjectiveFunction>);
 
 std::vector<ThreadingFlags> adopt_default_modes() {
-    return {ThreadingFlags::Thread0, ThreadingFlags::Thread1, ThreadingFlags::MainThread};
+    return {ThreadingFlags::kThread0, ThreadingFlags::kThread1, ThreadingFlags::kMainThread};
 }
 
 /// Every field of a declaration a round trip has to reproduce: the dimensions,
@@ -1306,29 +1289,29 @@ std::vector<ThreadingFlags> adopt_default_modes() {
 /// verbatim, and the three piece lists with each piece's thread mode.
 void adopt_expect_same_declaration(const AssemblyDeclaration &adopted,
                                    const AssemblyDeclaration &source) {
-    EXPECT_EQ(adopted.primal_vars_, source.primal_vars_);
-    EXPECT_EQ(adopted.equality_rows_, source.equality_rows_);
-    EXPECT_EQ(adopted.inequality_rows_, source.inequality_rows_);
-    EXPECT_EQ(adopted.fixing_rows_, source.fixing_rows_);
-    EXPECT_EQ(adopted.equality_shared_row_overcount_, source.equality_shared_row_overcount_);
-    EXPECT_EQ(adopted.inequality_shared_row_overcount_, source.inequality_shared_row_overcount_);
-    EXPECT_EQ(adopted.partition_count_, source.partition_count_);
-    EXPECT_EQ(adopted.variable_bounds_, source.variable_bounds_);
-    ASSERT_EQ(adopted.objectives_.size(), source.objectives_.size());
-    ASSERT_EQ(adopted.equality_constraints_.size(), source.equality_constraints_.size());
-    ASSERT_EQ(adopted.inequality_constraints_.size(), source.inequality_constraints_.size());
-    for (std::size_t k = 0; k < source.equality_constraints_.size(); k++) {
-        EXPECT_EQ(adopted.equality_constraints_[k].get_thread_mode(),
-                  source.equality_constraints_[k].get_thread_mode())
+    EXPECT_EQ(adopted.primal_vars, source.primal_vars);
+    EXPECT_EQ(adopted.equality_rows, source.equality_rows);
+    EXPECT_EQ(adopted.inequality_rows, source.inequality_rows);
+    EXPECT_EQ(adopted.fixing_rows, source.fixing_rows);
+    EXPECT_EQ(adopted.equality_shared_row_overcount, source.equality_shared_row_overcount);
+    EXPECT_EQ(adopted.inequality_shared_row_overcount, source.inequality_shared_row_overcount);
+    EXPECT_EQ(adopted.partition_count, source.partition_count);
+    EXPECT_EQ(adopted.variable_bounds, source.variable_bounds);
+    ASSERT_EQ(adopted.objectives.size(), source.objectives.size());
+    ASSERT_EQ(adopted.equality_constraints.size(), source.equality_constraints.size());
+    ASSERT_EQ(adopted.inequality_constraints.size(), source.inequality_constraints.size());
+    for (std::size_t k = 0; k < source.equality_constraints.size(); k++) {
+        EXPECT_EQ(adopted.equality_constraints[k].get_thread_mode(),
+                  source.equality_constraints[k].get_thread_mode())
             << "equality piece " << k;
     }
-    for (std::size_t k = 0; k < source.objectives_.size(); k++) {
-        EXPECT_EQ(adopted.objectives_[k].get_thread_mode(), source.objectives_[k].get_thread_mode())
+    for (std::size_t k = 0; k < source.objectives.size(); k++) {
+        EXPECT_EQ(adopted.objectives[k].get_thread_mode(), source.objectives[k].get_thread_mode())
             << "objective piece " << k;
     }
-    for (std::size_t k = 0; k < source.inequality_constraints_.size(); k++) {
-        EXPECT_EQ(adopted.inequality_constraints_[k].get_thread_mode(),
-                  source.inequality_constraints_[k].get_thread_mode())
+    for (std::size_t k = 0; k < source.inequality_constraints.size(); k++) {
+        EXPECT_EQ(adopted.inequality_constraints[k].get_thread_mode(),
+                  source.inequality_constraints[k].get_thread_mode())
             << "inequality piece " << k;
     }
 }
@@ -1366,17 +1349,18 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     // carries objective, equality and inequality pieces with their own thread
     // modes -- not over the equality list alone.
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_TRUE(
+        source->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     const AssemblyDeclaration declaration = source->declaration();
     // The declaration is self-describing: the row count is the row space AS
     // LAID and the fixing-row count says how much of it is internal.
-    ASSERT_EQ(declaration.equality_rows_, kAdoptRows + 1);
-    ASSERT_EQ(declaration.inequality_rows_, kAdoptInequalityRows);
-    ASSERT_EQ(declaration.fixing_rows_, 1);
-    ASSERT_EQ(declaration.objectives_.size(), 1u);
-    ASSERT_EQ(declaration.inequality_constraints_.size(), 1u);
+    ASSERT_EQ(declaration.equality_rows, kAdoptRows + 1);
+    ASSERT_EQ(declaration.inequality_rows, kAdoptInequalityRows);
+    ASSERT_EQ(declaration.fixing_rows, 1);
+    ASSERT_EQ(declaration.objectives.size(), 1u);
+    ASSERT_EQ(declaration.inequality_constraints.size(), 1u);
 
     NonLinearProgram adopted(1);
     adopted.adopt_declaration(declaration);
@@ -1404,7 +1388,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
 TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
     auto assembled = adopt_build(adopt_default_modes(), 1, false);
     AssemblyDeclaration declaration = assembled->declaration();
-    declaration.partition_count_ = 64;
+    declaration.partition_count = 64;
 
     NonLinearProgram adopted(1);
     adopted.adopt_declaration(std::move(declaration));
@@ -1412,9 +1396,9 @@ TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
     // 64 partitions is far more work than the problem has to hand out, so the
     // lay's cap brings the count down -- and it is the ADOPTED count that
     // reaches the declaration and the key.
-    EXPECT_LT(adopted.declaration().partition_count_, 64);
-    EXPECT_EQ(adopted.declaration().partition_count_, adopted.num_partitions_);
-    EXPECT_EQ(adopted.model_structure_key().partition_count_, adopted.num_partitions_);
+    EXPECT_LT(adopted.declaration().partition_count, 64);
+    EXPECT_EQ(adopted.declaration().partition_count, adopted.num_partitions_);
+    EXPECT_EQ(adopted.model_structure_key().partition_count, adopted.num_partitions_);
 }
 
 TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
@@ -1434,9 +1418,9 @@ TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
     // partition, so that is what a mode change moves: a mode that keeps a
     // piece's position in the partition order leaves the stream alone.
     AssemblyDeclaration moved = declaration;
-    moved.equality_constraints_[kAdoptPieces - 1].set_thread_mode(ThreadingFlags::Thread0);
+    moved.equality_constraints[kAdoptPieces - 1].set_thread_mode(ThreadingFlags::kThread0);
 
-    const hven::solvers::StructureEpoch before = second.structure_epoch();
+    const hven::StructureEpoch before = second.structure_epoch();
     second.adopt_declaration(std::move(moved));
     EXPECT_FALSE(second.structure_epoch() == before);
     EXPECT_FALSE(second.model_structure_key() == first.model_structure_key());
@@ -1464,7 +1448,7 @@ TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
     auto assembled = adopt_build(adopt_default_modes(), 8, false);
 
     try {
-        assembled->equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin);
+        assembled->equality_constraints_[0].set_thread_mode(ThreadingFlags::kRoundRobin);
         FAIL() << "a thread-mode write on a laid piece must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -1478,14 +1462,14 @@ TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
     // not depend on whether this was a first lay or a re-lay.
     ASSERT_FALSE(assembled->part_eq_.empty());
     ASSERT_FALSE(assembled->part_eq_[0].empty());
-    EXPECT_THROW(assembled->part_eq_[0][0].set_thread_mode(ThreadingFlags::RoundRobin),
+    EXPECT_THROW(assembled->part_eq_[0][0].set_thread_mode(ThreadingFlags::kRoundRobin),
                  std::invalid_argument);
 
     // The copy a declaration hands out is declaration data, not part of a
     // layout, so it takes a new mode -- which is the one route to changing one.
     AssemblyDeclaration declaration = assembled->declaration();
     EXPECT_NO_THROW(
-        declaration.equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin));
+        declaration.equality_constraints[0].set_thread_mode(ThreadingFlags::kRoundRobin));
 }
 
 TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
@@ -1493,7 +1477,7 @@ TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
     const AssemblyDeclaration before_declaration = target->declaration();
     const ModelStructureKey before_key = target->model_structure_key();
     const std::vector<int> before_stream = adopt_claim_stream(*target);
-    const hven::solvers::StructureEpoch before_epoch = target->structure_epoch();
+    const hven::StructureEpoch before_epoch = target->structure_epoch();
     const int before_equality_rows = target->equal_cons_;
     const int before_internal = target->internal_fixed_constraints();
     const int before_partitions = target->num_partitions_;
@@ -1502,12 +1486,12 @@ TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
     // piece claiming one row, and this declaration's last piece claims every
     // one of its many.
     AssemblyDeclaration malformed = before_declaration;
-    malformed.fixing_rows_ = 1;
+    malformed.fixing_rows = 1;
     // Same three list SIZES as the layout on hand, different CONTENTS: the
     // size-only guard on the declaration readers cannot tell these lists apart
     // from the laid ones, so if the refusal came after the move the target
     // would report this mode under the old key and the old epoch.
-    malformed.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread);
+    malformed.equality_constraints[0].set_thread_mode(ThreadingFlags::kMainThread);
     try {
         target->adopt_declaration(malformed);
         FAIL() << "a fixing-row count the equality tail cannot supply must be refused";
@@ -1534,21 +1518,21 @@ TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
     // Read the declaration, write a mode on its copy -- which is the one route
     // to changing one -- and adopt it back.
     AssemblyDeclaration redeclared = provider->declaration();
-    ASSERT_EQ(redeclared.equality_constraints_[0].get_thread_mode(), ThreadingFlags::Thread0);
-    redeclared.equality_constraints_[0].set_thread_mode(ThreadingFlags::Thread1);
+    ASSERT_EQ(redeclared.equality_constraints[0].get_thread_mode(), ThreadingFlags::kThread0);
+    redeclared.equality_constraints[0].set_thread_mode(ThreadingFlags::kThread1);
     provider->adopt_declaration(std::move(redeclared));
 
     // The lay carries the declared mode, and reports it back.
-    EXPECT_EQ(provider->equality_constraints_[0].get_thread_mode(), ThreadingFlags::Thread1);
-    EXPECT_EQ(provider->declaration().equality_constraints_[0].get_thread_mode(),
-              ThreadingFlags::Thread1);
+    EXPECT_EQ(provider->equality_constraints_[0].get_thread_mode(), ThreadingFlags::kThread1);
+    EXPECT_EQ(provider->declaration().equality_constraints[0].get_thread_mode(),
+              ThreadingFlags::kThread1);
 
     // And freezes it again: the piece the layout holds refuses a write, while
     // the copy the declaration hands out still takes one.
-    EXPECT_THROW(provider->equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread),
+    EXPECT_THROW(provider->equality_constraints_[0].set_thread_mode(ThreadingFlags::kMainThread),
                  std::invalid_argument);
     AssemblyDeclaration again = provider->declaration();
-    EXPECT_NO_THROW(again.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread));
+    EXPECT_NO_THROW(again.equality_constraints[0].set_thread_mode(ThreadingFlags::kMainThread));
 }
 
 TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
@@ -1560,9 +1544,9 @@ TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
     // conjunct has no sum to check -- and this entry must not, because it lays
     // the problem out of the pieces.
     AssemblyDeclaration piece_less;
-    piece_less.primal_vars_ = 4;
-    piece_less.equality_rows_ = 2;
-    piece_less.inequality_rows_ = 1;
+    piece_less.primal_vars = 4;
+    piece_less.equality_rows = 2;
+    piece_less.inequality_rows = 1;
     EXPECT_NO_THROW(piece_less.validate());
 
     try {
@@ -1578,7 +1562,7 @@ TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
     // Rows and pieces both absent is a different thing and is adoptable: there
     // is nothing to claim and nothing claiming it.
     AssemblyDeclaration empty;
-    empty.primal_vars_ = 4;
+    empty.primal_vars = 4;
     EXPECT_NO_THROW(target->adopt_declaration(empty));
 }
 
@@ -1592,9 +1576,9 @@ TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
     // trusted, so the shape check cannot tell this from a real fixing row; the
     // row it writes can.
     AssemblyDeclaration mislabelled = before_declaration;
-    mislabelled.equality_constraints_.push_back(hven::solvers::make_fixed_variable_row(0, 0.0, 0));
-    mislabelled.equality_rows_ = kAdoptRows + 1;
-    mislabelled.fixing_rows_ = 1;
+    mislabelled.equality_constraints.push_back(hven::detail::make_fixed_variable_row(0, 0.0, 0));
+    mislabelled.equality_rows = kAdoptRows + 1;
+    mislabelled.fixing_rows = 1;
     EXPECT_NO_THROW(mislabelled.validate());
 
     try {
@@ -1612,7 +1596,8 @@ TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
 
 TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried) {
     auto source = adopt_build(adopt_default_modes(), 8, true, AdoptPieceKinds::kAllThreeLists);
-    ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    ASSERT_TRUE(
+        source->configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
     NonLinearProgram adopted(1);
@@ -1626,7 +1611,8 @@ TEST(AdoptDeclaration, TheNextTreatmentRederivesTheFixingRowsTheAdoptionCarried)
     // The next configuration discards them and derives its own from the bounds
     // the adoption replayed -- landing on the same row space, with the user
     // pieces untouched.
-    EXPECT_TRUE(adopted.configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
+    EXPECT_TRUE(
+        adopted.configure_variable_treatment(IpmFixedVariableTreatment::kMakeConstraint, 0.0));
     EXPECT_EQ(adopted.internal_fixed_constraints(), 1);
     ASSERT_EQ(adopted.fixed_variable_indices().size(), 1);
     EXPECT_EQ(adopted.fixed_variable_indices()[0], 7);
@@ -1652,21 +1638,21 @@ TEST(AdoptDeclaration, TheLayMarkerEntriesAreNotReachableFromOutsideTheLay) {
 
 TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows) {
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = 2;
-    declaration.equality_rows_ = 3;
-    declaration.fixing_rows_ = 4;
+    declaration.primal_vars = 2;
+    declaration.equality_rows = 3;
+    declaration.fixing_rows = 4;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
-    declaration.fixing_rows_ = -1;
+    declaration.fixing_rows = -1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
     // In range and still refused: a positive count says there are specific
     // pieces at the equality tail to be lifted off, and this declaration
     // carries none.
-    declaration.fixing_rows_ = 3;
+    declaration.fixing_rows = 3;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
-    declaration.fixing_rows_ = 0;
+    declaration.fixing_rows = 0;
     EXPECT_NO_THROW(declaration.validate());
 }
 
@@ -1690,8 +1676,8 @@ namespace {
 AssemblyDeclaration overcount_sharing_declaration(int overlap) {
     auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
     AssemblyDeclaration declaration = laid->declaration();
-    declaration.equality_rows_ -= overlap;
-    declaration.equality_shared_row_overcount_ = overlap;
+    declaration.equality_rows -= overlap;
+    declaration.equality_shared_row_overcount = overlap;
     return declaration;
 }
 
@@ -1702,15 +1688,15 @@ TEST(AggregateDeclarationOvercount,
     const AssemblyDeclaration declaration = overcount_sharing_declaration(5);
 
     const int claimed = kAdoptRows;
-    ASSERT_EQ(declaration.equality_rows_, claimed - 5);
-    ASSERT_EQ(declaration.equality_shared_row_overcount_, 5);
+    ASSERT_EQ(declaration.equality_rows, claimed - 5);
+    ASSERT_EQ(declaration.equality_shared_row_overcount, 5);
 
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationOvercount, RefusesTheSameSharingWithTheExcessUnstated) {
     AssemblyDeclaration declaration = overcount_sharing_declaration(5);
-    declaration.equality_shared_row_overcount_ = 0;
+    declaration.equality_shared_row_overcount = 0;
 
     try {
         declaration.validate();
@@ -1726,13 +1712,13 @@ TEST(AggregateDeclarationOvercount, RefusesTheSameSharingWithTheExcessUnstated) 
 
 TEST(AggregateDeclarationOvercount, RefusesAnExcessThatIsNotACount) {
     AssemblyDeclaration declaration = overcount_sharing_declaration(5);
-    declaration.equality_shared_row_overcount_ = -5;
-    declaration.equality_rows_ = kAdoptRows + 5;
+    declaration.equality_shared_row_overcount = -5;
+    declaration.equality_rows = kAdoptRows + 5;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
     // The inequality block carries its own, refused on its own terms.
     AssemblyDeclaration inequality_side = overcount_sharing_declaration(0);
-    inequality_side.inequality_shared_row_overcount_ = -1;
+    inequality_side.inequality_shared_row_overcount = -1;
     EXPECT_THROW(inequality_side.validate(), std::invalid_argument);
 }
 
@@ -1740,14 +1726,14 @@ TEST(AggregateDeclarationOvercount, RefusesAnExcessOnADeclarationWithNoPieces) {
     // A provider that is not a piece collection: no pieces, and the piece-sum
     // conjunct is vacuous. An overcount there is an excess over nothing.
     AssemblyDeclaration declaration;
-    declaration.primal_vars_ = 4;
+    declaration.primal_vars = 4;
     EXPECT_NO_THROW(declaration.validate());
 
-    declaration.equality_shared_row_overcount_ = 1;
+    declaration.equality_shared_row_overcount = 1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
-    declaration.equality_shared_row_overcount_ = 0;
-    declaration.inequality_shared_row_overcount_ = 1;
+    declaration.equality_shared_row_overcount = 0;
+    declaration.inequality_shared_row_overcount = 1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
@@ -1760,9 +1746,8 @@ TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     claim_rows << 0, 1;
     claim_cols << 0, 1;
 
-    const std::uint64_t base_claim =
-        hven::solvers::claim_stream_digest(base, claim_rows, claim_cols);
-    const std::uint64_t base_bounds = hven::solvers::materialized_bound_digest(base);
+    const std::uint64_t base_claim = hven::claim_stream_digest(base, claim_rows, claim_cols);
+    const std::uint64_t base_bounds = hven::materialized_bound_digest(base);
 
     // Both key conjuncts a declaration feeds are blind to the overcount, and
     // blind to the fixing-row count in exactly the same way: the claim digest
@@ -1770,22 +1755,22 @@ TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     // digest over the materialized per-variable structure, and neither field
     // appears in either.
     AssemblyDeclaration moved = base;
-    moved.equality_shared_row_overcount_ = 7;
-    moved.inequality_shared_row_overcount_ = 3;
-    EXPECT_EQ(hven::solvers::claim_stream_digest(moved, claim_rows, claim_cols), base_claim);
-    EXPECT_EQ(hven::solvers::materialized_bound_digest(moved), base_bounds);
+    moved.equality_shared_row_overcount = 7;
+    moved.inequality_shared_row_overcount = 3;
+    EXPECT_EQ(hven::claim_stream_digest(moved, claim_rows, claim_cols), base_claim);
+    EXPECT_EQ(hven::materialized_bound_digest(moved), base_bounds);
 
     AssemblyDeclaration fixing_moved = base;
-    fixing_moved.fixing_rows_ = 1;
-    EXPECT_EQ(hven::solvers::claim_stream_digest(fixing_moved, claim_rows, claim_cols), base_claim);
-    EXPECT_EQ(hven::solvers::materialized_bound_digest(fixing_moved), base_bounds);
+    fixing_moved.fixing_rows = 1;
+    EXPECT_EQ(hven::claim_stream_digest(fixing_moved, claim_rows, claim_cols), base_claim);
+    EXPECT_EQ(hven::materialized_bound_digest(fixing_moved), base_bounds);
 
     // The row COUNT is a conjunct, which is what makes the two fields' absence
     // a statement rather than an accident: it is fed through the dimension
     // preamble, so moving it moves the digest.
     AssemblyDeclaration rows_moved = base;
-    rows_moved.equality_rows_ += 1;
-    EXPECT_NE(hven::solvers::claim_stream_digest(rows_moved, claim_rows, claim_cols), base_claim);
+    rows_moved.equality_rows += 1;
+    EXPECT_NE(hven::claim_stream_digest(rows_moved, claim_rows, claim_cols), base_claim);
 }
 
 namespace {
@@ -1810,11 +1795,11 @@ std::shared_ptr<NonLinearProgram> overcount_sharing_nlp(int overlap) {
     auto nlp = std::make_shared<NonLinearProgram>(1);
     for (int p = 0; p < kAdoptPieces; p++) {
         ConstraintFunction piece = adopt_pin_piece(p * kAdoptApplications);
-        piece.set_thread_mode(ThreadingFlags::MainThread);
+        piece.set_thread_mode(ThreadingFlags::kMainThread);
         nlp->equality_constraints_.push_back(std::move(piece));
     }
     ConstraintFunction shared = overcount_overlapping_piece(overlap);
-    shared.set_thread_mode(ThreadingFlags::MainThread);
+    shared.set_thread_mode(ThreadingFlags::kMainThread);
     nlp->equality_constraints_.push_back(std::move(shared));
 
     for (int i = 0; i < kAdoptRows; i++) {
@@ -1832,9 +1817,9 @@ TEST(AggregateDeclarationOvercount, ALayoutWithSharedRowsEmitsTheExcessItActuall
 
     // The row space is what the layout was laid over; the excess is what its
     // pieces claim beyond it, derived from the two rather than carried.
-    EXPECT_EQ(emitted.equality_rows_, kAdoptRows);
-    EXPECT_EQ(emitted.equality_shared_row_overcount_, 5);
-    EXPECT_EQ(emitted.inequality_shared_row_overcount_, 0)
+    EXPECT_EQ(emitted.equality_rows, kAdoptRows);
+    EXPECT_EQ(emitted.equality_shared_row_overcount, 5);
+    EXPECT_EQ(emitted.inequality_shared_row_overcount, 0)
         << "there are no inequality pieces, so there is no excess to state";
 
     // And it is a declaration, not merely a report: what a layout emits is
@@ -1845,7 +1830,7 @@ TEST(AggregateDeclarationOvercount, ALayoutWithSharedRowsEmitsTheExcessItActuall
 TEST(AggregateDeclarationOvercount, SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits) {
     auto sharing = overcount_sharing_nlp(5);
     const AssemblyDeclaration handed_over = sharing->declaration();
-    ASSERT_EQ(handed_over.equality_shared_row_overcount_, 5);
+    ASSERT_EQ(handed_over.equality_shared_row_overcount, 5);
 
     auto adopted = std::make_shared<NonLinearProgram>(1);
     ASSERT_NO_THROW(adopted->adopt_declaration(handed_over));
@@ -1854,13 +1839,13 @@ TEST(AggregateDeclarationOvercount, SurvivesAdoptionAndComesBackOutOfTheDeclarat
     // that declaration validates, and adopting it again works -- which is the
     // whole of what "self-describing" has to mean at a nonzero overcount.
     const AssemblyDeclaration re_emitted = adopted->declaration();
-    EXPECT_EQ(re_emitted.equality_rows_, kAdoptRows);
-    EXPECT_EQ(re_emitted.equality_shared_row_overcount_, 5);
+    EXPECT_EQ(re_emitted.equality_rows, kAdoptRows);
+    EXPECT_EQ(re_emitted.equality_shared_row_overcount, 5);
     EXPECT_NO_THROW(re_emitted.validate());
 
     auto readopted = std::make_shared<NonLinearProgram>(1);
     EXPECT_NO_THROW(readopted->adopt_declaration(re_emitted));
-    EXPECT_EQ(readopted->declaration().equality_shared_row_overcount_, 5);
+    EXPECT_EQ(readopted->declaration().equality_shared_row_overcount, 5);
 }
 
 TEST(AggregateDeclarationOvercount, IsZeroOnALayoutWhosePiecesClaimDisjointRows) {
@@ -1870,7 +1855,7 @@ TEST(AggregateDeclarationOvercount, IsZeroOnALayoutWhosePiecesClaimDisjointRows)
     auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
     const AssemblyDeclaration declaration = laid->declaration();
 
-    EXPECT_EQ(declaration.equality_shared_row_overcount_, 0);
-    EXPECT_EQ(declaration.inequality_shared_row_overcount_, 0);
+    EXPECT_EQ(declaration.equality_shared_row_overcount, 0);
+    EXPECT_EQ(declaration.inequality_shared_row_overcount, 0);
     EXPECT_NO_THROW(declaration.validate());
 }

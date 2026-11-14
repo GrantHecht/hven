@@ -6,14 +6,23 @@
 // emitted object does and does not carry are documented in
 // detail/warmstart/warm_start.h.
 
+#include <hven/detail/warmstart/sqp_warm_access.h>
 #include <hven/detail/warmstart/warm_start.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
 
-SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                                 const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
-                                 const Vec &lower, const Vec &upper,
-                                 const IpCrossoverOptions &opts) {
+namespace hven {
+
+// The two public readers of the opaque SqpWarmStart (warmstart/sqp_warm_start.h).
+bool SqpWarmStart::valid() const noexcept { return state_ != nullptr && state_->valid; }
+
+const Vec &SqpWarmStart::x() const noexcept { return detail::SqpWarmAccess::state(*this).x; }
+
+detail::SqpWarmState detail::from_interior_point(const Vec &x, const Vec &lambda_e,
+                                                 const Vec &lambda_i, const Vec &slack_i,
+                                                 const Vec &z_lower, const Vec &z_upper,
+                                                 const Vec &lower, const Vec &upper,
+                                                 const IpmCrossoverOptions &opts) {
     const Index n = x.size();
     const Index mi = lambda_i.size();
     if (slack_i.size() != mi) {
@@ -41,7 +50,7 @@ SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &l
             "from_interior_point: upper has size {}, expected {} (x's own size)", upper.size(), n));
     }
 
-    SqpWarmStart out;
+    detail::SqpWarmState out;
     out.x = x;
     out.lambda_e = lambda_e;
     out.lambda_i = lambda_i;
@@ -57,7 +66,7 @@ SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &l
     // property of the vector, not of a row (this header's ACTIVITY INFERENCE
     // note).
     const double row_threshold =
-        detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_rel_tol);
+        detail::ip_activity_threshold(lambda_i, slack_i, opts.activity_relative_tol);
     for (Index j = 0; j < mi; ++j) {
         const bool active = lambda_i(j) > opts.dual_tol && lambda_i(j) >= row_threshold;
         if (active) {
@@ -70,20 +79,21 @@ SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &l
     std::vector<BoundState> &states = out.qp_working_set.bound_state();
     // The two bound sides are SEPARATE dual populations (a variable can be
     // priced at one side only), so each sets its own scale. A caller that
-    // prices an UNBOUNDED side -- z_lower(i) > 0 against lower(i) = -1e20 --
-    // poisons its side's mu_hat with a ~1e20 product and drives that side's
+    // prices an UNBOUNDED side -- z_lower(i) > 0 against an absent lower(i) (an
+    // infinity, or a value beyond CommonOptions::infinite_bound) -- poisons its
+    // side's mu_hat with an infinite (or huge) product and drives that side's
     // whole verdict to FREE; that is the safe direction on a malformed
     // hand-off, and such an input is a contradiction the caller must not
-    // produce in the first place (nlp_model.h's +/-1e20 convention marks a
-    // side nothing can be active at).
+    // produce in the first place (an absent side marks a side nothing can be
+    // active at).
     const double lower_threshold =
-        detail::ip_activity_threshold(z_lower, x - lower, opts.activity_rel_tol);
+        detail::ip_activity_threshold(z_lower, x - lower, opts.activity_relative_tol);
     const double upper_threshold =
-        detail::ip_activity_threshold(z_upper, upper - x, opts.activity_rel_tol);
+        detail::ip_activity_threshold(z_upper, upper - x, opts.activity_relative_tol);
     for (Index i = 0; i < n; ++i) {
         if (lower(i) == upper(i)) {
             // kFixed: sits at both bounds at once, not sign-constrained --
-            // the same arbitrary-but-consistent +1 SqpWarmStart::bound_active's
+            // the same arbitrary-but-consistent +1 SqpWarmState::bound_active's
             // own note picks for a solve-derived object.
             out.bound_active[static_cast<std::size_t>(i)] = 1;
             states[static_cast<std::size_t>(i)] = BoundState::kFixed;
@@ -115,11 +125,11 @@ SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &l
     out.dual_mu = -1.0;
     // BY DESIGN: there is no model here to hash in the first place, so the
     // hash is UNKNOWN rather than merely uncomputed. See
-    // SqpWarmStart::structure_hash.
+    // SqpWarmState::structure_hash.
     out.structure_hash = 0;
     out.hot = nullptr; // never hot: no factorization exists to offer.
     out.valid = true;
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -1,0 +1,15 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T06:23:18-05:00
+cb07803891f17091a8bbe1de280d947c99d59a16e05bfbefd49d54d1a014166b  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/armAbin/hven_sqp_corpus
+5c7a793d7a9b9d3fadf4d3802fe737803feef7e603e8045c504564cb2545c614  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/build-pf1e/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-07T06:23:54-05:00

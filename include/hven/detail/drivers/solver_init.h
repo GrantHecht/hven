@@ -3,12 +3,13 @@
 
 #pragma once
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief Ensures the math runtime is initialized (thread pool, CPU dispatch,
 ///        memory allocators). Thread-safe (std::call_once).
 ///
-/// On MKL: calls dsecnd() to warm up the runtime.
+/// On MKL: calls mkl_get_max_threads(), which brings up the threading layer.
+///   Must not call dsecnd() (its first call spins ~1 s calibrating the clock).
 /// On Accelerate: sets VECLIB_MAXIMUM_THREADS, triggers a trivial BLAS call,
 /// and warms up the sparse solver subsystem (including MT-METIS thread pool).
 ///
@@ -16,4 +17,4 @@ namespace hven::solvers {
 ///         or 0.0 if already initialized.
 double ensure_solver_initialized();
 
-} // namespace hven::solvers
+} // namespace hven::detail

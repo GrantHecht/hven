@@ -1,0 +1,64 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T21:38:14-05:00
+80eefcba5642551f0b1e30b514a43bf2bb5257a90eec41edbf34fec0b36fb1df  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/hs-A/hs_probe
+f8f9abb1e2e9bfbe7667f8fbd573f0557c7c4cb2abdd2f2c2313fad18be6d33b  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/hs-B/hs_probe
+RUN hs006 r1 A rc=0
+RUN hs006 r1 B rc=0
+RUN hs010 r1 A rc=0
+RUN hs010 r1 B rc=0
+RUN hs035 r1 A rc=0
+RUN hs035 r1 B rc=0
+RUN hs071 r1 A rc=0
+RUN hs071 r1 B rc=0
+RUN hs006 r2 B rc=0
+RUN hs006 r2 A rc=0
+RUN hs010 r2 B rc=0
+RUN hs010 r2 A rc=0
+RUN hs035 r2 B rc=0
+RUN hs035 r2 A rc=0
+RUN hs071 r2 B rc=0
+RUN hs071 r2 A rc=0
+RUN hs006 r3 A rc=0
+RUN hs006 r3 B rc=0
+RUN hs010 r3 A rc=0
+RUN hs010 r3 B rc=0
+RUN hs035 r3 A rc=0
+RUN hs035 r3 B rc=0
+RUN hs071 r3 A rc=0
+RUN hs071 r3 B rc=0
+RUN hs006 r4 B rc=0
+RUN hs006 r4 A rc=0
+RUN hs010 r4 B rc=0
+RUN hs010 r4 A rc=0
+RUN hs035 r4 B rc=0
+RUN hs035 r4 A rc=0
+RUN hs071 r4 B rc=0
+RUN hs071 r4 A rc=0
+RUN hs006 r5 A rc=0
+RUN hs006 r5 B rc=0
+RUN hs010 r5 A rc=0
+RUN hs010 r5 B rc=0
+RUN hs035 r5 A rc=0
+RUN hs035 r5 B rc=0
+RUN hs071 r5 A rc=0
+RUN hs071 r5 B rc=0
+prob   arm    n   instr_median      instr_min      instr_max   wall_med_s   init_med_s  total_med_s  kkt_med_s
+hs006  A      5     3854362255     3835532034     3857365966     0.980834     0.977873     0.002876   0.000086
+hs006  B      5        6111045        6110002        6114452     0.002881     0.001455     0.001372   0.000086
+  engine columns identical across 10 processes: optimal 7 16 0
+  median instructions A-B = 3.8483e+09 (B/A = 0.001585); median first-solve wall A=0.9808 s B=0.0029 s
+hs010  A      5     3829082009     3812867385     3860346631     0.974535     0.971641     0.002882   0.000045
+hs010  B      5        6124840        6121219        6124979     0.002895     0.001449     0.001387   0.000045
+  engine columns identical across 10 processes: optimal 10 10 -1.0000000752934242
+  median instructions A-B = 3.8230e+09 (B/A = 0.001600); median first-solve wall A=0.9745 s B=0.0029 s
+hs035  A      5     3829282528     3809041548     3833138668     0.974525     0.971640     0.002854   0.000030
+hs035  B      5        6018328        6013131        6018779     0.002851     0.001439     0.001366   0.000031
+  engine columns identical across 10 processes: optimal 6 6 0.11111114824835933
+  median instructions A-B = 3.8233e+09 (B/A = 0.001572); median first-solve wall A=0.9745 s B=0.0029 s
+hs071  A      5     3829888057     3821318029     3837313268     0.974566     0.971621     0.002916   0.000054
+hs071  B      5        6283601        6280054        6283967     0.002929     0.001444     0.001429   0.000054
+  engine columns identical across 10 processes: optimal 10 10 17.014017275920825
+  median instructions A-B = 3.8236e+09 (B/A = 0.001641); median first-solve wall A=0.9746 s B=0.0029 s
+HS_AS_DECLARED
+rc=0
+FOREGROUND_END 2026-11-07T21:39:14-05:00

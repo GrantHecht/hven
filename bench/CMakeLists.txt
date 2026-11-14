@@ -86,8 +86,49 @@ target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 # tree must say so.
 #
 # THE TRAP THIS CARRIES, and it bit once (T10b fix round 1): a tree configured
-# while clean and REBUILT after an edit emits the stale, clean stamp. Re-configure
-# before producing a measurement CSV -- the acceptance dir's PROVENANCE.txt.
+# while clean and REBUILT after an edit emits the stale, clean stamp (M7-16).
+# Two guards, both below:
+#   1. RE-STAMP: the configure re-runs whenever git's HEAD, the checked-out ref,
+#      packed-refs or the index changes (CMAKE_CONFIGURE_DEPENDS), so a commit,
+#      a checkout or a `git add` re-resolves the stamp on the next build.
+#   2. FAIL LOUDLY: an edit to a tracked file that is not staged changes none of
+#      those files, so the configured stamp is also written to
+#      <build>/hven_bench_stamp.txt and scripts/check_bench_stamp.sh compares it
+#      with a live `git describe`, exiting 1 with a STALE message on a mismatch.
+#      Run it (`cmake --build . --target hven_bench_stamp_check`) before
+#      producing a measurement CSV. BenchStampGuard.SelfTest exercises it.
+execute_process(
+    COMMAND git rev-parse --git-path HEAD --git-path index --git-path packed-refs
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE HVEN_BENCH_GIT_WATCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE HVEN_BENCH_GIT_WATCH_RC)
+execute_process(
+    COMMAND git symbolic-ref -q HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE HVEN_BENCH_GIT_REF
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(HVEN_BENCH_GIT_WATCH_RC EQUAL 0)
+    if(NOT "${HVEN_BENCH_GIT_REF}" STREQUAL "")
+        execute_process(
+            COMMAND git rev-parse --git-path "${HVEN_BENCH_GIT_REF}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            OUTPUT_VARIABLE HVEN_BENCH_GIT_REF_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        string(APPEND HVEN_BENCH_GIT_WATCH "\n${HVEN_BENCH_GIT_REF_PATH}")
+    endif()
+    string(REPLACE "\n" ";" HVEN_BENCH_GIT_WATCH "${HVEN_BENCH_GIT_WATCH}")
+    foreach(_w IN LISTS HVEN_BENCH_GIT_WATCH)
+        if(NOT IS_ABSOLUTE "${_w}")
+            set(_w "${CMAKE_CURRENT_SOURCE_DIR}/${_w}")
+        endif()
+        # A not-yet-existing file (e.g. no packed-refs) is fine as a dependency.
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_w}")
+    endforeach()
+endif()
 execute_process(
     COMMAND git describe --always --dirty --abbrev=12
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -100,6 +141,17 @@ if(NOT HVEN_SQP_CORPUS_GIT_RC EQUAL 0 OR HVEN_SQP_CORPUS_GIT_DESCRIBE STREQUAL "
 endif()
 target_compile_definitions(hven_sqp_corpus PRIVATE
     HVEN_SQP_CORPUS_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+file(WRITE "${CMAKE_BINARY_DIR}/hven_bench_stamp.txt" "${HVEN_SQP_CORPUS_GIT_DESCRIBE}\n")
+if(NOT WIN32)
+    add_custom_target(hven_bench_stamp_check
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp.sh"
+                "${CMAKE_BINARY_DIR}/hven_bench_stamp.txt" "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Checking the configure-time bench git stamp against the live tree (M7-16)"
+        VERBATIM)
+    add_test(NAME BenchStampGuard.SelfTest
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp_selftest.sh"
+                "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_bench_stamp.sh")
+endif()
 
 # The wall-deadline tests in tests/sqp/test_corpus_cells.cpp
 # (CorpusRunnerProcess.WallDeadline*) are SUBPROCESS tests — they invoke the

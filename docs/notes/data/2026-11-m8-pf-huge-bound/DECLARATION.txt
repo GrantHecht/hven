@@ -1,0 +1,77 @@
+M8 PF-HB -- huge real bounds on the interior-point engine -- DECLARATION (committed before the first leg; never
+edited afterwards; a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs kept)
+================================================================================
+Base        6d10c70f (origin/m8: the B8 riders landed).
+Code head   f96a3a0f  fix(ipm): huge real bounds -- far slack pairs recover their multiplier step; relaxation
+            saturates. Files: include/hven/detail/interior/barrier_math.h (kFarSlackWidth = 2^26,
+            recover_far_slack_multiplier_steps), src/drivers/ipm_solver.cpp (the main-step recovery; a far pair's
+            subnormal slack curvature written as 0), src/drivers/ipm_solver_globalization.cpp (the probe and SOC
+            recoveries), src/model/non_linear_program.cpp (relaxed_lower/upper saturate at +-DBL_MAX),
+            tests/drivers/test_infinite_bound.cpp. Evidence commits (this directory) follow and touch no source.
+Arm A       6d10c70f, built by legs/prebuild.sh from its `git archive` export build-pfe/armA-src (dep/eigen,
+            dep/fmt copied at the commits 6d10c70f pins) at build-pfe/armA, Release, legs/build.sh's flags:
+            corpus binary build-pfe/armAbin/hven_sqp_corpus sha256 c9bef60132ffc9d3bcb9d81c1efd8c9e1a17e10ab5cf38bc225d8df01e085cf3, compile database
+            build-pfe/armA-compile_commands.json sha256 29822ff68d56b988f561d7fd9ffbacdd5ee1095153f021ec6ada027879646920 (build-pfe/prebuild.out, copied to chain/).
+Arm B       the code head: build-pfe/rel (fresh, legs/build.sh) -> build-pfe/armBbin, sha256 3e1b7b1e70c099af16bd07fa7031b879e0e7103d5d6ba9f4b503e377be72d0f8.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1.
+Scratch     build-pfe/ (git-ignored): armA-src/armA/armAbin, rel and dbg (fresh at the code head, built before
+            this declaration, chain/build-rel.out, chain/build-dbg.out), armBbin, offref, smoke-*, pch-check,
+            iparm-build, inst-iparm, census-run, runtime-perf. build-pfhb/ is the dev tree: not evidence.
+
+THE PREMISE OF INERTNESS, MEASURED (dev, build-pfhb, an instrumented scratch build never committed): a histogram
+of every slack the main step solve saw, over the 27 interior replay cells (--engine interior), hs071_x1_fixed and
+the full ctest suite: widest slack 0.455 on the corpus cells; 39 in the suite outside the InfiniteBound tests
+(InfiniteBound.* alone reach 1e3 and beyond: 1e15, 7.9e19, 1e20, DBL_MAX). The recovery and the curvature flush
+act only at s >= 2^26 = 67108864, and the saturation only on a relaxed bound beyond +-DBL_MAX; below, the code
+path computes the same values in the same order.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D1  SQP CORPUS: NO ROW MOVES (the SQP engine and its QP tiers never reach IpmSolverImpl or the bound relaxation
+    of the IPM's program). Replay x walk/ssn/ipm EXACT against the M7 WX2 reference; census 57/57, 0 mismatches.
+D2  INTERIOR CORPUS: NO ROW MOVES against arm A (27 cells), and the promoted B7 baseline reproduced EXACT.
+D3  API: none. No public header changes; barrier_math.h is a detail header (two additions).
+D4  BEHAVIOUR: a solve with a slack of width >= 2^26 or a variable bound within 1e-8 of the double range's end
+    changes; on the reference build InfiniteBound's kInfinity solves of large_finite() take 6 iterations (63
+    before) and stay kOptimal; off the reference build they are kOptimal (the guard is removed).
+D5  TESTS: 3473 -> 3479: six new HugeRealBound.* tests. InfiniteBound.*'s four kInfinity IPM solves assert
+    kOptimal on every build (the off-reference arm and its route record removed); their downstream checks run
+    unconditionally. No other test changes.
+D6  TRACE: no key, golden line, event or printed string changes.
+D7  OBJECTS: code moves only in the TUs of the four source files above. COMPILE FLAGS vs arm A: none differ.
+D8  No iparm change and no IPARM-SURFACE label.
+D9  INSTALL SMOKE: 36 standalone-include TUs, unchanged; export contract unchanged.
+D10 ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A. Apple: UNOBSERVED.
+D11 RUNTIME: counters identical (D2, D1); the far-pair loop is one comparison per slack per step solve.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above (fail closed).
+P1  suites: ctest Release (build-pfe/rel) and Debug (build-pfe/dbg), full, -j4 under setsid: every test passes,
+    3479 (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences (D1).
+P4  iparm (legs/iparm.sh): BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv on the frozen
+    arm B binary (legs/census.sh).
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass (D9).
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (linux-clang-release preset, fresh build-pfe/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, bench + examples ON) then ctest: pass, 3479; warning lines == 26.
+P9  Accelerate syntax sweep (legs/misc.sh accelerate; legs/accel_compare.py): pass A PASS_A_AS_DECLARED (D10).
+    Pass B reported the same way, not a criterion.
+P10 compile-flags diff (legs/flags.sh): arm A's database (paths re-spelled to this worktree and build-pfe/rel) vs
+    build-pfe/rel: TU sets equal; legs/flags_check.py prints FLAGS_AS_DECLARED (no TU's flags differ).
+P11 runtime gate (runtime/DECLARATION.txt): arm A 6d10c70f vs arm B, band 0.995 <= B/A <= 1.005 per mode on the
+    filtered instructions:u, THROTTLE == 0, counter identity as the STOP condition, arm order alternated.
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT, 0 differences; promoted (arm B under
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv's invocation) EXACT, 0 differences.
+PRE-FLIGHT (legs/chain1.sh, fail closed, before the first leg): every script and instrument here names this
+worktree, build-pfe/ and this directory only, except the read-only pins named in P3/P4/P5/P9/P12; the copied
+python instruments' derived root is this worktree; arm A/B binaries, the arm A database, build-pfe/dbg and the
+promoted baseline exist. The touched code was grepped for Apple-only (__APPLE__/USE_ACCELERATE_SPARSE) and
+off-reference (HVEN_TEST_ROUTE_REFERENCE) branches before this declaration: the only conditional branch the change
+adds is the off-reference arm of the test helper expect_reference_iterations, compiled by P8.
+ORDER: the runtime gate alone first (runtime/run_all.sh), then chain1 (arm A, replay, interior, iparm, suites,
+examples, smoke, PCH, Accelerate, off-reference, flags, census).

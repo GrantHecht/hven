@@ -1,0 +1,168 @@
+M8 AP-2 group B7 (absent-bound threshold, review §10.2, owner decision 3) -- DECLARATION (committed before
+the first proof leg; never edited afterwards; a failed leg is followed by a fix and a successor
+DECLARATION-rN.txt, and the failed record is kept; criteria are never changed after data)
+================================================================================
+Base        m8 31c73879 (B6 landed).
+Code head   8089104c (m8-b7). Commits after the base, oldest first:
+              f2e77c0e feat:  the absent-bound threshold is live (CommonOptions::infinite_bound, default 1e20)
+              ce30e68c bench: the interior leg's pre-event pin; bench_f7_cold's bounded count reads the option
+              8089104c test:  the absent-bound threshold pins (+20); the pins of the old convention moved to it
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B6.
+Scratch     build trees under build-b7e/ (git-ignored): rel, dbg (fresh, legs/build.sh, built before this
+            declaration: chain/build-rel.out, chain/build-dbg.out), armA (+ armA-src, a detached worktree at
+            31c73879, legs/armA_config.sh, run before this declaration: chain/armA_config.out), armAbin,
+            armBbin, offref, smoke-*, pch-check, iparm-build, inst-iparm, count-build, inst-count, census-run,
+            runtime-perf. Dev trees (build-b7/) are not evidence and no leg reads them.
+
+THE CHANGE UNDER TEST
+--------------------------------------------------------------------------------
+RULE  detail/model/absent_bound.h: b >= infinite_bound is +inf; b <= -infinite_bound is -inf; any other value
+    verbatim (NaN passes, refused by the caller). So at the default a bound exactly at 1e20 is absent and the
+    largest double below it is real; infinite_bound = kInfinity is the identity ("every finite value is a
+    real bound"). A bound at infinity on the wrong side becomes the infinity that describes no interval and
+    is refused by the checks that refuse the infinities themselves.
+WHERE once per route, where a declaration enters each engine's transcription: NlpProblemModel (an Nlp's
+    variable and row bounds; the declared values are kept beside the read ones, and the per-solve re-read
+    compares the declared ones); NlpModelAssembly (the SQP's box over any model); NonLinearProgram::
+    set_variable_bound / update_variable_bound_values (the interior-point box, every route; the threshold
+    is fixed per program, set_infinite_bound before any bound is staged); make_nlp_program carries it.
+    The SQP solve's bridges are laid under opts.common.infinite_bound; the restoration sub-solve reads its
+    wrapper under the parent bridge's threshold; the column-scaled solve divides the READ box and lays its
+    scaled bridge under +inf. The model-taking free helpers (evaluate_kkt, build_subproblem) read the
+    default threshold.
+SEMANTICS (decided here, documented on CommonOptions::infinite_bound and Problem): both sides absent = free
+    (a free row is passed to neither engine, g = NaN as before); equal finite bounds below the threshold =
+    fixed / equality as before; refused by name with std::invalid_argument naming the declared values and
+    the threshold: a lower bound read as +inf (with an infinite upper: "fixed at infinity"; with a finite
+    upper: "exceeds"), an upper read as -inf, an equality row or a fixed variable at +/-threshold; NaN and
+    inverted pairs refused as before (messages unchanged when the threshold changed nothing); an option
+    infinite_bound <= 0 or NaN refused (B3, unchanged).
+PROBLEM laid under the default (1e20); a solve under another threshold re-lays it (Nlp: transcription
+    rebuilt, rows may take another kind, IPM program dropped and re-laid, counted; pieces: program rebuilt
+    from its declaration with the bounds as declared; model route: program rebuilt); a pre-laid program
+    (problem_from_program) or a bridge (problem_from_assembly) under another threshold is refused by name.
+    A threshold that empties a pair refuses that solve and leaves the Problem as it was.
+    ProblemStatistics::absent_bounds (new) counts the finite values read as absent; the census reads the
+    threshold; the declaration key digests the box as read.
+QP TIER the four cutoffs kEngineInfBound (walk), kIpqpInfBound (IPQP), kSsnInfBound (SSN) and
+    QpDegeneracyParams::inf_bound (the degeneracy arm) retire into QpProblem::infinite_bound (default 1e20 for
+    a hand-built problem; has_lower/has_upper; validate refuses <= 0 / NaN). Every SQP subproblem is stamped
+    +inf (the seam's two builders; the elastic and mixed lifts and every derived copy carry their source's):
+    absence is decided once, upstream. make_ipqp_box writes an effective side at or beyond the cutoff as an
+    infinity and the IPQP kernels test infinity. detail::kRestorationSlackBound is +inf (was 1e20).
+TRACE `absent_bounds`, a trailing key on sqp.solve.begin and ipm.solve.begin (struct fields + writer +
+    arity nets 10->11, 28->29), docs/trace-schema-v0.md.
+SITES AUDITED (grep 1e19|1e20|1e30|infinity()|max() over include/ src/ bench/): every QP-tier cutoff and the
+    restoration slack routed as above; bench_f7_cold's bounded count reads opts.common.infinite_bound.
+    STAYS: true infinities (every infinity() is the absent marker itself); comments; the frozen test
+    fixtures and QP dumps that write +/-1e20 (tests/qp/fixtures/e2-d4/*, tests/sqp/support/*: a hand-built
+    QpProblem keeps the 1e20 convention by its default, and the NLP fixtures' +/-1e20 are now absent at the
+    default, which is the point); the warm-start predictor (detail/warmstart/predictor.h) and the restoration
+    wrapper's centre clamp read a model's declared box verbatim (identical to the read box for every point
+    inside +/-1e20; recorded, not changed).
+BENCH bench/ipm_corpus_leg.cpp gains the declared pre-event pin HVEN_LEG_PRE_B7_INFINITE_BOUND (the M7 W2 D1
+    pin's shape): the interior leg solves and lays its program under kInfinity. A probe, never a product path.
+
+TRAIN COUNT (measured before this declaration with count/count_absent.cpp on the dev build of 8089104c's code,
+count/count-declared.txt; re-run as leg P12): all 57 corpus cells declare F7's free states at +/-1e20 -- 57 of
+57 cells carry absent bounds at the default, 2313450 values in all (per cell: 3 states x nodes on each side;
+e.g. f7_n1000_* 6000 of 10000 sides; no true infinities; the 2 x nodes control bounds +/-1 are real). Every QP
+mode (walk, IPQP, SSN, the degeneracy arm) and the interior-point engine read the same declared box, so the
+count is the same for every mode. The 27 replay cells are a subset.
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D1  SQP CORPUS: NO ROW MOVES. Measured before this declaration (dev build of this code): the 27-cell replay
+    x walk/ssn/ipm against the M7 WX2 reference, 0 differences in each mode. Before B7 the QP tier already
+    read the F7 states' 1e20 bounds as absent (the shifted 1e20 - x stays at or beyond its cutoff) and the
+    NLP-level tests never met them; B7 removes the disagreement without moving a step. The walk census is
+    expected 57/57 with 0 mismatches against the promoted baseline; a census mismatch is NOT pre-declared --
+    it fails the leg, and the moved rows are then re-derived under a successor declaration, never silently.
+D2  INTERIOR-POINT CORPUS ROWS MOVE (the declared default event). At the default the IPM drops the barrier
+    terms of the F7 states' +/-1e20 bounds, which arm A carried as real. Measured before this declaration
+    (dev build; arm A = 31c73879, legs/interior.sh's own invocation): 43 interior rows (34 F7 rows: the replay cells that
+    dual-bind, x the fixed-variable treatments and the leg's variants; 9 hs071_x1_fixed / infeas2 rows); 237
+    differing (row, column) pairs on 33 rows, listed COMPLETELY in interior/interior-declared.txt: every F7
+    row's residual columns (kkt_inf, barr_inf, econ_inf, stationarity, feasibility_e, complementarity) except
+    f7_n1000_bound_neutral/MakeParameter/cap1 (byte-exact); and on 9 rows the integer columns -- iterations,
+    factorizations and solves 12 -> 5 (f7_n2000_bound_physics), 6 -> 5 (f7_n5000_bound_physics), 9 -> 8
+    (f7_n20000_bound_neutral; obj_val -4.058767313e-01 -> -4.058767081e-01), x 3 treatments each; statuses
+    unchanged (all optimal); the hs071 and infeas2 rows (true infinities) byte-exact. Under the pre-event pin
+    the same rows are byte-identical to arm A (0 differences, measured). This is a re-derivation, recorded in
+    interior/; bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv is NOT touched here (its promotion is
+    an open item for the settler).
+D3  API (public): ProblemStatistics::absent_bounds; CommonOptions::infinite_bound's doc (live, not "declared,
+    not yet read"); Problem's doc; the two trace structs' absent_bounds. Detail: absent_bound.h; NlpModel::
+    absent_bounds() (virtual, default 0); NlpProblemModel(nlp, infinite_bound) + infinite_bound(),
+    raw_lower/upper/row_lower/row_upper(); NlpModelAssembly(model, infinite_bound) + infinite_bound(),
+    absent_bounds(); NonLinearProgram::infinite_bound_, absent_bounds_, source_absent_bounds_,
+    set_infinite_bound(); make_nlp_program(..., infinite_bound); ColumnScaledModel(..., infinite_bound);
+    ProblemAccess::ipm_program / sqp_target take the threshold (defaulted); QpProblem::infinite_bound,
+    has_lower(), has_upper(). Removed: kEngineInfBound, kIpqpInfBound, kSsnInfBound,
+    QpDegeneracyParams::inf_bound. kRestorationSlackBound = +inf. No new library TU.
+D4  BEHAVIOUR off the corpus: every behaviour of THE CHANGE UNDER TEST above -- bounds at or beyond 1e20 now
+    absent on the IPM and at the SQP's NLP level; the new refusals; the re-lay on a changed threshold; the
+    model-taking free helpers read the default threshold; the IPQP box writes absent sides as infinities;
+    SSN's absent-price refusal message names the subproblem's infinite_bound.
+D5  TRACE: the sqp.solve.begin and ipm.solve.begin lines gain the trailing `absent_bounds` key (both golden
+    lines re-derived: GoldenLineSqpSolveBegin, GoldenLineIpmSolveBegin); the begin census counts an absent
+    side as absent (e.g. an F7 state is vars_free where it was vars_ranged).
+D6  TESTS: 3441 -> 3461 (+20, tests/drivers/test_infinite_bound.cpp). Changed in place: NlpProblemModelTest.
+    LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded renamed ...StayBoundsUnderAnInfiniteThreshold and,
+    with VariableBoundsAreValidatedAtConstruction, run under kInfinity; IpqpMathTest.
+    TheAbsentBoundSentinelMatchesTheEnginesOwn replaced by TheKernelsReadAnAbsentSideAsAnInfinityAlone (the
+    file's fixture writes an absent side as +inf); the seam, column-scaling, crossover, corpus-cell and
+    build_subproblem comparisons read the default threshold; IpqpBoxTest's infinite-radius pin expects -inf
+    for the absent side; the two golden lines (D5). ctest's count ("out of N") is 3461 in both builds (two
+    further registered tests are disabled/skipped, as at B6).
+D7  Objects and libhven.a bytes differ from arm A (code changed); the compile flags do not (P10).
+D8  No iparm change: no linear/ file or iparm field is touched (no IPARM-SURFACE label).
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P1  suites: ctest Release (build-b7e/rel) and Debug (build-b7e/dbg), full, -j4 under setsid: every test
+    passes, 3461 (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences (D1).
+P4  iparm (legs/iparm.sh): the dumper (byte copy, iparm/) against an install of the B7 head: BYTE-IDENTICAL to
+    docs/notes/data/2026-11-m8-ap2-b6/iparm/iparm-b6.txt, 15 configurations.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on the frozen arm B binary (sha256 below).
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass, the
+    detail-include rule armed and NO allow-list.
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh build-b7e/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass, 3461; warning lines == 26 (legs/offref.sh; evidence directory ABSOLUTE).
+P9  Accelerate syntax sweep pass A (legs/accelerate_sweep.py): OTHER 0; no class beyond B6's (CLEAN,
+    KNOWN-HEADER, KNOWN-SIZEOF). Apple hardware: UNOBSERVED; no Apple value is recorded.
+P10 compile-flags diff (legs/flags.sh, B6's instrument): library TUs of arm A (31c73879, build-b7e/armA) vs
+    the B7 head (build-b7e/rel): IDENTICAL flags, the same TU set.
+P11 runtime gate (runtime/DECLARATION.txt): arm A = 31c73879 (build-b7e/armAbin, sha256
+    55fc58a35389c58260005a0d875db612e6f8f40d5193983b0c6bb0f108a70ea3), arm B = 8089104c (build-b7e/rel ->
+    build-b7e/armBbin, sha256 d9d01dfaecb52b1705962a4c70649b4509827a488d7d3cc40c21a453187dd16c); band
+    0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, counter identity as the STOP condition, arm order
+    alternated; the interior mode's arm B under the pre-event pin (the one declared change, runtime/).
+P12 TRAIN count (legs/count.sh): count/count_absent.cpp against an install of the B7 head: BYTE-IDENTICAL
+    to count/count-declared.txt (57 cells, 57 with an absent bound, 2313450 values).
+P13 interior (legs/interior.sh): arm A vs arm B at the defaults -- legs/interior_check.py --check against
+    interior/interior-declared.txt: the same 43 rows, exactly the declared 237 (row, column) pairs, the 36
+    non-float pairs' values exactly (D2); and arm B under the pre-event pin vs arm A: compare_replay.py
+    EXACT, 0 differences.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock, after a fail-closed pre-flight of every path in this
+directory's scripts and of the two python instruments' root depth); `pgrep -a hven_bench_cell` empty before
+the lock and PGREP_EMPTY inside it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under
+setsid; FOREGROUND_START/END; ABSOLUTE evidence paths. The copied scripts were re-pointed (b6-riders ->
+b7, build-b6r -> build-b7e, the B6 riders' worktree -> this one, arm A 2a0392b9 -> 31c73879); the depth of
+legs/ and runtime/ below the root is five, as the B6 riders' (checked by the pre-flight). Order: the runtime
+gate alone first (runtime/run_all.sh), then chain1.
+DEV CHECKS before this declaration (not evidence), all under the lock, on dev trees build-b7/: Release and
+Debug full suites 3461/3461 each; the replay 27 x 75 x 3, 0 differences; the interior comparison (D2) and the
+pin (0 differences); the TRAIN count. A clang-format pass was applied to the sources while a dev Debug build
+was in flight (whitespace only); that dev tree was rebuilt before its suite ran -- recorded, dev only. Not
+run before this declaration: the census, the runtime gate, the iparm dump, smoke, PCH, off-reference,
+Accelerate, flags.

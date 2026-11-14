@@ -66,11 +66,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include <Eigen/SparseCore>
+#include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/border_ops.h>
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/schur_complement.h>
@@ -79,7 +83,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // detail::kMaxBorderRefineSteps and detail::kBorderRefineRelFloor -- the
 // budget and floor this file's refinement loop runs on -- live in eqp_solve.h
@@ -108,7 +112,7 @@ namespace hven::solvers {
 // WHAT THAT DOES AND DOES NOT EXPLAIN, measured both ways on the 51-dump corpus:
 // the two forms give the SAME 51 rows on both algebras, so the four certified
 // `ACOPP57_def` cells the border path LOST in E4's first round (kOptimal in 8
-// minors -> kMaxIter at 1795, terminal stationarity 1.25e-07 against the
+// minors -> kIterationLimit at 1795, terminal stationarity 1.25e-07 against the
 // eliminated path's 1.02e-14 on the same face) were NOT this rule's doing -- they
 // were the border path's own accuracy on that face, amplified by the proximal
 // step's 1/delta, and fix round 1's unregularized polish recovered them (kOptimal
@@ -118,7 +122,7 @@ inline Vec bordered_regularization(Index n0, Index var_count, const std::vector<
                                    const QpOptions &opts) {
     const Index m = static_cast<Index>(border_d.size());
     Vec reg = Vec::Zero(n0 + m);
-    reg.segment(var_count, n0 - var_count).setConstant(-opts.dual_mu);
+    reg.segment(var_count, n0 - var_count).setConstant(-opts.dual_regularization);
     for (Index i = 0; i < m; ++i) {
         reg(n0 + i) = border_d[static_cast<std::size_t>(i)];
     }
@@ -294,20 +298,29 @@ struct BorderedRefineOutcome {
     bool target_met = true;
 };
 
-inline Vec refine_bordered_solve_iterated(
-    const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
-    const std::vector<double> &border_d, const SchurComplement &schur, const Vec &rhs,
-    const Vec &sol, const QpOptions &opts, Index *steps_out = nullptr,
-    const BorderedResolution *resolution = nullptr, BorderedRefineOutcome *outcome = nullptr) {
+inline Vec
+refine_bordered_solve_iterated(const SpMatRM &K0, Index var_count, const std::vector<Vec> &border_v,
+                               const std::vector<double> &border_d, const SchurComplement &schur,
+                               const Vec &rhs, const Vec &sol, const QpOptions &opts,
+                               Index *steps_out = nullptr,
+                               const BorderedResolution *resolution = nullptr,
+                               BorderedRefineOutcome *outcome = nullptr, bool shifted_k0 = false) {
     const auto residual_of = [&](const Vec &s) {
         return bordered_residual(K0, var_count, border_v, border_d, rhs, s, opts);
     };
-    Index steps = 1; // the mandatory step below
+    Index steps = 1; // the mandatory step below, spent whether or not it is kept
 
     // Step 1, unconditional: the step that backs the regularization out of
     // the answer, taken through the single-step primitive so that function
-    // remains what the border equivalence tests are written against.
+    // remains what the border equivalence tests are written against. On a
+    // K0 holding dense shifted numerics (`shifted_k0`) the step solves through
+    // a shifted system, so it is kept only if it reduces the residual it
+    // targets (a NaN keeps nothing) -- eqp_solve.h's rule for its own step.
     Vec best = refine_bordered_solve(K0, var_count, border_v, border_d, schur, rhs, sol, opts);
+    if (shifted_k0 && !(detail::nan_sticky_inf_norm(residual_of(best)) <
+                        detail::nan_sticky_inf_norm(residual_of(sol)))) {
+        best = sol;
+    }
     if (schur.dim() == 0) {
         if (steps_out != nullptr) {
             *steps_out = steps;
@@ -321,10 +334,7 @@ inline Vec refine_bordered_solve_iterated(
         double m = 0.0;
         for (Index i = 0; i < var_count; ++i) {
             if ((*resolution->bound_state)[static_cast<std::size_t>(i)] == BoundState::kFree) {
-                const double a = std::abs(v(i));
-                if (!(a <= m)) {
-                    m = a;
-                }
+                m = detail::nan_sticky_max(m, std::abs(v(i)));
             }
         }
         return m;
@@ -341,12 +351,12 @@ inline Vec refine_bordered_solve_iterated(
 
     const Vec reg = bordered_regularization(K0.rows(), var_count, border_d, opts);
     const double rel_floor =
-        detail::kBorderRefineRelFloor * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
+        detail::kBorderRefineRelFloor * std::max(1.0, detail::nan_sticky_inf_norm(rhs));
 
     Vec best_residual = residual_of(best);
-    double best_norm = best_residual.lpNorm<Eigen::Infinity>();
+    double best_norm = detail::nan_sticky_inf_norm(best_residual);
     for (Index step = 1; step < detail::kMaxBorderRefineSteps; ++step) {
-        const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
+        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
         const bool on_target = !(best_norm > std::max(footprint, rel_floor));
         if (on_target && step_resolved()) {
             break; // the first step did its job (or NaN, which no step can mend)
@@ -354,7 +364,7 @@ inline Vec refine_bordered_solve_iterated(
         const Vec correction = schur.solve(best_residual);
         const Vec candidate = best + correction;
         Vec candidate_residual = residual_of(candidate);
-        const double candidate_norm = candidate_residual.lpNorm<Eigen::Infinity>();
+        const double candidate_norm = detail::nan_sticky_inf_norm(candidate_residual);
         if (!(candidate_norm < best_norm)) {
             break; // stagnated or diverging -- keep the better iterate
         }
@@ -373,7 +383,7 @@ inline Vec refine_bordered_solve_iterated(
         *steps_out = steps;
     }
     if (outcome != nullptr) {
-        const double footprint = reg.cwiseProduct(best).lpNorm<Eigen::Infinity>();
+        const double footprint = detail::nan_sticky_inf_norm(reg.cwiseProduct(best));
         outcome->target_met = !(best_norm > std::max(footprint, rel_floor));
     }
     return best;
@@ -425,27 +435,28 @@ inline Index polish_bordered_unregularized(const SpMatRM &K0, Index var_count,
     // The rhs of the face's own exact system: the bordered rhs with the proximal
     // term removed from the variable rows it was added to.
     Vec rhs0 = rhs;
-    rhs0.head(var_count) -= opts.primal_delta * x_k.head(var_count);
+    rhs0.head(var_count) -= opts.primal_regularization * x_k.head(var_count);
     // Everything bordered_regularization reports, PLUS the primal delta on the
     // variable rows -- K0 carries it there and here it IS an error to back out.
     Vec reg = bordered_regularization(n0, var_count, border_d, opts);
-    reg.head(var_count).array() += opts.primal_delta;
+    reg.head(var_count).array() += opts.primal_regularization;
     const auto residual_of = [&](const Vec &ss) {
         return Vec(bordered_regularized_residual(K0, var_count, border_v, border_d, rhs0, ss) +
                    reg.cwiseProduct(ss));
     };
     Vec res = residual_of(sol);
-    double res_inf = res.lpNorm<Eigen::Infinity>();
+    double res_inf = detail::nan_sticky_inf_norm(res);
     Index kept = 0;
     for (Index step = 0; step < max_steps; ++step) {
         const Vec delta = schur.solve(res);
-        const double cap = detail::kEqpPolishStepCap * std::max(1.0, sol.lpNorm<Eigen::Infinity>());
-        if (!(delta.lpNorm<Eigen::Infinity>() <= cap)) {
+        const double cap =
+            detail::kEqpPolishStepCap * std::max(1.0, detail::nan_sticky_inf_norm(sol));
+        if (!(detail::nan_sticky_inf_norm(delta) <= cap)) {
             break; // not a polish: see eqp_solve.h's kEqpPolishStepCap
         }
         const Vec candidate = sol + delta;
         Vec cres = residual_of(candidate);
-        const double cres_inf = cres.lpNorm<Eigen::Infinity>();
+        const double cres_inf = detail::nan_sticky_inf_norm(cres);
         if (!(cres_inf < res_inf)) {
             break; // stagnated, diverging, or NaN -- keep the better answer
         }
@@ -503,7 +514,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
     //     -- same x to 1e-8, different `bound_state`. So: unmasked, per variable,
     //     for the reason each variable gives, and the cross-algebra battery and
     //     corpus are the check.
-    sys.rhs.head(n) += opts.primal_delta * x_k;
+    sys.rhs.head(n) += opts.primal_regularization * x_k;
     for (Index r = 0; r < me; ++r) {
         sys.rhs(n + r) = qp.be(r);
     }
@@ -519,7 +530,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
         switch (e.kind) {
         case BorderLedgerEntry::Kind::kVarPin:
             sys.border_v.push_back(BorderOps::pin_variable(e.target, n0));
-            sys.border_d.push_back(-opts.dual_mu);
+            sys.border_d.push_back(-opts.dual_regularization);
             sys.rhs(n0 + b) =
                 pinned_value(qp, bound_state[static_cast<std::size_t>(e.target)], e.target);
             break;
@@ -531,7 +542,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
             break;
         case BorderLedgerEntry::Kind::kIneqRow:
             sys.border_v.push_back(BorderOps::add_ineq_row(qp, e.target, n0));
-            sys.border_d.push_back(-opts.dual_mu);
+            sys.border_d.push_back(-opts.dual_regularization);
             sys.rhs(n0 + b) = qp.bi(e.target);
             break;
         }
@@ -553,7 +564,7 @@ inline BorderedSystem build_bordered_system(const QpProblem &qp, const KktAssemb
 // (fix 9's fixture) and sent it to a cap; asked on the rows only, it fires there 0
 // times and that walk is unchanged.
 inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const QpOptions &opts) {
-    const double xmag = x.lpNorm<Eigen::Infinity>();
+    const double xmag = detail::nan_sticky_inf_norm(x);
     for (Index j = 0; j < qp.me(); ++j) {
         double row_norm1 = 0.0;
         double ax = 0.0;
@@ -562,7 +573,7 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
             ax += it.value() * x(it.col());
         }
         const double row_scale = std::max({1.0, std::abs(qp.be(j)), row_norm1 * xmag});
-        if (!(std::abs(ax - qp.be(j)) <= opts.feas_tol * row_scale)) {
+        if (!(std::abs(ax - qp.be(j)) <= opts.feasibility_tol * row_scale)) {
             return false;
         }
     }
@@ -577,13 +588,68 @@ inline bool iterate_meets_equality_rows(const QpProblem &qp, const Vec &x, const
 // `x_k` is the PROXIMAL CENTRE, of size qp.n() -- the same required argument, with
 // the same meaning, as solve_eqp's; eqp_solve.h states the system both solve.
 //
-// Throws whatever SchurComplement::solve throws -- notably std::runtime_error
-// on an exactly singular Schur complement, which the caller is expected to
-// have ruled out via needs_refactorization() first.
+// THE SHIFTED-K0 GATE: a K0 holding dense shifted numerics answers
+// D (D K0 D + sigma S)^-1 D b, so a bordered answer through it is verified
+// against the UNSHIFTED bordered system K_b -- K0 plus the live borders, the
+// regularized system the stack was handed -- one block at a time:
+//   rho = max(rho_K0, rho_border),
+//   rho_K0     = ||D (rhs - K_b sol)_K0||inf / ||D rhs_K0||inf   (D = K0's
+//                equilibration scale, the metric K0's shift lives in),
+//   rho_border = ||(rhs - K_b sol)_b||inf / ||rhs_b||inf         (unscaled: the
+//                Schur complement is formed and factored in the borders' own
+//                coordinates).
+// A block whose rhs is exactly zero has no scale of its own: its residual is
+// measured against the WHOLE rhs in that block's metric (||D' rhs||inf for the
+// K0 block, D' = D on K0's rows and 1 on the borders; ||rhs||inf for the border
+// block). A block with zero rhs and zero residual reads 0; no borders reads
+// rho_border = 0. A NaN propagates.
+inline double bordered_shifted_residual_ratio(const SpMatRM &K0, const std::vector<Vec> &border_v,
+                                              const std::vector<double> &border_d, const Vec &rhs,
+                                              const Vec &sol, const Vec &k0_scale) {
+    const Index n0 = K0.rows();
+    const Index m = static_cast<Index>(border_v.size());
+    if (k0_scale.size() != n0 || rhs.size() != n0 + m || sol.size() != n0 + m) {
+        throw std::invalid_argument(fmt::format(
+            "bordered_shifted_residual_ratio: K0 has {} rows and {} borders, but the scale has "
+            "size {}, the rhs {} and the solution {}",
+            static_cast<long long>(n0), static_cast<long long>(m),
+            static_cast<long long>(k0_scale.size()), static_cast<long long>(rhs.size()),
+            static_cast<long long>(sol.size())));
+    }
+    const Vec r = bordered_regularized_residual(K0, n0, border_v, border_d, rhs, sol);
+    const auto ratio = [](double num, double den, double fallback_den) {
+        const double d = den != 0.0 ? den : fallback_den;
+        return (num == 0.0 && d == 0.0) ? 0.0 : num / d;
+    };
+    const double r_k0 = detail::nan_sticky_inf_norm(r.head(n0).cwiseProduct(k0_scale));
+    const double b_k0 = detail::nan_sticky_inf_norm(rhs.head(n0).cwiseProduct(k0_scale));
+    const double r_b = m > 0 ? detail::nan_sticky_inf_norm(r.tail(m)) : 0.0;
+    const double b_b = m > 0 ? detail::nan_sticky_inf_norm(rhs.tail(m)) : 0.0;
+    const double rho_k0 = ratio(r_k0, b_k0, std::max(b_k0, b_b));
+    const double rho_b = m > 0 ? ratio(r_b, b_b, detail::nan_sticky_inf_norm(rhs)) : 0.0;
+    // std::max would drop a NaN in its second argument.
+    return (std::isnan(rho_k0) || std::isnan(rho_b)) ? std::numeric_limits<double>::quiet_NaN()
+                                                     : std::max(rho_k0, rho_b);
+}
+
+// Throws whatever SchurComplement::solve throws -- notably
+// hven::BackendError on an exactly singular Schur complement, which the caller is expected
+// to have ruled out via needs_refactorization() first.
+//
+// `k0_shift_scale` is K0's KktFactor::dense_scale when K0 holds dense shifted
+// numerics, else null. The first solve is then gated on
+// bordered_shifted_residual_ratio (no refinement before the gate); a miss of
+// kEqpShiftedResidualTol or a NaN sets shifted_refused and residual_refused.
+// The gate holds AT GATE TIME, as solve_eqp's does: after it, every further
+// step through the shifted factor (the residual loop, the refinement's first
+// step and its iterated steps, the polish) is kept only while the residual it
+// targets strictly falls, and the returned answer is the gated one plus those
+// kept steps.
 inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
                                     const std::vector<Index> &k0_rows, const SchurComplement &schur,
                                     const std::vector<BorderLedgerEntry> &ledger,
-                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts) {
+                                    const WorkingSet &ws, const Vec &x_k, const QpOptions &opts,
+                                    const Vec *k0_shift_scale) {
     const Index n = qp.n();
     const Index me = qp.me();
     const Index n0 = k0.K.rows();
@@ -597,6 +663,10 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     const BorderedSystem sys = build_bordered_system(qp, k0, k0_rows, ledger, ws, x_k, opts);
 
     Vec sol = schur.solve(sys.rhs);
+    const bool shifted_refused =
+        k0_shift_scale != nullptr &&
+        !(bordered_shifted_residual_ratio(k0.K, sys.border_v, sys.border_d, sys.rhs, sol,
+                                          *k0_shift_scale) <= detail::kEqpShiftedResidualTol);
 
     // ---- THE EQP-SITE RESIDUAL CHECK (E4-4), the border twin. Same object, same
     // tolerance, same budget, same two-block ratio as eqp_solve.h's -- read off the
@@ -605,16 +675,17 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     // IS a constraint row). Runs BEFORE the model's refinement, for the reason
     // stated there: afterwards the row residual is the model's own mu*lambda.
     const Index nc = n0 + m - n;
-    const double rhs_rows_inf = nc > 0 ? sys.rhs.segment(n, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double rhs_rows_inf = nc > 0 ? detail::nan_sticky_inf_norm(sys.rhs.segment(n, nc)) : 0.0;
     // The constraint rows only, for the reason (and with the measurement)
     // eqp_solve.h states at its own copy of this rule.
     const auto ratio_of = [&](const Vec &ss, const Vec &r) {
         if (nc == 0) {
             return 0.0;
         }
-        const double scale = std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
-                                      opts.dual_mu * ss.segment(n, nc).lpNorm<Eigen::Infinity>());
-        return r.segment(n, nc).lpNorm<Eigen::Infinity>() / scale;
+        const double scale =
+            std::max(detail::kEqpResidualRefuseTol * (1.0 + rhs_rows_inf),
+                     opts.dual_regularization * detail::nan_sticky_inf_norm(ss.segment(n, nc)));
+        return detail::nan_sticky_inf_norm(r.segment(n, nc)) / scale;
     };
     Vec r_reg = bordered_regularized_residual(k0.K, n, sys.border_v, sys.border_d, sys.rhs, sol);
     double ratio = ratio_of(sol, r_reg);
@@ -632,7 +703,7 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
         r_reg = std::move(candidate_r);
         ratio = candidate_ratio;
     }
-    const double row_residual = nc > 0 ? r_reg.segment(n, nc).lpNorm<Eigen::Infinity>() : 0.0;
+    const double row_residual = nc > 0 ? detail::nan_sticky_inf_norm(r_reg.segment(n, nc)) : 0.0;
 
     Index refine_steps = 0;
     // THE BORDERED ANSWER'S CERTIFICATE (refine_bordered_solve_iterated) -- on the
@@ -641,12 +712,12 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     BorderedResolution resolution;
     resolution.x_k = &x_k;
     resolution.bound_state = &bound_state;
-    resolution.step_tol = opts.feas_tol * std::max(1.0, x_k.lpNorm<Eigen::Infinity>());
+    resolution.step_tol = opts.feasibility_tol * std::max(1.0, detail::nan_sticky_inf_norm(x_k));
     BorderedRefineOutcome outcome;
     const bool certify = opts.independent_working_set && iterate_meets_equality_rows(qp, x_k, opts);
     sol = refine_bordered_solve_iterated(k0.K, n, sys.border_v, sys.border_d, schur, sys.rhs, sol,
                                          opts, &refine_steps, certify ? &resolution : nullptr,
-                                         certify ? &outcome : nullptr);
+                                         certify ? &outcome : nullptr, k0_shift_scale != nullptr);
     // AND THE UNREGULARIZED POLISH (E4-11), the same rule the eliminated path takes
     // at the same point in its own solve: see polish_bordered_unregularized.
     const Index polish_kept =
@@ -660,7 +731,8 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     res.row_residual = row_residual;
     res.residual_ratio = ratio;
     res.residual_refine_iters = res_iters;
-    res.residual_refused = !(ratio <= 1.0);
+    res.residual_refused = !(ratio <= 1.0) || shifted_refused;
+    res.shifted_refused = shifted_refused;
     res.x = sol.head(n);
     for (Index i = 0; i < n; ++i) {
         const BoundState st = bound_state[static_cast<std::size_t>(i)];
@@ -693,4 +765,4 @@ inline EqpResult solve_bordered_eqp(const QpProblem &qp, const KktAssembly &k0,
     return res;
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

@@ -13,6 +13,7 @@
 // active in a given build, mirroring the production backend split.
 
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -139,6 +140,119 @@ TEST(FailedFactorizeEvidencePin, InertiaReportsNonObservedAfterAFailedFactorize)
     EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kObserved);
 }
 
+// The dense arm's fallback (M8 DN-1, T10): a dense-selected engine whose dense attempt finds
+// the matrix exactly singular hands it to a fresh platform session; that session's backend
+// failure, injected through the same FactorizeFaultInjector on its first factorization (the
+// injector's faithful scope), surfaces as kBackendError with arm == kSparse. The dense attempt
+// itself is real: the injector is read on the fallback path only.
+TEST(DenseArmFallbackFault, AFallbackBackendFailureSurfacesAsTheSparseArmsError) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    SymmetricFactor factor{o};
+    Mat singular = Mat::Zero(3, 3);
+    singular(0, 0) = 1.0;
+    singular(0, 1) = singular(1, 0) = 1.0;
+    singular(1, 1) = 1.0; // rows 0 and 1 equal, row 2 zero: exactly singular
+    const SpMatRM A = upper_csr(singular);
+    factor.analyze(A);
+    {
+        FactorizeFaultGuard guard(/*code=*/-4);
+        const FactorizeOutcome outcome = factor.factorize(A);
+        EXPECT_EQ(outcome.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(outcome.backend_code, -4);
+        EXPECT_EQ(outcome.arm, hven::linear::FactorArm::kSparse);
+        EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kUnavailable);
+    }
+    EXPECT_EQ(factor.counters().dense_fallback_count, 1);
+    EXPECT_EQ(factor.counters().dense_factorize_count, 0);
+    EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kUnavailable);
+    Vec x(3);
+    EXPECT_THROW(factor.solve(Vec::Ones(3), x), std::logic_error);
+
+    // A dense-acceptable matrix on the same pattern is taken by the dense arm again.
+    Mat good = singular;
+    good(2, 2) = -1.0;
+    good(1, 1) = 3.0;
+    const FactorizeOutcome ok = factor.factorize(upper_csr(good));
+    EXPECT_EQ(ok.status, FactorizeOutcome::Status::kOk);
+    EXPECT_EQ(ok.arm, hven::linear::FactorArm::kDense);
+}
+
+// The dense arm's fallback fork whose symbolic phase fails (review C270 finding 3): reported as
+// kBackendError with arm kSparse and backend_code kDenseFallbackAnalyzeFailed, counted as a
+// fallback, never thrown. AnalyzeFaultInjector raises in place of the fork's phase 11 before the
+// fork is committed, the same faithful scope as on the public analyze().
+TEST(DenseArmFallbackFault, AFallbackForkWhoseAnalyzeFailsIsReportedNotThrown) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    SymmetricFactor factor{o};
+    Mat singular = Mat::Zero(3, 3);
+    singular(0, 0) = 1.0;
+    singular(0, 1) = singular(1, 0) = 1.0;
+    singular(1, 1) = 1.0; // rows 0 and 1 equal, row 2 zero: exactly singular
+    const SpMatRM A = upper_csr(singular);
+    factor.analyze(A); // the dense arm's analyze() reads no injector
+    {
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = true;
+        FactorizeOutcome outcome;
+        EXPECT_NO_THROW(outcome = factor.factorize(A));
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = false;
+        EXPECT_EQ(outcome.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(outcome.backend_code, hven::linear::kDenseFallbackAnalyzeFailed);
+        EXPECT_EQ(outcome.arm, hven::linear::FactorArm::kSparse);
+        EXPECT_EQ(outcome.inertia.state, InertiaEvidence::State::kUnavailable);
+    }
+    EXPECT_EQ(factor.counters().analyze_count, 1);
+    EXPECT_EQ(factor.counters().factorize_count, 1);
+    EXPECT_EQ(factor.counters().dense_fallback_count, 1);
+    EXPECT_EQ(factor.counters().dense_factorize_count, 0);
+    EXPECT_EQ(factor.epoch(), 0U);
+    EXPECT_EQ(factor.inertia().state, InertiaEvidence::State::kUnavailable);
+    Vec x(3);
+    EXPECT_THROW(factor.solve(Vec::Ones(3), x), std::logic_error);
+
+    // Disarmed, the same call forks and the platform session takes it.
+    const FactorizeOutcome again = factor.factorize(A);
+    EXPECT_EQ(again.arm, hven::linear::FactorArm::kSparse);
+    EXPECT_EQ(factor.counters().dense_fallback_count, 2);
+    EXPECT_EQ(factor.counters().factorize_count, 2);
+    if (again.status == FactorizeOutcome::Status::kOk) {
+        EXPECT_EQ(factor.epoch(), 1U);
+    }
+}
+
+// A retake whose platform fork fails, after a flagged dense factorization under kReport kept its
+// numerics: the dense numerics are dropped, so nothing is solvable after the failed call and no
+// inertia is read off the flagged factor. AnalyzeFaultInjector fails the fork's phase 11, its
+// faithful scope.
+TEST(DenseArmFallbackFault, AFailedRetakeAfterAFlaggedFactorLeavesNothingSolvable) {
+    SymmetricFactor::Options o;
+    o.dense_factorization = hven::linear::DensePolicy::kAlways;
+    o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+    SymmetricFactor factor{o};
+    Mat m(2, 2);
+    m << 1.0, std::ldexp(1.0, 20), std::ldexp(1.0, 20), std::ldexp(1.0, 40) + std::ldexp(1.0, -12);
+    const SpMatRM A = upper_csr(m);
+    factor.analyze(A);
+    const FactorizeOutcome flagged = factor.factorize(A);
+    ASSERT_EQ(flagged.status, FactorizeOutcome::Status::kOk);
+    ASSERT_TRUE(flagged.inertia.numerically_singular);
+    Vec x(2);
+    factor.solve(Vec::Ones(2), x); // the flagged numerics, kept
+    {
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = true;
+        FactorizeOutcome retake;
+        EXPECT_NO_THROW(
+            retake = factor.retake_on_platform(A, SymmetricFactor::PatternCheck::kAssumeAnalyzed));
+        hven::linear::detail::testing::AnalyzeFaultInjector::active = false;
+        EXPECT_EQ(retake.status, FactorizeOutcome::Status::kBackendError);
+        EXPECT_EQ(retake.backend_code, hven::linear::kDenseFallbackAnalyzeFailed);
+    }
+    EXPECT_EQ(factor.counters().dense_retake_count, 1);
+    EXPECT_THROW(factor.solve(Vec::Ones(2), x), std::logic_error);
+    EXPECT_NE(factor.inertia().state, InertiaEvidence::State::kObserved);
+}
+
 #if !defined(__APPLE__)
 
 // The MKL factorize-failure epoch test the factorize-failure disclosure
@@ -173,8 +287,8 @@ TEST(MklFactorizeFaultInjection, FirstFactorizeFailureLeavesNoUsableNumericsAndD
 
     Vec rhs = Vec::Ones(3);
     Vec x(3);
-    EXPECT_THROW(factor.solve(rhs, x), std::runtime_error);
-    EXPECT_THROW(factor.share(), std::runtime_error);
+    EXPECT_THROW(factor.solve(rhs, x), std::logic_error);
+    EXPECT_THROW(factor.share(), std::logic_error);
 }
 
 // Companion sanity check: with the injector disengaged, the exact same
@@ -388,7 +502,7 @@ TEST(PardisoIparmObservation, SolveParallelismWritesItsOwnContractCode) {
 TEST(PardisoIparmObservation, CnrThreadsWritesTheRequestedCount) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.cnr_threads = 5;
+    opts.conditional_reproducibility_threads = 5;
     opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
@@ -560,8 +674,8 @@ TEST(PardisoIparmObservation, DefaultOptionsStillWriteRefinementCapZeroAndPivotP
 TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteAtAll) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.pivot_perturb_exp = std::nullopt;
-    opts.max_refinement_iters = std::nullopt;
+    opts.pivot_perturbation_exponent = std::nullopt;
+    opts.max_refinement_steps = std::nullopt;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -581,7 +695,7 @@ TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteA
     const Vec b = Vec::Ones(3);
     Vec x(3);
     const auto info = factor.solve(b, x);
-    EXPECT_TRUE(info.refinement_iters.has_value());
+    EXPECT_TRUE(info.refinement_steps.has_value());
     EXPECT_LT((b - Vec((spd3() * x))).norm(), 1e-10);
 }
 
@@ -591,8 +705,8 @@ TEST(PardisoIparmObservation, NulloptRefinementCapAndPivotPerturbExecuteNoWriteA
 TEST(PardisoIparmObservation, PresentRefinementCapAndPivotPerturbWriteTheRequestedValues) {
     PardisoIparmObserver::reset();
     SymmetricFactor::Options opts;
-    opts.pivot_perturb_exp = 10;
-    opts.max_refinement_iters = 2;
+    opts.pivot_perturbation_exponent = 10;
+    opts.max_refinement_steps = 2;
     SymmetricFactor factor{opts};
     factor.analyze(upper_csr(spd3()));
 
@@ -762,7 +876,7 @@ TEST(BackendDefaultPremise, MklPardisoinitAlreadyRequestsTheFactorNonzeroCount) 
 
 using hven::linear::detail::testing::ThreadCountObserver;
 
-// SymmetricFactor::set_num_threads claims that a mid-life change reaches
+// SymmetricFactor::set_threads claims that a mid-life change reaches
 // SUBSEQUENT backend calls while the analysis, the session and the numerics
 // all stand. The second half is checkable through the public API alone (see
 // SymmetricFactor.ANewThreadCountKeepsTheAnalysisTheSessionAndTheNumerics in
@@ -782,7 +896,7 @@ using hven::linear::detail::testing::ThreadCountObserver;
 // inside the session file is deliberately not done.
 TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutReAnalyzing) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -797,7 +911,7 @@ TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutRe
     EXPECT_EQ(ThreadCountObserver::last_config_num_threads, 1)
         << "the configured count is what the first solve applied";
 
-    factor.set_num_threads(2);
+    factor.set_threads(2);
 
     ThreadCountObserver::reset();
     factor.solve(b, x);
@@ -872,7 +986,7 @@ TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAft
         << "the setter returns what it replaced -- reading the same fact the other way";
 
     SymmetricFactor::Options opts;
-    opts.num_threads = kHvenThreads;
+    opts.threads = kHvenThreads;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -923,7 +1037,7 @@ TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsid
     ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride);
 
     SymmetricFactor::Options opts;
-    opts.num_threads = kHvenThreads;
+    opts.threads = kHvenThreads;
     SymmetricFactor factor{opts};
     const SpMatRM A = upper_csr(spd3());
     factor.analyze(A);
@@ -1079,9 +1193,9 @@ TEST(AccelerateInertiaQueryFaultInjection, QueryFailureReportsKQueryFailedWithIn
     }
 
     EXPECT_EQ(evidence.state, InertiaEvidence::State::kQueryFailed);
-    EXPECT_EQ(evidence.n_pos, -1);
-    EXPECT_EQ(evidence.n_neg, -1);
-    EXPECT_EQ(evidence.n_zero, -1);
+    EXPECT_EQ(evidence.positive, -1);
+    EXPECT_EQ(evidence.negative, -1);
+    EXPECT_EQ(evidence.zero, -1);
     EXPECT_FALSE(evidence.perturbed_pivots.has_value())
         << "must stay absent, not zero-filled, alongside the failed query";
 

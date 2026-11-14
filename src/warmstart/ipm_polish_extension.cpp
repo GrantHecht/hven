@@ -36,7 +36,12 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers {
+#include "hven/detail/model/problem_access.h"
+#include "hven/detail/warmstart/sqp_warm_access.h"
+#include "hven/detail/warmstart/warm_start.h"
+#include "hven/detail/warmstart/warm_start_access.h"
+
+namespace hven {
 
 namespace {
 
@@ -139,16 +144,16 @@ std::string hex_dump(std::span<const std::byte> bytes) {
 std::vector<std::byte> serialize_ipm_polish(const IpmPolishData &polish) {
     std::vector<std::byte> out;
     out.reserve(kMagicSize + kDoubleSize + 3 * 8 +
-                static_cast<std::size_t>(polish.z_lower_.size() + polish.z_upper_.size() +
-                                         polish.iq_values_.size()) *
+                static_cast<std::size_t>(polish.z_lower.size() + polish.z_upper.size() +
+                                         polish.iq_values.size()) *
                     kDoubleSize);
     for (const unsigned char byte : kMagic) {
         out.push_back(static_cast<std::byte>(byte));
     }
-    append_double(out, polish.mu_);
-    append_vector(out, polish.z_lower_);
-    append_vector(out, polish.z_upper_);
-    append_vector(out, polish.iq_values_);
+    append_double(out, polish.mu);
+    append_vector(out, polish.z_lower);
+    append_vector(out, polish.z_upper);
+    append_vector(out, polish.iq_values);
     return out;
 }
 
@@ -166,10 +171,10 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes) {
     }
 
     IpmPolishData polish;
-    polish.mu_ = reader.read_double("the barrier parameter");
-    polish.z_lower_ = reader.read_vector("the lower-bound multiplier block");
-    polish.z_upper_ = reader.read_vector("the upper-bound multiplier block");
-    polish.iq_values_ = reader.read_vector("the inequality-value block");
+    polish.mu = reader.read_double("the barrier parameter");
+    polish.z_lower = reader.read_vector("the lower-bound multiplier block");
+    polish.z_upper = reader.read_vector("the upper-bound multiplier block");
+    polish.iq_values = reader.read_vector("the inequality-value block");
 
     if (reader.remaining() != 0) {
         throw std::invalid_argument(
@@ -180,10 +185,10 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes) {
     return polish;
 }
 
-const WarmExtension *find_ipm_polish(const WarmStartData &data) {
+const WarmExtension *find_ipm_polish(const WarmStart &data) {
     const WarmExtension *found = nullptr;
-    for (const WarmExtension &extension : data.extensions_) {
-        if (extension.tag_ != kIpmPolishTag) {
+    for (const WarmExtension &extension : detail::WarmStartAccess::extensions(data)) {
+        if (extension.tag != kIpmPolishTag) {
             continue;
         }
         if (found != nullptr) {
@@ -199,9 +204,11 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data) {
     return found;
 }
 
-SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
+namespace detail {
+
+SqpWarmState to_sqp_warm_state(const WarmStart &data, const Vec &lower, const Vec &upper,
                                const DeclarationKey &structure_key,
-                               const IpCrossoverOptions &opts) {
+                               const IpmCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
         // A CORE-ONLY VALUE CANNOT BE BRIDGED, and the refusal is why this
@@ -223,20 +230,20 @@ SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, cons
     // THE STAMP, before anything is decoded: if the bounds and the value were
     // not taken under one declared structure, every index below names a
     // different variable in each of them.
-    if (!(data.structure_key_ == structure_key)) {
+    if (!(detail::WarmStartAccess::key(data) == structure_key)) {
         throw std::invalid_argument(fmt::format(
             "to_sqp_warm_start: the warm-start value was taken under declaration key {0:#x} but "
             "the bounds handed in belong to a model keying {1:#x} -- the value describes a "
             "different declared problem. The key covers the declared dimensions (with any "
             "fixed-variable treatment's own rows subtracted) and the declared bound STRUCTURE, so "
             "one of those moved",
-            data.structure_key_.digest(), structure_key.digest()));
+            detail::WarmStartAccess::key(data).digest(), structure_key.digest()));
     }
 
-    const IpmPolishData polish = deserialize_ipm_polish(extension->payload_);
+    const IpmPolishData polish = deserialize_ipm_polish(extension->payload);
 
-    const Eigen::Index n = data.primal_.size();
-    const Eigen::Index mi = data.iq_lmults_.size();
+    const Eigen::Index n = detail::WarmStartAccess::primal(data).size();
+    const Eigen::Index mi = detail::WarmStartAccess::iq(data).size();
     const auto check = [&](const char *what, Eigen::Index held, Eigen::Index expected,
                            const char *expected_name) {
         if (held != expected) {
@@ -247,11 +254,11 @@ SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, cons
                             what, held, expected_name, expected, kIpmPolishTag));
         }
     };
-    check("the extension's lower-bound multiplier block", polish.z_lower_.size(), n,
+    check("the extension's lower-bound multiplier block", polish.z_lower.size(), n,
           "the core's primal width n");
-    check("the extension's upper-bound multiplier block", polish.z_upper_.size(), n,
+    check("the extension's upper-bound multiplier block", polish.z_upper.size(), n,
           "the core's primal width n");
-    check("the extension's inequality-value block", polish.iq_values_.size(), mi,
+    check("the extension's inequality-value block", polish.iq_values.size(), mi,
           "the core's inequality width mi");
     check("the lower-bound vector", lower.size(), n, "the core's primal width n");
     check("the upper-bound vector", upper.size(), n, "the core's primal width n");
@@ -260,8 +267,21 @@ SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, cons
     // own convention and what the extension carries; the activity inference,
     // the kFixed choice and the kSeeded consequence all live in
     // from_interior_point.
-    return from_interior_point(data.primal_, data.eq_lmults_, data.iq_lmults_, polish.iq_values_,
-                               polish.z_lower_, polish.z_upper_, lower, upper, opts);
+    return from_interior_point(detail::WarmStartAccess::primal(data),
+                               detail::WarmStartAccess::eq(data), detail::WarmStartAccess::iq(data),
+                               polish.iq_values, polish.z_lower, polish.z_upper, lower, upper,
+                               opts);
 }
 
-} // namespace hven::solvers
+} // namespace detail
+
+SqpWarmStart to_sqp_warm_start(const WarmStart &warm, const Problem &problem,
+                               const IpmCrossoverOptions &opts) {
+    Vec lower;
+    Vec upper;
+    detail::ProblemAccess::variable_bounds(problem, lower, upper);
+    return detail::SqpWarmAccess::wrap(detail::to_sqp_warm_state(
+        warm, lower, upper, detail::ProblemAccess::declaration_key(problem), opts));
+}
+
+} // namespace hven

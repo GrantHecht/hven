@@ -1,0 +1,39 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T20:18:33-05:00
+ef3f2682008580cf1b10988a9cf8aa9ce41542fc3852095f1b6e3e8f5bd0baa6  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/armAbin/hven_sqp_corpus
+e48c2e34205b408a1616ef33c5f2bdf8b401a70aad04c355311ab744d8efc0e3  /home/ghecht/Projects/hven/.claude/worktrees/f1/build-f1/armBbin/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-07T20:20:24-05:00
+ANALYSIS mode=interior rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+F1-a FILTER LIVENESS arm A: excluded samples over all processes and rounds = 53279 -> LIVE
+F1-b SPIN ABSENT arm B: 3 processes, spin samples per process [0, 0, 0] -> ABSENT
+  filtered samples (CRITERION)     A=4.968670e+05 B=4.968530e+05 B/A=0.999972
+  all samples                      A=5.146330e+05 B=4.968530e+05 B/A=0.965451
+  excluded (wall-clock) samples    A=1.775700e+04 B=0.000000e+00 B/A=0.000000
+  raw perf-stat instructions:u     A=1.029292e+11 B=9.937368e+10 B/A=0.965457
+per-round filtered B/A (informational):
+  round 1: B/A=0.999974
+  round 2: B/A=0.999954
+  round 3: B/A=0.999968
+MODE interior FILTERED B/A = 0.999972 -> WITHIN [0.995, 1.005]
+F1-c MODE interior ALL-SAMPLES B/A = 0.965451 -> IMPROVED (<= 0.995)
+LEG mode=ipm rc=0 2026-11-07T20:26:02-05:00
+ANALYSIS mode=ipm rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=1.189585e+06 B=1.189585e+06 B/A=1.000000
+  all samples                      A=1.189585e+06 B=1.189585e+06 B/A=1.000000
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.379196e+11 B=2.379196e+11 B/A=1.000000
+per-round filtered B/A (informational):
+  round 1: B/A=1.000000
+  round 2: B/A=1.000000
+  round 3: B/A=1.000000
+MODE ipm FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
+LEG mode=ssn rc=5 2026-11-07T20:27:09-05:00
+ANALYSIS mode=ssn rc=2
+STOP CONDITION: 63 (round,cell) pairs compared, 42 with a difference or missing -> STOP
+VERDICT FAIL(mode=ssn leg_rc=5 analysis_rc=2)
+FOREGROUND_END 2026-11-07T20:27:10-05:00

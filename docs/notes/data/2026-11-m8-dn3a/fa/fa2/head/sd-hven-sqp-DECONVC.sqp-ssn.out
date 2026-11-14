@@ -1,0 +1,7 @@
+CELL_BEGIN
+lane=hven-sqp
+problem=DECONVC
+options_label=sqp-ssn
+threw=1
+exception=SsnEngine::solve: start.z(51) = -3.9962595397014866e-12 prices variable 51's UPPER bound, but that bound is absent (upper = inf, at or beyond the subproblem's infinite_bound inf) -- there is no row for that multiplier
+CELL_END

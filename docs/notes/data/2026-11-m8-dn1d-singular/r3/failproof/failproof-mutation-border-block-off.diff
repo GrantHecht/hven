@@ -1,0 +1,4 @@
+630c630
+<     const double rho_b = m > 0 ? ratio(r_b, b_b, rhs.lpNorm<Eigen::Infinity>()) : 0.0;
+---
+>     const double rho_b = 0.0 * (m > 0 ? ratio(r_b, b_b, rhs.lpNorm<Eigen::Infinity>()) : 0.0);

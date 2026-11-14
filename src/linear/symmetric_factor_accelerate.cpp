@@ -35,25 +35,49 @@
 
 #include <fmt/format.h>
 
+#include "hven/core/errors.h"
 #include "hven/core/pattern_hash.h"
 #include "hven/detail/linear/accelerate_session.h"
+#include "hven/detail/linear/dense_session.h"
 #include "hven/detail/linear/fault_injection.h"
+
+namespace {
+
+// hven's own FactorizeOutcome::backend_code sentinels must never read as one of
+// Accelerate's statuses: SparseStatusReleased is -INT_MAX (INT_MIN + 1), which
+// kDenseSingular once was, and computation_info_of (kkt_factorization.cpp)
+// then mapped a released-factorization hard error to a numeric outcome.
+constexpr bool is_accelerate_status(int code) {
+    return code == SparseStatusOK || code == SparseFactorizationFailed ||
+           code == SparseMatrixIsSingular || code == SparseInternalError ||
+           code == SparseParameterError || code == SparseStatusReleased;
+}
+static_assert(!is_accelerate_status(hven::linear::kDenseSingular),
+              "kDenseSingular collides with an Accelerate SparseStatus_t value");
+static_assert(!is_accelerate_status(hven::linear::kDenseFallbackAnalyzeFailed),
+              "kDenseFallbackAnalyzeFailed collides with an Accelerate SparseStatus_t value");
+
+// THE BACKEND'S OWN FAILURE, AS BackendError (M8 B5). The session layer
+// reports a failed symbolic analysis or solve -- the backend's error code in
+// the message -- as std::runtime_error; this adapter is where hven's contract
+// (core/errors.h) names it, so a caller catches every runtime failure hven
+// raises in one hven::Error clause. The message is the session's,
+// unchanged. Zero cost unless the backend fails.
+template <class Call> void backend_call(Call &&call) {
+    try {
+        call();
+    } catch (const hven::BackendError &) {
+        throw;
+    } catch (const std::runtime_error &e) {
+        throw hven::BackendError(e.what());
+    }
+}
+
+} // namespace
 
 namespace hven::linear {
 
 namespace {
-
-const char *kind_name(FactorKind kind) {
-    switch (kind) {
-    case FactorKind::kLDLT:
-        return "kLDLT";
-    case FactorKind::kLLT:
-        return "kLLT";
-    case FactorKind::kLU:
-        return "kLU";
-    }
-    return "unknown";
-}
 
 // MT-METIS (multi-threaded METIS) is only declared starting in the macOS 26
 // SDK. This is an SDK-version macro -- it says the enum constant
@@ -137,7 +161,7 @@ SymmetricFactor::Options::Ordering accelerate_ordering_of(SparseOrder_t code) {
                     static_cast<int>(code)));
 }
 
-// The thread-count rule, applied by the constructor to Options::num_threads
+// The thread-count rule, applied by the constructor to Options::threads
 // and again by the live setter -- one function so the two cannot drift into
 // accepting different values. `where` is the entry point the message names,
 // which is the only thing that differs between the two callers. The rule is
@@ -155,12 +179,12 @@ void validate_num_threads(int num_threads, const char *where) {
 
 detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     detail::AccelerateConfig cfg;
-    // Only kLDLT reaches here -- the constructor rejects the kinds whose
+    // Only kLdlt reaches here -- the constructor rejects the kinds whose
     // backend paths have not landed. SparseFactorizationLDLTTPP is what
     // detail::FactorSession::analyze() actually asks Accelerate for.
-    cfg.num_threads = opts.num_threads;
-    cfg.pivot_perturb_exp = opts.pivot_perturb_exp;
-    cfg.max_refinement_iters = opts.max_refinement_iters;
+    cfg.num_threads = opts.threads;
+    cfg.pivot_perturb_exp = opts.pivot_perturbation_exponent;
+    cfg.max_refinement_iters = opts.max_refinement_steps;
     cfg.ordering = accelerate_ordering_code(opts.ordering);
     // matrix_scaling, pivot_strategy, factorization_algorithm,
     // solve_parallelism, cnr_threads and collect_factor_mflops are all
@@ -170,7 +194,7 @@ detail::AccelerateConfig config_from(const SymmetricFactor::Options &opts) {
     // precedent. factor_size_bytes similarly needs no config field at all:
     // it is always collected (see FactorSession::factor_size_bytes()'s own
     // doc comment), with nothing to gate.
-    cfg.zero_tolerance_override = opts.accelerate_zero_tolerance;
+    cfg.zero_tolerance_override = opts.accelerate_zero_tol;
     return cfg;
 }
 
@@ -266,9 +290,9 @@ InertiaEvidence evidence_of(const detail::FactorSession &session) {
     }
 
     evidence.state = InertiaEvidence::State::kObserved;
-    evidence.n_pos = n_pos;
-    evidence.n_neg = n_neg;
-    evidence.n_zero = n_zero;
+    evidence.positive = n_pos;
+    evidence.negative = n_neg;
+    evidence.zero = n_zero;
     evidence.zero_is_derived = false; // native 3-way report, not derived by subtraction
     evidence.perturbed_pivots = std::nullopt;
     return evidence;
@@ -383,32 +407,32 @@ detail::SubfactorPhase accelerate_phase_of(SymmetricFactor::SolvePhase phase) {
 // SymmetricFactor
 
 SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
-    if (opts_.kind != FactorKind::kLDLT) {
-        throw std::logic_error(
-            fmt::format("SymmetricFactor: FactorKind::{} is not yet implemented -- only kLDLT has "
-                        "a backend path today",
-                        kind_name(opts_.kind)));
+    if (opts_.decomposition != Decomposition::kLdlt) {
+        throw std::logic_error(fmt::format(
+            "SymmetricFactor: decomposition {} is not a Decomposition value (kLdlt is the one)",
+            static_cast<int>(opts_.decomposition)));
     }
-    validate_num_threads(opts_.num_threads, "SymmetricFactor");
+    validate_num_threads(opts_.threads, "SymmetricFactor");
     // A present value is validated; std::nullopt is the don't-write state
     // (on this backend: Apple's own documented defaults -- see the two
     // options' doc comments) and needs no range check.
-    if (opts_.pivot_perturb_exp.has_value() && *opts_.pivot_perturb_exp < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: pivot_perturb_exp must be >= 0 (or std::nullopt to "
-                        "leave the backend's own default in force), got {}",
-                        *opts_.pivot_perturb_exp));
-    }
-    if (opts_.max_refinement_iters.has_value() && *opts_.max_refinement_iters < 0) {
-        throw std::invalid_argument(
-            fmt::format("SymmetricFactor: max_refinement_iters must be >= 0 (or std::nullopt to "
-                        "leave the backend's own default in force), got {}",
-                        *opts_.max_refinement_iters));
-    }
-    if (opts_.cnr_threads < 0) {
+    if (opts_.pivot_perturbation_exponent.has_value() && *opts_.pivot_perturbation_exponent < 0) {
         throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: cnr_threads must be >= 0 (0 means CNR mode is off), got {}",
-            opts_.cnr_threads));
+            "SymmetricFactor: pivot_perturbation_exponent must be >= 0 (or std::nullopt to "
+            "leave the backend's own default in force), got {}",
+            *opts_.pivot_perturbation_exponent));
+    }
+    if (opts_.max_refinement_steps.has_value() && *opts_.max_refinement_steps < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: max_refinement_steps must be >= 0 (or std::nullopt to "
+                        "leave the backend's own default in force), got {}",
+                        *opts_.max_refinement_steps));
+    }
+    if (opts_.conditional_reproducibility_threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: conditional_reproducibility_threads must be >= 0 (0 "
+                        "means CNR mode is off), got {}",
+                        opts_.conditional_reproducibility_threads));
     }
 
     // weighted_matching is a Pardiso-only concept (it configures iparm[12],
@@ -466,11 +490,12 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
     // cnr_threads: Pardiso-only -- Accelerate has no CNR reproducibility
     // concept, and this is a guarantee a silent no-op would misrepresent
     // (see the option's own doc comment).
-    if (opts_.cnr_threads > 0) {
-        throw std::invalid_argument(fmt::format(
-            "SymmetricFactor: Options::cnr_threads is a Pardiso-only option and has no {} "
-            "equivalent -- requires 0 on this backend, got {}",
-            kBackendName, opts_.cnr_threads));
+    if (opts_.conditional_reproducibility_threads > 0) {
+        throw std::invalid_argument(
+            fmt::format("SymmetricFactor: Options::conditional_reproducibility_threads is a "
+                        "Pardiso-only option and has no {} "
+                        "equivalent -- requires 0 on this backend, got {}",
+                        kBackendName, opts_.conditional_reproducibility_threads));
     }
     // collect_factor_mflops: Pardiso-only -- Accelerate reports no
     // factorization-cost estimate under any configuration (see
@@ -487,55 +512,79 @@ SymmetricFactor::SymmetricFactor(Options opts) : opts_(opts) {
                         kBackendName));
     }
 
-    // accelerate_zero_tolerance is this backend's own knob (checked for
+    // accelerate_zero_tol is this backend's own knob (checked for
     // validity here, symmetrically with how MKL's own throw for it lives in
     // its own adapter file's constructor).
-    if (opts_.accelerate_zero_tolerance.has_value()) {
-        const double value = *opts_.accelerate_zero_tolerance;
+    if (opts_.accelerate_zero_tol.has_value()) {
+        const double value = *opts_.accelerate_zero_tol;
         if (!(value > 0.0) || !std::isfinite(value)) {
             throw std::invalid_argument(fmt::format(
-                "SymmetricFactor: accelerate_zero_tolerance must be finite and > 0, got {}",
-                value));
+                "SymmetricFactor: accelerate_zero_tol must be finite and > 0, got {}", value));
         }
     }
+
+    detail::validate_dense_options(opts_);
 }
 
 SymmetricFactor::~SymmetricFactor() = default;
 SymmetricFactor::SymmetricFactor(SymmetricFactor &&) noexcept = default;
 SymmetricFactor &SymmetricFactor::operator=(SymmetricFactor &&) noexcept = default;
 
-void SymmetricFactor::set_num_threads(int num_threads) {
+void SymmetricFactor::set_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this engine
     // exactly as it was.
-    validate_num_threads(num_threads, "SymmetricFactor::set_num_threads");
+    validate_num_threads(num_threads, "SymmetricFactor::set_threads");
 
-    // BEST-EFFORT-ABSENT, per Options::num_threads' own contract: this
+    // BEST-EFFORT-ABSENT, per Options::threads' own contract: this
     // backend has no per-instance thread control, so the count is stored and
     // applied to nothing. Storing it in BOTH places is what keeps the stored
     // value honest -- `opts_` is what a later analyze() builds a session
     // from, the session's copy is what adopt() round-trips back into Options
     // -- and the two must not disagree about a value a caller has set.
-    opts_.num_threads = num_threads;
+    opts_.threads = num_threads;
     if (session_) {
         session_->set_num_threads(num_threads);
     }
+    if (dense_) {
+        dense_->set_num_threads(num_threads);
+    }
 }
 
-int SymmetricFactor::num_threads() const noexcept {
+int SymmetricFactor::threads() const noexcept {
     // Read THROUGH to the session rather than reporting `opts_`: `opts_` is
     // only THIS engine's copy, and a co-owner's set_num_threads() moves the
     // session's without touching it.
     //
     // What the count GOVERNS here is nothing: Accelerate exposes no
     // per-instance thread control, so the value is stored and applied to no
-    // backend call (Options::num_threads' own BEST-EFFORT-ABSENT contract).
+    // backend call (Options::threads' own BEST-EFFORT-ABSENT contract).
     // Reading it back faithfully is the whole of this backend's obligation to
     // it, and is exactly what this preserves.
-    return session_ ? session_->config().num_threads : opts_.num_threads;
+    if (dense_) {
+        return dense_->num_threads();
+    }
+    return session_ ? session_->config().num_threads : opts_.threads;
 }
 
 void SymmetricFactor::analyze(const SpMatRM &A) {
     validate_upper_csr(A);
+
+    // The dense arm is chosen per analyzed pattern. Its session is fresh, like
+    // the platform's (outstanding handles keep the old one), and continues the
+    // engine's epoch; the fallback session of the old pattern is dropped.
+    if (detail::dense_selected(opts_, static_cast<Index>(A.rows()))) {
+        auto dense = std::make_shared<detail::DenseSession>(opts_, epoch());
+        dense->analyze(A);
+        dense_ = std::move(dense);
+        dense_active_ = true;
+        session_.reset();
+        pattern_hash_ = hven::pattern_hash(A);
+        has_pattern_ = true;
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+        ++counters_.analyze_count;
+        return;
+    }
 
     // A fresh session per analysis: a previously shared factorization is
     // never disturbed by a re-analysis here, and committing the new session
@@ -550,13 +599,15 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     // carries.
     if (detail::testing::AnalyzeFaultInjector::active) {
         const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
-        throw std::runtime_error(fmt::format(
+        throw hven::BackendError(fmt::format(
             "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
     }
 #endif
-    session->analyze(A);
+    backend_call([&] { session->analyze(A); });
 
     session_ = std::move(session);
+    dense_.reset();
+    dense_active_ = false;
     pattern_hash_ = hven::pattern_hash(A);
     has_pattern_ = true;
     numerics_refused_ = false;
@@ -564,16 +615,19 @@ void SymmetricFactor::analyze(const SpMatRM &A) {
     ++counters_.analyze_count;
 }
 
-FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
-    if (!has_pattern_ || !session_) {
-        throw std::runtime_error("SymmetricFactor::factorize: called before analyze() (or before "
-                                 "adopting a factorization that carries a symbolic analysis)");
+void SymmetricFactor::check_factorize_input(const SpMatRM &A, PatternCheck check,
+                                            const char *what) {
+    if (!has_pattern_ || (!session_ && !dense_)) {
+        throw std::logic_error(
+            fmt::format("SymmetricFactor::{}: called before analyze() (or before adopting a "
+                        "factorization that carries a symbolic analysis)",
+                        what));
     }
     if (!A.isCompressed()) {
         throw std::invalid_argument(
-            fmt::format("SymmetricFactor::factorize: matrix must be compressed (call "
+            fmt::format("SymmetricFactor::{}: matrix must be compressed (call "
                         "A.makeCompressed() first) -- got a {}x{} matrix with {} stored entries",
-                        A.rows(), A.cols(), A.nonZeros()));
+                        what, A.rows(), A.cols(), A.nonZeros()));
     }
 
     // The compressed-storage check above runs whatever `check` says: it is a
@@ -585,11 +639,35 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
         const std::uint64_t hash = hven::pattern_hash(A);
         if (hash != pattern_hash_) {
             throw std::invalid_argument(fmt::format(
-                "SymmetricFactor::factorize: the matrix's sparsity pattern (hash {:#018x}) is not "
+                "SymmetricFactor::{}: the matrix's sparsity pattern (hash {:#018x}) is not "
                 "the analyzed one (hash {:#018x}) -- factorize() never re-analyzes; call analyze() "
                 "for a new pattern",
-                hash, pattern_hash_));
+                what, hash, pattern_hash_));
         }
+    }
+
+    // THE DENSE-ARM DISPATCH (here, factorize_dense(), factorize_on_platform(),
+    // factorize_equilibrated(), retake_on_platform() and the dense
+    // branches of share()/adopt()/Factorization) is byte-identical in
+    // symmetric_factor_mkl.cpp and symmetric_factor_accelerate.cpp: mirror
+    // every edit in both until the registered shared dispatch TU lands.
+    //
+    // An engine adopted from a platform-session handle of a dense-selected
+    // pattern (the emitter's fallback) carries the policy but no dense
+    // session: it builds one here, once, so it attempts the dense arm as the
+    // emitter would. Seeded with this engine's epoch; not an analyze().
+    if (!dense_ && detail::dense_selected(opts_, static_cast<Index>(A.rows()))) {
+        validate_upper_csr(A);
+        auto dense = std::make_shared<detail::DenseSession>(opts_, epoch());
+        dense->analyze(A);
+        dense_ = std::move(dense);
+    }
+}
+
+FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check) {
+    check_factorize_input(A, check, "factorize");
+    if (dense_) {
+        return factorize_dense(A, nullptr);
     }
 
     int backend_code;
@@ -636,9 +714,164 @@ FactorizeOutcome SymmetricFactor::factorize(const SpMatRM &A, PatternCheck check
     return outcome;
 }
 
+FactorizeOutcome SymmetricFactor::factorize_dense(const SpMatRM &A,
+                                                  const detail::DenseShift *shift) {
+    FactorizeOutcome outcome;
+    const Index estimates_before = dense_->condition_estimates();
+    detail::DenseFactorizeResult dense_result;
+#ifdef HVEN_TESTING
+    // See hven/detail/linear/fault_injection.h: the attempt is skipped and read
+    // as exactly singular once `pass` attempts have run.
+    if (detail::testing::DenseFactorizeFaultInjector::active &&
+        detail::testing::DenseFactorizeFaultInjector::pass-- <= 0) {
+        dense_->drop_numerics(); // a real exactly singular attempt leaves none
+        dense_result = detail::DenseFactorizeResult::kSingular;
+    } else
+#endif
+    {
+        dense_result = dense_->factorize(A, epoch() + 1, shift);
+    }
+    counters_.dense_condition_estimate_count += dense_->condition_estimates() - estimates_before;
+    if (dense_result != detail::DenseFactorizeResult::kSingular) {
+        ++counters_.factorize_count;
+        ++counters_.dense_factorize_count;
+        if (dense_result == detail::DenseFactorizeResult::kNumericallySingular &&
+            shift == nullptr) {
+            ++counters_.dense_flagged_count;
+        }
+        dense_active_ = true;
+        outcome.status = FactorizeOutcome::Status::kOk;
+        outcome.inertia = detail::dense_evidence_of(*dense_);
+        outcome.factor = detail::dense_factor_evidence_of(*dense_);
+        outcome.arm = FactorArm::kDense;
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+        return outcome;
+    }
+    if (opts_.dense_singular_policy == DenseSingularPolicy::kReport) {
+        // Reported, not retaken: the dense session holds no numerics, so the
+        // engine has none (dense_active_ with no numerics), and the epoch stays.
+        ++counters_.factorize_count;
+        ++counters_.dense_singular_count;
+        dense_active_ = true;
+        outcome.status = FactorizeOutcome::Status::kBackendError;
+        outcome.backend_code = kDenseSingular;
+        outcome.arm = FactorArm::kDense;
+        outcome.inertia.numerically_singular = true;
+        return outcome;
+    }
+    return factorize_on_platform(A);
+}
+
+FactorizeOutcome SymmetricFactor::factorize_equilibrated(const SpMatRM &A, Index n_primal,
+                                                         const double *scale, double sigma,
+                                                         PatternCheck check) {
+    if (!std::isfinite(sigma) || sigma < 0.0 || n_primal < 0 ||
+        n_primal > static_cast<Index>(A.rows()) || scale == nullptr) {
+        throw std::invalid_argument(fmt::format(
+            "SymmetricFactor::factorize_equilibrated: needs a finite sigma >= 0, a scale and 0 <= "
+            "n_primal <= {}, got sigma = {}, n_primal = {}",
+            A.rows(), sigma, n_primal));
+    }
+    for (Index i = 0; i < static_cast<Index>(A.rows()); ++i) {
+        if (!(scale[i] > 0.0) || !std::isfinite(scale[i])) {
+            throw std::invalid_argument(fmt::format(
+                "SymmetricFactor::factorize_equilibrated: scale[{}] = {} is not positive finite", i,
+                scale[i]));
+        }
+    }
+    check_factorize_input(A, check, "factorize_equilibrated");
+    if (!dense_ || opts_.dense_singular_policy != DenseSingularPolicy::kReport) {
+        throw std::logic_error("SymmetricFactor::factorize_equilibrated: needs a dense-selected "
+                               "pattern under DenseSingularPolicy::kReport");
+    }
+    const detail::DenseShift shift{n_primal, scale, sigma};
+    FactorizeOutcome outcome = factorize_dense(A, &shift);
+    ++counters_.dense_shift_refactor_count;
+    return outcome;
+}
+
+FactorizeOutcome SymmetricFactor::retake_on_platform(const SpMatRM &A, PatternCheck check) {
+    check_factorize_input(A, check, "retake_on_platform");
+    if (!dense_) {
+        throw std::logic_error(
+            "SymmetricFactor::retake_on_platform: needs a dense-selected pattern");
+    }
+    ++counters_.dense_retake_count;
+    return factorize_on_platform(A);
+}
+
+FactorizeOutcome SymmetricFactor::factorize_on_platform(const SpMatRM &A) {
+    // The platform session takes this factorization. It is
+    // reused iff it took the engine's previous factorization (its epoch is
+    // then the engine's); otherwise a fresh one is analyzed on this pattern,
+    // seeded with the engine's epoch, so the epoch never runs backwards.
+    //
+    // A fork whose symbolic phase fails is reported, not thrown (the
+    // factorize() contract): kBackendError, arm kSparse, backend_code
+    // kDenseFallbackAnalyzeFailed, counted as a fallback. session_ and
+    // dense_active_ stay as they were and the dense session's numerics are
+    // dropped (a retake_on_platform() after a flagged factorization would
+    // otherwise leave them solvable), so solves throw and the epoch does not
+    // advance, as on any failed factorize().
+    FactorizeOutcome outcome;
+    if (!session_ || dense_active_) {
+        auto session =
+            std::make_shared<detail::FactorSession>(config_from(dense_->options()), epoch());
+        try {
+#ifdef HVEN_TESTING
+            // The same analyze() injector as the public path: raised instead
+            // of the fork's symbolic phase, before session_ is replaced.
+            if (detail::testing::AnalyzeFaultInjector::active) {
+                const int code = detail::testing::AnalyzeFaultInjector::injected_backend_code;
+                throw hven::BackendError(fmt::format(
+                    "SymmetricFactor::analyze: symbolic analysis failed, backend error {}", code));
+            }
+#endif
+            backend_call([&] { session->analyze(A); });
+        } catch (const hven::BackendError &) {
+            dense_->drop_numerics();
+            ++counters_.factorize_count;
+            ++counters_.dense_fallback_count;
+            outcome.status = FactorizeOutcome::Status::kBackendError;
+            outcome.backend_code = kDenseFallbackAnalyzeFailed;
+            return outcome;
+        }
+        session_ = std::move(session);
+    }
+    dense_active_ = false;
+
+    int backend_code;
+#ifdef HVEN_TESTING
+    // The same injector as the platform path above, on the fallback session's
+    // first factorization (a fresh fork, which is the scope it is faithful in).
+    if (detail::testing::FactorizeFaultInjector::active) {
+        backend_code = detail::testing::FactorizeFaultInjector::injected_backend_code;
+    } else
+#endif
+    {
+        backend_code = session_->factorize(A);
+    }
+    ++counters_.factorize_count;
+    ++counters_.dense_fallback_count;
+
+    outcome.backend_code = backend_code;
+    if (backend_code == 0) {
+        outcome.status = FactorizeOutcome::Status::kOk;
+        outcome.inertia = evidence_of(*session_);
+        outcome.factor = factor_evidence_of(*session_);
+        numerics_refused_ = false;
+        refused_epoch_ = 0;
+    } else {
+        outcome.status = FactorizeOutcome::Status::kBackendError;
+    }
+    return outcome;
+}
+
 SolveInfo SymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     require_solvable("solve");
-    const SolveInfo info = run_solve(*session_, RHS, X, "solve");
+    const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, RHS, X, "solve")
+                                         : run_solve(*session_, RHS, X, "solve");
     if (X.cols() > 0) {
         ++counters_.solve_count;
     }
@@ -647,13 +880,19 @@ SolveInfo SymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
 
 SolveInfo SymmetricFactor::solve_single(ConstVecRef rhs, VecRef x) const {
     require_solvable("solve");
-    const SolveInfo info = run_solve(*session_, rhs, x, "solve");
+    const SolveInfo info = dense_active_ ? detail::run_dense_solve(*dense_, rhs, x, "solve")
+                                         : run_solve(*session_, rhs, x, "solve");
     ++counters_.solve_count;
     return info;
 }
 
 SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecRef x) const {
     require_solvable("solve_partial");
+    if (dense_active_) {
+        throw std::logic_error("SymmetricFactor::solve_partial: the current factorization is the "
+                               "dense arm's, which has no partial solves (check "
+                               "supports_partial_solve() first)");
+    }
 
     const detail::SubfactorPhase backend_phase = accelerate_phase_of(phase);
 
@@ -671,7 +910,7 @@ SolveInfo SymmetricFactor::solve_partial(SolvePhase phase, ConstVecRef rhs, VecR
     }
 
     Vec rhs_buffer = rhs;
-    session_->solve_partial(backend_phase, rhs_buffer.data(), x.data());
+    backend_call([&] { session_->solve_partial(backend_phase, rhs_buffer.data(), x.data()); });
     ++counters_.partial_solve_count;
 
     return SolveInfo{}; // no refinement count to report on this backend
@@ -691,24 +930,57 @@ InertiaEvidence SymmetricFactor::inertia() const {
     if (!has_usable_numerics()) {
         return InertiaEvidence{};
     }
-    return evidence_of(*session_);
+    return dense_active_ ? detail::dense_evidence_of(*dense_) : evidence_of(*session_);
 }
 
 const SymmetricFactor::Counters &SymmetricFactor::counters() const { return counters_; }
 
 std::shared_ptr<const Factorization> SymmetricFactor::share() {
     require_solvable("share");
-    return std::make_shared<const Factorization>(Factorization::PrivateTag{}, session_,
-                                                 pattern_hash_, session_->epoch());
+    if (dense_active_) {
+        return std::make_shared<const Factorization>(Factorization::PrivateTag{}, dense_,
+                                                     pattern_hash_, dense_->epoch());
+    }
+    return std::make_shared<const Factorization>(
+        Factorization::PrivateTag{}, session_, pattern_hash_, session_->epoch(),
+        opts_.dense_factorization, opts_.max_dense_dimension, opts_.dense_singular_policy);
 }
 
-std::uint64_t SymmetricFactor::epoch() const { return session_ ? session_->epoch() : 0; }
+// The session that took the most recent successful factorization (or, before
+// one, the session the last analyze() or adopt() created or took).
+std::uint64_t SymmetricFactor::epoch() const {
+    if (dense_active_) {
+        return dense_->epoch();
+    }
+    return session_ ? session_->epoch() : 0;
+}
 
-std::uint64_t SymmetricFactor::session_id() const { return session_ ? session_->session_id() : 0; }
+std::uint64_t SymmetricFactor::session_id() const {
+    if (dense_active_) {
+        return dense_->session_id();
+    }
+    return session_ ? session_->session_id() : 0;
+}
 
 SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> handle) {
     if (!handle) {
         throw std::invalid_argument("SymmetricFactor::adopt: handle must not be null");
+    }
+
+    if (handle->dense_) {
+        // The dense session stores the Options it was analyzed under (threads
+        // as moved since), so the adopter is configured exactly like it.
+        const std::shared_ptr<detail::DenseSession> &dense = handle->dense_;
+        SymmetricFactor adopted(dense->options());
+        adopted.dense_ = dense;
+        adopted.dense_active_ = true;
+        adopted.pattern_hash_ = handle->pattern_hash_;
+        adopted.has_pattern_ = true;
+        if (handle->session_id() != dense->session_id() || handle->epoch() != dense->epoch()) {
+            adopted.numerics_refused_ = true;
+            adopted.refused_epoch_ = handle->epoch();
+        }
+        return adopted;
     }
 
     const std::shared_ptr<detail::FactorSession> &session = handle->session_;
@@ -718,12 +990,18 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
     // configuration that session was built with rather than imposing a new
     // one on a factorization that has already been computed.
     Options opts;
-    opts.kind = FactorKind::kLDLT;
-    opts.num_threads = cfg.num_threads;
-    opts.pivot_perturb_exp = cfg.pivot_perturb_exp;
-    opts.max_refinement_iters = cfg.max_refinement_iters;
+    opts.decomposition = Decomposition::kLdlt;
+    opts.threads = cfg.num_threads;
+    opts.pivot_perturbation_exponent = cfg.pivot_perturb_exp;
+    opts.max_refinement_steps = cfg.max_refinement_iters;
     opts.ordering = accelerate_ordering_of(cfg.ordering);
-    opts.accelerate_zero_tolerance = cfg.zero_tolerance_override;
+    opts.accelerate_zero_tol = cfg.zero_tolerance_override;
+
+    // Not in the session's configuration: carried on the handle (a
+    // dense-selected pattern's fallback session, or a sparse-selected one).
+    opts.dense_factorization = handle->dense_factorization_;
+    opts.max_dense_dimension = handle->max_dense_dimension_;
+    opts.dense_singular_policy = handle->dense_singular_policy_;
 
     SymmetricFactor adopted(opts);
     adopted.session_ = session;
@@ -749,48 +1027,85 @@ SymmetricFactor SymmetricFactor::adopt(std::shared_ptr<const Factorization> hand
 }
 
 bool SymmetricFactor::has_usable_numerics() const {
+    if (dense_active_) {
+        return dense_->has_numerics() && !numerics_refused_;
+    }
     return session_ && session_->has_numerics() && !numerics_refused_;
 }
 
 void SymmetricFactor::require_solvable(const char *what) const {
-    if (!session_ || !session_->has_numerics()) {
-        throw std::runtime_error(
+    const bool has_numerics =
+        dense_active_ ? dense_->has_numerics() : (session_ && session_->has_numerics());
+    if (!has_numerics) {
+        throw std::logic_error(
             fmt::format("SymmetricFactor::{}: called before a successful factorize()", what));
     }
     if (numerics_refused_) {
-        throw std::runtime_error(fmt::format(
+        throw std::logic_error(fmt::format(
             "SymmetricFactor::{}: this engine adopted a factorization emitted at epoch {}, but the "
             "shared session has since been refactorized (it is at epoch {}) -- those numerics are "
             "stale and numeric reuse is refused; call factorize() to produce this engine's own",
-            what, refused_epoch_, session_->epoch()));
+            what, refused_epoch_, epoch()));
     }
 }
 
 // Factorization
 
 Factorization::Factorization(PrivateTag, std::shared_ptr<detail::FactorSession> session,
+                             std::uint64_t pattern_hash, std::uint64_t epoch,
+                             DensePolicy dense_factorization,
+                             std::optional<Index> max_dense_dimension,
+                             DenseSingularPolicy dense_singular_policy)
+    : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch),
+      dense_factorization_(dense_factorization), max_dense_dimension_(max_dense_dimension),
+      dense_singular_policy_(dense_singular_policy) {}
+
+Factorization::Factorization(PrivateTag, std::shared_ptr<detail::DenseSession> dense,
                              std::uint64_t pattern_hash, std::uint64_t epoch)
-    : session_(std::move(session)), pattern_hash_(pattern_hash), epoch_(epoch) {}
+    : dense_(std::move(dense)), pattern_hash_(pattern_hash), epoch_(epoch) {}
 
 Factorization::~Factorization() = default;
 
+// A dense session a co-owner's exactly singular attempt overwrote has no
+// numerics until the next dense success: refused like a failed factorize().
+namespace {
+void require_dense_numerics(const detail::DenseSession &dense) {
+    if (!dense.has_numerics()) {
+        throw hven::BackendError("Factorization::solve: the shared dense session no longer holds "
+                                 "a usable factorization (a co-owner's factorize() found the "
+                                 "matrix exactly singular, or failed)");
+    }
+}
+} // namespace
+
 SolveInfo Factorization::solve(ConstMatRef RHS, MatRef X) const {
+    if (dense_) {
+        require_dense_numerics(*dense_);
+        return detail::run_dense_solve(*dense_, RHS, X, "solve");
+    }
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, RHS, X, "solve");
 }
 
 SolveInfo Factorization::solve_single(ConstVecRef rhs, VecRef x) const {
+    if (dense_) {
+        require_dense_numerics(*dense_);
+        return detail::run_dense_solve(*dense_, rhs, x, "solve");
+    }
     if (!session_->has_numerics()) {
-        throw std::runtime_error("Factorization::solve: the shared session no longer holds a "
+        throw hven::BackendError("Factorization::solve: the shared session no longer holds a "
                                  "usable factorization (a co-owner's factorize() failed)");
     }
     return run_solve(*session_, rhs, x, "solve");
 }
 
 InertiaEvidence Factorization::inertia() const {
+    if (dense_) {
+        return dense_->has_numerics() ? detail::dense_evidence_of(*dense_) : InertiaEvidence{};
+    }
     if (!session_->has_numerics()) {
         return InertiaEvidence{};
     }
@@ -803,7 +1118,9 @@ std::uint64_t Factorization::pattern_hash() const { return pattern_hash_; }
 // never rebinds and a session's id never changes, so there is nothing here
 // that could go out of step with the session, and no second copy to keep in
 // step. Contrast epoch_, which is a SNAPSHOT of a value that does move.
-std::uint64_t Factorization::session_id() const { return session_->session_id(); }
+std::uint64_t Factorization::session_id() const {
+    return dense_ ? dense_->session_id() : session_->session_id();
+}
 
 std::uint64_t Factorization::epoch() const { return epoch_; }
 

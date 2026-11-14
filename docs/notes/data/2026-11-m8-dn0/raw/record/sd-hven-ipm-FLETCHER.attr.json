@@ -1,0 +1,110 @@
+{
+ "samples": 2392,
+ "period": 1000003,
+ "instr_sampled_all": 2392007176,
+ "instr_sampled_solver": 2387007161,
+ "bucket_instr": {
+  "B_sym": 1000003,
+  "B_fac": 3000009,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 2383007149,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.00041893590280687055,
+  "B_fac": 0.0012568077084206116,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9983242563887725,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0020903010033444815,
+ "rule_instr": 2392007176,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9966555183946488,
+ "init_instr": 2382007146,
+ "steady_state_instr": 5000015,
+ "steady_state_share": {
+  "B_sym": 0.2,
+  "B_fac": 0.6,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.2,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3000009
+  ]
+ ],
+ "mkl_serv_instr": 2383007149,
+ "kmp_instr": 3000009,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [
+   [
+    "mkl_serv_set_xerbla_interface",
+    1000003
+   ]
+  ],
+  "B_fac": [
+   [
+    "_strncpy_s_chk",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    1000003
+   ],
+   [
+    "___kmp_allocate@plt",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    1528004584
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    666001998
+   ],
+   [
+    "__vdso_time",
+    97000291
+   ],
+   [
+    "difftime@plt",
+    82000246
+   ],
+   [
+    "time@plt",
+    9000027
+   ],
+   [
+    "std::pair<std::_Rb_tree_iterator<std::pair<int, int> >, bool> std::_Rb_tree<std::pair<int, int>, std::pair<int, int>, std::_Identity<std::pair<int, int> >, std::less<std::pair<int, int> >, std::allocator<std::pair<int, int> > >::_M_insert_unique<std::pair<int, int> const&>",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    3000009
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2000006
+   ]
+  ]
+ }
+}

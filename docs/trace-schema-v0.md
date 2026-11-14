@@ -1,6 +1,6 @@
 # hven machine-trace schema v0
 
-The JSON-lines event stream `hven::solvers::JsonLinesTraceSink` writes
+The JSON-lines event stream `hven::JsonLinesTraceSink` writes
 (`include/hven/drivers/trace_writer.h`, `src/drivers/trace_writer.cpp`). **This
 document is the schema.** M7's heuristics and M8's human trace read it, and
 `docs/notes/2026-08-m6-w1-ipqp-spec.md` §7's block is superseded by reference.
@@ -24,7 +24,7 @@ The first four keys are always these, in this order:
 | `v` | integer | schema version. **0** for the whole of M6. |
 | `ev` | string | the event name, from §3's table. |
 | `seq` | integer | **per SINK**, not per solve: a monotone counter starting at 1, so a reader can prove it saw every line. Two solves on one sink share one numbering. |
-| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; every restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. One restoration entry runs ONE sub-solve, or TWO under the phase's curvature switch (`SqpOptions::restoration_curvature`; `restoration_curvature_switches`): two depth-1 `sqp.solve` pairs back to back, the second's `iteration` restarting at 0. A solve may run several entries (`SqpOptions::restoration_max_entries`). |
+| `depth` | integer | the number of ENCLOSING `sqp.solve` brackets. 0 at the top level; every restoration sub-solve's lines — its own `sqp.solve` pair included — read 1. One restoration entry runs ONE sub-solve, or TWO under the phase's curvature switch (`SqpOptions::restoration_curvature`; `restoration_curvature_switches`): two depth-1 `sqp.solve` pairs back to back, the second's `iteration` restarting at 0. A solve may run several entries (`SqpOptions::max_restoration_entries`). |
 
 `seq` and `depth` are **sink-owned**: no event struct carries either. `depth`
 moves on `sqp.solve` begin/end only; the `ipm.solve` pair does **not** move it
@@ -123,7 +123,8 @@ nesting stuck open.
 | `vars_ranged` | integer | both finite and NOT equal |
 | `vars_fixed` | integer | both finite and equal (a zero-width box) |
 | `qp_mode` | string `ipqp\|walk\|ssn` | the SETTING, not an outcome |
-| `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.ws_algebra` |
+| `ws_algebra` | string `refactorize\|schur_border` | `SqpOptions::qp.working_set_algebra` |
+| `absent_bounds` | integer | **M8 B7.** finite declared bound values the solve's `CommonOptions::infinite_bound` read as ABSENT (`b >= infinite_bound` is +inf, `b <= -infinite_bound` is -inf): variable sides (once per side of the box as laid, however many declarations named it), plus an Nlp problem's row sides -- on every route, a pre-laid program or a bridge counting its model's values too (B7 riders). The census above is taken AFTER the threshold, so a variable declared `[-1e20, 1e20]` counts in `vars_free` at the default threshold. 0 under `infinite_bound = kInfinity` |
 
 **The five-way census is over VARIABLES, exhaustive and disjoint**: the five
 counts sum to `n`. There is **no row-kind census** on this contract and none is
@@ -135,7 +136,7 @@ derived here. That census is REGISTERED for M7's model-contract work.
 
 | key | type | meaning |
 |---|---|---|
-| `status` | string `optimal\|max_iter\|infeasible\|numerical_error\|budget_exhausted` | `SqpStatus` |
+| `status` | string `optimal\|max_iter\|infeasible\|numerical_error` | `SqpStatus` |
 | `majors` | integer | `SqpCounters::major_iters` |
 | `counters` | object | the whole of `SqpCounters`, §5 |
 | `scaling_active` | bool | **M6 W5 T8.7.** `SqpResult::Scaling::active` — did the scaling layer run |
@@ -246,7 +247,7 @@ reader joining on `seq` must expect it.
 
 **THE OUTCOME MAP, per kernel** — three kernels report three different objects:
 
-* `walk` — `QpStatus::kOptimal` is `optimal`; kMaxIter, kInfeasible and
+* `walk` — `QpStatus::kOptimal` is `optimal`; kIterationLimit, kInfeasible and
   kNumericalError are all `escaped`. The walk has no successor kernel, so
   nothing it exits with is a route.
 * `ssn` — a usable, certified exit is `optimal`; every other exit (engine escape
@@ -401,6 +402,7 @@ counters without also filtering on `entered_rung_a`.
 | `kkt_dim` | integer | **M6 W5 T8.7.** the assembled KKT system's dimension (`IpmSolver::kkt_dim_`). This is the PRINTED copy §4.17's join-key `kkt_dim` points at |
 | `kkt_nnz` | integer | **M6 W5 T8.7.** nonzeros in the assembled KKT matrix. **Mind the spelling**: `ipm.kkt_analysis`'s nonzero key is `nnz`, not `kkt_nnz` (§4.17) |
 | `internal_fixed_rows` | integer | **M6 W5 T8.7.** the INTERNAL equality rows the MakeConstraint fixed-variable treatment has installed (`NonLinearProgram::internal_fixed_constraints()`) — one per fixed variable, at the tail of the equality row space; the "(d declared + f fixing)" split in `me` above. Zero under every other treatment and whenever nothing is fixed. **NOT `vars_fixed`**, which is the DECLARED BOX's census and equals this count only under MakeConstraint |
+| `absent_bounds` | integer | **M8 B7.** the same count, same rule, as `sqp.solve.begin`'s `absent_bounds`: finite declared bound values the solve's `CommonOptions::infinite_bound` read as absent, variable sides plus an Nlp problem's row sides; the census keys above are taken after it |
 
 **THE LAST EIGHT KEYS ARE TRAILING, AND WERE ADDED IN ONE STEP (M6 W5 T8.7)**,
 so this event's golden line moves ONCE. They are what the console's Problem
@@ -417,7 +419,7 @@ re-derivation comment at `:3598`).
 ### 4.13 `ipm.solve.end`
 
 `status` (`SolveStatus`, spelled as in §4.2 —
-`optimal\|acceptable\|max_iter\|infeasible\|stalled\|diverging\|numerical_error\|budget_exhausted\|interrupted`;
+`optimal\|acceptable\|max_iter\|infeasible\|stalled\|diverging\|numerical_error\|interrupted`;
 the old `ConvergenceFlags` vocabulary this paragraph named until M6 W5 T8.7b
 went with that enum at T8.4), `iters` (integer, `IpmResult::iterations` summed
 over the phases), then the driver's FULL timing set: `total_time_s`, `pre_time_s`,
@@ -428,8 +430,8 @@ for the whole.
 
 ### 4.14 `ipm.iter`
 
-`IterateInfo`'s own fields in declaration order with the trailing underscores
-dropped, plus one trailing key.
+`IpmIterate`'s own fields in declaration order, each under its own name,
+plus one trailing key.
 
 `iter`, `mu`, `prim_obj`, `barr_obj`, `kkt_inf`, `barr_inf`, `econ_inf`,
 `icon_inf`, `pen_par1`, `pen_par2`, `ls_iters`, `alpha_p`, `alpha_d`, `alpha_t`,
@@ -439,9 +441,9 @@ dropped, plus one trailing key.
 
 `h_facs` is **inertia-ladder STEPS, not factorizations** — the count of
 perturbation steps that iteration's factorization took, 0 when it needed none.
-(`IterateInfo` carries no doc comment for it; this is its first definition.)
+(`IpmIterate` carries no doc comment for it; this is its first definition.)
 
-`phase` is additive (M6 W4 T4) and is the IPM's own `major`: `IterateInfo::iter_`
+`phase` is additive (M6 W4 T4) and is the IPM's own `major`: `IpmIterate::iter`
 restarts at 0 in every phase, so on a multi-phase entry point it is not a key on
 its own.
 
@@ -459,7 +461,7 @@ them loses the distinction:
 
 `p_pivots` deserves its own sentence. The solver's own bookkeeping projects an
 absent backend count to the integer 0 (`.value_or(0)`); the stream must not
-repeat that fabrication, so `IterateInfo::p_pivots_observed_` is the predicate
+repeat that fabrication, so `IpmIterate::p_pivots_observed` is the predicate
 and it carries no key of its own.
 
 **BOTH LATE-CALLBACK SITES EMIT**, immediately before the callback, so the late
@@ -543,7 +545,7 @@ give one analysis's size for another's.
 | `status` | string (`SolveStatus`, §4.2's spellings) | the embedded report's RESOLVED verdict |
 | `iterations` | integer | the embedded report's own count |
 | `phase_seconds` | double | the embedded report's; WALL-CLOCK, informational |
-| `stop_reason` | string `none\|iteration_cap\|restoration_locally_infeasible\|stage_stalled\|interrupted` | the embedded report's |
+| `stop_reason` | string `none\|callback_stop\|stop_requested\|stage_stalled\|restoration_locally_infeasible\|non_finite_start\|non_finite_iterate\|evaluation_failure\|exception` (the interior-point subset of `StopReason`) | the embedded report's; `exception` never reaches a line (an exception leaves the phase before its exit event). M8 AP-5 G1 (declared): one `StopReason` vocabulary for both engines -- `iteration_cap`, `work_limit` and `time_limit` became `none` (the `status` names them) and `interrupted` became `callback_stop`; `stop_requested` is new |
 | `ran` | bool | the embedded report's; always `true` on a line that exists |
 
 **`last_kkt_info` IS PER PHASE.** `alg_impl` resets `IpmResult::last_kkt_info`
@@ -566,9 +568,9 @@ this line's row need not be the previous one: under `return_best` the selected
 row is an EARLIER row of the phase, and even for the terminal row an
 `ipm.message` can sit between the two. A reader joins on the pair.
 
-**NO `selected_iter` KEY.** The phase loop stamps each row's `iter_` with the
+**NO `selected_iter` KEY.** The phase loop stamps each row's `iter` with the
 loop counter and pushes exactly one row per iteration, so a row's INDEX in the
-phase's history and its `iter_` are the same number; the key existed on the
+phase's history and its `iter` are the same number; the key existed on the
 record T8.7b first shipped and was dropped at T8.7b fix1, before the record left
 the branch (the lane's M4).
 
@@ -606,6 +608,8 @@ two.
 | `interrupt_at_iteration` | `iter` = the row the callback stopped on |
 | `phase_diverged` | none |
 | `interrupt_skipping_phases` | none |
+| `stop_requested_at_iteration` | `iter` = the row a `SolveBudget::stop` token's request was honoured on (M8 AP-5 G1) |
+| `stop_requested_skipping_phases` | none; a token stop ending the phase sequence (M8 AP-5 G1) |
 
 **SEVERAL PER ITERATION ARE NORMAL.** `rank_deficiency` and
 `factorization_hard_error` are raised at THREE ladder sites inside one
@@ -705,7 +709,7 @@ golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `qp_maxiter_exits` | integer | `SqpCounters::qp_maxiter_exits` | subproblem exits with `QpStatus::kMaxIter` — the subproblem spent its whole minor budget. A BUDGET fact, not a numerical one, and the only place the distinction survives into the result: the driver reports it as `SolveStatus::kNumericalError` like any other subproblem failure. Counted where the driver ACTS on the exit (the routing site), so an attempt `SqpOptions::qp_cap_retry` rescued is not here but in `qp_cap_retries`; the two sum to the capped subproblem exits that REACHED THE ROUTING SITE, which is not every capped subproblem the solve ran — a capped SOC re-solve or a capped elastic rung never reaches that site and is in neither field |
+| `qp_maxiter_exits` | integer | `SqpCounters::qp_maxiter_exits` | subproblem exits with `QpStatus::kIterationLimit` — the subproblem spent its whole minor budget. A BUDGET fact, not a numerical one, and the only place the distinction survives into the result: the driver reports it as `SolveStatus::kNumericalError` like any other subproblem failure. Counted where the driver ACTS on the exit (the routing site), so an attempt `SqpOptions::qp_cap_retry` rescued is not here but in `qp_cap_retries`; the two sum to the capped subproblem exits that REACHED THE ROUTING SITE, which is not every capped subproblem the solve ran — a capped SOC re-solve or a capped elastic rung never reaches that site and is in neither field |
 | `qp_numerical_exits` | integer | `SqpCounters::qp_numerical_exits` | subproblem exits with `QpStatus::kNumericalError` — the subproblem's own linear algebra failed. The complement of the field above at the same site. `QpStatus::kInfeasible` is in NEITHER: the elastic tier consumes it one block earlier |
 | `qp_failures_routed` | integer | `SqpCounters::qp_failures_routed` | subproblem failures the driver ROUTED — shrank the radius, reseeded from the failed solve's own working set and continued — rather than ending the solve on. A SUBSET of `rejected_steps`, which is incremented at the same site and keeps its meaning |
 | `qp_failures_in_a_row_peak` | integer | `SqpCounters::qp_failures_in_a_row_peak` | the longest run of CONSECUTIVE routed failures the solve reached, folded with `max`. bounded by `SqpOptions::qp_failure_budget` by construction, so 0-3 at the shipped budget of 3 and 0 or 1 at a budget of 1 (the engine before M7 W2 M1). It counts ADMITTED failures, so the one that ENDS the solve is not in it |
@@ -724,7 +728,7 @@ FIRST `double`s IN THE DIRECT BLOCK.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the entry rule -- `SqpOptions::restoration_max_entries` and its progress guard -- and no budget) and the non-finite exit move nothing |
+| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the entry rule -- `SqpOptions::max_restoration_entries` and its progress guard -- and no budget) and the non-finite exit move nothing |
 | `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
 | `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED. Not the resume test's reading since M7 W2 SNR (that is `restoration_feas_out`, the inf-norm); as an l1 sum it bounds the rows' inf-norm from above, so `restoration_h_out <= feas_tol` on an in-box point implies the entry resumed, not conversely |
 | `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
@@ -748,7 +752,7 @@ ENUM.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_feas_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
+| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_feas_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other three `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`) exist in the alphabet so the map into it is total, and have never been observed here |
 
 It is **last in its group**, appended after
 `restoration_f_out` for that group's own reason — so the counters object gained
@@ -796,8 +800,7 @@ such a line is now `"not_run"`. **This is the only byte that moves**: the key's
 name, position and type (string) are unchanged, every other key is untouched,
 and on a solve that DID restore the spelling is what it always was. Both golden
 lines in `tests/sqp/test_trace_writer.cpp` were re-derived: the all-distinct one
-is UNCHANGED (its `assign_distinct` picks `budget_exhausted`, a non-default value
-under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
+is UNCHANGED (its `assign_distinct` picks a non-default value under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
 one key. Section 8's additive-key rule governs the original append; this
 correction is a VALUE change on one key of one line, declared here.
 
@@ -862,17 +865,25 @@ group; `SqpOptions::hessian_mode`).
 | `qn_skipped_conditioning` | integer | `SqpCounters::qn_skipped_conditioning` | pairs skipped: conditioning after damping. Folded |
 | `qn_rank_dropped` | integer | `SqpCounters::qn_rank_dropped` | pairs evicted early by the rank test. Folded |
 | `qn_resets_consecutive_skips` | integer | `SqpCounters::qn_resets_consecutive_skips` | window resets after consecutive non-zero-step skips. Folded |
-| `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `tr_min`. Folded |
+| `qn_resets_radius_floor` | integer | `SqpCounters::qn_resets_radius_floor` | window resets at a shrink below `trust_region_min`. Folded |
 | `qn_resets_restoration_resume` | integer | `SqpCounters::qn_resets_restoration_resume` | window resets at a restoration resume. Folded |
 | `qn_pairs_peak` | integer | `SqpCounters::qn_pairs_peak` | most pairs the model held: under the shipped default (carried dimension at most `SqpOptions::qn_full_memory_max`, 400) the carrier is full-memory dense BFGS with no window and this is the pair count since the last reset; above it, the L-BFGS window's depth. Max-folded |
 | `qn_lift_rank_peak` | integer | `SqpCounters::qn_lift_rank_peak` | widest mixed lift (`r+ + r-`) any subproblem carried. Max-folded |
 | `qn_kwrong_seen` | integer | `SqpCounters::qn_kwrong_seen` | lifted subproblem solves whose engine reported a wrong-inertia reading (a bug flag under a PD B). Folded |
 | `qn_nonpd_seen` | integer | `SqpCounters::qn_nonpd_seen` | lifts built while the quasi-Newton model did not read positive definite (a bug flag). Folded |
-| `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpOptions::qn_nonlinear_only` (default off). Max-folded |
+| `qn_dimension` | integer | `SqpCounters::qn_dimension` | variables the quasi-Newton model carries curvature for: the structural count, or the nonlinear variables only under `SqpAdvancedOptions::lbfgs_nonlinear_only` (default off). Max-folded |
 | `nonfinite_step_rollbacks` | integer | `SqpCounters::nonfinite_step_rollbacks` | accepted steps rejected after the fact (M7 W2 R2-1): the first major after a commit found the committed point's gradient, `H`, `A` or `g` non-finite, restored the previous iterate (its evaluation and prices) and the funnel width, and shrank the radius the step was taken under; that major's row describes the abandoned point, `qp_solved` false. A rolled-back step stays in `steps_accepted`. Not taken across the radius floor, in the full-step mode, or at a point no commit reached -- those end through `nonfinite_subproblems` as before. Folded from the restoration sub-solve |
-| `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_feas_out <= feas_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
-| `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feas_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
+| `restoration_feas_out` | number | `SqpCounters::restoration_feas_out` | the inf-norm violation, rows and box, at the point the last restoration entry RETURNED (M7 W2 SNR): the convergence test's own feasibility measure and the exact value the resume test compares against `CommonOptions::feasibility_tol`. So `restoration_feas_out <= feasibility_tol` iff that entry resumed -- unless an entry counted in `restoration_reduction_resumes` resumed above it. Same overwrite rule and units as `restoration_h_out`; not folded |
+| `scaled_convergence_refusals` | integer | `SqpCounters::scaled_convergence_refusals` | measured iterates at which the convergence test passed in the engine's SCALED units and was refused by the caller-unit feasibility guard (M7 W2 SCL): each row residual over its row factor, each box violation times its column factor, against `feasibility_tol`. 0 on a solve that ran unscaled; not folded (the restoration sub-solve runs unscaled) |
 | `restoration_curvature_switches` | integer | `SqpCounters::restoration_curvature_switches` | restoration sub-solves on the exact model stopped for the phase's curvature switch (M7 W2 RST, `SqpOptions::restoration_curvature = kModelThenRegularized`, the default): at their first failed walk subproblem, or at an exhausted elastic tier's nested restoration request. Counted at the stop; the phase then restarts there on the regularized model unless its budget is spent or the model is not finite there. At most one per restoration entry; 0 under `kModel`, `kRegularized` and `kLbfgsDamped`. Folded from the restoration sub-solve |
+| `dense_platform_retakes` | integer | `SqpCounters::dense_platform_retakes` | dense-arm factorizations (walk, SSN, IPQP tiers) the platform session retook as the dense singular response's LAST RESORT: flagged, then still flagged after the equilibrated shift and its one 256x retry (M8 DN-1d; M8 DN-1c's condition fallback before it). 0 under `DensePolicy::kNever`. Folded like `factorizations`. Follows `inertia_suspect_verdicts` and `inertia_wrong_verdicts` (M8 DN-1) |
+| `dense_flagged_factorizations` | integer | `SqpCounters::dense_flagged_factorizations` | dense-arm factorizations `DenseSingularPolicy::kReport`'s detector flagged (rook D-ratio below 1e-15 and `dsycon_rook` rcond below 2^-53, or exactly singular), unshifted factorizations only (M8 DN-1d). 0 under `DensePolicy::kNever`. Folded like `factorizations` |
+| `dense_singular_refactors` | integer | `SqpCounters::dense_singular_refactors` | equilibrated-shift dense refactors the response ran (M8 DN-1d): one per flagged site factorization, two when the first stays flagged. 0 under `DensePolicy::kNever`. Folded like `factorizations` |
+| `dense_shifted_solve_refusals` | integer | `SqpCounters::dense_shifted_solve_refusals` | answers from a dense shifted factor refused because their equilibrated relative residual against K, ‖D(rhs − K y)‖∞/‖D rhs‖∞, exceeded 1e-8 or was NaN at gate time (M8 DN-1d): walk EQP solves (eliminated, and bordered through a shifted K0 against the unshifted bordered system) and SSN Newton steps. 0 under `DensePolicy::kNever`. Folded like `eqp_residual_refusals` |
+| `dense_shifted_k0_fallbacks` | integer | `SqpCounters::dense_shifted_k0_fallbacks` | border-mode walk passes whose bordered answer through a K0 holding dense shifted numerics was refused by the rho gate and the pass served by the eliminated path (M8 DN-1d r2); each is also in `dense_shifted_solve_refusals`. 0 under `DensePolicy::kNever`. Folded like `dense_shifted_solve_refusals` from the walk's solutions |
+| `dense_shifted_terminations` | integer | `SqpCounters::dense_shifted_terminations` | walk subproblems that ended `kNumericalError` because the pass's answer came from a dense shifted factor, was refused by the rho gate, and the suspect-escalation ladder was exhausted (M8 DN-1d r3); the refusal is also in `dense_shifted_solve_refusals`. 0 under `DensePolicy::kNever`. Folded like `dense_shifted_k0_fallbacks` |
+| `dense_solve_residual_refusals` | integer | `SqpCounters::dense_solve_residual_refusals` | step solves through UNSHIFTED dense numerics refused by the dense solve check (M8 DN-3a; name provisional): ρ = ‖K y − rhs‖∞/‖rhs‖∞ still above the consumer's threshold after refinement (refinement runs above 1e-8), or NaN. SSN Newton steps (threshold 1e-8; answered by the proximal ladder) and IPQP step solves on the factored, Ruiz-scaled system (threshold 1e-5; affine and corrector answered by the inertia ladder's perturbed-pivot remedy, the μ-estimate by its fallback). 0 under `DensePolicy::kNever`. Folded like `dense_shifted_solve_refusals` |
+| `dense_factorizations` | integer | `SqpCounters::dense_factorizations` | factorizations on the dense arm (M8 DN-3): `SymmetricFactor`'s `dense_factorize_count + dense_singular_count` deltas (taken, or reported exactly singular; shifted refactors included) over the walk's, the SSN's and the IPQP tiers' KKT factors and the rank repair's Gram factor. 0 under `DensePolicy::kNever`; under `kAuto`, 0 when every analyzed pattern was above the SQP's threshold (105). Folded like `dense_flagged_factorizations` |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -913,6 +924,31 @@ layer's five values only, and the column layer's factors are reported on
 table row above). LAST in the struct, after `scaled_convergence_refusals`, same route:
 one key before the `ssn` object, the nested tables' distinct values up by one, no
 sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M7 W2 RST" note.
+
+**THE DIRECT COUNTER M8 DN-1c APPENDED — ONE** (`dense_platform_retakes`, the table
+row above), after M8 DN-1's `inertia_suspect_verdicts` and `inertia_wrong_verdicts`,
+same route: one key before the `ssn` object, the nested tables' distinct values up by
+one, no sentinel, both golden lines re-derived ONCE with a "RE-DERIVED AT M8 DN-1c" note.
+
+**THE DIRECT COUNTERS M8 DN-1d APPENDED — TWO** (`dense_flagged_factorizations`,
+`dense_singular_refactors`, the table rows above), after `dense_platform_retakes`, whose
+meaning moved to the response's last-resort retake; same route: two keys before the `ssn`
+object, the nested tables' distinct values up by two, no sentinel, both golden lines
+re-derived ONCE with a "RE-DERIVED AT M8 DN-1d" note. Then ONE more,
+`dense_shifted_solve_refusals`, after `dense_singular_refactors`, the same route (the
+golden lines' DN-1d notes extended). Then ONE more, `dense_shifted_k0_fallbacks`, after
+`dense_shifted_solve_refusals`, the same route. Then ONE more, `dense_shifted_terminations`,
+after `dense_shifted_k0_fallbacks`, the same route.
+
+**THE DIRECT COUNTER M8 DN-3a APPENDED — ONE** (`dense_solve_residual_refusals`, the table
+row above), after `dense_shifted_terminations`, the same route: one key before the `ssn`
+object, the nested tables' distinct values up by one, no sentinel, both golden lines
+re-derived ONCE with a "RE-DERIVED AT M8 DN-3a" note.
+
+**THE DIRECT COUNTER M8 DN-3 APPENDED — ONE** (`dense_factorizations`, the table row
+above), after `dense_solve_residual_refusals`, the same route: one key before the `ssn`
+object, the nested tables' distinct values up by one, no sentinel, both golden lines
+re-derived ONCE with a "RE-DERIVED AT M8 DN-3" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -1020,10 +1056,10 @@ non-additive is v1.
 | `fallback.verdict` | W4 T1 | — |
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)**; **M7 W2 M1** (`site` gains the value `cap_retry` — a new ENUMERATOR on an existing key, not a new key: no line's SHAPE moves, and the two `qp.mode` golden lines are untouched because neither writes that value) |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
-| `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
+| `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry); **M8 B7** (`absent_bounds`, one declared additive trailing key — `GoldenLineSqpSolveBegin`) |
 | `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other; **M7 W2 M2** (the five-field restoration excursion record, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other; **M7 W2 A2** (`ipqp_mu0_derived`, `ipqp_mu0_fallbacks`, `ipqp_mu_floor_binds`, appended LAST in the nested `ipqp` object — declared additive trailing keys), which moves those same two golden lines ONCE, by three keys, and no other; and **M7 W2 A3** (`ipqp_ladder_zero_trial_skips`, appended LAST in the nested `ipqp` object — a declared additive trailing key), which moves those same two golden lines ONCE, by one key, and no other |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
-| `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
+| `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`); **M8 B7** (`absent_bounds`, one declared additive trailing key, same golden line) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |
 | `ipm.restoration_exit_row` | **W5 T8.7** | added T8.7; **its §4 entry and this row are T8.7b's** — the document did not follow the writer at T8.7 and does now |
 | `ipm.phase.begin` | **W5 T8.7b** | added T8.7b |

@@ -22,7 +22,7 @@
 // per cell. Wall is recorded and is INFORMATIONAL ONLY -- never a margin,
 // never a claim.
 //
-// Both engines reach the cell through the ONE declared NlpTripletModel -- the
+// Both engines reach the cell through the ONE declared Nlp -- the
 // interior-point engine via make_nlp_program's transcription, the SQP engine via
 // NlpProblemModel -- so both key the same DeclarationKey and an export stages
 // across with no conversion and no re-stamp. The corpus's cells are NlpModels
@@ -61,32 +61,37 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/nlp_model_assembly.h>
+#include <hven/detail/model/nlp_problem_model.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/sqp_warm_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_assembly.h>
-#include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_triplet_model.h>
+#include <hven/model/nlp.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "corpus_cells.h"
 
-namespace hven::solvers::crossover {
+using namespace hven::detail;
+
+namespace hven::crossover {
 
 using hven::Index;
 using hven::Vec;
-using hven::solvers::corpus::CorpusCell;
-using hven::solvers::corpus::StartTaxonomy;
+using hven::corpus::CorpusCell;
+using hven::corpus::StartTaxonomy;
 
 // =============================================================================
-// ModelAsNlpProblem — an NlpModel, stated the way NlpTripletModel states a problem
+// ModelAsNlpProblem — an NlpModel, stated the way Nlp states a problem
 // =============================================================================
 
-/// @brief One NlpModel declared as an NlpTripletModel, so that both engines can be
+/// @brief One NlpModel declared as an Nlp, so that both engines can be
 ///        bound to it.
 ///
 /// ROW LAYOUT. The declared rows are the equalities first, in the model's own
@@ -96,26 +101,30 @@ using hven::solvers::corpus::StartTaxonomy;
 ///   row me + j     in [0, mi)        gl = -inf, gu = 0  -> cI_j(x) <= 0
 ///
 /// Reading the declaration back through NlpProblemModel reproduces the ORIGINAL
-/// model's cE and cI, in the original order, with no sign flip, so NlpTripletModel's
+/// model's cE and cI, in the original order, with no sign flip, so Nlp's
 /// lambda over [cE; cI] splits into the model's (lambda_e, lambda_i) by a
 /// head/tail cut and nothing else.
 ///
-/// STRUCTURE. NlpTripletModel queries the two sparsity patterns once and they must
+/// STRUCTURE. Nlp queries the two sparsity patterns once and they must
 /// not move afterwards, but an NlpModel decides its pattern per point. The
 /// declared structure is therefore the UNION of the patterns at two points: the
 /// model's own start point, and the point make_nlp_program's transcription evaluates
 /// at (the origin projected onto the declared box). Every later evaluation is
 /// merged into the declared slots, and a nonzero arriving at a slot the union
 /// did not declare is REFUSED by name: a model whose pattern depends on the
-/// iterate cannot be stated as an NlpTripletModel.
+/// iterate cannot be stated as an Nlp.
 ///
 /// HESSIAN TRIANGLE. NlpModel returns the UPPER triangle (row <= col);
-/// NlpTripletModel declares the LOWER one (row >= col). Same symmetric matrix, so
+/// Nlp declares the LOWER one (row >= col). Same symmetric matrix, so
 /// the conversion is an index transpose on the declared structure and nothing
 /// at all on the values.
-class ModelAsNlpProblem final : public NlpTripletModel {
+class ModelAsNlpProblem final : public Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
   public:
-    /// @brief Declares @p model as an NlpTripletModel.
+    /// @brief Declares @p model as an Nlp.
     /// @param model The model to state; retained.
     /// @param name  Diagnostic name, reported by name().
     /// @throws std::invalid_argument if @p model is null.
@@ -130,14 +139,13 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         build_structures();
     }
 
-    int num_vars() const override { return static_cast<int>(n_); }
-    int num_cons() const override { return static_cast<int>(me_ + mi_); }
-    int num_jac_nonzeros() const override { return static_cast<int>(jac_pattern_.nonZeros()); }
-    int num_hess_nonzeros() const override { return static_cast<int>(hess_pattern_.nonZeros()); }
+    int num_vars() const { return static_cast<int>(n_); }
+    int num_cons() const { return static_cast<int>(me_ + mi_); }
+    int num_jac_nonzeros() const { return static_cast<int>(jac_pattern_.nonZeros()); }
+    int num_hess_nonzeros() const { return static_cast<int>(hess_pattern_.nonZeros()); }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> x_lower, Eigen::Ref<Eigen::VectorXd> x_upper,
-                Eigen::Ref<Eigen::VectorXd> g_lower,
-                Eigen::Ref<Eigen::VectorXd> g_upper) const override {
+    void bounds(hven::VecRef x_lower, hven::VecRef x_upper, hven::VecRef g_lower,
+                hven::VecRef g_upper) const override {
         x_lower = model_->lower();
         x_upper = model_->upper();
         // Equalities at zero; inequalities upper-bounded at zero, free below.
@@ -147,12 +155,13 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         g_upper.tail(mi_).setZero();
     }
 
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = model_->eval_f(x);
+        return f;
     }
 
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> grad) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef grad) const override {
         // The destination is an Eigen::Ref, which the in-place form cannot take;
         // the local is the same one temporary the by-value call already made.
         Vec g;
@@ -160,7 +169,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         grad = g;
     }
 
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         if (me_ > 0) {
             Vec ce;
             model_->eval_ce_in_place(x, ce);
@@ -173,27 +182,23 @@ class ModelAsNlpProblem final : public NlpTripletModel {
         }
     }
 
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> rows,
-                       Eigen::Ref<Eigen::VectorXi> cols) const override {
-        rows = jac_rows_;
-        cols = jac_cols_;
+    void jacobian_structure(hven::IndexVecRef rows, hven::IndexVecRef cols) const override {
+        rows = jac_rows_.cast<hven::Index>();
+        cols = jac_cols_.cast<hven::Index>();
     }
 
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> rows,
-                        Eigen::Ref<Eigen::VectorXi> cols) const override {
-        rows = hess_rows_;
-        cols = hess_cols_;
+    void hessian_structure(hven::IndexVecRef rows, hven::IndexVecRef cols) const override {
+        rows = hess_rows_.cast<hven::Index>();
+        cols = hess_cols_.cast<hven::Index>();
     }
 
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> vals) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef vals) const override {
         const SpRM stacked = stacked_jacobian(x);
         merge_into_slots(jac_pattern_, stacked, "Jacobian", vals);
     }
 
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> vals) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef vals) const override {
         // g = [cE; cI], so lambda splits into the model's pair by a head/tail cut.
         const Vec lambda_e = me_ > 0 ? Vec(lambda.head(me_)) : Vec(0);
         const Vec lambda_i = mi_ > 0 ? Vec(lambda.tail(mi_)) : Vec(0);
@@ -269,7 +274,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
     // slot's value in declared order. A stored entry of `values` that the
     // pattern never declared is a MOVING PATTERN and is refused by name.
     static void merge_into_slots(const SpRM &pattern, const SpRM &values, const char *what,
-                                 Eigen::Ref<Eigen::VectorXd> out) {
+                                 hven::VecRef out) {
         // The tandem walk below reads outerIndexPtr/innerIndexPtr/valuePtr
         // directly, so compressed storage is a precondition. The engine's own
         // route enforces NlpModel's contract at nlp_require_claimed_pattern;
@@ -305,7 +310,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
                         "(row {}, col {}) is not in the structure declared at setup. The "
                         "declared structure is the union of the patterns at the model's start "
                         "point and at the projected origin; a model whose pattern depends on "
-                        "the iterate cannot be stated as an NlpTripletModel, whose structures are "
+                        "the iterate cannot be stated as an Nlp, whose structures are "
                         "queried once and must not change.",
                         what, r, v_inner[vk]));
                 }
@@ -351,7 +356,7 @@ class ModelAsNlpProblem final : public NlpTripletModel {
             for (Index r = 0; r < hess_pattern_.outerSize(); ++r) {
                 for (SpRM::InnerIterator it(hess_pattern_, r); it; ++it, ++slot) {
                     // Upper (row, col) declared as lower (col, row): same
-                    // symmetric entry, the triangle NlpTripletModel asks for.
+                    // symmetric entry, the triangle Nlp asks for.
                     hess_rows_(slot) = static_cast<int>(it.col());
                     hess_cols_(slot) = static_cast<int>(it.row());
                 }
@@ -415,7 +420,7 @@ struct IpmLegRow {
     /// False until this leg actually finished; a leg that never ran reports
     /// `absent`, never a default value -- see margins_row.
     bool ran = false;
-    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
+    hven::SolveStatus flag = hven::SolveStatus::kIterationLimit;
     int iters = -1;
     Index analyses = -1;
     Index factorizations = -1;
@@ -469,7 +474,7 @@ struct LegOptions {
     /// Interior-point iteration cap per phase.
     int ipm_max_iters = 200;
     /// Interior-point console verbosity; 3 and above is silent.
-    int ipm_print_level = 10;
+    hven::Verbosity ipm_verbosity = hven::Verbosity::kSilent;
 };
 
 namespace detail {
@@ -507,14 +512,14 @@ inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
     row.ip_activity_inferred = sol.counters.ip_activity_inferred;
     row.seeded_clamped = sol.counters.seeded_clamped;
     row.f = sol.f;
-    row.kkt_residual = sol.kkt_residual;
+    row.kkt_residual = sol.convergence.kkt_residual;
     // The engine's OWN measurements, renamed in M6 W5 T8.4 when the result
     // base grew shared ones of the first and last names with a different
     // definition (declared space, caller units). This artifact's columns are
     // the engine's, so they follow the sqp_* names.
-    row.stationarity = sol.sqp_stationarity;
-    row.feasibility = sol.sqp_feasibility;
-    row.complementarity = sol.sqp_complementarity;
+    row.stationarity = sol.convergence.stationarity;
+    row.feasibility = sol.convergence.feasibility;
+    row.complementarity = sol.convergence.complementarity;
     row.wall_s = wall_s;
     return row;
 }
@@ -533,17 +538,18 @@ inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
 /// four-argument entry used to be REFUSED beside a staged value, which is what
 /// kept legs (c) and (d) off it; with staging gone every leg could take a
 /// budget, and none does, because all three must be bounded by the SAME thing
-/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iter
+/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iterations
 /// caps, which corpus_cells.h's options_for_cell sets, with the runner's wall
 /// deadline as the outer guard. Budgeting one leg and not the others would
 /// make the margins incomparable.
 inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
-                             const SqpOptions &opts, const WarmStartData *payload) {
+                             const SqpOptions &opts, const WarmStart *payload) {
     NlpModelAssembly bridge(model);
     SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpResult sol =
-        payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
+    const SqpResult sol = payload != nullptr
+                              ? driver.solve(hven::detail::problem_ref(bridge), x0, *payload)
+                              : driver.solve(hven::detail::problem_ref(bridge), x0);
     return record_sqp(sol, seconds_since(t0));
 }
 
@@ -597,33 +603,32 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     legs.mi = model->mi();
 
     // --- leg (a): the interior-point baseline, and the exporter ---
-    WarmStartData exported;
+    WarmStart exported;
     {
         // THE ENGINE, CONSTRUCTED DIRECTLY (M6 W5 T8.9): the transcription is
         // the one-call make_nlp_program, the phase sequence is a field, and the
         // program is an argument of the solve. The TIMED WINDOW is unchanged --
         // it brackets the solve only, and the transcription runs above `t0`.
-        const auto ipm_program = hven::solvers::make_nlp_program(declared);
-        hven::solvers::IpmSolver ipm;
-        hven::solvers::IpmOptions ipm_opts = ipm.options();
-        ipm_opts.common.print_level = opts.ipm_print_level;
-        ipm_opts.max_iters = opts.ipm_max_iters;
-        ipm_opts.kkt_tol = corpus::detail::kKktTol;
-        ipm_opts.econ_tol = corpus::detail::kFeasTol;
-        ipm_opts.icon_tol = corpus::detail::kFeasTol;
-        ipm_opts.bar_tol = corpus::detail::kKktTol;
+        const auto ipm_program = hven::detail::make_nlp_program(declared);
+        hven::IpmSolver ipm;
+        hven::IpmOptions ipm_opts = ipm.options();
+        ipm_opts.common.verbosity = opts.ipm_verbosity;
+        ipm_opts.common.max_iterations = opts.ipm_max_iters;
+        ipm_opts.common.optimality_tol = corpus::detail::kKktTol;
+        ipm_opts.common.feasibility_tol = corpus::detail::kFeasTol;
+        ipm_opts.termination.complementarity_tol = corpus::detail::kKktTol;
         ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
-        const hven::solvers::IpmResult result = ipm.solve(*ipm_program, x0);
+        const hven::IpmResult result = ipm.solve(hven::detail::problem_ref(*ipm_program), x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
         legs.a.flag = result.status;
         legs.a.iters = result.iterations;
         legs.a.f = result.f;
-        legs.a.kkt_inf = result.kkt_inf;
-        legs.a.econ_inf = result.econ_inf;
-        legs.a.icon_inf = result.icon_inf;
-        legs.a.barr_inf = result.barr_inf;
+        legs.a.kkt_inf = result.convergence.kkt;
+        legs.a.econ_inf = result.convergence.equality;
+        legs.a.icon_inf = result.convergence.inequality;
+        legs.a.barr_inf = result.convergence.barrier;
         legs.a.analyses = result.kkt_analyses_total;
         legs.a.factorizations = result.kkt_factor_counters.factorize_count;
         legs.a.solves = result.kkt_factor_counters.solve_count;
@@ -635,8 +640,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // disengaged one leaves `exported` default-constructed, which the two
         // warm legs then hand over and which is refused for its stamp -- loud,
         // where the old shape would have thrown at the export instead.
-        const std::optional<WarmStartData> snapshot = result.export_warm_start();
-        exported = snapshot.value_or(WarmStartData{});
+        exported = result.warm_start;
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
         legs.a.ran = true;
     }
@@ -658,8 +662,8 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     // (a)'s export with the producer's extensions cleared, which is the R3
     // shape. Runs after (d) -- see the execution-order note above.
     {
-        WarmStartData core = exported;
-        core.extensions_.clear();
+        WarmStart core = exported;
+        hven::detail::WarmStartAccess::extensions(core).clear();
         legs.c = detail::run_sqp_leg(model, x0, sqp_opts, &core);
     }
     emit(LegStage::kWarmCore);
@@ -727,9 +731,7 @@ inline std::string cell_prefix(const CorpusCell &cell) {
 /// nothing else. So `stop_reason` (the column T8.2 added) is what separates the
 /// stage-stall row from the locally-infeasible-restoration row, and it is
 /// LOAD-BEARING in this artifact rather than merely informative.
-inline const char *flag_string(hven::solvers::SolveStatus flag) {
-    return hven::solvers::to_string(flag);
-}
+inline const char *flag_string(hven::SolveStatus flag) { return hven::to_string(flag); }
 
 /// The token every column of this artifact uses for a value that was never
 /// measured. Never `0` and never a status: a status would claim an outcome the
@@ -740,7 +742,7 @@ inline constexpr const char *kAbsent = "absent";
 inline std::string leg_status(const SqpLegRow &row) {
     // The CAPITALISED vocabulary this artifact's baselines are pinned to; see
     // corpus::legacy_status_string (M6 W5 T8.4).
-    return row.ran ? std::string(hven::solvers::corpus::legacy_status_string(row.status))
+    return row.ran ? std::string(hven::corpus::legacy_status_string(row.status))
                    : std::string(kAbsent);
 }
 
@@ -782,4 +784,114 @@ inline std::string margins_row(const CellLegs &legs) {
                        legs.a.ran ? (legs.legs_cd_identical ? "1" : "0") : kAbsent);
 }
 
-} // namespace hven::solvers::crossover
+// =============================================================================
+// AP-2 B2 -- the Nlp routes of the corpus runner (corpus::detail::NlpRoute)
+// =============================================================================
+
+/// @brief One SQP corpus cell, stated as an Nlp, under the selected Nlp route.
+///
+/// The taxonomy protocol is run_cell_engine's, call for call: the same options,
+/// observers, parameter hops, warm-start values and budgets, and the same KKT
+/// check against the cell's own model. Only the problem the solver is handed
+/// differs: kNlpInternal hands it a FRESH NlpProblemModel over the Nlp for every
+/// solve (today's triplet route, rebuilt after each parameter hop as friction #23
+/// requires); kNlpPublic hands it ONE Problem(Nlp) for every solve of the cell.
+/// ModelAsNlpProblem keeps the model's row order and signs, so the native warm
+/// starts the protocol carries between solves fit both routes unchanged.
+/// @throws std::invalid_argument if the cell does not dual-bind.
+inline corpus::CorpusRow run_cell_engine_nlp(const CorpusCell &cell,
+                                             const corpus::detail::EngineConfig &cfg,
+                                             const corpus::detail::SetupCompleteFn &on_setup) {
+    using namespace corpus::detail;
+    using corpus::CorpusRow;
+    if (!cell_dual_binds(cell)) {
+        throw std::invalid_argument(
+            fmt::format("run_cell_engine_nlp: cell '{}' does not dual-bind: {}", cell.id,
+                        dual_bind_refusal(cell)));
+    }
+    const NlpRoute route = nlp_route();
+    const auto model = std::make_shared<test_support::F7CollocationChain>(make_model(cell));
+    const auto nlp = std::make_shared<ModelAsNlpProblem>(model, std::string(cell.id));
+    const SqpOptions opts = options_for_cell(cell, cfg);
+    std::optional<Problem> problem;
+    if (route == NlpRoute::kNlpPublic) {
+        problem.emplace(nlp);
+    }
+    const auto solve = [&](SqpSolver &driver, const Vec &x0,
+                           const hven::detail::SqpWarmState &warm = hven::detail::SqpWarmState{}) {
+        const SolveBudget budget{.max_minor_iterations = kMinorBudget};
+        // The native route, always (a cold state included): the handle is made
+        // in detail, the public type has no default.
+        const SqpWarmStart native = hven::detail::SqpWarmAccess::wrap(warm);
+        if (route == NlpRoute::kNlpPublic) {
+            return driver.solve(*problem, x0, native, budget);
+        }
+        NlpProblemModel fresh(nlp);
+        return driver.solve(hven::detail::problem_ref(fresh), x0, native, budget);
+    };
+
+    switch (cell.start) {
+    case StartTaxonomy::kNeutralCold: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const Vec x0 = model->start_point();
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, x0); }, cfg.score_model_surface);
+    }
+    case StartTaxonomy::kPhysicsInformed: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const Vec x0 = physics_informed_start(*model, cell.p);
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, x0); }, cfg.score_model_surface);
+    }
+    case StartTaxonomy::kCorrupted: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p0));
+        const SqpResult seed = solve(driver, model->start_point());
+        const hven::detail::SqpWarmState corrupted = corrupt_warm_start(SqpWarmStateOf(seed));
+        model->set_parameters(Vec::Constant(1, cell.p));
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, corrupted.x, corrupted); },
+            cfg.score_model_surface);
+    }
+    case StartTaxonomy::kActivityOnly: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p));
+        const double mu = crossover_mu_for_n(cell.n_nodes);
+        const IpIterate it =
+            f7_ip_iterate(*model, cell.p, mu, physics_informed_start(*model, cell.p));
+        const hven::detail::SqpWarmState crossover =
+            from_interior_point(it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper,
+                                model->lower(), model->upper(), IpmCrossoverOptions{});
+        return timed_row(
+            cell, *model, on_setup, [&] { return solve(driver, crossover.x, crossover); },
+            cfg.score_model_surface);
+    }
+    case StartTaxonomy::kFullWarm: {
+        SqpSolver driver(opts);
+        attach_observers(driver, cfg);
+        model->set_parameters(Vec::Constant(1, cell.p0));
+        const SqpResult seed = solve(driver, model->start_point());
+        model->set_parameters(Vec::Constant(1, cell.p));
+        return timed_row(
+            cell, *model, on_setup,
+            [&] { return solve(driver, SqpWarmStateOf(seed).x, SqpWarmStateOf(seed)); },
+            cfg.score_model_surface);
+    }
+    }
+    throw std::invalid_argument(fmt::format(
+        "run_cell_engine_nlp: cell '{}' carries an unrecognised StartTaxonomy", cell.id));
+}
+
+/// @brief Selects @p route for this process and installs the Nlp routes' runner.
+inline void install_nlp_route(corpus::detail::NlpRoute route) {
+    corpus::detail::nlp_route() = route;
+    corpus::detail::nlp_route_runner() = &run_cell_engine_nlp;
+}
+
+} // namespace hven::crossover

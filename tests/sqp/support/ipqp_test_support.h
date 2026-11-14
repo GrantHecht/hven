@@ -15,14 +15,16 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::test_support {
+using namespace hven::detail;
+
+namespace hven::test_support {
 
 /// Asserts the five-way escape census sums to `ipqp_escapes` (plan section 7
 /// note b: escape-COUNT only -- the dropped stall-reason sub-counters play no
@@ -228,12 +230,12 @@ inline IpqpResult w2_escaped(const QpProblem &qp,
                              double radius = std::numeric_limits<double>::infinity(),
                              TraceSink *sink = nullptr) {
     QpOptions qopts;
-    qopts.tr_radius = radius;
+    qopts.trust_region_radius = radius;
     IpqpEngine tier(qopts);
     if (sink != nullptr) {
         tier.attach_trace(sink);
     }
-    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    return tier.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

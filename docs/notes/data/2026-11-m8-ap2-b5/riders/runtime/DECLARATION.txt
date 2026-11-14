@@ -1,0 +1,40 @@
+M8 AP-2 group B5, settler riders -- runtime neutrality gate -- DECLARATION
+(B5's instrument, ../../runtime/, re-derived for the riders; committed before the first leg; never
+edited)
+================================================================================
+SOURCE. ../../runtime/DECLARATION.txt (B5's, itself the B4 riders' verbatim but for arms and paths),
+taken VERBATIM except for the arms, the paths and this group's name. run_all.sh and runtime_leg.sh are
+B5's with only the comment's group name, the evidence directory (.../2026-11-m8-ap2-b5/riders/runtime),
+the frozen-binary directories (armAbin/armBbin -> armAr/armBr), the perf scratch directory
+(runtime-perf -> runtime-perf-r) and arm A's sha256 replaced. analyze_r5.py is the B4 RIDERS' analyzer
+byte-for-byte (sha256 dff20c561faf54a8...; ../../../2026-11-m8-ap2-b4/riders/runtime/analyze_r5.py): it
+is B5's analyzer (9f298a1c...) plus the one-line repository-root fix for a riders/runtime directory,
+which is six levels below the repository root, as this one is -- the path depth is checked, not
+carried. The fixture is copied byte-for-byte from ../../runtime/fixture/.
+
+ARMS
+  A  the B5 code head 2142af0a: B5's frozen arm-B binary (../../runtime/DECLARATION.txt, stamp
+     2142af0afcaf), copied from build-b5/armBbin to build-b5/armAr/hven_sqp_corpus, sha256
+     0b9fc7ded01e16281003347d5b9a705903a0701bf91ca64ea4f4d78461ac0961 (checked at the copy).
+  B  the riders code head f45ca070: build-b5/rel/bench/hven_sqp_corpus (re-configured at the head,
+     stamp f45ca070552b) copied by run_all.sh to build-b5/armBr/, sha256
+     34984713d1183945d38cb5f7c0144985be6bc2f73bac8808cb1fa4ed930544da (given on run_all.sh's command
+     line). run_all.sh refuses to start on a mismatch for either arm.
+  NOTE. Both arms are built from this worktree's path (B5's arm B was build-b5/rel too);
+     instructions:u do not depend on it.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; filter, rounds (3, A->B, B->A, A->B),
+core 2, band 0.995 <= B/A <= 1.005 per mode, THROTTLE == 0, filter liveness in interior mode, counter
+identity as the STOP condition: exactly as the source declaration. (The riders' behavioural changes
+engage only on fault paths; no measured row takes one, so counter identity is expected on every pair.)
+WHAT THE RIDERS ADD TO THE MEASURED PATHS, for the reader of the ratios: per interior-point iteration
+one bool store (cap_reset_pending) in place of a double store; per accepted generic-path trial the
+strategy's save before register_accepted_step (a double for the funnel, a copy-assignment of the filter
+into a reused member for the filter, two doubles for the merit) and two bool stores; per solve the
+initial evaluation's screen and one gradient copy, and one fewer copy of the result (last_result() is no
+longer written on a returned solve). The measured modes run the shipped defaults.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer
+after data.
+PROTOCOL: `flock /tmp/box-build.lock bash run_all.sh <arm B sha256>`, serial, alone; `pgrep -a
+hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it. Hardware/toolchain: AMD
+Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL; Apple/Windows
+UNOBSERVED.

@@ -43,19 +43,19 @@
 
 #include <gtest/gtest.h>
 
+#include "hven/detail/model/nlp_model.h"
+#include "hven/detail/model/nlp_model_assembly.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_assembly.h"
 
 #include "../../bench/model_surface_kkt.h"
 
 using hven::Index;
+using hven::model_surface_kkt_residuals;
+using hven::ModelSurfaceKktResiduals;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::model_surface_kkt_residuals;
-using hven::solvers::ModelSurfaceKktResiduals;
-using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAssembly;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
 
 namespace {
 

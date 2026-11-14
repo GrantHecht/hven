@@ -26,9 +26,10 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/detail/model/absent_bound.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The quadratic program solved by the SQP inner loop (see the
 /// formulation and multiplier sign convention in the file header).
@@ -37,7 +38,26 @@ struct QpProblem {
     Vec g;                                               ///< n.
     Eigen::SparseMatrix<double, Eigen::RowMajor> Ae, Ai; ///< me x n, mi x n.
     Vec be, bi;                                          ///< me, mi.
-    Vec lower, upper;                                    ///< n (+/-inf allowed, e.g. +/-1e20).
+    Vec lower, upper;                                    ///< n (+/-inf allowed; see below).
+
+    /// THE QP TIER'S ONE ABSENT-BOUND CUTOFF, carried with the data (it replaces
+    /// the four engine constants kEngineInfBound, kIpqpInfBound, kSsnInfBound and
+    /// QpDegeneracyParams::inf_bound): `lower(i) <= -infinite_bound` and
+    /// `upper(i) >= infinite_bound` are ABSENT in every QP mode (walk, SSN, IPQP,
+    /// the degeneracy arm). A problem built by hand keeps the library's default
+    /// threshold, 1e20, as before. The SQP engine applies
+    /// CommonOptions::infinite_bound once, where a declaration enters its
+    /// transcription, so every subproblem it builds already writes an absent side
+    /// as an infinity, and it stamps this field +inf: a finite subproblem bound is
+    /// a real one, however large (a shifted or column-scaled real bound included).
+    /// Derived problems (the trust-region window, the elastic and mixed lifts)
+    /// copy it from their source.
+    double infinite_bound = detail::kDefaultInfiniteBound;
+
+    /// @brief Whether lower(i) is a bound (not absent under infinite_bound).
+    bool has_lower(Index i) const { return lower(i) > -infinite_bound; }
+    /// @brief Whether upper(i) is a bound (not absent under infinite_bound).
+    bool has_upper(Index i) const { return upper(i) < infinite_bound; }
 
     Index n() const { return g.size(); }
     Index me() const { return Ae.rows(); }
@@ -49,6 +69,11 @@ struct QpProblem {
     ///   below-diagonal entry in H.
     void validate() const {
         const Index nn = n();
+        if (!(infinite_bound > 0.0)) {
+            throw std::invalid_argument(fmt::format(
+                "QpProblem::validate: infinite_bound must be > 0 (+inf is legal), got {}",
+                infinite_bound));
+        }
         if (H.rows() != nn || H.cols() != nn) {
             throw std::invalid_argument(fmt::format(
                 "QpProblem::validate: H is {}x{}, expected {}x{}", H.rows(), H.cols(), nn, nn));
@@ -166,4 +191,4 @@ struct QpSolution {
     QpFarkasCertificate farkas;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

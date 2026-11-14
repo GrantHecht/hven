@@ -9,7 +9,7 @@
 // and gave the composition behind "attaching a console never displaces your
 // sink" a name of its own, `FanOutTraceSink`. Both are public, and the
 // header's own claim is that it needs nothing else: in particular NOT
-// `detail/interior/iterate_info.h`, the interior-point iteration record the
+// `drivers/ipm_iterate.h`, the interior-point iteration record the
 // row renderer reads, which arrives by reference through `drivers/trace.h`.
 // A consumer that includes only this header and constructs a console must
 // compile, and that is what this TU is.
@@ -29,14 +29,11 @@ int standalone_include_console_trace_sink() {
     // Nothing is emitted: every `on_*` needs an event struct, and the point of
     // this TU is the header's include closure, not the sink's behaviour (which
     // tests/drivers/test_console_sink.cpp pins byte for byte).
-    hven::solvers::ConsoleTraceSink console(
-        hven::solvers::ConsoleTraceSink::Format{/*wide=*/true, /*print_level=*/3}, stdout);
-    hven::solvers::FanOutTraceSink fan(nullptr, &console);
-    // The colour function the header declares beside them, on a value that is
-    // unambiguously inside the converged band.
-    const bool coloured = hven::solvers::ipm_residual_color(1e-12, 1e-6, 1e-2) != fmt::text_style();
+    hven::ConsoleTraceSink console(
+        hven::ConsoleTraceSink::Format{/*wide=*/true, hven::Verbosity::kSilent}, stdout);
+    hven::FanOutTraceSink fan(nullptr, &console);
     const bool composed = fan.second() == &console && fan.first() == nullptr &&
                           console.format().wide && console.sqp_depth() == 0;
-    return (coloured && composed) ? 1 : 0;
+    return composed ? 1 : 0;
 }
 } // namespace hven_install_smoke

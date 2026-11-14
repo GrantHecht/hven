@@ -1,0 +1,136 @@
+{
+ "samples": 5104,
+ "period": 1000003,
+ "instr_sampled_all": 5125855312,
+ "instr_sampled_solver": 5113813276,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 4007012,
+  "B_kkt": 0,
+  "B_eval": 1007003,
+  "B_setup": 5107792258,
+  "B_eng": 1007003,
+  "B_proc": 12042036
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0007835663493631244,
+  "B_kkt": 0.0,
+  "B_eval": 0.00019691821848991578,
+  "B_setup": 0.9988225972136571,
+  "B_eng": 0.00019691821848991578
+ },
+ "proc_share_of_all": 0.002349273490379004,
+ "rule_instr": 5124848309,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1007003,
+ "unmatched_share_of_solver": 0.00019691821848991578,
+ "chains_reaching_main": 0.9954937304075235,
+ "init_instr": 5107792258,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.6655040725671306,
+  "B_kkt": 0.0,
+  "B_eval": 0.16724796371643466,
+  "B_setup": 0.0,
+  "B_eng": 0.16724796371643466
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   4007012
+  ]
+ ],
+ "mkl_serv_instr": 5107792258,
+ "kmp_instr": 4007012,
+ "top_unmatched_leaf": [
+  [
+   "__memset_avx2_unaligned_erms",
+   1007003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    2007006
+   ],
+   [
+    "__kmp_stg_print_omp_tool",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "hven::detail::nlp_require_claimed_pattern",
+    1007003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3220946621
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1426996263
+   ],
+   [
+    "__vdso_time",
+    227924681
+   ],
+   [
+    "difftime@plt",
+    214847642
+   ],
+   [
+    "time@plt",
+    17077051
+   ]
+  ],
+  "B_eng": [
+   [
+    "__memset_avx2_unaligned_erms",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4007012
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2014006
+   ],
+   [
+    "strcmp",
+    2007006
+   ],
+   [
+    "void fmt::v12::detail::parse_format_string<char, fmt::v12::detail::format_handler<char> >",
+    1007003
+   ],
+   [
+    "main",
+    1007003
+   ],
+   [
+    "_ZN3fmt3v126detail5writeIcNS0_14basic_appenderIcEEdTnNSt9enable_ifIXsr13is_fast_floatIT1_EE5valueEiE4typeELi0EEET0_S9_S6_",
+    1000003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ]
+ }
+}

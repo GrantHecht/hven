@@ -89,10 +89,10 @@ namespace {
 
 using hven::Index;
 using hven::Vec;
-using hven::solvers::snopt_bridge::SnoptF7Driver;
-using hven::solvers::snopt_bridge::SnoptOptions;
-using hven::solvers::snopt_bridge::SnoptResult;
-using hven::solvers::test_support::F7CollocationChain;
+using hven::snopt_bridge::SnoptF7Driver;
+using hven::snopt_bridge::SnoptOptions;
+using hven::snopt_bridge::SnoptResult;
+using hven::test_support::F7CollocationChain;
 
 // The brief's gate instance: N = 30 nodes, p = 0.85. n = 5N = 150 variables,
 // me = 3N = 90 equality rows, mi = N = 30 path rows. p = 0.85 > R/2 = 0.5 puts

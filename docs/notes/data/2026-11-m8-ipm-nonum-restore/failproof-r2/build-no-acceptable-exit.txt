@@ -1,0 +1,86 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T04:22:08-05:00
+source /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-no-acceptable-exit
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit'
+[1/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/CMakeFiles/hven.dir/cmake_pch.hxx.cxx.o
+[2/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/version.cpp.o
+[3/67] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[4/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solve_status.cpp.o
+[5/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp.cpp.o
+[6/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+[7/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[8/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/ledger.cpp.o
+[9/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[10/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+[11/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/validation_errors.cpp.o
+[12/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+[13/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[14/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/dense_session.cpp.o
+[15/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/assembly_declaration.cpp.o
+[16/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_model_assembly.cpp.o
+[17/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_problem_model.cpp.o
+[18/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solve_result.cpp.o
+[19/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/color_text.cpp.o
+[20/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solver_init.cpp.o
+[21/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/get_core_count.cpp.o
+[22/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/callback_rows.cpp.o
+[23/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/thread_pool.cpp.o
+[24/67] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-no-acceptable-exit/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[25/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/result_message.cpp.o
+[26/67] Linking CXX static library lib/libgtest.a
+[27/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/memory_management.cpp.o
+[28/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/common_options.cpp.o
+[29/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_handle.cpp.o
+[30/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_options.cpp.o
+[31/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[32/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+[33/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_adapter.cpp.o
+[34/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/problem.cpp.o
+[35/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/problem_scaling.cpp.o
+[36/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[37/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[38/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/funnel.cpp.o
+[39/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/trace_writer.cpp.o
+[40/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_print.cpp.o
+[41/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_solver_handle.cpp.o
+[42/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/non_linear_program.cpp.o
+[43/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/console_trace_sink.cpp.o
+[44/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+[45/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/assembly_eval_seam.cpp.o
+[46/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/mixed_lift.cpp.o
+[47/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+[48/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/qn_models.cpp.o
+[49/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/warm_start.cpp.o
+[50/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/ipm_polish_extension.cpp.o
+[51/67] Linking CXX static library lib/libgtest_main.a
+[52/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/qn_lift_bridge.cpp.o
+[53/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/equality_basis.cpp.o
+[54/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ssn_engine.cpp.o
+[55/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/warm_start_data.cpp.o
+[56/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[57/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/lbfgs_damped.cpp.o
+[58/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_backend_error_seams.cpp.o
+[59/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/fp-r2-src-no-acceptable-exit/src/drivers/sqp_solver.cpp:6448:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6448 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[60/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[61/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/continuation.cpp.o
+[62/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+[63/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_ladder_seams.cpp.o
+[64/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_ipm_dense_guard_seams.cpp.o
+[65/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+[66/67] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[67/67] Linking CXX executable tests/hven_sqp_seam_tests
+rc=0
+FOREGROUND_END 2026-11-12T04:22:51-05:00

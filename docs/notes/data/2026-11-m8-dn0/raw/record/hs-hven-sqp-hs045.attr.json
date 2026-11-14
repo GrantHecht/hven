@@ -1,0 +1,234 @@
+{
+ "samples": 489,
+ "period": 1000003,
+ "instr_sampled_all": 552785467,
+ "instr_sampled_solver": 380234008,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 343047909,
+  "B_kkt": 10106027,
+  "B_eval": 0,
+  "B_setup": 3238009,
+  "B_eng": 23842063,
+  "B_proc": 172551459
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.9022020697317532,
+  "B_kkt": 0.026578440611235384,
+  "B_eval": 0.0,
+  "B_setup": 0.008515832176694726,
+  "B_eng": 0.0627036574803167
+ },
+ "proc_share_of_all": 0.31214905112547037,
+ "rule_instr": 534629419,
+ "fallback_instr": 11288030,
+ "fallback_by_bucket": {
+  "B_fac": 11288030
+ },
+ "unmatched_instr": 6868018,
+ "unmatched_share_of_solver": 0.018062608434540658,
+ "chains_reaching_main": 0.03680981595092025,
+ "init_instr": 0,
+ "steady_state_instr": 380234008,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.9022020697317532,
+  "B_kkt": 0.026578440611235384,
+  "B_eval": 0.0,
+  "B_setup": 0.008515832176694726,
+  "B_eng": 0.0627036574803167
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   319597846
+  ],
+  [
+   "<no hven::linear frame>",
+   11288030
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   6917018
+  ],
+  [
+   "hven::linear::{anon}::run_solve",
+   2161006
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::factorize_core",
+   2077006
+  ],
+  [
+   "hven::linear::SymmetricFactor::session_id",
+   1007003
+  ]
+ ],
+ "mkl_serv_instr": 24065066,
+ "kmp_instr": 228489603,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   3490009
+  ],
+  [
+   "MKL_Read_ThreadENV_Count_Cores",
+   1182003
+  ],
+  [
+   "hven::detail::NlpProblemModel::n",
+   1126003
+  ],
+  [
+   "_int_malloc",
+   1070003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_fork_call",
+    20331054
+   ],
+   [
+    "__kmp_serialized_parallel",
+    17981048
+   ],
+   [
+    "__strcmp_avx2",
+    15316042
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    14421039
+   ],
+   [
+    "mkl_pds_lp64_pardiso_c",
+    12771033
+   ],
+   [
+    "mkl_spblas_lp64_def_dcsr1nsunf__mvout_par",
+    10036027
+   ],
+   [
+    "__kmp_hardware_timestamp",
+    9582024
+   ],
+   [
+    "__kmp_invoke_microtask",
+    8959024
+   ]
+  ],
+  "B_kkt": [
+   [
+    "malloc",
+    3350009
+   ],
+   [
+    "hven::detail::SchurComplement::solve",
+    2280006
+   ],
+   [
+    "hven::detail::SchurComplement::needs_refactorization",
+    1168003
+   ],
+   [
+    "hven::detail::assemble_kkt_core",
+    1140003
+   ],
+   [
+    "cfree@GLIBC_2.2.5",
+    1140003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1028003
+   ]
+  ],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<int>",
+    1098003
+   ],
+   [
+    "_int_malloc",
+    1077003
+   ],
+   [
+    "hven_bench::hs::hs_numbers",
+    1063003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    3490009
+   ],
+   [
+    "void Eigen::internal::generic_product_impl<Eigen::SparseSelfAdjointView<Eigen::SparseMatrix<double, 1, int> const, 2u>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::internal::SparseSelfAdjointShape, Eigen::DenseShape, 7>::scaleAndAddTo<Eigen::Matrix<double, -1, 1, 0, -1, 1> >",
+    2399006
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    2133006
+   ],
+   [
+    "hven::detail::refine_bordered_solve_iterated",
+    2112006
+   ],
+   [
+    "hven::detail::QpEngine::border_inertia_verdict",
+    1266003
+   ],
+   [
+    "hven::detail::solve_bordered_eqp",
+    1238003
+   ],
+   [
+    "hven::detail::polish_bordered_unregularized",
+    1196003
+   ],
+   [
+    "MKL_Read_ThreadENV_Count_Cores",
+    1182003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    54111144
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    43375117
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    26864069
+   ],
+   [
+    "check_match",
+    11659030
+   ],
+   [
+    "strcmp",
+    5511015
+   ],
+   [
+    "mprotect",
+    2392006
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    2287006
+   ],
+   [
+    "__strlen_avx2",
+    2280006
+   ]
+  ]
+ }
+}

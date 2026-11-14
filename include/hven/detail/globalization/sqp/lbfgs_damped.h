@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 // Damped compact L-BFGS approximation B of the Lagrangian Hessian, in the SCALED space.
 // Math only: no driver hook, no QP-engine coupling (the lift adapter and the driver
@@ -178,4 +178,4 @@ class LbfgsDamped final : public QnModel {
     MixedLiftData lift_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

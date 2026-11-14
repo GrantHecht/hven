@@ -82,11 +82,11 @@
 #include <fmt/format.h>
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
 #include "scale_problems.h"
 
-namespace hven::solvers::test_support {
+namespace hven::test_support {
 
 /// @brief F7's collocation chain plus one scaled contradictory equality pair.
 ///
@@ -213,4 +213,4 @@ class F7InconsistentChain : public NlpModel {
     double offset_;
 };
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

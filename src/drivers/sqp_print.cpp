@@ -33,9 +33,11 @@
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/drivers/sqp_solver.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
 
-const char *to_string(PredictorOutcome outcome) {
+namespace hven {
+
+const char *detail::to_string(PredictorOutcome outcome) {
     switch (outcome) {
     case PredictorOutcome::kPredicted:
         return "Predicted";
@@ -49,9 +51,9 @@ const char *to_string(PredictorOutcome outcome) {
 
 const char *to_string(StepVerdict v) {
     switch (v) {
-    case StepVerdict::kAcceptF:
+    case StepVerdict::kAcceptObjectiveStep:
         return "AcceptF";
-    case StepVerdict::kAcceptH:
+    case StepVerdict::kAcceptFeasibilityStep:
         return "AcceptH";
     case StepVerdict::kReject:
         return "Reject";
@@ -125,10 +127,10 @@ std::string format_iteration_table(const SqpResult &sol) {
     }
     result += sqp_iteration_table_status_line(sol.status);
     result += sqp_iteration_table_start_level_line(sol.counters.start_level_used);
-    result +=
-        sqp_iteration_table_scaling_line(sol.scaling.active, sol.scaling.obj, sol.scaling.row_min,
-                                         sol.scaling.row_max, sol.scaling.scaled_kkt_residual);
+    result += sqp_iteration_table_scaling_line(sol.scaling.active, sol.scaling.objective,
+                                               sol.scaling.row_min, sol.scaling.row_max,
+                                               sol.scaling.scaled_kkt_residual);
     return result;
 }
 
-} // namespace hven::solvers
+} // namespace hven

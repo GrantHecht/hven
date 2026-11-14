@@ -68,12 +68,12 @@
 //       failed point) and still reach p1.
 //
 //   (i) BudgetExhaustionContinuesAtTheSameParameter. continuation.h's one
-//       open design decision made testable: with SqpOptions::budget_mode on,
+//       open design decision made testable: with SqpOptions::return_best_on_max_iterations on,
 //       an exhausted step is neither accepted nor rejected -- the sweep
 //       re-solves AT THE SAME p from the hand-off budgeted mode returns,
 //       rather than shrinking dp. The control arm is the identical driver
-//       budget with budget_mode off, where the same exhaustions arrive as
-//       kMaxIter and the retry moves the proposal back instead.
+//       budget with return_best_on_max_iterations off, where the same exhaustions arrive as
+//       kIterationLimit and the retry moves the proposal back instead.
 //
 //   (j)/(k) FIX ROUND 1, the two Medium findings, both pinned on SolvedStartF2
 //       -- a fixture with max_iter = 0 whose cold solve converges at zero
@@ -90,7 +90,7 @@
 //   ZeroLengthSweepIsJustTheColdSolve / ColdStepFollowsTheSameBudgetRule --
 //       fix round 1's two Minors: the p0 == p1 early return, and the cold step
 //       participating in the budget rule exactly as every later p does (with a
-//       budget_mode-off control, since the difference is otherwise invisible).
+//       return_best_on_max_iterations-off control, since the difference is otherwise invisible).
 //
 //   (g)/(h) The two T6 contracts stated in the brief: a p0/p1 dimension
 //       mismatch THROWS std::invalid_argument, and a run that cannot get
@@ -122,17 +122,17 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::F1BoxQp;
@@ -144,15 +144,15 @@ using test_support::F7CollocationChain;
 // must be converged far tighter than the agreement being asserted.
 SqpOptions sweep_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-10;
-    opts.feas_tol = 1e-10;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-10;
+    opts.common.feasibility_tol = 1e-10;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
 Vec p_vec(double p) { return Vec::Constant(1, p); }
 
-// SqpWarmStart::bound_active's encoding read off a point GEOMETRICALLY -- the
+// SqpWarmState::bound_active's encoding read off a point GEOMETRICALLY -- the
 // same helper tests/test_predictor.cpp uses, and the only notion of activity
 // that is determinate where a multiplier vanishes (F1's DEGENERACY note).
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
@@ -593,7 +593,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
     // proposal fails, dp shrinks, and the retry -- from the LAST GOOD warm, at
     // the last good p, not from the failed point -- gets through.
     SqpOptions tight = sweep_options();
-    tight.max_iter = 2;
+    tight.common.max_iterations = 2;
 
     F2CircleNlp model(0.0);
     SqpSolver driver(tight);
@@ -679,13 +679,13 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
 // ---------------------------------------------------------------------
 // (i) BUDGET EXHAUSTION IS A CONTINUE, NOT A SHRINK -- continuation.h's own
 //     design decision, and the one status the loop treats as neither success
-//     nor failure. Same starved driver as (f), with budget_mode ON, so the
-//     identical exhaustions arrive as kBudgetExhausted instead of kMaxIter.
+//     nor failure. Same starved driver as (f), with return_best_on_max_iterations ON, so the
+//     identical exhaustions arrive as best-iterate kIterationLimit (returned_best_iterate).
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions budgeted = sweep_options();
-    budgeted.max_iter = 2;
-    budgeted.budget_mode = true;
+    budgeted.common.max_iterations = 2;
+    budgeted.return_best_on_max_iterations = true;
 
     F2CircleNlp model(0.0);
     SqpSolver driver(budgeted);
@@ -703,7 +703,8 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     // hand-off, which is why no new prediction is made for it.
     Index exhausted = 0, continued = 0;
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
-        if (res.steps[i].status != SolveStatus::kBudgetExhausted) {
+        if (res.steps[i].status != SolveStatus::kIterationLimit ||
+            !res.steps[i].returned_best_iterate) {
             continue;
         }
         ++exhausted;
@@ -732,19 +733,19 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
                             << trajectory(res);
 
     // The control that makes the decision visible AS a decision: with
-    // budget_mode OFF the identical driver budget produces kMaxIter, an
+    // return_best_on_max_iterations OFF the identical driver budget produces kIterationLimit, an
     // ordinary failure, and the retry moves the proposal BACK -- so the two
     // arms take measurably different routes to p1.
     SqpOptions plain = budgeted;
-    plain.budget_mode = false;
+    plain.return_best_on_max_iterations = false;
     F2CircleNlp model_plain(0.0);
     SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
         run_continuation(model_plain, p_vec(0.0), p_vec(1.0), driver_plain, copts);
     ASSERT_TRUE(plain_res.reached_p1) << trajectory(plain_res);
     for (const ContinuationStep &st : plain_res.steps) {
-        EXPECT_NE(st.status, SolveStatus::kBudgetExhausted)
-            << "kBudgetExhausted must be unreachable with budget_mode off";
+        EXPECT_FALSE(st.returned_best_iterate)
+            << "a best-iterate exit must be unreachable with budget_mode off";
     }
     EXPECT_NE(res.steps.size(), plain_res.steps.size())
         << "the continue rule and the shrink rule produced the same trajectory, so nothing "
@@ -766,7 +767,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
 // ---------------------------------------------------------------------
 TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0; // every warm step fails at zero majors; see SolvedStartF2
+    starved.common.max_iterations = 0; // every warm step fails at zero majors; see SolvedStartF2
 
     SolvedStartF2 model(0.0);
     SqpSolver driver(starved);
@@ -823,7 +824,7 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     // level == kWarm. They used to report kCold, and the note here used to
     // explain why that was a property of the degenerate fixture rather than a
     // warm-ingest regression: a zero-budget solve builds no subproblem, so its
-    // SqpWarmStart::structure_hash stayed at the "never computed" sentinel and the
+    // SqpWarmState::structure_hash stayed at the "never computed" sentinel and the
     // next solve's ingest could not match it. sqp_solver.h's make_warm_start
     // now PROBES the model's structure on exactly that exit, so a solve that
     // spends no major still hands off a hash-valid object and the chain
@@ -844,14 +845,14 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
 //     becoming an infinite loop, and the review found its demotion branch dead
 //     in the suite: raising kBudgetContinuationsMax to 1000 left every test
 //     green. This fixture trips it deterministically -- with max_iter = 0 and
-//     budget_mode on, every warm attempt exhausts its budget at zero majors and
+//     return_best_on_max_iterations on, every warm attempt exhausts its budget at zero majors and
 //     the hand-off it returns is the point it started from, so continuing can
 //     never converge and the cap is the only thing that ends the chain.
 // ---------------------------------------------------------------------
 TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
-    starved.budget_mode = true;
+    starved.common.max_iterations = 0;
+    starved.return_best_on_max_iterations = true;
 
     SolvedStartF2 model(0.0);
     SqpSolver driver(starved);
@@ -872,7 +873,8 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     // change these run lengths.
     std::vector<std::pair<double, Index>> chains; // (p, consecutive attempts)
     for (std::size_t i = 1; i < res.steps.size(); ++i) {
-        EXPECT_EQ(res.steps[i].status, SolveStatus::kBudgetExhausted)
+        EXPECT_TRUE(res.steps[i].status == SolveStatus::kIterationLimit &&
+                    res.steps[i].returned_best_iterate)
             << "step " << i << " is not an exhaustion:\n"
             << trajectory(res);
         if (!chains.empty() && chains.back().first == res.steps[i].p(0)) {
@@ -987,11 +989,11 @@ TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
 // of failed attempts in `steps`; on a sweep whose p0 never converged -- the one
 // case where every recorded step is a failure -- both used to come back 0.
 TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
-    // (a) THE DIRECT FAILURE. max_iter = 0 with budget_mode off reports
-    // kMaxIter at p0, so the sweep records one step and returns.
+    // (a) THE DIRECT FAILURE. max_iter = 0 with return_best_on_max_iterations off reports
+    // kIterationLimit at p0, so the sweep records one step and returns.
     {
         SqpOptions starved = sweep_options();
-        starved.max_iter = 0;
+        starved.common.max_iterations = 0;
         F1BoxQp model(0.0);
         SqpSolver driver(starved);
 
@@ -1014,8 +1016,8 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     // counter; only the attempt the cap demotes counts, ONCE.
     {
         SqpOptions starved = sweep_options();
-        starved.max_iter = 0;
-        starved.budget_mode = true;
+        starved.common.max_iterations = 0;
+        starved.return_best_on_max_iterations = true;
         F2CircleNlp model(0.6);
         SqpSolver driver(starved);
 
@@ -1045,8 +1047,8 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
 // parameter value -- an exhaustion at p0 is a continue, not a fatal.
 TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
-    starved.budget_mode = true;
+    starved.common.max_iterations = 0;
+    starved.return_best_on_max_iterations = true;
 
     // start_point() is NOT the solution here (F2's own (0.5, 0.5) at p = 0.6),
     // so the cold solve at p0 cannot converge within a zero budget and exhausts
@@ -1067,25 +1069,26 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     for (const ContinuationStep &st : res.steps) {
         EXPECT_EQ(st.p(0), 0.6) << "a cold continuation moved p:\n" << trajectory(res);
         EXPECT_EQ(st.dp, 0.0);
-        EXPECT_EQ(st.status, SolveStatus::kBudgetExhausted) << trajectory(res);
+        EXPECT_EQ(st.status, SolveStatus::kIterationLimit) << trajectory(res);
+        EXPECT_TRUE(st.returned_best_iterate) << trajectory(res);
         EXPECT_FALSE(st.predictor_outcome.has_value()) << "nothing is predicted at p0";
     }
     EXPECT_EQ(res.predictor_calls, 0);
     EXPECT_TRUE(res.final_warm.valid) << "the last hand-off is still safe to feed forward";
 
-    // The CONTROL: the same starved driver with budget_mode OFF reports
-    // kMaxIter, which is an ordinary failure, and the sweep stops after one
+    // The CONTROL: the same starved driver with return_best_on_max_iterations OFF reports
+    // kIterationLimit, which is an ordinary failure, and the sweep stops after one
     // step -- so the four-step trajectory above is the budget rule and not
     // merely "a failing cold solve retries".
     SqpOptions plain = starved;
-    plain.budget_mode = false;
+    plain.return_best_on_max_iterations = false;
     F2CircleNlp model_plain(0.6);
     SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
         run_continuation(model_plain, p_vec(0.6), p_vec(1.0), driver_plain);
     EXPECT_FALSE(plain_res.reached_p1);
     EXPECT_EQ(plain_res.steps.size(), 1u) << trajectory(plain_res);
-    EXPECT_EQ(plain_res.steps.front().status, SolveStatus::kMaxIter);
+    EXPECT_EQ(plain_res.steps.front().status, SolveStatus::kIterationLimit);
 }
 
 // =============================================================================
@@ -1124,16 +1127,16 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // this fixture and the measured sweeps it stands in for are solved by
         // the same driver configuration.
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). This line is NEW and it
         // restores, EXPLICITLY, the QP minor cap that was the library default
         // when this fixture was built. It is not a workaround -- it is the
-        // escape hatch M6 was required to keep (qp_types.h's QpOptions::max_iter
+        // escape hatch M6 was required to keep (qp_types.h's QpOptions::max_iterations
         // precedence rule), used for exactly the case it exists for.
         //
         // WHY IT IS NEEDED, and it is a RESULT rather than a maintenance
@@ -1146,7 +1149,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // that new fact directly, at the shipped default; arms A-C keep
         // testing the PROBE BUDGET, which is what this test is about, on the
         // failure they were pinned against.
-        opts.qp.max_iter = 500;
+        opts.qp.max_iterations = 500;
         // THE SAME CORRECTION, ONE TASK LATER (M7 W2 M1). This line is NEW for
         // the same reason the one above is: the failure-routing gate's budget
         // was 1 when this fixture's numbers were pinned, and the CUTEst TRAIN
@@ -1157,7 +1160,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // "cap-pinned" number below and the M6-vs-OFF minor comparisons with
         // them. This fixture is about the PROBE BUDGET, not about the routing
         // gate, so it writes the gate out at the value it was pinned against.
-        opts.qp_failure_budget = 1;
+        opts.advanced.max_consecutive_qp_failures = 1;
         return opts;
     };
     const auto make_continuation_options = [](int probe_budget) {
@@ -1185,7 +1188,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     EXPECT_EQ(off.proposals_full_cost, 1) << trajectory(off);
     // OBSERVED VALUES (MKL Pardiso, clang++, Release AND Debug): the failed
     // proposal costs 3 majors / 1002 minors / 303 factorizations. 1002 is two
-    // full QP minor caps (QpOptions::max_iter = 500) plus two -- the shape
+    // full QP minor caps (QpOptions::max_iterations = 500) plus two -- the shape
     // section 4.5(b) calls "cap-pinned".
     EXPECT_EQ(off.steps[1].counters.major_iters, 3) << trajectory(off);
     EXPECT_EQ(off.steps[1].counters.qp_minor_iters, 1002) << trajectory(off);
@@ -1248,7 +1251,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     }
     EXPECT_EQ(on.proposals_abandoned, 1) << trajectory(on);
     EXPECT_EQ(on.proposals_full_cost, 0) << trajectory(on);
-    EXPECT_EQ(on.steps[1].status, SolveStatus::kMaxIter)
+    EXPECT_EQ(on.steps[1].status, SolveStatus::kWorkLimit)
         << "an abandoned proposal reports the ordinary stopped-at-an-iterate status\n"
         << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.probe_budget_stops, 1) << trajectory(on);
@@ -1273,23 +1276,23 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     EXPECT_EQ(on.steps[1].counters.qp_minor_iters, 502) << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.factorizations, 9) << trajectory(on);
 
-    // ---- ARM C: the same budget under SqpOptions::budget_mode -------------
+    // ---- ARM C: the same budget under SqpOptions::return_best_on_max_iterations -------------
     // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part
     // 4). Budgeted mode's own exhaustion status means "continue at the SAME
     // parameter value from this hand-off"; a probe-budget stop means the
-    // opposite. So a probe stop keeps the ordinary kMaxIter status even with
+    // opposite. So a probe stop keeps the ordinary kIterationLimit status even with
     // budgeted mode on, and this loop shrinks rather than continuing --
     // asserted here because the branch is otherwise unreachable in a suite
-    // whose every other continuation fixture runs with budget_mode off.
+    // whose every other continuation fixture runs with return_best_on_max_iterations off.
     SqpOptions budgeted = make_options();
-    budgeted.budget_mode = true;
+    budgeted.return_best_on_max_iterations = true;
     F7CollocationChain model_bm(100, 3, 2, 0.3, 1.0);
     SqpSolver driver_bm(budgeted);
     const ContinuationResult bm =
         run_continuation(model_bm, p_vec(0.3), p_vec(0.9), driver_bm, make_continuation_options(2));
     ASSERT_TRUE(bm.reached_p1) << trajectory(bm);
     EXPECT_EQ(bm.proposals_abandoned, 1) << trajectory(bm);
-    EXPECT_EQ(bm.steps[1].status, SolveStatus::kMaxIter)
+    EXPECT_EQ(bm.steps[1].status, SolveStatus::kWorkLimit)
         << "a probe-budget stop reported budgeted mode's own status, which would make the "
            "controller re-solve AT the proposal it meant to abandon:\n"
         << trajectory(bm);
@@ -1308,7 +1311,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // target for the cap formula: revert the coefficient or the sentinel and
     // this arm goes back to a kNumericalError at step 1.
     SqpOptions derived_cap = make_options();
-    derived_cap.qp.max_iter = 0; // the sentinel -- the shipped default
+    derived_cap.qp.max_iterations.reset(); // empty: derive from the size -- the shipped default
     F7CollocationChain model_m6(100, 3, 2, 0.3, 1.0);
     SqpSolver driver_m6(derived_cap);
     const ContinuationResult m6 =
@@ -1430,12 +1433,12 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
     const auto run = [](int probe_budget) {
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
         copts.dp_init = 0.2;
@@ -1492,12 +1495,12 @@ TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
 TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
     const auto run = [](bool suspend) {
         SqpOptions opts;
-        opts.kkt_tol = 1e-8;
-        opts.feas_tol = 1e-8;
-        opts.max_iter = 100;
-        opts.adaptive_mu = false;
+        opts.common.optimality_tol = 1e-8;
+        opts.common.feasibility_tol = 1e-8;
+        opts.common.max_iterations = 100;
+        opts.advanced.adaptive_dual_regularization = false;
         opts.common.start_level = StartLevel::kWarm;
-        opts.warm_full_step = true;
+        opts.advanced.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
         copts.dp_init = 0.4;
@@ -1563,7 +1566,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     // (cold) one fails. The contract is a RETURN with reached_p1 == false and
     // the failure recorded, never a throw.
     SqpOptions starved = sweep_options();
-    starved.max_iter = 0;
+    starved.common.max_iterations = 0;
 
     F1BoxQp model(0.0);
     SqpSolver driver(starved);
@@ -1581,7 +1584,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     // floor without a step ever getting through. dp_min is set just below
     // dp_init so exactly one shrink exhausts it.
     SqpOptions one_major = sweep_options();
-    one_major.max_iter = 1;
+    one_major.common.max_iterations = 1;
     F2CircleNlp model2(0.0);
     SqpSolver driver2(one_major);
     ContinuationOptions floored;
@@ -1597,4 +1600,4 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

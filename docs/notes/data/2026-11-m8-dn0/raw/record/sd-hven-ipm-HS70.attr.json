@@ -1,0 +1,155 @@
+{
+ "samples": 5052,
+ "period": 1000003,
+ "instr_sampled_all": 5073820156,
+ "instr_sampled_solver": 5063785126,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 5021015,
+  "B_kkt": 0,
+  "B_eval": 13042039,
+  "B_setup": 5044715069,
+  "B_eng": 1007003,
+  "B_proc": 10035030
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.000991553724153816,
+  "B_kkt": 0.0,
+  "B_eval": 0.002575551425560232,
+  "B_setup": 0.9962340311594019,
+  "B_eng": 0.00019886369088402745
+ },
+ "proc_share_of_all": 0.001977805616175253,
+ "rule_instr": 5073820156,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9944576405384006,
+ "init_instr": 5043715066,
+ "steady_state_instr": 20070060,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.2501743891149304,
+  "B_kkt": 0.0,
+  "B_eval": 0.6498256108850696,
+  "B_setup": 0.0498256108850696,
+  "B_eng": 0.0501743891149304
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   5021015
+  ]
+ ],
+ "mkl_serv_instr": 5043715066,
+ "kmp_instr": 6021018,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__vfscanf_internal",
+    1007003
+   ],
+   [
+    "__kmp_stg_print_init_at_fork",
+    1007003
+   ],
+   [
+    "__kmpc_flush",
+    1007003
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ],
+   [
+    "mkl_blas_dger",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__ieee754_pow_fma",
+    4007012
+   ],
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    2007006
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    2007006
+   ],
+   [
+    "elfun_",
+    2007006
+   ],
+   [
+    "pow@@GLIBC_2.29",
+    1007003
+   ],
+   [
+    "cutest_ccfsg_@plt",
+    1007003
+   ],
+   [
+    "cutest_cofg_threadsafe_",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    3223946630
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1379856122
+   ],
+   [
+    "difftime@plt",
+    218938654
+   ],
+   [
+    "__vdso_time",
+    204903612
+   ],
+   [
+    "time@plt",
+    16070048
+   ],
+   [
+    "_gfortrani_next_format",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    5021015
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    3014009
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "check_match",
+    1000003
+   ]
+  ]
+ }
+}

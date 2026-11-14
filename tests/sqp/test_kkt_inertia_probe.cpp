@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::SpMatRM;
 using hven::linear::InertiaEvidence;
 
@@ -56,15 +56,15 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
         Eigen::MatrixXd D(3, 3);
         D << 1, 0, 1, 0, eps, 0, 1, 0, 0;
         SpMatRM K = upper_with_structural_diag(D);
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
         const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
         ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk) << "eps=" << eps;
         const InertiaEvidence e = outcome.inertia;
 
         const std::string tag = fmt::format("{:.0e}", eps);
         RecordProperty(fmt::format("eps_{}", tag).c_str(), fmt::format("{:.3e}", eps));
-        RecordProperty(fmt::format("pos_{}", tag).c_str(), std::to_string(e.n_pos));
-        RecordProperty(fmt::format("neg_{}", tag).c_str(), std::to_string(e.n_neg));
+        RecordProperty(fmt::format("pos_{}", tag).c_str(), std::to_string(e.positive));
+        RecordProperty(fmt::format("neg_{}", tag).c_str(), std::to_string(e.negative));
         RecordProperty(fmt::format("perturbed_{}", tag).c_str(),
                        std::to_string(e.perturbed_pivots.value_or(-1)));
 
@@ -75,15 +75,15 @@ TEST(InertiaProbe, NearSingularReducedHessian) {
         // this exactly, with no perturbed pivots, at eps in
         // {1e-6, 1e-10, 1e-12, 1e-14}.
         ASSERT_EQ(e.state, InertiaEvidence::State::kObserved) << "eps=" << eps;
-        EXPECT_EQ(e.n_pos, 2) << "eps=" << eps;
-        EXPECT_EQ(e.n_neg, 1) << "eps=" << eps;
+        EXPECT_EQ(e.positive, 2) << "eps=" << eps;
+        EXPECT_EQ(e.negative, 1) << "eps=" << eps;
 #ifdef USE_ACCELERATE_SPARSE
         // Accelerate carries no perturbed-pivot counter; absence is the
         // honest state (InertiaEvidence's own contract) and the zero class
         // is measured natively.
         EXPECT_FALSE(e.perturbed_pivots.has_value()) << "eps=" << eps;
         EXPECT_FALSE(e.zero_is_derived) << "eps=" << eps;
-        EXPECT_EQ(e.n_zero, 0) << "eps=" << eps;
+        EXPECT_EQ(e.zero, 0) << "eps=" << eps;
 #else
         ASSERT_TRUE(e.perturbed_pivots.has_value()) << "eps=" << eps;
         EXPECT_EQ(*e.perturbed_pivots, 0) << "eps=" << eps;
@@ -115,7 +115,7 @@ TEST(InertiaProbe, ExactlySingular) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
 
     hven::linear::FactorizeOutcome outcome;
     EXPECT_NO_THROW(outcome = detail::factorize_checked(kkt, K));
@@ -123,10 +123,10 @@ TEST(InertiaProbe, ExactlySingular) {
     const InertiaEvidence e = outcome.inertia;
     ASSERT_EQ(e.state, InertiaEvidence::State::kObserved);
 
-    RecordProperty("pos", std::to_string(e.n_pos));
-    RecordProperty("neg", std::to_string(e.n_neg));
+    RecordProperty("pos", std::to_string(e.positive));
+    RecordProperty("neg", std::to_string(e.negative));
     RecordProperty("perturbed", std::to_string(e.perturbed_pivots.value_or(-1)));
-    RecordProperty("zero", std::to_string(e.n_zero));
+    RecordProperty("zero", std::to_string(e.zero));
 
 // OBSERVED on Accelerate (2026-07-29, results note §(a)): LDLTTPP completes
 // without error or SparseMatrixIsSingular and reports the TRUE analytic
@@ -135,14 +135,14 @@ TEST(InertiaProbe, ExactlySingular) {
 // fabricated as positive the way Pardiso's perturbation does. Same trust
 // signal (a nonzero zero class), honest sign counts.
 #ifdef USE_ACCELERATE_SPARSE
-    EXPECT_EQ(e.n_pos, 1);
-    EXPECT_EQ(e.n_neg, 1);
+    EXPECT_EQ(e.positive, 1);
+    EXPECT_EQ(e.negative, 1);
     EXPECT_FALSE(e.zero_is_derived);
-    EXPECT_EQ(e.n_zero, 1);
+    EXPECT_EQ(e.zero, 1);
     EXPECT_FALSE(e.perturbed_pivots.has_value());
 #else
-    EXPECT_EQ(e.n_pos, 2);
-    EXPECT_EQ(e.n_neg, 1);
+    EXPECT_EQ(e.positive, 2);
+    EXPECT_EQ(e.negative, 1);
     ASSERT_TRUE(e.perturbed_pivots.has_value());
     EXPECT_EQ(*e.perturbed_pivots, 1);
 #endif

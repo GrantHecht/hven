@@ -26,3 +26,6 @@ a hot K0).
 The C10_* dumps (M7 W2 C10 census, scratch diagnostic build at m7 1f8d3118) carry two more tokens on the result line:
 `site=` the source line of qp_engine.cpp (at 1f8d3118) that set the in-cell status (1335 = the trusted-kWrong dead end),
 and `solve=` the engine solve number within the cell run.
+PF1_f7_n1000_path_corrupted_qp1.txt (M8 PF-1, scratch diagnostic build at m8 bdd797e3): the census cell's designated hop's
+first QP (engine solve 4 of the cell run), every solve dumped. Its result line reads `status=1 minors=20000 facts=19871 hkc=0`
+(hkc = QpOptions::hessian_known_convex); the opts line's max_iter is the derived cap the solve ran at, recorded as such.

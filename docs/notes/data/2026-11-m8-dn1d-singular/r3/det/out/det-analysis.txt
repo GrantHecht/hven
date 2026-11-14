@@ -1,0 +1,3 @@
+dumps 250; CAT flagged 106/106; EXACT flagged 53/53; OTHER (benign) flagged 68 of 91; missed []
+screen-stage dsycon_rook calls 202 of 98409 raw dense factorizations = 0.205 %; E0 records below the screen or exactly singular 250, of them not dumped 0 []
+DETECTOR_PASS

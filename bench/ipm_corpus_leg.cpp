@@ -18,21 +18,23 @@
 #include <fmt/format.h>
 
 #include <hven/core/solver_status.h>
+#include <hven/detail/drivers/result_access.h>
 #include <hven/detail/interior/utils/thread_pool.h>
 #include <hven/detail/model/nlp_adapter.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/detail/warmstart/warm_start_access.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/solve_status.h>
 #include <hven/warmstart/ipm_polish_extension.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
 #include "counting_trace_sink.h"
 #include "crossover_legs.h"
 
-namespace hven::solvers::corpus {
+namespace hven::corpus {
 
 namespace {
 
-using hven::solvers::crossover::ModelAsNlpProblem;
+using hven::crossover::ModelAsNlpProblem;
 
 // The test fixture's own spelling of an absent upper bound
 // (tests/interior/test_ipm_solver_entry.cpp:20), copied with it.
@@ -46,44 +48,46 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 // tests/interior/test_ipm_solver_entry.cpp:33 because a bench binary does not
 // include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
-struct Hs071FixedProblem final : NlpTripletModel {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
+struct Hs071FixedProblem final : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 4; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 8; }
+    int num_hess_nonzeros() const { return 10; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << 1.0, 1.0, 1.0, 1.0;
         xu << 1.0, 5.0, 5.0, 5.0;
         gl << 25.0, 40.0;
         gu << kSolverInf, 40.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+        return f;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
         g[3] = x[0] * (x[0] + x[1] + x[2]);
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[1] * x[2] * x[3];
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = x[1] * x[2] * x[3];
         v[1] = x[0] * x[2] * x[3];
         v[2] = x[0] * x[1] * x[3];
@@ -93,9 +97,8 @@ struct Hs071FixedProblem final : NlpTripletModel {
         v[6] = 2.0 * x[2];
         v[7] = 2.0 * x[3];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
         v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
         v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
@@ -135,44 +138,47 @@ Vec hs071_fixed_start() {
 // the stall detector certifies. Shares its shape with the live pin in
 // tests/interior/test_ipm_stop_reason.cpp; a bench binary does not include a
 // test file, so it is a copy.
-struct PowerSpikeProblem final : NlpTripletModel {
+struct PowerSpikeProblem final : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     static constexpr double kEps = 1.0e-4;
     static constexpr int kPower = 10;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[1]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 0.0, 1.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[1];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 0.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 1.0 + kEps * x[0] + std::pow(x[0], kPower);
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << kEps + kPower * std::pow(x[0], kPower - 1), 0.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd> x, double, ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << lambda[0] * kPower * (kPower - 1) * std::pow(x[0], kPower - 2), 0.0;
     }
     std::string name() const override { return "PowerSpikeProblem"; }
@@ -181,41 +187,44 @@ struct PowerSpikeProblem final : NlpTripletModel {
 // c(x) = x0^2 + x1^2 + 1 = 0 has no real solution and its violation has a STRICT
 // stationary point at the origin -- the shape a restoration phase converges to
 // and then declares locally infeasible. Copied for the same reason as above.
-struct LocallyInfeasibleProblem final : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 1; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 2; }
+struct LocallyInfeasibleProblem final : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 1; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 2; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kSolverInf, -kSolverInf;
         xu << kSolverInf, kSolverInf;
         gl << 0.0;
         gu << 0.0;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] + x[1]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 1.0, 1.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] + x[1];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v << 2.0 * x[0], 2.0 * x[1];
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double, ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v << 2.0 * lambda[0], 2.0 * lambda[0];
     }
     std::string name() const override { return "LocallyInfeasibleProblem"; }
@@ -265,13 +274,13 @@ const char *warm_tag(InteriorVariant::Warm warm) {
     return "<none>";
 }
 
-const char *restoration_tag(RestorationModes mode) {
+const char *restoration_tag(IpmRestorationMode mode) {
     switch (mode) {
-    case RestorationModes::off:
+    case IpmRestorationMode::kOff:
         return "off";
-    case RestorationModes::proximal_switch:
+    case IpmRestorationMode::kProximalSwitch:
         return "proximal_switch";
-    case RestorationModes::l1_nested:
+    case IpmRestorationMode::kL1Nested:
         return "l1_nested";
     }
     throw std::invalid_argument(
@@ -303,31 +312,30 @@ const char *leg_callback_payload_tag() {
         fmt::format("HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars", value));
 }
 
-hven::solvers::IterationPayload leg_callback_payload() {
-    return std::string(leg_callback_payload_tag()) == "scalars"
-               ? hven::solvers::IterationPayload::kScalars
-               : hven::solvers::IterationPayload::kAll;
+hven::IterationPayload leg_callback_payload() {
+    return std::string(leg_callback_payload_tag()) == "scalars" ? hven::IterationPayload::kScalars
+                                                                : hven::IterationPayload::kAll;
 }
 
 } // namespace
 
-const char *interior_treatment_tag(FixedVariableTreatments treatment) {
+const char *interior_treatment_tag(IpmFixedVariableTreatment treatment) {
     switch (treatment) {
-    case FixedVariableTreatments::MakeParameter:
+    case IpmFixedVariableTreatment::kMakeParameter:
         return "MakeParameter";
-    case FixedVariableTreatments::MakeConstraint:
+    case IpmFixedVariableTreatment::kMakeConstraint:
         return "MakeConstraint";
-    case FixedVariableTreatments::RelaxBounds:
+    case IpmFixedVariableTreatment::kRelaxBounds:
         return "RelaxBounds";
     }
     throw std::invalid_argument(fmt::format("interior_treatment_tag: unrecognized treatment ({})",
                                             static_cast<int>(treatment)));
 }
 
-const std::vector<FixedVariableTreatments> &interior_treatments() {
-    static const std::vector<FixedVariableTreatments> kAll{FixedVariableTreatments::MakeParameter,
-                                                           FixedVariableTreatments::MakeConstraint,
-                                                           FixedVariableTreatments::RelaxBounds};
+const std::vector<IpmFixedVariableTreatment> &interior_treatments() {
+    static const std::vector<IpmFixedVariableTreatment> kAll{
+        IpmFixedVariableTreatment::kMakeParameter, IpmFixedVariableTreatment::kMakeConstraint,
+        IpmFixedVariableTreatment::kRelaxBounds};
     return kAll;
 }
 
@@ -352,7 +360,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         stalled.name = "stalled";
         stalled.entry = InteriorVariant::Entry::kSolve;
         stalled.max_iters = 600;
-        stalled.restoration_mode = RestorationModes::l1_nested;
+        stalled.restoration_mode = IpmRestorationMode::kL1Nested;
         stalled.max_feas_rest = 1;
         stalled.con_tol = 2.0e-2;
         stalled.acc_kkt_tol = 1.0e-6;
@@ -365,7 +373,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         resto.name = "resto_infeasible";
         resto.entry = InteriorVariant::Entry::kOptimize;
         resto.max_iters = 200;
-        resto.restoration_mode = RestorationModes::l1_nested;
+        resto.restoration_mode = IpmRestorationMode::kL1Nested;
         resto.max_feas_rest = 1;
         v.push_back(resto);
 
@@ -430,11 +438,11 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
 
         // THE PARTITIONED ROWS (M6 W5 T8.9), the fourth instalment of the T8
         // coverage rule and the first partitioned cell set this leg has had:
-        // before T8.9 no path from an NlpTripletModel reached a layout with more
+        // before T8.9 no path from an Nlp reached a layout with more
         // than one partition at all.
         //
         // WHAT THEY ARE, EXACTLY. `make_nlp_program(problem, 2)` lays TWO
-        // partitions; all three adapter pieces are ThreadingFlags::MainThread,
+        // partitions; all three adapter pieces are ThreadingFlags::kMainThread,
         // and analyze_partitioning forces every MainThread function into the
         // LAST partition to run inline on the calling thread. So both rows are
         // LAYOUT rows: partition 1 holds the whole problem and runs serially,
@@ -450,7 +458,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         // and the row would be a one-partition row under a two-partition name.
         // A cell that is both big enough to adopt two partitions and carries a
         // bound-fixed variable does not exist in this corpus; a genuinely
-        // two-thread evaluation over an NlpTripletModel is registered for the M7
+        // two-thread evaluation over an Nlp is registered for the M7
         // ClaimStreamSource widening, not claimed here.
         InteriorVariant parts2;
         parts2.name = kParts2VariantName;
@@ -470,8 +478,9 @@ std::string interior_variant_stamp(const InteriorVariant &variant) {
         warm_tag(variant.warm),
         variant.max_iters > 0 ? std::to_string(variant.max_iters) : std::string("<levers>"),
         restoration_tag(variant.restoration_mode),
-        variant.restoration_mode == RestorationModes::off ? std::string("<unused>")
-                                                          : std::to_string(variant.max_feas_rest),
+        variant.restoration_mode == IpmRestorationMode::kOff
+            ? std::string("<unused>")
+            : std::to_string(variant.max_feas_rest),
         variant.con_tol > 0.0 ? fmt::format("{:.9e}", variant.con_tol) : std::string("<levers>"),
         variant.acc_con_tol > 0.0 ? fmt::format("{:.9e}", variant.acc_kkt_tol)
                                   : std::string("<default>"),
@@ -502,7 +511,22 @@ std::vector<IpmPhase> phases_for(InteriorVariant::Entry entry) {
 // rows' second solver is configured identically to the first). Does not
 // transcribe: the caller does that, because it is the step after which the
 // program exists.
-void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment,
+// THE PRE-EVENT ABSENT-BOUND PIN (M8 B7), a declared probe and never a product
+// path, in the shape of the D1 pin below. B7 made CommonOptions::infinite_bound
+// live at 1e20, so the F7 cells' +/-1e20 free-state bounds are ABSENT to the
+// interior-point engine where every finite value was a real bound before. With
+// HVEN_LEG_PRE_B7_INFINITE_BOUND set in the environment, this leg solves under
+// infinite_bound = kInfinity and lays its program under it -- "every finite value
+// is a real bound", the pre-B7 reading -- so its rows are the pre-event rows and a
+// runtime gate can hold counter identity against a pre-B7 binary. The environment
+// reaches every child process the leg spawns.
+double interior_leg_infinite_bound() {
+    return std::getenv("HVEN_LEG_PRE_B7_INFINITE_BOUND") != nullptr
+               ? hven::kInfinity
+               : CommonOptions{}.infinite_bound;
+}
+
+void configure_interior_solver(IpmSolver &ipm, IpmFixedVariableTreatment treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
@@ -520,8 +544,8 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
     // environment, the three fields the declared IPM-default event moved are
     // written back to the values IpmOptions{} carried before it:
     //
-    //     acceptance_strategy   filter    -> classic_merit
-    //     barrier_governor      monitored -> classic_adaptive
+    //     acceptance_mode   filter    -> classic_merit
+    //     barrier_governor_mode      monitored -> classic_adaptive
     //     max_iters             1000      -> 500
     //
     // The first two are exactly ipm_preset("classic")'s values for them; the
@@ -534,45 +558,57 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
     // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
     // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
     if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
-        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.max_iters = 500;
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+        o.common.max_iterations = 500;
     }
 
+    // THE PRE-FLIP DENSE PIN (M8 DN-3 flip, 2026-11-13), a declared probe and never a
+    // product path, the same shape as the pin above. With HVEN_LEG_IPM_PRE_DN3_DEFAULT set
+    // in the environment, linear.dense_factorization is written back to kNever, the value
+    // IpmOptions{} carried before the flip to kAuto. The leg's three small fixtures
+    // (hs071_x1_fixed, infeas2_spike, infeas2_stationary) are below the IPM's kAuto
+    // threshold and move at the default; with the pin every row reproduces the pre-flip
+    // CSV. See docs/notes/data/2026-11-m8-dn3/DECLARATION-r5.md.
+    if (std::getenv("HVEN_LEG_IPM_PRE_DN3_DEFAULT") != nullptr) {
+        o.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+    }
+
+    o.common.infinite_bound = interior_leg_infinite_bound();
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
-    o.common.print_level = levers.print_level;
-    o.max_iters = levers.max_iters;
-    o.kkt_tol = levers.kkt_tol;
-    o.econ_tol = levers.econ_tol;
-    o.icon_tol = levers.icon_tol;
-    o.bar_tol = levers.barr_tol;
+    o.common.verbosity = levers.verbosity;
+    o.common.max_iterations = levers.max_iters;
+    o.common.optimality_tol = levers.kkt_tol;
+    // One feasibility tolerance covers the equality and the inequality residuals;
+    // the leg's two levers are equal (kFeasTol), so icon_tol maps to it.
+    o.common.feasibility_tol = levers.icon_tol;
+    o.termination.complementarity_tol = levers.barr_tol;
     o.fixed_variable_treatment = treatment;
     o.bound_relax_factor = levers.bound_relax_factor;
     // The variant's overrides, applied on top of the levers above. Every field
     // is inert at its default, so a base row runs exactly what T8.1 captured.
     if (variant.max_iters > 0) {
-        o.max_iters = variant.max_iters;
+        o.common.max_iterations = variant.max_iters;
     }
     if (variant.con_tol > 0.0) {
-        o.econ_tol = variant.con_tol;
-        o.icon_tol = variant.con_tol;
+        o.common.feasibility_tol = variant.con_tol;
     }
     if (variant.acc_con_tol > 0.0) {
-        o.acc_kkt_tol = variant.acc_kkt_tol;
-        o.acc_econ_tol = variant.acc_con_tol;
-        o.acc_icon_tol = variant.acc_con_tol;
-        o.acc_bar_tol = variant.acc_barr_tol;
+        o.termination.acceptable_kkt_tol = variant.acc_kkt_tol;
+        o.termination.acceptable_equality_tol = variant.acc_con_tol;
+        o.termination.acceptable_inequality_tol = variant.acc_con_tol;
+        o.termination.acceptable_barrier_tol = variant.acc_barr_tol;
     }
     if (variant.div_tol > 0.0) {
-        o.div_kkt_tol = variant.div_tol;
-        o.div_econ_tol = variant.div_tol;
-        o.div_icon_tol = variant.div_tol;
-        o.div_bar_tol = variant.div_tol;
+        o.termination.divergence_kkt_tol = variant.div_tol;
+        o.termination.divergence_equality_tol = variant.div_tol;
+        o.termination.divergence_inequality_tol = variant.div_tol;
+        o.termination.divergence_barrier_tol = variant.div_tol;
     }
-    if (variant.restoration_mode != RestorationModes::off) {
-        o.restoration_mode = variant.restoration_mode;
-        o.max_feas_rest = variant.max_feas_rest;
+    if (variant.restoration_mode != IpmRestorationMode::kOff) {
+        o.advanced.restoration_mode = variant.restoration_mode;
+        o.advanced.max_restoration_entries = variant.max_feas_rest;
     }
     ipm.set_options(std::move(o));
 }
@@ -581,9 +617,9 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
 // key, which is defined with the CSV writers further down (M6 W5 T8.6 fix1).
 std::string interior_row_key(const InteriorRow &row);
 
-InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
+                                 IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant) {
     if (problem == nullptr) {
         throw std::invalid_argument(
@@ -607,15 +643,32 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // The requested partition count reaches the LAYOUT now, where the wrapper's
     // field reached nothing -- and it is clamped, so the ADOPTED count is what
     // the header stamps.
+    //
+    // AP-2 B2: THE PROBLEM IS WHAT THE SOLVE TAKES. On the default route it wraps
+    // the program make_nlp_program lays (detail::problem_from_program, the engine's
+    // internal entry unchanged); on the `--internal-route nlp-public` arm it is the
+    // public Problem(Nlp), which lays the same program itself on its first solve and
+    // takes no partition request.
     struct ConfiguredSolve {
-        std::shared_ptr<NonLinearProgram> program;
+        std::unique_ptr<Problem> problem;
         std::unique_ptr<IpmSolver> engine;
     };
     const int requested_partitions =
         variant.num_partitions > 0 ? variant.num_partitions : levers.num_partitions;
+    const bool public_route = corpus::detail::nlp_route() == corpus::detail::NlpRoute::kNlpPublic;
+    if (public_route && requested_partitions != 1) {
+        throw std::invalid_argument(
+            fmt::format("run_interior_problem: cell '{}' requests {} partitions; the public "
+                        "Problem(Nlp) route lays one",
+                        identity.cell_id, requested_partitions));
+    }
     const auto make_configured = [&]() {
-        ConfiguredSolve configured{hven::solvers::make_nlp_program(problem, requested_partitions),
-                                   std::make_unique<IpmSolver>()};
+        ConfiguredSolve configured{
+            public_route ? std::make_unique<Problem>(problem)
+                         : std::make_unique<Problem>(
+                               hven::detail::problem_from_program(hven::detail::make_nlp_program(
+                                   problem, requested_partitions, interior_leg_infinite_bound()))),
+            std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
         return configured;
     };
@@ -634,21 +687,20 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     //
     // The producing solve is SETUP and is neither timed nor reported, exactly
     // as the bridge lay is on the other engine.
-    std::optional<hven::solvers::WarmStartData> payload;
+    std::optional<hven::WarmStart> payload;
     if (variant.warm != InteriorVariant::Warm::kNone) {
         ConfiguredSolve producer = make_configured();
-        const hven::solvers::IpmResult produced_result =
-            producer.engine->solve(*producer.program, x0);
-        const hven::solvers::SolveStatus produced = produced_result.status;
-        if (produced != hven::solvers::SolveStatus::kOptimal) {
+        const hven::IpmResult produced_result = producer.engine->solve(*producer.problem, x0);
+        const hven::SolveStatus produced = produced_result.status;
+        if (produced != hven::SolveStatus::kOptimal) {
             throw std::runtime_error(fmt::format(
                 "run_interior_problem: the '{}' variant's producing solve of cell '{}' did not "
                 "converge (status {}); a warm row measured against a hand-off from a failed solve "
                 "would pin nothing",
                 variant.name, identity.cell_id, to_string(produced)));
         }
-        payload = produced_result.export_warm_start();
-        if (!payload.has_value()) {
+        payload = produced_result.warm_start;
+        if (payload->empty()) {
             throw std::runtime_error(
                 fmt::format("run_interior_problem: the '{}' variant's producing solve of cell "
                             "'{}' captured no warm-start snapshot",
@@ -658,8 +710,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
             // THE MULTIPLIERS-ONLY FORM, built from the very same export the
             // payload row uses, so the two rows differ in exactly one thing:
             // whether the point and the bound state travel with the prices.
-            payload->primal_.resize(0);
-            payload->bound_lmults_.resize(0);
+            hven::detail::WarmStartAccess::primal(*payload).resize(0);
+            hven::detail::WarmStartAccess::bound(*payload).resize(0);
             // THE POLISH EXTENSION IS LEFT ON (M6 W5 T8.5 fix round 1), and
             // that is deliberate. It changes NOTHING about the solve -- the
             // seed form's `have_warm` is false, so the extension is never
@@ -668,11 +720,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
             // statement that this row really did travel the seed route rather
             // than some other one. Clearing it here would have thrown away the
             // one observable the row has that is not a residual.
-            if (hven::solvers::find_ipm_polish(*payload) == nullptr) {
+            if (hven::find_ipm_polish(*payload) == nullptr) {
                 throw std::runtime_error(fmt::format(
                     "run_interior_problem: the '{}' variant's export of cell '{}' carries no "
                     "\"{}\" extension, so the row's polish_ignored observable would be vacuous",
-                    variant.name, identity.cell_id, hven::solvers::kIpmPolishTag));
+                    variant.name, identity.cell_id, hven::kIpmPolishTag));
             }
         }
     }
@@ -681,7 +733,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // whatever ran above.
     ConfiguredSolve ipm_owner = make_configured();
     IpmSolver &ipm = *ipm_owner.engine;
-    NonLinearProgram &program = *ipm_owner.program;
+    Problem &program = *ipm_owner.problem;
 
     // THE COVERAGE RULE'S SECOND RUN (M6 W5 T8.6), and it is a MEASUREMENT
     // INSTRUMENT rather than a row: with HVEN_LEG_COUNT_CALLBACK set in the
@@ -702,13 +754,13 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // ignored when HVEN_LEG_COUNT_CALLBACK was absent while the comment on the
     // parser claimed otherwise. A mislabelled measurement arm is the one
     // failure this lever must not have, and the claim now matches the code.
-    const hven::solvers::IterationPayload leg_payload = leg_callback_payload();
+    const hven::IterationPayload leg_payload = leg_callback_payload();
     long long events_seen = 0;
     if (count_events) {
         ipm.set_iteration_callback(
-            [&events_seen](const hven::solvers::IterationEvent &) {
+            [&events_seen](const hven::IterationEvent &) {
                 ++events_seen;
-                return hven::solvers::CallbackAction::kContinue;
+                return hven::CallbackAction::kContinue;
             },
             leg_payload);
     }
@@ -737,11 +789,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // way, and the TIMED WINDOW is what it always was: it brackets the solve
     // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
-    const hven::solvers::IpmResult measured =
+    const hven::IpmResult measured =
         payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
     const double wall_s = seconds_since(t0);
-    const hven::solvers::SolveStatus flag = measured.status;
-    const hven::solvers::IpmResult &warm_result = measured;
+    const hven::SolveStatus flag = measured.status;
+    const hven::IpmResult &warm_result = measured;
 
     // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
     // 1; the SQP lane's M1). A warm row whose payload was silently ignored
@@ -768,7 +820,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     }
 
     // The MEASURED solve's result, whichever door it came through.
-    const hven::solvers::IpmResult &result = measured;
+    const hven::IpmResult &result = measured;
     InteriorRow row;
     row.cell_id = identity.cell_id;
     row.family = identity.family;
@@ -778,17 +830,17 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     row.status = crossover::flag_string(flag);
     row.iter_num = result.iterations;
     row.obj_val = result.f;
-    row.kkt_inf = result.kkt_inf;
-    row.barr_inf = result.barr_inf;
-    row.econ_inf = result.econ_inf;
-    row.icon_inf = result.icon_inf;
+    row.kkt_inf = result.convergence.kkt;
+    row.barr_inf = result.convergence.barrier;
+    row.econ_inf = result.convergence.equality;
+    row.icon_inf = result.convergence.inequality;
     row.factorizations = result.kkt_factor_counters.factorize_count;
     row.solves = result.kkt_factor_counters.solve_count;
     row.analyses = result.kkt_analyses_total;
-    row.soc_steps = result.soc_steps_taken;
+    row.soc_steps = result.second_order_corrections;
     row.watchdog_activations = result.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
-    row.stop_reason = to_string(ipm.last_stop_reason());
+    row.stop_reason = to_string(result.stop_reason);
     row.variant = variant.name;
 
     // THE PER-PHASE ACCOUNT, packed into one column so the schema does not grow
@@ -802,8 +854,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
         if (!packed.empty()) {
             packed += "|";
         }
-        const char *name =
-            phase.phase == hven::solvers::IpmPhase::kOptimize ? "kOptimize" : "kSolve";
+        const char *name = phase.phase == hven::IpmPhase::kOptimize ? "kOptimize" : "kSolve";
         if (phase.ran) {
             ++row.phases_ran;
             packed += fmt::format("{}:{}:{}", name, to_string(phase.status), phase.iterations);
@@ -816,12 +867,12 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // The DECLARED widths of the four returned blocks, and the four shared
     // declared diagnostics beside them.
     row.x_size = result.x.size();
-    row.lambda_e_size = result.lambda_e.size();
-    row.lambda_i_size = result.lambda_i.size();
+    row.lambda_e_size = hven::detail::engine_rows(result).lambda_e.size();
+    row.lambda_i_size = hven::detail::engine_rows(result).lambda_i.size();
     row.z_size = result.z.size();
     row.stationarity = result.stationarity;
-    row.feasibility_e = result.feasibility_e;
-    row.feasibility_i = result.feasibility_i;
+    row.feasibility_e = hven::detail::engine_rows(result).feasibility_e;
+    row.feasibility_i = hven::detail::engine_rows(result).feasibility_i;
     row.complementarity = result.complementarity;
 
     row.wall_s = wall_s;
@@ -855,6 +906,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     return row;
 }
 
+void select_nlp_route(corpus::detail::NlpRoute route) { crossover::install_nlp_route(route); }
+
 std::string interior_cell_refusal(const CorpusCell &cell) {
     return crossover::dual_bind_refusal(cell);
 }
@@ -867,15 +920,15 @@ InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requ
     }
     const auto f7 = std::make_shared<F7CollocationChain>(detail::make_model(cell));
     const auto declared = std::make_shared<ModelAsNlpProblem>(f7, std::string(cell.id));
-    const auto program = hven::solvers::make_nlp_program(declared, requested);
+    const auto program = hven::detail::make_nlp_program(declared, requested);
     InteriorPartitionStamp stamp;
     stamp.requested = requested;
     stamp.adopted = program->num_partitions_;
-    stamp.pool_threads = hven::utils::get_num_threads();
+    stamp.pool_threads = hven::detail::get_num_threads();
     return stamp;
 }
 
-InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments treatment,
+InteriorRow run_interior_cell(const CorpusCell &cell, IpmFixedVariableTreatment treatment,
                               const InteriorLevers &levers, const InteriorVariant &variant) {
     if (!crossover::cell_dual_binds(cell)) {
         throw std::invalid_argument(
@@ -895,15 +948,15 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments tr
     return run_interior_problem(declared, id, x0, treatment, levers, variant);
 }
 
-InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers,
+InteriorRow run_interior_hs071(IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                const InteriorVariant &variant) {
     return run_interior_problem(std::make_shared<Hs071FixedProblem>(), hs071_fixed_identity(),
                                 hs071_fixed_start(), treatment, levers, variant);
 }
 
-InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_infeasible(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant) {
-    std::shared_ptr<NlpTripletModel> problem;
+    std::shared_ptr<Nlp> problem;
     if (cell_id == kSpikeCellId) {
         problem = std::make_shared<PowerSpikeProblem>();
     } else if (cell_id == kStationaryCellId) {
@@ -921,8 +974,8 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
                                 variant);
 }
 
-FixedVariableTreatments interior_treatment_from_tag(std::string_view tag) {
-    for (const FixedVariableTreatments treatment : interior_treatments()) {
+IpmFixedVariableTreatment interior_treatment_from_tag(std::string_view tag) {
+    for (const IpmFixedVariableTreatment treatment : interior_treatments()) {
         if (tag == interior_treatment_tag(treatment)) {
             return treatment;
         }
@@ -932,7 +985,7 @@ FixedVariableTreatments interior_treatment_from_tag(std::string_view tag) {
                                             tag));
 }
 
-InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_single_row(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers) {
     // The fixed-variable cell is not a corpus cell -- the leg runs it
     // unconditionally from its own id, and find_cell would not know it.
@@ -965,9 +1018,9 @@ std::string interior_globalization_stamp() {
     const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
     IpmOptions o;
     if (pinned) {
-        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
-        o.barrier_governor = BarrierGovernors::classic_adaptive;
-        o.max_iters = 500;
+        o.advanced.acceptance_mode = IpmAcceptanceMode::kClassicMerit;
+        o.advanced.barrier_governor_mode = IpmBarrierGovernorMode::kClassicAdaptive;
+        o.common.max_iterations = 500;
     }
 
     // Read the two enumerator spellings off dump_options() rather than
@@ -989,10 +1042,13 @@ std::string interior_globalization_stamp() {
         return std::string("<absent>");
     };
 
+    // M8 DN-3 flip: the pre-flip dense pin is stamped beside the D1 pin.
+    const bool dense_pinned = std::getenv("HVEN_LEG_IPM_PRE_DN3_DEFAULT") != nullptr;
     return fmt::format("acceptance_strategy={} barrier_governor={} "
-                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={}",
+                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={} "
+                       "pre_dn3_dense_pin={}",
                        field("acceptance_strategy"), field("barrier_governor"),
-                       pinned ? "on" : "off");
+                       pinned ? "on" : "off", dense_pinned ? "on" : "off");
 }
 
 std::string interior_csv_header() {
@@ -1015,4 +1071,4 @@ std::string interior_csv_row(const InteriorRow &row) {
                        row.feasibility_e, row.feasibility_i, row.complementarity, row.wall_s);
 }
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

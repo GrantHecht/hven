@@ -39,11 +39,11 @@
 
 namespace {
 
-using hven::solvers::kThetaMaxFact;
-using hven::solvers::kThetaMinFact;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::RejectionCause;
-using hven::solvers::SwitchingAcceptance;
+using hven::detail::kThetaMaxFact;
+using hven::detail::kThetaMinFact;
+using hven::detail::ProgressMeasures;
+using hven::detail::RejectionCause;
+using hven::detail::SwitchingAcceptance;
 using TychoTest::pm;
 
 // Minimal concrete subclass: records every hook call so a test can assert which

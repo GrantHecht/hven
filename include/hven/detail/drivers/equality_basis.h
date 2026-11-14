@@ -67,10 +67,10 @@
 #include <vector>
 
 #include <hven/core/types.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/model/nlp_model.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 /// @brief Acceptance thresholds of an EqualityBasis split.
 struct EqualityBasisTolerances {
@@ -90,7 +90,7 @@ struct EqualityBasisTolerances {
     /// the ratio lift_forward_tol / (coef_cap u) ~ 0.9 sets where projections refuse.
     double lift_forward_tol = 1e-8;
     /// The certificate factorizations' static pivot perturbation exponent
-    /// (SymmetricFactor::Options::pivot_perturb_exp; Pardiso iparm[9]). Any perturbed
+    /// (SymmetricFactor::Options::pivot_perturbation_exponent; Pardiso iparm[9]). Any perturbed
     /// or zero pivot refuses the split, so this sets only how small a pivot is refused.
     int gram_pivot_perturb_exp = 13;
 };
@@ -257,6 +257,7 @@ class EqualityRowSubsetModel final : public NlpModel {
     void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const override;
     void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &lambda_e,
                             const Vec &lambda_i, SpMatRM &out) const override;
+    bool has_hessian() const override { return model_.has_hessian(); }
     const Vec &lower() const override;
     const Vec &upper() const override;
     Vec start_point() const override;
@@ -270,4 +271,4 @@ class EqualityRowSubsetModel final : public NlpModel {
     std::vector<Index> rows_;
 };
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

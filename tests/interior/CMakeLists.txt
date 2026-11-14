@@ -38,8 +38,13 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_soc.cpp
     test_solver_interface_adapter.cpp
     test_structure_epoch_gating.cpp
+    test_string_piece.cpp
+    test_type_storage.cpp
     test_switching_acceptance.cpp
     test_watchdog.cpp
+    # M8 B5 riders: AcceptanceStrategy::retract_last_acceptance(). Last in the
+    # list so the unity batches before it keep their composition.
+    test_acceptance_retraction.cpp
 )
 
 add_executable(hven_interior_tests ${HVEN_INTERIOR_TEST_SOURCES})
@@ -71,7 +76,7 @@ gtest_discover_tests(hven_interior_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_M
 
 ################################################################################
 # Compile-fail probes for the function-entry seam
-# (include/hven/solver_interface_adapter.h).
+# (include/hven/model/solver_interface_adapter.h).
 #
 # The seam's whole point is that the wrong type entering an interface is a
 # LOUD compile error rather than a silent second virtual dispatch, so the
@@ -98,7 +103,16 @@ gtest_discover_tests(hven_interior_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_M
 # convenient.
 ################################################################################
 set(_hven_adapter_probes
-    unregistered_constraint
+    no_constraint_surface
+    constraint_hook_as_objective
+    local_jacobian_pattern_out_of_range
+    local_hessian_pattern_upper
+    local_nonconst_value
+    local_constraint_hessian_signature
+    local_outputs_on_objective
+    local_hook_ambiguous
+    local_not_copyable
+    local_nonconst_name
     constraint_only_objective
     partial_objective_surface
     objective_unsupported_mixin
@@ -136,7 +150,16 @@ endforeach()
 set(_hven_raw_member_diagnostic "error: no member named")
 
 # probe name -> which authored prefix pins it
-set(_hven_probe_regex_unregistered_constraint  "hven constraint adapter:")
+set(_hven_probe_regex_no_constraint_surface   "hven constraint adapter:")
+set(_hven_probe_regex_constraint_hook_as_objective "hven objective adapter:")
+set(_hven_probe_regex_local_jacobian_pattern_out_of_range "hven local block:")
+set(_hven_probe_regex_local_hessian_pattern_upper "hven local block:")
+set(_hven_probe_regex_local_nonconst_value "hven local block: value.v, out. must be a const member")
+set(_hven_probe_regex_local_constraint_hessian_signature "hven local block: a constraint piece's hessian takes the multipliers")
+set(_hven_probe_regex_local_outputs_on_objective "hven local block: this piece declares kOutputs, which makes it a constraint piece")
+set(_hven_probe_regex_local_hook_ambiguous "hven local block: this type is a local-block piece AND carries a")
+set(_hven_probe_regex_local_not_copyable "hven local block: a piece must be copy-constructible")
+set(_hven_probe_regex_local_nonconst_name "hven local block: name.. must be a const member")
 set(_hven_probe_regex_constraint_only_objective "hven objective adapter:")
 set(_hven_probe_regex_partial_objective_surface "hven objective adapter:")
 set(_hven_probe_regex_objective_unsupported_mixin "hven objective adapter:")

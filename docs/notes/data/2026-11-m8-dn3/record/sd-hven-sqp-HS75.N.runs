@@ -1,0 +1,5 @@
+k=0 period=400009 CELL_RESULT record hven-sqp HS75 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=optimal
+k=1 period=402809 CELL_RESULT record hven-sqp HS75 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=optimal
+k=2 period=405609 CELL_RESULT record hven-sqp HS75 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=optimal
+k=3 period=408409 CELL_RESULT record hven-sqp HS75 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=optimal
+k=4 period=411209 CELL_RESULT record hven-sqp HS75 default 1 rc=0 wall=0.31 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=optimal

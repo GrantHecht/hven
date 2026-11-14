@@ -1,0 +1,495 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref'
+[1/343] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/343] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/343] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[4/343] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[5/343] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[6/343] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[7/343] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[8/343] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[9/343] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[10/343] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[11/343] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[12/343] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[13/343] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[14/343] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[15/343] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[16/343] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[17/343] Building CXX object CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o
+[18/343] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[19/343] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[20/343] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[21/343] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[22/343] Building CXX object CMakeFiles/hven.dir/src/drivers/common_options.cpp.o
+[23/343] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[24/343] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[25/343] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[26/343] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[27/343] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[28/343] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[29/343] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[30/343] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[31/343] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[32/343] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[33/343] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/src/drivers/sqp_solver.cpp:6316:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6316 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[34/343] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[35/343] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[36/343] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[37/343] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[38/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[39/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[40/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[41/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[42/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[43/343] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[44/343] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[45/343] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[46/343] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[47/343] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[48/343] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[49/343] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[50/343] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[51/343] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[52/343] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[53/343] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[54/343] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[55/343] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[56/343] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_version.cpp.o
+[57/343] Linking CXX static library lib/libgtest.a
+[58/343] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_pattern_hash.cpp.o
+[59/343] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_sparse_backend_link.cpp.o
+[60/343] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o
+[61/343] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor.cpp.o
+[62/343] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor_growth.cpp.o
+[63/343] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_evidence_invariants.cpp.o
+[64/343] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_pardiso_only_options.cpp.o
+[65/343] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_warm_start_data.cpp.o
+[66/343] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o
+[67/343] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor.cpp.o
+[68/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/linear/test_fault_injection.cpp.o
+[69/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/core/pattern_hash.cpp.o
+[70/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[71/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[72/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/interior/test_kkt_factorization_faults.cpp.o
+[73/343] Building CXX object tests/CMakeFiles/hven_fault_injection_tests.dir/__/src/linear/pardiso_session.cpp.o
+[74/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+[75/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[76/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/core/ledger.cpp.o
+[77/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/common_options.cpp.o
+[78/343] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[79/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[80/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[81/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[82/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[83/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+[84/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[85/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/enum_names.cpp.o
+[86/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[87/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/core/ledger.cpp.o
+[88/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[89/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+[90/343] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[91/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+[92/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+[93/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[94/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_walk_seam.cpp.o
+[95/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+[96/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_anti_cycling_arm.cpp.o
+[97/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_degeneracy_arm.cpp.o
+[98/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_flat_face_saddle.cpp.o
+[99/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_exit.cpp.o
+[100/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_standstill_retreat.cpp.o
+[101/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_unrun_dependency_test.cpp.o
+[102/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_convex_certificate.cpp.o
+[103/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_ascent_guard.cpp.o
+[104/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_border_certificate.cpp.o
+[105/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_implied_blocker.cpp.o
+[106/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_rank_repair.cpp.o
+[107/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_refused_exchange.cpp.o
+[108/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_certificate_sign.cpp.o
+[109/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_saddle_shift.cpp.o
+[110/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_stagnation_stop.cpp.o
+[111/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_route_reference.cpp.o
+[112/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/qp/test_qp_latch_reason.cpp.o
+[113/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/CMakeFiles/hven.dir/cmake_pch.hxx.cxx.o
+[114/343] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[115/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/version.cpp.o
+[116/343] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[117/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[118/343] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[119/343] Building CXX object tests/CMakeFiles/hven_qp_walk_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[120/343] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[121/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/pattern_hash.cpp.o
+[122/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/ledger.cpp.o
+[123/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/dense_symmetric_factor.cpp.o
+[124/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/pardiso_session.cpp.o
+[125/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/kkt/kkt_calls.cpp.o
+[126/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/linear/symmetric_factor_mkl.cpp.o
+[127/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/core/enum_names.cpp.o
+[128/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/validation_errors.cpp.o
+[129/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_model_assembly.cpp.o
+[130/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solve_status.cpp.o
+[131/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp.cpp.o
+[132/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/assembly_declaration.cpp.o
+[133/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_problem_model.cpp.o
+[134/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solve_result.cpp.o
+[135/343] Linking CXX static library libhven.a
+[136/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/callback_rows.cpp.o
+[137/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/result_message.cpp.o
+[138/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+[139/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+[140/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_handle.cpp.o
+[141/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/solver_init.cpp.o
+[142/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_options.cpp.o
+[143/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/common_options.cpp.o
+[144/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/color_text.cpp.o
+[145/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/get_core_count.cpp.o
+[146/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/problem.cpp.o
+[147/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/kkt_factorization.cpp.o
+[148/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/nlp_adapter.cpp.o
+[149/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/model/non_linear_program.cpp.o
+[150/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/thread_pool.cpp.o
+[151/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/interior/utils/memory_management.cpp.o
+[152/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/assembly_eval_seam.cpp.o
+[153/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/problem_scaling.cpp.o
+[154/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/equality_basis.cpp.o
+[155/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/console_trace_sink.cpp.o
+[156/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[157/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_solver_handle.cpp.o
+[158/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_print.cpp.o
+[159/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/src/drivers/sqp_solver.cpp:6316:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6316 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[160/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/trace_writer.cpp.o
+[161/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[162/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/lbfgs_damped.cpp.o
+[163/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/funnel.cpp.o
+[164/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/mixed_lift.cpp.o
+[165/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/qn_lift_bridge.cpp.o
+[166/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/qn_models.cpp.o
+[167/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[168/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ipqp_kkt_layout.cpp.o
+[169/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ws_independence.cpp.o
+[170/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/ssn_engine.cpp.o
+[171/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/continuation.cpp.o
+[172/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/warm_start.cpp.o
+[173/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[174/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/qp/qp_engine.cpp.o
+[175/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/ipm_polish_extension.cpp.o
+[176/343] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[177/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/warmstart/warm_start_data.cpp.o
+[178/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_ladder_seams.cpp.o
+[179/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_sqp_equality_basis_seams.cpp.o
+[180/343] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_backend_error_seams.cpp.o
+[181/343] Linking CXX static library lib/libgmock.a
+[182/343] Linking CXX static library lib/libgtest_main.a
+[183/343] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[184/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/pardiso_recorder.cpp.o
+[185/343] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+[186/343] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/build-b6r/offref/tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx:22:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:104:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  104 |     EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubDefectFamily<3>>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:111:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  111 |     EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubConstraintOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:117:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  117 |     EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubScalarObjective>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:127:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  127 |     EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubMixinConstraintOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:141:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  141 |     EXPECT_EQ(typeid(oi.storage_.get()), typeid(ObjectiveModel<StubMixinObjectiveOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:150:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  150 |     EXPECT_EQ(typeid(ci.storage_.get()), typeid(ConstraintModel<StubAdapterMissingObjective>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/interior/test_solver_interface_adapter.cpp:187:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  187 |     EXPECT_EQ(typeid(copy.storage_.get()), typeid(ConstraintModel<StubDefectFamily<2>>));
+      |                      ^
+7 warnings generated.
+[187/343] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+[188/343] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+[189/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_callback.cpp:537:71: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  537 |                     e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x),
+      |                                                                       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/detail/model/nlp_model.h:83:7: note: 'eval_grad' has been explicitly marked deprecated here
+   83 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_callback.cpp:538:23: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  538 |                     m.eval_jac_e(e.x), m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(),
+      |                       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/detail/model/nlp_model.h:111:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  111 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_callback.cpp:538:42: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  538 |                     m.eval_jac_e(e.x), m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(),
+      |                                          ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/detail/model/nlp_model.h:115:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  115 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_callback.cpp:538:61: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  538 |                     m.eval_jac_e(e.x), m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(),
+      |                                                             ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/detail/model/nlp_model.h:87:7: note: 'eval_ce' has been explicitly marked deprecated here
+   87 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_callback.cpp:538:77: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  538 |                     m.eval_jac_e(e.x), m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(),
+      |                                                                             ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/detail/model/nlp_model.h:91:7: note: 'eval_ci' has been explicitly marked deprecated here
+   91 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[190/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+[191/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+[192/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o
+[193/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+[194/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+[195/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+[196/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::IpmLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::IpmTerminationOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::CommonOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::solvers::CommonOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+7 warnings generated.
+[197/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+[198/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/expected_table.cpp.o
+[199/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o
+[200/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_sqp.cpp.o
+[201/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_interior_point.cpp.o
+[202/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+[203/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_sqp.cpp.o
+[204/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_status.cpp.o
+[205/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_interior_point.cpp.o
+[206/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_problem.cpp.o
+[207/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/fail_by_design_control.cpp.o
+[208/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/fail_by_design_control.cpp.o
+[209/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/test_audit_shim.cpp.o
+[210/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+[211/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/report_main.cpp.o
+[212/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o
+[213/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/support/fake_aggregate.cpp.o
+[214/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+[215/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_claim_stream_restatement.cpp.o
+[216/343] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+[217/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_aggregate_contract.cpp.o
+[218/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_claim_stream_state.cpp.o
+[219/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_local_block_include.cpp.o
+[220/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_model_structure_key.cpp.o
+[221/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_contract_flags.cpp.o
+[222/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_identity_probe.cpp.o
+[223/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_model_surface_kkt.cpp.o
+[224/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_nlp_model_assembly.cpp.o
+[225/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_structure_epoch.cpp.o
+[226/343] Building CXX object examples/CMakeFiles/hven_example_02_bounded_rosenbrock.dir/02_bounded_rosenbrock.cpp.o
+[227/343] Building CXX object examples/CMakeFiles/hven_example_01_hs071_both_engines.dir/01_hs071_both_engines.cpp.o
+[228/343] Building CXX object bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+[229/343] Building CXX object examples/CMakeFiles/hven_example_03_equality_constrained.dir/03_equality_constrained.cpp.o
+[230/343] Building CXX object examples/CMakeFiles/hven_example_04_partitioned_chain.dir/04_partitioned_chain.cpp.o
+[231/343] Building CXX object bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+[232/343] Building CXX object bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+[233/343] Building CXX object bench/CMakeFiles/hven_sqp_snopt_f7.dir/bench_snopt_f7.cpp.o
+[234/343] Building CXX object examples/CMakeFiles/hven_example_06_ipm_to_sqp_polish.dir/06_ipm_to_sqp_polish.cpp.o
+[235/343] Building CXX object examples/CMakeFiles/hven_example_05_warm_continuation.dir/05_warm_continuation.cpp.o
+[236/343] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[237/343] Building CXX object examples/CMakeFiles/hven_example_07_sqp_quasi_newton.dir/07_sqp_quasi_newton.cpp.o
+[238/343] Building CXX object examples/CMakeFiles/hven_example_08_results_trace_options.dir/08_results_trace_options.cpp.o
+[239/343] Linking CXX static library lib/libgmock_main.a
+[240/343] Linking CXX executable bench/hven_sqp_snopt_f7
+[241/343] Linking CXX executable tests/hven_ipqp_seam_tests
+[242/343] Linking CXX executable bench/hven_sqp_bench
+[243/343] Linking CXX executable tests/hven_fault_injection_tests
+[244/343] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[245/343] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[246/343] Linking CXX executable bench/hven_sqp_f7_cold
+[247/343] Linking CXX executable tests/hven_qp_walk_seam_tests
+[248/343] Linking CXX executable tests/hven_sqp_seam_tests
+[249/343] Linking CXX executable tests/hven_tests
+[250/343] Linking CXX executable tests/drivers/hven_drivers_tests
+[251/343] Linking CXX executable tests/interior/hven_interior_tests
+[252/343] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[253/343] Linking CXX executable examples/hven_example_01_hs071_both_engines
+[254/343] Linking CXX executable examples/hven_example_08_results_trace_options
+[255/343] Linking CXX executable examples/hven_example_03_equality_constrained
+[256/343] Linking CXX executable examples/hven_example_04_partitioned_chain
+[257/343] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[258/343] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[259/343] Linking CXX executable examples/hven_example_05_warm_continuation
+[260/343] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+[261/343] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[262/343] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[263/343] Linking CXX executable tests/golden_rig/hven_golden_rig
+[264/343] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_pieces.cpp.o
+[265/343] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[266/343] Linking CXX executable bench/hven_sqp_crossover
+[267/343] Linking CXX executable tests/model/hven_model_tests
+[268/343] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[269/343] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[270/343] Linking CXX executable bench/hven_sqp_corpus
+[271/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_accelerate_probes.cpp.o
+[272/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+[273/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_witness_start.cpp.o
+[274/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o
+[275/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+[276/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+[277/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o
+[278/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+[279/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+[280/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+[281/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o
+[282/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+[283/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_column_scaling.cpp.o
+[284/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/sqp/test_eqp_refine_ab.cpp:142:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  142 |     switch (s) {
+      |             ^
+1 warning generated.
+[285/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+[286/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+[287/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_equality_basis.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/sqp/test_equality_basis.cpp:341:32: warning: 'jacobiSvd' is deprecated: Options should be specified using method's template parameter. [-Wdeprecated-declarations]
+  341 |         Eigen::MatrixXd(qp.Ae).jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(qp.be);
+      |                                ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/MatrixBase.h:377:42: note: 'jacobiSvd' has been explicitly marked deprecated here
+  377 |   inline JacobiSVD<PlainObject, Options> jacobiSvd(unsigned int computationOptions) const;
+      |                                          ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/sqp/test_equality_basis.cpp:341:32: warning: 'jacobiSvd<0>' is deprecated: Options should be specified using method's template parameter. [-Wdeprecated-declarations]
+  341 |         Eigen::MatrixXd(qp.Ae).jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(qp.be);
+      |                                ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/MatrixBase.h:376:3: note: 'jacobiSvd<0>' has been explicitly marked deprecated here
+  376 |   EIGEN_DEPRECATED_WITH_REASON("Options should be specified using method's template parameter.")
+      |   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/util/Macros.h:965:62: note: expanded from macro 'EIGEN_DEPRECATED_WITH_REASON'
+  965 | #define EIGEN_DEPRECATED_WITH_REASON(message) __attribute__((deprecated(message)))
+      |                                                              ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/DenseBase.h:94:3: note: unnamed type used in template argument was declared here
+   94 |   enum {
+      |   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/DenseBase.h:94:3: note: unnamed type used in template argument was declared here
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/DenseBase.h:94:3: note: unnamed type used in template argument was declared here
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/dep/eigen/Eigen/src/Core/DenseBase.h:94:3: note: unnamed type used in template argument was declared here
+2 warnings generated.
+[288/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_lbfgs_damped.cpp.o
+[289/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o
+[290/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+[291/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+[292/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_mu0_rule.cpp.o
+[293/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-a79f97c30e3369bfe/tests/sqp/test_hs_battery.cpp:240:13: warning: 6 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  240 |     switch (s) {
+      |             ^
+1 warning generated.
+[294/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_kkt_layout.cpp.o
+[295/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_ladder_skip.cpp.o
+[296/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+[297/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[298/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+[299/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+[300/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+[301/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o
+[302/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+[303/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+[304/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_assembly.cpp.o
+[305/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_partial_solve.cpp.o
+[306/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_inertia_probe.cpp.o
+[307/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_kkt_calls.cpp.o
+[308/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+[309/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+[310/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+[311/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+[312/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[313/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qn_models.cpp.o
+[314/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_model.cpp.o
+[315/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[316/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_ws_independence.cpp.o
+[317/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_border.cpp.o
+[318/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine.cpp.o
+[319/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+[320/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_indefinite.cpp.o
+[321/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[322/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_engine_tr.cpp.o
+[323/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_warm_start.cpp.o
+[324/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scaffold.cpp.o
+[325/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+[326/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_qn_mode.cpp.o
+[327/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[328/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_schur.cpp.o
+[329/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_equality_basis.cpp.o
+[330/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+[331/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_lift_oracle.cpp.o
+[332/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[333/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_start_point_projection.cpp.o
+[334/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+[335/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[336/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_types.cpp.o
+[337/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+[338/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+[339/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[340/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_snopt_bridge_gate.cpp.o
+[341/343] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o
+[342/343] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[343/343] Linking CXX executable tests/sqp/hven_sqp_tests

@@ -6,7 +6,8 @@
 // still to its minor cap -- full steps back and forth on one working set, inertia kOk, on a
 // face the bound-eliminated path certifies in a handful of minors -- because the bordered
 // refinement's footprint stop left an answer far less accurate than the eliminated one:
-//   * BPS_ACOPR118_qp26 (F81's ACOPR118 arm lane, solve 26, in-cell kMaxIter): the refinement
+//   * BPS_ACOPR118_qp26 (F81's ACOPR118 arm lane, solve 26, in-cell kIterationLimit): the
+//   refinement
 //     DIVERGES along the face's soft direction and stops above its own target with the answer
 //     0.83 off; the walk takes ascending full steps of 0.12. TARGET MET fails, the pass takes
 //     the eliminated twin, and the face is certified in 3 minors.
@@ -36,18 +37,19 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::test_support::QpDump;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-QpSolution solve_fixture(const char *file, WorkingSetLinearAlgebra alg, QpDump &d) {
+QpSolution solve_fixture(const char *file, QpWorkingSetAlgebra alg, QpDump &d) {
     d = hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     EXPECT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const QpSolution s = hven::test_support::solve_qp_dump(d, o);
     std::printf("[ bps ] %s %s status=%d minors=%ld facts=%ld f=%.12g fallbacks=%ld refine=%ld\n",

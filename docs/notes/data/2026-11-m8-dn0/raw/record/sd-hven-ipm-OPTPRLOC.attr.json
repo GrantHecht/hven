@@ -1,0 +1,160 @@
+{
+ "samples": 2356,
+ "period": 1000003,
+ "instr_sampled_all": 2356007068,
+ "instr_sampled_solver": 2352007056,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 13000039,
+  "B_kkt": 1000003,
+  "B_eval": 4000012,
+  "B_setup": 2332006996,
+  "B_eng": 2000006,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0055272108843537416,
+  "B_kkt": 0.00042517006802721087,
+  "B_eval": 0.0017006802721088435,
+  "B_setup": 0.9914965986394558,
+  "B_eng": 0.0008503401360544217
+ },
+ "proc_share_of_all": 0.001697792869269949,
+ "rule_instr": 2356007068,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9932088285229203,
+ "init_instr": 2329006987,
+ "steady_state_instr": 23000069,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5652173913043478,
+  "B_kkt": 0.043478260869565216,
+  "B_eval": 0.17391304347826086,
+  "B_setup": 0.13043478260869565,
+  "B_eng": 0.08695652173913043
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   13000039
+  ]
+ ],
+ "mkl_serv_instr": 2329006987,
+ "kmp_instr": 11000033,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    4000012
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_matching_core",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_ldindx_pardiso_mic",
+    1000003
+   ],
+   [
+    "mkl_blas_def_dgemm_pst",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklbw_pardiso",
+    1000003
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "cutest_ccfsg_threadsafe_",
+    1000003
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    1000003
+   ],
+   [
+    "elfun_",
+    1000003
+   ],
+   [
+    "hven::detail::NlpProblemModel::sync_x",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1445004335
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    676002028
+   ],
+   [
+    "__vdso_time",
+    114000342
+   ],
+   [
+    "difftime@plt",
+    88000264
+   ],
+   [
+    "time@plt",
+    6000018
+   ],
+   [
+    "_gfortrani_read_block_form",
+    2000006
+   ],
+   [
+    "_gfortrani_read_f",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    2000006
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ]
+  ]
+ }
+}

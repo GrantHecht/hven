@@ -1,0 +1,37 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T22:35:23-05:00
+HB_PATCH_D_OK
+ cmake/hven_pin.cmake           | 6 +++---
+ lanes/hven/hven_bench_cell.cpp | 2 ++
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+17f177c EVIDENCE-ONLY (local clone, never pushed): pin hven 5da042122 (M8 DN-1c code head, branch m8-dn1c) + one SQP side column (hven docs/notes/data/2026-11-m8-dn1c-sqp-check/sl/hb_patch_d.py)
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+5751a59 EVIDENCE-ONLY (local clone, never pushed): M8 DN-1 S/M legs -- dense-/t0- label prefixes and four side columns (hven docs/notes/data/2026-11-m8-dn1-impl/dn1legs/hb_patch.py)
+FOREGROUND_START build_hven_pin 5da042122d89 2026-11-10T03:35:23Z
+build_hven_pin: installed 5da042122d89 into /home/ghecht/Projects/hven-bench-dn1/.hven/install-5da042122d89
+HVEN_PIN_SHA 5da042122d89cc29c22a7de00aaeec2fe27f73ef
+HVEN_PIN_BRANCH m8-dn1c
+HVEN_PIN_DATE 2026-11-10
+HVEN_BUILT_UTC 2026-11-10T03:35:56Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+FOREGROUND_END build_hven_pin 5da042122d89 2026-11-10T03:35:56Z
+80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc  /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/dn1cbin/hven_bench_cell
+80e9871193a8824a252da5ac812a334b55379d2b708ac5845f590b0c9a8ccefc  /home/ghecht/Projects/hven/.claude/worktrees/dn1c/build-dn1ce/dn1cbin/hven_bench_cell
+HVEN_PIN_SHA 5da042122d89cc29c22a7de00aaeec2fe27f73ef
+HVEN_PIN_BRANCH m8-dn1c
+HVEN_PIN_DATE 2026-11-10
+HVEN_BUILT_UTC 2026-11-10T03:35:56Z
+HVEN_CXX_COMPILER clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+HVEN_EIGEN_ALIGN EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+HVEN_CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=OFF -DHVEN_LINK_TIME_OPT=OFF
+OPTIONS_LABEL hven-ipm default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-ipm dense-default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-sqp default
+OPTIONS_VERDICT accepted
+OPTIONS_LABEL hven-sqp dense-default
+OPTIONS_VERDICT accepted
+FOREGROUND_END 2026-11-09T22:36:05-05:00

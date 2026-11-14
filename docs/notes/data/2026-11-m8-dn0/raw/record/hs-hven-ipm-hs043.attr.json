@@ -1,0 +1,97 @@
+{
+ "samples": 2483,
+ "period": 1000003,
+ "instr_sampled_all": 2483007449,
+ "instr_sampled_solver": 2478007434,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 2000006,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 2476007428,
+  "B_eng": 0,
+  "B_proc": 5000015
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0008071025020177562,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9991928974979822,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.002013693113169553,
+ "rule_instr": 2483007449,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9975835682641966,
+ "init_instr": 2476007428,
+ "steady_state_instr": 2000006,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 1.0,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.0,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   2000006
+  ]
+ ],
+ "mkl_serv_instr": 2477007431,
+ "kmp_instr": 2000006,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__intel_avx_rep_memset",
+    1000003
+   ],
+   [
+    "mkl_serv_realloc",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    1549004647
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    710002130
+   ],
+   [
+    "__vdso_time",
+    112000336
+   ],
+   [
+    "difftime@plt",
+    100000300
+   ],
+   [
+    "time@plt",
+    5000015
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4000012
+   ],
+   [
+    "memcpy@@GLIBC_2.14",
+    1000003
+   ]
+  ]
+ }
+}

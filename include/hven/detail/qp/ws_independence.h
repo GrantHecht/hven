@@ -82,7 +82,7 @@
 #include <hven/detail/qp/working_set.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 constexpr double kDepTol = 1e-6;
 constexpr double kDepUndecidable = 1e-3;
@@ -338,6 +338,22 @@ constexpr Index kRankDenseRows = 1000;
 constexpr double kRankReleaseTol = 1e-8;
 constexpr double kRankConsistencyFactor = 10.0;
 
+/// @brief True iff the rank repair refuses its Gram factorization of G + tI (mr rows): a failed
+/// status or a perturbed pivot on either arm; on the dense arm (no detector and no perturbation
+/// report under kSparseFallback) also any inertia but (mr, 0) observed, G + tI being positive
+/// definite.
+inline bool rank_gram_factor_refused(const hven::linear::FactorizeOutcome &fo, Index mr) {
+    if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
+        (fo.inertia.perturbed_pivots.has_value() && *fo.inertia.perturbed_pivots != 0)) {
+        return true;
+    }
+    if (fo.arm == hven::linear::FactorArm::kDense) {
+        return !(fo.inertia.state == hven::linear::InertiaEvidence::State::kObserved &&
+                 fo.inertia.positive == mr && fo.inertia.negative == 0);
+    }
+    return false;
+}
+
 struct RankRepair {
     enum class Outcome : std::uint8_t {
         kFullRank, // no optional dependency (none, or the mandatory rows' own consistent one)
@@ -352,13 +368,18 @@ struct RankRepair {
     std::vector<char> release_consistent;
     Index deficiency = 0;         // null directions found (mandatory ones included)
     Index inconsistent_steps = 0; // releases chosen by the inconsistency's orientation
+    // The Gram factor's factorizations on the dense arm (0 or 1; QpCounters'
+    // dense_factorizations).
+    Index dense_factorizations = 0;
 };
 
 /// The dead-end rank repair's analysis of `ws` (above); reads `opts.feas_tol` only. `threads` is
 /// the owning engine's (sqp_kkt_options). `block_cap` is the block-entry cap above which the
 /// analysis refuses (production: kRankBlockCap; a parameter so a test can reach the refusal
-/// without a multi-gigabyte block). Writes nothing.
+/// without a multi-gigabyte block). `dense` is the owning engine's dense-arm policy, taken by
+/// the Gram factor through the same factory. Writes nothing.
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads, double block_cap = kRankBlockCap);
+                       const QpOptions &opts, int threads, double block_cap = kRankBlockCap,
+                       hven::linear::DensePolicy dense = hven::linear::DensePolicy::kNever);
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

@@ -1,0 +1,18 @@
+M8 AP-5 G1 -- DECLARATION-r2 (successor of DECLARATION.txt; committed before its leg; never edited afterwards)
+================================================================================
+WHY       DECLARATION.txt's chain (run 1, chain-run1.out, evidence commit d004665ac) passed P1, P3, P4 and P5 and
+          FAILED P8 at CONFIGURE, before any test ran: legs/tsan.sh set no C compiler, CMake defaulted to /usr/bin/cc
+          (GCC), and GCC's ThreadSanitizer runtime (libtsan) is not installed on this box, so CMake's C compiler probe
+          failed to link with -fsanitize=thread (tsan/tsan-configure.log). An instrument defect, not a code result.
+          A pre-r2 toolchain probe (not a leg): clang and clang++ link and run a trivial -fsanitize=thread program.
+UNCHANGED Everything in DECLARATION.txt: spec, base 030bae675, code head 08afb7f3d, arm A / arm B sha256, the change,
+          the column map, D1-D9, and every criterion P0-P8, word for word. Run 1's P0-P5 evidence stands (same code
+          head, same binaries; the runtime gate P2 PASS at 9e880bf3f, the chain's legs at d004665ac); r2 does NOT
+          re-run them.
+CHANGED   ONE instrument: legs/tsan-r2.sh = legs/tsan.sh with -DCMAKE_C_COMPILER=/usr/bin/clang added to the configure
+          line and its own fresh tree build-g1/tsan-r2 (build-g1/tsan, the failed configure, left as it is). Evidence
+          directory tsan-r2/; driver legs/chain-r2.sh (chain.sh's two source guards against the code head, then
+          tsan-r2.sh alone, under `flock /tmp/box-build.lock`, `pgrep -a hven_bench_cell` empty first).
+P8 (r2)   As DECLARATION.txt's P8, criterion unchanged: build-g1/tsan-r2, -fsanitize=thread, hven_drivers_tests, filter
+          StopToken.*:StopTokenSolve.T2*:StopTokenSolve.T10*: exit 0 and 0 "WARNING: ThreadSanitizer" lines.
+ON FAIL   stop, commit the evidence, report; any further run is DECLARATION-r3; criteria unchanged.

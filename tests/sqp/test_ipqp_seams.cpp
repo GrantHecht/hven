@@ -18,13 +18,16 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/detail/linear/fault_injection.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/drivers/trace.h>
 
 #include "support/indefinite_fixtures.h"
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 namespace {
 
 using hven::linear::InertiaEvidence;
@@ -79,7 +82,7 @@ Vec vec(const std::vector<double> &v) {
 
 QpOptions tight_opts() {
     QpOptions o;
-    o.tr_radius = kInf;
+    o.trust_region_radius = kInf;
     return o;
 }
 
@@ -125,7 +128,8 @@ QpProblem weakly_active_indefinite_qp_at(double sigma, double h, double mu_stop)
 double gate8_mu_stop() {
     IpqpEngine probe(tight_opts());
     return probe
-        .solve(weakly_active_indefinite_qp(1.0e-4, -1.0), nullptr, IpqpOptions{}, SolveOverrides{})
+        .solve(weakly_active_indefinite_qp(1.0e-4, -1.0), nullptr, IpqpOptions{},
+               QpSolveOverrides{})
         .mu;
 }
 
@@ -135,9 +139,9 @@ double gate8_mu_stop() {
 InertiaEvidence unusable(InertiaEvidence::State state) {
     InertiaEvidence e;
     e.state = state;
-    e.n_pos = -1;
-    e.n_neg = -1;
-    e.n_zero = -1;
+    e.positive = -1;
+    e.negative = -1;
+    e.zero = -1;
     e.zero_is_derived = false;
     e.perturbed_pivots = std::nullopt;
     return e;
@@ -149,9 +153,9 @@ InertiaEvidence unusable(InertiaEvidence::State state) {
 InertiaEvidence perturbed(Index n_pos, Index n_neg) {
     InertiaEvidence e;
     e.state = InertiaEvidence::State::kObserved;
-    e.n_pos = n_pos;
-    e.n_neg = n_neg;
-    e.n_zero = 0;
+    e.positive = n_pos;
+    e.negative = n_neg;
+    e.zero = 0;
     e.zero_is_derived = true;
     e.perturbed_pivots = 3;
     return e;
@@ -161,13 +165,13 @@ InertiaEvidence perturbed(Index n_pos, Index n_neg) {
 /// test_ipqp_trace.cpp's), so the seam pin below stays self-contained.
 class RecordingIterSink : public TraceSink {
   public:
-    std::vector<IpqpTraceIterEvent> iters;
-    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    std::vector<IpqpIterTraceEvent> iters;
+    void on_ipqp_iter(const IpqpIterTraceEvent &e) override { iters.push_back(e); }
+    void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
+    void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
+    void on_ipqp_route(const IpqpRouteTraceEvent &) override {}
+    void on_ipqp_certify(const IpqpCertifyTraceEvent &) override {}
+    void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
 };
@@ -199,7 +203,7 @@ TEST_F(IpqpSeamTest, WithNothingInjectedTheTierSolvesExactlyAsItDoesInProduction
     // own presence rather than the injected scenario.
     Observer::active = true;
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(r.status, QpStatus::kOptimal);
     EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
@@ -244,7 +248,7 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         Observer::active = true;
 
         IpqpEngine tier(tight_opts());
-        const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+        const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
         // THE INJECTION HAPPENED.
         ASSERT_GT(Injector::injections, 0);
@@ -270,9 +274,9 @@ TEST_F(IpqpSeamTest, AnUnusableEvidenceStateStepsAtAConservativeFloorAndDowngrad
         // backend would have handed it: invalid counts and an ABSENT pivot
         // count, not a plausible-looking zero.
         EXPECT_EQ(Observer::last_injected.state, state);
-        EXPECT_EQ(Observer::last_injected.n_pos, -1);
-        EXPECT_EQ(Observer::last_injected.n_neg, -1);
-        EXPECT_EQ(Observer::last_injected.n_zero, -1);
+        EXPECT_EQ(Observer::last_injected.positive, -1);
+        EXPECT_EQ(Observer::last_injected.negative, -1);
+        EXPECT_EQ(Observer::last_injected.zero, -1);
         EXPECT_FALSE(Observer::last_injected.perturbed_pivots.has_value());
         // The item 4 read was NOT injected on this arm and the observer proves it, which is what
         // makes the outcome above a statement about the MID-SOLVE policy alone.
@@ -289,20 +293,20 @@ TEST_F(IpqpSeamTest, TheConservativeFloorIsPaidOnceAndTheSolveStillFinishes) {
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_TRUE(r.inertia_evidence_failed);
 
     // The clean solve of the same problem, for the comparison.
     Injector::reset();
     IpqpEngine clean(tight_opts());
-    const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(c.status, QpStatus::kOptimal);
 
     // THE FLOOR IS THE LADDER'S ABSOLUTE FIRST RUNG, and the solve still reaches the SAME ANSWER
     // as the clean one rather than the proximally biased point a level-proportional floor gives.
     // Decision 1 and the `rho * 100` measurement behind it: `.superpowers/w1-t5-report.md`.
     EXPECT_DOUBLE_EQ(r.counters.ipqp_rho_demanded_max, detail::kIpqpEvidenceFailureRhoFloor);
-    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.ipqp_hard_iter_cap);
+    EXPECT_LT(r.counters.ipqp_iters, IpqpOptions{}.hard_max_iterations);
     EXPECT_NEAR(r.x(0), c.x(0), 1e-6);
     EXPECT_NEAR(r.x(1), c.x(1), 1e-6);
     // The extra factorizations the policy bought are BOUNDED and small: the
@@ -318,9 +322,9 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     // only the observer makes it checkable. Injected here: a GOOD reading with the count absent.
     InertiaEvidence e;
     e.state = InertiaEvidence::State::kObserved;
-    e.n_pos = 3; // n + mi = 2 + 1
-    e.n_neg = 2; // me + mi = 1 + 1
-    e.n_zero = 0;
+    e.positive = 3; // n + mi = 2 + 1
+    e.negative = 2; // me + mi = 1 + 1
+    e.zero = 0;
     e.zero_is_derived = true;
     e.perturbed_pivots = std::nullopt;
 
@@ -329,12 +333,12 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     Observer::active = true;
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_GT(Injector::injections, 0);
     EXPECT_FALSE(Observer::last.perturbed_pivots.has_value()); // nullopt, NEVER 0
-    EXPECT_EQ(Observer::last.n_pos, 3);
-    EXPECT_EQ(Observer::last.n_neg, 2);
+    EXPECT_EQ(Observer::last.positive, 3);
+    EXPECT_EQ(Observer::last.negative, 2);
     // The signature agreed and the pivot count was absent rather than
     // nonzero, so nothing here is a reason to withhold a certificate.
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
@@ -351,7 +355,7 @@ TEST_F(IpqpSeamTest, AnAbsentPerturbedPivotCountReachesTheTierAsAbsentAndNotAsZe
     Injector::active = true;
     Injector::evidence = p;
     IpqpEngine tier2(tight_opts());
-    const IpqpResult r2 = tier2.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r2 = tier2.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_NE(r2.status, QpStatus::kOptimal);
     // A perturbed reading on EVERY factorization exhausts the `delta` ladder -- no shift stops a
     // fabricated perturbation report -- so the solve never reaches the item 4 read at all.
@@ -390,7 +394,7 @@ TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPri
     Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(armed_saddle_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(armed_saddle_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_GT(Injector::injections, 0) << "the injection must have applied, or nothing is tested";
 
@@ -411,9 +415,9 @@ TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPri
     Injector::evidence = perturbed(/*n_pos=*/2, /*n_neg=*/0);
     Injector::on_iteration_reads = true;
     IpqpOptions capped;
-    capped.ipqp_max_factorizations = 3; // the two real reads plus one
+    capped.max_factorizations = 3; // the two real reads plus one
     IpqpEngine tier2(tight_opts());
-    const IpqpResult r2 = tier2.solve(armed_saddle_qp(), nullptr, capped, SolveOverrides{});
+    const IpqpResult r2 = tier2.solve(armed_saddle_qp(), nullptr, capped, QpSolveOverrides{});
     EXPECT_EQ(r2.counters.ipqp_factorizations, 3);
     EXPECT_LE(r2.counters.ipqp_pivot_reroute_primal, detail::kIpqpPivotReroutePrimalMax);
 
@@ -425,7 +429,7 @@ TEST_F(IpqpSeamTest, AnUNCLEARABLEPerturbationFallsBackToTheDualShiftAfterTwoPri
     Injector::active = true;
     Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
     IpqpEngine tier3(tight_opts());
-    const IpqpResult r3 = tier3.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r3 = tier3.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r3.counters.ipqp_pivot_reroute_primal, 0);
     EXPECT_EQ(r3.counters.ipqp_pivot_reroute_dual_fallback, 0);
     EXPECT_EQ(r3.escape_reason, IpqpEscape::kNumerical);
@@ -442,7 +446,7 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
     Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(Injector::injections, 1) << "exactly one read was corrupted";
     // The escalation really happened: one extra rejection and one extra
@@ -456,7 +460,7 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 0);
     // THE SCHEDULE'S OWN DUAL VALUE IS WHAT LEAVES THE SOLVE, never the
     // escalated one.
-    EXPECT_LE(r.delta, IpqpOptions{}.ipqp_delta_init);
+    EXPECT_LE(r.delta, IpqpOptions{}.dual_regularization_initial);
 
     // THE PIN IS THE INJECTED SOLVE'S EXACT TRAJECTORY, not the clean solve's -- `delta`
     // legitimately changes the recovering factorization's matrix. The round-1 wiring moves it;
@@ -465,7 +469,7 @@ TEST_F(IpqpSeamTest, AStepTakenAfterADeltaEscalationIsBuiltFromTheSCHEDULEsDelta
     Injector::reset();
     Observer::reset();
     const IpqpResult clean =
-        clean_tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+        clean_tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(clean.x.size(), r.x.size());
     EXPECT_EQ(clean.counters.ipqp_inertia_retries, 0)
         << "the clean solve pays no rejection -- the injection is the whole difference";
@@ -494,7 +498,7 @@ TEST_F(IpqpSeamTest, ATerminalUNREADABLEFinalReadIsTwoAndEscapesNumerical) {
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(Injector::injections, 1);      // exactly the one certification read
     EXPECT_FALSE(r.inertia_evidence_failed); // no MID-solve failure happened
@@ -516,7 +520,7 @@ TEST_F(IpqpSeamTest, ATerminalPERTURBEDFinalReadIsAlsoTwoAndAlsoEscapesNumerical
     Injector::evidence = perturbed(/*n_pos=*/3, /*n_neg=*/2);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(Injector::injections, 1);
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 2);
@@ -528,7 +532,7 @@ TEST_F(IpqpSeamTest, ATerminalPERTURBEDFinalReadIsAlsoTwoAndAlsoEscapesNumerical
     // guarded solve) down on the perturbed path too.
     Injector::reset();
     IpqpEngine clean(tight_opts());
-    const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult c = clean.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
     EXPECT_EQ(r.counters.ipqp_factorizations, c.counters.ipqp_factorizations);
 }
 
@@ -538,9 +542,9 @@ TEST_F(IpqpSeamTest, AWrongTerminalReadStaysIndefiniteAndIsNotFoldedIntoNumerica
     // the numerical class the two unusable states above land in.
     InertiaEvidence wrong;
     wrong.state = InertiaEvidence::State::kObserved;
-    wrong.n_pos = 2; // one short of n + mi = 3, and n_pos + n_neg still == dim
-    wrong.n_neg = 3;
-    wrong.n_zero = 0;
+    wrong.positive = 2; // one short of n + mi = 3, and n_pos + n_neg still == dim
+    wrong.negative = 3;
+    wrong.zero = 0;
     wrong.zero_is_derived = true;
     wrong.perturbed_pivots = 0;
 
@@ -549,7 +553,7 @@ TEST_F(IpqpSeamTest, AWrongTerminalReadStaysIndefiniteAndIsNotFoldedIntoNumerica
     Injector::evidence = wrong;
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(Injector::injections, 1);
     EXPECT_EQ(r.counters.ipqp_final_inertia_read, 1);
@@ -569,7 +573,7 @@ TEST_F(IpqpSeamTest, TheSkipCountLetsASolveConvergeBeforeItsLastReadingIsCorrupt
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     EXPECT_EQ(Injector::injections, 0);
     EXPECT_EQ(r.status, QpStatus::kOptimal);
@@ -590,7 +594,7 @@ TEST_F(IpqpSeamTest, AMidSolveEvidenceFailureDowngradesReadKeptTightButLeavesThe
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
 
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(strong, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(strong, nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_GT(Injector::injections, 0);
     ASSERT_TRUE(r.certificate_downgraded);
@@ -618,7 +622,7 @@ TEST_F(IpqpSeamTest, AnUnavailableMidSolveReadingReachesTheTraceAsAbsentAndNeigh
     IpqpEngine tier(tight_opts());
     RecordingIterSink sink;
     tier.attach_trace(&sink);
-    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
 
     ASSERT_EQ(Injector::injections, 2) << "both reads of the affected iteration were corrupted";
     ASSERT_TRUE(r.inertia_evidence_failed);
@@ -627,7 +631,7 @@ TEST_F(IpqpSeamTest, AnUnavailableMidSolveReadingReachesTheTraceAsAbsentAndNeigh
     Index absent_count = 0, observed_count = 0;
     std::optional<std::size_t> absent_index;
     for (std::size_t i = 0; i < sink.iters.size(); ++i) {
-        const IpqpTraceIterEvent &ev = sink.iters[i];
+        const IpqpIterTraceEvent &ev = sink.iters[i];
         if (!ev.inertia.has_value()) {
             ++absent_count;
             absent_index = i;
@@ -696,7 +700,7 @@ CapturedIterate stage_once(const QpProblem &qp, const IpqpSeed &seed) {
     FirstIterate::reset();
     FirstIterate::active = true;
     IpqpEngine tier(tight_opts());
-    (void)tier.solve(qp, &seed, IpqpOptions{}, SolveOverrides{});
+    (void)tier.solve(qp, &seed, IpqpOptions{}, QpSolveOverrides{});
     CapturedIterate c;
     c.x = FirstIterate::x;
     c.s = FirstIterate::s;
@@ -723,7 +727,7 @@ TEST_F(IpqpSeamTest, StagingOneSeedTwiceFromColdGivesABitwiseIdenticalFirstItera
     // zero-repair invariant: the observer is the only thing that can see it.
     const QpProblem qp = convex_qp();
     IpqpEngine cold(tight_opts());
-    const IpqpResult base = cold.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
+    const IpqpResult base = cold.solve(qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
     ASSERT_EQ(base.status, QpStatus::kOptimal);
 
     const IpqpSeed seed = seed_from(base);
@@ -746,18 +750,18 @@ TEST_F(IpqpSeamTest, AnUnrepairedSeedReachesTheFirstIterateWithItsBoundDualsUNTO
     // MID-PATH seed, because at convergence the repair legitimately fires.
     const QpProblem qp = convex_qp();
     IpqpOptions short_run;
-    short_run.ipqp_hard_iter_cap = 3;
+    short_run.hard_max_iterations = 3;
     IpqpEngine cold(tight_opts());
-    const IpqpResult base = cold.solve(qp, nullptr, short_run, SolveOverrides{});
+    const IpqpResult base = cold.solve(qp, nullptr, short_run, QpSolveOverrides{});
     ASSERT_GT(base.counters.ipqp_iters, 0);
 
     const IpqpSeed seed = seed_from(base);
     FirstIterate::reset();
     FirstIterate::active = true;
     IpqpOptions no_repair;
-    no_repair.ipqp_warm_repair = false;
+    no_repair.warm_repair = false;
     IpqpEngine warm(tight_opts());
-    const IpqpResult r = warm.solve(qp, &seed, no_repair, SolveOverrides{});
+    const IpqpResult r = warm.solve(qp, &seed, no_repair, QpSolveOverrides{});
     ASSERT_EQ(FirstIterate::captures, 1);
     // Repair OFF still VALIDATES (T7 ruling R1), so a full-warm grade here is
     // the proof the seed was consumed rather than degraded to cold.
@@ -798,7 +802,7 @@ TEST_F(IpqpSeamTest, NoAcceptedStepIsAFixedPointTheStoppingGateCannotSee) {
         StepObserver::reset();
         StepObserver::active = true;
         IpqpEngine tier(tight_opts());
-        (void)tier.solve(row.qp, nullptr, IpqpOptions{}, SolveOverrides{});
+        (void)tier.solve(row.qp, nullptr, IpqpOptions{}, QpSolveOverrides{});
 
         EXPECT_GT(StepObserver::steps, 0) << "non-vacuity: steps were observed";
         RecordProperty(row.name,
@@ -831,10 +835,10 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     qp.lower = vec({-1.0});
     qp.upper = vec({1.0});
     IpqpOptions io;
-    io.ipqp_mu0_rule = IpqpMu0Rule::kComplementarity;
+    io.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
 
     IpqpEngine clean(tight_opts());
-    const IpqpResult c = clean.solve(qp, nullptr, io, SolveOverrides{});
+    const IpqpResult c = clean.solve(qp, nullptr, io, QpSolveOverrides{});
     ASSERT_EQ(c.counters.ipqp_mu0_derived, 1);
     ASSERT_FALSE(c.inertia_evidence_failed);
 
@@ -844,7 +848,7 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     Injector::max_injections = 2;
     Injector::evidence = unusable(InertiaEvidence::State::kQueryFailed);
     IpqpEngine tier(tight_opts());
-    const IpqpResult r = tier.solve(qp, nullptr, io, SolveOverrides{});
+    const IpqpResult r = tier.solve(qp, nullptr, io, QpSolveOverrides{});
 
     ASSERT_EQ(Injector::injections, 2) << "the injection must have applied to the estimate";
     EXPECT_EQ(r.counters.ipqp_mu0_fallbacks, 1);
@@ -854,4 +858,166 @@ TEST_F(IpqpSeamTest, AnUnreadableMu0EstimateFallsBackAndTheEvidenceFlagStaysArme
     EXPECT_GT(r.counters.ipqp_iters, 0) << "the solve continued from the kFixed start";
 }
 
-} // namespace hven::solvers
+// ---------------------------------------------------------------------------
+// The dense arm's singular reports (DenseSingularPolicy::kReport, the tier's policy under a dense
+// DensePolicy)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// A reading the dense detector FLAGGED: observed, correct counts, no perturbed-pivot count, the
+/// numerically_singular bit set.
+InertiaEvidence flagged(Index n_pos, Index n_neg) {
+    InertiaEvidence e;
+    e.state = InertiaEvidence::State::kObserved;
+    e.positive = n_pos;
+    e.negative = n_neg;
+    e.zero = 0;
+    e.zero_is_derived = false;
+    e.numerically_singular = true;
+    return e;
+}
+
+} // namespace
+
+TEST_F(IpqpSeamTest, AFlaggedTerminalReadIsPerturbedAndEscapesNumerical) {
+    // classify_inertia reads a flagged factor's inertia as kPerturbed -- not evidence -- whatever
+    // its counts say: the same `2` and kNumerical as a perturbed one. The counts are CORRECT.
+    Injector::active = true;
+    Injector::on_iteration_reads = false;
+    Injector::evidence = flagged(/*n_pos=*/3, /*n_neg=*/2);
+
+    IpqpEngine tier(tight_opts());
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
+
+    EXPECT_EQ(Injector::injections, 1);
+    EXPECT_EQ(r.counters.ipqp_final_inertia_read, 2);
+    EXPECT_TRUE(r.certificate_downgraded);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+}
+
+TEST_F(IpqpSeamTest, AnExactlySingularDenseFactorIsANumericReadNotASymbolicFailure) {
+    // Every dense attempt read as exactly singular (DenseFactorizeFaultInjector: kDenseSingular,
+    // no numerics -- a real exactly singular attempt's outcome under kReport). Each is a numeric
+    // read (Eigen::NumericalIssue), answered as kPerturbed by the tier's ladder, and the ONE
+    // symbolic analysis stands: a symbolic-failure reading would re-analyze per factorization.
+    using hven::linear::detail::testing::DenseFactorizeFaultInjector;
+    IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    DenseFactorizeFaultInjector::pass = 0;
+    DenseFactorizeFaultInjector::active = true;
+    const IpqpResult r = tier.solve(convex_qp(), nullptr, IpqpOptions{}, QpSolveOverrides{});
+    DenseFactorizeFaultInjector::active = false;
+
+    EXPECT_NE(r.status, QpStatus::kOptimal);
+    EXPECT_GE(r.counters.ipqp_factorizations, 2);
+    EXPECT_EQ(r.counters.ipqp_symbolic_analyses, 1);
+    EXPECT_EQ(r.dense_flagged_factorizations, r.counters.ipqp_factorizations);
+    EXPECT_EQ(r.dense_singular_refactors, 0);
+    EXPECT_EQ(r.dense_platform_retakes, 0);
+    EXPECT_EQ(r.counters.ipqp_solves, 0);
+}
+
+// ---------------------------------------------------------------------------
+// THE DENSE SOLVE CHECK'S RESPONSE (M8 DN-3a): a wrong dense step solve, by site
+// ---------------------------------------------------------------------------
+
+namespace {
+
+using DenseSolve = detail::testing::IpqpDenseSolveInjector;
+
+IpqpResult dense_convex_solve(const IpqpOptions &io = IpqpOptions{}) {
+    IpqpEngine tier(tight_opts(), 0, hven::linear::DensePolicy::kAlways);
+    return tier.solve(convex_qp(), nullptr, io, QpSolveOverrides{});
+}
+
+// The rule under which the solve-entry mu-estimate solve runs (the default skips it), with a
+// barrier ceiling this fixture's estimate falls under, so the estimate is adopted when its solve
+// stands.
+IpqpOptions with_mu_estimate() {
+    IpqpOptions io;
+    io.barrier_initial_rule = IpqpBarrierInitialRule::kComplementarity;
+    io.barrier_initial = 1e3;
+    return io;
+}
+
+class IpqpDenseSolveSeamTest : public ::testing::Test {
+  protected:
+    void SetUp() override {
+        DenseSolve::reset();
+        base_ = dense_convex_solve();
+    }
+    void TearDown() override { DenseSolve::reset(); }
+    IpqpResult base_;
+};
+
+} // namespace
+
+TEST_F(IpqpDenseSolveSeamTest, TheControlSolveRefusesNothing) {
+    EXPECT_EQ(base_.status, QpStatus::kOptimal);
+    EXPECT_EQ(base_.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(base_.counters.ipqp_mu0_derived, 0); // no estimate solve under the default rule
+    const IpqpResult e = dense_convex_solve(with_mu_estimate());
+    EXPECT_EQ(e.status, QpStatus::kOptimal);
+    EXPECT_EQ(e.dense_solve_residual_refusals, 0);
+    EXPECT_EQ(e.counters.ipqp_mu0_derived, 1); // the estimate site runs under kComplementarity
+    EXPECT_EQ(e.counters.ipqp_mu0_fallbacks, 0);
+}
+
+// The mu-estimate's solve refused: the estimate's own non-finite fallback, nothing else moves
+// into the ladder.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedMuEstimateSolveTakesTheEstimatesFallback) {
+    DenseSolve::active = true;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve(with_mu_estimate());
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_mu0_derived, 0);
+    EXPECT_EQ(r.counters.ipqp_mu0_fallbacks, 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+}
+
+// The first iteration's affine solve refused: one perturbed-pivot rung on its factorization, the
+// step re-taken on the new one, and the solve finishes.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedAffineSolveTakesOneLadderRungAndTheSolveFinishes) {
+    DenseSolve::active = true;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+}
+
+// The first iteration's corrector solve refused (its affine passed on the same factorization):
+// the same one rung, and both solves re-taken.
+TEST_F(IpqpDenseSolveSeamTest, ARefusedCorrectorSolveTakesOneLadderRungAndTheSolveFinishes) {
+    DenseSolve::active = true;
+    DenseSolve::skip_first = 1;
+    DenseSolve::max_injections = 1;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(DenseSolve::injections, 1);
+    EXPECT_EQ(r.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, base_.counters.ipqp_inertia_retries + 1);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, base_.counters.ipqp_reg_increases + 1);
+    EXPECT_EQ(r.status, QpStatus::kOptimal);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNone);
+}
+
+// Every step solve from the first affine on refused: each refusal is one rung, and the tier
+// escapes kNumerical only when the ladder is at its ceiling -- the last refusal is the terminal
+// rejection (a retry without an increase), and no step was ever taken.
+TEST_F(IpqpDenseSolveSeamTest, RefusalsUntilTheLadderIsExhaustedEndTheTierNumerical) {
+    DenseSolve::active = true;
+    const IpqpResult r = dense_convex_solve();
+    EXPECT_EQ(r.status, QpStatus::kNumericalError);
+    EXPECT_EQ(r.escape_reason, IpqpEscape::kNumerical);
+    EXPECT_EQ(r.counters.ipqp_iters, 0);
+    EXPECT_GE(r.dense_solve_residual_refusals, 2);
+    EXPECT_EQ(DenseSolve::injections, r.dense_solve_residual_refusals);
+    EXPECT_EQ(r.counters.ipqp_inertia_retries, r.dense_solve_residual_refusals);
+    EXPECT_EQ(r.counters.ipqp_reg_increases, r.dense_solve_residual_refusals - 1);
+}
+
+} // namespace hven

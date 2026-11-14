@@ -72,9 +72,9 @@ void expect_evidence_invariants(const InertiaEvidence &evidence) {
     // zero-filled counts on some future input would trip this the moment
     // this test's own fixture happened to hit it.
     if (evidence.state == InertiaEvidence::State::kQueryFailed) {
-        EXPECT_EQ(evidence.n_pos, -1);
-        EXPECT_EQ(evidence.n_neg, -1);
-        EXPECT_EQ(evidence.n_zero, -1);
+        EXPECT_EQ(evidence.positive, -1);
+        EXPECT_EQ(evidence.negative, -1);
+        EXPECT_EQ(evidence.zero, -1);
         EXPECT_FALSE(evidence.perturbed_pivots.has_value())
             << "perturbed_pivots must stay absent alongside a failed query, never zero-filled";
     }
@@ -178,7 +178,7 @@ TEST_F(SymmetricFactorEvidenceInvariants, DefaultOptionsMatchTheFreeCostlySplit)
 }
 
 // =============================================================================
-// The live thread-count setter (SymmetricFactor::set_num_threads)
+// The live thread-count setter (SymmetricFactor::set_threads)
 // =============================================================================
 //
 // Written here rather than in test_symmetric_factor.cpp because the setter's
@@ -188,7 +188,7 @@ TEST_F(SymmetricFactorEvidenceInvariants, DefaultOptionsMatchTheFreeCostlySplit)
 // observable in the public API alone.
 //
 // It matters most on Accelerate. There the count is stored and applied to
-// nothing (see Options::num_threads' best-effort-absent contract), so the
+// nothing (see Options::threads' best-effort-absent contract), so the
 // STORED value is the entire observable behaviour -- and until these tests
 // existed, that backend's copy of the setter was compiled and never
 // executed for the round trip, since test_symmetric_factor.cpp is gated on
@@ -200,11 +200,11 @@ TEST_F(SymmetricFactorEvidenceInvariants, DefaultOptionsMatchTheFreeCostlySplit)
 // a rejected count leaves the configured one exactly as it was.
 TEST(SymmetricFactorThreadCount, ANegativeCountIsRejectedAndLeavesTheCountAlone) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
 
-    EXPECT_THROW(factor.set_num_threads(-1), std::invalid_argument);
-    EXPECT_EQ(factor.num_threads(), 1);
+    EXPECT_THROW(factor.set_threads(-1), std::invalid_argument);
+    EXPECT_EQ(factor.threads(), 1);
 }
 
 // The whole point of the setter: it moves a value the backend reads per
@@ -215,7 +215,7 @@ TEST(SymmetricFactorThreadCount, ANegativeCountIsRejectedAndLeavesTheCountAlone)
 // factorize() throws when there is no analysis to reuse.
 TEST(SymmetricFactorThreadCount, ANewCountCostsNoAnalysisNoSessionAndNoEpoch) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
 
     const SpMatRM A = upper_csr(spd4());
@@ -225,9 +225,9 @@ TEST(SymmetricFactorThreadCount, ANewCountCostsNoAnalysisNoSessionAndNoEpoch) {
     const std::uint64_t session_before = factor.session_id();
     const std::uint64_t epoch_before = factor.epoch();
 
-    factor.set_num_threads(2);
+    factor.set_threads(2);
 
-    EXPECT_EQ(factor.num_threads(), 2);
+    EXPECT_EQ(factor.threads(), 2);
     EXPECT_EQ(factor.counters().analyze_count, 1);
     EXPECT_EQ(factor.session_id(), session_before);
     EXPECT_EQ(factor.epoch(), epoch_before);
@@ -248,17 +248,17 @@ TEST(SymmetricFactorThreadCount, ANewCountCostsNoAnalysisNoSessionAndNoEpoch) {
 // does.
 TEST(SymmetricFactorThreadCount, AdoptReportsTheCountSetAfterTheAnalysis) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
 
     const SpMatRM A = upper_csr(spd4());
     factor.analyze(A);
     ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
 
-    factor.set_num_threads(3);
+    factor.set_threads(3);
 
     const SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
-    EXPECT_EQ(adopted.num_threads(), 3)
+    EXPECT_EQ(adopted.threads(), 3)
         << "adopt() reads the session's CURRENT count, so a co-owner's later set is what an "
            "adopter receives";
 }
@@ -278,7 +278,7 @@ TEST(SymmetricFactorThreadCount, AdoptReportsTheCountSetAfterTheAnalysis) {
 // nothing at all -- see set_num_threads there).
 TEST(SymmetricFactorThreadCount, AnAdoptedEngineTracksACoOwnersLaterSet) {
     SymmetricFactor::Options opts;
-    opts.num_threads = 1;
+    opts.threads = 1;
     SymmetricFactor factor{opts};
 
     const SpMatRM A = upper_csr(spd4());
@@ -286,22 +286,22 @@ TEST(SymmetricFactorThreadCount, AnAdoptedEngineTracksACoOwnersLaterSet) {
     ASSERT_EQ(factor.factorize(A).status, hven::linear::FactorizeOutcome::Status::kOk);
 
     SymmetricFactor adopted = SymmetricFactor::adopt(factor.share());
-    ASSERT_EQ(adopted.num_threads(), 1) << "the two agree at adopt() time";
+    ASSERT_EQ(adopted.threads(), 1) << "the two agree at adopt() time";
 
-    factor.set_num_threads(4); // moved by a co-owner, on the SHARED session
+    factor.set_threads(4); // moved by a co-owner, on the SHARED session
 
-    EXPECT_EQ(adopted.num_threads(), 4)
+    EXPECT_EQ(adopted.threads(), 4)
         << "the adopter's next call runs at the session's current count, so that is what it "
            "reports";
-    EXPECT_EQ(factor.num_threads(), 4);
+    EXPECT_EQ(factor.threads(), 4);
 
     // The documented consequence of the read-through, pinned so it cannot
     // change silently: analyze() forks a FRESH session from this engine's own
     // Options, so the adopter stops tracking the count it never agreed to.
     adopted.analyze(A);
-    EXPECT_EQ(adopted.num_threads(), 1)
+    EXPECT_EQ(adopted.threads(), 1)
         << "a re-analysis puts the engine back on its own Options' count";
-    EXPECT_EQ(factor.num_threads(), 4) << "and leaves the co-owner's session alone";
+    EXPECT_EQ(factor.threads(), 4) << "and leaves the co-owner's session alone";
 }
 
 // collect_factor_mflops's costly opt-in is genuinely MKL-only now: it

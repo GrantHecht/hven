@@ -24,15 +24,17 @@
 #include <string_view>
 #include <vector>
 
+#include <hven/core/solver_status.h>
 #include <hven/core/types.h>
+#include <hven/detail/model/non_linear_program.h>
 #include <hven/drivers/ipm_solver.h>
-#include <hven/drivers/solve_status.h>
-#include <hven/model/nlp_triplet_model.h>
-#include <hven/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 #include "corpus_cells.h"
 
-namespace hven::solvers::corpus {
+using namespace hven::detail;
+
+namespace hven::corpus {
 
 /// The id of the fixed-variable cell this leg adds to the corpus's own cells.
 inline constexpr const char *kHs071FixedCellId = "hs071_x1_fixed";
@@ -50,8 +52,8 @@ inline constexpr const char *kCap1F7CellId = "f7_n1000_bound_neutral";
 struct InteriorLevers {
     /// Iteration cap per phase.
     int max_iters = 200;
-    /// Console verbosity; 3 and above is silent under the IPM convention.
-    int print_level = 10;
+    /// Console verbosity: silent.
+    hven::Verbosity verbosity = hven::Verbosity::kSilent;
     /// The corpus's own tolerances, in kkt/econ/icon/barr order.
     double kkt_tol = detail::kKktTol;
     double econ_tol = detail::kFeasTol;
@@ -93,7 +95,7 @@ struct InteriorVariant {
     /// `kNone` is every row before T8.5 and is inert. The other two run the
     /// cell TWICE: a converged producing solve from cold, whose result is
     /// exported, and then the measured solve, handed that export through the
-    /// PAYLOAD route `solve(model, x0, const WarmStartData &, budget)` -- the
+    /// PAYLOAD route `solve(model, x0, const WarmStart &, budget)` -- the
     /// entry that replaced `stage_warm_start`. Both measured solves start from
     /// the SAME `x0` the base row uses, so `iter_num` is directly comparable
     /// against it, and that comparison is the leg's only observable for the
@@ -127,7 +129,7 @@ struct InteriorVariant {
     /// Iteration cap, when positive.
     int max_iters = 0;
     /// Restoration strategy; `off` leaves the whole restoration surface dead.
-    RestorationModes restoration_mode = RestorationModes::off;
+    IpmRestorationMode restoration_mode = IpmRestorationMode::kOff;
     /// Per-phase restoration entry budget; read only when a strategy is built.
     int max_feas_rest = 0;
     /// Equality and inequality tolerance, when positive.
@@ -221,7 +223,7 @@ struct InteriorRow {
     int watchdog_activations = -1;
     std::string fixed_treatment;
     /// The stop reason the engine recorded for the last phase; `none` on every
-    /// converged row. hven::solvers::to_string(IpmStopReason) writes it.
+    /// converged row. hven::to_string(StopReason) writes it, from IpmResult::stop_reason.
     std::string stop_reason;
     /// The variant's name, carried in the row KEY rather than in a column;
     /// empty on a base row.
@@ -272,10 +274,10 @@ struct InteriorRow {
 ///
 /// Not non_linear_program.h's fixed_variable_treatment_name, which spells the
 /// same three values in snake_case for diagnostics.
-const char *interior_treatment_tag(FixedVariableTreatments treatment);
+const char *interior_treatment_tag(IpmFixedVariableTreatment treatment);
 
 /// @brief The three treatments, in the order the leg runs them.
-const std::vector<FixedVariableTreatments> &interior_treatments();
+const std::vector<IpmFixedVariableTreatment> &interior_treatments();
 
 /// @brief Runs one declared problem through the top-level interior-point driver
 ///        under one fixed-variable treatment.
@@ -290,27 +292,32 @@ const std::vector<FixedVariableTreatments> &interior_treatments();
 /// @return The finished row, `wall_s` included.
 /// @throws std::invalid_argument if @p problem is null, or from the solver's own
 ///         boundary validation (a treatment the declaration refuses included).
-InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
+                                 IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant);
 
-/// @brief Why @p cell cannot be stated as an NlpTripletModel, or an empty string when
+/// @brief Why @p cell cannot be stated as an Nlp, or an empty string when
 ///        it can.
 ///
 /// crossover_legs.h's dual_bind_refusal, forwarded so the CLI glue spells one
 /// header.
 std::string interior_cell_refusal(const CorpusCell &cell);
 
+/// @brief Selects the process-wide corpus route (AP-2 B2, `--internal-route`) and
+///        installs the Nlp routes' runner (crossover_legs.h). Read by the SQP arms'
+///        run_cell_engine and by run_interior_problem.
+void select_nlp_route(corpus::detail::NlpRoute route);
+
 /// @brief Runs one U0 corpus cell through the same driver, stating it as an
-///        NlpTripletModel exactly as the crossover leg (a) does.
+///        Nlp exactly as the crossover leg (a) does.
 /// @param cell      The cell; must dual-bind.
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.
 /// @return The finished row.
 /// @throws std::invalid_argument if @p cell does not dual-bind
 ///         (crossover_legs.h's dual_bind_refusal is non-empty).
-InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments treatment,
+InteriorRow run_interior_cell(const CorpusCell &cell, IpmFixedVariableTreatment treatment,
                               const InteriorLevers &levers, const InteriorVariant &variant);
 
 /// @brief Runs the fixed-variable cell: HS071 with x1 pinned by equal bounds.
@@ -321,7 +328,7 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments tr
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.
 /// @return The finished row.
-InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers,
+InteriorRow run_interior_hs071(IpmFixedVariableTreatment treatment, const InteriorLevers &levers,
                                const InteriorVariant &variant);
 
 /// @brief Runs one of the two infeasible cells: `infeas2_spike`, whose
@@ -341,7 +348,7 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
 /// @param variant   The exit variant this row runs.
 /// @return The finished row.
 /// @throws std::invalid_argument if @p cell_id names neither cell.
-InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_infeasible(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant);
 
 /// @brief The treatment named by @p tag, spelled as interior_treatment_tag
@@ -353,7 +360,7 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
 ///
 /// @param tag MakeParameter | MakeConstraint | RelaxBounds.
 /// @throws std::invalid_argument naming @p tag and the three accepted values.
-FixedVariableTreatments interior_treatment_from_tag(std::string_view tag);
+IpmFixedVariableTreatment interior_treatment_from_tag(std::string_view tag);
 
 /// @brief Runs EXACTLY ONE BASE ROW of this leg, in process, and returns it.
 ///
@@ -378,7 +385,7 @@ FixedVariableTreatments interior_treatment_from_tag(std::string_view tag);
 /// @throws std::invalid_argument if @p cell_id is neither the fixed-variable
 ///         cell nor a known corpus cell, or (from run_interior_cell) if the
 ///         cell does not dual-bind.
-InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatments treatment,
+InteriorRow run_interior_single_row(std::string_view cell_id, IpmFixedVariableTreatment treatment,
                                     const InteriorLevers &levers);
 
 /// @brief The row's key: the cell id joined to the treatment by a slash, plus
@@ -395,8 +402,8 @@ std::string interior_row_key(const InteriorRow &row);
 ///
 /// M7 W2 D1 (2026-09-18). The leg's `# levers:` stamp exists so that, as the
 /// committed baseline's own header puts it, "a row is reproducible from this
-/// file alone" -- and that claim was false while `acceptance_strategy` and
-/// `barrier_governor` decided the trajectory and appeared in no line of the
+/// file alone" -- and that claim was false while `acceptance_mode` and
+/// `barrier_governor_mode` decided the trajectory and appeared in no line of the
 /// file. InteriorLevers cannot express them (there is no member, deliberately:
 /// the leg does not choose them, it inherits them), so they are read off a
 /// default-constructed IpmOptions here, through the same dump_options() printer
@@ -412,4 +419,4 @@ std::string interior_csv_header();
 /// @brief One row as CSV text, newline terminated.
 std::string interior_csv_row(const InteriorRow &row);
 
-} // namespace hven::solvers::corpus
+} // namespace hven::corpus

@@ -12,7 +12,7 @@
 
 #include "adapter_fixture_functions.h"
 
-hven::solvers::ObjectiveInterface probe_adapter_missing_objective() {
+hven::ObjectiveInterface probe_adapter_missing_objective() {
     const adapter_fixture::StubAdapterMissingObjective f{};
-    return hven::solvers::ObjectiveInterface(f);
+    return hven::ObjectiveInterface(f);
 }

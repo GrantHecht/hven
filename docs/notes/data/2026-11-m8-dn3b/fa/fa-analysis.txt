@@ -1,0 +1,74 @@
+cells 238 (IPM 119, SQP 119)
+
+== KNEVER: head default vs DN-3a r2 default (238)
+
+== SQP kAlways: head dense-default vs DN-3a r2 (119)
+
+== BASE: FA2 base IPM dense-default vs DN-3a r2 (119)
+
+== IPM kAlways (kReport) counters, head rows
+  sd-hven-ipm-ACOPP30: singular=0 flagged=24 triggers=0 fact=36 resto=-1 | head optimal it=24 f=576.89242570116221 | base optimal it=24 f=576.89242570035788 base_fallback=0 base_triggers=1 base_fact=35
+  sd-hven-ipm-ALLINITC: singular=0 flagged=66 triggers=0 fact=72 resto=-1 | head optimal it=72 f=30.492605562772798 | base optimal it=72 f=30.492605562772798 base_fallback=0 base_triggers=0 base_fact=72
+  sd-hven-ipm-BT8: singular=1 flagged=1 triggers=0 fact=82 resto=-1 | head optimal it=40 f=0.99999999999999722 | base optimal it=11 f=1.0000009536743164 base_fallback=10 base_triggers=0 base_fact=11
+  sd-hven-ipm-BURKEHAN: singular=0 flagged=4 triggers=0 fact=7 resto=-1 | head diverging it=7 f=-0.00015568643326648368 | base diverging it=7 f=-0.00015568643326648368 base_fallback=0 base_triggers=0 base_fact=7
+  sd-hven-ipm-CRESC100: singular=0 flagged=1 triggers=0 fact=107 resto=-1 | head optimal it=59 f=0.56949897851252729 | base acceptable it=124 f=0.56950450959614329 base_fallback=0 base_triggers=0 base_fact=190
+  sd-hven-ipm-CRESC50: singular=0 flagged=875 triggers=61 fact=1463 resto=-1 | head max_iter it=1000 f=0.58949917833524523 | base max_iter it=1000 f=0.74815796285110991 base_fallback=0 base_triggers=7 base_fact=1468
+  sd-hven-ipm-DEMBO7: singular=0 flagged=46 triggers=0 fact=113 resto=-1 | head optimal it=85 f=174.78699019565346 | base optimal it=76 f=174.78699019289698 base_fallback=0 base_triggers=0 base_fact=110
+  sd-hven-ipm-DNIEPER: singular=0 flagged=3 triggers=0 fact=60 resto=-1 | head optimal it=48 f=18744.009767327272 | base optimal it=48 f=18744.009767327243 base_fallback=0 base_triggers=0 base_fact=60
+  sd-hven-ipm-FLETCHER: singular=0 flagged=10 triggers=0 fact=39 resto=-1 | head optimal it=30 f=19.525366432291154 | base optimal it=30 f=19.525366432291133 base_fallback=0 base_triggers=0 base_fact=39
+  sd-hven-ipm-HS100MOD: singular=0 flagged=6 triggers=0 fact=15 resto=-1 | head optimal it=15 f=678.67963790270596 | base optimal it=15 f=678.67963790270596 base_fallback=0 base_triggers=0 base_fact=15
+  sd-hven-ipm-HS101: singular=0 flagged=33 triggers=0 fact=82 resto=-1 | head optimal it=47 f=1809.7647657671023 | base optimal it=47 f=1809.7647657671039 base_fallback=0 base_triggers=0 base_fact=82
+  sd-hven-ipm-HS102: singular=0 flagged=1 triggers=0 fact=59 resto=-1 | head optimal it=32 f=911.88057154461205 | base optimal it=32 f=911.8805715446116 base_fallback=0 base_triggers=0 base_fact=59
+  sd-hven-ipm-HS103: singular=0 flagged=22 triggers=0 fact=80 resto=-1 | head optimal it=45 f=543.66795850636197 | base optimal it=45 f=543.66795850636163 base_fallback=0 base_triggers=0 base_fact=80
+  sd-hven-ipm-HS107: singular=0 flagged=3 triggers=0 fact=27 resto=-1 | head optimal it=20 f=5055.0117941238987 | base optimal it=20 f=5055.0117941238968 base_fallback=0 base_triggers=0 base_fact=27
+  sd-hven-ipm-HS108: singular=0 flagged=1 triggers=0 fact=36 resto=-1 | head optimal it=23 f=-0.86602078529578019 | base optimal it=23 f=-0.86602078529512827 base_fallback=0 base_triggers=0 base_fact=36
+  sd-hven-ipm-HS61: singular=2 flagged=2 triggers=0 fact=22 resto=-1 | head optimal it=14 f=-143.64614219778198 | base optimal it=20 f=-143.64614220105267 base_fallback=2 base_triggers=0 base_fact=34
+  sd-hven-ipm-HS64: singular=0 flagged=21 triggers=0 fact=27 resto=-1 | head optimal it=27 f=6299.8424279151732 | base optimal it=27 f=6299.8424279151732 base_fallback=0 base_triggers=0 base_fact=27
+  sd-hven-ipm-HS75: singular=0 flagged=5 triggers=0 fact=12 resto=-1 | head optimal it=12 f=5174.4126953831328 | base optimal it=12 f=5174.4126953831328 base_fallback=0 base_triggers=0 base_fact=12
+  sd-hven-ipm-HS84: singular=0 flagged=25 triggers=0 fact=44 resto=-1 | head optimal it=24 f=-5280335.2452406064 | base optimal it=24 f=-5280335.2452406064 base_fallback=0 base_triggers=0 base_fact=44
+  sd-hven-ipm-HS85: singular=0 flagged=8 triggers=0 fact=24 resto=-1 | head optimal it=14 f=-2.2156040292593695 | base optimal it=14 f=-2.2156040292593677 base_fallback=0 base_triggers=0 base_fact=24
+  sd-hven-ipm-HS88: singular=0 flagged=9 triggers=0 fact=15 resto=-1 | head optimal it=15 f=1.362656815917535 | base optimal it=15 f=1.3626568159175365 base_fallback=0 base_triggers=0 base_fact=15
+  sd-hven-ipm-HS89: singular=0 flagged=11 triggers=0 fact=26 resto=-1 | head optimal it=17 f=1.362656815949731 | base optimal it=17 f=1.3626568159497554 base_fallback=0 base_triggers=0 base_fact=26
+  sd-hven-ipm-HS90: singular=0 flagged=32 triggers=0 fact=54 resto=-1 | head optimal it=30 f=1.3626568159497516 | base optimal it=30 f=1.3626568159497527 base_fallback=0 base_triggers=0 base_fact=54
+  sd-hven-ipm-HS91: singular=0 flagged=17 triggers=0 fact=26 resto=-1 | head optimal it=19 f=1.3626568159494672 | base optimal it=19 f=1.3626568159494694 base_fallback=0 base_triggers=0 base_fact=26
+  sd-hven-ipm-HS92: singular=0 flagged=12 triggers=0 fact=26 resto=-1 | head optimal it=15 f=1.3626568159497374 | base optimal it=15 f=1.3626568159497374 base_fallback=0 base_triggers=0 base_fact=26
+  sd-hven-ipm-HS99EXP: singular=0 flagged=24 triggers=0 fact=31 resto=-1 | head optimal it=23 f=-1260006250000 | base optimal it=23 f=-1260006250000 base_fallback=0 base_triggers=0 base_fact=31
+  sd-hven-ipm-LAKES: singular=0 flagged=21 triggers=0 fact=36 resto=-1 | head optimal it=25 f=350525.11685846554 | base optimal it=25 f=350525.11685846071 base_fallback=0 base_triggers=0 base_fact=36
+  sd-hven-ipm-LAUNCH: singular=0 flagged=13 triggers=0 fact=14 resto=-1 | head optimal it=12 f=9.0049018188719927 | base optimal it=12 f=9.0049018188719963 base_fallback=0 base_triggers=0 base_fact=14
+  sd-hven-ipm-LEWISPOL: singular=0 flagged=179 triggers=0 fact=1168 resto=-1 | head optimal it=762 f=2.9999965238250588 | base optimal it=738 f=3.0000292523215726 base_fallback=2 base_triggers=0 base_fact=1181
+  sd-hven-ipm-LOOTSMA: singular=0 flagged=2 triggers=0 fact=37 resto=-1 | head optimal it=24 f=8.0000000001967493 | base optimal it=24 f=8.0000000001967493 base_fallback=0 base_triggers=0 base_fact=37
+  sd-hven-ipm-LSNNODOC: singular=1 flagged=10 triggers=0 fact=17 resto=-1 | head optimal it=15 f=123.11244781913103 | base optimal it=15 f=123.11244781848552 base_fallback=1 base_triggers=0 base_fact=16
+  sd-hven-ipm-MATRIX2: singular=0 flagged=3 triggers=0 fact=17 resto=-1 | head optimal it=17 f=4.7952771207677882e-10 | base optimal it=17 f=4.7952771207700433e-10 base_fallback=0 base_triggers=0 base_fact=17
+  sd-hven-ipm-MESH: singular=0 flagged=186 triggers=0 fact=249 resto=-1 | head numerical_error it=130 f=-3.1254582933591929e+28 | base diverging it=147 f=-8.5876671959137642e+32 base_fallback=0 base_triggers=0 base_fact=266
+  sd-hven-ipm-MSS1: singular=0 flagged=18 triggers=0 fact=19 resto=-1 | head numerical_error it=2 f=-1034.3739308841607 | base numerical_error it=2 f=-1034.3730735248491 base_fallback=0 base_triggers=0 base_fact=19
+  sd-hven-ipm-NET1: singular=0 flagged=17 triggers=0 fact=65 resto=-1 | head optimal it=43 f=941194.25880435994 | base optimal it=43 f=941194.25880983076 base_fallback=0 base_triggers=0 base_fact=66
+  sd-hven-ipm-SPANHYD: singular=0 flagged=186 triggers=0 fact=189 resto=-1 | head optimal it=110 f=239.73800065831858 | base optimal it=111 f=239.73800065831858 base_fallback=0 base_triggers=0 base_fact=190
+  sd-hven-ipm-WATER: singular=0 flagged=6 triggers=0 fact=41 resto=-1 | head optimal it=40 f=10549.379465377737 | base optimal it=40 f=10549.379465377735 base_fallback=0 base_triggers=0 base_fact=41
+  totals: dn3b_kkt_dense_singular_count=4 dn3b_kkt_dense_flagged_count=1903 dn1b_dense_residual_ratio_triggers=61 dn1_kkt_dense_fallback_count=0 dn3b_kkt_dense_retake_count=0 dn3b_kkt_dense_shift_refactor_count=0 factorizations=5831 dn3b_resto_entries=0
+  base totals: dn1_kkt_dense_fallback_count=15 dn1b_dense_residual_ratio_triggers=8 factorizations=5887
+
+== IPM movers: head kAlways (kReport) vs base kAlways (kSparseFallback)
+  MOVER sd-hven-ipm-BT8: base optimal it=11 f=1.0000009536743164 -> head optimal it=40 f=0.99999999999999722
+  MOVER sd-hven-ipm-CRESC100: base acceptable it=124 f=0.56950450959614329 -> head optimal it=59 f=0.56949897851252729
+  MOVER sd-hven-ipm-LEWISPOL: base optimal it=738 f=3.0000292523215726 -> head optimal it=762 f=2.9999965238250588
+  MOVER sd-hven-ipm-MESH: base diverging it=147 f=-8.5876671959137642e+32 -> head numerical_error it=130 f=-3.1254582933591929e+28
+  status/objective movers 4; iteration/last-digit only 45: hs043: it 12->12; hs077: it 9->9; ACOPP30: it 24->24; CRESC4: it 45->45; CRESC50: it 1000->1000; DECONVC: it 29->29; DEMBO7: it 76->85; DNIEPER: it 48->48; FLETCHER: it 30->30; HIMMELP3: it 10->10; HIMMELP6: it 19->19; HS100: it 22->22; HS101: it 47->47; HS102: it 32->32; HS103: it 45->45; HS104: it 10->10; HS107: it 20->20; HS108: it 23->23; HS113: it 17->17; HS117: it 30->30; HS19: it 20->20; HS32: it 10->10; HS46: it 14->14; HS56: it 16->16; HS59: it 16->16; HS61: it 20->14; HS68: it 15->15; HS70: it 26->26; HS80: it 7->7; HS81: it 26->26; HS85: it 14->14; HS88: it 15->15; HS89: it 17->17; HS90: it 30->30; HS91: it 19->19; HS93: it 10->10; LAKES: it 25->25; LAUNCH: it 12->12; LSNNODOC: it 15->15; MATRIX2: it 17->17; MISTAKE: it 20->20; MSS1: it 2->2; NET1: it 43->43; SPANHYD: it 111->110; WATER: it 40->40
+
+== S1 (IPM): head kAlways vs head kNever
+  S1 miss sd-hven-ipm-ALLINITC: acceptable it=91 f=30.480328379251095 -> optimal it=72 f=30.492605562772798
+  S1 miss sd-hven-ipm-BT8: optimal it=11 f=1.0000009536743164 -> optimal it=40 f=0.99999999999999722
+  S1 miss sd-hven-ipm-CRESC100: optimal it=142 f=0.56948171775366063 -> optimal it=59 f=0.56949897851252729
+S1 (IPM): 109/112
+
+== ACOPP30: kNever optimal it=24 f=576.89242570037743; kAlways head optimal it=24 f=576.89242570116221; kAlways base optimal it=24 f=576.89242570035788
+
+== VERDICTS
+KNEVER_UNMOVED
+SQP_DENSE_UNMOVED
+BASE_AS_DN3A
+NO_SPARSE_FALLBACK
+NO_HEAD_FAILURE_ROW
+MOVERS_AS_DECLARED
+S1_AS_DECLARED 109/112 misses sd-hven-ipm-ALLINITC,sd-hven-ipm-BT8,sd-hven-ipm-CRESC100
+ACOPP30_KEPT
+FA_PASS

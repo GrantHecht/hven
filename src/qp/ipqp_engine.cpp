@@ -4,7 +4,7 @@
 // ipqp_engine.cpp -- the IP-PMM interior-point QP tier's iteration.
 //
 // The header carries the contracts; this file carries the algorithm. Slack form, in
-// KKTVector's block order [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
+// KktVector's block order [primals(n) | slacks(mi) | eq_lmults(me) | iq_lmults(mi)], with
 // s = bi - Ai x >= 0, lambda_i >= 0, and variable bounds CONDENSED into the (1,1) diagonal:
 //
 //     [ H + rho I + Sigma_b     0        Ae'       Ai'    ]
@@ -43,8 +43,10 @@
 #include <Eigen/Core>
 #include <fmt/format.h>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/globalization/inertia_regularization.h>
 #include <hven/detail/interior/barrier_math.h>
+#include <hven/detail/kkt/dense_selection.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_math.h>
@@ -52,7 +54,9 @@
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/drivers/trace.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 namespace {
 
@@ -74,7 +78,9 @@ InertiaRead classify_inertia(const hven::linear::InertiaEvidence &e, Index expec
     if (e.state != hven::linear::InertiaEvidence::State::kObserved) {
         return InertiaRead::kUnreadable;
     }
-    if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
+    // A dense factorization the detector flagged (M8 DN-1d) is answered like a
+    // perturbed one: its inertia is not evidence, and the remedy is a larger shift.
+    if ((e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) || e.numerically_singular) {
         return InertiaRead::kPerturbed;
     }
     const detail::InertiaVerdict v = detail::inertia_verdict(e, expected_pos, expected_neg);
@@ -191,6 +197,23 @@ void observe_accepted_step(const Vec &dx, const Vec &ds, const Vec &dye, const V
         Obs::met_target_at_min_step = met_target;
     }
 }
+
+/// IpqpDenseSolveInjector's factor for one dense step solve: `scale` inside its window, else 1.
+double dense_solve_wound() {
+    using Inj = detail::testing::IpqpDenseSolveInjector;
+    if (!Inj::active) {
+        return 1.0;
+    }
+    if (Inj::skip_first > 0) {
+        --Inj::skip_first;
+        return 1.0;
+    }
+    if (Inj::max_injections >= 0 && Inj::injections >= Inj::max_injections) {
+        return 1.0;
+    }
+    ++Inj::injections;
+    return Inj::scale;
+}
 #endif // HVEN_TESTING
 
 /// THE SECTION 6.3 FARKAS CORROBORATION -- one matvec plus O(m + n), no
@@ -284,7 +307,8 @@ bool ipqp_farkas_corroborates(const QpProblem &qp, const IpqpBounds &bounds, con
     }
 
     const double rel_resid =
-        n > 0 ? r.cwiseAbs().maxCoeff() / std::max(1.0, r_abs.maxCoeff()) : 0.0;
+        n > 0 ? detail::nan_sticky_inf_norm(r) / std::max(1.0, detail::nan_sticky_inf_norm(r_abs))
+              : 0.0;
     const double rel_gap = gap / std::max(1.0, gap_abs);
     *resid_out = rel_resid;
     *gap_out = rel_gap;
@@ -351,16 +375,17 @@ void ruiz_equilibrate(SpMatRM &k, Vec &d, Vec &work) {
 /// `SsnEngine::validate_overrides`' rule, applied unchanged: a negative or NaN radius would
 /// silently cross `lo_eff`/`up_eff` behind an assert a Release build compiles out, and NaN in
 /// either regularizer is absorbable by no downstream arithmetic.
-void validate_overrides(const SolveOverrides &ov) {
-    if (std::isnan(ov.tr_radius) || (ov.tr_radius < 0.0 && !std::isinf(ov.tr_radius))) {
-        throw std::invalid_argument(
-            fmt::format("IpqpEngine::solve: SolveOverrides::tr_radius ({}) must be the +inf "
-                        "sentinel or >= 0",
-                        ov.tr_radius));
+void validate_overrides(const QpSolveOverrides &ov) {
+    if (std::isnan(ov.trust_region_radius) ||
+        (ov.trust_region_radius < 0.0 && !std::isinf(ov.trust_region_radius))) {
+        throw std::invalid_argument(fmt::format(
+            "IpqpEngine::solve: SolveOverrides::trust_region_radius ({}) must be the +inf "
+            "sentinel or >= 0",
+            ov.trust_region_radius));
     }
-    if (std::isnan(ov.primal_delta) || std::isnan(ov.dual_mu)) {
+    if (std::isnan(ov.primal_regularization) || std::isnan(ov.dual_regularization)) {
         throw std::invalid_argument(
-            "IpqpEngine::solve: SolveOverrides::primal_delta/dual_mu must not be NaN");
+            "IpqpEngine::solve: SolveOverrides::primal_regularization/dual_mu must not be NaN");
     }
 }
 
@@ -421,7 +446,7 @@ double IpqpResiduals::worst() const {
 // T4.a / T4.b -- the box and its domain gate
 // ---------------------------------------------------------------------------
 
-IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
+IpqpBox detail::make_ipqp_box(const QpProblem &qp, double radius) {
     if (std::isnan(radius) || radius < 0.0) {
         throw std::invalid_argument(
             fmt::format("make_ipqp_box: trust-region radius ({}) must be >= 0 or +inf", radius));
@@ -460,6 +485,18 @@ IpqpBox make_ipqp_box(const QpProblem &qp, double radius) {
         if (box.zero_width_index < 0 && !(box.lo_eff(i) < box.up_eff(i))) {
             box.zero_width_index = i;
         }
+        // THE SUBPROBLEM'S ABSENT-BOUND CUTOFF, applied once here
+        // (QpProblem::infinite_bound): an effective side at or beyond it is ABSENT
+        // and is written as the infinity of its sign, so the kernels' presence test
+        // (ipqp_has_lower/upper) reads infinity alone. The same sides as the cutoff
+        // read on the effective box before; only their stored value changes.
+        constexpr double kInf = std::numeric_limits<double>::infinity();
+        if (box.lo_eff(i) <= -qp.infinite_bound) {
+            box.lo_eff(i) = -kInf;
+        }
+        if (box.up_eff(i) >= qp.infinite_bound) {
+            box.up_eff(i) = kInf;
+        }
     }
     return box;
 }
@@ -471,7 +508,7 @@ bool IpqpBounds::in_domain() const { return zero_width_index < 0; }
 // ---------------------------------------------------------------------------
 
 IpqpEscapeLadder::IpqpEscapeLadder(const IpqpOptions &iopts)
-    : retire_after_(iopts.ipqp_retire_after) {
+    : retire_after_(iopts.max_consecutive_escapes) {
     // Re-checked HERE and not only in `validate`: this type is reachable without a
     // driver, and a retirement threshold of 0 would retire the tier before it had ever run.
     if (retire_after_ <= 0) {
@@ -526,7 +563,7 @@ Index IpqpEscapeLadder::retired_after() const { return retired_after_; }
 
 Index IpqpEscapeLadder::consecutive_escapes() const { return consecutive_; }
 
-IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
+IpqpBounds detail::make_ipqp_bounds(const IpqpBox &box) {
     // CLAUDE.md section 4, at a PUBLIC boundary: this function takes an IpqpBox by reference, so
     // a hand-built box can present blocks of different lengths. Without this check the loop
     // below is an out-of-bounds READ in Release, where Eigen's own assert is compiled out.
@@ -552,21 +589,22 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box) {
     return b;
 }
 
-// The walk's own trust-region resolution, unchanged (`qp_types.h`'s SolveOverrides sentinel:
+// The walk's own trust-region resolution, unchanged (`qp_types.h`'s QpSolveOverrides sentinel:
 // +inf on the override means "use the engine's own radius"). DECLARED IN THE HEADER since
 // task 6, because the routing chain's pre-solve domain gate builds the same box.
-double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides) {
-    return std::isinf(overrides.tr_radius) && overrides.tr_radius > 0.0 ? opts.tr_radius
-                                                                        : overrides.tr_radius;
+double detail::ipqp_effective_tr_radius(const QpOptions &opts, const QpSolveOverrides &overrides) {
+    return std::isinf(overrides.trust_region_radius) && overrides.trust_region_radius > 0.0
+               ? opts.trust_region_radius
+               : overrides.trust_region_radius;
 }
 
 // THE STOPPING RULE (spec 2.3 step 1 / 3.4), and the ONLY statement of it: the QP layer's own
 // relative tolerances, loosened by `ipqp_converge_slack`. `solve()`'s loop calls this, so a
 // caller reading it back off an IpqpResult reads the same answer the engine acted on.
-bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
-                                const IpqpOptions &iopts) {
-    const double opt_target = opts.opt_tol * iopts.ipqp_converge_slack;
-    const double feas_target = opts.feas_tol * iopts.ipqp_converge_slack;
+bool detail::ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
+                                        const IpqpOptions &iopts) {
+    const double opt_target = opts.optimality_tol * iopts.convergence_slack;
+    const double feas_target = opts.feasibility_tol * iopts.convergence_slack;
     return residuals.stationarity <= opt_target && residuals.primal_eq <= feas_target &&
            residuals.primal_iq <= feas_target && residuals.complementarity <= opt_target;
 }
@@ -600,6 +638,8 @@ struct IpqpEngine::Workspace {
 
     // The linear system.
     Vec rhs, sol, dscale, dsq, ruiz_work;
+    // The dense solve check's scratch, sized on its first use (dense arm only).
+    Vec check_r, check_c;
 
     // The three `max(1, ...)` folds the relative residual divides by, kept so the SCHEDULE'S
     // gate can be stated on the same scale as the STOPPING rule -- see kIpqpRegGateContract for
@@ -671,7 +711,8 @@ const QpOptions &IpqpEngine::options() const { return opts_; }
 
 int IpqpEngine::num_threads() const { return kkt_.session_num_threads(); }
 
-IpqpEngine::IpqpEngine(const QpOptions &opts, int threads) : opts_(opts) {
+IpqpEngine::IpqpEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
+    : opts_(opts) {
     // THE TIER'S OWN BACKEND OPTIONS, NOT detail::sqp_kkt_options() (spec 4.4).
     // Default-constructed and left alone: every field that maps to a Pardiso iparm slot stays
     // at the value pardisoinit chose, so CLAUDE.md section 6's labelling rule has nothing to
@@ -691,6 +732,22 @@ IpqpEngine::IpqpEngine(const QpOptions &opts, int threads) : opts_(opts) {
     // AT 0 THIS IS A NO-OP IN EVERY OBSERVABLE SENSE: the factor is already configured at 0,
     // and 0 means "leave the backend's own default alone".
     kkt_.set_num_threads(threads);
+
+    // THE DENSE-ARM POLICY (M8 DN-1), the second exception: SqpOptions::linear's policy, set
+    // through reconfigure() because it is fixed per factor. Not a Pardiso parameter-array
+    // field either. kNever leaves the factor exactly as built above.
+    if (dense != hven::linear::DensePolicy::kNever) {
+        KktFactorization::Options o;
+        o.threads = threads;
+        o.dense_factorization = dense;
+        // kAuto's threshold is the SQP's, as sqp_kkt_options sets it (M8 DN-3).
+        o.max_dense_dimension =
+            detail::dense_selection_threshold(dense, detail::kSqpDenseSelectionThreshold);
+        // The SQP's report policy (M8 DN-1d), as sqp_kkt_options: a flagged read
+        // is answered by the tier's own perturbed-pivot remedy (classify_inertia).
+        o.dense_singular_policy = hven::linear::DenseSingularPolicy::kReport;
+        kkt_.reconfigure(o);
+    }
 }
 
 const IpqpSeed *IpqpEngine::warm_carry() const { return carry_armed_ ? &carry_ : nullptr; }
@@ -725,34 +782,34 @@ Index IpqpEngine::last_trace_solve_id() const { return last_trace_solve_id_; }
 // task 8: five no-op-when-unattached emit sites, one per event this engine
 // owns. Each call site guards the STRUCT BUILD too, not just this call, so
 // an unattached sink costs one pointer compare per event point.
-void IpqpEngine::emit_trace_iter(const IpqpTraceIterEvent &event) const {
+void IpqpEngine::emit_trace_iter(const IpqpIterTraceEvent &event) const {
     if (trace_ != nullptr) {
         trace_->on_ipqp_iter(event);
     }
 }
-void IpqpEngine::emit_trace_reg(const IpqpTraceRegEvent &event) const {
+void IpqpEngine::emit_trace_reg(const IpqpRegTraceEvent &event) const {
     if (trace_ != nullptr) {
         trace_->on_ipqp_reg(event);
     }
 }
-void IpqpEngine::emit_trace_restart(const IpqpTraceRestartEvent &event) const {
+void IpqpEngine::emit_trace_restart(const IpqpRestartTraceEvent &event) const {
     if (trace_ != nullptr) {
         trace_->on_ipqp_restart(event);
     }
 }
-void IpqpEngine::emit_trace_certify(const IpqpTraceCertifyEvent &event) const {
+void IpqpEngine::emit_trace_certify(const IpqpCertifyTraceEvent &event) const {
     if (trace_ != nullptr) {
         trace_->on_ipqp_certify(event);
     }
 }
-void IpqpEngine::emit_trace_escape(const IpqpTraceEscapeEvent &event) const {
+void IpqpEngine::emit_trace_escape(const IpqpEscapeTraceEvent &event) const {
     if (trace_ != nullptr) {
         trace_->on_ipqp_escape(event);
     }
 }
 
 IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const IpqpOptions &iopts,
-                             const SolveOverrides &overrides) {
+                             const QpSolveOverrides &overrides) {
     // --- boundary validation (CLAUDE.md section 4) -------------------------
     qp.validate();
     validate_overrides(overrides);
@@ -761,7 +818,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // owns every IpqpOptions band (task 1), and this engine is reachable without a driver,
         // so the check happens here by CALLING the owner with an otherwise default SqpOptions.
         SqpOptions probe;
-        probe.ipqp = iopts;
+        probe.advanced.ipqp = iopts;
         validate(probe);
     }
 
@@ -836,16 +893,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // --- budgets (spec 3.4) -----------------------------------------------
     //
-    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iter`'s own, taken through the
+    // `ipqp_max_iter`'s sentinel discipline is `QpOptions::max_iterations`'s own, taken through the
     // walk's own helper. BOTH CAPS BIND -- the `min` is the point, so a caller who raises
     // `ipqp_max_iter` alone still gets the hard cap, Amendment C's budget of LAST RESORT.
     //
     // The FACTORIZATION cap's sentinel is three times the budget ABOVE, i.e. three times the
     // CLAMPED one: an iteration costs one factorization plus ladder rungs.
-    const Index derived = detail::effective_qp_max_iter(qp, iopts.ipqp_max_iter);
-    const Index iter_budget = std::min(derived, iopts.ipqp_hard_iter_cap);
-    const Index fact_budget = iopts.ipqp_max_factorizations > 0
-                                  ? iopts.ipqp_max_factorizations
+    const Index derived = detail::effective_qp_max_iter(qp, iopts.max_iterations);
+    const Index iter_budget = std::min(derived, iopts.hard_max_iterations);
+    const Index fact_budget = iopts.max_factorizations
+                                  ? *iopts.max_factorizations
                                   : detail::kIpqpFactorizationsPerIter * iter_budget;
 
     const Index npairs = mi + bounds.num_lower + bounds.num_upper;
@@ -853,7 +910,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // The barrier parameter this solve STARTS at. Not const: spec 5.3's clamp
     // rewrites it on a warm restart, and spec 5.5's kill restores the cold
     // value with the cold point.
-    double mu0 = iopts.ipqp_init_mu;
+    double mu0 = iopts.barrier_initial;
     double mu_meas = mu0;
 
     // Push x strictly inside the effective box (Ipopt's bound_push/bound_frac rule). The box has
@@ -932,7 +989,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // A LAMBDA because spec 5.5's warm-kill RE-RUNS it in place: a second spelling of the cold
     // start could drift from this one.
     auto cold_start = [&]() {
-        mu0 = iopts.ipqp_init_mu;
+        mu0 = iopts.barrier_initial;
         w.x = out.box.centre;
         push_into_box();
         w.ye.setZero();
@@ -967,9 +1024,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     auto clamp_mu0 = [&](double payload_mu) {
         double lo_pair = 0.0;
         measure_complementarity(mu_meas, lo_pair);
-        const double floor_only = std::clamp(mu_meas, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
-        mu0 = std::clamp(std::max(mu_meas, iopts.ipqp_mu_adopt_factor * std::max(payload_mu, 0.0)),
-                         iopts.ipqp_min_mu, iopts.ipqp_init_mu);
+        const double floor_only = std::clamp(mu_meas, iopts.barrier_min, iopts.barrier_initial);
+        mu0 =
+            std::clamp(std::max(mu_meas, iopts.barrier_adoption_factor * std::max(payload_mu, 0.0)),
+                       iopts.barrier_min, iopts.barrier_initial);
         if (mu0 > floor_only) {
             out.counters.ipqp_mu_adopted = 1;
         }
@@ -1181,7 +1239,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     if (started_warm) {
         const IpqpSeed seed_copy = *seed;
         trace_payload_mu = seed_copy.mu;
-        if (iopts.ipqp_warm_repair) {
+        if (iopts.warm_repair) {
             out.restart_grade = seed_copy.grade;
             warm_start_from(seed_copy);
         } else if (seed_needs_the_repair(seed_copy)) {
@@ -1200,7 +1258,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Spec 5.5 as amended by plan section 7 note (c): the warm budget is
     // `min(ipqp_warm_iter_budget, effective ipqp_max_iter)`, so a caller value larger than the
     // solve's own budget can never itself bind. `warm_live` falls once the kill has fired.
-    const Index warm_budget = std::min(iopts.ipqp_warm_iter_budget, iter_budget);
+    const Index warm_budget = std::min(iopts.max_warm_iterations, iter_budget);
     bool warm_live = started_warm;
 
     // THE BUDGETS ARE PER ATTEMPT (spec 5.5): a second overrun after the kill
@@ -1218,8 +1276,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // THE LADDER'S SOLVE-SCOPED STATE IS ITS MEMORY, NOT A FLOOR (plan section 7 note (p)):
     // `rho_dem_last` is IC's memory, `rho_dem_max` the high-water mark the 6.2 window-discard
     // rule watches, `consec_modified` the count IC-1's skip rule reads.
-    double rho_sched = iopts.ipqp_rho_init;
-    double delta_sched = iopts.ipqp_delta_init;
+    double rho_sched = iopts.primal_regularization_initial;
+    double delta_sched = iopts.dual_regularization_initial;
     double rho_dem_last = 0.0;
     double rho_dem_max = 0.0;
     double rho_dem_final = 0.0;
@@ -1231,7 +1289,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     // Section 4.1's compute()-vs-refactorize() decision, and with it the
     // section 7 note (a) verify-once discipline.
-    if (!iopts.ipqp_hoist_symbolic) {
+    if (!iopts.hoist_symbolic_analysis) {
         analyzed_ = false;
     }
     bool first_factorization = true;
@@ -1276,7 +1334,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // The high-water reading is T4b's and the literal successor of the pre-T4b monotone floor.
     // It is a DATED AMENDMENT of 6.2's text, not a clarification, ratified on two non-empirical
     // grounds; both, and the WITHDRAWN unreachability claim, are plan section 7 note (l).
-    const Index stall_w = iopts.ipqp_stall_window;
+    const Index stall_w = iopts.stall_window;
     bool win_armed = false;
     Index win_steps = 0;
     double win_mu0 = 0.0;
@@ -1489,7 +1547,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             assert_caller_scale("start", ev.dual_norm_start,
                                 dual_norm_of(ref_ye, ref_yi, ref_zl, ref_zu));
             assert_caller_scale("end", ev.dual_norm_end, dual_norm_of(w.ye, w.yi, w.zl, w.zu));
-            if (iopts.ipqp_farkas_gate) {
+            if (iopts.farkas_gate) {
                 const Vec dye = me > 0 ? Vec(w.ye - ref_ye) : Vec(0);
                 const Vec dyi = mi > 0 ? Vec(w.yi - ref_yi) : Vec(0);
                 ev.farkas_corroborated =
@@ -1637,7 +1695,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
         w.dsq.setOnes(w.dim);
         write_diagonals(rho_sched, 0.0, delta);
-        if (iopts.ipqp_ruiz) {
+        if (iopts.ruiz_equilibration) {
             ruiz_equilibrate(kkt_.matrix(), w.dscale, w.ruiz_work);
             w.dsq = w.dscale.array().square();
         } else {
@@ -1666,6 +1724,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // task 5's split: 2.2's policy permits a step against a factor that EXISTS but could not
         // be interrogated, and there is no factor at all here. `info()` is the discriminator.
         if (kkt_.info() != Eigen::Success) {
+            // An exactly singular dense factorization under kReport (M8 DN-1d) has
+            // no numerics but the same remedy as a flagged one; at the ceiling the
+            // non-kOk read stops the tier before any solve.
+            if (kkt_.inertia_evidence().numerically_singular) {
+                return InertiaRead::kPerturbed;
+            }
             return InertiaRead::kFactorFailed;
         }
         const hven::linear::InertiaEvidence &ev = evidence_for_read(kkt_, final_read);
@@ -1722,16 +1786,16 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // clause exists for EVERY factorization reports no usable evidence, so this keeps such a
     // solve at ONE factorization per iteration. IC-1's zero trial is skipped while it stands.
     const auto skip_licensed = [&]() {
-        return rho_dem_last > 0.0 && consec_modified >= iopts.ipqp_ladder_skip_after;
+        return rho_dem_last > 0.0 && consec_modified >= iopts.ladder_skip_after;
     };
     auto ladder_trial = [&]() {
         double trial = 0.0;
         if (skip_licensed()) {
-            trial = std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
+            trial = std::max(iopts.regularization_min, rho_dem_last / detail::kIpqpLadderDown);
         }
         if (evidence_failed) {
-            trial =
-                std::max(trial, std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max));
+            trial = std::max(
+                trial, std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.regularization_max));
         }
         return trial;
     };
@@ -1739,7 +1803,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // Assemble at `(rho_sched, rho_dem, delta)` and factorize, climbing Algorithm IC's ladder
     // until the inertia is the section 4.1 target or the ceiling is reached. `rho_dem`/`delta`
     // are in/out so the caller sees where the ladder stopped; `rho_sched` is never touched.
-    auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta) {
+    //
+    // `solve_refused`: re-enter at the current rung, without re-assembling, after a dense step
+    // solve on its factorization was refused (`solve_system`). The rung is read as perturbed, so
+    // it takes the perturbed-pivot remedy below, and the ladder climbs from there as usual.
+    auto factorize_with_ladder = [&](double rho_sched, double &rho_dem, double &delta,
+                                     bool solve_refused) {
         // WHETHER A `rho_dem_last / kIpqpLadderDown` VALUE IS CURRENTLY BEING TRIED, and whether
         // its refusal has already been charged as a reclimb. ONE CHARGE PER ITERATION: the
         // counter answers "did the memory's guess come back too small", not "how many rungs".
@@ -1750,17 +1819,21 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         //
         // (While an evidence failure stands the trial is the POLICY FLOOR, not IC's probe, so its
         // refusal is not a reclimb.)
-        bool trying_memory_value = rho_dem > 0.0 && !evidence_failed;
+        bool trying_memory_value = !solve_refused && rho_dem > 0.0 && !evidence_failed;
         bool reclimb_charged = false;
         // Consecutive primal escalations spent on an unresolved perturbed-pivot
         // report, and whether this iteration has given up on the primal route;
         // see `kIpqpPivotReroutePrimalMax`.
         int perturbed_primal_run = 0;
         bool perturbed_dual_latched = false;
-        assemble(rho_sched, rho_dem, delta, /*weak_scale=*/0.0);
+        if (!solve_refused) {
+            assemble(rho_sched, rho_dem, delta, /*weak_scale=*/0.0);
+        }
 
         for (;;) {
-            const InertiaRead read = factor_and_read(/*final_read=*/false);
+            const InertiaRead read =
+                solve_refused ? InertiaRead::kPerturbed : factor_and_read(/*final_read=*/false);
+            solve_refused = false;
             if (fact_budget_hit || read == InertiaRead::kOk || read == InertiaRead::kFactorFailed) {
                 if (read == InertiaRead::kOk && rho_dem > 0.0) {
                     // IC UPDATES ITS MEMORY ONLY ON A SUCCESSFUL **MODIFIED** FACTORIZATION. A
@@ -1784,7 +1857,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // Its own banner carries the argument: the honesty is the downgrade, not the size.
                 evidence_failed = true;
                 const double conservative =
-                    std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.ipqp_reg_max);
+                    std::min(detail::kIpqpEvidenceFailureRhoFloor, iopts.regularization_max);
                 // THE ITERATION RUNS AT `max(trial, floor)` and THAT value is what IC's memory
                 // records: later trials descend /3 from it and `ladder_trial` floors them again
                 // while evidence stays unavailable, so such a backend runs at a constant floor.
@@ -1801,8 +1874,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // floor -- the one increase reason with no ladder rung
                     // behind it.
                     if (trace_ != nullptr) {
-                        IpqpTraceRegEvent ev;
-                        ev.dir = IpqpTraceRegDir::kUp;
+                        IpqpRegTraceEvent ev;
+                        ev.dir = IpqpTraceRegDirection::kUp;
                         ev.rho = rho_sched + floored;
                         ev.delta = delta;
                         ev.reason = IpqpTraceRegReason::kFloor;
@@ -1817,7 +1890,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // The ceiling test carries SsnEngine::escalate_prox's relative slack verbatim, and for
             // its reason: repeated multiplication does not reproduce 1e6 exactly, so an exact `>=`
             // guard grants a final rung worth 2.3e-10 relative and a whole numeric factorization.
-            const double cap = iopts.ipqp_reg_max * (1.0 - detail::kSsnProxCapSlack);
+            const double cap = iopts.regularization_max * (1.0 - detail::kSsnProxCapSlack);
             // THE PERTURBED-PIVOT ROUTE, AND ITS BOUND (fix round 1, settler ruling R2). Answered
             // by the PRIMAL ladder while it is ARMED and the primal route has not been abandoned
             // this iteration; otherwise by the DUAL shift. The LATCH lasts one iteration.
@@ -1863,9 +1936,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     ++out.counters.ipqp_inertia_retries;
                     return read;
                 }
-                delta = std::min(delta * detail::kIpqpDeltaGrowth, iopts.ipqp_reg_max);
+                delta = std::min(delta * detail::kIpqpDeltaGrowth, iopts.regularization_max);
                 if (delta >= cap) {
-                    delta = iopts.ipqp_reg_max;
+                    delta = iopts.regularization_max;
                 }
             } else {
                 if (rho_dem >= cap) {
@@ -1881,10 +1954,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // with a memory it is the memory's own /3 probe, which the skip rule had not
                     // yet licensed -- and which is a memory value for the reclimb charge below.
                     if (rho_dem_last == 0.0) {
-                        rho_dem = std::min(detail::kIpqpLadderInit, iopts.ipqp_reg_max);
+                        rho_dem = std::min(detail::kIpqpLadderInit, iopts.regularization_max);
                     } else {
-                        rho_dem =
-                            std::max(iopts.ipqp_reg_floor, rho_dem_last / detail::kIpqpLadderDown);
+                        rho_dem = std::max(iopts.regularization_min,
+                                           rho_dem_last / detail::kIpqpLadderDown);
                         trying_memory_value = !evidence_failed;
                     }
                 } else {
@@ -1900,10 +1973,10 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // nothing is known about its scale and W-B's `bar kappa_w^+` governs.
                     const double up =
                         (rho_dem_last == 0.0) ? detail::kIpqpLadderUpFirst : detail::kIpqpLadderUp;
-                    rho_dem = std::min(rho_dem * up, iopts.ipqp_reg_max);
+                    rho_dem = std::min(rho_dem * up, iopts.regularization_max);
                 }
                 if (rho_dem >= cap) {
-                    rho_dem = iopts.ipqp_reg_max;
+                    rho_dem = iopts.regularization_max;
                 }
                 rho_dem_max = std::max(rho_dem_max, rho_dem);
             }
@@ -1913,8 +1986,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // primal and the perturbed-pivot dual route; the unmoved
             // quantity reports its unchanged value.
             if (trace_ != nullptr) {
-                IpqpTraceRegEvent ev;
-                ev.dir = IpqpTraceRegDir::kUp;
+                IpqpRegTraceEvent ev;
+                ev.dir = IpqpTraceRegDirection::kUp;
                 ev.rho = rho_sched + rho_dem;
                 ev.delta = delta;
                 ev.reason = IpqpTraceRegReason::kInertia;
@@ -1932,14 +2005,41 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // One backend solve: scale the right-hand side in, unscale the solution out. `D K D u = D b`
     // gives `u = D^-1 v` for `K v = b`, so the recovered step is `D u` -- and everything leaving
     // this lambda is on the caller's own scale, spec 4.3's non-negotiable clause.
-    auto solve_system = [&]() {
-        if (iopts.ipqp_ruiz) {
+    //
+    // THE DENSE SOLVE CHECK: a dense-arm solve is checked on the system the backend factored
+    // (scaled when equilibrated, so rho is in D's metric), refined below kDenseSolveResidualTol
+    // and refused only above kDenseResidualRatioSingular -- rho normalized by the rhs has a floor
+    // near n eps kappa on late interior systems, and the check is aimed at wrong factors. Returns
+    // true iff refused.
+    auto solve_system = [&]() -> bool {
+        if (iopts.ruiz_equilibration) {
             w.rhs.array() *= w.dscale.array();
         }
         kkt_.solve(w.rhs, w.sol);
-        if (iopts.ipqp_ruiz) {
+        bool refused = false;
+        if (kkt_.arm() == hven::linear::FactorArm::kDense) {
+#ifdef HVEN_TESTING
+            const double wound = dense_solve_wound();
+            w.sol *= wound;
+#endif
+            refused = detail::dense_solve_check_refused(
+                kkt_.matrix(), w.rhs, detail::kDenseResidualRatioSingular,
+                [&](const Vec &in, Vec &u) {
+                    u.resize(in.size());
+                    kkt_.solve(in, u);
+#ifdef HVEN_TESTING
+                    u *= wound;
+#endif
+                },
+                w.sol, w.check_r, w.check_c);
+            if (refused) {
+                ++out.dense_solve_residual_refusals;
+            }
+        }
+        if (iopts.ruiz_equilibration) {
             w.sol.array() *= w.dscale.array();
         }
+        return refused;
     };
 
     // Build the right-hand side for one step. `mu_t` is the uniform complementarity target (0 on
@@ -2016,7 +2116,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
 
     auto steps_to_boundary = [&](const Vec &dx, Vec &ds, Vec &dyi, Vec &dzl, Vec &dzu,
                                  double &alpha_p, double &alpha_d) {
-        const double tau = iopts.ipqp_tau;
+        const double tau = iopts.fraction_to_boundary;
         w.neg_dx = -dx;
         w.ft_dx = dx;
         w.ft_dL = w.dL;
@@ -2034,7 +2134,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // The primal stays the heuristic's. Multipliers: one affine step at the unit-scaled point
     // (every z = its distance, estimates 0), Mehrotra-shifted on the multipliers only; mu_0 is
     // their measured complementarity, else the kFixed start. Ladder memory left as OFF finds it.
-    if (!started_warm && iopts.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity && npairs > 0) {
+    if (!started_warm && iopts.barrier_initial_rule == IpqpBarrierInitialRule::kComplementarity &&
+        npairs > 0) {
         refresh_distances();
         if (mi > 0) {
             w.yi = w.s;
@@ -2052,7 +2153,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         const double saved_rho_dem_max = rho_dem_max;
         double rho_dem = ladder_trial();
         double delta = delta_sched;
-        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
+        const InertiaRead read =
+            factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/false);
         rho_dem_last = saved_rho_dem_last;
         rho_dem_max = saved_rho_dem_max;
 
@@ -2061,9 +2163,9 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         bool ok = !fact_budget_hit && read == InertiaRead::kOk;
         if (ok) {
             build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
-            solve_system();
+            const bool refused = solve_system();
             recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
-            ok = w.sol.allFinite();
+            ok = !refused && w.sol.allFinite();
         }
         double mu_derived = 0.0;
         if (ok) {
@@ -2127,7 +2229,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             }
             mu_derived = prod / static_cast<double>(npairs);
             // Negated acceptance: NaN falls back. Strict positivity of every multiplier too.
-            ok = zlo > 0.0 && mu_derived >= iopts.ipqp_min_mu && mu_derived <= iopts.ipqp_init_mu;
+            ok =
+                zlo > 0.0 && mu_derived >= iopts.barrier_min && mu_derived <= iopts.barrier_initial;
         }
         if (ok) {
             if (mi > 0) {
@@ -2167,7 +2270,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         refresh_distances();
         const IpqpResiduals res = residuals();
         out.residuals = res;
-        if (iopts.ipqp_mu_residual_floor && !floor_anchor_set) {
+        if (iopts.barrier_residual_floor && !floor_anchor_set) {
             floor_mu_s = mu_meas;
             floor_r_s = std::max({res.primal_eq, res.primal_iq, res.stationarity});
             floor_anchor_set = true;
@@ -2181,8 +2284,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // The two targets, named once for the tests below that also read them (the 6.2 window,
         // 6.3's positive floor, the inner-loop target). The stopping rule itself is the exported
         // predicate, which reads the same two fields.
-        const double opt_target = opts_.opt_tol * iopts.ipqp_converge_slack;
-        const double feas_target = opts_.feas_tol * iopts.ipqp_converge_slack;
+        const double opt_target = opts_.optimality_tol * iopts.convergence_slack;
+        const double feas_target = opts_.feasibility_tol * iopts.convergence_slack;
 
         // THE STOPPING RULE (spec 2.3 step 1 / 3.4), through the EXPORTED predicate rather than
         // inline: task 6's routing chain asks the same question of a returned IpqpResult, and two
@@ -2192,7 +2295,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // barrier level is inside the target too, at the warm ENTRY alone -- after a step the
         // point is this solve's. `.superpowers/w1-t7-report.md` FIX ROUND 2.
         const bool untrusted_warm_seed = warm_live && out.counters.ipqp_iters == iters_base &&
-                                         mu_meas > iopts.ipqp_converge_slack * opts_.opt_tol;
+                                         mu_meas > iopts.convergence_slack * opts_.optimality_tol;
         if (!untrusted_warm_seed && ipqp_residuals_meet_target(res, opts_, iopts)) {
             converged = true;
             break;
@@ -2278,8 +2381,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             iters_base = out.counters.ipqp_iters;
             facts_base = kkt_.counters().factorize_count;
             cold_start();
-            rho_sched = iopts.ipqp_rho_init;
-            delta_sched = iopts.ipqp_delta_init;
+            rho_sched = iopts.primal_regularization_initial;
+            delta_sched = iopts.dual_regularization_initial;
             rho_dem_last = 0.0;
             consec_modified = 0;
             reg_gate_ref = std::numeric_limits<double>::quiet_NaN();
@@ -2355,11 +2458,11 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             const double inner_target = std::min(opt_target, feas_target);
             if (R <= std::max(detail::kIpqpRegGateContract * reg_gate_ref, inner_target)) {
                 reg_gate_ref = R;
-                const double proposed = rho_sched * iopts.ipqp_reg_decrease;
+                const double proposed = rho_sched * iopts.regularization_decrease;
                 // NOTHING OVERRIDES THE DECREASE ANY MORE EXCEPT THE ABSOLUTE FLOOR (T4b): section
                 // 2.2 item 3's monotone-per-solve floor is DELETED, so the schedule decays toward
                 // the caller's QP while the ladder answers curvature on its own `rho_dem`.
-                const double target = std::max(proposed, iopts.ipqp_reg_floor);
+                const double target = std::max(proposed, iopts.regularization_min);
                 bool moved = false;
                 if (target < rho_sched) {
                     rho_sched = target;
@@ -2369,7 +2472,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                 // note (g): section 2.2 states the floor for `rho` only), so it
                 // falls to the absolute floor on its own.
                 const double dtarget =
-                    std::max(delta_sched * iopts.ipqp_reg_decrease, iopts.ipqp_reg_floor);
+                    std::max(delta_sched * iopts.regularization_decrease, iopts.regularization_min);
                 if (dtarget < delta_sched) {
                     delta_sched = dtarget;
                     moved = true;
@@ -2389,8 +2492,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
                     // task 8: `ipqp.reg`, the gate's own decrease -- rho_dem
                     // is 0 outside the ladder, which this gate never touches.
                     if (trace_ != nullptr) {
-                        IpqpTraceRegEvent ev;
-                        ev.dir = IpqpTraceRegDir::kDown;
+                        IpqpRegTraceEvent ev;
+                        ev.dir = IpqpTraceRegDirection::kDown;
                         ev.rho = rho_sched;
                         ev.delta = delta_sched;
                         ev.reason = IpqpTraceRegReason::kAccept;
@@ -2420,12 +2523,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         }
         double delta = delta_sched;
 
-        const InertiaRead read = factorize_with_ladder(rho_sched, rho_dem, delta);
+        InertiaRead read =
+            factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/false);
 
         // I4 + N1: READ AFTER THE LADDER SETTLES, COUNTED ONLY IF A STEP IS ACTUALLY TAKEN. `rho`
         // is in/out, so this reads the level the step would run at; the increment waits until the
         // step has been applied, since the counter's doc says "iterations TAKEN".
-        const bool elevated = rho_dem > 0.0;
+        bool elevated = rho_dem > 0.0;
         // IC-1'S SKIP RULE COUNTS ITERATIONS, NOT RUNGS: an iteration "needed a modification" iff
         // the reading the tier acted on was taken with `rho_dem > 0`. Updated here, once the
         // ladder has settled and before any rejection path below can leave the loop.
@@ -2435,84 +2539,125 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             consec_modified = 0;
         }
 
-        if (fact_budget_hit) {
-            // The cap refused a factorization: a BUDGET stop, tested before the reading because no
-            // factorization ran and there is no verdict to classify. Section 6.3's exhaustion
-            // route gets the same look it gets at the two caps above.
-            escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
-                                                             : IpqpEscape::kBudget;
-            break;
-        }
-        if (read == InertiaRead::kUnreadable) {
-            // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder): this iteration's
-            // modification is already at the conservative floor and re-factorized there. NOT an
-            // escape and NOT a break -- what the solve can no longer produce is a CERTIFICATE.
-        } else if (read != InertiaRead::kOk) {
-            // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. A solve-scoped `saw_readable_wrong`
-            // flag used to make a terminal PERTURBED/UNREADABLE stop come out `kIndefinite`; plan
-            // section 7 note (h) makes an evidence-invalid terminal state NUMERICAL.
-            escape =
-                (read == InertiaRead::kWrong) ? IpqpEscape::kIndefinite : IpqpEscape::kNumerical;
-            break;
-        }
-
-        // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
-        // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored at
-        // `zeta`, never from the inertia-demanded modification, whose gradient here is zero.
-        build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
-        solve_system();
-        recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
-        if (!w.sol.allFinite()) {
-            escape = IpqpEscape::kNumerical;
-            break;
-        }
-
-        double alpha_ap = 1.0;
-        double alpha_ad = 1.0;
-        steps_to_boundary(w.dx_a, w.ds_a, w.dyi_a, w.dzl_a, w.dzu_a, alpha_ap, alpha_ad);
-
-        // 2. sigma = (mu_aff / mu)^3, Mehrotra's own oracle. The tier computes
-        //    it itself: `ClassicAdaptiveGovernor::mpc_mu` is private and takes
-        //    a SolverContext this tier does not have (spec 3.3).
+        // THE STEP SOLVES, RE-TAKEN AFTER A REFUSED DENSE SOLVE. A refused affine or corrector
+        // solve sends its factorization back to the ladder as a perturbed rung (the IPM's dense
+        // step guard re-runs its ladder the same way); the tier escapes only once the ladder is
+        // exhausted, through the reading checks at the top of this loop.
+        bool step_escaped = false;
+        bool floor_bound = false;
         double sigma_m = 0.0;
         double mu_t = 0.0;
-        if (npairs > 0 && mu_meas > 0.0) {
-            w.tx = w.x + alpha_ap * w.dx_a;
-            if (mi > 0) {
-                w.ts = w.s + alpha_ap * w.ds_a;
-                w.tyi = w.yi + alpha_ad * w.dyi_a;
+        for (;;) {
+            if (fact_budget_hit) {
+                // The cap refused a factorization: a BUDGET stop, tested before the reading
+                // because no factorization ran and there is no verdict to classify. Section 6.3's
+                // exhaustion route gets the same look it gets at the two caps above.
+                escape = exhaustion_infeasible(res, feas_target) ? IpqpEscape::kInfeasibleSuspect
+                                                                 : IpqpEscape::kBudget;
+                step_escaped = true;
+                break;
             }
-            w.tzl = w.zl + alpha_ad * w.dzl_a;
-            w.tzu = w.zu + alpha_ad * w.dzu_a;
-            double mu_aff = 0.0, lo = 0.0, hi = 0.0;
-            complementarity(w.tx, w.ts, w.tyi, w.tzl, w.tzu, mu_aff, lo, hi);
-            const double ratio = std::max(0.0, mu_aff / mu_meas);
-            sigma_m = std::min(1.0, ratio * ratio * ratio);
-            // Spec 3.3's clamp. The FLOOR matters as much as the ceiling: a
-            // target driven to exactly zero turns the corrector into a second
-            // affine step and gives up the centering the corrector exists for.
-            double target = sigma_m * mu_meas;
-            if (iopts.ipqp_mu_residual_floor) {
-                // A2 / A1-R1: the infeasible-IPM neighbourhood's floor (the A2 page section 4).
-                const double r = std::max({res.primal_eq, res.primal_iq, res.stationarity});
-                const double floor_k = floor_mu_s * r / std::max(1.0, floor_r_s);
-                if (floor_k > target && floor_k > iopts.ipqp_min_mu) {
-                    target = floor_k;
-                    ++out.counters.ipqp_mu_floor_binds;
+            if (read == InertiaRead::kUnreadable) {
+                // SECTION 2.2'S EVIDENCE-FAILURE POLICY (see the ladder): this iteration's
+                // modification is already at the conservative floor and re-factorized there. NOT
+                // an escape and NOT a break -- what the solve can no longer produce is a
+                // CERTIFICATE.
+            } else if (read != InertiaRead::kOk) {
+                // I1: CLASSIFIED FROM THE TERMINAL READING ALONE. A solve-scoped
+                // `saw_readable_wrong` flag used to make a terminal PERTURBED/UNREADABLE stop come
+                // out `kIndefinite`; plan section 7 note (h) makes an evidence-invalid terminal
+                // state NUMERICAL.
+                escape = (read == InertiaRead::kWrong) ? IpqpEscape::kIndefinite
+                                                       : IpqpEscape::kNumerical;
+                step_escaped = true;
+                break;
+            }
+            // A refused solve's re-entry into the ladder; `elevated` and IC-1's run follow the
+            // rung the step is now taken at.
+            const auto reladder = [&]() {
+                read = factorize_with_ladder(rho_sched, rho_dem, delta, /*solve_refused=*/true);
+                if (!elevated && rho_dem > 0.0) {
+                    elevated = true;
+                    ++consec_modified;
                 }
-            }
-            mu_t = std::clamp(target, iopts.ipqp_min_mu, iopts.ipqp_init_mu);
-        }
+            };
 
-        // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's re-entrancy
-        //    assertion: `KktFactorization::solve` is const and does not mutate the factor, so two
-        //    solves against one factorization are well-formed; W1 asserts this executably).
-        build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
-        solve_system();
-        recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
-        if (!w.sol.allFinite()) {
-            escape = IpqpEscape::kNumerical;
+            // 1. THE AFFINE (PREDICTOR) STEP -- mu target 0.
+            // MECHANISM 4'S FIX (T4b): the RHS is built from the SCHEDULE'S subproblem, anchored
+            // at `zeta`, never from the inertia-demanded modification, whose gradient is zero.
+            build_rhs(rho_sched, delta_sched, 0.0, /*corrector=*/false);
+            const bool affine_refused = solve_system();
+            if (affine_refused) {
+                reladder();
+                continue;
+            }
+            recover(0.0, false, w.dx_a, w.ds_a, w.dye, w.dyi_a, w.dzl_a, w.dzu_a);
+            if (!w.sol.allFinite()) {
+                escape = IpqpEscape::kNumerical;
+                step_escaped = true;
+                break;
+            }
+
+            double alpha_ap = 1.0;
+            double alpha_ad = 1.0;
+            steps_to_boundary(w.dx_a, w.ds_a, w.dyi_a, w.dzl_a, w.dzu_a, alpha_ap, alpha_ad);
+
+            // 2. sigma = (mu_aff / mu)^3, Mehrotra's own oracle. The tier computes
+            //    it itself: `ClassicAdaptiveGovernor::mpc_mu` is private and takes
+            //    a SolverContext this tier does not have (spec 3.3).
+            sigma_m = 0.0;
+            mu_t = 0.0;
+            floor_bound = false;
+            if (npairs > 0 && mu_meas > 0.0) {
+                w.tx = w.x + alpha_ap * w.dx_a;
+                if (mi > 0) {
+                    w.ts = w.s + alpha_ap * w.ds_a;
+                    w.tyi = w.yi + alpha_ad * w.dyi_a;
+                }
+                w.tzl = w.zl + alpha_ad * w.dzl_a;
+                w.tzu = w.zu + alpha_ad * w.dzu_a;
+                double mu_aff = 0.0, lo = 0.0, hi = 0.0;
+                complementarity(w.tx, w.ts, w.tyi, w.tzl, w.tzu, mu_aff, lo, hi);
+                const double ratio = std::max(0.0, mu_aff / mu_meas);
+                sigma_m = std::min(1.0, ratio * ratio * ratio);
+                // Spec 3.3's clamp. The FLOOR matters as much as the ceiling: a
+                // target driven to exactly zero turns the corrector into a second
+                // affine step and gives up the centering the corrector exists for.
+                double target = sigma_m * mu_meas;
+                if (iopts.barrier_residual_floor) {
+                    // A2 / A1-R1: the infeasible-IPM neighbourhood's floor (the A2 page section 4).
+                    const double r = std::max({res.primal_eq, res.primal_iq, res.stationarity});
+                    const double floor_k = floor_mu_s * r / std::max(1.0, floor_r_s);
+                    if (floor_k > target && floor_k > iopts.barrier_min) {
+                        target = floor_k;
+                        floor_bound = true;
+                    }
+                }
+                mu_t = std::clamp(target, iopts.barrier_min, iopts.barrier_initial);
+            }
+
+            // 3. THE CORRECTOR, against the SAME numeric factorization (Amendment E's
+            //    re-entrancy assertion: `KktFactorization::solve` is const and does not mutate the
+            //    factor, so two solves against one factorization are well-formed; W1 asserts this
+            //    executably). A refusal re-takes the affine step too, on the new factorization.
+            build_rhs(rho_sched, delta_sched, mu_t, /*corrector=*/true);
+            const bool corrector_refused = solve_system();
+            if (corrector_refused) {
+                reladder();
+                continue;
+            }
+            recover(mu_t, true, w.dx, w.ds, w.dye, w.dyi, w.dzl, w.dzu);
+            if (!w.sol.allFinite()) {
+                escape = IpqpEscape::kNumerical;
+                step_escaped = true;
+            }
             break;
+        }
+        if (step_escaped) {
+            break;
+        }
+        if (floor_bound) {
+            ++out.counters.ipqp_mu_floor_binds;
         }
 
         double alpha_p = 1.0;
@@ -2593,7 +2738,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // the injection seam's own value when active, R1 fix round 2.
         if (trace_ != nullptr) {
             const hven::linear::InertiaEvidence &iev = trace_last_evidence;
-            IpqpTraceIterEvent ev;
+            IpqpIterTraceEvent ev;
             ev.solve = trace_solve_id;
             ev.major = trace_major_;
             ev.it = out.counters.ipqp_iters;
@@ -2609,7 +2754,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // R1: absence is DERIVED from the read's own state, explicitly
             // both ways -- never left to a default that happens to agree.
             if (iev.state == hven::linear::InertiaEvidence::State::kObserved) {
-                ev.inertia = std::array<Index, 3>{iev.n_pos, iev.n_neg, iev.n_zero};
+                ev.inertia = std::array<Index, 3>{iev.positive, iev.negative, iev.zero};
                 ev.zero_derived = iev.zero_is_derived;
             } else {
                 ev.inertia = std::nullopt;
@@ -2646,7 +2791,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // --- section 2.2 item 4: the required final inertia read ---------------
 
     if (converged) {
-        if (!iopts.ipqp_require_final_inertia) {
+        if (!iopts.require_final_inertia) {
             // I5, SETTLER RULING (spec section 9's own row: "off = certificate always
             // downgraded"). A DOWNGRADE, NOT AN ESCAPE -- the earlier `kNumerical` turned an
             // option-driven skip into a census entry and a K = 3 charge on a clean solve.
@@ -2671,7 +2816,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
             // A subproblem that needed the ladder will therefore fail this read, and reporting it
             // as saddle-suspect is the correct answer, not a false negative.
             refresh_distances();
-            const InertiaRead read = factorize_and_read_once(iopts.ipqp_reg_floor, delta_sched);
+            const InertiaRead read = factorize_and_read_once(iopts.regularization_min, delta_sched);
             if (fact_budget_hit) {
                 // N2 (SETTLER RULING, fix round 2): A READ THAT NEVER HAPPENED IS `3`, NOT `2` --
                 // `2` is ATTEMPTED-and-unusable. The ESCAPE stays `kBudget`, and the certificate
@@ -2763,7 +2908,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // either needs is already final by this point -- see the report for why
     // that lets one place read them rather than threading a partial event.
     if (trace_ != nullptr) {
-        IpqpTraceRestartEvent rev;
+        IpqpRestartTraceEvent rev;
         rev.grade = out.restart_grade == IpqpRestartGrade::kFullWarm ? IpqpTraceRestartGrade::kFull
                     : out.restart_grade == IpqpRestartGrade::kBaseWarm
                         ? IpqpTraceRestartGrade::kBase
@@ -2781,7 +2926,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // v0's `final_inertia` has no "not performed" value, matching
     // `ipqp_final_inertia_read`'s 0/1/2 states and excluding its `3`.
     if (trace_ != nullptr && converged && out.counters.ipqp_final_inertia_read != 3) {
-        IpqpTraceCertifyEvent cev;
+        IpqpCertifyTraceEvent cev;
         cev.final_inertia = out.counters.ipqp_final_inertia_read == 0 ? IpqpTraceFinalInertia::kOk
                             : out.counters.ipqp_final_inertia_read == 1
                                 ? IpqpTraceFinalInertia::kWrong
@@ -2798,7 +2943,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         out.status = QpStatus::kOptimal;
         break;
     case IpqpEscape::kBudget:
-        out.status = QpStatus::kMaxIter;
+        out.status = QpStatus::kIterationLimit;
         break;
     default:
         // Never kInfeasible: IP-PMM has no infeasibility certificate (spec
@@ -2850,7 +2995,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // task 8: `ipqp.escape`, one per genuine escape -- `kNone` (clean or
     // downgraded-without-escape) never fires it, matching the census above.
     if (trace_ != nullptr && out.escape_reason != IpqpEscape::kNone) {
-        IpqpTraceEscapeEvent eev;
+        IpqpEscapeTraceEvent eev;
         switch (out.escape_reason) {
         case IpqpEscape::kNone:
             break; // unreachable (guarded above); silences -Wswitch.
@@ -2913,7 +3058,7 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // implied active set it describes where the solve STOPPED and certifies nothing. An UNCERTAIN
     // verdict is never forced -- it is counted and handed on.
     refresh_distances();
-    const double kappa = iopts.ipqp_face_kappa;
+    const double kappa = iopts.face_ratio_threshold;
     const double mu_scale = std::max(mu_meas, 0.0);
     auto classify = [&](double slack, double dual) {
         if (slack < kappa * dual && dual > mu_scale) {
@@ -2990,10 +3135,8 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
         // `SsnEngine::split_bound_multipliers`' rule verbatim: under a FINITE radius every variable
         // has finite effective bounds, and the residue at an absent side is an internal TR dual.
         if (at_lower || at_upper) {
-            const double z_lower =
-                (at_lower && detail::ipqp_has_lower(qp.lower(i))) ? w.zl(i) : 0.0;
-            const double z_upper =
-                (at_upper && detail::ipqp_has_upper(qp.upper(i))) ? w.zu(i) : 0.0;
+            const double z_lower = (at_lower && qp.has_lower(i)) ? w.zl(i) : 0.0;
+            const double z_upper = (at_upper && qp.has_upper(i)) ? w.zu(i) : 0.0;
             out.z(i) = z_lower - z_upper;
         }
         // else: `bound_state[u]` is kFree and `out.z(i)` stays the 0 that
@@ -3008,6 +3151,13 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     // field's "mirrors" a fact rather than a claim -- and so the four cannot drift.
     const KktFactorization::Counters after = kkt_.counters();
     out.counters.ipqp_factorizations = after.factorize_count - before.factorize_count;
+    out.dense_platform_retakes = after.dense_retake_count - before.dense_retake_count;
+    out.dense_factorizations = (after.dense_factorize_count + after.dense_singular_count) -
+                               (before.dense_factorize_count + before.dense_singular_count);
+    out.dense_flagged_factorizations = (after.dense_flagged_count + after.dense_singular_count) -
+                                       (before.dense_flagged_count + before.dense_singular_count);
+    out.dense_singular_refactors =
+        after.dense_shift_refactor_count - before.dense_shift_refactor_count;
     out.counters.ipqp_solves = after.solve_count - before.solve_count;
     out.counters.ipqp_symbolic_analyses = after.analyze_count - before.analyze_count;
     out.counters.ipqp_pattern_verifies = after.pattern_verify_count - before.pattern_verify_count;
@@ -3020,4 +3170,4 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     return out;
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -44,10 +44,11 @@
 //
 //     kkt_tol  = feas_tol = 1e-9     (tight_options()'s values)
 //     max_iter = 60                  (majors; every solve in the study used <= 5)
-//     qp.max_iter, qp.schur_cap, qp.ws_algebra   from argv, defaults below
+//     qp.max_iterations, qp.max_schur_border_dimension, qp.working_set_algebra   from argv,
+//     defaults below
 //
 // EVERYTHING ELSE IS THE LIBRARY DEFAULT — including adaptive_mu = true,
-// warm_full_step, tr_init, and the whole funnel/SOC/elastic configuration.
+// warm_full_step, trust_region_initial, and the whole funnel/SOC/elastic configuration.
 // The solve is always COLD: the 2-arg SqpSolver::solve() from
 // model.start_point(), one solve per invocation, no warm start anywhere.
 //
@@ -60,13 +61,13 @@
 //     p            the family parameter, 0 < p < R = 1. p <= 0.5 is the
 //                  EMPTY-WINDOW regime (no path row active), p > 0.5 the
 //                  wide-window one. The study uses 0.45 and 0.85.
-//     qp_max_iter  QpOptions::max_iter. Default: the library's own default, which
+//     qp_max_iter  QpOptions::max_iterations. Default: the library's own default, which
 //                  since Phase-6 Task 4 (M6) is the SIZE-DERIVED cap, not a fixed
 //                  500 -- pass 0 to name it explicitly, or any positive value for
 //                  an absolute cap that overrides it.
-//     schur_cap    QpOptions::schur_cap. Default: the library's 128.
+//     schur_cap    QpOptions::max_schur_border_dimension. Default: the library's 128.
 //     ws_algebra   "border" (default) or "refactorize".
-//     qp_opt_tol   QpOptions::opt_tol. Default: the library's 1e-9.
+//     qp_opt_tol   QpOptions::optimality_tol. Default: the library's 1e-9.
 //     crash_basis  SqpOptions::crash_basis, 0 or 1. Default 0, the library
 //                  default -- so an invocation that omits it is byte-identical
 //                  to the pre-Task-4 program.
@@ -132,7 +133,7 @@
 //              records the policy it was measured under rather than leaving
 //              it to be inferred from the argv line.
 //
-// And `qp_max_iter` now accepts 0, which is QpOptions::max_iter's own
+// And `qp_max_iter` now accepts 0, which is QpOptions::max_iterations's own
 // sentinel for the size-derived default (it used to be rejected as < 1).
 //
 // PHASE-6 TASK 4 ALSO ADDED A SEVENTH ARGUMENT AND THREE MORE COLUMNS, on the
@@ -156,7 +157,8 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
@@ -167,12 +169,12 @@
 namespace {
 
 using hven::Index;
-using hven::solvers::SqpOptions;
-using hven::solvers::SqpResult;
-using hven::solvers::SqpSolver;
-using hven::solvers::WorkingSetLinearAlgebra;
-using hven::solvers::test_support::F7CollocationChain;
-using hven::solvers::test_support::peak_rss_mib;
+using hven::QpWorkingSetAlgebra;
+using hven::SqpOptions;
+using hven::SqpResult;
+using hven::SqpSolver;
+using hven::test_support::F7CollocationChain;
+using hven::test_support::peak_rss_mib;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_f7_cold <nodes> <p> [qp_max_iter] [schur_cap] [ws_algebra] "
@@ -195,15 +197,15 @@ constexpr const char *kUsage =
 // these out of the two byte-identical copies the bench binaries had grown);
 // this file's own kUsage is the only thing they add.
 [[noreturn]] void throw_usage(const std::string &detail) {
-    hven::solvers::bench_cli::throw_usage(kUsage, detail);
+    hven::bench_cli::throw_usage(kUsage, detail);
 }
 
 long long parse_ll(const std::string &what, const std::string &value) {
-    return hven::solvers::bench_cli::parse_ll(kUsage, what, value);
+    return hven::bench_cli::parse_ll(kUsage, what, value);
 }
 
 double parse_double(const std::string &what, const std::string &value) {
-    return hven::solvers::bench_cli::parse_double(kUsage, what, value);
+    return hven::bench_cli::parse_double(kUsage, what, value);
 }
 
 } // namespace
@@ -225,50 +227,51 @@ int main(int argc, char **argv) {
         const double p = parse_double("p", argv[2]);
 
         SqpOptions opts; // library defaults everywhere except the four below
-        opts.kkt_tol = 1e-9;
-        opts.feas_tol = 1e-9;
-        opts.max_iter = 60;
+        opts.common.optimality_tol = 1e-9;
+        opts.common.feasibility_tol = 1e-9;
+        opts.common.max_iterations = 60;
         if (argc > 3) {
-            // M6: 0 is now MEANINGFUL, not an error -- it is QpOptions::
-            // max_iter's own sentinel for "derive the cap from the
-            // subproblem's size", and therefore the way to invoke this probe
-            // at the shipped default explicitly. Negative is still rejected.
+            // On the command line 0 means "the library's size-derived default",
+            // the way to invoke this probe at the shipped default explicitly:
+            // it leaves QpOptions::max_iterations empty. Negative is rejected.
             const long long v = parse_ll("qp_max_iter", argv[3]);
             if (v < 0) {
                 throw_usage(fmt::format("qp_max_iter: '{}' must be >= 0 (0 = the library's "
                                         "size-derived default)",
                                         argv[3]));
             }
-            opts.qp.max_iter = static_cast<Index>(v);
+            if (v > 0) {
+                opts.qp.max_iterations = static_cast<Index>(v);
+            }
         }
         if (argc > 4) {
             const long long v = parse_ll("schur_cap", argv[4]);
             if (v < 1) {
                 throw_usage(fmt::format("schur_cap: '{}' must be >= 1", argv[4]));
             }
-            opts.qp.schur_cap = static_cast<Index>(v);
+            opts.qp.max_schur_border_dimension = static_cast<Index>(v);
         }
         if (argc > 5) {
             const std::string ws = argv[5];
             if (ws != "border" && ws != "refactorize") {
                 throw_usage(fmt::format("ws_algebra: '{}' is not one of border|refactorize", ws));
             }
-            opts.qp.ws_algebra = (ws == "refactorize") ? WorkingSetLinearAlgebra::kRefactorize
-                                                       : WorkingSetLinearAlgebra::kSchurBorder;
+            opts.qp.working_set_algebra = (ws == "refactorize") ? QpWorkingSetAlgebra::kRefactorize
+                                                                : QpWorkingSetAlgebra::kSchurBorder;
         }
         if (argc > 6) {
             const double v = parse_double("qp_opt_tol", argv[6]);
             if (!(v > 0.0)) {
                 throw_usage(fmt::format("qp_opt_tol: '{}' must be > 0", argv[6]));
             }
-            opts.qp.opt_tol = v;
+            opts.qp.optimality_tol = v;
         }
         if (argc > 7) {
             const long long v = parse_ll("crash_basis", argv[7]);
             if (v != 0 && v != 1) {
                 throw_usage(fmt::format("crash_basis: '{}' must be 0 or 1", argv[7]));
             }
-            opts.crash_basis = v != 0;
+            opts.advanced.crash_basis = v != 0;
         }
 
         // F7CollocationChain's ctor validates nodes/states/controls/radius, and
@@ -280,10 +283,10 @@ int main(int argc, char **argv) {
         const double f_star = model.f_star(p);
 
         SqpSolver driver(opts);
-        hven::solvers::Ledger ledger;
+        hven::Ledger ledger;
         driver.attach_ledger(&ledger, "f7_cold");
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), model.start_point());
         const auto t1 = std::chrono::steady_clock::now();
 
         const double x_err = (sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>();
@@ -298,7 +301,7 @@ int main(int argc, char **argv) {
         // pre-Task-3 column above reproduces byte-for-byte.
         // PHASE-6 TASK 4 (M6) added `qpmax` -- the LARGEST per-subproblem
         // minor count of this solve -- for one reason: the size-derived cap
-        // (qp_types.h's QpOptions::max_iter, qp_engine.h's
+        // (qp_types.h's QpOptions::max_iterations, qp_engine.h's
         // detail::effective_qp_max_iter) applies PER SUBPROBLEM, so the
         // quantity a cap has to clear is this maximum and NOT the `minors`
         // total beside it. On this family the two are nearly equal (one
@@ -319,7 +322,7 @@ int main(int argc, char **argv) {
         Index distinct_bound = 0;
         Index drop_ties = 0;
         Index ratio_ties = 0;
-        for (const hven::solvers::SolveRecord &rec : ledger.records()) {
+        for (const hven::SolveRecord &rec : ledger.records()) {
             qp_max_minors = std::max(qp_max_minors, rec.counters.minor_iters);
             schur_updates += rec.counters.schur_updates;
             ws_adds += rec.counters.ws_adds;
@@ -334,7 +337,7 @@ int main(int argc, char **argv) {
             drop_ties += rec.counters.drop_ties;
             ratio_ties += rec.counters.ratio_ties;
         }
-        const hven::solvers::test_support::AnalyticActiveSet analytic = model.active_set(p);
+        const hven::test_support::AnalyticActiveSet analytic = model.active_set(p);
         const Index active_rows = static_cast<Index>(
             std::count(analytic.ineq_active.begin(), analytic.ineq_active.end(), 1));
 
@@ -345,15 +348,14 @@ int main(int argc, char **argv) {
         // through the same helper the engine uses.
         Index bounded = 0;
         for (Index i = 0; i < model.n(); ++i) {
-            if (model.lower()(i) > -hven::solvers::detail::kEngineInfBound ||
-                model.upper()(i) < hven::solvers::detail::kEngineInfBound) {
+            if (model.lower()(i) > -opts.common.infinite_bound ||
+                model.upper()(i) < opts.common.infinite_bound) {
                 ++bounded;
             }
         }
         const Index cap_base = model.n() + model.mi() + bounded;
-        const Index cap_eff = opts.qp.max_iter > 0
-                                  ? opts.qp.max_iter
-                                  : hven::solvers::detail::derived_qp_max_iter(cap_base);
+        const Index cap_eff = opts.qp.max_iterations ? *opts.qp.max_iterations
+                                                     : hven::detail::derived_qp_max_iter(cap_base);
 
         fmt::print("N={} n={} p={:.6f} active={} status={} majors={} minors={} qpmax={} "
                    "capbase={} cap={} crash={} crashrows={} crashbnd={} fact={} "
@@ -362,13 +364,13 @@ int main(int argc, char **argv) {
                    "xerr={:.6e} ferr_rel={:.6e} wall={:.3f} rss={:.1f}\n",
                    nodes, model.n(), p, active_rows, to_string(sol.status),
                    sol.counters.major_iters, sol.counters.qp_minor_iters, qp_max_minors, cap_base,
-                   cap_eff, opts.crash_basis ? 1 : 0, sol.counters.crash_seeded_rows,
+                   cap_eff, opts.advanced.crash_basis ? 1 : 0, sol.counters.crash_seeded_rows,
                    sol.counters.crash_seeded_bounds, sol.counters.factorizations, schur_updates,
                    sol.counters.symbolic_analyses, sol.counters.border_refine_steps, ws_adds,
                    ws_drops, shift_adds, degenerate_steps, degenerate_run_max, ws_adds_bound,
                    ws_drops_bound, distinct_ineq, distinct_bound, drop_ties, ratio_ties,
-                   opts.qp.opt_tol, x_err, f_err, std::chrono::duration<double>(t1 - t0).count(),
-                   peak_rss_mib());
+                   opts.qp.optimality_tol, x_err, f_err,
+                   std::chrono::duration<double>(t1 - t0).count(), peak_rss_mib());
         return 0;
     } catch (const std::exception &e) {
         fmt::print(stderr, "hven_sqp_f7_cold: error: {}\n", e.what());

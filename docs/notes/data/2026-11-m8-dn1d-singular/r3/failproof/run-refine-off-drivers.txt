@@ -1,0 +1,51 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-refine-off/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = DenseArmEngines.*
+[==========] Running 12 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 12 tests from DenseArmEngines
+[ RUN      ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesHs071AsTheSparseArmDoes (4 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesHs071AsTheSparseArmDoes (2 ms)
+[ RUN      ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.IpmSolvesASingularKktProblemAsTheSparseArmDoes (1 ms)
+[ RUN      ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes
+[       OK ] DenseArmEngines.SqpSolvesASingularKktProblemAsTheSparseArmDoes (0 ms)
+[ RUN      ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.IpmValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly
+[       OK ] DenseArmEngines.SqpValidateAcceptsNeverAndAlwaysOnly (0 ms)
+[ RUN      ] DenseArmEngines.TheOptionsDumpCarriesThePolicy
+[       OK ] DenseArmEngines.TheOptionsDumpCarriesThePolicy (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal
+[       OK ] DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactorProximal (0 ms)
+[ RUN      ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations
+[       OK ] DenseArmEngines.IpmResidualGuardIsNeverEnteredOnSparseFactorizations (8 ms)
+[ RUN      ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-refine-off/tests/drivers/test_dense_arm_engines.cpp:371: Failure
+Expected equality of these values:
+  dense.status
+    Which is: 4-byte object <06-00 00-00>
+  sparse.status
+    Which is: 4-byte object <00-00 00-00>
+
+/home/ghecht/Projects/hven/.claude/worktrees/dn1d/build-dn1de3/fp-src-refine-off/tests/drivers/test_dense_arm_engines.cpp:372: Failure
+The difference between dense.f and sparse.f is 1.4999990463261383, which exceeds 1e-8 * std::max(1.0, std::abs(sparse.f)), where
+dense.f evaluates to 0,
+sparse.f evaluates to -1.4999990463261383, and
+1e-8 * std::max(1.0, std::abs(sparse.f)) evaluates to 1.4999990463261382e-08.
+
+[  FAILED  ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm (0 ms)
+[ RUN      ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK
+[       OK ] DenseArmEngines.TheSsnRefusesAShiftedNewtonStepThatMissesK (0 ms)
+[----------] 12 tests from DenseArmEngines (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 12 tests from 1 test suite ran. (19 ms total)
+[  PASSED  ] 11 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DenseArmEngines.SqpShiftsASingularKktOnTheDenseArm
+
+ 1 FAILED TEST

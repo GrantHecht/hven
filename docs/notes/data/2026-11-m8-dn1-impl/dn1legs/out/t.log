@@ -1,0 +1,36 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T09:17:40-05:00
+c3ed8a9 EVIDENCE-ONLY (local clone, never pushed): pin hven 2171f8dd4 (M8 DN-1 code head, branch m8-dn1-impl) for DN-1's T leg
+runner rc=0
+run_serial: cutest/TAX213322/hven-sqp/default
+run_serial: cutest/TAX53322/hven-sqp/default
+run_serial: cutest/YORKNET/hven-sqp/default
+run_serial: cutest/ZAMB2-8/hven-sqp/default
+run_serial: 23 cells -> runs/dn1-train/default/results.csv
+cells: PF-1 23, this run 23
+ACOPP118   PF-1 optimal/optimal/8 f=129660.68619604065 | DN-1 optimal/optimal/8 f=129660.68619604065 wall 24.171705248998478
+ACOPP57    PF-1 optimal/optimal/5 f=41737.786849846176 | DN-1 optimal/optimal/5 f=41737.786849846176 wall 0.086783642880618572
+ACOPR118   PF-1 optimal/optimal/61 f=129660.68370269195 | DN-1 optimal/optimal/61 f=129660.68370269195 wall 90.295272211078554
+ACOPR57    PF-1 optimal/optimal/16 f=41737.786035029698 | DN-1 optimal/optimal/16 f=41737.786035029698 wall 1.9763550381176174
+BIGBANK    PF-1 optimal/optimal/23 f=-4205693.2995377351 | DN-1 optimal/optimal/23 f=-4205693.2995377351 wall 24.545639021787792
+BRITGAS    PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.10458638798445
+DALLASM    PF-1 optimal/optimal/18 f=-48198.188192052978 | DN-1 optimal/optimal/18 f=-48198.188192052978 wall 1.0319024489726871
+MSS2       PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.11280980403535
+MSS3       PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.14249492599629
+NET3       PF-1 optimal/optimal/23 f=5859393.7023180835 | DN-1 optimal/optimal/23 f=5859393.7023180835 wall 95.270920926006511
+READING6   PF-1 optimal/optimal/8 f=-144.65970057278301 | DN-1 optimal/optimal/8 f=-144.65970057278301 wall 0.88717066589742899
+READING8   PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.11184071819298
+SAWPATH    PF-1 optimal/optimal/9 f=750.45894675975114 | DN-1 optimal/optimal/9 f=750.45894675975114 wall 0.79194898996502161
+SMBANK     PF-1 optimal/optimal/29 f=-7129292 | DN-1 optimal/optimal/29 f=-7129292 wall 0.11302398797124624
+STEENBRB   PF-1 optimal/optimal/136 f=9075.8553755338289 | DN-1 optimal/optimal/136 f=9075.8553755338289 wall 31.388543036067858
+STEENBRC   PF-1 optimal/optimal/102 f=27504.936820482559 | DN-1 optimal/optimal/102 f=27504.936820482559 wall 50.000006497139111
+STEENBRD   PF-1 optimal/optimal/85 f=9030.0818667716558 | DN-1 optimal/optimal/85 f=9030.0818667716558 wall 28.921172552974895
+STEENBRE   PF-1 optimal/optimal/80 f=27459.163311770888 | DN-1 optimal/optimal/80 f=27459.163311770888 wall 29.420448979130015
+STEENBRG   PF-1 optimal/optimal/78 f=27420.929665317915 | DN-1 optimal/optimal/78 f=27420.929665317915 wall 38.363923707045615
+TAX213322  PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.14308648998849
+TAX53322   PF-1 null/dnf_wall/null f=null | DN-1 null/dnf_wall/null f=null wall 300.10693871183321
+YORKNET    PF-1 numerical_error/error/40 f=14706.403707417367 | DN-1 numerical_error/error/40 f=14706.403707417367 wall 35.025236200075597
+ZAMB2-8    PF-1 optimal/optimal/8 f=-0.15293592839679399 | DN-1 optimal/optimal/8 f=-0.15293592839679399 wall 0.32350506610237062
+optimal 16/23 (PF-1 16/23); lost []; objective moved []; non-success moves []
+T_PASS
+FOREGROUND_END 2026-11-09T09:55:14-05:00

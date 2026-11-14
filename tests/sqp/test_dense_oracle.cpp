@@ -5,7 +5,8 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Vec;
 
 static QpProblem simple_box_qp() {

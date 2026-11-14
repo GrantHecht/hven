@@ -1,0 +1,30 @@
+M8 DN-1d -- runtime neutrality gate (../DECLARATION.txt P11) -- DECLARATION (committed before the first leg; never
+edited; a failed leg is answered by a successor, this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-dn1c-sqp-check/runtime/ verbatim (run_all.sh, runtime_leg.sh, analyze_r5.py, analyze_r11.py,
+fixture/): the evidence directory (this one), both arms' trees (build-dn1de/), the perf scratch directory
+(build-dn1de/runtime-perf) and arm A's sha256 replaced; one provenance comment line added to each. The sampling period
+stays 400000. The analyzer is analyze_r11.py.
+
+ARMS
+  A  4776aa2ff (origin/m8): build-dn1de/armAbin/hven_sqp_corpus (legs/prebuild.sh), sha256 651b5b57fd32c55575f399e325bd5ff817ec885fa113fbaecc5c04399c44bc9c.
+  B  the code head d10be2f53: build-dn1de/rel/bench/hven_sqp_corpus copied by run_all.sh to build-dn1de/armBbin/,
+     sha256 2f2c34a629400abe7449baa36d8aab84d1fd8357098bf95d33ad4a1fb390f890. run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk, in that order; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase
+alignment, period 400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition,
+band 0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults (DensePolicy::kNever) in every mode. VERDICT
+PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY at kNever: DenseSingularPolicy stays kSparseFallback (sqp_kkt_options sets kReport only under a
+dense policy; the factor refuses kReport under kNever), so no rook, detector, equilibration or shifted refactor runs.
+Per walk/SSN factorization the tally reads one more KktFactor field (shifted_exact_singular) and kkt_calls clears
+KktFactor::dense_scale (an empty Vec) on every site factorization; solve_eqp tests KktFactor::dense_shifted once more
+(false); per walk EQP pass one more bool test (shifted_refused) and per SQP fold one more add
+(dense_shifted_solve_refusals); the terminal mu-free refinement and polish test dense_shifted once more. Layouts grow:
+KktFactor (Vec + Index), EqpResult (bool), QpCounters / SqpCounters (one Index each); DenseSession gains a vector
+member. Against arm A (m8 = DN-1c) the 6639aee0c layer also differs (DenseSingularPolicy replacing the condition-check
+bool, the counter set, the IPQP/SSN site plumbing), all inert at kNever.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.
+PROTOCOL: `flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/runtime/run_all.sh 2f2c34a629400abe7449baa36d8aab84d1fd8357098bf95d33ad4a1fb390f890`,
+serial, alone; `pgrep -a hven_bench_cell` empty before the lock (own command) and PGREP_EMPTY inside it.
+Hardware/toolchain: AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2;
+Apple/Windows UNOBSERVED.

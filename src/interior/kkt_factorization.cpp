@@ -13,9 +13,12 @@
 // confusion a raw comparison would introduce -- so the categorization below is
 // written in terms of the names, never raw values.
 #include <Accelerate/Accelerate.h>
+
 #endif
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 
 namespace {
 
@@ -24,6 +27,11 @@ namespace {
 // has always recorded for that backend's outcome codes.
 #ifdef USE_ACCELERATE_SPARSE
 Eigen::ComputationInfo computation_info_of(int backend_code) {
+    // The dense arm's exactly singular report (kReport) is a numeric outcome,
+    // never a symbolic failure, on either backend.
+    if (backend_code == hven::linear::kDenseSingular) {
+        return Eigen::NumericalIssue;
+    }
     switch (static_cast<SparseStatus_t>(backend_code)) {
     case SparseStatusOK:
         return Eigen::Success;
@@ -43,6 +51,11 @@ Eigen::ComputationInfo computation_info_of(int backend_code) {
 Eigen::ComputationInfo computation_info_of(int backend_code) {
     if (backend_code == 0) {
         return Eigen::Success;
+    }
+    // The dense arm's exactly singular report (kReport) is a numeric outcome,
+    // never a symbolic failure, on either backend.
+    if (backend_code == hven::linear::kDenseSingular) {
+        return Eigen::NumericalIssue;
     }
     // Pardiso's -4 / -7 (zero or near-zero pivot) is the ordinary outcome of
     // probing a perturbation during inertia correction, so it is recorded
@@ -67,8 +80,8 @@ void KktFactorization::set_num_threads(int num_threads) {
     // The factor validates first, so a rejected count leaves both this
     // object's options and the factor itself untouched. `opts_` is then kept
     // in step because release() and reconfigure() rebuild the factor from it.
-    factor_.set_num_threads(num_threads);
-    opts_.num_threads = num_threads;
+    factor_.set_threads(num_threads);
+    opts_.threads = num_threads;
 }
 
 void KktFactorization::release() {
@@ -130,6 +143,7 @@ void KktFactorization::clear_evidence() {
     info_ = Eigen::Success;
     factor_mem_ = 0;
     factor_flops_ = 0;
+    arm_ = hven::linear::FactorArm::kSparse;
 }
 
 void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
@@ -137,6 +151,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
     // both of its branches: the accessor's contract is "the last outcome's
     // inertia, verbatim", which includes the outcomes the projection collapses.
     inertia_ = outcome.inertia;
+    arm_ = outcome.arm;
 
     info_ = computation_info_of(outcome.backend_code);
 
@@ -145,11 +160,23 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
         return;
     }
 
-    n_pos_ = static_cast<int>(outcome.inertia.n_pos);
-    n_neg_ = static_cast<int>(outcome.inertia.n_neg);
+    n_pos_ = static_cast<int>(outcome.inertia.positive);
+    n_neg_ = static_cast<int>(outcome.inertia.negative);
     // An absent perturbed-pivot count reads as the 0 the engine saw on a
     // backend that keeps no such counter.
     perturbed_pivots_ = static_cast<int>(outcome.inertia.perturbed_pivots.value_or(0));
+
+    // A factorization the dense arm took reports its size as n(n+1)/2 entries,
+    // computed from the dimension, and no cost estimate.
+    if (outcome.arm == hven::linear::FactorArm::kDense) {
+        if (!outcome.factor.dense_factor_entries.has_value()) {
+            throw std::logic_error(
+                "KktFactorization: the dense arm's factorization reported no entry count");
+        }
+        factor_mem_ = *outcome.factor.dense_factor_entries;
+        factor_flops_ = 0;
+        return;
+    }
 
     // Factor size. The backends report structurally different quantities --
     // an entry count on one, a byte size on the other -- and the linear layer
@@ -160,7 +187,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
     if (!outcome.factor.factor_size_bytes.has_value()) {
         throw std::logic_error("KktFactorization: the factorization reported no factor byte size");
     }
-    factor_mem_ = static_cast<int>(*outcome.factor.factor_size_bytes);
+    factor_mem_ = *outcome.factor.factor_size_bytes;
     // This backend reports no factorization-cost estimate at all; the
     // engine's own "> 0" print guard suppresses it.
     factor_flops_ = 0;
@@ -169,7 +196,7 @@ void KktFactorization::record(const hven::linear::FactorizeOutcome &outcome) {
         throw std::logic_error(
             "KktFactorization: the factorization reported no factor entry count");
     }
-    factor_mem_ = static_cast<int>(*outcome.factor.factor_nonzeros);
+    factor_mem_ = *outcome.factor.factor_nonzeros;
 
     // The cost estimate is reported only where it was requested; requesting it
     // and not getting it is a defect.
@@ -192,6 +219,7 @@ void KktFactorization::record_failed_factorization(const hven::linear::Factorize
     // with a default-constructed outcome, when the BACKEND SYMBOLIC phase
     // fails, and that path never passes through record().
     inertia_ = outcome.inertia;
+    arm_ = outcome.arm;
 
 #ifdef USE_ACCELERATE_SPARSE
     // This projection ZEROES the inertia counts and both factor metrics on a
@@ -214,10 +242,10 @@ void KktFactorization::record_failed_factorization(const hven::linear::Factorize
     // Unreachable in practice for a real symmetric indefinite matrix: with
     // static pivot perturbation on, this backend perturbs its way through
     // rather than refusing.
-    n_pos_ = static_cast<int>(outcome.inertia.n_pos);
-    n_neg_ = static_cast<int>(outcome.inertia.n_neg);
+    n_pos_ = static_cast<int>(outcome.inertia.positive);
+    n_neg_ = static_cast<int>(outcome.inertia.negative);
     perturbed_pivots_ = static_cast<int>(outcome.inertia.perturbed_pivots.value_or(0));
 #endif
 }
 
-} // namespace hven::solvers
+} // namespace hven

@@ -1,0 +1,251 @@
+{
+ "samples": 395,
+ "period": 1000003,
+ "instr_sampled_all": 446556185,
+ "instr_sampled_solver": 277927738,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 235118624,
+  "B_kkt": 5546015,
+  "B_eval": 1028003,
+  "B_setup": 13540036,
+  "B_eng": 22695060,
+  "B_proc": 168628447
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.8459703435574322,
+  "B_kkt": 0.019954881221679283,
+  "B_eval": 0.0036988139701262922,
+  "B_setup": 0.048717828948760776,
+  "B_eng": 0.08165813230200146
+ },
+ "proc_share_of_all": 0.37761977700521604,
+ "rule_instr": 429547140,
+ "fallback_instr": 4427012,
+ "fallback_by_bucket": {
+  "B_fac": 4427012
+ },
+ "unmatched_instr": 12582033,
+ "unmatched_share_of_solver": 0.045270879008125486,
+ "chains_reaching_main": 0.07341772151898734,
+ "init_instr": 0,
+ "steady_state_instr": 277927738,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.8459703435574322,
+  "B_kkt": 0.019954881221679283,
+  "B_eval": 0.0036988139701262922,
+  "B_setup": 0.048717828948760776,
+  "B_eng": 0.08165813230200146
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   218871582
+  ],
+  [
+   "hven::linear::DenseSymmetricFactor::solve",
+   8218021
+  ],
+  [
+   "<no hven::linear frame>",
+   4427012
+  ],
+  [
+   "hven::linear::detail::FactorSession::~FactorSession",
+   1273003
+  ],
+  [
+   "hven::linear::detail::FactorSession::FactorSession",
+   1210003
+  ],
+  [
+   "hven::linear::detail::FactorSession::solve",
+   1119003
+  ]
+ ],
+ "mkl_serv_instr": 40257105,
+ "kmp_instr": 149156399,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   5567015
+  ],
+  [
+   "<empty>",
+   2266006
+  ],
+  [
+   "__syscall_cancel",
+   1252003
+  ],
+  [
+   "operator delete",
+   1238003
+  ],
+  [
+   "getenv",
+   1231003
+  ],
+  [
+   "_IO_file_fopen@@GLIBC_2.2.5",
+   1028003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_serialized_parallel",
+    13568036
+   ],
+   [
+    "__kmp_fork_call",
+    13302036
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    12806033
+   ],
+   [
+    "__strcmp_avx2",
+    10218027
+   ],
+   [
+    "mm_account_ptr_by_tid",
+    8777024
+   ],
+   [
+    "__kmpc_end_serialized_parallel",
+    7840021
+   ],
+   [
+    "__kmp_hardware_timestamp",
+    7504021
+   ],
+   [
+    "__kmp_join_call",
+    7022018
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::SchurComplement::solve",
+    4441012
+   ],
+   [
+    "Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize",
+    1105003
+   ]
+  ],
+  "B_eval": [
+   [
+    "hven::detail::NlpModel::eval_values",
+    1028003
+   ]
+  ],
+  "B_setup": [
+   [
+    "malloc",
+    2294006
+   ],
+   [
+    "__log2_fma",
+    1203003
+   ],
+   [
+    "finalize_transfer",
+    1154003
+   ],
+   [
+    "round_and_return",
+    1147003
+   ],
+   [
+    "_gfortrani_read_f",
+    1140003
+   ],
+   [
+    "_gfortrani_read_block_form",
+    1133003
+   ],
+   [
+    "operator new",
+    1119003
+   ],
+   [
+    "_gfortrani_fbuf_alloc",
+    1112003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    5567015
+   ],
+   [
+    "<empty>",
+    2266006
+   ],
+   [
+    "hven::detail::ProblemScaling::row_max",
+    1259003
+   ],
+   [
+    "__syscall_cancel",
+    1252003
+   ],
+   [
+    "operator delete",
+    1238003
+   ],
+   [
+    "getenv",
+    1231003
+   ],
+   [
+    "hven::detail::detect_dependency",
+    1203003
+   ],
+   [
+    "hven::detail::predicted_decrease",
+    1154003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    55118147
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    41872111
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    23024060
+   ],
+   [
+    "strcmp",
+    12841033
+   ],
+   [
+    "check_match",
+    10155027
+   ],
+   [
+    "_int_malloc",
+    3259009
+   ],
+   [
+    "fmt::v12::basic_appender<char> fmt::v12::detail::copy_noinline<char, char const*, fmt::v12::basic_appender<char> >",
+    2371006
+   ],
+   [
+    "_dl_addr",
+    2105006
+   ]
+  ]
+ }
+}

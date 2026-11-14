@@ -30,7 +30,7 @@
 // multiplier on its whole middle branch (parametric_families.h's DEGENERACY
 // note): at a zero multiplier, whether a solver reports the row in its exit
 // working set is not determined by the KKT conditions, so asserting
-// SqpWarmStart::ineq_active there would be asserting a solver-internal choice as
+// SqpWarmState::ineq_active there would be asserting a solver-internal choice as
 // if it were mathematics. Where the analytic multiplier is nonzero the two
 // notions coincide and the assertion is the same either way.
 
@@ -44,9 +44,11 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
@@ -57,7 +59,7 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 using test_support::AnalyticActiveSet;
@@ -79,14 +81,14 @@ constexpr double kActivityTol = 1e-8; // geometric activity tolerance
 // about the FAMILY rather than about the default stopping tolerance.
 SqpOptions tight_options() {
     SqpOptions opts;
-    opts.kkt_tol = 1e-9;
-    opts.feas_tol = 1e-9;
-    opts.max_iter = 60;
+    opts.common.optimality_tol = 1e-9;
+    opts.common.feasibility_tol = 1e-9;
+    opts.common.max_iterations = 60;
     return opts;
 }
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
-// therefore SqpWarmStart's) encoding. See this file's ACTIVITY note.
+// therefore SqpWarmState's) encoding. See this file's ACTIVITY note.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;
     a.bound_active.assign(static_cast<std::size_t>(model.n()), 0);
@@ -174,7 +176,7 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     SCOPED_TRACE(::testing::Message() << "p = " << p);
     const SqpOptions opts = tight_options();
     SqpSolver driver(opts);
-    const SqpResult sol = driver.solve(model);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
@@ -184,14 +186,18 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
         << "x = " << sol.x.transpose() << " vs x_star = " << x_star.transpose();
 
     if (model.me() > 0) {
-        EXPECT_LE((sol.lambda_e - lambda_e_star).lpNorm<Eigen::Infinity>(), kMultTol)
-            << "lambda_e = " << sol.lambda_e.transpose() << " vs analytic "
-            << lambda_e_star.transpose();
+        EXPECT_LE(
+            (hven::detail::engine_rows(sol).lambda_e - lambda_e_star).lpNorm<Eigen::Infinity>(),
+            kMultTol)
+            << "lambda_e = " << hven::detail::engine_rows(sol).lambda_e.transpose()
+            << " vs analytic " << lambda_e_star.transpose();
     }
     if (model.mi() > 0) {
-        EXPECT_LE((sol.lambda_i - lambda_i_star).lpNorm<Eigen::Infinity>(), kMultTol)
-            << "lambda_i = " << sol.lambda_i.transpose() << " vs analytic "
-            << lambda_i_star.transpose();
+        EXPECT_LE(
+            (hven::detail::engine_rows(sol).lambda_i - lambda_i_star).lpNorm<Eigen::Infinity>(),
+            kMultTol)
+            << "lambda_i = " << hven::detail::engine_rows(sol).lambda_i.transpose()
+            << " vs analytic " << lambda_i_star.transpose();
     }
     EXPECT_LE((sol.z - z_star).lpNorm<Eigen::Infinity>(), kMultTol)
         << "z = " << sol.z.transpose() << " vs analytic " << z_star.transpose();
@@ -206,7 +212,7 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     // model, not from the driver's own residual) -- so a family whose x_star
     // agreed with a mis-solved point would still have to explain itself here.
     const test_support::NlpKktResidual chk =
-        test_support::self_check_kkt(model, sol, opts.feas_tol);
+        test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
     EXPECT_LT(chk.stationarity, 1e-7);
     EXPECT_LT(chk.primal, 1e-8);
     EXPECT_LT(chk.dual_sign, 1e-9);
@@ -868,6 +874,6 @@ TEST(ParametricModelContract, SpringChainRejectsDegenerateConstruction) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven
 
 HVEN_SUPPRESS_DEPRECATED_END

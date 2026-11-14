@@ -1,0 +1,54 @@
+5209:          Start 2606: QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit
+5210-2603/3256 Test #2603: QpModeSites.EveryKernelInvocationIsAccountedForBySite ..............................................................................................................................................................   Passed    0.05 sec
+5211-          Start 2607: QpWarmStart.PerturbedSequenceCollapsesMinorIterations
+5212:2604/3256 Test #2606: QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit ........................................................................................................................................................***Failed    0.01 sec
+5213-Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+5214:Note: Google Test filter = QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit
+5215-[==========] Running 1 test from 1 test suite.
+5216-[----------] Global test environment set-up.
+5217-[----------] 1 test from QpModeSiteScan
+5218:[ RUN      ] QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit
+5219-/home/ghecht/Projects/hven/.claude/worktrees/agent-a70da1a77af98495c/tests/sqp/test_qp_mode_sites.cpp:675: Failure
+5220-Value of: problems.empty()
+5221-  Actual: false
+5222-Expected: true
+5223-Since M6 W4 T5 EVERY kernel invocation in the SQP driver writes a `qp.mode` line, tagged by `site`, so the stream reconciles against invocation counts (docs/trace-schema-v0.md). The pairing is COUNT-MATCHED in file order: between one EMITTING kernel call site and the next there is exactly one emit (`emit_trace_qp_mode` for a driver member, `emit_qp_mode_line` for a free function), so every emit is consumed by exactly one call and a call that borrows its neighbour's emit fails here. A site carrying `// trace: qp.mode silent -- <reason>` within 4 lines above it consumes none. Adding a `site` value means updating `QpModeSite`, the serializer's spelling, the identity table in this file, and the schema document.
+5224-Unpaired site(s):
+5225-  sqp_solver.cpp:9073: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |SqpResult SqpSolver::solve(const NlpModel &model) { return impl().solve(model); }
+5226-  sqp_solver.cpp:9075: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0) { return impl().solve(model, x0); }
+5227-  sqp_solver.cpp:9078: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(model, x0, budget);
+5228-  sqp_solver.cpp:9082: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(bridge, x0);
+5229-  sqp_solver.cpp:9086: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(bridge, x0, budget);
+5230-  sqp_solver.cpp:9091: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(model, x0, warm, budget);
+5231-  sqp_solver.cpp:9096: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(bridge, x0, warm, budget);
+5232-  sqp_solver.cpp:9101: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(model, x0, warm, budget);
+5233-  sqp_solver.cpp:9106: expected exactly 1 qp.mode emit before the next EMITTING kernel call, found 0  |    return impl().solve(bridge, x0, warm, budget);
+5234-
+5235:[  FAILED  ] QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit (2 ms)
+5236-[----------] 1 test from QpModeSiteScan (2 ms total)
+5237-
+5238-[----------] Global test environment tear-down
+5239-[==========] 1 test from 1 test suite ran. (2 ms total)
+5240-[  PASSED  ] 0 tests.
+5241-[  FAILED  ] 1 test, listed below:
+5242:[  FAILED  ] QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit
+5243-
+5244- 1 FAILED TEST
+5245-
+5246-          Start 2608: QpWarmStart.WarmStartMarginAtBusierOptimum
+5247-2605/3256 Test #2607: QpWarmStart.PerturbedSequenceCollapsesMinorIterations ..............................................................................................................................................................   Passed    0.03 sec
+5248-          Start 2609: QpWarmStart.StaleSeedStillConverges
+3256/3256 Test #1937: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...................................................................................................................................   Passed   49.46 sec
+
+99% tests passed, 1 tests failed out of 3254
+
+Total Test time (real) = 136.24 sec
+
+The following tests did not run:
+	666 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1942 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1943 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	2606 - QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit (Failed)
+Errors while running CTest

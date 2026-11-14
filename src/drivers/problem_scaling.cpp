@@ -30,7 +30,7 @@
 
 #include <fmt/format.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 namespace {
 
 // The rule of section 1.3, for one norm. Factored out because the objective and
@@ -237,7 +237,7 @@ ColumnScaling compute_column_scaling(Index n, const SpMatRM &Je, const SpMatRM &
     return out;
 }
 
-ColumnScaledModel::ColumnScaledModel(const NlpModel &model, Vec d)
+ColumnScaledModel::ColumnScaledModel(const NlpModel &model, Vec d, double infinite_bound)
     : model_(model), d_(std::move(d)) {
     if (d_.size() != model_.n()) {
         throw std::invalid_argument(fmt::format(
@@ -252,8 +252,12 @@ ColumnScaledModel::ColumnScaledModel(const NlpModel &model, Vec d)
     }
     // inf / d is inf, so an absent bound stays absent. A finite bound whose quotient
     // overflows becomes infinite (the banner's OVERFLOW note).
-    lower_ = model_.lower().cwiseQuotient(d_);
-    upper_ = model_.upper().cwiseQuotient(d_);
+    lower_ = model_.lower();
+    upper_ = model_.upper();
+    normalize_bounds(lower_, infinite_bound);
+    normalize_bounds(upper_, infinite_bound);
+    lower_ = lower_.cwiseQuotient(d_);
+    upper_ = upper_.cwiseQuotient(d_);
 }
 
 Vec ColumnScaledModel::to_caller(const Vec &x_scaled) const { return d_.cwiseProduct(x_scaled); }
@@ -352,4 +356,4 @@ void ColumnScaledModel::eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) c
     model_.eval_values(to_caller(x), f, cE, cI);
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

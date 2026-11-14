@@ -1,0 +1,47 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/build-pfhb/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = HugeRealBound.TheAffineProbeRecoversTheFarPairsToo
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from HugeRealBound
+[ RUN      ] HugeRealBound.TheAffineProbeRecoversTheFarPairsToo
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1253: Failure
+Expected equality of these values:
+  r.iterations
+    Which is: 8
+  c.pinned
+    Which is: 6
+reference 7
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1243: huge_real_bounds_probe_iterations
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1253: Failure
+Expected equality of these values:
+  r.iterations
+    Which is: 16
+  c.pinned
+    Which is: 7
+reference 7
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1243: huge_real_row_probe_iterations
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1261: Failure
+Expected: (max_mu) <= (10.0 * ref_max_mu), actual: 100 vs 0.01
+reference max mu 0.001
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1243: huge_real_row_probe_iterations
+
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1262: Failure
+Expected: (max_mu) < (IpmOptions{}.barrier_max), actual: 100 vs 100
+Google Test trace:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-ab44eb20498de1642/tests/drivers/test_infinite_bound.cpp:1243: huge_real_row_probe_iterations
+
+[  FAILED  ] HugeRealBound.TheAffineProbeRecoversTheFarPairsToo (65 ms)
+[----------] 1 test from HugeRealBound (65 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (65 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] HugeRealBound.TheAffineProbeRecoversTheFarPairsToo
+
+ 1 FAILED TEST

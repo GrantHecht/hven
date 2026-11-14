@@ -1,0 +1,276 @@
+{
+ "samples": 2099,
+ "period": 250007,
+ "instr_sampled_all": 689986641,
+ "instr_sampled_solver": 230844902,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 56742319,
+  "B_kkt": 1701549,
+  "B_eval": 6148421,
+  "B_setup": 88472706,
+  "B_eng": 77779907,
+  "B_proc": 459141739
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.2458027814709982,
+  "B_kkt": 0.00737096199767929,
+  "B_eval": 0.026634424008202703,
+  "B_setup": 0.3832560530186627,
+  "B_eng": 0.3369357795044571
+ },
+ "proc_share_of_all": 0.6654356935585946,
+ "rule_instr": 556866955,
+ "fallback_instr": 57020326,
+ "fallback_by_bucket": {
+  "B_fac": 56742319,
+  "B_proc": 278007
+ },
+ "unmatched_instr": 76099360,
+ "unmatched_share_of_solver": 0.3296557963406963,
+ "chains_reaching_main": 0.1881848499285374,
+ "init_instr": 671520,
+ "steady_state_instr": 230173382,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.24651989950775455,
+  "B_kkt": 0.007392466432108991,
+  "B_eval": 0.026712128685670525,
+  "B_setup": 0.38145673160417826,
+  "B_eng": 0.3379187737702877
+ },
+ "fac_split": [
+  [
+   "<no hven::linear frame>",
+   56742319
+  ]
+ ],
+ "mkl_serv_instr": 1121031,
+ "kmp_instr": 139007604,
+ "top_unmatched_leaf": [
+  [
+   "__strcmp_avx2",
+   42988697
+  ],
+  [
+   "__internal_syscall_cancel",
+   11982081
+  ],
+  [
+   "__printf_buffer",
+   1740049
+  ],
+  [
+   "__memmove_avx_unaligned_erms",
+   1706797
+  ],
+  [
+   "msort_with_tmp.part.0",
+   1437540
+  ],
+  [
+   "vsnprintf",
+   1388538
+  ],
+  [
+   "<empty>",
+   1386786
+  ],
+  [
+   "pthread_mutex_init@@GLIBC_2.2.5",
+   1178783
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    21542599
+   ],
+   [
+    "_strnlen_s_chk",
+    7512457
+   ],
+   [
+    "rml::internal::Backend::splitBlock",
+    2290811
+   ],
+   [
+    "__kmp_env_initialize",
+    2061808
+   ],
+   [
+    "__intel_avx_rep_memcpy",
+    2056556
+   ],
+   [
+    "_strncat_s_chk",
+    1832552
+   ],
+   [
+    "__kmp_stg_parse",
+    1330786
+   ],
+   [
+    "__kmp_str_format",
+    1094781
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    708270
+   ],
+   [
+    "hven::detail::NonLinearProgram::require_master_lists_unmoved",
+    360261
+   ],
+   [
+    "hven::detail::NonLinearProgram::get_mat_space",
+    358511
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    274507
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    2074060
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_hessian",
+    1150532
+   ],
+   [
+    "hven::detail::ProblemState::refresh_nlp",
+    409261
+   ],
+   [
+    "hven::detail::NlpProblemModel::eval_jac_i_in_place",
+    383011
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    356759
+   ],
+   [
+    "hven::detail::NlpConstraintPiece::constraints_jacobian_adjointgradient_adjointhessian",
+    344509
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    342759
+   ],
+   [
+    "hven::{anon}::adopt_pattern",
+    297259
+   ]
+  ],
+  "B_setup": [
+   [
+    "hven::detail::get_core_count",
+    8385233
+   ],
+   [
+    "_int_malloc",
+    7816716
+   ],
+   [
+    "_gfortrani_read_block_form",
+    5512152
+   ],
+   [
+    "formatted_transfer_scalar_read",
+    5256644
+   ],
+   [
+    "__internal_syscall_cancel",
+    4397872
+   ],
+   [
+    "std::basic_istream<char, std::char_traits<char> >& std::getline<char, std::char_traits<char>, std::allocator<char> >",
+    3462598
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    3373095
+   ],
+   [
+    "_gfortrani_read_f",
+    3170340
+   ]
+  ],
+  "B_eng": [
+   [
+    "__strcmp_avx2",
+    42988697
+   ],
+   [
+    "__internal_syscall_cancel",
+    11982081
+   ],
+   [
+    "__printf_buffer",
+    1740049
+   ],
+   [
+    "__memmove_avx_unaligned_erms",
+    1706797
+   ],
+   [
+    "msort_with_tmp.part.0",
+    1437540
+   ],
+   [
+    "vsnprintf",
+    1388538
+   ],
+   [
+    "<empty>",
+    1386786
+   ],
+   [
+    "pthread_mutex_init@@GLIBC_2.2.5",
+    1178783
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    163020525
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    117038993
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    60697678
+   ],
+   [
+    "strcmp",
+    37575049
+   ],
+   [
+    "check_match",
+    20243064
+   ],
+   [
+    "_dl_addr",
+    5382646
+   ],
+   [
+    "mprotect",
+    5191647
+   ],
+   [
+    "syscall",
+    2651072
+   ]
+  ]
+ }
+}

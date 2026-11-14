@@ -1,0 +1,139 @@
+{
+ "samples": 1342,
+ "period": 1000003,
+ "instr_sampled_all": 1342004026,
+ "instr_sampled_solver": 1338004014,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 6000018,
+  "B_kkt": 0,
+  "B_eval": 19000057,
+  "B_setup": 1312003936,
+  "B_eng": 1000003,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.004484304932735426,
+  "B_kkt": 0.0,
+  "B_eval": 0.014200298953662182,
+  "B_setup": 0.9805680119581465,
+  "B_eng": 0.0007473841554559044
+ },
+ "proc_share_of_all": 0.0029806259314456036,
+ "rule_instr": 1342004026,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9821162444113264,
+ "init_instr": 1311003933,
+ "steady_state_instr": 27000081,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.2222222222222222,
+  "B_kkt": 0.0,
+  "B_eval": 0.7037037037037037,
+  "B_setup": 0.037037037037037035,
+  "B_eng": 0.037037037037037035
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   6000018
+  ]
+ ],
+ "mkl_serv_instr": 1312003936,
+ "kmp_instr": 4000012,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    1000003
+   ],
+   [
+    "__kmp_stg_print_num_threads",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_timer_pardiso",
+    1000003
+   ],
+   [
+    "mkl_serv_set_num_threads_local",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    1000003
+   ],
+   [
+    "__kmpc_barrier",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "eval89_",
+    12000036
+   ],
+   [
+    "__sin_fma",
+    6000018
+   ],
+   [
+    "xflow",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    818002454
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    367001101
+   ],
+   [
+    "__vdso_time",
+    71000213
+   ],
+   [
+    "difftime@plt",
+    51000153
+   ],
+   [
+    "time@plt",
+    4000012
+   ],
+   [
+    "__memcmp_avx2_movbe",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__memmove_avx_unaligned_erms",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_relocate_object_no_relro",
+    2000006
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ],
+   [
+    "check_match",
+    1000003
+   ]
+  ]
+ }
+}

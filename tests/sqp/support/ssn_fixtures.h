@@ -29,7 +29,9 @@
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers::test_support {
+using namespace hven::detail;
+
+namespace hven::test_support {
 
 // =============================================================================
 // THE ANALYTIC FIXTURES (Phase-7 Task 3)
@@ -684,4 +686,4 @@ inline QpProblem sign_cone_discriminating_infeasible_qp() {
     qp.upper = Vec::Constant(2, 3.0);
     return qp;
 }
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

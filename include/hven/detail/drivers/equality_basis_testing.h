@@ -9,7 +9,7 @@
 
 #ifdef HVEN_TESTING
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 struct EqualityBasisSeam {
     /// The zero-step hand-off at a suspected inconsistency does nothing (the
@@ -31,6 +31,6 @@ struct EqualityBasisSeam {
     }
 };
 
-} // namespace hven::solvers::detail::testing
+} // namespace hven::detail::testing
 
 #endif

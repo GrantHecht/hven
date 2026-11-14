@@ -1,0 +1,38 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-10T19:06:44-05:00
+CELL_RESULT stat hven-sqp hs043 default 1 rc=0 wall=0.11
+CELL_RESULT stat hven-sqp hs043 dense-default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp hs043 dense-default 1 rc=0 wall=0.11
+CELL_RESULT stat hven-sqp hs043 default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp hs043 default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp hs043 dense-default 1 rc=0 wall=0.10
+RECORD hs043 t1 N T=16642571 base=1000003 reps=40
+RECORD hs043 t1 A T=8213272 base=1000003 reps=40
+CELL_RESULT stat hven-sqp hs043 t0-default default rc=0 wall=0.10
+CELL_RESULT stat hven-sqp hs043 t0-dense-default default rc=0 wall=0.11
+CELL_RESULT stat hven-sqp hs043 t0-dense-default default rc=0 wall=0.11
+CELL_RESULT stat hven-sqp hs043 t0-default default rc=0 wall=0.11
+CELL_RESULT stat hven-sqp hs043 t0-default default rc=0 wall=0.10
+CELL_RESULT stat hven-sqp hs043 t0-dense-default default rc=0 wall=0.11
+RECORD hs043 tdefault N T=56261190 base=1000003 reps=40
+RECORD hs043 tdefault A T=8317818 base=1000003 reps=40
+CELL_RESULT stat hven-sqp HS84 default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 dense-default 1 rc=0 wall=0.11
+CELL_RESULT stat hven-sqp HS84 dense-default 1 rc=0 wall=0.11
+CELL_RESULT stat hven-sqp HS84 default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 default 1 rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 dense-default 1 rc=0 wall=0.11
+RECORD HS84 t1 N T=34166692 base=1000003 reps=40
+RECORD HS84 t1 A T=11051878 base=1000003 reps=40
+CELL_RESULT stat hven-sqp HS84 t0-default default rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 t0-dense-default default rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 t0-dense-default default rc=0 wall=0.11
+CELL_RESULT stat hven-sqp HS84 t0-default default rc=0 wall=0.10
+CELL_RESULT stat hven-sqp HS84 t0-default default rc=0 wall=0.11
+CELL_RESULT stat hven-sqp HS84 t0-dense-default default rc=0 wall=0.10
+RECORD HS84 tdefault N T=133232348 base=1000003 reps=31
+RECORD HS84 tdefault A T=11094640 base=1000003 reps=40
+analysis rc=0
+== VERDICTS
+M_PASS (both cells, both thread settings)
+FOREGROUND_END 2026-11-10T19:07:49-05:00

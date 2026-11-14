@@ -1,0 +1,2 @@
+=== frozen-vs-b7-armA === cells compared: 43  columns compared: 30  differences: 0
+rows 43 columns 30 pairs declared 237 observed 237 missing 0 extra 0 value 0 -> INTERIOR_AS_DECLARED

@@ -10,11 +10,11 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
 // IpmResult lives in drivers/ipm_solver_types.h; see
-// acceptance_strategy.h's include note for why this is a plain, non-circular
+// acceptance_mode.h's include note for why this is a plain, non-circular
 // include (ipm_solver.h does not include this directory back).
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Near-feasible entry-guard factor, adapted from the unscaled
 /// 1e-1 * constr_viol_tol member of Ipopt's scaled/unscaled entry-guard pair —
@@ -81,7 +81,7 @@ class RestorationStrategy {
     /// endgame (constraints at their floor while the barrier residual still
     /// grinds down) from a genuine stall.
     bool near_feasible(double constraint_violation, const SolverContext &ctx) const {
-        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.econ_tol;
+        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.common.feasibility_tol;
     }
 
     /// @brief Entry-permission test: may the solver enter restoration right now?
@@ -94,7 +94,7 @@ class RestorationStrategy {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
         }
-        if (entries_ >= ctx.opts_.max_feas_rest) {
+        if (entries_ >= ctx.opts_.advanced.max_restoration_entries) {
             return false;
         }
         return true;
@@ -112,10 +112,10 @@ class RestorationStrategy {
     /// components' hooks. Non-virtual: both shipped strategies report the
     /// identical counter pair. When restoration_mode_ == off no strategy is
     /// constructed, so this is never reached on that path and the
-    /// corresponding IpmResult fields keep their -1 sentinel.
+    /// corresponding IpmResult fields stay nullopt.
     void append_diagnostics(IpmResult &result) const {
-        result.last_feas_rest_entries = entries_;
-        result.last_feas_rest_iters = iterations_in_mode_;
+        result.last_feasibility_restoration_entries = entries_;
+        result.last_feasibility_restoration_iterations = iterations_in_mode_;
     }
 
     // -------------------------------------------------------------------------
@@ -340,4 +340,4 @@ class RestorationStrategy {
     int iterations_in_mode_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

@@ -4,8 +4,8 @@
 #pragma once
 
 /// @file
-/// @brief The tangential predictor: given a converged SqpWarmStart at parameter p
-///        and a step dp, produce a first-order-accurate SqpWarmStart at p + dp by
+/// @brief The tangential predictor: given a converged SqpWarmState at parameter p
+///        and a step dp, produce a first-order-accurate SqpWarmState at p + dp by
 ///        solving ONE parametric-sensitivity KKT system on the active set
 ///        FROZEN at the warm start.
 /// @see docs/notes/2026-09-header-prose-archive.md §predictor.h
@@ -82,7 +82,7 @@
 // prediction is a WARM START, and the consuming solve re-derives the active set.
 //
 // No hot-start reuse; predict() ALWAYS factorizes its own KKT system, and the
-// returned SqpWarmStart therefore NEVER carries a `hot` handle.
+// returned SqpWarmState therefore NEVER carries a `hot` handle.
 //
 // Two right-hand-side conventions, ON PURPOSE. The constraint rows carry the
 // PURE sensitivity term, omitting the warm start's own base residual; the pin
@@ -104,7 +104,7 @@
 // the same linear algebra the engine uses.
 //
 // NEVER MUTATES `warm`, taken by const reference and copied into the returned
-// object; the caller's SqpWarmStart, and any `hot` handle it carries, is untouched.
+// object; the caller's SqpWarmState, and any `hot` handle it carries, is untouched.
 
 #include <algorithm>
 #include <cmath>
@@ -121,13 +121,14 @@
 #include <hven/detail/kkt/kkt_assembly.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/kkt/schur_complement.h>
+#include <hven/detail/model/absent_bound.h>
+#include <hven/detail/model/nlp_model.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // Tuning for predict().
 struct PredictorOptions {
@@ -152,7 +153,7 @@ struct PredictorOptions {
     // rounds independently of this budget; the smaller of the two governs.
     //
     // On truncation the path stops at the breakpoint it reached, at some
-    // t <= 1, and the returned SqpWarmStart is the point and activity there. That
+    // t <= 1, and the returned SqpWarmState is the point and activity there. That
     // is not reported as kDegraded -- a step was computed and applied -- and it
     // is visible through `reached_t < 1.0`.
     //
@@ -160,6 +161,14 @@ struct PredictorOptions {
     // not a constant.
     // See docs/notes/2026-09-header-prose-archive.md §predictor.h.
     Index max_activity_rounds = 4;
+
+    // The absent-bound threshold the model's box is read under
+    // (CommonOptions::infinite_bound; detail/model/absent_bound.h): a bound at or
+    // beyond it is the infinity of its sign here as it is to the engine, so the
+    // predictor never pins or fixes at a bound the solve does not have. Pass the
+    // solving driver's common.infinite_bound (the continuation does). Must be
+    // > 0; +inf reads every finite value as a real bound.
+    double infinite_bound = detail::kDefaultInfiniteBound;
 };
 
 // WHICH PATH predict() TOOK -- because TWO of the three paths return the
@@ -174,7 +183,7 @@ struct PredictorOptions {
 // An enum rather than a bool because a ledger has to count kPredicted and
 // kDegraded separately: a sweep in which every predict() degraded must not look
 // identical to one in which every predict() succeeded. Reported through an
-// optional out-parameter rather than a field on SqpWarmStart, which every solve
+// optional out-parameter rather than a field on SqpWarmState, which every solve
 // emits and where a predictor-only field would be meaningless.
 enum class PredictorOutcome { kPredicted, kZeroStep, kDegraded };
 
@@ -289,7 +298,8 @@ struct PredictorBreakpoint {
 };
 
 // The model quantities predict() needs at ONE parameter value, all at the
-// warm start's own x and multipliers.
+// warm start's own x and multipliers; the box as the absent-bound rule reads it
+// at `infinite_bound` (an absent side is an infinity, as to the engine).
 struct ModelSample {
     Vec grad_lagrangian; // grad f + Je^T lambda_e + Ji^T lambda_i (NOT including -z)
     Vec ce, ci;
@@ -297,7 +307,7 @@ struct ModelSample {
 };
 
 inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &lambda_e,
-                                const Vec &lambda_i) {
+                                const Vec &lambda_i, double infinite_bound) {
     ModelSample s;
     model.eval_grad_in_place(x, s.grad_lagrangian);
     if (model.me() > 0) {
@@ -314,6 +324,8 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
     model.eval_ci_in_place(x, s.ci);
     s.lower = model.lower();
     s.upper = model.upper();
+    detail::normalize_bounds(s.lower, infinite_bound);
+    detail::normalize_bounds(s.upper, infinite_bound);
     return s;
 }
 
@@ -376,9 +388,10 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
 // and what every pre-T8.8 caller passed, leaves the backend's own default
 // alone -- so a defaulted call is bit-for-bit the pre-T8.8 one. LAST in the
 // parameter list so no existing call site's arguments move.
-inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm, const Vec &dp,
-                            const PredictorOptions &opts = {}, PredictorOutcome *outcome = nullptr,
-                            double *reached_t = nullptr, int threads = 0) {
+inline detail::SqpWarmState predict(ParametricNlpModel &model, const detail::SqpWarmState &warm,
+                                    const Vec &dp, const PredictorOptions &opts = {},
+                                    PredictorOutcome *outcome = nullptr,
+                                    double *reached_t = nullptr, int threads = 0) {
     const auto report = [outcome](PredictorOutcome value) {
         if (outcome != nullptr) {
             *outcome = value;
@@ -404,6 +417,12 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
         throw std::invalid_argument(
             fmt::format("predict: PredictorOptions::fd_step_scale is {}, must be finite and > 0",
                         opts.fd_step_scale));
+    }
+    if (!(opts.infinite_bound > 0.0)) {
+        throw std::invalid_argument(
+            fmt::format("predict: PredictorOptions::infinite_bound is {}, must be > 0 (kInfinity "
+                        "is legal)",
+                        opts.infinite_bound));
     }
     if (opts.max_activity_rounds < 0) {
         throw std::invalid_argument(fmt::format(
@@ -451,7 +470,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
     // the effective regularization) carries forward unchanged, which is what
     // makes the result ingestible by a solve at p + dp. `hot` is the one field
     // deliberately dropped; see this header's NO HOT-START REUSE note.
-    SqpWarmStart identity = warm;
+    detail::SqpWarmState identity = warm;
     identity.hot.reset();
 
     const double dp_norm = dp.norm();
@@ -465,8 +484,8 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
         predictor_detail::ParameterRestorer restore_params(model, p_base);
 
         const Vec &x = warm.x;
-        const predictor_detail::ModelSample base =
-            predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
+        const predictor_detail::ModelSample base = predictor_detail::sample_model(
+            model, x, warm.lambda_e, warm.lambda_i, opts.infinite_bound);
         SpMatRM H;
         model.eval_hess_in_place(x, 1.0, warm.lambda_e, warm.lambda_i, H);
         H.makeCompressed();
@@ -482,8 +501,8 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
                          std::max(1.0, p_base.norm());
         const Vec p_probe = p_base + (h / dp_norm) * dp;
         model.set_parameters(p_probe);
-        const predictor_detail::ModelSample probe =
-            predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
+        const predictor_detail::ModelSample probe = predictor_detail::sample_model(
+            model, x, warm.lambda_e, warm.lambda_i, opts.infinite_bound);
         // Restore EXPLICITLY here rather than leaving it to restore_params: every
         // line below reads a model that must be back at p, and the RAII object is
         // the backstop for the throwing paths, not the mechanism.
@@ -538,10 +557,10 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
         // -1 is warm_start.h's "never populated" sentinel for both.
         QpOptions qopts;
         if (warm.primal_delta > 0.0) {
-            qopts.primal_delta = warm.primal_delta;
+            qopts.primal_regularization = warm.primal_delta;
         }
         if (warm.dual_mu > 0.0) {
-            qopts.dual_mu = warm.dual_mu;
+            qopts.dual_regularization = warm.dual_mu;
         }
 
         const std::vector<Index> &rows0 = warm.qp_working_set.active_ineq();
@@ -603,7 +622,10 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
 
         Vec dx = Vec::Zero(n);
 
-        detail::KktFactor kkt(threads);
+        // On the platform session at every SqpLinearOptions::dense_factorization:
+        // the predictor's one factorization stays sparse in M8 DN-1 (the
+        // dense-arm plumbing reaches the walk/SSN/IPQP factors only).
+        detail::KktFactor kkt(threads, hven::linear::DensePolicy::kNever);
         detail::factorize_checked(kkt, k0.K); // THE one factorization
         SchurComplement schur(kkt, qopts, threads);
         std::vector<predictor_detail::PredictorBorder> borders;
@@ -613,7 +635,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
         // an ill-conditioned C -- and this function's degradation path returns
         // the identity prediction rather than unwinding the two by hand).
         const auto add_pin = [&](Index i) {
-            schur.add_border(BorderOps::pin_variable(i, k0_rows), -qopts.dual_mu);
+            schur.add_border(BorderOps::pin_variable(i, k0_rows), -qopts.dual_regularization);
             borders.push_back({predictor_detail::PredictorBorder::Kind::kPin, i});
         };
         const auto drop_pin = [&](Index i) {
@@ -949,7 +971,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
                     break;
                 case predictor_detail::PredictorBreakpoint::Kind::kAdd:
                     schur.add_border(BorderOps::add_ineq_row(qp, hit.target, k0_rows),
-                                     -qopts.dual_mu);
+                                     -qopts.dual_regularization);
                     borders.push_back(
                         {predictor_detail::PredictorBorder::Kind::kRowAdd, hit.target});
                     row_active[k] = 1;
@@ -959,7 +981,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
             }
         }
         // ---- THE PREDICTED WARM START ------------------------------------
-        SqpWarmStart out = identity;
+        detail::SqpWarmState out = identity;
         out.x = x_cur;
         // A clamped variable sits EXACTLY on its bound: the border's -dual_mu
         // diagonal leaves the pin equation satisfied only to O(dual_mu * y), and a
@@ -1013,7 +1035,7 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
                 out.qp_working_set.add_ineq(j);
                 out.ineq_active[static_cast<std::size_t>(j)] = 1;
                 // THE EMITTED PRICE IS NEVER NEGATIVE. `lambda_i >= 0` is a
-                // SqpWarmStart PRECONDITION (warm_start.h's SIGN CONVENTIONS),
+                // SqpWarmState PRECONDITION (warm_start.h's SIGN CONVENTIONS),
                 // gated in the driver at kSeeded only -- and this producer's
                 // output reaches solve() at kWarm/kHot (predict() carries
                 // structure_hash forward), where it is not gated at all. So
@@ -1068,4 +1090,4 @@ inline SqpWarmStart predict(ParametricNlpModel &model, const SqpWarmStart &warm,
     }
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

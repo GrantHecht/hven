@@ -5,11 +5,11 @@
 
 #include <hven/detail/kkt/kkt_calls.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using namespace hven::solvers::detail;
+using namespace hven::detail;
 
 namespace {
 
@@ -38,18 +38,21 @@ SpMatRM make_kkt3_different_pattern() {
 
 // M6 W5 T8.8 MOVED THIS PIN, and the move is DECLARED: before that task
 // `sqp_kkt_options()` took no argument and hard-coded `num_threads = 0`, so the
-// pin read "the SQP exposes no per-instance thread control". It now reads "the
-// DEFAULT is still 0, and a count handed in is the count that comes out" -- the
-// default-argument form keeps every pre-T8.8 caller's configuration bit for bit,
-// which is what makes the U0 replay at threads = 0 an identity by construction.
-// Every OTHER field is asserted here exactly as it was.
+// pin read "the SQP exposes no per-instance thread control". It now reads "(0,
+// kNever) is still the pre-T8.8 configuration, and a count handed in is the
+// count that comes out" -- which is what makes the U0 replay at threads = 0 an
+// identity by construction. M8 DN-1 (review C270) removed the parameters'
+// defaults, so every caller states threads and the dense-arm policy. Every
+// OTHER field is asserted here exactly as it was.
 TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
-    const hven::linear::SymmetricFactor::Options o = sqp_kkt_options();
+    const hven::linear::SymmetricFactor::Options o =
+        sqp_kkt_options(0, hven::linear::DensePolicy::kNever);
 
-    EXPECT_EQ(o.kind, hven::linear::FactorKind::kLDLT);
-    EXPECT_EQ(o.num_threads, 0) << "the default argument is the pre-T8.8 hard-coded value";
-    EXPECT_FALSE(o.pivot_perturb_exp.has_value());
-    EXPECT_FALSE(o.max_refinement_iters.has_value());
+    EXPECT_EQ(o.decomposition, hven::linear::Decomposition::kLdlt);
+    EXPECT_EQ(o.threads, 0) << "0 is the pre-T8.8 hard-coded value";
+    EXPECT_EQ(o.dense_factorization, hven::linear::DensePolicy::kNever);
+    EXPECT_FALSE(o.pivot_perturbation_exponent.has_value());
+    EXPECT_FALSE(o.max_refinement_steps.has_value());
     EXPECT_EQ(o.ordering, hven::linear::SymmetricFactor::Options::Ordering::kBackendDefault);
     EXPECT_FALSE(o.weighted_matching);
     EXPECT_FALSE(o.matrix_scaling);
@@ -59,9 +62,9 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
               hven::linear::SymmetricFactor::Options::FactorizationAlgorithm::kBackendDefault);
     EXPECT_EQ(o.solve_parallelism,
               hven::linear::SymmetricFactor::Options::SolveParallelism::kBackendDefault);
-    EXPECT_EQ(o.cnr_threads, 0);
+    EXPECT_EQ(o.conditional_reproducibility_threads, 0);
     EXPECT_FALSE(o.collect_factor_mflops);
-    EXPECT_FALSE(o.accelerate_zero_tolerance.has_value());
+    EXPECT_FALSE(o.accelerate_zero_tol.has_value());
 }
 
 // The other half of the moved pin (M6 W5 T8.8): the count handed in is the
@@ -75,22 +78,25 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
 // HVEN_TESTING construction observer in qp_engine.cpp is REGISTERED for W6 if
 // the temporaries are ever to be OBSERVED rather than argued.
 TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
-    const hven::linear::SymmetricFactor::Options two = sqp_kkt_options(2);
-    EXPECT_EQ(two.num_threads, 2);
+    const hven::linear::SymmetricFactor::Options two =
+        sqp_kkt_options(2, hven::linear::DensePolicy::kNever);
+    EXPECT_EQ(two.threads, 2);
 
-    const hven::linear::SymmetricFactor::Options zero = sqp_kkt_options(0);
-    EXPECT_EQ(zero.num_threads, 0);
+    const hven::linear::SymmetricFactor::Options zero =
+        sqp_kkt_options(0, hven::linear::DensePolicy::kNever);
+    EXPECT_EQ(zero.threads, 0);
 
     // Nothing but the thread count moves: the two option sets differ in one
     // field, checked on the ones the SQP deliberately pins above.
-    EXPECT_EQ(two.kind, zero.kind);
+    EXPECT_EQ(two.decomposition, zero.decomposition);
     EXPECT_EQ(two.ordering, zero.ordering);
     EXPECT_EQ(two.pivot_strategy, zero.pivot_strategy);
     EXPECT_EQ(two.factorization_algorithm, zero.factorization_algorithm);
     EXPECT_EQ(two.solve_parallelism, zero.solve_parallelism);
-    EXPECT_EQ(two.cnr_threads, zero.cnr_threads);
-    EXPECT_EQ(two.pivot_perturb_exp.has_value(), zero.pivot_perturb_exp.has_value());
-    EXPECT_EQ(two.max_refinement_iters.has_value(), zero.max_refinement_iters.has_value());
+    EXPECT_EQ(two.conditional_reproducibility_threads, zero.conditional_reproducibility_threads);
+    EXPECT_EQ(two.pivot_perturbation_exponent.has_value(),
+              zero.pivot_perturbation_exponent.has_value());
+    EXPECT_EQ(two.max_refinement_steps.has_value(), zero.max_refinement_steps.has_value());
 }
 
 // The KktFactor constructor is the single point every walk/SSN-tier factor is
@@ -99,19 +105,19 @@ TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
 // temporary, the verdict-refine fallback, the SSN tier's persistent factor and
 // the parametric predictor's one factorization).
 //
-// It reads the LIVE factor (`SymmetricFactor::num_threads()` reads through to
+// It reads the LIVE factor (`SymmetricFactor::threads()` reads through to
 // the backend session), not the options struct that configured it.
 TEST(KktFactor, IsConstructedAtTheThreadCountItIsGiven) {
-    const detail::KktFactor two(2);
-    EXPECT_EQ(two.factor.num_threads(), 2);
+    const detail::KktFactor two(2, hven::linear::DensePolicy::kNever);
+    EXPECT_EQ(two.factor.threads(), 2);
 
-    const detail::KktFactor defaulted;
-    EXPECT_EQ(defaulted.factor.num_threads(), 0)
-        << "the default argument is the backend default -- the pre-T8.8 behaviour bit for bit";
+    const detail::KktFactor zero(0, hven::linear::DensePolicy::kNever);
+    EXPECT_EQ(zero.factor.threads(), 0)
+        << "0 is the backend default -- the pre-T8.8 behaviour bit for bit";
 }
 
 TEST(KktFactor, FreshAnalyzeFactorizeAndSolve) {
-    KktFactor k;
+    KktFactor k(0, hven::linear::DensePolicy::kNever);
     const SpMatRM K = make_kkt3();
 
     EXPECT_FALSE(k.analyzed);
@@ -137,7 +143,7 @@ TEST(KktFactor, FreshAnalyzeFactorizeAndSolve) {
 }
 
 TEST(KktFactor, RefactorizesAValueChangeWithoutReanalyzing) {
-    KktFactor k;
+    KktFactor k(0, hven::linear::DensePolicy::kNever);
     const SpMatRM first = make_kkt3();
     const SpMatRM second = make_kkt3(4.0);
 
@@ -150,7 +156,7 @@ TEST(KktFactor, RefactorizesAValueChangeWithoutReanalyzing) {
 }
 
 TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
-    KktFactor k;
+    KktFactor k(0, hven::linear::DensePolicy::kNever);
     const SpMatRM first = make_kkt3();
     const SpMatRM same_pattern = make_kkt3(4.0);
     const SpMatRM changed_pattern = make_kkt3_different_pattern();
@@ -202,7 +208,7 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     // followed (its K2 is this test's changed_pattern, entry for entry).
     const hven::linear::InertiaEvidence after_pattern_change = k.factor.inertia();
     ASSERT_EQ(after_pattern_change.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(after_pattern_change.n_neg, 1);
+    EXPECT_EQ(after_pattern_change.negative, 1);
 
     EXPECT_EQ(symbolic_analyses, 2);
     EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
@@ -227,7 +233,7 @@ TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
     K.insert(3, 3) = 0.0;
     K.makeCompressed();
 
-    KktFactor k;
+    KktFactor k(0, hven::linear::DensePolicy::kNever);
 #if defined(__APPLE__)
     // ABSENT EVIDENCE IS REPORTED ABSENT (CLAUDE.md section 6), never as a
     // green no-op: this has not been run on real Mac hardware.
@@ -242,7 +248,7 @@ TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
     ASSERT_NO_THROW(factorize_checked(k, K));
     const hven::linear::InertiaEvidence ev = k.factor.inertia();
     EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
-    EXPECT_EQ(ev.n_zero, 0);
+    EXPECT_EQ(ev.zero, 0);
     EXPECT_GT(ev.perturbed_pivots.value_or(0), 0);
 #endif
 }

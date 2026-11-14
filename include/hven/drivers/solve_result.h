@@ -3,97 +3,131 @@
 
 #pragma once
 
-// THE RESULT CORE both engines report through (M6 W5 T8.4).
-//
-// Three things live here and nothing else does:
+// The result core both engines report through.
 //
 //   SolveBudget   -- the per-call work ceiling, one aggregate for both engines.
+//   WorkCounters  -- what a solve spent, in model callbacks and factorizations.
 //   SolveResult   -- the base every engine result derives from: the returned
-//                    point, its prices, the objective, the four SHARED
-//                    diagnostics, the constraint residuals, the iteration
-//                    count, the wall clock and the warm-start snapshot.
-//   compute_declared_diagnostics -- the ONE definition of those four
-//                    diagnostics, over the DECLARED problem, in the CALLER's
-//                    units, from an evaluation the engine already holds.
+//                    point, its prices, the objective, the shared diagnostics,
+//                    the constraint residuals, the iteration count, the work
+//                    counters, the stop message, the wall clock and the
+//                    warm-start snapshot.
 //
-// WHY A BASE STRUCT AND NOT AN INTERFACE. SolveResult is non-polymorphic: no
-// virtuals, no destructor of its own, never deleted through a base pointer.
-// Slicing an IpmResult or an SqpResult down to it is a value-preserving copy of
-// exactly the fields declared here, which is the point -- a consumer that wants
-// "the answer" writes one function against SolveResult and both engines feed
-// it. Everything an engine measures about ITSELF stays on that engine's own
-// result under that engine's own names.
+// SolveResult is non-polymorphic: no virtuals, no destructor of its own, never
+// deleted through a base pointer. Slicing an IpmResult or an SqpResult down to
+// it is a value-preserving copy of exactly the fields declared here, so a
+// consumer that wants "the answer" writes one function against SolveResult and
+// both engines feed it. Everything an engine measures about itself stays on that
+// engine's own result under that engine's own names.
 //
-// WHY THE DIAGNOSTICS ARE COMPUTED, NOT COPIED. Each engine's convergence test
-// gates on quantities in ITS OWN space: the interior-point engine's kkt_inf is
-// a z-form dual residual carrying the objective scale, the SQP's stationarity
-// is a reduced/projected measure at its own multipliers. Neither is the other,
-// and neither is what a caller comparing two solves of the same declared
-// problem needs. compute_declared_diagnostics is that comparable quantity, and
-// it is computed ONCE, here, so that the two engines cannot drift apart on what
-// "stationarity" means.
-//
-// WHY FROM A STASHED EVALUATION. This function evaluates NOTHING. Every model
-// quantity arrives as an argument, taken from the evaluation the engine already
-// performed at the point it is about to return. A fresh evaluation here would
-// move evals_full on every solve and break the identity proofs T8 rests on, so
-// the rule is absolute: where no finite evaluation of the returned point
-// exists, every diagnostic is NaN -- UNMEASURED -- and ce/ci are empty. Absent
-// is never zero-filled.
+// The shared diagnostics (`stationarity`, `feasibility`, `complementarity`) are
+// computed over the DECLARED problem in the CALLER's units, from the evaluation
+// the engine already held at the returned point, so they are comparable across
+// engines. Each engine's own convergence measure stays on its own result.
+// Where no finite evaluation of the returned point exists every diagnostic is
+// NaN -- unmeasured, never zero-filled.
 
 #include <functional>
 #include <limits>
 #include <optional>
-#include <vector>
+#include <string>
 
+#include <hven/core/solver_status.h>
+#include <hven/core/stop.h>
 #include <hven/core/types.h>
-#include <hven/drivers/solve_status.h>
-#include <hven/warmstart/warm_start_data.h>
+#include <hven/warmstart/warm_start.h>
 
-namespace hven::solvers {
+namespace hven {
 
-class IpmSolver;
-class SqpSolver;
+namespace detail {
+class IpmSolverImpl;
+class SqpSolverImpl;
+struct ResultAccess;
+} // namespace detail
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
-/// Both members default to 0, which means "no budget of the caller's own": the
-/// engine's own options decide, exactly as they did before this type existed.
+/// "No limit" is an empty optional. An engaged member must be >= 1 (and
+/// `max_iterations` at most INT_MAX); the solve refuses another value with
+/// std::invalid_argument at entry. With both empty
+/// (the default) the engine's own options decide.
 struct SolveBudget {
-    /// The MINOR-iteration budget. SQP: today's probe budget with its
-    /// accounting unchanged -- it charges SSN and IPQP work, not only walk
-    /// minors -- and a solve that exhausts it reports kMaxIter at the current
-    /// point (kBudgetExhausted belongs to the separate budget-BEST exit under
-    /// SqpOptions::budget_mode). INTERIOR-POINT: IGNORED, and documented so;
-    /// that engine has no minor loop to budget.
-    Index minor_budget = 0;
+    /// The major-iteration ceiling: an effective cap of
+    /// min(max_iterations, `common.max_iterations`), so a budget can only tighten
+    /// the options' cap. SQP: the effective cap governs the exit test, the
+    /// restoration refusal and the restoration sub-solve's budget alike.
+    /// INTERIOR-POINT: it caps each phase.
+    std::optional<Index> max_iterations;
 
-    /// The MAJOR-iteration ceiling. When non-zero it gives an EFFECTIVE cap of
-    /// min(max_iterations, the engine option) -- so a caller can only tighten
-    /// the engine's own limit, never loosen it. SQP: the effective cap governs
-    /// the exit conjunction, the restoration refusal and the restoration
-    /// sub-driver's budget alike, so restoration cannot spend past the caller's
-    /// ceiling. INTERIOR-POINT: it caps EACH PHASE at min(max_iterations,
-    /// IpmOptions::max_iters).
-    Index max_iterations = 0;
+    /// The minor-iteration budget. SQP: the probe budget -- it charges walk
+    /// minors and the SSN and IPQP tiers' work -- checked between majors; a
+    /// solve that exhausts it without converging stops with
+    /// `SolveStatus::kWorkLimit` at the current point and counts the stop in
+    /// `SqpCounters::probe_budget_stops`. INTERIOR-POINT: ignored; that engine
+    /// has no minor loop.
+    std::optional<Index> max_minor_iterations;
+
+    /// A cooperative stop request for THIS solve, from a StopSource the caller
+    /// owns (core/stop.h). Default-constructed: no source, `stop_possible()`
+    /// false, and the solve pays one null test per iteration. When the source's
+    /// `request_stop()` is called -- from any thread -- the solve ends at its
+    /// next iteration boundary with SolveStatus::kInterrupted and
+    /// StopReason::kStopRequested, returning the current iterate (the point of
+    /// the last iteration event). A converged or acceptable verdict reached at
+    /// the same boundary outranks it. INTERIOR-POINT: polled at the top of each
+    /// iteration, before its factorization; a stop ends the phase sequence. SQP:
+    /// polled at the exit test before each subproblem, and right after each
+    /// accepted step's row is recorded, so the step is not taken. A source
+    /// already stopped stops the solve at its first boundary: a token is per
+    /// solve. UNTIL G2 the token is not forwarded into the SQP restoration
+    /// sub-solve: a request made during restoration takes effect when that
+    /// sub-solve returns.
+    StopToken stop;
 };
 
-/// @brief The four SHARED diagnostics of a returned point, over the declared
-///        problem, in the caller's units.
+/// @brief Refuses an engaged SolveBudget member below 1, and a `max_iterations`
+///        above INT_MAX. Both engines run it at solve entry.
+/// @throws std::invalid_argument naming the member and its value.
+void validate(const SolveBudget &budget);
+
+/// @brief What one solve spent, counted per solve.
 ///
-/// Every member is NaN when the quantity was not measured.
-struct DeclaredDiagnostics {
-    /// inf-norm of grad f + Je^T lambda_e + Ji^T lambda_i - z over the declared
-    /// coordinates that were measured.
-    double stationarity = std::numeric_limits<double>::quiet_NaN();
-    /// inf-norm of the declared equality residuals ce.
-    double feasibility_e = std::numeric_limits<double>::quiet_NaN();
-    /// inf-norm of the positive part of the declared inequality residuals and
-    /// of the declared bound violations.
-    double feasibility_i = std::numeric_limits<double>::quiet_NaN();
-    /// inf-norm over the declared inequality products lambda_i o ci and the
-    /// CANONICAL bound products max(z,0) o (x - l) and max(-z,0) o (u - x).
-    double complementarity = std::numeric_limits<double>::quiet_NaN();
+/// The evaluation counts are model callbacks, counted at the boundary the
+/// solver calls through, and they are PER SOLVE (reset at solve entry).
+///   * An Nlp problem (Problem::from_nlp): every call to the user's Nlp
+///     eval_f / eval_grad_f / eval_g / eval_jacobian / eval_hessian made on
+///     behalf of this solve, by either engine, counts once. Structure, bounds
+///     and dimension queries are not counted. A value an engine re-uses from
+///     its own cache is not a call.
+///   * A pieces or program problem on the interior-point engine: counted per
+///     evaluation pass, by the quantities that pass forms (objective, gradient,
+///     constraints, Jacobian, Hessian).
+/// `factorizations` is the number of KKT factorizations the solve performed:
+/// the interior-point engine's factorizations over the call, the SQP engine's
+/// `SqpCounters::factorizations`.
+struct WorkCounters {
+    Index objective_evals = 0;
+    Index gradient_evals = 0;
+    Index constraint_evals = 0;
+    Index jacobian_evals = 0;
+    Index hessian_evals = 0;
+    Index factorizations = 0;
+};
+
+/// @brief The trial evaluations a solve rejected because the model could not be
+///        evaluated there, on both engines.
+///
+/// One count per rejected evaluation: the model threw EvaluationError
+/// (core/errors.h), or returned a non-finite objective value, constraint value or
+/// derivative entry. Each one was treated as a failed trial -- the step was
+/// rejected or backed off, never accepted -- so a nonzero count says the
+/// trajectory met points the model cannot evaluate, not that the answer is wrong.
+struct EvaluationErrors {
+    /// Number of rejected evaluations.
+    Index count = 0;
+    /// What the most recent one said: the EvaluationError's message, or a line
+    /// naming the non-finite quantity. Empty when `count` is 0.
+    std::string last_message;
 };
 
 /// @brief The result core both engines return through.
@@ -109,90 +143,160 @@ struct SolveResult {
     /// @brief How the solve ended.
     SolveStatus status = SolveStatus::kNumericalError;
 
+    /// @brief Which of the engine's exits produced @ref status. kNone when the
+    ///        status names the cause on its own (kOptimal, kAcceptable,
+    ///        kIterationLimit, kWorkLimit, kTimeLimit, a certified kInfeasible).
+    ///        The interior-point engine reports its last phase's reason
+    ///        (IpmPhaseReport::stop_reason). After a solve an exception escaped,
+    ///        the solver's `last_result()` carries kException.
+    StopReason stop_reason = StopReason::kNone;
+
+    /// @brief One line saying why the solve stopped, for a log or a console.
+    ///        Built once per solve from the status and the engine's own stop
+    ///        facts; informational, never to be parsed.
+    std::string message;
+
+    /// @brief True when the returned point is the best iterate the solve
+    ///        visited rather than the last one it reached.
+    ///
+    /// The rule per engine. Interior-point: set when IpmOptions::return_best is
+    /// on and the solve ended in any non-optimal status except an interrupt
+    /// (the substitution applies to the last phase that ran), so it can ride
+    /// with kIterationLimit, kStalled, kWorkLimit and the other non-optimal exits.
+    /// A non-finite abort (kNumericalError, kNonFiniteIterate) returns the best
+    /// iterate in full -- x, multipliers and every residual column -- with this
+    /// set, when one was recorded; when none was (a non-finite start, a phase's
+    /// first iterate, a failed initial factorization) it returns the failed
+    /// point with its multipliers cleared and this false.
+    /// SQP: set only when SqpOptions::return_best_on_max_iterations ran out of iterations
+    /// (SolveStatus::kIterationLimit); its non-finite exits never substitute and leave
+    /// it false. The message gains "; returned the best iterate"
+    /// whenever it is set.
+    bool returned_best_iterate = false;
+
+    /// @brief SQP engine only (the interior-point engine leaves it false). True
+    ///        only on the certified infeasibility exit: the restoration phase ran
+    ///        to its own KKT test, that test passed, and the returned point fails
+    ///        the convergence test's inf-norm feasibility reading, so
+    ///        (x, lambda, z) is a subgradient certificate that no direction
+    ///        reduces the constraint violation from `x`.
+    ///
+    /// The certificate requires the restoration point's inf-norm violation to
+    /// exceed `2 * feasibility_tol`; a point at or below that takes the no-claim exit
+    /// (kNumericalError). At `SqpOptions::restoration_proximity > 0` the driver
+    /// also recomputes the certificate residual explicitly at the restored point
+    /// and requires it to be <= kkt_tol.
+    ///
+    /// False on every other exit, including other kInfeasible ones, and it is not
+    /// derivable from the status or the counters: it is the only field that tells
+    /// a certified kInfeasible from an uncertified one. A one-way guarantee: true
+    /// means the certificate holds; false means no claim is made about the model.
+    bool infeasibility_certified = false;
+
     /// @brief The returned primal point, in the caller's declared space.
     Vec x;
-    /// @brief Equality multipliers at @ref x, against L = f + lambda_e^T ce +
-    ///        lambda_i^T ci - z. DECLARED rows only.
-    Vec lambda_e;
-    /// @brief Inequality multipliers at @ref x, same convention, declared rows.
-    Vec lambda_i;
+    /// @brief Row multipliers at @ref x, one per row of the problem's own row
+    ///        space (model/problem.h): for an Nlp problem one per Nlp row, in
+    ///        Ipopt's sign convention (L = f + lambda^T g - z^T x); for a pieces
+    ///        problem [equality rows | inequality rows], with L = f +
+    ///        lambda^T [c_E; c_I] - z^T x. Empty when unmeasured.
+    Vec lambda;
     /// @brief Bound multipliers at @ref x: z = z_lower - z_upper, so an entry is
     ///        >= 0 at an active lower bound and <= 0 at an active upper bound.
     ///        DECLARED width -- an eliminated coordinate has an entry here (0
     ///        under MakeParameter, -lambda_fix under MakeConstraint).
+    ///        Interior-point engine: an inactive bound's entry is small but not
+    ///        zero (of the order of the final barrier parameter divided by the
+    ///        distance to the bound). It is the value the engine computed and is
+    ///        reported as such, never zeroed.
     Vec z;
 
     /// @brief Objective value at @ref x, on the caller's scale. NaN when
     ///        nothing was evaluated there.
     double f = std::numeric_limits<double>::quiet_NaN();
 
-    // --- The four shared diagnostics ---
+    // --- The shared diagnostics ---
     //
-    // Defined once, by compute_declared_diagnostics below, over the DECLARED
-    // problem in the CALLER's units, from the evaluation the engine already
-    // held at the returned point. NaN means UNMEASURED and nothing else: the
-    // engines never zero-fill a diagnostic they did not take.
+    // Over the DECLARED problem in the CALLER's units, from the evaluation the
+    // engine already held at the returned point. NaN means UNMEASURED and
+    // nothing else: the engines never zero-fill a diagnostic they did not take.
     //
     // These are NOT the quantity either engine's convergence test gated on.
-    // That quantity stays on the engine's own result under its own name
-    // (IpmResult::kkt_inf and friends; SqpResult::sqp_stationarity and
-    // friends), because a tolerance comparison must be made against the number
-    // the test actually read.
+    // That quantity stays on the engine's own result (IpmResult::convergence,
+    // SqpResult::convergence), because a tolerance comparison must be made
+    // against the number the test actually read.
     /// @brief inf-norm dual residual over the measured declared coordinates.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
-    /// @brief inf-norm equality residual.
-    double feasibility_e = std::numeric_limits<double>::quiet_NaN();
-    /// @brief inf-norm inequality + bound violation (positive part).
-    double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+    /// @brief max(inf-norm equality residual, inf-norm inequality and bound
+    ///        violation (positive part)); NaN if either part is unmeasured.
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
     /// @brief inf-norm complementarity, canonical bound split.
     double complementarity = std::numeric_limits<double>::quiet_NaN();
 
-    /// @brief Declared equality residuals at @ref x. EMPTY when unmeasured --
+    /// @brief Row values at @ref x in the same row space as @ref lambda: g(x) for an
+    ///        Nlp problem, [c_E(x); c_I(x)] for a pieces problem, mapped from the
+    ///        engine's own measurement (no callback is made to report it). A free
+    ///        Nlp row, which no engine measures, reads NaN (unmeasured); it is
+    ///        never evaluated. EMPTY when the engine's row blocks are unmeasured --
     ///        never a zero vector, which would read as a feasible point.
-    Vec ce;
-    /// @brief Declared inequality residuals at @ref x, empty when unmeasured.
-    Vec ci;
+    Vec g;
 
     /// @brief Iterations taken. SQP: the top-level solve's major count, with
     ///        nested restoration majors NOT added (they are in `counters`).
     ///        INTERIOR-POINT: the sum over the phases that ran.
     Index iterations = 0;
 
+    /// @brief What the solve spent; see WorkCounters.
+    WorkCounters work;
+
+    /// @brief The trial evaluations this solve rejected; see EvaluationErrors.
+    EvaluationErrors evaluation_errors;
+
     /// @brief Wall-clock seconds from the public solve entry -- after argument
     ///        validation -- to its return, seam and warm setup, final reporting
-    ///        and the export snapshot INCLUDED.
+    ///        and the warm-start snapshot INCLUDED.
     ///
     /// INFORMATIONAL, NEVER ASSERTED: counters, not timings, are this project's
     /// currency of correctness (CLAUDE.md §7). This is deliberately NOT either
-    /// engine's older measurement -- IpmResult::total_time stops before final
-    /// reporting, SqpResult::solve_impl_seconds starts after setup -- and both
-    /// of those survive under their own names.
+    /// engine's own measurement -- IpmResult::timing.total stops before final
+    /// reporting, SqpResult::engine_seconds starts after setup.
     double wall_seconds = 0.0;
 
     /// @brief The solve's exit state as warm-start currency, snapshotted at
     ///        exit while the model and workspace were still valid.
     ///
     /// A SNAPSHOT: later edits to this result's public fields do not reach it.
-    ///
-    /// @return The captured value, or nullopt when the solve produced no usable
-    ///         point. Per engine: the interior-point engine returns nullopt
-    ///         only on a numerical-error exit taken before the first iterate;
-    ///         the SQP engine NEVER returns nullopt -- every one of its exits,
-    ///         the non-finite start included, carries a finite point, zero
-    ///         multipliers and a valid stamp.
-    std::optional<WarmStartData> export_warm_start() const { return export_snapshot_; }
+    /// EMPTY (`warm_start.empty()`) when the solve produced no usable point,
+    /// which a solve accepts as "no warm start". Per engine: the interior-point
+    /// engine leaves it empty only on a numerical-error exit taken before the
+    /// first iterate; the SQP engine NEVER does -- every one of its exits, the
+    /// non-finite start included, carries a finite point, zero multipliers and a
+    /// valid stamp.
+    WarmStart warm_start;
 
-  protected:
-    /// The snapshot @ref export_warm_start hands out; written by the engine at
-    /// solve exit and by nothing else.
-    std::optional<WarmStartData> export_snapshot_;
+  private:
+    /// The engine's own row blocks at @ref x: equality and inequality multipliers
+    /// and residuals in the engine's internal split, and the two parts of
+    /// @ref feasibility. The solve entry maps them into
+    /// @ref lambda and @ref g; library internals and tests read them through
+    /// detail::engine_rows (detail/drivers/result_access.h).
+    struct EngineRows {
+        Vec lambda_e;
+        Vec lambda_i;
+        Vec ce;
+        Vec ci;
+        /// The two parts of @ref feasibility: the equality residual and the
+        /// inequality-plus-bound violation, NaN when unmeasured.
+        double feasibility_e = std::numeric_limits<double>::quiet_NaN();
+        double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+    };
+    EngineRows engine_rows_;
 
-    // The two engines fill the snapshot on a result they are about to return.
-    // Protected rather than public because a result is a REPORT: a consumer
-    // reads the snapshot, and nothing outside the producing engine may install
-    // one.
-    friend class IpmSolver;
-    friend class SqpSolver;
+    // The two engines fill the private row blocks of a result they are about to
+    // return.
+    friend class detail::IpmSolverImpl;
+    friend class detail::SqpSolverImpl;
+    friend struct detail::ResultAccess;
 };
 
 /// @brief What a per-iteration callback asks the engine to do next.
@@ -202,58 +306,36 @@ enum class CallbackAction {
     kContinue = 0,
     /// Stop as soon as the engine can do so without spending work on an answer
     /// the caller no longer wants. Both engines then report kInterrupted at the
-    /// point they are standing on, with the ordinary cleanup and the ordinary
-    /// trace end event -- and the ordinary ledger record on both engines (the
-    /// interior-point engine gained one at W5 T8.7).
-    /// See each engine's set_iteration_callback() for the
+    /// point they are standing on, with the ordinary cleanup, trace end event
+    /// and ledger record. See each engine's set_iteration_callback() for the
     /// exact moment the stop takes effect and for the one case that outranks it
-    /// (a CONVERGED iterate still reports kOptimal -- converged beats stop).
+    /// (a converged iterate still reports kOptimal). The result's stop_reason
+    /// is StopReason::kCallbackStop.
     kStop = 1,
 };
 
 /// @brief What an attached iteration callback asks its engine to PREPARE.
 ///
-/// A BIT MASK, declared at attachment (M7 W0 T2). The four vector views and the
-/// four declared diagnostics cost O(n) of engine work PER EVENT -- an expansion
-/// out of the engine's own space, a units map, and one pass over every declared
+/// A bit mask, declared at attachment. The three vector views and the three
+/// declared diagnostics cost O(n) of engine work per event -- an expansion out
+/// of the engine's own space, a units map, and one pass over every declared
 /// coordinate and constraint row -- prepared whether or not the consumer reads
-/// them. So the CONSUMER DECLARES what it reads, and an engine prepares nothing
-/// else.
+/// them. The consumer declares what it reads, and an engine prepares nothing
+/// else. On the interior-point engine this removes most of the attached cost; on
+/// the SQP engine, whose events are per major and few, it is carried for one
+/// surface across both engines.
 ///
-/// WHAT IT REMOVES, AND WHAT IT DOES NOT (M7 W0 T2,
-/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`; the cost it was built
-/// against is W6 T6's, `docs/notes/data/2026-09-m6-w6-attached-cost/`). On the
-/// top-level interior-point corpus leg, a cheap callback at @ref kAll costs
-/// +1.376 %/+1.401 % instructions and the same callback at @ref kScalars costs
-/// +0.588 %/+0.618 %.
-///
-///   REMOVED -- 57 % of the attached cost, and it is the vector/diagnostic
-///   work this mask names: measured to scale with the problem (the saving
-///   rises 10.2x for a 13.5x rise in problem width), which is the shape that
-///   work has.
-///
-///   NOT REMOVED -- a residual of about +0.6 %, WHICH IS NOT UNDERSTOOD. It
-///   does not scale with the problem, so no wider mask reaches it; it is not
-///   the attach or the per-event dispatch (an attached trace sink on the same
-///   leg costs +0.04 %); and the O(1) work left on the kScalars path cannot
-///   account for its size. It is REGISTERED with its number, not explained.
-///   That reading's section 5 names one UNPROVED candidate and says plainly
-///   what the leg could not separate.
-///
-/// On the SQP engine both arms are FLAT, as they were before the mask existed.
-///
-/// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
-/// so nothing a caller wrote before this type existed changes.
+/// set_iteration_callback() defaults to @ref kAll on both engines.
 enum class IterationPayload : unsigned {
     /// The fields that cost only a copy, and that EVERY mask delivers:
     /// `iteration`, `phase`/`depth`, `f`, `step_norm`, `radius`/`mu` and
     /// `elapsed_seconds`. As a mask on its own it asks for nothing else.
     kScalars = 0,
-    /// The four vector views -- `x`, `lambda_e`, `lambda_i`, `z`. Without this
-    /// bit all four arrive EMPTY (size 0).
+    /// The three vector views -- `x`, `lambda`, `z`. Without this bit all
+    /// three arrive EMPTY (size 0).
     kVectors = 1,
-    /// The four declared diagnostics -- `stationarity`, `feasibility_e`,
-    /// `feasibility_i`, `complementarity`. Without this bit all four arrive
+    /// The three declared diagnostics -- `stationarity`, `feasibility`,
+    /// `complementarity`. Without this bit all three arrive
     /// NaN, which under this header's own rule reads as NOT MEASURED; under a
     /// mask that omits them it means NOT REQUESTED, which is the same absence.
     kDiagnostics = 2,
@@ -275,35 +357,59 @@ constexpr bool payload_requests(IterationPayload mask, IterationPayload part) no
            static_cast<unsigned>(part);
 }
 
+/// @brief Which iterations a callback is shown.
+///
+/// Only the SQP engine nests solves (its restoration phase runs a feasibility
+/// sub-solve); the interior-point engine's events are all top-level, so the
+/// scope is accepted there and changes nothing.
+enum class CallbackScope {
+    /// Only the caller's own solve: every event has `depth` 0 on the SQP. The
+    /// restoration sub-solves run without any callback machinery.
+    kTopLevel = 0,
+    /// Also the restoration sub-solves' own rows, stamped with their `depth`
+    /// (>= 1). Those rows are in the sub-problem's space; see
+    /// IterationEvent::depth.
+    kIncludeRestoration = 1,
+};
+
 /// @brief One iteration, as both engines report it to a caller's callback.
 ///
-/// WHAT ARRIVES DEPENDS ON THE PAYLOAD MASK the callback was attached with
-/// (@ref IterationPayload, M7 W0 T2). Under the default @ref
-/// IterationPayload::kAll -- which is what the one-argument
-/// set_iteration_callback() installs -- every field below is prepared, as it
-/// always was. Under a narrower mask the four vector views arrive EMPTY and/or
-/// the four diagnostics arrive NaN, and the engine does not do the work that
-/// would have filled them. The scalars are delivered under every mask.
+/// What arrives depends on the payload mask the callback was attached with
+/// (@ref IterationPayload). Under the default @ref
+/// IterationPayload::kAll every field below is prepared. Under a narrower mask
+/// the three vector views arrive EMPTY and/or the three diagnostics arrive NaN,
+/// and the engine does not do the work that would have filled them. The
+/// scalars are delivered under every mask.
+///
+/// HOW MANY EVENTS. One event per iteration row. The SQP's row 0 is the start
+/// point, so on a plain exit its default stream (@ref CallbackScope::kTopLevel)
+/// holds `iterations + 1` events, `SolveResult::iterations` being the number
+/// of steps taken. The interior-point engine's rows are its iterations: the
+/// number of events equals its iteration count.
 ///
 /// AT `depth` 0 -- which is every interior-point event and every top-level SQP
 /// major -- EVERY field is in DECLARED space and CALLER units, exactly as
 /// SolveResult is: the interior-point engine's reduced primal space is
 /// expanded, its internal fixing rows are sliced out of the equality block, and
 /// a scaled SQP solve's multipliers and prices carry no factor of the engine's.
+/// In particular `lambda` is in the problem's ROW SPACE, the form of
+/// SolveResult::lambda, and the final depth-0 event's `lambda` equals the
+/// result's.
 ///
-/// AT `depth` 1 THE SPACE IS THE RESTORATION SUB-PROBLEM'S, not the caller's
-/// (M6 W5 T8.6 fix1, the SQP lane's M4). A depth-1 event is the feasibility
+/// At `depth` 1 the space is the restoration sub-problem's, not the caller's.
+/// A depth-1 event is the feasibility
 /// sub-solve's OWN row: `x` is that problem's variable vector (whose width need
-/// not be the caller's `n`), `f` is its feasibility objective, and the four
+/// not be the caller's `n`), `f` is its feasibility objective, and the three
 /// diagnostics are measured on it. Nothing is mapped back -- see @ref depth.
 ///
-/// THE FOUR VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
+/// THE THREE VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
 /// storage the engine owns and reuses; a callback that needs them afterwards
 /// copies them. Copying the EVENT does not deepen the views.
 ///
-/// UNMEASURED IS NaN, never zero -- the four diagnostics follow SolveResult's
-/// own rule (this header's note), so an event taken where no finite evaluation
-/// of the point exists reports NaN in all four rather than a residual of zero.
+/// UNMEASURED IS NaN, never zero -- the three diagnostics (`stationarity`,
+/// `feasibility`, `complementarity`) follow SolveResult's own rule (this
+/// header's note), so an event taken where no finite evaluation of the point
+/// exists reports NaN in all three rather than a residual of zero.
 ///
 /// The three optionals say which engine produced the event rather than
 /// carrying a sentinel: `phase` and `mu` are the interior-point engine's,
@@ -318,8 +424,9 @@ struct IterationEvent {
     ///        to, in IpmResult::phases. nullopt on the SQP.
     std::optional<Index> phase;
     /// @brief SQP ONLY: the restoration nesting level -- 0 in the caller's own
-    ///        solve, 1 inside a restoration sub-solve, and one deeper per level
-    ///        below that. nullopt on the interior-point engine.
+    ///        solve, 1 inside a restoration sub-solve. nullopt on the
+    ///        interior-point engine. Depth >= 2 is unreachable: a restoration
+    ///        sub-solve refuses to nest another.
     ///
     /// A NON-ZERO DEPTH CHANGES THE SPACE THE EVENT IS IN. The restoration
     /// sub-solve runs the FEASIBILITY problem -- a different model, in its own
@@ -334,10 +441,11 @@ struct IterationEvent {
 
     /// @brief Objective value at the event's point, on the caller's scale.
     double f = std::numeric_limits<double>::quiet_NaN();
-    /// @brief The four SHARED diagnostics of SolveResult, at the event's point.
+    /// @brief The three SHARED diagnostics of SolveResult, at the event's
+    ///        point: `feasibility` is the larger of the equality and inequality
+    ///        residuals, NaN if either is.
     double stationarity = std::numeric_limits<double>::quiet_NaN();
-    double feasibility_e = std::numeric_limits<double>::quiet_NaN();
-    double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
     double complementarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief The step that reached (SQP: that was taken from) this point.
     ///        SQP: SqpIterate::step_norm of the row. INTERIOR-POINT: the
@@ -353,10 +461,11 @@ struct IterationEvent {
 
     /// @brief The point, declared width. BORROWED -- see this struct's note.
     Eigen::Ref<const Vec> x;
-    /// @brief Equality multipliers at @ref x, declared rows. BORROWED.
-    Eigen::Ref<const Vec> lambda_e;
-    /// @brief Inequality multipliers at @ref x, declared rows. BORROWED.
-    Eigen::Ref<const Vec> lambda_i;
+    /// @brief Row multipliers at @ref x, in the problem's row space -- the
+    ///        definition of SolveResult::lambda. BORROWED. At `depth` >= 1 it
+    ///        is the restoration sub-problem's own [lambda_e; lambda_i]
+    ///        concatenation instead.
+    Eigen::Ref<const Vec> lambda;
     /// @brief Bound multipliers at @ref x, z = z_lower - z_upper, declared
     ///        width. BORROWED.
     Eigen::Ref<const Vec> z;
@@ -379,90 +488,4 @@ struct IterationEvent {
 /// solver USABLE for the next call.
 using IterationCallback = std::function<CallbackAction(const IterationEvent &)>;
 
-/// @brief Computes the four shared diagnostics over the DECLARED problem.
-///
-/// Evaluates nothing: every model quantity arrives as an argument, from the
-/// evaluation the caller already holds at @p x.
-///
-/// One pass over the declared coordinates and one over each constraint block.
-/// The bound products use the CANONICAL SPLIT -- max(z,0) * (x - l) and
-/// max(-z,0) * (u - x) -- because a signed z cannot recover two separate prices
-/// at a two-sided bound whose lower and upper multipliers are both positive.
-/// The engine's own two-price complementarity, where it has one, stays on the
-/// engine's own result.
-///
-/// Infinite bounds contribute nothing: a product of a zero price and an
-/// infinite distance is not a measurement.
-///
-/// @param x                     The returned point, declared width n.
-/// @param lambda_e              Declared equality multipliers, me.
-/// @param lambda_i              Declared inequality multipliers, mi.
-/// @param z                     Bound multipliers, n, signed z = zL - zU.
-/// @param grad                  Objective gradient at @p x, n.
-/// @param Je                    Declared equality Jacobian, me x n.
-/// @param Ji                    Declared inequality Jacobian, mi x n.
-/// @param ce                    Declared equality residuals at @p x, me.
-/// @param ci                    Declared inequality residuals at @p x, mi;
-///                              the feasible set is ci <= 0.
-/// @param lower                 Declared lower bounds, n; -inf where absent.
-/// @param upper                 Declared upper bounds, n; +inf where absent.
-/// @param excluded_coordinates  Coordinates whose stationarity was NOT measured
-///                              -- the interior-point engine's MakeParameter
-///                              eliminations, whose reduced gradient has no row
-///                              at all. May be empty. Indices outside [0, n)
-///                              are ignored.
-/// @return The four diagnostics.
-/// @throws std::invalid_argument if the block sizes do not agree.
-DeclaredDiagnostics compute_declared_diagnostics(const Vec &x, const Vec &lambda_e,
-                                                 const Vec &lambda_i, const Vec &z, const Vec &grad,
-                                                 const SpMatRM &Je, const SpMatRM &Ji,
-                                                 const Vec &ce, const Vec &ci, const Vec &lower,
-                                                 const Vec &upper,
-                                                 const std::vector<Index> &excluded_coordinates);
-
-/// @brief The same four diagnostics, from a Lagrangian gradient the caller
-///        already holds.
-///
-/// THE ARITHMETIC IS THE SAME ARITHMETIC -- the overload above forms
-/// grad f + Je^T lambda_e + Ji^T lambda_i and calls straight through to this
-/// one. Two front doors exist because the two engines hold different things at
-/// the point they report:
-///
-///   * The SQP's SqpKkt carries `grad_lag` outright, so forming it again from
-///     the pieces would be arithmetic done twice with a chance of disagreeing.
-///   * The INTERIOR-POINT engine has no separated gradient or Jacobian AT ALL
-///     at the returned iterate: the model's derivatives are scattered directly
-///     into one compound KKT buffer, fused there with the Hessian, the barrier
-///     diagonals and any inertia perturbation, and left at the LAST EVALUATED
-///     iterate rather than the reported one. What that engine does hold, in
-///     its right-hand side at the returned iterate, is exactly this vector. A
-///     signature demanding (grad, Je, Ji) would force it to evaluate the model
-///     again -- which would move `evals_full` on every solve and break the very
-///     identity proofs this task is held to.
-///
-/// @param x                     The returned point, declared width n.
-/// @param lambda_i              Declared inequality multipliers, mi. (The
-///                              equality multipliers are already inside
-///                              @p grad_lag; the diagnostics never read them
-///                              again.)
-/// @param z                     Bound multipliers, n, signed z = zL - zU.
-/// @param grad_lag              grad f + Je^T lambda_e + Ji^T lambda_i at @p x,
-///                              declared width n, WITHOUT the bound term -- it
-///                              is subtracted here, per coordinate, so that the
-///                              exclusion set can be applied.
-/// @param ce                    Declared equality residuals at @p x.
-/// @param ci                    Declared inequality residuals at @p x; the
-///                              feasible set is ci <= 0.
-/// @param lower                 Declared lower bounds, n; -inf where absent.
-/// @param upper                 Declared upper bounds, n; +inf where absent.
-/// @param excluded_coordinates  Coordinates whose stationarity was NOT
-///                              measured; see the overload above.
-/// @return The four diagnostics.
-/// @throws std::invalid_argument if the block sizes do not agree.
-DeclaredDiagnostics
-compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, const Vec &z,
-                                           const Vec &grad_lag, const Vec &ce, const Vec &ci,
-                                           const Vec &lower, const Vec &upper,
-                                           const std::vector<Index> &excluded_coordinates);
-
-} // namespace hven::solvers
+} // namespace hven

@@ -3,108 +3,155 @@
 
 #pragma once
 
-// The options both engines share. Each engine's options struct embeds exactly
-// one of these, so a knob that means the same thing on both is spelled the same
-// way on both: the backend thread count, the console verbosity, and the ceiling
-// on how much of a warm start a solve is willing to trust.
-//
-// The DEFAULTS here are the SQP engine's; the interior-point engine's
-// IpmOptions default-initialises its own `common` to the interior-point
-// engine's historical values instead (see ipm_solver_types.h). Neither engine
-// changed behaviour when the fields moved (M6 W5 T8.3).
+/// @file
+/// @brief The options both engines share, spelled once.
+///
+/// Each engine's options struct embeds exactly one `CommonOptions` as `common`.
+/// A setting that means the same thing on both engines is spelled the same way on
+/// both. Where the two engines' defaults differ (the iteration cap and the thread
+/// count), each engine's options struct initializes its own `common`.
+
+#include <optional>
 
 #include <hven/core/start_level.h>
+#include <hven/core/types.h>
 
-namespace hven::solvers {
+namespace hven {
 
-/// @brief The options both engines share, embedded once in each engine's own
-///        options struct.
-struct CommonOptions {
-    /// Backend thread count for this solver's factorizations. 0 means "leave
-    /// the backend's own default alone", which is what the SQP engine has
-    /// always done -- the process-wide MKL_NUM_THREADS pin is what makes its
-    /// runs reproducible. The interior-point engine defaults this to
-    /// HVEN_DEFAULT_QP_THREADS, the value its Settings::qp_threads_ carried.
-    ///
-    /// T8.3 MOVED the field and changed nothing about how it is read: the
-    /// interior-point engine applies it exactly where it applied
-    /// qp_threads_. T8.8 IS WHERE THE SQP ENGINE STARTED APPLYING IT, and the
-    /// terms are these:
-    ///
-    ///   * It reaches EVERY SQP factor path -- the walk tier's K0 border and
-    ///     its per-solve, EQP-refine and verdict-refine temporaries, the SSN
-    ///     tier's one persistent factor, the IPQP tier's KKT factorization,
-    ///     the parametric predictor's one factorization, the Schur border's
-    ///     dense LAPACK factor, and every one of those inside a nested
-    ///     restoration solve (the sub-driver inherits this whole struct).
-    ///   * It is applied AT CALL SCOPE and undone afterward, on every exit.
-    ///     Nothing here writes a process-global or an environment setting.
-    ///   * It is folded into the engine options fingerprint a hot handle is
-    ///     keyed on, so changing it refuses a handle produced at another count.
-    ///   * 0 means "leave the backend's own default alone" and is bit-for-bit
-    ///     the pre-T8.8 behaviour: no scope is engaged anywhere.
-    ///
-    /// ON APPLE THIS IS STORED AND APPLIED TO NOTHING -- UNOBSERVED. The
-    /// Accelerate sparse session records the count without handing it to any
-    /// backend call, and the SQP engine deliberately does NOT mirror the
-    /// interior-point engine's driver-level `accelerate_set_num_threads()`,
-    /// which is a PROCESS-WIDE call that is never restored and so cannot keep
-    /// the call-scoped promise above. The Apple application is registered with
-    /// the Mac increment. The interior-point engine's own behaviour is
-    /// unchanged by any of this.
-    ///
-    /// NOT the interior-point engine's EVALUATION-POOL thread count, which is
-    /// a separate process-global knob (`utils::set_num_threads`), and not CNR,
-    /// which stays interior-point-only.
-    int threads = 0;
-
-    /// Console verbosity, on the interior-point engine's scale in both
-    /// engines:
-    ///   0  -- full output (stats + iteration table + exit + timing)
-    ///   1  -- no iteration table (phase banners + timing summary)
-    ///   2  -- exit status and warnings only
-    ///   3+ -- fully silent
-    ///
-    /// The default 3 is therefore SILENT, which is what the SQP engine has
-    /// always been; the interior-point engine's IpmOptions defaults it to 0,
-    /// which is what Settings::print_level_ defaulted to. Must be
-    /// non-negative. T8.7 is where the SQP engine gains a console table of its
-    /// own at these levels.
-    int print_level = 3;
-
-    /// The ceiling on how much of an offered warm start a solve will trust.
-    ///
-    /// THE SQP ENGINE READS THIS ONE from M6 W5 T8.10, which folded its own
-    /// `SqpOptions::start_level` into it: at kSeeded that driver ingests a
-    /// hash-less object's values but never a factorization, never the funnel
-    /// or trust-region state and never the Kungurtsev-Diehl window, EVEN when
-    /// the object would have earned kWarm, and it short-circuits the
-    /// structural-hash probe whose answer could only raise the level above the
-    /// ceiling; at kCold every 3-argument solve behaves exactly as the
-    /// 2-argument one does. Neither setting affects `solve(model, x0)`, which
-    /// is always cold by construction.
-    ///
-    /// THE INTERIOR-POINT ENGINE READS IT TOO,
-    /// from M6 W5 T8.5, on its PAYLOAD route -- `solve(model, x0, warm,
-    /// budget)` -- with four rungs (design 2.6):
-    ///
-    ///   kCold    the payload is ignored entirely and COUNTED
-    ///            (`IpmResult::payload_ignored`). Its block lengths and its
-    ///            declaration stamp are still checked: a ceiling says what of a
-    ///            payload to apply, never that a foreign one is acceptable.
-    ///   kSeeded  the MULTIPLIERS only, through the engine's own floor/cap; the
-    ///            point and the polish extension are ignored, the extension
-    ///            counted (`IpmResult::polish_ignored`). `x0` is the start.
-    ///   kWarm    the whole payload -- point, multipliers, polish.
-    ///   kHot     IDENTICAL to kWarm. The interior-point engine has no hot
-    ///            handle to adopt (its cross-call factorization reuse is keyed
-    ///            on the program's own analysis identity, never on a payload),
-    ///            so the top rung is documented as equal to kWarm rather than
-    ///            refused.
-    ///
-    /// A CEILING, never a floor, on both engines: it can only lower what a
-    /// value would otherwise have resolved to.
-    StartLevel start_level = StartLevel::kWarm;
+/// @brief How much a solve writes to the console (stdout).
+///
+/// Each rung prints everything the rung below it prints.
+enum class Verbosity {
+    /// Nothing. The default on both engines.
+    kSilent,
+    /// The exit status line and warnings.
+    kWarnings,
+    /// Adds the banners, the per-phase Beginning/Finished and exit blocks, the
+    /// SQP table's header and trailer, and the timing summary. No iteration
+    /// rows.
+    kSummary,
+    /// Adds the interior-point problem statistics and the per-iteration table.
+    kIterations,
 };
 
-} // namespace hven::solvers
+/// @brief The options both engines share, embedded once in each engine's own
+///        options struct as `common`.
+///
+/// "No limit" is an empty `std::optional` on every limit; no numeric sentinel
+/// means "unlimited".
+struct CommonOptions {
+    /// Optimality tolerance. The interior-point engine reads it against its KKT
+    /// (dual infeasibility) measure and, unless
+    /// `IpmOptions::termination.complementarity_tol` is set, its barrier
+    /// (complementarity) measure. The SQP engine reads it against its
+    /// stationarity measure and its NLP complementarity. Each engine compares it
+    /// with its own measure, reported under its result's `convergence` fields.
+    /// Default 1e-6. Must be finite and > 0.
+    double optimality_tol = 1e-6;
+
+    /// Feasibility tolerance: the equality and inequality residuals. The SQP
+    /// engine also uses it as the bound-activity tolerance of its stationarity
+    /// measure. Default 1e-6. Must be finite and > 0.
+    double feasibility_tol = 1e-6;
+
+    /// Iteration cap. The interior-point engine applies it PER PHASE of
+    /// `IpmOptions::phases` (its default is 1000); the SQP engine counts
+    /// subproblems solved, restoration majors included (its default is 100). A
+    /// `SolveBudget::max_iterations` can only tighten it. Must be >= 1 on the
+    /// interior-point engine and >= 0 on the SQP engine.
+    Index max_iterations = 100;
+
+    /// Deterministic work ceiling: the number of KKT factorizations one solve may
+    /// perform, counted over the whole solve (every phase, every restoration).
+    /// Read at iteration boundaries, so a solve can exceed it by the
+    /// factorizations of the one iteration in flight. Reaching it ends the solve
+    /// with `SolveStatus::kWorkLimit` at the current iterate. Empty (the default)
+    /// is no ceiling. An engaged value must be >= 0.
+    std::optional<Index> max_factorizations;
+
+    /// Wall-clock limit in seconds, measured from solve entry. Read at iteration
+    /// boundaries; reaching it ends the solve with `SolveStatus::kTimeLimit` at
+    /// the current iterate. NOT REPRODUCIBLE: the iteration a timed-out solve stops
+    /// at depends on the machine and its load, so a run that must be repeatable
+    /// (a benchmark, a regression baseline) leaves this empty and bounds work with
+    /// `max_factorizations` or `max_iterations`. Empty (the default) is no limit.
+    /// An engaged value must be finite and > 0.
+    std::optional<double> time_limit_seconds;
+
+    /// Console output. Default `kSilent` on both engines; one line turns output
+    /// on: `options.common.verbosity = Verbosity::kIterations;`.
+    Verbosity verbosity = Verbosity::kSilent;
+
+    /// Backend thread count for this solver's factorizations. 0 leaves the
+    /// backend's own default alone (the process-wide MKL_NUM_THREADS then
+    /// governs). The SQP default is 0; `IpmOptions` defaults it to
+    /// HVEN_DEFAULT_IPM_THREADS and requires it >= 1.
+    ///
+    /// The SQP engine applies it at call scope to every factorization path,
+    /// nested restoration solves included, and undoes it on every exit; nothing
+    /// writes a process-global or an environment setting. It is folded into the
+    /// options fingerprint a hot handle is keyed on, so changing it refuses a
+    /// handle produced at another count.
+    ///
+    /// On Apple the count is stored and applied to nothing (UNOBSERVED).
+    ///
+    /// This is not the interior-point engine's evaluation-pool thread count (a
+    /// separate process-global setting, `detail::set_num_threads`).
+    int threads = 0;
+
+    /// The ceiling on how much of an offered warm start a solve will trust. A
+    /// ceiling, never a floor, on both engines.
+    ///
+    /// SQP engine:
+    ///  - `kSeeded`: takes a value's point and multipliers but never a
+    ///    factorization or globalization state.
+    ///  - `kCold`: every warm-taking solve behaves exactly as the cold one does.
+    ///  - A solve given no warm start is always cold.
+    ///
+    /// Interior-point engine, on its payload route:
+    ///  - `kCold`: the payload is ignored and counted
+    ///    (`IpmResult::payload_ignored`). Its block lengths and declaration
+    ///    stamp are still checked.
+    ///  - `kSeeded`: the multipliers only; `x0` is the start and the polish
+    ///    extension is ignored and counted (`IpmResult::polish_ignored`).
+    ///  - `kWarm`, `kHot`: the whole payload -- point, multipliers, polish.
+    StartLevel start_level = StartLevel::kWarm;
+
+    /// The magnitude at or beyond which a declared bound is ABSENT. Default 1e20
+    /// (the Knitro and SNOPT convention; Ipopt's is 1e19). Must be > 0 and not
+    /// NaN; `kInfinity` means "every finite value is a real bound".
+    ///
+    /// The rule, on both engines, on every variable bound and every constraint-row
+    /// bound, lower and upper: a bound `b >= infinite_bound` is +infinity and a
+    /// bound `b <= -infinite_bound` is -infinity. An absent side has no barrier
+    /// term, no active-set entry, no residual and no multiplier. So:
+    ///  - both sides absent: the variable is free, the row is free (not passed to
+    ///    either engine; its `g` entry is NaN, as for a free row today);
+    ///  - exactly at the threshold is absent; the largest double below it is a
+    ///    real bound;
+    ///  - equal finite bounds below the threshold fix the variable (or make the row
+    ///    an equality) exactly as before;
+    ///  - a pair the rule makes empty is refused by name with std::invalid_argument
+    ///    (the message names the declared values and the threshold): a lower bound
+    ///    at or beyond +infinite_bound, an upper bound at or beyond -infinite_bound,
+    ///    or both sides one infinity (a variable fixed at infinity, an equality row
+    ///    at infinity) -- the same refusals as for the infinities themselves;
+    ///  - a NaN bound and a lower bound above its upper are refused by name, as
+    ///    before.
+    ///  - under `kInfinity`, a one-sided finite bound near the largest double makes the
+    ///    interior-point engine's bound-damping term dominate its merit, so its line
+    ///    search cannot reject a step.
+    ///
+    /// Applied once, where the declaration enters each engine's transcription: an
+    /// Nlp problem's variable and row bounds, a pieces problem's variable bounds,
+    /// and the SQP's QP subproblems, which inherit the decision (every QP mode
+    /// reads an absent side as an infinity). A Problem is laid out under the
+    /// default; a solve under another threshold re-lays it (the interior-point
+    /// engine re-analyses, counted; a WarmStart whose bound structure differs no
+    /// longer matches). The census Problem::statistics() reports, and the
+    /// `absent_bounds` key of the `sqp.solve.begin` and `ipm.solve.begin` trace
+    /// lines, count the finite values the threshold made absent.
+    double infinite_bound = 1e20;
+};
+
+} // namespace hven

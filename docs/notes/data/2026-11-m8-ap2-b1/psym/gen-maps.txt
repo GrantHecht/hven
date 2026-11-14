@@ -1,0 +1,3 @@
+symbol-map entries: 164
+object-map entries: 4
+exceptions entries: 80

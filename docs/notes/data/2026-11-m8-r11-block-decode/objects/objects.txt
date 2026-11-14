@@ -1,0 +1,3 @@
+object sets equal
+objects 56; differing: ./src/linear/dense_symmetric_factor.cpp.o
+OBJECTS_AS_DECLARED

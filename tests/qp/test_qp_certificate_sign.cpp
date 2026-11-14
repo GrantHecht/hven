@@ -44,14 +44,15 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
 namespace {
 
-using Cert = hven::solvers::detail::testing::QpCertificateSeam;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
+using Cert = hven::detail::testing::QpCertificateSeam;
+using Obs = hven::detail::testing::QpWalkObserver;
 
 struct SignSeamGuard {
     SignSeamGuard() {
@@ -85,9 +86,9 @@ QpProblem sign_box_qp() {
 
 constexpr double kScale = 5.0;
 
-QpOptions sign_opts(WorkingSetLinearAlgebra alg) {
+QpOptions sign_opts(QpWorkingSetAlgebra alg) {
     QpOptions o;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     return o;
 }
 
@@ -98,7 +99,7 @@ QpSolution present(const QpProblem &qp, const QpOptions &opts, double z0, double
     Cert::z = Vec(3);
     Cert::z << z0, z1, 0.0;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(qp);
     Cert::armed = false;
     return s;
@@ -119,15 +120,15 @@ void expect_certified(const QpSolution &s, double z0, double z1) {
     EXPECT_EQ(s.z(1), z1);
 }
 
-constexpr WorkingSetLinearAlgebra kAlgebras[] = {WorkingSetLinearAlgebra::kSchurBorder,
-                                                 WorkingSetLinearAlgebra::kRefactorize};
+constexpr QpWorkingSetAlgebra kAlgebras[] = {QpWorkingSetAlgebra::kSchurBorder,
+                                             QpWorkingSetAlgebra::kRefactorize};
 
 } // namespace
 
 TEST(QpCertificateSign, SeamUnarmedCertifiesTheOptimumWithNoRefusal) {
     SignSeamGuard guard;
     for (const auto alg : kAlgebras) {
-        QpEngine engine{sign_opts(alg)};
+        QpEngine engine{sign_opts(alg), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(sign_box_qp());
         ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(Cert::presentations, 0);
@@ -156,7 +157,7 @@ TEST(QpCertificateSign, UpperPinWithWrongSignIsRefused) {
 
 TEST(QpCertificateSign, NanMultiplierIsRefused) {
     SignSeamGuard guard;
-    expect_refused(present(sign_box_qp(), sign_opts(WorkingSetLinearAlgebra::kRefactorize),
+    expect_refused(present(sign_box_qp(), sign_opts(QpWorkingSetAlgebra::kRefactorize),
                            std::numeric_limits<double>::quiet_NaN(), -5.0));
 }
 
@@ -166,7 +167,7 @@ TEST(QpCertificateSign, WrongSignInsideTheRelativeToleranceIsCertified) {
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
         const QpOptions o = sign_opts(alg);
-        const double tol = o.opt_tol * kScale;
+        const double tol = o.optimality_tol * kScale;
         expect_certified(present(sign_box_qp(), o, -0.5 * tol, -5.0), -0.5 * tol, -5.0);
         expect_certified(present(sign_box_qp(), o, 5.0, tol), 5.0, tol);
         expect_refused(present(sign_box_qp(), o, -2.0 * tol, -5.0));
@@ -210,7 +211,7 @@ QpSolution present_off_box(const QpOptions &opts, double x0) {
     Cert::z = Vec(3);
     Cert::z << 5.0, -5.0, 0.0;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(sign_box_qp());
     Cert::armed = false;
     return s;
@@ -241,8 +242,8 @@ TEST(QpCertificateSign, BoundHalfOnTheUnpolishedPathIsNumericalErrorNotInfeasibl
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
         QpOptions o = sign_opts(alg);
-        o.dual_mu = 0.0;
-        o.primal_delta = 0.0;
+        o.dual_regularization = 0.0;
+        o.primal_regularization = 0.0;
         const QpSolution s = present_off_box(o, -0.1);
         EXPECT_EQ(s.counters.terminal_polish_solves, 0);
         EXPECT_EQ(s.counters.terminal_polish_adopted, 0);
@@ -256,7 +257,7 @@ TEST(QpCertificateSign, BoundHalfInsideTheMarginStillCertifies) {
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
         const QpOptions o = sign_opts(alg);
-        const QpSolution s = present_off_box(o, -0.5 * o.feas_tol);
+        const QpSolution s = present_off_box(o, -0.5 * o.feasibility_tol);
         ASSERT_EQ(Cert::presentations, 1);
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(s.counters.certificate_bound_refusals, 0);
@@ -284,11 +285,11 @@ QpProblem polish_qp() {
     return qp;
 }
 
-QpOptions polish_opts(WorkingSetLinearAlgebra alg) {
+QpOptions polish_opts(QpWorkingSetAlgebra alg) {
     QpOptions o;
-    o.ws_algebra = alg;
-    o.dual_mu = 1e-4;
-    o.primal_delta = 1e-4; // leaves the free stage-1 polish a footprint to remove
+    o.working_set_algebra = alg;
+    o.dual_regularization = 1e-4;
+    o.primal_regularization = 1e-4; // leaves the free stage-1 polish a footprint to remove
     return o;
 }
 
@@ -300,7 +301,7 @@ QpSolution present_polished(const QpOptions &opts, bool first_only) {
     Cert::z << 0.0, 0.0, -7.0; // the polished pin priced onto the wrong side
     Cert::first_only = first_only;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(polish_qp());
     Cert::armed = false;
     return s;
@@ -310,7 +311,7 @@ TEST(QpCertificateSign, PolishPremiseTheTerminalPolishIsAdoptedUnarmed) {
     SignSeamGuard guard;
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
-        QpEngine engine{polish_opts(alg)};
+        QpEngine engine{polish_opts(alg), 0, hven::linear::DensePolicy::kNever};
         const QpSolution s = engine.solve(polish_qp());
         ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_GE(s.counters.terminal_polish_adopted, 1);
@@ -357,7 +358,7 @@ QpSolution present_polished_off_box(const QpOptions &opts, bool first_only) {
     Cert::z << 0.0, 0.0, 3.0;
     Cert::first_only = first_only;
     Cert::armed = true;
-    QpEngine engine{opts};
+    QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
     QpSolution s = engine.solve(polish_qp());
     Cert::armed = false;
     return s;
@@ -400,7 +401,7 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
         const hven::test_support::QpDump d = hven::test_support::load_qp_dump(
             std::string(HVEN_QP_E2D4_FIXTURES) + "/SDL_DALLASM_QN_qp10.txt");
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         ASSERT_EQ(d.qp.mi(), 0); // the residual below assumes no inequality rows
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         std::printf("[ sdl ] DALLASM_QN_qp10 alg=%d status=%d minors=%ld refusals=%ld zmx=%ld "
@@ -413,7 +414,7 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
                     static_cast<long>(s.counters.certificate_bound_refusals));
         // Never a false kInfeasible on this feasible convex QP.
         EXPECT_NE(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
-        if (alg == WorkingSetLinearAlgebra::kSchurBorder) {
+        if (alg == QpWorkingSetAlgebra::kSchurBorder) {
             // The border walk reaches the certificate, the polish flips a sign, and the
             // incumbent fallback is taken: the incumbent stands off its box (SDL-4).
             EXPECT_GE(s.counters.terminal_polish_sign_reverts, 1);
@@ -432,8 +433,9 @@ TEST(QpCertificateSign, DallasmQnSubproblemIsNotCertifiedWithAWrongSign) {
         // is the stationarity residual's entry (QpSolution::tr_active), signed by the side x
         // sits on (the TR box about the clamped seed).
         const QpProblem &qp = d.qp;
-        const double tr =
-            std::isfinite(d.overrides.tr_radius) ? d.overrides.tr_radius : d.opts.tr_radius;
+        const double tr = std::isfinite(d.overrides.trust_region_radius)
+                              ? d.overrides.trust_region_radius
+                              : d.opts.trust_region_radius;
         Vec r = qp.H.selfadjointView<Eigen::Upper>() * s.x + qp.g + qp.Ae.transpose() * s.lambda_e;
         const double scale = std::max(1.0, r.lpNorm<Eigen::Infinity>());
         for (Index i = 0; i < qp.n(); ++i) {
@@ -469,7 +471,7 @@ TEST(QpCertificateSign, BritgasQnSubproblemOffBoxLeakIsNotInfeasible) {
     for (const auto alg : kAlgebras) {
         SCOPED_TRACE(static_cast<int>(alg));
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         const QpSolution s = hven::test_support::solve_qp_dump(d, o);
         std::printf("[ sdl ] BRITGAS_QN_qp5 alg=%d status=%d minors=%ld bound_refusals=%ld "
                     "polish_rejected=%ld x326=%.10g\n",
@@ -504,9 +506,9 @@ struct RowHalfRun {
     double row_res = 0.0;
 };
 
-RowHalfRun run_row_half(const hven::test_support::QpDump &d, WorkingSetLinearAlgebra alg) {
+RowHalfRun run_row_half(const hven::test_support::QpDump &d, QpWorkingSetAlgebra alg) {
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     RowHalfRun r;
     r.s = hven::test_support::solve_qp_dump(d, o);
     if (d.qp.me() > 0) {
@@ -518,7 +520,7 @@ RowHalfRun run_row_half(const hven::test_support::QpDump &d, WorkingSetLinearAlg
     return r;
 }
 
-void print_row_half(const char *name, WorkingSetLinearAlgebra alg, const RowHalfRun &r) {
+void print_row_half(const char *name, QpWorkingSetAlgebra alg, const RowHalfRun &r) {
     std::printf("[ sdl6 ] %s alg=%d status=%d minors=%ld row_refusals=%ld tfc=%ld eq_res=%.3e "
                 "row_res=%.3e\n",
                 name, static_cast<int>(alg), static_cast<int>(r.s.status),
@@ -544,7 +546,7 @@ TEST(QpCertificateSign, Net3QnSubproblemInconsistentFaceIsNotInfeasible) {
         EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 0);
     }
     // The in-cell path, live: the walk's own point violates its rows.
-    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    const RowHalfRun r = run_row_half(d, d.opts.working_set_algebra);
 #if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GT(r.row_res, 1e-2);
     EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kNumericalError));
@@ -589,7 +591,7 @@ TEST(QpCertificateSign, Mss2QnSubproblemMuFootprintIsNotInfeasible) {
         EXPECT_NE(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
         EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 0);
     }
-    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    const RowHalfRun r = run_row_half(d, d.opts.working_set_algebra);
     EXPECT_GT(r.eq_res, 1e-6);
     EXPECT_EQ(r.s.counters.terminal_mu_refines, 1);
     EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kNumericalError));
@@ -609,7 +611,7 @@ TEST(QpCertificateSign, DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict) {
                   1);
         EXPECT_EQ(r.s.counters.certificate_row_refusals, 0);
     }
-    const RowHalfRun r = run_row_half(d, d.opts.ws_algebra);
+    const RowHalfRun r = run_row_half(d, d.opts.working_set_algebra);
     EXPECT_GT(r.eq_res, 1e-1);
     EXPECT_EQ(static_cast<int>(r.s.status), static_cast<int>(QpStatus::kInfeasible));
     EXPECT_EQ(r.s.counters.terminal_farkas_certificates, 1);

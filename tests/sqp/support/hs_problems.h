@@ -51,9 +51,11 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
-namespace hven::solvers::test_support {
+using namespace hven::detail;
+
+namespace hven::test_support {
 
 namespace detail {
 
@@ -2361,4 +2363,4 @@ inline HsProblem make_hs(int number) {
     }
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

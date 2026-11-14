@@ -1,0 +1,32 @@
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
+//
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
+// (see LICENSE).
+
+// Defines the type erasure spec SizableSpec defining the ability to query
+// the Input/Output rows of a type-erased vectorfunction as well as its name
+// and thread safety.
+
+#pragma once
+
+#include <string>
+
+namespace hven {
+
+/// @brief Type-erasure spec: query the Input/Output rows of a type-erased
+/// vector function, plus its name and thread safety.
+struct SizableSpec {
+    struct Concept {
+        virtual ~Concept() = default;
+        virtual std::string name() const = 0;
+
+        virtual int input_rows() const = 0;
+        virtual int output_rows() const = 0;
+        virtual bool thread_safe() const = 0;
+    };
+};
+
+} // namespace hven

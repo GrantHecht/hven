@@ -81,6 +81,21 @@ struct AnalyzeFaultInjector {
     static inline int injected_backend_code = -3;
 };
 
+// Fault injection for the dense arm's attempt in SymmetricFactor::factorize()
+// and factorize_equilibrated() (BOTH backends; the shared dense dispatch). When
+// active, once `pass` dense attempts have run since it was armed, every later
+// attempt is SKIPPED, its session's numerics dropped, and read as exactly
+// singular: the outcome a real exactly singular attempt has under either
+// policy (kSparseFallback: the platform session takes the factorization, where
+// FactorizeFaultInjector can fail it; kReport: kDenseSingular, no numerics).
+// Consumers: the IPM dense guard's failed re-run; the SQP response's platform
+// retake (both equilibrated attempts read as failed); the IPQP's exactly
+// singular read. docs/testing.md records each.
+struct DenseFactorizeFaultInjector {
+    static inline bool active = false;
+    static inline int pass = 0;
+};
+
 // Fault injection for SymmetricFactor::inertia()'s SparseGetInertia call
 // (Accelerate only). SparseGetInertia is a side-effect-free query against an
 // already-successful factorization, so unlike the injector above, this one is
@@ -261,7 +276,7 @@ struct PardisoIparmObserver {
 // thread scope inside the session were deleted outright; it is not, and
 // cannot be, evidence that the scope engages.
 //
-// It exists for SymmetricFactor::set_num_threads, and it pins the half of
+// It exists for SymmetricFactor::set_threads, and it pins the half of
 // that setter's claim which has no public observable: that a mid-life change
 // lands in the configuration a subsequent backend call reads. The rest of
 // the claim is carried by traced data flow (every phase reaches the backend

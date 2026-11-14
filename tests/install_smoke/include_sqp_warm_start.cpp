@@ -5,30 +5,28 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8.5 PROMOTED `SqpWarmStart` out of `detail/` into `warmstart/` as
-// `SqpWarmStart` -- the LABELLED SQP-ONLY native warm-start entry beside the
-// shared `WarmStartData` payload. That move makes a header that was internal
-// into a header a consumer includes, and it drags `detail/qp/working_set.h`
-// (held BY VALUE) and `qp/qp_types.h` onto the installed surface with it. The
-// export contract's header install is a glob, so nothing there had to be told
-// about the new file; THIS TU is the proof that the glob actually shipped what
-// the header needs, compiled against the INSTALLED prefix the way a consumer
-// sees it.
+// SqpWarmStart is OPAQUE (M8 AP-2 B4): the public header holds a shared handle and
+// includes nothing from `detail/` (it used to hold a WorkingSet by value). This TU
+// is the proof that the glob-installed header stands alone against the INSTALLED
+// prefix, the way a consumer sees it.
+
+#include <type_traits>
 
 #include "hven/warmstart/sqp_warm_start.h"
 
 namespace hven_install_smoke {
 int standalone_include_sqp_warm_start() {
-    // TOUCHED, not merely included: default-construct the object, read the
-    // cold default that gives the whole type its meaning, and touch the
-    // by-value WorkingSet member, which is the one field whose own header had
-    // to come along for the ride.
-    hven::solvers::SqpWarmStart warm;
-    const bool cold = !warm.valid && warm.structure_hash == 0 && warm.hot == nullptr;
-    const bool working_set_is_reachable = warm.qp_working_set.n() == 0;
-    // The `SqpWarmStart` alias is deliberately NOT checked here: it lives in
-    // `detail/warmstart/warm_start.h`, and including that would defeat the
-    // point of this TU, which is that the PUBLIC header stands alone.
-    return (cold && working_set_is_reachable) ? 1 : 0;
+    // TOUCHED, not merely included: the handle declares no default constructor (so a
+    // braced `{}` third argument to solve selects the WarmStart overload), is
+    // copyable and movable, and a value taken from an installed solve reads through
+    // valid() and x(). An invalid handle cannot be built from the public surface,
+    // so the readers are named without being called.
+    static_assert(!std::is_default_constructible_v<hven::SqpWarmStart>);
+    static_assert(std::is_copy_constructible_v<hven::SqpWarmStart>);
+    static_assert(std::is_nothrow_move_constructible_v<hven::SqpWarmStart>);
+    bool (hven::SqpWarmStart::*valid)() const noexcept = &hven::SqpWarmStart::valid;
+    const hven::Vec &(hven::SqpWarmStart::*x)() const noexcept = &hven::SqpWarmStart::x;
+    const hven::IpmCrossoverOptions options;
+    return (valid != nullptr && x != nullptr && options.dual_tol > 0.0) ? 1 : 0;
 }
 } // namespace hven_install_smoke

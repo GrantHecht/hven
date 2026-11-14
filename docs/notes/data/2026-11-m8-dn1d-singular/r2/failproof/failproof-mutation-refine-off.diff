@@ -1,0 +1,4 @@
+247c247
+<     while (spent < kEqpShiftRefineSteps) {
+---
+>     while (false && spent < kEqpShiftRefineSteps) {

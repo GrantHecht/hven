@@ -21,5 +21,8 @@ installed CMake package via `find_package(hven)` +
 `target_link_libraries(app hven::hven)` (see
 `scripts/check_install_smoke.sh`).
 
+Consumers include the umbrella header, `#include <hven/hven.h>`, which pulls in
+every public header.
+
 The name: Hven is the island where Tycho Brahe built his observatories
 — the ground both his instruments stood on.

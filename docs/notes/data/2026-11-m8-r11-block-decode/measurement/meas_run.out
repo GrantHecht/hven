@@ -1,0 +1,100 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-07T23:41:54-05:00
+e1986031d6ae0fe52e78b7f342ce430034933928d5f0e2838c2e74db1c68b9f4  /home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11/meas/bench/hven_sqp_corpus
+replay walk f7_n1000_bound_neutral rc=0
+replay walk f7_n1000_bound_physics rc=0
+replay walk f7_n1000_bound_corrupted rc=0
+replay walk f7_n1000_bound_activity rc=0
+replay walk f7_n1000_bound_warm rc=0
+replay walk f7_n2000_bound_neutral rc=0
+replay walk f7_n2000_bound_physics rc=0
+replay walk f7_n2000_bound_corrupted rc=0
+replay walk f7_n2000_bound_activity rc=0
+replay walk f7_n2000_bound_warm rc=0
+replay walk f7_n5000_bound_neutral rc=0
+replay walk f7_n5000_bound_physics rc=0
+replay walk f7_n5000_bound_corrupted rc=0
+replay walk f7_n5000_bound_activity rc=0
+replay walk f7_n5000_bound_warm rc=0
+replay walk f7_n10000_bound_neutral rc=0
+replay walk f7_n10000_bound_physics rc=0
+replay walk f7_n10000_bound_corrupted rc=0
+replay walk f7_n10000_bound_activity rc=0
+replay walk f7_n10000_bound_warm rc=0
+replay walk f7_n20000_bound_neutral rc=0
+replay walk f7_n20000_bound_physics rc=0
+replay walk f7_n20000_bound_corrupted rc=0
+replay walk f7_n20000_bound_activity rc=0
+replay walk f7_n20000_bound_warm rc=0
+replay walk f7_n1000_path_warm rc=0
+replay walk f7_n800_path_warm rc=0
+replay ssn f7_n1000_bound_neutral rc=0
+replay ssn f7_n1000_bound_physics rc=0
+replay ssn f7_n1000_bound_corrupted rc=0
+replay ssn f7_n1000_bound_activity rc=0
+replay ssn f7_n1000_bound_warm rc=0
+replay ssn f7_n2000_bound_neutral rc=0
+replay ssn f7_n2000_bound_physics rc=0
+replay ssn f7_n2000_bound_corrupted rc=0
+replay ssn f7_n2000_bound_activity rc=0
+replay ssn f7_n2000_bound_warm rc=0
+replay ssn f7_n5000_bound_neutral rc=0
+replay ssn f7_n5000_bound_physics rc=0
+replay ssn f7_n5000_bound_corrupted rc=0
+replay ssn f7_n5000_bound_activity rc=0
+replay ssn f7_n5000_bound_warm rc=0
+replay ssn f7_n10000_bound_neutral rc=0
+replay ssn f7_n10000_bound_physics rc=0
+replay ssn f7_n10000_bound_corrupted rc=0
+replay ssn f7_n10000_bound_activity rc=0
+replay ssn f7_n10000_bound_warm rc=0
+replay ssn f7_n20000_bound_neutral rc=0
+replay ssn f7_n20000_bound_physics rc=0
+replay ssn f7_n20000_bound_corrupted rc=0
+replay ssn f7_n20000_bound_activity rc=0
+replay ssn f7_n20000_bound_warm rc=0
+replay ssn f7_n1000_path_warm rc=0
+replay ssn f7_n800_path_warm rc=0
+replay ipm f7_n1000_bound_neutral rc=0
+replay ipm f7_n1000_bound_physics rc=0
+replay ipm f7_n1000_bound_corrupted rc=0
+replay ipm f7_n1000_bound_activity rc=0
+replay ipm f7_n1000_bound_warm rc=0
+replay ipm f7_n2000_bound_neutral rc=0
+replay ipm f7_n2000_bound_physics rc=0
+replay ipm f7_n2000_bound_corrupted rc=0
+replay ipm f7_n2000_bound_activity rc=0
+replay ipm f7_n2000_bound_warm rc=0
+replay ipm f7_n5000_bound_neutral rc=0
+replay ipm f7_n5000_bound_physics rc=0
+replay ipm f7_n5000_bound_corrupted rc=0
+replay ipm f7_n5000_bound_activity rc=0
+replay ipm f7_n5000_bound_warm rc=0
+replay ipm f7_n10000_bound_neutral rc=0
+replay ipm f7_n10000_bound_physics rc=0
+replay ipm f7_n10000_bound_corrupted rc=0
+replay ipm f7_n10000_bound_activity rc=0
+replay ipm f7_n10000_bound_warm rc=0
+replay ipm f7_n20000_bound_neutral rc=0
+replay ipm f7_n20000_bound_physics rc=0
+replay ipm f7_n20000_bound_corrupted rc=0
+replay ipm f7_n20000_bound_activity rc=0
+replay ipm f7_n20000_bound_warm rc=0
+replay ipm f7_n1000_path_warm rc=0
+replay ipm f7_n800_path_warm rc=0
+compare walk rc=0
+=== meas-walk === cells compared: 27  columns compared: 75  differences: 0
+compare ssn rc=0
+=== meas-ssn === cells compared: 27  columns compared: 75  differences: 0
+compare ipm rc=0
+=== meas-ipm === cells compared: 27  columns compared: 75  differences: 0
+census rc=0
+WARN: 2 cell(s) disagree with the baseline on the 13 asserted columns.
+WARN: that is a REPORT, not a runner failure -- each one is listed in
+WARN: serial_confirm_list.txt and is NOT a regression until it has been
+WARN: re-run ALONE and still disagrees.  Exit status stays 0.
+serial-confirm list: 2 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/r11/build-r11/meas-out/census-run/serial_confirm_list.txt
+f7_n1000_path_corrupted	13-column mismatch
+f7_n2000_path_corrupted	13-column mismatch
+=== census done (merge_rc=0 compare_rc=1 rows=57/57) ===
+FOREGROUND_END 2026-11-08T05:52:10-05:00

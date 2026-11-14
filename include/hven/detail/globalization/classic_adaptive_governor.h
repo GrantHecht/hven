@@ -14,7 +14,7 @@
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The classic free-mode PROBE/LOQO barrier-parameter update; always
 /// reports in_monotone_mode() == false.
@@ -49,22 +49,22 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
     /// Free-mode only: current is ignored and mu_event is never written (no
     /// monotone mode), so the caller's mu-event reset branch stays dead on the
     /// classic path.
-    double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
-                          double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                          Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
-                          GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
-                          const IterateInfo &current, bool &mu_event) override;
+    double update_barrier(IpmBarrierMode barmode, double mu_in, double avgcomp, double mincomp,
+                          Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
+                          Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
+                          SolverContext &ctx, double &barr_obj, const IpmIterate &current,
+                          bool &mu_event) override;
 
     /// mu-event / phase-change hook — no-op: the free-mode oracles carry no
     /// persistent state across iterations.
     void reset() override {}
 
   private:
-    /// @brief Creates a KKTVector view over a VectorXd using the context's
+    /// @brief Creates a KktVector view over a VectorXd using the context's
     /// dimensions; shared view type, so the barrier block keeps its
     /// named-segment accessors unchanged.
-    static KKTVector kkt_view(Eigen::VectorXd &v, const SolverContext &ctx) {
-        return KKTVector(v, ctx.primal_vars_, ctx.slack_vars_, ctx.equal_cons_, ctx.inequal_cons_);
+    static KktVector kkt_view(Eigen::VectorXd &v, const SolverContext &ctx) {
+        return KktVector(v, ctx.primal_vars_, ctx.slack_vars_, ctx.equal_cons_, ctx.inequal_cons_);
     }
 
     /// TOKEN-IDENTICAL copy of the solver's complementarity INCLUDING the ULP
@@ -98,4 +98,4 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
                   const SolverContext &ctx) const;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

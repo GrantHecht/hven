@@ -10,8 +10,8 @@
 #include <memory>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/nlp_problem_model.h"
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/nlp_problem_model.h"
+#include "hven/detail/model/non_linear_program.h"
 
 // UNITY-BUILD NOTE: this suite is compiled with UNITY_BUILD ON, so an anonymous
 // namespace does not isolate these helpers from the other test TUs merged into
@@ -94,45 +94,45 @@ constexpr double kAllocInf = std::numeric_limits<double>::infinity();
 /// n = 2, one equality row, one upper-bounded row and one lower-bounded row,
 /// so an assembly runs the objective piece and both constraint pieces and the
 /// inequality piece owns the Hessian.
-struct AllocTestProblem : hven::solvers::NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 3; }
-    int num_jac_nonzeros() const override { return 6; }
-    int num_hess_nonzeros() const override { return 3; }
+struct AllocTestProblem : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 3; }
+    int num_jac_nonzeros() const { return 6; }
+    int num_hess_nonzeros() const { return 3; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kAllocInf, -kAllocInf;
         xu << kAllocInf, kAllocInf;
         gl << 4.0, -kAllocInf, 1.0;
         gu << 4.0, 9.0, kAllocInf;
     }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         f = x[0] * x[0] + x[1] * x[1];
+        return f;
     }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 2.0 * x[1];
     }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = x[0] + 2.0 * x[1];
         g[1] = x[0] * x[0] + x[1];
         g[2] = x[0] * x[1];
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 0, 1, 1, 2, 2;
         c << 0, 1, 0, 1, 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1;
         c << 0, 0, 1;
     }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         v[0] = 1.0;
         v[1] = 2.0;
         v[2] = 2.0 * x[0];
@@ -140,9 +140,8 @@ struct AllocTestProblem : hven::solvers::NlpTripletModel {
         v[4] = x[1];
         v[5] = x[0];
     }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v[0] = 2.0 * obj_factor + 2.0 * lambda[1];
         v[1] = lambda[2];
         v[2] = 2.0 * obj_factor;
@@ -206,9 +205,9 @@ TEST(NlpAdapterAllocationTest, TheCounterSeesEachInterposedAllocator) {
 // left to allocate.
 TEST(NlpAdapterAllocationTest, AWarmAssemblyAllocatesNothing) {
     auto problem = std::make_shared<AllocTestProblem>();
-    auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
-    auto core = std::make_shared<hven::solvers::NLPAdapterCore>(model, problem->name());
-    auto nlp = hven::solvers::make_nlp_program(core);
+    auto model = std::make_shared<hven::detail::NlpProblemModel>(problem);
+    auto core = std::make_shared<hven::detail::NlpAdapterCore>(model, problem->name());
+    auto nlp = hven::detail::make_nlp_program(core);
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);

@@ -53,7 +53,7 @@ static inline void rtrim(std::string &s) {
             s.end());
 }
 
-int hven::utils::get_core_count() {
+int hven::detail::get_core_count() {
 
     int tcount = std::thread::hardware_concurrency();
 

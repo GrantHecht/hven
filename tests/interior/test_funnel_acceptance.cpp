@@ -42,10 +42,10 @@
 
 namespace {
 
-using hven::solvers::FunnelAcceptance;
-using hven::solvers::kFunnelBeta;
-using hven::solvers::kFunnelInitialUpperBound;
-using hven::solvers::kFunnelKappa;
+using hven::detail::FunnelAcceptance;
+using hven::detail::kFunnelBeta;
+using hven::detail::kFunnelInitialUpperBound;
+using hven::detail::kFunnelKappa;
 using TychoTest::pm;
 
 // Priming: run the FIRST is_iterate_acceptable() so the width is derived from

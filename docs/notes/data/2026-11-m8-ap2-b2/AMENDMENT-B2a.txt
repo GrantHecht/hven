@@ -1,0 +1,54 @@
+M8 AP-2 group B2 -- AMENDMENT to DECLARATION.txt item B2-a (committed before the first
+declared B2-a leg; DECLARATION.txt itself is not edited)
+================================================================================
+THIS IS A CRITERION CHANGE AND IS REPORTED AS ONE.
+
+What DECLARATION.txt said.  B2-a named all 27 replay cells as the subset and said the
+harness asserts crossover::dual_bind_refusal(cell) is empty for every one of them and
+stops (fail-closed) if any is not.
+
+The defect.  The page defines the subset as "the 27 replay cells that dual-bind as a
+triplet model (interior_cell_refusal empty)". Only 10 of the 27 do: the neutral and
+physics cells. dual_bind_refusal refuses the corrupted, warm and activity taxonomies
+(their starts are SQP warm states or a synthesized interior iterate). The declaration
+should have named the 10; as written, its own fail-closed rule would stop on the first
+refused cell.
+
+What data was seen first.  An exploratory, undeclared smoke run (build-b2/tools/
+smoke_route.sh, not evidence) of three cells -- f7_n1000_bound_warm,
+f7_n1000_bound_corrupted, f7_n800_path_warm -- on walk and interior, both Nlp routes:
+  * walk: all three rows were the harness's dual-bind refusal (an engine_error row) on
+    both routes, compare_replay.py reporting 0 differences;
+  * interior: the leg refused the three cells (not dual-bindable) and ran its own fixed
+    rows; nlp-internal vs nlp-public compared 0 differences on the 11 rows both wrote,
+    and the public route did not write the two parts2 rows (its harness threw on a
+    2-partition request), so that run exited 1.
+No dual-binding cell was run before this amendment.
+
+THE AMENDED B2-a
+--------------------------------------------------------------------------------
+Subset (named): f7_n1000_bound_neutral, f7_n1000_bound_physics, f7_n2000_bound_neutral,
+f7_n2000_bound_physics, f7_n5000_bound_neutral, f7_n5000_bound_physics,
+f7_n10000_bound_neutral, f7_n10000_bound_physics, f7_n20000_bound_neutral,
+f7_n20000_bound_physics -- the replay cells with interior_cell_refusal empty. The legs
+pass exactly these ten through --cells; the harness's fail-closed refusal stands for any
+other.
+
+Interior arm, rows.  `--engine interior` also writes the leg's own fixed rows on both
+routes (hs071_x1_fixed under the three treatments; the cap1, solve_optimize,
+warm_payload, warm_multiplier_seed, stalled and resto_infeasible variants). These are
+Nlp problems too and are compared under the same criterion. The two parts2 rows
+(f7_n1000_bound_neutral at two requested partitions) cannot run on the public route --
+Problem(Nlp) lays one partition, and a partition request is group B6's -- and are
+excluded by name: compare_replay.py reports them as unmatched, and that, and only that,
+unmatched pair is not a failure.
+
+Tool change (after the smoke above).  Under `--internal-route nlp-public` the interior
+leg skips the parts2 variant by name (console line "skipped ... the public Problem(Nlp)
+route lays one partition") instead of throwing, so the leg exits 0 with every other row
+written.
+
+Unchanged.  The criterion (statuses and every integer field EXACT; float-measure
+columns EXACT first, the section-7 near-ulp gate `--residual-gate 1e-5` as the declared
+secondary reading only if EXACT fails on float-measure columns alone), the routes, the
+vehicle, and every other item of DECLARATION.txt.

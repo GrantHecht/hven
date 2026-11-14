@@ -162,17 +162,18 @@
 
 #include "support/ssn_fixtures.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
-using namespace hven::solvers::test_support;
+using namespace hven::test_support;
 
 namespace {
 
 constexpr std::uint64_t kDefaultSeed = 20260807ULL;
 
 QpSolution walk_answer(const QpProblem &qp) {
-    QpEngine engine{QpOptions{}};
+    QpEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
     return engine.solve(qp);
 }
 
@@ -186,7 +187,7 @@ const char *status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "kOptimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "kMaxIter";
     case QpStatus::kInfeasible:
         return "kInfeasible";
@@ -476,7 +477,7 @@ void mode_trace() {
         for (const bool guarded : {false, true}) {
             std::printf("  --- %s ---\n", guarded ? "kFull" : "kBare");
             for (Index budget = 0; budget <= 25; ++budget) {
-                SsnEngine engine{QpOptions{}};
+                SsnEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                 SsnOptions s = guarded ? SsnOptions{} : bare();
                 s.hard_budget = budget;
                 SsnResult res;
@@ -533,7 +534,7 @@ void mode_search(long long per_family, std::uint64_t seed) {
             ++qps;
             for (Index k = 0; k < f.starts; ++k) {
                 ++cells;
-                SsnEngine engine{QpOptions{}};
+                SsnEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                 SsnResult res;
                 engine.solve(qp, make_start(k, qp, walk), bare(), &res);
                 if (res.status != QpStatus::kOptimal || !agrees_with_walk(res, walk, 1e-5)) {
@@ -630,7 +631,7 @@ void mode_tausweep() {
     for (const NamedCell &c : named_cells()) {
         std::printf("%-26s", c.name);
         for (const double tau : taus) {
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnOptions s;
             s.uncertain_tol = tau;
             SsnResult res;
@@ -664,7 +665,7 @@ void mode_ablate() {
     std::printf("%-26s %-9s %-6s %-6s %-6s %-12s %s\n", "cell", "iters", "fact", "back", "prox",
                 "sigma", "status/escape");
     for (const NamedCell &c : named_cells()) {
-        SsnEngine e{QpOptions{}};
+        SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         SsnResult res;
         e.solve(c.qp, c.start, SsnOptions{}, &res);
         std::printf("%-26s %-9lld %-6lld %-6lld %-6lld %-12.4g %s/%s\n", c.name,
@@ -715,7 +716,7 @@ void mode_census(long long qps, std::uint64_t seed) {
                 continue;
             }
             ++seen;
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnResult res;
             e.solve(qp, SsnStart{}, SsnOptions{}, &res);
             if (res.status == QpStatus::kInfeasible) {
@@ -755,7 +756,7 @@ void mode_pdas(long long qps, std::uint64_t seed) {
                 continue;
             }
             ++seen;
-            SsnEngine engine{QpOptions{}};
+            SsnEngine engine{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnOptions one = bare();
             one.hard_budget = 1;
             SsnStart st;
@@ -792,7 +793,7 @@ void mode_pdas(long long qps, std::uint64_t seed) {
             }
             if (cycled) {
                 ++cycles;
-                SsnEngine e2{QpOptions{}};
+                SsnEngine e2{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                 SsnResult r2;
                 e2.solve(qp, SsnStart{}, bare(), &r2);
                 if (r2.status == QpStatus::kOptimal) {
@@ -833,13 +834,13 @@ void mode_tau(long long qps, std::uint64_t seed) {
                 const SsnStart st = make_start(k, qp, walk);
                 SsnResult r0, r1;
                 {
-                    SsnEngine e{QpOptions{}};
+                    SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                     SsnOptions s;
                     s.uncertain_tol = 0.0;
                     e.solve(qp, st, s, &r0);
                 }
                 {
-                    SsnEngine e{QpOptions{}};
+                    SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                     e.solve(qp, st, SsnOptions{}, &r1);
                 }
                 if (r1.counters.ssn_uncertain_peak > 0) {
@@ -895,7 +896,7 @@ void mode_band(long long qps, std::uint64_t seed) {
             }
             for (Index k = 0; k < 4; ++k) {
                 ++cells;
-                SsnEngine e{QpOptions{}};
+                SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                 SsnOptions s;
                 s.uncertain_tol = tau;
                 SsnResult res;
@@ -933,7 +934,7 @@ void mode_routes(long long qps, std::uint64_t seed) {
         A.row(1) = -A.row(0);
         qp.Ai = A.sparseView();
         qp.bi(1) = -qp.bi(0) - gap(rng); // a_0 x <= b_0 and a_0 x >= b_0 + gap
-        SsnEngine e{QpOptions{}};
+        SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
         SsnResult res;
         e.solve(qp, SsnStart{}, SsnOptions{}, &res);
         if (res.escape_reason != SsnEscape::kInfeasibleSuspect) {
@@ -1013,7 +1014,7 @@ void mode_lever_sigma(long long qps, std::uint64_t seed) {
                 }
                 for (Index k = 0; k < 6; ++k) {
                     ++cells;
-                    SsnEngine e{QpOptions{}};
+                    SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                     SsnOptions s;
                     s.sigma_rule = rule;
                     SsnResult res;
@@ -1076,7 +1077,7 @@ void mode_lever_cells() {
     for (const NamedCell &c : named_cells()) {
         std::printf("%-26s", c.name);
         for (const Arm &a : arms) {
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnResult res;
             e.solve(c.qp, c.start, a.opts, &res);
             char buf[80];
@@ -1134,7 +1135,7 @@ void mode_lever_watchdog(long long qps, std::uint64_t seed) {
         for (const Index wrong : {Index{-1}, Index{0}, Index{1}, Index{100}}) {
             const Index n = 100;
             const QpProblem qp = box_qp(n);
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnResult truth_res;
             e.solve(qp, SsnStart{}, SsnOptions{}, &truth_res);
             SsnStart st;
@@ -1149,7 +1150,7 @@ void mode_lever_watchdog(long long qps, std::uint64_t seed) {
                     ++flipped;
                 }
             }
-            SsnEngine e2{QpOptions{}};
+            SsnEngine e2{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnResult res;
             e2.solve(qp, st, a.opts, &res);
             const std::string label = wrong < 0 ? "box100, COLD (no hint)"
@@ -1192,7 +1193,7 @@ void mode_lever_watchdog(long long qps, std::uint64_t seed) {
                         continue;
                     }
                     ++cells;
-                    SsnEngine e{QpOptions{}};
+                    SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                     SsnResult res;
                     e.solve(qp, make_start(k, qp, walk), a.opts, &res);
                     fact += res.factorizations;
@@ -1234,7 +1235,7 @@ void mode_lever_farkas(long long qps, std::uint64_t seed) {
             A.row(1) = -A.row(0);
             qp.Ai = A.sparseView();
             qp.bi(1) = -qp.bi(0) - gap(rng);
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnOptions s;
             s.infeasibility_rule = a.rule;
             SsnResult res;
@@ -1275,7 +1276,7 @@ void mode_lever_farkas(long long qps, std::uint64_t seed) {
                     continue;
                 }
                 ++seen;
-                SsnEngine e{QpOptions{}};
+                SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
                 SsnOptions s;
                 s.infeasibility_rule = a.rule;
                 SsnResult res;
@@ -1388,7 +1389,7 @@ void mode_lever_farkas_m11(long long qps, std::uint64_t seed) {
                 continue;
             }
             ++cells;
-            SsnEngine e{QpOptions{}};
+            SsnEngine e{QpOptions{}, 0, hven::linear::DensePolicy::kNever};
             SsnOptions s;
             s.infeasibility_rule = SsnInfeasibilityRule::kFarkasGated;
             SsnResult res;

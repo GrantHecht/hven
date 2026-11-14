@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <hven/detail/kkt/kkt_calls.h>
 
-using namespace hven::solvers;
+using namespace hven;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::linear::SymmetricFactor;
@@ -52,7 +52,7 @@ TEST(KktPartialSolve, ComposedPartialsMatchFullSolve) {
     Eigen::MatrixXd D(3, 3);
     D << 2, 0, 1, 0, 3, 1, 1, 1, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     detail::factorize_checked(kkt, K);
 #ifdef USE_ACCELERATE_SPARSE
     // OBSERVED (results note §(b)): the gate is false on this backend --
@@ -104,11 +104,11 @@ TEST(KktPartialSolve, GateClosesOnPerturbedPivots) {
     Eigen::MatrixXd D(3, 3);
     D << 1, 0, 1, 0, 0, 0, 1, 0, 0;
     SpMatRM K = upper_with_structural_diag(D);
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     const hven::linear::FactorizeOutcome outcome = detail::factorize_checked(kkt, K);
     ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
 #ifdef USE_ACCELERATE_SPARSE
-    ASSERT_EQ(outcome.inertia.n_zero, 1); // precondition: the zero-pivot trust signal
+    ASSERT_EQ(outcome.inertia.zero, 1); // precondition: the zero-pivot trust signal
 #else
     ASSERT_TRUE(outcome.inertia.perturbed_pivots.has_value());
     ASSERT_EQ(*outcome.inertia.perturbed_pivots, 1); // precondition for this pin

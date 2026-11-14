@@ -20,8 +20,8 @@
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 
-using hven::solvers::StructureEpoch;
-using hven::solvers::StructureEpochCounter;
+using hven::StructureEpoch;
+using hven::StructureEpochCounter;
 
 TEST(StructureEpochType, DefaultsToNothingLaidYet) {
     const StructureEpoch epoch;
@@ -203,7 +203,7 @@ TEST(AggregateEpochContract, NegotiationReportsTheAdoptedCountNotTheRequest) {
     FakeAggregate aggregate;
     const int adopted = aggregate.negotiate_partition_count(FakeAggregate::kMaxPartitions + 4);
     EXPECT_EQ(adopted, FakeAggregate::kMaxPartitions);
-    EXPECT_EQ(aggregate.declaration().partition_count_, adopted);
+    EXPECT_EQ(aggregate.declaration().partition_count, adopted);
 }
 
 TEST(AggregateEpochContract, ANonPositiveNegotiationIsRefusedNotCorrected) {
@@ -260,7 +260,7 @@ TEST(AggregateEpochContract, ARematerializationFlippingFixednessBumpsTheEpoch) {
     // than assumed, and the key's bound conjunct moves with it.
     aggregate.declare_variable_bound(1, 1.0, 2.0);
     EXPECT_NE(aggregate.structure_epoch(), after_first_bound);
-    EXPECT_NE(aggregate.model_structure_key().bound_digest_, key_before.bound_digest_);
+    EXPECT_NE(aggregate.model_structure_key().bound_digest, key_before.bound_digest);
 
     evaluate_once(aggregate);
     EXPECT_EQ(aggregate.epoch_seen_at_last_evaluation(), aggregate.structure_epoch());

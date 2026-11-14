@@ -1,0 +1,127 @@
+{
+ "samples": 4241,
+ "period": 1000003,
+ "instr_sampled_all": 4259968723,
+ "instr_sampled_solver": 4251940699,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 5014015,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 4245919681,
+  "B_eng": 1007003,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0011792297576443693,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9985839365065895,
+  "B_eng": 0.00023683373576607823
+ },
+ "proc_share_of_all": 0.0018845265122853813,
+ "rule_instr": 4258961720,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1007003,
+ "unmatched_share_of_solver": 0.00023683373576607823,
+ "chains_reaching_main": 0.9966988917708087,
+ "init_instr": 4243912675,
+ "steady_state_instr": 8028024,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.624564027212674,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.25,
+  "B_eng": 0.125435972787326
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   5014015
+  ]
+ ],
+ "mkl_serv_instr": 4243912675,
+ "kmp_instr": 5014015,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   1007003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    2007006
+   ],
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    1007003
+   ],
+   [
+    "rml::internal::Backend::splitBlock",
+    1000003
+   ],
+   [
+    "__kmp_serialized_parallel",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    2682957013
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1188351549
+   ],
+   [
+    "__vdso_time",
+    201903603
+   ],
+   [
+    "difftime@plt",
+    153616459
+   ],
+   [
+    "time@plt",
+    17084051
+   ],
+   [
+    "__memchr_avx2",
+    1007003
+   ],
+   [
+    "hven::detail::get_core_count",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    4014012
+   ],
+   [
+    "strcmp",
+    2007006
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    2007006
+   ]
+  ]
+ }
+}

@@ -1,0 +1,116 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:14:50-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:14:50-05:00
+
+The following tests did not run:
+	765 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2277 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2278 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T02:16:03-05:00
+STEP ctest-rel rc=0 2026-11-12T02:16:03-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:16:03-05:00
+	578 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	579 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	765 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2277 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2278 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-12T02:22:35-05:00
+STEP ctest-dbg rc=0 2026-11-12T02:22:35-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:22:35-05:00
+a0a715886a3a85dee64b2163629797e72b0da742b04baadbc03995ce3bf8f7a3  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-12T02:22:35-05:00
+run rc=0
+compare rc=0
+=== nnr-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-12T02:27:24-05:00
+run rc=0
+compare rc=0
+=== nnr-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-12T02:27:44-05:00
+run rc=0
+compare rc=0
+=== nnr-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-12T02:28:10-05:00
+STEP replay rc=0 2026-11-12T02:28:10-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:28:10-05:00
+5ba57d305a57f3e14820e67f9bc0686a58806914bb2d9daa4dc7f78b997139fb  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/armAbin/hven_sqp_corpus
+a0a715886a3a85dee64b2163629797e72b0da742b04baadbc03995ce3bf8f7a3  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/build-nonum/armBbin/hven_sqp_corpus
+14220cae6f1f4d69d9500c360485de474ec40d31f9c3d6d82b2f98c1484f3e93  /home/ghecht/Projects/hven/.claude/worktrees/agent-a3d6ec088fa738122/bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+worst=0
+FOREGROUND_END 2026-11-12T02:28:44-05:00
+STEP interior rc=0 2026-11-12T02:28:44-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-12T02:28:44-05:00
+MUTATED revert-all
+build revert-all rc=0
+revert-all rc=1
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 6 tests.
+revert-all failing=8: BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective 
+MUTATED no-route
+build no-route rc=0
+no-route rc=1
+[==========] 14 tests from 4 test suites ran. (17 ms total)
+[  PASSED  ] 6 tests.
+no-route failing=8: BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusAtTheFirstIteration IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor 
+MUTATED no-barrier-tail
+build no-barrier-tail rc=0
+no-barrier-tail rc=1
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 13 tests.
+no-barrier-tail failing=1: IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective 
+MUTATED no-acceptable-exit
+build no-acceptable-exit rc=0
+no-acceptable-exit rc=1
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 13 tests.
+no-acceptable-exit failing=1: IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere 
+MUTATED no-guard-site
+build no-guard-site rc=0
+no-guard-site rc=1
+[==========] 14 tests from 4 test suites ran. (367 ms total)
+[  PASSED  ] 13 tests.
+no-guard-site failing=1: IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep 
+MUTATED no-probe-guard
+build no-probe-guard rc=0
+no-probe-guard rc=1
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 12 tests.
+no-probe-guard failing=2: IpmNoNumericsSeam.ALadderEndingWithoutNumericsIsAStatusBeforeTheProbePredictor IpmNoNumericsSeam.TheAbortedIterationsRowCarriesItsBarrierObjective 
+MUTATED diverging-override
+build diverging-override rc=0
+diverging-override rc=1
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 9 tests.
+diverging-override failing=5: BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalEntersRestoration/ProximalSwitch BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/L1Nested BothStrategies/IpmNoNumericsRestorationSeam.ANumericRefusalIsRecoveredThroughRestoration/ProximalSwitch IpmNoNumericsSeam.ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsThere 
+MUTATED hard-continues
+build hard-continues rc=0
+hard-continues rc=1
+[==========] 14 tests from 4 test suites ran. (19 ms total)
+[  PASSED  ] 13 tests.
+hard-continues failing=1: IpmNoNumericsSeam.AHardBackendErrorEndsTheSolveWithoutRestoration 
+head rc=0
+[==========] 14 tests from 4 test suites ran. (16 ms total)
+[  PASSED  ] 14 tests.
+head failing=0: 
+name="route" value="scale 1.76 pass 3"
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-12T02:37:38-05:00
+STEP failproof rc=0 2026-11-12T02:37:38-05:00
+worst=0
+FOREGROUND_END 2026-11-12T02:37:38-05:00

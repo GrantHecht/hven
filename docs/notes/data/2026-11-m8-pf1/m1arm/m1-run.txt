@@ -1,0 +1,3 @@
+attached observers: callback=off trace=off
+running f7_n1000_path_corrupted (N=1000, path, corrupted, engine walk, wall budget 900s per phase)...
+wrote 1 row(s) to /home/ghecht/Projects/hven/.claude/worktrees/agent-aa2c5c3a798557d0e/docs/notes/data/2026-11-m8-pf1/m1arm/m1-row.csv

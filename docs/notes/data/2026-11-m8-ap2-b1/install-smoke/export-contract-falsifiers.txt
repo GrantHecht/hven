@@ -1,0 +1,16 @@
+== control (unmodified)
+-- no public header includes detail/ beyond the shrink-only allow-list (19 residual pairs)
+== export contract OK for platform=linux, align=32
+rc=0
+== falsifier 1: add an unlisted detail include to drivers/ipm_solver.h
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+FAIL: public header(s) include a detail/ header that is not on the allow-list (header|included):
+drivers/ipm_solver.h|hven/detail/interior/bound_set.h
+rc=1
+== falsifier 2: remove a listed include (stale allow-list entry)
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+FAIL: allow-list entries that no longer occur -- delete them from /home/ghecht/Projects/hven/.claude/worktrees/agent-a70da1a77af98495c/scripts/export_contract_detail_includes.allow (the list may only shrink):
+warmstart/sqp_warm_start.h|hven/detail/qp/working_set.h
+rc=1

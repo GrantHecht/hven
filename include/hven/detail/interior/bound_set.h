@@ -8,7 +8,7 @@
 
 #include <Eigen/Core>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief The finite variable bounds a solve has to honor, split into a lower-bound
 /// list and an upper-bound list and stored as index/value pairs rather than as
@@ -113,7 +113,9 @@ inline constexpr double kFreeModeClipMuCap = 1.0e3;
 /// `+ kKappaD * mu * distance` and the mu-form gradient as `+/- kKappaD * mu`,
 /// on one-sided entries only -- and NOWHERE else: Ipopt keeps it out of the
 /// dual-infeasibility residual (curr_grad_lag_x) and out of sigma, so the
-/// convergence account and the condensed curvature stay undamped.
+/// convergence account and the condensed curvature stay undamped. Limitation: a
+/// one-sided finite bound near DBL_MAX (possible under infinite_bound = kInfinity) makes
+/// the term dominate the merit, so the line search cannot reject a step.
 inline constexpr double kKappaD = 1.0e-5;
 
-} // namespace hven::solvers
+} // namespace hven::detail

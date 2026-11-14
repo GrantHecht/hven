@@ -208,7 +208,7 @@
 // solves: SnoptF7Driver owns x/xstate/Fstate/xmul/Fmul/nS for its lifetime,
 // so a second solve() at a new p starts from the first solve's exit state.
 // THE ARRAYS ARE THE WARM START -- there is no separate hand-off object,
-// which is the honest analogue of what our own SqpWarmStart does and is
+// which is the honest analogue of what our own SqpWarmState does and is
 // deliberately not dressed up as more than SNOPT offers.
 //
 // WHAT MOVES WHEN p MOVES, and it is only two things: the equality-row
@@ -273,7 +273,7 @@
 
 #include "support/scale_problems.h"
 
-namespace hven::solvers::snopt_bridge {
+namespace hven::snopt_bridge {
 
 // SNOPT's default Infinite bound size (guide section 7.3, p.63). Identical to
 // parametric_families.h's kParamInf, which is what makes the box transcription
@@ -901,4 +901,4 @@ class SnoptF7Driver {
     long long stop_calls_ = 0;
 };
 
-} // namespace hven::solvers::snopt_bridge
+} // namespace hven::snopt_bridge

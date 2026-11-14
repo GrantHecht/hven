@@ -29,9 +29,23 @@
 
 #include <Eigen/Core>
 
-#include <fmt/format.h>
+namespace hven {
 
-namespace hven::solvers {
+namespace detail {
+
+// Cold paths of the location tables' construction checks. Each throws
+// std::invalid_argument; the message is built out of line (src/model/
+// validation_errors.cpp) so this header needs no formatting library.
+[[noreturn]] void throw_kkt_table_negative_size(int size, int clash_size);
+[[noreturn]] void throw_kkt_table_no_locations(int size);
+[[noreturn]] void throw_kkt_table_no_clash_marks(int clash_size);
+[[noreturn]] void throw_kkt_table_bad_clash_mark(int column, int mark);
+[[noreturn]] void throw_kkt_table_lock_index(int column, int mark, int lock_count);
+[[noreturn]] void throw_rhs_table_negative_size(int size);
+[[noreturn]] void throw_rhs_table_no_rows(int size);
+[[noreturn]] void throw_rhs_table_bad_row(int slot, int row);
+
+} // namespace detail
 
 /// @brief The four kinds of structure a piece may claim slots for.
 ///
@@ -108,16 +122,16 @@ enum class KktStorage { kUpperTriangle, kFull };
 /// arrays, the next free slot, the row base for this piece's kind, the domains
 /// being claimed, and the storage state the assembled matrix will be in.
 ///
-/// A claiming piece writes `rows_[next_free_]` / `cols_[next_free_]` for each
-/// slot it takes and advances `next_free_` by exactly the count it reported it
+/// A claiming piece writes `rows[next_free]` / `cols[next_free]` for each
+/// slot it takes and advances `next_free` by exactly the count it reported it
 /// would take.
 struct KktClaimSpace {
-    Eigen::Ref<Eigen::VectorXi> rows_; ///< claim slot -> assembled row
-    Eigen::Ref<Eigen::VectorXi> cols_; ///< claim slot -> assembled column
-    int next_free_ = 0;                ///< advanced by each claiming piece
-    int constraint_row_offset_ = 0;    ///< row base for this piece's kind
-    ClaimDomainSet domains_;           ///< which domains are being claimed now
-    KktStorage storage_ = KktStorage::kUpperTriangle;
+    Eigen::Ref<Eigen::VectorXi> rows; ///< claim slot -> assembled row
+    Eigen::Ref<Eigen::VectorXi> cols; ///< claim slot -> assembled column
+    int next_free = 0;                ///< advanced by each claiming piece
+    int constraint_row_offset = 0;    ///< row base for this piece's kind
+    ClaimDomainSet domains;           ///< which domains are being claimed now
+    KktStorage storage = KktStorage::kUpperTriangle;
 };
 
 /// @brief The published, read-only result of the KKT claim pass: claim slot ->
@@ -145,19 +159,13 @@ class KktLocationTable {
         : locations_(locations), size_(size), clashes_(clashes), clash_size_(clash_size),
           locks_(locks) {
         if (size_ < 0 || clash_size_ < 0) {
-            throw std::invalid_argument(
-                fmt::format("KktLocationTable: negative array size (locations {0}, clash marks "
-                            "{1})",
-                            size_, clash_size_));
+            detail::throw_kkt_table_negative_size(size_, clash_size_);
         }
         if (size_ > 0 && locations_ == nullptr) {
-            throw std::invalid_argument(fmt::format(
-                "KktLocationTable: {0} claim slots were published with no location array", size_));
+            detail::throw_kkt_table_no_locations(size_);
         }
         if (clash_size_ > 0 && clashes_ == nullptr) {
-            throw std::invalid_argument(
-                fmt::format("KktLocationTable: {0} columns were published with no clash-mark array",
-                            clash_size_));
+            detail::throw_kkt_table_no_clash_marks(clash_size_);
         }
         const int lock_count = locks_ == nullptr ? 0 : static_cast<int>(locks_->size());
         for (int column = 0; column < clash_size_; ++column) {
@@ -167,16 +175,10 @@ class KktLocationTable {
             // `mark != -1`, and indexing the mutex vector with it is undefined
             // behaviour, which an upper-bound check alone lets through.
             if (mark < -1) {
-                throw std::invalid_argument(fmt::format(
-                    "KktLocationTable: column {0} carries clash mark {1}; the only negative mark "
-                    "is -1, meaning uncontested",
-                    column, mark));
+                detail::throw_kkt_table_bad_clash_mark(column, mark);
             }
             if (mark >= lock_count) {
-                throw std::invalid_argument(fmt::format(
-                    "KktLocationTable: column {0} is marked contested with lock index {1}, but "
-                    "only {2} locks were published",
-                    column, mark, lock_count));
+                detail::throw_kkt_table_lock_index(column, mark, lock_count);
             }
         }
     }
@@ -211,13 +213,11 @@ class KktLocationTable {
 ///
 /// Legally empty for a call whose request names no KKT-bearing output.
 struct KktScatterView {
-    double *values_ = nullptr;
-    int size_ = 0;
-    const KktLocationTable *locations_ = nullptr;
+    double *values = nullptr;
+    int size = 0;
+    const KktLocationTable *locations = nullptr;
 
-    bool empty() const noexcept {
-        return values_ == nullptr || size_ == 0 || locations_ == nullptr;
-    }
+    bool empty() const noexcept { return values == nullptr || size == 0 || locations == nullptr; }
 };
 
 /// @brief The four right-hand-side arrays, each its own claim arena with its
@@ -232,9 +232,9 @@ enum class RhsArena {
 
 /// The setup-time claim cursor for one right-hand-side arena.
 struct RhsClaimSpace {
-    Eigen::Ref<Eigen::VectorXi> rows_; ///< claim slot -> row of the assembled array
-    int next_free_ = 0;                ///< advanced by each claiming piece
-    RhsArena arena_ = RhsArena::kObjectiveGradient;
+    Eigen::Ref<Eigen::VectorXi> rows; ///< claim slot -> row of the assembled array
+    int next_free = 0;                ///< advanced by each claiming piece
+    RhsArena arena = RhsArena::kObjectiveGradient;
 };
 
 /// The published, read-only result of one arena's claim pass: claim slot -> row
@@ -253,12 +253,10 @@ class RhsLocationTable {
 
     RhsLocationTable(const int *rows, int size) : rows_(rows), size_(size) {
         if (size_ < 0) {
-            throw std::invalid_argument(
-                fmt::format("RhsLocationTable: negative array size ({0})", size_));
+            detail::throw_rhs_table_negative_size(size_);
         }
         if (size_ > 0 && rows_ == nullptr) {
-            throw std::invalid_argument(fmt::format(
-                "RhsLocationTable: {0} claim slots were published with no row array", size_));
+            detail::throw_rhs_table_no_rows(size_);
         }
         for (int slot = 0; slot < size_; ++slot) {
             // Same sentinel discipline as the KKT table's clash marks, though
@@ -268,10 +266,7 @@ class RhsLocationTable {
             // an index genuinely in range. A stray negative belongs to neither
             // set.
             if (rows_[slot] < -1) {
-                throw std::invalid_argument(
-                    fmt::format("RhsLocationTable: claim slot {0} maps to row {1}; the only "
-                                "negative row is -1, meaning dropped",
-                                slot, rows_[slot]));
+                detail::throw_rhs_table_bad_row(slot, rows_[slot]);
             }
         }
     }
@@ -292,24 +287,22 @@ class RhsLocationTable {
 /// storage plus the table addressing it. Legally empty for an arena the request
 /// does not name.
 struct RhsArenaView {
-    double *values_ = nullptr;
-    int size_ = 0;
-    const RhsLocationTable *locations_ = nullptr;
+    double *values = nullptr;
+    int size = 0;
+    const RhsLocationTable *locations = nullptr;
 
-    bool empty() const noexcept {
-        return values_ == nullptr || size_ == 0 || locations_ == nullptr;
-    }
+    bool empty() const noexcept { return values == nullptr || size == 0 || locations == nullptr; }
 };
 
 /// @brief The consumer-owned right-hand-side destination a provider fills: the
 ///        four arenas, plus an explicit out slot for the scalar objective
 ///        value (a value is not a vector of claims, so it gets no arena).
 struct RhsScatterView {
-    RhsArenaView objective_gradient_;
-    RhsArenaView constraint_adjoint_gradient_;
-    RhsArenaView equality_residuals_;
-    RhsArenaView inequality_residuals_;
-    double *objective_ = nullptr;
+    RhsArenaView objective_gradient;
+    RhsArenaView constraint_adjoint_gradient;
+    RhsArenaView equality_residuals;
+    RhsArenaView inequality_residuals;
+    double *objective = nullptr;
 };
 
-} // namespace hven::solvers
+} // namespace hven

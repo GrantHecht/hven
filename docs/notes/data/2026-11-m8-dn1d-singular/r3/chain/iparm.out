@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-11T08:56:09-05:00
+[1/2] Building CXX object CMakeFiles/dump_iparm.dir/dump_iparm.cpp.o
+[2/2] Linking CXX executable dump_iparm
+dump rc=0
+IPARM_BYTE_IDENTICAL
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt
+34bb45c0bcd8ce05d5a42469fae25c45bbd838f2066b60604732e17d8af85479  /home/ghecht/Projects/hven/.claude/worktrees/dn1d/docs/notes/data/2026-11-m8-dn1d-singular/r3/iparm/iparm-dn1.txt
+15
+FOREGROUND_END 2026-11-11T08:56:12-05:00

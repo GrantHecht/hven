@@ -37,12 +37,12 @@
 
 namespace {
 
-using hven::solvers::IpmSolver;
-using hven::solvers::kNearFeasibleGuardFactor;
-using hven::solvers::kRestoProximityWeight;
-using hven::solvers::ProgressMeasures;
-using hven::solvers::ProximalSwitchRestoration;
-using hven::solvers::SolverContext;
+using hven::IpmSolver;
+using hven::detail::kNearFeasibleGuardFactor;
+using hven::detail::kRestoProximityWeight;
+using hven::detail::ProgressMeasures;
+using hven::detail::ProximalSwitchRestoration;
+using hven::detail::SolverContext;
 using TychoTest::InertSolverContext;
 
 // -----------------------------------------------------------------------------
@@ -207,12 +207,12 @@ TEST_F(ProxRestoThreeVectorFixture, ObjectiveIsZeroAtTheSnapshotItself) {
 
 TEST(ProxRestoEntryPermitted, NearFeasibleGuardBoundary) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 2; // budget open throughout this test.
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 2; // budget open throughout this test.
     const SolverContext ctx = inert.ctx();
 
     ProximalSwitchRestoration r;
-    const double threshold = kNearFeasibleGuardFactor * inert.opts_.econ_tol; // 1e-7
+    const double threshold = kNearFeasibleGuardFactor * inert.opts_.common.feasibility_tol; // 1e-7
 
     // Exactly at the boundary: refused (guard is "<=").
     EXPECT_FALSE(r.entry_permitted(threshold, ctx));
@@ -226,8 +226,8 @@ TEST(ProxRestoEntryPermitted, NearFeasibleGuardBoundary) {
 
 TEST(ProxRestoEntryPermitted, BudgetExhaustionAfterMaxEntries) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 2;
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 2;
     const SolverContext ctx = inert.ctx();
 
     ProximalSwitchRestoration r;
@@ -248,8 +248,8 @@ TEST(ProxRestoEntryPermitted, BudgetExhaustionAfterMaxEntries) {
 
 TEST(ProxRestoEntryPermitted, ZeroBudgetAlwaysRefuses) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1e-6;
-    inert.opts_.max_feas_rest = 0;
+    inert.opts_.common.feasibility_tol = 1e-6;
+    inert.opts_.advanced.max_restoration_entries = 0;
     const SolverContext ctx = inert.ctx();
 
     ProximalSwitchRestoration r;
@@ -345,13 +345,13 @@ TEST(ProxRestoReference, ReturnsTheEntryPointPassedIn) {
 
 TEST(ProxRestoDiagnostics, NeverEnteredReportsZeroZero) {
     ProximalSwitchRestoration r;
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
     // Constructed but never entered: 0/0 is the correct report (only the
     // interface's default no-op / "no strategy at all" path uses the -1
     // sentinel -- see restoration.h).
-    EXPECT_EQ(result.last_feas_rest_entries, 0);
-    EXPECT_EQ(result.last_feas_rest_iters, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 0);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 0);
 }
 
 TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -368,10 +368,10 @@ TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_restoration(ref, x0, 0.02);
     r.note_iteration();
 
-    hven::solvers::IpmResult result;
+    hven::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries, 2);
-    EXPECT_EQ(result.last_feas_rest_iters, 4);
+    EXPECT_EQ(result.last_feasibility_restoration_entries, 2);
+    EXPECT_EQ(result.last_feasibility_restoration_iterations, 4);
 }
 
 } // namespace

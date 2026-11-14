@@ -7,16 +7,16 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
-// IpmSolver::LineSearchModes (forwarded to the acceptance re-test during a
+#include "hven/drivers/ipm_iterate.h"
+// IpmLineSearchMode (forwarded to the acceptance re-test during a
 // second-order correction) requires the complete IpmSolver class; pulled in
 // transitively via the two globalization headers above. See solver_context.h's
 // one-directional include-discipline note.
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // Recovery-dispatch depths: which link (if any) actually resolved a given
 // rejection — Soc=0, Extended=1, Watchdog=2, Unresolved=3 (classic give-up),
@@ -90,15 +90,15 @@ class RecoveryChain {
     /// watchdog_activations are diagnostic accumulators; resolved_depth is an
     /// out-parameter seeded to kRecoveryDepthUnresolved by the caller (see
     /// the depth constants above for who writes it).
-    virtual Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    virtual Action on_step_rejected(IpmIterate &Citer, const std::vector<IpmIterate> &iters,
                                     SolverContext &ctx, AcceptanceStrategy &acceptance,
-                                    GlobalizationMechanism &mechanism,
-                                    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
-                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
-                                    double &alphap, double &alphad, int &soc_steps,
-                                    int &resolved_depth, int &watchdog_activations) = 0;
+                                    GlobalizationMechanism &mechanism, IpmLineSearchMode lsmode,
+                                    double obj_scale, double mu, double prim_obj, double barr_obj,
+                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
+                                    Eigen::VectorXd &RHS2, double &alpha, double &alphap,
+                                    double &alphad, Index &soc_steps, int &resolved_depth,
+                                    Index &watchdog_activations) = 0;
 
     /// @brief Called once per genuinely ACCEPTED iteration — i.e. the rejection
     /// hook was skipped because should_dispatch_recovery was false.
@@ -123,8 +123,8 @@ class RecoveryChain {
 /// reach the hook. The non-finite-direction path (no line search) is excluded
 /// via good_step regardless. Factored into one definition so the unit test
 /// that guards the gate calls the real condition.
-inline bool should_dispatch_recovery(bool good_step, const IterateInfo &citer) {
-    return good_step && !citer.accepted_;
+inline bool should_dispatch_recovery(bool good_step, const IpmIterate &citer) {
+    return good_step && !citer.accepted;
 }
 
-} // namespace hven::solvers
+} // namespace hven::detail

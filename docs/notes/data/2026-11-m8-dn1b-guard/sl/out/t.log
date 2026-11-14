@@ -1,0 +1,7 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-09T19:47:42-05:00
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+runner rc=2
+run_serial: REFUSED: the harness tree is DIRTY; a row taken from it could never be re-derived. Commit or stash first:
+?? runs/dn1-train/
+cp: cannot stat 'runs/dn1b-train/default': No such file or directory

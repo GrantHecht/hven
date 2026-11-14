@@ -24,7 +24,7 @@
 #include "hven/core/types.h"
 #include "hven/linear/symmetric_factor.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 class KktFactorization {
   public:
@@ -88,16 +88,16 @@ class KktFactorization {
 
     /// The thread count the factor is currently configured with -- the STORED
     /// option, which reconfigure() and set_num_threads() both keep in step.
-    int num_threads() const { return opts_.num_threads; }
+    int num_threads() const { return opts_.threads; }
 
     /// The LIVE backend session's own count, read through
-    /// SymmetricFactor::num_threads() (M6 W5 T8.8). Distinct from
+    /// SymmetricFactor::threads() (M6 W5 T8.8). Distinct from
     /// num_threads() above, which answers "what is this object configured
     /// with"; this one answers "what will the next backend call apply", which
     /// is what a boundary observation of the factor wants. The two agree
     /// whenever set_num_threads() is the only thing that has moved the count,
     /// which is the case for every hven caller.
-    int session_num_threads() const noexcept { return factor_.num_threads(); }
+    int session_num_threads() const noexcept { return factor_.threads(); }
 
     /// Drop the factorization, the symbolic analysis and the assembly buffer.
     void release();
@@ -190,11 +190,17 @@ class KktFactorization {
 
     /// Factor size, in whichever unit this backend reports: an entry count on
     /// MKL Pardiso, a byte size on Apple Accelerate.
-    int factor_mem() const { return factor_mem_; }
+    Index factor_mem() const { return factor_mem_; }
 
     /// Estimated factorization cost in Mflops, or 0 on a backend that reports
     /// no cost estimate.
     int factor_flops() const { return factor_flops_; }
+
+    /// The arm that produced the last factorization: kDense only for one the
+    /// dense arm took (never on a policy of kNever). kSparse before any
+    /// factorization, after reconfigure()/release(), and on a failed symbolic
+    /// phase.
+    hven::linear::FactorArm arm() const { return arm_; }
 
   private:
     void record(const hven::linear::FactorizeOutcome &outcome);
@@ -217,8 +223,9 @@ class KktFactorization {
     // and it does not move.
     hven::linear::InertiaEvidence inertia_{};
     Eigen::ComputationInfo info_ = Eigen::Success;
-    int factor_mem_ = 0;
+    Index factor_mem_ = 0;
     int factor_flops_ = 0;
+    hven::linear::FactorArm arm_ = hven::linear::FactorArm::kSparse;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

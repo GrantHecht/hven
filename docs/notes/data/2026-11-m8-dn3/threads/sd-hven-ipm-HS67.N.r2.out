@@ -1,0 +1,7 @@
+CELL_BEGIN
+lane=hven-ipm
+problem=HS67
+options_label=t0-default
+threw=1
+exception=common.threads must be >= 1, got 0
+CELL_END

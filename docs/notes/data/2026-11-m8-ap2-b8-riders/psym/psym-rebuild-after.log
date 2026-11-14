@@ -1,0 +1,176 @@
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/psym'
+[1/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/sqp/test_backend_error_seams.cpp.o
+[2/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_options.cpp.o
+[3/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_handle.cpp.o
+[4/71] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[5/71] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[6/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/result_message.cpp.o
+[7/71] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[8/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver_globalization.cpp.o
+[9/71] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+[10/71] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[11/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpmTerminationOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::SqpLinearOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::IpqpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::QpOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator long<long>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_options_dump.cpp:38:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/core/detail/aggregate_arity.h:47:15: warning: inline function 'hven::detail::AggregateAnyInit<hven::CommonOptions>::operator double<double>' is not defined [-Wundefined-inline]
+   47 |     constexpr operator U() const;
+      |               ^
+/usr/bin/../lib/gcc/x86_64-redhat-linux/16/../../../../include/c++/16/optional:231:17: note: used here
+  231 |             : _M_value(std::forward<_Args>(__args)...)
+      |                        ^
+7 warnings generated.
+[12/71] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[13/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_limits.cpp.o
+[14/71] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[15/71] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[16/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+[17/71] Building CXX object tests/CMakeFiles/hven_sqp_seam_tests.dir/__/src/drivers/ipm_solver.cpp.o
+[18/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_evaluation_failure.cpp.o
+[19/71] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+[20/71] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[21/71] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[22/71] Linking CXX static library libhven.a
+[23/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+[24/71] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/build-b8r/psym/tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_2_cxx.cxx:22:
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:104:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  104 |     EXPECT_EQ(typeid(ci.storage.get()), typeid(ConstraintModel<StubDefectFamily<3>>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:111:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  111 |     EXPECT_EQ(typeid(ci.storage.get()), typeid(ConstraintModel<StubConstraintOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:117:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  117 |     EXPECT_EQ(typeid(oi.storage.get()), typeid(ObjectiveModel<StubScalarObjective>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:127:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  127 |     EXPECT_EQ(typeid(ci.storage.get()), typeid(ConstraintModel<StubMixinConstraintOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:141:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  141 |     EXPECT_EQ(typeid(oi.storage.get()), typeid(ObjectiveModel<StubMixinObjectiveOnly>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:150:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  150 |     EXPECT_EQ(typeid(ci.storage.get()), typeid(ConstraintModel<StubAdapterMissingObjective>));
+      |                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/interior/test_solver_interface_adapter.cpp:187:22: warning: expression with side effects will be evaluated despite being used as an operand to 'typeid' [-Wpotentially-evaluated-expression]
+  187 |     EXPECT_EQ(typeid(copy.storage.get()), typeid(ConstraintModel<StubDefectFamily<2>>));
+      |                      ^
+7 warnings generated.
+[25/71] Building CXX object examples/CMakeFiles/hven_example_01_hs071_both_engines.dir/01_hs071_both_engines.cpp.o
+[26/71] Building CXX object examples/CMakeFiles/hven_example_02_bounded_rosenbrock.dir/02_bounded_rosenbrock.cpp.o
+[27/71] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[28/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_callback.cpp:539:67: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/detail/model/nlp_model.h:85:7: note: 'eval_grad' has been explicitly marked deprecated here
+   85 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_callback.cpp:539:85: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  539 |                 e.x, e.lambda.head(me), e.lambda.tail(mi), e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                                     ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/detail/model/nlp_model.h:113:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  113 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_callback.cpp:540:19: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                   ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/detail/model/nlp_model.h:117:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  117 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_callback.cpp:540:38: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/detail/model/nlp_model.h:89:7: note: 'eval_ce' has been explicitly marked deprecated here
+   89 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/tests/drivers/test_callback.cpp:540:54: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  540 |                 m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                      ^
+/home/ghecht/Projects/hven/.claude/worktrees/agent-aad152e17d08967f4/include/hven/detail/model/nlp_model.h:93:7: note: 'eval_ci' has been explicitly marked deprecated here
+   93 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[29/71] Building CXX object examples/CMakeFiles/hven_example_03_equality_constrained.dir/03_equality_constrained.cpp.o
+[30/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_problem.cpp.o
+[31/71] Linking CXX executable bench/hven_sqp_corpus
+[32/71] Building CXX object examples/CMakeFiles/hven_example_05_warm_continuation.dir/05_warm_continuation.cpp.o
+[33/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solver_move.cpp.o
+[34/71] Building CXX object examples/CMakeFiles/hven_example_06_ipm_to_sqp_polish.dir/06_ipm_to_sqp_polish.cpp.o
+[35/71] Building CXX object examples/CMakeFiles/hven_example_04_partitioned_chain.dir/04_partitioned_chain.cpp.o
+[36/71] Linking CXX executable tests/hven_sqp_seam_tests
+[37/71] Linking CXX executable tests/hven_tests
+[38/71] Building CXX object examples/CMakeFiles/hven_example_07_sqp_quasi_newton.dir/07_sqp_quasi_newton.cpp.o
+[39/71] Linking CXX executable tests/golden_rig/hven_golden_rig
+[40/71] Building CXX object examples/CMakeFiles/hven_example_08_results_trace_options.dir/08_results_trace_options.cpp.o
+[41/71] Linking CXX executable bench/hven_sqp_snopt_f7
+[42/71] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[43/71] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[44/71] Linking CXX executable bench/hven_sqp_bench
+[45/71] Linking CXX executable bench/hven_sqp_f7_cold
+[46/71] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[47/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+[48/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+[49/71] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[50/71] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[51/71] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_infinite_bound.cpp.o
+[52/71] Linking CXX executable examples/hven_example_01_hs071_both_engines
+[53/71] Linking CXX executable examples/hven_example_02_bounded_rosenbrock
+[54/71] Linking CXX executable examples/hven_example_03_equality_constrained
+[55/71] Linking CXX executable examples/hven_example_04_partitioned_chain
+[56/71] Linking CXX executable examples/hven_example_06_ipm_to_sqp_polish
+[57/71] Linking CXX executable examples/hven_example_05_warm_continuation
+[58/71] Linking CXX executable examples/hven_example_08_results_trace_options
+[59/71] Linking CXX executable examples/hven_example_07_sqp_quasi_newton
+[60/71] Linking CXX executable tests/drivers/hven_drivers_tests
+[61/71] Building CXX object tests/model/CMakeFiles/hven_model_tests.dir/test_pieces.cpp.o
+[62/71] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[63/71] Linking CXX executable tests/model/hven_model_tests
+[64/71] Linking CXX executable bench/hven_sqp_crossover
+[65/71] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+[66/71] Linking CXX executable tests/interior/hven_interior_tests
+[67/71] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+[68/71] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+[69/71] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[70/71] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+[71/71] Linking CXX executable tests/sqp/hven_sqp_tests

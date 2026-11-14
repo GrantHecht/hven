@@ -1,0 +1,95 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T19:06:52-05:00
+source /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src
+ninja: Entering directory `/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp'
+[1/76] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/76] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[3/76] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[4/76] Building CXX object CMakeFiles/hven.dir/src/model/nlp.cpp.o
+[5/76] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[6/76] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[7/76] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[8/76] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[9/76] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[10/76] Building CXX object CMakeFiles/hven.dir/src/linear/dense_session.cpp.o
+[11/76] Building CXX object CMakeFiles/hven.dir/src/model/validation_errors.cpp.o
+[12/76] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[13/76] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+[14/76] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[15/76] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.pch
+[16/76] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[17/76] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[18/76] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[19/76] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[20/76] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+[21/76] Building CXX object CMakeFiles/hven.dir/src/drivers/callback_rows.cpp.o
+[22/76] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[23/76] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[24/76] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/src/gtest-all.cc:38:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/include/gtest/gtest.h:64:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/include/gtest/gtest-death-test.h:43:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/include/gtest/internal/gtest-death-test-internal.h:47:
+In file included from /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/include/gtest/gtest-matchers.h:49:
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp/_deps/googletest-src/googletest/include/gtest/gtest-printers.h:528:35: warning: implicit conversion from 'char8_t' to 'char32_t' may change the meaning of the represented code unit [-Wcharacter-conversion]
+  528 |   PrintTo(ImplicitCast_<char32_t>(c), os);
+      |           ~~~~~~~~~~~~~           ^
+1 warning generated.
+[25/76] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[26/76] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_handle.cpp.o
+[27/76] Building CXX object CMakeFiles/hven.dir/src/drivers/common_options.cpp.o
+[28/76] Building CXX object CMakeFiles/hven.dir/src/drivers/result_message.cpp.o
+[29/76] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[30/76] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[31/76] Building CXX object CMakeFiles/hven.dir/src/model/problem.cpp.o
+[32/76] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+[33/76] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[34/76] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[35/76] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[36/76] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver_handle.cpp.o
+[37/76] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[38/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[39/76] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[40/76] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[41/76] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[42/76] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[43/76] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[44/76] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[45/76] Linking CXX static library lib/libgtest.a
+[46/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/mixed_lift.cpp.o
+[47/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_lift_bridge.cpp.o
+[48/76] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[49/76] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[50/76] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[51/76] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_version.cpp.o
+[52/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/qn_models.cpp.o
+[53/76] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[54/76] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[55/76] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_sparse_backend_link.cpp.o
+[56/76] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_core_layering.cpp.o
+[57/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[58/76] Building CXX object CMakeFiles/hven.dir/src/drivers/equality_basis.cpp.o
+[59/76] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/fp-src/src/drivers/sqp_solver.cpp:6395:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 6395 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[60/76] Linking CXX static library lib/libgtest_main.a
+[61/76] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/lbfgs_damped.cpp.o
+[62/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_pardiso_only_options.cpp.o
+[63/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_evidence_invariants.cpp.o
+[64/76] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[65/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor.cpp.o
+[66/76] Building CXX object tests/CMakeFiles/hven_tests.dir/core/test_pattern_hash.cpp.o
+[67/76] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[68/76] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_warm_start_data.cpp.o
+[69/76] Building CXX object tests/CMakeFiles/hven_tests.dir/warmstart/test_ipm_polish_extension.cpp.o
+[70/76] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[71/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor.cpp.o
+[72/76] Building CXX object CMakeFiles/hven.dir/src/qp/ws_independence.cpp.o
+[73/76] Linking CXX static library libhven.a
+[74/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_dense_symmetric_factor_growth.cpp.o
+[75/76] Building CXX object tests/CMakeFiles/hven_tests.dir/linear/test_symmetric_factor_dense_arm.cpp.o
+[76/76] Linking CXX executable tests/hven_tests
+rc=0
+FOREGROUND_END 2026-11-08T19:07:34-05:00

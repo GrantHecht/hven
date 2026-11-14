@@ -1,0 +1,17 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T18:44:05-05:00
+c84bb4abafc6c687d8222b60c61b66f3e19f48e31c12b9c93690249d64fa01c6  /home/ghecht/Projects/hven/.claude/worktrees/dn1/build-dn1e/rel/bench/hven_sqp_corpus
+RUN mode=walk 2026-11-08T18:44:05-05:00
+run rc=0
+compare rc=0
+=== dn1-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn 2026-11-08T18:48:52-05:00
+run rc=0
+compare rc=0
+=== dn1-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm 2026-11-08T18:49:13-05:00
+run rc=0
+compare rc=0
+=== dn1-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-08T18:49:39-05:00

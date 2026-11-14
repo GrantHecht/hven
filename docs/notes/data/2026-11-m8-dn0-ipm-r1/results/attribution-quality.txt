@@ -1,0 +1,19 @@
+M8 DN-0 IPM r1 -- attribution quality per population (from results/cells.csv; informational)
+== hs
+  share_proc_of_all      r1: min=0.5874 med=0.6525 max=0.6887   DN-0: min=0.0010 med=0.0017 max=0.0042
+  share_unmatched        r1: min=0.2525 med=0.3303 max=0.3870   DN-0: min=0.0000 med=0.0000 max=0.0008
+  share_fallback         r1: min=0.1789 med=0.2314 max=0.2767   DN-0: min=0.0000 med=0.0000 max=0.0000
+  chains_reaching_main   r1: min=0.1425 med=0.1779 max=0.2471   DN-0: min=0.9925 med=0.9969 max=0.9984
+  init_share             r1: min=0.0000 med=0.0017 max=0.0045   DN-0: min=0.9983 med=0.9992 max=0.9998
+  instr_median           r1: min=6723983.0000 med=7068970.5000 max=7845250.0000   DN-0: min=3633290543.0000 med=3980123470.0000 max=4449807415.0000
+  rec_samples (all reps) r1: min=1993.0000 med=2097.5000 max=2333.0000   DN-0: min=1196.0000 med=4182.0000 max=5958.0000
+  rho r1/DN-0 per cell (22 cells): min=0.9986 med=1.0000 max=1.0014
+== sd
+  share_proc_of_all      r1: min=0.0037 med=0.5416 max=0.6654   DN-0: min=0.0013 med=0.0020 max=0.0045
+  share_unmatched        r1: min=0.0007 med=0.1978 max=0.3297   DN-0: min=0.0000 med=0.0000 max=0.0044
+  share_fallback         r1: min=0.0037 med=0.1555 max=0.8047   DN-0: min=0.0000 med=0.0000 max=0.0201
+  chains_reaching_main   r1: min=0.0385 med=0.2708 max=0.8257   DN-0: min=0.7668 med=0.9960 max=0.9978
+  init_share             r1: min=0.0000 med=0.0007 max=0.0056   DN-0: min=0.5812 med=0.9981 max=1.0000
+  instr_median           r1: min=7076091.0000 med=8694896.0000 max=1307309205.0000   DN-0: min=1337853881.0000 med=4013089481.0000 max=4933378365.0000
+  rec_samples (all reps) r1: min=2099.0000 med=2589.0000 max=50709.0000   DN-0: min=954.0000 med=2684.0000 max=6931.0000
+  rho r1/DN-0 per cell (95 cells): min=0.9986 med=1.0000 max=1.0014

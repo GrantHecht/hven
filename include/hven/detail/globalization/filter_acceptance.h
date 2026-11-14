@@ -10,7 +10,7 @@
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// (18a) constraint-violation margin gamma_theta (WB Eq. (18a); Ipopt option
 /// "gamma_theta" = 1e-5).
@@ -81,7 +81,7 @@ class Filter {
 /// This class supplies ONLY the filter-specific H-type verdict and the
 /// augmentation bookkeeping through the base's hooks; the theta_min/theta_max
 /// ceiling, switching condition, and F-type Armijo test live in
-/// SwitchingAcceptance. Opt-in via Settings::acceptance_strategy_ == filter;
+/// SwitchingAcceptance. Opt-in via Settings::acceptance_mode_ == filter;
 /// the default classic path stays bit-identical.
 ///
 /// ProgressMeasures mapping (same convention as switching_acceptance.h):
@@ -232,6 +232,11 @@ class FilterAcceptance final : public SwitchingAcceptance {
     /// meaningful only when cause == kMembership.
     void notify_trial_rejected(RejectionCause cause, bool trial_passed_progress_test) override;
 
+    /// The retraction pair: the filter and the reset-heuristic fields
+    /// register_accepted_step may move.
+    void save_acceptance_state() override;
+    void restore_acceptance_state() override;
+
   private:
     /// Acceptable-to-current-iterate: the barrier-objective ceiling AND the
     /// two-condition margin test.
@@ -244,6 +249,12 @@ class FilterAcceptance final : public SwitchingAcceptance {
     int successive_filter_rejections_ = 0;
     int n_filter_resets_ = 0;
     bool last_rejection_was_filter_ = false;
+
+    /// The state before the last accept, for retract_last_acceptance().
+    Filter retract_filter_;
+    int retract_successive_filter_rejections_ = 0;
+    int retract_n_filter_resets_ = 0;
+    bool retract_last_rejection_was_filter_ = false;
 
     // Feasibility-restoration state: the PRESERVED optimality-phase working
     // state, stashed at entry and restored at exit; the exit test consults
@@ -262,7 +273,7 @@ class FilterAcceptance final : public SwitchingAcceptance {
     /// drift apart. The seam seeds it from the live setting every solve;
     /// standalone/unit-test construction bypassing that seam observes the
     /// default.
-    double restoration_constraint_tol_ = IpmOptions{}.econ_tol;
+    double restoration_constraint_tol_ = IpmOptions{}.common.feasibility_tol;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

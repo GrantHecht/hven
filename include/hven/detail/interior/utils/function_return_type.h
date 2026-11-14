@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @internal
 /// @brief Primary template for extracting the return type from a callable
@@ -51,4 +51,4 @@ struct return_type<R (C::*)(Args...) const volatile> {
 /// @brief Convenience alias for `return_type<T>::type`.
 template <typename T> using return_type_t = typename return_type<T>::type;
 
-} // namespace hven::utils
+} // namespace hven::detail

@@ -18,31 +18,28 @@
 
 #include "hven/core/types.h"
 
-namespace hven::solvers::detail {
-
-/// @brief Bounds at or beyond this magnitude are ABSENT and carry no barrier
-/// term.
-///
-/// Same value and meaning as qp_engine.h's `kEngineInfBound`, ssn_engine.h's
-/// `kSsnInfBound`, and the +/-1e20 sentinel qp_problem.h documents; restated so this
-/// header depends on the QP data convention only, not on either engine's internals.
-inline constexpr double kIpqpInfBound = 1e20;
+namespace hven::detail {
 
 /// @brief Ipopt's bound-damping coefficient, applied on ONE-SIDED bounds only.
 ///
-/// Must equal bound_set.h's `kKappaD` (Ipopt's kappa_d = 1e-5), restated here for the
-/// same reason `kIpqpInfBound` is. The damping lives in the barrier OBJECTIVE and its
-/// mu-form gradient ONLY -- never in the dual-infeasibility residual, never in sigma.
+/// Must equal bound_set.h's `kKappaD` (Ipopt's kappa_d = 1e-5), restated here so this
+/// header depends on the QP data convention only, not on the NLP engine's internals.
+/// The damping lives in the barrier OBJECTIVE and its mu-form gradient ONLY -- never in
+/// the dual-infeasibility residual, never in sigma.
 inline constexpr double kIpqpKappaD = 1.0e-5;
 
 /// @brief True iff `l` is a bound the tier must keep a barrier term for.
-inline bool ipqp_has_lower(double l) { return l > -kIpqpInfBound; }
+///
+/// THE TIER'S BOUNDS WRITE AN ABSENT SIDE AS AN INFINITY: make_ipqp_box applies the
+/// subproblem's own cutoff (QpProblem::infinite_bound) once, mapping every effective
+/// bound at or beyond it to -inf / +inf, so the kernels below test infinity alone.
+inline bool ipqp_has_lower(double l) { return l > -std::numeric_limits<double>::infinity(); }
 
 /// @brief True iff `u` is a bound the tier must keep a barrier term for.
-inline bool ipqp_has_upper(double u) { return u < kIpqpInfBound; }
+inline bool ipqp_has_upper(double u) { return u < std::numeric_limits<double>::infinity(); }
 
 /// @brief MIRRORS `bound_barrier_objective` (barrier_math.h). QP shape: dense
-/// lower/upper vectors with the +/-1e20 absent sentinel, in place of a
+/// lower/upper vectors with an absent side written as an infinity, in place of a
 /// BoundSet's index/value lists.
 ///
 /// -mu * [sum ln(x_i - l_i) + sum ln(u_i - x_i)] over the finite bounds, plus Ipopt's
@@ -315,4 +312,4 @@ inline void ipqp_augment_bound_complementarity(const Eigen::Ref<const Eigen::Vec
     }
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

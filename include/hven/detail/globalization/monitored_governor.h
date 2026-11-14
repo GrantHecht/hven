@@ -10,9 +10,9 @@
 
 #include "hven/detail/globalization/barrier_governor.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/iterate_info.h"
+#include "hven/drivers/ipm_iterate.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 class GlobalizationMechanism;
 
@@ -49,7 +49,7 @@ inline constexpr double kBarrierTolFactor = 10.0;
 ///     terms vanish, leaving a sum of squared, per-dimension-averaged part
 ///     norms of (dual_inf, primal_inf, compl). This engine's mapping keeps the
 ///     sum-of-squared-parts structure but uses the ∞-norm residual scalars its
-///     IterateInfo carries:
+///     IpmIterate carries:
 ///         monitor_error = kkt_inf_² + econ_inf_² + icon_inf_² + barr_inf_²
 ///     Documented deviations: each part is an ∞-norm scalar rather than a
 ///     squared 2-norm; no per-dimension division (three separate weights, so
@@ -100,11 +100,11 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     explicit MonitoredBarrierGovernor(std::unique_ptr<BarrierGovernor> free_delegate);
     ~MonitoredBarrierGovernor() override;
 
-    double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
-                          double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
-                          Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
-                          GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
-                          const IterateInfo &current, bool &mu_event) override;
+    double update_barrier(IpmBarrierMode barmode, double mu_in, double avgcomp, double mincomp,
+                          Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
+                          Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
+                          SolverContext &ctx, double &barr_obj, const IpmIterate &current,
+                          bool &mu_event) override;
 
     bool in_monotone_mode() const override { return monotone_mode_; }
 
@@ -150,12 +150,12 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
         bool mu_event = false; ///< A new monotone barrier subproblem began.
         bool monotone = false; ///< Resulting mode after this decision.
     };
-    BarrierDecision decide(const IterateInfo &current, double mu_in, double avgcomp, double bar_tol,
+    BarrierDecision decide(const IpmIterate &current, double mu_in, double avgcomp, double bar_tol,
                            double kkt_tol, double min_mu, double max_mu);
 
     /// Pure quantities (see formulation items (1), (6), (4)).
-    static double monitor_error(const IterateInfo &it);
-    static double barrier_subproblem_error(const IterateInfo &it);
+    static double monitor_error(const IpmIterate &it);
+    static double barrier_subproblem_error(const IpmIterate &it);
     static double fiacco_mccormick_mu(double mu, double bar_tol, double kkt_tol, double min_mu,
                                       double max_mu);
     static double handoff_mu(double avgcomp, double min_mu, double max_mu);
@@ -193,4 +193,4 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     int last_monotone_iters_ = 0;    ///< Iterations spent in monotone mode this phase.
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

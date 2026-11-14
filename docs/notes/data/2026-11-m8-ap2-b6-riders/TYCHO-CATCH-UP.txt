@@ -1,0 +1,32 @@
+M8 AP-2 group B6 riders -- tycho catch-up note, ADDENDUM to ../2026-11-m8-ap2-b6/TYCHO-CATCH-UP.txt
+(a registered catch-up item, NOT a gate; nothing waits on tycho; no tycho file was edited; tycho's
+tree was only searched, for `kInputs` and `print_data`)
+================================================================================
+T1-T4 of the B6 note stand. T5's hazard sentence is SUPERSEDED by R-T1 below; the rest of T5 stands.
+
+R-T1 Shared Jacobian entries are serialised by the layout (C235). NonLinearProgram now sets
+     SolverIndexingData::unique_constraints_ on every partition copy of a constraint function at
+     each lay: false when one of the copy's rows is also named by an application in another
+     partition, true otherwise (always true on one partition). A raw piece's Jacobian scatter must
+     honour it the way hven's raw sites do -- lock the entry's column (clashes[col] != -1) when
+     !d.unique_constraints_ -- for a shared-row declaration to be race-free; a raw piece that
+     never locks its Jacobian stays race-free only on declarations without cross-partition shared
+     rows. tycho's raw scatter sites (its kkt_fill_all equivalents) should be checked for that
+     condition when tycho consumes this head. The local-block layer honours it.
+R-T2 A piece must be copy-constructible (C236 R1). The handles already copied deeply; a
+     non-copyable piece type now gets an authored compile-time message on the direct-storage
+     route ("hven constraint adapter: a piece must be copy-constructible ...") instead of a raw
+     instantiation failure. Hook types are unaffected (the hook emplaces the payload).
+R-T3 A class with a static member `kInputs` is a local-block piece: it is routed to the
+     local-block adapters, and one that does not meet their shape is refused by name. A search of
+     tycho's include/ and src/ on 2026-11-04 found no type declaring kInputs. solver_interface_specs.h
+     now includes local_blocks.h at its end.
+R-T4 SolverFunctionBase::print_data and NonLinearProgram::print_data are removed, with the
+     <iostream> include of solver_function_base.h and detail/model/non_linear_program.h (C236 R7).
+     A tycho TU that used std::cout through those headers names <iostream> itself. A search on
+     2026-11-04 found tycho calling ObjectiveFunction/ConstraintFunction::print_data() at twelve sites,
+     six each in src/optimal_control/phase_indexer.cpp and optimal_control_problem.cpp (its own
+     per-function print); that print moves into tycho, built
+     from the public members it read (function_.name(), input_rows(), output_rows(), the thread
+     mode, index_data_.get_v_index() / get_c_index()). A compile break on consume, by design.
+R-T5 The local blocks' payload member is `piece` (was `piece_`, aggregate rule, C236 R8).

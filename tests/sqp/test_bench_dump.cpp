@@ -60,11 +60,11 @@
 
 namespace {
 
-using hven::solvers::bench_cli::open_output_or_throw;
-using hven::solvers::bench_cli::QpDumpV2;
-using hven::solvers::bench_cli::read_qp_dump_v2;
-using hven::solvers::bench_cli::write_qp_dump_v2;
-using hven::solvers::bench_cli::write_solution_dump;
+using hven::bench_cli::open_output_or_throw;
+using hven::bench_cli::QpDumpV2;
+using hven::bench_cli::read_qp_dump_v2;
+using hven::bench_cli::write_qp_dump_v2;
+using hven::bench_cli::write_solution_dump;
 
 constexpr const char *kUsage = "usage: hven_sqp_bench --family F3|F7 ... [THE USAGE TEXT]\n";
 

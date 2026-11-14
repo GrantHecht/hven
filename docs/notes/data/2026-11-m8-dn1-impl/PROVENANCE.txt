@@ -1,0 +1,56 @@
+M8 DN-1 -- the dense arm behind SymmetricFactor -- PROVENANCE AND RESULTS (the N set)
+================================================================================
+Commits     a00f17ba feat (the arm, engine plumbing, tests), c7e3198a fix (decode_2x2 forced inline with an optional
+            det-zero report: dense_symmetric_factor.o byte-identical), a8c50e99 test (synthetic 2x2 fixture at 1e10) =
+            the code head; 3c324997 DECLARATION + instruments; 0241df70 runtime gate (PASS); this commit: chain1
+            outputs and this file. Base / arm A 02065dac (origin/m8).
+Binaries    arm A corpus 4ee3af3b...041c, arm A db d29b82f8...5994 (ARM_A_OK); arm B corpus c84bb4ab...01c6; arm A libhven.a
+            fcdb8a17cbaaf5a6..., arm B libhven.a cf0f5ee9da4fbde4..., falsifier mutant hven_tests e9c76fa93f35b69c...
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, perf 7.2.12-200.fc44, MKL 2026.2, MKL_NUM_THREADS=1,
+            kernel.perf_event_max_sample_rate lowered this boot (period 400000 from the start). Apple/Accelerate:
+            UNOBSERVED (syntax sweep only). Windows: UNOBSERVED.
+Dates       2026-11-08/09 EST: declaration 17:57; runtime gate 17:58-18:43; chain1 18:43-01:12 (the census last: tier 1
+            19:07-19:20, tier 2 19:40-22:12, tier 3 22:12-01:12).
+Protocol    every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+            set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; serial, alone; the runtime
+            gate first, then chain1 (chain/chain1.out: PREFLIGHT_OK, every leg rc 0, CHAIN1_DONE).
+
+RESULTS (criteria as declared)
+P0  arm A       ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release and Debug: 100% tests passed, 0 tests failed out of 3517 (suites/). PASS. (D3)
+P2  examples    8/8 rc 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       IPARM_BYTE_IDENTICAL, 15 configurations (iparm/iparm-dn1.txt). PASS. (D7)
+P5  census      57/57 rows (census/): CENSUS_AS_DECLARED -- 42 cells equal the baseline exactly, PF-1's 2 declared rows
+                exactly, 13 deadline-bound cells; NO DN-1 mover. PASS. (D1)
+P6  smoke       default and clang PASSED, 36 standalone-include TUs; export contract OK on both (install-smoke/). PASS.
+P7  PCH         PASS: 4 TUs engaged, 58 artifacts byte-identical (pch/). PASS.
+P8  off-ref     build rc 0; ctest 0 failed out of 3517; 26 warning lines (= R11's and F1's count). NOT MET AS WORDED:
+                the criterion reads "no warning line names a file of the code head's diff", and 7 warning lines name two
+                files the diff touches on lines it does not touch -- src/drivers/sqp_solver.cpp (the pre-existing -Wswitch
+                at the stop-status switch) and tests/drivers/test_callback.cpp (the pre-existing deprecated eval_* calls at
+                539-540). The warning set (file + message, line numbers stripped) of arm A's and arm B's Release builds is
+                identical but for the googletest build-dir prefix (offref/warnings-armA-vs-armB.txt, made after the leg): no
+                warning is new. The wording is R11's, where the touched files carried no warning. FOR THE SETTLER.
+P9  Accelerate  PASS_A_AS_DECLARED (accelerate/). PASS. Pass B (reported): PASS_B_NOT_AS_DECLARED, the same four OTHER files
+                as R11, F1, PF-1, PF-HB and the B8 riders.
+P10 flags       FLAGS_AS_DECLARED: library TUs 60 -> 61, only after = src/linear/dense_session.cpp with the baseline TU's
+                flags, 0 differing TUs (flags/). PASS. (D6)
+P11 runtime     runtime/run_all.log: VERDICT PASS -- filtered B/A interior 1.000008, ipm 0.999968, ssn 0.999961, walk
+                0.999998; THROTTLE 0 (492 processes); counter identity in every mode. PASS.
+P12 interior    unmoved 0 differences; promoted baseline reproduced (43 cells), 0 differences (interior/). PASS. (D1)
+P14 falsifier   mutant (dense_block_walk's 2x2 read -> (trace +- disc)/2, one site): exactly the four declared tests fail
+                (LAKES negative reads 72), all 19 pass on the head: FAILPROOF_AS_DECLARED (failproof/). PASS.
+P16 objects     A 56, B 57 (+ dense_session.cpp.o), dense_symmetric_factor.cpp.o BYTE-IDENTICAL, 21 others differ (listed):
+                OBJECTS_AS_DECLARED (objects/). PASS. (D5)
+
+NOT RUN BY THIS LANE: the DN-1 set (A1-A7, A-thr, S1-S3, M, T). Its criteria are frozen in DECLARATION.txt; its
+instruments and commands go in DECLARATION-dn1legs.txt before its first run.
+
+SLIPS / DEVIATIONS
+- Pre-declaration dev measurements (scratch, not evidence): the first objects check found dense_symmetric_factor.o not
+  byte-identical with decode_2x2 as a plain inline function (no longer inlined into block_evidence()); c7e3198a forced
+  inline and reports det == 0 through an optional out-parameter, measured identical. The first falsifier dev run showed
+  the 1e8-scaled synthetic block still reads its sign under the mutant; a8c50e99 moved it to 1e10. Each fix was a new
+  code commit and the evidence trees were rebuilt fresh at the final head.
+- P8's wording (above).

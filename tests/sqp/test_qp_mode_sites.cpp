@@ -38,8 +38,9 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/trace_writer.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 
 #include "support/hs_problems.h"
 
@@ -47,11 +48,11 @@
 #error "HVEN_SQP_SOLVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"
 #endif
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
-using ::hven::solvers::test_support::HsProblem;
-using ::hven::solvers::test_support::make_hs;
+using ::hven::test_support::HsProblem;
+using ::hven::test_support::make_hs;
 
 // ===========================================================================
 // (i) THE COUNT IDENTITIES
@@ -104,13 +105,14 @@ struct SiteRun {
 SiteRun run_cell(int hs, QpMode mode) {
     SqpOptions opts;
     opts.qp_mode = mode;
-    opts.max_iter = 60;
+    opts.common.max_iterations = 60;
     const HsProblem p = make_hs(hs);
     SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpResult sol = driver.solve(*p.model);
+    const SqpResult sol =
+        driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
 
     SiteRun r;
     r.sites = site_census(os.str());
@@ -162,7 +164,7 @@ void expect_site_identities(const SiteRun &r) {
     EXPECT_EQ(at(r.sites, "soc_resolve"), r.counters.soc_steps) << "soc_resolve == soc_steps";
 
     // One walk per cap RETRY (M7 W2 M1). Exact, and identically 0 == 0 on every
-    // cell in the table below, which all run at `qp_cap_retry`'s default of
+    // cell in the table below, which all run at `qp_iteration_limit_retry`'s default of
     // false: the NON-VACUOUS reading of this site lives with the lever, in
     // tests/sqp/test_qp_cap_levers.cpp, where a capped fixture turns it on.
     EXPECT_EQ(at(r.sites, "cap_retry"), r.counters.qp_cap_retries) << "cap_retry == qp_cap_retries";
@@ -191,7 +193,7 @@ TEST(QpModeSites, EveryKernelInvocationIsAccountedForBySite) {
     const std::vector<Cell> cells{
         {24, QpMode::kWalk, nullptr}, // the baseline: dispatch and nothing else
         {33, QpMode::kSsn, nullptr},  // the same, through the SSN arm
-        {11, QpMode::kIpm, "elastic_rung"},
+        {11, QpMode::kIpqp, "elastic_rung"},
         {10, QpMode::kSsn, "elastic_rung"}, // a LONG climb (48 escalations)
         // HS15's `fallback_rung_b` premise RETIRED at M7 W2 E4 fix round 2 (declared):
         // E4's QP answers solve this subproblem, so the cell no longer reaches the
@@ -200,11 +202,11 @@ TEST(QpModeSites, EveryKernelInvocationIsAccountedForBySite) {
         // `expect_site_identities` checks still run on it, which is the other half of
         // this test -- and the site itself keeps its own required cell in HS38 below,
         // the natural-stall one, which is unmoved.
-        {15, QpMode::kIpm, nullptr},
-        {27, QpMode::kIpm, "ssn_warm_grade"},  // three sites on one cell
-        {45, QpMode::kIpm, "ssn_warm_grade"},  // the grade three times over
-        {38, QpMode::kIpm, "fallback_rung_b"}, // the natural-stall cell
-        {77, QpMode::kWalk, "soc_resolve"},    // the battery's own SOC cell
+        {15, QpMode::kIpqp, nullptr},
+        {27, QpMode::kIpqp, "ssn_warm_grade"},  // three sites on one cell
+        {45, QpMode::kIpqp, "ssn_warm_grade"},  // the grade three times over
+        {38, QpMode::kIpqp, "fallback_rung_b"}, // the natural-stall cell
+        {77, QpMode::kWalk, "soc_resolve"},     // the battery's own SOC cell
     };
 
     std::map<std::string, Index> seen;
@@ -326,7 +328,7 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 //      wrapper whose call does not read `.solve(` / `->solve(` /
 //      `.refine_on_face(` is invisible here.
 //
-//   2. THE COUNT IS TEXTUAL, NOT DYNAMIC. The kIpm arm's single written emit
+//   2. THE COUNT IS TEXTUAL, NOT DYNAMIC. The kIpqp arm's single written emit
 //      (inside `emit_ipqp_route_and_mode`) fires once per ROUTE at run time, so
 //      the scan sees one emit and family (i) checks the per-route count.
 //
@@ -689,4 +691,4 @@ TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
 }
 
 } // namespace
-} // namespace hven::solvers
+} // namespace hven

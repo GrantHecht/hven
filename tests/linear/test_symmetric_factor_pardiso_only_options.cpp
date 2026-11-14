@@ -7,7 +7,7 @@
 // std::invalid_argument at construction on the Accelerate backend for any
 // non-default value, which has no equivalent concept for any of them --
 // never silently ignored. The inverse Accelerate-only option,
-// accelerate_zero_tolerance, throws on MKL instead for the identical reason
+// accelerate_zero_tol, throws on MKL instead for the identical reason
 // with the roles swapped.
 //
 // Options::ordering is NOT Pardiso-only (see
@@ -26,7 +26,7 @@
 // symmetric_factor_mkl.cpp's constructor for the Intel documentation
 // citations backing each one.
 //
-// accelerate_zero_tolerance's validity checks (finite, > 0) run on
+// accelerate_zero_tol's validity checks (finite, > 0) run on
 // Accelerate regardless of platform -- construction-validated here even
 // though this box has no real Accelerate framework to link against, and
 // executed for real in macOS CI. Whether the accepted value is forwarded
@@ -120,7 +120,7 @@ TEST(SymmetricFactorPardisoOnlyOptions, NonDefaultSolveParallelismThrowsAtConstr
 
 TEST(SymmetricFactorPardisoOnlyOptions, PositiveCnrThreadsThrowsAtConstruction) {
     SymmetricFactor::Options opts;
-    opts.cnr_threads = 4;
+    opts.conditional_reproducibility_threads = 4;
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
@@ -130,11 +130,11 @@ TEST(SymmetricFactorPardisoOnlyOptions, CollectFactorMflopsTrueThrowsAtConstruct
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
-// accelerate_zero_tolerance is the inverse case: it is Accelerate's OWN
+// accelerate_zero_tol is the inverse case: it is Accelerate's OWN
 // option, so a present, VALID value must NOT throw here.
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceDoesNotThrowOnAccelerate) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = 1e-20;
+    opts.accelerate_zero_tol = 1e-20;
     EXPECT_NO_THROW(SymmetricFactor{opts});
 }
 
@@ -144,31 +144,31 @@ TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceDoesNotThrowOnAcc
 // merely for being Pardiso-foreign.
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsZero) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = 0.0;
+    opts.accelerate_zero_tol = 0.0;
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNegative) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = -1e-20;
+    opts.accelerate_zero_tol = -1e-20;
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNaN) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = std::numeric_limits<double>::quiet_NaN();
+    opts.accelerate_zero_tol = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsPositiveInfinity) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = std::numeric_limits<double>::infinity();
+    opts.accelerate_zero_tol = std::numeric_limits<double>::infinity();
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceRejectsNegativeInfinity) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = -std::numeric_limits<double>::infinity();
+    opts.accelerate_zero_tol = -std::numeric_limits<double>::infinity();
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
@@ -262,7 +262,7 @@ TEST(SymmetricFactorPardisoOnlyOptions, NonDefaultSolveParallelismDoesNotThrowOn
 // interaction, not about cnr_threads being positive per se.
 TEST(SymmetricFactorPardisoOnlyOptions, PositiveCnrThreadsDoesNotThrowOnMklWithCompatibleOrdering) {
     SymmetricFactor::Options opts;
-    opts.cnr_threads = 4;
+    opts.conditional_reproducibility_threads = 4;
     opts.ordering = SymmetricFactor::Options::Ordering::kNestedDissection;
     EXPECT_NO_THROW(SymmetricFactor{opts});
 }
@@ -273,11 +273,11 @@ TEST(SymmetricFactorPardisoOnlyOptions, CollectFactorMflopsTrueDoesNotThrowOnMkl
     EXPECT_NO_THROW(SymmetricFactor{opts});
 }
 
-// The inverse case: accelerate_zero_tolerance is Accelerate-only, so a
+// The inverse case: accelerate_zero_tol is Accelerate-only, so a
 // present value MUST throw on MKL.
 TEST(SymmetricFactorPardisoOnlyOptions, AccelerateZeroToleranceThrowsOnMkl) {
     SymmetricFactor::Options opts;
-    opts.accelerate_zero_tolerance = 1e-20;
+    opts.accelerate_zero_tol = 1e-20;
     EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
 }
 
@@ -296,7 +296,7 @@ TEST(SymmetricFactorPardisoOnlyOptions, PositiveCnrThreadsThrowsWithIncompatible
                                 SymmetricFactor::Options::Ordering::kMinimumDegree,
                                 SymmetricFactor::Options::Ordering::kParallelNestedDissection}) {
         SymmetricFactor::Options opts;
-        opts.cnr_threads = 4;
+        opts.conditional_reproducibility_threads = 4;
         opts.ordering = ordering;
         EXPECT_THROW(SymmetricFactor{opts}, std::invalid_argument);
     }

@@ -1,0 +1,24 @@
+# M8 walk cap (../DECLARATION.md, I4): the declared TRAIN movers, <roster tag>.<arm> (D = default kAuto, K = never-default
+# kNever), read off ../dev/train/train_check.txt (the dev run, DECLARATION section 2). Every one is NEUTRAL there: status,
+# iterations and objective unchanged on both sides.
+sd-hven-sqp-ALLINITC.K
+sd-hven-sqp-HS64.D
+sd-hven-sqp-HS64.K
+sd-hven-sqp-HS83.D
+sd-hven-sqp-HS83.K
+sd-hven-sqp-HS88.D
+sd-hven-sqp-HS88.K
+sd-hven-sqp-HS89.D
+sd-hven-sqp-HS89.K
+sd-hven-sqp-HS90.D
+sd-hven-sqp-HS90.K
+sd-hven-sqp-HS91.D
+sd-hven-sqp-HS91.K
+sd-hven-sqp-HS92.D
+sd-hven-sqp-HS92.K
+sd-hven-sqp-LAKES.D
+sd-hven-sqp-LAKES.K
+sd-hven-sqp-LEWISPOL.D
+sd-hven-sqp-LEWISPOL.K
+sd-hven-sqp-SPANHYD.D
+sd-hven-sqp-SPANHYD.K

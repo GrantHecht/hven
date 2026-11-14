@@ -1,0 +1,109 @@
+M8 DN-0 IPM re-measure (DECLARATION-r1) -- rule notes
+=====================================================
+rule.txt, rule.json, cells.csv and summary.txt are rule.py's and summary.py's output, unedited. These notes
+add context that the declared mechanics cannot see. Notes 4-6 come from post-hoc tools written after the
+data: init_audit.py, share_uncertainty.py and the two gdb probes. They change no criterion and no reading.
+
+1. VALIDITY OF THE LEGS
+   - All seven legs (S1 S2 S3 SC P D R) ran as declared, rc=0, serially under the box lock. Run window:
+     2026-11-08 02:58:50Z to 03:38:14Z.
+   - perf_event_max_sample_rate was 79000 at the start and end of every leg.
+   - P: 10,704 repeats over 119 cells. LOST 0, LOST_SAMPLES 0 and THROTTLE 0 in every repeat (per-repeat
+     counts in raw/record/*.runs).
+   - Solver samples per cell (all repeats; B_proc excluded):
+     - HS: min 620, median 729, max 963 (100 repeats each);
+     - small-dense: min 702, median 1187, max 50,521.
+     - DN-0's IPM steady state had 1-4.
+   - S: rounds agree to (max-min)/median <= 1.42e-3.
+   - SC (RECORD/CFI binary) / S median, per cell: 0.99891 to 1.00104 (median 1.000000 small-dense,
+     1.000035 HS). This is within the S rounds' own spread, so the CFI build counts what the measured build
+     counts.
+   - D: all 2684 matrices across 119 cells are byte-identical to DN-0's dumps, and index.tsv (excluding the
+     pt handle) and the outcomes are identical too (dump-identity.txt, DUMP_IDENTITY 119/119). The dump
+     build's outcomes match S1 on 119/119 cells (dump-fidelity.txt).
+   - R: the iparm identity holds on every replayed matrix. The replay binaries are byte-identical to DN-0's.
+     rho r1/DN-0 per cell is 0.9986-1.0014 (attribution-quality.txt).
+   - The process is ~7e6 instructions (HS median 7.07e6; DN-0 3.98e9). F1 holds.
+
+2. THE DECLARED READING (rule.txt): DN-1 FIRES FOR THE IPM.
+   - HS TRAIN median cell hs010 (rank 11/22, 7.06e6 instructions):
+     - (B_sym+B_fac) = 0.419, rho = 0.042, agreement 10/10;
+     - shares B_fac .419, B_eng .375, B_setup .166, B_eval .024, B_kkt .015;
+     - DN-2 not met; dominant B_fac.
+   - small-dense TRAIN median cell HS100MOD (rank 49/97, 8.69e6):
+     - (B_sym+B_fac) = 0.421, rho = 0.085, agreement 15/15;
+     - shares B_fac .421, B_eng .249, B_setup .231, B_eval .088, B_kkt .010;
+     - DN-2 not met; dominant B_fac.
+   - The declared secondary reading gives the same cells and the same outcome. Its marker,
+     ensure_solver_initialized, catches only 0.1-0.2 % (see note 4 for why).
+
+3. AGREEMENT CLAUSE, both readings (the declared one is on the median cell's own matrices)
+   - Median cells: hs010 10/10 = 1.000; HS100MOD 15/15 = 1.000. Both pass the declared clause.
+   - Pooled (reported, not the rule):
+     - HS: 268/268 = 1.000.
+     - small-dense: 2359/2416 = 0.9764 < 0.99. With the pooled figure, the small-dense DN-1 condition fails,
+       and so would the IPM's DN-1.
+   - The 57 disagreeing small-dense matrices are in 10 of 95 replayed cells:
+     - 15 have no dense count (Bunch-Kaufman exactly singular: BT8 10/11, HS61 2, LEWISPOL 2, LSNNODOC 1);
+     - 42 are count mismatches, mostly by 1 (ACOPP30, DECONVC, LEWISPOL, MSS1, SPANHYD, WATER). LAKES
+       mismatches by 6 on 14 matrices, where the engine and the sparse replay agree with each other.
+   - Replay fidelity (replay sparse vs engine-recorded) is 0.988 pooled, small-dense.
+
+4. MISATTRIBUTION THE FROZEN BUCKET MAP CANNOT SEE: the process-once OpenMP runtime initialization.
+   - **Cause (gdb, results/init-audit.txt).** F1's ensure_solver_initialized() calls mkl_get_max_threads().
+     The call chain continues: mkl_serv_domain_get_max_threads -> MKL_Read_ThreadENV_Count_Cores (which reads
+     /proc/cpuinfo) -> omp_get_num_procs -> __kmp_serial_initialize (OpenMP environment parsing, settings
+     dump, system-tick calibration). Each runs exactly once per process.
+   - **Why the declared mechanics miss it.** perf's DWARF unwinder stops at MKL_Read_ThreadENV_Count_Cores.
+     The statically linked MKL carries no CFI; the CFI build covers hven only. So no sample shows
+     ensure_solver_initialized. The frozen map's leaf fallback then files the samples:
+     - leaf in libiomp5 -> B_fac;
+     - leaf in libc (strcmp, read, vsnprintf, sscanf) -> unmatched -> B_eng.
+   - **How much** (marker = a chain containing ensure_solver_initialized, MKL_Read_ThreadENV_Count_Cores,
+     __kmp_serial_initialize or __kmp_do_serial_initialize):
+     - hs010: 54.5 % of solver instructions (~1.3e6 of 2.39e6 per run), filed B_fac 0.229, B_eng 0.315,
+       B_setup 0.001;
+     - HS100MOD: 32.8 %, filed B_fac 0.142, B_eng 0.185, B_setup 0.001.
+   - **Two alternative readings** (init_audit.py; same thresholds, rho and agreement):
+     - **A. Init filed as B_setup** (the brief's own definition: "one-time solver ... construction").
+       - hs010: (B_sym+B_fac) = 0.190, B_setup = 0.710 dominant.
+       - HS100MOD: 0.279, B_setup = 0.558 dominant.
+       - DN-1 does NOT fire for the IPM. "No dense build"; dominant B_setup on both median cells.
+       - Population: (B_sym+B_fac) >= 0.40 on 0/22 HS cells and 18/97 small-dense cells.
+     - **B. Init excluded** (steady state; the declared secondary reading's stated intent).
+       - hs010: 0.417 (B_setup .363, B_eng .133).
+       - HS100MOD: 0.415 (B_setup .343, B_eval .132).
+       - Same median cells. DN-1 FIRES (marginally; see note 5).
+       - Population: >= 0.40 on 16/22 HS and 41/97 small-dense.
+   - **Projection.** If a dense arm keeps calling MKL (LAPACK dsytrf through the same threaded MKL), it pays
+     the same OpenMP initialization. The init portion of B_fac is therefore not a saving a dense arm could
+     project.
+
+5. MARGIN AND SAMPLING UNCERTAINTY (share-uncertainty.txt; repeats identified by their distinct periods)
+   - hs010 (B_sym+B_fac) = 0.419: SE 0.018 across 100 repeats (binomial 0.018), so about 1 SE above 0.40.
+   - HS100MOD 0.421: SE 0.013 (binomial 0.014), about 1.6 SE.
+   - Neighbours of the median: HS ranks 10/12 = 0.423 / 0.418; small-dense ranks 48/50 = 0.462 / 0.480. All
+     are >= 0.40, so the median's choice does not decide the outcome.
+   - Population per-cell median of (B_sym+B_fac): HS 0.423 (20/22 cells >= 0.40); small-dense 0.395 (45/97).
+   - Under reading B the steady-state sample counts fall (hs010 ~330 solver samples), so a binomial SE of
+     ~0.027 sits against a 0.017 margin.
+
+6. WHAT THIS LEAVES FOR THE SETTLER
+   - The declared reading says DN-1 fires for the IPM, under the agreement clause read as declared.
+   - Two facts outside the declared mechanics bear on it:
+     - (a) pooled small-dense agreement is 0.976;
+     - (b) a third to a half of each median cell's solver instructions is process-once OpenMP initialization,
+       which the frozen map files as B_fac + B_eng. Filed as B_setup, DN-1 does not fire and B_setup is the
+       IPM's small-problem lever. Excluded, DN-1 fires by 1-1.6 SE.
+   - The SQP's DN-1 (DN-0) is unaffected: it never calls ensure_solver_initialized. The milestone outcome is
+     DN-1 either way.
+   - Whether (b) is a reading question, or a lever (moving or avoiding the OpenMP init, a B_setup item of
+     ~1.3e6 instructions per process, which is ~18 % of an HS IPM process and ~55 % of its non-loader work),
+     is not this round's to decide.
+
+7. CARRIED CAVEATS
+   - HS100MOD has no CUTEst derivative-check caveat. hs010 is an HS-set cell (no CUTEst).
+   - small-dense statuses: 89 optimal, 1 acceptable, 3 max_iter, 1 diverging, 3 numerical_error. Two cells
+     (S365, S365MOD) factorize nothing, so they have no replay.
+   - Platform: MKL Pardiso, Linux x86-64. Apple/Accelerate UNOBSERVED.
+   - Wall-clock is informational and is quoted nowhere here.

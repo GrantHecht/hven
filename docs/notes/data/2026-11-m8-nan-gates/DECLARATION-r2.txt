@@ -1,0 +1,19 @@
+M8 NaN-sticky gates -- DECLARATION-r2 (successor for P5 only; committed before its leg; never edited afterwards)
+================================================================================
+Predecessor DECLARATION.txt (aa6a82135; runtime/DECLARATION.txt a9da30584). Its P5 run 1 (runtime/, committed as recorded
+            in 76765fd15) is VOID on an INSTRUMENT defect, not on data: the copied analyze_r11.py resolves the repository
+            root six directories above itself (r3/runtime/'s depth); runtime/ is five, so scripts/compare_replay.py was not
+            found, every interior (round, cell) pair read "missing" and the analyzer stopped (STOP CONDITION: 3 of 3)
+            before any comparison; ipm, ssn and walk never ran. No timing or counter was read.
+Change      runtime-r2/ = ../2026-11-m8-dn1d-singular/r3/runtime/ copied afresh and re-pointed in CODE lines only (the
+            historical provenance comments untouched, unlike run 1's copy), plus: analyze_r11.py's root is five levels up
+            and it exits COMPARE_NOT_FOUND if the comparator is absent; run_all.sh refuses to start (exit 7) if
+            scripts/compare_replay.py is absent. Nothing else -- arms, sha256s, modes, rounds, core, period 400000,
+            THROTTLE rule, STOP condition and band are runtime/DECLARATION.txt's, verbatim.
+Code head   unchanged: 32f86b265 (arm B sha256 ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78;
+            arm A a86ef490b29e2e7cf3a98905270d37d769cecc390a576ac748704d08a1c92c8b).
+P5-r2       VERDICT PASS -- counter identity in every mode (interior, ipm, ssn, walk), THROTTLE 0, filtered B/A in
+            [0.995, 1.005] per mode. Outputs runtime-r2/.
+            flock /tmp/box-build.lock bash /home/ghecht/Projects/hven/.claude/worktrees/nan/docs/notes/data/2026-11-m8-nan-gates/runtime-r2/run_all.sh ea1c3a711bd65e2da37e626ce38c76df609aa7dacfdd3f8da1b24fe086a45e78
+P1-P4, P6   as DECLARATION.txt, not yet run; legs/chain.sh unchanged, run after P5-r2.
+ON FAIL: stop, commit the evidence, report; no re-run, no criterion change after data.

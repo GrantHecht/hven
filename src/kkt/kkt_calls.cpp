@@ -3,11 +3,15 @@
 
 #include <hven/detail/kkt/kkt_calls.h>
 
+#include <hven/core/errors.h>
+
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 #include <fmt/format.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K) {
     // Short-circuits on `!k.analyzed` exactly as needs_analysis() always has:
@@ -22,8 +26,9 @@ AnalysisDecision analysis_decision(const KktFactor &k, const SpMatRM &K) {
 
 bool needs_analysis(const KktFactor &k, const SpMatRM &K) { return analysis_decision(k, K).needed; }
 
-hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
-                                                 const AnalysisDecision &decision) {
+namespace {
+
+void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &decision) {
     if (decision.needed) {
         k.factor.analyze(K);
         // The record reuses the hash the decision was taken on. Only the
@@ -33,14 +38,122 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
         k.analyzed_pattern = decision.pattern ? *decision.pattern : hven::pattern_hash(K);
         k.analyzed = true;
     }
+}
 
+[[noreturn]] void throw_failed(const hven::linear::FactorizeOutcome &outcome) {
+    throw hven::BackendError(
+        fmt::format("KktFactor::factorize_checked: factorization failed, backend error {}",
+                    outcome.backend_code));
+}
+
+void clear_shift_marker(KktFactor &k) {
+    k.dense_shifted = false;
+    k.dense_scale.resize(0);
+}
+
+bool flagged(const hven::linear::FactorizeOutcome &o) {
+    return o.status == hven::linear::FactorizeOutcome::Status::kOk
+               ? o.inertia.numerically_singular
+               : o.backend_code == hven::linear::kDenseSingular;
+}
+
+} // namespace
+
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const AnalysisDecision &decision) {
+    // THE MARKER MAY OVER-CLAIM, NEVER UNDER-CLAIM: a throw out of analyze()
+    // or factorize()'s input checks leaves the previous numerics solvable
+    // (both commit only on success), so the marker describing them is cleared
+    // only once factorize() has returned -- by then the old numerics are gone.
+    analyze_if_needed(k, K, decision);
     hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
+    clear_shift_marker(k);
+    if (flagged(outcome)) {
+        // No site to shift on: the platform session retakes K.
+        outcome = k.factor.retake_on_platform(
+            K, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
+    }
     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
-        throw std::runtime_error(
-            fmt::format("KktFactor::factorize_checked: factorization failed, backend error {}",
-                        outcome.backend_code));
+        throw_failed(outcome);
     }
     return outcome;
+}
+
+Vec equilibration_scale(const SpMatRM &K) {
+    const auto n = static_cast<Index>(K.rows());
+    Vec d = Vec::Ones(n);
+    Vec r(n);
+    constexpr int kMaxSweeps = 8;
+    constexpr double kStop = 0.05;
+    for (int sweep = 0; sweep < kMaxSweeps; ++sweep) {
+        r.setZero();
+        for (Index i = 0; i < n; ++i) {
+            for (SpMatRM::InnerIterator e(K, i); e; ++e) {
+                const auto j = static_cast<Index>(e.col());
+                const double w = std::abs(e.value()) * d(i) * d(j);
+                r(i) = std::max(r(i), w);
+                r(j) = std::max(r(j), w);
+            }
+        }
+        double dev = 0.0;
+        for (Index i = 0; i < n; ++i) {
+            if (r(i) > 0.0 && std::isfinite(r(i))) {
+                dev = std::max(dev, std::abs(1.0 - r(i)));
+                d(i) /= std::sqrt(r(i));
+            }
+        }
+        if (dev <= kStop) {
+            break;
+        }
+    }
+    return d;
+}
+
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const AnalysisDecision &decision,
+                                                 const DenseShiftSite &site) {
+    using Check = hven::linear::SymmetricFactor::PatternCheck;
+    using Status = hven::linear::FactorizeOutcome::Status;
+    // Cleared only once factorize() has returned, as in the overload above.
+    analyze_if_needed(k, K, decision);
+    hven::linear::FactorizeOutcome outcome = k.factor.factorize(K);
+    clear_shift_marker(k);
+    if (flagged(outcome)) {
+        // The pattern was verified by the call above; the responses factor the
+        // same K. The marker is SET before the first equilibrated attempt, so a
+        // throw from an attempt or from the retake leaves it over-claiming
+        // (the gate then verifies unshifted numerics against K, which costs
+        // nothing in safety), never under-claiming shifted ones.
+        Vec d = equilibration_scale(K);
+        k.dense_shifted = true;
+        k.dense_scale = d;
+        double sigma = kDenseEquilibratedShift;
+        bool done = false;
+        for (int attempt = 0; attempt < 2 && !done; ++attempt) {
+            if (attempt > 0) {
+                sigma *= kDenseShiftRetryGrowth;
+            }
+            outcome = k.factor.factorize_equilibrated(K, site.n_primal, d.data(), sigma,
+                                                      Check::kAssumeAnalyzed);
+            if (outcome.status != Status::kOk) {
+                ++k.shifted_exact_singular;
+            }
+            done = !flagged(outcome) && outcome.status == Status::kOk;
+        }
+        if (!done) {
+            outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
+            clear_shift_marker(k);
+        }
+    }
+    if (outcome.status == Status::kBackendError) {
+        throw_failed(outcome);
+    }
+    return outcome;
+}
+
+hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
+                                                 const DenseShiftSite &site) {
+    return factorize_checked(k, K, analysis_decision(k, K), site);
 }
 
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K) {
@@ -53,4 +166,4 @@ Vec solve_vec(const KktFactor &k, const Vec &rhs) {
     return x;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

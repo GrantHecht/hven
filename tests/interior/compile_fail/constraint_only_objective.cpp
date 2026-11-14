@@ -12,7 +12,7 @@
 
 #include "adapter_fixture_functions.h"
 
-hven::solvers::ObjectiveInterface probe_constraint_only_objective() {
+hven::ObjectiveInterface probe_constraint_only_objective() {
     const adapter_fixture::StubConstraintOnly f{};
-    return hven::solvers::ObjectiveInterface(f);
+    return hven::ObjectiveInterface(f);
 }

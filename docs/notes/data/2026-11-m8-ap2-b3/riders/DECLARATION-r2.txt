@@ -1,0 +1,17 @@
+M8 AP-2 group B3 riders -- DECLARATION r2 (successor to DECLARATION.txt; committed before the r2 runtime
+leg; never edited). Everything in DECLARATION.txt and runtime/DECLARATION.txt stands except as stated here.
+================================================================================
+WHY. The runtime gate's first run (runtime/r1-failed/, run_all.log) stopped at its first mode, interior:
+analysis_rc=2, "STOP CONDITION: 3 pairs compared, 3 with a difference or missing". The cause is an
+instrument path, not the code: analyze_r5.py locates scripts/compare_replay.py as
+<its own directory>/../../../../.. , which is the repository root from docs/notes/data/<group>/runtime/
+but one level short from docs/notes/data/<group>/riders/runtime/ (the analyzer was copied one directory
+deeper). Its three compare_replay.py invocations failed with "can't open file .../docs/scripts/
+compare_replay.py"; no measurement was judged. The leg itself ran (rc 0, 3 rounds, THROTTLE 0).
+CHANGE. analyze_r5.py line 32 only: '../../../../..' -> '../../../../../..'. New sha256
+dc53c68ed91a1a83e1ab64f9213e04c388bc02f76cbe0789f668ae7a000cee5d. Nothing else in the analyzer, the criterion, the filter, the band, the STOP condition,
+the arms (same two binaries, same shas), the cells or the protocol changes. The failed r1 record is kept
+unmodified in runtime/r1-failed/ (the r1 analyzer is kept beside it as analyze_r5.py.r1).
+RE-RUN. run_all.sh unchanged, as `flock /tmp/box-build.lock bash riders/runtime/run_all.sh
+24a097eaad6abacc0a5ff9a689c7b39ca245cc5961e98cfc832e10afca5a061d`, serial, alone. Fixture pre-flight
+is part of it. The other proofs (P1-P9) are not affected by this and are not re-run.

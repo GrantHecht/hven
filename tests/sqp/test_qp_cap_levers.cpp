@@ -6,12 +6,12 @@
 //
 // WHAT THE FIXTURE REPRODUCES. On the CUTEst TRAIN set, nine cells exit
 // `numerical_error` through ONE gate: a subproblem hits the minor cap, the
-// driver reports `QpStatus::kMaxIter` as `SolveStatus::kNumericalError`, and the
+// driver reports `QpStatus::kIterationLimit` as `SolveStatus::kNumericalError`, and the
 // SECOND consecutive such failure ends the solve -- the two fatal majors
 // spending the IDENTICAL minor count, which is what says a budget and not the
 // arithmetic stopped them (docs/notes/2026-09-m7-w2-sqp-cutest-read.md section
 // M1). `BoxPullModel` below is that shape at n = 6, made cheap by an EXPLICIT
-// `QpOptions::max_iter`: the option's own precedence rule (`qp_types.h`) makes a
+// `QpOptions::max_iterations`: the option's own precedence rule (`qp_types.h`) makes a
 // positive value an absolute cap, so a fixture can reach in two minors what
 // ACOPP118 reaches in 4 710.
 //
@@ -34,15 +34,16 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/solve_status.h>
-#include <hven/drivers/sqp_solver.h>
-#include <hven/drivers/trace_writer.h>
-#include <hven/model/nlp_model.h>
+#include <hven/core/solver_status.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/problem_access.h>
+#include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/qp/qp_types.h>
 
 #include "support/qp_as_nlp_model.h"
 
-namespace hven::solvers {
+namespace hven {
 namespace {
 
 constexpr Index kN = 6;
@@ -120,12 +121,12 @@ class BoxPullModel : public NlpModel {
 
 SqpOptions base_options() {
     SqpOptions o;
-    o.common.print_level = 10; // silent
+    o.common.verbosity = hven::Verbosity::kSilent; // silent
     // THE ROUTING, WRITTEN OUT (M7 W2 R2): every lever here is about what the
     // driver does with a capped subproblem it takes NO step from, so the R2
     // failed-subproblem step is off; its own row on this fixture is
     // QpFailureStep.TheCappedFixtureConvergesOnItsOwnSteps.
-    o.qp_failure_step = false;
+    o.advanced.qp_failure_step = false;
     return o;
 }
 
@@ -136,7 +137,7 @@ Vec cold_start() { return Vec::Zero(kN); }
 Index uncapped_first_major_minors() {
     BoxPullModel model;
     SqpSolver driver(base_options());
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
     EXPECT_FALSE(out.history.empty());
     return out.history.empty() ? 0 : out.history.front().qp_minor_iters;
 }
@@ -150,7 +151,7 @@ Index uncapped_first_major_minors() {
 TEST(QpCapCounters, AHealthySolveCountsNoExitAndRoutesNothing) {
     BoxPullModel model;
     SqpSolver driver(base_options());
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     ASSERT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.qp_maxiter_exits, 0);
@@ -170,16 +171,16 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
                               "the cap below would not bite";
 
     SqpOptions o = base_options();
-    o.qp.max_iter = 1; // an EXPLICIT absolute cap; qp_types.h's precedence rule
+    o.qp.max_iterations = 1; // an EXPLICIT absolute cap; qp_types.h's precedence rule
     // AND AN EXPLICIT BUDGET OF 1, WHICH IS THE ENGINE BEFORE M7 W2 M1. The
     // SHIPPED budget is 3 (the TRAIN reading, sqp_solver_types.h); this test
     // pins what the field's OFF value reproduces, so it writes it out rather
     // than depending on the default, and `TheDefaultIsThreeAndOneIsTheOldGate`
     // below pins the default itself.
-    o.qp_failure_budget = 1;
+    o.advanced.max_consecutive_qp_failures = 1;
     BoxPullModel model;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(out.status, SolveStatus::kNumericalError);
     EXPECT_EQ(out.counters.major_iters, 2);
@@ -199,8 +200,8 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
     // THE IDENTICAL MINOR COUNT, which is the fact that says a BUDGET and not
     // the arithmetic stopped these two majors.
     ASSERT_EQ(out.history.size(), 2u);
-    EXPECT_EQ(out.history[0].qp_status, QpStatus::kMaxIter);
-    EXPECT_EQ(out.history[1].qp_status, QpStatus::kMaxIter);
+    EXPECT_EQ(out.history[0].qp_status, QpStatus::kIterationLimit);
+    EXPECT_EQ(out.history[1].qp_status, QpStatus::kIterationLimit);
     EXPECT_EQ(out.history[0].qp_minor_iters, out.history[1].qp_minor_iters);
     EXPECT_EQ(out.history[0].qp_minor_iters, 1);
 }
@@ -215,19 +216,19 @@ TEST(QpCapBudget, TheDefaultIsThreeAndOneIsTheOldGate) {
     // literal as well as on what it does: a defaulted solve must be the solve
     // an explicit 3 gives, and an explicit 1 must be the engine before the field
     // existed -- two majors, one routed failure -- on the same capped fixture.
-    EXPECT_EQ(SqpOptions{}.qp_failure_budget, 3);
+    EXPECT_EQ(SqpOptions{}.advanced.max_consecutive_qp_failures, 3);
 
     BoxPullModel model;
 
     SqpOptions d = base_options();
-    d.qp.max_iter = 1;
+    d.qp.max_iterations = 1;
     SqpSolver defaulted(d);
-    const SqpResult a = defaulted.solve(model, cold_start());
+    const SqpResult a = defaulted.solve(hven::detail::problem_ref(model), cold_start());
 
     SqpOptions three = d;
-    three.qp_failure_budget = 3;
+    three.advanced.max_consecutive_qp_failures = 3;
     SqpSolver written(three);
-    const SqpResult b = written.solve(model, cold_start());
+    const SqpResult b = written.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
@@ -236,9 +237,9 @@ TEST(QpCapBudget, TheDefaultIsThreeAndOneIsTheOldGate) {
     EXPECT_EQ(a.counters.qp_failures_routed, 3);
 
     SqpOptions one = d;
-    one.qp_failure_budget = 1;
+    one.advanced.max_consecutive_qp_failures = 1;
     SqpSolver old_gate(one);
-    const SqpResult c = old_gate.solve(model, cold_start());
+    const SqpResult c = old_gate.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(c.status, SolveStatus::kNumericalError);
     EXPECT_EQ(c.counters.major_iters, 2);
@@ -250,11 +251,11 @@ TEST(QpCapBudget, ABudgetOfThreeRoutesThreeFailuresAndThenExits) {
     // THE SHIPPED DEFAULT'S OWN ROW, written out: this is what a capped
     // subproblem costs at 3, and the test above pins that the default gives it.
     SqpOptions o = base_options();
-    o.qp.max_iter = 1;
-    o.qp_failure_budget = 3;
+    o.qp.max_iterations = 1;
+    o.advanced.max_consecutive_qp_failures = 3;
     BoxPullModel model;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     // FOUR majors now: three routed failures, then the fourth is refused.
     EXPECT_EQ(out.status, SolveStatus::kNumericalError);
@@ -272,12 +273,12 @@ TEST(QpCapBudget, ABudgetOfThreeRoutesThreeFailuresAndThenExits) {
 TEST(QpCapBudget, ARaisedBudgetChangesNothingOnASolveThatNeverFails) {
     BoxPullModel model;
     SqpSolver off(base_options());
-    const SqpResult a = off.solve(model, cold_start());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), cold_start());
 
     SqpOptions o = base_options();
-    o.qp_failure_budget = 5;
+    o.advanced.max_consecutive_qp_failures = 5;
     SqpSolver raised(o);
-    const SqpResult b = raised.solve(model, cold_start());
+    const SqpResult b = raised.solve(hven::detail::problem_ref(model), cold_start());
 
     ASSERT_EQ(a.status, SolveStatus::kOptimal);
     EXPECT_EQ(b.status, SolveStatus::kOptimal);
@@ -300,11 +301,11 @@ TEST(QpCapRetry, ADoubledCapThatSufficesRecoversTheSolve) {
     ASSERT_GE(uncapped, 2) << "the fixture cannot be capped one minor short";
 
     SqpOptions o = base_options();
-    o.qp.max_iter = uncapped - 1;
-    o.qp_cap_retry = true;
+    o.qp.max_iterations = uncapped - 1;
+    o.advanced.qp_iteration_limit_retry = true;
     BoxPullModel model;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     // THE FIRED-COUNTER: the retry ran. The attempt it RESCUED is not in
@@ -338,12 +339,12 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
     ASSERT_GT(uncapped, 2) << "the fixture cannot be capped below half what it needs";
 
     SqpOptions o = base_options();
-    o.qp.max_iter = 1; // 2 * 1 is still below what the subproblem needs
-    o.qp_cap_retry = true;
-    o.qp_failure_budget = 1; // lever 2 ALONE, against the pre-M1 routing gate
+    o.qp.max_iterations = 1; // 2 * 1 is still below what the subproblem needs
+    o.advanced.qp_iteration_limit_retry = true;
+    o.advanced.max_consecutive_qp_failures = 1; // lever 2 ALONE, against the pre-M1 routing gate
     BoxPullModel model;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(out.status, SolveStatus::kNumericalError);
     // TWO majors as today, each having spent its cap TWICE: two attempts and
@@ -361,9 +362,9 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
 // A STAGNATION STOP IS NOT RETRIED (M7 W2 SNX). The first subproblem stands idle on its row: x1 is
 // priced by 1e-5 at primal_delta = 5e3, so each full step moves it a few 1e-9 (above the walk's
 // zero-motion tolerance) and lowers the model by a few 1e-14, ten of them under the stagnation
-// reading's 1e-12, with nothing to drop and the row met. The walk ends kMaxIter on the reading
-// (qp_engine.h) after 1 + kStagnationSteps + 1 minors, far under its cap; a doubled cap would only
-// reach the same stop, so the retry's conjunct refuses it.
+// reading's 1e-12, with nothing to drop and the row met. The walk ends kIterationLimit on the
+// reading (qp_engine.h) after 1 + kStagnationSteps + 1 minors, far under its cap; a doubled cap
+// would only reach the same stop, so the retry's conjunct refuses it.
 TEST(QpCapRetry, AStagnationStopIsNotRetried) {
     QpProblem qp;
     qp.H.resize(2, 2);
@@ -380,15 +381,15 @@ TEST(QpCapRetry, AStagnationStopIsNotRetried) {
     test_support::QpAsNlpModel model(qp, Vec::Zero(2));
 
     SqpOptions o = base_options();
-    o.qp.primal_delta = 5e3;
-    o.qp_cap_retry = true;
-    o.max_iter = 2;
+    o.qp.primal_regularization = 5e3;
+    o.advanced.qp_iteration_limit_retry = true;
+    o.common.max_iterations = 2;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model);
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), (model).start_point());
 
-    // THE PREMISE: the first subproblem ended kMaxIter on the reading, not on its cap.
+    // THE PREMISE: the first subproblem ended kIterationLimit on the reading, not on its cap.
     ASSERT_FALSE(out.history.empty());
-    ASSERT_EQ(out.history.front().qp_status, QpStatus::kMaxIter);
+    ASSERT_EQ(out.history.front().qp_status, QpStatus::kIterationLimit);
     ASSERT_EQ(out.history.front().qp_minor_iters, 12);
     // It reached the routing site as a capped exit, and was not retried.
     EXPECT_GE(out.counters.qp_maxiter_exits, 1);
@@ -398,15 +399,15 @@ TEST(QpCapRetry, AStagnationStopIsNotRetried) {
 TEST(QpCapRetry, OffNeverRetriesAndIsTodaysSolveExactly) {
     BoxPullModel model;
     SqpOptions capped = base_options();
-    capped.qp.max_iter = 1;
+    capped.qp.max_iterations = 1;
 
     SqpSolver off(capped);
-    const SqpResult a = off.solve(model, cold_start());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), cold_start());
 
     SqpOptions written = capped;
-    written.qp_cap_retry = false; // the default, written out
+    written.advanced.qp_iteration_limit_retry = false; // the default, written out
     SqpSolver also_off(written);
-    const SqpResult b = also_off.solve(model, cold_start());
+    const SqpResult b = also_off.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(a.status, b.status);
 #define HVEN_TEST_SAME(f, absent) EXPECT_EQ(a.counters.f, b.counters.f) << #f;
@@ -418,12 +419,12 @@ TEST(QpCapRetry, OffNeverRetriesAndIsTodaysSolveExactly) {
 TEST(QpCapRetry, ItChangesNothingOnASolveThatNeverHitsTheCap) {
     BoxPullModel model;
     SqpSolver off(base_options());
-    const SqpResult a = off.solve(model, cold_start());
+    const SqpResult a = off.solve(hven::detail::problem_ref(model), cold_start());
 
     SqpOptions o = base_options();
-    o.qp_cap_retry = true;
+    o.advanced.qp_iteration_limit_retry = true;
     SqpSolver on(o);
-    const SqpResult b = on.solve(model, cold_start());
+    const SqpResult b = on.solve(hven::detail::problem_ref(model), cold_start());
 
     ASSERT_EQ(a.status, SolveStatus::kOptimal);
     EXPECT_EQ(b.status, SolveStatus::kOptimal);
@@ -443,14 +444,14 @@ TEST(QpCapRetry, EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite) {
     ASSERT_GT(uncapped, 1) << "the fixture no longer needs more than one minor";
 
     SqpOptions o = base_options();
-    o.qp.max_iter = 1;
-    o.qp_cap_retry = true;
+    o.qp.max_iterations = 1;
+    o.advanced.qp_iteration_limit_retry = true;
     BoxPullModel model;
     SqpSolver driver(o);
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     driver.attach_trace(&sink);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     Index lines = 0;
     std::istringstream in(os.str());
@@ -471,45 +472,46 @@ TEST(QpCapRetry, EachRetryAnnouncesItselfOnTheTraceAtItsOwnSite) {
 
 TEST(QpCapValidation, ABudgetBelowOneIsRefusedByNameAndByValue) {
     SqpOptions o = base_options();
-    o.qp_failure_budget = 0;
+    o.advanced.max_consecutive_qp_failures = 0;
     try {
         SqpSolver driver(o);
         FAIL() << "a zero failure budget was accepted";
     } catch (const std::invalid_argument &e) {
         const std::string what = e.what();
-        EXPECT_NE(what.find("qp_failure_budget"), std::string::npos) << what;
+        EXPECT_NE(what.find("max_consecutive_qp_failures"), std::string::npos) << what;
         EXPECT_NE(what.find("(0)"), std::string::npos) << what;
     }
-    o.qp_failure_budget = -3;
+    o.advanced.max_consecutive_qp_failures = -3;
     EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
 }
 
 TEST(QpCapValidation, ABudgetOfOneOrMoreIsAcceptedAndBothRetryStatesAre) {
     SqpOptions o = base_options();
-    o.qp_failure_budget = 1;
+    o.advanced.max_consecutive_qp_failures = 1;
     EXPECT_NO_THROW(SqpSolver{o});
-    o.qp_failure_budget = 7;
+    o.advanced.max_consecutive_qp_failures = 7;
     EXPECT_NO_THROW(SqpSolver{o});
-    o.qp_cap_retry = true;
+    o.advanced.qp_iteration_limit_retry = true;
     EXPECT_NO_THROW(SqpSolver{o});
-    o.qp_cap_retry = false;
+    o.advanced.qp_iteration_limit_retry = false;
     EXPECT_NO_THROW(SqpSolver{o});
 }
 
 TEST(QpCapValidation, TheDumpCarriesBothLinesInDeclarationPosition) {
     SqpOptions o = base_options();
-    o.qp_failure_budget = 4;
-    o.qp_cap_retry = true;
+    o.advanced.max_consecutive_qp_failures = 4;
+    o.advanced.qp_iteration_limit_retry = true;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
-    EXPECT_NE(text.find("qp_failure_budget = 4\n"), std::string::npos) << text;
-    EXPECT_NE(text.find("qp_cap_retry = true\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("max_consecutive_qp_failures = 4\n"), std::string::npos) << text;
+    EXPECT_NE(text.find("qp_iteration_limit_retry = true\n"), std::string::npos) << text;
     // DECLARATION POSITION: both sit after `project_start_point` and before the
     // `common.` block, which is what the drift pin's line count is counting.
-    EXPECT_LT(text.find("project_start_point"), text.find("qp_failure_budget"));
-    EXPECT_LT(text.find("qp_failure_budget"), text.find("qp_cap_retry"));
-    EXPECT_LT(text.find("qp_cap_retry"), text.find("common.threads"));
+    EXPECT_LT(text.find("project_start_point"), text.find("max_consecutive_qp_failures"));
+    EXPECT_LT(text.find("max_consecutive_qp_failures"), text.find("qp_iteration_limit_retry"));
+    EXPECT_LT(text.find("qp_iteration_limit_retry"), std::string::npos)
+        << "the common block is first since M8 AP-2 B3";
 }
 
 // ---------------------------------------------------------------------------
@@ -522,16 +524,17 @@ TEST(QpFailureStep, TheCappedFixtureConvergesOnItsOwnSteps) {
     // stands on a point of its box with a predicted decrease: the strategy takes
     // those points, and the solve reaches the answer the UNCAPPED solve reaches
     // instead of the kNumericalError the routing alone ends on.
-    EXPECT_TRUE(SqpOptions{}.qp_failure_step);
+    EXPECT_TRUE(SqpOptions{}.advanced.qp_failure_step);
     BoxPullModel model;
-    const SqpResult reference = SqpSolver(base_options()).solve(model, cold_start());
+    const SqpResult reference =
+        SqpSolver(base_options()).solve(hven::detail::problem_ref(model), cold_start());
     ASSERT_EQ(reference.status, SolveStatus::kOptimal);
 
     SqpOptions o = base_options();
-    o.qp_failure_step = true;
-    o.qp.max_iter = 1;
+    o.advanced.qp_failure_step = true;
+    o.qp.max_iterations = 1;
     SqpSolver driver(o);
-    const SqpResult out = driver.solve(model, cold_start());
+    const SqpResult out = driver.solve(hven::detail::problem_ref(model), cold_start());
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_NEAR(out.f, reference.f, 1e-9);
@@ -541,12 +544,12 @@ TEST(QpFailureStep, TheCappedFixtureConvergesOnItsOwnSteps) {
     // budget's run never reached its limit.
     EXPECT_EQ(out.counters.qp_maxiter_exits,
               out.counters.qp_failure_steps_accepted + out.counters.qp_failures_routed);
-    EXPECT_LT(out.counters.qp_failures_in_a_row_peak, o.qp_failure_budget);
+    EXPECT_LT(out.counters.qp_failures_in_a_row_peak, o.advanced.max_consecutive_qp_failures);
 
     // AND OFF IS THE ROUTING EXACTLY: `base_options()` is the off state.
     SqpOptions off = o;
-    off.qp_failure_step = false;
-    const SqpResult routed = SqpSolver(off).solve(model, cold_start());
+    off.advanced.qp_failure_step = false;
+    const SqpResult routed = SqpSolver(off).solve(hven::detail::problem_ref(model), cold_start());
     EXPECT_EQ(routed.status, SolveStatus::kNumericalError);
     EXPECT_EQ(routed.counters.qp_failure_steps_judged, 0);
     EXPECT_EQ(routed.counters.qp_failure_steps_accepted, 0);
@@ -554,13 +557,13 @@ TEST(QpFailureStep, TheCappedFixtureConvergesOnItsOwnSteps) {
 
 TEST(QpFailureStep, TheDumpCarriesTheLineAfterTheCapRetry) {
     SqpOptions o = base_options();
-    o.qp_failure_step = true;
+    o.advanced.qp_failure_step = true;
     std::ostringstream os;
     dump_options(o, os);
     const std::string text = os.str();
     EXPECT_NE(text.find("qp_failure_step = true\n"), std::string::npos) << text;
-    EXPECT_LT(text.find("qp_cap_retry"), text.find("qp_failure_step"));
+    EXPECT_LT(text.find("qp_iteration_limit_retry"), text.find("qp_failure_step"));
     EXPECT_LT(text.find("qp_failure_step"), text.find("restoration_proximity"));
 }
 
-} // namespace hven::solvers
+} // namespace hven

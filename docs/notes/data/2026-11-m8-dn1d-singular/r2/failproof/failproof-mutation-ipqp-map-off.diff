@@ -1,0 +1,4 @@
+57c57
+<     if (backend_code == hven::linear::kDenseSingular) {
+---
+>     if (false && backend_code == hven::linear::kDenseSingular) {

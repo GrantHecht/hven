@@ -1,0 +1,112 @@
+rows: matrices.csv 5501, full 5501, default-threads 5501
+threw (either arm): 0 []
+matrices per engine: IPM 2684, SQP 2817
+dense-taken 5476, fallback (arm kSparse) 25, other 0
+
+== A1: dense-arm negative count = reference on the decidable union, dense-taken matrices
+A1-IPM s=1: 2575/2575 (union 2575, of them dense-taken 2575)
+A1-IPM s=10: 2556/2556 (union 2556, of them dense-taken 2556)
+A1-IPM s=100: 2531/2531 (union 2531, of them dense-taken 2531)
+A1-SQP s=1: 2764/2764 (union 2764, of them dense-taken 2764)
+A1-SQP s=10: 2741/2741 (union 2741, of them dense-taken 2741)
+A1-SQP s=100: 2692/2692 (union 2692, of them dense-taken 2692)
+
+== A2: Pardiso (unperturbed) matches the reference and the arm does not (union, s = 1)
+A2-IPM: 0 []
+A2-SQP: 0 []
+
+== A3: every matrix the arm finds exactly singular is the fallback's, field for field = kNever
+  sd-hven-ipm-BT8 mat_0001.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0002.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0003.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0004.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0005.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0006.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0007.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0008.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0009.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-BT8 mat_0010.bin n=7 status 0 neg 2 perturbed 2 x_bitwise 1 EQUAL
+  sd-hven-ipm-HS61 mat_0000.bin n=5 status 0 neg 1 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-ipm-HS61 mat_0001.bin n=5 status 0 neg 2 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-ipm-LEWISPOL mat_0000.bin n=15 status 0 neg 6 perturbed 3 x_bitwise 1 EQUAL
+  sd-hven-ipm-LEWISPOL mat_0001.bin n=15 status 0 neg 7 perturbed 6 x_bitwise 1 EQUAL
+  sd-hven-ipm-LSNNODOC mat_0000.bin n=9 status 0 neg 3 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0007.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0013.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0019.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0025.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0031.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-BURKEHAN mat_0036.bin n=2 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-HS88 mat_0042.bin n=3 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-HS92 mat_0026.bin n=4 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-HS92 mat_0034.bin n=4 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+  sd-hven-sqp-HS92 mat_0042.bin n=4 status 0 neg 0 perturbed 1 x_bitwise 1 EQUAL
+A3: 25/25 fallback matrices field-for-field equal (expected 25/25)
+
+== A4 (reported): literal agreement with unperturbed Pardiso (kNever replay), dense-taken, n <= cut
+A4-IPM: n<=8 1147/1147=1.0000; n<=16 1428/1428=1.0000; n<=24 1725/1725=1.0000; n<=32 1784/1784=1.0000; n<=48 1883/1884=0.9995; n<=64 1984/1985=0.9995; n<=96 2117/2118=0.9995; n<=128 2249/2251=0.9991; n<=all 2416/2420=0.9983
+A4-SQP: n<=8 1366/1366=1.0000; n<=16 1818/1823=0.9973; n<=24 1915/1920=0.9974; n<=32 1961/1966=0.9975; n<=48 2060/2085=0.9880; n<=64 2120/2169=0.9774; n<=96 2279/2360=0.9657; n<=128 2351/2449=0.9600; n<=all 2418/2558=0.9453
+
+== A5: arm = MKL dsytrf by det/trace (mkl_bk_neg) on every dense-taken matrix; vs DN-0 dense column
+arm vs mkl_bk_neg: 5476/5476 equal; differing []
+arm vs this tool's own dsytrf walk (bk_neg, instrument self-check): 5476/5476
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0002.bin') arm 78 dense_neg '72' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0003.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0004.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0005.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0006.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0007.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0008.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0009.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0010.bin') arm 79 dense_neg '73' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0011.bin') arm 78 dense_neg '72' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0012.bin') arm 83 dense_neg '77' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0013.bin') arm 78 dense_neg '72' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0014.bin') arm 83 dense_neg '77' (dense_status 0)
+  vs DN-0 dense_neg: ('sd-hven-ipm-LAKES', 'mat_0015.bin') arm 78 dense_neg '72' (dense_status 0)
+A5: equal to mkl_bk_neg 5476/5476; vs DN-0 dense column differing 14 (expected exactly the 14 LAKES matrices, +6 each: True)
+
+== A6 (reported): dsytrf_rook
+A6-IPM: negative count = reference on the union (s = 1, non-singular) 2575/2575; exactly singular 13; max |multiplier| 1.88; residual median 7.161e-21 max 2.400e-16; instructions per factorization median 8080 max 13977881, per solve median 6642 max 700069
+A6-SQP: negative count = reference on the union (s = 1, non-singular) 2764/2764; exactly singular 10; max |multiplier| 1.82; residual median 3.861e-18 max 2.063e-16; instructions per factorization median 4943 max 3610022, per solve median 4848 max 303535
+
+== A7 (reported): min |D-block eigenvalue| / max |a_ij| over dense-taken factorizations (this tool's dsytrf on the same matrix; its count equals the arm's on every dense-taken matrix above)
+A7-SQP all: taken 2807 q01 1.8e-14 q05 3.2e-12 q25 4.4e-10 median 6.6e-06 <=1e-8 1057 <=1e-12 112 <=1e-14 3
+A7-SQP decidable (union): taken 2764 q01 2.8e-14 q05 3.3e-12 q25 4.4e-10 median 9.8e-06 <=1e-8 1014 <=1e-12 69 <=1e-14 2
+A7-SQP undecidable: taken 43 q01 5.6e-35 q05 1.6e-14 q25 1.8e-14 median 1.8e-14 <=1e-8 43 <=1e-12 43 <=1e-14 1
+A7-IPM all: taken 2669 q01 5.5e-37 q05 7.7e-25 q25 3.1e-14 median 3.8e-08 <=1e-8 1228 <=1e-12 837 <=1e-14 611
+A7-IPM decidable (union): taken 2575 q01 1e-30 q05 9.7e-22 q25 8.3e-14 median 7e-08 <=1e-8 1134 <=1e-12 743 <=1e-14 517
+A7-IPM undecidable: taken 94 q01 4.2e-44 q05 4.8e-43 q25 4e-38 median 1.4e-26 <=1e-8 94 <=1e-12 94 <=1e-14 94
+
+== A-thr: the arm at the default thread setting (MKL_NUM_THREADS unset) vs MKL_NUM_THREADS=1
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0011.bin') pos: MKL=1 154 default 153
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0011.bin') neg: MKL=1 142 default 143
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0016.bin') pos: MKL=1 153 default 154
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0016.bin') neg: MKL=1 143 default 142
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0030.bin') pos: MKL=1 154 default 153
+  DIFF ('sd-hven-ipm-ACOPP30', 'mat_0030.bin') neg: MKL=1 142 default 143
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0000.bin') arm: MKL=1 1 default 0
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0000.bin') pos: MKL=1 103 default 95
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0000.bin') neg: MKL=1 60 default 68
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0000.bin') zero_is_derived: MKL=1 0 default 1
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0000.bin') perturbed: MKL=1  default 28
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0001.bin') pos: MKL=1 104 default 103
+  DIFF ('sd-hven-ipm-MSS1', 'mat_0001.bin') neg: MKL=1 59 default 60
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0000.bin') pos: MKL=1 82 default 81
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0000.bin') neg: MKL=1 32 default 33
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0003.bin') pos: MKL=1 71 default 70
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0003.bin') neg: MKL=1 43 default 44
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0006.bin') pos: MKL=1 70 default 71
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0006.bin') neg: MKL=1 44 default 43
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0007.bin') pos: MKL=1 72 default 73
+  DIFF ('sd-hven-ipm-SPANHYD', 'mat_0007.bin') neg: MKL=1 42 default 41
+A-thr: 21 field differences over 5501 matrices
+
+== VERDICTS
+A1_IPM_PASS 2575/2575
+A1_SQP_PASS 2764/2764
+A2_IPM_PASS 0
+A2_SQP_PASS 0
+A3_PASS 25/25
+A5_PASS bk 5476/5476 dn0-diff 14
+A_THR_DIFFERENCES_LISTED 21

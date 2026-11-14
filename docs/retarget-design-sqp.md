@@ -1,5 +1,7 @@
 # SQP linear-solver retarget design (M3 phase B)
 
+> Historical record (M3-era retarget design). Names in this document are the API of that time; the current names are in `docs/notes/2026-11-m8-ap2-b8-naming.md`.
+
 > **SURFACE VERDICT (adjudicated by the M3 plan rev B §4; two additional
 > gaps found by this note's own source verification, each with a proposed
 > disposition awaiting the same review):** the SQP engine's consumed

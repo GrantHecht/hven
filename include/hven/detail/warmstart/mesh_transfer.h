@@ -3,7 +3,7 @@
 
 #pragma once
 
-// mesh_transfer.h — MeshTransfer: mapping a SqpWarmStart (warm_start.h) from one
+// mesh_transfer.h — MeshTransfer: mapping a SqpWarmState (warm_start.h) from one
 // DISCRETIZATION MESH onto another, which is the operation a mesh-refinement
 // loop needs between its solves.
 //
@@ -112,13 +112,13 @@
 // 2. THE LAYOUT CONTRACT
 // =====================================================================
 //
-// FOR THE SYNTHETIC MODEL, EVERY FLAT VECTOR OF A SqpWarmStart IS ONE VALUE PER
+// FOR THE SYNTHETIC MODEL, EVERY FLAT VECTOR OF A SqpWarmState IS ONE VALUE PER
 // MESH NODE, IN NODE ORDER:
 //
 //     ws.x[i], ws.lambda_e[i], ws.lambda_i[i], ws.z[i],
 //     ws.ineq_active[i], ws.bound_active[i]      <-> mesh node i
 //
-// so a source SqpWarmStart's every non-empty vector has EXACTLY from.nodes.size()
+// so a source SqpWarmState's every non-empty vector has EXACTLY from.nodes.size()
 // entries and every vector of the result has to.nodes.size(). AN EMPTY VECTOR
 // IS ABSENT, NOT MALFORMED (a model with me == 0 emits an empty lambda_e; a
 // solve that could attribute no activity emits empty activity vectors --
@@ -195,7 +195,7 @@
 // arithmetic.
 //
 // =====================================================================
-// 4. WHAT THE TRANSFERRED SqpWarmStart CLAIMS, AND WHAT IT REFUSES TO
+// 4. WHAT THE TRANSFERRED SqpWarmState CLAIMS, AND WHAT IT REFUSES TO
 // =====================================================================
 //
 // THE OUTPUT DESCRIBES A DIFFERENT PROBLEM SIZE THAN THE INPUT, and every
@@ -261,7 +261,7 @@
 // transfer's provenance could read them.)
 //
 // valid IS TRUE, and a cold input THROWS rather than producing a cold output: a
-// SqpWarmStart with valid == false carries nothing that may be trusted or fed
+// SqpWarmState with valid == false carries nothing that may be trusted or fed
 // forward (warm_start.h), so asking to transfer one is a caller error, not a
 // request for an empty answer.
 //
@@ -271,7 +271,7 @@
 // seeding consumes, so re-deriving it is free and makes it impossible for the
 // two representations to disagree on the destination mesh.
 //
-// THE INPUT IS NEVER MUTATED (transfer() is const and takes its SqpWarmStart by
+// THE INPUT IS NEVER MUTATED (transfer() is const and takes its SqpWarmState by
 // const reference; every output vector is freshly allocated).
 
 #include <algorithm>
@@ -287,7 +287,7 @@
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // A discretization mesh: STRICTLY INCREASING nodes and STRICTLY POSITIVE
 // quadrature weights, one weight per node. Deliberately a plain aggregate with
@@ -465,7 +465,7 @@ inline void check_layout(Index size, Index expected, const char *field) {
 
 } // namespace mesh_detail
 
-// Maps a SqpWarmStart between discretization meshes. Stateless and const; one
+// Maps a SqpWarmState between discretization meshes. Stateless and const; one
 // instance may serve any number of transfers.
 class MeshTransfer {
   public:
@@ -479,10 +479,11 @@ class MeshTransfer {
     // Throws std::invalid_argument (the offending value in
     // the message) on: a mesh with fewer than two nodes, non-finite or
     // non-increasing nodes, a non-finite or non-positive weight, a
-    // nodes/weights length mismatch, a SqpWarmStart vector that is neither empty
+    // nodes/weights length mismatch, a SqpWarmState vector that is neither empty
     // nor one-per-node, a qp_working_set whose shape contradicts the source
     // mesh, or a `from_ws` that is not `valid`.
-    SqpWarmStart transfer(const SqpWarmStart &from_ws, const Mesh &from, const Mesh &to) const {
+    detail::SqpWarmState transfer(const detail::SqpWarmState &from_ws, const Mesh &from,
+                                  const Mesh &to) const {
         mesh_detail::validate_mesh(from, "from");
         mesh_detail::validate_mesh(to, "to");
 
@@ -523,7 +524,7 @@ class MeshTransfer {
         }
         mesh_detail::check_layout(from_ws.qp_working_set.mi(), m, "qp_working_set.mi()");
 
-        SqpWarmStart out;
+        detail::SqpWarmState out;
 
         // PRIMAL: a pointwise state value, interpolated plainly (section 1's
         // last paragraph).
@@ -590,4 +591,4 @@ class MeshTransfer {
     }
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

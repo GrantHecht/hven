@@ -29,9 +29,11 @@ set(HVEN_MODEL_TEST_SOURCES
     test_claim_stream_state.cpp
     test_contract_flags.cpp
     test_identity_probe.cpp
+    test_local_block_include.cpp
     test_model_structure_key.cpp
     test_model_surface_kkt.cpp
     test_nlp_model_assembly.cpp
+    test_pieces.cpp
     test_structure_epoch.cpp
 )
 

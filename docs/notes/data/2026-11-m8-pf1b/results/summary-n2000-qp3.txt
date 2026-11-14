@@ -1,0 +1,21 @@
+== exp-c4/qp8/cap30k.csv: 30000 minors
+  first dual_mu drop at record None
+  verdicts: kOk 30000 kSuspect 0 kWrong 0; perturbed passes 0, pivots 0, max in a pass 0
+  delta range 1.0e-08..1.0e-08
+  EQP row residual, perturbed passes: none
+  EQP row residual, clean passes:     n=30000 median=9.75e-14 p99=1.59e-12 max=1.33e-10
+  EQP refusals 0
+  last pass: action 10 verdict 0 perturbed 0 mu 1.000e-08
+  window: first-minor obj_in ws_in | actions | perturbed passes
+         0 +0.0000000000e+00   920 | a0=6 a10=2494 | 0
+      2500 +4.4866735813e-02  3407 | a0=13 a10=2487 | 0
+      5000 +6.3149979732e-02  4000 | a10=2500 | 0
+      7500 +6.3528386538e-02  4000 | a10=2500 | 0
+     10000 +6.3541199860e-02  4000 | a10=2500 | 0
+     12500 +6.3590149718e-02  4000 | a10=2500 | 0
+     15000 +6.3618497803e-02  4000 | a10=2500 | 0
+     17500 +6.3673515669e-02  4000 | a10=2500 | 0
+     20000 +6.3770938494e-02  4000 | a10=2500 | 0
+     22500 +6.3939462492e-02  4000 | a10=2500 | 0
+     25000 +6.4122881268e-02  4000 | a10=2500 | 0
+     27500 +6.4246958844e-02  4000 | a10=2500 | 0

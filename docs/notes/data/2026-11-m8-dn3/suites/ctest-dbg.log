@@ -1,0 +1,65 @@
+Test project /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/dbg
+          Start 2165: Continuation.ProbeBudgetBoundsAFailingProposal
+          Start 2167: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure
+          Start  698: QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint
+          Start  621: QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide
+   1/3634 Test  #621: QpW1AscentGuard.TheOptionOffWalkTakesNoGuardRide ...................................................................................................................................................................   Passed   64.92 sec
+          Start 2315: SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung
+   2/3634 Test  #698: QpReleaseReadmission.F7PathCorruptedQp1LeavesTheCappedEndpoint .....................................................................................................................................................   Passed   72.77 sec
+          Start  616: QpNc4ConvexCertificate.BritgasRestorationLpQp2
+   3/3634 Test #2167: Continuation.GrowthSuspensionSkipsTheStepAfterAFailure .............................................................................................................................................................   Passed   87.39 sec
+          Start  699: QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization
+   4/3634 Test #2315: SqpElasticWitnessStart.SawpathMajor0LadderNeedsTheLastOptimalRung ..................................................................................................................................................   Passed   55.15 sec
+          Start 3013: QpScaleSmoke.ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart
+   5/3634 Test  #616: QpNc4ConvexCertificate.BritgasRestorationLpQp2 .....................................................................................................................................................................   Passed   53.94 sec
+          Start 3554: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+   6/3634 Test  #699: QpReleaseReadmission.TheOptionOffWalkKeepsItsRegularization ........................................................................................................................................................   Passed   41.97 sec
+          Start  618: QpNc4ConvexCertificate.BritgasRestorationLpQp4
+   7/3634 Test #3013: QpScaleSmoke.ModerateScaleBorderModeMatchesRefactorizeAndReusesHotStart ............................................................................................................................................   Passed   40.72 sec
+          Start 2314: SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness
+   8/3634 Test #3554: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ..........................................................................................................................................................   Passed   39.76 sec
+          Start  540: QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3
+   9/3634 Test  #618: QpNc4ConvexCertificate.BritgasRestorationLpQp4 .....................................................................................................................................................................   Passed   37.78 sec
+          Start  635: QpRdvRankRepair.SawpathQp1Border
+  10/3634 Test #2165: Continuation.ProbeBudgetBoundsAFailingProposal .....................................................................................................................................................................   Passed  168.75 sec
+          Start  636: QpRdvRankRepair.SawpathQp1Refactorize
+  11/3634 Test #2314: SqpElasticWitnessStart.YorknetMajor0LadderIsUsableFromTheShippedStartAndTheWitness .................................................................................................................................   Passed   27.34 sec
+          Start 2313: SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness
+  12/3634 Test  #635: QpRdvRankRepair.SawpathQp1Border ...................................................................................................................................................................................   Passed   22.99 sec
+          Start 2311: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines
+  13/3634 Test  #540: QpE2WorkingSet.TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp3 ....................................................................................................................................   Passed   24.02 sec
+          Start  639: QpRdvRankRepair.TheSeamRecordsARepairWithItsDropIdentity
+  14/3634 Test  #636: QpRdvRankRepair.SawpathQp1Refactorize ..............................................................................................................................................................................   Passed   22.99 sec
+          Start  637: QpRdvRankRepair.YorknetQp5Border
+  15/3634 Test #2313: SqpElasticWitnessStart.SawpathMajor0RungSolvesFromItsWitness .......................................................................................................................................................   Passed   23.39 sec
+          Start  617: QpNc4ConvexCertificate.BritgasRestorationLpQp3
+  16/3634 Test  #639: QpRdvRankRepair.TheSeamRecordsARepairWithItsDropIdentity ...........................................................................................................................................................   Passed   22.34 sec
+          Start 3017: F7ColdScaleSmoke.TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFacePrices
+  17/3634 Test #2311: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...................................................................................................................................   Passed   22.91 sec
+          Start  667: QpStagnationStop.BritgasRestorationFootprintFace
+  18/3634 Test  #637: QpRdvRankRepair.YorknetQp5Border ...................................................................................................................................................................................   Passed   22.27 sec
+          Start  537: QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp
+  19/3634 Test  #667: QpStagnationStop.BritgasRestorationFootprintFace ...................................................................................................................................................................   Passed   18.16 sec
+          Start  660: QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible
+  20/3634 Test #3017: F7ColdScaleSmoke.TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFacePrices .................................................................................................................................   Passed   18.95 sec
+          Start  642: QpYrkRefusedExchange.YorknetRestorationQp25Border
+  21/3634 Test  #537: QpE2WorkingSet.AGreyReReadSolvesTheAcopr57RestorationQp ............................................................................................................................................................   Passed   17.88 sec
+          Start  605: QpNc3SaddleExit.ACurvatureBelowResolutionIsNotRiddenSteenbreQp2
+  22/3634 Test  #617: QpNc4ConvexCertificate.BritgasRestorationLpQp3 .....................................................................................................................................................................   Passed   21.33 sec
+          Start  665: QpSdlSaddleShift.YorknetRestorationQp30Border
+  23/3634 Test  #605: QpNc3SaddleExit.ACurvatureBelowResolutionIsNotRiddenSteenbreQp2 ....................................................................................................................................................   Passed   15.51 sec
+          Start  663: QpSdlSaddleShift.YorknetRestorationQp29Border
+  24/3634 Test  #665: QpSdlSaddleShift.YorknetRestorationQp30Border ......................................................................................................................................................................   Passed   15.11 sec
+          Start  619: QpW1AscentGuard.BritgasElasticQp1Border
+  25/3634 Test  #660: QpCertificateSign.Net3QnSubproblemInconsistentFaceIsNotInfeasible ..................................................................................................................................................   Passed   16.89 sec
+          Start  620: QpW1AscentGuard.BritgasElasticQp1Refactorize
+  26/3634 Test  #642: QpYrkRefusedExchange.YorknetRestorationQp25Border ..................................................................................................................................................................   Passed   16.49 sec
+          Start  587: QpE2Fix7Acopr118.Major18SubproblemCertifiesBorder
+  27/3634 Test  #587: QpE2Fix7Acopr118.Major18SubproblemCertifiesBorder ..................................................................................................................................................................   Passed   13.36 sec
+          Start 2312: SqpElasticWitnessStart.YorknetMajor0RungSolvesFromItsWitness
+  28/3634 Test  #620: QpW1AscentGuard.BritgasElasticQp1Refactorize .......................................................................................................................................................................   Passed   13.84 sec
+          Start  624: QpBpsBorderCertificate.Acopr118Entry9Border
+  29/3634 Test  #663: QpSdlSaddleShift.YorknetRestorationQp29Border ......................................................................................................................................................................   Passed   14.76 sec
+          Start  585: QpE2Fix7Acopr118.Major17SubproblemCertifiesBorder
+  30/3634 Test  #619: QpW1AscentGuard.BritgasElasticQp1Border ............................................................................................................................................................................   Passed   14.64 sec
+          Start  668: QpStagnationStop.BritgasRestorationUncertifiedStationaryPointBorder

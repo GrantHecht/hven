@@ -1,0 +1,258 @@
+cell                                         N status         A status            it N/A     fac N/A  dense A class
+hs-hven-ipm-hs003                            optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+hs-hven-ipm-hs005                            optimal          optimal             8/8        8/8            8 dense 8 of factorizations 8
+hs-hven-ipm-hs006                            optimal          optimal             7/7       16/16          16 dense 16 of factorizations 16
+hs-hven-ipm-hs007                            optimal          optimal            10/10      16/16          16 dense 16 of factorizations 16
+hs-hven-ipm-hs010                            optimal          optimal            10/10      10/10          10 dense 10 of factorizations 10
+hs-hven-ipm-hs011                            optimal          optimal             8/8        8/8            8 dense 8 of factorizations 8
+hs-hven-ipm-hs012                            optimal          optimal            13/13      13/13          13 dense 13 of factorizations 13
+hs-hven-ipm-hs014                            optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+hs-hven-ipm-hs022                            optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+hs-hven-ipm-hs025                            optimal          optimal             4/4        5/5            5 dense 5 of factorizations 5
+hs-hven-ipm-hs026                            optimal          optimal            20/20      20/20          20 dense 20 of factorizations 20
+hs-hven-ipm-hs027                            optimal          optimal            18/18      28/28          28 dense 28 of factorizations 28
+hs-hven-ipm-hs028                            optimal          optimal             2/2        2/2            2 dense 2 of factorizations 2
+hs-hven-ipm-hs030                            optimal          optimal            16/16      16/16          16 dense 16 of factorizations 16
+hs-hven-ipm-hs033                            optimal          optimal            10/10      15/15          15 dense 15 of factorizations 15
+hs-hven-ipm-hs035                            optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+hs-hven-ipm-hs039                            optimal          optimal            19/19      32/32          32 dense 32 of factorizations 32
+hs-hven-ipm-hs043                            optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+hs-hven-ipm-hs045                            optimal          optimal            10/10      19/19          19 dense 19 of factorizations 19
+hs-hven-ipm-hs077                            optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+hs-hven-ipm-hs079                            optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+hs-hven-ipm-hs071                            optimal          optimal            10/10      10/10          10 dense 10 of factorizations 10
+hs-hven-sqp-hs003                            optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+hs-hven-sqp-hs005                            optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+hs-hven-sqp-hs006                            optimal          optimal             8/8       10/10          10 dense 10 of factorizations 10
+hs-hven-sqp-hs007                            optimal          optimal             9/9       12/12          12 dense 12 of factorizations 12
+hs-hven-sqp-hs010                            optimal          optimal            14/14      22/22          22 dense 22 of factorizations 22
+hs-hven-sqp-hs011                            optimal          optimal             7/7        9/9            9 dense 9 of factorizations 9
+hs-hven-sqp-hs012                            optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+hs-hven-sqp-hs014                            optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+hs-hven-sqp-hs022                            optimal          optimal             2/2        2/2            2 dense 2 of factorizations 2
+hs-hven-sqp-hs025                            optimal          optimal             0/0        0/0            0 all-sparse
+hs-hven-sqp-hs026                            optimal          optimal            17/17      17/17          17 dense 17 of factorizations 17
+hs-hven-sqp-hs027                            optimal          optimal             4/4       24/24          24 dense 24 of factorizations 24
+hs-hven-sqp-hs028                            optimal          optimal             3/3        3/3            3 dense 3 of factorizations 3
+hs-hven-sqp-hs030                            optimal          optimal            11/11      11/11          11 dense 11 of factorizations 11
+hs-hven-sqp-hs033                            optimal          optimal             4/4       10/10          10 dense 10 of factorizations 10
+hs-hven-sqp-hs035                            optimal          optimal             1/1        1/1            1 dense 1 of factorizations 1
+hs-hven-sqp-hs039                            optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+hs-hven-sqp-hs043                            optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+hs-hven-sqp-hs045                            optimal          optimal             2/2        4/4            4 dense 4 of factorizations 4
+hs-hven-sqp-hs077                            optimal          optimal            12/12      10/10          10 dense 10 of factorizations 10
+hs-hven-sqp-hs079                            optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+hs-hven-sqp-hs071                            optimal          optimal             5/5       19/19          19 dense 19 of factorizations 19
+sd-hven-ipm-ACOPP30                          optimal          optimal            24/24      39/39           0 all-sparse
+sd-hven-ipm-ALLINITC                         acceptable       optimal            91/72      91/72          72 dense 72 of factorizations 72
+sd-hven-ipm-ALSOTAME                         optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+sd-hven-ipm-BT11                             optimal          optimal             8/8        8/8            8 dense 8 of factorizations 8
+sd-hven-ipm-BT12                             optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-ipm-BT2                              optimal          optimal            13/13      13/13          13 dense 13 of factorizations 13
+sd-hven-ipm-BT6                              optimal          optimal            10/10      10/10          10 dense 10 of factorizations 10
+sd-hven-ipm-BT7                              optimal          optimal            23/23      38/38          38 dense 38 of factorizations 38
+sd-hven-ipm-BT8                              optimal          optimal            11/40      11/82          82 dense 82 of factorizations 82
+sd-hven-ipm-BURKEHAN                         max_iter         diverging        1000/7     1001/7            7 dense 7 of factorizations 7
+sd-hven-ipm-CRESC100                         optimal          optimal           142/142    245/245          0 all-sparse
+sd-hven-ipm-CRESC4                           optimal          optimal            45/45      78/78          78 dense 78 of factorizations 78
+sd-hven-ipm-CRESC50                          max_iter         max_iter         1000/1000  1604/1604         0 all-sparse
+sd-hven-ipm-DECONVC                          optimal          optimal            29/29      46/46          46 dense 46 of factorizations 46
+sd-hven-ipm-DEMBO7                           optimal          optimal           117/85     175/113        113 dense 113 of factorizations 113
+sd-hven-ipm-DIXCHLNG                         optimal          optimal            11/11      11/11          11 dense 11 of factorizations 11
+sd-hven-ipm-DNIEPER                          optimal          optimal            48/48      60/60          60 dense 60 of factorizations 60
+sd-hven-ipm-FLETCHER                         optimal          optimal            30/30      39/39          39 dense 39 of factorizations 39
+sd-hven-ipm-HIMMELP2                         optimal          optimal             8/8       15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HIMMELP3                         optimal          optimal            10/10      16/16          16 dense 16 of factorizations 16
+sd-hven-ipm-HIMMELP4                         optimal          optimal            11/11      17/17          17 dense 17 of factorizations 17
+sd-hven-ipm-HIMMELP6                         optimal          optimal            19/19      29/29          29 dense 29 of factorizations 29
+sd-hven-ipm-HS100                            optimal          optimal            22/22      22/22          22 dense 22 of factorizations 22
+sd-hven-ipm-HS100LNP                         optimal          optimal             9/9       15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HS100MOD                         optimal          optimal            15/15      15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HS101                            optimal          optimal            47/47      82/82          82 dense 82 of factorizations 82
+sd-hven-ipm-HS102                            optimal          optimal            32/32      59/59          59 dense 59 of factorizations 59
+sd-hven-ipm-HS103                            optimal          optimal            45/45      80/80          80 dense 80 of factorizations 80
+sd-hven-ipm-HS104                            optimal          optimal            10/10      15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HS107                            optimal          optimal            20/20      27/27          27 dense 27 of factorizations 27
+sd-hven-ipm-HS108                            optimal          optimal            23/23      36/36          36 dense 36 of factorizations 36
+sd-hven-ipm-HS11                             optimal          optimal             8/8        8/8            8 dense 8 of factorizations 8
+sd-hven-ipm-HS111LNP                         optimal          optimal            19/19      34/34          34 dense 34 of factorizations 34
+sd-hven-ipm-HS113                            optimal          optimal            17/17      17/17          17 dense 17 of factorizations 17
+sd-hven-ipm-HS117                            optimal          optimal            30/30      30/30          30 dense 30 of factorizations 30
+sd-hven-ipm-HS15                             optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+sd-hven-ipm-HS17                             optimal          optimal            17/17      17/17          17 dense 17 of factorizations 17
+sd-hven-ipm-HS19                             optimal          optimal            20/20      28/28          28 dense 28 of factorizations 28
+sd-hven-ipm-HS22                             optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+sd-hven-ipm-HS26                             optimal          optimal            20/20      20/20          20 dense 20 of factorizations 20
+sd-hven-ipm-HS27                             optimal          optimal            18/18      28/28          28 dense 28 of factorizations 28
+sd-hven-ipm-HS30                             optimal          optimal            16/16      16/16          16 dense 16 of factorizations 16
+sd-hven-ipm-HS31                             optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+sd-hven-ipm-HS32                             optimal          optimal            10/10      10/10          10 dense 10 of factorizations 10
+sd-hven-ipm-HS33                             optimal          optimal            10/10      15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HS40                             optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+sd-hven-ipm-HS42                             optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+sd-hven-ipm-HS43                             optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+sd-hven-ipm-HS46                             optimal          optimal            14/14      14/14          14 dense 14 of factorizations 14
+sd-hven-ipm-HS56                             optimal          optimal            16/16      32/32          32 dense 32 of factorizations 32
+sd-hven-ipm-HS59                             optimal          optimal            16/16      23/23          23 dense 23 of factorizations 23
+sd-hven-ipm-HS6                              optimal          optimal             7/7       16/16          16 dense 16 of factorizations 16
+sd-hven-ipm-HS60                             optimal          optimal             8/8        8/8            8 dense 8 of factorizations 8
+sd-hven-ipm-HS61                             optimal          optimal            40/14      64/22          22 dense 22 of factorizations 22
+sd-hven-ipm-HS63                             optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+sd-hven-ipm-HS64                             optimal          optimal            27/27      27/27          27 dense 27 of factorizations 27
+sd-hven-ipm-HS67                             optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+sd-hven-ipm-HS68                             optimal          optimal            15/15      27/27          27 dense 27 of factorizations 27
+sd-hven-ipm-HS7                              optimal          optimal            10/10      16/16          16 dense 16 of factorizations 16
+sd-hven-ipm-HS70                             optimal          optimal            26/26      42/42          42 dense 42 of factorizations 42
+sd-hven-ipm-HS74                             optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+sd-hven-ipm-HS75                             optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+sd-hven-ipm-HS79                             optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-ipm-HS80                             optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+sd-hven-ipm-HS81                             optimal          optimal            26/26      42/42          42 dense 42 of factorizations 42
+sd-hven-ipm-HS83                             optimal          optimal            22/22      26/26          26 dense 26 of factorizations 26
+sd-hven-ipm-HS84                             optimal          optimal            24/24      44/44          44 dense 44 of factorizations 44
+sd-hven-ipm-HS85                             optimal          optimal            14/14      24/24          24 dense 24 of factorizations 24
+sd-hven-ipm-HS88                             optimal          optimal            15/15      15/15          15 dense 15 of factorizations 15
+sd-hven-ipm-HS89                             optimal          optimal            17/17      26/26          26 dense 26 of factorizations 26
+sd-hven-ipm-HS90                             optimal          optimal            30/30      54/54          54 dense 54 of factorizations 54
+sd-hven-ipm-HS91                             optimal          optimal            19/19      26/26          26 dense 26 of factorizations 26
+sd-hven-ipm-HS92                             optimal          optimal            15/15      26/26          26 dense 26 of factorizations 26
+sd-hven-ipm-HS93                             optimal          optimal            10/10      16/16          16 dense 16 of factorizations 16
+sd-hven-ipm-HS99EXP                          optimal          optimal            23/23      31/31          31 dense 31 of factorizations 31
+sd-hven-ipm-LAKES                            optimal          optimal            25/25      36/36           0 all-sparse
+sd-hven-ipm-LAUNCH                           optimal          optimal            12/12      14/14          14 dense 14 of factorizations 14
+sd-hven-ipm-LEWISPOL                         max_iter         optimal          1000/762   1439/1168      1168 dense 1168 of factorizations 1168
+sd-hven-ipm-LOOTSMA                          optimal          optimal            24/24      37/37          37 dense 37 of factorizations 37
+sd-hven-ipm-LSNNODOC                         optimal          optimal            15/15      16/17          17 dense 17 of factorizations 17
+sd-hven-ipm-MATRIX2                          optimal          optimal            17/17      17/17          17 dense 17 of factorizations 17
+sd-hven-ipm-MESH                             diverging        numerical_error   101/130    182/249        249 dense 249 of factorizations 249
+sd-hven-ipm-MISTAKE                          optimal          optimal            20/20      29/29          29 dense 29 of factorizations 29
+sd-hven-ipm-MSS1                             numerical_error  numerical_error     2/2       19/19          19 dense 19 of factorizations 19
+sd-hven-ipm-MWRIGHT                          optimal          optimal             8/8       13/13          13 dense 13 of factorizations 13
+sd-hven-ipm-NET1                             optimal          optimal            43/43      65/65          65 dense 65 of factorizations 65
+sd-hven-ipm-OPTPRLOC                         optimal          optimal            46/46      46/46          46 dense 46 of factorizations 46
+sd-hven-ipm-S365                             numerical_error  numerical_error     1/1        0/0            0 all-sparse
+sd-hven-ipm-S365MOD                          numerical_error  numerical_error     1/1        0/0            0 all-sparse
+sd-hven-ipm-SPANHYD                          optimal          optimal           111/110    190/189        189 dense 189 of factorizations 189
+sd-hven-ipm-SYNTHES1                         optimal          optimal            12/12      12/12          12 dense 12 of factorizations 12
+sd-hven-ipm-TRY-B                            optimal          optimal            34/34      61/61          61 dense 61 of factorizations 61
+sd-hven-ipm-TWOBARS                          optimal          optimal             9/9        9/9            9 dense 9 of factorizations 9
+sd-hven-ipm-WATER                            optimal          optimal            40/40      42/41          41 dense 41 of factorizations 41
+sd-hven-ipm-ZECEVIC3                         optimal          optimal            14/14      14/14          14 dense 14 of factorizations 14
+sd-hven-ipm-ZECEVIC4                         optimal          optimal            11/11      11/11          11 dense 11 of factorizations 11
+sd-hven-ipm-ZY2                              optimal          optimal             8/8       13/13          13 dense 13 of factorizations 13
+sd-hven-sqp-ACOPP30                          optimal          optimal             7/7      339/339          0 all-sparse
+sd-hven-sqp-ALLINITC                         numerical_error  optimal            78/28     126/28          72 dense 72 of factorizations 28
+sd-hven-sqp-ALSOTAME                         optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+sd-hven-sqp-BT11                             optimal          optimal             9/9       27/27          28 dense 28 of factorizations 27
+sd-hven-sqp-BT12                             optimal          optimal             9/9       21/21          22 dense 22 of factorizations 21
+sd-hven-sqp-BT2                              optimal          optimal            11/11      17/17          19 dense 19 of factorizations 17
+sd-hven-sqp-BT6                              optimal          optimal            11/11      10/10          10 dense 10 of factorizations 10
+sd-hven-sqp-BT7                              optimal          optimal            97/97    1455/1428      1487 dense 1487 of factorizations 1428
+sd-hven-sqp-BT8                              optimal          optimal            13/13      15/14          14 dense 14 of factorizations 14
+sd-hven-sqp-BURKEHAN                         infeasible       infeasible         57/57     166/154        160 dense 160 of factorizations 154
+sd-hven-sqp-CRESC100                         infeasible       optimal            25/40   19813/26023     6600 dense 6600 of factorizations 26023
+sd-hven-sqp-CRESC4                           optimal          optimal            48/65     501/570        572 dense 572 of factorizations 570
+sd-hven-sqp-CRESC50                          numerical_error  max_iter          138/240   6117/14180     7968 dense 7968 of factorizations 14180
+sd-hven-sqp-DECONVC                          optimal          optimal           126/126   2102/1932      1939 dense 1939 of factorizations 1932
+sd-hven-sqp-DEMBO7                           optimal          optimal            15/15     945/894        894 dense 894 of factorizations 894
+sd-hven-sqp-DIXCHLNG                         optimal          optimal            10/10      10/10          11 dense 11 of factorizations 10
+sd-hven-sqp-DNIEPER                          optimal          optimal             5/5      585/581        498 dense 498 of factorizations 581
+sd-hven-sqp-FLETCHER                         infeasible       infeasible          1/1        5/2            2 dense 2 of factorizations 2
+sd-hven-sqp-HIMMELP2                         optimal          optimal            11/11      17/17          17 dense 17 of factorizations 17
+sd-hven-sqp-HIMMELP3                         optimal          optimal             6/6       11/11          11 dense 11 of factorizations 11
+sd-hven-sqp-HIMMELP4                         optimal          optimal             6/6       11/11          11 dense 11 of factorizations 11
+sd-hven-sqp-HIMMELP6                         optimal          optimal             9/9       20/20          23 dense 23 of factorizations 20
+sd-hven-sqp-HS100                            optimal          optimal             7/7        8/8            8 dense 8 of factorizations 8
+sd-hven-sqp-HS100LNP                         optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+sd-hven-sqp-HS100MOD                         optimal          optimal             7/7        8/8            8 dense 8 of factorizations 8
+sd-hven-sqp-HS101                            optimal          optimal            28/27     542/401        413 dense 413 of factorizations 401
+sd-hven-sqp-HS102                            optimal          optimal            23/23      66/51          55 dense 55 of factorizations 51
+sd-hven-sqp-HS103                            optimal          optimal            21/21      45/39          42 dense 42 of factorizations 39
+sd-hven-sqp-HS104                            optimal          optimal            11/11      20/18          18 dense 18 of factorizations 18
+sd-hven-sqp-HS107                            optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-sqp-HS108                            optimal          optimal            11/11      42/42          42 dense 42 of factorizations 42
+sd-hven-sqp-HS11                             optimal          optimal             7/7        9/9            9 dense 9 of factorizations 9
+sd-hven-sqp-HS111LNP                         optimal          optimal            25/25      91/65          65 dense 65 of factorizations 65
+sd-hven-sqp-HS113                            optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-sqp-HS117                            optimal          optimal             8/8       51/51          51 dense 51 of factorizations 51
+sd-hven-sqp-HS15                             optimal          optimal             7/7        8/8            9 dense 9 of factorizations 8
+sd-hven-sqp-HS17                             optimal          optimal             9/9        8/8            8 dense 8 of factorizations 8
+sd-hven-sqp-HS19                             optimal          optimal             8/8       15/15          16 dense 16 of factorizations 15
+sd-hven-sqp-HS22                             optimal          optimal             2/2        2/2            2 dense 2 of factorizations 2
+sd-hven-sqp-HS26                             optimal          optimal            17/17      17/17          17 dense 17 of factorizations 17
+sd-hven-sqp-HS27                             optimal          optimal             4/4       25/24          24 dense 24 of factorizations 24
+sd-hven-sqp-HS30                             optimal          optimal            11/11      11/11          11 dense 11 of factorizations 11
+sd-hven-sqp-HS31                             optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-sqp-HS32                             optimal          optimal             1/1        1/1            1 dense 1 of factorizations 1
+sd-hven-sqp-HS33                             optimal          optimal             4/4       10/10          10 dense 10 of factorizations 10
+sd-hven-sqp-HS40                             optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+sd-hven-sqp-HS42                             optimal          optimal             5/5        5/5            5 dense 5 of factorizations 5
+sd-hven-sqp-HS43                             optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+sd-hven-sqp-HS46                             optimal          optimal            18/18      18/18          20 dense 20 of factorizations 18
+sd-hven-sqp-HS56                             optimal          optimal            18/39      49/401        401 dense 401 of factorizations 401
+sd-hven-sqp-HS59                             optimal          optimal            15/15      36/36          37 dense 37 of factorizations 36
+sd-hven-sqp-HS6                              optimal          optimal             8/8       10/10          10 dense 10 of factorizations 10
+sd-hven-sqp-HS60                             optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+sd-hven-sqp-HS61                             optimal          optimal             8/8        9/9            9 dense 9 of factorizations 9
+sd-hven-sqp-HS63                             optimal          optimal             7/7       13/11          11 dense 11 of factorizations 11
+sd-hven-sqp-HS64                             optimal          optimal            16/16      23/23          29 dense 29 of factorizations 23
+sd-hven-sqp-HS67                             optimal          optimal            14/14      15/15          15 dense 15 of factorizations 15
+sd-hven-sqp-HS68                             optimal          optimal            15/15      26/20          20 dense 20 of factorizations 20
+sd-hven-sqp-HS7                              optimal          optimal             9/9       12/12          12 dense 12 of factorizations 12
+sd-hven-sqp-HS70                             optimal          optimal            22/22      38/38          38 dense 38 of factorizations 38
+sd-hven-sqp-HS74                             optimal          optimal            51/51     165/165        232 dense 232 of factorizations 165
+sd-hven-sqp-HS75                             optimal          optimal            50/50     157/157        225 dense 225 of factorizations 157
+sd-hven-sqp-HS79                             optimal          optimal             4/4        4/4            4 dense 4 of factorizations 4
+sd-hven-sqp-HS80                             optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+sd-hven-sqp-HS81                             optimal          optimal            24/24      56/44          45 dense 45 of factorizations 44
+sd-hven-sqp-HS83                             optimal          optimal            12/12     192/185        185 dense 185 of factorizations 185
+sd-hven-sqp-HS84                             optimal          optimal             6/6       85/85          85 dense 85 of factorizations 85
+sd-hven-sqp-HS85                             optimal          optimal            10/10      25/21          21 dense 21 of factorizations 21
+sd-hven-sqp-HS88                             infeasible       infeasible         18/18      43/43          46 dense 46 of factorizations 43
+sd-hven-sqp-HS89                             optimal          optimal            21/21      25/25          33 dense 33 of factorizations 25
+sd-hven-sqp-HS90                             optimal          optimal            50/50      89/89          99 dense 99 of factorizations 89
+sd-hven-sqp-HS91                             optimal          optimal            57/53      98/88         108 dense 108 of factorizations 88
+sd-hven-sqp-HS92                             infeasible       infeasible         40/40     174/130        154 dense 154 of factorizations 130
+sd-hven-sqp-HS93                             optimal          optimal             7/7       10/9            9 dense 9 of factorizations 9
+sd-hven-sqp-HS99EXP                          max_iter         max_iter           47/50   12568/11111    11161 dense 11161 of factorizations 11111
+sd-hven-sqp-LAKES                            numerical_error  numerical_error    11/11    5375/5375         0 all-sparse
+sd-hven-sqp-LAUNCH                           optimal          optimal            10/10     104/95          95 dense 95 of factorizations 95
+sd-hven-sqp-LEWISPOL                         infeasible       infeasible          3/3       27/26          34 dense 34 of factorizations 26
+sd-hven-sqp-LOOTSMA                          infeasible       infeasible          2/2       27/24          25 dense 25 of factorizations 24
+sd-hven-sqp-LSNNODOC                         optimal          optimal             6/6        8/7            7 dense 7 of factorizations 7
+sd-hven-sqp-MATRIX2                          optimal          optimal            11/11      11/11          11 dense 11 of factorizations 11
+sd-hven-sqp-MESH                             infeasible       max_iter            5/273    707/7175      7393 dense 7393 of factorizations 7175
+sd-hven-sqp-MISTAKE                          optimal          optimal            10/10      43/40          41 dense 41 of factorizations 40
+sd-hven-sqp-MSS1                             numerical_error  numerical_error    31/11    9501/10656       48 dense 48 of factorizations 10656
+sd-hven-sqp-MWRIGHT                          optimal          optimal             6/6        6/6            6 dense 6 of factorizations 6
+sd-hven-sqp-NET1                             optimal          optimal            13/13     371/298        158 dense 158 of factorizations 298
+sd-hven-sqp-OPTPRLOC                         optimal          optimal            40/40    1187/842        850 dense 850 of factorizations 842
+sd-hven-sqp-S365                             numerical_error  numerical_error     0/0        0/0            0 all-sparse
+sd-hven-sqp-S365MOD                          numerical_error  numerical_error     0/0        0/0            0 all-sparse
+sd-hven-sqp-SPANHYD                          numerical_error  numerical_error    23/22   47872/47890    25188 dense 25188 of factorizations 47890
+sd-hven-sqp-SYNTHES1                         optimal          optimal             4/4        5/5            5 dense 5 of factorizations 5
+sd-hven-sqp-TRY-B                            optimal          optimal            10/10      13/13          13 dense 13 of factorizations 13
+sd-hven-sqp-TWOBARS                          optimal          optimal             7/7        7/7            7 dense 7 of factorizations 7
+sd-hven-sqp-WATER                            optimal          optimal            48/45     172/243        280 dense 280 of factorizations 243
+sd-hven-sqp-ZECEVIC3                         optimal          optimal             6/6        7/7            7 dense 7 of factorizations 7
+sd-hven-sqp-ZECEVIC4                         optimal          optimal             7/7        8/8            8 dense 8 of factorizations 8
+sd-hven-sqp-ZY2                              optimal          optimal             4/4        8/8            8 dense 8 of factorizations 8
+
+== COUNTS (engine, family, class)
+  IPM HS candidate: 22
+  IPM SD candidate: 91
+  IPM SD non-candidate: 6
+  SQP HS candidate: 21
+  SQP HS non-candidate: 1
+  SQP SD candidate: 93
+  SQP SD non-candidate: 4
+  IPM: 113 candidates of 119 cells
+  SQP: 114 candidates of 119 cells
+
+== VERDICTS
+E1_N_NONZERO: none
+E2_NO_ROW_OR_CAPPED: none
+E2_COLUMN_MISSING: none
+E3_NONCANDIDATE_MOVED: none
+candidates: 227 (written to candidates.tsv)
+ENUM_PASS

@@ -3,10 +3,10 @@
 
 #pragma once
 
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/progress_measures.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Eq. (19) switching-condition exponents and threshold; Ipopt
 /// IpFilterLSAcceptor.cpp defaults: s_phi_ = 2.3, s_theta_ = 1.1, delta_ = 1.0.
@@ -106,6 +106,11 @@ class SwitchingAcceptance : public AcceptanceStrategy {
     /// Selects the GENERIC driving path in compute_step.
     bool drives_classic_path() const override { return false; }
 
+    /// Puts back the state the last accept registered (see the interface's
+    /// contract): armed by an accept, disarmed by the next acceptance test,
+    /// reset() or a phase switch.
+    void retract_last_acceptance() override;
+
     /// Bound accessors (diagnostics + unit tests).
     double theta_min() const { return theta_min_; }
     double theta_max() const { return theta_max_; }
@@ -147,6 +152,18 @@ class SwitchingAcceptance : public AcceptanceStrategy {
         (void)trial_passed_progress_test;
     }
 
+    /// @brief The retraction pair. save_acceptance_state() runs immediately
+    /// before every register_accepted_step() and copies whatever that call (and
+    /// the base's own bookkeeping) may change; restore_acceptance_state() puts
+    /// the copy back. Default no-ops: a subclass that registers nothing per
+    /// accept retracts nothing.
+    virtual void save_acceptance_state() {}
+    virtual void restore_acceptance_state() {}
+
+    /// Disarms a pending retraction; subclasses call it from their phase-switch
+    /// hooks, after which the saved state no longer describes the live phase.
+    void disarm_retraction() { retraction_armed_ = false; }
+
   private:
     /// Eq. (19), factored out so the membership-reject branch can evaluate it
     /// speculatively without duplicating the arithmetic the template method
@@ -162,8 +179,10 @@ class SwitchingAcceptance : public AcceptanceStrategy {
 
     /// Lazy-init flag; re-armed by reset().
     bool bounds_initialized_ = false;
+    /// True from an accept until the next acceptance test, reset() or switch.
+    bool retraction_armed_ = false;
     double theta_min_ = 0.0;
     double theta_max_ = 0.0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

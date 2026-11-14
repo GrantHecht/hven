@@ -23,13 +23,13 @@
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_assembly.h"
 
-using hven::solvers::AssemblyCapability;
-using hven::solvers::ClaimDomain;
-using hven::solvers::ClaimDomainSet;
-using hven::solvers::EvalRequest;
-using hven::solvers::has_capability;
-using hven::solvers::has_request;
-using hven::solvers::KktStorage;
+using hven::AssemblyCapability;
+using hven::ClaimDomain;
+using hven::ClaimDomainSet;
+using hven::EvalRequest;
+using hven::has_capability;
+using hven::has_request;
+using hven::KktStorage;
 
 // ---------------------------------------------------------------------------
 // ClaimDomainSet
@@ -86,11 +86,11 @@ TEST(ClaimDomainSetTest, AllCarriesEveryDomain) {
 TEST(KktStorageTest, AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath) {
     Eigen::VectorXi rows(4);
     Eigen::VectorXi cols(4);
-    hven::solvers::KktClaimSpace space{rows, cols};
-    EXPECT_EQ(space.storage_, KktStorage::kUpperTriangle);
-    EXPECT_EQ(space.next_free_, 0);
-    EXPECT_EQ(space.constraint_row_offset_, 0);
-    EXPECT_TRUE(space.domains_.empty());
+    hven::KktClaimSpace space{rows, cols};
+    EXPECT_EQ(space.storage, KktStorage::kUpperTriangle);
+    EXPECT_EQ(space.next_free, 0);
+    EXPECT_EQ(space.constraint_row_offset, 0);
+    EXPECT_TRUE(space.domains.empty());
 }
 
 // ---------------------------------------------------------------------------
@@ -167,25 +167,21 @@ TEST(EvalRequestTest, HasRequestRequiresEveryProbedFlag) {
 TEST(EvalRequestTest, InPlaceUnionAndMaskingBothCompile) {
     EvalRequest widened = EvalRequest::kObjectiveValue;
     widened |= EvalRequest::kConstraintValues;
-    EXPECT_EQ(widened, hven::solvers::kRequestObjectiveAndConstraints);
+    EXPECT_EQ(widened, hven::kRequestObjectiveAndConstraints);
 
-    EvalRequest narrowed = hven::solvers::kRequestFullKkt;
-    narrowed &= hven::solvers::kRequestObjectiveAndConstraints;
-    EXPECT_EQ(narrowed, hven::solvers::kRequestObjectiveAndConstraints);
+    EvalRequest narrowed = hven::kRequestFullKkt;
+    narrowed &= hven::kRequestObjectiveAndConstraints;
+    EXPECT_EQ(narrowed, hven::kRequestObjectiveAndConstraints);
 }
 
 TEST(EvalRequestTest, TheAdjointRequestsAreTheOnesThatConsumeTheMultipliers) {
-    EXPECT_TRUE(
-        hven::solvers::request_consumes_multipliers(EvalRequest::kConstraintAdjointGradient));
-    EXPECT_TRUE(
-        hven::solvers::request_consumes_multipliers(EvalRequest::kConstraintAdjointHessian));
-    EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestFullKkt));
-    EXPECT_TRUE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestConstraintKkt));
-    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(hven::solvers::kRequestObjectiveOnly));
-    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(
-        hven::solvers::kRequestConstraintResidualsAndJacobian));
-    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(
-        hven::solvers::kRequestObjectiveGradientAndConstraints));
+    EXPECT_TRUE(hven::request_consumes_multipliers(EvalRequest::kConstraintAdjointGradient));
+    EXPECT_TRUE(hven::request_consumes_multipliers(EvalRequest::kConstraintAdjointHessian));
+    EXPECT_TRUE(hven::request_consumes_multipliers(hven::kRequestFullKkt));
+    EXPECT_TRUE(hven::request_consumes_multipliers(hven::kRequestConstraintKkt));
+    EXPECT_FALSE(hven::request_consumes_multipliers(hven::kRequestObjectiveOnly));
+    EXPECT_FALSE(hven::request_consumes_multipliers(hven::kRequestConstraintResidualsAndJacobian));
+    EXPECT_FALSE(hven::request_consumes_multipliers(hven::kRequestObjectiveGradientAndConstraints));
 }
 
 namespace {
@@ -193,38 +189,38 @@ namespace {
 /// The eight request sets the partitioned evaluation engine owns, in the
 /// mapping table's own order (rows 1-8).
 constexpr std::array<EvalRequest, 8> kInteriorOwnedRequestSets = {
-    hven::solvers::kRequestObjectiveOnly,
-    hven::solvers::kRequestObjectiveAndConstraints,
-    hven::solvers::kRequestObjectiveGradientAndConstraints,
-    hven::solvers::kRequestFirstOrderRhs,
-    hven::solvers::kRequestConstraintResidualsAndJacobian,
-    hven::solvers::kRequestFirstOrderKkt,
-    hven::solvers::kRequestConstraintKkt,
-    hven::solvers::kRequestFullKkt,
+    hven::kRequestObjectiveOnly,
+    hven::kRequestObjectiveAndConstraints,
+    hven::kRequestObjectiveGradientAndConstraints,
+    hven::kRequestFirstOrderRhs,
+    hven::kRequestConstraintResidualsAndJacobian,
+    hven::kRequestFirstOrderKkt,
+    hven::kRequestConstraintKkt,
+    hven::kRequestFullKkt,
 };
 
 /// The three request sets the SQP driver owns (rows 9-11), added at its own
 /// Level 2 consumption task.
 constexpr std::array<EvalRequest, 3> kSqpOwnedRequestSets = {
-    hven::solvers::kRequestLagrangianHessian,
-    hven::solvers::kRequestGradientAndJacobians,
-    hven::solvers::kRequestConstraintJacobiansOnly,
+    hven::kRequestLagrangianHessian,
+    hven::kRequestGradientAndJacobians,
+    hven::kRequestConstraintJacobiansOnly,
 };
 
 /// The union of both families -- every set the mapping table names -- for the
 /// invariants that hold across the whole table rather than within one family.
 constexpr std::array<EvalRequest, 11> kAllMappedRequestSets = {
-    hven::solvers::kRequestObjectiveOnly,
-    hven::solvers::kRequestObjectiveAndConstraints,
-    hven::solvers::kRequestObjectiveGradientAndConstraints,
-    hven::solvers::kRequestFirstOrderRhs,
-    hven::solvers::kRequestConstraintResidualsAndJacobian,
-    hven::solvers::kRequestFirstOrderKkt,
-    hven::solvers::kRequestConstraintKkt,
-    hven::solvers::kRequestFullKkt,
-    hven::solvers::kRequestLagrangianHessian,
-    hven::solvers::kRequestGradientAndJacobians,
-    hven::solvers::kRequestConstraintJacobiansOnly,
+    hven::kRequestObjectiveOnly,
+    hven::kRequestObjectiveAndConstraints,
+    hven::kRequestObjectiveGradientAndConstraints,
+    hven::kRequestFirstOrderRhs,
+    hven::kRequestConstraintResidualsAndJacobian,
+    hven::kRequestFirstOrderKkt,
+    hven::kRequestConstraintKkt,
+    hven::kRequestFullKkt,
+    hven::kRequestLagrangianHessian,
+    hven::kRequestGradientAndJacobians,
+    hven::kRequestConstraintJacobiansOnly,
 };
 
 } // namespace
@@ -245,16 +241,15 @@ TEST(EvalRequestMappingTable, NoMappedSetIsEmpty) {
 }
 
 TEST(EvalRequestMappingTable, TheObjectiveOnlyShapeNamesNothingElse) {
-    EXPECT_EQ(hven::solvers::kRequestObjectiveOnly, EvalRequest::kObjectiveValue);
+    EXPECT_EQ(hven::kRequestObjectiveOnly, EvalRequest::kObjectiveValue);
 }
 
 TEST(EvalRequestMappingTable, TheConstraintOnlyShapesNameNoObjectiveOutput) {
     constexpr EvalRequest kObjectiveOutputs = EvalRequest::kObjectiveValue |
                                               EvalRequest::kObjectiveGradient |
                                               EvalRequest::kObjectiveHessian;
-    EXPECT_EQ(hven::solvers::kRequestConstraintResidualsAndJacobian & kObjectiveOutputs,
-              EvalRequest::kNone);
-    EXPECT_EQ(hven::solvers::kRequestConstraintKkt & kObjectiveOutputs, EvalRequest::kNone);
+    EXPECT_EQ(hven::kRequestConstraintResidualsAndJacobian & kObjectiveOutputs, EvalRequest::kNone);
+    EXPECT_EQ(hven::kRequestConstraintKkt & kObjectiveOutputs, EvalRequest::kNone);
 }
 
 TEST(EvalRequestMappingTable, OnlyTheFullKktShapeNamesTheObjectiveHessianAmongInteriorOwnedShapes) {
@@ -263,7 +258,7 @@ TEST(EvalRequestMappingTable, OnlyTheFullKktShapeNamesTheObjectiveHessianAmongIn
     // not extend to the union -- it is a fact about the eight-shape family the
     // partitioned engine grew, not about the mapping table as a whole.
     for (const EvalRequest set : kInteriorOwnedRequestSets) {
-        if (set == hven::solvers::kRequestFullKkt) {
+        if (set == hven::kRequestFullKkt) {
             EXPECT_TRUE(has_request(set, EvalRequest::kObjectiveHessian));
         } else {
             EXPECT_FALSE(has_request(set, EvalRequest::kObjectiveHessian));
@@ -299,43 +294,38 @@ TEST(EvalRequestMappingTable, EveryShapeThatNamesADerivativeAlsoNamesItsValues) 
     // family deliberately omits.
     // Shape 9 names neither value kind -- the Lagrangian Hessian alone reads
     // no residual and no objective value.
-    EXPECT_FALSE(
-        has_request(hven::solvers::kRequestLagrangianHessian, EvalRequest::kObjectiveValue));
-    EXPECT_FALSE(
-        has_request(hven::solvers::kRequestLagrangianHessian, EvalRequest::kConstraintValues));
+    EXPECT_FALSE(has_request(hven::kRequestLagrangianHessian, EvalRequest::kObjectiveValue));
+    EXPECT_FALSE(has_request(hven::kRequestLagrangianHessian, EvalRequest::kConstraintValues));
     // Shape 10 names no constraint values and no objective value -- its values
     // were evaluated on the values-only path and are deliberately not
     // re-evaluated here.
-    EXPECT_FALSE(
-        has_request(hven::solvers::kRequestGradientAndJacobians, EvalRequest::kConstraintValues));
-    EXPECT_FALSE(
-        has_request(hven::solvers::kRequestGradientAndJacobians, EvalRequest::kObjectiveValue));
+    EXPECT_FALSE(has_request(hven::kRequestGradientAndJacobians, EvalRequest::kConstraintValues));
+    EXPECT_FALSE(has_request(hven::kRequestGradientAndJacobians, EvalRequest::kObjectiveValue));
     // Shape 11 names no values at all.
+    EXPECT_FALSE(has_request(hven::kRequestConstraintJacobiansOnly, EvalRequest::kObjectiveValue));
     EXPECT_FALSE(
-        has_request(hven::solvers::kRequestConstraintJacobiansOnly, EvalRequest::kObjectiveValue));
-    EXPECT_FALSE(has_request(hven::solvers::kRequestConstraintJacobiansOnly,
-                             EvalRequest::kConstraintValues));
+        has_request(hven::kRequestConstraintJacobiansOnly, EvalRequest::kConstraintValues));
 }
 
 TEST(EvalRequestMappingTable, TheFullKktShapeSubsumesEveryOtherMappedShape) {
     // Family-neutral: kRequestFullKkt is the OR of all seven flags, so it
     // subsumes every legal subset regardless of which family owns it.
     for (const EvalRequest set : kAllMappedRequestSets) {
-        EXPECT_TRUE(has_request(hven::solvers::kRequestFullKkt, set));
+        EXPECT_TRUE(has_request(hven::kRequestFullKkt, set));
     }
 }
 
 TEST(EvalRequestMappingTable, ExactlyTheMappedSetsAreLegal) {
     for (const EvalRequest set : kAllMappedRequestSets) {
-        EXPECT_TRUE(hven::solvers::is_legal_request(set));
-        EXPECT_NO_THROW(hven::solvers::validate_eval_request(set));
+        EXPECT_TRUE(hven::is_legal_request(set));
+        EXPECT_NO_THROW(hven::validate_eval_request(set));
     }
 
     // Every other combination over the seven flags -- and there are many -- is
     // an evaluation shape no consumer has.
     int legal = 0;
     for (std::uint32_t bits = 0; bits < (1u << 7); ++bits) {
-        if (hven::solvers::is_legal_request(static_cast<EvalRequest>(bits))) {
+        if (hven::is_legal_request(static_cast<EvalRequest>(bits))) {
             ++legal;
         }
     }
@@ -348,9 +338,9 @@ TEST(EvalRequestMappingTable, AnUnmappedCombinationIsRefusedByName) {
     // (kRequestConstraintJacobiansOnly) and therefore legal; the objective
     // Hessian alone is unmapped in both families and stays that way.
     const EvalRequest composed = EvalRequest::kObjectiveHessian;
-    EXPECT_FALSE(hven::solvers::is_legal_request(composed));
+    EXPECT_FALSE(hven::is_legal_request(composed));
     try {
-        hven::solvers::validate_eval_request(composed);
+        hven::validate_eval_request(composed);
         FAIL() << "an unmapped request must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -361,8 +351,8 @@ TEST(EvalRequestMappingTable, AnUnmappedCombinationIsRefusedByName) {
 }
 
 TEST(EvalRequestMappingTable, TheEmptyRequestIsNotLegal) {
-    EXPECT_FALSE(hven::solvers::is_legal_request(EvalRequest::kNone));
-    EXPECT_THROW(hven::solvers::validate_eval_request(EvalRequest::kNone), std::invalid_argument);
+    EXPECT_FALSE(hven::is_legal_request(EvalRequest::kNone));
+    EXPECT_THROW(hven::validate_eval_request(EvalRequest::kNone), std::invalid_argument);
 }
 
 // ---------------------------------------------------------------------------
@@ -372,37 +362,37 @@ TEST(EvalRequestMappingTable, TheEmptyRequestIsNotLegal) {
 // ---------------------------------------------------------------------------
 
 TEST(EvalRequestMappingTable, ShapeNineIsLegalAndConsumesMultipliers) {
-    const EvalRequest shape = hven::solvers::kRequestLagrangianHessian;
-    EXPECT_TRUE(hven::solvers::is_legal_request(shape));
-    EXPECT_NO_THROW(hven::solvers::validate_eval_request(shape));
-    EXPECT_TRUE(hven::solvers::request_consumes_multipliers(shape));
+    const EvalRequest shape = hven::kRequestLagrangianHessian;
+    EXPECT_TRUE(hven::is_legal_request(shape));
+    EXPECT_NO_THROW(hven::validate_eval_request(shape));
+    EXPECT_TRUE(hven::request_consumes_multipliers(shape));
     for (const EvalRequest other : kInteriorOwnedRequestSets) {
         EXPECT_NE(shape, other) << "shape 9 must be distinct from every interior-owned set";
     }
 }
 
 TEST(EvalRequestMappingTable, ShapeTenIsLegalAndDoesNotConsumeMultipliers) {
-    const EvalRequest shape = hven::solvers::kRequestGradientAndJacobians;
-    EXPECT_TRUE(hven::solvers::is_legal_request(shape));
-    EXPECT_NO_THROW(hven::solvers::validate_eval_request(shape));
-    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(shape));
+    const EvalRequest shape = hven::kRequestGradientAndJacobians;
+    EXPECT_TRUE(hven::is_legal_request(shape));
+    EXPECT_NO_THROW(hven::validate_eval_request(shape));
+    EXPECT_FALSE(hven::request_consumes_multipliers(shape));
     for (const EvalRequest other : kInteriorOwnedRequestSets) {
         EXPECT_NE(shape, other) << "shape 10 must be distinct from every interior-owned set";
     }
-    EXPECT_NE(shape, hven::solvers::kRequestLagrangianHessian);
-    EXPECT_NE(shape, hven::solvers::kRequestConstraintJacobiansOnly);
+    EXPECT_NE(shape, hven::kRequestLagrangianHessian);
+    EXPECT_NE(shape, hven::kRequestConstraintJacobiansOnly);
 }
 
 TEST(EvalRequestMappingTable, ShapeElevenIsLegalAndDoesNotConsumeMultipliers) {
-    const EvalRequest shape = hven::solvers::kRequestConstraintJacobiansOnly;
-    EXPECT_TRUE(hven::solvers::is_legal_request(shape));
-    EXPECT_NO_THROW(hven::solvers::validate_eval_request(shape));
-    EXPECT_FALSE(hven::solvers::request_consumes_multipliers(shape));
+    const EvalRequest shape = hven::kRequestConstraintJacobiansOnly;
+    EXPECT_TRUE(hven::is_legal_request(shape));
+    EXPECT_NO_THROW(hven::validate_eval_request(shape));
+    EXPECT_FALSE(hven::request_consumes_multipliers(shape));
     for (const EvalRequest other : kInteriorOwnedRequestSets) {
         EXPECT_NE(shape, other) << "shape 11 must be distinct from every interior-owned set";
     }
-    EXPECT_NE(shape, hven::solvers::kRequestLagrangianHessian);
-    EXPECT_NE(shape, hven::solvers::kRequestGradientAndJacobians);
+    EXPECT_NE(shape, hven::kRequestLagrangianHessian);
+    EXPECT_NE(shape, hven::kRequestGradientAndJacobians);
 }
 
 TEST(EvalRequestMappingTable, TheThreeSqpOwnedSetsAreMutuallyDistinct) {

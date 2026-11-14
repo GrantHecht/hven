@@ -165,7 +165,7 @@ target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_SQP_TASK6B_SSN_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep/ssn_resweep.csv"
     HVEN_SQP_TASK6B_WALK_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep-walk/walk_resweep.csv")
 
-# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpm baseline over the 27-cell
+# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpqp baseline over the 27-cell
 # U0 replay set — the artifact the two path_warm acceptance rows are pinned in,
 # and the one the replay's ipm arm compares all 76 columns against.
 # T10b RE-POINTS IT at the measured `ipqp_init_mu`'s own dated dir; the T9 one
@@ -178,8 +178,15 @@ target_compile_definitions(hven_sqp_tests PRIVATE
 # the reason every baseline above is: the artifact and the gate that reads it
 # hold each other in place. The corpus's own --from-csv reader cannot read this
 # schema, so the gate reads the file directly.
+# M8 B7 (C238 (1)) RE-POINTS IT at the file re-derived at the absent-bound
+# threshold's default (the declared B7 event; banner in the file); the
+# 2026-09-t8-ipm-leg one stays on disk, unrewritten, as the pre-B7 record.
+# M8 AP-5 G1 RE-POINTS IT at the file re-derived through the declared stop-reason
+# column map (iteration_cap -> none; banner in the file) from the DN-3 flip's
+# 2026-11-m8-dn3-flip-ipm-leg file, which the flip left un-pointed; the B7 and
+# flip files are frozen.
 target_compile_definitions(hven_sqp_tests PRIVATE
-    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv")
+    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv")
 
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests

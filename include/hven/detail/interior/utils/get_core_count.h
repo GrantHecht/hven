@@ -7,7 +7,7 @@
 // (see LICENSE).
 
 #pragma once
-namespace hven::utils {
+namespace hven::detail {
 
 /// @brief Return the number of physical CPU cores on the current machine.
 ///
@@ -18,4 +18,4 @@ namespace hven::utils {
 /// @return The physical core count, or 1 if detection fails.
 int get_core_count();
 
-} // namespace hven::utils
+} // namespace hven::detail

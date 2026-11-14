@@ -1,0 +1,17 @@
+PGREP_EMPTY
+FOREGROUND_START E 2026-11-12T23:32:31-05:00 max_sample_rate=79000
+input /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/docs/notes/data/2026-11-m8-dn1-design/matrices.csv.gz
+sha256 f204be2c2a444b8fcdda8081a53f5940e04fc8ab8cf858b4c257f6e9b53b078c
+SQP: 2817 matrices; T = 105; first rho >= 1 at n = 106: sd-hven-sqp-CRESC50 mat_0049.bin rho 1.582
+IPM: 2684 matrices; T = 167; first rho >= 1 at n = 168: sd-hven-ipm-LAKES mat_0018.bin rho 1.007, sd-hven-ipm-LAKES mat_0021.bin rho 1.020, sd-hven-ipm-LAKES mat_0033.bin rho 1.036, sd-hven-ipm-LAKES mat_0035.bin rho 1.036, sd-hven-ipm-LAKES mat_0034.bin rho 1.037, sd-hven-ipm-LAKES mat_0029.bin rho 1.037, sd-hven-ipm-LAKES mat_0032.bin rho 1.037, sd-hven-ipm-LAKES mat_0027.bin rho 1.037, sd-hven-ipm-LAKES mat_0001.bin rho 1.037, sd-hven-ipm-LAKES mat_0031.bin rho 1.037, sd-hven-ipm-LAKES mat_0028.bin rho 1.037, sd-hven-ipm-LAKES mat_0024.bin rho 1.037, sd-hven-ipm-LAKES mat_0026.bin rho 1.037, sd-hven-ipm-LAKES mat_0030.bin rho 1.037, sd-hven-ipm-LAKES mat_0023.bin rho 1.038, sd-hven-ipm-LAKES mat_0022.bin rho 1.055, sd-hven-ipm-LAKES mat_0019.bin rho 1.078, sd-hven-ipm-LAKES mat_0013.bin rho 1.086, sd-hven-ipm-LAKES mat_0000.bin rho 1.088, sd-hven-ipm-LAKES mat_0020.bin rho 1.107, sd-hven-ipm-LAKES mat_0014.bin rho 1.108, sd-hven-ipm-LAKES mat_0017.bin rho 1.115, sd-hven-ipm-LAKES mat_0025.bin rho 1.129, sd-hven-ipm-LAKES mat_0015.bin rho 1.148, sd-hven-ipm-LAKES mat_0016.bin rho 1.157
+density (nnz/n^2): NOT READ by this instrument (not a criterion input)
+THRESHOLD_AS_DECLARED
+enum analysis rc=0
+== VERDICTS
+E1_N_NONZERO: none
+E2_NO_ROW_OR_CAPPED: none
+E2_COLUMN_MISSING: none
+E3_NONCANDIDATE_MOVED: none
+candidates: 227 (written to candidates.tsv)
+ENUM_PASS
+FOREGROUND_END E 2026-11-12T23:37:21-05:00 max_sample_rate=79000 rc=0

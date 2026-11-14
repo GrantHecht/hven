@@ -1,13 +1,8 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// AssemblyDeclaration's special members and its boundary validation.
-//
-// Out of line because the declaration holds its piece lists BY VALUE while the
-// header only declares the piece handle types: defining the special members
-// here, where the definitions are in scope, is what lets a consumer name,
-// construct, inspect and validate a declaration without pulling the piece
-// machinery in behind it.
+// AssemblyDeclaration's special members, its builder and its boundary
+// validation.
 
 #include "hven/model/assembly_declaration.h"
 
@@ -16,16 +11,28 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <fmt/format.h>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/objective_function.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
 #include "hven/model/structure_identity.h"
 
-namespace hven::solvers {
+namespace hven {
 
 AssemblyDeclaration::AssemblyDeclaration() = default;
+
+AssemblyDeclaration::AssemblyDeclaration(Index variables) {
+    if (variables < 0 || variables > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration: {0} variables is not a variable count a declaration can state "
+            "(it must lie in [0, {1}])",
+            variables, std::numeric_limits<int>::max()));
+    }
+    primal_vars = static_cast<int>(variables);
+}
 AssemblyDeclaration::~AssemblyDeclaration() = default;
 AssemblyDeclaration::AssemblyDeclaration(const AssemblyDeclaration &) = default;
 AssemblyDeclaration &AssemblyDeclaration::operator=(const AssemblyDeclaration &) = default;
@@ -104,14 +111,210 @@ void require_non_negative(int value, const char *what) {
     }
 }
 
+/// Refuses an index map whose shape does not fit the piece, or that names no
+/// application.
+void require_map_shape(const Eigen::MatrixXi &map, int expected_rows, const char *call,
+                       const std::string &piece, const char *map_name, const char *count_name) {
+    if (map.rows() != expected_rows) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration::{0}: piece '{1}' has {2} {3}, but the {4} map has {5} rows; "
+            "row i of column V names {3} i of application V",
+            call, piece, expected_rows, count_name, map_name, map.rows()));
+    }
+    if (map.cols() < 1) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::{0}: the {1} map of piece '{2}' has no column, so "
+                        "it names no application",
+                        call, map_name, piece));
+    }
+}
+
+/// The declaration's variable space, as a refusal states it: "N variables
+/// (indices 0..N-1)", or, for a declaration with none (default-constructed),
+/// that it has none and how to give it some.
+std::string variable_space(int primal_vars) {
+    if (primal_vars <= 0) {
+        return "no variables (construct it as AssemblyDeclaration(n), n the variable count)";
+    }
+    return fmt::format("{0} variables (indices 0..{1})", primal_vars, primal_vars - 1);
+}
+
+/// Refuses a variable index outside the declaration.
+void require_variables_in_range(const Eigen::MatrixXi &variables, int primal_vars, const char *call,
+                                const std::string &piece) {
+    for (Index V = 0; V < variables.cols(); V++) {
+        for (Index i = 0; i < variables.rows(); i++) {
+            const int index = variables(i, V);
+            if (index < 0 || index >= primal_vars) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names variable {3} "
+                    "as input {4}, but the declaration has {5}",
+                    call, V, piece, index, i, variable_space(primal_vars)));
+            }
+        }
+    }
+}
+
+/// One past the largest row a block's applications name (0 for an empty block).
+int row_space_end(const std::vector<ConstraintFunction> &pieces) {
+    int end = 0;
+    for (const ConstraintFunction &piece : pieces) {
+        const Eigen::MatrixXi &rows = piece.index_data.get_c_index();
+        if (rows.size() > 0) {
+            end = std::max(end, rows.maxCoeff() + 1);
+        }
+    }
+    return end;
+}
+
+/// Refuses, on a block whose rows the builder derived, a row no application names
+/// and a row past the block's count.
+void require_rows_covered(const std::vector<ConstraintFunction> &pieces, int declared,
+                          const char *which) {
+    std::vector<char> named(static_cast<std::size_t>(std::max(declared, 0)), 0);
+    for (std::size_t k = 0; k < pieces.size(); k++) {
+        const Eigen::MatrixXi &rows = pieces[k].index_data.get_c_index();
+        for (Index V = 0; V < rows.cols(); V++) {
+            for (Index j = 0; j < rows.rows(); j++) {
+                const int row = rows(j, V);
+                if (row < 0 || row >= declared) {
+                    throw std::invalid_argument(fmt::format(
+                        "AssemblyDeclaration: {0} piece {1} ('{2}') names {0} row {3} in "
+                        "application {4}, outside the {5} {0} rows the declaration states",
+                        which, k, pieces[k].function.name(), row, V, declared));
+                }
+                named[static_cast<std::size_t>(row)] = 1;
+            }
+        }
+    }
+    for (int row = 0; row < declared; row++) {
+        if (named[static_cast<std::size_t>(row)] == 0) {
+            throw std::invalid_argument(fmt::format(
+                "AssemblyDeclaration: {0} row {1} is named by no application of any {0} piece; "
+                "every row of a block's row space 0..{2} must be some piece's output (a row "
+                "with no piece is the constraint 0 = 0)",
+                which, row, declared - 1));
+        }
+    }
+}
+
+/// Refuses a bound side that is NaN, or a lower side above the upper.
+void require_bound_pair(Index index, double lower, double upper) {
+    if (std::isnan(lower) || std::isnan(upper)) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the bound on variable {0} is not a "
+                        "number (lower={1}, upper={2})",
+                        index, lower, upper));
+    }
+    if (lower > upper) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the bound on variable {0} is inverted "
+                        "(lower={1} is above upper={2})",
+                        index, lower, upper));
+    }
+}
+
 } // namespace
+
+void AssemblyDeclaration::add_objective_handle(ObjectiveInterface piece,
+                                               const Eigen::MatrixXi &variables) {
+    const std::string name = piece.name();
+    require_map_shape(variables, piece.input_rows(), "add_objective", name, "variable", "inputs");
+    require_variables_in_range(variables, primal_vars, "add_objective", name);
+    objectives.emplace_back(piece, variables);
+}
+
+void AssemblyDeclaration::add_constraint_handle(ConstraintInterface piece,
+                                                const Eigen::MatrixXi &variables,
+                                                const Eigen::MatrixXi &rows, bool inequality) {
+    const char *call = inequality ? "add_inequality" : "add_equality";
+    const std::string name = piece.name();
+    require_map_shape(variables, piece.input_rows(), call, name, "variable", "inputs");
+    require_map_shape(rows, piece.output_rows(), call, name, "row", "outputs");
+    if (rows.cols() != variables.cols()) {
+        throw std::invalid_argument(fmt::format(
+            "AssemblyDeclaration::{0}: piece '{1}' has {2} applications in its variable map and "
+            "{3} in its row map; column V of both describes application V",
+            call, name, variables.cols(), rows.cols()));
+    }
+    require_variables_in_range(variables, primal_vars, call, name);
+    for (Index V = 0; V < rows.cols(); V++) {
+        for (Index j = 0; j < rows.rows(); j++) {
+            if (rows(j, V) < 0) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names row {3} as "
+                    "output {4}; a row is a non-negative index",
+                    call, V, name, rows(j, V), j));
+            }
+            // The row space is 0 .. (largest row named), so its count is the
+            // largest row plus one, and that has to be an int.
+            if (rows(j, V) == std::numeric_limits<int>::max()) {
+                throw std::invalid_argument(fmt::format(
+                    "AssemblyDeclaration::{0}: application {1} of piece '{2}' names row {3} as "
+                    "output {4}; a block's rows are 0 .. {5} (its row count must fit an int)",
+                    call, V, name, rows(j, V), j, std::numeric_limits<int>::max() - 1));
+            }
+        }
+    }
+
+    std::vector<ConstraintFunction> &block =
+        inequality ? inequality_constraints : equality_constraints;
+    block.emplace_back(piece, variables, rows);
+
+    // The derived counts: the row space is 0 .. (largest row named), and the
+    // overcount is how far the pieces' claimed rows exceed it. A block whose
+    // pieces outgrow a count already on hand widens it; validate() then refuses
+    // any row of the space no application names.
+    int &declared = inequality ? inequality_rows : equality_rows;
+    int &overcount = inequality ? inequality_shared_row_overcount : equality_shared_row_overcount;
+    const char *which = inequality ? "inequality" : "equality";
+    declared = std::max(declared, row_space_end(block));
+    overcount = declared_rows(block, which) - declared;
+    rows_derived = true;
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_bounds(Index index, double lower, double upper) {
+    return set_bounds(index, index, lower, upper);
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_bounds(Index first, Index last, double lower,
+                                                     double upper) {
+    if (last < first) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the range {0}..{1} is empty (last is "
+                        "below first; the range is inclusive)",
+                        first, last));
+    }
+    if (first < 0 || last >= primal_vars) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_bounds: the range {0}..{1} is outside the "
+                        "declaration, which has {2}",
+                        first, last, variable_space(primal_vars)));
+    }
+    require_bound_pair(first, lower, upper);
+    for (Index index = first; index <= last; index++) {
+        variable_bounds.push_back(VariableBound{static_cast<int>(index), lower, upper});
+    }
+    return *this;
+}
+
+AssemblyDeclaration &AssemblyDeclaration::set_partitions(Index partitions) {
+    if (partitions < 1 || partitions > std::numeric_limits<int>::max()) {
+        throw std::invalid_argument(
+            fmt::format("AssemblyDeclaration::set_partitions: {0} partitions is not a count the "
+                        "layout can adopt (it must lie in [1, {1}])",
+                        partitions, std::numeric_limits<int>::max()));
+    }
+    partition_count = static_cast<int>(partitions);
+    return *this;
+}
 
 std::vector<VariableBound> AssemblyDeclaration::materialize_variable_bounds() const {
     constexpr double kInf = std::numeric_limits<double>::infinity();
 
     std::vector<VariableBound> materialized;
-    materialized.reserve(static_cast<std::size_t>(std::max(primal_vars_, 0)));
-    for (int index = 0; index < primal_vars_; ++index) {
+    materialized.reserve(static_cast<std::size_t>(std::max(primal_vars, 0)));
+    for (int index = 0; index < primal_vars; ++index) {
         materialized.push_back(VariableBound{index, -kInf, kInf});
     }
 
@@ -119,30 +322,30 @@ std::vector<VariableBound> AssemblyDeclaration::materialize_variable_bounds() co
     // after each record: the same rule in the same order the engine's own bound
     // materializer applies, so the two boundaries cannot disagree about which
     // histories describe a problem.
-    for (const VariableBound &record : variable_bounds_) {
-        if (record.index_ < 0 || record.index_ >= primal_vars_) {
+    for (const VariableBound &record : variable_bounds) {
+        if (record.index < 0 || record.index >= primal_vars) {
             throw std::invalid_argument(
                 fmt::format("AssemblyDeclaration: a bound names variable {0}, but the "
                             "declaration has {1} primal variables",
-                            record.index_, primal_vars_));
+                            record.index, primal_vars));
         }
-        if (std::isnan(record.lower_) || std::isnan(record.upper_)) {
+        if (std::isnan(record.lower) || std::isnan(record.upper)) {
             throw std::invalid_argument(
                 fmt::format("AssemblyDeclaration: the bound on variable {0} is not a number "
                             "(lower={1}, upper={2}); a bound that cannot be compared cannot "
                             "participate in the tightest-wins merge",
-                            record.index_, record.lower_, record.upper_));
+                            record.index, record.lower, record.upper));
         }
 
-        VariableBound &merged = materialized[static_cast<std::size_t>(record.index_)];
-        merged.lower_ = std::max(merged.lower_, record.lower_);
-        merged.upper_ = std::min(merged.upper_, record.upper_);
+        VariableBound &merged = materialized[static_cast<std::size_t>(record.index)];
+        merged.lower = std::max(merged.lower, record.lower);
+        merged.upper = std::min(merged.upper, record.upper);
 
-        if (merged.lower_ > merged.upper_) {
+        if (merged.lower > merged.upper) {
             throw std::invalid_argument(
                 fmt::format("AssemblyDeclaration: the declared bounds on variable {0} intersect "
                             "to an empty interval (lower={1} is above upper={2})",
-                            record.index_, merged.lower_, merged.upper_));
+                            record.index, merged.lower, merged.upper));
         }
     }
 
@@ -150,23 +353,31 @@ std::vector<VariableBound> AssemblyDeclaration::materialize_variable_bounds() co
 }
 
 void AssemblyDeclaration::validate() const {
-    require_non_negative(primal_vars_, "the primal-variable count");
-    require_non_negative(equality_rows_, "the equality-row count");
-    require_non_negative(inequality_rows_, "the inequality-row count");
-    require_non_negative(equality_shared_row_overcount_, "the equality shared-row overcount");
-    require_non_negative(inequality_shared_row_overcount_, "the inequality shared-row overcount");
+    // A builder-derived row space has a piece behind every row. Checked first: a
+    // row no piece names is what a negative derived overcount below would mean,
+    // and this says which row.
+    if (rows_derived) {
+        require_rows_covered(equality_constraints, equality_rows, "equality");
+        require_rows_covered(inequality_constraints, inequality_rows, "inequality");
+    }
+
+    require_non_negative(primal_vars, "the primal-variable count");
+    require_non_negative(equality_rows, "the equality-row count");
+    require_non_negative(inequality_rows, "the inequality-row count");
+    require_non_negative(equality_shared_row_overcount, "the equality shared-row overcount");
+    require_non_negative(inequality_shared_row_overcount, "the inequality shared-row overcount");
 
     // The fixing rows are a SUBSET of the declared equality rows: equality_rows_
     // is the row space as laid, and this says how many of those rows are the
     // internal ones a fixed-variable treatment appended. A count outside
     // [0, equality_rows_] describes no row space, and the subtraction the
     // adoption entry takes would leave a negative user count.
-    if (fixing_rows_ < 0 || fixing_rows_ > equality_rows_) {
+    if (fixing_rows < 0 || fixing_rows > equality_rows) {
         throw std::invalid_argument(
             fmt::format("AssemblyDeclaration: {0} of the {1} declared equality rows are internal "
                         "fixing rows; that count must be at least 0 and no greater than the "
                         "equality-row count",
-                        fixing_rows_, equality_rows_));
+                        fixing_rows, equality_rows));
     }
 
     // The tail SHAPE, checked here rather than by whoever adopts this
@@ -178,8 +389,8 @@ void AssemblyDeclaration::validate() const {
     //
     // Per PIECE rather than over the tail sum: a tail of a zero-row piece
     // beside a two-row piece sums correctly and is still not the shape.
-    if (fixing_rows_ > 0) {
-        const std::size_t piece_count = equality_constraints_.size();
+    if (fixing_rows > 0) {
+        const std::size_t piece_count = equality_constraints.size();
         if (piece_count > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
             throw std::invalid_argument(
                 fmt::format("AssemblyDeclaration: the equality list holds {0} pieces, past the "
@@ -187,30 +398,30 @@ void AssemblyDeclaration::validate() const {
                             piece_count, std::numeric_limits<int>::max()));
         }
         const int pieces = static_cast<int>(piece_count);
-        if (pieces < fixing_rows_) {
+        if (pieces < fixing_rows) {
             throw std::invalid_argument(fmt::format(
                 "AssemblyDeclaration: {0} of the declared equality rows are internal fixing "
                 "rows, but the equality list holds only {1} pieces; a fixing row is one piece "
                 "claiming one row, at the tail of that list",
-                fixing_rows_, pieces));
+                fixing_rows, pieces));
         }
-        for (int k = pieces - fixing_rows_; k < pieces; k++) {
-            const int claimed = equality_constraints_[static_cast<std::size_t>(k)].num_con_eles();
+        for (int k = pieces - fixing_rows; k < pieces; k++) {
+            const int claimed = equality_constraints[static_cast<std::size_t>(k)].num_con_eles();
             if (claimed != 1) {
                 throw std::invalid_argument(fmt::format(
                     "AssemblyDeclaration: equality piece {0} is one of the {1} declared internal "
                     "fixing rows but claims {2} rows; a fixing row is one piece claiming one row, "
                     "at the tail of that list",
-                    k, fixing_rows_, claimed));
+                    k, fixing_rows, claimed));
             }
         }
     }
 
-    if (partition_count_ < 1) {
+    if (partition_count < 1) {
         throw std::invalid_argument(fmt::format(
             "AssemblyDeclaration: the partition count is {0}; it must be at least 1 (what a "
             "provider actually adopts is what negotiate_partition_count returns)",
-            partition_count_));
+            partition_count));
     }
 
     // The piece-sum conjunct is the one conditional check here, and it is
@@ -221,12 +432,12 @@ void AssemblyDeclaration::validate() const {
     // should have declared pieces and did not is owned downstream, by its own
     // claim pass.
     const bool has_pieces =
-        !objectives_.empty() || !equality_constraints_.empty() || !inequality_constraints_.empty();
+        !objectives.empty() || !equality_constraints.empty() || !inequality_constraints.empty();
     if (has_pieces) {
-        require_piece_sum(declared_rows(equality_constraints_, "equality"), equality_rows_,
-                          equality_shared_row_overcount_, "equality");
-        require_piece_sum(declared_rows(inequality_constraints_, "inequality"), inequality_rows_,
-                          inequality_shared_row_overcount_, "inequality");
+        require_piece_sum(declared_rows(equality_constraints, "equality"), equality_rows,
+                          equality_shared_row_overcount, "equality");
+        require_piece_sum(declared_rows(inequality_constraints, "inequality"), inequality_rows,
+                          inequality_shared_row_overcount, "inequality");
     } else {
         // An overcount is an excess over a piece sum, and there is no piece sum
         // here. Refused rather than ignored: a provider that is not a piece
@@ -234,8 +445,8 @@ void AssemblyDeclaration::validate() const {
         // is a declaration built for a different provider's shape, and
         // accepting it would leave the one conjunct that reads it switched off
         // with no diagnostic anywhere.
-        require_no_overcount_without_pieces(equality_shared_row_overcount_, "equality");
-        require_no_overcount_without_pieces(inequality_shared_row_overcount_, "inequality");
+        require_no_overcount_without_pieces(equality_shared_row_overcount, "equality");
+        require_no_overcount_without_pieces(inequality_shared_row_overcount, "inequality");
     }
 
     // Per RECORD: a single declaration whose two finite sides are inverted is
@@ -254,14 +465,14 @@ void AssemblyDeclaration::validate() const {
     // fixed variable needs a finite value", non_linear_program.cpp's
     // configure_variable_treatment).
     constexpr double kInf = std::numeric_limits<double>::infinity();
-    for (const VariableBound &bound : variable_bounds_) {
-        const bool lower_finite = bound.lower_ > -kInf && bound.lower_ < kInf;
-        const bool upper_finite = bound.upper_ > -kInf && bound.upper_ < kInf;
-        if (lower_finite && upper_finite && bound.lower_ > bound.upper_) {
+    for (const VariableBound &bound : variable_bounds) {
+        const bool lower_finite = bound.lower > -kInf && bound.lower < kInf;
+        const bool upper_finite = bound.upper > -kInf && bound.upper < kInf;
+        if (lower_finite && upper_finite && bound.lower > bound.upper) {
             throw std::invalid_argument(
                 fmt::format("AssemblyDeclaration: the bound declared on variable {0} is inverted "
                             "(lower={1} is above upper={2})",
-                            bound.index_, bound.lower_, bound.upper_));
+                            bound.index, bound.lower, bound.upper));
         }
     }
 
@@ -319,13 +530,13 @@ std::uint64_t declaration_identity_digest(const AssemblyDeclaration &declaration
     // count that does not name a legal split is refused rather than clamped --
     // clamping would key two different problems the same, which is the one
     // thing a stamp may never do.
-    const int fixing = declaration.fixing_rows_;
-    if (fixing < 0 || fixing > declaration.equality_rows_) {
+    const int fixing = declaration.fixing_rows;
+    if (fixing < 0 || fixing > declaration.equality_rows) {
         throw std::invalid_argument(fmt::format(
             "declaration_identity_digest: the declaration states {0} internal fixing rows inside "
             "an equality row space of {1} -- a fixing-row count names rows a treatment appended "
             "to that space, so it must lie in [0, equality_rows_]",
-            fixing, declaration.equality_rows_));
+            fixing, declaration.equality_rows));
     }
 
     Fnv1a hash;
@@ -333,8 +544,8 @@ std::uint64_t declaration_identity_digest(const AssemblyDeclaration &declaration
     // same self-delimiting preamble claim_stream_digest opens with, so the two
     // digests agree about what a dimension triple hashes to even though they
     // agree about nothing else.
-    detail::feed_dimensions(hash, declaration.primal_vars_, declaration.equality_rows_ - fixing,
-                            declaration.inequality_rows_);
+    detail::feed_dimensions(hash, declaration.primal_vars, declaration.equality_rows - fixing,
+                            declaration.inequality_rows);
     return hash.value();
 }
 
@@ -349,4 +560,4 @@ DeclarationKey declaration_key(const AssemblyDeclaration &declaration) {
                           materialized_bound_digest(declaration)};
 }
 
-} // namespace hven::solvers
+} // namespace hven

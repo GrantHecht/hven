@@ -1,0 +1,10 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-06T08:49:56-05:00
+   object count matches the compile database: 56/56
+   libhven.a: identical
+   objects compared: 57, differing: 0
+
+PASS: PCH engaged on 4 translation units, and all 57
+      emitted artifacts are byte-identical with and without it.
+rc=0
+FOREGROUND_END 2026-11-06T08:51:01-05:00

@@ -505,8 +505,10 @@
 //    section's TERMINAL SITE decides, because exhaustion says the residual is
 //    IRREDUCIBLE (what an inconsistent row set looks like) rather than
 //    untrustworthy, and the certificate is a claim about the point the walk stops
-//    at and never about the refused pass -- and only a NON-FINITE answer is
-//    TERMINAL (kNumericalError at the finite iterate the walk stands on).
+//    at and never about the refused pass -- and only a NON-FINITE answer, or one
+//    computed through a dense shifted factor and refused by its rho gate (no
+//    verified step exists; dense_shifted_terminations), is TERMINAL
+//    (kNumericalError at the finite iterate the walk stands on).
 //    MEASURED both ways: the terminal form cost an inconsistent pair its
 //    certified kInfeasible, and classifying AT the refused pass produced 16 false
 //    census certificates. `eqp_residual_refusals` and `eqp_row_drift_refusals`
@@ -534,7 +536,7 @@
 //        kNumericalError (certificate_bound_refusals) -- never kInfeasible: x off
 //        its box is a pass-over leak of the walk's own, the box alone is feasible,
 //        and an infeasible QP is the verified Farkas certificate's to prove (SDL-4).
-//    kMaxIter once eff_max_iter major iterations have been spent. A fourth
+//    kIterationLimit once eff_max_iter major iterations have been spent. A fourth
 //    kNumericalError exit bypasses this classification: 4c's ride, no blocker.
 //
 //    ORDERING IS LOAD-BEARING: the drop rule is consulted BEFORE infeasibility
@@ -546,17 +548,17 @@
 //
 //    TRUSTWORTHY RANGE, both directions, known and accepted:
 //    (i) FALSE kInfeasible on a feasible row whose residual at the classified
-//        point still clears kStructuralResidualFrac. COVERED, on both paths, by
-//        The verdict-site face refinement below. STILL UNCOVERED: any (i) case
-//        whose face the refinement cannot close inside its budget.
-//    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
-//        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
-//        catch it re-breaks (i). The SQP driver is the second detection layer;
-//        a caller using the engine alone should scale its rows or shrink
-//        dual_mu. On the independent working set a contradiction that rides a
-//        DEPENDENT row is read by the dependency test instead and ends
-//        kInfeasible on a Farkas certificate (E2 fix6's grey re-read closes
-//        objective_inflated_lambda_qp(1e-3, 3e-4)); (ii) stands for the rest.
+//        point still clears the margin. Covered by the verdict-site face
+//        refinement, then the terminal mu-free refinement, then the Farkas
+//        gate: an unrefinable residual with no verified certificate ends
+//        kNumericalError, never kInfeasible. The option-off arm
+//        (independent_working_set = false) has no mu-free refinement: the
+//        band goes face refinement -> Farkas certificate / kNumericalError.
+//    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath the
+//        margin, kInfeasibilityMarginFactor * row_tolerance -- at most
+//        kInfeasibilityMarginFactor * max(feas_tol, kInfeasibilityAbsorbTol) in
+//        row units, whatever |lambda| is. Beneath the classifier's resolution
+//        by construction (docs/notes/data/2026-11-m8-walk-cap/).
 //    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
 //        beyond unbounded_artifact_scale(). Tune primal_delta rather than treat
 //        this kNumericalError as load-bearing.
@@ -619,7 +621,7 @@
 //
 //    Per-solve radius variation. tr_radius lives on QpOptions, which is
 //    per-instance const, but every solve() overload also takes a
-//    `const SolveOverrides &` resolved ONCE at the top of run(); every read site
+//    `const QpSolveOverrides &` resolved ONCE at the top of run(); every read site
 //    consults those effective values. A shrink-radius retry loop therefore
 //    shares one QpEngine across every retry radius and keeps hot-start reuse
 //    wherever the ordinary conditions allow.
@@ -642,7 +644,7 @@
 //    rather than assume it is inherited.
 //
 //    ONE-WAY GUARANTEE: a PINNED index's z is the price the last price() call
-//    computed, which on a kMaxIter exit may be one working set stale. `kFixed`
+//    computed, which on a kIterationLimit exit may be one working set stale. `kFixed`
 //    is silently outside this invariant.
 //
 // --- Degeneracy ---
@@ -770,15 +772,22 @@
 // classification. With nothing to drop, a residual the dual_mu footprint explains is first
 // re-solved mu-free (refine_terminal_mu_free, as at the terminal classification) and the drop rule
 // asked again on the refined multipliers; an adopted point with nothing to drop is, once per solve,
-// the next pass's iterate, and with that resume spent ends the walk kMaxIter at the adopted point
-// (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs the
-// refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
-// kMaxIter at the iterate it stands on (an adopted one included) -- the minor cap's status, point
-// and multipliers, reached early -- if that iterate meets its working rows, or if its residual is
-// not below the run's best over the idle steps, or if that best, extrapolated, cannot bring the
-// rows to their floor within the minors left (the cap's status either way); a run that can takes
-// the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with the budget
-// spent, the next reading ends the walk kMaxIter at once. It certifies nothing.
+// the next pass's iterate, and with that resume spent ends the walk kIterationLimit at the adopted
+// point (the pass never steps from it). A refusal is not remembered: a continuing reading re-runs
+// the refine, one factorization, at each reading. Otherwise, still nothing to drop, the walk ends
+// kIterationLimit at the iterate it stands on (an adopted one included) -- the minor cap's status,
+// point and multipliers, reached early -- if that iterate meets its working rows, or if its
+// residual is not below the run's best over the idle steps, or if that best, extrapolated, cannot
+// bring the rows to their floor within the minors left (the cap's status either way); a run that
+// can takes the pass's ordinary step. Each drop it makes spends one of kStagnationDropBudget; with
+// the budget spent, the next reading ends the walk kIterationLimit at once. It certifies nothing.
+// THE RELEASE RE-ADMISSION (independent_working_set; dual_regularization_decreases). When the
+// shift refresh re-admits the row the previous pass's drop released, dual_mu is multiplied by
+// kDualRegDecreaseFactor (1e-2) and the factor state is discarded so the next pass factorizes with
+// it; at most kMaxDualRegDecreases times per solve. The release was on a residual dual_mu's
+// footprint excused; a face whose smallest singular value is below what dual_mu resolves then
+// cycles release -> re-admission until the minor cap. Nothing is certified; a walk that never
+// re-admits a released row is untouched.
 //
 // THE DEAD-END RANK REPAIR (M7 W2 RDV; ws_independence.h, rank_repair). Where the add-site rule
 // would END the solve -- no admissible member and no verified certificate (kRejected) or no
@@ -857,15 +866,9 @@
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
-namespace detail {
-
-// Bounds at or beyond this magnitude are treated as absent (matches the
-// dense oracle's convention).
-constexpr double kEngineInfBound = 1e20;
-
-// THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iter (qp_types.h)
+// THE SIZE-DERIVED QP ITERATION CAP. QpOptions::max_iterations (qp_types.h)
 // defaults to the sentinel 0, meaning "derive the cap from this subproblem's
 // size"; a positive value is an explicit absolute cap and wins outright.
 //
@@ -885,7 +888,7 @@ inline Index qp_cap_base(const QpProblem &qp) {
     const Index n = qp.n();
     Index bounded = 0;
     for (Index i = 0; i < n; ++i) {
-        if (qp.lower(i) > -kEngineInfBound || qp.upper(i) < kEngineInfBound) {
+        if (qp.has_lower(i) || qp.has_upper(i)) {
             ++bounded;
         }
     }
@@ -896,11 +899,10 @@ inline Index derived_qp_max_iter(Index base) {
     return std::max(kQpMaxIterFloor, kQpMaxIterCoeff * base);
 }
 
-// The cap this solve actually runs at: an explicitly set (positive)
-// QpOptions::max_iter wins outright; the sentinel (<= 0, the default) derives
-// from size.
-inline Index effective_qp_max_iter(const QpProblem &qp, Index requested) {
-    return requested > 0 ? requested : derived_qp_max_iter(qp_cap_base(qp));
+// The cap this solve actually runs at: an engaged QpOptions::max_iterations wins
+// outright; an empty one derives from size.
+inline Index effective_qp_max_iter(const QpProblem &qp, std::optional<Index> requested) {
+    return requested ? *requested : derived_qp_max_iter(qp_cap_base(qp));
 }
 // Direction components below this are not considered to move a constraint.
 constexpr double kEngineDenomTol = 1e-12;
@@ -925,11 +927,10 @@ constexpr double kInfeasibilityAbsorbTol = 1e-6;
 // still admitting genuinely large physical-scale solutions.
 constexpr double kUnboundedArtifactFactor = 0.1;
 inline double unbounded_artifact_scale(const QpOptions &opts) {
-    return kUnboundedArtifactFactor / opts.primal_delta;
+    return kUnboundedArtifactFactor / opts.primal_regularization;
 }
-// Multiple of a row's tolerance a violation must clear before it is even
-// considered as evidence of infeasibility (condition (a); see
-// violation_is_structural).
+// Multiple of a row's tolerance a violation must clear before it counts as
+// evidence of infeasibility (see violation_is_structural).
 constexpr double kInfeasibilityMarginFactor = 10.0;
 // The Farkas certificate's rounding floor (settler S25'): its residual is EXACT
 // iff <= kCertExactTol = kCertExactKappa * (n + m) * eps * ||y||_1 * max_k ||a_k||
@@ -941,10 +942,6 @@ constexpr double kInfeasibilityMarginFactor = 10.0;
 // both; kappa = 10 is the safety factor. ||y||_1 counts the blocker's own unit
 // coefficient, max_k runs over c and the rows with y_k != 0, m = me + |W|.
 constexpr double kCertExactKappa = 10.0;
-// Fraction of the regularization footprint dual_mu*|lambda| that a violation
-// must reach before it counts as STRUCTURAL rather than solver noise
-// (condition (b); see violation_is_structural).
-constexpr double kStructuralResidualFrac = 0.1;
 // Hard floor, relative to the row's own scale, beneath the verdict-site face
 // refinement's per-row target (see QpEngine::face_row_target). A residual
 // flattens out at ~1e-16 of the row's scale and then oscillates in the last
@@ -1113,8 +1110,8 @@ inline InertiaVerdict inertia_verdict(const hven::linear::InertiaEvidence &e, In
     if (e.perturbed_pivots.has_value() && *e.perturbed_pivots != 0) {
         return InertiaVerdict::kSuspect;
     }
-    const Index pos = static_cast<Index>(e.n_pos);
-    const Index neg = static_cast<Index>(e.n_neg);
+    const Index pos = static_cast<Index>(e.positive);
+    const Index neg = static_cast<Index>(e.negative);
     if (pos + neg != expected_pos + expected_neg) {
         return InertiaVerdict::kSuspect;
     }
@@ -1148,6 +1145,14 @@ inline bool hessian_is_nonneg_diagonal(const SpMatRM &H) {
 // RUNGS, i.e. delta 1e-8 -> 1e-5 at the defaults. Per-SOLVE.
 constexpr double kSuspectDeltaFactor = 10.0;
 constexpr Index kMaxSuspectEscalations = 3;
+
+// THE RELEASE RE-ADMISSION's rung (Degeneracy): the effective dual_regularization is multiplied by
+// kDualRegDecreaseFactor, at most kMaxDualRegDecreases times per solve (1e-8 -> 1e-12 at the
+// defaults), never to 0. A mu below the backend's static-pivot floor reads kSuspect on perturbed
+// pivots and escalates nothing: the suspect ladder answers only a refused EQP answer or a kSuspect
+// would-be-kOptimal exit failing free-block stationarity (section 4b); the exit's gates guard it.
+constexpr double kDualRegDecreaseFactor = 1e-2;
+constexpr Index kMaxDualRegDecreases = 2;
 
 // --- The temporary-vertex repair's BUDGET (E2 fix8, settler S40) -----------
 //
@@ -1284,7 +1289,7 @@ inline double free_block_stationarity(const QpProblem &qp, const Vec &x, const W
 // routes it to the escalation ladder. `residual > tol` would instead certify
 // kOptimal on a NaN.
 inline bool free_block_is_stationary(double residual, double scale, const QpOptions &opts) {
-    return residual <= opts.opt_tol * scale;
+    return residual <= opts.optimality_tol * scale;
 }
 
 // THE DUAL SIGN READ (M7 W2 SDL; RDV-5): the largest WRONG-SIGNED multiplier of
@@ -1321,7 +1326,7 @@ inline double worst_wrong_sign(const QpProblem &qp, const WorkingSet &ws, const 
 // The certificate's SIGN HALF decision: dual feasible within the KKT-point
 // test's own relative tolerance. Written as `<=` so a NaN refuses.
 inline bool dual_signs_hold(double wrong_sign, double scale, const QpOptions &opts) {
-    return wrong_sign <= opts.opt_tol * scale;
+    return wrong_sign <= opts.optimality_tol * scale;
 }
 
 // THE TERMINAL POLISH's three KKT residuals (M7 W2 E4 fix1, ruling E4-11), all
@@ -1504,7 +1509,7 @@ constexpr std::uint64_t kFnvOffsetBasis = 14695981039346656037ULL;
 // not depend on host byte order or on SpMatRM::StorageIndex's width. No
 // consumer compares it against anything but another call of this same
 // function in the same process; 0 stays meaningful only as
-// SqpWarmStart::structure_hash's "no claim made" sentinel.
+// SqpWarmState::structure_hash's "no claim made" sentinel.
 inline std::uint64_t structural_hash(const QpProblem &qp) {
     return combined_pattern_hash(qp.H, qp.Ae, qp.Ai);
 }
@@ -1517,8 +1522,6 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
     mix_values(h, qp.Ai);
     return h;
 }
-
-} // namespace detail
 
 // Border mode's entire persistent state (unused under kRefactorize): the one
 // full-variable K0 the loop keeps factorized, the working rows built INTO it,
@@ -1552,11 +1555,13 @@ enum class LatchReason : std::uint8_t { kCap, kConditioning };
 
 struct BorderState {
     /// @param threads The owning engine's thread count, handed to K0's factor
-    ///                at construction (M6 W5 T8.8). 0 -- the default, and what
-    ///                every construction site passed before that task -- leaves
-    ///                the backend's own default alone, so a default-argument
-    ///                construction is bit-for-bit the old one.
-    explicit BorderState(int threads = 0) : kkt(threads) {}
+    ///                at construction (M6 W5 T8.8). 0 leaves the backend's own
+    ///                default alone.
+    ///
+    /// @param dense   The owning engine's dense-arm policy (M8 DN-1). Neither
+    ///                parameter has a default (M8 DN-3), so a construction site
+    ///                that forgets the engine's policy does not compile.
+    explicit BorderState(int threads, hven::linear::DensePolicy dense) : kkt(threads, dense) {}
 
     BorderState(const BorderState &) = delete;
     BorderState &operator=(const BorderState &) = delete;
@@ -1566,7 +1571,7 @@ struct BorderState {
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger; // in SchurComplement::add_border order
-    detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads)
+    detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads, dense)
     std::optional<SchurComplement> schur;
     bool latched = false;
     LatchReason latch_reason = LatchReason::kCap;
@@ -1582,8 +1587,6 @@ struct BorderState {
     // `factorize()` advances `kkt.factor.epoch()`, so rebuild_k0() stamps
     // nothing. See QpEngine::run()'s reuse condition (e).
 };
-
-namespace detail {
 
 // THE LATCH AND ITS REASON (section 4). Free functions of the border state alone, so the rule
 // is readable -- and testable -- without a walk around it.
@@ -1625,8 +1628,6 @@ bool latch_still_holds(const WorkingSet &ws, BorderState &border, QpCounters &co
 void take_latch(const WorkingSet &ws, BorderState &border, QpCounters &counters,
                 const QpOptions &opts, bool rebuilt);
 
-} // namespace detail
-
 // The face the elimination path'S `kkt` CURRENTLY HOLDS. Captured where
 // solve_eqp factorizes, read at the verdict site so the face refinement can
 // REUSE that factorization instead of buying its own.
@@ -1666,7 +1667,7 @@ struct EliminatedFace {
     }
 };
 
-// Hot-start level. The opaque handle behind warm_start.h's SqpWarmStart::hot,
+// Hot-start level. The opaque handle behind warm_start.h's SqpWarmState::hot,
 // forward-declared there and DEFINED here: a frozen copy of the
 // fingerprint/exit-state members QpEngine::run() tracks per instance, plus
 // shared ownership of the BorderState those fingerprints describe.
@@ -1736,13 +1737,19 @@ class QpEngine {
     // keyed on -- qp_types.h's options_fingerprint) and APPLIES it: K0's factor
     // takes it here, and run()/refine_on_face()/
     // refine_eliminated_face_for_verdict()'s temporary and fallback factors take
-    // it at their own construction. Defaulted so every existing construction
-    // site keeps compiling and keeps hashing the 0 the SQP lane has always
-    // passed -- and 0 means "leave the backend's own default alone", so a
-    // defaulted engine is bit-for-bit the pre-T8.8 one.
-    explicit QpEngine(const QpOptions &opts, int threads = 0)
-        : opts_(opts), threads_(threads), options_hash_(options_fingerprint(opts, threads)),
-          border_(std::make_shared<BorderState>(threads)) {}
+    // it at their own construction. 0 means "leave the backend's own default
+    // alone".
+    //
+    // `dense` is the dense-arm policy every factor this engine builds takes (M8
+    // DN-1). A policy other than kNever is folded into the hot-handle key, with
+    // kAuto's threshold (M8 DN-3), so two engines that could select different
+    // arms for one pattern never share a K0; kNever leaves the key as
+    // options_fingerprint(opts, threads) has always made it. Neither `threads`
+    // nor `dense` has a default (M8 DN-3): every construction states both.
+    explicit QpEngine(const QpOptions &opts, int threads, hven::linear::DensePolicy dense)
+        : opts_(opts), threads_(threads), dense_policy_(dense),
+          options_hash_(engine_fingerprint(opts, threads, dense)),
+          border_(std::make_shared<BorderState>(threads, dense)) {}
 
     // THE LIVE K0 FACTOR'S OWN COUNT, read through to the backend session --
     // NOT the carried `threads_` this engine was built with (M6 W5 T8.8). The
@@ -1752,11 +1759,32 @@ class QpEngine {
     // observable at the boundary. After a hot handle is adopted, `border_`
     // is the PRODUCING engine's BorderState -- adoption requires an equal
     // options fingerprint, which folds `threads`, so the answer still agrees.
-    int num_threads() const noexcept { return border_->kkt.factor.num_threads(); }
+    int num_threads() const noexcept { return border_->kkt.factor.threads(); }
 
     // The thread count this engine was BUILT with -- the value hashed into
     // options_hash_. Distinct from num_threads() above; see it.
     int carried_num_threads() const noexcept { return threads_; }
+
+    // The dense-arm policy this engine's factors are built with.
+    hven::linear::DensePolicy dense_policy() const noexcept { return dense_policy_; }
+
+    // options_fingerprint(opts, threads), with a policy other than kNever mixed in,
+    // and under kAuto the threshold the factors select by (sqp_kkt_options'), so
+    // the key names the arm every pattern takes.
+    static std::uint64_t engine_fingerprint(const QpOptions &opts, int threads,
+                                            hven::linear::DensePolicy dense) {
+        const std::uint64_t h = options_fingerprint(opts, threads);
+        if (dense == hven::linear::DensePolicy::kNever) {
+            return h;
+        }
+        const std::uint64_t policy =
+            h ^ (0x9E3779B97F4A7C15ULL * (static_cast<std::uint64_t>(dense) + 1));
+        const std::optional<Index> threshold = sqp_kkt_options(threads, dense).max_dense_dimension;
+        if (!threshold) {
+            return policy;
+        }
+        return policy ^ (0xC2B2AE3D27D4EB4FULL * (static_cast<std::uint64_t>(*threshold) + 1));
+    }
 
     // Attach a ledger for instrumentation (nullptr = off, default off).
     // Emits one SolveRecord per solve() call with the given label prefix
@@ -1777,8 +1805,8 @@ class QpEngine {
     void adopt_solve_counter(Index n) noexcept { solve_counter_ = n; }
 
     // Cold start from clamp(0, l, u) with an empty working set. Forwards a
-    // default-constructed SolveOverrides, which resolves to every opts_
-    // value unchanged -- see qp_types.h's SolveOverrides and the header
+    // default-constructed QpSolveOverrides, which resolves to every opts_
+    // value unchanged -- see qp_types.h's QpSolveOverrides and the header
     // contract's PER-SOLVE RADIUS VARIATION note.
     QpSolution solve(const QpProblem &qp) const;
 
@@ -1787,17 +1815,17 @@ class QpEngine {
     QpSolution solve(const QpProblem &qp, const QpSolution &seed) const;
 
     // Cold start with a per-solve override of tr_radius/primal_delta/
-    // dual_mu (see qp_types.h's SolveOverrides). Resolved once, at the top of
+    // dual_mu (see qp_types.h's QpSolveOverrides). Resolved once, at the top of
     // run(), into the effective values every read site in qp_engine.cpp actually
     // consults.
-    QpSolution solve(const QpProblem &qp, const SolveOverrides &overrides) const;
+    QpSolution solve(const QpProblem &qp, const QpSolveOverrides &overrides) const;
 
     // Warm start with a per-solve override, combining both of the above.
     QpSolution solve(const QpProblem &qp, const QpSolution &seed,
-                     const SolveOverrides &overrides) const;
+                     const QpSolveOverrides &overrides) const;
 
     // Warm start with a per-solve override AND a hot handle
-    // (SqpWarmStart::hot) from a PRIOR solve -- typically on a DIFFERENT
+    // (SqpWarmState::hot) from a PRIOR solve -- typically on a DIFFERENT
     // QpEngine instance -- offered for THIS engine to adopt as its own
     // border-mode cache if it does not already have a valid one (see run()'s
     // ADOPT AN EXTERNAL HOT HANDLE step). `hot` may be null (falls back to
@@ -1805,12 +1833,12 @@ class QpEngine {
     // reuse-eligibility conditions (a)-(e) are the ONLY gate on whether
     // adopting it skips a factorization, and a mismatch silently costs the
     // ordinary rebuild.
-    QpSolution solve(const QpProblem &qp, const QpSolution &seed, const SolveOverrides &overrides,
+    QpSolution solve(const QpProblem &qp, const QpSolution &seed, const QpSolveOverrides &overrides,
                      const std::shared_ptr<const HotState> &hot) const;
 
     // A shared, opaque snapshot of this engine's CURRENTLY valid border-mode
     // cache -- what warm_start.h's make_warm_start attaches to
-    // SqpWarmStart::hot on every exit. Returns nullptr whenever border_valid_ is
+    // SqpWarmState::hot on every exit. Returns nullptr whenever border_valid_ is
     // false: no solve() on this instance has yet ended kOptimal, or
     // ws_algebra == kRefactorize.
     //
@@ -1854,7 +1882,7 @@ class QpEngine {
     // site zeroes `seed.x` first. This function takes no centre parameter and
     // does NOT validate that assumption.
     bool refine_on_face(const QpProblem &qp_in, const QpSolution &face,
-                        const SolveOverrides &overrides, QpSolution &out) const;
+                        const QpSolveOverrides &overrides, QpSolution &out) const;
 
   private:
     // R5's PIN TAKEN DIRECTLY: probe_inertia is private, and the test that
@@ -1862,14 +1890,14 @@ class QpEngine {
     // in the test -- assembly_eval_seam.h's convention, no shipped surface.
     friend struct QpEngineTestAccess;
 
-    /// @brief Resolve one call's SolveOverrides against `opts` into the
+    /// @brief Resolve one call's QpSolveOverrides against `opts` into the
     ///     effective tr_radius/primal_delta/dual_mu values every read site in
     ///     qp_engine.cpp consults from that point on. Shared with run() so
     ///     refine_on_face() cannot resolve them differently.
     /// @param opts the engine's QpOptions; every other field (feas_tol,
     ///     opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra) is
     ///     carried through unchanged.
-    /// @param overrides per-solve overrides (qp_types.h's SolveOverrides
+    /// @param overrides per-solve overrides (qp_types.h's QpSolveOverrides
     ///     sentinel convention: tr_radius disables at +inf; primal_delta/
     ///     dual_mu are overridden only by a value >= 0, and 0 is what
     ///     disables the regularization -- a negative override means "use
@@ -1883,7 +1911,7 @@ class QpEngine {
     ///     sentinel, if the corresponding stored opts field is NaN or
     ///     negative. The domain enforced throughout is NOT NaN and >= 0.
     static QpOptions resolve_effective_options(const QpOptions &opts,
-                                               const SolveOverrides &overrides);
+                                               const QpSolveOverrides &overrides);
 
     // What the ratio test found blocking, or kNone.
     enum class BlockKind { kNone, kIneq, kBound };
@@ -1993,7 +2021,7 @@ class QpEngine {
     };
 
     QpSolution run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
-                   const SolveOverrides &overrides,
+                   const QpSolveOverrides &overrides,
                    const std::shared_ptr<const HotState> &hot = nullptr) const;
 
     // Step 1a: the START CENTER -- the clamped seed primal, plus kFixed
@@ -2037,7 +2065,7 @@ class QpEngine {
     // The allowance is CAPPED (kInfeasibilityAbsorbTol) so it cannot absorb a
     // genuine contradiction -- see row_tolerance().
     // `opts` is the EFFECTIVE options this solve resolved (run()'s
-    // `eff_opts`), since dual_mu can vary per solve via SolveOverrides.
+    // `eff_opts`), since dual_mu can vary per solve via QpSolveOverrides.
 
     // OBSERVATION ONLY. Which constraints this solve has EVER admitted, so
     // QpCounters::distinct_{ineq,bound}_added can report re-discovery
@@ -2119,20 +2147,16 @@ class QpEngine {
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &ae_row_norm1, const QpOptions &opts) const;
 
-    // Is a single row's violation genuine evidence of infeasibility, rather
-    // than the regularized solve's own noise? Both conditions must hold.
+    // Is a single row's violation evidence of infeasibility, rather than the
+    // regularized solve's own noise? Iff it clears the row's tolerance by
+    // kInfeasibilityMarginFactor. Evidence, not a verdict: what decides is
+    // downstream -- the verdict-site and mu-free refinements re-solve a
+    // footprint a consistent row can shed, and kInfeasible needs a verified
+    // Farkas certificate (kNumericalError without one).
     //
-    //  (a) The violation clears the row's tolerance by a real margin.
-    //  (b) The violation is STRUCTURAL: it reaches an appreciable fraction of
-    //      the regularization footprint dual_mu*|lambda|. On an INCONSISTENT
-    //      row the identity Ai x - dual_mu*lambda = bi is exact and
-    //      irreducible, so the residual sits AT the footprint (ratio ~ 1); on
-    //      a merely ill-scaled but CONSISTENT row the same footprint is a
-    //      first-order error refinement knocks down by orders of magnitude.
-    //
-    // Testing the RATIO rather than |lambda| against a fixed scale matters: a
-    // contradiction with a small gap produces a correspondingly small lambda
-    // and would slip under any absolute multiplier threshold.
+    // No footprint-ratio condition: capped like row_tolerance's footprint term it is
+    // implied by the margin, so the margin test alone decides
+    // (docs/notes/data/2026-11-m8-walk-cap/).
     bool violation_is_structural(double v, double row_scale, double lambda,
                                  const QpOptions &opts) const;
 
@@ -2149,7 +2173,7 @@ class QpEngine {
     // row's own units: the classifier's own threshold,
     // kInfeasibilityMarginFactor * row_tolerance, floored at
     // kVerdictRefineRelFloor * row_scale. Reaching it is exactly what makes
-    // condition (a) stop calling the row's residual evidence, so the loop asks
+    // the margin test stop calling the row's residual evidence, so the loop asks
     // for the least accuracy that settles the verdict and no more.
     double face_row_target(double row_scale, double lambda, const QpOptions &opts) const;
 
@@ -2186,7 +2210,7 @@ class QpEngine {
     // check, which reads that system, had nothing to say -- and opened the
     // equality row by 0.5, after which the walk spent its whole iteration cap
     // taking full steps on an UNCHANGING working set with the row open,
-    // reporting kMaxIter at a point that is no local minimizer. The base walk's
+    // reporting kIterationLimit at a point that is no local minimizer. The base walk's
     // absolute centring prices that face's multipliers at O(primal_delta), so
     // it never saw this.
     //
@@ -2258,7 +2282,7 @@ class QpEngine {
     /// Neither branch declines and neither swallows. On a miss the twin
     /// factorizes a system the walk never solved, and that system can be exactly
     /// singular at a legal setting (`dual_mu = 0`), which MKL Pardiso's default
-    /// static pivoting perturbs and reports as success. A std::runtime_error out
+    /// static pivoting perturbs and reports as success. A BackendError out
     /// of `factorize_checked` here is therefore a genuine backend fault and
     /// propagates, as does the hit branch's `solve_vec`; the attempted
     /// factorization stays charged. Accelerate's behaviour on an exactly
@@ -2287,7 +2311,7 @@ class QpEngine {
     /// @param opts          The effective options; `(primal_delta, dual_mu)` are
     ///                      fixed across one iteration.
     /// @return True iff the refined point was adopted.
-    /// @throws std::runtime_error propagated from `factorize_checked` on a miss,
+    /// @throws hven::BackendError propagated from `factorize_checked` on a miss,
     ///         and from the hit branch's `solve_vec`; the attempted
     ///         factorization stays charged.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
@@ -2379,7 +2403,7 @@ class QpEngine {
     // components that grew toward a non-constraining bound are eligible.
     //
     // "Non-constraining" is measured against the runaway threshold itself
-    // rather than kEngineInfBound: a hand-written "effectively infinite"
+    // rather than QpProblem::infinite_bound: a hand-written "effectively infinite"
     // bound like 1e18 still cannot restrain an artifact sitting at
     // ~1/primal_delta.
     bool is_runaway(const QpProblem &qp, const Vec &x, const WorkingSet &ws,
@@ -2430,7 +2454,7 @@ class QpEngine {
     // there; the suspect-stall gate then decides a would-be kOptimal as for any
     // kSuspect (correctness guard: AMuFreeSuspectReadDoesNotCertifyASaddle). Any
     // other outcome -- a kWrong mu-free read, a kSuspect with a non-kOk second
-    // read, or a backend runtime_error -- leaves the kWrong standing. Known gap
+    // read, or a BackendError -- leaves the kWrong standing. Known gap
     // (registered): a strict local minimum whose mu-free read is kSuspect and
     // whose dual_mu read is kWrong is not certified (ACOPR57 qp4); the honest fix
     // is the reduced Hessian's inertia on a small face, a later round.
@@ -2948,7 +2972,7 @@ class QpEngine {
 
     // const: nothing may mutate opts_ after construction; every field it holds
     // is this engine instance's DEFAULT for that field, resolved against a
-    // solve()'s own SolveOverrides at the top of run() (`eff_opts`) rather
+    // solve()'s own QpSolveOverrides at the top of run() (`eff_opts`) rather
     // than read directly by most of the engine.
     const QpOptions opts_;
     Ledger *ledger_ = nullptr;
@@ -2960,6 +2984,7 @@ class QpEngine {
     // engine (SqpSolver::set_options rebuilds). Computed once here rather than
     // per solve because run()'s adoption gate reads it on every call.
     int threads_ = 0;
+    hven::linear::DensePolicy dense_policy_ = hven::linear::DensePolicy::kNever;
     std::uint64_t options_hash_ = 0;
 
     // HOT-START REUSE state (border mode only; see the header contract).
@@ -2995,4 +3020,4 @@ class QpEngine {
     mutable std::uint64_t border_kkt_epoch_ = 0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

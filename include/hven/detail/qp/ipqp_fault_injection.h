@@ -14,7 +14,7 @@
 // TUs. What this file declares is consumed by the QP tier
 // (src/qp/ipqp_engine.cpp) and is about the tier's own reading of an
 // already-computed factorization, not about a backend call. Putting a
-// `hven::solvers` injector inside a `hven::linear` header would make the
+// `hven` injector inside a `hven::linear` header would make the
 // linear layer's seam header depend on a consumer above it. The CONVENTION is
 // the shared thing, and it is followed exactly (CLAUDE.md section 8: "use this
 // convention for any new need rather than inventing another").
@@ -61,7 +61,7 @@
 #include <hven/core/types.h>
 #include <hven/linear/symmetric_factor.h>
 
-namespace hven::solvers::detail::testing {
+namespace hven::detail::testing {
 
 // Substitutes the inertia evidence the tier READS for a factorization that
 // really ran. The factorization itself is untouched -- the backend session,
@@ -228,6 +228,34 @@ struct IpqpStepObserver {
     }
 };
 
-} // namespace hven::solvers::detail::testing
+// A WRONG DENSE STEP SOLVE. Within a window of the tier's dense-arm step solves
+// (`solve_system` calls: the mu-estimate's, then each iteration's affine and corrector, in
+// order), every backend solve that call makes -- the answer and each refinement correction --
+// is multiplied by `scale`: the answer a dense factor of K / scale would give, which no detector
+// flagged. With `scale = 3` the answer misses by rho = 2 and refinement diverges, so the check
+// refuses it.
+//
+// FAITHFUL FOR the check's verdict and the tier's response to it: both read only the answers
+// and K. NOT FAITHFUL FOR the factorization's own evidence (its inertia is the real K's, which a
+// real wrong factor need not report) -- no fixture asserts on that.
+struct IpqpDenseSolveInjector {
+    static inline bool active = false;
+    /// Dense step solves passed through untouched before the window opens.
+    static inline Index skip_first = 0;
+    /// Solves corrupted once the window is open; -1 = no limit.
+    static inline Index max_injections = -1;
+    static inline double scale = 3.0;
+    static inline Index injections = 0;
+
+    static void reset() {
+        active = false;
+        skip_first = 0;
+        max_injections = -1;
+        scale = 3.0;
+        injections = 0;
+    }
+};
+
+} // namespace hven::detail::testing
 
 #endif // HVEN_TESTING

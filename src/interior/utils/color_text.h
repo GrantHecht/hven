@@ -13,10 +13,10 @@
 
 #include "fmtlib.h"
 
-namespace hven::utils {
+namespace hven::detail {
 
 struct ColorScheme {};
 
 void enable_color_console();
 
-} // namespace hven::utils
+} // namespace hven::detail

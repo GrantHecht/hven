@@ -46,7 +46,7 @@
 // so if it is ever reformatted, this list has to be brought back into step
 // with it and the byte-identity check re-run.
 
-#include "hven/drivers/ipm_solver.h"
+#include "hven/detail/drivers/ipm_solver_impl.h"
 
 #include <algorithm>
 #include <cassert>
@@ -56,6 +56,7 @@
 
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
+#include "hven/detail/interior/utils/get_core_count.h"
 #include "hven/detail/interior/utils/timer.h"
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -73,7 +74,7 @@
 // include-discipline note in solver_context.h).
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/globalization/acceptance_strategy.h"
+#include "hven/detail/globalization/acceptance_mode.h"
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/barrier_governor.h"

@@ -9,7 +9,7 @@
 #include "hven/detail/globalization/restoration.h"
 #include "hven/detail/globalization/solver_context.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// Proximal weight for zeta (item 1 below); the reference implementation's
 /// "resto_proximity_weight" shipped default 1.0.
@@ -111,4 +111,4 @@ class ProximalSwitchRestoration final : public RestorationStrategy {
     double zeta_ = 0.0;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

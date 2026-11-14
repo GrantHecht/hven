@@ -1,0 +1,11 @@
+2144,2145d2143
+<         if (this->kkt_sol_.arm() != hven::linear::FactorArm::kDense)
+<             break;
+3954c3952
+<         if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>         if (true) {
+4964c4962
+<     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
+---
+>     if (true) {

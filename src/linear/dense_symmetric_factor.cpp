@@ -3,6 +3,10 @@
 
 #include "hven/linear/dense_symmetric_factor.h"
 
+#include "hven/core/errors.h"
+
+// The 2x2 block read, shared with the dense arm's block walk.
+#include "hven/detail/linear/block_decode.h"
 // The per-call thread scope, shared with the sparse session (M6 W5 T8.8).
 #include "hven/detail/linear/thread_scope.h"
 
@@ -78,7 +82,7 @@ int DenseSymmetricFactor::factorize_core(ConstMatRef A, Triangle triangle, const
     // APPLIED FOR THIS CALL AND UNDONE AFTER IT (M6 W5 T8.8). The scope is a
     // no-op at 0, which is the default and every pre-T8.8 caller's value, so
     // the emitted call is what it always was unless a count was asked for.
-    const detail::MklThreadScope threads(num_threads_);
+    const detail::MklThreadScope threads(threads_);
     const auto info =
         static_cast<int>(LAPACKE_dsytrf(LAPACK_COL_MAJOR, uplo, static_cast<lapack_int>(n),
                                         factors_.data(), static_cast<lapack_int>(n), ipiv_.data()));
@@ -91,7 +95,7 @@ void DenseSymmetricFactor::factorize(ConstMatRef A) { factorize(A, Triangle::kUp
 void DenseSymmetricFactor::factorize(ConstMatRef A, Triangle triangle) {
     const int info = factorize_core(A, triangle, "factorize");
     if (info != 0) {
-        throw std::runtime_error(fmt::format(
+        throw hven::BackendError(fmt::format(
             "DenseSymmetricFactor::factorize: LAPACKE_dsytrf failed, info={} ({})", info,
             info < 0 ? "illegal argument value" : "matrix is exactly singular (zero pivot)"));
     }
@@ -103,7 +107,7 @@ DenseFactorizeOutcome DenseSymmetricFactor::try_factorize(ConstMatRef A, Triangl
         // A bug in this class's own call, not a property of A: still a
         // throw here, exactly as in factorize(). Only info > 0 -- exact
         // singularity, a fact ABOUT A -- is demoted to an outcome.
-        throw std::runtime_error(
+        throw hven::BackendError(
             fmt::format("DenseSymmetricFactor::try_factorize: LAPACKE_dsytrf failed, info={} "
                         "(illegal argument value)",
                         info));
@@ -126,11 +130,8 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
     // (k, k+1) when the upper triangle was factored, the subdiagonal
     // (k+1, k) when the lower was.
     //
-    // The 2x2 trace/determinant/discriminant arithmetic below is migrated
-    // VERBATIM from the SQP border stack's own walk, whose cond_estimate()
-    // consumers are float-load-bearing: the expression forms and their
-    // evaluation order are the contract here, not just the values they
-    // nominally compute.
+    // A non-finite entry anywhere in D leaves no inertia to read: the
+    // evidence is then absent, as for a factorization that did not complete.
     const bool upper = (triangle_ == Triangle::kUpper);
     BunchKaufmanBlockEvidence evidence;
     evidence.block_abs_eigs.reserve(static_cast<std::size_t>(dim_));
@@ -140,6 +141,9 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
         const auto uk = static_cast<std::size_t>(k);
         if (ipiv_[uk] > 0) {
             const double dii = factors_(k, k);
+            if (!std::isfinite(dii)) {
+                return std::nullopt;
+            }
             evidence.block_abs_eigs.push_back(std::abs(dii));
             if (dii < 0.0) {
                 ++evidence.neg_eigs;
@@ -154,7 +158,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
             // be the only thing standing between malformed pivot data and
             // an out-of-bounds read.
             if (ipiv_[uk] == 0 || k + 1 >= dim_) {
-                throw std::runtime_error(fmt::format(
+                throw std::logic_error(fmt::format(
                     "DenseSymmetricFactor::block_evidence: malformed dsytrf pivot data at index "
                     "{} of {} (ipiv={}) -- cannot decode the Bunch-Kaufman block structure",
                     k, dim_, ipiv_[uk]));
@@ -162,19 +166,13 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
             const double a11 = factors_(k, k);
             const double a21 = upper ? factors_(k, k + 1) : factors_(k + 1, k);
             const double a22 = factors_(k + 1, k + 1);
-            const double trace = a11 + a22;
-            const double det = a11 * a22 - a21 * a21;
-            const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
-            const double e1 = (trace + disc) / 2.0;
-            const double e2 = (trace - disc) / 2.0;
-            evidence.block_abs_eigs.push_back(std::abs(e1));
-            evidence.block_abs_eigs.push_back(std::abs(e2));
-            if (e1 < 0.0) {
-                ++evidence.neg_eigs;
+            detail::Block2x2 block;
+            if (!detail::decode_2x2(a11, a21, a22, block)) {
+                return std::nullopt;
             }
-            if (e2 < 0.0) {
-                ++evidence.neg_eigs;
-            }
+            evidence.block_abs_eigs.push_back(block.abs_first);
+            evidence.block_abs_eigs.push_back(block.abs_second);
+            evidence.neg_eigs += block.neg;
             k += 2;
         }
     }
@@ -184,7 +182,7 @@ std::optional<BunchKaufmanBlockEvidence> DenseSymmetricFactor::block_evidence() 
 
 void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     if (!factorized_) {
-        throw std::runtime_error(
+        throw std::logic_error(
             "DenseSymmetricFactor::solve: called before a successful factorize()");
     }
     if (RHS.rows() != dim_) {
@@ -233,11 +231,11 @@ void DenseSymmetricFactor::solve(ConstMatRef RHS, MatRef X) const {
     const char uplo = uplo_char(triangle_, "solve");
 
     // The same call-scoped bracket the factorization runs under; see there.
-    const detail::MklThreadScope threads(num_threads_);
+    const detail::MklThreadScope threads(threads_);
     const auto info = static_cast<int>(LAPACKE_dsytrs(LAPACK_COL_MAJOR, uplo, n, nrhs,
                                                       factors_.data(), n, ipiv_.data(), target, n));
     if (info != 0) {
-        throw std::runtime_error(
+        throw hven::BackendError(
             fmt::format("DenseSymmetricFactor::solve: LAPACKE_dsytrs failed, info={}", info));
     }
 
@@ -252,19 +250,19 @@ Index DenseSymmetricFactor::dim() const noexcept { return dim_; }
 
 Triangle DenseSymmetricFactor::triangle() const noexcept { return triangle_; }
 
-void DenseSymmetricFactor::set_num_threads(int num_threads) {
+void DenseSymmetricFactor::set_threads(int num_threads) {
     // Validated before anything moves, so a rejected count leaves this factor
-    // exactly as it was -- SymmetricFactor::set_num_threads's own shape, and
+    // exactly as it was -- SymmetricFactor::set_threads's own shape, and
     // its own message vocabulary, so the two surfaces read the same.
     if (num_threads < 0) {
         throw std::invalid_argument(
-            fmt::format("DenseSymmetricFactor::set_num_threads: thread count is {}, must be >= 0 "
+            fmt::format("DenseSymmetricFactor::set_threads: thread count is {}, must be >= 0 "
                         "(0 leaves the backend's own default alone)",
                         num_threads));
     }
-    num_threads_ = num_threads;
+    threads_ = num_threads;
 }
 
-int DenseSymmetricFactor::num_threads() const noexcept { return num_threads_; }
+int DenseSymmetricFactor::threads() const noexcept { return threads_; }
 
 } // namespace hven::linear

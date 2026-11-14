@@ -26,7 +26,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 /// @brief Builds the second-order-correction shifted QP: the whole of the
 /// rhs-shift computation, factored out so it can be tested away from the
@@ -54,4 +54,4 @@ namespace hven::solvers {
 QpProblem build_soc_subproblem(const QpProblem &qp, const NlpEval &ev, const NlpEval &ev_trial,
                                const Vec &p, const std::vector<bool> &ineq_active);
 
-} // namespace hven::solvers
+} // namespace hven::detail

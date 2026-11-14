@@ -1,0 +1,22 @@
+M8 DN-3b -- runtime neutrality gate (../DECLARATION.txt P5) -- DECLARATION
+(committed with ../DECLARATION.txt before the first leg; never edited; a failed or void leg is answered by a successor,
+this file and its outputs kept)
+================================================================================
+SOURCE. ../../2026-11-m8-dn3a/runtime-r2/ (DN-3a r2's instrument), re-pointed in code lines only: run_all.sh's and
+runtime_leg.sh's worktree, evidence directory (runtime/ of this directory) and build-dn3b/ paths, run_all.sh's arm A
+sha256; one provenance line added to each shell file; analyze_r5.py, analyze_r11.py and fixture/ byte copies. Same path
+depth (five levels below the repository root, so analyze_r11.py's '../../../../..' is the worktree root, where
+scripts/compare_replay.py is present). Period 400000; analyzer analyze_r11.py; fixture pre-flight first.
+ARMS
+  A  ccd2e951f (origin/m8), rebuilt by ../legs/prebuild.sh: build-dn3b/armAbin/hven_sqp_corpus, sha256 in
+     ../DECLARATION.txt (Arm A) and in run_all.sh.
+  B  the code head 1101cc38b: build-dn3b/rel/bench/hven_sqp_corpus copied by run_all.sh to build-dn3b/armBbin/, sha256
+     in ../DECLARATION.txt (Arm B). run_all.sh refuses to start on a mismatch for either.
+MODES interior, ipm, ssn, walk; the 27 replay cells; rounds (3, A->B, B->A, A->B), core 2, phase alignment, period
+400000, THROTTLE == 0 (a throttled process VOIDS the leg), counter identity as the STOP condition, band
+0.995 <= filtered B/A <= 1.005 per mode. Both arms at the defaults (kNever). VERDICT PASS iff every mode's analysis exits 0.
+WHAT THE ARMS DIFFER BY at the defaults: one DensePolicy comparison per KKT reconfigure (set_qp_params, once per solve
+configuration); at the multiplier estimate one extra ComputationInfo/FactorArm read and one branch. No dense session
+exists at kNever, so nothing else runs. The interior mode runs the IPM (IpmSolverImpl, the changed code); ipm (the SQP's
+IPQP tier), ssn and walk are unchanged-code controls.
+ON FAIL: stop, commit the evidence, report, do not re-run, do not change the criterion or the analyzer after data.

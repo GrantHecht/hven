@@ -1,0 +1,2 @@
+k=0 period=3240039 CELL_RESULT record hven-sqp MESH auto-default 1 rc=0 wall=2.80 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=max_iter
+k=1 period=3262719 CELL_RESULT record hven-sqp MESH auto-default 1 rc=0 wall=2.80 LOST=0 LOST_SAMPLES=0 THROTTLE=0 status=max_iter

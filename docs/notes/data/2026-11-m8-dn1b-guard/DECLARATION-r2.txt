@@ -1,0 +1,16 @@
+M8 DN-1b -- DECLARATION-r2: the T leg's successor (committed before its run; never edited afterwards)
+================================================================================
+Predecessor DECLARATION.txt (c9a23dc87) and every record under it are kept untouched. Its T leg did not run: the
+            harness runner REFUSED before the first cell (sl/out/t.log: "the harness tree is DIRTY ... ?? runs/dn1-train/"
+            -- DN-1's own T output, left untracked in the local clone by DN-1). No T data exists; nothing else failed.
+Change      the instrument only: sl/t_run-r2.sh = sl/t_run.sh plus a clean-clone step -- DN-1's untracked runs/dn1-train/
+            moved into the clone's git-ignored .scratch/dn1-train.aside before the runner and moved back after it
+            (nothing deleted; the move is refused if the aside name exists); this run's runs/dn1b-train/ moved into
+            .scratch/dn1b-train.done after its copy, so the clone is left as found. Same binary, same code head, same
+            invocation, same comparison.
+Criterion   DECLARATION.txt's T, verbatim: CUTEst TRAIN (23, hven-sqp, default options = kNever, PF-1's invocation, the
+            frozen lane binary build-dn1be/dn1bbin/hven_bench_cell sha256
+            c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd via --binary): >= 16/23 optimal and no cell
+            lost against PF-1's reading (hven-bench runs/2026-11-m8-pf1-train/default): T_PASS. HOLDOUT is never run.
+Command     flock /tmp/box-build.lock bash sl/t_run-r2.sh sl/out/t-r2 c8d54451ae8fa84c56ddb4600ee5068463058c510416838813f5ac1bfe8d6ddd b9da286613685945069f9f8cdfbf12f8ef179283
+ON FAIL     outputs committed; answered by DECLARATION-r3, never by editing this file.

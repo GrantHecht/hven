@@ -1,0 +1,27 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/nan/build-nan/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = NanSticky*
+[==========] Running 7 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from NanStickyInfNorm
+[ RUN      ] NanStickyInfNorm.ANaNAtEveryIndexReadsNaN
+[       OK ] NanStickyInfNorm.ANaNAtEveryIndexReadsNaN (1 ms)
+[ RUN      ] NanStickyInfNorm.ANaNFirstMiddleOrLastReadsNaNThroughExpressions
+[       OK ] NanStickyInfNorm.ANaNFirstMiddleOrLastReadsNaNThroughExpressions (0 ms)
+[ RUN      ] NanStickyInfNorm.AnInfReadsInfAndANaNBesideAnInfReadsNaN
+[       OK ] NanStickyInfNorm.AnInfReadsInfAndANaNBesideAnInfReadsNaN (0 ms)
+[ RUN      ] NanStickyInfNorm.AnEmptyVectorReadsZero
+[       OK ] NanStickyInfNorm.AnEmptyVectorReadsZero (0 ms)
+[ RUN      ] NanStickyInfNorm.OnFiniteInputItEqualsLpNormBitForBit
+[       OK ] NanStickyInfNorm.OnFiniteInputItEqualsLpNormBitForBit (0 ms)
+[----------] 5 tests from NanStickyInfNorm (2 ms total)
+
+[----------] 2 tests from NanStickyMax
+[ RUN      ] NanStickyMax.ANaNInEitherArgumentIsKept
+[       OK ] NanStickyMax.ANaNInEitherArgumentIsKept (0 ms)
+[ RUN      ] NanStickyMax.WithoutANaNItIsStdMax
+[       OK ] NanStickyMax.WithoutANaNItIsStdMax (0 ms)
+[----------] 2 tests from NanStickyMax (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 2 test suites ran. (2 ms total)
+[  PASSED  ] 7 tests.

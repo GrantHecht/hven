@@ -12,9 +12,10 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/QR>
 
+#include <hven/core/detail/inf_norm.h>
 #include <hven/detail/kkt/bordered_eqp.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -113,6 +114,15 @@ struct DepSystem {
         comp.push_back(WsMember{kind, idx});
     }
 
+    // No rho gate on shifted numerics, because nothing built on these solves is
+    // used unverified against the data: a dependent verdict is certified by
+    // w = a - A_W' v formed from the data; an independent one needs residual()
+    // -- the unshifted matrix -- to converge (otherwise undecidable, or the
+    // pre-E2 stall admission); and the saddle exit's negative-curvature
+    // direction (face_negative_curvature), which IS ridden, is only a
+    // proposal: it is kept only if q = d'Hd/d'd <= -curvature_tol on H itself
+    // and ride_stays_in_working_set(d) holds on the working rows -- both formed
+    // from the data -- and the ride's own ratio test sets its length.
     Vec solve(const Vec &rhs) const {
         return bordered ? f.schur->solve(rhs) : solve_vec(*f.eliminated, rhs);
     }
@@ -162,8 +172,8 @@ struct DepSystem {
                 u(i) = y(p);
             }
         }
-        const Vec top =
-            Vec(qp.H.selfadjointView<Eigen::Upper>() * u) + opts.primal_delta * u + at_times(qp, y);
+        const Vec top = Vec(qp.H.selfadjointView<Eigen::Upper>() * u) +
+                        opts.primal_regularization * u + at_times(qp, y);
         const Vec ae_u = qp.me() > 0 ? Vec(qp.Ae * u) : Vec::Zero(0);
         const Vec ai_u = qp.mi() > 0 ? rows_w->times(u) : Vec::Zero(0);
         Vec r = rhs;
@@ -258,12 +268,12 @@ DepTest dependency_test_to(const QpProblem &qp, const WorkingSet &ws, const DepF
     Vec y = sys.solve(rhs);
     ++t.solves;
     Vec res = sys.residual(qp, rhs, y, opts);
-    double res_norm = res.lpNorm<Eigen::Infinity>();
+    double res_norm = nan_sticky_inf_norm(res);
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++t.solves;
         Vec cres = sys.residual(qp, rhs, cand, opts);
-        const double cn = cres.lpNorm<Eigen::Infinity>();
+        const double cn = nan_sticky_inf_norm(cres);
         if (!(cn < res_norm)) {
             break;
         }
@@ -715,13 +725,13 @@ Vec face_solve(const QpProblem &qp, const WorkingSet &ws, const DepFactorView &f
     Vec y = sys.solve(rhs);
     ++solves;
     Vec res = sys.residual(qp, rhs, y, opts);
-    double res_norm = res.lpNorm<Eigen::Infinity>();
-    const double target = 1e-14 * std::max(1.0, rhs.lpNorm<Eigen::Infinity>());
+    double res_norm = nan_sticky_inf_norm(res);
+    const double target = 1e-14 * std::max(1.0, nan_sticky_inf_norm(rhs));
     for (Index s = 0; s < kDepRefineSteps && res_norm > target; ++s) {
         const Vec cand = y + sys.solve(res);
         ++solves;
         Vec cres = sys.residual(qp, rhs, cand, opts);
-        const double cn = cres.lpNorm<Eigen::Infinity>();
+        const double cn = nan_sticky_inf_norm(cres);
         if (!(cn < res_norm)) {
             break;
         }
@@ -845,7 +855,8 @@ Eigen::MatrixXd thin_q(const Eigen::MatrixXd &X) {
 } // namespace
 
 RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shift,
-                       const QpOptions &opts, int threads, double block_cap) {
+                       const QpOptions &opts, int threads, double block_cap,
+                       hven::linear::DensePolicy dense) {
     RankRepair out;
     const Index n = qp.n();
     const Index me = qp.me();
@@ -919,7 +930,13 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
         Y = Eigen::MatrixXd::Identity(mr, mr); // every row is empty on the free columns
     } else {
         const double t = kRankGramShift * omega;
-        hven::linear::SymmetricFactor factor(sqp_kkt_options(threads));
+        // No detector (kSparseFallback): the shift t bounds rcond near kRankGramShift,
+        // and the inverse iteration below solves with a near-singular G on purpose. The
+        // factorization is refused on either arm's own evidence (rank_gram_factor_refused);
+        // its solves only span the block whose Ritz pairs are then read from M_F itself.
+        hven::linear::SymmetricFactor::Options gram_options = sqp_kkt_options(threads, dense);
+        gram_options.dense_singular_policy = hven::linear::DenseSingularPolicy::kSparseFallback;
+        hven::linear::SymmetricFactor factor(gram_options);
         bool factored = false;
         const double mnorm = std::sqrt(omega); // >= ||M_F||_2
         Index b = std::min<Index>(mr, kRankBlockStart);
@@ -957,9 +974,9 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
                 try {
                     factor.analyze(A);
                     const hven::linear::FactorizeOutcome fo = factor.factorize(A);
-                    if (fo.status != hven::linear::FactorizeOutcome::Status::kOk ||
-                        (fo.inertia.perturbed_pivots.has_value() &&
-                         *fo.inertia.perturbed_pivots != 0)) {
+                    out.dense_factorizations = factor.counters().dense_factorize_count +
+                                               factor.counters().dense_singular_count;
+                    if (rank_gram_factor_refused(fo, mr)) {
                         out.outcome = RankRepair::Outcome::kRefused;
                         return out;
                     }
@@ -1067,7 +1084,7 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
             ystar = Z * c / gamma;
             rscale = ystar.cwiseAbs().dot(rf.cwiseAbs());
         }
-        const double ctol = kRankConsistencyFactor * opts.feas_tol * std::max(1.0, rscale);
+        const double ctol = kRankConsistencyFactor * opts.feasibility_tol * std::max(1.0, rscale);
         const bool incons = gamma > ctol;
         Index best = -1;
         double bv = 0.0;
@@ -1114,4 +1131,4 @@ RankRepair rank_repair(const QpProblem &qp, const WorkingSet &ws, const Vec &shi
     return out;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

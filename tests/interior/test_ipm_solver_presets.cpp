@@ -14,8 +14,8 @@
 // (CLAUDE.md section 7; docs/notes/data/2026-09-m7-w2-d1-ipm-default/). Three
 // IpmOptions defaults moved:
 //
-//     acceptance_strategy   classic_merit    -> filter
-//     barrier_governor      classic_adaptive -> monitored
+//     acceptance_mode   classic_merit    -> filter
+//     barrier_governor_mode      classic_adaptive -> monitored
 //     max_iters             500              -> 1000
 //
 // THE DECISION: `classic` KEEPS ITS PINNED MEANING. It is the pre-2026-09-18
@@ -53,25 +53,25 @@
 #include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/drivers/ipm_solver_types.h"
 
-using hven::solvers::AcceptanceStrategies;
-using hven::solvers::BarrierGovernors;
-using hven::solvers::InteriorPointSolverPresetFields;
-using hven::solvers::IpmOptions;
+using hven::IpmAcceptanceMode;
+using hven::IpmBarrierGovernorMode;
+using hven::IpmOptions;
+using hven::detail::InteriorPointSolverPresetFields;
 
 namespace {
 
 // The nine preset fields of an IpmOptions value, in the preset table's order.
 InteriorPointSolverPresetFields preset_fields_of(const IpmOptions &s) {
     return InteriorPointSolverPresetFields{
-        s.acceptance_strategy,
-        s.merit_penalty_rule,
-        s.barrier_governor,
-        s.never_monotone,
-        s.restoration_mode,
-        s.inertia_mode,
-        s.max_soc,
-        s.ls_extended_iters,
-        s.watchdog,
+        s.advanced.acceptance_mode,
+        s.advanced.merit_penalty_rule,
+        s.advanced.barrier_governor_mode,
+        s.advanced.never_monotone,
+        s.advanced.restoration_mode,
+        s.advanced.inertia_mode,
+        s.advanced.max_second_order_corrections,
+        s.advanced.max_extended_backtracks,
+        s.advanced.watchdog,
     };
 }
 
@@ -81,14 +81,14 @@ InteriorPointSolverPresetFields preset_fields_of(const IpmOptions &s) {
 // else -- if reconstructing the old default needed a tenth write, this helper
 // would have to make it and the dump diff below would say so.
 IpmOptions pre_d1_default() {
-    IpmOptions o = hven::solvers::ipm_preset("classic");
-    o.max_iters = 500;
+    IpmOptions o = hven::ipm_preset("classic");
+    o.common.max_iterations = 500;
     return o;
 }
 
 std::string dump_to_string(const IpmOptions &o) {
     std::ostringstream os;
-    hven::solvers::dump_options(o, os);
+    hven::dump_options(o, os);
     return os.str();
 }
 
@@ -109,15 +109,15 @@ std::vector<std::string> lines_of(const std::string &text) {
 
 // Field-by-field comparison against an expected InteriorPointSolverPresetFields value.
 void PresetGateExpectFieldsMatch(const IpmOptions &s, const InteriorPointSolverPresetFields &f) {
-    EXPECT_EQ(s.acceptance_strategy, f.acceptance_strategy_);
-    EXPECT_EQ(s.merit_penalty_rule, f.merit_penalty_rule_);
-    EXPECT_EQ(s.barrier_governor, f.barrier_governor_);
-    EXPECT_EQ(s.never_monotone, f.never_monotone_);
-    EXPECT_EQ(s.restoration_mode, f.restoration_mode_);
-    EXPECT_EQ(s.inertia_mode, f.inertia_mode_);
-    EXPECT_EQ(s.max_soc, f.max_soc_);
-    EXPECT_EQ(s.ls_extended_iters, f.ls_extended_iters_);
-    EXPECT_EQ(s.watchdog, f.watchdog_);
+    EXPECT_EQ(s.advanced.acceptance_mode, f.acceptance_mode_);
+    EXPECT_EQ(s.advanced.merit_penalty_rule, f.merit_penalty_rule_);
+    EXPECT_EQ(s.advanced.barrier_governor_mode, f.barrier_governor_);
+    EXPECT_EQ(s.advanced.never_monotone, f.never_monotone_);
+    EXPECT_EQ(s.advanced.restoration_mode, f.restoration_mode_);
+    EXPECT_EQ(s.advanced.inertia_mode, f.inertia_mode_);
+    EXPECT_EQ(s.advanced.max_second_order_corrections, f.max_soc_);
+    EXPECT_EQ(s.advanced.max_extended_backtracks, f.ls_extended_iters_);
+    EXPECT_EQ(s.advanced.watchdog, f.watchdog_);
 }
 
 } // namespace
@@ -128,22 +128,22 @@ void PresetGateExpectFieldsMatch(const IpmOptions &s, const InteriorPointSolverP
 // wide on this surface and not three or nine.
 TEST(InteriorPointSolverPresetsTest,
      PresetGateClassicDiffersFromTheDefaultInExactlyTheTwoGlobalizationFields) {
-    const IpmOptions classic = hven::solvers::ipm_preset("classic");
+    const IpmOptions classic = hven::ipm_preset("classic");
     const IpmOptions fresh; // default-constructed -- the post-W2-D1 default
 
     // The two that moved, asserted in both directions so a future revert of
     // either side fails here rather than passing quietly.
-    EXPECT_EQ(classic.acceptance_strategy, AcceptanceStrategies::classic_merit);
-    EXPECT_EQ(fresh.acceptance_strategy, AcceptanceStrategies::filter);
-    EXPECT_EQ(classic.barrier_governor, BarrierGovernors::classic_adaptive);
-    EXPECT_EQ(fresh.barrier_governor, BarrierGovernors::monitored);
+    EXPECT_EQ(classic.advanced.acceptance_mode, IpmAcceptanceMode::kClassicMerit);
+    EXPECT_EQ(fresh.advanced.acceptance_mode, IpmAcceptanceMode::kFilter);
+    EXPECT_EQ(classic.advanced.barrier_governor_mode, IpmBarrierGovernorMode::kClassicAdaptive);
+    EXPECT_EQ(fresh.advanced.barrier_governor_mode, IpmBarrierGovernorMode::kMonitored);
 
     // The other seven preset fields are untouched by the event: take the
     // default's nine, put the two pre-event values back, and the whole preset
     // must match. If a tenth field ever drifts, this fails.
     InteriorPointSolverPresetFields fresh_as_fields = preset_fields_of(fresh);
-    fresh_as_fields.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    fresh_as_fields.barrier_governor_ = BarrierGovernors::classic_adaptive;
+    fresh_as_fields.acceptance_mode_ = IpmAcceptanceMode::kClassicMerit;
+    fresh_as_fields.barrier_governor_ = IpmBarrierGovernorMode::kClassicAdaptive;
     PresetGateExpectFieldsMatch(classic, fresh_as_fields);
 }
 
@@ -174,10 +174,13 @@ TEST(InteriorPointSolverPresetsTest,
 
     ASSERT_EQ(differing.size(), 3u)
         << "W2 D1 moved three fields and no others; diff was:" << joined;
-    EXPECT_EQ(differing[0], "max_iters = 500  ->  max_iters = 1000") << joined;
-    EXPECT_EQ(differing[1], "acceptance_strategy = classic_merit  ->  acceptance_strategy = filter")
+    EXPECT_EQ(differing[0], "common.max_iterations = 500  ->  common.max_iterations = 1000")
         << joined;
-    EXPECT_EQ(differing[2], "barrier_governor = classic_adaptive  ->  barrier_governor = monitored")
+    EXPECT_EQ(differing[1],
+              "advanced.acceptance_mode = kClassicMerit  ->  advanced.acceptance_mode = kFilter")
+        << joined;
+    EXPECT_EQ(differing[2], "advanced.barrier_governor_mode = kClassicAdaptive  ->  "
+                            "advanced.barrier_governor_mode = kMonitored")
         << joined;
 }
 
@@ -186,6 +189,6 @@ TEST(InteriorPointSolverPresetsTest,
 // (classic_merit over classic_adaptive trips neither combination guard, which
 // is exactly why the pre-event default needed no opt-in of its own.)
 TEST(InteriorPointSolverPresetsTest, PresetGateThePreEventDefaultStillValidates) {
-    EXPECT_NO_THROW(hven::solvers::validate(pre_d1_default()));
-    EXPECT_NO_THROW(hven::solvers::validate(IpmOptions{}));
+    EXPECT_NO_THROW(hven::validate(pre_d1_default()));
+    EXPECT_NO_THROW(hven::validate(IpmOptions{}));
 }

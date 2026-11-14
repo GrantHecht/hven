@@ -1,0 +1,27 @@
+=== I3c-A2 === cells compared: 43  columns compared: 30  differences: 26
+    hs071_x1_fixed/MakeConstraint    kkt_inf                            A=2.096454566e-09  B=2.096447460e-09
+    hs071_x1_fixed/MakeConstraint    stationarity                       A=2.096454566e-09  B=2.096447460e-09
+    hs071_x1_fixed/MakeConstraint    complementarity                    A=1.712034468e-10  B=1.712034355e-10
+    hs071_x1_fixed/MakeParameter     kkt_inf                            A=1.463526456e-09  B=1.463530430e-09
+    hs071_x1_fixed/MakeParameter     econ_inf                           A=0.000000000e+00  B=7.105427358e-15
+    hs071_x1_fixed/MakeParameter     stationarity                       A=1.463526456e-09  B=1.463530430e-09
+    hs071_x1_fixed/MakeParameter     feasibility_e                      A=0.000000000e+00  B=7.105427358e-15
+    hs071_x1_fixed/MakeParameter     complementarity                    A=1.712034355e-10  B=1.712034468e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize kkt_inf                            A=4.685353035e-10  B=4.685317508e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize econ_inf                           A=3.263522785e-11  B=3.262812243e-11
+    hs071_x1_fixed/MakeParameter/solve_optimize stationarity                       A=4.685353035e-10  B=4.685317508e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize feasibility_e                      A=3.263522785e-11  B=3.262812243e-11
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed kkt_inf                            A=9.321062880e-11  B=9.321240515e-11
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed econ_inf                           A=2.117630515e-10  B=2.117488407e-10
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed icon_inf                           A=2.080614431e-10  B=2.080649958e-10
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed stationarity                       A=9.321062880e-11  B=9.321240515e-11
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed feasibility_e                      A=2.117630515e-10  B=2.117488407e-10
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed feasibility_i                      A=1.942552785e-10  B=1.942588312e-10
+    hs071_x1_fixed/MakeParameter/warm_multiplier_seed complementarity                    A=1.072859588e-10  B=1.072879209e-10
+    hs071_x1_fixed/MakeParameter/warm_payload kkt_inf                            A=2.380127720e-15  B=2.374836693e-15
+    hs071_x1_fixed/MakeParameter/warm_payload stationarity                       A=2.380127720e-15  B=2.374836693e-15
+    hs071_x1_fixed/RelaxBounds       kkt_inf                            A=3.969047313e-15  B=3.774758284e-15
+    hs071_x1_fixed/RelaxBounds       stationarity                       A=3.996802889e-15  B=3.774758284e-15
+    infeas2_spike/MakeParameter/stalled kkt_inf                            A=3.725290298e-09  B=0.000000000e+00
+    infeas2_spike/MakeParameter/stalled econ_inf                           A=6.250000000e-02  B=1.250000000e-01
+    infeas2_stationary/MakeParameter/resto_infeasible econ_inf                           A=4.707345624e-14  B=4.729550085e-14

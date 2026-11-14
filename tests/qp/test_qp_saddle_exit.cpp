@@ -34,22 +34,21 @@
 #include "../common_support/route_reference.h"
 #include "support/qp_dump.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 using hven::test_support::QpDump;
-using Obs = hven::solvers::detail::testing::QpWalkObserver;
-using Action = hven::solvers::detail::testing::QpWalkAction;
-using Record = hven::solvers::detail::testing::QpWalkMinorRecord;
+using Obs = hven::detail::testing::QpWalkObserver;
+using Action = hven::detail::testing::QpWalkAction;
+using Record = hven::detail::testing::QpWalkMinorRecord;
 
 namespace {
 
-constexpr auto kBorder = WorkingSetLinearAlgebra::kSchurBorder;
-constexpr auto kRefactorize = WorkingSetLinearAlgebra::kRefactorize;
+constexpr auto kBorder = QpWorkingSetAlgebra::kSchurBorder;
+constexpr auto kRefactorize = QpWorkingSetAlgebra::kRefactorize;
 
-const char *alg_name(WorkingSetLinearAlgebra alg) {
-    return alg == kBorder ? "border" : "refactorize";
-}
+const char *alg_name(QpWorkingSetAlgebra alg) { return alg == kBorder ? "border" : "refactorize"; }
 
 double objective(const QpProblem &qp, const Vec &x) {
     return 0.5 * x.dot(qp.H.selfadjointView<Eigen::Upper>() * x) + qp.g.dot(x);
@@ -171,7 +170,7 @@ void expect_saddle_passes_descend(const std::vector<Record> &records, const QpCo
 // THE ELASTIC SADDLES. Premise (the dump's own result line): in-cell kNumericalError at the
 // dead end. Expected: kOptimal strictly below the saddle's objective, the KKT battery, a
 // positive-definite reduced Hessian on the final face, and at least one saddle exit taken.
-void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
+void expect_saddle_left(const char *file, QpWorkingSetAlgebra alg) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     ASSERT_NE(d.result.find("status=3"), std::string::npos) << d.result;
@@ -179,7 +178,7 @@ void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
     const double f_saddle = objective(d.qp, d.x_final);
 
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     ASSERT_TRUE(o.independent_working_set) << "the dump is a `default`-label solve";
     const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
     const QpSolution &s = w.solution;
@@ -237,12 +236,12 @@ void expect_saddle_left(const char *file, WorkingSetLinearAlgebra alg) {
 // THE MISSES, which must stay misses: no ride without a VERIFIED direction.
 //   STEENBRE qp2's final face carries Z'HZ = -249.9 against a Hessian of norm 6.2e15: -4e-14 of
 //   hessian_scale, below curvature_tol, so not a negative curvature the engine can resolve.
-void expect_no_ride(const char *file, WorkingSetLinearAlgebra alg) {
+void expect_no_ride(const char *file, QpWorkingSetAlgebra alg) {
     const QpDump d =
         hven::test_support::load_qp_dump(std::string(HVEN_QP_E2D4_FIXTURES) + "/" + file);
     ASSERT_NE(d.result.find("site=1335"), std::string::npos) << d.result;
     QpOptions o = d.opts;
-    o.ws_algebra = alg;
+    o.working_set_algebra = alg;
     const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
     const QpSolution &s = w.solution;
     std::printf("[ nc3 ] %s %s status=%d minors=%ld f=%.12g saddle_exits=%ld misses=%ld\n", file,
@@ -294,13 +293,13 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
     for (const auto alg : {kRefactorize, kBorder}) {
         SCOPED_TRACE(alg_name(alg));
         QpOptions o;
-        o.max_iter = 60;
-        o.ws_algebra = alg;
+        o.max_iterations = 60;
+        o.working_set_algebra = alg;
 
         // The PREMISE, on the arm this round does not touch: with the option off the exit is
         // not tried, and the walk ends at the saddle.
         o.independent_working_set = false;
-        const QpSolution off = QpEngine{o}.solve(qp);
+        const QpSolution off = QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp);
         EXPECT_EQ(static_cast<int>(off.status), static_cast<int>(QpStatus::kNumericalError));
         EXPECT_EQ(off.counters.saddle_exits + off.counters.saddle_exit_misses, 0);
         EXPECT_EQ(off.counters.ascent_rides, 0);
@@ -311,7 +310,7 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         // From x = 0: the guard rides -p off the indefinite face, and the saddle is never
         // reached.
         {
-            const QpSolution g = QpEngine{o}.solve(qp);
+            const QpSolution g = QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp);
             EXPECT_EQ(static_cast<int>(g.status), static_cast<int>(QpStatus::kOptimal));
             EXPECT_GE(g.counters.ascent_rides, 1);
             EXPECT_EQ(g.counters.saddle_exits + g.counters.saddle_exit_misses, 0);
@@ -321,7 +320,8 @@ TEST(QpNc3SaddleExit, ASyntheticSaddleReachedWithoutADropIsLeftForALocalMinimize
         QpSolution at_saddle;
         at_saddle.x = Vec(2);
         at_saddle.x << -0.05, 0.0;
-        const Walk w = observed([&] { return QpEngine{o}.solve(qp, at_saddle); });
+        const Walk w = observed(
+            [&] { return QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp, at_saddle); });
         const QpSolution &s = w.solution;
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_EQ(s.counters.saddle_exits, 1);
@@ -376,7 +376,7 @@ TEST(QpNc3SaddleExit, AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3) 
     for (const auto alg : {kBorder, kRefactorize}) {
         SCOPED_TRACE(alg_name(alg));
         QpOptions o = d.opts;
-        o.ws_algebra = alg;
+        o.working_set_algebra = alg;
         const Walk w = observed([&] { return hven::test_support::solve_qp_dump(d, o); });
         const QpSolution &s = w.solution;
         EXPECT_EQ(s.counters.saddle_exits, 0);
@@ -483,10 +483,11 @@ TEST(QpNc3SaddleExit, ADegenerateSaddleVertexIsNeverCertifiedThroughTwoZeroLengt
     for (const auto alg : {kRefactorize, kBorder}) {
         SCOPED_TRACE(alg_name(alg));
         QpOptions o;
-        o.max_iter = 100;
-        o.ws_algebra = alg;
+        o.max_iterations = 100;
+        o.working_set_algebra = alg;
         o.independent_working_set = true;
-        const Walk w = observed([&] { return QpEngine{o}.solve(qp, seed); });
+        const Walk w = observed(
+            [&] { return QpEngine(o, 0, hven::linear::DensePolicy::kNever).solve(qp, seed); });
         const QpSolution &s = w.solution;
         const bool at_vertex = s.x.norm() < 1e-6;
         std::printf("[ nc3fix1 ] %s status=%d |x|=%.3g f=%.6g saddle_exits=%ld misses=%ld\n",

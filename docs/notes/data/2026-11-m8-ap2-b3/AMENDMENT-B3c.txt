@@ -1,0 +1,20 @@
+M8 AP-2 group B3 -- AMENDMENT to DECLARATION.txt, proof B3-c (and X1)
+(committed before any B3-c leg ran; DECLARATION.txt itself is not edited)
+================================================================================
+WHAT WAS MISSED. The declaration's X1 lists the console change as "output-only" and B3-c
+requires the scripted-sink transcripts at each Verbosity rung to be BYTE-IDENTICAL to the
+pin's print_level 0/1/2/3 transcripts.  The review page (section 4.1, Verbosity) also
+requires "The banner's stale 'InteriorPointSolver' string is fixed", and that string is
+inside the pinned bytes: the interior-point Beginning and Finished lines
+(src/drivers/console_trace_sink.cpp, `ipm_print_beginning` / `ipm_print_finished`;
+tests/drivers/console_sink_base_transcript.inc carries the Finished line).
+
+THE AMENDED CRITERION (B3-c).  The scripted-sink transcripts at kIterations / kSummary /
+kWarnings / kSilent are byte-identical to the pin's print_level 0 / 1 / 2 / 3 transcripts
+EXCEPT that the banner token "InteriorPointSolver " reads "IpmSolver " on the Beginning and
+Finished lines.  Nothing else in any transcript may differ.  The pinned transcript
+(console_sink_base_transcript.inc) is re-derived for that token only, and the re-derivation
+is shown as a diff in the evidence.
+
+THIS IS A CRITERION CHANGE, reported as one.  It is made before the first B3-c leg; no B3-c
+data existed when it was written.

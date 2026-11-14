@@ -1,0 +1,31 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-08T10:05:23-05:00
+mutation site count 1
+225,227c225,236
+<             Block2x2 block;
+<             if (!decode_2x2(a11, a21, a22, block)) {
+<                 return std::nullopt;
+---
+>             const double trace = a11 + a22;
+>             const double det = a11 * a22 - a21 * a21;
+>             const double disc = std::sqrt(std::max(0.0, trace * trace - 4.0 * det));
+>             const double e1 = (trace + disc) / 2.0;
+>             const double e2 = (trace - disc) / 2.0;
+>             evidence.block_abs_eigs.push_back(std::abs(e1));
+>             evidence.block_abs_eigs.push_back(std::abs(e2));
+>             if (e1 < 0.0) {
+>                 ++evidence.neg_eigs;
+>             }
+>             if (e2 < 0.0) {
+>                 ++evidence.neg_eigs;
+229,231d237
+<             evidence.block_abs_eigs.push_back(block.abs_first);
+<             evidence.block_abs_eigs.push_back(block.abs_second);
+<             evidence.neg_eigs += block.neg;
+head rc=0
+mutant rc=1
+head  : {'EvidenceCountsTheNegativeOfAnIllScaled2x2Block': 'OK', 'EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block': 'OK', 'EvidenceIsAbsentWhenDCarriesANonFiniteEntry': 'OK'}
+mutant: {'EvidenceCountsTheNegativeOfAnIllScaled2x2Block': 'FAILED', 'EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block': 'FAILED', 'EvidenceIsAbsentWhenDCarriesANonFiniteEntry': 'OK'}
+mutant neg_eigs reads 0: True
+FAILPROOF_AS_DECLARED
+FOREGROUND_END 2026-11-08T10:06:21-05:00

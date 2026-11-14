@@ -27,7 +27,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // The penalty ladder: rho STARTS at kElasticRhoInit, or -- when infeasibility evidence prices the
 // violation higher -- at that norm CAPPED at kElasticRhoMax, and is multiplied by kElasticRhoFactor
@@ -38,7 +38,7 @@ namespace hven::solvers {
 // subproblem's OWN multiplier norm: for rho > ||lambda*||inf of the unrelaxed
 // QP, paying the penalty is strictly worse than satisfying the row, so the
 // elastic solution has s == 0 and IS the unrelaxed solution (pinned by a suite
-// fixture that straddles the threshold). rho_init = 1e2 sits well above the
+// fixture that straddles the threshold). primal_regularization_initial = 1e2 sits well above the
 // multipliers of a well-scaled subproblem; rho_max = 1e8 is where the penalty
 // term starts to dominate the double-precision arithmetic of the H block (the
 // engine's own regularization pair sits at 1e-8, so 1e8 is the reciprocal scale
@@ -49,11 +49,11 @@ inline constexpr double kElasticRhoMax = 1e8;
 inline constexpr double kElasticRhoFactor = 10.0;
 
 /// THE PLACEMENT SAFETY MARGIN (W2 T5): an evidence-placed first rung is additionally capped at
-/// `kElasticRhoDualMuSafety / QpOptions::dual_mu`, SUBJECT TO the `kElasticRhoInit` floor, which
-/// outranks it. The walk's `worst_structural_violation` reads a FALSE kInfeasible off a feasible
-/// elastic copy once `dual_mu * rho` grows -- measured 6.5e-8 ok at rho 1e6 against 6.5e-7 INF at
-/// rho 1e7, both at dual_mu 1e-8, so the misfire threshold is ~1e-1 in the product and ~1e-2 is
-/// the safe side. At the shipped dual_mu = 1e-8 the cap is 1e6.
+/// `kElasticRhoDualMuSafety / QpOptions::dual_regularization`, SUBJECT TO the `kElasticRhoInit`
+/// floor, which outranks it. The walk's `worst_structural_violation` reads a FALSE kInfeasible off
+/// a feasible elastic copy once `dual_mu * rho` grows -- measured 6.5e-8 ok at rho 1e6
+/// against 6.5e-7 INF at rho 1e7, both at dual_mu 1e-8, so the misfire threshold is ~1e-1 in the
+/// product and ~1e-2 is the safe side. At the shipped dual_mu = 1e-8 the cap is 1e6.
 ///
 /// IT IS A MARGIN ON THE FIRST RUNG, not the fix and not a property of the ladder: the rungs
 /// above escalate to `kElasticRhoMax` regardless, and at `dual_mu >= 1e-4` the cap sits below
@@ -157,7 +157,7 @@ struct ElasticQp {
 /// (coefficient rho*sigma_j > 0) against s >= 0, so no slack direction is a
 /// direction of decrease and the zero curvature cannot produce an unbounded ray.
 ///
-/// THE TRUST REGION IS FOLDED INTO THE BOX, not passed as SolveOverrides::
+/// THE TRUST REGION IS FOLDED INTO THE BOX, not passed as QpSolveOverrides::
 /// tr_radius -- a correctness requirement, not style: applying the radius to
 /// EVERY variable index would cap every slack at Delta too, and the slack a
 /// violated row needs is the size of the VIOLATION, which has nothing to do
@@ -248,4 +248,4 @@ void place_elastic_seed_at_witness(const ElasticQp &e, const QpProblem &qp, QpSo
 QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolution &aug,
                            bool carry_multipliers);
 
-} // namespace hven::solvers
+} // namespace hven::detail

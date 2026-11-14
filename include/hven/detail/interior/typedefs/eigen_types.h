@@ -12,7 +12,7 @@
 
 #include "hven/detail/interior/typedefs/super_scalar_traits.h"
 
-namespace hven {
+namespace hven::detail {
 
 template <class Scalar, int rows> using Vector = Eigen::Matrix<Scalar, rows, 1>;
 
@@ -69,4 +69,4 @@ using DefaultSuperScalar = SuperScalarType<double, 4>; // 256-bit = 4 doubles
 using DefaultSuperScalar = SuperScalarType<double, 2>; // 128-bit = 2 doubles (SSE2/NEON)
 #endif
 
-} // namespace hven
+} // namespace hven::detail

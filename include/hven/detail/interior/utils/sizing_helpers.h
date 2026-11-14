@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace hven::utils {
+namespace hven::detail {
 
 /// @internal
 /// @brief Compile-time size helper: treats negative values as dynamic (-1).
@@ -124,4 +124,4 @@ template <int... Args> using SZ_MAX = SZ_BINOP<SZ_MAXOP, Args...>;
 /// @brief Variadic compile-time minimum alias for SZ_BINOP<SZ_MINOP, Args...>.
 template <int... Args> using SZ_MIN = SZ_BINOP<SZ_MINOP, Args...>;
 
-} // namespace hven::utils
+} // namespace hven::detail

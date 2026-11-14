@@ -1,0 +1,127 @@
+{
+ "samples": 4891,
+ "period": 1000003,
+ "instr_sampled_all": 4912161673,
+ "instr_sampled_solver": 4904133649,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 3007009,
+  "B_kkt": 0,
+  "B_eval": 0,
+  "B_setup": 4900119637,
+  "B_eng": 1007003,
+  "B_proc": 8028024
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0006131580448695883,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.9991815043619746,
+  "B_eng": 0.0002053375931557937
+ },
+ "proc_share_of_all": 0.0016343159151553438,
+ "rule_instr": 4911154670,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 1007003,
+ "unmatched_share_of_solver": 0.0002053375931557937,
+ "chains_reaching_main": 0.9965242281741975,
+ "init_instr": 4898112631,
+ "steady_state_instr": 6021018,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.499418702950232,
+  "B_kkt": 0.0,
+  "B_eval": 0.0,
+  "B_setup": 0.3333333333333333,
+  "B_eng": 0.16724796371643466
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   3007009
+  ]
+ ],
+ "mkl_serv_instr": 4898112631,
+ "kmp_instr": 3007009,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   1007003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "__kmp_hardware_timestamp",
+    1007003
+   ],
+   [
+    "msort_with_tmp.part.0",
+    1000003
+   ],
+   [
+    "__kmpc_dispatch_init_4@plt",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [],
+  "B_setup": [
+   [
+    "difftime",
+    3089442228
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    1394933167
+   ],
+   [
+    "__vdso_time",
+    224980672
+   ],
+   [
+    "difftime@plt",
+    168686504
+   ],
+   [
+    "time@plt",
+    20070060
+   ],
+   [
+    "hven::detail::get_core_count",
+    1007003
+   ],
+   [
+    "isspace",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__internal_syscall_cancel",
+    1007003
+   ]
+  ],
+  "B_proc": [
+   [
+    "_dl_lookup_symbol_x",
+    3014009
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    2007006
+   ],
+   [
+    "do_lookup_x",
+    2007006
+   ],
+   [
+    "strcmp",
+    1000003
+   ]
+  ]
+ }
+}

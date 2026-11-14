@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "hven/core/errors.h"
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -26,11 +27,9 @@
 #include <windows.h>
 #endif
 
-namespace hven::utils {
+namespace hven::detail {
 
 // Worker thread identification + per-dispatch synchronization.
-
-namespace detail {
 
 /// Set to true on each pool worker thread.
 inline thread_local bool g_is_pool_worker{false};
@@ -41,15 +40,14 @@ inline thread_local bool g_is_pool_worker{false};
 /// Lives on the caller's stack. Workers hold `&ctx` — the caller MUST call
 /// `done.wait()` before `ctx` goes out of scope.
 ///
-/// Exception aggregation: captures up to `kMaxCaptured` distinct worker exceptions.
-/// If a single worker throws, `rethrow_if_exception()` rethrows that exception
-/// unchanged (preserves type). If multiple workers throw concurrently, it composes
-/// a `std::runtime_error` whose message concatenates every captured `.what()`.
+/// Exception capture: up to `kMaxCaptured` worker exceptions are stored, and
+/// `rethrow_if_exception()` rethrows ONE of them unchanged (the same object, its
+/// own type), preferring one that is not an EvaluationError.
 struct DispatchContext {
-    // 16 lets a 256-trajectory STM that diverges in many lanes preserve
-    // enough distinct messages to debug without forcing every caller to
-    // unwrap a composite. Storage is per-DispatchContext on the dispatch
-    // caller's stack, so the size cost is bounded.
+    // 16 slots are searched for a foreign exception among concurrent lane
+    // failures; one beyond them is counted, not kept. Storage is
+    // per-DispatchContext on the dispatch caller's stack, so the size cost is
+    // bounded.
     static constexpr int kMaxCaptured = 16; ///< @internal Maximum number of captured exceptions.
 
     std::latch done;                ///< @internal Countdown latch; each worker calls count_down().
@@ -63,8 +61,7 @@ struct DispatchContext {
 
     /// Store an exception. Only called from catch blocks (cold path).
     /// fetch_add serializes slot assignment; excess beyond kMaxCaptured
-    /// increments the suppressed counter (surfaced in the aggregated
-    /// message).
+    /// increments the suppressed counter.
     void store_exception() noexcept {
         int idx = captured.fetch_add(1, std::memory_order_acq_rel);
         if (idx < kMaxCaptured) {
@@ -74,55 +71,51 @@ struct DispatchContext {
         }
     }
 
-    /// Rethrow stored exception(s). MUST be called after done.wait()
-    /// (the latch provides the happens-before for the slot writes).
-    void rethrow_if_exception() {
-        int total = captured.load(std::memory_order_acquire);
-        if (total == 0)
+    /// Rethrow ONE stored exception, UNCHANGED. MUST be called after
+    /// done.wait() (the latch provides the happens-before for the slot writes).
+    ///
+    /// THE SAME OBJECT, WITH ITS OWN TYPE (M8 B5): the engines' exception
+    /// contract (core/errors.h) recognises a model's EvaluationError as a
+    /// rejected trial and propagates every other exception a user callback
+    /// throws exactly as thrown, so a dispatch must never compose its workers'
+    /// exceptions into a new one. When several lanes threw, one that is NOT an
+    /// EvaluationError is preferred -- a trial point some lanes could not
+    /// evaluate is still only a rejected trial, but a foreign exception in any
+    /// lane must reach the caller: the first foreign one captured from the pool,
+    /// else the calling thread's own (@p inline_ex) when it is foreign, else the
+    /// first pool EvaluationError, else the calling thread's. The rest are
+    /// dropped. @p inline_ex is the exception the dispatching thread's own
+    /// partition threw (null when it threw none); it is never subject to the
+    /// kMaxCaptured cap, so a foreign one is never lost behind a full set of
+    /// EvaluationErrors (M8 B5 riders).
+    void rethrow_if_exception(std::exception_ptr inline_ex = nullptr) {
+        const int total = captured.load(std::memory_order_acquire);
+        if (total == 0 && !inline_ex)
             return;
 
-        int n = total < kMaxCaptured ? total : kMaxCaptured;
-        // Preserve the original exception type when only one worker failed;
-        // aggregation is only useful when distinct root causes coexist.
-        if (n == 1) {
-            std::rethrow_exception(exceptions[0]);
+        const int n = total < kMaxCaptured ? total : kMaxCaptured;
+        for (int i = 0; i < n; ++i) {
+            if (!is_evaluation_error(exceptions[i]))
+                std::rethrow_exception(exceptions[i]);
         }
+        if (inline_ex && !is_evaluation_error(inline_ex))
+            std::rethrow_exception(inline_ex);
+        if (n > 0)
+            std::rethrow_exception(exceptions[0]);
+        std::rethrow_exception(inline_ex);
+    }
 
-        // Build the aggregated message, but fall back to surfacing the
-        // first captured exception unchanged if string allocation fails:
-        // letting bad_alloc escape would mask every captured worker error
-        // with a misleading OOM at the dispatcher boundary.
-        std::string msg;
+  private:
+    static bool is_evaluation_error(const std::exception_ptr &e) noexcept {
         try {
-            msg = "[hven] dispatch: ";
-            msg += std::to_string(total);
-            msg += " concurrent worker exception(s):";
-            for (int i = 0; i < n; ++i) {
-                msg += "\n--- [";
-                msg += std::to_string(i);
-                msg += "] ---\n";
-                try {
-                    std::rethrow_exception(exceptions[i]);
-                } catch (const std::exception &e) {
-                    msg += e.what();
-                } catch (...) {
-                    msg += "<non-std::exception>";
-                }
-            }
-            int extra = suppressed.load(std::memory_order_relaxed);
-            if (extra > 0) {
-                msg += "\n... and ";
-                msg += std::to_string(extra);
-                msg += " more suppressed";
-            }
-        } catch (const std::bad_alloc &) {
-            std::rethrow_exception(exceptions[0]);
+            std::rethrow_exception(e);
+        } catch (const hven::EvaluationError &) {
+            return true;
+        } catch (...) {
+            return false;
         }
-        throw std::runtime_error(msg);
     }
 };
-
-} // namespace detail
 
 /// Returns true if the calling thread is a pool worker.
 inline bool is_pool_worker() noexcept { return detail::g_is_pool_worker; }
@@ -623,7 +616,9 @@ bool pool_configuring();
 // These wrap ThreadPool's enqueue_work API with:
 //   1. Automatic inline fallback when use_thread_pool() is false or nparts <= 1
 //   2. Per-dispatch synchronization via std::latch (no global wait())
-//   3. Exception propagation — first exception from any task is rethrown
+//   3. Exception propagation — one exception from any task, the calling
+//      thread's own partition included, is rethrown unchanged (a foreign one
+//      before an EvaluationError; see DispatchContext::rethrow_if_exception)
 //   4. Calling thread runs the last partition inline (stays productive)
 //
 // Per-dispatch latches make concurrent dispatches from separate threads
@@ -649,9 +644,10 @@ template <typename F> void parallel_blocks(int count, F &&func, int nparts) {
     if (nparts > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
             throw std::logic_error(
-                "hven::utils::parallel_blocks: nested dispatch from pool worker");
+                "hven::detail::parallel_blocks: nested dispatch from pool worker");
         if (pool_configuring())
-            throw std::logic_error("hven::utils::parallel_blocks: dispatch during set_num_threads");
+            throw std::logic_error(
+                "hven::detail::parallel_blocks: dispatch during set_num_threads");
         int pool_tasks = nparts - 1;
         detail::DispatchContext ctx(pool_tasks);
         int block_size = count / nparts;
@@ -677,9 +673,7 @@ template <typename F> void parallel_blocks(int count, F &&func, int nparts) {
             inline_ex = std::current_exception();
         }
         ctx.done.wait(); // MUST complete before ctx destruction
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         func(0, count);
     }
@@ -700,10 +694,10 @@ template <typename F> void parallel_sequence(int n, F &&func) {
     if (n > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
             throw std::logic_error(
-                "hven::utils::parallel_sequence: nested dispatch from pool worker");
+                "hven::detail::parallel_sequence: nested dispatch from pool worker");
         if (pool_configuring())
             throw std::logic_error(
-                "hven::utils::parallel_sequence: dispatch during set_num_threads");
+                "hven::detail::parallel_sequence: dispatch during set_num_threads");
         int pool_tasks = n - 1;
         detail::DispatchContext ctx(pool_tasks);
         for (int i = 0; i < pool_tasks; ++i)
@@ -723,9 +717,7 @@ template <typename F> void parallel_sequence(int n, F &&func) {
             inline_ex = std::current_exception();
         }
         ctx.done.wait();
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         for (int i = 0; i < n; i++)
             func(i);
@@ -749,9 +741,9 @@ template <typename FTask, typename FInline>
 void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
     if (nparts > 1 && use_thread_pool()) {
         if (detail::g_is_pool_worker)
-            throw std::logic_error("hven::utils::parallel_task: nested dispatch from pool worker");
+            throw std::logic_error("hven::detail::parallel_task: nested dispatch from pool worker");
         if (pool_configuring())
-            throw std::logic_error("hven::utils::parallel_task: dispatch during set_num_threads");
+            throw std::logic_error("hven::detail::parallel_task: dispatch during set_num_threads");
         detail::DispatchContext ctx(1);
         thread_pool().enqueue_work([f = std::forward<FTask>(pool_work), &ctx] {
             try {
@@ -767,14 +759,12 @@ void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
         } catch (...) {
             inline_ex = std::current_exception();
         }
-        // Exception priority: pool exception is rethrown first. If both arms
-        // throw (extremely unlikely — independent numerical failures), the
-        // inline exception is discarded. Both would indicate the same
-        // underlying issue; nested_exception adds complexity for no benefit.
+        // Exception priority: DispatchContext::rethrow_if_exception's -- a
+        // foreign exception in either arm wins over an EvaluationError in the
+        // other; between two of the same kind the pool's is rethrown and the
+        // inline one is dropped.
         ctx.done.wait();
-        ctx.rethrow_if_exception();
-        if (inline_ex)
-            std::rethrow_exception(inline_ex);
+        ctx.rethrow_if_exception(inline_ex);
     } else {
         // Fallback: execute sequentially (pool_work first, then inline_work).
         // In the parallel path above, execution order is unspecified.
@@ -783,4 +773,4 @@ void parallel_task(int nparts, FTask &&pool_work, FInline &&inline_work) {
     }
 }
 
-} // namespace hven::utils
+} // namespace hven::detail

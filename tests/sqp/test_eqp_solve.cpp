@@ -7,7 +7,8 @@
 
 #include "support/dense_oracle.h"
 
-using namespace hven::solvers;
+using namespace hven;
+using namespace hven::detail;
 using hven::Index;
 using hven::Vec;
 
@@ -75,7 +76,7 @@ TEST(EqpSolve, MatchesOracleOnItsOptimalWorkingSet) {
     auto oracle = solve_dense_oracle(qp);
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     // THE PROXIMAL CENTRE IS THE POINT UNDER TEST (M7 W2 E4; eqp_solve.h). The
     // proximal EQP's fixed point is the face's EXACT KKT point -- p = 0 makes its
     // stationarity row the unregularized one, for any delta -- so centring at the
@@ -93,7 +94,7 @@ TEST(EqpSolve, MatchesOracleOnEqualityOnlyProblem) {
     auto oracle = solve_dense_oracle(qp);
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     // THE PROXIMAL CENTRE IS THE POINT UNDER TEST (M7 W2 E4; eqp_solve.h). The
     // proximal EQP's fixed point is the face's EXACT KKT point -- p = 0 makes its
     // stationarity row the unregularized one, for any delta -- so centring at the
@@ -135,7 +136,7 @@ TEST(EqpSolve, FixedVariableWithEqualityRefinementImprovesAccuracy) {
 
     WorkingSet ws = working_set_from_oracle(qp, oracle);
 
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(0, hven::linear::DensePolicy::kNever);
     EqpResult unrefined;
     // Centred at the point under test, as above: what this fixture is about is the
     // refinement step removing the O(mu*|lambda_e|) DUAL error, which the centring

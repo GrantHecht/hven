@@ -1,0 +1,24 @@
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r1-A-all.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r1-A-all.mapped.csv: 2 value(s) rewritten
+=== interior r1 === cells compared: 43  columns compared: 30  differences: 0
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r2-A-all.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r2-A-all.mapped.csv: 2 value(s) rewritten
+=== interior r2 === cells compared: 43  columns compared: 30  differences: 0
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r3-A-all.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/runtime-r3/interior/raw/interior-r3-A-all.mapped.csv: 2 value(s) rewritten
+=== interior r3 === cells compared: 43  columns compared: 30  differences: 0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+EXCLUDED COUNT arm A (R11: liveness guard retired, both arms post-F1): 0
+EXCLUDED COUNT arm B (R11: liveness guard retired, both arms post-F1): 0
+
+mode interior, 1 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over rounds, summed
+  filtered samples (CRITERION)     A=2.484530e+05 B=2.484500e+05 B/A=0.999988
+  all samples                      A=2.484530e+05 B=2.484500e+05 B/A=0.999988
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=9.938358e+10 B=9.938376e+10 B/A=1.000002
+
+per-round filtered B/A (informational):
+  round 1: B/A=0.999988
+  round 2: B/A=0.999988
+  round 3: B/A=0.999984
+worst per-cell filtered ratio: 0.99999 (all)
+largest within-arm round-to-round filtered spread: 0.00000
+MODE interior FILTERED B/A = 0.999988 -> WITHIN [0.995, 1.005]

@@ -21,12 +21,14 @@
 #include <vector>
 
 #include <hven/core/types.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_solver.h>
 
 #include "scale_problems.h"
 
-namespace hven::solvers::test_support {
+using namespace hven::detail;
+
+namespace hven::test_support {
 
 /// E1's own bound-arc parameter: the pattern every constructed cell is cut
 /// from (`e1_generate.cpp`'s `kBoundArcP`, and `bench/corpus_cells.h`'s
@@ -277,4 +279,4 @@ inline E1RuleCounts e1_rule_counts(const E1Cell &cell, const Vec &x, const Vec &
     return c;
 }
 
-} // namespace hven::solvers::test_support
+} // namespace hven::test_support

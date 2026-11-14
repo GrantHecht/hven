@@ -16,47 +16,82 @@ here, with the disagreement named.
 
 ## What a consumer may do
 
-**N solver instances, one per thread, each solving its own model, each with
-`common.threads = 1`.** Both engines: `hven::solvers::IpmSolver` and
-`hven::solvers::SqpSolver`. The results are the results of the same solves run
+**N solver instances, one per thread, each solving its own `Problem`, each with
+`common.threads = 1`.** Both engines: `hven::IpmSolver` and
+`hven::SqpSolver`. The results are the results of the same solves run
 serially — counters and statuses identically, floating-point measures to within
 last-digit drift (see "How identical" below).
 
 ```cpp
-// One instance, one model, one thread. Nothing is shared.
-hven::solvers::IpmOptions opts;
+// One instance, one Problem, one thread. Nothing is shared but the Nlp.
+hven::IpmOptions opts;
 opts.common.threads = 1;
-hven::solvers::IpmSolver solver(opts);
-const auto program = hven::solvers::make_nlp_program(problem);
-const hven::solvers::IpmResult r = solver.solve(*program, x0);
+hven::IpmSolver solver(opts);
+hven::Problem problem(nlp);           // std::shared_ptr<hven::Nlp>
+const hven::IpmResult r = solver.solve(problem, x0);
 ```
+
+**The `Problem` rules** (`include/hven/model/problem.h`, M8 AP-2 B2):
+
+- One `Problem` serves one solve at a time, on one thread. It holds each engine's
+  transcription of the problem and the per-iterate caches every solve clears and
+  refills, so two concurrent solves on one `Problem` race each other — whichever
+  engines they are.
+- N concurrent solves need N `Problem`s and N solvers.
+- Several `Problem`s may share one `Nlp` (`include/hven/model/nlp.h`), and then may
+  solve concurrently, only if the `Nlp`'s `const` members are safe to call
+  concurrently. hven calls only `const` members of an `Nlp`; it does not lock
+  around them.
+- Two engines may alternate on one `Problem`, sequentially. An `IpmSolver` that did
+  not lay the current interior-point analysis re-analyses on its next solve —
+  another `IpmSolver`, or a bound change on an `Nlp` problem, displaces it — and the
+  re-analysis is counted (`IpmResult::kkt_analyses_this_call`), as the program-level
+  owner id (`analyzed_owner_id`) has always made it.
 
 `common.threads = 1` is the whole of the thread setting a worker needs. It
 applies a **thread-local** MKL override at backend-call scope and undoes it on
 every exit, so an instance pinned to one backend thread does not reach out and
 re-point any other MKL user in the process — see "`MklThreadScope`" below. For
-the interior-point engine, `hven::solvers::ipm_worker_options(base)`
-(`include/hven/drivers/ipm_solver_types.h:701-728`) is the named preset that
-writes exactly `common.threads = 1` and `common.print_level = 10` and nothing
-else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
+the interior-point engine, `hven::ipm_worker_options(base)`
+(`include/hven/drivers/ipm_options.h`) is the named preset that
+writes exactly `common.threads = 1` and `common.verbosity = Verbosity::kSilent`
+and nothing else; it is the replacement for the retired `NLPSolver::jet_initialize()`.
 
 **The evidence** is `Concurrency.NInstancesOnNThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`): four instances on four `std::thread`s —
-two `SqpSolver` cells, two `IpmSolver` cells, each over its own model, every
+two `SqpSolver` cells, two `IpmSolver` cells, each over its own problem, every
 options value at `common.threads = 1` — against the same four solves run
 serially first in the same process.
+
+**Stopping a solve from another thread** (M8 AP-5 G1). Hand the solve a
+`StopToken` through `SolveBudget::stop` (`include/hven/core/stop.h`) and call
+`StopSource::request_stop()` from any thread — a GUI thread included — with no
+callback attached and no lock. It is one release store to a lock-free atomic
+flag the solver only reads; the solve ends at its next iteration boundary with
+`kInterrupted` and `StopReason::kStopRequested`. The token is per call, so N
+concurrent solves take N independent sources; a source whose stop was already
+requested stops the next solve it is handed to at that solve's first boundary
+("a token is per solve"). Until group G2 the token is not forwarded into the
+SQP restoration sub-solve: a request made during restoration takes effect when
+that sub-solve returns. The evidence is
+`StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint` and
+`StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial`
+(`tests/drivers/test_stop_token.cpp`), with a local ThreadSanitizer run of the
+cross-thread case recorded in `docs/notes/data/2026-11-m8-ap5-g1/`.
 
 ## What a consumer may NOT do
 
 - **Share one solver instance across threads.** A solver owns a live backend
   session and mutable workspace. One instance per thread.
+- **Solve one `Problem` concurrently**, on one engine or two. See "The `Problem`
+  rules" above.
 - **Call one instance's `solve()` concurrently with itself**, from any thread,
   including re-entering it from an iteration callback. The per-component notes
   say the same thing one layer down: `include/hven/linear/symmetric_factor.h:238-240`
   ("solves are not internally synchronized … concurrent solves across co-owners
   must be serialized by the caller"), `include/hven/detail/qp/qp_engine.h:122-128`
   (two different engines sharing one `BorderState` is undefined **concurrently**
-  and safe **sequentially**), `include/hven/model/nlp_model_assembly.h:76-78`.
+  and safe **sequentially**), `include/hven/detail/model/nlp_model_assembly.h:76-78`.
 - **Share one `Ledger` or one `TraceSink` between concurrently-solving
   instances.** Both are attached by raw pointer to caller-owned objects
   (`IpmSolver::attach_ledger`/`attach_trace`, `SqpSolver`'s same pair) and
@@ -101,15 +136,15 @@ pointer are its own.
 
 ### 1. The interior-point engine's evaluation pool — process-global, confirmed
 
-`hven::utils::thread_pool()` is a function-local `static ThreadPool`
+`hven::detail::thread_pool()` is a function-local `static ThreadPool`
 (`src/interior/utils/thread_pool.cpp:29`) and its width is a namespace-scope
 `std::atomic<int> g_num_threads` (`:10`) that **defaults to
-`std::thread::hardware_concurrency()`, not to 1**. `hven::utils::set_num_threads`
+`std::thread::hardware_concurrency()`, not to 1**. `hven::detail::set_num_threads`
 (`:33-68`) resizes the one pool for the whole process, and the model layer says
 so at the setter a consumer actually sees:
 `NonLinearProgram::set_evaluation_threads` routes straight to it and its comment
 names the consequence — "Setting it through one aggregate sets it for every
-aggregate in the process" (`include/hven/model/non_linear_program.h:1002-1008`).
+aggregate in the process" (`include/hven/detail/model/non_linear_program.h:1002-1008`).
 `ThreadPool::requested_thread_count()` (`include/hven/detail/interior/utils/thread_pool.h:486-487`)
 is a second process-global atomic in the same mechanism: the size stash the
 pool's constructor reads.
@@ -128,7 +163,7 @@ concurrent dispatches from separate threads inherently safe; `thread_pool.h`, th
 `Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`
 (`tests/drivers/test_concurrency.cpp`), beside the N×1 pin above and running the
 same two steps over the same helpers: it builds TWO different programs through
-the public `make_nlp_program(problem, num_partitions)` at counts the layout
+the internal `make_nlp_program(problem, num_partitions)` (a public `Problem(Nlp)` lays one partition; a pieces problem's request is `AssemblyDeclaration::set_partitions`) at counts the layout
 ACTUALLY ADOPTS — 2 partitions over 3000 user KKT elements and 3 over 4200,
 asserted rather than assumed, because the count is clamped rather than refused
 (`src/model/non_linear_program.cpp:415-426`) — solves them once serially on the
@@ -146,7 +181,7 @@ gate is what is asserted.
 
 **What the pin does NOT reach, so that nobody reads more into it.** Partitions
 through this adapter are LAYOUT ONLY, as `make_nlp_program`'s own doc comment
-says: all three pieces are `ThreadingFlags::MainThread`, and
+says: all three pieces are `ThreadingFlags::kMainThread`, and
 `analyze_partitioning` forces every MainThread function into the LAST partition,
 which `parallel_sequence` runs inline on the calling thread. So the user's
 callbacks still evaluate on the dispatching thread. What genuinely goes
@@ -156,13 +191,27 @@ running the other partitions' bodies and writing into each program's own scratch
 — together with the `parallel_blocks` passes over the KKT triplet fill, which
 `num_partitions_` sizes as well. That is precisely the claim the design
 statement makes and precisely what was unmeasured. Genuine partitioned
-EVALUATION over an `NlpTripletModel` needs a thread-safe adapter and is
+EVALUATION over an `Nlp` needs a thread-safe adapter and is
 registered for M7.
 
+**A pieces problem is the route that does evaluate concurrently.** A `Problem` built from an
+`AssemblyDeclaration` asks for its partitions with `AssemblyDeclaration::set_partitions(k)`, the
+layout clamps the request down by the same rule (`Problem::num_partitions()` reports the count
+adopted), and each adopted partition evaluates its share of the pieces' applications on a pool
+worker -- the last on the calling thread. A piece is therefore called concurrently through its
+`const` members, on disjoint applications, and must be safe to call that way; each partition
+evaluates its own copy of the piece (docs/assembly-protocol.md §6). A Jacobian entry two
+partitions share through a shared row is written under its column's lock: the layout marks the
+copies that touch such a row (§5 there; pinned by `PiecesSharedEntries.*`). The pins are
+`PiecesLocalBlocks.AssemblyMatchesTheDenseReferenceOnSeveralPartitions` (every assembled value
+against a dense reference, at an adopted count above one) and `PiecesExample4.BothFormsAgree` (the
+raw and local-block forms solve identically at four requested partitions) in
+`tests/model/test_pieces.cpp`.
+
 Not to fan out is the easy case and it is the common one:
-`make_nlp_program(problem)` defaults to **one partition**
-(`include/hven/model/make_nlp_program.h:57`, `:81` — the declarations moved to
-that public header at M7 W0 T5 and the cite here moved with them), the count is
+`make_nlp_program(problem)` defaults to **one partition**, and a `Problem(Nlp)`
+always lays one
+(`include/hven/detail/model/make_nlp_program.h`; internal since M8 AP-2 B2), the count is
 capped down further on small problems
 (`src/model/non_linear_program.cpp:423-425`, threshold
 `kMinKktElementsPerPartition` = 1000 KKT elements per partition), and
@@ -185,7 +234,7 @@ worker, and do not resize the pool while any solve is running.
 MKL's conditional-numerical-reproducibility mode is the reason the measures above
 are gated, and the ruling names it as a process-global exception. **Verified at
 source, hven's own CNR knob is per instance, not process-global.**
-`SymmetricFactor::Options::cnr_threads` is carried into that session's own
+`SymmetricFactor::Options::conditional_reproducibility_threads` is carried into that session's own
 `iparm[33]` (`src/linear/pardiso_session.cpp:313-322`) and `iparm_` is a member
 of the session; it is off by default (0 means "leave `iparm[33]` alone"), and on
 Accelerate it is refused outright as a Pardiso-only option
@@ -218,7 +267,7 @@ Either way the promise `MklThreadScope` keeps on MKL — apply for this call, pu
 back what was there — is **not kept on Apple**, which is why the SQP engine
 deliberately does not mirror the driver-level call
 (`include/hven/drivers/common_options.h:47-54`) and why
-`SymmetricFactor::set_num_threads` on Accelerate stores a count and applies it to
+`SymmetricFactor::set_threads` on Accelerate stores a count and applies it to
 nothing.
 
 **No value on this page was measured on Apple hardware.** Everything in this
@@ -239,7 +288,7 @@ recorded so a later reader does not have to re-derive them:
 | --- | --- | --- |
 | `include/hven/detail/linear/session_id.h:42-45` | `next_session_id()`, a function-local `static std::atomic<uint64_t>` | Process-global by design and stated so in its own comment: an identity, unique within one process run, never persisted. Which id a session draws depends on process-wide creation order, so it is **not** stable under concurrency and is not a result column. Nothing keyed on it crosses instances. |
 | `src/drivers/ipm_solver.cpp:2113-2116` | `IpmSolver::next_owner_id()`, the same shape | The same reading, for the analysis owner id. |
-| `src/drivers/solver_init.cpp:18-33` | `ensure_solver_initialized()`, a `std::call_once` over a function-local flag | One-time backend initialization, thread-safe by construction. It has one observable consequence worth naming: it returns a non-zero duration **only to the first caller in the process**, so `IpmResult::solver_init_time` and the `kSolverInitialized` trace message are a once-per-process event, not a per-solve one (the tree already records this at `tests/interior/test_ipm_trace.cpp:1789-1801`). Both are timings, which CLAUDE.md §7 keeps informational and never asserted; the pin therefore compares no timing column. Its Apple branch is part of exception 3. |
+| `src/drivers/solver_init.cpp:18-37` | `ensure_solver_initialized()`, a `std::call_once` over a function-local flag | One-time backend initialization, thread-safe by construction. It has one observable consequence worth naming: it returns a non-zero duration **only to the first caller in the process**, so `IpmResult::solver_init_time` and the `kSolverInitialized` trace message are a once-per-process event, not a per-solve one (the tree already records this at `tests/interior/test_ipm_trace.cpp:1789-1801`). Both are timings, which CLAUDE.md §7 keeps informational and never asserted; the pin therefore compares no timing column. Its Apple branch is part of exception 3. |
 | `src/interior/utils/memory_management.cpp:13-16` | `BumpAllocator`'s two `thread_local` arenas | Per thread, not shared. No library call site: nothing in `src/` or `include/hven/` outside its own header uses `BumpAllocator` today. |
 | `src/linear/accelerate_session.cpp:43` | `thread_local std::string g_last_error` | Per thread. Apple only. |
 | `include/hven/detail/interior/utils/thread_pool.h:36`, `:351` | `g_is_pool_worker`, `tl_enqueue_index` | Per thread; part of the pool mechanism (exception 1). |

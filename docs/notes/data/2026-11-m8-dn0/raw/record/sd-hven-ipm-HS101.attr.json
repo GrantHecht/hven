@@ -1,0 +1,130 @@
+{
+ "samples": 2421,
+ "period": 1000003,
+ "instr_sampled_all": 2421007263,
+ "instr_sampled_solver": 2417007251,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 7000021,
+  "B_kkt": 0,
+  "B_eval": 6000018,
+  "B_setup": 2404007212,
+  "B_eng": 0,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.0028961522548613984,
+  "B_kkt": 0.0,
+  "B_eval": 0.0024824162184526274,
+  "B_setup": 0.994621431526686,
+  "B_eng": 0.0
+ },
+ "proc_share_of_all": 0.0016522098306484924,
+ "rule_instr": 2421007263,
+ "fallback_instr": 0,
+ "fallback_by_bucket": {},
+ "unmatched_instr": 0,
+ "unmatched_share_of_solver": 0.0,
+ "chains_reaching_main": 0.9962825278810409,
+ "init_instr": 2403007209,
+ "steady_state_instr": 14000042,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5,
+  "B_kkt": 0.0,
+  "B_eval": 0.42857142857142855,
+  "B_setup": 0.07142857142857142,
+  "B_eng": 0.0
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   7000021
+  ]
+ ],
+ "mkl_serv_instr": 2404007212,
+ "kmp_instr": 4000012,
+ "top_unmatched_leaf": [],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    2000006
+   ],
+   [
+    "__strcmp_avx2",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_metis_fm_2waynoderefine_onesided",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_pardiso",
+    1000003
+   ],
+   [
+    "mkl_pds_lp64_get_from_c_structure",
+    1000003
+   ],
+   [
+    "pthread_getspecific@@GLIBC_2.34",
+    1000003
+   ]
+  ],
+  "B_kkt": [],
+  "B_eval": [
+   [
+    "__ieee754_pow_fma",
+    5000015
+   ],
+   [
+    "pow@plt",
+    1000003
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1526004578
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    642001926
+   ],
+   [
+    "__vdso_time",
+    118000354
+   ],
+   [
+    "difftime@plt",
+    102000306
+   ],
+   [
+    "time@plt",
+    15000045
+   ],
+   [
+    "round_and_return",
+    1000003
+   ]
+  ],
+  "B_eng": [],
+  "B_proc": [
+   [
+    "_dl_relocate_object_no_relro",
+    2000006
+   ],
+   [
+    "strcmp",
+    1000003
+   ],
+   [
+    "do_lookup_x",
+    1000003
+   ]
+  ]
+ }
+}

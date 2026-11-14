@@ -1,0 +1,4 @@
+head  : {'EvidenceCountsTheNegativeOfAnIllScaled2x2Block': 'OK', 'EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block': 'OK', 'EvidenceIsAbsentWhenDCarriesANonFiniteEntry': 'OK'}
+mutant: {'EvidenceCountsTheNegativeOfAnIllScaled2x2Block': 'FAILED', 'EvidenceKeepsTheSmallMagnitudeOfAnIllScaled2x2Block': 'FAILED', 'EvidenceIsAbsentWhenDCarriesANonFiniteEntry': 'OK'}
+mutant neg_eigs reads 0: True
+FAILPROOF_AS_DECLARED

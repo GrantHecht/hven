@@ -29,11 +29,11 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "hven/detail/interior/constraint_function.h"
-#include "hven/detail/interior/indexing_data.h"
-#include "hven/detail/interior/objective_function.h"
-#include "hven/model/non_linear_program.h"
-#include "hven/solver_interface_adapter.h"
+#include "hven/detail/model/non_linear_program.h"
+#include "hven/model/constraint_function.h"
+#include "hven/model/objective_function.h"
+#include "hven/model/solver_indexing_data.h"
+#include "hven/model/solver_interface_adapter.h"
 
 namespace hven::model_tests {
 
@@ -49,10 +49,7 @@ namespace hven::model_tests {
 /// Hessian claim is left in the walk order the piece chose, and the restatement
 /// is what puts it in the upper triangle; a fixture that only ever claimed
 /// already-ordered pairs would let a restatement that forgot to order them pass.
-/// NO std::string MEMBER, deliberately. TypeStorage's inline buffer relocates
-/// what it holds with memcpy (detail/interior/utils/type_storage.h), so a stored
-/// piece must be trivially relocatable and an SSO string is self-referential.
-/// The name is composed on demand from a literal and an index instead.
+/// The name is composed on demand from a literal and an index.
 struct CorpusConstraintPiece {
     bool owns_hessian_ = false;
     const char *kind_ = "corpus_constraint";
@@ -69,10 +66,10 @@ struct CorpusConstraintPiece {
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
                        int &freeloc, int conoffset, bool dojac, bool dohess,
-                       hven::solvers::SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(data.num_appl());
+                       hven::SolverIndexingData &data) {
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int appl = 0; appl < data.num_appl(); appl++) {
-            data.inner_kkt_starts_[appl] = freeloc;
+            data.inner_kkt_starts[appl] = freeloc;
             const int first = data.v_scatter_loc(0, appl);
             const int second = data.v_scatter_loc(1, appl);
             const int row = data.c_loc(0, appl) + conoffset;
@@ -98,29 +95,28 @@ struct CorpusConstraintPiece {
 
     // ---- the evaluation surface, stubbed: these fixtures are laid, not run ---
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
-                     const hven::solvers::SolverIndexingData &) const {}
+                     const hven::SolverIndexingData &) const {}
     void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
                                      const Eigen::Ref<const Eigen::VectorXd> &,
                                      Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
-                                     const hven::solvers::SolverIndexingData &) const {}
+                                     const hven::SolverIndexingData &) const {}
     void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
                               Eigen::Ref<Eigen::VectorXd>,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                               Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
-                              std::vector<std::mutex> &,
-                              const hven::solvers::SolverIndexingData &) const {}
+                              std::vector<std::mutex> &, const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient_adjointhessian(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
 };
 
 /// @brief An objective piece over two variables per application, claiming the
@@ -129,7 +125,6 @@ struct CorpusConstraintPiece {
 /// Objectives are asked for Hessian space alone, so every slot this claims is a
 /// Hessian slot -- which is the case the restatement classifies without reading
 /// a row at all.
-/// Trivially relocatable, for the reason stated on CorpusConstraintPiece.
 struct CorpusObjectivePiece {
     bool owns_hessian_ = true;
     const char *kind_ = "corpus_objective";
@@ -143,11 +138,10 @@ struct CorpusObjectivePiece {
     int num_kkt_elements(bool, bool dohess) const { return (dohess && owns_hessian_) ? 2 : 0; }
 
     void get_kkt_space(Eigen::Ref<Eigen::VectorXi> rows, Eigen::Ref<Eigen::VectorXi> cols,
-                       int &freeloc, int, bool, bool dohess,
-                       hven::solvers::SolverIndexingData &data) {
-        data.inner_kkt_starts_.resize(data.num_appl());
+                       int &freeloc, int, bool, bool dohess, hven::SolverIndexingData &data) {
+        data.inner_kkt_starts.resize(data.num_appl());
         for (int appl = 0; appl < data.num_appl(); appl++) {
-            data.inner_kkt_starts_[appl] = freeloc;
+            data.inner_kkt_starts[appl] = freeloc;
             if (!dohess || !owns_hessian_) {
                 continue;
             }
@@ -164,37 +158,35 @@ struct CorpusObjectivePiece {
     }
 
     void constraints(const Eigen::Ref<const Eigen::VectorXd> &, Eigen::Ref<Eigen::VectorXd>,
-                     const hven::solvers::SolverIndexingData &) const {}
+                     const hven::SolverIndexingData &) const {}
     void constraints_adjointgradient(const Eigen::Ref<const Eigen::VectorXd> &,
                                      const Eigen::Ref<const Eigen::VectorXd> &,
                                      Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
-                                     const hven::solvers::SolverIndexingData &) const {}
+                                     const hven::SolverIndexingData &) const {}
     void constraints_jacobian(const Eigen::Ref<const Eigen::VectorXd> &,
                               Eigen::Ref<Eigen::VectorXd>,
                               Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                               Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
-                              std::vector<std::mutex> &,
-                              const hven::solvers::SolverIndexingData &) const {}
+                              std::vector<std::mutex> &, const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
     void constraints_jacobian_adjointgradient_adjointhessian(
         const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &,
         Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
         Eigen::SparseMatrix<double, Eigen::RowMajor> &, Eigen::Ref<Eigen::VectorXi>,
         Eigen::Ref<Eigen::VectorXi>, std::vector<std::mutex> &,
-        const hven::solvers::SolverIndexingData &) const {}
+        const hven::SolverIndexingData &) const {}
 
     void objective(double, const Eigen::Ref<const Eigen::VectorXd> &, double &value,
-                   const hven::solvers::SolverIndexingData &) const {
+                   const hven::SolverIndexingData &) const {
         value = 0.0;
     }
     void objective_gradient(double, const Eigen::Ref<const Eigen::VectorXd> &, double &value,
-                            Eigen::Ref<Eigen::VectorXd>,
-                            const hven::solvers::SolverIndexingData &) const {
+                            Eigen::Ref<Eigen::VectorXd>, const hven::SolverIndexingData &) const {
         value = 0.0;
     }
     void objective_gradient_hessian(double, const Eigen::Ref<const Eigen::VectorXd> &,
@@ -202,21 +194,21 @@ struct CorpusObjectivePiece {
                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &,
                                     Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>,
                                     std::vector<std::mutex> &,
-                                    const hven::solvers::SolverIndexingData &) const {
+                                    const hven::SolverIndexingData &) const {
         value = 0.0;
     }
 };
 
 } // namespace hven::model_tests
 
-namespace hven::solvers {
+namespace hven {
 template <>
 struct SolverInterfaceAdapter<hven::model_tests::CorpusConstraintPiece>
     : DirectFunctionModel<hven::model_tests::CorpusConstraintPiece> {};
 template <>
 struct SolverInterfaceAdapter<hven::model_tests::CorpusObjectivePiece>
     : DirectFunctionModel<hven::model_tests::CorpusObjectivePiece> {};
-} // namespace hven::solvers
+} // namespace hven
 
 namespace hven::model_tests {
 
@@ -239,9 +231,9 @@ struct CorpusCase {
     /// Hessian slots INSIDE the two mixed segments rather than only in the
     /// objective one.
     bool constraint_hessians_ = true;
-    hven::solvers::ThreadingFlags equality_mode_ = hven::solvers::ThreadingFlags::ByApplication;
-    hven::solvers::ThreadingFlags inequality_mode_ = hven::solvers::ThreadingFlags::ByApplication;
-    hven::solvers::ThreadingFlags objective_mode_ = hven::solvers::ThreadingFlags::ByApplication;
+    hven::ThreadingFlags equality_mode_ = hven::ThreadingFlags::kByApplication;
+    hven::ThreadingFlags inequality_mode_ = hven::ThreadingFlags::kByApplication;
+    hven::ThreadingFlags objective_mode_ = hven::ThreadingFlags::kByApplication;
     /// Variables narrowed to a point, which a fixed-variable treatment turns
     /// into an elimination or into an internal fixing row.
     std::vector<int> fixed_variables_;
@@ -255,9 +247,9 @@ inline int corpus_primal_vars(const CorpusCase &c) {
     return 2 * c.applications_ * pieces;
 }
 
-inline hven::solvers::ConstraintFunction corpus_constraint(const CorpusCase &c, int first_variable,
-                                                           int first_row, bool owns_hessian,
-                                                           const char *kind, int index) {
+inline hven::ConstraintFunction corpus_constraint(const CorpusCase &c, int first_variable,
+                                                  int first_row, bool owns_hessian,
+                                                  const char *kind, int index) {
     Eigen::MatrixXi v_index(2, c.applications_);
     Eigen::MatrixXi c_index(1, c.applications_);
     for (int appl = 0; appl < c.applications_; appl++) {
@@ -269,12 +261,11 @@ inline hven::solvers::ConstraintFunction corpus_constraint(const CorpusCase &c, 
     piece.owns_hessian_ = owns_hessian;
     piece.kind_ = kind;
     piece.index_ = index;
-    return hven::solvers::ConstraintFunction(hven::solvers::ConstraintInterface(std::move(piece)),
-                                             v_index, c_index);
+    return hven::ConstraintFunction(hven::ConstraintInterface(std::move(piece)), v_index, c_index);
 }
 
-inline hven::solvers::ObjectiveFunction corpus_objective(const CorpusCase &c, int first_variable,
-                                                         int index) {
+inline hven::ObjectiveFunction corpus_objective(const CorpusCase &c, int first_variable,
+                                                int index) {
     Eigen::MatrixXi v_index(2, c.applications_);
     for (int appl = 0; appl < c.applications_; appl++) {
         v_index(0, appl) = first_variable + 2 * appl;
@@ -282,13 +273,12 @@ inline hven::solvers::ObjectiveFunction corpus_objective(const CorpusCase &c, in
     }
     CorpusObjectivePiece piece;
     piece.index_ = index;
-    return hven::solvers::ObjectiveFunction(hven::solvers::ObjectiveInterface(std::move(piece)),
-                                            v_index);
+    return hven::ObjectiveFunction(hven::ObjectiveInterface(std::move(piece)), v_index);
 }
 
 /// @brief Lays one corpus case and returns the program.
-inline std::shared_ptr<hven::solvers::NonLinearProgram> build_corpus(const CorpusCase &c) {
-    auto nlp = std::make_shared<hven::solvers::NonLinearProgram>(c.requested_partitions_);
+inline std::shared_ptr<hven::detail::NonLinearProgram> build_corpus(const CorpusCase &c) {
+    auto nlp = std::make_shared<hven::detail::NonLinearProgram>(c.requested_partitions_);
 
     const int primal = corpus_primal_vars(c);
     int next_variable = 0;
@@ -328,7 +318,7 @@ inline std::shared_ptr<hven::solvers::NonLinearProgram> build_corpus(const Corpu
 
 /// @brief The corpus: the shapes a restatement has to be right on.
 inline std::vector<CorpusCase> corpus_cases() {
-    using hven::solvers::ThreadingFlags;
+    using hven::ThreadingFlags;
     std::vector<CorpusCase> cases;
 
     CorpusCase smallest;
@@ -381,9 +371,9 @@ inline std::vector<CorpusCase> corpus_cases() {
     round_robin.inequality_pieces_ = 4;
     round_robin.applications_ = 320;
     round_robin.requested_partitions_ = 4;
-    round_robin.equality_mode_ = ThreadingFlags::RoundRobin;
-    round_robin.inequality_mode_ = ThreadingFlags::RoundRobin;
-    round_robin.objective_mode_ = ThreadingFlags::MainThread;
+    round_robin.equality_mode_ = ThreadingFlags::kRoundRobin;
+    round_robin.inequality_mode_ = ThreadingFlags::kRoundRobin;
+    round_robin.objective_mode_ = ThreadingFlags::kMainThread;
     cases.push_back(round_robin);
 
     CorpusCase by_application;
@@ -402,9 +392,9 @@ inline std::vector<CorpusCase> corpus_cases() {
     main_thread_only.inequality_pieces_ = 2;
     main_thread_only.applications_ = 600;
     main_thread_only.requested_partitions_ = 3;
-    main_thread_only.equality_mode_ = ThreadingFlags::MainThread;
-    main_thread_only.inequality_mode_ = ThreadingFlags::MainThread;
-    main_thread_only.objective_mode_ = ThreadingFlags::MainThread;
+    main_thread_only.equality_mode_ = ThreadingFlags::kMainThread;
+    main_thread_only.inequality_mode_ = ThreadingFlags::kMainThread;
+    main_thread_only.objective_mode_ = ThreadingFlags::kMainThread;
     cases.push_back(main_thread_only);
 
     CorpusCase lopsided;
@@ -414,9 +404,9 @@ inline std::vector<CorpusCase> corpus_cases() {
     lopsided.inequality_pieces_ = 1;
     lopsided.applications_ = 500;
     lopsided.requested_partitions_ = 3;
-    lopsided.equality_mode_ = ThreadingFlags::RoundRobin;
-    lopsided.inequality_mode_ = ThreadingFlags::Thread0;
-    lopsided.objective_mode_ = ThreadingFlags::MainThread;
+    lopsided.equality_mode_ = ThreadingFlags::kRoundRobin;
+    lopsided.inequality_mode_ = ThreadingFlags::kThread0;
+    lopsided.objective_mode_ = ThreadingFlags::kMainThread;
     cases.push_back(lopsided);
 
     CorpusCase objective_split;
@@ -432,9 +422,9 @@ inline std::vector<CorpusCase> corpus_cases() {
     // mixed segments that also contribute Hessian claims -- which is the case
     // where the Hessian domain's partition offsets have to interleave three
     // sources correctly rather than trivially.
-    objective_split.objective_mode_ = ThreadingFlags::ByApplication;
-    objective_split.equality_mode_ = ThreadingFlags::Thread1;
-    objective_split.inequality_mode_ = ThreadingFlags::MainThread;
+    objective_split.objective_mode_ = ThreadingFlags::kByApplication;
+    objective_split.equality_mode_ = ThreadingFlags::kThread1;
+    objective_split.inequality_mode_ = ThreadingFlags::kMainThread;
     cases.push_back(objective_split);
 
     CorpusCase with_fixed;
@@ -460,9 +450,9 @@ struct ReferenceStream {
     /// The partition that claimed each PUBLISHED slot, in published order.
     std::vector<int> partitions_;
     std::vector<int> gradient_rows_;
-    hven::solvers::ClaimBlock hessian_;
-    hven::solvers::ClaimBlock equality_jacobian_;
-    hven::solvers::ClaimBlock inequality_jacobian_;
+    hven::ClaimBlock hessian_;
+    hven::ClaimBlock equality_jacobian_;
+    hven::ClaimBlock inequality_jacobian_;
 };
 
 /// @brief Restates one laid, unreduced layout's claim slots straight from the
@@ -480,7 +470,7 @@ struct ReferenceStream {
 /// forward walk of the emission order and then concatenated, so partition-major
 /// order within each run follows from the partition ids being monotone in
 /// emission order rather than from any ordering step here.
-inline ReferenceStream reference_restatement(const hven::solvers::NonLinearProgram &nlp) {
+inline ReferenceStream reference_restatement(const hven::detail::NonLinearProgram &nlp) {
     const int primal = nlp.primal_vars_;
     const int slack = nlp.slack_vars_;
     const int equality_end = primal + slack + nlp.equal_cons_;
@@ -520,8 +510,8 @@ inline ReferenceStream reference_restatement(const hven::solvers::NonLinearProgr
 
     ReferenceStream out;
     const auto append = [&out](const ReferenceStream &domain) {
-        hven::solvers::ClaimBlock block{static_cast<int>(out.rows_.size()),
-                                        static_cast<int>(domain.rows_.size())};
+        hven::ClaimBlock block{static_cast<int>(out.rows_.size()),
+                               static_cast<int>(domain.rows_.size())};
         out.rows_.insert(out.rows_.end(), domain.rows_.begin(), domain.rows_.end());
         out.cols_.insert(out.cols_.end(), domain.cols_.begin(), domain.cols_.end());
         out.partitions_.insert(out.partitions_.end(), domain.partitions_.begin(),
@@ -542,13 +532,13 @@ inline ReferenceStream reference_restatement(const hven::solvers::NonLinearProgr
 /// @brief The published partition-offset tables, expanded back to one partition
 ///        id per published slot -- the form the reference carries, and the form
 ///        a consumer would have to reconstruct.
-inline std::vector<int> expand_partition_offsets(const hven::solvers::NonLinearProgram &nlp) {
+inline std::vector<int> expand_partition_offsets(const hven::detail::NonLinearProgram &nlp) {
     std::vector<int> per_slot(static_cast<std::size_t>(nlp.kkt_claim_rows().size()), -1);
-    const auto expand = [&per_slot](const hven::solvers::ClaimBlock &block,
+    const auto expand = [&per_slot](const hven::ClaimBlock &block,
                                     Eigen::Ref<const Eigen::VectorXi> offsets) {
         for (int partition = 0; partition + 1 < offsets.size(); partition++) {
             for (int at = offsets[partition]; at < offsets[partition + 1]; at++) {
-                per_slot[static_cast<std::size_t>(block.start_ + at)] = partition;
+                per_slot[static_cast<std::size_t>(block.start + at)] = partition;
             }
         }
     };

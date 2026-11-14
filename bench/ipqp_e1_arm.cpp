@@ -16,7 +16,8 @@
 
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
@@ -27,7 +28,8 @@
 namespace {
 
 using namespace hven;
-using namespace hven::solvers;
+using namespace hven::detail;
+using namespace hven;
 
 constexpr const char *kUsage =
     "usage: hven_sqp_ipqp_e1_arm <--regen|--sweep|--mu-sweep|--envelope|--gate|--families|\n"
@@ -81,19 +83,19 @@ std::string fnum(double v) { return fmt::format("{:.6e}", v); }
 
 // The A2 and A3 levers, set once from argv and applied to EVERY IpqpOptions this binary
 // builds. A negative A3 value means "not given": the field keeps its default.
-IpqpMu0Rule g_mu0_rule = IpqpMu0Rule::kFixed;
+IpqpBarrierInitialRule g_mu0_rule = IpqpBarrierInitialRule::kFixed;
 bool g_mu_floor = false;
 double g_converge_slack = -1.0;
 Index g_skip_after = -1;
 
 void apply_a2_levers(IpqpOptions &o) {
-    o.ipqp_mu0_rule = g_mu0_rule;
-    o.ipqp_mu_residual_floor = g_mu_floor;
+    o.barrier_initial_rule = g_mu0_rule;
+    o.barrier_residual_floor = g_mu_floor;
     if (g_converge_slack > 0.0) {
-        o.ipqp_converge_slack = g_converge_slack;
+        o.convergence_slack = g_converge_slack;
     }
     if (g_skip_after >= 0) {
-        o.ipqp_ladder_skip_after = g_skip_after;
+        o.ladder_skip_after = g_skip_after;
     }
 }
 
@@ -109,18 +111,19 @@ std::string option_stamp(const IpqpOptions &o) {
                        "# (shipped defaults: 1.000000e-02 / 1.000000e+02 / 60 / 0 / 0 / kFixed / "
                        "false / 3;\n"
                        "#  0 is the size-derived sentinel, NOT an unbounded budget)\n",
-                       fnum(o.ipqp_init_mu), fnum(o.ipqp_converge_slack), o.ipqp_hard_iter_cap,
-                       o.ipqp_max_iter, o.ipqp_max_factorizations,
-                       o.ipqp_mu0_rule == IpqpMu0Rule::kComplementarity ? "kComplementarity"
-                                                                        : "kFixed",
-                       o.ipqp_mu_residual_floor ? "true" : "false", o.ipqp_ladder_skip_after);
+                       fnum(o.barrier_initial), fnum(o.convergence_slack), o.hard_max_iterations,
+                       o.max_iterations.value_or(0), o.max_factorizations.value_or(0),
+                       o.barrier_initial_rule == IpqpBarrierInitialRule::kComplementarity
+                           ? "kComplementarity"
+                           : "kFixed",
+                       o.barrier_residual_floor ? "true" : "false", o.ladder_skip_after);
 }
 
 const char *status_name(QpStatus s) {
     switch (s) {
     case QpStatus::kOptimal:
         return "optimal";
-    case QpStatus::kMaxIter:
+    case QpStatus::kIterationLimit:
         return "max_iter";
     case QpStatus::kInfeasible:
         return "infeasible";
@@ -225,15 +228,15 @@ int run_sweep(std::ostream &os, const std::vector<Index> &sizes, double mu, Inde
     IpqpOptions iopts;
     apply_a2_levers(iopts);
     if (mu > 0.0) {
-        iopts.ipqp_init_mu = mu;
+        iopts.barrier_initial = mu;
     }
     if (converge_slack > 0.0) {
-        iopts.ipqp_converge_slack = converge_slack;
+        iopts.convergence_slack = converge_slack;
     }
     if (hard_cap > 0) {
-        iopts.ipqp_hard_iter_cap = hard_cap;
-        iopts.ipqp_max_iter = hard_cap;
-        iopts.ipqp_max_factorizations = 4 * hard_cap;
+        iopts.hard_max_iterations = hard_cap;
+        iopts.max_iterations = hard_cap;
+        iopts.max_factorizations = 4 * hard_cap;
     }
     stamp(os, "sweep", option_stamp(iopts) + "# wall_s is INFORMATIONAL (CLAUDE.md section 7).\n");
     os << "id,layout,n,me,mi,active_fraction,margin_class,status,active_true,active_found,"
@@ -373,12 +376,13 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
     for (const int number : {10, 24, 33}) {
         const test_support::HsProblem p = test_support::make_hs(number);
         SqpOptions o;
-        o.qp_mode = QpMode::kIpm;
-        o.max_iter = 60;
-        o.ipqp = iopts;
+        o.qp_mode = QpMode::kIpqp;
+        o.common.max_iterations = 60;
+        o.advanced.ipqp = iopts;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(*p.model);
+        const SqpResult sol =
+            driver.solve(hven::detail::problem_ref(*p.model), (*p.model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number, sqp_status_name(sol.status),
@@ -397,10 +401,10 @@ void emit_families(std::ostream &os, double mu, const IpqpOptions &iopts) {
         {"two_negative_eigenvalue_row", test_support::two_negative_eigenvalue_row_qp()});
     for (Fixture &f : fixtures) {
         QpOptions qopts;
-        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
-        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, QpSolveOverrides{});
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},indefinite,{},{},{},{}\n", fnum(mu), f.name, status_name(r.status),
@@ -428,11 +432,11 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     const auto opts_at = [&](double mu) {
         IpqpOptions o;
         apply_a2_levers(o);
-        o.ipqp_init_mu = mu;
+        o.barrier_initial = mu;
         if (hard_cap > 0) {
-            o.ipqp_hard_iter_cap = hard_cap;
-            o.ipqp_max_iter = hard_cap;
-            o.ipqp_max_factorizations = 4 * hard_cap;
+            o.hard_max_iterations = hard_cap;
+            o.max_iterations = hard_cap;
+            o.max_factorizations = 4 * hard_cap;
         }
         return o;
     };
@@ -471,7 +475,7 @@ int run_families(std::ostream &os) {
     apply_a2_levers(iopts);
     stamp(os, "families", option_stamp(iopts));
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
-    emit_families(os, iopts.ipqp_init_mu, iopts);
+    emit_families(os, iopts.barrier_initial, iopts);
     return 0;
 }
 
@@ -500,10 +504,10 @@ int run_ladder(std::ostream &os) {
     fixtures.push_back({"saddle", test_support::saddle_qp()});
     for (Fixture &f : fixtures) {
         QpOptions qopts;
-        qopts.tr_radius = std::numeric_limits<double>::infinity();
+        qopts.trust_region_radius = std::numeric_limits<double>::infinity();
         IpqpEngine tier(qopts);
         const auto t0 = std::chrono::steady_clock::now();
-        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, SolveOverrides{});
+        const IpqpResult r = tier.solve(f.qp, nullptr, iopts, QpSolveOverrides{});
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{}\n", f.name, status_name(r.status),
@@ -531,11 +535,11 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
                                                e1arm::kRadius);
         model.set_parameters(Vec::Constant(1, p));
         SqpOptions o;
-        o.max_iter = 60;
-        o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
+        o.common.max_iterations = 60;
+        o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpqp : QpMode::kWalk;
         SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(model);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{},{},{},{},{},{}\n", engine, nodes, model.n(), fnum(p),
@@ -575,9 +579,9 @@ int main(int argc, char **argv) {
             } else if (a == "--mu0-rule") {
                 const std::string v = next("--mu0-rule");
                 if (v == "kFixed") {
-                    g_mu0_rule = IpqpMu0Rule::kFixed;
+                    g_mu0_rule = IpqpBarrierInitialRule::kFixed;
                 } else if (v == "kComplementarity") {
-                    g_mu0_rule = IpqpMu0Rule::kComplementarity;
+                    g_mu0_rule = IpqpBarrierInitialRule::kComplementarity;
                 } else {
                     throw std::invalid_argument(fmt::format(
                         "{}: --mu0-rule must be kFixed or kComplementarity, got '{}'", kUsage, v));
@@ -585,18 +589,18 @@ int main(int argc, char **argv) {
             } else if (a == "--mu-floor") {
                 g_mu_floor = true;
             } else if (a == "--mu") {
-                mu = hven::solvers::bench_cli::parse_double(kUsage, "--mu", next("--mu"));
+                mu = hven::bench_cli::parse_double(kUsage, "--mu", next("--mu"));
             } else if (a == "--hard-cap") {
                 hard_cap = static_cast<Index>(
-                    hven::solvers::bench_cli::parse_ll(kUsage, "--hard-cap", next("--hard-cap")));
+                    hven::bench_cli::parse_ll(kUsage, "--hard-cap", next("--hard-cap")));
             } else if (a == "--p") {
-                p_window = hven::solvers::bench_cli::parse_double(kUsage, "--p", next("--p"));
+                p_window = hven::bench_cli::parse_double(kUsage, "--p", next("--p"));
             } else if (a == "--converge-slack") {
-                converge_slack = hven::solvers::bench_cli::parse_double(kUsage, "--converge-slack",
-                                                                        next("--converge-slack"));
+                converge_slack = hven::bench_cli::parse_double(kUsage, "--converge-slack",
+                                                               next("--converge-slack"));
                 g_converge_slack = converge_slack;
             } else if (a == "--ladder-skip-after") {
-                g_skip_after = static_cast<Index>(hven::solvers::bench_cli::parse_ll(
+                g_skip_after = static_cast<Index>(hven::bench_cli::parse_ll(
                     kUsage, "--ladder-skip-after", next("--ladder-skip-after")));
                 if (g_skip_after < 0) {
                     throw std::invalid_argument(
@@ -604,7 +608,7 @@ int main(int argc, char **argv) {
                 }
             } else if (a == "--nodes") {
                 nodes = static_cast<Index>(
-                    hven::solvers::bench_cli::parse_ll(kUsage, "--nodes", next("--nodes")));
+                    hven::bench_cli::parse_ll(kUsage, "--nodes", next("--nodes")));
             } else if (a == "--sizes") {
                 std::string spec = next("--sizes");
                 std::size_t pos = 0;
@@ -612,8 +616,8 @@ int main(int argc, char **argv) {
                     const std::size_t comma = spec.find(',', pos);
                     const std::string tok = spec.substr(pos, comma - pos);
                     if (!tok.empty()) {
-                        sizes.push_back(static_cast<Index>(
-                            hven::solvers::bench_cli::parse_ll(kUsage, "--sizes", tok)));
+                        sizes.push_back(
+                            static_cast<Index>(hven::bench_cli::parse_ll(kUsage, "--sizes", tok)));
                     }
                     if (comma == std::string::npos) {
                         break;
@@ -628,7 +632,7 @@ int main(int argc, char **argv) {
             std::fputs(kUsage, stderr);
             return 2;
         }
-        std::ofstream os = hven::solvers::bench_cli::open_output_or_throw(kUsage, "--out", out);
+        std::ofstream os = hven::bench_cli::open_output_or_throw(kUsage, "--out", out);
         if (mode == "regen") {
             return run_regen(os, sizes);
         }

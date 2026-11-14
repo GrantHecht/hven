@@ -8,11 +8,11 @@
 #include <vector>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/nlp_problem_model.h"
+#include "hven/detail/model/nlp_problem_model.h"
 // The adapter above only FORWARD-DECLARES NonLinearProgram, and this file
 // dereferences one (the previous unity batch happened to supply the definition
 // from a neighbouring TU; M6 W4 T4 re-batched the suite and exposed it).
-#include "hven/model/non_linear_program.h"
+#include "hven/detail/model/non_linear_program.h"
 
 #include "hven/core/compiler.h"
 
@@ -27,62 +27,65 @@ namespace {
 constexpr double kNpmInf = std::numeric_limits<double>::infinity();
 } // namespace
 
-using hven::ConstEigenRef;
-using hven::solvers::NLPAdapterCore;
-using hven::solvers::NLPCoordinate;
-using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPRowKind;
-using hven::solvers::NlpTripletModel;
+using hven::Nlp;
+using hven::detail::ConstEigenRef;
+using hven::detail::NlpAdapterCore;
+using hven::detail::NlpCoordinate;
+using hven::detail::NlpProblemModel;
+using hven::detail::NlpRowKind;
 
 namespace {
 
 /// n = 2, one constraint row of every kind, and one Jacobian slot per row in
 /// column 0 whose value is the row index plus one. g_r(x) = (r + 1) * x0, so
 /// every residual and every Jacobian entry below is a hand-checkable number.
-struct NpmKindsProblem : NlpTripletModel {
+struct NpmKindsProblem : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     mutable int n_eval_g_ = 0, n_eval_jac_ = 0;
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 5; }
-    int num_jac_nonzeros() const override { return 5; }
-    int num_hess_nonzeros() const override { return 1; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 5; }
+    int num_jac_nonzeros() const { return 5; }
+    int num_hess_nonzeros() const { return 1; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl << -kNpmInf, -kNpmInf;
         xu << kNpmInf, kNpmInf;
         gl << 3.0, -kNpmInf, 1.0, 1.0, -kNpmInf;
         gu << 3.0, 2.0, kNpmInf, 4.0, kNpmInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0] * x[0]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0] * x[0];
+        return f;
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g[0] = 2.0 * x[0];
         g[1] = 0.0;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         n_eval_g_++;
         for (int r = 0; r < 5; r++) {
             g[r] = (r + 1) * x[0];
         }
     }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 2, 3, 4;
         c << 0, 0, 0, 0, 0;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
         n_eval_jac_++;
         v << 1.0, 2.0, 3.0, 4.0, 5.0;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         v[0] = obj_factor + lambda.sum();
     }
     std::string name() const override { return "NpmKindsProblem"; }
@@ -90,32 +93,35 @@ struct NpmKindsProblem : NlpTripletModel {
 
 /// Unconstrained, n = 2, and a declared Hessian structure that is genuinely
 /// lower-triangular and carries a duplicate slot.
-struct NpmHessProblem : NlpTripletModel {
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 0; }
-    int num_jac_nonzeros() const override { return 0; }
-    int num_hess_nonzeros() const override { return 4; }
+struct NpmHessProblem : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    int num_vars() const { return 2; }
+    int num_cons() const { return 0; }
+    int num_jac_nonzeros() const { return 0; }
+    int num_hess_nonzeros() const { return 4; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl << -kNpmInf, -kNpmInf;
         xu << kNpmInf, kNpmInf;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x.squaredNorm(); }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = 2.0 * x;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x.squaredNorm();
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void jac_structure(Eigen::Ref<Eigen::VectorXi>, Eigen::Ref<Eigen::VectorXi>) const override {}
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = 2.0 * x; }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 1, 1; // (1, 0) is declared twice: duplicates are legal and sum
         c << 0, 0, 1, 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {}
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v << 2.0 * obj_factor, 0.25, 4.0 * obj_factor, 0.75;
     }
     std::string name() const override { return "NpmHessProblem"; }
@@ -124,43 +130,41 @@ struct NpmHessProblem : NlpTripletModel {
 /// Bounds chosen to separate "unbounded" from "a large finite bound": variable
 /// 0 is bounded at +/-1e20, variable 1 is genuinely free, row 0 is an equality
 /// at 1e20 and row 1 is a range between -1e20 and 1e20.
-struct NpmLargeBoundProblem : NlpTripletModel {
+struct NpmLargeBoundProblem : Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
     Eigen::VectorXd xl_{{-1e20, -kNpmInf}}, xu_{{1e20, kNpmInf}};
 
-    int num_vars() const override { return 2; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 2; }
-    int num_hess_nonzeros() const override { return 1; }
+    int num_vars() const { return 2; }
+    int num_cons() const { return 2; }
+    int num_jac_nonzeros() const { return 2; }
+    int num_hess_nonzeros() const { return 1; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl = xl_;
         xu = xu_;
         gl << 1e20, -1e20;
         gu << 1e20, 1e20;
     }
-    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override { f = x[0]; }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << 1.0, 0.0;
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
+        f = x[0];
+        return f;
     }
-    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
-        g << x[0], x[1];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 0.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g << x[0], x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1;
         c << 0, 1;
     }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0;
         c << 0;
     }
-    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
-        v << 1.0, 1.0;
-    }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double, ConstEigenRef<Eigen::VectorXd>,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v << 1.0, 1.0; }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef, hven::VecRef v) const override {
         v[0] = 0.0;
     }
     std::string name() const override { return "NpmLargeBoundProblem"; }
@@ -169,25 +173,24 @@ struct NpmLargeBoundProblem : NlpTripletModel {
 /// Variable bounds that leave the origin outside the box on two of three
 /// variables, so a projected start point is distinguishable from the origin.
 struct NpmBoxedProblem : NpmHessProblem {
-    int num_vars() const override { return 3; }
-    int num_hess_nonzeros() const override { return 3; }
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>) const override {
+    int num_vars() const { return 3; }
+    int num_hess_nonzeros() const { return 3; }
+
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
         xl << 1.0, -kNpmInf, -kNpmInf;
         xu << 5.0, -2.0, kNpmInf;
     }
-    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g = 2.0 * x;
-    }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override { g = 2.0 * x; }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         r << 0, 1, 2;
         c << 0, 1, 2;
     }
-    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
-                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
         v.setConstant(2.0 * obj_factor);
     }
     std::string name() const override { return "NpmBoxedProblem"; }
@@ -201,11 +204,11 @@ TEST(NlpProblemModelTest, RowKindsDecideTheNativeBlocksAndTheirSigns) {
     EXPECT_EQ(model.me(), 1);
     EXPECT_EQ(model.mi(), 4);
     EXPECT_EQ(model.num_declared_rows(), 5);
-    EXPECT_EQ(model.rows().kinds_[0], NLPRowKind::Equality);
-    EXPECT_EQ(model.rows().kinds_[1], NLPRowKind::UpperBounded);
-    EXPECT_EQ(model.rows().kinds_[2], NLPRowKind::LowerBounded);
-    EXPECT_EQ(model.rows().kinds_[3], NLPRowKind::Range);
-    EXPECT_EQ(model.rows().kinds_[4], NLPRowKind::Free);
+    EXPECT_EQ(model.rows().kinds[0], NlpRowKind::kEquality);
+    EXPECT_EQ(model.rows().kinds[1], NlpRowKind::kUpperBounded);
+    EXPECT_EQ(model.rows().kinds[2], NlpRowKind::kLowerBounded);
+    EXPECT_EQ(model.rows().kinds[3], NlpRowKind::kRange);
+    EXPECT_EQ(model.rows().kinds[4], NlpRowKind::kFree);
 
     Eigen::VectorXd x(2);
     x << 2.0, 0.0;
@@ -364,9 +367,14 @@ TEST(NlpProblemModelTest, TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle)
     }
 }
 
-TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded) {
+// M8 B7: at the default CommonOptions::infinite_bound (1e20) these bounds are
+// ABSENT (tests/drivers/test_infinite_bound.cpp pins that side); with the
+// threshold at infinity every finite value is a real bound, which is what this
+// test pins -- the pre-B7 convention, now an explicit setting.
+TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsUnderAnInfiniteThreshold) {
     auto problem = std::make_shared<NpmLargeBoundProblem>();
-    NlpProblemModel model(problem);
+    NlpProblemModel model(problem, kNpmInf);
+    EXPECT_EQ(model.absent_bounds(), 0);
 
     // Variable bounds, verbatim in both directions.
     EXPECT_DOUBLE_EQ(model.lower()[0], -1e20);
@@ -379,8 +387,8 @@ TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded)
     // A row declared at 1e20 on both sides is an equality AT 1e20, not a free
     // row and not an equality at infinity; a row between -1e20 and 1e20 is a
     // range, not a free row.
-    EXPECT_EQ(model.rows().kinds_[0], NLPRowKind::Equality);
-    EXPECT_EQ(model.rows().kinds_[1], NLPRowKind::Range);
+    EXPECT_EQ(model.rows().kinds[0], NlpRowKind::kEquality);
+    EXPECT_EQ(model.rows().kinds[1], NlpRowKind::kRange);
     EXPECT_EQ(model.me(), 1);
     EXPECT_EQ(model.mi(), 2);
 
@@ -392,8 +400,8 @@ TEST(NlpProblemModelTest, LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded)
     EXPECT_DOUBLE_EQ(ci[1], -1e20 - 2.0);
 
     // And the host stages variable 0's bounds while leaving variable 1 free.
-    auto core = std::make_shared<NLPAdapterCore>(std::make_shared<NlpProblemModel>(problem),
-                                                 problem->name());
+    auto core = std::make_shared<NlpAdapterCore>(
+        std::make_shared<NlpProblemModel>(problem, kNpmInf), problem->name());
     EXPECT_DOUBLE_EQ(core->x_lower_[0], -1e20);
     EXPECT_DOUBLE_EQ(core->x_upper_[0], 1e20);
     EXPECT_EQ(core->x_lower_[1], -kNpmInf);
@@ -444,9 +452,9 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     claimed.insert(0, 0) = 1.0;
     claimed.insert(1, 1) = 1.0;
     claimed.makeCompressed();
-    const std::vector<NLPCoordinate> recorded{{0, 0}, {1, 1}};
+    const std::vector<NlpCoordinate> recorded{{0, 0}, {1, 1}};
     EXPECT_NO_THROW(
-        hven::solvers::nlp_require_claimed_pattern(claimed, recorded, "eval_jac_e", "NpmProbe"));
+        hven::detail::nlp_require_claimed_pattern(claimed, recorded, "eval_jac_e", "NpmProbe"));
 
     // Same entry count, one coordinate moved.
     Eigen::SparseMatrix<double, Eigen::RowMajor> moved(2, 2);
@@ -454,7 +462,7 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     moved.insert(1, 1) = 1.0;
     moved.makeCompressed();
     EXPECT_THROW(
-        hven::solvers::nlp_require_claimed_pattern(moved, recorded, "eval_jac_e", "NpmProbe"),
+        hven::detail::nlp_require_claimed_pattern(moved, recorded, "eval_jac_e", "NpmProbe"),
         std::invalid_argument);
 
     // A different entry count is refused before any coordinate is compared.
@@ -462,7 +470,7 @@ TEST(NlpAdapterHostTest, APatternThatShiftsBetweenEvaluationsIsRefusedByName) {
     shrunk.insert(0, 0) = 1.0;
     shrunk.makeCompressed();
     EXPECT_THROW(
-        hven::solvers::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
+        hven::detail::nlp_require_claimed_pattern(shrunk, recorded, "eval_jac_e", "NpmProbe"),
         std::invalid_argument);
 }
 
@@ -471,7 +479,7 @@ namespace {
 /// A bare NlpModel -- not the triplet conversion -- whose inequality Jacobian
 /// and Hessian patterns move once armed. n = 3, no equality rows, one
 /// inequality row.
-struct NpmDriftingModel : hven::solvers::NlpModel {
+struct NpmDriftingModel : hven::detail::NlpModel {
     mutable bool drifted_ = false;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
     Eigen::VectorXd upper_{{kNpmInf, kNpmInf, kNpmInf}};
@@ -518,7 +526,7 @@ TEST(NlpAdapterHostTest, AModelWhosePatternDriftsAfterTranscriptionIsRefused) {
     // model that presents a different one afterwards must be refused on the
     // host's own path, not merely by the guard called in isolation.
     auto model = std::make_shared<NpmDriftingModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmDriftingModel");
+    hven::detail::NlpAdapterCore core(model, "NpmDriftingModel");
 
     Eigen::VectorXd x(3);
     x << 0.5, -0.25, 1.5;
@@ -538,8 +546,8 @@ TEST(NlpAdapterHostTest, AModelWhosePatternDriftsAfterTranscriptionIsRefused) {
 
     // And through a full assembly, which is the path a solve takes.
     auto fresh = std::make_shared<NpmDriftingModel>();
-    auto fresh_core = std::make_shared<hven::solvers::NLPAdapterCore>(fresh, "NpmDriftingModel");
-    auto nlp = hven::solvers::make_nlp_program(fresh_core);
+    auto fresh_core = std::make_shared<hven::detail::NlpAdapterCore>(fresh, "NpmDriftingModel");
+    auto nlp = hven::detail::make_nlp_program(fresh_core);
     Eigen::SparseMatrix<double, Eigen::RowMajor> kkt(nlp->kkt_dim_, nlp->kkt_dim_);
     nlp->analyze_sparsity(kkt);
     Eigen::Map<Eigen::VectorXd>(kkt.valuePtr(), kkt.nonZeros()).setZero();
@@ -562,7 +570,9 @@ TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
     auto bad = [](auto mutate) {
         auto problem = std::make_shared<NpmLargeBoundProblem>();
         mutate(*problem);
-        EXPECT_THROW(NlpProblemModel{problem}, std::invalid_argument);
+        // Under an infinite threshold: the fixture's rows sit at 1e20, which the
+        // default threshold reads as an equality at infinity.
+        EXPECT_THROW((NlpProblemModel{problem, kNpmInf}), std::invalid_argument);
     };
     bad([](NpmLargeBoundProblem &p) { p.xl_[0] = std::numeric_limits<double>::quiet_NaN(); });
     bad([](NpmLargeBoundProblem &p) { p.xu_[1] = std::numeric_limits<double>::quiet_NaN(); });
@@ -584,8 +594,8 @@ TEST(NlpProblemModelTest, VariableBoundsAreValidatedAtConstruction) {
     auto fixed_finite = std::make_shared<NpmLargeBoundProblem>();
     fixed_finite->xl_[0] = 2.0;
     fixed_finite->xu_[0] = 2.0;
-    EXPECT_NO_THROW(NlpProblemModel{fixed_finite});
-    EXPECT_NO_THROW(NlpProblemModel{std::make_shared<NpmLargeBoundProblem>()});
+    EXPECT_NO_THROW((NlpProblemModel{fixed_finite, kNpmInf}));
+    EXPECT_NO_THROW((NlpProblemModel{std::make_shared<NpmLargeBoundProblem>(), kNpmInf}));
 }
 
 namespace {
@@ -593,7 +603,7 @@ namespace {
 /// A bare NlpModel that can return an uncompressed matrix from whichever of
 /// the three matrix entry points is selected. n = 2, one equality row, one
 /// inequality row.
-struct NpmUncompressedModel : hven::solvers::NlpModel {
+struct NpmUncompressedModel : hven::detail::NlpModel {
     enum class Loose { None, JacE, JacI, Hess };
     mutable Loose loose_ = Loose::None;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
@@ -665,7 +675,7 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
         auto model = std::make_shared<NpmUncompressedModel>();
         model->loose_ = loose;
         return std::make_pair(
-            model, std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+            model, std::make_shared<hven::detail::NlpAdapterCore>(model, "NpmUncompressedModel"));
     };
 
     // The control: compressed throughout, nothing refused.
@@ -684,13 +694,13 @@ TEST(NlpAdapterHostTest, AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint) 
                        NpmUncompressedModel::Loose::Hess}) {
         auto from_the_start = std::make_shared<NpmUncompressedModel>();
         from_the_start->loose_ = loose;
-        EXPECT_THROW(hven::solvers::NLPAdapterCore(from_the_start, "NpmUncompressedModel"),
+        EXPECT_THROW(hven::detail::NlpAdapterCore(from_the_start, "NpmUncompressedModel"),
                      std::invalid_argument);
 
         auto model = std::make_shared<NpmUncompressedModel>();
-        std::shared_ptr<hven::solvers::NLPAdapterCore> core;
+        std::shared_ptr<hven::detail::NlpAdapterCore> core;
         ASSERT_NO_THROW(
-            core = std::make_shared<hven::solvers::NLPAdapterCore>(model, "NpmUncompressedModel"));
+            core = std::make_shared<hven::detail::NlpAdapterCore>(model, "NpmUncompressedModel"));
         model->loose_ = loose;
         if (loose == NpmUncompressedModel::Loose::Hess) {
             EXPECT_THROW(core->eval_hessian_values(x, 1.0, le, li), std::invalid_argument);
@@ -706,7 +716,7 @@ namespace {
 /// implementations: it forwards only the by-value methods and overrides none
 /// of the in-place ones, so every in-place call on it takes NlpModel's
 /// delegation.
-struct NpmByValueOnlyModel : hven::solvers::NlpModel {
+struct NpmByValueOnlyModel : hven::detail::NlpModel {
     std::shared_ptr<NlpProblemModel> inner_;
 
     explicit NpmByValueOnlyModel(std::shared_ptr<NlpProblemModel> inner)
@@ -825,7 +835,7 @@ namespace {
 /// methods, so the in-place calls the host makes arrive here through
 /// NlpModel's defaults and one host call is one count. n = 3, one equality
 /// row, one inequality row.
-struct NpmCountingModel : hven::solvers::NlpModel {
+struct NpmCountingModel : hven::detail::NlpModel {
     mutable int n_f_ = 0, n_grad_ = 0, n_ce_ = 0, n_ci_ = 0;
     mutable int n_jac_e_ = 0, n_jac_i_ = 0, n_hess_ = 0, n_start_point_ = 0;
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf, -kNpmInf}};
@@ -902,7 +912,7 @@ struct NpmCountingModel : hven::solvers::NlpModel {
 // nothing setup needs.
 TEST(NlpAdapterHostTest, TranscriptionSpendsOneStartPointAndThreeDerivativeCalls) {
     auto model = std::make_shared<NpmCountingModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::detail::NlpAdapterCore core(model, "NpmCountingModel");
 
     EXPECT_EQ(model->n_start_point_, 1);
     EXPECT_EQ(model->n_hess_, 1);
@@ -938,7 +948,7 @@ namespace {
 /// A bare NlpModel whose gradient is one entry longer than it declares.
 /// Everything else is well formed, so it survives the host's claim pass and
 /// the refusal has to come from the evaluation.
-struct NpmWrongGradientModel : hven::solvers::NlpModel {
+struct NpmWrongGradientModel : hven::detail::NlpModel {
     Eigen::VectorXd lower_{{-kNpmInf, -kNpmInf}};
     Eigen::VectorXd upper_{{kNpmInf, kNpmInf}};
 
@@ -978,7 +988,7 @@ TEST(NlpAdapterHostTest, AWrongLengthGradientIsRefusedAndNamesBothCounts) {
     // of any other length would be written past the rows laid for it. Every
     // other by-value result on this host is length-checked; this one is too.
     auto model = std::make_shared<NpmWrongGradientModel>();
-    hven::solvers::NLPAdapterCore core(model, "NpmWrongGradientModel");
+    hven::detail::NlpAdapterCore core(model, "NpmWrongGradientModel");
 
     Eigen::VectorXd x(2);
     x << 0.5, -0.25;
@@ -1000,7 +1010,7 @@ TEST(NlpAdapterHostTest, AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced)
     // head to take, and the slice would read past the end, which under NDEBUG
     // is silent. The refusal comes before the slice.
     auto model = std::make_shared<NpmCountingModel>(); // one equality row
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::detail::NlpAdapterCore core(model, "NpmCountingModel");
     ASSERT_EQ(core.num_eq_, 1);
 
     Eigen::VectorXd empty(0);
@@ -1036,7 +1046,7 @@ TEST(NlpAdapterHostTest, AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwn
     // all-zero. The engine hands down full-length blocks on every path, so a
     // block that arrives empty where rows are hosted is a defect in the chain.
     auto model = std::make_shared<NpmCountingModel>(); // one equality, one inequality row
-    hven::solvers::NLPAdapterCore core(model, "NpmCountingModel");
+    hven::detail::NlpAdapterCore core(model, "NpmCountingModel");
     ASSERT_EQ(core.num_eq_, 1);
     ASSERT_EQ(core.num_iq_, 1);
 

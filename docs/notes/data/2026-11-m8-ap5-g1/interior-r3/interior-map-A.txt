@@ -1,0 +1,1 @@
+MAPPED /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/interior-r3/interior-A.csv -> /home/ghecht/Projects/hven/.claude/worktrees/agent-afb4015ceb50aa1d1/docs/notes/data/2026-11-m8-ap5-g1/interior-r3/interior-A-mapped.csv: 2 value(s) rewritten

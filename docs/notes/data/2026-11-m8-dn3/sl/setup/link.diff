@@ -1,0 +1,12 @@
+10c10
+< --dependency-file=lanes/hven/CMakeFiles/hven_bench_cell.dir/link.d
+---
+> --dependency-file=/home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/cfi-link.d
+13c13
+< lanes/hven/hven_bench_cell
+---
+> /home/ghecht/Projects/hven/.claude/worktrees/agent-a4a349c1df0402cb8/build-dn3/adoptbin/hven_bench_cell.cfi
+27c27
+< /home/ghecht/Projects/hven-bench-dn1/.hven/install-96ac1a27d085/lib64/libhven.a
+---
+> /home/ghecht/Projects/hven-bench-dn1/.scratch/dn3-legs-cfi/install/lib64/libhven.a

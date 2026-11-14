@@ -16,9 +16,10 @@
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
+#include "hven/detail/model/non_linear_program.h"
 #include "hven/drivers/ipm_solver.h"
 
-namespace hven::solvers {
+namespace hven::detail {
 
 // Forward declaration only: SolverContext carries a non-owning pointer to the
 // active RestorationStrategy (complete type in globalization/restoration.h,
@@ -105,4 +106,4 @@ struct SolverContext {
     BoundDualState *bound_duals_ = nullptr;
 };
 
-} // namespace hven::solvers
+} // namespace hven::detail

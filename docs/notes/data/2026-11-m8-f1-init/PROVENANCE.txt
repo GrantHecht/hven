@@ -1,0 +1,58 @@
+M8 F1 -- the MKL solver warm-up without dsecnd() -- PROVENANCE AND RESULTS
+================================================================================
+Commits     d546afd1 code (src/drivers/solver_init.cpp, include/hven/detail/drivers/solver_init.h, docs/concurrency.md);
+            b43c0040 DECLARATION + instruments; 44101adf runtime run 1 (VOID, kept); e191c28e DECLARATION-r2;
+            245b8970 runtime r2 (PASS); this commit: chain1 outputs and this file. Base / arm A 2340b95d (origin/m8).
+Binaries    arm A corpus ef3f2682...0baa6, arm A db 97e5d582...05d1 (ARM_A_OK); arm B corpus e48c2e34...c0e3;
+            arm A libhven.a 2cc652f7...54fa (= DN-0's measured library), arm B libhven.a 37d2a2ae...db02;
+            falsifier mutant corpus 33db389b...a286.
+Machine     AMD Ryzen 7 5800X3D, Linux 7.2.12-200.fc44, clang 22.1.8, cmake 4.3.0, ninja 1.13.2, perf 7.2.12-200.fc44,
+            MKL 2026.2 (INTEL_MKL_VERSION 20260200, static LP64 + intel_thread, libiomp5), MKL_NUM_THREADS=1,
+            kernel.perf_event_max_sample_rate 79000 (lowered by the kernel at 18:46 this boot; see DECLARATION-r2).
+            Apple/Accelerate: UNOBSERVED (syntax sweep only). Windows: UNOBSERVED.
+Dates       2026-11-07: diagnosis 20:00-20:15 EST; runtime run 1 20:18-20:27 (VOID); runtime r2 20:29-21:14; chain1
+            21:15-21:39.
+Protocol    every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+            set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; serial, alone; the runtime
+            gate first, then chain1 (chain/chain1.out: PREFLIGHT_OK, every leg rc 0, CHAIN1_DONE).
+
+RESULTS (criteria as declared)
+P0  arm A       ARM_A_OK (chain/arma.out). PASS.
+P1  suites      Release and Debug: 100% tests passed, 0 tests failed out of 3483 (suites/). PASS. (D5)
+P2  examples    8/8 rc 0 (chain/examples.out). PASS.
+P3  replay      walk/ssn/ipm, 27 cells x 75 columns, 0 differences each (replay/). PASS. (D1)
+P4  iparm       IPARM_BYTE_IDENTICAL, 15 configurations (iparm/iparm-f1.txt). PASS. (D8)
+P5  census      not run, as declared (the SQP is not touched; P11's SQP modes: 0 excluded samples, raw B/A 1.000000).
+P6  smoke       default and clang PASSED; export contract OK on both (install-smoke/). PASS. (D9)
+P7  PCH         PASS: 4 TUs engaged, 57 artifacts byte-identical (pch/). PASS.
+P8  off-ref     build rc 0, 26 warning lines (= PF-1's), none naming the touched files; ctest 0 failed out of 3483
+                (offref/). PASS.
+P9  Accelerate  PASS_A_AS_DECLARED (accelerate/). PASS. Pass B (reported, not a criterion): PASS_B_NOT_AS_DECLARED,
+                as at PF-1, PF-HB and the B8 riders.
+P10 flags       FLAGS_AS_DECLARED (flags/). PASS. (D7)
+P11 runtime     run 1 VOID (THROTTLE, ssn r1 arm B f7_n20000_bound_neutral; runtime/). r2 (DECLARATION-r2, period
+                400000; runtime-r2/run_all.log): VERDICT PASS -- filtered B/A interior 0.999988, ipm 1.000000,
+                ssn 0.999998, walk 1.000002; THROTTLE 0 (492 processes); counter identity in every mode; interior F1-a
+                LIVE (arm A excluded 27,114 samples), F1-b ABSENT (0/0/0), F1-c all-samples B/A 0.964862 (raw perf-stat
+                1.029918e11 -> 9.937343e10, 0.964868). PASS. (D2, D11)
+P12 interior    unmoved 0 differences; promoted baseline reproduced, 0 differences (interior/). PASS. (D1)
+P13 before/after HS_AS_DECLARED (hs/analysis.txt; medians of 5 fresh processes per arm, phase-aligned, serial, alone):
+                  problem  instructions:u A -> B          first-solve wall A -> B   init_s B   total_s A -> B
+                  hs006    3.854e9 -> 6.111e6 (/631)      0.981 s -> 2.9 ms         1.46 ms    2.88 -> 1.37 ms
+                  hs010    3.829e9 -> 6.125e6 (/625)      0.975 s -> 2.9 ms         1.45 ms    2.88 -> 1.39 ms
+                  hs035    3.829e9 -> 6.018e6 (/636)      0.975 s -> 2.9 ms         1.44 ms    2.85 -> 1.37 ms
+                  hs071    3.830e9 -> 6.284e6 (/609)      0.975 s -> 2.9 ms         1.44 ms    2.92 -> 1.43 ms
+                engine columns identical across all 10 processes of each problem; arm B max 6.29e6 instructions,
+                range within arm B < 0.1% (arm A's range up to 1.2%, wall-aligned). Wall-clock informational.
+P14 falsifier   mutant (mkl_get_max_threads -> dsecnd, one line): 17,960 spin samples, +3.594e9 instructions over arm B
+                (0 spin samples), rows EXACT: FAILPROOF_AS_DECLARED (failproof/). PASS.
+P16 objects     56 objects, exactly solver_init.cpp.o differs; arm B libhven.a has no dsecnd symbol, its solver_init
+                references MKL_Get_Max_Threads: OBJECTS_AS_DECLARED (objects/). PASS.
+
+SLIPS / DEVIATIONS
+- The runtime gate's run 1 went VOID on one THROTTLE event (environmental: the kernel had lowered
+  perf_event_max_sample_rate to 79000 earlier in the boot). Not re-run under its declaration; DECLARATION-r2 doubled the
+  sampling period and re-ran all four modes. Run 1's record is kept in runtime/.
+- Pre-declaration dev measurements (build-f1/dev/) ran on the evidence builds under the box lock; not evidence.
+- The worktree's submodules were uninitialized at the first prebuild attempt (EIGEN_PIN_MISMATCH, refused before any
+  build); initialized, then prebuild re-run.

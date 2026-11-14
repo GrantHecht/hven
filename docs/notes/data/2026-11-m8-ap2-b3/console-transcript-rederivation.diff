@@ -1,0 +1,20 @@
+44,45c44,45
+<     "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mInter"
+<     "iorPointSolver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+---
+>     "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mIpmSol"
+>     "ver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+140c140
+<     ";105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mInteriorPointSolver \x1b[0m\n\x1b[38;2;"
+---
+>     ";105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mIpmSolver \x1b[0m\n\x1b[38;2;"
+155,156c155,156
+<     "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mInter"
+<     "iorPointSolver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+---
+>     "============\n\x1b[0m\x1b[38;2;105;105;105mBeginning\x1b[0m: \x1b[38;2;065;105;225mIpmSol"
+>     "ver \x1b[0m\n Solver Initialization : \x1b[38;2;000;255;255m627.500 ms\n\x1b["
+258c258
+<     "\n\x1b[0m\x1b[38;2;105;105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mInteriorPointSolv"
+---
+>     "\n\x1b[0m\x1b[38;2;105;105;105mFinished \x1b[0m: \x1b[38;2;065;105;225mIpmSolv"

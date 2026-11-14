@@ -1,0 +1,138 @@
+M8 AP-2 group B8 (the rename sweep, the last group of the break) -- DECLARATION (committed before the first
+proof leg; never edited afterwards; a failed leg is followed by a fix and a successor DECLARATION-rN.txt, and
+the failed record is kept; criteria are never changed after data)
+================================================================================
+Base        m8 fa727270 (B7 landed; B7 code head ee27e1b2).
+Code head   2f00a6ff (m8-b8). Commits after fa727270, oldest first:
+              2f00a6ff refactor: the rename sweep (code, tests, bench, examples, live docs, smoke, export contract)
+              d09c15a1 docs:     the naming note (rules + the complete old -> new table), CHANGELOG.md, the
+                                 AP-1 page's pointer
+            Evidence commits (this directory) follow and touch no source.
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL, MKL_NUM_THREADS=1, as B7.
+Scratch     build trees under build-b8/ (git-ignored): psym (fa727270, built BEFORE ANY B8 EDIT, Release,
+            legs/build.sh's flags, CCACHE_DISABLE=1; captured to psym-before; its corpus binary and compile
+            database copied to armAbin/ and armA-compile_commands.json at that time), rel and dbg (fresh,
+            legs/build.sh at the code head, built before this declaration: chain/build-rel.out,
+            chain/build-dbg.out), armBbin, offref, smoke-*, pch-check, iparm-build, inst-iparm, census-run,
+            runtime-perf, psym-after. Dev trees (dev, dbgdev, offref-dev) are not evidence and no leg reads them.
+The rule set and the full table: docs/notes/2026-11-m8-ap2-b8-naming.md. The applied manifests and the
+instruments that applied them: manifest/ (copied byte for byte from the scratch tools they ran as).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D1  SQP CORPUS: NO ROW MOVES. A rename touches no numerics; the two behaviour items (D4) are off every corpus
+    path (no corpus cell sets max_restoration_entries = 0 -- it was refused -- or a kSolve phase). Replay x
+    walk/ssn/ipm EXACT against the M7 WX2 reference; census 57/57, 0 mismatches against the promoted walk
+    baseline. A census mismatch is NOT pre-declared: it fails the leg.
+D2  INTERIOR CORPUS: NO ROW MOVES against fa727270 (arm A), and the promoted B7 baseline reproduced EXACT.
+D3  API: the table of the naming note, section 3 (namespaces, five headers, the umbrella, types, enumerators,
+    public data members, option fields). Compile-time only.
+D4  BEHAVIOUR off the corpus: (a) SqpOptions::advanced.max_restoration_entries accepts 0 (refused before):
+    the first restoration request is then refused by the exit a refused later request takes; every value
+    accepted before keeps its entry rule (the condition is re-associated, equal for every cap >= 1);
+    (b) IpmAdvancedOptions::solve_phase_mode is a SolvePhaseMode of three values (AlgorithmMode::kInit,
+    which validate() accepted, is gone), mapped onto the internal mode once per phase; (c) dump_options
+    keys/enumerator names and validation messages print the new names; (d) version() returns "0.2.0".
+D5  TESTS: 3472 -> 3473 (+1, SqpDriverRestorationEntries.ACapOfZeroRefusesTheFirstRequest). Changed in
+    place: RestorationEntriesOption.RefusesFewerThanOnePhaseByNameAndValue ->
+    RefusesANegativeCountByNameAndValue (0 accepted now); every dump/message expectation re-spelled.
+    ctest's count ("out of N") is 3473 in both builds (the two registered disabled tests as at B7).
+D6  TRACE: no key, golden line or event changes (the ipm.iter keys are IpmIterate's member names, unchanged
+    stems); trace-writer comments only.
+D7  OBJECTS: mangled names move (the namespace and the type renames); the P-SYM map is the proof (P13).
+    COMPILE FLAGS: identical except -DHVEN_VERSION_STRING="0.1.0" -> "0.2.0" on the library TUs that carry it.
+D8  No iparm change: no linear/ option or iparm field is touched (no IPARM-SURFACE label); the dumper is
+    B7 riders' with `using namespace hven` for `hven::solvers` (iparm/dump_iparm.cpp's header says so).
+D9  INSTALL SMOKE: 35 -> 37 standalone-include TUs (the umbrella, drivers/ipm_iterate.h; three renamed); the
+    export contract gains "the umbrella includes every public header".
+D10 ACCELERATE SWEEP: line numbers and the namespace in message text move; the instrument's KNOWN-SIZEOF
+    classifier accepts `hven::` (it named `hven::solvers::`). Apple hardware: UNOBSERVED.
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): build-b8/armAbin/hven_sqp_corpus sha256
+    273e09c6c777493788316661ffc54a998b4e2531606061fdb438ff4f1b658e98 and build-b8/armA-compile_commands.json
+    sha256 b9fd684dd75560162b9721d487556296fc6579f66991083fbf6e611f6da62258 (fail closed).
+P1  suites: ctest Release (build-b8/rel) and Debug (build-b8/dbg), full, -j4 under setsid: every test
+    passes, 3473 (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh); each includes only <hven/hven.h>.
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: scripts/compare_replay.py against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv over the cells of
+    docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt: EXACT, 0 differences (D1).
+P4  iparm (legs/iparm.sh): the dumper against an install of the code head: BYTE-IDENTICAL to
+    ../2026-11-m8-ap2-b7-riders/iparm/iparm-b7r.txt, 15 configurations.
+P5  walk census 57/57, 0 mismatches against bench/baselines/2026-10-m7-close-corpus/walk_baseline.csv
+    (legs/census.sh) on the frozen arm B binary (sha256 below).
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass, the
+    detail-include rule armed with NO allow-list, and the umbrella rule passing (D9).
+P7  scripts/check_pch_neutrality.sh: PASS (legs/misc.sh pch).
+P8  off-reference CLEAN build: linux-clang-release preset, fresh build-b8/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, HVEN_BUILD_BENCH=ON, HVEN_BUILD_EXAMPLES=ON, then ctest
+    Release: pass, 3473; warning lines == 26 (legs/offref.sh; evidence directory ABSOLUTE).
+P9  Accelerate syntax sweep pass A (legs/misc.sh accelerate): OTHER 0, and EQUAL to B7 riders' pass A
+    (../2026-11-m8-ap2-b7-riders/accelerate/accelerate-sweep.txt) once both are normalized by
+    legs/accel_normalize.py (line:col dropped, hven::solvers:: read as hven::, sorted). Pass B reported the
+    same way, not a criterion. Apple hardware: UNOBSERVED; no Apple value is recorded.
+P10 compile-flags diff (legs/flags.sh): library TUs of arm A (build-b8/armA-compile_commands.json, prefix
+    build-b8/psym read as build-b8/rel) vs the code head (build-b8/rel): the same TU set and identical flags
+    except the D7 define: flags_diff.py (B7 riders', byte copy) reports DIFFERENT, and legs/flags_check.py
+    must print FLAGS_AS_DECLARED (TU sets equal; every differing TU differs only by that define).
+P11 runtime gate (runtime/DECLARATION.txt): arm A = fa727270 (build-b8/armAbin, sha256 above), arm B = the
+    code head (build-b8/rel -> build-b8/armBbin, sha256
+    258120669404bf3d2c8374c9f5eea89925d8c4303cd5c603ee1934c93e38ce7d); band 0.995 <= B/A <= 1.005 per mode on the
+    filtered instructions:u, THROTTLE == 0, counter identity as the STOP condition, arm order alternated;
+    every mode at the defaults, both arms.
+P12 interior (legs/interior.sh): unmoved -- arm A vs arm B, 27 cells, compare_replay.py EXACT, 0 differences;
+    promoted -- arm B under the promoted baseline's own invocation against
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv, EXACT, 0 differences (D2).
+P13 P-SYM (legs/psym.sh): build-b8/psym rebuilt IN PLACE at the code head, captured, compared to
+    build-b8/psym-before with the symbol map psym/gen_maps.py generates (the stated rule only) and the
+    exceptions of psym/exceptions.txt, each declared below; PASS = scripts/psym_compare.sh exit 0.
+    THE MAP (psym/gen_maps.py, its docstring is the rule): every before-arm name, demangled by c++filt as
+    the tool demangles, rewritten by the namespace rule and the manifest's `type` entries; a name c++filt
+    leaves mangled (C++20 requires-clauses) maps to the one after-arm name whose llvm-cxxfilt form equals
+    its own rewritten (none unpaired in the dev run). Generated afresh by the leg, from the two captures.
+    THE EXCEPTIONS (psym/exceptions.txt, sha256
+    46cec70d7852d0485be19e41569bfe9c4fe759f572542624a274e074f1f5659c, written by psym/gen_exceptions.py
+    from the dev comparisons (psym/dev-findings.tsv: the findings of the run without exceptions, then of a
+    run with the first draft, whose one remaining finding the tool's print cap had hidden; extracted by
+    psym/psym_findings.py), refusing anything its rules do not cover -- it refused nothing), 179 lines:
+      E1 (5)   the declared code changes, [DIFFERS], by object and function: validate(IpmOptions),
+               dump_options(IpmOptions), IpmSolverImpl::phase_steps (ipm_options.cpp.o, ipm_solver.cpp.o);
+               validate(SqpOptions), SqpSolverImpl::enter_restoration (sqp_options.cpp.o, sqp_solver.cpp.o).
+               NO OTHER LIBRARY FUNCTION may differ.
+      E2 (108) a __cxx_global_var_init keyed by the global it initialises whose key changes only by the
+               namespace rule at the mangled level, both sides paired (the tool applies no map to these keys).
+      E3 (53)  the five test objects whose TUs B8 edited (test_sqp_qn_mode, test_sqp_restoration, test_limits,
+               test_options_dump, the interior unity object holding test_ipm_solver_presets): test bodies,
+               their factories/destructors, their vtables/typeinfo/test_info_, the TU's registration
+               initializer, a gtest comparison helper on a string literal's array type.
+      E4 (13)  compiler-local label families: switch tables of a renamed function, paired by the rule;
+               `.L.str`/`.LCPI`/`GCC_except_table` count changes in the objects whose TUs B8 edited.
+    PASS = scripts/psym_compare.sh exit 0 with that map and those exceptions; 0 stale exceptions is NOT
+    required (an exception the leg's run does not use is reported, not a failure, as the tool defines).
+P14 manifest coverage (legs/manifest_check.py): no OLD spelling of the text manifest and no retired
+    namespace occurs in the tracked tree outside the allowed residual the script names (the frozen evidence
+    and history, the two P-SYM instruments): 0 hits.
+DEVIATION FROM AP-1 SECTION 13 (declared, not a criterion change): the page's "inverse-manifest revert test,
+tested once against B7's head" is NOT run. The namespace merge is not textually invertible (hven::X existed
+before, so hven:: -> hven::solvers:: has no unique inverse) and the member renames were applied per site by
+the compiler, so no inverse text manifest exists to test. What the revert test would show is carried instead
+by P13 (every object's code equal to arm A's through the generated map, the declared functions excepted) and
+P14 (the manifest's old spellings are gone). Revert remains `git revert` of the two code commits.
+BOX PROTOCOL: every leg a script run as `flock /tmp/box-build.lock bash <leg>` (legs/chain1.sh runs the
+non-timing legs in sequence, each under its own lock, after a fail-closed pre-flight of every script and
+instrument in this directory, itself included, whose patterns are assembled so they cannot match their own
+lines -- checked before this declaration on a copy with two planted stale paths, both refused -- and of the
+two python instruments' root depth); `pgrep -a hven_bench_cell` empty before the lock and PGREP_EMPTY inside
+it; set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END;
+ABSOLUTE evidence paths. The copied scripts were re-pointed (b7-riders -> b8, build-b7r -> build-b8, arm A
+8089104c -> fa727270); the read-only pins a leg reads are B7 riders' iparm dump and Accelerate sweeps, named by
+the pre-flight's allow-list. Order: the runtime gate alone first (runtime/run_all.sh), then chain1.
+DEV CHECKS before this declaration (not evidence), under the lock, on dev trees: Release and Debug full
+suites 3473/3473 each; off-reference build + ctest 3473/3473; the Accelerate sweep (pass A: only the two
+KNOWN-SIZEOF lines, misclassified by the old regex); the P-SYM rebuild of build-b8/psym at the code head and
+five comparisons of it (1: the map spelled as nm -C spells, superseded; 2: the stated map, no exceptions --
+the findings the exceptions were generated from; 3, 4: exception drafts; 5: these exceptions, PASS); manifest_check 0 hits; flags_diff + flags_check on
+build-b8/rel (56 of 60 library TUs differ, each only by the version define). Not run before this
+declaration: the replay, census, interior, runtime gate, iparm dump, smoke, PCH.

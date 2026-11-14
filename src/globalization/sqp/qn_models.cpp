@@ -15,7 +15,7 @@
 
 #include <hven/detail/globalization/sqp/qn_models.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -258,4 +258,4 @@ void MaskedQnModel::publish() {
     lift_.support = vars_;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

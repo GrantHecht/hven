@@ -1,0 +1,4 @@
+628c628
+<         k0_shift_scale != nullptr &&
+---
+>         false && k0_shift_scale != nullptr &&

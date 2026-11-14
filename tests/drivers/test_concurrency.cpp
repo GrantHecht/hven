@@ -31,7 +31,7 @@
 // WHAT THE FIRST PIN AVOIDS, AND WHY THAT IS NOT A DODGE. The ruling names
 // three process-global exceptions; `docs/concurrency.md` names them as audited.
 // The one that could reach those cells is the interior-point engine's
-// EVALUATION POOL (`hven::utils::set_num_threads`,
+// EVALUATION POOL (`hven::detail::set_num_threads`,
 // src/interior/utils/thread_pool.cpp), which is process-global by design. Those
 // cells avoid it BY CONSTRUCTION rather than by arrangement: `make_nlp_program`
 // defaults to one partition, and `parallel_sequence`
@@ -58,7 +58,7 @@
 // WHAT THAT SECOND PIN DOES AND DOES NOT EXERCISE, stated here so nobody reads
 // more into it than it measured. `make_nlp_program`'s own doc comment says
 // PARTITIONS THROUGH THIS ADAPTER ARE LAYOUT ONLY: all three pieces are
-// ThreadingFlags::MainThread, and analyze_partitioning forces every MainThread
+// ThreadingFlags::kMainThread, and analyze_partitioning forces every MainThread
 // function into the LAST partition, which parallel_sequence runs INLINE on the
 // calling thread. So the user's eval_f / eval_jac / eval_hess still run on the
 // dispatching thread. What genuinely goes concurrent is the DISPATCH ITSELF --
@@ -68,7 +68,7 @@
 // the `parallel_blocks` passes over the KKT triplet fill, which are sized by
 // num_partitions_ too. That is exactly the claim the design statement makes and
 // exactly what was unmeasured. GENUINE partitioned EVALUATION over an
-// NlpTripletModel needs a thread-safe adapter and is registered for M7; when it
+// Nlp needs a thread-safe adapter and is registered for M7; when it
 // lands, this test's model is already the right size for it.
 //
 // THE ASSERTION IS IN TWO STEPS, and the order matters (plan §1 W6.T4, A3).
@@ -107,15 +107,17 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
 #include <hven/detail/interior/utils/thread_pool.h>
+#include <hven/detail/model/make_nlp_program.h>
+#include <hven/detail/model/nlp_model.h>
+#include <hven/detail/model/non_linear_program.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
-#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
-#include <hven/model/make_nlp_program.h>
-#include <hven/model/nlp_model.h>
-#include <hven/model/nlp_triplet_model.h>
-#include <hven/model/non_linear_program.h>
+#include <hven/model/nlp.h>
 
 #include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
@@ -177,17 +179,18 @@ bool within_gate(double a, double b) {
 // than asserted afterwards.
 // ---------------------------------------------------------------------------
 
-void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading &out) {
+void push_shared_result_columns(const hven::SolveResult &r, CellReading &out) {
     out.exact.push_back({"status", static_cast<long long>(r.status)});
     out.exact.push_back({"iterations", static_cast<long long>(r.iterations)});
     out.exact.push_back({"x_size", static_cast<long long>(r.x.size())});
-    out.exact.push_back({"ce_size", static_cast<long long>(r.ce.size())});
-    out.exact.push_back({"ci_size", static_cast<long long>(r.ci.size())});
+    out.exact.push_back(
+        {"ce_size", static_cast<long long>(hven::detail::engine_rows(r).ce.size())});
+    out.exact.push_back(
+        {"ci_size", static_cast<long long>(hven::detail::engine_rows(r).ci.size())});
 
     out.measures.push_back({"f", r.f});
     out.measures.push_back({"stationarity", r.stationarity});
-    out.measures.push_back({"feasibility_e", r.feasibility_e});
-    out.measures.push_back({"feasibility_i", r.feasibility_i});
+    out.measures.push_back({"feasibility", r.feasibility});
     out.measures.push_back({"complementarity", r.complementarity});
     for (Eigen::Index i = 0; i < r.x.size(); ++i) {
         out.measures.push_back({"x[" + std::to_string(i) + "]", r.x[i]});
@@ -195,14 +198,16 @@ void push_shared_result_columns(const hven::solvers::SolveResult &r, CellReading
 }
 
 CellReading run_sqp_cell(int hs_number) {
-    const auto p = hven::solvers::test_support::make_hs(hs_number);
+    const auto p = hven::test_support::make_hs(hs_number);
 
-    hven::solvers::SqpOptions o;
-    o.common.threads = 1;      // THE PIN: one backend thread per instance.
-    o.common.print_level = 10; // Silent: a console table is process-wide output.
-    hven::solvers::SqpSolver driver(o);
+    hven::SqpOptions o;
+    o.common.threads = 1; // THE PIN: one backend thread per instance.
+    o.common.verbosity =
+        hven::Verbosity::kSilent; // Silent: a console table is process-wide output.
+    hven::SqpSolver driver(o);
 
-    const hven::solvers::SqpResult r = driver.solve(*p.model, p.model->start_point());
+    const hven::SqpResult r =
+        driver.solve(hven::detail::problem_ref(*p.model), p.model->start_point());
 
     CellReading out;
     out.cell = "sqp/hs" + std::to_string(hs_number);
@@ -227,8 +232,8 @@ CellReading run_sqp_cell(int hs_number) {
 // thread -- the first test needs it to be 1 (the pool is never reached) and the
 // second needs it to be >= 2 (the pool is reached from both threads at once), and
 // both read it from the same place.
-void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
-                             const hven::solvers::IpmResult &r, CellReading &out) {
+void push_ipm_result_columns(const hven::detail::NonLinearProgram &program,
+                             const hven::IpmResult &r, CellReading &out) {
     out.exact.push_back({"partitions", static_cast<long long>(program.num_partitions_)});
     out.exact.push_back({"phases", static_cast<long long>(r.phases.size())});
     out.exact.push_back(
@@ -238,29 +243,30 @@ void push_ipm_result_columns(const hven::solvers::NonLinearProgram &program,
     out.exact.push_back({"solve_count", static_cast<long long>(r.kkt_factor_counters.solve_count)});
     out.exact.push_back(
         {"analyze_count", static_cast<long long>(r.kkt_factor_counters.analyze_count)});
-    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.soc_steps_taken)});
+    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.second_order_corrections)});
     out.exact.push_back({"watchdog_activations", static_cast<long long>(r.watchdog_activations)});
     out.exact.push_back({"payload_ignored", static_cast<long long>(r.payload_ignored)});
 
-    out.measures.push_back({"kkt_inf", r.kkt_inf});
-    out.measures.push_back({"barr_inf", r.barr_inf});
-    out.measures.push_back({"econ_inf", r.econ_inf});
-    out.measures.push_back({"icon_inf", r.icon_inf});
+    out.measures.push_back({"kkt_inf", r.convergence.kkt});
+    out.measures.push_back({"barr_inf", r.convergence.barrier});
+    out.measures.push_back({"econ_inf", r.convergence.equality});
+    out.measures.push_back({"icon_inf", r.convergence.inequality});
 }
 
 CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
-    hven::solvers::IpmOptions o;
-    o.common.threads = 1;      // THE PIN.
-    o.common.print_level = 10; // Silent -- this engine's default is 0, i.e. loud.
-    hven::solvers::IpmSolver solver(o);
+    hven::IpmOptions o;
+    o.common.threads = 1; // THE PIN.
+    o.common.verbosity =
+        hven::Verbosity::kSilent; // Silent -- this engine's default is 0, i.e. loud.
+    hven::IpmSolver solver(o);
 
     // ONE PARTITION, the default: THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE
     // EVALUATION POOL. parallel_sequence runs inline whenever nparts <= 1, so
     // the process-global pool is never dispatched to by these cells (constructed
     // or not is a test-order fact; see the header).
     const auto program =
-        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+        hven::detail::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm/" + label;
@@ -455,7 +461,7 @@ void assert_readings_match(const std::vector<CellReading> &serial,
 void assert_cells_are_not_vacuous(const std::vector<CellReading> &serial) {
     for (const CellReading &s : serial) {
         ASSERT_EQ(s.exact[0].name, "status");
-        ASSERT_EQ(s.exact[0].value, static_cast<long long>(hven::solvers::SolveStatus::kOptimal))
+        ASSERT_EQ(s.exact[0].value, static_cast<long long>(hven::SolveStatus::kOptimal))
             << "PREMISE: cell " << s.cell << " must actually converge";
         ASSERT_EQ(s.exact[1].name, "iterations");
         ASSERT_GT(s.exact[1].value, 0) << "PREMISE: cell " << s.cell << " must actually iterate";
@@ -512,18 +518,21 @@ inline constexpr double kChainInf = std::numeric_limits<double>::infinity();
 inline constexpr double kChainPairSum = 2.5;
 inline constexpr double kChainBallCap = 4.0;
 
-class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
+class PartitionedChainProblem final : public hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {num_vars(), num_cons(), num_jac_nonzeros(), num_hess_nonzeros()};
+    }
+
   public:
     PartitionedChainProblem(int pairs, double target_shift)
         : pairs_(pairs), target_shift_(target_shift) {}
 
-    int num_vars() const override { return 2 * pairs_; }
-    int num_cons() const override { return 2 * pairs_; } // K equality + K ball rows
-    int num_jac_nonzeros() const override { return 4 * pairs_; }
-    int num_hess_nonzeros() const override { return 2 * pairs_; }
+    int num_vars() const { return 2 * pairs_; }
+    int num_cons() const { return 2 * pairs_; } // K equality + K ball rows
+    int num_jac_nonzeros() const { return 4 * pairs_; }
+    int num_hess_nonzeros() const { return 2 * pairs_; }
 
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         xl.setConstant(0.1);
         xu.setConstant(10.0);
         for (int k = 0; k < pairs_; ++k) {
@@ -534,24 +543,24 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
         }
     }
 
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+    double eval_f(hven::ConstVecRef x) const override {
+        double f = 0.0;
         double v = 0.0;
         for (int i = 0; i < 2 * pairs_; ++i) {
             const double d = x[i] - target(i);
             v += 0.5 * weight(i) * d * d;
         }
         f = v;
+        return f;
     }
 
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         for (int i = 0; i < 2 * pairs_; ++i) {
             g[i] = weight(i) * (x[i] - target(i));
         }
     }
 
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
         for (int k = 0; k < pairs_; ++k) {
             g[k] = x[2 * k] + x[2 * k + 1];
             g[pairs_ + k] = x[2 * k] * x[2 * k] + x[2 * k + 1] * x[2 * k + 1];
@@ -559,8 +568,7 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
     }
 
     // Slot order: the 2K equality entries first, then the 2K ball entries.
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int k = 0; k < pairs_; ++k) {
             r[2 * k] = k;
             c[2 * k] = 2 * k;
@@ -574,16 +582,14 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
     }
 
     // The Lagrangian Hessian is diagonal, so the lower triangle is the diagonal.
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         for (int i = 0; i < 2 * pairs_; ++i) {
             r[i] = i;
             c[i] = i;
         }
     }
 
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         for (int k = 0; k < pairs_; ++k) {
             v[2 * k] = 1.0;
             v[2 * k + 1] = 1.0;
@@ -592,9 +598,8 @@ class PartitionedChainProblem final : public hven::solvers::NlpTripletModel {
         }
     }
 
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
         (void)x; // every second derivative here is constant in x
         for (int i = 0; i < 2 * pairs_; ++i) {
             // Variable i belongs to pair i/2, whose ball row is pairs_ + i/2.
@@ -641,20 +646,21 @@ const std::vector<FanOutCell> &fanout_cells() {
 }
 
 CellReading run_fanout_cell(const FanOutCell &cell) {
-    hven::solvers::IpmOptions o;
-    o.common.threads = 1;      // THE PIN, unchanged: one backend thread per instance.
-    o.common.print_level = 10; // Silent: a console table is process-wide output.
-    hven::solvers::IpmSolver solver(o);
+    hven::IpmOptions o;
+    o.common.threads = 1; // THE PIN, unchanged: one backend thread per instance.
+    o.common.verbosity =
+        hven::Verbosity::kSilent; // Silent: a console table is process-wide output.
+    hven::IpmSolver solver(o);
 
     // THROUGH THE PUBLIC ENTRY, with a count above 1 that the layout ACTUALLY
     // ADOPTS -- which is what puts every eval_kkt / eval_aug / eval_soe of this
     // solve through parallel_sequence's pool arm rather than its inline one.
-    const auto program = hven::solvers::make_nlp_program(
+    const auto program = hven::detail::make_nlp_program(
         std::make_shared<PartitionedChainProblem>(cell.pairs, cell.target_shift),
         cell.requested_partitions);
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(2 * cell.pairs, 1.25);
-    const hven::solvers::IpmResult r = solver.solve(*program, x0);
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
 
     CellReading out;
     out.cell = "ipm-fanout/" + cell.label;
@@ -673,7 +679,7 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     // The process-global evaluation-pool width, read before anything runs. It
     // is never set by this test and must be unmoved by every solve in it --
     // see this file's header on why these cells stay clear of the pool.
-    const int pool_width_before = hven::utils::get_num_threads();
+    const int pool_width_before = hven::detail::get_num_threads();
 
     // ---------------------------------------------------------------------
     // (1) THE SERIAL RUN, FIRST, IN THIS PROCESS. Same cells, same order.
@@ -695,7 +701,7 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     std::vector<CellReading> concurrent(kCellCount);
     run_on_threads(kCellCount, [&concurrent](int i) { concurrent[i] = run_cell(i); });
 
-    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+    EXPECT_EQ(hven::detail::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
 
     // ---------------------------------------------------------------------
@@ -755,7 +761,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     // The process-global evaluation-pool width, read before anything runs. This
     // test NEVER sets it -- setting it would pin the process rather than
     // exercise the contract -- and it must be unmoved at the end.
-    const int pool_width_before = hven::utils::get_num_threads();
+    const int pool_width_before = hven::detail::get_num_threads();
     ::testing::Test::RecordProperty("evaluation_pool_width", pool_width_before);
     std::cout << "[ PREMISE  ] process-global evaluation-pool width: " << pool_width_before << "\n";
 
@@ -780,7 +786,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     {
         const std::thread::id caller = std::this_thread::get_id();
         std::vector<std::thread::id> ran_on(2);
-        hven::utils::parallel_sequence(2, [&ran_on](int i) {
+        hven::detail::parallel_sequence(2, [&ran_on](int i) {
             ran_on[static_cast<std::size_t>(i)] = std::this_thread::get_id();
         });
         ASSERT_NE(ran_on[0], caller)
@@ -838,7 +844,7 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
             run_fanout_cell(cells[static_cast<std::size_t>(i)]);
     });
 
-    EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
+    EXPECT_EQ(hven::detail::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
 
     // ---------------------------------------------------------------------

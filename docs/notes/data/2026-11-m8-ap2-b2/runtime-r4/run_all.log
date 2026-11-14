@@ -1,0 +1,24 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-02T00:42:10-05:00
+0ba5d82441c5ab044e0f67e46907e963e77b107b0a8552a1b253a5de9c225656  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armA/hven_sqp_corpus
+97222ee94cd3483a0961b52c8894d1f4bb543d69593e4f309228c99d76691a33  /home/ghecht/Projects/hven/.claude/worktrees/agent-aba3deeb97313f444/build-b2/armB-r4/hven_sqp_corpus
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=interior rc=0 2026-11-02T00:44:09-05:00
+ANALYSIS mode=interior rc=0
+STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 6 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=5.322200e+05 B=5.326550e+05 B/A=1.000817
+  all samples                      A=5.532530e+05 B=5.505410e+05 B/A=0.995098
+  excluded (wall-clock) samples    A=2.101800e+04 B=1.788600e+04 B/A=0.850985
+  raw perf-stat instructions:u     A=1.106543e+11 B=1.101128e+11 B/A=0.995107
+per-round filtered B/A (informational):
+  round 1: B/A=1.000780
+  round 2: B/A=1.000862
+  round 3: B/A=1.000817
+MODE interior FILTERED B/A = 1.000817 -> WITHIN [0.995, 1.005]
+LEG mode=ipm rc=0 2026-11-02T00:49:43-05:00
+ANALYSIS mode=ipm rc=4
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+VERDICT FAIL(mode=ipm leg_rc=0 analysis_rc=4)
+FOREGROUND_END 2026-11-02T00:49:44-05:00

@@ -11,7 +11,8 @@
 //
 // THE TOLERANCE (derived, not tuned). The two arms solve the same QP up to what the lifted
 // formulation's regularization and the engines' stopping tolerances perturb:
-//   * the walk regularizes each equality row with -mu I (QpOptions::dual_mu). For a lifted row
+//   * the walk regularizes each equality row with -mu I (QpOptions::dual_regularization). For a
+//   lifted row
 //     kappa u' - Up^T p = mu*lambda with stationarity lambda = -theta u this gives
 //     u = Up^T p / (1 + mu theta): the operative curvature on that mode is theta/(1 + mu theta),
 //     i.e. B is perturbed by Delta B = -mu theta^2 Up Up^T, ||Delta B||_2 <= mu theta_max^2;
@@ -46,7 +47,9 @@
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
 
-namespace hven::solvers {
+using namespace hven::detail;
+
+namespace hven {
 namespace {
 
 using detail::LbfgsDamped;
@@ -222,15 +225,15 @@ Out solve_mode(Mode m, const QpProblem &qp, double radius, bool known_convex,
                const Vec *start_x = nullptr, const QpSolution *seed = nullptr) {
     QpOptions o;
     o.hessian_known_convex = known_convex;
-    SolveOverrides ov;
-    ov.tr_radius = radius;
+    QpSolveOverrides ov;
+    ov.trust_region_radius = radius;
     Out out;
     switch (m) {
     case Mode::kWalkBorder:
     case Mode::kWalkRefactorize: {
-        o.ws_algebra = m == Mode::kWalkBorder ? WorkingSetLinearAlgebra::kSchurBorder
-                                              : WorkingSetLinearAlgebra::kRefactorize;
-        QpEngine eng(o);
+        o.working_set_algebra = m == Mode::kWalkBorder ? QpWorkingSetAlgebra::kSchurBorder
+                                                       : QpWorkingSetAlgebra::kRefactorize;
+        QpEngine eng(o, 0, hven::linear::DensePolicy::kNever);
         const QpSolution s = seed != nullptr ? eng.solve(qp, *seed, ov) : eng.solve(qp, ov);
         out.status = s.status;
         out.x = s.x;
@@ -263,7 +266,7 @@ Out solve_mode(Mode m, const QpProblem &qp, double radius, bool known_convex,
         break;
     }
     case Mode::kSsn: {
-        SsnEngine eng(o);
+        SsnEngine eng(o, 0, hven::linear::DensePolicy::kNever);
         SsnStart start;
         if (start_x != nullptr) {
             start.x = *start_x;
@@ -377,8 +380,8 @@ void compare(const std::string &tag, const QpProblem &qp, const Quasi &q, const 
              const QpOptions &opts, Mode mode) {
     ASSERT_EQ(static_cast<int>(pr.dense.status), static_cast<int>(QpStatus::kOptimal)) << tag;
     ASSERT_EQ(static_cast<int>(pr.lifted.status), static_cast<int>(pr.dense.status)) << tag;
-    const double mu = opts.dual_mu, delta = opts.primal_delta;
-    const double eps = mode == Mode::kIpm || mode == Mode::kSsn ? kEngineEps : opts.opt_tol;
+    const double mu = opts.dual_regularization, delta = opts.primal_regularization;
+    const double eps = mode == Mode::kIpm || mode == Mode::kSsn ? kEngineEps : opts.optimality_tol;
     const double pnorm = std::max(1.0, pr.dense.x.lpNorm<Eigen::Infinity>());
     const double mu_theta2 = mu * q.theta_max * q.theta_max;
     const double tol_p =
@@ -500,11 +503,12 @@ TEST(QpLiftOracle, TheToleranceDiscriminatesAWrongB) {
         ASSERT_EQ(static_cast<int>(lifted.status), static_cast<int>(QpStatus::kOptimal));
         ASSERT_EQ(static_cast<int>(wrong.status), static_cast<int>(QpStatus::kOptimal));
         const double pnorm = std::max(1.0, wrong.x.lpNorm<Eigen::Infinity>());
-        const double tol_p =
-            50.0 *
-            ((defaults.dual_mu * q.theta_max * q.theta_max + defaults.primal_delta) * pnorm +
-             defaults.opt_tol * (1.0 + q.lambda_max)) /
-            q.lambda_min;
+        const double tol_p = 50.0 *
+                             ((defaults.dual_regularization * q.theta_max * q.theta_max +
+                               defaults.primal_regularization) *
+                                  pnorm +
+                              defaults.optimality_tol * (1.0 + q.lambda_max)) /
+                             q.lambda_min;
         ++cells;
         outside += (L.unlift_primal(lifted.x) - wrong.x).lpNorm<Eigen::Infinity>() > tol_p ? 1 : 0;
     }
@@ -794,4 +798,4 @@ TEST(QpLiftOracle, AnEmptyLiftIsTheScalarHessian) {
     EXPECT_LE((a.x - b.x).lpNorm<Eigen::Infinity>(), 1e-9);
 }
 
-} // namespace hven::solvers
+} // namespace hven

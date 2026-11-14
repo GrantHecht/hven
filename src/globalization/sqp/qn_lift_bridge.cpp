@@ -13,7 +13,7 @@
 
 #include <hven/detail/globalization/sqp/qn_lift_bridge.h>
 
-namespace hven::solvers::detail {
+namespace hven::detail {
 
 namespace {
 
@@ -225,7 +225,7 @@ QpSolution unlift_walk(const MixedLift &L, QpSolution l) {
 } // namespace
 
 QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp,
-                               const SolveOverrides &o) {
+                               const QpSolveOverrides &o) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
     QpSolution out = unlift_walk(*L, engine.solve(lp, o));
@@ -234,7 +234,7 @@ QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp,
 }
 
 QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp, const QpSolution &seed,
-                               const SolveOverrides &o) {
+                               const QpSolveOverrides &o) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
     QpSolution out = unlift_walk(*L, engine.solve(lp, lift_walk_seed(*L, seed), o));
@@ -243,7 +243,7 @@ QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp, cons
 }
 
 QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp, const QpSolution &seed,
-                               const SolveOverrides &o,
+                               const QpSolveOverrides &o,
                                const std::shared_ptr<const HotState> &hot) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
@@ -253,7 +253,7 @@ QpSolution QnLiftBridge::solve(const QpEngine &engine, const QpProblem &qp, cons
 }
 
 bool QnLiftBridge::refine_on_face(const QpEngine &engine, const QpProblem &qp,
-                                  const QpSolution &face, const SolveOverrides &o,
+                                  const QpSolution &face, const QpSolveOverrides &o,
                                   QpSolution &out) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
@@ -269,7 +269,7 @@ bool QnLiftBridge::refine_on_face(const QpEngine &engine, const QpProblem &qp,
 }
 
 void QnLiftBridge::solve(SsnEngine &engine, const QpProblem &qp, const SsnStart &start,
-                         const SsnOptions &sopts, const SolveOverrides &o, SsnResult *out) {
+                         const SsnOptions &sopts, const QpSolveOverrides &o, SsnResult *out) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
     const MixedLiftData &d = qn_->mixed_lift();
@@ -322,7 +322,7 @@ bool QnLiftBridge::ipqp_seed_usable(const IpqpSeed &seed, const QpProblem &qp) c
 }
 
 IpqpResult QnLiftBridge::solve(IpqpEngine &engine, const QpProblem &qp, const IpqpSeed *seed,
-                               const IpqpOptions &iopts, const SolveOverrides &o) {
+                               const IpqpOptions &iopts, const QpSolveOverrides &o) {
     const MixedLift *L = nullptr;
     const QpProblem &lp = lifted(qp, &L);
     const MixedLiftData &d = qn_->mixed_lift();
@@ -390,4 +390,4 @@ IpqpResult QnLiftBridge::solve(IpqpEngine &engine, const QpProblem &qp, const Ip
     return res;
 }
 
-} // namespace hven::solvers::detail
+} // namespace hven::detail

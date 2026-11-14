@@ -26,10 +26,10 @@ namespace hl = hven::linear;
 
 hl::SymmetricFactor::Options to_native_options(const SeamOptions &o) {
     hl::SymmetricFactor::Options n;
-    n.kind = hl::FactorKind::kLDLT;
-    n.num_threads = o.num_threads;
-    n.pivot_perturb_exp = o.pivot_perturb_exp;
-    n.max_refinement_iters = o.max_refinement_iters;
+    n.decomposition = hl::Decomposition::kLdlt;
+    n.threads = o.num_threads;
+    n.pivot_perturbation_exponent = o.pivot_perturb_exp;
+    n.max_refinement_steps = o.max_refinement_iters;
     switch (o.ordering) {
     case SeamOptions::Ordering::kBackendDefault:
         n.ordering = hl::SymmetricFactor::Options::Ordering::kBackendDefault;
@@ -93,7 +93,7 @@ class NativeSeam final : public SeamUnderTest {
     // The mechanism this arm ACTUALLY pinned with, which is backend-split
     // even though the option that requests it is not.
     //
-    // On MKL, Options::num_threads is applied at call scope around every
+    // On MKL, Options::threads is applied at call scope around every
     // backend call and undone afterwards (src/linear/pardiso_session.cpp's
     // MklThreadScope) -- the per-instance mechanism the unified surface
     // specifies, never a process-global or environment setting.

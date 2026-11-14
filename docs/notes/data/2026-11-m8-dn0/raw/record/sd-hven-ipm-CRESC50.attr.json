@@ -1,0 +1,255 @@
+{
+ "samples": 3113,
+ "period": 1000003,
+ "instr_sampled_all": 3113009339,
+ "instr_sampled_solver": 3109009327,
+ "bucket_instr": {
+  "B_sym": 0,
+  "B_fac": 668002004,
+  "B_kkt": 29000087,
+  "B_eval": 553001659,
+  "B_setup": 1813005439,
+  "B_eng": 46000138,
+  "B_proc": 4000012
+ },
+ "share_of_solver": {
+  "B_sym": 0.0,
+  "B_fac": 0.21486008362817627,
+  "B_kkt": 0.009327758121582503,
+  "B_eval": 0.17787069797362495,
+  "B_setup": 0.5831457060147958,
+  "B_eng": 0.014795754261820521
+ },
+ "proc_share_of_all": 0.00128493414712496,
+ "rule_instr": 3100009300,
+ "fallback_instr": 11000033,
+ "fallback_by_bucket": {
+  "B_fac": 11000033
+ },
+ "unmatched_instr": 2000006,
+ "unmatched_share_of_solver": 0.000643293663557414,
+ "chains_reaching_main": 0.7667844522968198,
+ "init_instr": 1807005421,
+ "steady_state_instr": 1302003906,
+ "steady_state_share": {
+  "B_sym": 0.0,
+  "B_fac": 0.5130568356374808,
+  "B_kkt": 0.02227342549923195,
+  "B_eval": 0.42473118279569894,
+  "B_setup": 0.004608294930875576,
+  "B_eng": 0.03533026113671275
+ },
+ "fac_split": [
+  [
+   "hven::linear::detail::FactorSession::run_phase",
+   654001962
+  ],
+  [
+   "<no hven::linear frame>",
+   11000033
+  ],
+  [
+   "hven::linear::detail::FactorSession::factorize",
+   3000009
+  ]
+ ],
+ "mkl_serv_instr": 1811005433,
+ "kmp_instr": 620001860,
+ "top_unmatched_leaf": [
+  [
+   "__internal_syscall_cancel",
+   1000003
+  ],
+  [
+   "__sincos_fma",
+   1000003
+  ]
+ ],
+ "top_self_by_bucket": {
+  "B_sym": [],
+  "B_fac": [
+   [
+    "mkl_pds_lp64_blkl_ll_real.extracted",
+    161000483
+   ],
+   [
+    "mkl_pds_lp64_upd_real_block",
+    111000333
+   ],
+   [
+    "__kmpc_flush",
+    67000201
+   ],
+   [
+    "mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted",
+    54000162
+   ],
+   [
+    "mkl_pds_lp64_fct_real_block",
+    50000150
+   ],
+   [
+    "mkl_pds_lp64_dsytrs_bklfw_pardiso",
+    45000135
+   ],
+   [
+    "mkl_pds_lp64_ldindx_pardiso_mic",
+    27000081
+   ],
+   [
+    "mkl_pds_lp64_dsytf2_pardiso",
+    25000075
+   ]
+  ],
+  "B_kkt": [
+   [
+    "hven::detail::NlpConstraintPiece::scatter_jacobian",
+    16000048
+   ],
+   [
+    "hven::detail::NonLinearProgram::assemble_impl",
+    3000009
+   ],
+   [
+    "void hven::detail::parallel_blocks<hven::detail::NonLinearProgram::fill_solver_coeffs",
+    3000009
+   ],
+   [
+    "hven::detail::nlp_scatter_hessian_block",
+    3000009
+   ],
+   [
+    "memset@plt",
+    1000003
+   ],
+   [
+    "__memset_avx2_unaligned_erms",
+    1000003
+   ],
+   [
+    "hven::detail::augment_bound_complementarity",
+    1000003
+   ],
+   [
+    "hven::detail::NonLinearProgram::full_kkt_pass",
+    1000003
+   ]
+  ],
+  "B_eval": [
+   [
+    "__cutest_double_MOD_cutest_assemble_hessian",
+    195000585
+   ],
+   [
+    "cutest_ccfsg_threadsafe_",
+    109000327
+   ],
+   [
+    "__sincos_fma",
+    65000195
+   ],
+   [
+    "elfun_",
+    57000171
+   ],
+   [
+    "__cutest_double_MOD_cutest_form_gradients",
+    37000111
+   ],
+   [
+    "hven_bench::cutest::CutestModel::eval_jacobian",
+    23000069
+   ],
+   [
+    "range_",
+    10000030
+   ],
+   [
+    "cutest_csh_threadsafe_",
+    9000027
+   ]
+  ],
+  "B_setup": [
+   [
+    "difftime",
+    1144003432
+   ],
+   [
+    "mkl_serv_get_clocks_frequency",
+    506001518
+   ],
+   [
+    "difftime@plt",
+    88000264
+   ],
+   [
+    "__vdso_time",
+    65000195
+   ],
+   [
+    "time@plt",
+    4000012
+   ],
+   [
+    "next_format0",
+    1000003
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ],
+   [
+    "_gfortrani_next_record",
+    1000003
+   ]
+  ],
+  "B_eng": [
+   [
+    "__ieee754_log_fma",
+    10000030
+   ],
+   [
+    "hven::detail::IpmSolverImpl::alg_impl",
+    9000027
+   ],
+   [
+    "hven::detail::BacktrackingLineSearch::generic_line_search",
+    9000027
+   ],
+   [
+    "hven::detail::BacktrackingLineSearch::max_primal_dual_step",
+    3000009
+   ],
+   [
+    "hven::detail::IpmSolverImpl::dual_infeasibility_inf",
+    2000006
+   ],
+   [
+    "log@@GLIBC_2.29",
+    2000006
+   ],
+   [
+    "__internal_syscall_cancel",
+    1000003
+   ],
+   [
+    "hven::detail::ClassicAdaptiveGovernor::update_barrier",
+    1000003
+   ]
+  ],
+  "B_proc": [
+   [
+    "do_lookup_x",
+    2000006
+   ],
+   [
+    "_dl_relocate_object_no_relro",
+    1000003
+   ],
+   [
+    "_dl_lookup_symbol_x",
+    1000003
+   ]
+  ]
+ }
+}

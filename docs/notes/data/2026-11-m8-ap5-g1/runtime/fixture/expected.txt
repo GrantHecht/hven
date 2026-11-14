@@ -1,0 +1,9 @@
+# Hand-computed from fixture/perf-table-excerpt.txt (8 lines taken verbatim from
+# ../runtime-r2/interior/syms/interior-r1-A-all.txt lines 1,4,9,51,64,66,67,417).
+# sample counts: 78 + 17449 + 23 + 971 + 5 + 13480 + 831 + 6072 = 38909
+# excluded: __vdso_time 971 + difftime 13480 + difftime@plt 831 + mkl_serv_get_clocks_frequency 6072 = 21354
+#   (clock_gettime@@GLIBC_2.17, 5 samples, is NOT an exact-name match and is not excluded)
+# filtered = 38909 - 21354 = 17555
+total=38909
+excluded=21354
+filtered=17555

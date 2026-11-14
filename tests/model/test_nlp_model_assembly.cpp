@@ -33,10 +33,10 @@
 
 #include <gtest/gtest.h>
 
+#include "hven/detail/model/nlp_model.h"
+#include "hven/detail/model/nlp_model_assembly.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/nlp_assembly.h"
-#include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_assembly.h"
 #include "hven/model/structure_identity.h"
 
 #include "sqp/support/hs_problems.h"
@@ -46,36 +46,36 @@
 // by-value oracle of the in-place hot path; migration is a separate task
 HVEN_SUPPRESS_DEPRECATED_BEGIN
 
+using hven::AssemblyCapability;
+using hven::CandidateFirstOrder;
+using hven::CandidatePoint;
+using hven::CandidateValues;
+using hven::ClaimBlock;
+using hven::EvalRequest;
+using hven::has_capability;
+using hven::IdentityProbe;
 using hven::Index;
+using hven::KktLocationTable;
+using hven::KktScatterView;
+using hven::kRequestConstraintJacobiansOnly;
+using hven::kRequestConstraintKkt;
+using hven::kRequestConstraintResidualsAndJacobian;
+using hven::kRequestFirstOrderKkt;
+using hven::kRequestFirstOrderRhs;
+using hven::kRequestFullKkt;
+using hven::kRequestGradientAndJacobians;
+using hven::kRequestLagrangianHessian;
+using hven::kRequestObjectiveAndConstraints;
+using hven::kRequestObjectiveGradientAndConstraints;
+using hven::kRequestObjectiveOnly;
+using hven::RhsArenaView;
+using hven::RhsLocationTable;
+using hven::RhsScatterView;
 using hven::SpMatRM;
+using hven::StructureEpoch;
 using hven::Vec;
-using hven::solvers::AssemblyCapability;
-using hven::solvers::CandidateFirstOrder;
-using hven::solvers::CandidatePoint;
-using hven::solvers::CandidateValues;
-using hven::solvers::ClaimBlock;
-using hven::solvers::EvalRequest;
-using hven::solvers::has_capability;
-using hven::solvers::IdentityProbe;
-using hven::solvers::KktLocationTable;
-using hven::solvers::KktScatterView;
-using hven::solvers::kRequestConstraintJacobiansOnly;
-using hven::solvers::kRequestConstraintKkt;
-using hven::solvers::kRequestConstraintResidualsAndJacobian;
-using hven::solvers::kRequestFirstOrderKkt;
-using hven::solvers::kRequestFirstOrderRhs;
-using hven::solvers::kRequestFullKkt;
-using hven::solvers::kRequestGradientAndJacobians;
-using hven::solvers::kRequestLagrangianHessian;
-using hven::solvers::kRequestObjectiveAndConstraints;
-using hven::solvers::kRequestObjectiveGradientAndConstraints;
-using hven::solvers::kRequestObjectiveOnly;
-using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAssembly;
-using hven::solvers::RhsArenaView;
-using hven::solvers::RhsLocationTable;
-using hven::solvers::RhsScatterView;
-using hven::solvers::StructureEpoch;
+using hven::detail::NlpModel;
+using hven::detail::NlpModelAssembly;
 
 namespace {
 
@@ -175,20 +175,19 @@ class BridgeCountingModel : public NlpModel {
         // inequality's (0, 0) contribution folded onto the same slot. The
         // equality is linear and contributes nothing but is not a slot of its
         // own either.
-        return hven::solvers::test_support::detail::make_upper(
+        return hven::test_support::detail::make_upper(
             2,
             {{0, 0, 2.0 * obj_scale + 2.0 * li}, {0, 1, 1.0 * obj_scale}, {1, 1, 4.0 * obj_scale}});
     }
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
         counts_.jac_e_++;
-        return hven::solvers::test_support::detail::make_jac(1, 2, {{0, 0, 1.0}, {0, 1, 1.0}});
+        return hven::test_support::detail::make_jac(1, 2, {{0, 0, 1.0}, {0, 1, 1.0}});
     }
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
         counts_.jac_i_++;
-        return hven::solvers::test_support::detail::make_jac(1, 2,
-                                                             {{0, 0, 2.0 * x(0)}, {0, 1, 1.0}});
+        return hven::test_support::detail::make_jac(1, 2, {{0, 0, 2.0 * x(0)}, {0, 1, 1.0}});
     }
 
     const Vec &lower() const override { return lower_; }
@@ -252,7 +251,7 @@ class BridgeConstantEqualityModel : public BridgeCountingModel {
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
         counts_.jac_e_++;
-        return hven::solvers::test_support::detail::no_jac(1, 2);
+        return hven::test_support::detail::no_jac(1, 2);
     }
 
     static Vec constant_equality() {
@@ -270,7 +269,7 @@ class BridgePatternDriftModel : public BridgeCountingModel {
   public:
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
         if (x(0) == 0.0) {
-            return hven::solvers::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
+            return hven::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
         }
         return BridgeCountingModel::eval_jac_i(x);
     }
@@ -285,7 +284,7 @@ class BridgePatternGrowthModel : public BridgeCountingModel {
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const override {
         if (x(0) == 0.5) { // the start point: one entry claimed
             counts_.jac_i_++;
-            return hven::solvers::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
+            return hven::test_support::detail::make_jac(1, 2, {{0, 1, 1.0}});
         }
         return BridgeCountingModel::eval_jac_i(x);
     }
@@ -464,23 +463,23 @@ TEST(NlpModelAggregateDeclaration, CarriesTheModelsDimensionsAndOnePartition) {
     NlpModelAssembly aggregate(counting_model());
     const auto &declared = aggregate.declaration();
 
-    EXPECT_EQ(declared.primal_vars_, 2);
-    EXPECT_EQ(declared.equality_rows_, 1);
-    EXPECT_EQ(declared.inequality_rows_, 1);
-    EXPECT_EQ(declared.partition_count_, 1);
+    EXPECT_EQ(declared.primal_vars, 2);
+    EXPECT_EQ(declared.equality_rows, 1);
+    EXPECT_EQ(declared.inequality_rows, 1);
+    EXPECT_EQ(declared.partition_count, 1);
 }
 
 TEST(NlpModelAggregateDeclaration, RecordsOneBoundRecordPerVariableVerbatim) {
     NlpModelAssembly aggregate(counting_model());
-    const auto &records = aggregate.declaration().variable_bounds_;
+    const auto &records = aggregate.declaration().variable_bounds;
 
     ASSERT_EQ(records.size(), 2u);
-    EXPECT_EQ(records[0].index_, 0);
-    EXPECT_DOUBLE_EQ(records[0].lower_, 0.0);
-    EXPECT_DOUBLE_EQ(records[0].upper_, 10.0);
-    EXPECT_EQ(records[1].index_, 1);
-    EXPECT_DOUBLE_EQ(records[1].lower_, -1.0);
-    EXPECT_DOUBLE_EQ(records[1].upper_, 10.0);
+    EXPECT_EQ(records[0].index, 0);
+    EXPECT_DOUBLE_EQ(records[0].lower, 0.0);
+    EXPECT_DOUBLE_EQ(records[0].upper, 10.0);
+    EXPECT_EQ(records[1].index, 1);
+    EXPECT_DOUBLE_EQ(records[1].lower, -1.0);
+    EXPECT_DOUBLE_EQ(records[1].upper, 10.0);
 }
 
 TEST(NlpModelAggregateDeclaration, CarriesNoEnginePieces) {
@@ -488,9 +487,9 @@ TEST(NlpModelAggregateDeclaration, CarriesNoEnginePieces) {
     // bridge is not a collection of them, and the declaration says so rather
     // than inventing a piece to fill the list with.
     NlpModelAssembly aggregate(counting_model());
-    EXPECT_TRUE(aggregate.declaration().objectives_.empty());
-    EXPECT_TRUE(aggregate.declaration().equality_constraints_.empty());
-    EXPECT_TRUE(aggregate.declaration().inequality_constraints_.empty());
+    EXPECT_TRUE(aggregate.declaration().objectives.empty());
+    EXPECT_TRUE(aggregate.declaration().equality_constraints.empty());
+    EXPECT_TRUE(aggregate.declaration().inequality_constraints.empty());
 }
 
 TEST(NlpModelAggregateDeclaration, PassesTheContractsOwnValidation) {
@@ -498,8 +497,8 @@ TEST(NlpModelAggregateDeclaration, PassesTheContractsOwnValidation) {
     // boundary is universal: the piece-sum conjunct is vacuous with empty piece
     // lists, and every other check applies to this declaration as to any other.
     NlpModelAssembly aggregate(counting_model());
-    EXPECT_GT(aggregate.declaration().equality_rows_, 0);
-    EXPECT_GT(aggregate.declaration().inequality_rows_, 0);
+    EXPECT_GT(aggregate.declaration().equality_rows, 0);
+    EXPECT_GT(aggregate.declaration().inequality_rows, 0);
     EXPECT_NO_THROW(aggregate.declaration().validate());
 }
 
@@ -573,11 +572,11 @@ TEST(NlpModelAggregateKey, IsTheThreeConjunctsAtOnePartition) {
     NlpModelAssembly aggregate(counting_model());
     const auto key = aggregate.model_structure_key();
 
-    EXPECT_EQ(key.partition_count_, 1);
-    EXPECT_EQ(key.claim_digest_, hven::solvers::claim_stream_digest(aggregate.declaration(),
-                                                                    aggregate.kkt_claim_rows(),
-                                                                    aggregate.kkt_claim_cols()));
-    EXPECT_EQ(key.bound_digest_, hven::solvers::materialized_bound_digest(aggregate.declaration()));
+    EXPECT_EQ(key.partition_count, 1);
+    EXPECT_EQ(key.claim_digest,
+              hven::claim_stream_digest(aggregate.declaration(), aggregate.kkt_claim_rows(),
+                                        aggregate.kkt_claim_cols()));
+    EXPECT_EQ(key.bound_digest, hven::materialized_bound_digest(aggregate.declaration()));
 }
 
 TEST(NlpModelAggregateKey, DiffersFromAModelWithDifferentBoundStructure) {
@@ -594,10 +593,10 @@ TEST(NlpModelAggregateKey, DiffersFromAModelWithDifferentBoundStructure) {
     NlpModelAssembly bounded(counting_model());
     NlpModelAssembly unbounded(std::make_shared<FreeBoundsModel>());
 
-    EXPECT_EQ(bounded.model_structure_key().claim_digest_,
-              unbounded.model_structure_key().claim_digest_);
-    EXPECT_NE(bounded.model_structure_key().bound_digest_,
-              unbounded.model_structure_key().bound_digest_);
+    EXPECT_EQ(bounded.model_structure_key().claim_digest,
+              unbounded.model_structure_key().claim_digest);
+    EXPECT_NE(bounded.model_structure_key().bound_digest,
+              unbounded.model_structure_key().bound_digest);
     EXPECT_FALSE(bounded.model_structure_key() == unbounded.model_structure_key());
 }
 
@@ -661,8 +660,8 @@ TEST(NlpModelAggregatePartitions, CapsEveryPositiveRequestToOne) {
     EXPECT_EQ(aggregate.negotiate_partition_count(1), 1);
     EXPECT_EQ(aggregate.negotiate_partition_count(2), 1);
     EXPECT_EQ(aggregate.negotiate_partition_count(64), 1);
-    EXPECT_EQ(aggregate.model_structure_key().partition_count_, 1);
-    EXPECT_EQ(aggregate.declaration().partition_count_, 1);
+    EXPECT_EQ(aggregate.model_structure_key().partition_count, 1);
+    EXPECT_EQ(aggregate.declaration().partition_count, 1);
 }
 
 TEST(NlpModelAggregateThreads, ReportsOneAndRefusesANonPositiveRequest) {
@@ -717,7 +716,7 @@ TEST(NlpModelAggregateValuesPath, TheProbeIsTheValuesPathPlusAHash) {
     BridgeEvalCounts expected;
     expected.values_ = 1;
     EXPECT_EQ(model->counts(), expected);
-    EXPECT_EQ(probe.epoch_, aggregate.structure_epoch());
+    EXPECT_EQ(probe.epoch, aggregate.structure_epoch());
     EXPECT_EQ(probe, aggregate.probe_identity(point.x_));
 }
 
@@ -946,9 +945,9 @@ TEST(NlpModelAggregateEvaluatorSets, AConstantConstraintBlockStillReachesItsJaco
     // whether the callback runs, and it must: the request named a Jacobian.
     auto model = std::make_shared<BridgeConstantEqualityModel>();
     NlpModelAssembly aggregate(model);
-    ASSERT_EQ(aggregate.equality_jacobian_claims().count_, 0)
+    ASSERT_EQ(aggregate.equality_jacobian_claims().count, 0)
         << "the fixture must claim nothing for its constant block";
-    ASSERT_EQ(aggregate.declaration().equality_rows_, 1);
+    ASSERT_EQ(aggregate.declaration().equality_rows, 1);
 
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
@@ -1102,7 +1101,7 @@ void expect_full_kkt_matches_hand_composition(std::shared_ptr<NlpModel> model, c
 
 TEST(NlpModelAggregateEquivalence, FullKktOnAModelWithBothConstraintKinds) {
     // HS14: two variables, one equality, one inequality, no finite bounds.
-    auto model = std::make_shared<hven::solvers::test_support::Hs14Model>();
+    auto model = std::make_shared<hven::test_support::Hs14Model>();
     const Vec x = (Vec(2) << 1.25, 0.75).finished();
     expect_full_kkt_matches_hand_composition(model, x, (Vec(1) << 0.5).finished(),
                                              (Vec(1) << 1.25).finished(), 1.0);
@@ -1111,7 +1110,7 @@ TEST(NlpModelAggregateEquivalence, FullKktOnAModelWithBothConstraintKinds) {
 TEST(NlpModelAggregateEquivalence, FullKktOnAnInequalityOnlyModelAtANonUnitScale) {
     // HS76: four variables, three inequality rows, no equalities -- the
     // zero-declared-rows case on the equality side.
-    auto model = std::make_shared<hven::solvers::test_support::Hs76Model>();
+    auto model = std::make_shared<hven::test_support::Hs76Model>();
     const Vec x = (Vec(4) << 0.3, 0.2, 0.1, 0.4).finished();
     expect_full_kkt_matches_hand_composition(model, x, Vec(0),
                                              (Vec(3) << 0.5, 0.25, 0.75).finished(), 2.0);
@@ -1119,13 +1118,13 @@ TEST(NlpModelAggregateEquivalence, FullKktOnAnInequalityOnlyModelAtANonUnitScale
 
 TEST(NlpModelAggregateEquivalence, FullKktOnAnEqualityOnlyModel) {
     // HS6: two variables, one equality row, no inequalities.
-    auto model = std::make_shared<hven::solvers::test_support::Hs6Model>();
+    auto model = std::make_shared<hven::test_support::Hs6Model>();
     const Vec x = (Vec(2) << 0.6, 0.4).finished();
     expect_full_kkt_matches_hand_composition(model, x, (Vec(1) << 1.5).finished(), Vec(0), 1.0);
 }
 
 TEST(NlpModelAggregateEquivalence, ConstraintKktAssemblesTheAdjointHessianAlone) {
-    auto model = std::make_shared<hven::solvers::test_support::Hs14Model>();
+    auto model = std::make_shared<hven::test_support::Hs14Model>();
     const Vec x = (Vec(2) << 1.25, 0.75).finished();
     const Vec le = (Vec(1) << 0.5).finished();
     const Vec li = (Vec(1) << 1.25).finished();
@@ -1155,7 +1154,7 @@ TEST(NlpModelAggregateEquivalence, ConstraintResidualsAndJacobianWritesNoHessian
                        destinations.kkt_view(), destinations.rhs_view());
 
     const ClaimBlock hessian = aggregate.hessian_claims();
-    for (int slot = hessian.start_; slot < hessian.start_ + hessian.count_; ++slot) {
+    for (int slot = hessian.start; slot < hessian.start + hessian.count; ++slot) {
         EXPECT_DOUBLE_EQ(
             destinations.kkt_values_[static_cast<std::size_t>(destinations.kkt_location(slot))],
             0.0);
@@ -1314,7 +1313,7 @@ TEST(NlpModelAggregateBoundary, RefusesAGradientArenaSizedOtherThanTheLaidWidth)
     const BridgePoint point;
 
     RhsScatterView rhs = destinations.rhs_view();
-    rhs.objective_gradient_.size_ = 1; // present, but one row short of the laid width
+    rhs.objective_gradient.size = 1; // present, but one row short of the laid width
     EXPECT_THROW(aggregate.assemble(point.values_only(), kRequestObjectiveGradientAndConstraints,
                                     destinations.kkt_view(), rhs),
                  std::invalid_argument);
@@ -1366,7 +1365,7 @@ class BridgeSameCountDriftModel : public BridgeCountingModel {
 
     Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
         counts_.jac_i_++;
-        return hven::solvers::test_support::detail::make_jac(1, 2, {{0, drifted_ ? 1 : 0, 3.0}});
+        return hven::test_support::detail::make_jac(1, 2, {{0, drifted_ ? 1 : 0, 3.0}});
     }
 
   private:
@@ -1483,19 +1482,19 @@ TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparseBlockIsNotTheShapeItDecl
     class WideHessianModel : public BridgeCountingModel {
       public:
         SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
-            return hven::solvers::test_support::detail::make_upper(3, {{0, 0, 1.0}});
+            return hven::test_support::detail::make_upper(3, {{0, 0, 1.0}});
         }
     };
     class TallEqualityJacobianModel : public BridgeCountingModel {
       public:
         Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
-            return hven::solvers::test_support::detail::make_jac(4, 2, {{0, 0, 1.0}});
+            return hven::test_support::detail::make_jac(4, 2, {{0, 0, 1.0}});
         }
     };
     class NarrowInequalityJacobianModel : public BridgeCountingModel {
       public:
         Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
-            return hven::solvers::test_support::detail::make_jac(1, 5, {{0, 0, 1.0}});
+            return hven::test_support::detail::make_jac(1, 5, {{0, 0, 1.0}});
         }
     };
 
@@ -1527,7 +1526,7 @@ TEST(NlpModelAggregateBoundary, RefusesADimensionThatChangesAfterTheClaimPass) {
             if (x(0) == 0.5) {
                 return BridgeCountingModel::eval_jac_i(x);
             }
-            return hven::solvers::test_support::detail::make_jac(1, 7, {{0, 0, 1.0}, {0, 1, 1.0}});
+            return hven::test_support::detail::make_jac(1, 7, {{0, 0, 1.0}, {0, 1, 1.0}});
         }
     };
 
@@ -1553,7 +1552,7 @@ TEST(NlpModelAggregateBoundary, RefusesASparsityPatternThatGrowsAfterTheClaimPas
     // slot to land in and the count check says so.
     auto model = std::make_shared<BridgePatternGrowthModel>();
     NlpModelAssembly aggregate(model);
-    ASSERT_EQ(aggregate.inequality_jacobian_claims().count_, 1)
+    ASSERT_EQ(aggregate.inequality_jacobian_claims().count, 1)
         << "the fixture must claim one slot at the start point";
 
     BridgeDestinations destinations(aggregate);
@@ -1577,8 +1576,8 @@ TEST(NlpModelAggregateBoundary, RefusesAHessianEntryBelowTheDiagonal) {
             // (1, 0) is below the diagonal, which nlp_model.h's upper-triangle
             // return convention does not admit. The claims record the triangle
             // verbatim, so this is caught at claim time rather than trusted.
-            return hven::solvers::test_support::detail::make_upper(
-                2, {{0, 0, 2.0}, {1, 0, 1.0}, {1, 1, 4.0}});
+            return hven::test_support::detail::make_upper(2,
+                                                          {{0, 0, 2.0}, {1, 0, 1.0}, {1, 1, 4.0}});
         }
     };
 

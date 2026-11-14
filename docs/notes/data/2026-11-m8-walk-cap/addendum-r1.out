@@ -1,0 +1,85 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T08:23:28-05:00
+[142/145] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[143/145] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[144/145] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-14T08:25:25-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T08:25:25-05:00
+[152/155] Linking CXX executable examples/hven_example_08_results_trace_options
+[153/155] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[154/155] Linking CXX executable tests/sqp/hven_sqp_tests
+rc=0
+FOREGROUND_END 2026-11-14T08:26:54-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T08:26:54-05:00
+
+The following tests did not run:
+	792 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2336 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2337 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T08:28:06-05:00
+F1_REL_RC=0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T08:28:06-05:00
+	594 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	595 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	792 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2336 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2337 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-14T08:34:50-05:00
+F1_DBG_RC=0
+1649309a14af97ce95d714b6414470f6979bf1151d69ce8737f9117d146318cb  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin-r1/hven_sqp_corpus
+run walk rc=0
+compare rc=0
+=== addendum-r1-vs-rebase-walk === cells compared: 27  columns compared: 75  differences: 0
+run ssn rc=0
+compare rc=0
+=== addendum-r1-vs-rebase-ssn === cells compared: 27  columns compared: 75  differences: 0
+run ipm rc=0
+compare rc=0
+=== addendum-r1-vs-rebase-ipm === cells compared: 27  columns compared: 75  differences: 0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T08:40:24-05:00
+ cmake/hven_pin.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+f94df51 EVIDENCE-ONLY (local clone, never pushed): pin hven 2c50d71ae (m8-walk-cap) (M8 walk cap TRAIN identity leg)
+HVEN_PIN_SHA 2c50d71ae58140f03e580e232466c5e1e3e1100b
+59874093a3ebbfdab300cf8bf079291f210372870e93c0b575314aacd1d5925b  /home/ghecht/Projects/hven/.claude/worktrees/agent-a7a2ce81cf8988de5/build-wc/bin-r1/hven_bench_cell
+ab222b98076c4e2aa6ddf28560139532723a3847c9cf942659eb3843a6a328a5  /home/ghecht/Projects/hven-bench-dn1/.hven/install-2c50d71ae581/lib64/libhven.a
+1b03c78 EVIDENCE-ONLY (local clone, never pushed): pin hven b9da28661 (M8 DN-1b code head, branch m8-dn1b) + one side column (hven docs/notes/data/2026-11-m8-dn1b-guard/sl/hb_patch_c.py)
+FOREGROUND_END 2026-11-14T08:43:55-05:00
+CHAIN_SETUP_DONE
+LANE 59874093a3ebbfdab300cf8bf079291f210372870e93c0b575314aacd1d5925b
+PGREP_EMPTY
+START 2026-11-14T08:43:55-05:00
+co-run done 2026-11-14T08:45:53-05:00
+MOVER NEUTRAL  sd-hven-sqp-ALLINITC.K
+MOVER NEUTRAL  sd-hven-sqp-HS64.D
+MOVER NEUTRAL  sd-hven-sqp-HS64.K
+MOVER NEUTRAL  sd-hven-sqp-HS83.D
+MOVER NEUTRAL  sd-hven-sqp-HS83.K
+MOVER NEUTRAL  sd-hven-sqp-HS88.D
+MOVER NEUTRAL  sd-hven-sqp-HS88.K
+MOVER NEUTRAL  sd-hven-sqp-HS89.D
+MOVER NEUTRAL  sd-hven-sqp-HS89.K
+MOVER NEUTRAL  sd-hven-sqp-HS90.D
+MOVER NEUTRAL  sd-hven-sqp-HS90.K
+MOVER NEUTRAL  sd-hven-sqp-HS91.D
+MOVER NEUTRAL  sd-hven-sqp-HS91.K
+MOVER NEUTRAL  sd-hven-sqp-HS92.D
+MOVER NEUTRAL  sd-hven-sqp-HS92.K
+MOVER NEUTRAL  sd-hven-sqp-LAKES.D
+MOVER NEUTRAL  sd-hven-sqp-LAKES.K
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.D
+MOVER NEUTRAL  sd-hven-sqp-LEWISPOL.K
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.D
+MOVER NEUTRAL  sd-hven-sqp-SPANHYD.K
+SUMMARY rows 476; movers vs DN-3 r5 21 (better 0, worse 0, neutral 21); missing/capped 0
+I4_PASS
+train_check rc=0
+END 2026-11-14T08:45:53-05:00
+FULL_DONE rc=0

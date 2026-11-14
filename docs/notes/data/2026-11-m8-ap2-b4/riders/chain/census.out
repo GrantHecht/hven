@@ -1,0 +1,11 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-03T05:46:12-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/build-b4/armBr/hven_sqp_corpus sha256 ed95c9a9121e6e4f949be59bf3b11939b8a5f91a62415cb782ee2b44eb3081b9
+census rc=0
+merging 57 row files
+merge+score exit: 0
+compare exit: 0
+57 baseline cells, 57 fresh cells, 0 mismatches
+serial-confirm list: 0 cell(s) -> /home/ghecht/Projects/hven/.claude/worktrees/agent-ac366926f941a970a/build-b4/census-run/serial_confirm_list.txt
+=== census done (merge_rc=0 compare_rc=0 rows=57/57) ===
+FOREGROUND_END 2026-11-03T11:50:34-05:00

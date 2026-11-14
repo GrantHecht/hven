@@ -30,9 +30,9 @@
 
 namespace {
 
-using hven::solvers::ClassicMeritAcceptance;
-using hven::solvers::kKappaResto;
-using hven::solvers::ProgressMeasures;
+using hven::detail::ClassicMeritAcceptance;
+using hven::detail::kKappaResto;
+using hven::detail::ProgressMeasures;
 using TychoTest::InertSolverContext;
 using TychoTest::pm;
 
@@ -43,7 +43,7 @@ using TychoTest::pm;
 //   • θ_trial = 0.5 (below): ≤ 0.9 ⇒ EXIT.
 TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1.0e-6;
+    inert.opts_.common.feasibility_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0);
@@ -61,7 +61,7 @@ TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
 //   • θ_trial = 2e-6 > 1e-6 ⇒ NO (above the tolerance floor).
 TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1.0e-6;
+    inert.opts_.common.feasibility_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);
@@ -75,7 +75,7 @@ TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
 // 2e-6 ≤ 1e-5 ⇒ EXIT.
 TEST(ClassicMeritRestoration, FloorTracksSettingsEconTol) {
     InertSolverContext inert;
-    inert.opts_.econ_tol = 1.0e-5;
+    inert.opts_.common.feasibility_tol = 1.0e-5;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);

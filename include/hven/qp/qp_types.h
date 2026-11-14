@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <type_traits>
 
 #include <Eigen/Dense>
@@ -14,9 +15,9 @@
 #include "hven/core/solver_status.h"
 #include "hven/core/types.h"
 
-namespace hven::solvers {
+namespace hven {
 
-// This header defines no type alias: code in hven::solvers that says `Index`
+// This header defines no type alias: code in hven that says `Index`
 // resolves to hven::Index by ordinary enclosing-namespace lookup -- same
 // spelling at every call site, one type, one vocabulary. The identity pin
 // below is the compile-time proof that this is sound on every supported
@@ -29,7 +30,7 @@ static_assert(std::is_same_v<Eigen::Index, hven::Index>,
               "hven::Index must BE Eigen::Index: the SQP layer spells its index type "
               "`Index` and relies on that resolving to ONE type on every target. On Apple "
               "arm64 std::int64_t (long long) and std::ptrdiff_t (long) are distinct types "
-              "-- measured, CI run 31902660573 -- which is why this is pinned rather than "
+              "-- which is why this is pinned rather than "
               "assumed (see hven/core/types.h).");
 
 // Guards the backend handoff: the sparse matrices this layer builds and hands
@@ -62,28 +63,26 @@ enum class BoundState {
 /// modes to return the same POINT (a real fixture walked into this). Where H
 /// is convex but NOT strictly convex the optimal set is a FACE, and a bordered
 /// full-variable K0 versus a bound-eliminated K legitimately return different,
-/// equally optimal points of it — up to the primal_delta the engine adds,
+/// equally optimal points of it — up to the primal_regularization the engine adds,
 /// which makes the solved system formally strictly convex and the selected
 /// point undetermined at O(delta) — after which the driver follows different
 /// trajectories (visible as a status difference only under a too-small
 /// budget). Read the equivalence claim as "the same optimal VALUE, and the
 /// same point wherever that point is unique". Every cross-mode battery solves
 /// a strictly convex H and is unaffected. The claim is scoped to those
-/// batteries: outside them, at `dual_mu` above the driver's own schedule, the
-/// two modes can DISAGREE on a verdict (M6 W2 T6b pins one such cell as a
-/// pre-existing walk-trajectory residue). The accuracy half of that caveat is
-/// RETIRED as of M6 W2 T7 (fix round 1): at a would-be-kInfeasible dead end
+/// batteries: outside them, at a `dual_regularization` above the driver's own schedule, the
+/// two modes can DISAGREE on a verdict (a dedicated test pins one such cell as a
+/// walk-trajectory residue). At a would-be-kInfeasible dead end
 /// reached by EITHER PATH the closed face is refined, against the same row-unit
 /// target and under the same closed-or-nothing rule, so neither mode can
 /// out-refine the other there — including the border-mode iterations a fallback
-/// or the latch serves from the elimination path, which the first cut of that
-/// change left refining neither way. WHAT IS NOT SYMMETRIC IS THE COST: the
+/// or the latch serves from the elimination path. WHAT IS NOT SYMMETRIC IS THE COST: the
 /// border twin re-forms its system through the Schur complement it already
 /// holds, while the eliminated twin reuses the incumbent factorization only
 /// while the working set has not moved since the candidate solve, and buys a
 /// factorization plus a symbolic analysis when it has (qp_engine.h section 5,
 /// and both refine_*_for_verdict declarations).
-enum class WorkingSetLinearAlgebra {
+enum class QpWorkingSetAlgebra {
     kRefactorize,
     kSchurBorder,
 };
@@ -96,61 +95,48 @@ struct QpOptions {
     /// ("no regularization on this block"), not a sentinel.
     ///
     /// Not free: its price is a footprint on what the solve can claim
-    /// (~|g|/primal_delta bounds how far a free variable can run in ONE STEP
+    /// (~|g|/primal_regularization bounds how far a free variable can run in ONE STEP
     /// before it reads as an unbounded artifact — see qp_engine.h's
     /// unbounded_artifact_threshold, written in terms of this field).
     ///
-    /// SINCE M7 W2 E4 THE TERM IS CENTRED AT THE ITERATE, not at the origin:
-    /// the EQP minimises (primal_delta/2)||x_F - x_k,F||^2 rather than
-    /// (primal_delta/2)||x_F||^2 (eqp_solve.h states the system and why). So the
-    /// bound above is on the STEP, and the engine's runaway guard is asked on the
-    /// ITERATE and on the ridge scale -- NOT on the step, where a guard was built,
-    /// measured and removed -- on every moving pass (qp_engine.h section 5). What
-    /// the centring at 0 bought, a bound on the absolute size of a free variable
-    /// on a flat face, it charged for by making the ordinary step ASCEND the
-    /// objective there on every pass of a measured cycle, which is why the
-    /// centring moved; what ||p|| used to say is now said by the walk's own
-    /// KKT-point test and that iterate-currency guard.
+    /// THE TERM IS CENTRED AT THE ITERATE, not at the origin: the EQP
+    /// minimises (primal_regularization/2)||x_F - x_k,F||^2 rather than
+    /// (primal_regularization/2)||x_F||^2 (eqp_solve.h states the system and
+    /// why). So the bound above is on the STEP, and the engine's runaway guard
+    /// is asked on the ITERATE and on the ridge scale, not on the step, on every
+    /// moving pass (qp_engine.h section 5). Centring at 0 would bound the
+    /// absolute size of a free variable on a flat face, but would make the
+    /// ordinary step ASCEND the objective there.
     ///
     /// Validated at solve start (QpEngine::solve throws std::invalid_argument
     /// otherwise): a NaN burned the entire minor budget returning a NaN
     /// iterate; a negative produced spurious failures up to a confident
     /// kInfeasible on a feasible subproblem.
-    double primal_delta = 1e-8;
+    double primal_regularization = 1e-8;
 
     /// Dual regularization magnitude, baked onto the regularized (2,2) block so
     /// an over-determined working set stays solvable. Same domain, same
-    /// validation, same 0-is-real caveat as primal_delta; its footprint is
-    /// dual_mu*|lambda| on a row residual (qp_engine.h's row_tolerance).
-    double dual_mu = 1e-8;
-    double feas_tol = 1e-9;
-    double opt_tol = 1e-9;
+    /// validation, same 0-is-real caveat as primal_regularization; its footprint is
+    /// dual_regularization*|lambda| on a row residual (qp_engine.h's row_tolerance).
+    double dual_regularization = 1e-8;
+    double feasibility_tol = 1e-9;
+    double optimality_tol = 1e-9;
 
-    /// Minor-iteration cap for ONE QP solve. Two meanings, by sign:
+    /// Minor-iteration cap for ONE QP solve. Empty (the default) derives the cap
+    /// from the subproblem's own size,
+    ///     max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)),
+    /// see qp_engine.h's detail::effective_qp_max_iter; an engaged value is an
+    /// explicit, absolute cap that wins at any size and must be >= 1.
     ///
-    ///     > 0   an EXPLICIT, ABSOLUTE cap. Wins outright, at any size.
-    ///    <= 0   THE SENTINEL, AND THE SHIPPED DEFAULT: derive the cap from
-    ///           this subproblem's own size, as
-    ///               max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded))
-    ///           -- qp_engine.h's detail::effective_qp_max_iter, which carries
-    ///           the derivation and calibration in full.
-    ///
-    /// Why a size-derived default: the minors one subproblem needs grows with
-    /// the constraint count, so ANY fixed constant is eventually below demand
-    /// (recorded on the F7 collocation family well below n = 1000). This is a
-    /// lower-bound argument, not a tuning preference.
-    ///
-    /// The precedence rule above IS the escape hatch that makes the default
-    /// safe: only solves that both leave the sentinel AND actually reach the
-    /// cap can change; a healthy solve never touches it. A capped subproblem
-    /// remains an honest failure — QpStatus::kMaxIter with minor_iters == the
-    /// effective cap; raising the cap never converts a wrong answer into a
-    /// right one, it only stops refusing subproblems that were going to
-    /// finish.
-    Index max_iter = 0;
-    Index schur_cap = 128;
-    double schur_cond_max = 1e9;
-    WorkingSetLinearAlgebra ws_algebra = WorkingSetLinearAlgebra::kSchurBorder;
+    /// The derived default exists because the minors one subproblem needs grow
+    /// with its constraint count, so any fixed constant is eventually below
+    /// demand. A capped subproblem is an honest failure (QpStatus::kIterationLimit with
+    /// minor_iters == the effective cap); raising the cap only stops refusing
+    /// subproblems that were going to finish.
+    std::optional<Index> max_iterations;
+    Index max_schur_border_dimension = 128;
+    double schur_condition_max = 1e9;
+    QpWorkingSetAlgebra working_set_algebra = QpWorkingSetAlgebra::kSchurBorder;
 
     /// l-infinity trust-region radius Delta, applied about the SOLVE'S OWN
     /// start point x0 (there is no separate configurable center — see
@@ -165,22 +151,22 @@ struct QpOptions {
     /// PER-INSTANCE, CONST: fixed for the lifetime of the owning QpEngine and
     /// cannot vary across solve() calls THROUGH THIS FIELD. A caller needing a
     /// different radius per call (a shrink-retry loop) uses
-    /// SolveOverrides::tr_radius instead, which never touches this field — so
+    /// QpSolveOverrides::trust_region_radius instead, which never touches this field — so
     /// one QpEngine serves a whole retry loop keeping its hot-start K0/border
-    /// reuse across it. Unlike primal_delta/dual_mu, tr_radius never joins the
-    /// reuse key: bounds never enter K0.
+    /// reuse across it. Unlike primal_regularization/dual_regularization, trust_region_radius never
+    /// joins the reuse key: bounds never enter K0.
     ///
     /// Validated at solve start on the same domain as the override: >= 0 or
     /// +inf — never negative (it would silently cross lo_eff/up_eff behind an
     /// assert a Release build compiles out), never NaN (read as "disabled", a
     /// meaning only +inf has).
-    double tr_radius = std::numeric_limits<double>::infinity();
+    double trust_region_radius = std::numeric_limits<double>::infinity();
 
     /// Keep the walk's working set linearly independent (qp/ws_independence.h).
-    /// false is the pre-E2 walk.
+    /// false disables the independence check.
     bool independent_working_set = true;
 
-    /// CALLER-ASSERTED CONVEXITY (M7 QN stage 2). True says "H is positive semidefinite on all
+    /// CALLER-ASSERTED CONVEXITY. True says "H is positive semidefinite on all
     /// of R^n", asserted by a caller that built H that way (the quasi-Newton mixed lift, whose
     /// Hessian is PD by construction but not diagonal). The walk's convex certificate
     /// (qp_engine.h section 4c) accepts it in place of its own structural test
@@ -200,14 +186,15 @@ struct QpOptions {
 /// effective delta/mu, the working set) and the FACTOR OBJECT (its
 /// (session_id, epoch) pair and its usable inertia) -- and nothing among them
 /// fingerprints the ENGINE OPTIONS the K0 was built under. An engine with a
-/// different `schur_cap`, a different `ws_algebra` or a different pivot
+/// different `max_schur_border_dimension`, a different `working_set_algebra` or a different pivot
 /// regularization would adopt a matching handle and reuse a factorization built
 /// for other settings. This value closes that gap: `hot_state()` stamps it and
 /// `run()` adopts only a handle whose stamp equals the adopting engine's own.
 ///
-/// EVERY FIELD OF QpOptions IS COVERED -- all eleven (primal_delta, dual_mu,
-/// feas_tol, opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra,
-/// tr_radius, independent_working_set, hessian_known_convex; the last is folded
+/// EVERY FIELD OF QpOptions IS COVERED -- all eleven (primal_regularization,
+/// dual_regularization, feasibility_tol, optimality_tol, max_iterations,
+/// max_schur_border_dimension, schur_condition_max, working_set_algebra,
+/// trust_region_radius, independent_working_set, hessian_known_convex; the last is folded
 /// only when set, so a default value hashes as it did before the field existed)
 /// -- because a field left out is a hole of exactly the kind above.
 /// Add a field to QpOptions and you add it here; the field-coverage test in
@@ -224,9 +211,8 @@ struct QpOptions {
 ///
 /// @param opts    The engine's stored options.
 /// @param threads The thread count in force for the engine's factor paths.
-///                Hashed from M6 W5 T8.3 although this engine CARRIES rather
-///                than APPLIES the count until T8.8, so the meaning of a pin
-///                written against it does not change when T8.8 lands.
+///                Folded into the hash, so a handle built under one thread
+///                count is not adopted under another.
 /// @return The fingerprint. Never meaningful across processes: it is compared
 ///         only between engines in one process, exactly like HotState itself.
 std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
@@ -235,37 +221,39 @@ std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
 /// vary call-to-call on ONE QpEngine instance: the trust-region radius
 /// (shrink-retry loops) and the primal/dual regularization (adaptive
 /// regularization). Passed to QpEngine::solve()'s override-taking overloads;
-/// the plain overloads forward a default-constructed SolveOverrides, which
+/// the plain overloads forward a default-constructed QpSolveOverrides, which
 /// resolves to every field's opts_ value — byte-identical to solving with no
 /// override support at all.
 ///
 /// SENTINEL CONVENTION: a field at its default means "no override — use the
-/// owning QpEngine's opts_ value". tr_radius's sentinel is +inf;
-/// primal_delta/dual_mu's sentinel is any negative value. Consequence: a
-/// caller needing tr_radius genuinely disabled on an engine whose opts_
-/// carries a finite radius must construct those opts_ with tr_radius = +inf —
+/// owning QpEngine's opts_ value". trust_region_radius's sentinel is +inf;
+/// primal_regularization/dual_regularization's sentinel is any negative value.
+/// Consequence: a caller needing the radius genuinely disabled on an engine
+/// whose opts_ carries a finite radius must construct those opts_ with
+/// trust_region_radius = +inf —
 /// there is no way to request "+inf, overriding finite opts_" through the
-/// override, the same single-sentinel tradeoff QpOptions::tr_radius itself
+/// override, the same single-sentinel tradeoff QpOptions::trust_region_radius itself
 /// makes.
 ///
 /// REUSE-KEY CONSEQUENCE (see qp_engine.h's HOT-START REUSE note): the
-/// EFFECTIVE (primal_delta, dual_mu) pair enters K0's values (assemble_kkt_core
-/// bakes both onto the regularized diagonal), so it joins the hot-start reuse
+/// EFFECTIVE (primal_regularization, dual_regularization) pair enters K0's values
+/// (assemble_kkt_core bakes both onto the regularized diagonal), so it joins the hot-start reuse
 /// key — a warm re-solve whose effective pair differs forces a K0 rebuild. The
-/// effective tr_radius does NOT join that key: it only tightens bounds into
+/// effective trust_region_radius does NOT join that key: it only tightens bounds into
 /// lo_eff/up_eff, and bounds never enter K0.
 ///
 /// Validated at solve start (QpEngine::solve throws std::invalid_argument
-/// otherwise, before anything else runs): tr_radius must be the +inf sentinel
+/// otherwise, before anything else runs): trust_region_radius must be the +inf sentinel
 /// or >= 0 — never a negative non-sentinel Delta, never NaN. A negative Delta
 /// would silently cross lo_eff/up_eff behind a Release-compiled-out assert,
-/// and this is checked explicitly because tr_radius is per-solve DRIVER INPUT.
-/// primal_delta/dual_mu keep the negative-means-sentinel convention; NaN is
+/// and this is checked explicitly because the radius is per-solve DRIVER INPUT.
+/// primal_regularization/dual_regularization keep the negative-means-sentinel convention; NaN is
 /// rejected for both.
-struct SolveOverrides {
-    double tr_radius = std::numeric_limits<double>::infinity(); ///< +inf = use opts_.tr_radius.
-    double primal_delta = -1.0;                                 ///< <0 = use opts_.primal_delta.
-    double dual_mu = -1.0;                                      ///< <0 = use opts_.dual_mu.
+struct QpSolveOverrides {
+    double trust_region_radius =
+        std::numeric_limits<double>::infinity(); ///< +inf = use opts_.trust_region_radius.
+    double primal_regularization = -1.0;         ///< <0 = use opts_.primal_regularization.
+    double dual_regularization = -1.0;           ///< <0 = use opts_.dual_regularization.
 };
 
-} // namespace hven::solvers
+} // namespace hven

@@ -23,12 +23,14 @@
 #include <Eigen/Dense>
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_solver.h>
+#include <hven/detail/drivers/result_access.h>
+#include <hven/detail/drivers/sqp_solver_impl.h>
+#include <hven/detail/model/problem_access.h>
 #include <hven/drivers/sqp_solver_types.h>
 
 #include "qp_as_nlp_model.h"
 
-namespace hven::solvers::e1b_golden {
+namespace hven::e1b_golden {
 
 inline QpProblem dependent_networks_qp() {
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(10, 11);
@@ -82,23 +84,23 @@ inline std::vector<std::string> off_fingerprint(QpMode mode) {
     const test_support::QpAsNlpModel model(dependent_networks_qp(), Vec::Zero(11));
     SqpOptions o;
     o.qp_mode = mode;
-    o.max_iter = 100;
+    o.common.max_iterations = 100;
     o.common.threads = 1;
 #ifndef HVEN_E1B_GOLDEN_AT_BASE
-    o.equality_basis = false;
+    o.advanced.equality_basis = false;
     // The base predates E2's independent working set: the pin is the old walk's.
     o.qp.independent_working_set = false;
 #endif
     SqpSolver solver(o);
-    const SqpResult r = solver.solve(model);
+    const SqpResult r = solver.solve(hven::detail::problem_ref(model), (model).start_point());
     const SqpCounters &c = r.counters;
     return {
         fmt::format("status {}", static_cast<int>(r.status)),
         fmt::format("counters {} {} {} {} {} {}", c.major_iters, c.qp_minor_iters, c.factorizations,
                     c.steps_accepted, c.rejected_steps, c.restoration_iters),
         fmt::format("x {}", hex_of(r.x)),
-        fmt::format("lambda_e {}", hex_of(r.lambda_e)),
+        fmt::format("lambda_e {}", hex_of(hven::detail::engine_rows(r).lambda_e)),
     };
 }
 
-} // namespace hven::solvers::e1b_golden
+} // namespace hven::e1b_golden

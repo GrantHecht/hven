@@ -11,10 +11,9 @@
 // that still delegate to the deprecated form.
 
 #include <hven/core/types.h>
-#include <hven/model/nlp_model.h>
+#include <hven/detail/model/nlp_model.h>
 
-hven::SpMatRM probe_deprecated_eval_jac_e(const hven::solvers::NlpModel &model,
-                                          const hven::Vec &x) {
+hven::SpMatRM probe_deprecated_eval_jac_e(const hven::detail::NlpModel &model, const hven::Vec &x) {
     hven::SpMatRM out;
     model.eval_jac_e_in_place(x, out); // the replacement: not deprecated
     return model.eval_jac_e(x);        // the deprecated form: THE error

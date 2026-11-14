@@ -1,0 +1,135 @@
+M8 F1 -- the MKL solver warm-up without dsecnd() -- DECLARATION (committed before the first leg; never edited afterwards;
+a failed leg is answered by a DECLARATION-r2 successor, this file and its outputs kept; criteria are never changed after
+data)
+================================================================================
+Base        2340b95d (origin/m8).
+Code head   d546afd1  fix(drivers): the MKL solver warm-up no longer calls dsecnd(). Files: src/drivers/solver_init.cpp
+            (the MKL branch of ensure_solver_initialized() calls mkl_get_max_threads() instead of dsecnd(); a comment),
+            include/hven/detail/drivers/solver_init.h (the doc comment), docs/concurrency.md (one line range). Evidence
+            commits (this directory) follow and touch no source.
+Arm A       2340b95d, built by legs/prebuild.sh from its `git archive` export build-f1/armA-src (dep/eigen bc3b3987,
+            dep/fmt 407c905e copied at the commits 2340b95d pins) at build-f1/armA, Release, legs/build.sh's flags:
+            corpus binary build-f1/armAbin/hven_sqp_corpus sha256 ef3f2682008580cf1b10988a9cf8aa9ce41542fc3852095f1b6e3e8f5bd0baa6,
+            compile database build-f1/armA-compile_commands.json sha256 97e5d582f6f9a65f30902033c59318440e275027b638e6967184e11df36005d1
+            (build-f1/prebuild.out, copied to chain/). Its installed libhven.a (sha256 2cc652f7...54fa) is byte-identical
+            to the DN-0 measured library's (58dc14bc; no source change between 58dc14bc and 2340b95d).
+Arm B       the code head: build-f1/rel (fresh, legs/build.sh, built after the code commit) -> build-f1/armBbin,
+            hven_sqp_corpus sha256 e48c2e34205b408a1616ef33c5f2bdf8b401a70aad04c355311ab744d8efc0e3. build-f1/dbg fresh
+            at the head (Debug).
+Toolchain   clang 22.1.8, Release and Debug, HVEN_FP_MODE=SAFER_FAST, MKL 2026.2 (INTEL_MKL_VERSION 20260200, static
+            LP64 + intel_thread, libiomp5), MKL_NUM_THREADS=1.
+Scratch     build-f1/ (git-ignored). build-f1/dev/ holds the pre-declaration dev measurements: not evidence.
+
+THE DIAGNOSIS (measured before this declaration; the probe and its outputs are in diagnosis/ and are part of this
+evidence, the numbers the code commit states)
+- ORIGIN. tycho fc568fe7 (2026-03-15, "separate MKL Pardiso init time from PSIOPT timing"): on Windows the first
+  pardiso() in a process carried ~100 ms of runtime initialization (thread pool, CPU dispatch, allocators) inside
+  Analysis/Reorder time; dsecnd() was added once per process before the solver's timer to pay it there, reported as
+  "MKL Initialization". It came to hven verbatim with the engine move (b36d24a9) and became
+  ensure_solver_initialized() / solver_initialization_seconds / kSolverInitialized.
+- WHAT dsecnd() ACTUALLY DOES ON THIS BOX. Its first call calibrates MKL's clock by spinning on time() to a wall-second
+  boundary (perf: difftime, mkl_serv_get_clocks_frequency, __vdso_time): 0.17-0.98 s and up to ~3.85e9 user
+  instructions per process, depending on where in the second the process starts.
+- IT WARMS NOTHING PARDISO USES. diagnosis/mkl_probe.c (MKL linked as hven links it), first pardiso() phase 13 on a 5x5
+  symmetric indefinite matrix, 3 rounds (mkl_probe.txt): cold 2.26-2.51 ms; after dsecnd() 2.29-2.32 ms; after
+  mkl_get_version() 2.24-2.36 ms; after mkl_get_max_threads() 0.30-0.31 ms (the call itself 1.97-2.01 ms). A dsecnd()
+  AFTER two pardiso() calls still spins (~0.97 s) unless one was made before: Pardiso never triggers the calibration,
+  so removing the call does not move the spin into the solve.
+- THE REPLACEMENT. mkl_get_max_threads() (oneMKL Developer Reference, Support Functions / Threading Control; declared
+  in mkl_service.h) brings up the threading layer (the OpenMP runtime) -- the first-call cost the original commit
+  meant to move out of the timed phases -- at no instruction cost: 6.08e6 instructions:u per probe process with or
+  without it, 5 rounds (mkl_probe_nolate.txt). Chosen over (a) plain removal, which would leave that bring-up inside
+  the first factorization and make solver_initialization_seconds always 0 on MKL, and (b) an opt-in, which would keep
+  a known-useless 1 s spin available behind a switch. Accelerate's branch (ensure_accelerate_initialized) is untouched.
+  Windows runs the same MKL branch: UNOBSERVED there.
+- OTHER TIMING CALLS. MKL's dsecnd()/second() have no other caller in src/, include/, bench/, bindings/, examples/ or tests/;
+  the IPM's timers are std::chrono::steady_clock (detail::Timer). MKL's own Pardiso timer (mkl_pds_lp64_timer_pardiso)
+  appears with 1-2 samples in both arms and never reaches mkl_serv_get_clocks_frequency. Pardiso msglvl is 0.
+- CONSUMERS of solver_initialization_seconds / kSolverInitialized / solver_init_time_s: the IPM driver
+  (ipm_solver.cpp), the console sink (prints the notice when > 0.5 ms: still printed, ~1.5 ms), the JSON trace writer,
+  enum_names, tests that only warm the process-once event away (test_ipm_trace, test_console_sink, test_trace_writer,
+  test_callback, test_warm_protocol), docs (trace-schema-v0.md, concurrency.md). None asserts a value; bench/,
+  bindings/ and examples/ read none of them.
+
+THE DEV MEASUREMENTS THE EXPECTATIONS ARE DECLARED FROM (before this declaration, on the arm A and arm B builds above):
+interior 27-cell rows arm A vs arm B (one process each, perf record): 0 differences, arm B spin samples 0, raw
+instructions:u 9.985e10 -> 9.937e10 (that run's spin was 2,402 samples, unaligned); hs_probe before/after
+(build-f1/dev/hs): per process instructions 3.83-3.85e9 -> 5.99-6.26e6, first-solve wall 0.974-0.981 s -> 0.0029 s,
+engine columns identical; Release suite 100% passed, 0 failed out of 3483; examples 0.03-0.04 s each; objects 56, one
+differs (solver_init.cpp.o).
+
+DECLARED DIFFERENCES (everything not listed is EXACT IDENTITY)
+--------------------------------------------------------------------------------
+D0  THE CHANGE. src/drivers/solver_init.cpp, MKL branch: (void)mkl_get_max_threads() replaces dsecnd(), inside the same
+    std::call_once, timed by the same Timer.
+D1  ENGINE: every counter, status, walk, iterate column and residual of every engine is EXACT against arm A: replay x
+    walk/ssn/ipm (P3), interior unmoved and promoted (P12), the runtime gate's stop condition in all four modes (P11),
+    the HS probe's engine columns (P13) and the falsifier's row (P14).
+D2  PROCESS INSTRUCTIONS (the declared movers): every process that makes an interior-point solve loses the calibration
+    spin, once -- up to ~3.85e9 instructions:u, wall-aligned (~3.8e9 when the process starts just after a second
+    boundary, as the runtime gate's and P13's are). SQP-only processes are unchanged.
+D3  TIMING FIELDS (informational, never asserted): IpmResult::timing.solver_initialization_seconds, the
+    kSolverInitialized message's `a` and the trace's solver_init_time_s report the threading bring-up (~1.5 ms on this
+    box) instead of the spin (~0.97 s aligned); the first solve's total_seconds (which excludes init) loses the ~1.5 ms
+    of bring-up its first factorization used to carry. The console notice still prints (> 0.5 ms).
+D4  API: none. One doc comment in include/hven/detail/drivers/solver_init.h (detail/).
+D5  TESTS: no test changes; ctest 3485 registered, "100% tests passed, 0 tests failed out of 3483" (2 disabled), as at
+    PF-1.
+D6  TRACE: no key, event, golden line or printed string changes; only D3's values move.
+D7  OBJECTS: of the hven target's 56 objects exactly one differs, src/drivers/solver_init.cpp.o; arm B's libhven.a names
+    no dsecnd symbol. COMPILE FLAGS vs arm A: none differ.
+D8  No iparm change and no IPARM-SURFACE label (the Pardiso session and its iparm surface are untouched).
+D9  INSTALL SMOKE: 36 standalone-include TUs, unchanged; export contract unchanged.
+D10 ACCELERATE SWEEP: per file the same classes as the B8 riders' pass A (the edit is in the non-Accelerate branch).
+    Apple: UNOBSERVED.
+D11 RUNTIME: runtime/DECLARATION.txt -- standard gate in walk/ssn/ipm; interior read for a declared improvement (F1-a,
+    F1-b, F1-c, filtered band unchanged).
+
+PROOFS AND PASS CRITERIA (legs/ in this directory; each its own script under the box lock)
+--------------------------------------------------------------------------------
+P0  arm A (legs/armA.sh): the two sha256 values above (fail closed): ARM_A_OK.
+P1  suites: ctest Release (build-f1/rel) and Debug (build-f1/dbg), full, -j4 under setsid: "100% tests passed, 0 tests
+    failed out of 3483" in both (legs/ctest.sh).
+P2  examples: all 8 run and exit 0 (legs/examples.sh).
+P3  27-cell replay x (walk, ssn, ipm), legs/replay.sh: EXACT against
+    docs/notes/data/2026-10-m7-wx2-gates/gates/replay/head-*.csv, 0 differences each (D1).
+P4  iparm (legs/iparm.sh): BYTE-IDENTICAL to ../2026-11-m8-ap2-b8-riders/iparm/iparm-b8r.txt, 15 configurations (D8).
+P5  walk census: NOT RUN. The SQP is not touched: ensure_solver_initialized() has one caller,
+    IpmSolverImpl::ensure_solver_initialized (src/drivers/ipm_solver.cpp), and no SQP path reaches it (P11's SQP
+    modes report 0 excluded samples to confirm).
+P6  install smoke, default (GCC) and clang arms, each followed by scripts/check_export_contract.sh: pass (D9).
+P7  scripts/check_pch_neutrality.sh: PASS.
+P8  off-reference CLEAN build (linux-clang-release preset, fresh build-f1/offref,
+    -DHVEN_TEST_ROUTE_REFERENCE_DISPATCH=OFF, bench + examples ON) then ctest: build rc 0, "0 tests failed out of
+    3483"; no warning line names src/drivers/solver_init.cpp or include/hven/detail/drivers/solver_init.h. The warning
+    line count is reported (PF-1's: 26), not judged.
+P9  Accelerate syntax sweep (legs/misc.sh accelerate; legs/accel_compare.py): pass A PASS_A_AS_DECLARED (D10). Pass B
+    reported, not a criterion.
+P10 compile-flags diff (legs/flags.sh): arm A's database (paths re-spelled) vs build-f1/rel: TU sets equal;
+    legs/flags_check.py prints FLAGS_AS_DECLARED.
+P11 runtime gate (runtime/DECLARATION.txt): VERDICT PASS -- counter identity in every mode, THROTTLE 0, filtered B/A in
+    [0.995, 1.005] in every mode; interior F1-a LIVE, F1-b ABSENT, F1-c all-samples B/A <= 0.995.
+P12 interior (legs/interior.sh): unmoved (arm A vs arm B, 27 cells) EXACT, 0 differences; promoted (arm B under
+    bench/baselines/2026-11-m8-b7-ipm-leg/interior_baseline.csv's invocation) EXACT, 0 differences.
+P13 THE BEFORE/AFTER (legs/hs_build.sh, legs/hs_measure.sh, legs/hs_analyze.py, hs_probe/): hs_probe built against
+    arm A's and arm B's install trees; hs006, hs010, hs035, hs071, one interior-point solve per fresh process, 5 rounds,
+    arm order alternated, phase-aligned, core 2, serial, alone, perf stat instructions:u. HS_AS_DECLARED: per problem
+    the engine columns (status, iterations, factorizations, f) identical across all 10 processes; median(A) - median(B)
+    >= 1.0e8 instructions; every arm B process < 1.0e8. First-solve wall, init_s, total_s and kkt_s reported
+    (informational, serial, single-threaded MKL).
+P14 THE FALSIFIER (legs/failproof.sh): the code head with mkl_get_max_threads() -> dsecnd() (one line, fail closed),
+    its corpus binary vs arm B on f7_n1000_bound_neutral (interior): mutant spin samples > 0, arm B's 0, mutant minus
+    arm B instructions:u >= 1.0e8, rows EXACT: FAILPROOF_AS_DECLARED. (The instrument sees the spin when it is there.)
+P16 OBJECTS (legs/objects.sh): OBJECTS_AS_DECLARED (D7).
+PRE-FLIGHT (legs/chain1.sh, fail closed, before the first leg): every script and instrument here names this worktree,
+build-f1/ and this directory only (build-f1/dev/ -- the dev measurements -- and other trees refused), except the
+read-only pins named in P3/P4/P9/P12; the copied python instruments' derived root is this worktree; arm A/B binaries,
+the arm A database and build, build-f1/dbg, the promoted baseline, the pins and the code head exist. Run dry before
+this declaration: PREFLIGHT_OK; a planted line naming build-f1/dev/ and another naming the PF-1 evidence directory were
+each refused (rc 9).
+The touched code was grepped for Apple-only (USE_ACCELERATE_SPARSE) and off-reference branches: the edit is the
+#else (MKL) branch of solver_init.cpp's USE_ACCELERATE_SPARSE conditional; P9 compiles the other branch's file.
+ORDER: the runtime gate alone first (runtime/run_all.sh), then chain1 (arm A, replay, interior, iparm, suites,
+examples, smoke, PCH, Accelerate, off-reference, flags, objects, falsifier, HS build, HS before/after).
+BOX PROTOCOL: every leg `flock /tmp/box-build.lock bash <leg>`; pgrep empty before the lock and PGREP_EMPTY inside;
+set -o pipefail; MKL_NUM_THREADS=1; no timeout wrapper; ctest -j4 under setsid; FOREGROUND_START/END.
