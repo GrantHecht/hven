@@ -1,0 +1,25 @@
+# VERDICTS-r3 (extracted from the raw dumps; code head 3d6932485728b84e976644aa73649378784e31b3, arm B3 sha256 0ef55263b35bebd516805e28cf6a0c1ec2da27ca4319f4b830752019352a8498)
+P1 Release: 100% tests passed, 0 tests failed out of 3685
+P1 Debug:   100% tests passed, 0 tests failed out of 3685
+=== r3-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== r3-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== r3-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+=== r3-vs-r2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== r3-vs-r2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== r3-vs-r2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+P8: tsan rc=0 reports=0
+STEP tsan rc=0 2026-11-14T18:44:01-05:00; TSAN_VERDICT PASS; [==========] 65 tests from 7 test suites ran. (1116 ms total)
+STEP ctest-rel rc=0 2026-11-14T18:24:42-05:00
+STEP ctest-dbg rc=0 2026-11-14T18:31:23-05:00
+worst=0
+STEP replay rc=0 2026-11-14T18:42:35-05:00
+worst=0
+STEP interior rc=0 2026-11-14T18:43:20-05:00
+STEP tsan rc=0 2026-11-14T18:44:01-05:00
+STEP mutations rc=0 2026-11-14T18:48:51-05:00
+worst=0
+M (mutation-r3/mutation-table.csv): control fails nothing; KILLED a b c d e f g h j l (declared criteria met, d now killed by SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes) and extras m n o p; SURVIVE i k (permitted)
+CRITERIA_MET_ALL
