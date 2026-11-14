@@ -6555,7 +6555,7 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
 // on purpose, so the trust region grows across several majors before the
 // unconstrained-in-the-box solution is reached, which is what stretches the
 // mu-held-constant run long enough to observe).
-TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
+static void run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy policy) {
     // --- (1) monotonicity + quantization, on HS7 --------------------------
     {
         const HsProblem p = make_hs(7);
@@ -6602,7 +6602,7 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         SqpOptions opts;
         // M8 DN-3 flip: this block's premise was measured on the sparse arm (the default
         // before the flip); kNever explicitly. Under kAuto Debug sees a decade drop.
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+        opts.linear.dense_factorization = policy;
         opts.trust_region_initial = 0.01;
         opts.common.optimality_tol = 1e-10;
         opts.common.feasibility_tol = 1e-10;
@@ -6621,6 +6621,14 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         // clears the schedule's threshold and mu quantizes down to 1e-11 --
         // a genuine (primal_delta, dual_mu)-pair change, which correctly
         // costs a refactorization (qp_factorizations == 1 there).
+#if !HVEN_TEST_ROUTE_REFERENCE
+        if (policy == hven::linear::DensePolicy::kAuto) {
+            // The dense arm's mu/refactorization route is UNOBSERVED off the reference build.
+            hven::test_support::record_off_reference_route(
+                "adaptive_mu_dense", fmt::format("history_rows={}", sol.history.size()));
+            return;
+        }
+#endif
         ASSERT_GE(sol.history.size(), 11u);
         for (const SqpIterate &h : sol.history) {
             if (h.qp_solved) {
@@ -6667,10 +6675,33 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         // change must force a refactorization -- and it is kept exactly as it was, so
         // it fires the moment a change happens again. What is re-derived is the
         // existential premise, as its absence.
-        EXPECT_FALSE(saw_decade_drop)
-            << "mu moved again: the decade-change refactorization claim above is live once more "
-               "and this premise can be restored";
+        if (policy == hven::linear::DensePolicy::kNever) {
+            EXPECT_FALSE(saw_decade_drop) << "mu moved again: the decade-change refactorization "
+                                             "claim above is live once more "
+                                             "and this premise can be restored";
+        } else {
+            // Dense arm: Release holds mu (no drop); Debug sees ONE decade drop, so the
+            // refactorization claim in the loop above is live there (and passes).
+#ifdef NDEBUG
+            EXPECT_FALSE(saw_decade_drop) << "mu moved on the dense arm in Release";
+#else
+            EXPECT_TRUE(saw_decade_drop) << "the dense arm no longer drops a decade in Debug";
+#endif
+        }
     }
+}
+
+TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
+    run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of SqpDriverAdaptiveMu.MuScheduleIsQuantizedAndMonotone. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm):
+// Release holds mu as the sparse arm does; Debug sees a decade drop. Exact readings are pinned on
+// the reference build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED)
+// the route is recorded and only contracts are asserted.
+TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotoneDenseArm) {
+    run_mu_schedule_is_quantized_and_monotone(hven::linear::DensePolicy::kAuto);
 }
 
 // THE BRIEF'S TEST (c). adaptive_mu = false must reproduce the pre-Task-10
@@ -12288,7 +12319,7 @@ TEST(QpEngineStructuralViolation, E2Fix4ARealTerminalViolationStillEndsInfeasibl
     }
 }
 
-TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {
+static void run_t7_verdict_refine_cost(hven::linear::DensePolicy policy) {
     // T6b REGISTERED (tycho): the verdict loop's cost AT SCALE. THE DISTRIBUTION, measured: 0 on
     // all 27 HS models at kIpm, 0 on the inconsistent-linearization and exhaustion fixtures, and
     // 15 on the T3-A fixture in all three modes and both configs. T7 report section 2, item 10.
@@ -12303,17 +12334,27 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
     SqpOptions opts;
     // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
     // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+    opts.linear.dense_factorization = policy;
     opts.qp_mode = QpMode::kIpqp;
     opts.common.max_iterations = 60;
     Index worst = 0;
+#ifdef NDEBUG
+    const bool dense_release = policy == hven::linear::DensePolicy::kAuto;
+#else
+    const bool dense_release = false;
+#endif
+    (void)dense_release; // read on the reference build only
     // The verdict-refine step count is a route counter: 0 on the reference build, and 1 on an
     // AVX-512 MKL runner (WX B7) -- whether the classifier's refinement loop is entered at all
     // follows the factorization's rounding. Reference: pinned to 0 per fixture. Off it:
     // recorded, with the portable bound this test is named for (the 15-step ceiling).
     auto expect_refine_cost = [&](const SqpResult &sol, const std::string &what, const char *msg) {
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << msg;
+        // Dense arm, Release: the box-blocked fixture's bordered dead end pays ONE refinement
+        // step in every mode (every other fixture 0, and Debug reads 0 throughout).
+        const Index want =
+            (dense_release && what.rfind("boxblocked_", 0) == 0) ? Index{1} : Index{0};
+        EXPECT_EQ(sol.counters.verdict_refine_steps, want) << msg;
 #else
         (void)msg;
         hven::test_support::record_off_reference_route(
@@ -12374,10 +12415,26 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
         }
     }
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_EQ(worst, 0) << "the ceiling on the fixture set";
+    EXPECT_EQ(worst, dense_release ? Index{1} : Index{0}) << "the ceiling on the fixture set";
 #else
     EXPECT_LE(worst, 15) << "the ceiling on the fixture set";
 #endif
+}
+
+TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture) {
+    run_t7_verdict_refine_cost(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverCertifiedFallback.T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixture. The
+// kNever test above is kept as it was; this one runs the same fixture on the default (kAuto, the
+// dense arm): in Release the box-blocked fixture pays one verdict-refinement step in every mode
+// (worst 1, was 0); Debug reads 0. Exact readings are pinned on the reference build only
+// (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
+// and only contracts are asserted.
+TEST(SqpDriverCertifiedFallback,
+     T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnItsWorstFixtureDenseArm) {
+    run_t7_verdict_refine_cost(hven::linear::DensePolicy::kAuto);
 }
 
 TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder) {
@@ -12463,7 +12520,7 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
 }
 
-TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeModes) {
+static void run_t7f1_inconsistent_three_modes(hven::linear::DensePolicy policy) {
     // PLAN SECTION 6's F-1, AS ONE TEST ON ONE FIXTURE (T7 item 12's audit). T3/T5 landed F-1's
     // shape at the QP level and its partition at the driver, but nothing asserted the THREE-MODE
     // expectation together, and nothing asserted its counter comparison at all.
@@ -12483,7 +12540,7 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         SqpOptions opts;
         // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
         // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+        opts.linear.dense_factorization = policy;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.qp_mode = arm.mode;
@@ -12558,6 +12615,21 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
 #endif
 }
 
+TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeModes) {
+    run_t7f1_inconsistent_three_modes(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm):
+// both arms reach the same certified kInfeasible and the same route counters; no pin differs, so
+// the twin only runs the arm the sparse test pins elsewhere (neither arm loses coverage). Exact
+// readings are pinned on the reference build only (Linux/MKL, per Release/Debug); elsewhere
+// (macOS/Accelerate: UNOBSERVED) the route is recorded and only contracts are asserted.
+TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm) {
+    run_t7f1_inconsistent_three_modes(hven::linear::DensePolicy::kAuto);
+}
+
 // =====================================================================
 // M7 W0 T3 -- THE SAME INCONSISTENT LINEARIZATION WITH THE RUNG ON THE TIER.
 //
@@ -12577,12 +12649,12 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
 // survive here is the INFEASIBILITY CERTIFICATE, and that asymmetry is recorded
 // below rather than asserted away.
 // =====================================================================
-TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization) {
-    auto run = [](SqpElasticRungEngine rung) {
+static void run_t3_tier_rung_same_verdict(hven::linear::DensePolicy policy) {
+    auto run = [policy](SqpElasticRungEngine rung) {
         SqpOptions opts;
         // M8 DN-3 flip: this fixture's route was pinned on the sparse arm (the default before the
         // flip); kNever explicitly. Under kAuto the ladder route moves (registered with the flip).
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever;
+        opts.linear.dense_factorization = policy;
         // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
         opts.advanced.equality_basis = false;
         opts.qp_mode = QpMode::kIpqp;
@@ -12676,12 +12748,31 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
 
     // -- THE FINDING, RECORDED. Not an assertion on the certificate: it is what this fixture
     //    happens to produce, and the artifact is where the claim about it is made.
-    RecordProperty("walk_certified", walk_rung.infeasibility_certified ? 1 : 0);
-    RecordProperty("tier_certified", tier_rung.infeasibility_certified ? 1 : 0);
-    RecordProperty("tier_rung_b_entries", static_cast<int>(e.ipqp_fallback_rung_b));
-    RecordProperty("walk_rung_b_entries", static_cast<int>(w.ipqp_fallback_rung_b));
-    RecordProperty("walk_factorizations", static_cast<int>(w.factorizations));
-    RecordProperty("tier_factorizations", static_cast<int>(e.factorizations));
+    ::testing::Test::RecordProperty("walk_certified", walk_rung.infeasibility_certified ? 1 : 0);
+    ::testing::Test::RecordProperty("tier_certified", tier_rung.infeasibility_certified ? 1 : 0);
+    ::testing::Test::RecordProperty("tier_rung_b_entries",
+                                    static_cast<int>(e.ipqp_fallback_rung_b));
+    ::testing::Test::RecordProperty("walk_rung_b_entries",
+                                    static_cast<int>(w.ipqp_fallback_rung_b));
+    ::testing::Test::RecordProperty("walk_factorizations", static_cast<int>(w.factorizations));
+    ::testing::Test::RecordProperty("tier_factorizations", static_cast<int>(e.factorizations));
+}
+
+TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization) {
+    run_t3_tier_rung_same_verdict(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverCertifiedFallback.T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization. The
+// kNever test above is kept as it was; this one runs the same fixture on the default (kAuto, the
+// dense arm): both arms reach the same certified kInfeasible and the same route counters; no pin
+// differs, so the twin only runs the arm the sparse test pins elsewhere (neither arm loses
+// coverage). Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
+// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only contracts are
+// asserted.
+TEST(SqpDriverCertifiedFallback,
+     T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm) {
+    run_t3_tier_rung_same_verdict(hven::linear::DensePolicy::kAuto);
 }
 // THE BASIS PATH on the movers' premise (M7 W2 E1 S3): the tests above turn the equality
 // basis OFF because their inconsistency is a dependent row pair. With it ON the

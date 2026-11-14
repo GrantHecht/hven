@@ -32,6 +32,13 @@
 // (no restoration entry, no seed offer, a different radius history). The list and
 // the kAuto outcomes are in docs/notes/data/2026-11-m8-dn3/DECLARATION-r4.md.
 //
+// C330-C (M8): the diagnosis found those divergences benign (regularization-defined terminal
+// points and a non-unique elastic optimum; no dense inertia mis-report), so every fixture
+// that still reaches a different reading on the dense arm keeps its kNever test AND has a
+// "...DenseArm" twin whose pins are the dense arm's own readings (reference build only; macOS
+// is UNOBSERVED and asserts contracts). A twin shares its kNever test's body through a
+// run_<name>(DensePolicy) helper where the two arms differ only in a few pins.
+//
 // EVERY ITERATION COUNT HERE IS AN OBSERVATION ON THIS MACHINE and the
 // assertions are looser than the observation, per test_sqp_solver.cpp's
 // standing convention. The two fixtures' OPTIMA and CERTIFICATES, by contrast,
@@ -2342,10 +2349,13 @@ TEST(SqpDriverRestorationSeed, TheFailedStepKeepsTheCertifiedAnswer) {
 // A CANDIDATE THAT MEASURES BETTER IS TAKEN, and the row that RAISED the
 // request records it. Measured at the exhaustion (Release, MKL, clang++): the
 // ladder's own step reads h = 1.00143238 against the entry's 1.00143320.
-TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
+static void run_the_offered_candidate_no_longer_measures_better_and_is_not_taken(
+    hven::linear::DensePolicy policy) {
+    const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;
+    (void)want_seeded; // read on the reference build only
     InfeasibleCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    opts.linear.dense_factorization = policy;
     // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
     // on).
     opts.qp.independent_working_set = false;
@@ -2359,8 +2369,9 @@ TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
     // (Whether the knife-edge candidate measures better, and that the phase ran, are the
     // route: reference-only.)
 #if HVEN_TEST_ROUTE_REFERENCE
-    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
-    EXPECT_EQ(nullptr, seeded_row(sol));
+    ASSERT_EQ(want_seeded, seeded_rows(sol))
+        << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(want_seeded == 0, seeded_row(sol) == nullptr);
     EXPECT_GE(sol.counters.restoration_iters, 1)
         << "the phase RAN from the requesting iterate -- the half that never needed the seed";
 #else
@@ -2381,15 +2392,49 @@ TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNot
     EXPECT_NEAR(sol.x(1), t, 1e-5);
 }
 
+TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken) {
+    run_the_offered_candidate_no_longer_measures_better_and_is_not_taken(
+        hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationSeed.TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTaken. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
+// with that arm's own readings: the candidate is offered AND TAKEN (seeded_rows 1, both configs),
+// the old pre-flip premise. Exact readings are pinned on the reference build only (Linux/MKL, per
+// Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
+// status-level contracts are asserted.
+TEST(SqpDriverRestorationSeed, TheOfferedCandidateNoLongerMeasuresBetterAndIsNotTakenDenseArm) {
+    run_the_offered_candidate_no_longer_measures_better_and_is_not_taken(
+        hven::linear::DensePolicy::kAuto);
+}
+
 // AND THE SEED IS NOT GATED ON THE KERNEL (owner ruling Q-O3). The fixture is
 // the refactorize arm of InfeasibleNlpCertifies, MEASURED to take a trial-site
 // candidate in all three modes in BOTH configs -- so EQ(1) is falsifiable.
-TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
+static void run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
+    hven::linear::DensePolicy policy) {
+    // Dense arm (reference build): walk takes the candidate in both configs; ssn and ipm
+    // take it in Debug only.
+    const auto want_seeded = [policy](QpMode mode) -> Index {
+        if (policy != hven::linear::DensePolicy::kAuto) {
+            return 0;
+        }
+        if (mode == QpMode::kWalk) {
+            return 1;
+        }
+#ifdef NDEBUG
+        return 0;
+#else
+        return 1;
+#endif
+    };
+    (void)want_seeded; // read on the reference build only
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model;
         SqpOptions opts;
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+        opts.linear.dense_factorization = policy;
         // M7 W2 E2: the entry repair releases a seed pin dependent on the
         // equalities on this knife-edge model, and the candidate premise below
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -2408,7 +2453,8 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
         // it (owner Q-O3), is that the OFFER and the ANSWER are mode-independent:
         // every mode reaches the same certified point below.
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(0, seeded_rows(sol)) << "a mode took the seed: the margins have moved back";
+        EXPECT_EQ(want_seeded(mode), seeded_rows(sol))
+            << "a mode took the seed: the margins have moved back";
 #else
         hven::test_support::record_off_reference_route(
             std::string("seed_offer_") + seed_mode_name(mode),
@@ -2420,6 +2466,23 @@ TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEv
         EXPECT_NEAR(sol.x(0), t, 1e-5);
         EXPECT_NEAR(sol.x(1), t, 1e-5);
     }
+}
+
+TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne) {
+    run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
+        hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationSeed.TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOne. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
+// with that arm's own readings: the walk takes the candidate (1) in both configs, ssn and ipm only
+// in Debug. Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
+// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
+// contracts are asserted.
+TEST(SqpDriverRestorationSeed, TheSeedOfferIsNotGatedOnTheQpModeAndIsRefusedInEveryOneDenseArm) {
+    run_the_seed_offer_is_not_gated_on_the_qp_mode_and_is_refused_in_every_one(
+        hven::linear::DensePolicy::kAuto);
 }
 
 // M7 W2 E2 (settler S7): the seed fixtures on this model keep the pre-E2 walk
@@ -2448,12 +2511,15 @@ TEST(SqpDriverRestorationSeed, TheIndependentWorkingSetReachesTheSameCertifiedAn
 // THE EXHAUSTED-LADDER SITE'S OWN TAKEN PIN, site-specific and config-stable:
 // the requesting row carries the ladder's kRestore verdict, so this is the
 // elastic route's arm and not the radius floor's.
-TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
+static void run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
+    hven::linear::DensePolicy policy) {
+    const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;
+    (void)want_seeded; // read on the reference build only
     for (const QpMode mode : kSeedModes) {
         SCOPED_TRACE(seed_mode_name(mode));
         InfeasibleCircleLineModel model(2.0, 1.999999);
         SqpOptions opts;
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+        opts.linear.dense_factorization = policy;
         // M7 W2 E2 (S7): the taken seed on this knife-edge model belongs to the
         // pre-E2 walk's trajectory (the ipm mode takes none with the option on).
         opts.qp.independent_working_set = false;
@@ -2471,13 +2537,16 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         // EXHAUSTION, which is this fixture's actual subject, and it is asserted
         // directly off the history instead of through the seeded row.
 #if HVEN_TEST_ROUTE_REFERENCE
-        ASSERT_EQ(0, seeded_rows(sol));
-        EXPECT_EQ(nullptr, seeded_row(sol));
+        ASSERT_EQ(want_seeded, seeded_rows(sol));
+        EXPECT_EQ(want_seeded == 0, seeded_row(sol) == nullptr);
         bool saw_restore = false;
         for (const SqpIterate &r : sol.history) {
             saw_restore = saw_restore || r.verdict == StepVerdict::kRestore;
         }
-        EXPECT_TRUE(saw_restore) << "the ladder's exhaustion, not the floor";
+        // Dense arm: the seed is taken and no row carries kRestore (the site is not the
+        // ladder's exhaustion).
+        EXPECT_EQ(policy != hven::linear::DensePolicy::kAuto, saw_restore)
+            << "the ladder's exhaustion, not the floor";
 #else
         {
             Index restore_rows = 0;
@@ -2492,6 +2561,23 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuard
         EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
     }
+}
+
+TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt) {
+    run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
+        hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationSeed.TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesIt. The kNever
+// test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
+// arm) with that arm's own readings: every mode takes the candidate (1) and no history row carries
+// kRestore. Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
+// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
+// contracts are asserted.
+TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteOffersItsOwnStepAndTheGuardRefusesItDenseArm) {
+    run_the_exhausted_ladder_site_offers_its_own_step_and_the_guard_refuses_it(
+        hven::linear::DensePolicy::kAuto);
 }
 
 // THE SAME MODEL, THE SAME SITE, A WORSE CANDIDATE: from the symmetric start
@@ -2583,17 +2669,19 @@ TEST(SqpDriverRestorationSeed, ANonFiniteEvaluationAtTheCandidateIsRefused) {
 // A CANDIDATE WITH A NON-FINITE JACOBIAN (values finite): jacobian_values_finite
 // (sqp_solver.cpp) is the only screen against it. k sweeps [1, 40) -- EXISTS a
 // refused-candidate k (certifies, no seed) and NO k with M7's taken-then-died signature.
-TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
+static void
+run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy policy) {
     // THE CANDIDATE'S OWN k is build-arithmetic-dependent in general; every
     // OTHER k is unaffected by the M7 mutation below, since the guard is read
     // only inside the candidate-seeding block enter_restoration owns.
     bool found_refused_signature = false;
     Index refused_at_k = -1;
+    Index refused_count = 0;
     for (Index k = 1; k < 40; ++k) {
         SCOPED_TRACE(fmt::format("k = {}", k));
         JacobianPoisonedAtOrdinalModel model(k);
         SqpOptions opts;
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+        opts.linear.dense_factorization = policy;
         // M7 W2 E2: the entry repair releases a seed pin dependent on the
         // equalities on this knife-edge model, and the candidate premise below
         // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -2633,6 +2721,7 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         if (refused_signature) {
             found_refused_signature = true;
             refused_at_k = k;
+            ++refused_count;
         }
     }
     // THE NAME IS KEPT (it appears in frozen inventories and mutant records): the Jacobian
@@ -2654,20 +2743,56 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
     // restoration_iters 0 -- and the screen's own arm keeps that coverage. What the
     // change costs is the demonstration that the screen is REACHED on this model,
     // and that is stated rather than hidden.
-    EXPECT_FALSE(found_refused_signature)
-        << "a k in [1, 40) reached the Jacobian screen again (k = " << refused_at_k
-        << "): the h guard no longer refuses the candidate first, and the existential "
-           "premise above can be reinstated";
-    EXPECT_EQ(-1, refused_at_k);
+    if (policy == hven::linear::DensePolicy::kNever) {
+        EXPECT_FALSE(found_refused_signature)
+            << "a k in [1, 40) reached the Jacobian screen again (k = " << refused_at_k
+            << "): the h guard no longer refuses the candidate first, and the existential "
+               "premise above can be reinstated";
+        EXPECT_EQ(-1, refused_at_k);
+    } else {
+        // Dense arm: exactly ONE k reaches the Jacobian screen and sees it refuse the
+        // candidate (the existential premise is back, at a config-dependent k); the
+        // safety half (m7_signature false at every k) is asserted in the loop.
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_TRUE(found_refused_signature);
+        EXPECT_EQ(1, refused_count);
+#ifdef NDEBUG
+        EXPECT_EQ(16, refused_at_k);
+#else
+        EXPECT_EQ(17, refused_at_k);
+#endif
+#else
+        hven::test_support::record_off_reference_route(
+            "jacobian_screen_k", fmt::format("found={} refused_at_k={} refused_count={}",
+                                             found_refused_signature, refused_at_k, refused_count));
+#endif
+    }
+}
+
+TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
+    run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of SqpDriverRestorationSeed.AJacobianPoisonedCandidateIsRefusedNotTaken.
+// The kNever test above is kept as it was; this one runs the same fixture on the default (kAuto,
+// the dense arm) with that arm's own readings: exactly one k (16 Release, 17 Debug) reaches the
+// Jacobian screen and sees it refuse. Exact readings are pinned on the reference build only
+// (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
+// and only status-level contracts are asserted.
+TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTakenDenseArm) {
+    run_a_jacobian_poisoned_candidate_is_refused_not_taken(hven::linear::DensePolicy::kAuto);
 }
 
 // THE RADIUS FLOOR'S SITE, whose candidate is the REJECTED TRIAL and whose
 // violation is already judged (so the guard is free). Measured at the floor
 // (Release): the trial reads h = 1.00053814 against the entry's 1.00053914.
-TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
+static void run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refuses_it(
+    hven::linear::DensePolicy policy) {
+    const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;
+    (void)want_seeded; // read on the reference build only
     InfeasibleCircleLineModel model(1.0, 0.0);
     SqpOptions opts;
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    opts.linear.dense_factorization = policy;
     opts.trust_region_min = 1e-5;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -2676,8 +2801,8 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
     // kReject verdict on the requesting row, where the ladder's exhaustion writes
     // kRestore -- is this fixture's subject and is asserted off the history.
 #if HVEN_TEST_ROUTE_REFERENCE
-    ASSERT_EQ(0, seeded_rows(sol));
-    EXPECT_EQ(nullptr, seeded_row(sol));
+    ASSERT_EQ(want_seeded, seeded_rows(sol));
+    EXPECT_EQ(want_seeded == 0, seeded_row(sol) == nullptr);
 #endif
     // RE-DERIVED WITH THE SITE (E4 fix round 2, and see
     // `TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel` for the measurement):
@@ -2693,8 +2818,10 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
         saw_reject_row = saw_reject_row || r.verdict == StepVerdict::kReject;
     }
 #if HVEN_TEST_ROUTE_REFERENCE
-    EXPECT_TRUE(saw_restore_row) << "the ladder's exhaustion is the site now";
-    EXPECT_FALSE(saw_reject_row)
+    // Dense arm: the FLOOR'S OWN signature is back -- a kReject row, no kRestore row.
+    EXPECT_EQ(policy != hven::linear::DensePolicy::kAuto, saw_restore_row)
+        << "the ladder's exhaustion is the site now";
+    EXPECT_EQ(policy == hven::linear::DensePolicy::kAuto, saw_reject_row)
         << "a kReject row is back: the radius floor is the site again and this fixture's "
            "original read-out can be reinstated";
 #else
@@ -2704,6 +2831,23 @@ TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuard
 #endif
     EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
+}
+
+TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt) {
+    run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refuses_it(
+        hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationSeed.TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesIt. The kNever
+// test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
+// arm) with that arm's own readings: the seed is taken and the radius floor (a kReject row, no
+// kRestore row) is the site. Exact readings are pinned on the reference build only (Linux/MKL, per
+// Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
+// status-level contracts are asserted.
+TEST(SqpDriverRestorationSeed, TheOffDiagonalStartOffersTheLadderStepAndTheGuardRefusesItDenseArm) {
+    run_the_off_diagonal_start_offers_the_ladder_step_and_the_guard_refuses_it(
+        hven::linear::DensePolicy::kAuto);
 }
 
 // THE GUARD, AND THE PHASE, ARE ON THE CALLER'S SCALE, pinned where the two
@@ -2785,10 +2929,10 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
 // THE SEED'S EVALUATION IS COUNTED ONCE. A taken TRIAL candidate is an
 // UPGRADE of a query already charged values-only, so it is RECLASSIFIED
 // (--values, ++full) -- both halves are pinned separately below.
-TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
+static void run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy policy) {
     SeedCountingModel model(2.0, 2.0);
     SqpOptions opts;
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    opts.linear.dense_factorization = policy;
     // M7 W2 E2: the entry repair releases a seed pin dependent on the
     // equalities on this knife-edge model, and the candidate premise below
     // belongs to the pre-E2 walk's trajectory (answer unchanged either way).
@@ -2823,9 +2967,11 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     // both, and the PARTITION below is what the test is for.
     EXPECT_EQ(28, sol.counters.evals_full);
 #ifdef NDEBUG
-    EXPECT_EQ(36, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+    EXPECT_EQ(policy == hven::linear::DensePolicy::kAuto ? 37 : 36, sol.counters.evals_values)
+        << "evals_values was " << sol.counters.evals_values;
 #else
-    EXPECT_EQ(35, sol.counters.evals_values) << "evals_values was " << sol.counters.evals_values;
+    EXPECT_EQ(policy == hven::linear::DensePolicy::kAuto ? 36 : 35, sol.counters.evals_values)
+        << "evals_values was " << sol.counters.evals_values;
 #endif
 #else
     hven::test_support::record_off_reference_route(
@@ -2840,6 +2986,20 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
         << "the two counters PARTITION the model queries -- a fresh eval_nlp in place of the "
            "in-place upgrade adds an eval_ce and breaks this";
     EXPECT_GT(model.n_jac_e, 0);
+}
+
+TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
+    run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of SqpDriverRestorationSeed.TheSeedsEvaluationIsCountedExactlyOnce. The
+// kNever test above is kept as it was; this one runs the same fixture on the default (kAuto, the
+// dense arm) with that arm's own readings: the take survives; evals_full 28, evals_values 37
+// Release / 36 Debug (partition unchanged). Exact readings are pinned on the reference build only
+// (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
+// and only status-level contracts are asserted.
+TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnceDenseArm) {
+    run_the_seeds_evaluation_is_counted_exactly_once(hven::linear::DensePolicy::kAuto);
 }
 
 // THE SAME FIXTURE UNDER THE SHIPPED DEFAULT (kAuto, M7 W2 SCW): below the gate the
@@ -3062,11 +3222,26 @@ TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
 // to infer its rows' arms from row shape. Here the two solves differ in the
 // parent status too -- but the pin that matters is that the RECORD names the
 // sub-solve's verdict, and the two records differ.
-TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
+// THE EXCURSION FIXTURES' BUDGET ON THE DENSE ARM (C330-C). The sparse arm raises the
+// restoration request at major 5 (budget 5 leaves the sub-solve one iteration); on the dense arm
+// the request falls later, so a 5-major solve ends before it ("restoration_entries 0"). MEASURED
+// (budget sweep 3..60, InfeasibleCircleLineModel, kAuto): the request is first reached at a budget
+// of 6 in Release (sub-status kIterationLimit, 1 sub-iteration; 7 -> 2, 8 -> 3, 9+ converges) and 8
+// in Debug (sub-status kIterationLimit, 1 sub-iteration; 9 -> 2, 10 -> 3, 11 -> 4, 12+ converges).
+// These are the minima, so the sub-solve keeps the single iteration the kNever fixtures pin.
+#ifdef NDEBUG
+constexpr Index kDenseCrampedBudget = 6;
+#else
+constexpr Index kDenseCrampedBudget = 8;
+#endif
+
+static void
+run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(hven::linear::DensePolicy policy,
+                                                                  Index cramped_budget) {
     InfeasibleCircleLineModel model;
 
     SqpOptions roomy;
-    roomy.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    roomy.linear.dense_factorization = policy;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     roomy.advanced.equality_basis = false;
     roomy.common.max_iterations = 200;
@@ -3094,7 +3269,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
 #endif
 
     SqpOptions cramped;
-    cramped.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    cramped.linear.dense_factorization = policy;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.advanced.equality_basis = false;
     // CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2, for the reason
@@ -3107,7 +3282,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // converges. 43 keeps the sub-solve's three iterations pinned below. Release unchanged.
     // M7 W2 SNX (declared, Debug only): 43 -> 5. Debug's request falls where Release's does
     // again (`AWorseElasticCandidateIsRefusedOnTheSameModel`'s note), so the split is gone.
-    cramped.common.max_iterations = 5;
+    cramped.common.max_iterations = cramped_budget;
     cramped.advanced.qp_failure_step = false; // M7 W2 R2: the pre-R2 route, as `roomy`
     const SqpResult cut_off =
         SqpSolver(cramped).solve(hven::detail::problem_ref(model), (model).start_point());
@@ -3165,6 +3340,23 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
 #endif
 }
 
+TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
+    run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(
+        hven::linear::DensePolicy::kNever, 5);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationExcursion.TheSubStatusTellsACutOffSubSolveFromAConvergedOne. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
+// with that arm's own readings: the request is reached one major later than on the sparse arm: the
+// cramped budget is the measured minimum that reaches it (kDenseCrampedBudget). Exact readings are
+// pinned on the reference build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate:
+// UNOBSERVED) the route is recorded and only status-level contracts are asserted.
+TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOneDenseArm) {
+    run_the_sub_status_tells_a_cut_off_sub_solve_from_a_converged_one(
+        hven::linear::DensePolicy::kAuto, kDenseCrampedBudget);
+}
+
 // M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
 // fixture is that statement made three times at ONE parent status.
 //
@@ -3184,11 +3376,12 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
 // than a legal success value. Under the shipped-then-withdrawn representation
 // this solve reported `optimal` for a feasibility sub-solve it never started,
 // AT A PARENT STATUS THAT LOOKS EXACTLY LIKE THE ARM BELOW IT.
-TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
+static void run_the_sub_status_discriminates_at_one_parent_status(hven::linear::DensePolicy policy,
+                                                                  Index cramped_budget) {
     // ARM 1 -- requested, refused for budget, NEVER RAN.
     RunawayValleyModel valley_refused;
     SqpOptions refused;
-    refused.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    refused.linear.dense_factorization = policy;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     refused.advanced.equality_basis = false;
     refused.trust_region_initial = 8.0;
@@ -3227,7 +3420,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // as arm 1.
     RunawayValleyModel valley_resumed;
     SqpOptions resumed;
-    resumed.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    resumed.linear.dense_factorization = policy;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     resumed.advanced.equality_basis = false;
     resumed.trust_region_initial = 8.0;
@@ -3259,7 +3452,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // feas_tol, so the parent reports that status as its own.
     InfeasibleCircleLineModel circle;
     SqpOptions cramped;
-    cramped.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    cramped.linear.dense_factorization = policy;
     // The fixture's inconsistency is a dependent row pair; the equality basis removes it.
     cramped.advanced.equality_basis = false;
     // THE BUDGET IS CONFIG-SPLIT SINCE M7 W2 E4 FIX ROUND 2 (declared), so that the
@@ -3273,7 +3466,7 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
     // M7 W2 QC-8 (declared, Debug only): 6 -> 43, as `TheSubStatusTellsACutOffSubSolve
     // FromAConvergedOne` re-derives it (Debug's request now falls at major 40).
     // M7 W2 SNX (declared, Debug only): 43 -> 5, as that test re-derives it.
-    cramped.common.max_iterations = 5;
+    cramped.common.max_iterations = cramped_budget;
     // M7 W2 R2: the pre-R2 route (see the seed family's note) -- with the
     // failed-subproblem step this budget ends before the request is raised.
     cramped.advanced.qp_failure_step = false;
@@ -3308,6 +3501,23 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) 
               sub_cut_off.counters.restoration_sub_status);
     EXPECT_NE(sub_optimal.counters.restoration_sub_status,
               sub_cut_off.counters.restoration_sub_status);
+}
+
+TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
+    run_the_sub_status_discriminates_at_one_parent_status(hven::linear::DensePolicy::kNever, 5);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationExcursion.TheSubStatusDiscriminatesAtOneParentStatus. The kNever test above
+// is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm) with that
+// arm's own readings: arm 3's cramped budget is the measured minimum that reaches the request
+// (kDenseCrampedBudget); arms 1 and 2 are unchanged.
+// Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
+// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
+// contracts are asserted.
+TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatusDenseArm) {
+    run_the_sub_status_discriminates_at_one_parent_status(hven::linear::DensePolicy::kAuto,
+                                                          kDenseCrampedBudget);
 }
 
 // ---------------------------------------------------------------------------
@@ -3545,16 +3755,34 @@ constexpr double kCancellationKktTol = 4.475e-7;
 // precision: with `e` negligible the proxy and the exact residual coincide and
 // no separation exists at ANY weight, which is exactly why the first round's
 // three-arm fixture could not see the defect.
-TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
+// THE CANCELLATION FIXTURE'S WINDOW ON THE DENSE ARM (C330-C). MEASURED (kAuto, zeta 1.5e-6):
+//
+//              proxy                exact residual        kkt_tol     margins
+//   Release    4.5575743e-07        7.9354567e-07         4.88e-7     6.6 % / 62 %
+//   Debug      4.5575772e-07        5.5260230e-07         5.04e-7     9.5 % / 9.7 %
+//
+// Release's window is the sparse arm's (4.88e-7 keeps both premises). Debug's exact residual is
+// lower on the dense arm, and the sparse arm's Debug midpoint (4.475e-7) now sits BELOW the proxy
+// (premise 1 moved, 4.56e-7 > 4.475e-7); 5.04e-7 is the midpoint of the dense Debug window.
+// The trajectory does not depend on kkt_tol in this range (the sparse fixture's own finding).
+#ifdef NDEBUG
+constexpr double kDenseCancellationKktTol = 4.88e-7;
+#else
+constexpr double kDenseCancellationKktTol = 5.04e-7;
+#endif
+
+static void
+run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::DensePolicy policy,
+                                                             double kkt_tol) {
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    opts.linear.dense_factorization = policy;
     // M7 W2 E2: in Debug the E2 walk's end point satisfies the exact residual
     // (5.5e-7 < 6.3e-7) and is then rightly certified; premise 2 belongs to the
     // pre-E2 walk's trajectory.
     opts.qp.independent_working_set = false;
     opts.common.max_iterations = 200;
-    opts.common.optimality_tol = kCancellationKktTol;
+    opts.common.optimality_tol = kkt_tol;
     opts.advanced.restoration_proximity = kCancellationZeta;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
@@ -3590,6 +3818,23 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
                                     opts.common.optimality_tol, sol.infeasibility_certified));
 }
 
+TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
+    run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::DensePolicy::kNever,
+                                                                 kCancellationKktTol);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationProximity.TheProxyWouldCertifyWhereTheExactResidualRefuses. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
+// with that arm's own readings: the same premises (proxy below kkt_tol, exact residual above),
+// Debug at its own midpoint (kDenseCancellationKktTol). Exact readings are pinned on the reference
+// build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is
+// recorded and only status-level contracts are asserted.
+TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefusesDenseArm) {
+    run_the_proxy_would_certify_where_the_exact_residual_refuses(hven::linear::DensePolicy::kAuto,
+                                                                 kDenseCancellationKktTol);
+}
+
 // THE SEED GUARD, DRIVEN END TO END AT zeta > 0 (fix round 1; the review's
 // "that test constructs the two points directly"). The sibling fixture
 // `RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity` pins
@@ -3606,10 +3851,13 @@ TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRef
 // any such point the wrapper's start objective is h + P with P > 0 -- never h
 // -- and that is the declared price of centring on `x_k`
 // (detail/globalization/sqp/restoration.h's class note).
-TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
+static void
+run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy policy) {
+    const Index want_seeded = policy == hven::linear::DensePolicy::kAuto ? 1 : 0;
+    (void)want_seeded; // read on the reference build only
     WatchedCircleLineModel model(2.0, 1.999999);
     SqpOptions opts;
-    opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+    opts.linear.dense_factorization = policy;
     // M7 W2 E2 (S7): the taken candidate belongs to the pre-E2 walk (Release takes none with it
     // on).
     opts.qp.independent_working_set = false;
@@ -3633,8 +3881,9 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
     // reference-only. Off the reference build the test continues when the phase ran, and records
     // the route and ends when it did not (there is no requesting iterate to recover).
 #if HVEN_TEST_ROUTE_REFERENCE
-    ASSERT_EQ(0, seeded_rows(sol)) << "the candidate measures better again: the guard took it";
-    EXPECT_EQ(nullptr, seeded_row(sol));
+    ASSERT_EQ(want_seeded, seeded_rows(sol))
+        << "the candidate measures better again: the guard took it";
+    EXPECT_EQ(want_seeded == 0, seeded_row(sol) == nullptr);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase RAN from the requesting iterate";
     ASSERT_EQ(1, sol.counters.restoration_entries);
 #else
@@ -3695,6 +3944,21 @@ TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlus
 #if HVEN_TEST_ROUTE_REFERENCE
     EXPECT_GE(candidates, 1) << "the guard fired, so at least one better-measuring point exists";
 #endif
+}
+
+TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
+    run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationProximity.TheSeedGuardFiresAndTheStartObjectiveIsHPlusP. The kNever test
+// above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm)
+// with that arm's own readings: the guard TAKES the offered candidate (seeded_rows 1, both
+// configs). Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
+// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only status-level
+// contracts are asserted.
+TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusPDenseArm) {
+    run_the_seed_guard_fires_and_the_start_objective_is_h_plus_p(hven::linear::DensePolicy::kAuto);
 }
 
 // THE REFUSALS' MESSAGE CONTENT (fix round 1). CLAUDE.md section 4 requires a
@@ -4438,12 +4702,22 @@ TEST(RestorationModelRegularized, OffIsTheWrapperThatShips) {
 // next stall, so every serviced request is followed by another.
 // =========================================================================
 
-TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
+static void run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_one(
+    hven::linear::DensePolicy policy) {
+    // Dense arm, Release: above a cap of one the second phase RESUMES too and the solve ends
+    // kOptimal (2 resumes, 16 accepted steps, 59 phase iterations, 33 majors). Debug reads
+    // as the sparse arm does.
+#ifdef NDEBUG
+    const bool dense_release = policy == hven::linear::DensePolicy::kAuto;
+#else
+    const bool dense_release = false;
+#endif
+    (void)dense_release; // read on the reference build only
     for (const Index cap : {Index{1}, Index{2}, Index{3}}) {
         SCOPED_TRACE(fmt::format("max_restoration_entries = {}", cap));
         RunawayValleyModel model;
         SqpOptions opts;
-        opts.linear.dense_factorization = hven::linear::DensePolicy::kNever; // DN-3 flip
+        opts.linear.dense_factorization = policy;
         opts.trust_region_initial = 8.0;
         opts.common.max_iterations = 200;
         opts.advanced.max_restoration_entries = cap;
@@ -4456,10 +4730,18 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         // fixture the second phase itself ends without a point inside feas_tol (its
         // sub-solve numerical_error), so the solve ends there whatever the cap.
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(log.resumes.size(), 1u);
+        const bool resumed_twice = dense_release && cap >= 2;
+        EXPECT_EQ(log.resumes.size(), resumed_twice ? 2u : 1u);
         EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
         EXPECT_EQ(sol.counters.restoration_entries, cap == 1 ? 1 : 2);
-        EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
+        EXPECT_EQ(sol.status, resumed_twice ? SolveStatus::kOptimal : SolveStatus::kNumericalError);
+        if (resumed_twice) {
+            const hven::test_support::NlpKktResidual chk =
+                hven::test_support::self_check_kkt(model, sol, opts.common.feasibility_tol);
+            EXPECT_LE(chk.stationarity, 10.0 * opts.common.optimality_tol);
+            EXPECT_LE(chk.primal, 10.0 * opts.common.feasibility_tol);
+            EXPECT_LE(chk.dual_sign, 1e-9);
+        }
 #else
         // The number of serviced entries and the ending are a route (macOS: 2 resumes and
         // kOptimal at a cap of one's neighbours -- the better outcome): recorded, not pinned.
@@ -4487,6 +4769,23 @@ TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAbove
         EXPECT_LT(sol.counters.major_iters + sol.counters.restoration_iters,
                   opts.common.max_iterations);
     }
+}
+
+TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne) {
+    run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_one(
+        hven::linear::DensePolicy::kNever);
+}
+
+// C330-C DENSE-ARM TWIN of
+// SqpDriverRestorationEntries.ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOne. The kNever
+// test above is kept as it was; this one runs the same fixture on the default (kAuto, the dense
+// arm) with that arm's own readings: Release resumes twice and ends kOptimal at a cap above one (2
+// resumes, 2 entries). Exact readings are pinned on the reference build only (Linux/MKL, per
+// Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only
+// status-level contracts are asserted.
+TEST(SqpDriverRestorationEntries, ASecondRequestAfterProgressIsServicedOnlyAboveACapOfOneDenseArm) {
+    run_a_second_request_after_progress_is_serviced_only_above_a_cap_of_one(
+        hven::linear::DensePolicy::kAuto);
 }
 
 // THE RE-BASED FUNNEL WIDTH ON A SECOND RESUME (M7 W2 RST rider L6). RunawayValleyModel
@@ -4722,6 +5021,155 @@ TEST(SqpRestorationNanGate, TheSubgradientCertificateRefusesANonFirstNaN) {
                 << n << " " << j;
         }
     }
+}
+
+// C330-C DENSE-ARM TWIN of SqpDriverRestoration.AlgebraModeDivergenceIsANonUniqueSubproblemOptimum.
+// On the dense arm the two algebras do NOT diverge: both land on the open-relaxation LP face
+// x0 + x1 = 2 at (1.875, 0.125), 6e-9 (Release) / 1e-9 (Debug) apart -- the diagnosis's reading
+// (regularization-defined terminal point; no dense inertia mis-report). Part (b), the fragility
+// half, holds unchanged. Exact readings on the reference build; elsewhere the route is recorded
+// and the structural face-or-diagonal contract of the kNever test's off-reference arm is asserted.
+TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimumDenseArm) {
+    Vec x_border(2), x_refac(2);
+    for (const auto algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kAuto;
+        opts.advanced.equality_basis = false;
+        opts.qp.independent_working_set = false;
+        opts.common.max_iterations = 2;
+        opts.qp.working_set_algebra = algebra;
+        opts.advanced.qp_failure_step = false;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(hven::detail::engine_rows(sol).lambda_e(0), 0.0)
+            << "an open elastic relaxation carries no multipliers";
+        EXPECT_EQ(sol.counters.restoration_entries, 0);
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("algebra_divergence_dense_") +
+                (algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize"),
+            fmt::format("lambda_e0={:.17g} restoration_entries={} x=({:.17g},{:.17g})",
+                        hven::detail::engine_rows(sol).lambda_e(0),
+                        sol.counters.restoration_entries, sol.x(0), sol.x(1)));
+#endif
+        (algebra == QpWorkingSetAlgebra::kSchurBorder ? x_border : x_refac) = sol.x;
+    }
+#if HVEN_TEST_ROUTE_REFERENCE
+    for (const Vec *x : {&x_border, &x_refac}) {
+        EXPECT_NEAR((*x)(0) + (*x)(1), 2.0, 1e-12) << "the open-relaxation LP face";
+        EXPECT_NEAR((*x)(0), 1.875, 1e-6);
+        EXPECT_NEAR((*x)(1), 0.125, 1e-6);
+    }
+    EXPECT_LT((x_border - x_refac).lpNorm<Eigen::Infinity>(), 1e-6)
+        << "the two modes agree on the dense arm (the kNever arm's 1e-3 separation is gone)";
+#else
+    for (const Vec *x : {&x_border, &x_refac}) {
+        EXPECT_TRUE(std::abs((*x)(0) + (*x)(1) - 2.0) <= 1e-12 ||
+                    std::abs((*x)(0) - (*x)(1)) <= 1e-8)
+            << "iterate (" << (*x)(0) << ", " << (*x)(1)
+            << ") is on neither the face nor the diagonal";
+    }
+#endif
+    // (b) FRAGILITY, as the kNever test: both modes certify the same point.
+    for (const auto algebra :
+         {QpWorkingSetAlgebra::kSchurBorder, QpWorkingSetAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == QpWorkingSetAlgebra::kSchurBorder ? "border" : "refactorize");
+        InfeasibleCircleLineModel model(2.0, 1.999999);
+        SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kAuto;
+        opts.advanced.equality_basis = false;
+        opts.common.max_iterations = 200;
+        opts.qp.working_set_algebra = algebra;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const double t = 1.0 / std::sqrt(2.0);
+        EXPECT_NEAR(sol.x(0), t, 1e-5);
+        EXPECT_NEAR(sol.x(1), t, 1e-5);
+        EXPECT_GT(sol.counters.major_iters, 10);
+    }
+}
+
+// C330-C DENSE-ARM TWIN of SqpDriverRadius.TheElasticExhaustionPreemptsTheRadiusFloorOnThisModel.
+// On the dense arm the radius DOES grind: the last funnel verdict is kReject (the floor escalated
+// an ordinary rejection, route (3)), the radius ends within one halving of the floor, and the
+// floor is a real knob (a floor three orders higher saves 10 majors). That is the fixture's
+// original docstring reading, restored. MEASURED (kAuto, off-diagonal start, funnel recorded):
+//   floor 1e-5: Release 35 majors / Debug 38, last radius 1.5258789e-5, 5 phase iterations
+//   floor 1e-2: Release 25 majors / Debug 28, last radius 0.015625,     5 phase iterations
+// Exact readings on the reference build; elsewhere recorded, with the contract (verdict, the
+// certificate, the floor held) asserted.
+TEST(SqpDriverRadius, TheElasticExhaustionPreemptsTheRadiusFloorOnThisModelDenseArm) {
+    struct Run {
+        double tr_min;
+        Index majors = 0;
+        double last_radius = 0.0;
+    };
+    std::vector<Run> runs{{1e-5}, {1e-2}};
+    for (Run &run : runs) {
+        SCOPED_TRACE(fmt::format("trust_region_min {:g}", run.tr_min));
+        InfeasibleCircleLineModel model(1.0, 0.0);
+        SqpOptions opts;
+        opts.linear.dense_factorization = hven::linear::DensePolicy::kAuto;
+        opts.trust_region_min = run.tr_min;
+        FunnelLog log;
+        record_funnel_into(opts, &log);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+        run.majors = sol.counters.major_iters;
+        ASSERT_FALSE(sol.history.empty());
+        run.last_radius = sol.history.back().tr_radius;
+        ASSERT_FALSE(log.verdict.empty());
+#if HVEN_TEST_ROUTE_REFERENCE
+        EXPECT_EQ(std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore), 0)
+            << "the funnel's own signature never fires; the driver's floor raised the request";
+        EXPECT_EQ(log.verdict.back(), StepVerdict::kReject)
+            << "the floor escalated an ordinary rejection";
+        EXPECT_TRUE(log.resumes.empty())
+            << "this fixture is infeasible; there is nothing to resume to";
+        // The floor was REACHED and not overshot: the last radius is within one halving of it.
+        EXPECT_GE(run.last_radius, opts.trust_region_min);
+        EXPECT_LT(run.last_radius * 0.5, opts.trust_region_min)
+            << "the radius stopped above the floor: the elastic tier pre-empted it";
+        EXPECT_EQ(sol.counters.restoration_iters, 5);
+#else
+        hven::test_support::record_off_reference_route(
+            fmt::format("radius_floor_dense_tr_min_{:g}", run.tr_min),
+            fmt::format("restore_verdicts={} last_verdict={} resumes={} last_radius={:.17g} "
+                        "majors={}",
+                        std::count(log.verdict.begin(), log.verdict.end(), StepVerdict::kRestore),
+                        static_cast<int>(log.verdict.back()), log.resumes.size(), run.last_radius,
+                        run.majors));
+#endif
+        for (const SqpIterate &h : sol.history) {
+            EXPECT_GE(h.tr_radius, opts.trust_region_min) << "trial " << h.trial;
+        }
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+        EXPECT_TRUE(sol.infeasibility_certified);
+        const SubgradientCertificate c = check_certificate(model, sol, opts.common.feasibility_tol);
+        EXPECT_NEAR(c.h, 2.0 - std::sqrt(2.0), 1e-6);
+        EXPECT_LE(c.stationarity, opts.common.optimality_tol);
+        EXPECT_LE(c.selector, 1e-9);
+    }
+#if HVEN_TEST_ROUTE_REFERENCE
+    // (3) the knob bites: the higher floor saves exactly 10 majors (Release 35 -> 25, Debug 38 ->
+    // 28).
+#ifdef NDEBUG
+    EXPECT_EQ(runs[0].majors, 35);
+    EXPECT_EQ(runs[1].majors, 25);
+#else
+    EXPECT_EQ(runs[0].majors, 38);
+    EXPECT_EQ(runs[1].majors, 28);
+#endif
+    EXPECT_EQ(runs[0].last_radius, 1.52587890625e-05);
+    EXPECT_EQ(runs[1].last_radius, 0.015625);
+#else
+    EXPECT_LE(runs[1].majors, runs[0].majors) << "a higher floor never costs majors";
+#endif
 }
 
 HVEN_SUPPRESS_DEPRECATED_END
