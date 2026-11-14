@@ -793,7 +793,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     // corpus_cells.h): a never-requested token with HVEN_LEG_UNFIRED_TOKEN set,
     // the default empty budget otherwise.
     hven::SolveBudget leg_budget;
-    leg_budget.stop = corpus_leg_token();
+    leg_budget.stop = corpus::detail::corpus_leg_token();
     const hven::IpmResult measured = payload.has_value()
                                          ? ipm.solve(program, x0, *payload, leg_budget)
                                          : ipm.solve(program, x0, {}, leg_budget);

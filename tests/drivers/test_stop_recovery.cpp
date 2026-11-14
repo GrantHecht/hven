@@ -34,6 +34,7 @@
 #include <Eigen/Core>
 
 #include "hven/core/stop.h"
+#include "hven/detail/warmstart/warm_start_access.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_result.h"
@@ -287,6 +288,16 @@ TEST(StopRecovery, T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint)
         EXPECT_TRUE(same_scalar(r.complementarity, entry.complementarity));
         ASSERT_EQ(r.g.size(), 1) << "g is the declared constraint value at the entry point";
         EXPECT_NEAR(r.g[0], r.x[0] * r.x[0] + r.x[1] * r.x[1] + 1.0, 1e-12);
+        // THE WARM START OF A STASH EXIT (pins the migration-0.2.md row): it is the
+        // entry point's x and equality multipliers, CORE ONLY. No polish extension
+        // is attached even when the problem is boxed -- the capture still treats a
+        // restoration-flagged exit conservatively (solve_exit_restoration_active_).
+        ASSERT_FALSE(r.warm_start.empty()) << "a stash exit still exports a warm start";
+        using hven::detail::WarmStartAccess;
+        EXPECT_TRUE(bit_equal(WarmStartAccess::primal(r.warm_start), entry.x));
+        EXPECT_TRUE(bit_equal(WarmStartAccess::eq(r.warm_start), entry.lambda));
+        EXPECT_TRUE(WarmStartAccess::extensions(r.warm_start).empty())
+            << "no polish extension on a stash exit";
     }
 }
 
