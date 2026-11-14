@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# M8 AP-5 G2 (DECLARATION-r2.md): the G1 column-map step is REMOVED (identity map: arm A is post-G1), see the interior branch.
 # M8 AP-5 G1 (DECLARATION.txt in this directory): copied from ../../2026-11-m8-dn3b/runtime/ with ONE change, declared
 # before data: in the interior mode arm A's per-round CSV first passes through the declared stop-reason column map
 # (../legs/stop_reason_map.py), so counter identity is judged map(A) vs B; every other line is DN-3b's. Older provenance
@@ -49,9 +50,6 @@ compare = os.path.join(repo, 'scripts/compare_replay.py')
 if not os.path.isfile(compare):
     sys.exit(f'COMPARE_NOT_FOUND {compare}')
 ROUNDS = (1, 2, 3)
-stop_map = os.path.join(here, '../legs/stop_reason_map.py')  # M8 AP-5 G1: the declared column map
-if not os.path.isfile(stop_map):
-    sys.exit(f'STOP_MAP_NOT_FOUND {stop_map}')
 
 
 def syms(path):
@@ -116,13 +114,9 @@ for tag in tags:
             mismatch += 1
             continue
         if mode == 'interior':
-            amapped = a[:-4] + '.mapped.csv'
-            mres = subprocess.run([sys.executable, stop_map, a, amapped], capture_output=True, text=True)
-            print(mres.stdout.strip() or mres.stderr.strip())
-            if mres.returncode != 0:
-                mismatch += 1
-                continue
-            res = subprocess.run([sys.executable, compare, amapped, b, 'interior r%d' % r],
+            # M8 AP-5 G2 (DECLARATION-r2.md): G2 changes no column and arm A already carries G1's stop-reason
+            # spelling, so the column map is the identity -- arm A's CSV is compared with arm B's as it is.
+            res = subprocess.run([sys.executable, compare, a, b, 'interior r%d' % r],
                                  capture_output=True, text=True)
             head = res.stdout.splitlines()[0] if res.stdout else res.stderr.strip()
             print(head)
