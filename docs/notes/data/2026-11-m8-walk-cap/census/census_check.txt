@@ -1,0 +1,2 @@
+cells=57 exact=44 movers=0 (worse 0, better 0, neutral 0) deadline_bound=13
+CENSUS_WALKCAP_PASS

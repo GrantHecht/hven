@@ -1,0 +1,1 @@
+=== I1-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
