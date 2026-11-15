@@ -1,0 +1,9 @@
+r2 (DECLARATION-r2.md; code head e90182b35263d3c59d31a85ba69f475a4758fdca over origin/m8 5ce6dc220; arm A 959a1570.., arm B 91b3f9cb..)
+P1 Release: 100% tests passed, 0 failed out of 3757; Debug: same (suites-r2/)
+P3 replay A-vs-B walk/ssn/ipm: differences 0 x3; ARMED vs B: 0 x3
+P4 interior unmoved 0, promoted 0, armed 0 (43 cells)
+P5 install smoke default+clang rc 0, export contract OK x2 (install-smoke-r2/export-contract-summary.txt now populated)
+P8 TSan: drivers 100 tests + StopPollSeam, reports=0
+M  control clean; killed: a b c d e f g h i j k l m n o p q r s t u v w y z A B C D E (h now killed; C killed, reported-only)
+M  x SURVIVES -- a MUST-KILL (rider 3): the column-scaling fixtures' depth-1 prices sit on the UPPER bound only, so z_lower's column map is not exercised.
+CRITERIA NOT MET (x). r2 is a FAILED proof under its own declaration; successor r3 adds a lower-bound-blocked fixture (ScaledFloorBlockedModel) and re-runs; DECLARATION-r2.md is not edited.
