@@ -532,7 +532,9 @@ void expect_snapshot_equals(const IterationSnapshot &best, const IterationSnapsh
     EXPECT_EQ(best.phase, ev.phase);
     EXPECT_EQ(best.mu.has_value(), ev.mu.has_value());
     if (best.mu && ev.mu) {
-        EXPECT_TRUE(same_scalar(*best.mu, *ev.mu));
+        // Two division sites under the build's relaxed floating-point mode (the
+        // sanitizer builds round them one ulp apart): equal to rounding.
+        EXPECT_NEAR(*best.mu, *ev.mu, 1e-14 * std::abs(*ev.mu)) << "iteration " << best.iteration;
     }
 }
 
