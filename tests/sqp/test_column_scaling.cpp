@@ -942,6 +942,13 @@ class ScaledBoxBlockedModel : public NlpModel {
     Vec upper_ = (Vec(2) << 1e4, 1.0).finished();
 };
 
+// THE MIRROR, on the floor: 1e-4 x0 = -5 with 0 <= x0 <= 1e4 is out of reach the other
+// way, so restoration ends on x0's LOWER bound and the price sits in z_lower.
+class ScaledFloorBlockedModel final : public ScaledBoxBlockedModel {
+  public:
+    Vec eval_ce(const Vec &x) const override { return Vec::Constant(1, 1e-4 * x(0) + 5.0); }
+};
+
 TEST(ColumnScalingDriver, ACertifiedExitMapsTheFeasibilityPrice) {
     // Restoration ends on x0's cap: the certificate's price there is not grad L's,
     // which a re-measurement would have exported instead.
@@ -1242,7 +1249,8 @@ TEST(ColumnScalingDriver, TheTraceTheResultAndTheLedgerAgreeOnAFiredSolve) {
 // is the reference's (the kOff solve of the scaled model) with its first n entries
 // of x multiplied by d and of z divided by d, and nothing else moved.
 template <class Model>
-void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_price) {
+void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_price,
+                          bool lower_side_price = false) {
     const Vec x0 = model.start_point();
     SpMatRM je;
     model.eval_jac_e_in_place(x0.cwiseMax(model.lower()).cwiseMin(model.upper()), je);
@@ -1277,6 +1285,7 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     ASSERT_EQ(ref_events.size(), events.size());
     Index depth1 = 0;
     bool depth1_bound_price = false;
+    bool depth1_lower_price = false;
     for (std::size_t k = 0; k < events.size(); ++k) {
         SCOPED_TRACE(k);
         const Seen &r = ref_events[k];
@@ -1311,6 +1320,8 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
             ++depth1;
             for (Index j = 0; j < 2; ++j) {
                 depth1_bound_price = depth1_bound_price || (cs.cols(j) != 1.0 && r.z(j) != 0.0);
+                depth1_lower_price =
+                    depth1_lower_price || (cs.cols(j) != 1.0 && r.z_lower(j) != 0.0);
             }
             EXPECT_GT(e.x.size(), 2) << "the feasibility problem carries slacks beyond x";
         }
@@ -1318,6 +1329,10 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     EXPECT_GE(depth1, 1) << "the premise: restoration rows were seen";
     if (scaled_bound_price) {
         EXPECT_TRUE(depth1_bound_price) << "the premise: a depth-1 bound price on a scaled column";
+    }
+    if (lower_side_price) {
+        EXPECT_TRUE(depth1_lower_price)
+            << "the premise: a depth-1 LOWER-side price on a scaled column (z_lower's map)";
     }
 }
 
@@ -1329,6 +1344,10 @@ TEST(ColumnScalingDriver, RestorationEventsCarryTheCallersUnitsInTheCallersVaria
     {
         SCOPED_TRACE("box-blocked equality"); // restoration ends on x0's scaled cap
         expect_mapped_events(ScaledBoxBlockedModel{}, 60, true);
+    }
+    {
+        SCOPED_TRACE("box-blocked equality, floor"); // restoration ends on x0's lower bound
+        expect_mapped_events(ScaledFloorBlockedModel{}, 60, true, true);
     }
 }
 
