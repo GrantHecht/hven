@@ -125,7 +125,8 @@ new, so there is no rewrite.
 - `SolveResult::best_iterate` (`std::optional<IterationSnapshot>`): the best iterate
   the solve visited, with `x`, `lambda`, `z`, `g`, `f` and the three diagnostics
   filled. Present when the tracker was armed and the solve did not end `kOptimal` or
-  `kAcceptable`; otherwise `nullopt`. **Armed** when a return-best option is on
+  `kAcceptable` (or the best was substituted for the primary point, whatever the
+  status); otherwise `nullopt`. **Armed** when a return-best option is on
   (`IpmOptions::return_best`, `SqpOptions::return_best_on_max_iterations`), an
   iteration callback is installed, or `SolveBudget::stop` can fire. Best by each
   engine's own ordering: interior-point, `IpmOptions::best_iterate_criterion` over the
@@ -149,9 +150,14 @@ Per-field notes on `best_iterate`: `iteration` is the iterate's own row/iteratio
 index (SQP: its `history` index; interior-point: the per-phase index); `step_norm`
 and `phase`/`depth`/`radius`/`mu` are those of its own event; `elapsed_seconds` is the
 time the iterate was reached. On `returned_best_iterate` solves the primary fields
-and `best_iterate` agree bit for bit on an unscaled solve; on a scaled SQP solve the
-primary diagnostics are re-measured at the caller's scale and may differ from
-`best_iterate`'s in the last digits.
+and `best_iterate` agree bit for bit on an unscaled solve, with two exceptions: in an
+interior-point phase that is not objective-bearing `best_iterate.f` is NaN (nothing
+measured the objective there) while the primary `f` is the objective evaluated at the
+returned point; and on a scaled SQP solve the primary diagnostics are re-measured at
+the caller's scale and may differ from `best_iterate`'s in the last digits.
+`returned_best_iterate` implies `best_iterate` is set, on both engines, `kAcceptable`
+exits included; the SQP engine's `best_iterate` inequality multipliers carry the same
+sign repair as the primary's.
 
 Not in this group (arrive with the payload group): `g`, `violation`, `z_lower` and
 `z_upper` on `IterationEvent`, the `IpmIterationInfo`/`SqpIterationInfo` blocks, and the

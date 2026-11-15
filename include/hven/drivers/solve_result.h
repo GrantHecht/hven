@@ -153,7 +153,7 @@ struct IterationSnapshot {
     /// Row values at `x`, in the row space of `lambda`. Filled in
     /// SolveResult::best_iterate; empty in a snapshot of an event.
     Vec g;
-    double elapsed_seconds = 0.0;
+    double elapsed_seconds = std::numeric_limits<double>::quiet_NaN();
 };
 
 /// @brief The result core both engines return through.
@@ -221,6 +221,10 @@ struct SolveResult {
     /// feasibility-restoration point. `g` is filled; `iteration`, `step_norm`
     /// and the engine fields are those of the iterate's own event.
     /// @ref returned_best_iterate says whether the primary point is this one.
+    /// Invariant, both engines: returned_best_iterate implies best_iterate is set.
+    /// It is set whenever the best was substituted for the primary point
+    /// (whatever the status, kAcceptable included), and otherwise only on an exit
+    /// that is neither kOptimal nor kAcceptable.
     std::optional<IterationSnapshot> best_iterate;
 
     /// @brief SQP engine only (the interior-point engine leaves it false). True
@@ -550,7 +554,7 @@ struct IterationEvent {
     ///
     /// INFORMATIONAL, NEVER ASSERTED, on SolveResult::wall_seconds's own
     /// footing (CLAUDE.md section 7).
-    double elapsed_seconds = 0.0;
+    double elapsed_seconds = std::numeric_limits<double>::quiet_NaN();
 };
 
 /// @brief The per-iteration callback both engines take.

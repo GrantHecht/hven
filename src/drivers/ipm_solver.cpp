@@ -2234,7 +2234,8 @@ std::uint64_t hven::detail::IpmSolverImpl::next_owner_id() {
 void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int i,
                                                      const VectorXd &XSL, const VectorXd &RHS,
                                                      double mu, double step_norm,
-                                                     double &BestCriteriaVal, int &BestIter) {
+                                                     double &BestCriteriaVal, int &BestIter,
+                                                     bool &recorded) {
     double critval;
     switch (opts_.best_iterate_criterion) {
     case IpmBestIterateCriterion::kEquality:
@@ -2252,8 +2253,13 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
     default:
         throw std::invalid_argument("Unknown BestIterateCriterion");
     }
-    if (critval <= BestCriteriaVal || i == 0) {
+    // A finite criterion competes with a finite incumbent; a phase's first iterate
+    // is stored whatever it scores, and a non-finite incumbent (or none) yields to
+    // the first finite one. `recorded` is true exactly when the stored iterate's
+    // criterion is finite.
+    if (i == 0 || (std::isfinite(critval) && (!recorded || critval <= BestCriteriaVal))) {
         BestCriteriaVal = critval;
+        recorded = std::isfinite(critval);
         this->best_xsl_scratch_ = XSL;
         this->best_rhs_scratch_ = RHS;
         // bound_duals_ carries no XSL/RHS-embedded counterpart, so it needs
@@ -2292,9 +2298,9 @@ void hven::detail::IpmSolverImpl::publish_phase_best(bool recorded) {
     // The tracked pair read through the event's own conversion; the row space
     // `lambda` and `g` are mapped from the four blocks by Problem.
     const ExitEvalProvenance &prov = this->best_eval_prov_;
-    DeclaredPoint pt = this->declared_point(this->best_xsl_scratch_, this->best_rhs_scratch_,
-                                            this->best_bound_duals_scratch_, prov,
-                                            prov.restoration_active, true, true);
+    DeclaredPoint pt =
+        this->declared_point(this->best_xsl_scratch_, this->best_rhs_scratch_,
+                             this->best_bound_duals_scratch_, prov, prov.restoration_active, true);
     const double scale = this->solve_obj_scale_;
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const bool objective_measured = prov.objective_bearing && !prov.restoration_active;
@@ -2384,8 +2390,7 @@ hven::detail::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
 
 hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared_point(
     const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS, const BoundDualState &duals,
-    const ExitEvalProvenance &prov, bool restoration_contaminated, bool want_vectors,
-    bool want_diagnostics) const {
+    const ExitEvalProvenance &prov, bool restoration_contaminated, bool want_diagnostics) const {
     const double scale = this->solve_obj_scale_;
     DeclaredPoint pt;
     Eigen::VectorXd &x_declared = pt.x;
@@ -2490,7 +2495,6 @@ hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared
                 scale, prov.objective_bearing);
         }
     }
-    (void)want_vectors;
     return pt;
 }
 
@@ -2577,7 +2581,7 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     DeclaredPoint pt;
     if (want_declared) {
         pt = this->declared_point(XSL, RHS, this->bound_duals_, prov, restoration_contaminated,
-                                  want_vectors, want_diagnostics);
+                                  want_diagnostics);
     }
     Eigen::VectorXd &x_declared = pt.x;
     Eigen::VectorXd &lambda_e_declared = pt.lambda_e;
@@ -3585,8 +3589,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             if (this->best_tracking_armed() &&
                 !(this->restoration_ && this->restoration_->is_active())) {
                 this->track_best_iterate(iters.back(), i, XSL, RHS, mu, last_step_norm,
-                                         BestCriteriaVal, BestIter);
-                best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+                                         BestCriteriaVal, BestIter, best_recorded);
             }
 
             // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
@@ -3845,8 +3848,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             if (this->best_tracking_armed() &&
                 !(this->restoration_ && this->restoration_->is_active())) {
                 this->track_best_iterate(iters.back(), i, XSL, RHS, mu, last_step_norm,
-                                         BestCriteriaVal, BestIter);
-                best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+                                         BestCriteriaVal, BestIter, best_recorded);
             }
             // kStopReturnBest: the best iterate is the returned point, as at the
             // return_best exits below; an empty tracker leaves the shown point.
@@ -4672,8 +4674,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         if (this->best_tracking_armed() &&
             !(this->restoration_ && this->restoration_->is_active())) {
             this->track_best_iterate(iters.back(), i, XSL, RHS, eval_mu, last_step_norm,
-                                     BestCriteriaVal, BestIter);
-            best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+                                     BestCriteriaVal, BestIter, best_recorded);
         }
 
         // SITE 2 OF 2 (`ipm.iter`): the ORDINARY END-OF-ITERATION site, after
@@ -5104,7 +5105,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
     // SolveResult's field note.
-    this->result_.returned_best_iterate = return_best_applied;
+    // The claim needs a recorded best to stand on: a phase that left before the
+    // tracker recorded anything (a limit at its first row) substituted nothing.
+    this->result_.returned_best_iterate = return_best_applied && best_recorded;
     this->result_.returned_pre_restoration_point = stash_exit;
     this->result_.convergence.kkt = ret_row.kkt_inf;
     this->result_.convergence.barrier = ret_row.barr_inf;
@@ -5127,8 +5130,11 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     this->phase_exit_.kkt_s = qptime;
     this->phase_exit_.print_s = printtime;
 
-    this->publish_phase_best(best_recorded && ExitCode != SolveStatus::kOptimal &&
-                             ExitCode != SolveStatus::kAcceptable && this->best_tracking_armed());
+    // A returned best is always published (returned_best_iterate implies
+    // best_iterate); otherwise only a non-optimal, non-acceptable exit publishes.
+    this->publish_phase_best(this->best_tracking_armed() && best_recorded &&
+                             (return_best_applied || (ExitCode != SolveStatus::kOptimal &&
+                                                      ExitCode != SolveStatus::kAcceptable)));
 
     return XSL;
 }
@@ -6191,6 +6197,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // callback's stop. Replaced at every entry, so no earlier call's token is
     // ever read.
     this->stop_token_ = budget.stop;
+    this->best_tracking_armed_ = opts_.return_best ||
+                                 static_cast<bool>(this->iteration_callback_) ||
+                                 this->stop_token_.stop_possible();
     this->limit_factorize_base_ = this->lifetime_factorize_count();
     this->limit_clock_start_ = std::chrono::steady_clock::now();
 

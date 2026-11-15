@@ -4201,6 +4201,9 @@ struct SqpSolverImpl::SolveState {
     // returns the best iterate when the tracker holds one. Meaningful only with
     // `interrupted` and not `token_interrupt`; cleared where the latch is.
     bool stop_return_best = false;
+    // THE BEST TRACKER IS ARMED, latched at the solve's entry (M8 AP-5 G3): a
+    // callback that uninstalls itself mid-solve does not stop the tracking.
+    bool best_armed = false;
     // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
     // `events_fired == rows_pushed` is what proves nothing but `push_history`
     // fires the callback, exactly as `rows_pushed == history.size()` proves
@@ -7534,8 +7537,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // callback or a stop token that can fire, on the caller's own solve only: a
     // restoration sub-solve never tracks, so the best is always a caller-space
     // iterate of the parent. Tracking copies; it never steers.
-    if (opts_.return_best_on_max_iterations ||
-        (!is_restoration_sub_driver_ && (iteration_callback_ || budget.stop.stop_possible()))) {
+    if (st.best_armed) {
         const bool better =
             mj.row.violation_l1 < st.mb.h || (mj.row.violation_l1 == st.mb.h && mj.row.f < st.mb.f);
         if (better) {
@@ -8867,6 +8869,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
     // for the length of this solve; `SolveState` says what is in it and what is
     // deliberately not.
     SolveState st(opts_.advanced.ipqp);
+    st.best_armed =
+        opts_.return_best_on_max_iterations ||
+        (!is_restoration_sub_driver_ && (iteration_callback_ || budget.stop.stop_possible()));
 
     // THE SOLVE AN EXCEPTION INTERRUPTS (M8 B5). An exception that escapes this
     // body -- a user callback's own; an EvaluationError only from the start
@@ -9661,6 +9666,12 @@ void SqpSolverImpl::attach_best_iterate(const SolveState &st, SolveStatus status
     out.best_iterate = st.mb.snap;
     rows.best_lambda_e = st.mb.rows_lambda_e;
     rows.best_lambda_i = st.mb.rows_lambda_i;
+    // The same export-boundary sign repair the primary point's inequality prices
+    // get, so a best iterate returned as the primary carries what it would
+    // carry on any other exit. Its disclosure counters are the primary's, not
+    // the snapshot's, so the sweep's own are discarded.
+    SsnCounters discarded;
+    sweep_negative_face_prices(rows.best_lambda_i, discarded);
     rows.best_ce = st.mb.rows_ce;
     rows.best_ci = st.mb.rows_ci;
 }

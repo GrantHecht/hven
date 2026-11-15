@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -99,6 +100,14 @@ bool same_scalar(double a, double b) {
     return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b);
 }
 
+// The invariant of SolveResult::best_iterate, both engines: a returned best implies a
+// published one.
+void expect_best_invariant(const SolveResult &r) {
+    if (r.returned_best_iterate) {
+        EXPECT_TRUE(r.best_iterate.has_value()) << r.message;
+    }
+}
+
 // One solve on a fresh solver of the named engine. `cap` caps the major count
 // (0: the default cap); `return_best` turns the engine's own option on; `cb`, when
 // engaged, is installed as the iteration callback.
@@ -115,7 +124,9 @@ SolveResult solve(Engine e, Index cap, bool return_best,
         if (cb) {
             solver.set_iteration_callback(cb);
         }
-        return solver.solve(problem, hs071_start(), {}, budget);
+        SolveResult r = solver.solve(problem, hs071_start(), {}, budget);
+        expect_best_invariant(r);
+        return r;
     }
     SqpOptions o = quiet_sqp();
     o.return_best_on_max_iterations = return_best;
@@ -126,7 +137,9 @@ SolveResult solve(Engine e, Index cap, bool return_best,
     if (cb) {
         solver.set_iteration_callback(cb);
     }
-    return solver.solve(problem, hs071_start(), {}, budget);
+    SolveResult r = solver.solve(problem, hs071_start(), {}, budget);
+    expect_best_invariant(r);
+    return r;
 }
 
 const hven::IterationCallback kReadOnly = [](const IterationEvent &) {
@@ -451,5 +464,254 @@ TEST(BestIterate, T12ASnapshotOfAScalarsOnlyEventHasNoVectors) {
         EXPECT_EQ(s.z.size(), 0);
         EXPECT_TRUE(std::isnan(s.stationarity));
         EXPECT_TRUE(s.mu.has_value());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// G3 review riders (M1, S1, S2, S3, S5).
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// HS071 with x3 fixed: the interior-point engine solves the reduced space and
+// expands the point back. Rows stay interleaved (the inequality is row 0, the
+// equality row 1).
+struct FixedHs071 final : Hs071Problem {
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        Hs071Problem::bounds(xl, xu, gl, gu);
+        xl[2] = xu[2] = 3.5;
+    }
+};
+
+Eigen::VectorXd fixed_start() {
+    Eigen::VectorXd x = hs071_start();
+    x[2] = 3.5;
+    return x;
+}
+
+// min 1e10 (a constant) s.t. x0 + x1 = 1: every iterate's objective is exactly
+// the old "nothing recorded" sentinel.
+struct ConstantObjective final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override {
+        return {.n = 2, .m = 1, .jacobian_nonzeros = 2, .hessian_nonzeros = 2};
+    }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        xl << -10.0, -10.0;
+        xu << 10.0, 10.0;
+        gl << 1.0;
+        gu << 1.0;
+    }
+    double eval_f(hven::ConstVecRef) const override { return 1.0e10; }
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g.setZero(); }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override { g << x[0] + x[1]; }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v.setOnes(); }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef, hven::VecRef v) const override {
+        v.setZero();
+    }
+};
+
+// Every field of `best` equals the event snapshot's, lambda and z included.
+void expect_snapshot_equals(const IterationSnapshot &best, const IterationSnapshot &ev) {
+    EXPECT_EQ(best.iteration, ev.iteration);
+    EXPECT_TRUE(bit_equal(best.x, ev.x));
+    EXPECT_TRUE(bit_equal(best.lambda, ev.lambda));
+    EXPECT_TRUE(bit_equal(best.z, ev.z));
+    EXPECT_TRUE(same_scalar(best.f, ev.f)) << best.f << " vs " << ev.f;
+    EXPECT_TRUE(same_scalar(best.stationarity, ev.stationarity));
+    EXPECT_TRUE(same_scalar(best.feasibility, ev.feasibility));
+    EXPECT_TRUE(same_scalar(best.complementarity, ev.complementarity));
+    EXPECT_TRUE(same_scalar(best.step_norm, ev.step_norm));
+    EXPECT_EQ(best.phase, ev.phase);
+    EXPECT_EQ(best.mu.has_value(), ev.mu.has_value());
+    if (best.mu && ev.mu) {
+        EXPECT_TRUE(same_scalar(*best.mu, *ev.mu));
+    }
+}
+
+const IterationSnapshot *event_at(const std::vector<IterationSnapshot> &seen, Index iteration) {
+    for (const IterationSnapshot &s : seen) {
+        if (s.iteration == iteration) {
+            return &s;
+        }
+    }
+    return nullptr;
+}
+
+} // namespace
+
+// M1: a return-best solve that ends kAcceptable substitutes the best, so the
+// result must publish it.
+TEST(BestIterate, AnAcceptableReturnBestSolvePublishesTheBestItSubstituted) {
+    Problem problem(std::make_shared<Hs071Problem>());
+    IpmOptions o = quiet_ipm();
+    o.return_best = true;
+    o.common.optimality_tol = 1.0e-16;
+    o.common.feasibility_tol = 1.0e-16;
+    o.termination.complementarity_tol = 1.0e-16;
+    o.termination.acceptable_iterations = 2;
+    IpmSolver solver(o);
+    const IpmResult r = solver.solve(problem, hs071_start());
+    ASSERT_EQ(r.status, SolveStatus::kAcceptable) << r.message;
+    ASSERT_TRUE(r.returned_best_iterate);
+    ASSERT_TRUE(r.best_iterate.has_value());
+    expect_primary_is(r, *r.best_iterate);
+}
+
+// S1: an iterate whose criterion equals the old sentinel value is a recorded one.
+TEST(BestIterate, AnIterateScoringTheOldSentinelValueIsRecorded) {
+    Problem problem(std::make_shared<ConstantObjective>());
+    IpmOptions o = quiet_ipm();
+    o.best_iterate_criterion = hven::IpmBestIterateCriterion::kObjective;
+    IpmSolver solver(o);
+    solver.set_iteration_callback(
+        [](const IterationEvent &) { return CallbackAction::kStopReturnBest; });
+    Eigen::VectorXd x0(2);
+    x0 << 5.0, 5.0;
+    const IpmResult r = solver.solve(problem, x0);
+    ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+    EXPECT_TRUE(r.returned_best_iterate) << r.message;
+    ASSERT_TRUE(r.best_iterate.has_value());
+    EXPECT_EQ(r.best_iterate->f, 1.0e10);
+}
+
+// S2: every SQP best_iterate carries sign-correct inequality prices. A wrong-signed
+// price at a tracked iterate is not reachable by a small fixture (the tier-3 face
+// pricing that produces one needs a wide-window collocation chain: see
+// tests/sqp/test_scale_smoke.cpp, M6 W0.3), so this pins the invariant itself, and
+// that a returned best's primary carries exactly the snapshot's prices; the repair's
+// own arithmetic is pinned by SqpDriverSignSweep.
+TEST(BestIterate, SqpBestIterateInequalityMultipliersAreSignCorrect) {
+    for (Index stop_at = 0; stop_at < 8; ++stop_at) {
+        const SolveResult r = solve(Engine::kSqp, 0, false, [&](const IterationEvent &ev) {
+            return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                           : CallbackAction::kContinue;
+        });
+        if (!r.best_iterate) {
+            continue;
+        }
+        ASSERT_EQ(r.lambda.size(), 2);
+        // Row 0 is the lower-bounded inequality: a correctly signed price is <= 0.
+        EXPECT_LE(r.best_iterate->lambda[0], 0.0) << "stop at " << stop_at;
+        if (r.returned_best_iterate) {
+            EXPECT_LE(r.lambda[0], 0.0);
+            EXPECT_TRUE(bit_equal(r.lambda, r.best_iterate->lambda));
+        }
+    }
+}
+
+// S3: a scaled SQP solve (rows and columns) and a reduced, objective-scaled IPM
+// solve on interleaved rows: best_iterate equals the matching event's snapshot,
+// multipliers and bound prices included, and the primary of a returned best is it.
+TEST(BestIterate, SqpScaledBestIterateEqualsItsEventsSnapshot) {
+    Problem problem(std::make_shared<Hs071Problem>());
+    SqpOptions o = quiet_sqp();
+    o.row_scaling = true;
+    o.column_scaling = hven::SqpColumnScaling::kAlways;
+    for (const Index stop_at : {2, 4}) {
+        SqpSolver solver(o);
+        std::vector<IterationSnapshot> seen;
+        solver.set_iteration_callback([&](const IterationEvent &ev) {
+            seen.push_back(snapshot(ev));
+            return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                           : CallbackAction::kContinue;
+        });
+        const SqpResult r = solver.solve(problem, hs071_start());
+        ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        ASSERT_TRUE(r.returned_best_iterate);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        const IterationSnapshot *ev = event_at(seen, r.best_iterate->iteration);
+        ASSERT_NE(ev, nullptr);
+        IterationSnapshot expected = *ev;
+        // Row 0 is the inequality (lower-bounded: its caller-sign price is <= 0); the
+        // export sign repair clears a wrong-signed one.
+        expected.lambda[0] = std::min(expected.lambda[0], 0.0);
+        expect_snapshot_equals(*r.best_iterate, expected);
+        EXPECT_TRUE(bit_equal(r.x, r.best_iterate->x));
+        EXPECT_TRUE(bit_equal(r.lambda, r.best_iterate->lambda));
+        // The scaled solve re-measures the primary's bound prices at the caller's scale.
+        ASSERT_EQ(r.z.size(), r.best_iterate->z.size());
+        EXPECT_LE((r.z - r.best_iterate->z).cwiseAbs().maxCoeff(),
+                  1e-9 * (1.0 + r.z.cwiseAbs().maxCoeff()));
+        EXPECT_EQ(r.best_iterate->g.size(), 2);
+    }
+}
+
+TEST(BestIterate, IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot) {
+    Problem problem(std::make_shared<FixedHs071>());
+    IpmOptions o = quiet_ipm();
+    o.objective_scale = 7.0;
+    for (const Index stop_at : {2, 4}) {
+        IpmSolver solver(o);
+        std::vector<IterationSnapshot> seen;
+        solver.set_iteration_callback([&](const IterationEvent &ev) {
+            seen.push_back(snapshot(ev));
+            return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                           : CallbackAction::kContinue;
+        });
+        const IpmResult r = solver.solve(problem, fixed_start());
+        ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        ASSERT_TRUE(r.returned_best_iterate);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        EXPECT_EQ(r.best_iterate->x.size(), 4);
+        EXPECT_EQ(r.best_iterate->x[2], 3.5);
+        const IterationSnapshot *ev = event_at(seen, r.best_iterate->iteration);
+        ASSERT_NE(ev, nullptr);
+        expect_snapshot_equals(*r.best_iterate, *ev);
+        expect_primary_is(r, *r.best_iterate);
+    }
+}
+
+// S5: a callback that uninstalls itself mid-solve does not stop the tracking.
+TEST(BestIterate, ACallbackThatUninstallsItselfStillLeavesTheTrackedBest) {
+    Problem problem(std::make_shared<Hs071Problem>());
+    // Ipm: the best (smallest equality residual) after the full run, with the
+    // callback installed throughout.
+    {
+        IpmOptions o = quiet_ipm();
+        o.common.max_iterations = 5;
+        IpmSolver always(o);
+        always.set_iteration_callback(kReadOnly);
+        const IpmResult full = always.solve(problem, hs071_start());
+        ASSERT_TRUE(full.best_iterate.has_value());
+        IpmSolver quits(o);
+        quits.set_iteration_callback([&quits](const IterationEvent &ev) {
+            if (ev.iteration == 0) {
+                quits.clear_iteration_callback();
+            }
+            return CallbackAction::kContinue;
+        });
+        const IpmResult r = quits.solve(problem, hs071_start());
+        ASSERT_EQ(r.status, full.status);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        EXPECT_EQ(r.best_iterate->iteration, full.best_iterate->iteration);
+        EXPECT_TRUE(bit_equal(r.best_iterate->x, full.best_iterate->x));
+        EXPECT_GT(full.best_iterate->iteration, 0) << "the best is past the uninstall point";
+    }
+    {
+        SqpOptions o = quiet_sqp();
+        o.common.max_iterations = 3;
+        SqpSolver always(o);
+        always.set_iteration_callback(kReadOnly);
+        const SqpResult full = always.solve(problem, hs071_start());
+        ASSERT_TRUE(full.best_iterate.has_value());
+        SqpSolver quits(o);
+        quits.set_iteration_callback([&quits](const IterationEvent &ev) {
+            if (ev.iteration == 0) {
+                quits.clear_iteration_callback();
+            }
+            return CallbackAction::kContinue;
+        });
+        const SqpResult r = quits.solve(problem, hs071_start());
+        ASSERT_TRUE(r.best_iterate.has_value());
+        EXPECT_EQ(r.best_iterate->iteration, full.best_iterate->iteration);
+        EXPECT_TRUE(bit_equal(r.best_iterate->x, full.best_iterate->x));
     }
 }

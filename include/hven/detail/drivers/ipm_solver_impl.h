@@ -1551,13 +1551,12 @@ class IpmSolverImpl {
     IpmPhaseStop last_stop_reason_ = IpmPhaseStop::kNone;
     /// The call's `SolveBudget::stop` (M8 AP-5 G1), copied at run_phase_sequence's
     /// entry and polled at each iteration top beside `interrupt_requested_`.
-    /// Appended after last_stop_reason_, so no existing member's offset moves.
     StopToken stop_token_;
     /// Whether THIS call's stop was the token's rather than the callback's (M8
     /// AP-5 G1, the orchestrator's ruling: a token stop has its own console
     /// message kinds). Set where the token stop latches `interrupt_requested_`,
     /// reset beside it at every call's entry; read only to pick the message
-    /// kind. Appended last, so no existing member's offset moves.
+    /// kind.
     bool stop_requested_latched_ = false;
     /// The callback's last action was kStopReturnBest (M8 AP-5 G3). Cleared at
     /// every call's entry; read at the stop exit.
@@ -2113,8 +2112,7 @@ class IpmSolverImpl {
     };
     DeclaredPoint declared_point(const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
                                  const BoundDualState &duals, const ExitEvalProvenance &prov,
-                                 bool restoration_contaminated, bool want_vectors,
-                                 bool want_diagnostics) const;
+                                 bool restoration_contaminated, bool want_diagnostics) const;
 
     /// @brief Writes result_.best_iterate and its row blocks from the phase's
     ///        best tracker (cleared when the phase recorded none).
@@ -2180,15 +2178,15 @@ class IpmSolverImpl {
     // active guard stays at the call sites, which differ in why they are
     // reached; only the scoring and snapshot live here.
     void track_best_iterate(const IpmIterate &iter, int i, const VectorXd &XSL, const VectorXd &RHS,
-                            double mu, double step_norm, double &BestCriteriaVal, int &BestIter);
+                            double mu, double step_norm, double &BestCriteriaVal, int &BestIter,
+                            bool &recorded);
 
     /// True when the best tracker runs: a return-best option, an installed
-    /// callback or a stop token that can fire (M8 AP-5 G3). Tracking copies and
-    /// never steers.
-    bool best_tracking_armed() const noexcept {
-        return opts_.return_best || static_cast<bool>(iteration_callback_) ||
-               stop_token_.stop_possible();
-    }
+    /// callback or a stop token that can fire (M8 AP-5 G3). Latched at the
+    /// call's entry, so a callback that uninstalls itself mid-solve does not
+    /// stop the tracking. Tracking copies and never steers.
+    bool best_tracking_armed() const noexcept { return best_tracking_armed_; }
+    bool best_tracking_armed_ = false;
 
     /// The next never-reused analysis-owner id. Monotonic and process-wide;
     /// see analyzed_owner_id_.
