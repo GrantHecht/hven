@@ -156,7 +156,7 @@ void expect_site_identities(const SiteRun &r) {
         << "fallback_rung_b == unfired entries + ipqp_fallback_rung_b";
 
     // The warm grade runs once per subproblem the routing chain sends it, and
-    // `ipqp_to_ssn` is incremented at that function's own entry.
+    // `ipqp_to_ssn` is incremented beside that line (a stopped grade writes neither).
     EXPECT_EQ(at(r.sites, "ssn_warm_grade"), r.counters.ipqp.ipqp_to_ssn)
         << "ssn_warm_grade == ipqp_to_ssn";
 
