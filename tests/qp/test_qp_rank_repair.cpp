@@ -241,6 +241,12 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
             // scale 1 with |lambda| <= 1 the bound is the old 1e-8.
             const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
             const EqRowContract c = eq_row_contract(d, s);
+            char contract[160];
+            std::snprintf(contract, sizeof contract,
+                          "eq=%.3e worst_ratio=%.3e row=%ld resid=%.3e row_scale=%.4g lambda=%.6g",
+                          k.eq, c.ratio, static_cast<long>(c.row), c.resid, c.row_scale, c.lambda);
+            hven::test_support::record_off_reference_route(
+                std::string(off_reference_key) + "_eq_contract", contract);
             EXPECT_LE(c.ratio, 1.0) << "row " << c.row << ": residual " << c.resid
                                     << " at row scale " << c.row_scale << ", lambda " << c.lambda;
             EXPECT_LE(k.ineq, 1e-8);
