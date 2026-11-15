@@ -1133,13 +1133,11 @@ void check_full_step_lever_on_the_sound_warm_arms() {
                     problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors,
                     problem("HS10").cell[kArmWarm][kOn][kOn].majors));
 #else
-#if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
-    EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
-#else
+    // M8 kopt-1x (declared mover, docs/notes/data/2026-11-m8-kopt-1x/): Release now reads 26 / 40
+    // as Debug does (a gray-zone terminal point takes the ordinary step before it certifies), so
+    // the two builds agree here.
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
-#endif
 #endif
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
     // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
@@ -1398,10 +1396,14 @@ void check_soc_costs_what_it_costs() {
     // factorizations 184, acc/rej 70/16, elastic 48/288 and every status unchanged). An elastic
     // rung whose row residual the uncapped footprint once excused is now refined before its
     // verdict: more QP work on the same answers.
+    // M8 kopt-1x (declared mover, docs/notes/data/2026-11-m8-kopt-1x/): Release 3355 -> 3359,
+    // Debug 3346 -> 3355. kOptimal now promises every equality and working row within 1x of its
+    // tolerance: a KKT point with a row between 1x and 10x takes the ordinary step before it
+    // certifies. Every status in the table is unchanged.
 #ifdef NDEBUG
-    EXPECT_EQ(3355, total_minors) << corpus_table();
+    EXPECT_EQ(3359, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3346, total_minors) << corpus_table();
+    EXPECT_EQ(3355, total_minors) << corpus_table();
 #endif
 #else
     // OFF THE REFERENCE BUILD (WX B6): the corpus total is a route pin (the macOS lane reads

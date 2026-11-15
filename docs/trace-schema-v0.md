@@ -884,6 +884,7 @@ group; `SqpOptions::hessian_mode`).
 | `dense_shifted_terminations` | integer | `SqpCounters::dense_shifted_terminations` | walk subproblems that ended `kNumericalError` because the pass's answer came from a dense shifted factor, was refused by the rho gate, and the suspect-escalation ladder was exhausted (M8 DN-1d r3); the refusal is also in `dense_shifted_solve_refusals`. 0 under `DensePolicy::kNever`. Folded like `dense_shifted_k0_fallbacks` |
 | `dense_solve_residual_refusals` | integer | `SqpCounters::dense_solve_residual_refusals` | step solves through UNSHIFTED dense numerics refused by the dense solve check (M8 DN-3a; name provisional): ρ = ‖K y − rhs‖∞/‖rhs‖∞ still above the consumer's threshold after refinement (refinement runs above 1e-8), or NaN. SSN Newton steps (threshold 1e-8; answered by the proximal ladder) and IPQP step solves on the factored, Ruiz-scaled system (threshold 1e-5; affine and corrector answered by the inertia ladder's perturbed-pivot remedy, the μ-estimate by its fallback). 0 under `DensePolicy::kNever`. Folded like `dense_shifted_solve_refusals` |
 | `dense_factorizations` | integer | `SqpCounters::dense_factorizations` | factorizations on the dense arm (M8 DN-3): `SymmetricFactor`'s `dense_factorize_count + dense_singular_count` deltas (taken, or reported exactly singular; shifted refactors included) over the walk's, the SSN's and the IPQP tiers' KKT factors and the rank repair's Gram factor. 0 under `DensePolicy::kNever`; under `kAuto`, 0 when every analyzed pattern was above the SQP's threshold (105). Folded like `dense_flagged_factorizations` |
+| `optimal_row_gray_exits` | integer | `SqpCounters::optimal_row_gray_exits` | walk subproblems that ended `kOptimal` with an equality or working-row residual still above 1x of its `row_tolerance` after the terminal polish (M8 kopt-1x). `kOptimal` promises every such row within 1x; 0 is the contract, a nonzero count is a gray-zone exit. Folded like the other walk counters. No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -949,6 +950,11 @@ re-derived ONCE with a "RE-DERIVED AT M8 DN-3a" note.
 above), after `dense_solve_residual_refusals`, the same route: one key before the `ssn`
 object, the nested tables' distinct values up by one, no sentinel, both golden lines
 re-derived ONCE with a "RE-DERIVED AT M8 DN-3" note.
+
+**THE DIRECT COUNTER M8 kopt-1x APPENDED — ONE** (`optimal_row_gray_exits`, the table row
+above), after `dense_factorizations`, the same route: one key before the `ssn` object, the
+nested tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE
+with a "RE-DERIVED AT M8 kopt-1x" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

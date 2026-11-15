@@ -2182,6 +2182,14 @@ class QpEngine {
                                       const Vec &ae_row_norm1, const Vec &lambda_e,
                                       const QpOptions &opts) const;
 
+    // kOptimal's row contract: the largest |residual| / row_tolerance over every
+    // equality row and every WORKING inequality row (row_scale and lambda as
+    // worst_structural_violation's). <= 1 is the promise; the 10x margin above is
+    // the infeasibility classifier's alone. 0 with no such rows.
+    double worst_row_ratio(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                           const Vec &ai_row_norm1, const Vec &lambda_i, const Vec &ae_row_norm1,
+                           const Vec &lambda_e, const QpOptions &opts) const;
+
     // The residual the VERDICT-SITE FACE REFINEMENT drives one row to, in that
     // row's own units: the classifier's own threshold,
     // kInfeasibilityMarginFactor * row_tolerance, floored at
@@ -2396,19 +2404,26 @@ class QpEngine {
     //
     // Counters: terminal_polish_solves (entries), terminal_polish_rejected
     // (candidates not adopted).
+    // A third disjunct opens it on any equality or working row past row_tolerance
+    // (worst_row_ratio > 1); `row_triggered` reports that disjunct, which floors
+    // the acceptance test's stationarity comparison at kTerminalPolishStatFactor *
+    // opt_tol (a row-fixing candidate is not refused for stationarity at rounding).
     bool polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
-                               const QpOptions &opts) const;
+                               const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                               const QpOptions &opts, bool &row_triggered) const;
     // The acceptance test, shared by both stages: prices `cand`, measures
     // detail::terminal_kkt at it, and ADOPTS (x and all three multiplier blocks)
     // only if the candidate is finite, keeps feasibility, worsens none of the
     // three residuals and strictly improves one. Returns whether it adopted.
     bool adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws, const EqpResult &cand,
-                                  const detail::TerminalKkt &before, const QpOptions &opts, Vec &x,
-                                  Vec &lambda_e, Vec &lambda_i, Vec &z) const;
+                                  const detail::TerminalKkt &before, const QpOptions &opts,
+                                  bool row_triggered, Vec &x, Vec &lambda_e, Vec &lambda_i,
+                                  Vec &z) const;
     bool polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
-                               const EqpResult &pass_answer, Vec &x, Vec &lambda_e, Vec &lambda_i,
-                               Vec &z, QpCounters &counters, const QpOptions &opts) const;
+                               const EqpResult &pass_answer, bool row_triggered, Vec &x,
+                               Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
+                               const QpOptions &opts) const;
 
     // Is ||x|| large in a way that only an unbounded direction explains?
     // Bound-relative on purpose: a variable boxed by finite bounds CANNOT run

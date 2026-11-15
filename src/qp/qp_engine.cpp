@@ -708,6 +708,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     double stagnation_r = 0.0;
     bool stagnation_r_over_floor = false;
     bool stagnation_read = false;
+    // The previous pass held a gray-zone terminal for the ordinary step (KOPT-1X).
+    bool gray_hold_next = false;
     Index stagnation_drops_left = detail::kStagnationDropBudget;
     bool stagnation_resume_spent = false;
 
@@ -774,6 +776,8 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         stagnation_idle = -1;
         const bool stagnation_read_in = stagnation_read;
         stagnation_read = false;
+        const bool gray_hold_prev = gray_hold_next;
+        gray_hold_next = false;
 #ifdef HVEN_TESTING
         // One declaration covers every exit this loop body has: the record is
         // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
@@ -1390,7 +1394,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     break;
                 }
             }
-            if (!dropped_one && !stagnation_only) {
+            // KOPT-1X: kOptimal's row contract is 1x of row_tolerance (the 10x margin is the
+            // infeasibility classifier's alone). A KKT point with nothing to drop whose equality
+            // or working row is past 1x takes the pass's ordinary step instead of certifying; one
+            // consecutive hold at most, so a step that cannot repair the row ends in the
+            // certificate, where the terminal polish repairs it.
+            const bool gray_hold = !dropped_one && !stagnation_only && stationary_proper &&
+                                   !gray_hold_prev &&
+                                   worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
+                                                   lambda_e, eff_opts) > 1.0;
+            gray_hold_next = gray_hold;
+            if (!dropped_one && !stagnation_only && !gray_hold) {
 #ifdef HVEN_TESTING
                 walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
 #endif
@@ -1733,13 +1747,17 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         bool polish_adopted = false;
                         if (eff_opts.dual_regularization > 0.0 ||
                             eff_opts.primal_regularization > 0.0) {
-                            if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z, eff_opts)) {
+                            bool row_triggered = false;
+                            if (polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z,
+                                                      ai_row_norm1, ae_row_norm1, eff_opts,
+                                                      row_triggered)) {
                                 x_inc = x;
                                 lambda_e_inc = lambda_e;
                                 lambda_i_inc = lambda_i;
                                 z_inc = z;
-                                polish_adopted = polish_terminal_point(
-                                    qp, ws, eqp, x, lambda_e, lambda_i, z, counters, eff_opts);
+                                polish_adopted =
+                                    polish_terminal_point(qp, ws, eqp, row_triggered, x, lambda_e,
+                                                          lambda_i, z, counters, eff_opts);
                             }
                         }
                         // THE CERTIFICATE'S BOUND HALF. worst_structural_violation
@@ -1814,6 +1832,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             status = QpStatus::kNumericalError;
                         } else {
                             status = QpStatus::kOptimal;
+                            if (!(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1,
+                                                  lambda_e, eff_opts) <= 1.0)) {
+                                ++counters.optimal_row_gray_exits;
+                            }
                         }
                     }
                 }
@@ -3285,6 +3307,28 @@ bool QpEngine::violation_is_structural(double v, double row_scale, double lambda
     return v > detail::kInfeasibilityMarginFactor * row_tolerance(row_scale, lambda, opts);
 }
 
+double QpEngine::worst_row_ratio(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                 const Vec &ai_row_norm1, const Vec &lambda_i,
+                                 const Vec &ae_row_norm1, const Vec &lambda_e,
+                                 const QpOptions &opts) const {
+    const double xmag = x.lpNorm<Eigen::Infinity>();
+    double worst = 0.0;
+    const auto read = [&](double resid, double b, double norm1, double lambda) {
+        const double row_scale = std::max({1.0, std::abs(b), norm1 * xmag});
+        const double ratio = std::abs(resid) / std::max(row_tolerance(row_scale, lambda, opts),
+                                                        std::numeric_limits<double>::min());
+        // A NaN row is the worst row.
+        worst = (std::isnan(ratio) || ratio > worst) ? ratio : worst;
+    };
+    for (Index j = 0; j < qp.me(); ++j) {
+        read(qp.Ae.row(j).dot(x) - qp.be(j), qp.be(j), ae_row_norm1(j), lambda_e(j));
+    }
+    for (const Index j : ws.active_ineq()) {
+        read(qp.Ai.row(j).dot(x) - qp.bi(j), qp.bi(j), ai_row_norm1(j), lambda_i(j));
+    }
+    return worst;
+}
+
 double QpEngine::worst_structural_violation(const QpProblem &qp, const Vec &x, const Vec &Aix,
                                             const Vec &ai_row_norm1, const Vec &lambda_i,
                                             const Vec &ae_row_norm1, const Vec &lambda_e,
@@ -4424,8 +4468,8 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
 
 bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &ws,
                                         const EqpResult &cand, const detail::TerminalKkt &before,
-                                        const QpOptions &opts, Vec &x, Vec &lambda_e, Vec &lambda_i,
-                                        Vec &z) const {
+                                        const QpOptions &opts, bool row_triggered, Vec &x,
+                                        Vec &lambda_e, Vec &lambda_i, Vec &z) const {
     if (cand.x.size() != qp.n() || !cand.x.allFinite() || !cand.lambda_e.allFinite() ||
         !cand.lambda_w.allFinite()) {
         return false;
@@ -4468,8 +4512,13 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
     const double slack = detail::kTerminalPolishWorseFactor;
     const bool feasible = after.rows <= std::max(opts.feasibility_tol, before.rows);
     const bool kkt_point = after.stationarity <= opts.optimality_tol;
-    const bool no_worse = after.stationarity <= slack * before.stationarity &&
-                          after.rows <= before.rows &&
+    // A row-triggered entry floors the incumbent's stationarity at the entry test's own
+    // level: an incumbent at rounding must not veto the candidate that fixes its rows.
+    const double stat_ref =
+        row_triggered
+            ? std::max(before.stationarity, detail::kTerminalPolishStatFactor * opts.optimality_tol)
+            : before.stationarity;
+    const bool no_worse = after.stationarity <= slack * stat_ref && after.rows <= before.rows &&
                           after.complementarity <= slack * before.complementarity;
     const bool strictly_better = slack * after.stationarity < before.stationarity ||
                                  after.rows < before.rows ||
@@ -4486,11 +4535,20 @@ bool QpEngine::adopt_polished_candidate(const QpProblem &qp, const WorkingSet &w
 
 bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                      const Vec &lambda_e, const Vec &lambda_i, const Vec &z,
-                                     const QpOptions &opts) const {
-    // TWO DISJUNCTS, both on quantities detail::terminal_kkt reports at THIS point,
-    // both written as !(v <= t) so a NaN is "open" -- the acceptance test refuses a
-    // non-finite candidate anyway, so the cost of being wrong here is one
-    // factorization and never an answer.
+                                     const Vec &ai_row_norm1, const Vec &ae_row_norm1,
+                                     const QpOptions &opts, bool &row_triggered) const {
+    // THREE DISJUNCTS, each written as !(v <= t) so a NaN is "open" -- the acceptance
+    // test refuses a non-finite candidate anyway, so the cost of being wrong here is
+    // one factorization and never an answer.
+    //
+    // (c) A ROW PAST ITS TOLERANCE comes first: kOptimal promises every equality and
+    // working row within 1x of row_tolerance, and a gray-zone row (1x-10x) carries no
+    // complementarity or stationarity signal, so nothing else would ever repair it.
+    row_triggered =
+        !(worst_row_ratio(qp, ws, x, ai_row_norm1, lambda_i, ae_row_norm1, lambda_e, opts) <= 1.0);
+    if (row_triggered) {
+        return true;
+    }
     const detail::TerminalKkt now = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
     // (a) THE COMPLEMENTARITY PRODUCT, which is what a consumer reads; the
     // threshold's own note calibrates it.
@@ -4508,8 +4566,8 @@ bool QpEngine::polish_footprint_open(const QpProblem &qp, const WorkingSet &ws, 
 }
 
 bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
-                                     const EqpResult &pass_answer, Vec &x, Vec &lambda_e,
-                                     Vec &lambda_i, Vec &z, QpCounters &counters,
+                                     const EqpResult &pass_answer, bool row_triggered, Vec &x,
+                                     Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
                                      const QpOptions &opts) const {
     const detail::TerminalKkt before = detail::terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
 
@@ -4523,7 +4581,8 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     // and not in the loop because the acceptance test below reads every row and
     // every bound of the problem, which is what the ratio test the walk skips
     // would have protected, and because nothing happens afterwards.
-    if (adopt_polished_candidate(qp, ws, pass_answer, before, opts, x, lambda_e, lambda_i, z)) {
+    if (adopt_polished_candidate(qp, ws, pass_answer, before, opts, row_triggered, x, lambda_e,
+                                 lambda_i, z)) {
         ++counters.terminal_polish_adopted;
         return true;
     }
@@ -4605,7 +4664,8 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         return false;
     }
 
-    if (!adopt_polished_candidate(qp, ws, r, before, opts, x, lambda_e, lambda_i, z)) {
+    if (!adopt_polished_candidate(qp, ws, r, before, opts, row_triggered, x, lambda_e, lambda_i,
+                                  z)) {
         ++counters.terminal_polish_rejected;
         return false;
     }

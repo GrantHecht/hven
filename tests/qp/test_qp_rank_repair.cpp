@@ -86,11 +86,12 @@ double pin_sign_violation(const QpSolution &s) {
 
 // THE ENGINE'S OWN ROW CONTRACT AT A CERTIFIED EXIT, recomputed here from the dump and the
 // exported (x, lambda_e) rather than read off the engine: a kOptimal exit requires every
-// equality row's residual to be non-structural, |r_j| <= kInfeasibilityMarginFactor *
-// row_tolerance(row_scale_j, lambda_j) with row_tolerance = max(feas_tol * row_scale,
-// min(dual_mu * |lambda_j|, kInfeasibilityAbsorbTol * row_scale)) and row_scale_j =
-// max(1, |be_j|, ||Ae_j||_1 * ||x||_inf) (qp_engine.cpp, worst_structural_violation /
-// row_tolerance). `ratio` is the worst |r_j| over that bound (<= 1: every row meets it).
+// equality row's residual within 1x of its tolerance, |r_j| <= row_tolerance(row_scale_j,
+// lambda_j) with row_tolerance = max(feas_tol * row_scale, min(dual_mu * |lambda_j|,
+// kInfeasibilityAbsorbTol * row_scale)) and row_scale_j = max(1, |be_j|, ||Ae_j||_1 * ||x||_inf)
+// (qp_engine.cpp, worst_row_ratio / row_tolerance). The kInfeasibilityMarginFactor (10x) is the
+// infeasibility classifier's margin and is not the kOptimal contract. `ratio` is the worst
+// |r_j| over the tolerance (<= 1: every row meets it).
 struct EqRowContract {
     double ratio = 0.0;
     Index row = -1;
@@ -112,7 +113,7 @@ EqRowContract eq_row_contract(const QpDump &d, const QpSolution &s) {
         const double lam = s.lambda_e.size() == qp.me() ? s.lambda_e(j) : 0.0;
         const double tol =
             std::max(feas * rs, std::min(mu * std::abs(lam), detail::kInfeasibilityAbsorbTol * rs));
-        const double ratio = r / (detail::kInfeasibilityMarginFactor * tol);
+        const double ratio = r / tol;
         if (ratio > c.ratio) {
             c = {ratio, j, r, rs, lam};
         }
@@ -237,8 +238,8 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
             // AVX-512 Intel runners of CI runs 43501262925 and 43655190606: 1176 minors, two
             // repairs, the same f to 3e-11 relative, eq 2.08e-7), and the claim this arm
             // guards is NO FALSE CERTIFICATE -- a kOptimal whose rows the engine's own
-            // certificate would call structural -- which is exactly ratio <= 1. On a row of
-            // scale 1 with |lambda| <= 1 the bound is the old 1e-8.
+            // contract would refuse (a row past 1x of its tolerance) -- which is exactly
+            // ratio <= 1. On a row of scale 1 with |lambda| <= 1 the bound is the old 1e-8.
             const hven::test_support::QpDumpKkt k = hven::test_support::qp_dump_kkt(d, s);
             const EqRowContract c = eq_row_contract(d, s);
             char contract[160];

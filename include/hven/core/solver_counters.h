@@ -623,6 +623,9 @@ struct QpCounters {
     // factor. 0 under DensePolicy::kNever; under kAuto, 0 when every analyzed
     // pattern was above the threshold (M8 DN-3).
     Index dense_factorizations = 0;
+    // kOptimal exits whose worst equality or working row residual is still past 1x of
+    // row_tolerance after the polish (gray-zone exits; 0 is the contract).
+    Index optimal_row_gray_exits = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2338,6 +2341,10 @@ struct SqpCounters {
     ///        included. 0 under DensePolicy::kNever; under kAuto, 0 when every
     ///        analyzed pattern was above the threshold. Appended last.
     Index dense_factorizations = 0;
+    /// @brief QpCounters' field summed the same way: walk kOptimal exits whose worst
+    ///        equality or working row residual is past 1x of row_tolerance. Appended
+    ///        last.
+    Index optimal_row_gray_exits = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2433,7 +2440,8 @@ struct SqpCounters {
     X(dense_shifted_k0_fallbacks, counter_never_absent)                                            \
     X(dense_shifted_terminations, counter_never_absent)                                            \
     X(dense_solve_residual_refusals, counter_never_absent)                                         \
-    X(dense_factorizations, counter_never_absent)
+    X(dense_factorizations, counter_never_absent)                                                  \
+    X(optimal_row_gray_exits, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

@@ -238,3 +238,34 @@ is the only kernel with a no-motion test; SSN and IPQP answers are accurate to t
 `qp.feasibility_tol`, so one definition serves all three modes. The scale is the step's own
 size, as in the walk (whose iterate is the step): for a step under the tolerance the
 tolerance is absolute, `qp.feasibility_tol`.
+
+## Walk kOptimal's row contract (M8 kopt-1x)
+
+The QP walk's `kOptimal` promises that every equality row and every working inequality row is within 1x of
+`row_tolerance(row_scale, lambda)` (the tolerance still includes the `dual_mu * |lambda|` footprint). The 10x margin
+(`kInfeasibilityMarginFactor`) stays only as the evidence margin of the `kInfeasible` classifier.
+
+Why: the KKT-point test reused the classifier's 10x predicate, so a point with a row 1x to 10x off was certified where
+it stood, and nothing downstream repaired it (a gray-zone row carries complementarity near 1e-9 and stationarity at
+rounding, so the terminal polish's entry test stayed closed). YORKNET qp5 on an Intel AVX-512 runner read row 246 at
+6.88x. A flat-normal synthetic (n = 2, H a projector onto null(a), seed k floor units off the row) reproduces it
+for k = 1.5, 3, 6.9, 9.5.
+
+What changed (`src/qp/qp_engine.cpp`):
+
+- `polish_footprint_open` gained a third disjunct, any equality or working row past `row_tolerance`
+  (`worst_row_ratio > 1`). A row-triggered entry floors the acceptance test's stationarity comparison at
+  `kTerminalPolishStatFactor * opt_tol`, so an incumbent whose stationarity is at rounding cannot veto the candidate
+  that fixes its rows.
+- A KKT point with nothing to drop and a row past 1x takes the pass's ordinary step instead of certifying (at most one
+  consecutive hold; the polish repairs what a step cannot). The hold sits at the terminal site only. Moving the 1x
+  requirement into the per-pass stationarity test itself changed mid-walk drop decisions and sent ACOPP118 qp1 (border)
+  to the iteration cap at 4710 minors; see `docs/notes/data/2026-11-m8-kopt-1x/`.
+- `worst_structural_violation` and `violation_is_structural` keep the 10x: they are the infeasibility classifier
+  (terminal classification and its refinement re-reads, the equality-drift check, the certificate's bound half).
+- New counter `optimal_row_gray_exits` (`QpCounters`, `SqpCounters`, trace key after `dense_factorizations`):
+  kOptimal exits whose worst row is still past 1x. 0 is the contract; a later census decides whether a nonzero count
+  becomes a hard `kNumericalError` refusal.
+
+Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by
+name); a walk subproblem's route can differ by a step where a row sat between 1x and 10x.

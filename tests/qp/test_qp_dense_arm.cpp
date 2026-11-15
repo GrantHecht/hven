@@ -53,14 +53,38 @@ struct QpEngineTestAccess {
                                 Vec &x, Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
                                 const QpOptions &opts) {
         const EqpResult none; // no pass answer: stage 1 cannot adopt, stage 2 solves
-        return eng.polish_terminal_point(qp, ws, none, x, lambda_e, lambda_i, z, counters, opts);
+        return eng.polish_terminal_point(qp, ws, none, /*row_triggered=*/false, x, lambda_e,
+                                         lambda_i, z, counters, opts);
+    }
+    static bool terminal_polish_with(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
+                                     const EqpResult &answer, bool row_triggered, Vec &x,
+                                     Vec &lambda_e, Vec &lambda_i, Vec &z, QpCounters &counters,
+                                     const QpOptions &opts) {
+        return eng.polish_terminal_point(qp, ws, answer, row_triggered, x, lambda_e, lambda_i, z,
+                                         counters, opts);
     }
     // The polish's adoption test alone, on a candidate the caller supplies.
     static bool polish_would_adopt(const QpEngine &eng, const QpProblem &qp, const WorkingSet &ws,
                                    const EqpResult &cand, Vec x, Vec lambda_e, Vec lambda_i, Vec z,
-                                   const QpOptions &opts) {
+                                   const QpOptions &opts, bool row_triggered = false) {
         const TerminalKkt before = terminal_kkt(qp, ws, x, lambda_e, lambda_i, z);
-        return eng.adopt_polished_candidate(qp, ws, cand, before, opts, x, lambda_e, lambda_i, z);
+        return eng.adopt_polished_candidate(qp, ws, cand, before, opts, row_triggered, x, lambda_e,
+                                            lambda_i, z);
+    }
+    static bool polish_footprint_open(const QpEngine &eng, const QpProblem &qp,
+                                      const WorkingSet &ws, const Vec &x, const Vec &lambda_e,
+                                      const Vec &lambda_i, const Vec &z, const QpOptions &opts,
+                                      bool &row_triggered) {
+        Vec ai_norm1 = Vec::Zero(qp.mi());
+        Vec ae_norm1 = Vec::Zero(qp.me());
+        for (Index j = 0; j < qp.mi(); ++j) {
+            ai_norm1(j) = qp.Ai.row(j).cwiseAbs().sum();
+        }
+        for (Index j = 0; j < qp.me(); ++j) {
+            ae_norm1(j) = qp.Ae.row(j).cwiseAbs().sum();
+        }
+        return eng.polish_footprint_open(qp, ws, x, lambda_e, lambda_i, z, ai_norm1, ae_norm1, opts,
+                                         row_triggered);
     }
     // K0 for `ws` and its borders, as border_candidate builds them.
     static void build_border(const QpEngine &eng, const QpProblem &qp, const WorkingSet &k0_ws,
@@ -1676,4 +1700,113 @@ TEST(QpDenseArm, TheRawFactorsOfAScaleClearedKktAreAccurateInEveryBlock) {
             EXPECT_LE(worst_relerr(yw), 1e-14);
         }
     }
+}
+
+// KOPT-1X: kOptimal's row contract at the terminal polish. The flat-normal point is a KKT point
+// whose only defect is an equality row k floor units off (stationarity and complementarity at
+// rounding), so nothing but the row disjunct can open the entry test. n = 2, H the projector onto
+// null(a) with a = (1, 1) (H a = 0), g = (-1, 1), optimum x = (1, -1), lambda = 0, row_scale 2.
+namespace {
+
+QpProblem flat_normal_polish_qp() {
+    QpProblem qp;
+    Eigen::MatrixXd Hd(2, 2);
+    Hd << 0.5, -0.5, -0.5, 0.5;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(2);
+    qp.g << -1.0, 1.0;
+    Eigen::MatrixXd Aed(1, 2);
+    Aed << 1.0, 1.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Zero(1);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    return qp;
+}
+
+Vec flat_normal_point(double k, const QpOptions &opts) {
+    const double delta = k * opts.feasibility_tol * 2.0;
+    Vec x(2);
+    x << 1.0 + 0.5 * delta, -1.0 + 0.5 * delta;
+    return x;
+}
+
+} // namespace
+
+TEST(QpRowContractPolish, TheEntryTestOpensOnAGrayZoneRowAndOnlyThen) {
+    const QpProblem qp = flat_normal_polish_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kNever);
+    const WorkingSet ws(2, 0);
+    const Vec le = Vec::Zero(1);
+    const Vec li = Vec::Zero(0);
+    const Vec z = Vec::Zero(2);
+    for (const double k : {1.5, 3.0, 6.9, 9.5}) {
+        bool row_triggered = false;
+        EXPECT_TRUE(QpEngineTestAccess::polish_footprint_open(
+            engine, qp, ws, flat_normal_point(k, opts), le, li, z, opts, row_triggered))
+            << "k=" << k;
+        EXPECT_TRUE(row_triggered) << "k=" << k;
+    }
+    for (const double k : {0.0, 0.5, 0.99}) {
+        bool row_triggered = true;
+        EXPECT_FALSE(QpEngineTestAccess::polish_footprint_open(
+            engine, qp, ws, flat_normal_point(k, opts), le, li, z, opts, row_triggered))
+            << "k=" << k;
+        EXPECT_FALSE(row_triggered) << "k=" << k;
+    }
+}
+
+TEST(QpRowContractPolish, TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve) {
+    const QpProblem qp = flat_normal_polish_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kNever);
+    const WorkingSet ws(2, 0);
+    for (const double k : {1.5, 3.0, 6.9, 9.5}) {
+        Vec x = flat_normal_point(k, opts);
+        Vec le = Vec::Zero(1);
+        Vec li = Vec::Zero(0);
+        Vec zz = Vec::Zero(2);
+        // The pass's own EQP answer: the exact face optimum.
+        EqpResult answer;
+        answer.x = Vec(2);
+        answer.x << 1.0, -1.0;
+        answer.lambda_e = Vec::Zero(1);
+        answer.lambda_w = Vec(0);
+        QpCounters counters;
+        EXPECT_TRUE(QpEngineTestAccess::terminal_polish_with(engine, qp, ws, answer, true, x, le,
+                                                             li, zz, counters, opts))
+            << "k=" << k;
+        EXPECT_EQ(counters.terminal_polish_adopted, 1) << "k=" << k;
+        EXPECT_EQ(counters.terminal_polish_solves, 0) << "k=" << k;
+        EXPECT_LE(std::abs(qp.Ae.row(0).dot(x) - qp.be(0)), opts.feasibility_tol * 2.0)
+            << "k=" << k;
+    }
+}
+
+// THE FLOOR ON THE STATIONARITY COMPARISON: an incumbent whose stationarity is exactly at
+// rounding (0 here) must not veto the candidate that fixes its row, whose own stationarity is
+// 1e-14 (a multiplier of that size), far inside opt_tol. Row-triggered entries floor the
+// incumbent's side at kTerminalPolishStatFactor * opt_tol; ordinary entries do not.
+TEST(QpRowContractPolish, ARowTriggeredEntryFloorsTheIncumbentsStationarity) {
+    const QpProblem qp = flat_normal_polish_qp();
+    const QpOptions opts;
+    const QpEngine engine(opts, 0, DensePolicy::kNever);
+    const WorkingSet ws(2, 0);
+    const Vec x = flat_normal_point(3.0, opts);
+    const Vec le = Vec::Zero(1);
+    const Vec li = Vec::Zero(0);
+    const Vec z = Vec::Zero(2);
+    ASSERT_LE(terminal_kkt(qp, ws, x, le, li, z).stationarity, 1e-16);
+    EqpResult cand;
+    cand.x = Vec(2);
+    cand.x << 1.0, -1.0;
+    cand.lambda_e = Vec::Constant(1, 1e-14);
+    cand.lambda_w = Vec(0);
+    EXPECT_TRUE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, true));
+    EXPECT_FALSE(
+        QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, false));
 }

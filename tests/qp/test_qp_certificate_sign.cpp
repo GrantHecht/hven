@@ -618,3 +618,44 @@ TEST(QpCertificateSign, DallasmQnInfeasibleSubproblemKeepsAVerifiedVerdict) {
     EXPECT_EQ(r.s.counters.certificate_row_refusals, 0);
     EXPECT_FALSE(r.s.farkas.present); // the terminal certificate is not blocker-shaped
 }
+
+// KOPT-1X: THE GRAY-ZONE COUNTER. `optimal_row_gray_exits` counts kOptimal exits whose worst
+// equality row is still past 1x of its row_tolerance. After the walk's own step and the terminal
+// polish none is reachable naturally; the certificate seam presents the point. n = 2, H the
+// projector onto null(a), a = (1, 1) (H a = 0), g = (-1, 1), optimum (1, -1), row_scale 2.
+TEST(QpCertificateSign, AnOptimalExitPastOneFloorUnitIsCountedAGrayExit) {
+    SignSeamGuard guard;
+    QpProblem qp;
+    Eigen::MatrixXd Hd(2, 2);
+    Hd << 0.5, -0.5, -0.5, 0.5;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(2);
+    qp.g << -1.0, 1.0;
+    Eigen::MatrixXd Aed(1, 2);
+    Aed << 1.0, 1.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec::Zero(1);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -10.0);
+    qp.upper = Vec::Constant(2, 10.0);
+    for (const auto alg : kAlgebras) {
+        QpOptions opts;
+        opts.working_set_algebra = alg;
+        for (const auto [k, gray] : {std::pair{0.5, 0}, {0.99, 0}, {1.5, 1}, {9.5, 1}}) {
+            Cert::reset();
+            const double delta = k * opts.feasibility_tol * 2.0;
+            Cert::x = Vec(2);
+            Cert::x << 1.0 + 0.5 * delta, -1.0 + 0.5 * delta;
+            Cert::z = Vec::Zero(2);
+            Cert::armed = true;
+            QpEngine engine{opts, 0, hven::linear::DensePolicy::kNever};
+            const QpSolution s = engine.solve(qp);
+            Cert::armed = false;
+            SCOPED_TRACE("k=" + std::to_string(k));
+            ASSERT_EQ(Cert::presentations, 1);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_EQ(s.counters.optimal_row_gray_exits, gray);
+        }
+    }
+}

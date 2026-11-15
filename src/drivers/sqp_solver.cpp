@@ -986,6 +986,7 @@ void detail::charge_refused_face_refinement(SqpCounters &total, const QpSolution
     total.eqp_refine_iters += refined.counters.eqp_refine_iters;
     total.eqp_residual_refusals += refined.counters.eqp_residual_refusals;
     total.eqp_row_drift_refusals += refined.counters.eqp_row_drift_refusals;
+    total.optimal_row_gray_exits += refined.counters.optimal_row_gray_exits;
     total.eqp_polish_steps += refined.counters.eqp_polish_steps;
     total.dense_platform_retakes += refined.counters.dense_platform_retakes;
     total.dense_flagged_factorizations += refined.counters.dense_flagged_factorizations;
@@ -1458,6 +1459,7 @@ ElasticLadderReport detail::run_elastic_ladder(QpEngine &engine, const QpProblem
         out.eqp_refine_iters += qs_e.counters.eqp_refine_iters;
         out.eqp_residual_refusals += qs_e.counters.eqp_residual_refusals;
         out.eqp_row_drift_refusals += qs_e.counters.eqp_row_drift_refusals;
+        out.optimal_row_gray_exits += qs_e.counters.optimal_row_gray_exits;
         out.eqp_polish_steps += qs_e.counters.eqp_polish_steps;
         out.dense_platform_retakes += qs_e.counters.dense_platform_retakes;
         out.dense_flagged_factorizations += qs_e.counters.dense_flagged_factorizations;
@@ -5135,6 +5137,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         const Index refine_res_iters = refined.counters.eqp_refine_iters;
         const Index refine_refusals = refined.counters.eqp_residual_refusals;
         const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+        const Index refine_gray = refined.counters.optimal_row_gray_exits;
         const Index refine_polish = refined.counters.eqp_polish_steps;
         const Index refine_cond = refined.counters.dense_platform_retakes;
         const Index refine_flagged = refined.counters.dense_flagged_factorizations;
@@ -5171,6 +5174,7 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         qs.counters.eqp_refine_iters += refine_res_iters;
         qs.counters.eqp_residual_refusals += refine_refusals;
         qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+        qs.counters.optimal_row_gray_exits += refine_gray;
         qs.counters.eqp_polish_steps += refine_polish;
         qs.counters.dense_platform_retakes += refine_cond;
         qs.counters.dense_flagged_factorizations += refine_flagged;
@@ -5479,6 +5483,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
         const Index refine_res_iters = refined.counters.eqp_refine_iters;
         const Index refine_refusals = refined.counters.eqp_residual_refusals;
         const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+        const Index refine_gray = refined.counters.optimal_row_gray_exits;
         const Index refine_polish = refined.counters.eqp_polish_steps;
         const Index refine_cond = refined.counters.dense_platform_retakes;
         const Index refine_flagged = refined.counters.dense_flagged_factorizations;
@@ -5498,6 +5503,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             qs.counters.eqp_refine_iters += refine_res_iters;
             qs.counters.eqp_residual_refusals += refine_refusals;
             qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+            qs.counters.optimal_row_gray_exits += refine_gray;
             qs.counters.eqp_polish_steps += refine_polish;
             qs.counters.dense_platform_retakes += refine_cond;
             qs.counters.dense_flagged_factorizations += refine_flagged;
@@ -5517,6 +5523,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             out.counters.eqp_refine_iters += refine_res_iters;
             out.counters.eqp_residual_refusals += refine_refusals;
             out.counters.eqp_row_drift_refusals += refine_drift_refusals;
+            out.counters.optimal_row_gray_exits += refine_gray;
             out.counters.eqp_polish_steps += refine_polish;
             out.counters.dense_platform_retakes += refine_cond;
             out.counters.dense_flagged_factorizations += refine_flagged;
@@ -6238,6 +6245,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         st.out.counters.eqp_refine_iters += phase.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += phase.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += phase.counters.eqp_row_drift_refusals;
+        st.out.counters.optimal_row_gray_exits += phase.counters.optimal_row_gray_exits;
         st.out.counters.eqp_polish_steps += phase.counters.eqp_polish_steps;
         st.out.counters.dense_platform_retakes += phase.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations += phase.counters.dense_flagged_factorizations;
@@ -8048,6 +8056,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.eqp_refine_iters += mj.qs.counters.eqp_refine_iters;
     st.out.counters.eqp_residual_refusals += mj.qs.counters.eqp_residual_refusals;
     st.out.counters.eqp_row_drift_refusals += mj.qs.counters.eqp_row_drift_refusals;
+    st.out.counters.optimal_row_gray_exits += mj.qs.counters.optimal_row_gray_exits;
     st.out.counters.eqp_polish_steps += mj.qs.counters.eqp_polish_steps;
     st.out.counters.dense_platform_retakes += mj.qs.counters.dense_platform_retakes;
     st.out.counters.dense_flagged_factorizations += mj.qs.counters.dense_flagged_factorizations;
@@ -8158,6 +8167,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.eqp_refine_iters += retried.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += retried.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += retried.counters.eqp_row_drift_refusals;
+        st.out.counters.optimal_row_gray_exits += retried.counters.optimal_row_gray_exits;
         st.out.counters.eqp_polish_steps += retried.counters.eqp_polish_steps;
         st.out.counters.dense_platform_retakes += retried.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations +=
@@ -8751,6 +8761,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         st.out.counters.eqp_refine_iters += mj.qs_soc.counters.eqp_refine_iters;
         st.out.counters.eqp_residual_refusals += mj.qs_soc.counters.eqp_residual_refusals;
         st.out.counters.eqp_row_drift_refusals += mj.qs_soc.counters.eqp_row_drift_refusals;
+        st.out.counters.optimal_row_gray_exits += mj.qs_soc.counters.optimal_row_gray_exits;
         st.out.counters.eqp_polish_steps += mj.qs_soc.counters.eqp_polish_steps;
         st.out.counters.dense_platform_retakes += mj.qs_soc.counters.dense_platform_retakes;
         st.out.counters.dense_flagged_factorizations +=
@@ -9652,6 +9663,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     const Index refine_res_iters = refined.counters.eqp_refine_iters;
     const Index refine_refusals = refined.counters.eqp_residual_refusals;
     const Index refine_drift_refusals = refined.counters.eqp_row_drift_refusals;
+    const Index refine_gray = refined.counters.optimal_row_gray_exits;
     const Index refine_polish = refined.counters.eqp_polish_steps;
     const Index refine_cond = refined.counters.dense_platform_retakes;
     const Index refine_flagged = refined.counters.dense_flagged_factorizations;
@@ -9676,6 +9688,7 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     qs.counters.eqp_refine_iters += refine_res_iters;
     qs.counters.eqp_residual_refusals += refine_refusals;
     qs.counters.eqp_row_drift_refusals += refine_drift_refusals;
+    qs.counters.optimal_row_gray_exits += refine_gray;
     qs.counters.eqp_polish_steps += refine_polish;
     qs.counters.dense_platform_retakes += refine_cond;
     qs.counters.dense_flagged_factorizations += refine_flagged;
