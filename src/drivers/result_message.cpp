@@ -27,7 +27,7 @@ std::string iteration_limit_message(Index cap) {
 
 // The best-iterate clause rides on every status the flag is set with, not only
 // kIterationLimit: the interior-point return-best substitution applies to any
-// non-optimal exit but an interrupt.
+// non-optimal exit but an interrupt, and a kStopReturnBest interrupt sets it.
 std::string with_best_clause(std::string message, bool returned_best_iterate) {
     if (returned_best_iterate) {
         message += "; returned the best iterate";

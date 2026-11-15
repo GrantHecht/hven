@@ -3941,6 +3941,14 @@ struct SqpSolverImpl::SolveState {
         // budget-best exit runs, `st.ev` has moved on to a later iterate. Four
         // doubles and two vector copies, on the improving passes only.
         DeclaredDiagnosticsStash diag;
+        // THE SAME POINT AS best_iterate WILL REPORT IT (M8 AP-5 G3): the caller's
+        // units and variables, mapped where it was captured, with the four row
+        // blocks beside it for Problem's row-space map. `snap_row` is its index in
+        // `history`, so the push of that row can add the step taken from it.
+        IterationSnapshot snap;
+        Vec rows_lambda_e, rows_lambda_i, rows_ce, rows_ci;
+        Index snap_row = -1;
+        bool snap_valid = false;
     };
 
     // ---- solve invariants, written once by prepare_solve ------------------
@@ -4189,6 +4197,10 @@ struct SqpSolverImpl::SolveState {
     // driver. Always set together with `interrupted`; selects
     // StopReason::kStopRequested at the four restoration-return sites.
     bool token_interrupt = false;
+    // THE LATCH CAME FROM A CALLBACK'S kStopReturnBest (M8 AP-5 G3): the exit
+    // returns the best iterate when the tracker holds one. Meaningful only with
+    // `interrupted` and not `token_interrupt`; cleared where the latch is.
+    bool stop_return_best = false;
     // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
     // `events_fired == rows_pushed` is what proves nothing but `push_history`
     // fires the callback, exactly as `rows_pushed == history.size()` proves
@@ -6141,8 +6153,9 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                     // callback clearing itself from inside a DEPTH-1 event is deferred
                     // exactly as it is at depth 0.
                     const CallbackAction action = this->invoke_iteration_callback(nested);
-                    if (action == CallbackAction::kStop) {
+                    if (action != CallbackAction::kContinue) {
                         st.interrupted = true;
+                        st.stop_return_best = action == CallbackAction::kStopReturnBest;
                     }
                     return action;
                 },
@@ -6447,6 +6460,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
             return_entry_point();
         } else if (latch_is_phase_terminal_stop) {
             st.interrupted = false;
+            st.stop_return_best = false;
         }
         return RestorationOutcome::kExited;
     }
@@ -6730,6 +6744,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // The stop landed on the converged phase's own terminal row: no-op, so the
         // certified (or no-claim) verdict above is the exit.
         st.interrupted = false;
+        st.stop_return_best = false;
     }
     return RestorationOutcome::kExited;
 }
@@ -6816,8 +6831,10 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &expor
             std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count(),
     };
     ++st.events_fired;
-    if (invoke_iteration_callback(event) == CallbackAction::kStop) {
+    if (const CallbackAction action = invoke_iteration_callback(event);
+        action != CallbackAction::kContinue) {
         st.interrupted = true;
+        st.stop_return_best = action == CallbackAction::kStopReturnBest;
     }
 }
 
@@ -6942,6 +6959,65 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // The fields describing THE ITERATE (as opposed to the subproblem
     // solved from it), factored out so the watchdog can re-take them
     // after a restore. Reads ev/kkt/delta, all by reference.
+    // THE CURRENT POINT IN THE CALLER'S UNITS AND VARIABLES (M6 W5 T8.6 fix1, M8
+    // AP-5 G3): the point, its prices, its bound prices and the declared
+    // constraint residuals, with the four shared diagnostics when asked and the
+    // measurement is finite. The engine->caller map of `finish`: a row price picks
+    // up its row factor and loses the objective factor, a bound price loses the
+    // objective factor alone, a residual loses its row factor; then the column
+    // layer's x = d x~, z = z~ / d. The diagnostics are taken in the engine's
+    // variables, before the column map. Evaluates nothing.
+    struct CallerPoint {
+        Vec x, lambda_e, lambda_i, z, ce, ci;
+        detail::DeclaredDiagnostics diag;
+    };
+    auto caller_point = [&](bool want_diagnostics) {
+        CallerPoint cp;
+        const detail::ProblemScaling &sc = st.solve_scaling;
+        const bool scaled = sc.active;
+        cp.x = st.x;
+        cp.lambda_e = st.lambda_e;
+        cp.lambda_i = st.lambda_i;
+        cp.z = mj.kkt.z;
+        if (scaled) {
+            if (cp.lambda_e.size() == sc.eq_rows.size()) {
+                cp.lambda_e = (cp.lambda_e.array() * sc.eq_rows.array() / sc.obj).matrix();
+            }
+            if (cp.lambda_i.size() == sc.ineq_rows.size()) {
+                cp.lambda_i = (cp.lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
+            }
+            cp.z /= sc.obj;
+        }
+        // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the
+        // measurement this row was taken from.
+        if (want_diagnostics && mj.kkt.finite) {
+            Vec grad_lag_c = mj.kkt.grad_lag;
+            cp.ce = st.ev.ce;
+            cp.ci = st.ev.ci;
+            if (scaled) {
+                grad_lag_c /= sc.obj;
+                if (cp.ce.size() == sc.eq_rows.size()) {
+                    cp.ce.array() /= sc.eq_rows.array();
+                }
+                if (cp.ci.size() == sc.ineq_rows.size()) {
+                    cp.ci.array() /= sc.ineq_rows.array();
+                }
+            }
+            cp.diag = detail::compute_declared_diagnostics_from_grad_lag(
+                cp.x, cp.lambda_i, cp.z, grad_lag_c, cp.ce, cp.ci, seam.lower(), seam.upper(), {});
+        }
+        // THE COLUMN LAYER'S MAP (M7 W2 SCL), AFTER the diagnostics: the point and
+        // its bound prices go out in the caller's units, x = d x~, z = z~ / d.
+        if (column_units_ != nullptr) {
+            if (cp.x.size() == column_units_->size()) {
+                cp.x.array() *= column_units_->array();
+            }
+            if (cp.z.size() == column_units_->size()) {
+                cp.z.array() /= column_units_->array();
+            }
+        }
+        return cp;
+    };
     auto measure_iterate = [&] {
         // THE WHOLE OF WHAT THIS ROW'S EVENT WILL REPORT (M6 W5 T8.6; widened
         // from the two price blocks to the complete measurement at fix1),
@@ -6996,54 +7072,15 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             mj.event_diag = detail::DeclaredDiagnostics{};
         }
         if (want_vectors || want_diagnostics) {
-            const detail::ProblemScaling &sc = st.solve_scaling;
-            const bool scaled = sc.active;
-            mj.event_x = st.x;
-            mj.event_lambda_e = st.lambda_e;
-            mj.event_lambda_i = st.lambda_i;
-            mj.event_z = mj.kkt.z;
-            if (scaled) {
-                if (mj.event_lambda_e.size() == sc.eq_rows.size()) {
-                    mj.event_lambda_e =
-                        (mj.event_lambda_e.array() * sc.eq_rows.array() / sc.obj).matrix();
-                }
-                if (mj.event_lambda_i.size() == sc.ineq_rows.size()) {
-                    mj.event_lambda_i =
-                        (mj.event_lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
-                }
-                mj.event_z /= sc.obj;
-            }
-            // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the
-            // measurement this row was taken from.
-            if (want_diagnostics && mj.kkt.finite) {
-                Vec grad_lag_c = mj.kkt.grad_lag;
-                Vec ce_c = st.ev.ce;
-                Vec ci_c = st.ev.ci;
-                if (scaled) {
-                    grad_lag_c /= sc.obj;
-                    if (ce_c.size() == sc.eq_rows.size()) {
-                        ce_c.array() /= sc.eq_rows.array();
-                    }
-                    if (ci_c.size() == sc.ineq_rows.size()) {
-                        ci_c.array() /= sc.ineq_rows.array();
-                    }
-                }
-                mj.event_diag = detail::compute_declared_diagnostics_from_grad_lag(
-                    mj.event_x, mj.event_lambda_i, mj.event_z, grad_lag_c, ce_c, ci_c, seam.lower(),
-                    seam.upper(), {});
-            }
-            // THE COLUMN LAYER'S MAP (M7 W2 SCL), AFTER the diagnostics, which are
-            // taken in the engine's variables: the row residuals and the bound
-            // complementarity (x - l) z are the same in both, the stationarity is
-            // the engine's (SqpOptions::column_scaling states it). The point and
-            // its bound prices go out in the caller's units: x = d x~, z = z~ / d.
-            if (column_units_ != nullptr) {
-                if (mj.event_x.size() == column_units_->size()) {
-                    mj.event_x.array() *= column_units_->array();
-                }
-                if (mj.event_z.size() == column_units_->size()) {
-                    mj.event_z.array() /= column_units_->array();
-                }
+            // THE MAP, ONE DEFINITION (caller_point above): shared with the best
+            // tracker, so an event and best_iterate describe a point in one arithmetic.
+            CallerPoint cp = caller_point(want_diagnostics);
+            mj.event_x = std::move(cp.x);
+            mj.event_lambda_e = std::move(cp.lambda_e);
+            mj.event_lambda_i = std::move(cp.lambda_i);
+            mj.event_z = std::move(cp.z);
+            if (want_diagnostics) {
+                mj.event_diag = cp.diag;
             }
             if (!want_vectors) {
                 drop_snapshot();
@@ -7126,6 +7163,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // prices this row was measured at (fix1).
         if (iteration_callback_) {
             fire_iteration_event(st, exported, mj);
+        }
+        if (st.mb.snap_row == static_cast<Index>(st.out.history.size())) {
+            st.mb.snap.step_norm = exported.step_norm;
         }
         st.out.history.push_back(std::move(exported));
         ++st.rows_pushed;
@@ -7490,7 +7530,12 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // describes and the one about to be pushed to history below,
     // never the abandoned pre-restore point (which leaves no row of
     // its own on that path -- see the watchdog block's own note).
-    if (opts_.return_best_on_max_iterations) {
+    // ARMED (M8 AP-5 G3, design page section 3.3) by the option, an installed
+    // callback or a stop token that can fire, on the caller's own solve only: a
+    // restoration sub-solve never tracks, so the best is always a caller-space
+    // iterate of the parent. Tracking copies; it never steers.
+    if (opts_.return_best_on_max_iterations ||
+        (!is_restoration_sub_driver_ && (iteration_callback_ || budget.stop.stop_possible()))) {
         const bool better =
             mj.row.violation_l1 < st.mb.h || (mj.row.violation_l1 == st.mb.h && mj.row.f < st.mb.f);
         if (better) {
@@ -7510,6 +7555,31 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // here or not at all. No model call.
             st.mb.diag = stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
                                                     seam.upper());
+            // best_iterate's own copy, in the caller's space (M8 AP-5 G3). Its
+            // step_norm is the step taken FROM the point, known when the row is
+            // pushed; push_history fills it by `snap_row`.
+            CallerPoint cp = caller_point(true);
+            IterationSnapshot &snap = st.mb.snap;
+            snap = IterationSnapshot{};
+            snap.iteration = static_cast<Index>(st.out.history.size());
+            snap.depth = Index{0};
+            snap.f = st.solve_scaling.active ? mj.row.f / st.solve_scaling.obj : mj.row.f;
+            snap.stationarity = cp.diag.stationarity;
+            snap.feasibility =
+                detail::combine_feasibility(cp.diag.feasibility_e, cp.diag.feasibility_i);
+            snap.complementarity = cp.diag.complementarity;
+            snap.radius = mj.row.tr_radius;
+            snap.x = std::move(cp.x);
+            snap.z = std::move(cp.z);
+            snap.elapsed_seconds =
+                std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_)
+                    .count();
+            st.mb.rows_lambda_e = std::move(cp.lambda_e);
+            st.mb.rows_lambda_i = std::move(cp.lambda_i);
+            st.mb.rows_ce = std::move(cp.ce);
+            st.mb.rows_ci = std::move(cp.ci);
+            st.mb.snap_row = snap.iteration;
+            st.mb.snap_valid = true;
         }
     }
 
@@ -8829,6 +8899,12 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
     eq_basis_view_ = &st.eqb.basis;
     eq_prox_lift_failures_ = 0;
     const BasisViewGuard basis_view_guard{this};
+    struct FinishStateGuard {
+        SqpSolverImpl *self;
+        ~FinishStateGuard() { self->finish_state_ = nullptr; }
+    };
+    finish_state_ = &st;
+    const FinishStateGuard finish_state_guard{this};
 
     for (Index iter = 0;; ++iter) {
         if (iter > 0 && st.rows_pushed != st.rows_at_major_entry + 1) {
@@ -8877,6 +8953,26 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                 st.eqb.refuse_pending = true;
             }
         }
+        // A CALLBACK'S kStopReturnBest (M8 AP-5 G3): the exit returns the best
+        // iterate the tracker holds, by the budgeted exit's own arguments. Without a
+        // recorded best (the tracker is empty) the stop is kStop's. A token stop
+        // never takes it.
+        const bool stop_returns_best =
+            st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid;
+        const auto finish_best = [&](SolveStatus status) {
+            const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
+            st.out.returned_best_iterate = true;
+            st.out.returned_pre_restoration_point = false;
+            return finish(seam, std::move(st.out), status, st.mb.x, st.mb.lambda_e, st.mb.lambda_i,
+                          st.mb.kkt, st.mb.f,
+                          make_warm_start(seam,
+                                          (best_is_current && st.have_seed) ? &st.seed : nullptr,
+                                          st.qp, st.qp_built, &st.ev, &st.x, st.delta,
+                                          st.last_dual_mu, opts_.qp.primal_regularization,
+                                          st.strategy.get(), engine_->hot_state()),
+                          // THE BEST POINT'S OWN STASH, taken when it was captured.
+                          st.mb.diag);
+        };
         // NO `default:` LABEL, so `-Wswitch` sees a tag added without an arm;
         // every arm either continues the loop or returns the solution.
         switch (outcome) {
@@ -8913,6 +9009,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                     --st.out.counters.soc_applied;
                 }
                 publish_stop(interrupt_reason(mj), std::string());
+                if (st.interrupted && st.stop_return_best && !mj.token_exit && st.mb.snap_valid) {
+                    return finish_best(SolveStatus::kInterrupted);
+                }
                 return finish(seam, std::move(st.out), SolveStatus::kInterrupted, st.x, st.lambda_e,
                               st.lambda_i, mj.kkt, mj.row.f,
                               make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
@@ -9025,6 +9124,7 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
         case MajorOutcome::kFinishManual:
             publish_stop(st.exit_reason, st.exit_detail);
             check_major_pushed_once(iter);
+            attach_best_iterate(st, st.out.status, st.out);
             // `out` is a member of the solve state, not a local, so this is a
             // MOVE and not the copy the alias would otherwise make. Every other
             // exit already moves it into `finish`.
@@ -9039,6 +9139,9 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             publish_stop(!mj.converged && mj.interrupted_exit ? interrupt_reason(mj)
                                                               : StopReason::kNone,
                          std::string());
+            if (!mj.converged && mj.interrupted_exit && stop_returns_best) {
+                return finish_best(SolveStatus::kInterrupted);
+            }
             // THE EVALUATION IS LIVE HERE: `st.ev` is at `st.x`, which is the
             // point being returned, and `mj.kkt` was measured from it this
             // pass. No stash had to be carried.
@@ -9066,29 +9169,13 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                           stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
                                                      seam.upper()));
         case MajorOutcome::kFinishBudgetBest: {
-            // BUDGETED MODE: report the best-by-(h, f) iterate
-            // rather than the last one. `seed` is only this best
-            // point's own activity when the best iterate IS the
-            // current one (row.violation_l1/row.f just tied the
-            // tracked best on THIS pass) -- otherwise it describes a
-            // point the returned x has moved away from, exactly the
-            // st.resto.moved_x reasoning elsewhere in this loop.
-            //
-            // COMPUTED BEFORE THE CHECK, on the row and the snapshot this major
-            // finished writing, so the comparison is the one it always was.
-            const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
+            // BUDGETED MODE: report the best-by-(h, f) iterate rather than the
+            // last one. `seed` is only this best point's own activity when the
+            // best iterate IS the current one -- otherwise it describes a point the
+            // returned x has moved away from, exactly the st.resto.moved_x
+            // reasoning elsewhere in this loop.
             check_major_pushed_once(iter);
-            st.out.returned_best_iterate = true;
-            return finish(seam, std::move(st.out), SolveStatus::kIterationLimit, st.mb.x,
-                          st.mb.lambda_e, st.mb.lambda_i, st.mb.kkt, st.mb.f,
-                          make_warm_start(seam,
-                                          (best_is_current && st.have_seed) ? &st.seed : nullptr,
-                                          st.qp, st.qp_built, &st.ev, &st.x, st.delta,
-                                          st.last_dual_mu, opts_.qp.primal_regularization,
-                                          st.strategy.get(), engine_->hot_state()),
-                          // THE BEST POINT'S OWN STASH, taken when it was captured:
-                          // `st.ev` has moved on to a later iterate by now.
-                          st.mb.diag);
+            return finish_best(SolveStatus::kIterationLimit);
         }
         case MajorOutcome::kFinishQpFailure: {
             // No restoration was consulted on this path -- x is still
@@ -9133,6 +9220,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // seed, which is why it has a tag of its own (unless restoration
             // moved x away from what the seed describes; see
             // st.resto.moved_x's own note).
+            if (mj.interrupted_exit && stop_returns_best) {
+                publish_stop(StopReason::kCallbackStop, std::string());
+                check_major_pushed_once(iter);
+                return finish_best(SolveStatus::kInterrupted);
+            }
             publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                          mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
@@ -9169,6 +9261,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
             // rejected trial's own kOptimal solution -- and it still describes
             // the region around x unless restoration itself moved x; see
             // st.resto.moved_x's own note.
+            if (mj.interrupted_exit && stop_returns_best) {
+                publish_stop(StopReason::kCallbackStop, std::string());
+                check_major_pushed_once(iter);
+                return finish_best(SolveStatus::kInterrupted);
+            }
             publish_stop(mj.interrupted_exit ? interrupt_reason(mj) : st.resto.reason,
                          mj.interrupted_exit ? interrupt_detail(st) : st.resto.detail);
             check_major_pushed_once(iter);
@@ -9549,6 +9646,25 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
     return w;
 }
 
+void SqpSolverImpl::attach_best_iterate(const SolveState &st, SolveStatus status,
+                                        SqpResult &out) const {
+    out.best_iterate.reset();
+    auto &rows = detail::engine_rows(out);
+    rows.best_lambda_e.resize(0);
+    rows.best_lambda_i.resize(0);
+    rows.best_ce.resize(0);
+    rows.best_ci.resize(0);
+    if (!st.mb.snap_valid || status == SolveStatus::kOptimal ||
+        status == SolveStatus::kAcceptable) {
+        return;
+    }
+    out.best_iterate = st.mb.snap;
+    rows.best_lambda_e = st.mb.rows_lambda_e;
+    rows.best_lambda_i = st.mb.rows_lambda_i;
+    rows.best_ce = st.mb.rows_ce;
+    rows.best_ci = st.mb.rows_ci;
+}
+
 SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status,
                                 const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                                 const SqpKkt &kkt, double f, detail::SqpWarmState warm,
@@ -9564,6 +9680,9 @@ SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStat
     const detail::ProblemScaling sc = seam.scaling();
     finish_exported_feasibility_price_ = multipliers_are_caller_scale;
     out.status = status;
+    if (finish_state_ != nullptr) {
+        attach_best_iterate(*finish_state_, status, out);
+    }
     out.counters.eval_hess_calls += exit_probe_hess_calls_;
     exit_probe_hess_calls_ = 0;
     out.x = x;

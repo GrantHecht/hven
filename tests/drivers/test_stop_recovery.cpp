@@ -420,3 +420,126 @@ TEST(StopRecovery, T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
         EXPECT_TRUE(same_scalar(armed.convergence.kkt, plain.convergence.kkt));
     }
 }
+
+// ---------------------------------------------------------------------------
+// M8 AP-5 G3 on the restoration fixtures: best_iterate and kStopReturnBest.
+// ---------------------------------------------------------------------------
+
+// The tracker is suspended in restoration, so best_iterate is a caller-space
+// iterate from before it, and a stop inside restoration reports it separately from
+// the point it returns.
+TEST(StopRecovery, G3BestIterateOnARestorationSolveIsAnIterateFromOutsideRestoration) {
+    for (const RestoCase &m : kRestoCases) {
+        SCOPED_TRACE(m.label);
+        const Reference ref = run_reference(m, CallbackScope::kTopLevel);
+        ASSERT_TRUE(ref.any_recovering);
+        const IpmResult &r = ref.result;
+        ASSERT_NE(r.status, SolveStatus::kOptimal);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        const hven::IterationSnapshot &best = *r.best_iterate;
+        EXPECT_FALSE(best.recovering);
+        EXPECT_TRUE(std::isfinite(best.f));
+        EXPECT_TRUE(std::isfinite(best.feasibility));
+        ASSERT_EQ(best.g.size(), 1);
+        EXPECT_NEAR(best.g[0], best.x[0] * best.x[0] + best.x[1] * best.x[1] + 1.0,
+                    1e-12 * (1.0 + std::abs(best.g[0])));
+        bool delivered = false;
+        for (const Seen &s : ref.seen) {
+            delivered = delivered || (!s.recovering && bit_equal(s.x, best.x));
+        }
+        EXPECT_TRUE(delivered) << "best_iterate is a non-recovering delivered point";
+    }
+}
+
+TEST(StopRecovery, G3AStopReturnBestOnARecoveringEventReturnsTheBestNotTheShownPoint) {
+    for (const RestoCase &m : kRestoCases) {
+        SCOPED_TRACE(m.label);
+        const Reference ref = run_reference(m, CallbackScope::kTopLevel);
+        ASSERT_TRUE(ref.any_recovering);
+        const Seen &shown = ref.seen[ref.first_recovering];
+
+        Problem problem(std::make_shared<InfeasibleDisc>(m.boxed));
+        IpmSolver solver(options(m.mode));
+        solver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                return e.recovering ? CallbackAction::kStopReturnBest : CallbackAction::kContinue;
+            },
+            IterationPayload::kAll);
+        const IpmResult r = solver.solve(problem, start());
+
+        EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
+        EXPECT_FALSE(r.returned_pre_restoration_point);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        EXPECT_TRUE(r.returned_best_iterate) << r.message;
+        const hven::IterationSnapshot &best = *r.best_iterate;
+        EXPECT_FALSE(best.recovering);
+        EXPECT_TRUE(bit_equal(r.x, best.x));
+        EXPECT_TRUE(bit_equal(r.lambda, best.lambda));
+        EXPECT_TRUE(bit_equal(r.z, best.z));
+        EXPECT_TRUE(bit_equal(r.g, best.g));
+        EXPECT_TRUE(same_scalar(r.stationarity, best.stationarity));
+        EXPECT_TRUE(same_scalar(r.feasibility, best.feasibility));
+        EXPECT_FALSE(bit_equal(r.x, shown.x) && bit_equal(r.lambda, shown.lambda))
+            << "the restoration iterate the callback was shown is not what comes back";
+        // The declared diagnostics describe the best point: not NaN, which is what a
+        // restoration-flagged exit would otherwise report.
+        EXPECT_TRUE(std::isfinite(r.feasibility));
+    }
+}
+
+TEST(StopRecovery, G3ATokenStopInRestorationAlsoReportsABestIterateSeparately) {
+    for (const RestoCase &m : kRestoCases) {
+        SCOPED_TRACE(m.label);
+        const Reference ref = run_reference(m, CallbackScope::kTopLevel);
+        ASSERT_TRUE(ref.any_recovering);
+        StopSource source;
+        SolveBudget budget;
+        budget.stop = source.token();
+        Problem problem(std::make_shared<InfeasibleDisc>(m.boxed));
+        IpmSolver solver(options(m.mode));
+        solver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                if (e.recovering) {
+                    source.request_stop();
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll);
+        const IpmResult r = solver.solve(problem, start(), {}, budget);
+        EXPECT_EQ(r.status, SolveStatus::kInterrupted);
+        EXPECT_TRUE(r.returned_pre_restoration_point);
+        EXPECT_FALSE(r.returned_best_iterate);
+        ASSERT_TRUE(r.best_iterate.has_value());
+        EXPECT_FALSE(r.best_iterate->recovering);
+    }
+}
+
+// T9 on the restoration fixtures: arming the tracker (a callback, a token) moves
+// nothing, whatever the best tracker then reports.
+TEST(StopRecovery, G3TheTrackerArmedThroughARestorationEpisodeMovesNoCounter) {
+    for (const RestoCase &m : kRestoCases) {
+        SCOPED_TRACE(m.label);
+        Problem plain_problem(std::make_shared<InfeasibleDisc>(m.boxed));
+        IpmSolver plain_solver(options(m.mode));
+        const IpmResult plain = plain_solver.solve(plain_problem, start());
+        EXPECT_FALSE(plain.best_iterate.has_value());
+
+        Problem armed_problem(std::make_shared<InfeasibleDisc>(m.boxed));
+        IpmSolver armed_solver(options(m.mode));
+        armed_solver.set_iteration_callback(
+            [](const IterationEvent &) { return CallbackAction::kContinue; },
+            IterationPayload::kScalars);
+        const IpmResult armed = armed_solver.solve(armed_problem, start());
+        EXPECT_EQ(armed.status, plain.status);
+        EXPECT_EQ(armed.iterations, plain.iterations);
+        EXPECT_EQ(armed.work.factorizations, plain.work.factorizations);
+        EXPECT_EQ(armed.work.objective_evals, plain.work.objective_evals);
+        EXPECT_EQ(armed.work.constraint_evals, plain.work.constraint_evals);
+        EXPECT_EQ(armed.work.hessian_evals, plain.work.hessian_evals);
+        EXPECT_TRUE(bit_equal(armed.x, plain.x));
+        EXPECT_TRUE(bit_equal(armed.lambda, plain.lambda));
+        EXPECT_TRUE(same_scalar(armed.f, plain.f));
+        EXPECT_TRUE(armed.best_iterate.has_value());
+    }
+}

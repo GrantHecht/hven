@@ -2001,6 +2001,12 @@ class SqpSolverImpl {
     // exports that lift a QP-sized multiplier outside `SolveState`'s reach.
     // Non-null only inside `solve_impl_body`.
     const detail::EqualityBasis *eq_basis_view_ = nullptr;
+    // The running solve's state, for `finish` to read the best-iterate tracker
+    // from (M8 AP-5 G3). Non-null only inside `solve_impl_body`.
+    const SolveState *finish_state_ = nullptr;
+    // Writes `out.best_iterate` and its row blocks from `st.mb` when the tracker
+    // ran and `status` is not kOptimal or kAcceptable.
+    void attach_best_iterate(const SolveState &st, SolveStatus status, SqpResult &out) const;
     // Prox-centre lifts through eq_basis_view_ whose inflated a-posteriori estimate
     // failed its check since the driver last folded them into
     // SqpEqualityBasisReport::lift_refusals.

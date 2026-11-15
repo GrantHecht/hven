@@ -130,6 +130,32 @@ struct EvaluationErrors {
     std::string last_message;
 };
 
+/// @brief One iterate, owned: the copy of an IterationEvent a consumer may keep.
+///
+/// The event's field names with owning storage. Where the source carried no
+/// vector it is empty, where it carried no diagnostic it is NaN. Never aliases
+/// engine storage, so another thread may read it.
+struct IterationSnapshot {
+    Index iteration = 0;
+    bool recovering = false;
+    std::optional<Index> phase;
+    std::optional<Index> depth;
+    double f = std::numeric_limits<double>::quiet_NaN();
+    double stationarity = std::numeric_limits<double>::quiet_NaN();
+    double feasibility = std::numeric_limits<double>::quiet_NaN();
+    double complementarity = std::numeric_limits<double>::quiet_NaN();
+    double step_norm = std::numeric_limits<double>::quiet_NaN();
+    std::optional<double> radius;
+    std::optional<double> mu;
+    Vec x;
+    Vec lambda;
+    Vec z;
+    /// Row values at `x`, in the row space of `lambda`. Filled in
+    /// SolveResult::best_iterate; empty in a snapshot of an event.
+    Vec g;
+    double elapsed_seconds = 0.0;
+};
+
 /// @brief The result core both engines return through.
 ///
 /// EVERY field is in DECLARED space and CALLER units: the vectors are sized to
@@ -171,7 +197,9 @@ struct SolveResult {
     /// SQP: set only when SqpOptions::return_best_on_max_iterations ran out of iterations
     /// (SolveStatus::kIterationLimit); its non-finite exits never substitute and leave
     /// it false. The message gains "; returned the best iterate"
-    /// whenever it is set.
+    /// whenever it is set. Also set, on both engines, by a callback's
+    /// CallbackAction::kStopReturnBest that found a recorded best iterate (with
+    /// kInterrupted).
     bool returned_best_iterate = false;
 
     /// @brief True when the returned point is the one feasibility restoration was
@@ -180,6 +208,19 @@ struct SolveResult {
     ///        with SolveStatus::kInterrupted; the message gains
     ///        "; returned the point before feasibility restoration".
     bool returned_pre_restoration_point = false;
+
+    /// @brief The best iterate the solve visited, when best tracking was armed
+    ///        and the solve did not end kOptimal or kAcceptable; else nullopt.
+    ///
+    /// Armed whenever a return-best option is on, an iteration callback is
+    /// installed or SolveBudget::stop can fire. Never affects the trajectory.
+    /// Best by each engine's own ordering (the interior-point
+    /// IpmOptions::best_iterate_criterion, last phase that ran; the SQP's
+    /// feasibility-first (h, f)), over the caller's own iterates, never a
+    /// feasibility-restoration point. `g` is filled; `iteration`, `step_norm`
+    /// and the engine fields are those of the iterate's own event.
+    /// @ref returned_best_iterate says whether the primary point is this one.
+    std::optional<IterationSnapshot> best_iterate;
 
     /// @brief SQP engine only (the interior-point engine leaves it false). True
     ///        only on the certified infeasibility exit: the restoration phase ran
@@ -300,6 +341,12 @@ struct SolveResult {
         /// inequality-plus-bound violation, NaN when unmeasured.
         double feasibility_e = std::numeric_limits<double>::quiet_NaN();
         double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+        /// The same four blocks at best_iterate's point; mapped into its
+        /// `lambda` and `g` by the same step.
+        Vec best_lambda_e;
+        Vec best_lambda_i;
+        Vec best_ce;
+        Vec best_ci;
     };
     EngineRows engine_rows_;
 
@@ -323,6 +370,10 @@ enum class CallbackAction {
     /// (a converged iterate still reports kOptimal). The result's stop_reason
     /// is StopReason::kCallbackStop.
     kStop = 1,
+    /// As kStop, and the returned primary point is SolveResult::best_iterate
+    /// (SolveResult::returned_best_iterate is then true). When no best iterate
+    /// was recorded the point is kStop's and returned_best_iterate is false.
+    kStopReturnBest = 2,
 };
 
 /// @brief What an attached iteration callback asks its engine to PREPARE.
@@ -511,5 +562,9 @@ struct IterationEvent {
 /// no solve-end trace event, no ledger record for the abandoned solve, and the
 /// solver USABLE for the next call.
 using IterationCallback = std::function<CallbackAction(const IterationEvent &)>;
+
+/// @brief A deep copy of @p event: O(size of what its payload mask delivered).
+///        `g` is left empty (an event carries no row values).
+IterationSnapshot snapshot(const IterationEvent &event);
 
 } // namespace hven

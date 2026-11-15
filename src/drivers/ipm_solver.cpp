@@ -2233,6 +2233,7 @@ std::uint64_t hven::detail::IpmSolverImpl::next_owner_id() {
 
 void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int i,
                                                      const VectorXd &XSL, const VectorXd &RHS,
+                                                     double mu, double step_norm,
                                                      double &BestCriteriaVal, int &BestIter) {
     double critval;
     switch (opts_.best_iterate_criterion) {
@@ -2267,8 +2268,54 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
         // phase happened to reach.
         this->best_prim_obj_scratch_ = iter.prim_obj;
         this->best_eval_prov_ = this->cur_eval_prov_;
+        this->best_mu_scratch_ = mu;
+        this->best_step_norm_scratch_ = step_norm;
+        this->best_row_scratch_ = iter;
+        this->best_elapsed_scratch_ =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
+                .count();
         BestIter = i;
     }
+}
+
+void hven::detail::IpmSolverImpl::publish_phase_best(bool recorded) {
+    IpmResult &r = this->result_;
+    auto &rows = hven::detail::engine_rows(r);
+    r.best_iterate.reset();
+    rows.best_lambda_e.resize(0);
+    rows.best_lambda_i.resize(0);
+    rows.best_ce.resize(0);
+    rows.best_ci.resize(0);
+    if (!recorded) {
+        return;
+    }
+    // The tracked pair read through the event's own conversion; the row space
+    // `lambda` and `g` are mapped from the four blocks by Problem.
+    const ExitEvalProvenance &prov = this->best_eval_prov_;
+    DeclaredPoint pt = this->declared_point(this->best_xsl_scratch_, this->best_rhs_scratch_,
+                                            this->best_bound_duals_scratch_, prov,
+                                            prov.restoration_active, true, true);
+    const double scale = this->solve_obj_scale_;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const bool objective_measured = prov.objective_bearing && !prov.restoration_active;
+    IterationSnapshot snap;
+    snap.iteration = static_cast<Index>(this->best_row_scratch_.iter);
+    snap.recovering = false;
+    snap.phase = this->trace_phase_;
+    snap.f = objective_measured ? this->best_prim_obj_scratch_ / scale : nan;
+    snap.stationarity = pt.diag.stationarity;
+    snap.feasibility = detail::combine_feasibility(pt.diag.feasibility_e, pt.diag.feasibility_i);
+    snap.complementarity = pt.diag.complementarity;
+    snap.step_norm = this->best_step_norm_scratch_;
+    snap.mu = this->best_mu_scratch_ / scale;
+    snap.x = std::move(pt.x);
+    snap.z = std::move(pt.z);
+    snap.elapsed_seconds = this->best_elapsed_scratch_;
+    rows.best_lambda_e = std::move(pt.lambda_e);
+    rows.best_lambda_i = std::move(pt.lambda_i);
+    rows.best_ce = std::move(pt.ce);
+    rows.best_ci = std::move(pt.ci);
+    r.best_iterate = std::move(snap);
 }
 
 // ---------------------------------------------------------------------------
@@ -2333,6 +2380,118 @@ hven::detail::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
         d.stationarity = std::numeric_limits<double>::quiet_NaN();
     }
     return d;
+}
+
+hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared_point(
+    const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS, const BoundDualState &duals,
+    const ExitEvalProvenance &prov, bool restoration_contaminated, bool want_vectors,
+    bool want_diagnostics) const {
+    const double scale = this->solve_obj_scale_;
+    DeclaredPoint pt;
+    Eigen::VectorXd &x_declared = pt.x;
+    Eigen::VectorXd &lambda_e_declared = pt.lambda_e;
+    Eigen::VectorXd &lambda_i_declared = pt.lambda_i;
+    Eigen::VectorXd &z_declared = pt.z;
+    detail::DeclaredDiagnostics &diag = pt.diag;
+    ConstKktVector v_xsl = this->kkt_view(XSL);
+    ConstKktVector v_rhs = this->kkt_view(RHS);
+
+    const Eigen::Index n = this->full_primal_vars_;
+    const Eigen::Index user_eq = this->nlp_->user_equal_cons_;
+    const Eigen::Index fixing_rows = static_cast<Eigen::Index>(this->equal_cons_) - user_eq;
+    const auto &fixed_idx = this->nlp_->fixed_variable_indices();
+    const bool have_fixing_rows = fixing_rows > 0 && fixed_idx.size() == fixing_rows;
+
+    // (1) The primals, scattered to declared width. A positive objective
+    //     scale does not move a point, so nothing is divided out here.
+    if (this->nlp_->is_reduced()) {
+        x_declared.resize(n);
+        this->nlp_->scatter_full_x(Eigen::VectorXd(v_xsl.primals()), x_declared);
+    } else {
+        x_declared = v_xsl.primals();
+    }
+
+    // (2) The equality prices, with the treatment's own rows taken off the
+    //     tail and held for the bound price and the gradient below.
+    Eigen::VectorXd fixed_lambda;
+    if (this->equal_cons_ > 0) {
+        const Eigen::VectorXd all_e = v_xsl.eq_lmults();
+        if (have_fixing_rows) {
+            fixed_lambda = all_e.tail(fixing_rows) / scale;
+        }
+        lambda_e_declared = all_e.head(user_eq) / scale;
+    }
+    if (this->inequal_cons_ > 0) {
+        lambda_i_declared = Eigen::VectorXd(v_xsl.iq_lmults()) / scale;
+    }
+
+    // (3) The bound price, folded from the two per-side multipliers with
+    //     the signs the stationarity convention forces, scattered to
+    //     declared width, and given the fixing row's own price where a
+    //     MakeConstraint coordinate has one.
+    z_declared = Eigen::VectorXd::Zero(n);
+    if (this->bounds_) {
+        Eigen::VectorXd z_reduced = Eigen::VectorXd::Zero(this->primal_vars_);
+        const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+        const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+        for (int k = 0; k < nl; k++)
+            z_reduced[this->bounds_->lower_idx_[k]] += duals.z_lower_[k];
+        for (int k = 0; k < nu; k++)
+            z_reduced[this->bounds_->upper_idx_[k]] -= duals.z_upper_[k];
+        z_reduced /= scale;
+        if (this->nlp_->is_reduced()) {
+            const auto &r2f = this->nlp_->reduced_to_full();
+            if (r2f.size() == z_reduced.size()) {
+                for (Eigen::Index k = 0; k < z_reduced.size(); ++k) {
+                    z_declared[r2f[k]] = z_reduced[k];
+                }
+            }
+        } else if (z_reduced.size() == n) {
+            z_declared = z_reduced;
+        }
+    }
+    if (have_fixing_rows) {
+        for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+            z_declared[fixed_idx[k]] = -fixed_lambda[k];
+        }
+    }
+
+    if (want_diagnostics) {
+        // (4) The two constraint blocks, declared rows only. They feed the
+        //     diagnostics and NOTHING ELSE -- they are not fields of the
+        //     event -- so they are prepared only when the diagnostics are.
+        Eigen::VectorXd &ce_declared = pt.ce;
+        Eigen::VectorXd &ci_declared = pt.ci;
+        if (this->equal_cons_ > 0) {
+            ce_declared = Eigen::VectorXd(v_rhs.eq_cons()).head(user_eq);
+        }
+        if (this->inequal_cons_ > 0) {
+            ci_declared = v_rhs.iq_cons() - v_xsl.slacks();
+        }
+        if (restoration_contaminated) {
+            // The rows this right-hand side carries are the restoration
+            // subproblem's condensed residuals, not the declared ones.
+            // Emptied rather than copied -- an empty block reads as
+            // unmeasured, a copied one would read as a feasible point.
+            ce_declared.resize(0);
+            ci_declared.resize(0);
+        }
+        const bool measured = prov.has_eval && !restoration_contaminated &&
+                              v_rhs.prim_grad().size() == this->primal_vars_;
+        if (measured) {
+            // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5
+            // T8.6 fix1). Clause (a) -- a feasibility phase measures every
+            // declared quantity except the objective gradient, so
+            // stationarity ALONE is unmeasured there -- is applied inside
+            // it, exactly as the result applies it.
+            diag = this->declared_diagnostics_from_reduced_grad_lag(
+                x_declared, lambda_i_declared, z_declared, Eigen::VectorXd(v_rhs.prim_grad()),
+                have_fixing_rows ? fixed_lambda : Eigen::VectorXd(), ce_declared, ci_declared,
+                scale, prov.objective_bearing);
+        }
+    }
+    (void)want_vectors;
+    return pt;
 }
 
 // ---------------------------------------------------------------------------
@@ -2415,110 +2574,16 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
         prov.restoration_active ||
         (this->restoration_ != nullptr && this->restoration_->is_active());
 
-    Eigen::VectorXd x_declared;
-    Eigen::VectorXd lambda_e_declared;
-    Eigen::VectorXd lambda_i_declared;
-    Eigen::VectorXd z_declared;
-    detail::DeclaredDiagnostics diag;
+    DeclaredPoint pt;
     if (want_declared) {
-        ConstKktVector v_xsl = this->kkt_view(XSL);
-        ConstKktVector v_rhs = this->kkt_view(RHS);
-
-        const Eigen::Index n = this->full_primal_vars_;
-        const Eigen::Index user_eq = this->nlp_->user_equal_cons_;
-        const Eigen::Index fixing_rows = static_cast<Eigen::Index>(this->equal_cons_) - user_eq;
-        const auto &fixed_idx = this->nlp_->fixed_variable_indices();
-        const bool have_fixing_rows = fixing_rows > 0 && fixed_idx.size() == fixing_rows;
-
-        // (1) The primals, scattered to declared width. A positive objective
-        //     scale does not move a point, so nothing is divided out here.
-        if (this->nlp_->is_reduced()) {
-            x_declared.resize(n);
-            this->nlp_->scatter_full_x(Eigen::VectorXd(v_xsl.primals()), x_declared);
-        } else {
-            x_declared = v_xsl.primals();
-        }
-
-        // (2) The equality prices, with the treatment's own rows taken off the
-        //     tail and held for the bound price and the gradient below.
-        Eigen::VectorXd fixed_lambda;
-        if (this->equal_cons_ > 0) {
-            const Eigen::VectorXd all_e = v_xsl.eq_lmults();
-            if (have_fixing_rows) {
-                fixed_lambda = all_e.tail(fixing_rows) / scale;
-            }
-            lambda_e_declared = all_e.head(user_eq) / scale;
-        }
-        if (this->inequal_cons_ > 0) {
-            lambda_i_declared = Eigen::VectorXd(v_xsl.iq_lmults()) / scale;
-        }
-
-        // (3) The bound price, folded from the two per-side multipliers with
-        //     the signs the stationarity convention forces, scattered to
-        //     declared width, and given the fixing row's own price where a
-        //     MakeConstraint coordinate has one.
-        z_declared = Eigen::VectorXd::Zero(n);
-        if (this->bounds_) {
-            Eigen::VectorXd z_reduced = Eigen::VectorXd::Zero(this->primal_vars_);
-            const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
-            const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
-            for (int k = 0; k < nl; k++)
-                z_reduced[this->bounds_->lower_idx_[k]] += this->bound_duals_.z_lower_[k];
-            for (int k = 0; k < nu; k++)
-                z_reduced[this->bounds_->upper_idx_[k]] -= this->bound_duals_.z_upper_[k];
-            z_reduced /= scale;
-            if (this->nlp_->is_reduced()) {
-                const auto &r2f = this->nlp_->reduced_to_full();
-                if (r2f.size() == z_reduced.size()) {
-                    for (Eigen::Index k = 0; k < z_reduced.size(); ++k) {
-                        z_declared[r2f[k]] = z_reduced[k];
-                    }
-                }
-            } else if (z_reduced.size() == n) {
-                z_declared = z_reduced;
-            }
-        }
-        if (have_fixing_rows) {
-            for (Eigen::Index k = 0; k < fixing_rows; ++k) {
-                z_declared[fixed_idx[k]] = -fixed_lambda[k];
-            }
-        }
-
-        if (want_diagnostics) {
-            // (4) The two constraint blocks, declared rows only. They feed the
-            //     diagnostics and NOTHING ELSE -- they are not fields of the
-            //     event -- so they are prepared only when the diagnostics are.
-            Eigen::VectorXd ce_declared;
-            Eigen::VectorXd ci_declared;
-            if (this->equal_cons_ > 0) {
-                ce_declared = Eigen::VectorXd(v_rhs.eq_cons()).head(user_eq);
-            }
-            if (this->inequal_cons_ > 0) {
-                ci_declared = v_rhs.iq_cons() - v_xsl.slacks();
-            }
-            if (restoration_contaminated) {
-                // The rows this right-hand side carries are the restoration
-                // subproblem's condensed residuals, not the declared ones.
-                // Emptied rather than copied -- an empty block reads as
-                // unmeasured, a copied one would read as a feasible point.
-                ce_declared.resize(0);
-                ci_declared.resize(0);
-            }
-            const bool measured = prov.has_eval && !restoration_contaminated &&
-                                  v_rhs.prim_grad().size() == this->primal_vars_;
-            if (measured) {
-                // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5
-                // T8.6 fix1). Clause (a) -- a feasibility phase measures every
-                // declared quantity except the objective gradient, so
-                // stationarity ALONE is unmeasured there -- is applied inside
-                // it, exactly as the result applies it.
-                diag = this->declared_diagnostics_from_reduced_grad_lag(
-                    x_declared, lambda_i_declared, z_declared, Eigen::VectorXd(v_rhs.prim_grad()),
-                    have_fixing_rows ? fixed_lambda : Eigen::VectorXd(), ce_declared, ci_declared,
-                    scale, prov.objective_bearing);
-            }
-        }
+        pt = this->declared_point(XSL, RHS, this->bound_duals_, prov, restoration_contaminated,
+                                  want_vectors, want_diagnostics);
     }
+    Eigen::VectorXd &x_declared = pt.x;
+    Eigen::VectorXd &lambda_e_declared = pt.lambda_e;
+    Eigen::VectorXd &lambda_i_declared = pt.lambda_i;
+    Eigen::VectorXd &z_declared = pt.z;
+    const detail::DeclaredDiagnostics &diag = pt.diag;
 
     // THE FOUR VIEWS, or four empty ones. `no_vector` is an empty
     // Eigen::VectorXd that allocates nothing, so a kScalars event binds its
@@ -2589,8 +2654,9 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     // invocation that made it, exactly as its own replacement does.
     this->apply_pending_iteration_callback();
     this->apply_pending_kkt_hook();
-    if (action == CallbackAction::kStop) {
+    if (action != CallbackAction::kContinue) {
         this->interrupt_requested_ = true;
+        this->stop_return_best_ = action == CallbackAction::kStopReturnBest;
     }
 }
 
@@ -2702,6 +2768,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // assembly at this function's tail, which must report the BEST iterate's
     // objective when it did.
     bool best_substituted = false;
+    // Whether a callback's kStopReturnBest replaced the pair with the best
+    // iterate (M8 AP-5 G3). Read at the result assembly below.
+    bool stop_best_applied = false;
     // Whether a token stop inside restoration replaced the pair with the
     // restoration-entry stash (M8 AP-5 G2). Read at the result assembly below.
     bool stash_exit = false;
@@ -3513,8 +3582,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // report a mixed-scale winner. Only DIVERGING-while-active reaches
             // this early-exit block (CONVERGED/ACCEPTABLE are intercepted by the
             // restoration handling above).
-            if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active())) {
-                this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
+            if (this->best_tracking_armed() &&
+                !(this->restoration_ && this->restoration_->is_active())) {
+                this->track_best_iterate(iters.back(), i, XSL, RHS, mu, last_step_norm,
+                                         BestCriteriaVal, BestIter);
                 best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
             }
 
@@ -3766,6 +3837,28 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->interrupt_requested_ = true;
             this->stop_requested_latched_ = !callback_stop;
             iters.back().mu = mu;
+            // STOP PATH ONLY (M8 AP-5 G3, design page section 3.3): the point being
+            // returned is scored into the best tracker before the exit, so a stop at
+            // an improving point reports it as best. The ordinary tracking runs after
+            // an iteration's step, which a stop never reaches. Not in restoration,
+            // where the tracker is suspended.
+            if (this->best_tracking_armed() &&
+                !(this->restoration_ && this->restoration_->is_active())) {
+                this->track_best_iterate(iters.back(), i, XSL, RHS, mu, last_step_norm,
+                                         BestCriteriaVal, BestIter);
+                best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
+            }
+            // kStopReturnBest: the best iterate is the returned point, as at the
+            // return_best exits below; an empty tracker leaves the shown point.
+            if (callback_stop && this->stop_return_best_ && best_recorded) {
+                XSL = BestXSL;
+                RHS = BestRHS;
+                this->bound_duals_ = this->best_bound_duals_scratch_;
+                this->cur_eval_prov_ = this->best_eval_prov_;
+                this->cur_eval_prov_.substituted = true;
+                best_substituted = true;
+                stop_best_applied = true;
+            }
             // A TOKEN STOP INSIDE FEASIBILITY RESTORATION RETURNS THE POINT
             // RESTORATION WAS ENTERED FROM (M8 AP-5 G2, design page section 3.2),
             // not the restoration iterate: the pair, the bound duals and the
@@ -4576,8 +4669,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // prim_obj/kkt_inf are proximal-scale and must not compete with
         // true-objective iterates for "best" — otherwise return_best_ could
         // report a mixed-scale winner.
-        if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active())) {
-            this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
+        if (this->best_tracking_armed() &&
+            !(this->restoration_ && this->restoration_->is_active())) {
+            this->track_best_iterate(iters.back(), i, XSL, RHS, eval_mu, last_step_norm,
+                                     BestCriteriaVal, BestIter);
             best_recorded = std::isfinite(BestCriteriaVal) && BestCriteriaVal != 1.0e10;
         }
 
@@ -4739,9 +4834,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // THE STEP THAT REACHED THE NEXT ITERATE, for that iterate's own
         // IterationEvent (M6 W5 T8.6). Taken here because here is the one place
         // the step exists: `DXSL` is overwritten by the next iteration's solve.
-        // COMPUTED ONLY WHEN A CALLBACK IS INSTALLED, so a solve without one is
+        // COMPUTED ONLY WHEN A CALLBACK IS INSTALLED OR BEST TRACKING IS ARMED
+        // (best_iterate carries the step that reached it), so an unarmed solve is
         // not merely bit-identical but arithmetically untouched.
-        if (this->iteration_callback_) {
+        if (this->iteration_callback_ || this->best_tracking_armed()) {
             last_step_norm = (alpha * DXSL.head(this->primal_vars_)).lpNorm<Eigen::Infinity>();
         }
 
@@ -4939,7 +5035,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // in the header for what is contaminated and why the core blocks are not
     // the same question.
     this->solve_exit_restoration_active_ = restoration_was_active;
-    this->solve_exit_stash_point_ = stash_exit;
+    this->solve_exit_stash_point_ = stash_exit || stop_best_applied;
 
     if (this->bounds_) {
         // Combine the two per-side multipliers into the single signed z that
@@ -4998,7 +5094,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     const bool return_best_applied =
         (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
          this->last_stop_reason_ != IpmPhaseStop::kCallbackStop &&
-         this->last_stop_reason_ != IpmPhaseStop::kStopRequested && !abort_without_best);
+         this->last_stop_reason_ != IpmPhaseStop::kStopRequested && !abort_without_best) ||
+        stop_best_applied;
     const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
     // THE ROW THE RESULT DESCRIBES: the restoration-entry stash's when a token
     // stop inside restoration returned that point (M8 AP-5 G2), otherwise the row
@@ -5029,6 +5126,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     this->phase_exit_.func_s = nlptime;
     this->phase_exit_.kkt_s = qptime;
     this->phase_exit_.print_s = printtime;
+
+    this->publish_phase_best(best_recorded && ExitCode != SolveStatus::kOptimal &&
+                             ExitCode != SolveStatus::kAcceptable && this->best_tracking_armed());
 
     return XSL;
 }
@@ -6084,6 +6184,8 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // for it.
     this->interrupt_requested_ = false;
     this->stop_requested_latched_ = false;
+    this->stop_return_best_ = false;
+    this->publish_phase_best(false);
     this->limit_stop_ = false;
     // THE CALL'S STOP TOKEN (M8 AP-5 G1), read at every iteration top beside the
     // callback's stop. Replaced at every entry, so no earlier call's token is
@@ -6697,6 +6799,11 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     }
 
     this->in_phase_loop_ = false;
+    // A solve that ended optimal or acceptable carries no best iterate (Q4).
+    if (this->result_.status == SolveStatus::kOptimal ||
+        this->result_.status == SolveStatus::kAcceptable) {
+        this->publish_phase_best(false);
+    }
     t.stop();
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
     this->result_.timing.total_seconds = tottime / 1000.0;

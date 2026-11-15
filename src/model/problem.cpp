@@ -355,28 +355,38 @@ class ProblemState {
     // engine's.
     void report(SolveResult &result) const {
         const auto &rows = engine_rows(result);
+        map_rows(rows.lambda_e, rows.lambda_i, rows.ce, rows.ci, result.lambda, result.g);
+        // best_iterate's own row blocks go through the same map.
+        if (result.best_iterate) {
+            map_rows(rows.best_lambda_e, rows.best_lambda_i, rows.best_ce, rows.best_ci,
+                     result.best_iterate->lambda, result.best_iterate->g);
+        }
+    }
+
+    void map_rows(const Vec &lambda_e, const Vec &lambda_i, const Vec &ce, const Vec &ci,
+                  Vec &lambda, Vec &g) const {
         const Index m = num_constraints();
         if (kind_ == Kind::kNlp) {
             const NlpProblemModel &model = *nlp_model_;
             // The IPM's declared-space seam (ipm_solver.cpp) strips the internal
             // fixing rows from the exported blocks, so they are the user's rows alone.
-            if (rows.lambda_e.size() == model.me() && rows.lambda_i.size() == model.mi()) {
-                result.lambda = model.compose_user_multipliers(rows.lambda_e, rows.lambda_i);
+            if (lambda_e.size() == model.me() && lambda_i.size() == model.mi()) {
+                lambda = model.compose_user_multipliers(lambda_e, lambda_i);
             } else {
-                result.lambda.resize(0);
+                lambda.resize(0);
             }
-            map_row_values(model, rows.ce, rows.ci, result.g);
+            map_row_values(model, ce, ci, g);
             return;
         }
-        if (rows.lambda_e.size() + rows.lambda_i.size() == m) {
-            result.lambda = concatenate(rows.lambda_e, rows.lambda_i);
+        if (lambda_e.size() + lambda_i.size() == m) {
+            lambda = concatenate(lambda_e, lambda_i);
         } else {
-            result.lambda.resize(0);
+            lambda.resize(0);
         }
-        if (rows.ce.size() + rows.ci.size() == m) {
-            result.g = concatenate(rows.ce, rows.ci);
+        if (ce.size() + ci.size() == m) {
+            g = concatenate(ce, ci);
         } else {
-            result.g.resize(0);
+            g.resize(0);
         }
     }
 

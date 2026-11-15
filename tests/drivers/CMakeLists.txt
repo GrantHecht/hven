@@ -17,6 +17,9 @@
 ################################################################################
 
 set(HVEN_DRIVERS_TEST_SOURCES
+    # M8 AP-5 G3: best-so-far, best_iterate, kStopReturnBest and snapshot() on both
+    # engines -- the interface design's T7, T9 and T12 (snapshot).
+    test_best_iterate.cpp
     test_callback.cpp
     # The concurrency contract's one pin (M6 W6 T4): N solver instances on N
     # std::threads at common.threads = 1 against the same solves run serially.

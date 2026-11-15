@@ -1559,6 +1559,16 @@ class IpmSolverImpl {
     /// reset beside it at every call's entry; read only to pick the message
     /// kind. Appended last, so no existing member's offset moves.
     bool stop_requested_latched_ = false;
+    /// The callback's last action was kStopReturnBest (M8 AP-5 G3). Cleared at
+    /// every call's entry; read at the stop exit.
+    bool stop_return_best_ = false;
+    /// The iterate track_best_iterate stored in best_xsl_scratch_: its barrier
+    /// parameter (solver scale) and the step that reached it, for best_iterate's
+    /// own scalars.
+    double best_mu_scratch_ = 0.0;
+    double best_step_norm_scratch_ = 0.0;
+    double best_elapsed_scratch_ = 0.0;
+    IpmIterate best_row_scratch_;
 
     /// THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point feasibility
     /// restoration was entered from, copied by dispatch_restoration_entry BEFORE
@@ -2090,6 +2100,26 @@ class IpmSolverImpl {
                               const Eigen::VectorXd &RHS, double mu, double step_norm,
                               double prim_obj);
 
+    /// @brief One point in declared space and caller units, from a compound
+    ///        iterate and the bound duals and provenance that belong to it.
+    ///
+    /// The arithmetic fire_iteration_event runs for an event, taken out so the
+    /// best iterate is prepared by the same statements. `lambda_e` is the user
+    /// rows only; the row-space `lambda` is composed by the caller or by
+    /// Problem. Fields not asked for are left empty / NaN.
+    struct DeclaredPoint {
+        Eigen::VectorXd x, lambda_e, lambda_i, z, ce, ci;
+        DeclaredDiagnostics diag;
+    };
+    DeclaredPoint declared_point(const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
+                                 const BoundDualState &duals, const ExitEvalProvenance &prov,
+                                 bool restoration_contaminated, bool want_vectors,
+                                 bool want_diagnostics) const;
+
+    /// @brief Writes result_.best_iterate and its row blocks from the phase's
+    ///        best tracker (cleared when the phase recorded none).
+    void publish_phase_best(bool recorded);
+
     /// @brief The four shared diagnostics, from a REDUCED-space Lagrangian
     ///        gradient -- the one arithmetic the result and the event share.
     ///
@@ -2150,7 +2180,15 @@ class IpmSolverImpl {
     // active guard stays at the call sites, which differ in why they are
     // reached; only the scoring and snapshot live here.
     void track_best_iterate(const IpmIterate &iter, int i, const VectorXd &XSL, const VectorXd &RHS,
-                            double &BestCriteriaVal, int &BestIter);
+                            double mu, double step_norm, double &BestCriteriaVal, int &BestIter);
+
+    /// True when the best tracker runs: a return-best option, an installed
+    /// callback or a stop token that can fire (M8 AP-5 G3). Tracking copies and
+    /// never steers.
+    bool best_tracking_armed() const noexcept {
+        return opts_.return_best || static_cast<bool>(iteration_callback_) ||
+               stop_token_.stop_possible();
+    }
 
     /// The next never-reused analysis-owner id. Monotonic and process-wide;
     /// see analyzed_owner_id_.

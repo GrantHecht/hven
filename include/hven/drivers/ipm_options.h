@@ -240,7 +240,8 @@ struct IpmOptions {
 
     /// Return the best-scoring iterate seen instead of the last, scored by
     /// `best_iterate_criterion`, except on an interrupted exit, which returns the point
-    /// the callback was shown. Default false.
+    /// the callback was shown (or, for `kStopReturnBest`, the best). Turning it on
+    /// arms SolveResult::best_iterate. Default false.
     bool return_best = false;
     /// Default `kEquality`.
     IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kEquality;

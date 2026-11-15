@@ -203,7 +203,9 @@ class SqpSolver {
     /// (under `kIncludeRestoration`) latches on this solver too; when it cuts the
     /// sub-solve short the solve ends `kInterrupted` at the point restoration was
     /// entered from (SolveResult::returned_pre_restoration_point), and a stop on
-    /// the sub-solve's converged row changes nothing. A stop on the public call's
+    /// the sub-solve's converged row changes nothing. `kStopReturnBest` stops the
+    /// same way and returns SolveResult::best_iterate instead (also from a
+    /// restoration row); see docs/migration-0.2.md. A stop on the public call's
     /// own terminal row is a no-op. `SolveBudget::stop` is honoured at the same
     /// two points of the main loop and inside the sub-solve.
     ///

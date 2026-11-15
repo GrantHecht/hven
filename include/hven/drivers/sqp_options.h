@@ -769,6 +769,8 @@ struct SqpOptions {
     /// residual at a large violation is a worse hand-off than a feasible point
     /// with a mediocre objective.
     ///
+    /// Turning it on arms SolveResult::best_iterate.
+    ///
     /// Default false: a solve that exhausts the cap reports kIterationLimit at the last
     /// iterate.
     ///

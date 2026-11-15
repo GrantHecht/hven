@@ -201,7 +201,9 @@ class IpmSolver {
     /// Returning `CallbackAction::kStop` ends the solve at the event's point,
     /// before factorization, with `kInterrupted`. A stop returned at a phase's
     /// last event is read too: a converged iterate still reports `kOptimal`,
-    /// and the remaining phases do not run.
+    /// and the remaining phases do not run. `kStopReturnBest` ends the solve the
+    /// same way and returns SolveResult::best_iterate instead (also on a
+    /// `recovering` event); see docs/migration-0.2.md.
     ///
     /// Feasibility restoration, proximal or nested l1, runs in place in the same
     /// loop, so its iterations are ordinary iterations: they fire events (under

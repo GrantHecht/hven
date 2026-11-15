@@ -222,4 +222,24 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
 
 } // namespace detail
 
+IterationSnapshot snapshot(const IterationEvent &event) {
+    IterationSnapshot out;
+    out.iteration = event.iteration;
+    out.recovering = event.recovering;
+    out.phase = event.phase;
+    out.depth = event.depth;
+    out.f = event.f;
+    out.stationarity = event.stationarity;
+    out.feasibility = event.feasibility;
+    out.complementarity = event.complementarity;
+    out.step_norm = event.step_norm;
+    out.radius = event.radius;
+    out.mu = event.mu;
+    out.x = event.x;
+    out.lambda = event.lambda;
+    out.z = event.z;
+    out.elapsed_seconds = event.elapsed_seconds;
+    return out;
+}
+
 } // namespace hven

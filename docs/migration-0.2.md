@@ -108,3 +108,52 @@ Behaviour changes (stop path only; a solve nobody stops is bitwise unchanged):
 | SQP: a token stop during restoration took effect only when the sub-solve returned (G1's interim note) | takes effect at the sub-solve's own next boundary | none; the interim caveat is gone |
 | the interior-point `set_iteration_callback` documentation called nested l1 restoration "silent" | corrected: restoration is in place and its rows are delivered with `recovering` set | none |
 | `IterationEvent` positional aggregate initialisation | `recovering` is the second member, so a positional `IterationEvent{iteration, phase, ...}` shifts by one | use designated initialisers, or insert `false` after `iteration` |
+
+## G3 -- best-so-far, `kStopReturnBest`, `snapshot()`
+
+Observational: nothing here moves a trajectory, a counter or a status. Everything is
+new, so there is no rewrite.
+
+- `IterationSnapshot` (`<hven/drivers/solve_result.h>`): an owning copy of an
+  `IterationEvent`, with the event's field names (`iteration`, `recovering`, `phase`,
+  `depth`, `f`, the three diagnostics, `step_norm`, `radius`, `mu`, `x`, `lambda`, `z`,
+  `elapsed_seconds`) plus `g`, the row values in `lambda`'s row space. `snapshot(event)`
+  is a deep copy of what the event's payload mask delivered (`g` is left empty: an event
+  carries no row values). It never aliases engine storage, so another thread may read it
+  and it survives the solve. The vectors are empty and the diagnostics NaN where the
+  event delivered none.
+- `SolveResult::best_iterate` (`std::optional<IterationSnapshot>`): the best iterate
+  the solve visited, with `x`, `lambda`, `z`, `g`, `f` and the three diagnostics
+  filled. Present when the tracker was armed and the solve did not end `kOptimal` or
+  `kAcceptable`; otherwise `nullopt`. **Armed** when a return-best option is on
+  (`IpmOptions::return_best`, `SqpOptions::return_best_on_max_iterations`), an
+  iteration callback is installed, or `SolveBudget::stop` can fire. Best by each
+  engine's own ordering: interior-point, `IpmOptions::best_iterate_criterion` over the
+  last phase that ran, never a restoration iterate; SQP, feasibility first (`h`, then
+  `f`) over the caller's own solve, never a restoration sub-solve's row. Tracking
+  copies and never steers: an armed solve is the unarmed solve, counter for counter.
+  The cost is O(n+m) per improving iterate, none when unarmed.
+- `CallbackAction::kStopReturnBest`: stops as `kStop` does, and the returned primary
+  point is `best_iterate` (`returned_best_iterate == true`, `message` ends "; returned
+  the best iterate"). With no best recorded the result is `kStop`'s and
+  `returned_best_iterate` is false. A token stop returns the current iterate as before
+  and reports the best in `best_iterate` only. Interior-point: on a stop the current
+  point is scored into the tracker first (the ordinary tracking runs after an
+  iteration's step, which a stop never reaches), so a stop at an improving point
+  returns it. On a `recovering` event it returns the best, not the restoration point
+  the callback was shown. SQP: on a depth-1 event it returns the parent's best, not the
+  restoration-entry point a `kStop` gets (`returned_pre_restoration_point` false).
+  Converged beats stop, as for `kStop`.
+
+Per-field notes on `best_iterate`: `iteration` is the iterate's own row/iteration
+index (SQP: its `history` index; interior-point: the per-phase index); `step_norm`
+and `phase`/`depth`/`radius`/`mu` are those of its own event; `elapsed_seconds` is the
+time the iterate was reached. On `returned_best_iterate` solves the primary fields
+and `best_iterate` agree bit for bit on an unscaled solve; on a scaled SQP solve the
+primary diagnostics are re-measured at the caller's scale and may differ from
+`best_iterate`'s in the last digits.
+
+Not in this group (arrive with the payload group): `g`, `violation`, `z_lower` and
+`z_upper` on `IterationEvent`, the `IpmIterationInfo`/`SqpIterationInfo` blocks, and the
+matching `IterationSnapshot` fields. `IterationSnapshot` mirrors the event as it is
+today.

@@ -835,6 +835,51 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     }
 }
 
+// M8 AP-5 G3: kStopReturnBest on a depth-1 event. The parent's tracker is a
+// caller-space iterate from before restoration; the exit returns it, not the
+// restoration-entry point a kStop gets.
+TEST(Callback, SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+
+    SqpSolver driver(opts);
+    std::vector<Seen> seen;
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            seen.push_back(copy_of(e));
+            if (!stopped && e.depth.value_or(0) == 1) {
+                stopped = true;
+                return CallbackAction::kStopReturnBest;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+
+    ASSERT_TRUE(stopped) << "no depth-1 event ever fired";
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_EQ(sol.stop_reason, hven::StopReason::kCallbackStop);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_EQ(sol.message.find("before feasibility restoration"), std::string::npos) << sol.message;
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    const hven::IterationSnapshot &best = *sol.best_iterate;
+    EXPECT_FALSE(best.recovering);
+    EXPECT_EQ(best.depth.value_or(-1), 0);
+    EXPECT_TRUE(bit_equal(sol.x, best.x));
+    EXPECT_TRUE(bit_equal(sol.lambda, best.lambda));
+    EXPECT_TRUE(bit_equal(sol.z, best.z));
+    // The best is the point of a delivered depth-0 event.
+    bool delivered = false;
+    for (const Seen &e : seen) {
+        delivered = delivered || (e.depth.value_or(0) == 0 && bit_equal(e.x, best.x));
+    }
+    EXPECT_TRUE(delivered);
+}
+
 TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
     InfeasibleCircleLineModel model;
     const SqpOptions opts = quiet_sqp();
