@@ -3,8 +3,8 @@ control,none,ok,NONE
 a,ipm ladder not handed the flag (no ladder poll),ok,StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
 b,ipm ladder stop without re-pushing the event's row,ok,StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
 c,ipm ladder stop labelled a callback stop,ok,StopPollSeam.T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoint seam rc=1 
-d,walk poll ticks but the loop continues,ok,StopPollSeam.T4AStopInsideARestorationSubproblemReturnsTheEntryPoint StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk seam rc=1 
-e,ssn poll ticks but the loop continues,ok,SURVIVES
+d,walk poll ticks but the loop continues,ok,StopPollSeam.T4AStopInsideARestorationSubproblemReturnsTheEntryPoint StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
+e,ssn poll ticks but the loop continues,ok,StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
 f,ipqp poll ticks but the loop continues,ok,StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
 g,sqp no abandon after the main subproblem (check B),ok,StopPollSeam.T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode seam rc=1 
 h,sqp no abandon after the elastic ladder (check C),ok,StopPollSeam.T4ATokenStopInsideAnElasticResolveReturnsXk seam rc=1 

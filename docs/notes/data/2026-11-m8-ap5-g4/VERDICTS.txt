@@ -1,26 +1,26 @@
-# VERDICTS (extracted from the raw dumps; code head 11a984f45d8cc586a13b903e624663c232f987c6, arm A sha256 1cfd3715ecf26969362592edc50ea07645aa8bf2bbbd2dd5348f4cc592f9e8e9, arm B sha256 164b3fd0f41f8caea3c1546e6e27dde71dbc2d62728979151fdb5ea1f5f06d59)
+# VERDICTS-r2 under DECLARATION-r2.md (extracted from the raw dumps; code head 1cc9001a347d8a700c9aa30d28bc7e6cf189a575, arm A sha256 1cfd3715ecf26969362592edc50ea07645aa8bf2bbbd2dd5348f4cc592f9e8e9, arm B sha256 8e8918047ff063cf9bfd57d04fa71c89a5103199b3046613248a91e91d7e672c)
 P1 rel: 100% tests passed, 0 tests failed out of 3691
 P1 dbg: 100% tests passed, 0 tests failed out of 3691
 MODE interior FILTERED B/A = 0.999960 -> WITHIN [0.995, 1.005]
 MODE ipm FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]
 MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]
-MODE walk FILTERED B/A = 1.000001 -> WITHIN [0.995, 1.005]
+MODE walk FILTERED B/A = 0.999998 -> WITHIN [0.995, 1.005]
 VERDICT PASS
 P2 interior: STOP CONDITION: 3 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
 P2 interior: VALIDITY: 6 processes, 0 throttled -> VALID
-P2 interior:   raw perf-stat instructions:u     A=9.938428e+10 B=9.938259e+10 B/A=0.999983
+P2 interior:   raw perf-stat instructions:u     A=9.938427e+10 B=9.938259e+10 B/A=0.999983
 P2 ipm: STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
 P2 ipm: VALIDITY: 162 processes, 0 throttled -> VALID
-P2 ipm:   raw perf-stat instructions:u     A=2.379223e+11 B=2.379223e+11 B/A=1.000000
+P2 ipm:   raw perf-stat instructions:u     A=2.379223e+11 B=2.379222e+11 B/A=1.000000
 P2 ssn: STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
 P2 ssn: VALIDITY: 162 processes, 0 throttled -> VALID
 P2 ssn:   raw perf-stat instructions:u     A=1.639842e+11 B=1.639842e+11 B/A=1.000000
 P2 walk: STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
 P2 walk: VALIDITY: 162 processes, 0 throttled -> VALID
-P2 walk:   raw perf-stat instructions:u     A=2.850467e+12 B=2.850471e+12 B/A=1.000001
-IC MODE walk     counters IDENTICAL  corpus B/A 0.999998 (in)  worst cell f7_n1000_bound_physics 1.00001 (in)  -> PASS
-IC MODE ssn      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_activity 1.00001 (in)  -> PASS
-IC MODE ipm      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_physics 0.99999 (in)  -> PASS
+P2 walk:   raw perf-stat instructions:u     A=2.850473e+12 B=2.850466e+12 B/A=0.999998
+IC MODE walk     counters IDENTICAL  corpus B/A 1.000001 (in)  worst cell f7_n1000_bound_activity 0.99998 (in)  -> PASS
+IC MODE ssn      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_corrupted 1.00001 (in)  -> PASS
+IC MODE ipm      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_physics 1.00001 (in)  -> PASS
 IC MODE interior counters IDENTICAL  corpus B/A 0.999983 (in)  worst cell all 0.99998 (in)  -> PASS
 IC IC_VERDICT PASS
 === g4-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
@@ -40,16 +40,16 @@ P5 clang: install smoke: both solvers converged through one generic consumer; a 
 P5 clang: == hven install smoke: PASSED
 P8 [  PASSED  ] 65 tests.
 P8 reports=0
-STEP ctest-rel rc=0 2026-11-14T23:09:28-05:00
-STEP ctest-dbg rc=0 2026-11-14T23:16:16-05:00
+STEP ctest-rel rc=0 2026-11-15T02:37:19-05:00
+STEP ctest-dbg rc=0 2026-11-15T02:44:06-05:00
 worst=0
-STEP replay rc=0 2026-11-14T23:27:28-05:00
+STEP replay rc=0 2026-11-15T02:55:18-05:00
 worst=0
-STEP interior rc=0 2026-11-14T23:28:13-05:00
-STEP install-smoke rc=0 2026-11-14T23:29:58-05:00
+STEP interior rc=0 2026-11-15T02:56:03-05:00
+STEP install-smoke rc=0 2026-11-15T02:56:20-05:00
 TSAN_VERDICT PASS
-STEP tsan rc=0 2026-11-14T23:31:01-05:00
-STEP mutations rc=0 2026-11-14T23:38:52-05:00
+STEP tsan rc=0 2026-11-15T02:56:24-05:00
+STEP mutations rc=0 2026-11-15T03:04:21-05:00
 worst=0
-M (mutation/mutation-table.csv): control fails nothing; KILLED a b c d f g h i j k l m n o r; SURVIVE e (declared must-kill), p q (permitted)
-CRITERION M NOT MET: e (SSN poll ignored) survives -- T4's SSN fire point was the last poll of its SSN solve (the solve converged at the next residual test), so an engine that ignores the stop polls no more there. Every other criterion met. Successor: DECLARATION-r2.md (T4 fire point moved to a poll the solve is guaranteed to follow with another; criteria unchanged).
+M (mutation/mutation-table.csv): control fails nothing; KILLED a b c d e f g h i j k l m n o r (every declared must-kill, e included); SURVIVE p q (permitted)
+CRITERIA_MET_ALL (DECLARATION-r2.md)

@@ -4,13 +4,13 @@
 counter check: 3 (round,cell) pairs compared, 0 with a difference or missing
 
 cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
-all                            1.05179                 0.98566                 1.00000                 0.99440                 0.99998               
+all                            1.08030                 0.98688                 1.00000                 0.99668                 0.99998               
 
-corpus L1-icache-load-misses:u            A=7.296864e+06 B=7.674776e+06  B/A=1.051791
-corpus branch-misses:u                    A=3.617421e+07 B=3.565529e+07  B/A=0.985655
+corpus L1-icache-load-misses:u            A=7.255189e+06 B=7.837788e+06  B/A=1.080301
+corpus branch-misses:u                    A=3.622564e+07 B=3.575029e+07  B/A=0.986878
 corpus branches:u                         A=1.468395e+10 B=1.468395e+10  B/A=1.000000
-corpus cycles:u                           A=3.304145e+10 B=3.285653e+10  B/A=0.994403
-corpus instructions:u                     A=9.938401e+10 B=9.938232e+10  B/A=0.999983
+corpus cycles:u                           A=3.299884e+10 B=3.288914e+10  B/A=0.996676
+corpus instructions:u                     A=9.938401e+10 B=9.938233e+10  B/A=0.999983
 
 worst per-cell instructions ratio: 0.99998 (all)
 cells outside 0.99-1.01: none

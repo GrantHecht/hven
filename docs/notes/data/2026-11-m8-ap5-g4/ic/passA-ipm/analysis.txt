@@ -1,41 +1,41 @@
 counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
 
 cell                           B/A L1-icache-load-misses:u  B/A branch-misses:u     B/A branches:u          B/A cycles:u            B/A instructions:u    
-f7_n10000_bound_activity       0.84920                 0.99009                 1.00000                 0.99440                 1.00000               
-f7_n10000_bound_corrupted      0.70700                 0.99262                 1.00000                 0.99423                 1.00000               
-f7_n10000_bound_neutral        0.83305                 0.99609                 1.00000                 0.99326                 1.00000               
-f7_n10000_bound_physics        0.85617                 0.99482                 1.00000                 0.99515                 1.00000               
-f7_n10000_bound_warm           0.77733                 0.99311                 1.00000                 0.99339                 1.00000               
-f7_n1000_bound_activity        0.84671                 0.99209                 1.00000                 0.99290                 1.00000               
-f7_n1000_bound_corrupted       0.74043                 0.99947                 1.00000                 0.98855                 1.00000               
-f7_n1000_bound_neutral         0.85479                 0.98713                 1.00000                 0.99503                 1.00000               
-f7_n1000_bound_physics         0.82661                 0.98454                 0.99998                 0.99333                 0.99999               
-f7_n1000_bound_warm            0.60982                 0.99217                 1.00001                 0.99160                 1.00000               
-f7_n1000_path_warm             0.63545                 0.99137                 0.99997                 0.99376                 1.00000               
-f7_n20000_bound_activity       0.84206                 0.98486                 1.00000                 0.99533                 1.00000               
-f7_n20000_bound_corrupted      0.62814                 0.98630                 1.00000                 0.99254                 1.00000               
-f7_n20000_bound_neutral        0.80558                 0.99430                 1.00000                 0.99428                 1.00000               
-f7_n20000_bound_physics        0.84782                 0.98635                 1.00000                 0.99757                 1.00000               
-f7_n20000_bound_warm           0.69437                 0.99325                 1.00000                 0.99274                 1.00000               
-f7_n2000_bound_activity        0.85807                 0.99330                 1.00000                 0.99445                 1.00000               
-f7_n2000_bound_corrupted       0.71198                 0.98904                 1.00000                 0.99428                 1.00000               
-f7_n2000_bound_neutral         0.83772                 0.98417                 1.00000                 0.99088                 1.00000               
-f7_n2000_bound_physics         0.83932                 0.99298                 1.00000                 0.99453                 1.00000               
-f7_n2000_bound_warm            0.71110                 0.99244                 1.00001                 0.99461                 1.00000               
-f7_n5000_bound_activity        0.83260                 0.98476                 1.00000                 0.99479                 1.00000               
-f7_n5000_bound_corrupted       0.77206                 0.98905                 1.00000                 0.99401                 1.00000               
-f7_n5000_bound_neutral         0.82244                 0.99234                 1.00000                 0.99454                 1.00000               
-f7_n5000_bound_physics         0.84013                 0.98635                 1.00000                 0.99458                 1.00000               
-f7_n5000_bound_warm            0.71732                 0.98828                 1.00000                 0.99360                 1.00000               
-f7_n800_path_warm              0.63570                 0.99661                 0.99998                 0.99457                 1.00000               
+f7_n10000_bound_activity       0.80340                 0.98269                 1.00000                 0.99466                 1.00000               
+f7_n10000_bound_corrupted      0.67566                 0.98787                 1.00000                 0.99414                 1.00000               
+f7_n10000_bound_neutral        0.78653                 0.99303                 1.00000                 0.99231                 1.00000               
+f7_n10000_bound_physics        0.80029                 0.99204                 1.00000                 0.99364                 1.00000               
+f7_n10000_bound_warm           0.68635                 0.99137                 1.00000                 0.99315                 1.00000               
+f7_n1000_bound_activity        0.68016                 0.99203                 1.00000                 0.99409                 1.00000               
+f7_n1000_bound_corrupted       0.65284                 0.99402                 1.00000                 0.99458                 1.00000               
+f7_n1000_bound_neutral         0.76050                 0.99691                 1.00000                 0.99319                 1.00000               
+f7_n1000_bound_physics         0.81150                 0.98431                 1.00002                 0.99658                 1.00001               
+f7_n1000_bound_warm            0.66222                 0.99998                 1.00000                 0.99510                 1.00000               
+f7_n1000_path_warm             0.77232                 0.99595                 0.99998                 0.99602                 1.00000               
+f7_n20000_bound_activity       0.77560                 0.98835                 1.00000                 0.99569                 1.00000               
+f7_n20000_bound_corrupted      0.68109                 0.98856                 1.00000                 0.99439                 1.00000               
+f7_n20000_bound_neutral        0.77694                 0.98826                 1.00000                 0.99408                 1.00000               
+f7_n20000_bound_physics        0.83551                 0.98619                 1.00000                 0.99534                 1.00000               
+f7_n20000_bound_warm           0.74251                 0.99035                 1.00000                 0.99336                 1.00000               
+f7_n2000_bound_activity        0.69723                 0.98532                 1.00000                 0.99468                 1.00000               
+f7_n2000_bound_corrupted       0.76356                 0.99379                 1.00000                 0.99338                 1.00000               
+f7_n2000_bound_neutral         0.79795                 0.99454                 0.99999                 0.99483                 1.00000               
+f7_n2000_bound_physics         0.80036                 0.98842                 1.00000                 0.99293                 1.00000               
+f7_n2000_bound_warm            0.69409                 0.99354                 1.00000                 0.99389                 1.00000               
+f7_n5000_bound_activity        0.79953                 0.99117                 1.00000                 0.99276                 1.00000               
+f7_n5000_bound_corrupted       0.72462                 0.99138                 1.00000                 0.99471                 1.00000               
+f7_n5000_bound_neutral         0.79875                 0.98753                 1.00000                 0.99433                 1.00000               
+f7_n5000_bound_physics         0.67025                 0.98894                 1.00000                 0.99651                 1.00000               
+f7_n5000_bound_warm            0.75826                 0.99280                 1.00000                 0.99453                 1.00000               
+f7_n800_path_warm              0.68008                 0.99759                 0.99998                 0.99370                 1.00000               
 
-corpus L1-icache-load-misses:u            A=1.895497e+07 B=1.391521e+07  B/A=0.734119
-corpus branch-misses:u                    A=1.254882e+08 B=1.243120e+08  B/A=0.990627
+corpus L1-icache-load-misses:u            A=1.832610e+07 B=1.346504e+07  B/A=0.734746
+corpus branch-misses:u                    A=1.253972e+08 B=1.241603e+08  B/A=0.990136
 corpus branches:u                         A=3.596207e+10 B=3.596200e+10  B/A=0.999998
-corpus cycles:u                           A=7.740233e+10 B=7.692756e+10  B/A=0.993866
+corpus cycles:u                           A=7.738695e+10 B=7.693806e+10  B/A=0.994199
 corpus instructions:u                     A=2.379217e+11 B=2.379216e+11  B/A=1.000000
 
-worst per-cell instructions ratio: 0.99999 (f7_n1000_bound_physics)
+worst per-cell instructions ratio: 1.00001 (f7_n1000_bound_physics)
 cells outside 0.99-1.01: none
-largest within-arm round-to-round instruction spread: 0.00003
+largest within-arm round-to-round instruction spread: 0.00001
 CORPUS instructions B/A = 1.000000 -> WITHIN +-0.5 %

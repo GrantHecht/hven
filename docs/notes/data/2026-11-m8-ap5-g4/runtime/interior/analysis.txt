@@ -10,12 +10,12 @@ mode interior, 1 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over 
   filtered samples (CRITERION)     A=2.484540e+05 B=2.484440e+05 B/A=0.999960
   all samples                      A=2.484540e+05 B=2.484440e+05 B/A=0.999960
   excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
-  raw perf-stat instructions:u     A=9.938428e+10 B=9.938259e+10 B/A=0.999983
+  raw perf-stat instructions:u     A=9.938427e+10 B=9.938259e+10 B/A=0.999983
 
 per-round filtered B/A (informational):
   round 1: B/A=0.999960
-  round 2: B/A=0.999960
-  round 3: B/A=0.999968
+  round 2: B/A=0.999964
+  round 3: B/A=0.999960
 worst per-cell filtered ratio: 0.99996 (all)
-largest within-arm round-to-round filtered spread: 0.00001
+largest within-arm round-to-round filtered spread: 0.00000
 MODE interior FILTERED B/A = 0.999960 -> WITHIN [0.995, 1.005]
