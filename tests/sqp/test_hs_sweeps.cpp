@@ -345,6 +345,8 @@ struct SweepCell {
     Index soc_steps = 0, soc_applied = 0, soc_qp_infeasible = 0, soc_rejected = 0;
     Index elastic_activations = 0, elastic_escalations = 0, restoration_iters = 0;
     Index full_step_majors = 0, watchdog = 0;
+    // kOptimal walk exits whose worst row is still past 1x of row_tolerance (the gray-zone census).
+    Index gray_exits = 0;
     Index n_cold = 0, n_warm = 0, n_hot = 0;
     Index status_failures = 0;
     Index solves = 0;
@@ -394,6 +396,7 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
     c.elastic_activations += r.counters.elastic_activations;
     c.elastic_escalations += r.counters.elastic_escalations;
     c.restoration_iters += r.counters.restoration_iters;
+    c.gray_exits += r.counters.optimal_row_gray_exits;
     c.full_step_majors += r.full_step_majors;
     c.watchdog += r.watchdog_restores;
     switch (r.start_level_used) {
@@ -1281,7 +1284,7 @@ void check_soc_outcome_partition() {
 // extra factorizations.
 // ---------------------------------------------------------------------
 void check_soc_costs_what_it_costs() {
-    Index extra_minors = 0, extra_factorizations = 0, total_minors = 0;
+    Index extra_minors = 0, extra_factorizations = 0, total_minors = 0, gray_exits = 0;
     for (const ProblemCells &p : corpus()) {
         for (int a = 0; a < kArmCount; ++a) {
             const SweepCell &on = p.cell[a][kOn][kOn];
@@ -1293,8 +1296,29 @@ void check_soc_costs_what_it_costs() {
             extra_minors += on.minors - off.minors;
             extra_factorizations += on.factorizations - off.factorizations;
             total_minors += on.minors;
+            for (int kd = 0; kd < 2; ++kd) {
+                for (int soc = 0; soc < 2; ++soc) {
+                    gray_exits += p.cell[a][kd][soc].gray_exits;
+                }
+            }
         }
     }
+    // M8 kopt-1x: the gray-zone census (`optimal_row_gray_exits`: a kOptimal walk exit whose
+    // equality or working row is past 1x of its tolerance after the hold and the polish). Over the
+    // battery (every arm and lever cell) Release reads 4 -- HS15's warm arm, one exit in each of
+    // its four lever cells, the arm that also carries the corpus's one failing solve -- and Debug
+    // reads 0 (HS15's warm route differs there). A route census, pinned on the reference build
+    // only.
+#if HVEN_TEST_ROUTE_REFERENCE
+#ifdef NDEBUG
+    EXPECT_EQ(4, gray_exits) << corpus_table();
+#else
+    EXPECT_EQ(0, gray_exits) << corpus_table();
+#endif
+#else
+    hven::test_support::record_off_reference_route("HsSweepCorpus.gray_exits",
+                                                   fmt::format("gray_exits={}", gray_exits));
+#endif
     // UNCHANGED BY THE B-1 REPAIR (Phase-5 Task 7b), and that is a result
     // rather than an accident: every SOC attempt in this corpus is on a cell
     // the repair does not touch (the cold arm) or on HS77's warm arm, which was
