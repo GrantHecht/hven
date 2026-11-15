@@ -5059,8 +5059,13 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // transmit. THE CENTRE IS NOT, and is stamped below, AFTER the
     // usability gate; see its own note there.
     ssn_prox_sigma_out_ = std::max(ssn_prox_sigma_out_, sres.prox_sigma);
-    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no walk is started.
+    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no walk is started. Its
+    // factorizations are charged here, as a hand-off's are, since `qs` will not carry them.
     if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        if (r5_have) {
+            charge_refused_face_refinement(out.counters, r5_refined, ssn_budget_charge);
+        }
+        charge_ssn_subproblem_cost(out.counters, sres);
         return;
     }
     if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
@@ -5367,8 +5372,10 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
     // 3.4). Paid whether this subproblem is adopted or abandoned -- an escape's
     // factorizations were spent either way.
     ipqp_budget_charge += ires.counters.ipqp_factorizations;
-    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no fallback runs.
+    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no fallback runs. Its
+    // factorizations are charged here, as an escape's are.
     if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        charge_ipqp_subproblem_cost(out.counters, ires);
         return;
     }
     const bool usable = ipqp_exit_is_a_usable_step(ires, opts_.qp, iopts);
@@ -5428,6 +5435,23 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
         mev.iters = ires.counters.ipqp_iters;
         mev.site = QpTraceModeSite::kDispatch;
         emit_trace_qp_mode(mev);
+    };
+
+    // THE SSN WARM GRADE (items 3 and 4), unless a stop abandons the subproblem first or
+    // during the grade (M8 AP-5 G4): then nothing is routed, traced or handed to the walk.
+    const auto route_to_warm_grade = [&]() {
+        if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+            return;
+        }
+        walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
+                                                         ssn_budget_charge, out.counters, qs, qn);
+        if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+            walk_owns_this_qp = false;
+            return;
+        }
+        ipqp_chain_owns_the_step = !walk_owns_this_qp;
+        mj.row_qp_mode = QpTraceMode::kSsn;
+        emit_ipqp_route_and_mode(IpqpTraceRouteTarget::kSsn, QpTraceOutcome::kRouted);
     };
 
     if (usable) {
@@ -5501,11 +5525,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
             out.counters.dense_shifted_solve_refusals += refine_shifted_refusals;
             ipqp_budget_charge += refine_facts;
             charge_ipqp_subproblem_cost(out.counters, ires);
-            walk_owns_this_qp = route_through_ssn_warm_grade(
-                qp, ires, delta, ssn_prox_ingested, ssn_budget_charge, out.counters, qs, qn);
-            ipqp_chain_owns_the_step = !walk_owns_this_qp;
-            mj.row_qp_mode = QpTraceMode::kSsn;
-            emit_ipqp_route_and_mode(IpqpTraceRouteTarget::kSsn, QpTraceOutcome::kRouted);
+            route_to_warm_grade();
         }
     } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
         // --- 4. SADDLE-SUSPECT -> THE SSN WARM GRADE (item 4) -----
@@ -5513,11 +5533,7 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
         // band absorbs the tie rows the ratio rule left UNCERTAIN and flips the whole
         // implied active set at once; the walk would only re-derive the same face.
         charge_ipqp_subproblem_cost(out.counters, ires);
-        walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
-                                                         ssn_budget_charge, out.counters, qs, qn);
-        ipqp_chain_owns_the_step = !walk_owns_this_qp;
-        mj.row_qp_mode = QpTraceMode::kSsn;
-        emit_ipqp_route_and_mode(IpqpTraceRouteTarget::kSsn, QpTraceOutcome::kRouted);
+        route_to_warm_grade();
     } else {
         // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
         // Numerical, infeasible-suspect, early stall, and iteration-cap budget. THE
@@ -7679,15 +7695,25 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     // A default token is a null test; a callback stop already latched wins the
     // label.
     const bool token_stop = !mj.converged && !st.interrupted && budget.stop.stop_requested();
+    // THE STOP EXIT (M8 AP-5 G4): the one exit of a major a stop ended, at the exit test
+    // below or on an abandoned subproblem. `token` selects kStopRequested over
+    // kCallbackStop. READ BEFORE THIS ROW'S OWN EVENT FIRES: a kStop returned on the
+    // terminal row is a no-op, the exit and the verdict were already decided.
+    const auto stop_exit = [&](bool token) {
+        mj.interrupted_exit = true;
+        mj.token_exit = token;
+        push_history(mj.row);
+        return MajorOutcome::kFinishCurrent;
+    };
     if (mj.converged || st.interrupted || token_stop || probe_exhausted || work_exhausted ||
         time_exhausted || iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
-        // READ BEFORE THIS ROW'S OWN EVENT FIRES. A kStop returned on the
-        // TERMINAL row is a no-op: the exit and the verdict were already
-        // decided when the callback was shown that row.
-        mj.interrupted_exit = (st.interrupted || token_stop) && !mj.converged;
-        mj.token_exit = token_stop;
+        if ((st.interrupted || token_stop) && !mj.converged) {
+            return stop_exit(token_stop);
+        }
+        mj.interrupted_exit = false;
+        mj.token_exit = false;
         push_history(mj.row);
-        if (probe_exhausted && !mj.interrupted_exit) {
+        if (probe_exhausted) {
             // The one field that tells this exit apart from an
             // ordinary max_iter one. Set BEFORE finish() so it
             // reaches the returned counters and the ledger record.
@@ -7696,7 +7722,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // THE LIMIT LABEL. A probe-budget or factorization stop is a WORK limit,
         // a deadline stop a TIME limit; precedence converged > interrupted >
         // work > time > cap. The point returned is the current iterate either way.
-        if (!mj.converged && !mj.interrupted_exit) {
+        if (!mj.converged) {
             if (probe_exhausted || work_exhausted) {
                 st.limit_exit = SolveStatus::kWorkLimit;
             } else if (time_exhausted) {
@@ -7713,7 +7739,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // hand back a different iterate than the one the caller stopped on.
         // Design section 2.5's precedence, in one expression:
         // converged > interrupted > probe-exhausted > cap.
-        if (!mj.converged && !mj.interrupted_exit && st.limit_exit == SolveStatus::kOptimal &&
+        if (!mj.converged && st.limit_exit == SolveStatus::kOptimal &&
             opts_.return_best_on_max_iterations) {
             // BUDGETED MODE: the caller reports the best-by-(h, f) iterate
             // rather than the last one, and computes `best_is_current` from
@@ -7726,25 +7752,24 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // bundle for exactly that read.
         return MajorOutcome::kFinishCurrent;
     }
-    // A SUBPROBLEM ABANDONED ON A STOP (M8 AP-5 G4): the token was requested while the
-    // main subproblem or an elastic re-solve ran, before any trial. The row the exit test
-    // above would have pushed for x_k is pushed (qp_solved false), its event fires, and the
-    // solve returns x_k. The abandoned work stays in the aggregates; the major it did not
-    // complete is not counted. Armed solves only.
+    // A SUBPROBLEM ABANDONED ON A STOP (M8 AP-5 G4): the token was requested after the
+    // exit test, while the subproblem was built or solved (main or elastic), before any
+    // trial. The row the exit test above would have pushed for x_k is pushed (qp_solved
+    // false, the configured mode's), its event fires, and the solve returns x_k. The
+    // abandoned work stays in the aggregates; the major it did not complete is not counted
+    // (`counted`: the fold below already counted it). Armed solves only.
     std::optional<SqpIterate> row_at_xk;
     if (qp_stop_ != nullptr) [[unlikely]] {
         row_at_xk = mj.row;
     }
-    const auto abandon_stopped_qp = [&]() {
+    const auto abandon_stopped_qp = [&](bool counted) {
         st.out.counters.major_iters = iter;
-        if (st.full_step_funnel != nullptr) {
+        if (counted && st.full_step_funnel != nullptr) {
             --st.out.counters.full_step_majors;
         }
         mj.row = *row_at_xk;
-        mj.interrupted_exit = true;
-        mj.token_exit = !st.interrupted;
-        push_history(mj.row);
-        return MajorOutcome::kFinishCurrent;
+        mj.row_qp_mode = trace_mode_of(opts_.qp_mode);
+        return stop_exit(!st.interrupted);
     };
     // REBUILT ONLY WHEN THE ITERATE MOVED. A rejection re-solves this
     // very object -- same H/g bytes, so the engine's hot-start reuse
@@ -7870,6 +7895,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     }
     // The committed point's subproblem is finite: its snapshot is no longer needed.
     st.rollback.valid = false;
+    // A STOP DURING THE BUILD (M8 AP-5 G4): no kernel is set up for an abandoned major.
+    if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        return abandon_stopped_qp(false);
+    }
 
     QpSolveOverrides overrides;
     overrides.trust_region_radius = st.delta;
@@ -8037,7 +8066,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.inertia_wrong_verdicts += mj.qs.counters.inertia_wrong_verdicts;
     st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
     if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
-        return abandon_stopped_qp();
+        return abandon_stopped_qp(true);
     }
 
     // THE CAP RETRY (M7 W2 M1, mechanism M1(3)), BEHIND `SqpOptions::
@@ -8258,7 +8287,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                                      st.out.counters, std::nullopt, ipqp_trace_,
                                      elastic_rung_tier(), st.qn_bridge ? &*st.qn_bridge : nullptr);
         if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
-            return abandon_stopped_qp();
+            return abandon_stopped_qp(true);
         }
         rho0_ceiling_hit = report.rho0_ceiling_hit;
         bool ladder_usable = report.usable;
@@ -9510,7 +9539,6 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
                                                  double delta, double &ssn_prox_ingested,
                                                  Index &ssn_budget_charge, SqpCounters &counters,
                                                  QpSolution &qs, detail::QnLiftBridge *qn) {
-    ++counters.ipqp.ipqp_to_ssn;
     // THE PROXIMAL CARRY PARTICIPATES (settler ruling, fix round 1): `warm_start.h`'s
     // `prox_sigma` is the maximum over ANY SSN subproblem of the solve, and one reached
     // through the kIpqp chain is one. Spent ONE-SHOT, exactly as the kSsn arm spends it.
@@ -9547,6 +9575,13 @@ bool SqpSolverImpl::route_through_ssn_warm_grade(const QpProblem &qp, const Ipqp
     // CENTRE only from a usable exit. Both rules are the kSsn arm's own, and its notes there
     // carry the reasoning.
     ssn_prox_sigma_out_ = std::max(ssn_prox_sigma_out_, sres.prox_sigma);
+    // A STOP (M8 AP-5 G4) abandons the subproblem: the grade's work is charged, and it is
+    // neither counted as a route nor traced. The caller hands nothing to the walk.
+    if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        charge_ssn_subproblem_cost(counters, sres);
+        return false;
+    }
+    ++counters.ipqp.ipqp_to_ssn;
     // HOISTED so the trace line below can read it once (M6 W4 T5): the verdict
     // is what tells the grade's own `qp.mode` outcome apart, and computing it
     // twice would let the two readings drift.

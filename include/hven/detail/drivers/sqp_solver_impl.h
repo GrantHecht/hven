@@ -2190,6 +2190,8 @@ class SqpSolverImpl {
     // which is not a safe point. Cleared at every solve exit.
     const std::atomic<bool> *qp_stop_ = nullptr;
     void arm_qp_stop(const std::atomic<bool> *flag) noexcept;
+
+    friend struct SqpSolverAccess;
 };
 
 /// Reaches the implementation behind a public SqpSolver. For tests that need
@@ -2197,6 +2199,14 @@ class SqpSolverImpl {
 struct SqpSolverAccess {
     static SqpSolverImpl &impl(SqpSolver &solver) { return solver.impl(); }
     static const SqpSolverImpl &impl(const SqpSolver &solver) { return solver.impl(); }
+    /// True when no stop flag is held by the driver or by any QP engine it owns
+    /// (M8 AP-5 G4: the flag is withdrawn at every solve exit).
+    static bool qp_stop_disarmed(const SqpSolver &solver) {
+        const SqpSolverImpl &d = solver.impl();
+        const auto off = [](const auto &e) { return e == nullptr || e->stop_flag() == nullptr; };
+        return d.qp_stop_ == nullptr && off(d.engine_) && off(d.ssn_engine_) &&
+               off(d.ipqp_engine_) && off(d.elastic_ipqp_engine_) && off(d.cap_retry_engine_);
+    }
 };
 
 } // namespace hven::detail

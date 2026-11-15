@@ -1274,6 +1274,13 @@ again after the stop. Compiled into `hven_sqp_seam_tests`
 (`tests/sqp/test_stop_poll_seams.cpp`, `StopPollSeam.*`). Unarmed, `poll_stop` is
 one null test and the seam is not reached.
 
+Two G4 facts need no seam. The SQP check between a major's subproblem build and its
+kernel is reached through the model itself: a Hessian evaluation that requests the
+stop (`StopPollSeam.T4ATokenStopDuringTheSubproblemBuildEntersNoKernel`). And that
+the stop flag is withdrawn from the driver and every QP engine at a solve's exit is
+read through `detail::SqpSolverAccess::qp_stop_disarmed`, the existing test access to
+the implementation, after each solve the file runs.
+
 ## The linear injectors through the public handles (M8 B5 riders)
 
 No new seam: `tests/sqp/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),

@@ -600,6 +600,7 @@ class IpqpEngine {
     /// it before the flag's owner can go away. A requested stop leaves the solve
     /// through its iteration-budget exit, and the driver discards that answer.
     void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }
+    const std::atomic<bool> *stop_flag() const noexcept { return stop_flag_; }
 
   private:
     struct Workspace;
@@ -638,7 +639,6 @@ class IpqpEngine {
     void emit_trace_certify(const IpqpCertifyTraceEvent &event) const;
     void emit_trace_escape(const IpqpEscapeTraceEvent &event) const;
 
-    // Last, so no existing member's offset moves.
     const std::atomic<bool> *stop_flag_ = nullptr;
 };
 

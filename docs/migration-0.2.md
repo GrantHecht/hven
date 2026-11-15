@@ -168,15 +168,28 @@ today.
 
 A requested `SolveBudget::stop` is now also seen inside an iteration, at the two
 places where abandoning the work loses nothing: interior-point, between
-inertia-correction attempts; SQP, in the minor loop of the major's subproblem (walk,
-SSN or IPQP) and of its elastic re-solves, before any trial point is evaluated. The
-line search, the second-order correction and the watchdog are not stop points; a
-request made during them is honoured at the next boundary. A solve without a token is
-unchanged, and so is one whose token is never requested.
+inertia-correction attempts; SQP, once the major's subproblem is built and in the
+minor loop of that subproblem (walk, SSN or IPQP, the SSN warm grade the IPQP chain
+routes to, and the L-BFGS lift that wraps any of them) and of its elastic re-solves,
+before any trial point is evaluated. These are not stop points: the line search, the
+second-order correction's re-solve, the watchdog, the SQP cap retry
+(`qp_iteration_limit_retry`, never armed) and the interior-point dense guard's re-run of
+the inertia ladder; a request made during them is honoured at the next boundary. A
+solve without a token is unchanged, and so is one whose token is never requested.
+
+After an SQP stop inside a subproblem, the warm-start export can differ from a stop at
+the top of the same major. Its hot handle is the state the abandoned solve left the
+walk engine in, so a later solve may forfeit the hot start and start warm. Two
+counters/stamps follow the abandoned subproblem rather than the previous major:
+`counters.start_level_used` (major 0 only: what the abandoned first subproblem
+observed) and the export's dual-regularization stamp (the walk configuration the
+abandoned subproblem was dispatched at). Neither moves the returned point, its
+multipliers or its history row. A stop that arrives after the subproblem is built but
+before a kernel starts leaves both as a top-of-iteration stop does.
 
 Behaviour changes (stop path only):
 
 | before | after | rewrite |
 |---|---|---|
 | IPM: a token requested while the inertia ladder ran was seen at the next iteration's top, after the iteration's step | the iteration is abandoned between ladder attempts and the solve returns the point it started from, the same result (point, multipliers, diagnostics, `g`, warm start, message) as a stop at that iteration's top; the ladder's factorizations already spent are counted in `work.factorizations`. Inside restoration the G2 rule holds: the point restoration was entered from | none |
-| SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its minors and factorizations are). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |
+| SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its work is: factorizations in `counters.factorizations`, minors where a handed-off subproblem's go -- `qp_minor_iters` for the walk, `ssn.ssn_iters` and `ipqp.ipqp_iters` for the tiers). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape; it is not counted as a routing destination (`ipqp_to_ssn`, `ipqp_to_refine`), so the IPQP routing partition (`IpqpCounters::ipqp_to_walk`'s note) holds over the subproblems that were not abandoned. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |

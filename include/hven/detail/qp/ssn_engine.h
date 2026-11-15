@@ -806,6 +806,7 @@ class SsnEngine {
     /// it before the flag's owner can go away. A requested stop leaves the solve
     /// through its iteration-budget exit, and the driver discards that answer.
     void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }
+    const std::atomic<bool> *stop_flag() const noexcept { return stop_flag_; }
 
   private:
     // -----------------------------------------------------------------------
@@ -1131,7 +1132,6 @@ class SsnEngine {
     Index deferred_attempt_ = 0;
     double deferred_fb_residual_ = 0.0;
     double deferred_fb_tol_ = 0.0;
-    // Last, so no existing member's offset moves.
     const std::atomic<bool> *stop_flag_ = nullptr;
 };
 

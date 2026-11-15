@@ -3031,7 +3031,6 @@ class QpEngine {
     // matches. Joined there by the usable-numerics conjunct.
     mutable std::uint64_t border_kkt_session_id_ = 0;
     mutable std::uint64_t border_kkt_epoch_ = 0;
-    // Last, so no existing member's offset moves.
     const std::atomic<bool> *stop_flag_ = nullptr;
 };
 
