@@ -1034,17 +1034,25 @@ TEST(StopPollSeam, T4ATokenStopInsideAnElasticResolveReturnsXk) {
     InfeasibleCircleLineModel model;
     StopSource dry_source;
     const ModelRun dry = run_model(model, dry_source, std::nullopt);
-    // The first major whose subproblem the elastic tier answered, before restoration.
-    std::size_t k = 0;
+    // The parent's rows among the events: restoration's rows (depth 1) interleave with them
+    // on a route that enters restoration early, so a history index is not an event index.
+    std::vector<std::size_t> parent_event;
+    for (std::size_t e = 0; e < dry.depth.size(); ++e) {
+        if (dry.depth[e] == 0) {
+            parent_event.push_back(e);
+        }
+    }
+    ASSERT_EQ(parent_event.size(), dry.result.history.size());
+    // The first parent major (depth 0, after major 0) whose subproblem the elastic tier answered.
+    std::size_t k = 1;
     while (k < dry.result.history.size() && !dry.result.history[k].elastic_applied) {
         ++k;
     }
-    ASSERT_GE(k, 1u) << "premise: an earlier major's event counts its walk solves";
-    ASSERT_LT(k, dry.result.history.size()) << "premise: the elastic tier answers a subproblem";
-    ASSERT_EQ(dry.depth[k], 0);
-    // Major k's walk solves start after event k-1's count: the main subproblem, then the
-    // elastic ladder's first rung.
-    const int fire_solve = dry.walk_solves_at_event[k - 1] + 2;
+    ASSERT_LT(k, dry.result.history.size())
+        << "premise: a depth-0 major after major 0 has its subproblem answered by the elastic tier";
+    // Major k's walk solves start after its predecessor parent row's count: the main
+    // subproblem, then the elastic ladder's first rung.
+    const int fire_solve = dry.walk_solves_at_event[parent_event[k - 1]] + 2;
 
     Seam::reset();
     StopSource source;
@@ -1056,15 +1064,17 @@ TEST(StopPollSeam, T4ATokenStopInsideAnElasticResolveReturnsXk) {
     expect_no_poll_after_the_stop();
     const SqpResult &r = stopped.result;
     EXPECT_FALSE(r.returned_pre_restoration_point);
-    EXPECT_EQ(r.counters.restoration_iters, 0) << "the elastic answer never reached restoration";
+    EXPECT_EQ(r.history.size(), k + 1);
     EXPECT_GE(r.counters.elastic_activations, 1);
     EXPECT_FALSE(r.history.back().elastic_applied);
-    EXPECT_EQ(stopped.events, static_cast<Index>(r.history.size()));
 
+    // The cap counts restoration's iterations too.
     Seam::reset();
     StopSource cap_source;
-    const ModelRun capped = run_model(model, cap_source, static_cast<Index>(k));
+    const ModelRun capped =
+        run_model(model, cap_source, r.counters.major_iters + r.counters.restoration_iters);
     expect_stopped_at_major(r, capped.result);
+    EXPECT_EQ(r.counters.restoration_iters, capped.result.counters.restoration_iters);
 }
 
 // A stop inside a subproblem of the restoration sub-solve composes with G2: the
