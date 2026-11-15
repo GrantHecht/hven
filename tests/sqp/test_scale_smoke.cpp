@@ -954,6 +954,53 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 }
 
 // =====================================================================
+// M8 AP-5 G3 -- THE BEST ITERATE'S FACE PRICES CARRY THE SAME SIGN REPAIR.
+//
+// The kIpqp chain's iterates on the wide-window family price weakly active
+// faces with tiny negative inequality prices (the test above counts what the
+// export sweeps). A kStopReturnBest at such an iterate returns the best iterate
+// as the primary point, and best_iterate's inequality prices must be
+// sign-correct like every other primary point's: its snapshot passes through the
+// same sweep. MEASURED (2026-11-15, clang/MKL): N = 1050 stopped at iteration 3
+// holds a -2.9e-6 price before the repair; the neighbouring stops are
+// clean, and the stops here cover them as well. The mutation table's y (sweep
+// removed) is what keeps this from passing vacuously.
+// =====================================================================
+TEST(F7ColdScaleSmoke, TheBestIteratesFacePricesAreSignRepaired) {
+    constexpr double kP0 = 0.80;
+    Index checked = 0;
+    for (const Index nodes : {Index{1050}}) {
+        SCOPED_TRACE(fmt::format("N={}", nodes));
+        for (Index stop_at = 2; stop_at <= 4; ++stop_at) {
+            F7CollocationChain model(nodes, 3, 2, kP0, 1.0);
+            SqpOptions opts;
+            opts.common.optimality_tol = 1e-8;
+            opts.common.feasibility_tol = 1e-8;
+            opts.common.max_iterations = 10;
+            opts.advanced.adaptive_dual_regularization = false;
+            opts.advanced.warm_full_step = true;
+            opts.qp.max_iterations = 20000;
+            opts.qp_mode = QpMode::kIpqp;
+            SqpSolver driver(opts);
+            driver.set_iteration_callback([stop_at](const IterationEvent &ev) {
+                return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                               : CallbackAction::kContinue;
+            });
+            model.set_parameters(Vec::Constant(1, kP0));
+            const SqpResult r = driver.solve(hven::detail::problem_ref(model), model.start_point());
+            if (!r.best_iterate) {
+                continue;
+            }
+            const auto &best_prices = hven::detail::engine_rows(r).best_lambda_i;
+            ASSERT_GT(best_prices.size(), 0);
+            EXPECT_GE(best_prices.minCoeff(), 0.0) << "stop at " << stop_at;
+            ++checked;
+        }
+    }
+    EXPECT_GT(checked, 0);
+}
+
+// =====================================================================
 // M6 W1 TASK 6 -- THE THIRD PRODUCER, WITH A MUTATION PARTNER.
 //
 // THE R6 REGISTRATION'S MISSING HALF (fix round 1, reviewer C7b). The
