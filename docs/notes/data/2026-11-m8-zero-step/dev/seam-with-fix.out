@@ -1,0 +1,69 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = SqpLadderSeam.*
+[==========] Running 28 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 28 tests from SqpLadderSeam
+[ RUN      ] SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible
+[       OK ] SqpLadderSeam.L1ARefusedRequestAtAFeasiblePointIsNeverInfeasible (3 ms)
+[ RUN      ] SqpLadderSeam.L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier
+[       OK ] SqpLadderSeam.L3AnE2TerminationAtAnInfeasibleIterateOpensTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.L3APlainNumericalErrorKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.L3APlainNumericalErrorKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.L3AtAFeasibleIterateTheShrinkLadderStays
+[       OK ] SqpLadderSeam.L3AtAFeasibleIterateTheShrinkLadderStays (0 ms)
+[ RUN      ] SqpLadderSeam.L3TheGuardReadsTheBox
+[       OK ] SqpLadderSeam.L3TheGuardReadsTheBox (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH
+[       OK ] SqpLadderSeam.Sdl4ABoundRefusalOffItsBoxTakesTheElasticTierAtEveryH (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAFeasibleIterateKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElasticTier
+[       OK ] SqpLadderSeam.Sdl4ARetryableBoundRefusalAtAnInfeasibleIterateTakesTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalAtAnInfeasibleIterateOpensTheElasticTier (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep
+[       OK ] SqpLadderSeam.Sdl4ABoundRefusalIsNotOfferedAsAFailureStep (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalAtAFeasibleIterateKeepsTheShrinkLadder (0 ms)
+[ RUN      ] SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep
+[       OK ] SqpLadderSeam.Sdl6ARowRefusalIsNotOfferedAsAFailureStep (0 ms)
+[ RUN      ] SqpLadderSeam.R2ACarriedPriceIsNotACertificate
+[       OK ] SqpLadderSeam.R2ACarriedPriceIsNotACertificate (0 ms)
+[ RUN      ] SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget
+[       OK ] SqpLadderSeam.R2AJudgedRejectedStepIsNotChargedToTheBudget (0 ms)
+[ RUN      ] SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate
+[ snr ] cert-one: status=6 majors=34 resto_iters=0 h_out=5.38419e-06 feas_out=5.38419e-07
+[       OK ] SqpLadderSeam.CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate (3 ms)
+[ RUN      ] SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt
+[ p1e ] reduction resume k=0: h_in=10 h_out=1.52447e-05 status=6 majors=1 resumes=0
+[ p1e ] reduction resume k=0.5: h_in=10 h_out=1.52447e-05 status=6 majors=2 resumes=1
+[       OK ] SqpLadderSeam.TheReductionResumeTakesTheNoClaimPointAndCountsIt (2 ms)
+[ RUN      ] SqpLadderSeam.QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow
+[       OK ] SqpLadderSeam.QcOneASlackInsideFeasTolIsNotABoundAtAViolatedRow (0 ms)
+[ RUN      ] SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap
+[       OK ] SqpLadderSeam.ARequestWithNoAcceptedStepSinceTheResumeIsRefusedAtAnyCap (1 ms)
+[ RUN      ] SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap
+[       OK ] SqpLadderSeam.ARequestAfterAnAcceptedStepIsServicedOnlyBelowTheCap (5 ms)
+[ RUN      ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel
+[       OK ] SqpLadderSeam.AFailedPhaseSubproblemRestartsThePhaseOnTheRegularizedModel (29 ms)
+[ RUN      ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart
+[       OK ] SqpLadderSeam.AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart (6 ms)
+[ RUN      ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch
+[       OK ] SqpLadderSeam.UnderTheQuasiNewtonModeAFailedPhaseSubproblemDoesNotSwitch (8 ms)
+[ RUN      ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart
+[       OK ] SqpLadderSeam.AnExhaustedElasticTierInsideThePhaseTakesTheRegularizedRestart (16 ms)
+[ RUN      ] SqpLadderSeam.WalkCapARungOffItsRowsIsNotClosed
+[       OK ] SqpLadderSeam.WalkCapARungOffItsRowsIsNotClosed (1 ms)
+[ RUN      ] SqpLadderSeam.WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion
+[       OK ] SqpLadderSeam.WalkCapAZeroElasticStepAtAnInfeasibleIterateIsExhaustion (2 ms)
+[ RUN      ] SqpLadderSeam.WalkCapARungOffItsRowsDoesNotStopTheEscalation
+[       OK ] SqpLadderSeam.WalkCapARungOffItsRowsDoesNotStopTheEscalation (0 ms)
+[ RUN      ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds
+[       OK ] SqpLadderSeam.EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds (18 ms)
+[ RUN      ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver
+[       OK ] SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver (15 ms)
+[----------] 28 tests from SqpLadderSeam (119 ms total)
+
+[----------] Global test environment tear-down
+[==========] 28 tests from 1 test suite ran. (119 ms total)
+[  PASSED  ] 28 tests.

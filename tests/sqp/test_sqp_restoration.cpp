@@ -288,7 +288,7 @@ class StalledValleyModel : public NlpModel {
 // is the smallest case in the suite where the FEASIBILITY problem's start
 // point is ALREADY its solution, which is the normal state of affairs when
 // restoration is entered at an infeasible stationary point and is what
-// sqp_solver.h's kZeroStepScale short-circuit exists for.
+// the driver's zero-step short-circuit exists for.
 //
 //     min 1/2 ||x||^2  s.t.  cE(x) = x0 - 5 = 0,  0 <= x <= 1.
 //
@@ -1694,7 +1694,7 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
                                                           sol.counters.restoration_iters, sol.f));
 }
 
-// KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (sqp_solver.h's kZeroStepScale).
+// KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (the driver's zero-step short-circuit).
 // The cleanest instance in the project is the restoration phase's OWN
 // feasibility problem entered at an infeasible stationary point, where the
 // start point is already the solution: the subproblem returns p = 0 (measured

@@ -206,3 +206,35 @@ Behaviour changes (stop path only):
 |---|---|---|
 | IPM: a token requested while the inertia ladder ran was seen at the next iteration's top, after the iteration's step | the iteration is abandoned between ladder attempts and the solve returns the point it started from, the same result (point, multipliers, diagnostics, `g`, warm start, message) as a stop at that iteration's top; the ladder's factorizations already spent are counted in `work.factorizations`. Inside restoration the G2 rule holds: the point restoration was entered from | none |
 | SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its work is: factorizations in `counters.factorizations`, minors where a handed-off subproblem's go -- `qp_minor_iters` for the walk, `ssn.ssn_iters` and `ipqp.ipqp_iters` for the tiers). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape; it is not counted as a routing destination (`ipqp_to_ssn`, `ipqp_to_refine`), so the IPQP routing partition (`IpqpCounters::ipqp_to_walk`'s note) holds over the subproblems that were not abandoned. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from (the parent's best instead under a depth-1 `kStopReturnBest`, as above) | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |
+
+## Zero-step short-circuit (driver numerics, not an interface change)
+
+The SQP driver's zero-step short-circuit (KLV Algorithm 2's `||d|| = 0`: accept an
+unjudged step the subproblem answered with p = 0) now reads the QP kernels' own no-motion
+tolerance, `qp_no_motion_tol(qp.feasibility_tol, ||p||inf)` (default 1e-9), instead of the
+fixed `1e-12 * max(1, ||x||inf)` it used before. `kZeroStepScale` (1e-12) remains the
+L-BFGS pair-skip scale only.
+
+Why the short-circuit exists: the convergence test measures stationarity with the iterate's
+current multipliers, refreshed only on an accepted step. At a point where the subproblem's
+answer is p = 0 the QP has just priced the exact multipliers, yet the funnel rejects the
+zero step on rounding alone (pred_df and actual decrease are both noise), the multipliers
+are thrown away and the radius halves forever. Measured on the restoration phase's own
+feasibility problem entered at an infeasible stationary point: 64 consecutive rejections.
+
+Why 1e-12 was wrong: the walk counts a step within `feasibility_tol * max(1, |x|)` as no
+motion and snaps onto it, so its answer at such a point is only determined to that scale.
+A platform whose rounding leaves 1e-10 where another leaves exactly 0 (macOS/Accelerate
+returned 1.07e-10 inside the restoration sub-solve on the T7F1 and T3 fixtures; MKL
+returned 0) put the noise step between the two thresholds: the driver judged it, the
+funnel rejected it 34 times, the multipliers were discarded, the trust region collapsed
+and the solve ended kNumericalError uncertified. The driver now agrees with the kernel.
+
+The old argument ("four to six decades tighter than kkt_tol, so a zero step cannot move any
+residual the driver measures") is restated for 1e-9: it is three decades below the default
+kkt_tol (1e-6). An accepted zero step moves x by at most that, so any residual it moves is
+moved by at most ||A|| * 1e-9, below the 1e-6 tolerance the driver tests against. The walk
+is the only kernel with a no-motion test; SSN and IPQP answers are accurate to the same
+`qp.feasibility_tol`, so one definition serves all three modes. The scale is the step's own
+size, as in the walk (whose iterate is the step): for a step under the tolerance the
+tolerance is absolute, `qp.feasibility_tol`.

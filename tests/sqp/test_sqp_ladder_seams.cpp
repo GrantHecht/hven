@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/ladder_testing.h>
@@ -1297,6 +1298,94 @@ TEST(SqpLadderSeam, EveryRowBlockIsReadOncePerCountedQueryWithBothRowKinds) {
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_EQ(model.n_ce, sol.counters.evals_full + sol.counters.evals_values);
         EXPECT_EQ(model.n_ci, sol.counters.evals_full + sol.counters.evals_values);
+    }
+}
+
+namespace {
+// test_sqp_solver.cpp's W2T7ScaledInconsistentEqualitiesModel (the T7F1 fixture): two parallel
+// equalities s*(x0 + x1 -+ 2) = 0 on a box, inconsistent, so the solve ends in the restoration
+// phase whose feasibility sub-solve is entered at an infeasible stationary point.
+class ScaledInconsistentEqualitiesModel : public NlpModel {
+  public:
+    ScaledInconsistentEqualitiesModel(double s, double b, double a) : s_(s), b_(b), a_(a) {}
+    Index n() const override { return 2; }
+    Index me() const override { return 2; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(2);
+        c << s_ * (x(0) + x(1) - 2.0), s_ * (x(0) + x(1) + 2.0);
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(2, 2);
+        j.insert(0, 0) = s_;
+        j.insert(0, 1) = s_;
+        j.insert(1, 0) = s_;
+        j.insert(1, 1) = s_;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        lo_ = Vec::Constant(2, -b_);
+        return lo_;
+    }
+    const Vec &upper() const override {
+        up_ = Vec::Constant(2, b_);
+        return up_;
+    }
+    Vec start_point() const override { return Vec::Constant(2, a_); }
+
+  private:
+    double s_, b_, a_;
+    mutable Vec lo_, up_;
+};
+} // namespace
+
+// ZERO-STEP AGREEMENT (macOS/Accelerate runs 43719577164, 43720140103, 43720765090). Inside the
+// restoration sub-solve the walk answered a step of 1.07e-10 where MKL answers exactly 0. The
+// walk reads that as no motion (step_tol = feasibility_tol * max(1, |x|), 1e-9); the driver's
+// zero-step short-circuit used 1e-12, judged the noise, and the funnel rejected it 34 times: the
+// multipliers were discarded, the radius collapsed and the solve ended kNumericalError,
+// uncertified. The seam adds 1e-10 to the walk's no-motion restoration steps; the verdict must
+// stay the certified kInfeasible the unperturbed solve reaches, on every mode and both arms.
+TEST(SqpLadderSeam, ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver) {
+    for (const auto policy :
+         {hven::linear::DensePolicy::kAuto, hven::linear::DensePolicy::kNever}) {
+        for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
+            SCOPED_TRACE(
+                fmt::format("policy {} mode {}", static_cast<int>(policy), static_cast<int>(mode)));
+            SqpOptions o = quiet();
+            o.linear.dense_factorization = policy;
+            o.advanced.equality_basis = false;
+            o.qp_mode = mode;
+            o.common.max_iterations = 60;
+            ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
+            Seam::reset();
+            const SqpResult control =
+                SqpSolver(o).solve(hven::detail::problem_ref(model), model.start_point());
+            ASSERT_EQ(control.status, SolveStatus::kInfeasible) << "fixture premise";
+            ASSERT_TRUE(control.infeasibility_certified);
+            const SeamReset guard;
+            Seam::perturb_restoration_walk_step = 1.0e-10;
+            const SqpResult sol =
+                SqpSolver(o).solve(hven::detail::problem_ref(model), model.start_point());
+            EXPECT_GE(Seam::perturbed_restoration_steps, 1) << "the seam must have fired";
+            EXPECT_GE(sol.counters.restoration_iters, 1);
+            EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
+            EXPECT_TRUE(sol.infeasibility_certified);
+            EXPECT_LT(sol.counters.major_iters, o.common.max_iterations);
+        }
     }
 }
 

@@ -1151,7 +1151,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         last_drop = DropRecord{};
 
         const double x_inf = x.lpNorm<Eigen::Infinity>();
-        const double step_tol = eff_opts.feasibility_tol * std::max(1.0, x_inf);
+        const double step_tol = detail::qp_no_motion_tol(eff_opts.feasibility_tol, x_inf);
         const double p_inf = p.lpNorm<Eigen::Infinity>();
 
         // THE FREE-BLOCK STATIONARITY RESIDUAL at the iterate this pass started

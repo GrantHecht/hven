@@ -8223,6 +8223,19 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 mj.qs.counters.certificate_row_refusals = 1;
             }
         }
+        // ZERO-STEP AGREEMENT: a no-motion walk step of the restoration sub-driver carries
+        // rounding noise below the walk's own tolerance (see SqpLadderSeam).
+        if (SqpLadderSeam::perturb_restoration_walk_step > 0.0 && is_restoration_sub_driver_ &&
+            mj.walk_owns_this_qp && mj.qs.status == QpStatus::kOptimal && mj.qs.x.size() > 0 &&
+            mj.qs.x.lpNorm<Eigen::Infinity>() <=
+                qp_no_motion_tol(opts_.qp.feasibility_tol, mj.qs.x.lpNorm<Eigen::Infinity>())) {
+            const double v = SqpLadderSeam::perturb_restoration_walk_step;
+            mj.qs.x(mj.qs.x.size() > 4 ? 2 : 0) += v;
+            if (mj.qs.x.size() > 4) {
+                mj.qs.x(4) -= v;
+            }
+            ++SqpLadderSeam::perturbed_restoration_steps;
+        }
         // THE RESTORATION SUB-DRIVER'S OWN KNOB (M7 W2 RST): a walk subproblem of the
         // phase that fails on the exact model, which is what kModelThenRegularized reads.
         if (SqpLadderSeam::fail_restoration_walk_qps > 0 && is_restoration_sub_driver_ &&
@@ -8632,16 +8645,17 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     mj.ctx.tr_active = mj.row.tr_binding;
     mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
 
-    // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (see kZeroStepScale
-    // for why this is here and not left to the convergence test at
-    // the top of the loop). The trust-region conjunct is not
-    // decoration: a step held AT zero by a radius that has shrunk to
+    // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (docs/migration-0.2.md, "Zero-step
+    // short-circuit", for why it is here and not left to the convergence test at the top
+    // of the loop). ZERO IS THE QP KERNELS' NO-MOTION TEST, qp_no_motion_tol. The
+    // trust-region conjunct is not decoration: a step held AT zero by a radius that has shrunk to
     // nothing is not evidence of a KKT point, and its z would be the
     // radius talking (qp_problem.h's STATIONARITY CAVEAT). A step
     // that is zero because the SUBPROBLEM's answer is zero has the
     // radius strictly inactive.
-    const double x_scale = std::max(1.0, st.x.lpNorm<Eigen::Infinity>());
-    const bool zero_step = !mj.row.tr_binding && mj.row.step_norm <= kZeroStepScale * x_scale;
+    const bool zero_step =
+        !mj.row.tr_binding &&
+        mj.row.step_norm <= qp_no_motion_tol(opts_.qp.feasibility_tol, mj.row.step_norm);
 
     // A ZERO STEP AT A SUSPECTED INCONSISTENCY (SqpOptions::equality_basis) would
     // leave x where it is, so the two-iterate evidence could never complete: the

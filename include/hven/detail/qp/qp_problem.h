@@ -20,6 +20,7 @@
 // sits at its active lower bound, <= 0 when it sits at its active upper
 // bound, and 0 when the variable is free.
 
+#include <algorithm>
 #include <stdexcept>
 #include <vector>
 
@@ -190,5 +191,11 @@ struct QpSolution {
     /// a kNumericalError -- see QpFarkasCertificate.
     QpFarkasCertificate farkas;
 };
+
+/// The QP tier's one definition of NO MOTION: a step of inf-norm at most this moves nothing the
+/// kernel can resolve. `x_inf` is the inf-norm of the QP iterate (step space in the SQP driver).
+inline double qp_no_motion_tol(double feasibility_tol, double x_inf) {
+    return feasibility_tol * std::max(1.0, x_inf);
+}
 
 } // namespace hven::detail

@@ -1206,10 +1206,24 @@ closed); the two together hand the driver a usable zero elastic step at `h > fea
 which pins the driver's own guard (exhaustion, not KLV's unjudged zero-step accept).
 With the cap in place the engine no longer returns that rung, and there is no known
 unseamed fixture that reaches either guard (a zero elastic step is `step_norm <=
-1e-12 * x_scale`, so a rounding-size usable step could in principle reach the driver's):
+qp_no_motion_tol`, so a rounding-size usable step could in principle reach the driver's):
 they are the second and third layers behind the cap. A third knob, `off_rows_inloop_rungs`,
 replaces rungs as the ladder runs rather than the final one, to pin the ladder's own
 escalation test (a rung off its rows is not shut).
+
+A fourth knob, `perturb_restoration_walk_step` (zero-step agreement), is read right after the
+fail-walk block in `src/drivers/sqp_solver.cpp`: it adds +v to slack column 2 and -v to slack
+column 4 of every kOptimal walk step of the restoration sub-driver that the walk itself reads
+as no motion (inf-norm within `qp_no_motion_tol`): a noise step, net zero in the penalty
+objective, multipliers kept. It stands in for the rounding residue
+macOS/Accelerate leaves inside the restoration sub-solve (1.07e-10, runs 43719577164,
+43720140103, 43720765090) where MKL leaves exactly 0, which no Linux/MKL build reaches. It is
+faithful for one question: whether the driver's zero-step short-circuit agrees with the
+kernel's no-motion definition (the step is perturbed after the engine returns it, so it says
+nothing about how the walk produces such a step). Fixture:
+`SqpLadderSeam.ZeroStepANoiseStepTheWalkReadsAsNoMotionIsAZeroStepToTheDriver`, three QP modes
+by both dense arms; it fails with the driver's pre-fix 1e-12 threshold
+(`docs/notes/data/2026-11-m8-zero-step/`).
 
 It is an INJECTED result, and faithful for the one question it serves: how the
 driver routes a failed QP (L1's refused-request spelling, L3's E2-termination

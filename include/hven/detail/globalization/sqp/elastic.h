@@ -6,8 +6,7 @@
 // elastic.h -- the elastic (l1 exact-penalty) tier's subproblem construction.
 // The ELASTIC TIER, WARM SEEDING and REPORTED BOUND MULTIPLIER notes cited
 // below live in drivers/sqp_solver.h, which includes this file at the point
-// the construction stood; kZeroStepScale lives in
-// detail/globalization/sqp/trust_region.h. Rule of thumb: any "this file"/
+// the construction stood. Rule of thumb: any "this file"/
 // "this header" reference that does not resolve here resolves in
 // drivers/sqp_solver.h. The bodies of ElasticQp's two member functions and of
 // build_elastic_subproblem / elastic_seed / elastic_project are in
@@ -72,8 +71,7 @@ inline constexpr double kElasticRhoDualMuSafety = 1e-2;
 
 /// The stall early-exit tolerance: two consecutive rungs' augmented solutions
 /// count as THE SAME rung, not merely close, when they differ by less than this
-/// fraction of the previous rung's own scale -- a NUMERICAL-ZERO threshold,
-/// exactly kZeroStepScale's own and for the identical reason: at 1e-12
+/// fraction of the previous rung's own scale -- a NUMERICAL-ZERO threshold: at 1e-12
 /// relative, what "differs" is rounding, not a rung that changed anything.
 inline constexpr double kElasticStallScale = 1e-12;
 

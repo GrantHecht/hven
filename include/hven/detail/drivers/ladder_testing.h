@@ -63,6 +63,14 @@ struct SqpLadderSeam {
     static inline int off_rows_inloop_rungs = 0;
     /// How many rungs `off_rows_rungs` / `off_rows_inloop_rungs` replaced (read by the test).
     static inline int off_rows_forced = 0;
+    /// ZERO-STEP AGREEMENT: > 0 adds +this to column 2 and -this to column 4 (column 0 alone on a
+    /// QP of at most 5 columns) of every kOptimal walk step of the restoration sub-driver that
+    /// the walk itself reads as NO MOTION (inf-norm within qp_no_motion_tol): a noise step, net
+    /// zero in the penalty objective, the rounding residue a platform other than the reference
+    /// leaves where the reference leaves exactly 0. Multipliers are kept; 0 = off.
+    static inline double perturb_restoration_walk_step = 0.0;
+    /// How many restoration walk steps were perturbed (read by the test).
+    static inline int perturbed_restoration_steps = 0;
 
     static void reset() {
         fail_walk_qps = 0;
@@ -80,6 +88,8 @@ struct SqpLadderSeam {
         off_rows_inloop_rungs = 0;
         report_reads_slacks_only = false;
         off_rows_forced = 0;
+        perturb_restoration_walk_step = 0.0;
+        perturbed_restoration_steps = 0;
     }
 };
 

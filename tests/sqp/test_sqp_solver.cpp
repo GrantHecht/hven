@@ -12563,23 +12563,8 @@ static void run_t7f1_inconsistent_three_modes(hven::linear::DensePolicy policy) 
         // (kInfeasible) with `infeasibility_certified` true on walk, ssn and ipm in
         // Debug as well as Release. The conjunction above, which ties the status to the
         // certificate, is unchanged and is the claim L1 actually makes.
-        // Dense arm, off the reference build (macOS/Accelerate reads kNumericalError, uncertified,
-        // in every mode: CI run 43690708928): whether the ladder reaches a certificate is a
-        // route there, recorded and not pinned (WX design section 2.1); the conjunction above is
-        // the portable contract.
-#if !HVEN_TEST_ROUTE_REFERENCE
-        if (policy == hven::linear::DensePolicy::kAuto) {
-            hven::test_support::record_off_reference_route(
-                std::string("f1_verdict_") + arm.name,
-                fmt::format("status={} certified={}", static_cast<int>(sol.status),
-                            sol.infeasibility_certified));
-        } else
-#endif
-        {
-            EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << "the same answer in every mode";
-            EXPECT_TRUE(sol.infeasibility_certified)
-                << "in both configurations since E4 fix round 2";
-        }
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible) << "the same answer in every mode";
+        EXPECT_TRUE(sol.infeasibility_certified) << "in both configurations since E4 fix round 2";
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(sol.counters.elastic_activations, sol.counters.major_iters)
             << "one ladder per major, whichever route reached it";
@@ -12638,9 +12623,11 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
 // SqpDriverCertifiedFallback.T7F1TheSameInconsistentLinearizationInAllThreeModes. The kNever test
 // above is kept as it was; this one runs the same fixture on the default (kAuto, the dense arm):
 // both arms reach the same certified kInfeasible and the same route counters; no pin differs, so
-// the twin only runs the arm the sparse test pins elsewhere (neither arm loses coverage). Exact
-// readings are pinned on the reference build only (Linux/MKL, per Release/Debug); elsewhere
-// (macOS/Accelerate: UNOBSERVED) the route is recorded and only contracts are asserted.
+// the twin only runs the arm the sparse test pins elsewhere (neither arm loses coverage). The
+// certified kInfeasible verdict is pinned on EVERY build (the driver's zero-step test agrees with
+// the walk's no-motion tolerance). Exact route readings are pinned on the reference build only
+// (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded
+// and only contracts are asserted.
 TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeModesDenseArm) {
     run_t7f1_inconsistent_three_modes(hven::linear::DensePolicy::kAuto);
 }
@@ -12702,27 +12689,8 @@ static void run_t3_tier_rung_same_verdict(hven::linear::DensePolicy policy) {
     // the same reason as the fixture above -- Debug's restoration sub-solve no longer
     // sticks, so the walk arm certifies in both configurations. MEASURED: status 3
     // (kInfeasible), `infeasibility_certified` true, in Debug as well as Release.
-    // Dense arm, off the reference build (macOS/Accelerate reads kNumericalError, uncertified,
-    // on both arms: CI run 43690708928): whether the ladder's slack evidence reaches a
-    // certificate is a route there, recorded and not pinned (WX design section 2.1). The
-    // conjunction above (kInfeasible iff certified, else kNumericalError) is the portable
-    // contract and is asserted on every build, for both arms.
-#if !HVEN_TEST_ROUTE_REFERENCE
-    const bool verdict_is_route = policy == hven::linear::DensePolicy::kAuto;
-#else
-    const bool verdict_is_route = false;
-#endif
-    if (verdict_is_route) {
-        hven::test_support::record_off_reference_route(
-            "t3_dense_verdict",
-            fmt::format("walk_status={} walk_certified={} tier_status={} tier_certified={}",
-                        static_cast<int>(walk_rung.status), walk_rung.infeasibility_certified,
-                        static_cast<int>(tier_rung.status), tier_rung.infeasibility_certified));
-    }
-    if (!verdict_is_route) {
-        EXPECT_EQ(walk_rung.status, SolveStatus::kInfeasible);
-        EXPECT_TRUE(walk_rung.infeasibility_certified);
-    }
+    EXPECT_EQ(walk_rung.status, SolveStatus::kInfeasible);
+    EXPECT_TRUE(walk_rung.infeasibility_certified);
     // RE-DERIVED AT M7 W2 E4 FIX ROUND 2 (a declared event, and an IMPROVEMENT). The
     // claim L1 made was that the TIER never produces a certificate, so a tier-solved
     // rung could only reach kNumericalError where the walk-solved one reaches a
@@ -12732,12 +12700,10 @@ static void run_t3_tier_rung_same_verdict(hven::linear::DensePolicy policy) {
     // synthesized from (spec section 6.3), so the tier arm lands on the SAME verdict
     // CLASS as the walk arm, which is what this test is named for. MEASURED:
     // kInfeasible with `infeasibility_certified` true on both arms.
-    if (!verdict_is_route) {
-        EXPECT_EQ(tier_rung.status, SolveStatus::kInfeasible)
-            << "the tier arm's verdict class moved away from the walk arm's again";
-        EXPECT_TRUE(tier_rung.infeasibility_certified)
-            << "the driver's own ladder synthesizes it from the slack l1 (spec 6.3)";
-    }
+    EXPECT_EQ(tier_rung.status, SolveStatus::kInfeasible)
+        << "the tier arm's verdict class moved away from the walk arm's again";
+    EXPECT_TRUE(tier_rung.infeasibility_certified)
+        << "the driver's own ladder synthesizes it from the slack l1 (spec 6.3)";
 
     // -- THE ROUTE STILL REACHES THE FALLBACK, on its own arm's terms. NOT compared field for
     //    field against the walk arm: a different rung solution is a different step, so the two
@@ -12803,9 +12769,10 @@ TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSa
 // kNever test above is kept as it was; this one runs the same fixture on the default (kAuto, the
 // dense arm): both arms reach the same certified kInfeasible and the same route counters; no pin
 // differs, so the twin only runs the arm the sparse test pins elsewhere (neither arm loses
-// coverage). Exact readings are pinned on the reference build only (Linux/MKL, per Release/Debug);
-// elsewhere (macOS/Accelerate: UNOBSERVED) the route is recorded and only contracts are
-// asserted.
+// coverage). The certified kInfeasible verdict is pinned on EVERY build (the driver's zero-step
+// test agrees with the walk's no-motion tolerance). Exact route readings are pinned on the
+// reference build only (Linux/MKL, per Release/Debug); elsewhere (macOS/Accelerate: UNOBSERVED) the
+// route is recorded and only contracts are asserted.
 TEST(SqpDriverCertifiedFallback,
      T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearizationDenseArm) {
     run_t3_tier_rung_same_verdict(hven::linear::DensePolicy::kAuto);
