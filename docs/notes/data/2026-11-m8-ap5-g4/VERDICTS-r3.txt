@@ -1,0 +1,12 @@
+# VERDICTS-r3 under DECLARATION-r3.md (code head 73a97fb4dff30af7f8f70ac4debeda99643654c0, arm A sha256 8c530207b47180f7baf6ad53109bed8ea252a4d3b1348a37923603ef2fb2bb78, arm B sha256 663b1138968b6b82811b730dc49d278e868b5dad56fd8ccf7b8700bcbc199a77)
+P0 arm A and arm B sha256 checked by runtime-r3/run_all.sh: both match the declaration.
+P2 runtime-r3/run_all.sh, first leg (interior): FIXTURE PRE-FLIGHT PASS; warm-ups rc=0; round 1 arm A's symbol-table parse could not start:
+   python3: can't open file '.../runtime-r3/analyze_r5.py': [Errno 2] No such file or directory -> PARSE_ERROR interior-r1-A-all -- LEG VOID (leg rc=6)
+   analysis: STOP CONDITION: 3 (round,cell) pairs compared, 3 with a difference or missing (no CSV written) -> VERDICT FAIL(mode=interior leg_rc=6 analysis_rc=2)
+CAUSE  instrument defect: runtime-r3/ was copied from runtime/ without analyze_r5.py, which runtime_leg.sh calls from its own directory
+       ($HERE/analyze_r5.py) for the per-process excluded-symbol count. No measurement was taken: the leg voided before round 1's first
+       comparison; no counter, timing or code fault is implicated.
+NOT RUN  P1, P3, P4, P5, P8, M. IC: the driver (.scratch/p2-legs.sh) did not stop on the runtime failure and started ic-r3/run_ic.sh at
+         07:35:06; it was stopped by its owner (this agent, its own process group) during the walk mode's pass A, before any analysis. Its partial
+         raw output (.scratch/g4r3-ic/) is listed in MANIFEST-r3.txt and is not evidence. The r4 driver stops at the first failed leg.
+CRITERIA NOT MET (P2 VOID) -- successor DECLARATION-r4.md follows; the criteria carry unchanged.
