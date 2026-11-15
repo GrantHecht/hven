@@ -1252,11 +1252,12 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     ASSERT_TRUE(cs.active);
     struct Seen {
         Index depth;
-        Vec x, z, lambda_e;
+        Vec x, z, lambda_e, z_lower, z_upper;
     };
     auto record = [](std::vector<Seen> &into) {
         return [&into](const IterationEvent &ev) {
-            into.push_back(Seen{(ev.sqp ? ev.sqp->depth : Index{-1}), ev.x, ev.z, ev.lambda});
+            into.push_back(Seen{(ev.sqp ? ev.sqp->depth : Index{-1}), ev.x, ev.z, ev.lambda,
+                                ev.z_lower, ev.z_upper});
             return CallbackAction::kContinue;
         };
     };
@@ -1293,6 +1294,19 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
         EXPECT_TRUE(e.z.isApprox(z_expect, 0.0))
             << e.z.transpose() << " vs " << z_expect.transpose();
         EXPECT_TRUE(e.lambda_e.isApprox(r.lambda_e, 0.0));
+        // THE PER-SIDE PRICES (kBoundMultipliers) take the same column map as z, at
+        // every depth: z_lower and z_upper of the scaled solve, divided by d.
+        ASSERT_EQ(r.z_lower.size(), e.z_lower.size());
+        ASSERT_EQ(r.z_upper.size(), e.z_upper.size());
+        ASSERT_EQ(e.z_lower.size(), e.z.size());
+        Vec zl_expect = r.z_lower;
+        Vec zu_expect = r.z_upper;
+        zl_expect.head(2).array() /= cs.cols.array();
+        zu_expect.head(2).array() /= cs.cols.array();
+        EXPECT_TRUE(e.z_lower.isApprox(zl_expect, 0.0))
+            << e.z_lower.transpose() << " vs " << zl_expect.transpose();
+        EXPECT_TRUE(e.z_upper.isApprox(zu_expect, 0.0))
+            << e.z_upper.transpose() << " vs " << zu_expect.transpose();
         if (e.depth == 1) {
             ++depth1;
             for (Index j = 0; j < 2; ++j) {

@@ -289,11 +289,13 @@ const char *restoration_tag(IpmRestorationMode mode) {
 
 // M7 W0 T2 -- THE COUNTING CALLBACK'S PAYLOAD LEVER, `HVEN_LEG_CALLBACK_PAYLOAD`.
 //
-// `all` (the DEFAULT, and what an unset variable means) is the shape W6 T6
-// measured: the one-argument attach, IterationPayload::kAll, the whole
-// attached-only payload prepared for every event. `scalars` is the remedy arm
-// -- the same counting callback, declared under IterationPayload::kScalars, so
-// the engine prepares no vectors and no diagnostics for it.
+// `all` (the DEFAULT, and what an unset variable means) is the one-argument
+// attach, IterationPayload::kAll, the whole attached-only payload prepared for
+// every event. Since G5 that payload is the WIDENED one (constraint rows and bound
+// multipliers on top of what W6 T6 measured), so the provenance tag reads
+// `all-g5`: an old `all` row and a new one cannot be compared silently.
+// `scalars` is the remedy arm -- the same counting callback, declared under
+// IterationPayload::kScalars, so the engine prepares no vectors and no diagnostics for it.
 //
 // IT IS ONLY READ WHEN A CALLBACK IS INSTALLED, but its SPELLING is validated
 // whenever it is set: a typo that silently fell back to `all` would mislabel a
@@ -302,11 +304,11 @@ const char *restoration_tag(IpmRestorationMode mode) {
 const char *leg_callback_payload_tag() {
     const char *const raw = std::getenv("HVEN_LEG_CALLBACK_PAYLOAD");
     if (raw == nullptr) {
-        return "all";
+        return "all-g5";
     }
     const std::string value(raw);
     if (value == "all" || value == "scalars" || value == "vectors-diagnostics") {
-        return value == "all" ? "all" : value == "scalars" ? "scalars" : "vectors-diagnostics";
+        return value == "all" ? "all-g5" : value == "scalars" ? "scalars" : "vectors-diagnostics";
     }
     throw std::invalid_argument(fmt::format(
         "HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars|vectors-diagnostics", value));

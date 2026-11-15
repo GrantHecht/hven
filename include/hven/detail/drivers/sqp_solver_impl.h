@@ -842,7 +842,7 @@ class SqpSolverImpl {
     /// included, so the event count equals `history.size()`.
     ///
     /// WHAT THE EVENT DESCRIBES: the ROW BEING PUSHED -- the iterate that major
-    /// stood on -- and not the pending commit. `IterationEvent::depth` is the
+    /// stood on -- and not the pending commit. `IterationEvent::sqp->depth` is the
     /// restoration nesting: 0 in this solve, 1 inside a restoration sub-solve,
     /// whose events reach the SAME callback through a forwarder this driver
     /// installs.
@@ -919,22 +919,20 @@ class SqpSolverImpl {
     /// that is not understood and is registered with its number, not
     /// explained. See IpmSolver::set_iteration_callback.
     ///
-    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
-    /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
-    /// keeps the default mask, which is what the default-argument call installs.
+    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration COUNTS attaches with
+    /// kScalars; a consumer that CAPTURES THE TRAJECTORY keeps the default mask, which is what the
+    /// default-argument call installs.
     ///
-    /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same
-    /// in-flight guard, applied at the same safe point, reset to the default mask by
-    /// clear_iteration_callback(), and FORWARDED into a restoration sub-solve
-    /// with the forwarder itself, so a depth-1 event carries the same payload
-    /// as a depth-0 one. Set from INSIDE the callback it takes effect at the
-    /// NEXT event, exactly as a replacement callable does.
+    /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same in-flight guard,
+    /// applied at the same safe point, reset to the default mask by clear_iteration_callback(), and
+    /// FORWARDED into a restoration sub-solve with the forwarder itself, so a depth-1 event carries
+    /// the same payload as a depth-0 one. Set from INSIDE the callback it takes effect at the NEXT
+    /// event, exactly as a replacement callable does.
     ///
-    /// AND THAT RULE HOLDS AT DEPTH 1 TOO (M7 W0 T2 fix1). A mask changed from
-    /// inside a RESTORATION event reaches the sub-driver that is running: the
-    /// apply point pushes it down the active sub-driver chain, so the next
-    /// depth-1 event is prepared under the new mask, widening or narrowing.
-    /// An empty callable passed here is a clear, and like a clear it resets
+    /// AND THAT RULE HOLDS AT DEPTH 1 TOO (M7 W0 T2 fix1). A mask changed from inside a RESTORATION
+    /// event reaches the sub-driver that is running: the apply point pushes it down the active
+    /// sub-driver chain, so the next depth-1 event is prepared under the new mask, widening or
+    /// narrowing. An empty callable passed here is a clear, and like a clear it resets
     /// the mask to the default mask whatever this argument says.
     ///
     /// @param cb      The callback. An empty std::function is the same as
@@ -942,17 +940,15 @@ class SqpSolverImpl {
     /// @param payload What this callback reads. kVectors | kDiagnostics is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = detail::kDefaultIterationPayload,
+                                IterationPayload payload = kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel) {
-        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the
-        // sol review's fourth Minor). An empty std::function IS a clear, and a
-        // clear resets the mask -- so storing a narrow mask beside one would
-        // leave this driver in a state its own contract says cannot exist.
-        // Normalised rather than refused: a caller that always routes through
-        // this overload with a stored mask may legitimately pass an empty
-        // callable to disarm, and a throw there would punish the idiom the
-        // default-argument form already allows.
-        const IterationPayload effective = cb ? payload : detail::kDefaultIterationPayload;
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the sol
+        // review's fourth Minor). An empty std::function IS a clear, and a clear resets the mask --
+        // so storing a narrow mask beside one would leave this driver in a state its own contract
+        // says cannot exist. Normalised rather than refused: a caller that always routes through
+        // this overload with a stored mask may legitimately pass an empty callable to disarm, and a
+        // throw there would punish the idiom the default-argument form already allows.
+        const IterationPayload effective = cb ? payload : kDefaultIterationPayload;
         const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
@@ -1024,7 +1020,7 @@ class SqpSolverImpl {
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};
-            pending_payload_ = detail::kDefaultIterationPayload;
+            pending_payload_ = kDefaultIterationPayload;
             pending_scope_ = CallbackScope::kTopLevel;
             pending_callback_at_entry_ = !callback_in_flight_;
             return;
@@ -1033,7 +1029,7 @@ class SqpSolverImpl {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = nullptr;
-        iteration_payload_ = detail::kDefaultIterationPayload;
+        iteration_payload_ = kDefaultIterationPayload;
         iteration_scope_ = CallbackScope::kTopLevel;
     }
 
@@ -2004,7 +2000,7 @@ class SqpSolverImpl {
     // The running solve's state, for `finish` to read the best-iterate tracker
     // from (M8 AP-5 G3). Non-null only inside `solve_impl_body`.
     const SolveState *finish_state_ = nullptr;
-    // Writes `out.best_iterate` and its row blocks from `st.mb` when the tracker
+    // Writes `out.best_iterate` from `st.mb` when the tracker
     // ran and `status` is not kOptimal or kAcceptable.
     void attach_best_iterate(const SolveState &st, SolveStatus status, SqpResult &out) const;
     // Prox-centre lifts through eq_basis_view_ whose inflated a-posteriori estimate
@@ -2130,7 +2126,7 @@ class SqpSolverImpl {
     // clear resets to, so a driver with no callback carries no narrowing into
     // the next attach. FORWARDED into the restoration sub-driver beside the
     // forwarder itself (see enter_restoration).
-    IterationPayload iteration_payload_ = detail::kDefaultIterationPayload;
+    IterationPayload iteration_payload_ = kDefaultIterationPayload;
     // WHICH ROWS THE CALLBACK IS SHOWN. kTopLevel installs no restoration
     // forwarder (see enter_restoration).
     CallbackScope iteration_scope_ = CallbackScope::kTopLevel;
@@ -2156,7 +2152,7 @@ class SqpSolverImpl {
     // is: the two are written together at every setter and applied together at
     // every safe point, so a deferred attach cannot land with the previous
     // consumer's mask (M7 W0 T2).
-    IterationPayload pending_payload_ = detail::kDefaultIterationPayload;
+    IterationPayload pending_payload_ = kDefaultIterationPayload;
     // The scope parked beside `pending_callback_`, written and applied with it.
     CallbackScope pending_scope_ = CallbackScope::kTopLevel;
     // THE RESTORATION SUB-DRIVER CURRENTLY SOLVING, or null (M7 W0 T2 fix1).

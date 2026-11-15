@@ -1415,8 +1415,9 @@ struct EngineConfig {
     // already follows (run_cell_with_deadline's own note).
     hven::TraceSink *trace = nullptr;
     hven::IterationCallback iteration_callback{};
-    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the arm W6 T6
-    // measured (and the one-argument attach's own meaning); kScalars is the
+    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the one-argument
+    // attach's own meaning (the widened G5 payload, NOT the arm W6 T6 measured:
+    // that is kVectors | kDiagnostics, the `count-vd` lever); kScalars is the
     // payload-mask arm, which asks the driver to prepare no snapshot at all.
     // Read only when `iteration_callback` is set, and forwarded across the
     // subprocess boundary as a FLAG VALUE like every other lever here.

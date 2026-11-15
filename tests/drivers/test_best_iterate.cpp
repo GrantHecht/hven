@@ -560,7 +560,7 @@ void expect_snapshot_equals(const IterationSnapshot &best, const IterationSnapsh
         EXPECT_EQ(best.sqp->depth, ev.sqp->depth);
         EXPECT_TRUE(same_scalar(best.sqp->trust_radius, ev.sqp->trust_radius));
         EXPECT_TRUE(same_scalar(best.sqp->violation_l1, ev.sqp->violation_l1));
-        EXPECT_TRUE(same_scalar(best.sqp->dual_regularization, ev.sqp->dual_regularization));
+        EXPECT_TRUE(same_scalar(best.sqp->regularization_dual, ev.sqp->regularization_dual));
         EXPECT_EQ(best.sqp->qp_solved, ev.sqp->qp_solved);
         EXPECT_EQ(best.sqp->qp_status, ev.sqp->qp_status);
         EXPECT_EQ(best.sqp->qp_minor_iterations, ev.sqp->qp_minor_iterations);

@@ -297,7 +297,9 @@ New, no rewrite needed:
   `step_norm` is 0). The two regularizations are the engine's KKT values, at its
   objective scale.
 - `SqpIterationInfo` (`IterationEvent::sqp`): `depth`, `trust_radius` (both moved, below),
-  `violation_l1` (h(x), the funnel's measure), `dual_regularization` (`SqpIterate::mu`),
+  `violation_l1` (h(x), the funnel's measure), `regularization_dual` (`SqpIterate::mu`; the
+  same name and quantity as the interior-point block's, both at the engine's objective
+  scale while `IpmIterationInfo::mu` is at the caller's),
   `qp_solved`, `qp_status`, `qp_minor_iterations`, `active_set_size` (active rows plus
   active lower and upper bound sides), `verdict`, `elastic` -- the subproblem solved AT the
   major's point, the row's own columns (caller units on a scaled solve).
@@ -306,6 +308,13 @@ New, no rewrite needed:
   added; `snapshot(event)` copies every view the mask delivered, `g` included (it is no
   longer left empty). `SolveResult::best_iterate` fills every vector (`x`, `lambda`, `z`,
   `g`, `violation`, `z_lower`, `z_upper`) and its own event's engine block.
+
+Two notes on the event rows. The SQP engine composes `g`/`violation` whenever the mask
+asks for them and the point was measured, so a problem whose rows are all free (an Nlp with
+`m > 0` and no bounded row) still gets `m` NaN values and zero violations, as IPM events,
+`SolveResult::g` and `best_iterate` do. `SqpResult::best_iterate.lambda` carries the export
+boundary's sign repair of the inequality prices and may differ from the lambda of its own
+event.
 
 Where the new views are empty: outside their mask bit; on an interior-point `recovering`
 event (no caller-space evaluation of a restoration iterate exists; `x`, `lambda`, `z` are
@@ -326,11 +335,12 @@ Breaks:
 | before | after | rewrite |
 |---|---|---|
 | `IterationPayload::kAll` == `kVectors \| kDiagnostics` | `kAll` adds `kConstraints \| kBoundMultipliers` | a consumer that wants exactly the old payload passes `kVectors \| kDiagnostics` |
-| `set_iteration_callback(cb)` (default mask `kAll`) | default mask `kVectors \| kDiagnostics`, the old `kAll` payload; `iteration_payload()` reads the same when no callback is installed or after a clear / an empty callable | none for the delivered payload; a test that compared `iteration_payload()` with `kAll` after a default attach or a clear compares with `kVectors \| kDiagnostics` |
+| `set_iteration_callback(cb)` (default mask `kAll`) | default mask `kVectors \| kDiagnostics` (public as `hven::kDefaultIterationPayload`), the old `kAll` payload; `iteration_payload()` reads the same when no callback is installed or after a clear / an empty callable | none for the delivered payload; a test that compared `iteration_payload()` with `kAll` after a default attach or a clear compares with `kVectors \| kDiagnostics` |
 | `IterationEvent::phase` | `IterationEvent::ipm->phase` | `e.phase.value_or(d)` -> `e.ipm ? e.ipm->phase : d` |
 | `IterationEvent::mu` | `IterationEvent::ipm->mu` | as `phase` |
 | `IterationEvent::depth` | `IterationEvent::sqp->depth` | `e.depth.value_or(0)` -> `e.sqp ? e.sqp->depth : 0` (or read `e.recovering`, which is `depth >= 1` on the SQP) |
 | `IterationEvent::radius` | `IterationEvent::sqp->trust_radius` | as `depth` |
+| (G5 development name) `SqpIterationInfo::dual_regularization` | `SqpIterationInfo::regularization_dual`, the interior-point block's name for the same quantity | rename; never in a tagged release, listed for consumers that tracked `m8` |
 | `IterationSnapshot::{phase, mu, depth, radius}` | `IterationSnapshot::ipm`/`sqp`, as on the event | as on the event |
 | `IterationEvent` member order: `iteration, recovering, phase, depth, f, stationarity, feasibility, complementarity, step_norm, radius, mu, x, lambda, z, elapsed_seconds` | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers in the new order; the seven `Eigen::Ref` views have no default and must all be bound |
 | `IterationSnapshot` member order | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers |

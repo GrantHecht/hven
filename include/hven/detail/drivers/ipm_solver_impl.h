@@ -575,19 +575,17 @@ class IpmSolverImpl {
     ///   field kScalars promises -- and states plainly what the leg could not
     ///   separate. Do not read that candidate as the explanation.
     ///
-    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
-    /// COUNTS -- how many majors, at what objective, at what wall -- attaches
-    /// with kScalars and stops paying for the vectors it never reads. A
-    /// consumer that CAPTURES THE TRAJECTORY keeps the default mask, which is what the
-    /// default-argument call installs, and pays what it always paid.
+    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration COUNTS -- how many majors,
+    /// at what objective, at what wall -- attaches with kScalars and stops paying for the vectors
+    /// it never reads. A consumer that CAPTURES THE TRAJECTORY keeps the default mask, which is
+    /// what the default-argument call installs, and pays what it always paid.
     ///
-    /// THE MASK RIDES THE CALLABLE. It is stored beside it, parked through the
-    /// same in-flight guard, applied at the same safe point, and reset to the default mask
-    /// by clear_iteration_callback() -- so a re-attach through the
-    /// default-argument call is the default mask again. Set from INSIDE the callback it
-    /// takes effect at the NEXT event, exactly as a replacement callable does.
-    /// An empty callable passed here is a clear, and like a clear it resets
-    /// the mask to the default mask whatever @p payload says -- normalised at the setter
+    /// THE MASK RIDES THE CALLABLE. It is stored beside it, parked through the same in-flight
+    /// guard, applied at the same safe point, and reset to the default mask by
+    /// clear_iteration_callback() -- so a re-attach through the default-argument call is the
+    /// default mask again. Set from INSIDE the callback it takes effect at the NEXT event, exactly
+    /// as a replacement callable does. An empty callable passed here is a clear, and like a clear
+    /// it resets the mask to the default mask whatever @p payload says -- normalised at the setter
     /// rather than merely documented (M7 W0 T2 fix1).
     ///
     /// @param cb      The callback. An empty std::function is the same as
@@ -595,17 +593,15 @@ class IpmSolverImpl {
     /// @param payload What this callback reads. kVectors | kDiagnostics is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = detail::kDefaultIterationPayload,
+                                IterationPayload payload = kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel) {
-        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the
-        // sol review's fourth Minor). An empty std::function IS a clear, and a
-        // clear resets the mask -- so storing a narrow mask beside one would
-        // leave this engine in a state its own contract says cannot exist.
-        // Normalised rather than refused: a caller that always routes through
-        // this overload with a stored mask may legitimately pass an empty
-        // callable to disarm, and a throw there would punish the idiom the
-        // default-argument form already allows.
-        const IterationPayload effective = cb ? payload : detail::kDefaultIterationPayload;
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the sol
+        // review's fourth Minor). An empty std::function IS a clear, and a clear resets the mask --
+        // so storing a narrow mask beside one would leave this engine in a state its own contract
+        // says cannot exist. Normalised rather than refused: a caller that always routes through
+        // this overload with a stored mask may legitimately pass an empty callable to disarm, and a
+        // throw there would punish the idiom the default-argument form already allows.
+        const IterationPayload effective = cb ? payload : kDefaultIterationPayload;
         // Accepted and stored; this engine has no nested solves, so the scope
         // changes nothing here.
         const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
@@ -684,7 +680,7 @@ class IpmSolverImpl {
     void clear_iteration_callback() {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
-            this->pending_payload_ = detail::kDefaultIterationPayload;
+            this->pending_payload_ = kDefaultIterationPayload;
             this->pending_scope_ = CallbackScope::kTopLevel;
             this->pending_callback_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
@@ -694,7 +690,7 @@ class IpmSolverImpl {
         this->pending_callback_.reset();
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = nullptr;
-        this->iteration_payload_ = detail::kDefaultIterationPayload;
+        this->iteration_payload_ = kDefaultIterationPayload;
         this->iteration_scope_ = CallbackScope::kTopLevel;
     }
 
@@ -1343,7 +1339,7 @@ class IpmSolverImpl {
     /// default-argument set_iteration_callback() installs and what a clear resets
     /// to, so an engine with no callback carries no narrowing into the next
     /// attach.
-    IterationPayload iteration_payload_ = detail::kDefaultIterationPayload;
+    IterationPayload iteration_payload_ = kDefaultIterationPayload;
     CallbackScope iteration_scope_ = CallbackScope::kTopLevel;
     // The Problem the public handle is solving, for the row-space `lambda` of an
     // event; null on every internal route (concatenation). Not owned.
@@ -1356,7 +1352,7 @@ class IpmSolverImpl {
     /// is: the two are written together at every setter and applied together
     /// at every safe point, so a deferred attach cannot land with the previous
     /// consumer's mask.
-    IterationPayload pending_payload_ = detail::kDefaultIterationPayload;
+    IterationPayload pending_payload_ = kDefaultIterationPayload;
     CallbackScope pending_scope_ = CallbackScope::kTopLevel;
 
     /// When this solve's public entry was taken, for IterationEvent::
@@ -2130,7 +2126,7 @@ class IpmSolverImpl {
                                  bool restoration_contaminated, bool want_diagnostics,
                                  bool want_rows = false, bool want_sides = false) const;
 
-    /// @brief Writes result_.best_iterate and its row blocks from the phase's
+    /// @brief Writes result_.best_iterate from the phase's
     ///        best tracker (cleared when the phase recorded none).
     void publish_phase_best(bool recorded);
 

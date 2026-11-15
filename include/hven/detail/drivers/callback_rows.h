@@ -33,6 +33,9 @@ void compose_event_rows(const Problem *problem, const Vec &ce, const Vec &ci, Ve
 ///        a NaN entry stays NaN on both sides.
 void split_bound_multipliers(const Vec &z, Vec &z_lower, Vec &z_upper);
 
+/// @brief The same split for one entry (NaN stays NaN on both sides).
+void split_bound_multiplier(double z, double &z_lower, double &z_upper);
+
 /// @brief Installs @p problem as the row map of @p engine for its scope, and
 ///        removes it on every exit, a throw included.
 template <class Engine> class CallbackRowsScope {

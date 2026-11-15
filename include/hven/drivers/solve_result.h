@@ -168,7 +168,7 @@ struct SqpIterationInfo {
     /// h(x), the funnel's l1 constraint violation at the point.
     double violation_l1 = std::numeric_limits<double>::quiet_NaN();
     /// The subproblem's dual regularization (SqpIterate::mu).
-    double dual_regularization = 0.0;
+    double regularization_dual = 0.0;
     /// False on a row whose subproblem was not solved; the four fields below
     /// are then not meaningful.
     bool qp_solved = false;
@@ -466,12 +466,10 @@ constexpr bool payload_requests(IterationPayload mask, IterationPayload part) no
            static_cast<unsigned>(part);
 }
 
-namespace detail {
-/// set_iteration_callback()'s default mask, and the mask in force when none is
-/// installed.
+/// @brief set_iteration_callback()'s default mask on both engines, and the mask
+///        in force when no callback is installed: `kVectors | kDiagnostics`.
 inline constexpr IterationPayload kDefaultIterationPayload =
     IterationPayload::kVectors | IterationPayload::kDiagnostics;
-} // namespace detail
 
 /// @brief Which iterations a callback is shown.
 ///
@@ -554,7 +552,8 @@ struct IterationEvent {
     /// @brief kConstraints. Row values at `x`, the definition of SolveResult::g
     ///        (a free Nlp row reads NaN).
     Eigen::Ref<const Vec> g;
-    /// @brief kConstraints. Row violation at `x`, >= 0 (0 on a free row).
+    /// @brief kConstraints. Row violation at `x`: >= 0, 0 on a free row, and NaN
+    ///        where the row value is NaN (a NaN residual propagates, never 0).
     Eigen::Ref<const Vec> violation;
     /// @brief kBoundMultipliers. Declared width, both >= 0, z_lower - z_upper ==
     ///        z. INTERIOR-POINT: the engine's per-side multipliers (an

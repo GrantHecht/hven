@@ -234,9 +234,12 @@ class IpmSolver {
     /// The stream has one event per iteration row, so the number of events
     /// equals the iteration count. `IterationEvent::lambda` is in the
     /// problem's row space, as `SolveResult::lambda` is, and costs a compose
-    /// per event only under a payload that includes `kVectors`.
+    /// per event only under a payload that includes `kVectors` (likewise
+    /// `g`/`violation` under `kConstraints`). `IpmIterationInfo::mu` is at the
+    /// caller's scale, `regularization_primal`/`regularization_dual` at the
+    /// engine's objective scale.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = detail::kDefaultIterationPayload,
+                                IterationPayload payload = kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel);
 
     /// The payload mask currently in force.
@@ -245,10 +248,9 @@ class IpmSolver {
     /// The callback scope currently in force (`kTopLevel` when none is set).
     CallbackScope iteration_scope() const;
 
-    /// Removes the callback and resets the payload mask to `kVectors |
-    /// kDiagnostics` and the scope
-    /// to `kTopLevel`. Deferred
-    /// like `set_iteration_callback()` when called from inside a callback.
+    /// Removes the callback and resets the payload mask to
+    /// `kDefaultIterationPayload` and the scope to `kTopLevel`. Deferred like
+    /// `set_iteration_callback()` when called from inside a callback.
     void clear_iteration_callback();
 
     /// Installs the per-iteration KKT hook (see `KktHook`). Setting from inside

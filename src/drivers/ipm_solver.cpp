@@ -2497,9 +2497,8 @@ hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared
         }
         if (have_fixing_rows) {
             for (Eigen::Index k = 0; k < fixing_rows; ++k) {
-                const double v = z_declared[fixed_idx[k]];
-                pt.z_lower[fixed_idx[k]] = v > 0.0 ? v : 0.0;
-                pt.z_upper[fixed_idx[k]] = v < 0.0 ? -v : 0.0;
+                detail::split_bound_multiplier(z_declared[fixed_idx[k]], pt.z_lower[fixed_idx[k]],
+                                               pt.z_upper[fixed_idx[k]]);
             }
         }
     }
@@ -2743,7 +2742,7 @@ void hven::detail::IpmSolverImpl::apply_pending_iteration_callback(bool at_solve
     this->iteration_payload_ = this->pending_payload_;
     this->iteration_scope_ = this->pending_scope_;
     this->pending_callback_.reset();
-    this->pending_payload_ = detail::kDefaultIterationPayload;
+    this->pending_payload_ = kDefaultIterationPayload;
     this->pending_scope_ = CallbackScope::kTopLevel;
     this->pending_callback_at_entry_ = false;
 }
@@ -6641,7 +6640,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         const int current_phase_idx = phase_idx++;
         // WHICH PHASE THIS IS. The `ipm.iter` lines this phase writes carry it,
         // because IpmIterate::iter restarts at 0 in every phase -- and so does
-        // IterationEvent::phase, whose contract is "the index into
+        // IterationEvent::ipm->phase, whose contract is "the index into
         // IpmResult::phases".
         //
         // NO LONGER SINK-GATED (M6 W5 T8.6 fix1). W4's fix round made this

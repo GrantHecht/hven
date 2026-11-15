@@ -4348,6 +4348,10 @@ struct SqpSolverImpl::MajorState {
     Vec event_lambda_e, event_lambda_i, event_z;
     // kConstraints: the two constraint blocks, caller units (M8 AP-5 G5).
     Vec event_ce, event_ci;
+    // True when the kConstraints snapshot was taken at a measured point. The
+    // blocks can be empty on a measured point (every row free), so their size
+    // says nothing about whether the event should compose its row views.
+    bool event_rows_measured = false;
     // The four shared diagnostics of this row, computed at measure time from
     // the measurement `mj.kkt` holds and the prices it was folded at. All four
     // NaN when nothing was measured at the point (the non-finite-start row),
@@ -6846,7 +6850,7 @@ SqpIterationInfo sqp_iteration_info(const SqpIterate &row, Index depth) {
     info.depth = depth;
     info.trust_radius = row.tr_radius;
     info.violation_l1 = row.violation_l1;
-    info.dual_regularization = row.mu;
+    info.regularization_dual = row.mu;
     info.qp_solved = row.qp_solved;
     info.qp_status = row.qp_status;
     info.qp_minor_iterations = row.qp_minor_iters;
@@ -6889,7 +6893,7 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &expor
     // The same rule for the G5 views: a snapshot taken under a narrower mask
     // leaves them empty.
     const bool want_rows = payload_requests(iteration_payload_, IterationPayload::kConstraints) &&
-                           (mj.event_ce.size() != 0 || mj.event_ci.size() != 0);
+                           mj.event_rows_measured;
     if (want_rows) {
         detail::compose_event_rows(callback_rows_, mj.event_ce, mj.event_ci, event_g_scratch_,
                                    event_violation_scratch_);
@@ -6981,7 +6985,7 @@ void SqpSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
     iteration_payload_ = pending_payload_;
     iteration_scope_ = pending_scope_;
     pending_callback_.reset();
-    pending_payload_ = detail::kDefaultIterationPayload;
+    pending_payload_ = kDefaultIterationPayload;
     pending_scope_ = CallbackScope::kTopLevel;
     pending_callback_at_entry_ = false;
     // AND IT LANDS ON AN ACTIVE RESTORATION SUB-DRIVER TOO (M7 W0 T2 fix1).
@@ -7181,6 +7185,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // residual. Under a mask that omits them the same NaN means NOT
             // REQUESTED (drivers/solve_result.h's IterationPayload).
             mj.event_diag = detail::DeclaredDiagnostics{};
+            mj.event_rows_measured = false;
         }
         if (want_vectors || want_diagnostics || want_constraints || want_sides) {
             // THE MAP, ONE DEFINITION (caller_point above): shared with the best
@@ -7198,6 +7203,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             if (want_constraints) {
                 mj.event_ce = std::move(cp.ce);
                 mj.event_ci = std::move(cp.ci);
+                mj.event_rows_measured = mj.kkt.finite;
             }
             if (want_diagnostics) {
                 mj.event_diag = cp.diag;

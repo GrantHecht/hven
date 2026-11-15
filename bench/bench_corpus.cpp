@@ -879,7 +879,12 @@ const char *callback_arm_label(bool attached, bool scalars) {
     if (!attached) {
         return "off";
     }
-    return scalars ? "count-scalars" : "count";
+    // `count-g5`, not `count`: the lever `--callback count` attaches the counting
+    // callback under kAll, and since G5 kAll is the widened payload (constraint
+    // rows and bound multipliers on top of the pre-G5 vectors and diagnostics).
+    // The stamp keeps an old `count` capture from being compared with a new one
+    // silently; the flag spelling itself is unchanged.
+    return scalars ? "count-scalars" : "count-g5";
 }
 
 // The SSN measurement levers' `# lever:` provenance lines, one per NON-default
@@ -2763,7 +2768,7 @@ int main(int argc, char **argv) {
                            *args.internal_run_one, *args.engine,
                            args.corpus_callback_scalars ? "scalars"
                            : args.corpus_callback_vd    ? "vectors-diagnostics"
-                                                        : "all",
+                                                        : "all-g5",
                            callback_events);
             }
             if (args.corpus_trace_sink) {

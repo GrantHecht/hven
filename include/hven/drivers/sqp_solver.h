@@ -235,12 +235,15 @@ class SqpSolver {
     /// stream holds `iterations + 1` events (`SolveResult::iterations` counts
     /// the steps taken). `IterationEvent::lambda` is in the problem's row
     /// space at depth 0, as `SolveResult::lambda` is, and costs a compose per
-    /// event only under a payload that includes `kVectors`.
+    /// event only under a payload that includes `kVectors` (likewise
+    /// `g`/`violation` under `kConstraints`). `SqpResult::best_iterate.lambda`
+    /// carries the export boundary's sign repair of the inequality prices and
+    /// may therefore differ from the lambda of its own event.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = detail::kDefaultIterationPayload,
+                                IterationPayload payload = kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel);
 
-    /// The payload mask in force, or `kVectors | kDiagnostics` when no callback
+    /// The payload mask in force, or `kDefaultIterationPayload` when no callback
     /// is installed. A value parked from inside a callback is not visible until
     /// the safe point applies it.
     IterationPayload iteration_payload() const;
@@ -248,10 +251,9 @@ class SqpSolver {
     /// The callback scope in force (`kTopLevel` when none is installed).
     CallbackScope iteration_scope() const;
 
-    /// Removes the callback and resets the payload mask to `kVectors |
-    /// kDiagnostics` and the scope
-    /// to `kTopLevel`. Deferred
-    /// like `set_iteration_callback()` when called from inside a callback.
+    /// Removes the callback and resets the payload mask to
+    /// `kDefaultIterationPayload` and the scope to `kTopLevel`. Deferred like
+    /// `set_iteration_callback()` when called from inside a callback.
     void clear_iteration_callback();
 
     /// Attaches a trace sink; `nullptr` detaches. The sink is borrowed and must

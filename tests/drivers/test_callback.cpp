@@ -97,8 +97,7 @@ constexpr double kInfBound = std::numeric_limits<double>::infinity();
 using Seen = hven::IterationSnapshot;
 
 // set_iteration_callback's default mask (Q9): today's payload, not kAll.
-constexpr IterationPayload kDefaultMask =
-    IterationPayload::kVectors | IterationPayload::kDiagnostics;
+constexpr IterationPayload kDefaultMask = hven::kDefaultIterationPayload;
 
 Seen copy_of(const IterationEvent &e) { return hven::snapshot(e); }
 
@@ -132,7 +131,7 @@ void expect_same_info(const std::optional<hven::SqpIterationInfo> &a,
     EXPECT_EQ(a->depth, b->depth);
     EXPECT_TRUE(same_bits(a->trust_radius, b->trust_radius));
     EXPECT_TRUE(same_bits(a->violation_l1, b->violation_l1));
-    EXPECT_TRUE(same_bits(a->dual_regularization, b->dual_regularization));
+    EXPECT_TRUE(same_bits(a->regularization_dual, b->regularization_dual));
     EXPECT_EQ(a->qp_solved, b->qp_solved);
     EXPECT_EQ(a->qp_status, b->qp_status);
     EXPECT_EQ(a->qp_minor_iterations, b->qp_minor_iterations);
@@ -587,7 +586,7 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
                   std::bit_cast<std::uint64_t>(sol.history[k].tr_radius));
         // The SQP block is the row's own columns (G5).
         EXPECT_TRUE(same_bits(e.sqp->violation_l1, sol.history[k].violation_l1));
-        EXPECT_TRUE(same_bits(e.sqp->dual_regularization, sol.history[k].mu));
+        EXPECT_TRUE(same_bits(e.sqp->regularization_dual, sol.history[k].mu));
         EXPECT_EQ(e.sqp->qp_solved, sol.history[k].qp_solved);
         EXPECT_EQ(e.sqp->qp_status, sol.history[k].qp_status);
         EXPECT_EQ(e.sqp->qp_minor_iterations, sol.history[k].qp_minor_iters);
@@ -646,6 +645,21 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
     // caller-unit ones, so a map that had been skipped would be caught. The
     // objective factor is what separates them.
     EXPECT_NE(sol.scaling.objective, 1.0);
+
+    // NON-VACUITY of the block comparison above: on this solve the fields that
+    // are compared are not all their defaults (a block that dropped one would
+    // otherwise read 0 == 0).
+    bool any_minor_iterations = false;
+    bool any_regularization = false;
+    bool any_active_set = false;
+    for (const Seen &e : rec.seen) {
+        any_minor_iterations = any_minor_iterations || e.sqp->qp_minor_iterations > 0;
+        any_regularization = any_regularization || e.sqp->regularization_dual > 0.0;
+        any_active_set = any_active_set || e.sqp->active_set_size > 0;
+    }
+    EXPECT_TRUE(any_minor_iterations);
+    EXPECT_TRUE(any_regularization);
+    EXPECT_TRUE(any_active_set);
 }
 
 // THE UNSCALED CONTROL, and the stronger half of the same claim: with no map to
@@ -4057,4 +4071,315 @@ TEST(CallbackPayload, IpmBlockDescribesTheStepThatReachedThePoint) {
     ASSERT_FALSE(again.seen.empty());
     EXPECT_TRUE(std::isnan(again.seen.front().ipm->alpha_primal));
     EXPECT_EQ(again.seen.front().ipm->line_search_trials, 0);
+}
+
+namespace {
+
+// Two constraint rows that are BOTH free (-inf <= row <= inf), so the engines see
+// me = mi = 0 while the problem has m = 2:
+//     min (x0-1)^4 + (x1-2)^2     g0 = x0 + x1,  g1 = x0 - x1   (both free)
+struct AllFreeRowsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 2, 4, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl.setConstant(-inf);
+        gu.setConstant(inf);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return std::pow(x[0] - 1.0, 4) + (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 4.0 * std::pow(x[0] - 1.0, 3), 2.0 * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0] - x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override { v << 1, 1, 1, -1; }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << obj_factor * 12.0 * (x[0] - 1.0) * (x[0] - 1.0), obj_factor * 2.0;
+    }
+    std::string name() const override { return "AllFreeRowsNlp"; }
+};
+
+void expect_all_free_rows_views(const Seen &s) {
+    ASSERT_EQ(s.g.size(), 2) << "a problem whose rows are all free still has row views";
+    ASSERT_EQ(s.violation.size(), 2);
+    for (int r = 0; r < 2; ++r) {
+        EXPECT_TRUE(std::isnan(s.g[r])) << "a free row is unmeasured";
+        EXPECT_EQ(s.violation[r], 0.0);
+    }
+}
+
+Vec all_free_start() {
+    Vec x0(2);
+    x0 << 3.0, 0.0;
+    return x0;
+}
+
+} // namespace
+
+// A problem whose every row is free has me = mi = 0 inside the engines; the event's
+// g/violation, the result's and best_iterate's are still m wide and agree.
+TEST(CallbackPayload, AnAllFreeRowsProblemKeepsItsRowViewsOnBothEnginesAndTheBestIterate) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        hven::Problem problem(std::make_shared<AllFreeRowsNlp>());
+        Recorder rec;
+        Vec result_g;
+        std::optional<Seen> best;
+        if (interior) {
+            hven::IpmOptions o;
+            o.common.verbosity = hven::Verbosity::kSilent;
+            hven::IpmSolver solver(o);
+            solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+            const hven::IpmResult r = solver.solve(problem, all_free_start());
+            ASSERT_EQ(r.status, SolveStatus::kOptimal);
+            result_g = r.g;
+            // A capped solve publishes its best iterate (kOptimal does not).
+            o.common.max_iterations = 1;
+            hven::IpmSolver capped(o);
+            Recorder rec2;
+            capped.set_iteration_callback(rec2.hook(), IterationPayload::kAll);
+            const hven::IpmResult c = capped.solve(problem, all_free_start());
+            ASSERT_NE(c.status, SolveStatus::kOptimal);
+            ASSERT_TRUE(c.best_iterate.has_value());
+            best = c.best_iterate;
+            const Seen *ev = nullptr;
+            for (const Seen &e : rec2.seen) {
+                if (e.iteration == best->iteration) {
+                    ev = &e;
+                }
+            }
+            ASSERT_NE(ev, nullptr);
+            expect_all_free_rows_views(*ev);
+            EXPECT_TRUE(bit_equal(best->g, ev->g));
+            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+        } else {
+            SqpSolver solver(quiet_sqp());
+            solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+            const SqpResult r = solver.solve(problem, all_free_start());
+            ASSERT_EQ(r.status, SolveStatus::kOptimal);
+            result_g = r.g;
+            SqpOptions o = quiet_sqp();
+            o.common.max_iterations = 1;
+            SqpSolver capped(o);
+            Recorder rec2;
+            capped.set_iteration_callback(rec2.hook(), IterationPayload::kAll);
+            const SqpResult c = capped.solve(problem, all_free_start());
+            ASSERT_NE(c.status, SolveStatus::kOptimal);
+            ASSERT_TRUE(c.best_iterate.has_value());
+            best = c.best_iterate;
+            const Seen *ev = nullptr;
+            for (const Seen &e : rec2.seen) {
+                if (e.iteration == best->iteration) {
+                    ev = &e;
+                }
+            }
+            ASSERT_NE(ev, nullptr);
+            expect_all_free_rows_views(*ev);
+            EXPECT_TRUE(bit_equal(best->g, ev->g));
+            EXPECT_TRUE(bit_equal(best->violation, ev->violation));
+        }
+        ASSERT_FALSE(rec.seen.empty());
+        for (const Seen &e : rec.seen) {
+            expect_all_free_rows_views(e);
+        }
+        ASSERT_EQ(result_g.size(), 2);
+        EXPECT_TRUE(bit_equal(rec.seen.back().g, result_g));
+        expect_all_free_rows_views(*best);
+    }
+}
+
+namespace {
+
+// Unconstrained Rosenbrock: from the classic start the filter line search
+// backtracks.
+struct RosenbrockNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 0, 0, 3}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef, hven::VecRef) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        const double a = 1.0 - x[0];
+        const double b = x[1] - x[0] * x[0];
+        return a * a + 100.0 * b * b;
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        const double b = x[1] - x[0] * x[0];
+        g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * b;
+        g[1] = 200.0 * b;
+    }
+    void eval_g(hven::ConstVecRef, hven::VecRef) const override {}
+    void jacobian_structure(hven::IndexVecRef, hven::IndexVecRef) const override {}
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef) const override {}
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1, 1;
+        c << 0, 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef x, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        const double b = x[1] - x[0] * x[0];
+        v[0] = obj_factor * (2.0 - 400.0 * b + 800.0 * x[0] * x[0]);
+        v[1] = obj_factor * (-400.0 * x[0]);
+        v[2] = obj_factor * 200.0;
+    }
+    std::string name() const override { return "RosenbrockNlp"; }
+};
+
+// Two rows identical up to scale: every KKT matrix is exactly singular, so the
+// inertia ladder runs on the first factorization.
+//     min (x0-1)^2 + (x1-2)^2   s.t.  x0 + x1 = 1,  2 x0 + 2 x1 = 2
+struct DuplicateRowsNlp final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 2, 4, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << 1.0, 2.0;
+        gu << 1.0, 2.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1.0) * (x[0] - 1.0) + (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], 2.0 * x[0] + 2.0 * x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
+        v << 1.0, 1.0, 2.0, 2.0;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << 2.0 * obj_factor, 2.0 * obj_factor;
+    }
+    std::string name() const override { return "DuplicateRowsNlp"; }
+};
+
+// Event k's ipm block against the `ipm.iter` row k - 1, whose step reached it.
+// Returns the largest line_search_trials, inertia_corrections and regularization_dual seen.
+struct IpmBlockMax {
+    Index trials = 0;
+    Index corrections = 0;
+    double dual = 0.0;
+};
+
+IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const Vec &x0,
+                                           bool proximal = false) {
+    const auto program = hven::detail::make_nlp_program(std::move(nlp));
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        if (proximal) {
+            o.advanced.inertia_mode = hven::IpmInertiaMode::kProximalRegularization;
+        }
+        solver.set_options(std::move(o));
+    }
+    IpmRowSink sink;
+    solver.attach_trace(&sink);
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kScalars);
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
+    EXPECT_TRUE(r.status == SolveStatus::kOptimal || r.status == SolveStatus::kAcceptable);
+    EXPECT_EQ(rec.seen.size(), sink.rows.size());
+    Index max_trials = 0;
+    Index max_corrections = 0;
+    double max_dual = 0.0;
+    for (std::size_t k = 1; k < rec.seen.size() && k <= sink.rows.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        const hven::IpmIterationInfo &info = *rec.seen[k].ipm;
+        const hven::IpmIterate &prev = sink.rows[k - 1];
+        EXPECT_EQ(info.line_search_trials, prev.ls_iters);
+        EXPECT_EQ(info.inertia_corrections, prev.h_facs);
+        EXPECT_TRUE(same_bits(info.regularization_primal, prev.h_pert));
+        EXPECT_GE(info.regularization_dual, 0.0);
+        if (proximal) {
+            // The proximal mode reports its own dual shift, which the trace row carries.
+            EXPECT_TRUE(same_bits(info.regularization_dual, std::max(prev.prox_reg_dual, 0.0)));
+        }
+        max_dual = std::max(max_dual, info.regularization_dual);
+        max_trials = std::max<Index>(max_trials, info.line_search_trials);
+        max_corrections = std::max<Index>(max_corrections, info.inertia_corrections);
+    }
+    return {max_trials, max_corrections, max_dual};
+}
+
+} // namespace
+
+// The ipm block's line_search_trials and inertia_corrections are the trace row's
+// own, on solves that really backtrack and really correct the inertia (the
+// Hs071 fixture above does neither, so a dropped field would read 0 == 0 there).
+TEST(CallbackPayload, IpmBlockCarriesBacktracksAndInertiaCorrections) {
+    Vec rosenbrock_start(2);
+    rosenbrock_start << -1.2, 1.0;
+    const auto rosenbrock =
+        expect_ipm_block_matches_trace(std::make_shared<RosenbrockNlp>(), rosenbrock_start);
+    EXPECT_GT(rosenbrock.trials, 0) << "non-vacuous: the filter line search backtracked";
+    Vec duplicate_start(2);
+    duplicate_start << 3.0, -1.0;
+    const auto duplicate =
+        expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start);
+    EXPECT_GT(duplicate.corrections, 0) << "non-vacuous: the inertia ladder ran";
+    const auto proximal =
+        expect_ipm_block_matches_trace(std::make_shared<DuplicateRowsNlp>(), duplicate_start, true);
+    EXPECT_GT(proximal.dual, 0.0) << "non-vacuous: the proximal mode shifted the constraint rows";
+}
+
+// kBoundMultipliers on the fixed-variable MakeConstraint arm: the fixed coordinate's
+// price lives in an internal fixing row, and its sign split reaches z_lower/z_upper
+// there (z_lower - z_upper == z, both >= 0, nothing NaN).
+TEST(CallbackPayload, TheFixedVariableMakeConstraintArmSplitsItsPriceIntoTheBoundSides) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<FixedVarProblem>());
+    hven::IpmSolver solver;
+    {
+        hven::IpmOptions o = quiet_ipm(solver);
+        o.fixed_variable_treatment = hven::IpmFixedVariableTreatment::kMakeConstraint;
+        solver.set_options(std::move(o));
+    }
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kAll);
+    Vec x0(2);
+    x0 << 0.0, 3.0;
+    const hven::IpmResult r = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
+    ASSERT_EQ(r.internal_fixed_lambda_e.size(), 1) << "premise: the internal fixing row exists";
+    ASSERT_FALSE(rec.seen.empty());
+    const Seen &last = rec.seen.back();
+    ASSERT_EQ(last.z.size(), 2);
+    ASSERT_EQ(last.z_lower.size(), 2);
+    ASSERT_EQ(last.z_upper.size(), 2);
+    EXPECT_GT(std::abs(last.z[1]), 1.0) << "premise: the fixed coordinate carries a price";
+    for (const Seen &e : rec.seen) {
+        ASSERT_EQ(e.z_lower.size(), 2);
+        for (int j = 0; j < 2; ++j) {
+            EXPECT_FALSE(std::isnan(e.z_lower[j]) || std::isnan(e.z_upper[j]));
+            EXPECT_GE(e.z_lower[j], 0.0);
+            EXPECT_GE(e.z_upper[j], 0.0);
+        }
+        EXPECT_TRUE(near_rel(e.z_lower[1] - e.z_upper[1], e.z[1]));
+    }
+    EXPECT_TRUE(last.z[1] > 0.0 ? last.z_lower[1] > 0.0 && last.z_upper[1] == 0.0
+                                : last.z_upper[1] > 0.0 && last.z_lower[1] == 0.0);
 }
