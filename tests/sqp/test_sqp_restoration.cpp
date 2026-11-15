@@ -2739,8 +2739,20 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         // and it is the ruling's own subject, is that the guard and the phase read
         // the CALLER's scale: the phase minimizes the caller-scale h and lands at
         // x0 = 1 where the engine-scale measure would have stopped at x0 = 0.
+        // OFF THE REFERENCE BUILD the offer's verdict is a route: a 1.5e-13 relative margin
+        // decides it, and since the DN-3 flip this fixture factors on the dense arm, whose
+        // kernels MKL picks per CPU (the AVX-512 Intel runners of CI runs 43501262925 and
+        // 43655190606 take the seed on the walk, seeded_rows 1). Recorded, not pinned (WX
+        // design section 2.1); the subject -- the phase on the caller's scale, x0 = 1, a
+        // certified kInfeasible, no point off the box -- is asserted below on every build.
+#if HVEN_TEST_ROUTE_REFERENCE
         ASSERT_EQ(0, seeded_rows(sol));
         EXPECT_EQ(nullptr, seeded_row(sol));
+#else
+        hven::test_support::record_off_reference_route(
+            std::string("caller_scale_seed_") + seed_mode_name(mode),
+            fmt::format("seeded_rows={}", seeded_rows(sol)));
+#endif
         bool saw_restore_row = false;
         for (const SqpIterate &r : sol.history) {
             saw_restore_row = saw_restore_row || r.verdict == StepVerdict::kRestore;

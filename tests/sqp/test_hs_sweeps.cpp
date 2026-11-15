@@ -1120,12 +1120,26 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // Release reads 28 / 42 (was 26 / 40), Debug holds at 26 / 40.
     // macOS (Accelerate) Release reads the Debug column here: 26 / 40, observed on CI run
     // 43485700149 (dense_factorizations nonzero, so the dense arm IS selected there).
+    // OFF THE REFERENCE BUILD (MKL, not macOS): a route pin since the DN-3 flip put HS10 on
+    // the dense arm, whose LAPACK kernels MKL picks per CPU. AVX-512 Intel runners (CI runs
+    // 43501262925, 43655190606: Xeon 6973P-C / 6975P-C, mkl_auto_branch 14) read the Debug
+    // column, 26 / 40, in Release. Recorded, not pinned (WX design section 2.1); the corpus's
+    // portable contract -- every warm solve a genuine KKT point, the warm arm's objective
+    // against the cold oracle, the lever neutral in every count -- is asserted above.
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.hs10_warm",
+        fmt::format("full_step_majors={} majors={}",
+                    problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors,
+                    problem("HS10").cell[kArmWarm][kOn][kOn].majors));
+#else
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(28, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(42, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
 #else
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
+#endif
 #endif
     // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
     // 23/30. The shipped `SqpOptions::max_consecutive_qp_failures` moved from 1 to 3 on
@@ -1153,12 +1167,22 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // swaps -- Release reads 13 / 30 (was 12 / 29), Debug 12 / 29 (was 13 / 30).
     // macOS (Accelerate) Release reads the Debug column here: 12 / 29, observed on CI run
     // 43485700149.
+    // Off the reference build (MKL, not macOS): a route pin, as HS10's above; the AVX-512
+    // Intel runners read 12 / 29 in Release.
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route(
+        "HsSweepCorpus.hs26_warm",
+        fmt::format("full_step_majors={} majors={}",
+                    problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors,
+                    problem("HS26").cell[kArmWarm][kOn][kOn].majors));
+#else
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(13, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(30, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
 #else
     EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
+#endif
 #endif
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(16, problem("HS33").cell[kArmWarm][kOn][kOn].majors);
@@ -1569,6 +1593,14 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     EXPECT_EQ(off.majors, 30);
     // macOS (Accelerate) Release reads the Debug column here: 33 / 95 / 38 / 6, observed on CI
     // run 43485700149.
+    // Off the reference build (MKL, not macOS) the step arm's counts are a route (the dense
+    // arm's LAPACK kernels are MKL's per-CPU pick): the AVX-512 Intel runners of CI runs
+    // 43501262925 and 43655190606 read the Debug column, 33 / 95 / 38 / 6, in Release. Recorded,
+    // not pinned (WX design section 2.1); the held-off arm, the failure count and every
+    // objective below are the portable contract.
+#if !HVEN_TEST_ROUTE_REFERENCE && !defined(USE_ACCELERATE_SPARSE)
+    hven::test_support::record_off_reference_route("HsSweepCorpus.hs15_failure_step", row(on));
+#else
 #if defined(NDEBUG) && !defined(USE_ACCELERATE_SPARSE)
     EXPECT_EQ(on.majors, 34);
     EXPECT_EQ(on.minors, 99);
@@ -1579,6 +1611,7 @@ TEST(HsSweepCorpus, Hs15WarmKdOffWithTheFailedSubproblemStep) {
     EXPECT_EQ(on.minors, 95);
     EXPECT_EQ(on.factorizations, 38);
     EXPECT_EQ(on.rejected, 6);
+#endif
 #endif
     EXPECT_EQ(on.status_failures, off.status_failures);
     EXPECT_EQ(on.fvals.size(), off.fvals.size());
