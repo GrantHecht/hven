@@ -1,0 +1,12 @@
+          Start 1420: hven_compile_fail_deprecated_eval_jac_i
+3731/3732 Test #1420: hven_compile_fail_deprecated_eval_jac_i ............................................................................................................................................................................   Passed    1.88 sec
+3732/3732 Test #2390: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...................................................................................................................................   Passed   49.69 sec
+
+100% tests passed, 0 tests failed out of 3730
+
+Total Test time (real) =  89.86 sec
+
+The following tests did not run:
+	810 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2395 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2396 - EqpRefinementAb.FullBattery (Disabled)

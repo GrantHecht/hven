@@ -1,0 +1,9 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T10:37:08-05:00
+ cmake/hven_pin.cmake | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+HVEN_PIN_SHA 237edda083ff72c3ae6fdd415812539288f2f9c6
+5f326a05bd8e21d9eb797ca1a214062a40c3bc229168d6a500384d08e514d3c2  /home/ghecht/Projects/hven/.claude/worktrees/zero-step/build-zs/laneB/hven_bench_cell
+c018c888abae6ce3a149dd760316d17c2b87651f52d022463d28e6b18ca0ff31  /home/ghecht/Projects/hven/.claude/worktrees/zero-step/.scratch/hb/.hven/install-237edda083ff/lib64/libhven.a
+223e4f1 EVIDENCE-ONLY (local clone, never pushed): pin hven 237edda08 (zero-step arm B)
+FOREGROUND_END 2026-11-15T10:39:30-05:00
