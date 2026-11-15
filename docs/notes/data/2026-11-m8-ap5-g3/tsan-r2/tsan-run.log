@@ -1,0 +1,201 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/agent-ac15f1e91e3a3b6b2/build-g3/tsan/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = StopToken*:StopRecovery.*:Callback*:BestIterate.*
+[==========] Running 85 tests from 8 test suites.
+[----------] Global test environment set-up.
+[----------] 13 tests from BestIterate
+[ RUN      ] BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest
+[       OK ] BestIterate.T7aAStopReturnBestOnTheFirstEventReturnsThatPointAsBest (8 ms)
+[ RUN      ] BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem
+[       OK ] BestIterate.T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem (3 ms)
+[ RUN      ] BestIterate.AStopReturnBestOnTheConvergingRowLosesToConvergence
+[       OK ] BestIterate.AStopReturnBestOnTheConvergingRowLosesToConvergence (7 ms)
+[ RUN      ] BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit
+[       OK ] BestIterate.BestIterateEqualsThePrimaryPointOnTheEnginesOwnReturnBestExit (5 ms)
+[ RUN      ] BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting
+[       OK ] BestIterate.AnArmedSolveWithTheOptionOffReportsTheSameBestWithoutSubstituting (10 ms)
+[ RUN      ] BestIterate.ATokenAloneArmsTheTracker
+[       OK ] BestIterate.ATokenAloneArmsTheTracker (9 ms)
+[ RUN      ] BestIterate.NothingIsTrackedAndNothingReportedWhenNothingIsArmed
+[       OK ] BestIterate.NothingIsTrackedAndNothingReportedWhenNothingIsArmed (3 ms)
+[ RUN      ] BestIterate.AnOptimalSolveCarriesNoBestIterate
+[       OK ] BestIterate.AnOptimalSolveCarriesNoBestIterate (3 ms)
+[ RUN      ] BestIterate.ATokenStopReturnsTheCurrentPointAndReportsTheBestSeparately
+[       OK ] BestIterate.ATokenStopReturnsTheCurrentPointAndReportsTheBestSeparately (3 ms)
+[ RUN      ] BestIterate.T9ATrackerArmedByACallbackAndATokenMovesNoCounter
+[       OK ] BestIterate.T9ATrackerArmedByACallbackAndATokenMovesNoCounter (17 ms)
+[ RUN      ] BestIterate.T9TheReturnBestOptionOutcomeDoesNotDependOnAnAttachedCallback
+[       OK ] BestIterate.T9TheReturnBestOptionOutcomeDoesNotDependOnAnAttachedCallback (6 ms)
+[ RUN      ] BestIterate.T12ASnapshotOutlivesTheEventAndTheSolveAndMatchesTheEvent
+[       OK ] BestIterate.T12ASnapshotOutlivesTheEventAndTheSolveAndMatchesTheEvent (3 ms)
+[ RUN      ] BestIterate.T12ASnapshotOfAScalarsOnlyEventHasNoVectors
+[       OK ] BestIterate.T12ASnapshotOfAScalarsOnlyEventHasNoVectors (1 ms)
+[----------] 13 tests from BestIterate (84 ms total)
+
+[----------] 32 tests from Callback
+[ RUN      ] Callback.SqpEventRowsEqualHistoryInCallerUnits
+[       OK ] Callback.SqpEventRowsEqualHistoryInCallerUnits (2 ms)
+[ RUN      ] Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn
+[       OK ] Callback.SqpTerminalEventDiagnosticsAreTheResultsOwn (2 ms)
+[ RUN      ] Callback.SqpStopReturnsInterruptedAtTheCurrentPoint
+[       OK ] Callback.SqpStopReturnsInterruptedAtTheCurrentPoint (7 ms)
+[ RUN      ] Callback.SqpConvergedBeatsStop
+[       OK ] Callback.SqpConvergedBeatsStop (4 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent
+[       OK ] Callback.SqpStopInsideRestorationLatchesAndReachesTheParent (6 ms)
+[ RUN      ] Callback.SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate
+[       OK ] Callback.SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate (2 ms)
+[ RUN      ] Callback.SqpStopReturnBestOnARowThatIsNotAnAcceptedStepReturnsTheBest
+[       OK ] Callback.SqpStopReturnBestOnARowThatIsNotAnAcceptedStepReturnsTheBest (4 ms)
+[ RUN      ] Callback.SqpStopReturnBestOnTheCertifyingRestorationReturnsTheBestAndNoCertificate
+[       OK ] Callback.SqpStopReturnBestOnTheCertifyingRestorationReturnsTheBestAndNoCertificate (39 ms)
+[ RUN      ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict
+[       OK ] Callback.SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict (118 ms)
+[ RUN      ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration
+[       OK ] Callback.SqpEventXIsTheRowsOwnPointAcrossRestoration (44 ms)
+[ RUN      ] Callback.ASolveWithNoCallbackSnapshotsNothing
+[       OK ] Callback.ASolveWithNoCallbackSnapshotsNothing (4 ms)
+[ RUN      ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp
+[       OK ] Callback.SqpStopOnANonConvergedCapTerminalRowIsANoOp (3 ms)
+[ RUN      ] Callback.SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit
+[       OK ] Callback.SqpStopOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit (80 ms)
+[ RUN      ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture
+[       OK ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointOnTheResumingFixture (6 ms)
+[ RUN      ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate
+[       OK ] Callback.SqpTokenStopInsideRestorationReturnsTheEntryPointAndWithholdsTheCertificate (79 ms)
+[ RUN      ] Callback.SqpTokenRequestedOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit
+[       OK ] Callback.SqpTokenRequestedOnTheRestorationsConvergedRowIsANoOpAndKeepsTheCertifiedExit (80 ms)
+[ RUN      ] Callback.SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint
+[       OK ] Callback.SqpStopOnTheRestorationsConvergedRowOfAResumingPhaseReturnsTheRestoredPoint (6 ms)
+[ RUN      ] Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes
+[       OK ] Callback.SqpStopOnAMidPhaseRowWhosePointIsAlreadyFeasibleNeverResumes (19 ms)
+[ RUN      ] Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve
+[       OK ] Callback.SqpArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve (88 ms)
+[ RUN      ] Callback.ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied
+[       OK ] Callback.ATokenStopOnASocPromotedRowUndoesTheUntakenStepsSocApplied (1 ms)
+[ RUN      ] Callback.ClearingTheCallbackFromInsideItIsSafe
+[       OK ] Callback.ClearingTheCallbackFromInsideItIsSafe (4 ms)
+[ RUN      ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt
+[       OK ] Callback.ADirectSetAfterAThrownDeferralSupersedesIt (12 ms)
+[ RUN      ] Callback.ZeroMajorExitFiresOnceOrNever
+[       OK ] Callback.ZeroMajorExitFiresOnceOrNever (0 ms)
+[ RUN      ] Callback.IpmContinuingEventObservesTheCommittedPoint
+[       OK ] Callback.IpmContinuingEventObservesTheCommittedPoint (1 ms)
+[ RUN      ] Callback.IpmTerminalRowStillFires
+[       OK ] Callback.IpmTerminalRowStillFires (1 ms)
+[ RUN      ] Callback.IpmStopEndsThePhaseSequence
+[       OK ] Callback.IpmStopEndsThePhaseSequence (2 ms)
+[ RUN      ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn
+[       OK ] Callback.IpmTerminalEventDiagnosticsAreTheResultsOwn (2 ms)
+[ RUN      ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase
+[       OK ] Callback.IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase (1 ms)
+[ RUN      ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest
+[       OK ] Callback.IpmTerminalEventDescribesTheReturnedPointUnderReturnBest (1 ms)
+[ RUN      ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable
+[       OK ] Callback.ThrowingCallbackPropagatesAndTheSolverIsReusable (9 ms)
+[ RUN      ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine
+[       OK ] Callback.AReadOnlyCallbackChangesNothingOnEitherEngine (7 ms)
+[ RUN      ] Callback.ClearingTheCallbackStopsTheEvents
+[       OK ] Callback.ClearingTheCallbackStopsTheEvents (6 ms)
+[----------] 32 tests from Callback (654 ms total)
+
+[----------] 11 tests from CallbackPayload
+[ RUN      ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything
+[       OK ] CallbackPayload.TheOneArgumentOverloadStillDeliversEverything (7 ms)
+[ RUN      ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse
+[       OK ] CallbackPayload.ScalarsDeliversTheScalarsAndNothingElse (7 ms)
+[ RUN      ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics
+[       OK ] CallbackPayload.VectorsAloneDeliversTheViewsAndNaNDiagnostics (7 ms)
+[ RUN      ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews
+[       OK ] CallbackPayload.DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews (7 ms)
+[ RUN      ] CallbackPayload.ClearingResetsTheMask
+[       OK ] CallbackPayload.ClearingResetsTheMask (6 ms)
+[ RUN      ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent
+[       OK ] CallbackPayload.AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent (3 ms)
+[ RUN      ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents
+[       OK ] CallbackPayload.ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents (2 ms)
+[ RUN      ] CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver
+[       OK ] CallbackPayload.AMaskWidenedFromInsideARestorationEventReachesTheSubDriver (40 ms)
+[ RUN      ] CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver
+[       OK ] CallbackPayload.AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver (40 ms)
+[ RUN      ] CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll
+[       OK ] CallbackPayload.AnEmptyCallableNormalisesTheMaskToAll (3 ms)
+[ RUN      ] CallbackPayload.TheObservationPointReadsTheActiveMask
+[       OK ] CallbackPayload.TheObservationPointReadsTheActiveMask (0 ms)
+[----------] 11 tests from CallbackPayload (126 ms total)
+
+[----------] 2 tests from CallbackScope
+[ RUN      ] CallbackScope.TheDefaultStreamIsTheFullStreamFilteredToDepthZero
+[       OK ] CallbackScope.TheDefaultStreamIsTheFullStreamFilteredToDepthZero (89 ms)
+[ RUN      ] CallbackScope.TheScopeIsStoredWithTheCallableAndResetByAClear
+[       OK ] CallbackScope.TheScopeIsStoredWithTheCallableAndResetByAClear (0 ms)
+[----------] 2 tests from CallbackScope (89 ms total)
+
+[----------] 2 tests from CallbackRowSpace
+[ RUN      ] CallbackRowSpace.TheFinalDepthZeroEventsLambdaIsTheResultsLambdaOnBothEngines
+[       OK ] CallbackRowSpace.TheFinalDepthZeroEventsLambdaIsTheResultsLambdaOnBothEngines (3 ms)
+[ RUN      ] CallbackRowSpace.TheEventCountsOnBothEngines
+[       OK ] CallbackRowSpace.TheEventCountsOnBothEngines (3 ms)
+[----------] 2 tests from CallbackRowSpace (7 ms total)
+
+[----------] 3 tests from StopToken
+[ RUN      ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested
+[       OK ] StopToken.AnEmptyTokenHasNoSourceAndIsNeverRequested (0 ms)
+[ RUN      ] StopToken.EveryTokenOfASourceSeesItsStop
+[       OK ] StopToken.EveryTokenOfASourceSeesItsStop (0 ms)
+[ RUN      ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource
+[       OK ] StopToken.AMovedFromSourceHasNoStateLikeStdStopSource (0 ms)
+[----------] 3 tests from StopToken (0 ms total)
+
+[----------] 13 tests from StopTokenSolve
+[ RUN      ] StopTokenSolve.T1ATokenStoppedBeforeTheSolveEndsItAtTheStart
+[       OK ] StopTokenSolve.T1ATokenStoppedBeforeTheSolveEndsItAtTheStart (7 ms)
+[ RUN      ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint
+[       OK ] StopTokenSolve.T2ACrossThreadStopReturnsTheLastDeliveredEventsPoint (3 ms)
+[ RUN      ] StopTokenSolve.T6ATokenRequestedOnTheConvergingRowLosesToConvergence
+[       OK ] StopTokenSolve.T6ATokenRequestedOnTheConvergingRowLosesToConvergence (8 ms)
+[ RUN      ] StopTokenSolve.T8AStopOutranksAWorkAndATimeLimitAtTheSameBoundary
+[       OK ] StopTokenSolve.T8AStopOutranksAWorkAndATimeLimitAtTheSameBoundary (2 ms)
+[ RUN      ] StopTokenSolve.AnUnfiredTokenChangesNothing
+[       OK ] StopTokenSolve.AnUnfiredTokenChangesNothing (7 ms)
+[ RUN      ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial
+[       OK ] StopTokenSolve.T10OneOfNConcurrentSolvesStopsAndTheOthersMatchSerial (10 ms)
+[ RUN      ] StopTokenSolve.T13ATokenEndsTheIpmPhaseSequence
+[       OK ] StopTokenSolve.T13ATokenEndsTheIpmPhaseSequence (1 ms)
+[ RUN      ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep
+[       OK ] StopTokenSolve.T2bTheSqpPostPushPollEndsAnAcceptedRowWithoutTakingItsStep (2 ms)
+[ RUN      ] StopTokenSolve.ACallbackStopWinsTheLabelWhenTheTokenIsRequestedToo
+[       OK ] StopTokenSolve.ACallbackStopWinsTheLabelWhenTheTokenIsRequestedToo (3 ms)
+[ RUN      ] StopTokenSolve.ATokenStoppedSqpSolveHandsBackTheFunnelWidthOfItsPoint
+[       OK ] StopTokenSolve.ATokenStoppedSqpSolveHandsBackTheFunnelWidthOfItsPoint (28 ms)
+[ RUN      ] StopTokenSolve.ATokenOnAPhasesConvergingRowSkipsTheNextPhaseWithoutAnEvent
+[       OK ] StopTokenSolve.ATokenOnAPhasesConvergingRowSkipsTheNextPhaseWithoutAnEvent (3 ms)
+[ RUN      ] StopTokenSolve.ATokenStopPrintsItsOwnConsoleMessagesNotTheCallbacks
+[       OK ] StopTokenSolve.ATokenStopPrintsItsOwnConsoleMessagesNotTheCallbacks (1 ms)
+[ RUN      ] StopTokenSolve.ACallbackStopKeepsItsOwnConsoleMessages
+[       OK ] StopTokenSolve.ACallbackStopKeepsItsOwnConsoleMessages (1 ms)
+[----------] 13 tests from StopTokenSolve (82 ms total)
+
+[----------] 9 tests from StopRecovery
+[ RUN      ] StopRecovery.T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEitherScope
+[       OK ] StopRecovery.T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEitherScope (55 ms)
+[ RUN      ] StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint
+[       OK ] StopRecovery.T5ATokenStopInsideRestorationReturnsTheRestorationEntryPoint (31 ms)
+[ RUN      ] StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheShownPoint
+[       OK ] StopRecovery.T5BACallbackStopOnARecoveringEventReturnsTheShownPoint (31 ms)
+[ RUN      ] StopRecovery.T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate
+[       OK ] StopRecovery.T5CATokenStopOutsideRestorationStillReturnsTheCurrentIterate (31 ms)
+[ RUN      ] StopRecovery.T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve
+[       OK ] StopRecovery.T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve (46 ms)
+[ RUN      ] StopRecovery.G3BestIterateOnARestorationSolveIsAnIterateFromOutsideRestoration
+[       OK ] StopRecovery.G3BestIterateOnARestorationSolveIsAnIterateFromOutsideRestoration (27 ms)
+[ RUN      ] StopRecovery.G3AStopReturnBestOnARecoveringEventReturnsTheBestNotTheShownPoint
+[       OK ] StopRecovery.G3AStopReturnBestOnARecoveringEventReturnsTheBestNotTheShownPoint (31 ms)
+[ RUN      ] StopRecovery.G3ATokenStopInRestorationAlsoReportsABestIterateSeparately
+[       OK ] StopRecovery.G3ATokenStopInRestorationAlsoReportsABestIterateSeparately (31 ms)
+[ RUN      ] StopRecovery.G3TheTrackerArmedThroughARestorationEpisodeMovesNoCounter
+[       OK ] StopRecovery.G3TheTrackerArmedThroughARestorationEpisodeMovesNoCounter (44 ms)
+[----------] 9 tests from StopRecovery (332 ms total)
+
+[----------] Global test environment tear-down
+[==========] 85 tests from 8 test suites ran. (1378 ms total)
+[  PASSED  ] 85 tests.
