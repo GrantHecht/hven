@@ -1,0 +1,6 @@
+interior leg, filtered instructions:u samples (median of 3 rounds, summed over the 27 cells)
+  unattached         A=2.484540e+05 B=2.484540e+05 B/A=1.000000
+  attached kAll      A=2.495730e+05 B=2.496240e+05 B/A=1.000204
+  attached kScalars  A=2.484730e+05 B=2.485270e+05 B/A=1.000217
+  attach cost at kAll      arm A: +0.4504%   arm B: +0.4709%   (B minus A: +0.0205%)
+  attach cost at kScalars  arm A: +0.0076%   arm B: +0.0294%   (B minus A: +0.0217%)
