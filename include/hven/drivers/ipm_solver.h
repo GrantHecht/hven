@@ -223,14 +223,11 @@ class IpmSolver {
     /// wins.
     ///
     /// @param payload Which parts of `IterationEvent` the consumer reads; the
-    ///        engine prepares nothing else. Under `IterationPayload::kScalars`
-    ///        the event carries `iteration`, `phase`, `f`, `step_norm`, `mu`
-    ///        and `elapsed_seconds`; `x`, `lambda` and `z` are empty views and
-    ///        the three declared diagnostics are NaN, meaning "not requested".
-    ///        The engine then skips the O(n) work that fills them. The mask is
-    ///        stored with the callable, parked through the same in-flight
-    ///        guard, and reset to `kAll` by `clear_iteration_callback()` and by
-    ///        passing an empty callable.
+    ///        engine prepares nothing else (see `IterationPayload`); the
+    ///        default is `kVectors | kDiagnostics`. The mask is stored with the
+    ///        callable, parked through the same in-flight guard, and reset to
+    ///        that default by `clear_iteration_callback()` and by passing an
+    ///        empty callable.
     /// @param scope This engine has no nested solves, so every event is
     ///        top-level and the scope is accepted with no effect.
     ///
@@ -239,7 +236,7 @@ class IpmSolver {
     /// problem's row space, as `SolveResult::lambda` is, and costs a compose
     /// per event only under a payload that includes `kVectors`.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = IterationPayload::kAll,
+                                IterationPayload payload = detail::kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel);
 
     /// The payload mask currently in force.
@@ -248,7 +245,8 @@ class IpmSolver {
     /// The callback scope currently in force (`kTopLevel` when none is set).
     CallbackScope iteration_scope() const;
 
-    /// Removes the callback and resets the payload mask to `kAll` and the scope
+    /// Removes the callback and resets the payload mask to `kVectors |
+    /// kDiagnostics` and the scope
     /// to `kTopLevel`. Deferred
     /// like `set_iteration_callback()` when called from inside a callback.
     void clear_iteration_callback();

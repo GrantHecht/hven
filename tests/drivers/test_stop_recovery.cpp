@@ -220,6 +220,41 @@ TEST(StopRecovery, T14IpmRestorationRowsAreDeliveredWithRecoveringSetUnderEither
     }
 }
 
+// T12 (M8 AP-5 G5): a recovering interior-point event carries no caller-space
+// rows and no bound sides under kAll (no declared evaluation of a restoration
+// point exists); the ordinary rows around it carry both.
+TEST(StopRecovery, T12IpmRecoveringEventsCarryNoRowsAndNoBoundSides) {
+    for (const RestoCase &m : kRestoCases) {
+        SCOPED_TRACE(m.label);
+        Problem problem(std::make_shared<InfeasibleDisc>(m.boxed));
+        IpmSolver solver(options(m.mode));
+        Index recovering = 0;
+        Index ordinary = 0;
+        solver.set_iteration_callback(
+            [&](const IterationEvent &e) {
+                EXPECT_EQ(e.x.size(), 2);
+                if (e.recovering) {
+                    ++recovering;
+                    EXPECT_EQ(e.g.size(), 0) << "iteration " << e.iteration;
+                    EXPECT_EQ(e.violation.size(), 0);
+                    EXPECT_EQ(e.z_lower.size(), 0);
+                    EXPECT_EQ(e.z_upper.size(), 0);
+                } else {
+                    ++ordinary;
+                    EXPECT_EQ(e.g.size(), 1) << "iteration " << e.iteration;
+                    EXPECT_EQ(e.violation.size(), 1);
+                    EXPECT_EQ(e.z_lower.size(), 2);
+                    EXPECT_EQ(e.z_upper.size(), 2);
+                }
+                return CallbackAction::kContinue;
+            },
+            IterationPayload::kAll);
+        (void)solver.solve(problem, start());
+        EXPECT_GE(recovering, 1) << "premise: the solve enters restoration";
+        EXPECT_GE(ordinary, 1);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // T5: a stop inside restoration.
 // ---------------------------------------------------------------------------

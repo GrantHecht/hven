@@ -3,6 +3,7 @@
 
 #include "hven/model/problem.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -356,12 +357,73 @@ class ProblemState {
     void report(SolveResult &result) const {
         const auto &rows = engine_rows(result);
         map_rows(rows.lambda_e, rows.lambda_i, rows.ce, rows.ci, result.lambda, result.g);
-        // best_iterate's own row blocks go through the same map.
-        if (result.best_iterate) {
-            map_rows(rows.best_lambda_e, rows.best_lambda_i, rows.best_ce, rows.best_ci,
-                     result.best_iterate->lambda, result.best_iterate->g);
+    }
+
+    // The engines' row blocks as row values and row violation in the problem's
+    // row space (an event's or best_iterate's `g` and `violation`); both empty
+    // when the blocks are not at the problem's row counts.
+    void compose_row_values_into(const Vec &ce, const Vec &ci, Vec &g, Vec &violation) const {
+        if (kind_ == Kind::kNlp) {
+            const NlpProblemModel &model = *nlp_model_;
+            map_row_values(model, ce, ci, g);
+            if (g.size() == 0 && model.num_declared_rows() != 0) {
+                violation.resize(0);
+                return;
+            }
+            const NlpRowClassification &rows = model.rows();
+            const int m = model.num_declared_rows();
+            violation.resize(m);
+            for (int r = 0; r < m; ++r) {
+                switch (rows.kinds[static_cast<std::size_t>(r)]) {
+                case NlpRowKind::kEquality:
+                    violation[r] = std::abs(ce[rows.eq_row[r]]);
+                    break;
+                case NlpRowKind::kUpperBounded:
+                    violation[r] = positive_part(ci[rows.iq_upper_row[r]]);
+                    break;
+                case NlpRowKind::kLowerBounded:
+                    violation[r] = positive_part(ci[rows.iq_lower_row[r]]);
+                    break;
+                case NlpRowKind::kRange: {
+                    const double u = ci[rows.iq_upper_row[r]];
+                    const double l = ci[rows.iq_lower_row[r]];
+                    violation[r] = std::isnan(u) || std::isnan(l)
+                                       ? std::numeric_limits<double>::quiet_NaN()
+                                       : std::max({u, l, 0.0});
+                    break;
+                }
+                case NlpRowKind::kFree:
+                    violation[r] = 0.0;
+                    break;
+                }
+            }
+            return;
+        }
+        Index me = 0, mi = 0;
+        row_counts(me, mi);
+        if (ce.size() != me || ci.size() != mi) {
+            g.resize(0);
+            violation.resize(0);
+            return;
+        }
+        concatenated_row_values(ce, ci, g, violation);
+    }
+
+    // [c_E; c_I] and [|c_E|; max(c_I, 0)], NaN kept.
+    static void concatenated_row_values(const Vec &ce, const Vec &ci, Vec &g, Vec &violation) {
+        g.resize(ce.size() + ci.size());
+        g.head(ce.size()) = ce;
+        g.tail(ci.size()) = ci;
+        violation.resize(g.size());
+        for (Index k = 0; k < ce.size(); ++k) {
+            violation[k] = std::abs(ce[k]);
+        }
+        for (Index k = 0; k < ci.size(); ++k) {
+            violation[ce.size() + k] = positive_part(ci[k]);
         }
     }
+
+    static double positive_part(double v) { return std::isnan(v) ? v : std::max(v, 0.0); }
 
     void map_rows(const Vec &lambda_e, const Vec &lambda_i, const Vec &ce, const Vec &ci,
                   Vec &lambda, Vec &g) const {
@@ -940,6 +1002,15 @@ Vec ProblemAccess::compose_rows(const Problem &problem, const Vec &lambda_e, con
 void ProblemAccess::compose_rows_into(const Problem &problem, const Vec &lambda_e,
                                       const Vec &lambda_i, Vec &out) {
     ProblemAccess::state(problem).compose_rows_into(lambda_e, lambda_i, out);
+}
+
+void ProblemAccess::compose_row_values_into(const Problem &problem, const Vec &ce, const Vec &ci,
+                                            Vec &g, Vec &violation) {
+    ProblemAccess::state(problem).compose_row_values_into(ce, ci, g, violation);
+}
+
+void ProblemAccess::concatenated_row_values(const Vec &ce, const Vec &ci, Vec &g, Vec &violation) {
+    ProblemState::concatenated_row_values(ce, ci, g, violation);
 }
 
 void ProblemAccess::split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e,

@@ -226,19 +226,21 @@ IterationSnapshot snapshot(const IterationEvent &event) {
     IterationSnapshot out;
     out.iteration = event.iteration;
     out.recovering = event.recovering;
-    out.phase = event.phase;
-    out.depth = event.depth;
     out.f = event.f;
     out.stationarity = event.stationarity;
     out.feasibility = event.feasibility;
     out.complementarity = event.complementarity;
     out.step_norm = event.step_norm;
-    out.radius = event.radius;
-    out.mu = event.mu;
+    out.elapsed_seconds = event.elapsed_seconds;
     out.x = event.x;
     out.lambda = event.lambda;
     out.z = event.z;
-    out.elapsed_seconds = event.elapsed_seconds;
+    out.g = event.g;
+    out.violation = event.violation;
+    out.z_lower = event.z_lower;
+    out.z_upper = event.z_upper;
+    out.ipm = event.ipm;
+    out.sqp = event.sqp;
     return out;
 }
 

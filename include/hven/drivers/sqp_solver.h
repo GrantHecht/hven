@@ -183,7 +183,7 @@ class SqpSolver {
     /// line and before the row is pushed, so the trace stream,
     /// `SqpResult::history` and the callback are the same rows in the same
     /// order and caller units, and the event count equals `history.size()`.
-    /// The event describes the row being pushed. `IterationEvent::depth` is the
+    /// The event describes the row being pushed. `IterationEvent::sqp->depth` is the
     /// restoration nesting: 0 in this solve, 1 inside a restoration sub-solve,
     /// whose events reach the callback only under
     /// `CallbackScope::kIncludeRestoration`.
@@ -218,18 +218,16 @@ class SqpSolver {
     /// solve entry. One slot serves each setter and the last write wins.
     ///
     /// @param payload Which parts of `IterationEvent` the consumer reads; the
-    ///        solver prepares nothing else. Under `IterationPayload::kScalars`
-    ///        the event carries `iteration`, `depth`, `f`, `step_norm`,
-    ///        `radius` and `elapsed_seconds`; `x`, `lambda` and `z` are empty
-    ///        views and the three declared diagnostics are NaN, meaning "not
-    ///        requested". The mask is stored with the callable, parked through
-    ///        the same in-flight guard, reset to `kAll` by
+    ///        solver prepares nothing else (see `IterationPayload`); the default
+    ///        is `kVectors | kDiagnostics`. The mask is stored with the
+    ///        callable, parked through the same in-flight guard, reset to that
+    ///        default by
     ///        `clear_iteration_callback()` and by passing an empty callable,
     ///        and, under `kIncludeRestoration`, forwarded into a restoration
     ///        sub-solve with the callback itself. A mask changed from inside a
     ///        callback takes effect at the next event, at any depth.
     /// @param scope `kTopLevel` (the default) shows the callback only the
-    ///        caller's own rows (`depth` 0); the restoration sub-solves run
+    ///        caller's own rows (`sqp->depth` 0); the restoration sub-solves run
     ///        without it. `kIncludeRestoration` also delivers their rows,
     ///        stamped with their depth, in the sub-problem's own space.
     ///
@@ -239,10 +237,10 @@ class SqpSolver {
     /// space at depth 0, as `SolveResult::lambda` is, and costs a compose per
     /// event only under a payload that includes `kVectors`.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = IterationPayload::kAll,
+                                IterationPayload payload = detail::kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel);
 
-    /// The payload mask in force, or `IterationPayload::kAll` when no callback
+    /// The payload mask in force, or `kVectors | kDiagnostics` when no callback
     /// is installed. A value parked from inside a callback is not visible until
     /// the safe point applies it.
     IterationPayload iteration_payload() const;
@@ -250,7 +248,8 @@ class SqpSolver {
     /// The callback scope in force (`kTopLevel` when none is installed).
     CallbackScope iteration_scope() const;
 
-    /// Removes the callback and resets the payload mask to `kAll` and the scope
+    /// Removes the callback and resets the payload mask to `kVectors |
+    /// kDiagnostics` and the scope
     /// to `kTopLevel`. Deferred
     /// like `set_iteration_callback()` when called from inside a callback.
     void clear_iteration_callback();

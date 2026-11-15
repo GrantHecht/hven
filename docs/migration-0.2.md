@@ -269,3 +269,69 @@ What changed (`src/qp/qp_engine.cpp`):
 
 Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by
 name); a walk subproblem's route can differ by a step where a row sat between 1x and 10x.
+
+## G5 -- the widened payload
+
+Every addition is delivered only to a callback that asks for it, so nothing here moves a
+trajectory, a counter or a status. The four engine-specific top-level optionals of
+`IterationEvent` move into one block per engine.
+
+New, no rewrite needed:
+
+- `IterationPayload::kConstraints`: `IterationEvent::g` (the row values at `x`, the
+  definition of `SolveResult::g`: a free Nlp row reads NaN) and `IterationEvent::violation`
+  (the row violation, `>= 0`, 0 on a free row: `|c_E|` on an equality row, the positive
+  part of the violated side on an inequality or range row), both in `lambda`'s row space.
+- `IterationPayload::kBoundMultipliers`: `IterationEvent::z_lower`, `z_upper`, declared
+  width, both `>= 0`, with `z_lower - z_upper == z`. Interior-point: the engine's own
+  per-side multipliers, divided by the objective scale and scattered as `z` is (equal to
+  `z` to rounding; an eliminated or fixing-row coordinate takes the sign split of its
+  `z`). SQP: the sign split of `z` (exact).
+- `IpmIterationInfo` (`IterationEvent::ipm`): `phase`, `mu` (both moved, below), and the
+  facts of the step that REACHED the iterate: `alpha_primal`, `alpha_dual`,
+  `regularization_primal` (the inertia-correction delta of that step's factorization,
+  `IpmIterate::h_pert`), `regularization_dual` (the constraint-row shift: the proximal
+  mode's `delta_c`, or the classic ladder's when it engaged one; 0 if none),
+  `inertia_corrections` (`h_facs`, -1 when the direction came back non-finite),
+  `line_search_trials`. At a phase's first iterate the alphas are NaN and the rest 0 (as
+  `step_norm` is 0). The two regularizations are the engine's KKT values, at its
+  objective scale.
+- `SqpIterationInfo` (`IterationEvent::sqp`): `depth`, `trust_radius` (both moved, below),
+  `violation_l1` (h(x), the funnel's measure), `dual_regularization` (`SqpIterate::mu`),
+  `qp_solved`, `qp_status`, `qp_minor_iterations`, `active_set_size` (active rows plus
+  active lower and upper bound sides), `verdict`, `elastic` -- the subproblem solved AT the
+  major's point, the row's own columns (caller units on a scaled solve).
+- Exactly one of `ipm`/`sqp` is engaged. Both are delivered under every mask (copies only).
+- `IterationSnapshot` mirrors the event: `violation`, `z_lower`, `z_upper`, `ipm`, `sqp`
+  added; `snapshot(event)` copies every view the mask delivered, `g` included (it is no
+  longer left empty). `SolveResult::best_iterate` fills every vector (`x`, `lambda`, `z`,
+  `g`, `violation`, `z_lower`, `z_upper`) and its own event's engine block.
+
+Where the new views are empty: outside their mask bit; on an interior-point `recovering`
+event (no caller-space evaluation of a restoration iterate exists; `x`, `lambda`, `z` are
+still delivered); on an SQP row with no finite measurement (`g`, `violation`). On an SQP
+depth-1 event they are the restoration sub-problem's own (its rows, its variables, elastic
+ones included), as `x` and `lambda` already were; on a column-scaled solve the first n
+entries of `z_lower`/`z_upper` are in caller units, as `x` and `z` are.
+
+`step_norm` and the engine blocks keep each engine's timing (design section 3.1, C5):
+interior-point, the step that reached the point (the event fires before the iterate
+factorizes); SQP, the step taken from it and the subproblem solved at it (the event fires
+once that subproblem is solved, so the event, the `history` row and the `sqp.major` line
+stay one row). An `IterationSnapshot` and `best_iterate` carry the same quantity as the
+event on the same engine.
+
+Breaks:
+
+| before | after | rewrite |
+|---|---|---|
+| `IterationPayload::kAll` == `kVectors \| kDiagnostics` | `kAll` adds `kConstraints \| kBoundMultipliers` | a consumer that wants exactly the old payload passes `kVectors \| kDiagnostics` |
+| `set_iteration_callback(cb)` (default mask `kAll`) | default mask `kVectors \| kDiagnostics`, the old `kAll` payload; `iteration_payload()` reads the same when no callback is installed or after a clear / an empty callable | none for the delivered payload; a test that compared `iteration_payload()` with `kAll` after a default attach or a clear compares with `kVectors \| kDiagnostics` |
+| `IterationEvent::phase` | `IterationEvent::ipm->phase` | `e.phase.value_or(d)` -> `e.ipm ? e.ipm->phase : d` |
+| `IterationEvent::mu` | `IterationEvent::ipm->mu` | as `phase` |
+| `IterationEvent::depth` | `IterationEvent::sqp->depth` | `e.depth.value_or(0)` -> `e.sqp ? e.sqp->depth : 0` (or read `e.recovering`, which is `depth >= 1` on the SQP) |
+| `IterationEvent::radius` | `IterationEvent::sqp->trust_radius` | as `depth` |
+| `IterationSnapshot::{phase, mu, depth, radius}` | `IterationSnapshot::ipm`/`sqp`, as on the event | as on the event |
+| `IterationEvent` member order: `iteration, recovering, phase, depth, f, stationarity, feasibility, complementarity, step_norm, radius, mu, x, lambda, z, elapsed_seconds` | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers in the new order; the seven `Eigen::Ref` views have no default and must all be bound |
+| `IterationSnapshot` member order | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers |
+| `best_iterate->lambda`/`g` mapped into the row space by `Problem` from private engine blocks | composed by the engine with the event's own row map, as an event's are | none; an internal (detail) route with no `Problem` now gets the engines' `[lambda_e; lambda_i]` / `[c_E; c_I]` concatenation, as its events do, where it got empty vectors |

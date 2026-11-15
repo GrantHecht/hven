@@ -991,7 +991,8 @@ TEST(F7ColdScaleSmoke, TheBestIteratesFacePricesAreSignRepaired) {
             if (!r.best_iterate) {
                 continue;
             }
-            const auto &best_prices = hven::detail::engine_rows(r).best_lambda_i;
+            // The row space is [equality rows | inequality rows] on this model.
+            const Vec best_prices = r.best_iterate->lambda.tail(model.mi());
             ASSERT_GT(best_prices.size(), 0);
             EXPECT_GE(best_prices.minCoeff(), 0.0) << "stop at " << stop_at;
             ++checked;

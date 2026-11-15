@@ -151,25 +151,35 @@ void expect_same_best(const hven::SolveResult &a, const hven::SolveResult &b) {
     const hven::IterationSnapshot &y = *b.best_iterate;
     EXPECT_EQ(x.iteration, y.iteration);
     EXPECT_EQ(x.recovering, y.recovering);
-    EXPECT_EQ(x.phase, y.phase);
-    EXPECT_EQ(x.depth, y.depth);
     EXPECT_TRUE(same_scalar(x.f, y.f));
     EXPECT_TRUE(same_scalar(x.stationarity, y.stationarity));
     EXPECT_TRUE(same_scalar(x.feasibility, y.feasibility));
     EXPECT_TRUE(same_scalar(x.complementarity, y.complementarity));
     EXPECT_TRUE(same_scalar(x.step_norm, y.step_norm));
-    EXPECT_EQ(x.radius.has_value(), y.radius.has_value());
-    if (x.radius && y.radius) {
-        EXPECT_TRUE(same_scalar(*x.radius, *y.radius));
+    ASSERT_EQ(x.ipm.has_value(), y.ipm.has_value());
+    if (x.ipm && y.ipm) {
+        EXPECT_EQ(x.ipm->phase, y.ipm->phase);
+        EXPECT_TRUE(same_scalar(x.ipm->mu, y.ipm->mu));
+        EXPECT_TRUE(same_scalar(x.ipm->alpha_primal, y.ipm->alpha_primal));
+        EXPECT_TRUE(same_scalar(x.ipm->alpha_dual, y.ipm->alpha_dual));
+        EXPECT_EQ(x.ipm->inertia_corrections, y.ipm->inertia_corrections);
+        EXPECT_EQ(x.ipm->line_search_trials, y.ipm->line_search_trials);
     }
-    EXPECT_EQ(x.mu.has_value(), y.mu.has_value());
-    if (x.mu && y.mu) {
-        EXPECT_TRUE(same_scalar(*x.mu, *y.mu));
+    ASSERT_EQ(x.sqp.has_value(), y.sqp.has_value());
+    if (x.sqp && y.sqp) {
+        EXPECT_EQ(x.sqp->depth, y.sqp->depth);
+        EXPECT_TRUE(same_scalar(x.sqp->trust_radius, y.sqp->trust_radius));
+        EXPECT_TRUE(same_scalar(x.sqp->violation_l1, y.sqp->violation_l1));
+        EXPECT_EQ(x.sqp->qp_solved, y.sqp->qp_solved);
+        EXPECT_EQ(x.sqp->verdict, y.sqp->verdict);
     }
     EXPECT_TRUE(bit_equal(x.x, y.x));
     EXPECT_TRUE(bit_equal(x.lambda, y.lambda));
     EXPECT_TRUE(bit_equal(x.z, y.z));
     EXPECT_TRUE(bit_equal(x.g, y.g));
+    EXPECT_TRUE(bit_equal(x.violation, y.violation));
+    EXPECT_TRUE(bit_equal(x.z_lower, y.z_lower));
+    EXPECT_TRUE(bit_equal(x.z_upper, y.z_upper));
 }
 
 void expect_same_row(const hven::SqpIterate &a, const hven::SqpIterate &b) {
@@ -996,7 +1006,7 @@ ModelRun run_model(const NlpModel &model, StopSource &source, std::optional<Inde
                 run.solves_at_event[i].push_back(Seam::solves[i]);
             }
             run.walk_solves_at_event.push_back(Seam::solves[static_cast<int>(StopPollSite::kWalk)]);
-            run.depth.push_back(e.depth.value_or(0));
+            run.depth.push_back((e.sqp ? e.sqp->depth : Index{0}));
             run.x_at_event.push_back(e.x);
             return CallbackAction::kContinue;
         },
@@ -1155,12 +1165,12 @@ RestoAskRun run_resto_asking_best(const CircleLineStopOnJacobian &model, StopSou
     SqpSolver solver(quiet_sqp(QpMode::kWalk));
     solver.set_iteration_callback(
         [&](const IterationEvent &e) {
-            run.depth.push_back(e.depth.value_or(0));
+            run.depth.push_back((e.sqp ? e.sqp->depth : Index{0}));
             run.jac_calls_at_event.push_back(model.jac_calls);
             run.walk_solves_at_event.push_back(Seam::solves[static_cast<int>(StopPollSite::kWalk)]);
             if (source.stop_requested()) {
                 if (++run.asked == 1) {
-                    run.asked_depth = e.depth.value_or(0);
+                    run.asked_depth = (e.sqp ? e.sqp->depth : Index{0});
                 }
                 return CallbackAction::kStopReturnBest;
             }

@@ -4346,6 +4346,8 @@ struct SqpSolverImpl::MajorState {
     // Empty, never written and never read on a solve with no callback.
     Vec event_x;
     Vec event_lambda_e, event_lambda_i, event_z;
+    // kConstraints: the two constraint blocks, caller units (M8 AP-5 G5).
+    Vec event_ce, event_ci;
     // The four shared diagnostics of this row, computed at measure time from
     // the measurement `mj.kkt` holds and the prices it was folded at. All four
     // NaN when nothing was measured at the point (the non-finite-start row),
@@ -6155,37 +6157,51 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
                     // z = z~ / d there -- caller units, as at depth 0. The slack
                     // entries and the multipliers carry no column factor.
                     const Vec *d = this->column_units_;
-                    const bool map = d != nullptr && e.depth.value_or(0) == 0;
+                    const Index sub_depth = e.sqp ? e.sqp->depth : 0;
+                    const bool map = d != nullptr && sub_depth == 0;
                     const Index nd = map ? d->size() : 0;
-                    Vec x_caller, z_caller;
-                    const bool map_x = map && e.x.size() >= nd;
-                    const bool map_z = map && e.z.size() >= nd;
-                    if (map_x) {
-                        x_caller = e.x;
-                        x_caller.head(nd).array() *= d->array();
-                    }
-                    if (map_z) {
-                        z_caller = e.z;
-                        z_caller.head(nd).array() /= d->array();
+                    // x = d x~ and the three bound-price views / d, first n entries.
+                    auto mapped = [&](const Eigen::Ref<const Vec> &v, bool times, Vec &out) {
+                        if (!map || v.size() < nd) {
+                            return false;
+                        }
+                        out = v;
+                        if (times) {
+                            out.head(nd).array() *= d->array();
+                        } else {
+                            out.head(nd).array() /= d->array();
+                        }
+                        return true;
+                    };
+                    Vec x_caller, z_caller, zl_caller, zu_caller;
+                    const bool map_x = mapped(e.x, true, x_caller);
+                    const bool map_z = mapped(e.z, false, z_caller);
+                    const bool map_zl = mapped(e.z_lower, false, zl_caller);
+                    const bool map_zu = mapped(e.z_upper, false, zu_caller);
+                    std::optional<SqpIterationInfo> info = e.sqp;
+                    if (info) {
+                        info->depth = sub_depth + 1;
                     }
                     const IterationEvent nested{
                         .iteration = e.iteration,
                         .recovering = true,
-                        .phase = e.phase,
-                        .depth = e.depth.value_or(0) + 1,
                         .f = e.f,
                         .stationarity = e.stationarity,
                         .feasibility = e.feasibility,
                         .complementarity = e.complementarity,
                         .step_norm = e.step_norm,
-                        .radius = e.radius,
-                        .mu = e.mu,
-                        .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
-                        .lambda = e.lambda,
-                        .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
                         .elapsed_seconds = std::chrono::duration<double>(
                                                std::chrono::steady_clock::now() - this->entry_time_)
                                                .count(),
+                        .x = map_x ? Eigen::Ref<const Vec>(x_caller) : e.x,
+                        .lambda = e.lambda,
+                        .z = map_z ? Eigen::Ref<const Vec>(z_caller) : e.z,
+                        .g = e.g,
+                        .violation = e.violation,
+                        .z_lower = map_zl ? Eigen::Ref<const Vec>(zl_caller) : e.z_lower,
+                        .z_upper = map_zu ? Eigen::Ref<const Vec>(zu_caller) : e.z_upper,
+                        .ipm = e.ipm,
+                        .sqp = info,
                     };
                     // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
                     // callback clearing itself from inside a DEPTH-1 event is deferred
@@ -6822,6 +6838,26 @@ std::string SqpSolverImpl::interrupt_detail(const SolveState &st) {
 // `rows_pushed == history.size()` identity and, at the caller, the loop-entry
 // check -- all three unchanged.
 // ---------------------------------------------------------------------------
+namespace {
+
+// IterationEvent::sqp from one exported history row.
+SqpIterationInfo sqp_iteration_info(const SqpIterate &row, Index depth) {
+    SqpIterationInfo info;
+    info.depth = depth;
+    info.trust_radius = row.tr_radius;
+    info.violation_l1 = row.violation_l1;
+    info.dual_regularization = row.mu;
+    info.qp_solved = row.qp_solved;
+    info.qp_status = row.qp_status;
+    info.qp_minor_iterations = row.qp_minor_iters;
+    info.active_set_size = row.active_rows + row.active_lower_sides + row.active_upper_sides;
+    info.verdict = row.verdict;
+    info.elastic = row.elastic_applied;
+    return info;
+}
+
+} // namespace
+
 // ---------------------------------------------------------------------------
 // ONE ITERATION EVENT, IN CALLER UNITS (M6 W5 T8.6). Declared in
 // drivers/sqp_solver.h, where the contract is.
@@ -6850,24 +6886,45 @@ void SqpSolverImpl::fire_iteration_event(SolveState &st, const SqpIterate &expor
     } else {
         event_lambda_scratch_.resize(0);
     }
+    // The same rule for the G5 views: a snapshot taken under a narrower mask
+    // leaves them empty.
+    const bool want_rows = payload_requests(iteration_payload_, IterationPayload::kConstraints) &&
+                           (mj.event_ce.size() != 0 || mj.event_ci.size() != 0);
+    if (want_rows) {
+        detail::compose_event_rows(callback_rows_, mj.event_ce, mj.event_ci, event_g_scratch_,
+                                   event_violation_scratch_);
+    } else {
+        event_g_scratch_.resize(0);
+        event_violation_scratch_.resize(0);
+    }
+    const bool want_sides =
+        payload_requests(iteration_payload_, IterationPayload::kBoundMultipliers) &&
+        mj.event_z.size() != 0;
+    Vec z_lower, z_upper;
+    if (want_sides) {
+        detail::split_bound_multipliers(mj.event_z, z_lower, z_upper);
+    }
+    const Vec no_vector;
     IterationEvent event{
         .iteration = static_cast<Index>(st.out.history.size()),
         .recovering = false,
-        .phase = std::nullopt,
-        .depth = Index{0},
         .f = exported.f,
         .stationarity = mj.event_diag.stationarity,
         .feasibility =
             detail::combine_feasibility(mj.event_diag.feasibility_e, mj.event_diag.feasibility_i),
         .complementarity = mj.event_diag.complementarity,
         .step_norm = exported.step_norm,
-        .radius = exported.tr_radius,
-        .mu = std::nullopt,
-        .x = mj.event_x,
-        .lambda = event_lambda_scratch_,
-        .z = mj.event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count(),
+        .x = mj.event_x,
+        .lambda = event_lambda_scratch_,
+        .z = want_vectors ? mj.event_z : no_vector,
+        .g = event_g_scratch_,
+        .violation = event_violation_scratch_,
+        .z_lower = z_lower,
+        .z_upper = z_upper,
+        .ipm = std::nullopt,
+        .sqp = sqp_iteration_info(exported, 0),
     };
     ++st.events_fired;
     if (const CallbackAction action = invoke_iteration_callback(event);
@@ -6924,7 +6981,7 @@ void SqpSolverImpl::apply_pending_iteration_callback(bool at_solve_entry) {
     iteration_payload_ = pending_payload_;
     iteration_scope_ = pending_scope_;
     pending_callback_.reset();
-    pending_payload_ = IterationPayload::kAll;
+    pending_payload_ = detail::kDefaultIterationPayload;
     pending_scope_ = CallbackScope::kTopLevel;
     pending_callback_at_entry_ = false;
     // AND IT LANDS ON AN ACTIVE RESTORATION SUB-DRIVER TOO (M7 W0 T2 fix1).
@@ -7010,7 +7067,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         Vec x, lambda_e, lambda_i, z, ce, ci;
         detail::DeclaredDiagnostics diag;
     };
-    auto caller_point = [&](bool want_diagnostics) {
+    auto caller_point = [&](bool want_diagnostics, bool want_rows = false) {
         CallerPoint cp;
         const detail::ProblemScaling &sc = st.solve_scaling;
         const bool scaled = sc.active;
@@ -7029,18 +7086,22 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         }
         // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the
         // measurement this row was taken from.
-        if (want_diagnostics && mj.kkt.finite) {
-            Vec grad_lag_c = mj.kkt.grad_lag;
+        if ((want_diagnostics || want_rows) && mj.kkt.finite) {
             cp.ce = st.ev.ce;
             cp.ci = st.ev.ci;
             if (scaled) {
-                grad_lag_c /= sc.obj;
                 if (cp.ce.size() == sc.eq_rows.size()) {
                     cp.ce.array() /= sc.eq_rows.array();
                 }
                 if (cp.ci.size() == sc.ineq_rows.size()) {
                     cp.ci.array() /= sc.ineq_rows.array();
                 }
+            }
+        }
+        if (want_diagnostics && mj.kkt.finite) {
+            Vec grad_lag_c = mj.kkt.grad_lag;
+            if (scaled) {
+                grad_lag_c /= sc.obj;
             }
             cp.diag = detail::compute_declared_diagnostics_from_grad_lag(
                 cp.x, cp.lambda_i, cp.z, grad_lag_c, cp.ce, cp.ci, seam.lower(), seam.upper(), {});
@@ -7080,26 +7141,37 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // nothing at all. Re-taken with the rest of the row when the watchdog
         // restores an earlier iterate, which is why it lives in this lambda.
         //
-        // AND SINCE M7 W0 T2, ONLY WHAT THE CONSUMER DECLARED. The payload mask
-        // the callback was attached with selects the two halves of this
-        // snapshot independently. The diagnostics are computed FROM the mapped
-        // snapshot, so a kDiagnostics-only mask still takes it and then EMPTIES
-        // the four members; a kScalars mask takes none of it.
+        // AND SINCE M7 W0 T2, ONLY WHAT THE CONSUMER DECLARED. Each payload bit
+        // selects its members of this snapshot; the diagnostics are computed
+        // FROM the mapped point, so a mask without kVectors still takes it and
+        // then EMPTIES what it did not ask for; a kScalars mask takes none of it.
         const bool want_vectors =
             iteration_callback_ && payload_requests(iteration_payload_, IterationPayload::kVectors);
         const bool want_diagnostics =
             iteration_callback_ &&
             payload_requests(iteration_payload_, IterationPayload::kDiagnostics);
-        // The four snapshot members, emptied. A mask NARROWED from inside a
+        const bool want_constraints =
+            iteration_callback_ &&
+            payload_requests(iteration_payload_, IterationPayload::kConstraints);
+        const bool want_sides =
+            iteration_callback_ &&
+            payload_requests(iteration_payload_, IterationPayload::kBoundMultipliers);
+        auto snapshot_populated = [&mj] {
+            return mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
+                   mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0 ||
+                   mj.event_ce.size() != 0 || mj.event_ci.size() != 0;
+        };
+        // The snapshot members, emptied. A mask NARROWED from inside a
         // callback takes effect at the next event, so a stale snapshot taken
         // under a wider mask must not survive into one taken under this.
-        auto drop_snapshot = [&mj] {
-            if (mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
-                mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0) {
+        auto drop_snapshot = [&mj, &snapshot_populated] {
+            if (snapshot_populated()) {
                 mj.event_x.resize(0);
                 mj.event_lambda_e.resize(0);
                 mj.event_lambda_i.resize(0);
                 mj.event_z.resize(0);
+                mj.event_ce.resize(0);
+                mj.event_ci.resize(0);
             }
         };
         if (iteration_callback_) {
@@ -7110,30 +7182,35 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             // REQUESTED (drivers/solve_result.h's IterationPayload).
             mj.event_diag = detail::DeclaredDiagnostics{};
         }
-        if (want_vectors || want_diagnostics) {
+        if (want_vectors || want_diagnostics || want_constraints || want_sides) {
             // THE MAP, ONE DEFINITION (caller_point above): shared with the best
             // tracker, so an event and best_iterate describe a point in one arithmetic.
-            CallerPoint cp = caller_point(want_diagnostics);
-            mj.event_x = std::move(cp.x);
-            mj.event_lambda_e = std::move(cp.lambda_e);
-            mj.event_lambda_i = std::move(cp.lambda_i);
-            mj.event_z = std::move(cp.z);
+            CallerPoint cp = caller_point(want_diagnostics, want_constraints);
+            drop_snapshot();
+            if (want_vectors) {
+                mj.event_x = std::move(cp.x);
+                mj.event_lambda_e = std::move(cp.lambda_e);
+                mj.event_lambda_i = std::move(cp.lambda_i);
+            }
+            if (want_vectors || want_sides) {
+                mj.event_z = std::move(cp.z);
+            }
+            if (want_constraints) {
+                mj.event_ce = std::move(cp.ce);
+                mj.event_ci = std::move(cp.ci);
+            }
             if (want_diagnostics) {
                 mj.event_diag = cp.diag;
-            }
-            if (!want_vectors) {
-                drop_snapshot();
             }
         } else if (iteration_callback_) {
             // A SCALARS-ONLY CONSUMER. Nothing is snapshotted; the only work
             // here is the size check that keeps a wider mask's snapshot from
             // surviving a narrowing.
             drop_snapshot();
-        } else if (mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
-                   mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0) {
+        } else if (snapshot_populated()) {
             // AND A SOLVE WITH NO CALLBACK COPIES NOTHING (M6 W5 T8.6 fix1),
-            // checked rather than asserted in prose. The five snapshot members
-            // are written at this one statement and nowhere else, so on a major
+            // checked rather than asserted in prose. The snapshot members are
+            // written at this one statement and nowhere else, so on a major
             // whose driver has no callback they must still be the empty vectors
             // MajorState default-constructed them as. Every no-callback push in
             // the whole suite runs this branch, which is what makes "a solve
@@ -7205,6 +7282,7 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         }
         if (st.mb.snap_row == static_cast<Index>(st.out.history.size())) {
             st.mb.snap.step_norm = exported.step_norm;
+            st.mb.snap.sqp = sqp_iteration_info(exported, 0);
         }
         st.out.history.push_back(std::move(exported));
         ++st.rows_pushed;
@@ -7600,13 +7678,14 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
             IterationSnapshot &snap = st.mb.snap;
             snap = IterationSnapshot{};
             snap.iteration = static_cast<Index>(st.out.history.size());
-            snap.depth = Index{0};
             snap.f = st.solve_scaling.active ? mj.row.f / st.solve_scaling.obj : mj.row.f;
             snap.stationarity = cp.diag.stationarity;
             snap.feasibility =
                 detail::combine_feasibility(cp.diag.feasibility_e, cp.diag.feasibility_i);
             snap.complementarity = cp.diag.complementarity;
-            snap.radius = mj.row.tr_radius;
+            // Completed from the row when it is pushed (sqp_iteration_info).
+            snap.sqp = SqpIterationInfo{};
+            snap.sqp->trust_radius = mj.row.tr_radius;
             snap.x = std::move(cp.x);
             snap.z = std::move(cp.z);
             snap.elapsed_seconds =
@@ -9778,26 +9857,24 @@ detail::SqpWarmState SqpSolverImpl::make_warm_start(AssemblyEvalSeam &seam,
 void SqpSolverImpl::attach_best_iterate(const SolveState &st, SolveStatus status,
                                         SqpResult &out) const {
     out.best_iterate.reset();
-    auto &rows = detail::engine_rows(out);
-    rows.best_lambda_e.resize(0);
-    rows.best_lambda_i.resize(0);
-    rows.best_ce.resize(0);
-    rows.best_ci.resize(0);
     if (!st.mb.snap_valid || status == SolveStatus::kOptimal ||
         status == SolveStatus::kAcceptable) {
         return;
     }
     out.best_iterate = st.mb.snap;
-    rows.best_lambda_e = st.mb.rows_lambda_e;
-    rows.best_lambda_i = st.mb.rows_lambda_i;
+    IterationSnapshot &best = *out.best_iterate;
     // The same export-boundary sign repair the primary point's inequality prices
     // get, so a best iterate returned as the primary carries what it would
     // carry on any other exit. Its disclosure counters are the primary's, not
     // the snapshot's, so the sweep's own are discarded.
+    Vec lambda_i = st.mb.rows_lambda_i;
     SsnCounters discarded;
-    sweep_negative_face_prices(rows.best_lambda_i, discarded);
-    rows.best_ce = st.mb.rows_ce;
-    rows.best_ci = st.mb.rows_ci;
+    sweep_negative_face_prices(lambda_i, discarded);
+    // Into the row space by the event's own maps.
+    detail::compose_event_lambda(callback_rows_, st.mb.rows_lambda_e, lambda_i, best.lambda);
+    detail::compose_event_rows(callback_rows_, st.mb.rows_ce, st.mb.rows_ci, best.g,
+                               best.violation);
+    detail::split_bound_multipliers(best.z, best.z_lower, best.z_upper);
 }
 
 SqpResult SqpSolverImpl::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status,

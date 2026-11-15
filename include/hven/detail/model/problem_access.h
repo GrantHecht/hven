@@ -149,6 +149,16 @@ struct ProblemAccess {
     static void compose_rows_into(const Problem &problem, const Vec &lambda_e, const Vec &lambda_i,
                                   Vec &out);
 
+    /// @brief The engines' constraint blocks as row values @p g (SolveResult::g's
+    ///        definition) and row violation @p violation (>= 0, 0 on a free row,
+    ///        NaN kept); both empty when a block is not at its row count.
+    static void compose_row_values_into(const Problem &problem, const Vec &ce, const Vec &ci,
+                                        Vec &g, Vec &violation);
+
+    /// @brief compose_row_values_into with no problem: [ce; ci] and
+    ///        [|ce|; max(ci, 0)].
+    static void concatenated_row_values(const Vec &ce, const Vec &ci, Vec &g, Vec &violation);
+
     /// @brief A row-space multiplier vector in the engines' split.
     /// @throws std::invalid_argument if @p lambda is not one entry per row.
     static void split_rows(const Problem &problem, const Vec &lambda, Vec &lambda_e, Vec &lambda_i);

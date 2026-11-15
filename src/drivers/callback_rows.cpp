@@ -18,4 +18,24 @@ void compose_event_lambda(const Problem *problem, const Vec &lambda_e, const Vec
     scratch.tail(lambda_i.size()) = lambda_i;
 }
 
+void compose_event_rows(const Problem *problem, const Vec &ce, const Vec &ci, Vec &g,
+                        Vec &violation) {
+    if (problem != nullptr) {
+        ProblemAccess::compose_row_values_into(*problem, ce, ci, g, violation);
+        return;
+    }
+    ProblemAccess::concatenated_row_values(ce, ci, g, violation);
+}
+
+void split_bound_multipliers(const Vec &z, Vec &z_lower, Vec &z_upper) {
+    z_lower.resize(z.size());
+    z_upper.resize(z.size());
+    for (Index k = 0; k < z.size(); ++k) {
+        const double v = z[k];
+        // NaN stays NaN on both sides: unmeasured, never zero.
+        z_lower[k] = v > 0.0 ? v : (v <= 0.0 ? 0.0 : v);
+        z_upper[k] = v < 0.0 ? -v : (v >= 0.0 ? 0.0 : v);
+    }
+}
+
 } // namespace hven::detail

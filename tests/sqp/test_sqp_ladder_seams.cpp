@@ -625,7 +625,7 @@ TEST(SqpLadderSeam, CertOneAPointTheConvergenceTestCallsFeasibleIsNoCertificate)
     std::vector<Index> depths;
     driver.set_iteration_callback(
         [&depths](const IterationEvent &e) {
-            depths.push_back(e.depth.value_or(0));
+            depths.push_back((e.sqp ? e.sqp->depth : Index{0}));
             return CallbackAction::kContinue;
         },
         IterationPayload::kAll, CallbackScope::kIncludeRestoration);
@@ -983,7 +983,7 @@ TEST(SqpLadderSeam, AStopOnTheSwitchRowEndsTheSolveWithoutTheRegularizedRestart)
     int depth1_rows = 0;
     solver.set_iteration_callback(
         [&](const IterationEvent &e) {
-            if (e.depth.value_or(0) >= 1) {
+            if ((e.sqp ? e.sqp->depth : Index{0}) >= 1) {
                 ++depth1_rows;
                 return CallbackAction::kStop;
             }

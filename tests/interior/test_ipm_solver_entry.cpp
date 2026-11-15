@@ -1980,7 +1980,7 @@ template <class Configure> VariantRun run_hs071(Configure &&configure) {
     VariantRun run;
     solver.set_iteration_callback([&run](const hven::IterationEvent &ev) {
         run.objective_trace.push_back(ev.f);
-        run.mu_trace.push_back(ev.mu.value_or(-1.0));
+        run.mu_trace.push_back(ev.ipm ? ev.ipm->mu : -1.0);
         return hven::CallbackAction::kContinue;
     });
 

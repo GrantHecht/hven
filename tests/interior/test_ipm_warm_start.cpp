@@ -1774,7 +1774,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // M6 W5 T8.6: the shared iteration callback's `mu` is the barrier parameter
     // the iterate it describes was EVALUATED under.
     solver.set_iteration_callback([&](const hven::IterationEvent &ev) {
-        late_mu.push_back(ev.mu.value());
+        late_mu.push_back(ev.ipm->mu);
         return hven::CallbackAction::kContinue;
     });
 

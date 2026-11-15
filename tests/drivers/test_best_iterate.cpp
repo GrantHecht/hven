@@ -159,6 +159,13 @@ void expect_primary_is(const SolveResult &r, const IterationSnapshot &best) {
         << r.feasibility << " vs " << best.feasibility;
     EXPECT_TRUE(same_scalar(r.complementarity, best.complementarity))
         << r.complementarity << " vs " << best.complementarity;
+    // The G5 views are filled on a best iterate (R5: composed by the engine).
+    EXPECT_EQ(best.violation.size(), best.g.size());
+    ASSERT_EQ(best.z_lower.size(), r.z.size());
+    ASSERT_EQ(best.z_upper.size(), r.z.size());
+    EXPECT_LE((best.z_lower - best.z_upper - r.z).lpNorm<Eigen::Infinity>(),
+              1e-12 * (1.0 + r.z.lpNorm<Eigen::Infinity>()));
+    EXPECT_TRUE(best.ipm.has_value() != best.sqp.has_value());
 }
 
 } // namespace
@@ -219,10 +226,8 @@ TEST(BestIterate, T7bAStopReturnBestAfterSeveralEventsReturnsTheBestOfThem) {
                 // And it carries that event's own scalars.
                 EXPECT_TRUE(same_scalar(s.f, r.best_iterate->f));
                 EXPECT_TRUE(same_scalar(s.step_norm, r.best_iterate->step_norm));
-                EXPECT_EQ(s.phase, r.best_iterate->phase);
-                EXPECT_EQ(s.depth, r.best_iterate->depth);
-                EXPECT_EQ(s.radius.has_value(), r.best_iterate->radius.has_value());
-                EXPECT_EQ(s.mu.has_value(), r.best_iterate->mu.has_value());
+                EXPECT_EQ(s.ipm.has_value(), r.best_iterate->ipm.has_value());
+                EXPECT_EQ(s.sqp.has_value(), r.best_iterate->sqp.has_value());
             }
         }
         EXPECT_TRUE(found) << "best_iterate is not the point of any delivered event";
@@ -463,7 +468,7 @@ TEST(BestIterate, T12ASnapshotOfAScalarsOnlyEventHasNoVectors) {
         EXPECT_EQ(s.lambda.size(), 0);
         EXPECT_EQ(s.z.size(), 0);
         EXPECT_TRUE(std::isnan(s.stationarity));
-        EXPECT_TRUE(s.mu.has_value());
+        EXPECT_TRUE(s.ipm.has_value());
     }
 }
 
@@ -529,12 +534,39 @@ void expect_snapshot_equals(const IterationSnapshot &best, const IterationSnapsh
     EXPECT_TRUE(same_scalar(best.feasibility, ev.feasibility));
     EXPECT_TRUE(same_scalar(best.complementarity, ev.complementarity));
     EXPECT_TRUE(same_scalar(best.step_norm, ev.step_norm));
-    EXPECT_EQ(best.phase, ev.phase);
-    EXPECT_EQ(best.mu.has_value(), ev.mu.has_value());
-    if (best.mu && ev.mu) {
+    // The G5 views, where the event carried them (a kAll event).
+    if (ev.g.size() != 0 || ev.z_lower.size() != 0) {
+        EXPECT_TRUE(bit_equal(best.g, ev.g));
+        EXPECT_TRUE(bit_equal(best.violation, ev.violation));
+        EXPECT_TRUE(bit_equal(best.z_lower, ev.z_lower));
+        EXPECT_TRUE(bit_equal(best.z_upper, ev.z_upper));
+    }
+    ASSERT_EQ(best.ipm.has_value(), ev.ipm.has_value());
+    ASSERT_EQ(best.sqp.has_value(), ev.sqp.has_value());
+    if (best.ipm && ev.ipm) {
+        EXPECT_EQ(best.ipm->phase, ev.ipm->phase);
         // Two division sites under the build's relaxed floating-point mode (the
         // sanitizer builds round them one ulp apart): equal to rounding.
-        EXPECT_NEAR(*best.mu, *ev.mu, 1e-14 * std::abs(*ev.mu)) << "iteration " << best.iteration;
+        EXPECT_NEAR(best.ipm->mu, ev.ipm->mu, 1e-14 * std::abs(ev.ipm->mu))
+            << "iteration " << best.iteration;
+        EXPECT_TRUE(same_scalar(best.ipm->alpha_primal, ev.ipm->alpha_primal));
+        EXPECT_TRUE(same_scalar(best.ipm->alpha_dual, ev.ipm->alpha_dual));
+        EXPECT_TRUE(same_scalar(best.ipm->regularization_primal, ev.ipm->regularization_primal));
+        EXPECT_TRUE(same_scalar(best.ipm->regularization_dual, ev.ipm->regularization_dual));
+        EXPECT_EQ(best.ipm->inertia_corrections, ev.ipm->inertia_corrections);
+        EXPECT_EQ(best.ipm->line_search_trials, ev.ipm->line_search_trials);
+    }
+    if (best.sqp && ev.sqp) {
+        EXPECT_EQ(best.sqp->depth, ev.sqp->depth);
+        EXPECT_TRUE(same_scalar(best.sqp->trust_radius, ev.sqp->trust_radius));
+        EXPECT_TRUE(same_scalar(best.sqp->violation_l1, ev.sqp->violation_l1));
+        EXPECT_TRUE(same_scalar(best.sqp->dual_regularization, ev.sqp->dual_regularization));
+        EXPECT_EQ(best.sqp->qp_solved, ev.sqp->qp_solved);
+        EXPECT_EQ(best.sqp->qp_status, ev.sqp->qp_status);
+        EXPECT_EQ(best.sqp->qp_minor_iterations, ev.sqp->qp_minor_iterations);
+        EXPECT_EQ(best.sqp->active_set_size, ev.sqp->active_set_size);
+        EXPECT_EQ(best.sqp->verdict, ev.sqp->verdict);
+        EXPECT_EQ(best.sqp->elastic, ev.sqp->elastic);
     }
 }
 
@@ -620,11 +652,13 @@ TEST(BestIterate, SqpScaledBestIterateEqualsItsEventsSnapshot) {
     for (const Index stop_at : {2, 4}) {
         SqpSolver solver(o);
         std::vector<IterationSnapshot> seen;
-        solver.set_iteration_callback([&](const IterationEvent &ev) {
-            seen.push_back(snapshot(ev));
-            return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
-                                           : CallbackAction::kContinue;
-        });
+        solver.set_iteration_callback(
+            [&](const IterationEvent &ev) {
+                seen.push_back(snapshot(ev));
+                return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                               : CallbackAction::kContinue;
+            },
+            IterationPayload::kAll);
         const SqpResult r = solver.solve(problem, hs071_start());
         ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
         ASSERT_TRUE(r.returned_best_iterate);
@@ -643,6 +677,8 @@ TEST(BestIterate, SqpScaledBestIterateEqualsItsEventsSnapshot) {
         EXPECT_LE((r.z - r.best_iterate->z).cwiseAbs().maxCoeff(),
                   1e-9 * (1.0 + r.z.cwiseAbs().maxCoeff()));
         EXPECT_EQ(r.best_iterate->g.size(), 2);
+        EXPECT_EQ(r.best_iterate->violation.size(), 2);
+        EXPECT_EQ(r.best_iterate->z_lower.size(), 4);
     }
 }
 
@@ -653,11 +689,13 @@ TEST(BestIterate, IpmReducedObjectiveScaledBestIterateEqualsItsEventsSnapshot) {
     for (const Index stop_at : {2, 4}) {
         IpmSolver solver(o);
         std::vector<IterationSnapshot> seen;
-        solver.set_iteration_callback([&](const IterationEvent &ev) {
-            seen.push_back(snapshot(ev));
-            return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
-                                           : CallbackAction::kContinue;
-        });
+        solver.set_iteration_callback(
+            [&](const IterationEvent &ev) {
+                seen.push_back(snapshot(ev));
+                return ev.iteration == stop_at ? CallbackAction::kStopReturnBest
+                                               : CallbackAction::kContinue;
+            },
+            IterationPayload::kAll);
         const IpmResult r = solver.solve(problem, fixed_start());
         ASSERT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
         ASSERT_TRUE(r.returned_best_iterate);

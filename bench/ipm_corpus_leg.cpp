@@ -305,16 +305,24 @@ const char *leg_callback_payload_tag() {
         return "all";
     }
     const std::string value(raw);
-    if (value == "all" || value == "scalars") {
-        return value == "all" ? "all" : "scalars";
+    if (value == "all" || value == "scalars" || value == "vectors-diagnostics") {
+        return value == "all" ? "all" : value == "scalars" ? "scalars" : "vectors-diagnostics";
     }
-    throw std::invalid_argument(
-        fmt::format("HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars", value));
+    throw std::invalid_argument(fmt::format(
+        "HVEN_LEG_CALLBACK_PAYLOAD: '{}' is not one of all|scalars|vectors-diagnostics", value));
 }
 
+// M8 AP-5 G5: `vectors-diagnostics` is the pre-G5 kAll payload (the default mask
+// now), so an attached-callback leg can pair it with an older binary's `all`.
 hven::IterationPayload leg_callback_payload() {
-    return std::string(leg_callback_payload_tag()) == "scalars" ? hven::IterationPayload::kScalars
-                                                                : hven::IterationPayload::kAll;
+    const std::string tag = leg_callback_payload_tag();
+    if (tag == "scalars") {
+        return hven::IterationPayload::kScalars;
+    }
+    if (tag == "vectors-diagnostics") {
+        return hven::IterationPayload::kVectors | hven::IterationPayload::kDiagnostics;
+    }
+    return hven::IterationPayload::kAll;
 }
 
 } // namespace

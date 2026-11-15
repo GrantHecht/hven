@@ -623,7 +623,7 @@ TEST(StopTokenSolve, ATokenOnAPhasesConvergingRowSkipsTheNextPhaseWithoutAnEvent
         Problem problem(std::make_shared<Hs071Problem>());
         IpmSolver solver(o);
         solver.set_iteration_callback([&](const IterationEvent &ev) {
-            if (ev.phase.value_or(0) == 0) {
+            if ((ev.ipm ? ev.ipm->phase : Index{0}) == 0) {
                 ++phase0_events;
             }
             return CallbackAction::kContinue;

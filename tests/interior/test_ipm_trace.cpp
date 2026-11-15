@@ -504,7 +504,8 @@ struct CallbackOracle {
 
     hven::IterationCallback hook() {
         return [this](const hven::IterationEvent &ev) {
-            this->seen.push_back(Seen{ev.iteration, ev.phase.value_or(-1), ev.f});
+            this->seen.push_back(
+                Seen{ev.iteration, (ev.ipm ? ev.ipm->phase : hven::Index{-1}), ev.f});
             return hven::CallbackAction::kContinue;
         };
     }

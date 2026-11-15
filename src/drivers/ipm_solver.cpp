@@ -2281,6 +2281,7 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
         this->best_eval_prov_ = this->cur_eval_prov_;
         this->best_mu_scratch_ = mu;
         this->best_step_norm_scratch_ = step_norm;
+        this->best_info_scratch_ = this->reached_step_info_;
         this->best_row_scratch_ = iter;
         this->best_elapsed_scratch_ =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
@@ -2291,41 +2292,38 @@ void hven::detail::IpmSolverImpl::track_best_iterate(const IpmIterate &iter, int
 
 void hven::detail::IpmSolverImpl::publish_phase_best(bool recorded) {
     IpmResult &r = this->result_;
-    auto &rows = hven::detail::engine_rows(r);
     r.best_iterate.reset();
-    rows.best_lambda_e.resize(0);
-    rows.best_lambda_i.resize(0);
-    rows.best_ce.resize(0);
-    rows.best_ci.resize(0);
     if (!recorded) {
         return;
     }
-    // The tracked pair read through the event's own conversion; the row space
-    // `lambda` and `g` are mapped from the four blocks by Problem.
+    // The tracked pair read through the event's own conversion, composed into
+    // the row space by the event's own map.
     const ExitEvalProvenance &prov = this->best_eval_prov_;
-    DeclaredPoint pt =
-        this->declared_point(this->best_xsl_scratch_, this->best_rhs_scratch_,
-                             this->best_bound_duals_scratch_, prov, prov.restoration_active, true);
+    DeclaredPoint pt = this->declared_point(this->best_xsl_scratch_, this->best_rhs_scratch_,
+                                            this->best_bound_duals_scratch_, prov,
+                                            prov.restoration_active, true, true, true);
     const double scale = this->solve_obj_scale_;
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const bool objective_measured = prov.objective_bearing && !prov.restoration_active;
     IterationSnapshot snap;
     snap.iteration = static_cast<Index>(this->best_row_scratch_.iter);
     snap.recovering = false;
-    snap.phase = this->trace_phase_;
     snap.f = objective_measured ? this->best_prim_obj_scratch_ / scale : nan;
     snap.stationarity = pt.diag.stationarity;
     snap.feasibility = detail::combine_feasibility(pt.diag.feasibility_e, pt.diag.feasibility_i);
     snap.complementarity = pt.diag.complementarity;
     snap.step_norm = this->best_step_norm_scratch_;
-    snap.mu = this->best_mu_scratch_ / scale;
+    snap.elapsed_seconds = this->best_elapsed_scratch_;
     snap.x = std::move(pt.x);
     snap.z = std::move(pt.z);
-    snap.elapsed_seconds = this->best_elapsed_scratch_;
-    rows.best_lambda_e = std::move(pt.lambda_e);
-    rows.best_lambda_i = std::move(pt.lambda_i);
-    rows.best_ce = std::move(pt.ce);
-    rows.best_ci = std::move(pt.ci);
+    detail::compose_event_lambda(this->callback_rows_, pt.lambda_e, pt.lambda_i, snap.lambda);
+    detail::compose_event_rows(this->callback_rows_, pt.ce, pt.ci, snap.g, snap.violation);
+    snap.z_lower = std::move(pt.z_lower);
+    snap.z_upper = std::move(pt.z_upper);
+    IpmIterationInfo info = this->best_info_scratch_;
+    info.phase = this->trace_phase_;
+    info.mu = this->best_mu_scratch_ / scale;
+    snap.ipm = info;
     r.best_iterate = std::move(snap);
 }
 
@@ -2395,7 +2393,8 @@ hven::detail::IpmSolverImpl::declared_diagnostics_from_reduced_grad_lag(
 
 hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared_point(
     const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS, const BoundDualState &duals,
-    const ExitEvalProvenance &prov, bool restoration_contaminated, bool want_diagnostics) const {
+    const ExitEvalProvenance &prov, bool restoration_contaminated, bool want_diagnostics,
+    bool want_rows, bool want_sides) const {
     const double scale = this->solve_obj_scale_;
     DeclaredPoint pt;
     Eigen::VectorXd &x_declared = pt.x;
@@ -2466,10 +2465,48 @@ hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared
         }
     }
 
-    if (want_diagnostics) {
-        // (4) The two constraint blocks, declared rows only. They feed the
-        //     diagnostics and NOTHING ELSE -- they are not fields of the
-        //     event -- so they are prepared only when the diagnostics are.
+    // (3b) The two per-side bound multipliers, declared width, by the same
+    //      scatter; a coordinate with no engine bound side (eliminated, or a
+    //      fixing row's) takes the sign split of its z.
+    if (want_sides) {
+        pt.z_lower = Eigen::VectorXd::Zero(n);
+        pt.z_upper = Eigen::VectorXd::Zero(n);
+        if (this->bounds_) {
+            Eigen::VectorXd lo = Eigen::VectorXd::Zero(this->primal_vars_);
+            Eigen::VectorXd up = Eigen::VectorXd::Zero(this->primal_vars_);
+            const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+            const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+            for (int k = 0; k < nl; k++)
+                lo[this->bounds_->lower_idx_[k]] += duals.z_lower_[k];
+            for (int k = 0; k < nu; k++)
+                up[this->bounds_->upper_idx_[k]] += duals.z_upper_[k];
+            lo /= scale;
+            up /= scale;
+            if (this->nlp_->is_reduced()) {
+                const auto &r2f = this->nlp_->reduced_to_full();
+                if (r2f.size() == lo.size()) {
+                    for (Eigen::Index k = 0; k < lo.size(); ++k) {
+                        pt.z_lower[r2f[k]] = lo[k];
+                        pt.z_upper[r2f[k]] = up[k];
+                    }
+                }
+            } else if (lo.size() == n) {
+                pt.z_lower = lo;
+                pt.z_upper = up;
+            }
+        }
+        if (have_fixing_rows) {
+            for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+                const double v = z_declared[fixed_idx[k]];
+                pt.z_lower[fixed_idx[k]] = v > 0.0 ? v : 0.0;
+                pt.z_upper[fixed_idx[k]] = v < 0.0 ? -v : 0.0;
+            }
+        }
+    }
+
+    if (want_diagnostics || want_rows) {
+        // (4) The two constraint blocks, declared rows only: the diagnostics'
+        //     input and the event's kConstraints views.
         Eigen::VectorXd &ce_declared = pt.ce;
         Eigen::VectorXd &ci_declared = pt.ci;
         if (this->equal_cons_ > 0) {
@@ -2488,7 +2525,7 @@ hven::detail::IpmSolverImpl::DeclaredPoint hven::detail::IpmSolverImpl::declared
         }
         const bool measured = prov.has_eval && !restoration_contaminated &&
                               v_rhs.prim_grad().size() == this->primal_vars_;
-        if (measured) {
+        if (want_diagnostics && measured) {
             // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5
             // T8.6 fix1). Clause (a) -- a feasibility phase measures every
             // declared quantity except the objective gradient, so
@@ -2568,7 +2605,10 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
         payload_requests(this->iteration_payload_, IterationPayload::kVectors);
     const bool want_diagnostics =
         payload_requests(this->iteration_payload_, IterationPayload::kDiagnostics);
-    const bool want_declared = want_vectors || want_diagnostics;
+    const bool want_constraints =
+        payload_requests(this->iteration_payload_, IterationPayload::kConstraints);
+    const bool want_sides =
+        payload_requests(this->iteration_payload_, IterationPayload::kBoundMultipliers);
 
     const double scale = this->solve_obj_scale_;
     const double nan = std::numeric_limits<double>::quiet_NaN();
@@ -2582,11 +2622,15 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     const bool restoration_contaminated =
         prov.restoration_active ||
         (this->restoration_ != nullptr && this->restoration_->is_active());
+    // A restoration iterate has no caller-space rows or bound sides (G5).
+    const bool rows_out = want_constraints && !restoration_contaminated;
+    const bool sides_out = want_sides && !restoration_contaminated;
+    const bool want_declared = want_vectors || want_diagnostics || rows_out || sides_out;
 
     DeclaredPoint pt;
     if (want_declared) {
         pt = this->declared_point(XSL, RHS, this->bound_duals_, prov, restoration_contaminated,
-                                  want_diagnostics);
+                                  want_diagnostics, rows_out, sides_out);
     }
     Eigen::VectorXd &x_declared = pt.x;
     Eigen::VectorXd &lambda_e_declared = pt.lambda_e;
@@ -2594,9 +2638,8 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     Eigen::VectorXd &z_declared = pt.z;
     const detail::DeclaredDiagnostics &diag = pt.diag;
 
-    // THE FOUR VIEWS, or four empty ones. `no_vector` is an empty
-    // Eigen::VectorXd that allocates nothing, so a kScalars event binds its
-    // views to size-0 storage and the caller reads `x.size() == 0` -- the
+    // THE VIEWS, or empty ones. `no_vector` is an empty Eigen::VectorXd that
+    // allocates nothing, so an unrequested view binds to size-0 storage -- the
     // documented "not requested" shape.
     const Eigen::VectorXd no_vector;
     const Eigen::VectorXd &event_x = want_vectors ? x_declared : no_vector;
@@ -2608,6 +2651,14 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     }
     const Eigen::VectorXd &event_lambda = want_vectors ? this->event_lambda_scratch_ : no_vector;
     const Eigen::VectorXd &event_z = want_vectors ? z_declared : no_vector;
+    if (rows_out) {
+        detail::compose_event_rows(this->callback_rows_, pt.ce, pt.ci, this->event_g_scratch_,
+                                   this->event_violation_scratch_);
+    }
+    const Eigen::VectorXd &event_g = rows_out ? this->event_g_scratch_ : no_vector;
+    const Eigen::VectorXd &event_violation = rows_out ? this->event_violation_scratch_ : no_vector;
+    const Eigen::VectorXd &event_z_lower = sides_out ? pt.z_lower : no_vector;
+    const Eigen::VectorXd &event_z_upper = sides_out ? pt.z_upper : no_vector;
 
     // THE OBJECTIVE, UNDER THE RESULT'S OWN PROVENANCE RULE (M6 W5 T8.6 fix1,
     // astra item 1). `iter.prim_obj_` is NOT the caller's objective at this
@@ -2623,24 +2674,30 @@ void hven::detail::IpmSolverImpl::fire_iteration_event(const IpmIterate &iter,
     const bool objective_measured = prov.objective_bearing && !restoration_contaminated;
     const double f_declared = objective_measured ? prim_obj / scale : nan;
 
+    IpmIterationInfo info = this->reached_step_info_;
+    info.phase = this->trace_phase_;
+    info.mu = mu / scale;
+
     IterationEvent event{
         .iteration = static_cast<Index>(iter.iter),
         .recovering = restoration_contaminated,
-        .phase = this->trace_phase_,
-        .depth = std::nullopt,
         .f = f_declared,
         .stationarity = diag.stationarity,
         .feasibility = detail::combine_feasibility(diag.feasibility_e, diag.feasibility_i),
         .complementarity = diag.complementarity,
         .step_norm = step_norm,
-        .radius = std::nullopt,
-        .mu = mu / scale,
-        .x = event_x,
-        .lambda = event_lambda,
-        .z = event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
                 .count(),
+        .x = event_x,
+        .lambda = event_lambda,
+        .z = event_z,
+        .g = event_g,
+        .violation = event_violation,
+        .z_lower = event_z_lower,
+        .z_upper = event_z_upper,
+        .ipm = info,
+        .sqp = std::nullopt,
     };
     // THROUGH THE IN-FLIGHT GUARD (M6 W5 T8.6 fix1, the SQP lane's M1), so
     // that set_iteration_callback()/clear_iteration_callback() called from
@@ -2686,7 +2743,7 @@ void hven::detail::IpmSolverImpl::apply_pending_iteration_callback(bool at_solve
     this->iteration_payload_ = this->pending_payload_;
     this->iteration_scope_ = this->pending_scope_;
     this->pending_callback_.reset();
-    this->pending_payload_ = IterationPayload::kAll;
+    this->pending_payload_ = detail::kDefaultIterationPayload;
     this->pending_scope_ = CallbackScope::kTopLevel;
     this->pending_callback_at_entry_ = false;
 }
@@ -2907,6 +2964,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // phase's first iterate: nothing was stepped to reach it. Written only
     // while a callback is installed -- see the commit site.
     double last_step_norm = 0.0;
+    // Its step facts, for IterationEvent::ipm (M8 AP-5 G5): NaN alphas at the
+    // phase's first iterate. Written beside last_step_norm, under its guard.
+    this->reached_step_info_ = IpmIterationInfo{};
 
     Runtimer.start();
     // The loop index is hoisted so the post-loop cap door below can tell
@@ -4861,6 +4921,18 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // not merely bit-identical but arithmetically untouched.
         if (this->iteration_callback_ || this->best_tracking_armed()) {
             last_step_norm = (alpha * DXSL.head(this->primal_vars_)).lpNorm<Eigen::Infinity>();
+            // The record of the iteration taking this step (pushed above).
+            const IpmIterate &stepped = iters.back();
+            IpmIterationInfo &reached = this->reached_step_info_;
+            reached.alpha_primal = stepped.alpha_p;
+            reached.alpha_dual = stepped.alpha_d;
+            reached.regularization_primal = stepped.h_pert;
+            reached.regularization_dual =
+                opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization
+                    ? std::max(stepped.prox_reg_dual, 0.0)
+                    : (kkt_dc_applied ? dual_shift : 0.0);
+            reached.inertia_corrections = static_cast<Index>(stepped.h_facs);
+            reached.line_search_trials = static_cast<Index>(stepped.ls_iters);
         }
 
         // The ONE iterate-commit site, and therefore the only place the bound

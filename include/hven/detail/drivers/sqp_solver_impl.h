@@ -921,10 +921,10 @@ class SqpSolverImpl {
     ///
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
-    /// keeps kAll, which is what the default-argument call installs.
+    /// keeps the default mask, which is what the default-argument call installs.
     ///
     /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same
-    /// in-flight guard, applied at the same safe point, reset to kAll by
+    /// in-flight guard, applied at the same safe point, reset to the default mask by
     /// clear_iteration_callback(), and FORWARDED into a restoration sub-solve
     /// with the forwarder itself, so a depth-1 event carries the same payload
     /// as a depth-0 one. Set from INSIDE the callback it takes effect at the
@@ -935,16 +935,16 @@ class SqpSolverImpl {
     /// apply point pushes it down the active sub-driver chain, so the next
     /// depth-1 event is prepared under the new mask, widening or narrowing.
     /// An empty callable passed here is a clear, and like a clear it resets
-    /// the mask to kAll whatever this argument says.
+    /// the mask to the default mask whatever this argument says.
     ///
     /// @param cb      The callback. An empty std::function is the same as
     ///                clearing (and, like clearing, resets the mask).
-    /// @param payload What this callback reads. IterationPayload::kAll is the
+    /// @param payload What this callback reads. kVectors | kDiagnostics is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = IterationPayload::kAll,
+                                IterationPayload payload = detail::kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel) {
-        // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the
         // sol review's fourth Minor). An empty std::function IS a clear, and a
         // clear resets the mask -- so storing a narrow mask beside one would
         // leave this driver in a state its own contract says cannot exist.
@@ -952,7 +952,7 @@ class SqpSolverImpl {
         // this overload with a stored mask may legitimately pass an empty
         // callable to disarm, and a throw there would punish the idiom the
         // default-argument form already allows.
-        const IterationPayload effective = cb ? payload : IterationPayload::kAll;
+        const IterationPayload effective = cb ? payload : detail::kDefaultIterationPayload;
         const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
@@ -1003,7 +1003,7 @@ class SqpSolverImpl {
     void set_callback_rows(const Problem *problem) noexcept { callback_rows_ = problem; }
 
     /// @brief The payload mask the installed callback declared, or
-    ///        IterationPayload::kAll when none is installed.
+    ///        the default mask when none is installed.
     ///
     /// AN OBSERVATION POINT (M7 W0 T2 fix1), on ssn_tier_num_threads()'s own
     /// footing: read-only, and it exists so a consumer -- and the suite -- can
@@ -1018,13 +1018,13 @@ class SqpSolverImpl {
     /// set_iteration_callback(), whose ONE deferral slot this shares -- last
     /// write wins.
     ///
-    /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
+    /// THE MASK GOES BACK TO the default mask, so a later attach through
     /// the default-argument call delivers the full payload and no narrowing
     /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};
-            pending_payload_ = IterationPayload::kAll;
+            pending_payload_ = detail::kDefaultIterationPayload;
             pending_scope_ = CallbackScope::kTopLevel;
             pending_callback_at_entry_ = !callback_in_flight_;
             return;
@@ -1033,7 +1033,7 @@ class SqpSolverImpl {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = nullptr;
-        iteration_payload_ = IterationPayload::kAll;
+        iteration_payload_ = detail::kDefaultIterationPayload;
         iteration_scope_ = CallbackScope::kTopLevel;
     }
 
@@ -2125,20 +2125,22 @@ class SqpSolverImpl {
     IterationCallback iteration_callback_;
 
     // WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
-    // `measure_iterate`'s snapshot prepares beyond the row's own scalars. kAll
+    // `measure_iterate`'s snapshot prepares beyond the row's own scalars. kVectors | kDiagnostics
     // is what the default-argument set_iteration_callback() installs and what a
     // clear resets to, so a driver with no callback carries no narrowing into
     // the next attach. FORWARDED into the restoration sub-driver beside the
     // forwarder itself (see enter_restoration).
-    IterationPayload iteration_payload_ = IterationPayload::kAll;
+    IterationPayload iteration_payload_ = detail::kDefaultIterationPayload;
     // WHICH ROWS THE CALLBACK IS SHOWN. kTopLevel installs no restoration
     // forwarder (see enter_restoration).
     CallbackScope iteration_scope_ = CallbackScope::kTopLevel;
     // The Problem the public handle is solving, for the row-space `lambda` of an
     // event; null on every internal route (concatenation). Not owned.
     const Problem *callback_rows_ = nullptr;
-    // The event's composed `lambda`, reused across events.
+    // The event's composed `lambda`, `g` and `violation`, reused across events.
     Vec event_lambda_scratch_;
+    Vec event_g_scratch_;
+    Vec event_violation_scratch_;
 
     // THE IN-FLIGHT GUARD AND THE DEFERRED CHANGE (M6 W5 T8.6 fix1, the SQP
     // lane's M1). `callback_in_flight_` is true for exactly the duration of one
@@ -2154,7 +2156,7 @@ class SqpSolverImpl {
     // is: the two are written together at every setter and applied together at
     // every safe point, so a deferred attach cannot land with the previous
     // consumer's mask (M7 W0 T2).
-    IterationPayload pending_payload_ = IterationPayload::kAll;
+    IterationPayload pending_payload_ = detail::kDefaultIterationPayload;
     // The scope parked beside `pending_callback_`, written and applied with it.
     CallbackScope pending_scope_ = CallbackScope::kTopLevel;
     // THE RESTORATION SUB-DRIVER CURRENTLY SOLVING, or null (M7 W0 T2 fix1).

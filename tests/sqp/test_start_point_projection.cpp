@@ -236,7 +236,7 @@ TEST(StartPointProjection, OnLandsAFixedVariableExactlyOnItsValueAndLeavesInfini
     SqpSolver driver(quiet_options(/*project=*/true));
     Vec first;
     driver.set_iteration_callback([&first](const IterationEvent &e) {
-        if (first.size() == 0 && e.depth.value_or(0) == 0) {
+        if (first.size() == 0 && (e.sqp ? e.sqp->depth : Index{0}) == 0) {
             first = e.x;
         }
         return CallbackAction::kContinue;
@@ -262,7 +262,7 @@ TEST(StartPointProjection, OnMovesNothingWhereTheBoundIsInfinite) {
     SqpSolver driver(opts);
     Vec first;
     driver.set_iteration_callback([&first](const IterationEvent &e) {
-        if (first.size() == 0 && e.depth.value_or(0) == 0) {
+        if (first.size() == 0 && (e.sqp ? e.sqp->depth : Index{0}) == 0) {
             first = e.x;
         }
         return CallbackAction::kContinue;

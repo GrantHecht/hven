@@ -176,7 +176,7 @@ int main() {
     int sqp_callbacks = 0;
     sqp.set_iteration_callback([&](const IterationEvent &e) {
         // depth 0 is the caller's own problem; deeper rows belong to restoration.
-        if (e.depth.value_or(0) == 0) {
+        if (e.sqp && e.sqp->depth == 0) {
             sqp_callbacks++;
         }
         return CallbackAction::kContinue;

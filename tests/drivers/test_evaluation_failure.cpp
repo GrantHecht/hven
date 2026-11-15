@@ -1043,7 +1043,7 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
         // the model, whose next evaluation -- inside the sub-solve -- throws.
         solver.set_iteration_callback(
             [&nlp](const IterationEvent &ev) {
-                if (ev.depth.value_or(0) == 1 && nlp->fired == 0) {
+                if ((ev.sqp ? ev.sqp->depth : Index{0}) == 1 && nlp->fired == 0) {
                     nlp->throw_armed = true;
                 }
                 return CallbackAction::kContinue;

@@ -578,26 +578,26 @@ class IpmSolverImpl {
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS -- how many majors, at what objective, at what wall -- attaches
     /// with kScalars and stops paying for the vectors it never reads. A
-    /// consumer that CAPTURES THE TRAJECTORY keeps kAll, which is what the
+    /// consumer that CAPTURES THE TRAJECTORY keeps the default mask, which is what the
     /// default-argument call installs, and pays what it always paid.
     ///
     /// THE MASK RIDES THE CALLABLE. It is stored beside it, parked through the
-    /// same in-flight guard, applied at the same safe point, and reset to kAll
+    /// same in-flight guard, applied at the same safe point, and reset to the default mask
     /// by clear_iteration_callback() -- so a re-attach through the
-    /// default-argument call is kAll again. Set from INSIDE the callback it
+    /// default-argument call is the default mask again. Set from INSIDE the callback it
     /// takes effect at the NEXT event, exactly as a replacement callable does.
     /// An empty callable passed here is a clear, and like a clear it resets
-    /// the mask to kAll whatever @p payload says -- normalised at the setter
+    /// the mask to the default mask whatever @p payload says -- normalised at the setter
     /// rather than merely documented (M7 W0 T2 fix1).
     ///
     /// @param cb      The callback. An empty std::function is the same as
     ///                clearing (and, like clearing, resets the mask).
-    /// @param payload What this callback reads. IterationPayload::kAll is the
+    /// @param payload What this callback reads. kVectors | kDiagnostics is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb,
-                                IterationPayload payload = IterationPayload::kAll,
+                                IterationPayload payload = detail::kDefaultIterationPayload,
                                 CallbackScope scope = CallbackScope::kTopLevel) {
-        // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO the default mask (M7 W0 T2 fix1, the
         // sol review's fourth Minor). An empty std::function IS a clear, and a
         // clear resets the mask -- so storing a narrow mask beside one would
         // leave this engine in a state its own contract says cannot exist.
@@ -605,7 +605,7 @@ class IpmSolverImpl {
         // this overload with a stored mask may legitimately pass an empty
         // callable to disarm, and a throw there would punish the idiom the
         // default-argument form already allows.
-        const IterationPayload effective = cb ? payload : IterationPayload::kAll;
+        const IterationPayload effective = cb ? payload : detail::kDefaultIterationPayload;
         // Accepted and stored; this engine has no nested solves, so the scope
         // changes nothing here.
         const CallbackScope effective_scope = cb ? scope : CallbackScope::kTopLevel;
@@ -664,7 +664,7 @@ class IpmSolverImpl {
     void set_callback_rows(const Problem *problem) noexcept { this->callback_rows_ = problem; }
 
     /// @brief The payload mask the installed callback declared, or
-    ///        IterationPayload::kAll when none is installed.
+    ///        the default mask when none is installed.
     ///
     /// AN OBSERVATION POINT (M7 W0 T2 fix1): read-only, and it exists so a
     /// consumer -- and the suite -- can see what this engine was told to
@@ -678,13 +678,13 @@ class IpmSolverImpl {
     /// set_iteration_callback(), whose ONE SLOT this shares -- a park made here
     /// overwrites one made there in the same solve, and the last write wins.
     ///
-    /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
+    /// THE MASK GOES BACK TO the default mask, so a later attach through
     /// the default-argument call delivers the full payload and no narrowing
     /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
-            this->pending_payload_ = IterationPayload::kAll;
+            this->pending_payload_ = detail::kDefaultIterationPayload;
             this->pending_scope_ = CallbackScope::kTopLevel;
             this->pending_callback_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
@@ -694,7 +694,7 @@ class IpmSolverImpl {
         this->pending_callback_.reset();
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = nullptr;
-        this->iteration_payload_ = IterationPayload::kAll;
+        this->iteration_payload_ = detail::kDefaultIterationPayload;
         this->iteration_scope_ = CallbackScope::kTopLevel;
     }
 
@@ -1339,22 +1339,24 @@ class IpmSolverImpl {
     /// the whole of clear_iteration_callback().
     IterationCallback iteration_callback_;
     /// WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
-    /// fire_iteration_event prepares beyond the scalars. kAll is what the
+    /// fire_iteration_event prepares beyond the scalars. kVectors | kDiagnostics is what the
     /// default-argument set_iteration_callback() installs and what a clear resets
     /// to, so an engine with no callback carries no narrowing into the next
     /// attach.
-    IterationPayload iteration_payload_ = IterationPayload::kAll;
+    IterationPayload iteration_payload_ = detail::kDefaultIterationPayload;
     CallbackScope iteration_scope_ = CallbackScope::kTopLevel;
     // The Problem the public handle is solving, for the row-space `lambda` of an
     // event; null on every internal route (concatenation). Not owned.
     const Problem *callback_rows_ = nullptr;
-    // The event's composed `lambda`, reused across events.
+    // The event's composed `lambda`, `g` and `violation`, reused across events.
     Eigen::VectorXd event_lambda_scratch_;
+    Eigen::VectorXd event_g_scratch_;
+    Eigen::VectorXd event_violation_scratch_;
     /// The mask parked beside `pending_callback_`, and engaged exactly when it
     /// is: the two are written together at every setter and applied together
     /// at every safe point, so a deferred attach cannot land with the previous
     /// consumer's mask.
-    IterationPayload pending_payload_ = IterationPayload::kAll;
+    IterationPayload pending_payload_ = detail::kDefaultIterationPayload;
     CallbackScope pending_scope_ = CallbackScope::kTopLevel;
 
     /// When this solve's public entry was taken, for IterationEvent::
@@ -1569,6 +1571,12 @@ class IpmSolverImpl {
     double best_step_norm_scratch_ = 0.0;
     double best_elapsed_scratch_ = 0.0;
     IpmIterate best_row_scratch_;
+    /// The step facts of that iterate (IterationSnapshot::ipm).
+    IpmIterationInfo best_info_scratch_;
+    /// The step that reached the live iterate (IpmIterationInfo's step fields;
+    /// phase and mu unused): reset at each phase's start, written at the commit
+    /// site only when a callback is installed or best tracking is armed.
+    IpmIterationInfo reached_step_info_;
 
     /// THE RESTORATION-ENTRY STASH (M8 AP-5 G2): the point feasibility
     /// restoration was entered from, copied by dispatch_restoration_entry BEFORE
@@ -2112,12 +2120,15 @@ class IpmSolverImpl {
     /// rows only; the row-space `lambda` is composed by the caller or by
     /// Problem. Fields not asked for are left empty / NaN.
     struct DeclaredPoint {
-        Eigen::VectorXd x, lambda_e, lambda_i, z, ce, ci;
+        Eigen::VectorXd x, lambda_e, lambda_i, z, ce, ci, z_lower, z_upper;
         DeclaredDiagnostics diag;
     };
+    /// `ce`/`ci` are filled when @p want_diagnostics or @p want_rows (empty while
+    /// restoration-contaminated); `z_lower`/`z_upper` when @p want_sides.
     DeclaredPoint declared_point(const Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
                                  const BoundDualState &duals, const ExitEvalProvenance &prov,
-                                 bool restoration_contaminated, bool want_diagnostics) const;
+                                 bool restoration_contaminated, bool want_diagnostics,
+                                 bool want_rows = false, bool want_sides = false) const;
 
     /// @brief Writes result_.best_iterate and its row blocks from the phase's
     ///        best tracker (cleared when the phase recorded none).

@@ -1038,8 +1038,8 @@ IpmResult reference_ipm_solve(std::vector<double> *mus = nullptr) {
     IpmSolver ipm = quiet_ipm();
     if (mus != nullptr) {
         ipm.set_iteration_callback([mus](const IterationEvent &ev) {
-            if (ev.mu.has_value())
-                mus->push_back(*ev.mu);
+            if (ev.ipm.has_value())
+                mus->push_back(ev.ipm->mu);
             return CallbackAction::kContinue;
         });
     }
@@ -1134,8 +1134,8 @@ TEST(HugeRealBound, HugeRealBoundsCostNoIterationsAndKeepTheBarrierParameterDown
     IpmSolver ipm = quiet_ipm(kInfinity);
     std::vector<double> mus;
     ipm.set_iteration_callback([&mus](const IterationEvent &ev) {
-        if (ev.mu.has_value())
-            mus.push_back(*ev.mu);
+        if (ev.ipm.has_value())
+            mus.push_back(ev.ipm->mu);
         return CallbackAction::kContinue;
     });
     const IpmResult r = ipm.solve(problem, start());
@@ -1206,8 +1206,8 @@ TEST(HugeRealBound, ABoundAtTheTopOfTheDoubleRangeRelaxesToItNotPastIt) {
 /// The largest barrier parameter an IPM solve visits, through the iteration callback.
 void track_max_mu(IpmSolver &ipm, double &max_mu) {
     ipm.set_iteration_callback([&max_mu](const IterationEvent &ev) {
-        if (ev.mu.has_value())
-            max_mu = std::max(max_mu, *ev.mu);
+        if (ev.ipm.has_value())
+            max_mu = std::max(max_mu, ev.ipm->mu);
         return CallbackAction::kContinue;
     });
 }

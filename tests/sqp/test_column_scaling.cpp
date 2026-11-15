@@ -1256,7 +1256,7 @@ void expect_mapped_events(const Model &model, int max_iter, bool scaled_bound_pr
     };
     auto record = [](std::vector<Seen> &into) {
         return [&into](const IterationEvent &ev) {
-            into.push_back(Seen{ev.depth.value_or(-1), ev.x, ev.z, ev.lambda});
+            into.push_back(Seen{(ev.sqp ? ev.sqp->depth : Index{-1}), ev.x, ev.z, ev.lambda});
             return CallbackAction::kContinue;
         };
     };

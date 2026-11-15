@@ -194,7 +194,7 @@ using hven::TraceSink;
 constexpr const char *kUsage =
     "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
-    "                       [--callback off|count|count-scalars] [--trace off|sink]\n"
+    "                       [--callback off|count|count-scalars|count-vd] [--trace off|sink]\n"
     "       hven_sqp_corpus --hs --engine walk|ssn|ipm --csv <path> [--repeat N]\n"
     "                       [--hs-cells all|<n1,n2,...>] [--hs-trace off|sink]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
@@ -596,6 +596,11 @@ struct Args {
     // (the shipped shape). Meaningless, and never read, when
     // `corpus_callback` is false.
     bool corpus_callback_scalars = false;
+    // M8 AP-5 G5 -- `count-vd`: the same counting callback declared under
+    // IterationPayload::kVectors | kDiagnostics (the pre-G5 kAll payload, now the
+    // default mask), so an attached-callback leg can pair it with an older binary's
+    // `count`. --internal-run-one only; refused on the corpus route.
+    bool corpus_callback_vd = false;
     // M6 W6 T6 fix1 -- WAS THE FLAG SUPPLIED, independent of the value it
     // carried. The refusals below are a contract about which ROUTES own these
     // levers, not about which value a route could honour: `--callback off` on
@@ -746,6 +751,7 @@ Args parse_args(int argc, char **argv) {
         } else if (arg == "--callback") {
             const std::string v = next_value(arg);
             a.corpus_callback_supplied = true;
+            a.corpus_callback_vd = false;
             if (v == "off") {
                 a.corpus_callback = false;
                 a.corpus_callback_scalars = false;
@@ -755,9 +761,13 @@ Args parse_args(int argc, char **argv) {
             } else if (v == "count-scalars") {
                 a.corpus_callback = true;
                 a.corpus_callback_scalars = true;
+            } else if (v == "count-vd") {
+                a.corpus_callback = true;
+                a.corpus_callback_scalars = false;
+                a.corpus_callback_vd = true;
             } else {
-                throw_usage(
-                    fmt::format("--callback: '{}' is not one of off|count|count-scalars", v));
+                throw_usage(fmt::format(
+                    "--callback: '{}' is not one of off|count|count-scalars|count-vd", v));
             }
         } else if (arg == "--trace") {
             const std::string v = next_value(arg);
@@ -2735,9 +2745,11 @@ int main(int argc, char **argv) {
                 // `count-scalars` arm changes nothing about the observer -- it
                 // still increments a long long and returns kContinue -- only
                 // what the driver is asked to prepare for it.
-                levers.iteration_payload = args.corpus_callback_scalars
-                                               ? hven::IterationPayload::kScalars
-                                               : hven::IterationPayload::kAll;
+                levers.iteration_payload =
+                    args.corpus_callback_scalars ? hven::IterationPayload::kScalars
+                    : args.corpus_callback_vd
+                        ? hven::IterationPayload::kVectors | hven::IterationPayload::kDiagnostics
+                        : hven::IterationPayload::kAll;
             }
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
@@ -2749,7 +2761,10 @@ int main(int argc, char **argv) {
             if (args.corpus_callback) {
                 fmt::print(stderr, "ATTACHED-CALLBACK cell={} engine={} payload={} events={}\n",
                            *args.internal_run_one, *args.engine,
-                           args.corpus_callback_scalars ? "scalars" : "all", callback_events);
+                           args.corpus_callback_scalars ? "scalars"
+                           : args.corpus_callback_vd    ? "vectors-diagnostics"
+                                                        : "all",
+                           callback_events);
             }
             if (args.corpus_trace_sink) {
                 fmt::print(stderr,
@@ -3252,6 +3267,10 @@ int main(int argc, char **argv) {
         if (!out) {
             throw std::invalid_argument(
                 fmt::format("--csv: could not open '{}' for writing", *args.csv));
+        }
+        if (args.corpus_callback_vd) {
+            throw_usage("--callback count-vd is an --internal-run-one lever (the attached-callback "
+                        "leg); the corpus route forwards only off|count|count-scalars");
         }
         write_provenance(out, argc, argv, levers, args.internal_force_child_throw,
                          args.internal_force_setup_budget_s, args.internal_force_solve_budget_s,
