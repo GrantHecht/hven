@@ -209,8 +209,9 @@ struct SolveResult {
     ///        "; returned the point before feasibility restoration".
     bool returned_pre_restoration_point = false;
 
-    /// @brief The best iterate the solve visited, when best tracking was armed
-    ///        and the solve did not end kOptimal or kAcceptable; else nullopt.
+    /// @brief The best iterate the solve visited, when best tracking was armed,
+    ///        recorded an iterate, and the solve did not end kOptimal or
+    ///        kAcceptable; else nullopt.
     ///
     /// Armed whenever a return-best option is on, an iteration callback is
     /// installed or SolveBudget::stop can fire. Never affects the trajectory.

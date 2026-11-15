@@ -287,10 +287,17 @@ TEST(BestIterate, ATokenAloneArmsTheTracker) {
         // The same best as the option's, scalars included (the step that reached it is
         // taken when a token alone arms the tracker, with no callback installed).
         const SolveResult with_option = solve(e, 3, true);
+        const SolveResult with_callback = solve(e, 3, false, kReadOnly);
         ASSERT_TRUE(with_option.best_iterate.has_value());
-        EXPECT_EQ(r.best_iterate->iteration, with_option.best_iterate->iteration);
-        EXPECT_TRUE(same_scalar(r.best_iterate->step_norm, with_option.best_iterate->step_norm));
-        EXPECT_TRUE(bit_equal(r.best_iterate->x, with_option.best_iterate->x));
+        ASSERT_TRUE(with_callback.best_iterate.has_value());
+        for (const SolveResult *other : {&with_option, &with_callback}) {
+            EXPECT_EQ(r.best_iterate->iteration, other->best_iterate->iteration);
+            EXPECT_TRUE(same_scalar(r.best_iterate->step_norm, other->best_iterate->step_norm));
+            EXPECT_TRUE(bit_equal(r.best_iterate->x, other->best_iterate->x));
+        }
+        if (e == Engine::kIpm && r.best_iterate->iteration > 0) {
+            EXPECT_GT(r.best_iterate->step_norm, 0.0) << "a step reached it";
+        }
     }
 }
 

@@ -6799,11 +6799,6 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     }
 
     this->in_phase_loop_ = false;
-    // A solve that ended optimal or acceptable carries no best iterate (Q4).
-    if (this->result_.status == SolveStatus::kOptimal ||
-        this->result_.status == SolveStatus::kAcceptable) {
-        this->publish_phase_best(false);
-    }
     t.stop();
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
     this->result_.timing.total_seconds = tottime / 1000.0;

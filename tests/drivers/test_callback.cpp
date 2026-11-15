@@ -880,6 +880,65 @@ TEST(Callback, SqpStopReturnBestInsideRestorationReturnsTheParentsBestIterate) {
     EXPECT_TRUE(delivered);
 }
 
+// M8 AP-5 G3: kStopReturnBest on a row that records no accepted step is honoured at the next exit
+// test (the ordinary terminal exit), not by the post-push poll; the best comes back all the same.
+TEST(Callback, SqpStopReturnBestOnARowThatIsNotAnAcceptedStepReturnsTheBest) {
+    StalledValleyModel model;
+    SqpOptions opts = quiet_sqp();
+    opts.trust_region_initial = 8.0;
+    opts.common.max_iterations = 60;
+
+    SqpSolver reference(opts);
+    const SqpResult full = reference.solve(hven::detail::problem_ref(model), (model).start_point());
+    std::optional<Index> row;
+    for (std::size_t k = 0; k + 1 < full.history.size() && !row; ++k) {
+        const hven::StepVerdict v = full.history[k].verdict;
+        if (v != hven::StepVerdict::kAcceptObjectiveStep &&
+            v != hven::StepVerdict::kAcceptFeasibilityStep) {
+            row = static_cast<Index>(k);
+        }
+    }
+    ASSERT_TRUE(row.has_value()) << "fixture premise: a non-accepted, non-terminal row exists";
+
+    SqpSolver driver(opts);
+    driver.set_iteration_callback([&](const IterationEvent &e) {
+        return e.iteration == *row ? CallbackAction::kStopReturnBest : CallbackAction::kContinue;
+    });
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    EXPECT_TRUE(bit_equal(sol.x, sol.best_iterate->x));
+    EXPECT_TRUE(bit_equal(sol.lambda, sol.best_iterate->lambda));
+}
+
+// M8 AP-5 G3: kStopReturnBest on a depth-1 event of the certifying fixture: the parent's best,
+// no certificate, no restoration-entry flag.
+TEST(Callback, SqpStopReturnBestOnTheCertifyingRestorationReturnsTheBestAndNoCertificate) {
+    InfeasibleCircleLineModel model;
+    const SqpOptions opts = quiet_sqp();
+    SqpSolver driver(opts);
+    bool stopped = false;
+    driver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            if (!stopped && e.depth.value_or(0) == 1) {
+                stopped = true;
+                return CallbackAction::kStopReturnBest;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    const SqpResult sol = driver.solve(hven::detail::problem_ref(model), (model).start_point());
+    ASSERT_TRUE(stopped);
+    EXPECT_EQ(sol.status, SolveStatus::kInterrupted);
+    EXPECT_TRUE(sol.returned_best_iterate) << sol.message;
+    EXPECT_FALSE(sol.returned_pre_restoration_point);
+    EXPECT_FALSE(sol.infeasibility_certified);
+    ASSERT_TRUE(sol.best_iterate.has_value());
+    EXPECT_TRUE(bit_equal(sol.x, sol.best_iterate->x));
+    EXPECT_TRUE(bit_equal(sol.lambda, sol.best_iterate->lambda));
+}
+
 TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
     InfeasibleCircleLineModel model;
     const SqpOptions opts = quiet_sqp();
