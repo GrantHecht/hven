@@ -387,25 +387,28 @@ TEST(StopPollSeam, T4ATokenStopInsideTheMainSubproblemReturnsXkOnEachQpMode) {
 
         // A minor past the first of a subproblem in the second half (the first poll of
         // the last subproblem when none has two).
-        int fire_solve = solves;
-        int fire_index = 0;
-        {
-            // The polls of each solve, from a recording run.
-            std::vector<int> polls_per_solve;
-            Seam::reset();
-            StopSource rec_source;
-            Seam::record_polls_per_solve = &polls_per_solve;
-            Seam::record_site = site;
-            (void)run_hs071(opts, rec_source, std::nullopt);
-            Seam::record_polls_per_solve = nullptr;
-            for (int s = solves / 2 + 1; s <= solves; ++s) {
-                if (polls_per_solve[static_cast<std::size_t>(s - 1)] >= 2) {
-                    fire_solve = s;
-                    fire_index = 1;
-                    break;
-                }
+        // The fire point: the middle poll of the subproblem with the most polls, which the
+        // unstopped solve follows with at least one more (so a kernel that ignored the stop
+        // would poll again). Recorded per solve from a run that fires nothing.
+        std::vector<int> polls_per_solve;
+        Seam::reset();
+        StopSource rec_source;
+        Seam::record_polls_per_solve = &polls_per_solve;
+        Seam::record_site = site;
+        (void)run_hs071(opts, rec_source, std::nullopt);
+        Seam::record_polls_per_solve = nullptr;
+        ASSERT_EQ(static_cast<int>(polls_per_solve.size()), solves);
+        // From the second subproblem on: the comparison caps the solve at the stopped major.
+        int fire_solve = 2;
+        for (int s = 2; s <= solves; ++s) {
+            if (polls_per_solve[static_cast<std::size_t>(s - 1)] >
+                polls_per_solve[static_cast<std::size_t>(fire_solve - 1)]) {
+                fire_solve = s;
             }
         }
+        const int most = polls_per_solve[static_cast<std::size_t>(fire_solve - 1)];
+        ASSERT_GE(most, 3) << "premise: a subproblem takes three minors or more";
+        const int fire_index = most / 2;
 
         Seam::reset();
         StopSource source;
