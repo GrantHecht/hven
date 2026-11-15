@@ -1,0 +1,10 @@
+LEG_START mode=interior pass=A rounds=3 pin=taskset-2 events=instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u 2026-11-14T23:01:11-05:00
+1cfd3715ecf26969362592edc50ea07645aa8bf2bbbd2dd5348f4cc592f9e8e9  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armAbin/hven_sqp_corpus
+164b3fd0f41f8caea3c1546e6e27dde71dbc2d62728979151fdb5ea1f5f06d59  /home/ghecht/Projects/hven/.claude/worktrees/agent-a2559003d3a33fac4/build-g4/armBbin/hven_sqp_corpus
+RUN mode=interior round=1 arm=A 2026-11-14T23:01:34-05:00
+RUN mode=interior round=1 arm=B 2026-11-14T23:01:45-05:00
+RUN mode=interior round=2 arm=A 2026-11-14T23:01:56-05:00
+RUN mode=interior round=2 arm=B 2026-11-14T23:02:07-05:00
+RUN mode=interior round=3 arm=A 2026-11-14T23:02:18-05:00
+RUN mode=interior round=3 arm=B 2026-11-14T23:02:30-05:00
+LEG_END mode=interior worst_rc=0 2026-11-14T23:02:41-05:00

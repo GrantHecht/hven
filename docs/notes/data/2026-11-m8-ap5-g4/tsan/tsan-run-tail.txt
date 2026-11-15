@@ -1,0 +1,6 @@
+[----------] 5 tests from StopRecovery (200 ms total)
+
+[----------] Global test environment tear-down
+[==========] 65 tests from 7 test suites ran. (1129 ms total)
+[  PASSED  ] 65 tests.
+reports=0

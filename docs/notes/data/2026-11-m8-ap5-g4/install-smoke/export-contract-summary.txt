@@ -1,0 +1,2 @@
+default: == export contract OK for platform=linux, align=32
+clang: == export contract OK for platform=linux, align=32

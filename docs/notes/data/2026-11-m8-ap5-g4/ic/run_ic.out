@@ -1,0 +1,33 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-14T22:27:26-05:00
+LEG mode=walk rc=0 2026-11-14T22:56:28-05:00
+ANALYSIS mode=walk rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+worst per-cell instructions ratio: 0.99999 (f7_n1000_bound_warm)
+cells outside 0.99-1.01: none
+CORPUS instructions B/A = 0.999998 -> WITHIN +-0.5 %
+LEG mode=ssn rc=0 2026-11-14T22:58:33-05:00
+ANALYSIS mode=ssn rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+worst per-cell instructions ratio: 0.99999 (f7_n1000_bound_neutral)
+cells outside 0.99-1.01: none
+CORPUS instructions B/A = 1.000000 -> WITHIN +-0.5 %
+LEG mode=ipm rc=0 2026-11-14T23:01:11-05:00
+ANALYSIS mode=ipm rc=0
+counter check: 81 (round,cell) pairs compared, 0 with a difference or missing
+worst per-cell instructions ratio: 0.99999 (f7_n1000_bound_physics)
+cells outside 0.99-1.01: none
+CORPUS instructions B/A = 1.000000 -> WITHIN +-0.5 %
+LEG mode=interior rc=0 2026-11-14T23:02:41-05:00
+ANALYSIS mode=interior rc=0
+counter check: 3 (round,cell) pairs compared, 0 with a difference or missing
+worst per-cell instructions ratio: 0.99998 (all)
+cells outside 0.99-1.01: none
+CORPUS instructions B/A = 0.999983 -> WITHIN +-0.5 %
+MODE walk     counters IDENTICAL  corpus B/A 0.999998 (in)  worst cell f7_n1000_bound_physics 1.00001 (in)  -> PASS
+MODE ssn      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_activity 1.00001 (in)  -> PASS
+MODE ipm      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_physics 0.99999 (in)  -> PASS
+MODE interior counters IDENTICAL  corpus B/A 0.999983 (in)  worst cell all 0.99998 (in)  -> PASS
+IC_VERDICT PASS
+worst=0
+FOREGROUND_END 2026-11-14T23:02:41-05:00

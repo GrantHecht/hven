@@ -1,0 +1,5 @@
+MODE walk     counters IDENTICAL  corpus B/A 0.999998 (in)  worst cell f7_n1000_bound_physics 1.00001 (in)  -> PASS
+MODE ssn      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_activity 1.00001 (in)  -> PASS
+MODE ipm      counters IDENTICAL  corpus B/A 1.000000 (in)  worst cell f7_n1000_bound_physics 0.99999 (in)  -> PASS
+MODE interior counters IDENTICAL  corpus B/A 0.999983 (in)  worst cell all 0.99998 (in)  -> PASS
+IC_VERDICT PASS
