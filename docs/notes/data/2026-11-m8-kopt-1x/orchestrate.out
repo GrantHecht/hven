@@ -1,0 +1,147 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:22:47-05:00
+code paths == 006ccc49663611dc27440989860d1a1f468e4090, clean; HEAD 34ee68ebc8462a19e7da0cec9a545c9841942950
+LEG P1-rel start 2026-11-15T15:22:48-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:22:48-05:00
+
+The following tests did not run:
+	813 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2398 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2399 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T15:24:04-05:00
+LEG P1-rel rc=0 2026-11-15T15:24:04-05:00
+LEG P1-rel-criterion start 2026-11-15T15:24:04-05:00
+LEG P1-rel-criterion rc=0 2026-11-15T15:24:04-05:00
+LEG P1-dbg start 2026-11-15T15:24:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:24:04-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	813 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2398 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2399 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T15:30:52-05:00
+LEG P1-dbg rc=0 2026-11-15T15:30:52-05:00
+LEG P1-dbg-criterion start 2026-11-15T15:30:52-05:00
+LEG P1-dbg-criterion rc=0 2026-11-15T15:30:52-05:00
+LEG P2 start 2026-11-15T15:30:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:30:52-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/bin/B/hven_sqp_corpus sha256 111a4bbbc1e3eef2dd770fa4e0f741e08887ac2ea492d651b58b3484bc595c90
+RUN B k=1 mode=walk 2026-11-15T15:30:52-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-15T15:35:40-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-15T15:36:00-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-15T15:36:26-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-15T15:41:14-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-15T15:41:35-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-15T15:42:01-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-15T15:46:49-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-15T15:47:10-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-15T15:47:35-05:00
+LEG P2 rc=0 2026-11-15T15:47:35-05:00
+LEG P2-criterion start 2026-11-15T15:47:35-05:00
+=== A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== B-vs-Bdev-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-15T15:47:36-05:00
+LEG P3 start 2026-11-15T15:47:36-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:47:36-05:00
+cells run: 238 2026-11-15T15:51:46-05:00
+FOREGROUND_END 2026-11-15T15:51:46-05:00
+LEG P3 rc=0 2026-11-15T15:51:46-05:00
+LEG P3-criterion start 2026-11-15T15:51:46-05:00
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.D
+MOVER NEUTRAL  sd-hven-sqp-ACOPP30.K
+MOVER NEUTRAL  sd-hven-sqp-CRESC100.D
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.D
+MOVER NEUTRAL  sd-hven-sqp-CRESC4.K
+MOVER NEUTRAL  sd-hven-sqp-CRESC50.K
+MOVER NEUTRAL  sd-hven-sqp-HS84.D
+MOVER NEUTRAL  sd-hven-sqp-HS84.K
+MOVER NEUTRAL  sd-hven-sqp-HS92.D
+MOVER NEUTRAL  sd-hven-sqp-HS92.K
+MOVER NEUTRAL  sd-hven-sqp-HS99EXP.K
+MOVER NEUTRAL  sd-hven-sqp-MESH.D
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.D
+MOVER NEUTRAL  sd-hven-sqp-OPTPRLOC.K
+SUMMARY rows 476; movers vs arm A 14 (better 0, worse 0, neutral 14); missing/capped 0
+I4_PASS
+LEG P3-criterion rc=0 2026-11-15T15:51:47-05:00
+LEG P4 start 2026-11-15T15:51:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T15:51:47-05:00
+FIXTURE PRE-FLIGHT: got total=38909 excluded=21354 filtered=17555; expected total=38909 excluded=21354 filtered=17555 -> PASS
+LEG mode=walk rc=0
+ANALYSIS rc=0
+STOP CONDITION: 81 (round,cell) pairs compared, 0 with a difference or missing -> COUNTER IDENTITY HOLDS
+VALIDITY: 162 processes, 0 throttled -> VALID
+  filtered samples (CRITERION)     A=7.126229e+06 B=7.126614e+06 B/A=1.000054
+  all samples                      A=7.126229e+06 B=7.126614e+06 B/A=1.000054
+  excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
+  raw perf-stat instructions:u     A=2.850497e+12 B=2.850650e+12 B/A=1.000054
+per-round filtered B/A (informational):
+  round 1: B/A=1.000052
+  round 2: B/A=1.000054
+  round 3: B/A=1.000056
+MODE walk FILTERED B/A = 1.000054 -> WITHIN [0.995, 1.005]
+FOREGROUND_END 2026-11-15T16:25:22-05:00
+LEG P4 rc=0 2026-11-15T16:25:22-05:00
+LEG P5 start 2026-11-15T16:25:22-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T16:25:22-05:00
+MUT control sqp_rc=0 seam_rc=0 killers=0
+APPLIED M1
+RESTORED
+MUT M1 sqp_rc=0 seam_rc=1 killers=2
+   QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen
+   QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen (0 ms)
+APPLIED M2
+RESTORED
+MUT M2 sqp_rc=1 seam_rc=0 killers=2
+   QpRowContract.FlatNormalGrayZoneSeedIsRepairedToOneFloorUnit
+   QpRowContract.FlatNormalGrayZoneSeedIsRepairedToOneFloorUnit (4 ms)
+APPLIED M3
+RESTORED
+MUT M3 sqp_rc=0 seam_rc=1 killers=2
+   QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity
+   QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity (0 ms)
+APPLIED M4
+RESTORED
+MUT M4 sqp_rc=0 seam_rc=1 killers=2
+   QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+   QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (3 ms)
+VERDICT MUTATIONS_AS_DECLARED
+FOREGROUND_END 2026-11-15T16:27:11-05:00
+LEG P5 rc=0 2026-11-15T16:27:11-05:00
+ALL_LEGS_PASSED
+FOREGROUND_END 2026-11-15T16:27:11-05:00

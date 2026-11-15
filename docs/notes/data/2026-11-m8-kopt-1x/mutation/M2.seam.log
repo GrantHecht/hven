@@ -1,0 +1,21 @@
+Running main() from /home/ghecht/Projects/hven/.claude/worktrees/kopt-1x/build-k/rel/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = QpRowContractPolish.*:QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from QpCertificateSign
+[ RUN      ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit
+[       OK ] QpCertificateSign.AnOptimalExitPastOneFloorUnitIsCountedAGrayExit (3 ms)
+[----------] 1 test from QpCertificateSign (3 ms total)
+
+[----------] 3 tests from QpRowContractPolish
+[ RUN      ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen
+[       OK ] QpRowContractPolish.TheEntryTestOpensOnAGrayZoneRowAndOnlyThen (0 ms)
+[ RUN      ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve
+[       OK ] QpRowContractPolish.TheTerminalPolishAdoptsAGrayZoneRowWithoutASolve (0 ms)
+[ RUN      ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity
+[       OK ] QpRowContractPolish.ARowTriggeredEntryFloorsTheIncumbentsStationarity (0 ms)
+[----------] 3 tests from QpRowContractPolish (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (3 ms total)
+[  PASSED  ] 4 tests.
