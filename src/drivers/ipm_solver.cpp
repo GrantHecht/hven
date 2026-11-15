@@ -3832,7 +3832,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // a stop is a caller's decision about a POINT it has just been shown,
         // and handing back a different iterate than the one it stopped on would
         // make the event a lie. The verdict is kIterationLimit + kCallbackStop, which
-        // resolve_ipm_phase_status maps to kInterrupted.
+        // resolve_ipm_phase_status maps to kInterrupted. (A callback's kStopReturnBest
+        // is the caller's own request for the best; honour_stop below applies it.)
         //
         // THE STOP TOKEN (SolveBudget::stop, M8 AP-5 G1) IS POLLED HERE TOO, on
         // the same terms: the current iterate, pre-factorization, after a

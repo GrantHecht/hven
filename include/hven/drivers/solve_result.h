@@ -73,8 +73,10 @@ struct SolveBudget {
     /// `request_stop()` is called -- from any thread -- the solve ends at its
     /// next iteration boundary with SolveStatus::kInterrupted and
     /// StopReason::kStopRequested, returning the current iterate (the point of
-    /// the last iteration event). A converged or acceptable verdict reached at
-    /// the same boundary outranks it. INTERIOR-POINT: polled at the top of each
+    /// the last iteration event), never the best one (SolveResult::best_iterate
+    /// reports that; CallbackAction::kStopReturnBest is a callback's). A
+    /// converged or acceptable verdict reached at the same boundary outranks
+    /// it. INTERIOR-POINT: polled at the top of each
     /// iteration, before its factorization, and between inertia-correction
     /// attempts (the iteration is abandoned); a stop ends the phase sequence. SQP:
     /// polled at the exit test before each subproblem, right after each accepted

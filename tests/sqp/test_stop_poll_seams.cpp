@@ -19,6 +19,12 @@
 //       restoration-entry point.
 //   T9  armed and never fired, each QP mode: the unarmed solve, counter for counter.
 //
+// With G3's best tracker (armed on every solve here: a token can fire): a ladder stop
+// scores its point into the tracker once, as the iteration-top stop does, and publishes
+// the same best_iterate; an SQP abandon publishes the capped twin's best_iterate, and a
+// callback's kStopReturnBest on the abandoned row is what it is on the exit test's
+// token-stopped row (the token labelled the exit before that row's event fired).
+//
 // The seam requests the stop on the test's StopSource at a chosen armed poll, which
 // no public hook can reach (no user code runs between a poll and the work it guards).
 
@@ -132,6 +138,38 @@ void expect_same_point(const hven::SolveResult &a, const hven::SolveResult &b) {
         EXPECT_TRUE(
             bit_equal(WarmStartAccess::eq(a.warm_start), WarmStartAccess::eq(b.warm_start)));
     }
+}
+
+// The best iterate both solves published, bit for bit; `elapsed_seconds` is a clock read.
+void expect_same_best(const hven::SolveResult &a, const hven::SolveResult &b) {
+    EXPECT_EQ(a.returned_best_iterate, b.returned_best_iterate);
+    ASSERT_EQ(a.best_iterate.has_value(), b.best_iterate.has_value());
+    if (!a.best_iterate) {
+        return;
+    }
+    const hven::IterationSnapshot &x = *a.best_iterate;
+    const hven::IterationSnapshot &y = *b.best_iterate;
+    EXPECT_EQ(x.iteration, y.iteration);
+    EXPECT_EQ(x.recovering, y.recovering);
+    EXPECT_EQ(x.phase, y.phase);
+    EXPECT_EQ(x.depth, y.depth);
+    EXPECT_TRUE(same_scalar(x.f, y.f));
+    EXPECT_TRUE(same_scalar(x.stationarity, y.stationarity));
+    EXPECT_TRUE(same_scalar(x.feasibility, y.feasibility));
+    EXPECT_TRUE(same_scalar(x.complementarity, y.complementarity));
+    EXPECT_TRUE(same_scalar(x.step_norm, y.step_norm));
+    EXPECT_EQ(x.radius.has_value(), y.radius.has_value());
+    if (x.radius && y.radius) {
+        EXPECT_TRUE(same_scalar(*x.radius, *y.radius));
+    }
+    EXPECT_EQ(x.mu.has_value(), y.mu.has_value());
+    if (x.mu && y.mu) {
+        EXPECT_TRUE(same_scalar(*x.mu, *y.mu));
+    }
+    EXPECT_TRUE(bit_equal(x.x, y.x));
+    EXPECT_TRUE(bit_equal(x.lambda, y.lambda));
+    EXPECT_TRUE(bit_equal(x.z, y.z));
+    EXPECT_TRUE(bit_equal(x.g, y.g));
 }
 
 void expect_same_row(const hven::SqpIterate &a, const hven::SqpIterate &b) {
@@ -304,6 +342,64 @@ TEST(StopPollSeam, T3ATokenStopBetweenLadderAttemptsReturnsTheIterationsStartPoi
     }
 }
 
+// T3 with the best tracker (M8 AP-5 G3): a ladder stop scores the iteration's point into
+// the tracker inside the shared stop exit, once, as the iteration-top stop does -- the
+// published best_iterate is the top-of-iteration twin's, field for field. On this
+// fixture the start point already satisfies the linear equality, so under the default
+// criterion (kEquality, ties to the later iterate) the stopped-at point is the best: a
+// ladder exit that skipped the scoring would publish the previous iterate (or none at
+// iteration 0). Under return_best too, which never substitutes on a stop.
+TEST(StopPollSeam, T3ALadderStopScoresItsPointIntoTheBestTracker) {
+    const SeamReset reset;
+    Vec x0(2);
+    x0 << 1.2, 0.8;
+    for (const bool return_best : {false, true}) {
+        for (const hven::IpmInertiaMode mode :
+             {hven::IpmInertiaMode::kClassic, hven::IpmInertiaMode::kProximalRegularization}) {
+            SCOPED_TRACE(return_best ? "return_best" : "default");
+            SCOPED_TRACE(mode == hven::IpmInertiaMode::kClassic ? "classic" : "proximal");
+            IpmOptions opts = quiet_ipm();
+            opts.advanced.inertia_mode = mode;
+            opts.return_best = return_best;
+            ASSERT_EQ(opts.best_iterate_criterion, hven::IpmBestIterateCriterion::kEquality);
+
+            Seam::reset();
+            StopSource dry_source;
+            const IpmRun dry = run_ipm<SaddleOnALine>(opts, x0, -1, dry_source);
+            const int total = Seam::polls[static_cast<int>(StopPollSite::kIpmLadder)];
+            ASSERT_GE(total, 2) << "premise: the ladder runs";
+
+            for (const int poll : {1, total}) {
+                SCOPED_TRACE(poll);
+                const int k = iteration_of_ladder_poll(dry, poll);
+                ASSERT_GE(k, 0);
+
+                Seam::reset();
+                StopSource source;
+                Seam::source = &source;
+                Seam::fire_site = static_cast<int>(StopPollSite::kIpmLadder);
+                Seam::fire_at = poll;
+                const IpmRun stopped = run_ipm<SaddleOnALine>(opts, x0, -1, source);
+                ASSERT_EQ(Seam::fired_at, poll);
+
+                Seam::reset();
+                StopSource twin_source;
+                const IpmRun twin = run_ipm<SaddleOnALine>(opts, x0, k, twin_source);
+
+                ASSERT_EQ(stopped.result.status, SolveStatus::kInterrupted);
+                EXPECT_FALSE(stopped.result.returned_best_iterate)
+                    << "a token stop never substitutes";
+                ASSERT_TRUE(stopped.result.best_iterate.has_value())
+                    << "the armed tracker publishes";
+                EXPECT_EQ(stopped.result.best_iterate->iteration, static_cast<Index>(k))
+                    << "the stopped-at point was scored";
+                EXPECT_TRUE(bit_equal(stopped.result.best_iterate->x, stopped.result.x));
+                expect_same_best(stopped.result, twin.result);
+            }
+        }
+    }
+}
+
 // ===========================================================================
 // T4: THE SQP MAIN SUBPROBLEM'S MINOR LOOPS
 // ===========================================================================
@@ -341,11 +437,15 @@ struct SqpRun {
 
 // HS071 behind a wrapper whose Hessian evaluation can request the stop: on the
 // `stop_at`-th call (1-based; 0 never), i.e. while a major's subproblem is being built.
+// Its Jacobian evaluation can too (`jac_stop_at`): the full evaluation an accepted step's
+// commit pays, after the post-push poll, so the next major's exit test sees the stop.
 struct Hs071StopOnHessian final : hven::Nlp {
     hven_drivers_tests::Hs071Problem inner;
     StopSource *source = nullptr;
     int stop_at = 0;
     mutable int calls = 0;
+    int jac_stop_at = 0;
+    mutable int jac_calls = 0;
     hven::NlpDimensions dimensions() const override { return inner.dimensions(); }
     void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
         inner.bounds(xl, xu, gl, gu);
@@ -360,6 +460,9 @@ struct Hs071StopOnHessian final : hven::Nlp {
     }
     void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
         inner.eval_jacobian(x, v);
+        if (++jac_calls == jac_stop_at && source != nullptr) {
+            source->request_stop();
+        }
     }
     void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
         inner.hessian_structure(r, c);
@@ -436,11 +539,18 @@ void expect_abandoned_work(const SqpResult &stopped, const SqpResult &capped, Ab
 }
 
 // The stopped solve against the solve capped at the same major: the same point, the
-// same rows. Only the abandoned subproblem's work differs.
+// same rows, the same best iterate. Only the abandoned subproblem's work differs. A token
+// stop never substitutes the best (kStopReturnBest is a callback's), and the twin's cap
+// does not either (return_best_on_max_iterations off), so both return x_k; both track
+// (a callback and a token arm the tracker) and publish the best over the same rows.
 void expect_stopped_at_major(const SqpResult &stopped, const SqpResult &capped) {
     EXPECT_EQ(stopped.status, SolveStatus::kInterrupted) << stopped.message;
     EXPECT_EQ(stopped.stop_reason, StopReason::kStopRequested);
     EXPECT_EQ(capped.status, SolveStatus::kIterationLimit) << capped.message;
+    EXPECT_FALSE(stopped.returned_best_iterate);
+    EXPECT_FALSE(capped.returned_best_iterate);
+    EXPECT_TRUE(stopped.best_iterate.has_value()) << "an armed tracker publishes on a stop";
+    expect_same_best(stopped, capped);
     ASSERT_FALSE(stopped.history.empty());
     EXPECT_FALSE(stopped.history.back().qp_solved) << "the stopped-at row";
     EXPECT_EQ(static_cast<Index>(stopped.history.size()), stopped.counters.major_iters + 1);
@@ -631,6 +741,116 @@ TEST(StopPollSeam, T4ATokenStopDuringTheSubproblemBuildEntersNoKernel) {
         const SqpRun capped = run_problem(plain_problem, opts, cap_source, k);
         expect_stopped_at_major(r, capped.result);
         expect_abandoned_work(r, capped.result, AbandonedWork::kNone);
+    }
+}
+
+// One HS071 solve whose callback answers kStopReturnBest to every event after the token
+// was requested (and kContinue before), recording the Jacobian calls at each event.
+struct BestAskRun {
+    SqpResult result;
+    std::vector<int> jac_calls_at_event;
+    int asked = 0; // events answered kStopReturnBest
+    bool disarmed = false;
+};
+
+BestAskRun run_asking_best(const std::shared_ptr<Hs071StopOnHessian> &model, const SqpOptions &opts,
+                           StopSource &source) {
+    BestAskRun run;
+    Problem problem(model);
+    SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver solver(opts);
+    solver.set_iteration_callback([&](const IterationEvent &) {
+        run.jac_calls_at_event.push_back(model->jac_calls);
+        if (source.stop_requested()) {
+            ++run.asked;
+            return CallbackAction::kStopReturnBest;
+        }
+        return CallbackAction::kContinue;
+    });
+    run.result = solver.solve(problem, hs071_start(), {}, budget);
+    run.disarmed = SqpSolverAccess::qp_stop_disarmed(solver);
+    return run;
+}
+
+// G3's kStopReturnBest around an abandon, each QP mode. Inside a major no callback runs
+// between the exit test and the subproblem, so the abandon is always the token's and its
+// label is set before the abandoned row's event fires; a kStopReturnBest answered there is
+// what it is on the exit test's token-stopped row: the token's exit, x_k returned, the
+// best published but not substituted. Pinned against the solve whose token is requested
+// during major k-1's commit and so stops at major k's exit test, with the same callback.
+// (A callback stop latched BEFORE the abandon would label it the callback's and take the
+// best through the same exit; no callback can run between the exit test and the abandon,
+// so that composition is not reachable at depth 0.)
+TEST(StopPollSeam, T4AnAbandonAnsweredWithKStopReturnBestIsTheExitTestTokenStop) {
+    const SeamReset reset;
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpqp}) {
+        SCOPED_TRACE(static_cast<int>(mode));
+        const SqpOptions opts = quiet_sqp(mode);
+        const int site = static_cast<int>(site_of(mode));
+        const std::vector<int> polls = polls_per_solve_of(opts, site_of(mode));
+        ASSERT_GE(polls.size(), 2u);
+        int fire_solve = 2;
+        for (int s = 2; s <= static_cast<int>(polls.size()); ++s) {
+            if (polls[static_cast<std::size_t>(s - 1)] >
+                polls[static_cast<std::size_t>(fire_solve - 1)]) {
+                fire_solve = s;
+            }
+        }
+        const int most = polls[static_cast<std::size_t>(fire_solve - 1)];
+        ASSERT_GE(most, 3) << "premise: a subproblem takes three minors or more";
+
+        Seam::reset();
+        StopSource dry_source;
+        const BestAskRun dry =
+            run_asking_best(std::make_shared<Hs071StopOnHessian>(), opts, dry_source);
+        ASSERT_EQ(dry.result.status, SolveStatus::kOptimal) << dry.result.message;
+
+        Seam::reset();
+        StopSource source;
+        Seam::source = &source;
+        Seam::fire_site = site;
+        Seam::fire_solve = fire_solve;
+        Seam::fire_index = most / 2;
+        const BestAskRun stopped =
+            run_asking_best(std::make_shared<Hs071StopOnHessian>(), opts, source);
+        ASSERT_GE(Seam::fired_at, 1);
+        expect_no_poll_after_the_stop();
+        const SqpResult &r = stopped.result;
+        const Index k = r.counters.major_iters;
+        ASSERT_GE(k, 1);
+        ASSERT_EQ(stopped.asked, 1) << "the abandoned row's event answered kStopReturnBest";
+        EXPECT_TRUE(stopped.disarmed);
+        EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+        EXPECT_EQ(r.stop_reason, StopReason::kStopRequested);
+        EXPECT_FALSE(r.returned_best_iterate) << "the token labelled the exit";
+        ASSERT_TRUE(r.best_iterate.has_value());
+        ASSERT_FALSE(r.history.empty());
+        EXPECT_FALSE(r.history.back().qp_solved);
+
+        // The exit-test twin: the token requested by major k-1's commit (its Jacobian
+        // evaluation, after the post-push poll), seen at major k's exit test.
+        ASSERT_GE(dry.jac_calls_at_event.size(), static_cast<std::size_t>(k));
+        auto twin_model = std::make_shared<Hs071StopOnHessian>();
+        Seam::reset();
+        StopSource twin_source;
+        twin_model->source = &twin_source;
+        twin_model->jac_stop_at = dry.jac_calls_at_event[static_cast<std::size_t>(k - 1)] + 1;
+        const BestAskRun twin = run_asking_best(twin_model, opts, twin_source);
+        const SqpResult &t = twin.result;
+        ASSERT_EQ(t.counters.major_iters, k) << "premise: the twin stops at major k's exit test";
+        ASSERT_EQ(Seam::solves[site], fire_solve - 1) << "premise: no kernel entered for major k";
+        ASSERT_EQ(twin.asked, 1);
+        EXPECT_EQ(t.status, SolveStatus::kInterrupted) << t.message;
+        EXPECT_EQ(t.stop_reason, StopReason::kStopRequested);
+        EXPECT_EQ(r.message, t.message);
+        ASSERT_EQ(r.history.size(), t.history.size());
+        for (std::size_t i = 0; i < r.history.size(); ++i) {
+            SCOPED_TRACE(i);
+            expect_same_row(r.history[i], t.history[i]);
+        }
+        expect_same_point(r, t);
+        expect_same_best(r, t);
     }
 }
 
@@ -890,6 +1110,128 @@ TEST(StopPollSeam, T4AStopInsideARestorationSubproblemReturnsTheEntryPoint) {
     }
     EXPECT_GE(sub_rows, 3u) << "the sub-solve's stopped-at row reached the callback";
     EXPECT_TRUE(bit_equal(r.x, stopped.x_at_event.back()));
+}
+
+// InfeasibleCircleLineModel whose Jacobian evaluation can request the stop (`jac_stop_at`,
+// 1-based; 0 never).
+class CircleLineStopOnJacobian final : public InfeasibleCircleLineModel {
+  public:
+    SpMatRM eval_jac_e(const Vec &x) const override {
+        if (++jac_calls == jac_stop_at && source != nullptr) {
+            source->request_stop();
+        }
+        return InfeasibleCircleLineModel::eval_jac_e(x);
+    }
+    StopSource *source = nullptr;
+    int jac_stop_at = 0;
+    mutable int jac_calls = 0;
+};
+
+struct RestoAskRun {
+    SqpResult result;
+    std::vector<Index> depth;
+    std::vector<int> jac_calls_at_event;
+    std::vector<int> walk_solves_at_event;
+    int asked = 0;
+    Index asked_depth = -1; // the depth of the event that answered kStopReturnBest
+};
+
+// The restoration fixture's solve, restoration rows delivered, the callback answering
+// kStopReturnBest to every event after the token was requested.
+RestoAskRun run_resto_asking_best(const CircleLineStopOnJacobian &model, StopSource &source) {
+    RestoAskRun run;
+    SolveBudget budget;
+    budget.stop = source.token();
+    SqpSolver solver(quiet_sqp(QpMode::kWalk));
+    solver.set_iteration_callback(
+        [&](const IterationEvent &e) {
+            run.depth.push_back(e.depth.value_or(0));
+            run.jac_calls_at_event.push_back(model.jac_calls);
+            run.walk_solves_at_event.push_back(Seam::solves[static_cast<int>(StopPollSite::kWalk)]);
+            if (source.stop_requested()) {
+                if (++run.asked == 1) {
+                    run.asked_depth = e.depth.value_or(0);
+                }
+                return CallbackAction::kStopReturnBest;
+            }
+            return CallbackAction::kContinue;
+        },
+        IterationPayload::kAll, CallbackScope::kIncludeRestoration);
+    run.result = solver.solve(hven::detail::problem_ref(model), model.start_point(),
+                              hven::WarmStart{}, budget);
+    return run;
+}
+
+// The same inside the restoration sub-solve: a stop abandoning one of its subproblems,
+// with kStopReturnBest answered on the sub-solve's abandoned row (a depth-1 event), ends
+// the solve exactly as the stop seen at that sub-major's exit test does, with the same
+// callback. Both reach G3's depth-1 rule through the sub-solve's one stop exit: the
+// answer latches the parent, so the parent's exit is the callback's and returns its best.
+TEST(StopPollSeam, T4ARestorationAbandonAnsweredWithKStopReturnBestIsTheExitTestStop) {
+    const SeamReset reset;
+    CircleLineStopOnJacobian dry_model;
+    StopSource dry_source;
+    const RestoAskRun dry = run_resto_asking_best(dry_model, dry_source);
+    ASSERT_TRUE(dry.result.infeasibility_certified) << "premise: restoration runs to a certificate";
+    // The sub-solve's second event: its third major's subproblem is the abandoned one.
+    std::size_t e2 = 0;
+    int sub_events = 0;
+    for (std::size_t e = 0; e < dry.depth.size(); ++e) {
+        if (dry.depth[e] == 1 && ++sub_events == 2) {
+            e2 = e;
+        }
+    }
+    ASSERT_GT(e2, 0u) << "premise: the sub-solve takes at least three majors";
+
+    CircleLineStopOnJacobian model;
+    Seam::reset();
+    StopSource source;
+    Seam::source = &source;
+    Seam::fire_site = static_cast<int>(StopPollSite::kWalk);
+    Seam::fire_solve = dry.walk_solves_at_event[e2] + 1;
+    const RestoAskRun stopped = run_resto_asking_best(model, source);
+    ASSERT_GE(Seam::fired_at, 1);
+    expect_no_poll_after_the_stop();
+    ASSERT_GE(stopped.asked, 1);
+    EXPECT_EQ(stopped.asked_depth, 1) << "the sub-solve's abandoned row answered first";
+
+    // The exit-test twin: the token requested by the sub-solve's commit after its second
+    // row (the Jacobian evaluation at the accepted point), seen at its next exit test.
+    CircleLineStopOnJacobian twin_model;
+    Seam::reset();
+    StopSource twin_source;
+    twin_model.source = &twin_source;
+    twin_model.jac_stop_at = dry.jac_calls_at_event[e2] + 1;
+    const RestoAskRun twin = run_resto_asking_best(twin_model, twin_source);
+    ASSERT_EQ(Seam::solves[static_cast<int>(StopPollSite::kWalk)], dry.walk_solves_at_event[e2])
+        << "premise: the twin's sub-solve entered no kernel after its second row";
+    ASSERT_GE(twin.asked, 1);
+    EXPECT_EQ(twin.asked_depth, 1);
+    ASSERT_EQ(stopped.depth, twin.depth) << "premise: the same rows, the same depths";
+
+    const SqpResult &r = stopped.result;
+    const SqpResult &t = twin.result;
+    EXPECT_EQ(r.status, SolveStatus::kInterrupted) << r.message;
+    EXPECT_EQ(r.status, t.status);
+    EXPECT_EQ(r.stop_reason, t.stop_reason);
+    EXPECT_EQ(r.message, t.message);
+    EXPECT_EQ(r.returned_pre_restoration_point, t.returned_pre_restoration_point);
+    EXPECT_EQ(r.counters.major_iters, t.counters.major_iters);
+    EXPECT_EQ(r.counters.restoration_iters, t.counters.restoration_iters);
+    ASSERT_EQ(r.history.size(), t.history.size());
+    for (std::size_t i = 0; i < r.history.size(); ++i) {
+        SCOPED_TRACE(i);
+        expect_same_row(r.history[i], t.history[i]);
+    }
+    EXPECT_TRUE(bit_equal(r.x, t.x));
+    EXPECT_TRUE(bit_equal(r.lambda, t.lambda));
+    EXPECT_TRUE(bit_equal(r.z, t.z));
+    expect_same_best(r, t);
+    // G3's depth-1 rule: the latch the depth-1 answer raised labels the parent's exit the
+    // callback's, which returns the parent's best rather than the restoration-entry point.
+    EXPECT_EQ(r.stop_reason, StopReason::kCallbackStop);
+    EXPECT_TRUE(r.returned_best_iterate) << r.message;
+    EXPECT_FALSE(r.returned_pre_restoration_point);
 }
 
 // The second-order correction's re-solve is not a safe point: the walk is not armed for

@@ -187,9 +187,22 @@ abandoned subproblem was dispatched at). Neither moves the returned point, its
 multipliers or its history row. A stop that arrives after the subproblem is built but
 before a kernel starts leaves both as a top-of-iteration stop does.
 
+With G3's best tracker. An intra-iteration stop is a token stop, so it never substitutes
+the best iterate; `best_iterate` is published as at any stop (the tracker is armed
+whenever a token can fire). Interior-point: a stop between ladder attempts scores the
+iteration's start point into the tracker once, in the same exit as the iteration-top
+stop, so both publish the same `best_iterate`. No `kStopReturnBest` can be pending
+there: the callback ran before the iteration-top poll, which would have taken it. SQP:
+the abandon is labelled the token's before the abandoned row's event fires, so a
+`kStopReturnBest` answered on that row is what it is on the exit test's token-stopped
+row, a no-op (`x_k` is returned, `returned_best_iterate` false). Inside the restoration
+sub-solve, the same answer on the sub-solve's abandoned row (a depth-1 event) takes
+G3's depth-1 rule, as on its exit test's row: the parent's best is returned with
+`kCallbackStop`.
+
 Behaviour changes (stop path only):
 
 | before | after | rewrite |
 |---|---|---|
 | IPM: a token requested while the inertia ladder ran was seen at the next iteration's top, after the iteration's step | the iteration is abandoned between ladder attempts and the solve returns the point it started from, the same result (point, multipliers, diagnostics, `g`, warm start, message) as a stop at that iteration's top; the ladder's factorizations already spent are counted in `work.factorizations`. Inside restoration the G2 rule holds: the point restoration was entered from | none |
-| SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its work is: factorizations in `counters.factorizations`, minors where a handed-off subproblem's go -- `qp_minor_iters` for the walk, `ssn.ssn_iters` and `ipqp.ipqp_iters` for the tiers). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape; it is not counted as a routing destination (`ipqp_to_ssn`, `ipqp_to_refine`), so the IPQP routing partition (`IpqpCounters::ipqp_to_walk`'s note) holds over the subproblems that were not abandoned. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |
+| SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its work is: factorizations in `counters.factorizations`, minors where a handed-off subproblem's go -- `qp_minor_iters` for the walk, `ssn.ssn_iters` and `ipqp.ipqp_iters` for the tiers). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape; it is not counted as a routing destination (`ipqp_to_ssn`, `ipqp_to_refine`), so the IPQP routing partition (`IpqpCounters::ipqp_to_walk`'s note) holds over the subproblems that were not abandoned. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from (the parent's best instead under a depth-1 `kStopReturnBest`, as above) | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |
