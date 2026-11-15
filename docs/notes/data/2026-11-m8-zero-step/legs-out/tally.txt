@@ -1,0 +1,11 @@
+LEG I4-tally start 2026-11-15T11:38:52-05:00
+compared 476 rows (238 cells x 2 labels), 0 movers
+CLASS IMPROVED: 0 []
+CLASS EQUAL_CLASS: 0 []
+CLASS STATUS_SHIFT: 0 []
+CLASS WORSE: 0 []
+HS battery: 44 cells x 2 labels, 0 movers []
+declared 0; undeclared movers []; declared but unmoved []; WORSE []
+I4R (rows vs the dev runs): 0 differing rows
+I4_PASS
+LEG I4-tally rc=0 2026-11-15T11:38:52-05:00
