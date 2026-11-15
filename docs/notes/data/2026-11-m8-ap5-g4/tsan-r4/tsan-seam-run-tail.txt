@@ -1,0 +1,5 @@
+[----------] 18 tests from StopPollSeam (478 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 1 test suite ran. (478 ms total)
+[  PASSED  ] 18 tests.
