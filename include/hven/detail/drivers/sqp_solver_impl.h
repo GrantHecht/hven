@@ -2183,6 +2183,13 @@ class SqpSolverImpl {
     // it after its own refusals, where it always did. INFORMATIONAL, never
     // asserted (CLAUDE.md section 7).
     std::chrono::steady_clock::time_point entry_time_{};
+
+    // THE INTRA-ITERATION STOP FLAG (M8 AP-5 G4): `detail::stop_flag(budget.stop)`
+    // for the solve in flight, null otherwise. Handed to every QP engine this driver
+    // owns but the cap retry's, and withdrawn from the walk around the SOC re-solve,
+    // which is not a safe point. Cleared at every solve exit.
+    const std::atomic<bool> *qp_stop_ = nullptr;
+    void arm_qp_stop(const std::atomic<bool> *flag) noexcept;
 };
 
 /// Reaches the implementation behind a public SqpSolver. For tests that need

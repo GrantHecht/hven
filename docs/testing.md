@@ -1252,6 +1252,28 @@ policy the factor layer supports and the IPM shipped until DN-3b, and changes
 nothing else. Compiled into `hven_sqp_seam_tests`. No new target, no
 `notices/` entry.
 
+## An eighth seam, on the stop polls (M8 AP-5 G4)
+
+`hven/core/detail/stop_poll.h` declares `hven::detail::testing::StopPollSeam`,
+`#ifdef HVEN_TESTING` only, inside `detail::poll_stop` -- the one function every
+intra-iteration stop poll calls: the IPM inertia ladder between attempts
+(`src/drivers/ipm_solver.cpp`'s `factor_impl`) and the minor loops of the walk,
+SSN and IPQP kernels (`src/qp/qp_engine.cpp`, `ssn_engine.cpp`,
+`ipqp_engine.cpp`). All four are Apache-2.0 files this repository wrote: no
+deviation, no `notices/` entry. An armed poll (a token was handed to the solve)
+reports its site; the seam counts polls and kernel solves per site and, at the
+poll the test names (the N-th of a site, or the K-th poll of the M-th solve),
+calls `request_stop()` on the test's `StopSource` just before the poll reads the
+flag. No public hook can do this: no user code runs between a poll and the work
+it guards (the KKT hook and the iteration callback both run before the
+iteration-top poll, which would see the request first). It is faithful by
+construction -- the request is the public `StopSource::request_stop()`, made from
+the solving thread at a moment a second thread could have chosen. It also records
+every site's count at the request, so a test can assert that no kernel polled
+again after the stop. Compiled into `hven_sqp_seam_tests`
+(`tests/sqp/test_stop_poll_seams.cpp`, `StopPollSeam.*`). Unarmed, `poll_stop` is
+one null test and the seam is not reached.
+
 ## The linear injectors through the public handles (M8 B5 riders)
 
 No new seam: `tests/sqp/test_backend_error_seams.cpp` (`BackendErrorSeam.*`),

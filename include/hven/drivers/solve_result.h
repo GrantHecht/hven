@@ -75,9 +75,12 @@ struct SolveBudget {
     /// StopReason::kStopRequested, returning the current iterate (the point of
     /// the last iteration event). A converged or acceptable verdict reached at
     /// the same boundary outranks it. INTERIOR-POINT: polled at the top of each
-    /// iteration, before its factorization; a stop ends the phase sequence. SQP:
-    /// polled at the exit test before each subproblem, and right after each
-    /// accepted step's row is recorded, so the step is not taken. A source
+    /// iteration, before its factorization, and between inertia-correction
+    /// attempts (the iteration is abandoned); a stop ends the phase sequence. SQP:
+    /// polled at the exit test before each subproblem, right after each accepted
+    /// step's row is recorded, so the step is not taken, and inside the
+    /// subproblem's minor loop and its elastic re-solves (the subproblem is
+    /// abandoned and the row for the current iterate recorded). A source
     /// already stopped stops the solve at its first boundary: a token is per
     /// solve. A stop landing inside feasibility restoration returns the point
     /// restoration was entered from (SolveResult::returned_pre_restoration_point);

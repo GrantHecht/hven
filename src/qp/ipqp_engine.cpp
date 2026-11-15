@@ -2248,7 +2248,14 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     double floor_mu_s = 0.0;
     double floor_r_s = 0.0;
 
+    // THE STOP POLL (M8 AP-5 G4), hoisted: null unless the SQP driver armed it.
+    const std::atomic<bool> *const stop = stop_flag_;
+    detail::poll_stop_begin_solve(stop, detail::StopPollSite::kIpqp);
     for (;;) {
+        if (detail::poll_stop(stop, detail::StopPollSite::kIpqp)) [[unlikely]] {
+            escape = IpqpEscape::kBudget; // the iteration budget's exit
+            break;
+        }
         refresh_distances();
         const IpqpResiduals res = residuals();
         out.residuals = res;

@@ -163,3 +163,20 @@ Not in this group (arrive with the payload group): `g`, `violation`, `z_lower` a
 `z_upper` on `IterationEvent`, the `IpmIterationInfo`/`SqpIterationInfo` blocks, and the
 matching `IterationSnapshot` fields. `IterationSnapshot` mirrors the event as it is
 today.
+
+## G4 -- stops inside an iteration
+
+A requested `SolveBudget::stop` is now also seen inside an iteration, at the two
+places where abandoning the work loses nothing: interior-point, between
+inertia-correction attempts; SQP, in the minor loop of the major's subproblem (walk,
+SSN or IPQP) and of its elastic re-solves, before any trial point is evaluated. The
+line search, the second-order correction and the watchdog are not stop points; a
+request made during them is honoured at the next boundary. A solve without a token is
+unchanged, and so is one whose token is never requested.
+
+Behaviour changes (stop path only):
+
+| before | after | rewrite |
+|---|---|---|
+| IPM: a token requested while the inertia ladder ran was seen at the next iteration's top, after the iteration's step | the iteration is abandoned between ladder attempts and the solve returns the point it started from, the same result (point, multipliers, diagnostics, `g`, warm start, message) as a stop at that iteration's top; the ladder's factorizations already spent are counted in `work.factorizations`. Inside restoration the G2 rule holds: the point restoration was entered from | none |
+| SQP: a token requested while a subproblem was being solved was seen after the major's trial, at the next exit test or the post-push poll | the subproblem is abandoned and the major records the row for its own iterate `x_k` (`qp_solved == false`, the exit test's row shape), whose event fires; the solve returns `x_k` with `history.size() == counters.major_iters + 1` (the abandoned major is not counted; its minors and factorizations are). The abandoned kernel leaves through its iteration-budget exit, so a stopped SSN or IPQP subproblem is counted (and, under a trace, reported) as a budget escape. Inside the restoration sub-solve the G2 rule holds: the point restoration was entered from | a consumer that expected the last row of a token-stopped solve to carry a solved subproblem reads `qp_solved` |

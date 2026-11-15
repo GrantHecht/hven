@@ -1675,6 +1675,10 @@ QpSolution detail::certified_feasibility_fallback(
     // THE RETRY AT THE FLOOR (W2 T5): a price the engine declined is a failed hint, not a
     // verdict on the reformulation, so W1's own penalty gets one attempt before rung B. It is
     // charged as the second activation it is, and the partition reads THIS ladder's outcome.
+    // A STOP (M8 AP-5 G4) ended the ladder: the caller abandons the subproblem.
+    if (detail::stop_flag_set(engine.stop_flag())) [[unlikely]] {
+        return QpSolution{};
+    }
     if (report.qp_status != QpStatus::kOptimal && report.rho_0 > kElasticRhoInit) {
         ++out.elastic_floor_retries;
         ++out.elastic_from_ipqp_escape;
@@ -5055,6 +5059,10 @@ void SqpSolverImpl::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // transmit. THE CENTRE IS NOT, and is stamped below, AFTER the
     // usability gate; see its own note there.
     ssn_prox_sigma_out_ = std::max(ssn_prox_sigma_out_, sres.prox_sigma);
+    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no walk is started.
+    if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        return;
+    }
     if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
         // THE CENTRE IS STAMPED ONLY FROM A USABLE EXIT, not beside
         // the sigma above: the subproblem that sets the max sigma is
@@ -5359,6 +5367,10 @@ void SqpSolverImpl::route_through_ipqp_tier(SolveState &st, MajorState &mj, Asse
     // 3.4). Paid whether this subproblem is adopted or abandoned -- an escape's
     // factorizations were spent either way.
     ipqp_budget_charge += ires.counters.ipqp_factorizations;
+    // A STOP (M8 AP-5 G4): run_major abandons this subproblem; no fallback runs.
+    if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        return;
+    }
     const bool usable = ipqp_exit_is_a_usable_step(ires, opts_.qp, iopts);
     // THE ENGINE INVARIANT, CHECKED WHERE IT IS FIRST RELIED ON: `escape_reason ==
     // kNone` MEANS a converged, FINITE point (plan section 7 note (h)), so a kNone
@@ -7714,6 +7726,26 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // bundle for exactly that read.
         return MajorOutcome::kFinishCurrent;
     }
+    // A SUBPROBLEM ABANDONED ON A STOP (M8 AP-5 G4): the token was requested while the
+    // main subproblem or an elastic re-solve ran, before any trial. The row the exit test
+    // above would have pushed for x_k is pushed (qp_solved false), its event fires, and the
+    // solve returns x_k. The abandoned work stays in the aggregates; the major it did not
+    // complete is not counted. Armed solves only.
+    std::optional<SqpIterate> row_at_xk;
+    if (qp_stop_ != nullptr) [[unlikely]] {
+        row_at_xk = mj.row;
+    }
+    const auto abandon_stopped_qp = [&]() {
+        st.out.counters.major_iters = iter;
+        if (st.full_step_funnel != nullptr) {
+            --st.out.counters.full_step_majors;
+        }
+        mj.row = *row_at_xk;
+        mj.interrupted_exit = true;
+        mj.token_exit = !st.interrupted;
+        push_history(mj.row);
+        return MajorOutcome::kFinishCurrent;
+    };
     // REBUILT ONLY WHEN THE ITERATE MOVED. A rejection re-solves this
     // very object -- same H/g bytes, so the engine's hot-start reuse
     // key survives the retry (see WARM SEEDING) and no eval_hess is
@@ -8004,6 +8036,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
     st.out.counters.inertia_suspect_verdicts += mj.qs.counters.inertia_suspect_verdicts;
     st.out.counters.inertia_wrong_verdicts += mj.qs.counters.inertia_wrong_verdicts;
     st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
+    if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+        return abandon_stopped_qp();
+    }
 
     // THE CAP RETRY (M7 W2 M1, mechanism M1(3)), BEHIND `SqpOptions::
     // qp_iteration_limit_retry` AND OFF BY DEFAULT. A `kIterationLimit` exit says the subproblem
@@ -8222,6 +8257,9 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
                 : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window, opts_,
                                      st.out.counters, std::nullopt, ipqp_trace_,
                                      elastic_rung_tier(), st.qn_bridge ? &*st.qn_bridge : nullptr);
+        if (detail::stop_flag_set(qp_stop_)) [[unlikely]] {
+            return abandon_stopped_qp();
+        }
         rho0_ceiling_hit = report.rho0_ceiling_hit;
         bool ladder_usable = report.usable;
 #ifdef HVEN_TESTING
@@ -8647,8 +8685,10 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         seed_soc.x.setZero();
         QpSolveOverrides soc_overrides;
         soc_overrides.trust_region_radius = st.delta;
+        engine_->set_stop_flag(nullptr); // the SOC re-solve is not a safe point (G4)
         mj.qs_soc = st.qn_bridge ? st.qn_bridge->solve(*engine_, soc_qp, seed_soc, soc_overrides)
                                  : engine_->solve(soc_qp, seed_soc, soc_overrides);
+        engine_->set_stop_flag(qp_stop_);
         // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
         // `soc_resolve`: it runs INSIDE a major whose dispatch line is
         // already written, so it is priced by `soc_steps`, not by majors.
@@ -8895,6 +8935,11 @@ SqpResult SqpSolverImpl::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembl
                           ? std::min<Index>(*budget.max_iterations, opts_.common.max_iterations)
                           : opts_.common.max_iterations;
     st.stop_token = budget.stop;
+    arm_qp_stop(detail::stop_flag(budget.stop));
+    struct QpStopGuard {
+        SqpSolverImpl *self;
+        ~QpStopGuard() { self->arm_qp_stop(nullptr); }
+    } const qp_stop_guard{this};
     st.limit_clock_start = std::chrono::steady_clock::now();
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
     struct BasisViewGuard {
@@ -9320,6 +9365,20 @@ double SqpSolverImpl::restoration_restart_radius() const {
     return std::max(opts_.trust_region_min, kRestoreRadiusFactor * base);
 }
 
+void SqpSolverImpl::arm_qp_stop(const std::atomic<bool> *flag) noexcept {
+    qp_stop_ = flag;
+    engine_->set_stop_flag(flag);
+    if (ssn_engine_ != nullptr) {
+        ssn_engine_->set_stop_flag(flag);
+    }
+    if (ipqp_engine_ != nullptr) {
+        ipqp_engine_->set_stop_flag(flag);
+    }
+    if (elastic_ipqp_engine_ != nullptr) {
+        elastic_ipqp_engine_->set_stop_flag(flag);
+    }
+}
+
 SsnEngine &SqpSolverImpl::ssn_engine() {
     if (ssn_engine_ == nullptr) {
         // THE THREAD COUNT REACHES THE LAZY TIER (M6 W5 T8.8): the tier holds
@@ -9328,6 +9387,7 @@ SsnEngine &SqpSolverImpl::ssn_engine() {
         // next first use.
         ssn_engine_ = std::make_unique<SsnEngine>(engine_qp_options(opts_), opts_.common.threads,
                                                   opts_.linear.dense_factorization);
+        ssn_engine_->set_stop_flag(qp_stop_);
     }
     return *ssn_engine_;
 }
@@ -9355,6 +9415,7 @@ IpqpEngine &SqpSolverImpl::ipqp_engine() {
         // now that the engine exists -- `attach_trace` cannot reach an engine
         // that has not been constructed yet.
         ipqp_engine_->attach_trace(ipqp_trace_);
+        ipqp_engine_->set_stop_flag(qp_stop_);
     }
     return *ipqp_engine_;
 }
@@ -9377,6 +9438,7 @@ IpqpEngine &SqpSolverImpl::elastic_ipqp_engine() {
         elastic_qp.trust_region_radius = std::numeric_limits<double>::infinity();
         elastic_ipqp_engine_ = std::make_unique<IpqpEngine>(elastic_qp, opts_.common.threads,
                                                             opts_.linear.dense_factorization);
+        elastic_ipqp_engine_->set_stop_flag(qp_stop_);
         // NO TRACE ATTACHMENT, deliberately. The elastic rungs announce themselves through the
         // ladder's own `qp.mode` line (site `elastic_rung`, mode `ipqp` under this toggle);
         // attaching the sink here would additionally interleave this engine's per-iteration

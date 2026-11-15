@@ -25,6 +25,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/core/detail/stop_poll.h>
 #include <hven/core/ledger.h>
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
@@ -594,6 +595,12 @@ class IpqpEngine {
     /// genuine escape, whose iterate spec 2.3 item 5 discards.
     void reset_warm_carry();
 
+    /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
+    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// it before the flag's owner can go away. A requested stop leaves the solve
+    /// through its iteration-budget exit, and the driver discards that answer.
+    void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }
+
   private:
     struct Workspace;
 
@@ -630,6 +637,9 @@ class IpqpEngine {
     void emit_trace_restart(const IpqpRestartTraceEvent &event) const;
     void emit_trace_certify(const IpqpCertifyTraceEvent &event) const;
     void emit_trace_escape(const IpqpEscapeTraceEvent &event) const;
+
+    // Last, so no existing member's offset moves.
+    const std::atomic<bool> *stop_flag_ = nullptr;
 };
 
 /// @brief What one tier outcome is, in the section 6.1 ladder's own currency.

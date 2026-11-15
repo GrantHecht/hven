@@ -16,6 +16,14 @@
 namespace hven {
 
 class StopSource;
+class StopToken;
+
+namespace detail {
+/// The flag `t` reads, or nullptr for a token with no source. The engines'
+/// intra-iteration polls (the IPM inertia ladder, the QP minor loops) hold this
+/// pointer, so an unarmed poll is one null test.
+const std::atomic<bool> *stop_flag(const StopToken &t) noexcept;
+} // namespace detail
 
 /// @brief A read-only view of a StopSource's flag. Copyable; every copy reads
 ///        the same flag.
@@ -39,6 +47,7 @@ class StopToken {
 
   private:
     friend class StopSource;
+    friend const std::atomic<bool> *detail::stop_flag(const StopToken &t) noexcept;
     explicit StopToken(std::shared_ptr<const std::atomic<bool>> flag) noexcept
         : flag_(std::move(flag)) {}
     std::shared_ptr<const std::atomic<bool>> flag_;
@@ -83,6 +92,10 @@ class StopSource {
   private:
     std::shared_ptr<std::atomic<bool>> flag_;
 };
+
+inline const std::atomic<bool> *detail::stop_flag(const StopToken &t) noexcept {
+    return t.flag_.get();
+}
 
 static_assert(std::atomic<bool>::is_always_lock_free,
               "StopSource::request_stop() is documented lock-free and async-signal-safe");

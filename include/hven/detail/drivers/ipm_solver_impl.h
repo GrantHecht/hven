@@ -26,6 +26,7 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+#include "hven/core/detail/stop_poll.h"
 #include "hven/detail/drivers/declared_diagnostics.h"
 #include "hven/detail/drivers/ipm_phase_status.h"
 #include "hven/detail/drivers/result_access.h"
@@ -1741,10 +1742,14 @@ class IpmSolverImpl {
     // the ladder runs out of attempts with inertia still wrong. `base_singular`
     // declares the base matrix singular: no base attempt, delta_c engaged (when
     // available), the ladder entered at `ipurt`. `dc_applied` is set iff the call
-    // left delta_c in the KKT buffer.
+    // left delta_c in the KKT buffer. `stop` (M8 AP-5 G4) is polled between ladder
+    // attempts; a requested stop returns kLadderStopped with the iterate untouched
+    // (only the KKT buffer's values moved). Null at the dense guard's re-run.
+    static constexpr int kLadderStopped = -2;
     int factor_impl(bool docompute, bool ZFac, double ipurt, double incpurt0, double incpurt,
                     double &finalpert, double &cumpert, double base_prox, double dual_shift,
-                    bool &exhausted, bool base_singular, bool &dc_applied);
+                    bool &exhausted, bool base_singular, bool &dc_applied,
+                    const std::atomic<bool> *stop = nullptr);
 
     // ||K x - rhs|| / ||rhs|| on the KKT buffer (upper triangle); NaN for a
     // non-finite x, infinity for rhs == 0 with a nonzero residual.

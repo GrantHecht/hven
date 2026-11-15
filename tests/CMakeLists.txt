@@ -565,6 +565,8 @@ add_executable(hven_sqp_seam_tests
     sqp/test_ipm_dense_guard_seams.cpp
     # C341: the SSN tier's dense solve gates under a wounded factor (DenseSolveFaultInjector).
     sqp/test_dense_solve_wound_seams.cpp
+    # M8 AP-5 G4: the intra-iteration stop polls (StopPollSeam, core/detail/stop_poll.h).
+    sqp/test_stop_poll_seams.cpp
 )
 target_compile_definitions(hven_sqp_seam_tests PRIVATE
     $<TARGET_PROPERTY:hven,COMPILE_DEFINITIONS> HVEN_TESTING=1)

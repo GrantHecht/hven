@@ -212,7 +212,15 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         last_lb = wref_lb;
     }
 
+    // THE STOP POLL (M8 AP-5 G4), hoisted: null unless the SQP driver armed it.
+    const std::atomic<bool> *const stop = stop_flag_;
+    detail::poll_stop_begin_solve(stop, detail::StopPollSite::kSsn);
     for (Index it = 0;; ++it) {
+        if (detail::poll_stop(stop, detail::StopPollSite::kSsn)) [[unlikely]] {
+            out->status = QpStatus::kIterationLimit; // the hard budget's exit
+            out->escape_reason = SsnEscape::kBudget;
+            break;
+        }
         const detail::SsnNorms nrm = residual(qp, out->x, out->lambda_e, out->lambda_i, lambda_b,
                                               resid_x, resid_e, slack_i, slack_b, phi_i, phi_b);
         out->fb_residual = nrm.inf_norm;

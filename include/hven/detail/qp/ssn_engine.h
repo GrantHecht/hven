@@ -35,6 +35,7 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
+#include <hven/core/detail/stop_poll.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
@@ -800,6 +801,12 @@ class SsnEngine {
     // Whether this engine owes a caller one of the two calls above.
     bool has_deferred_certification() const { return deferred_pending_; }
 
+    /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
+    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// it before the flag's owner can go away. A requested stop leaves the solve
+    /// through its iteration-budget exit, and the driver discards that answer.
+    void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }
+
   private:
     // -----------------------------------------------------------------------
     // Validation
@@ -1124,6 +1131,8 @@ class SsnEngine {
     Index deferred_attempt_ = 0;
     double deferred_fb_residual_ = 0.0;
     double deferred_fb_tol_ = 0.0;
+    // Last, so no existing member's offset moves.
+    const std::atomic<bool> *stop_flag_ = nullptr;
 };
 
 } // namespace hven::detail

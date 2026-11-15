@@ -852,6 +852,7 @@
 
 #include <fmt/format.h>
 
+#include <hven/core/detail/stop_poll.h>
 #include <hven/core/ledger.h>
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/border_ops.h>
@@ -1888,6 +1889,13 @@ class QpEngine {
     // does NOT validate that assumption.
     bool refine_on_face(const QpProblem &qp_in, const QpSolution &face,
                         const QpSolveOverrides &overrides, QpSolution &out) const;
+
+    /// The SQP driver's stop flag for this engine's minor-loop poll (M8 AP-5 G4;
+    /// core/detail/stop_poll.h), or nullptr: no poll. Not owned; the driver clears
+    /// it before the flag's owner can go away. A requested stop leaves the solve
+    /// through its iteration-budget exit, and the driver discards that answer.
+    void set_stop_flag(const std::atomic<bool> *flag) noexcept { stop_flag_ = flag; }
+    const std::atomic<bool> *stop_flag() const noexcept { return stop_flag_; }
 
   private:
     // R5's PIN TAKEN DIRECTLY: probe_inertia is private, and the test that
@@ -3023,6 +3031,8 @@ class QpEngine {
     // matches. Joined there by the usable-numerics conjunct.
     mutable std::uint64_t border_kkt_session_id_ = 0;
     mutable std::uint64_t border_kkt_epoch_ = 0;
+    // Last, so no existing member's offset moves.
+    const std::atomic<bool> *stop_flag_ = nullptr;
 };
 
 } // namespace hven::detail

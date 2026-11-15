@@ -1959,8 +1959,8 @@ hven::SolveStatus hven::detail::IpmSolverImpl::converge_check(std::vector<IpmIte
 int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double ipurt,
                                              double incpurt0, double incpurt, double &finalpert,
                                              double &cumpert, double base_prox, double dual_shift,
-                                             bool &exhausted, bool base_singular,
-                                             bool &dc_applied) {
+                                             bool &exhausted, bool base_singular, bool &dc_applied,
+                                             const std::atomic<bool> *stop) {
     auto Inertia = [&]() {
         return this->kkt_sol_.neigs() - (this->equal_cons_ + this->inequal_cons_);
     };
@@ -2119,6 +2119,11 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     double p = ipurt;
 
     for (int i = 0; i < opts_.advanced.max_inertia_correction_attempts; i++) {
+        // THE STOP, BETWEEN LADDER ATTEMPTS (M8 AP-5 G4): the iteration is
+        // abandoned before the next factorization; nothing but the KKT buffer's
+        // values has moved, so the caller returns the iteration's start point.
+        if (hven::detail::poll_stop(stop, hven::detail::StopPollSite::kIpmLadder)) [[unlikely]]
+            return kLadderStopped;
         Perturb(p);
         // Display-only accumulator: the running sum of every
         // Perturb() delta applied so far this call -- i.e. the actual total added
@@ -3835,8 +3840,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // token is a null test. A callback stop already latched wins the label;
         // a token stop latches `interrupt_requested_` so that it ends the phase
         // sequence exactly as the callback's does.
-        const bool callback_stop = this->interrupt_requested_;
-        if (callback_stop || this->stop_token_.stop_requested()) {
+        // THE STOP'S EXIT, shared with the inertia ladder's poll (M8 AP-5 G4), which
+        // reaches it with this event's row pushed back.
+        const auto honour_stop = [&](const bool callback_stop) {
             this->interrupt_requested_ = true;
             this->stop_requested_latched_ = !callback_stop;
             iters.back().mu = mu;
@@ -3906,6 +3912,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 msg.iter = iters.back().iter;
                 this->emit_message(msg);
             }
+        };
+        if (const bool callback_stop = this->interrupt_requested_;
+            callback_stop || this->stop_token_.stop_requested()) {
+            honour_stop(callback_stop);
             break;
         }
         // THE WORK AND TIME LIMITS (CommonOptions::max_factorizations and
@@ -3974,9 +3984,19 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
 
         bool kkt_exhausted = false;
         bool kkt_dc_applied = false;
-        Citer.h_facs =
-            this->factor_impl(false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum, base_prox,
-                              dual_shift, kkt_exhausted, false, kkt_dc_applied);
+        const int h_facs = this->factor_impl(
+            false, Zfac, Hpert0, Incr, Incr2, nhpert, nhpert_cum, base_prox, dual_shift,
+            kkt_exhausted, false, kkt_dc_applied, hven::detail::stop_flag(this->stop_token_));
+        // A TOKEN STOP BETWEEN LADDER ATTEMPTS (M8 AP-5 G4): the iteration is
+        // abandoned and the solve exits as the stop above would have, at the point
+        // this iteration's event described. Citer is that event's row unchanged
+        // (the continuing path pops it and writes it only from here down).
+        if (h_facs == kLadderStopped) [[unlikely]] {
+            iters.push_back(Citer);
+            honour_stop(false);
+            break;
+        }
+        Citer.h_facs = h_facs;
         // A LADDER THAT ENDED ON A FAILED FACTORIZATION LEFT NO NUMERICS. Nothing
         // below reads the factorization -- not the PROBE predictor, not the step
         // solve -- so the iteration has no direction. What happens instead is

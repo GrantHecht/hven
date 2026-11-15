@@ -760,7 +760,13 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     std::unique_ptr<detail::KktFactor> diag_kkt;
     EliminatedFace diag_face;
 #endif
+    // THE STOP POLL (M8 AP-5 G4), hoisted: null unless the SQP driver armed it.
+    const std::atomic<bool> *const stop = stop_flag_;
+    detail::poll_stop_begin_solve(stop, detail::StopPollSite::kWalk);
     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
+        if (detail::poll_stop(stop, detail::StopPollSite::kWalk)) [[unlikely]] {
+            break; // status is still kIterationLimit: the cap's exit
+        }
         ++counters.minor_iters;
         const Index standstill_steps_in = standstill_steps;
         standstill_steps = 0;
