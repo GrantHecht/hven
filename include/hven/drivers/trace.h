@@ -543,6 +543,10 @@ struct IpmPhaseExitTraceEvent {
 /// there, while `fallback.verdict` is the judge's own out-param and is filled
 /// whether or not a sink is attached (a handful of scalars). The destructor is
 /// out-of-line (src/drivers/trace.cpp).
+///
+/// CONTRACT: a sink serves ONE solve at a time on ONE thread (a nested restoration
+/// sub-solve shares it sequentially); events are not synchronized. A solve that throws
+/// after `on_solve_begin` ends with `on_solve_abort()` instead of `on_solve_end`.
 class TraceSink {
   public:
     virtual ~TraceSink();
@@ -561,6 +565,14 @@ class TraceSink {
     virtual void on_iter(const IterTraceEvent &event);
     virtual void on_message(const MessageTraceEvent &event);
     virtual void on_solve_end(const SolveEndTraceEvent &event);
+
+    /// @brief A solve whose `solve.begin` was delivered is leaving by an exception, so
+    /// no `solve.end` will follow. NON-EMITTING: a sink unwinds whatever per-solve state
+    /// `on_solve_begin` opened (nesting, header/legend bookkeeping) and writes nothing,
+    /// so the next solve on the same sink starts clean with no sink-specific recovery.
+    /// Called once per solve level that began, innermost first, on every exceptional
+    /// engine exit; must not throw. Default: nothing.
+    virtual void on_solve_abort() noexcept;
 
     virtual void on_ipm_phase_begin(const IpmPhaseTraceEvent &event);
     virtual void on_ipm_phase_end(const IpmPhaseTraceEvent &event);

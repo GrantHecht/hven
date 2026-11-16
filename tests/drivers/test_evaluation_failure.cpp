@@ -27,10 +27,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <regex>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -43,8 +46,10 @@
 #include "hven/core/errors.h"
 #include "hven/core/stop.h"
 #include "hven/detail/interior/utils/thread_pool.h"
+#include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
+#include "hven/drivers/json_lines_trace_sink.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/sqp_solver_types.h"
@@ -1459,6 +1464,169 @@ TEST(RiderReturnBest, WithReturnBestOffTheFailedPointRuleIsUnchanged) {
     EXPECT_FALSE(nlp->was_seen_public(r.x)) << "the failed point";
     EXPECT_TRUE(all_zero(r.lambda));
     EXPECT_TRUE(all_zero(r.z));
+}
+
+// --- a throwing solve leaves its sink clean (M8 TR-A rider 1) -----------------------------------
+
+// The engines unwind the sink themselves (`TraceSink::on_solve_abort`); the next solve on the
+// same sink must start at depth 0 with a fresh banner, with NO sink-specific recovery call.
+std::string read_all(std::FILE *f) {
+    std::fflush(f);
+    std::rewind(f);
+    std::string out;
+    char buf[4096];
+    while (std::size_t n = std::fread(buf, 1, sizeof buf, f)) {
+        out.append(buf, n);
+    }
+    return out;
+}
+
+std::size_t count_of(const std::string &text, const std::string &needle) {
+    std::size_t n = 0;
+    for (std::size_t at = text.find(needle); at != std::string::npos;
+         at = text.find(needle, at + needle.size())) {
+        ++n;
+    }
+    return n;
+}
+
+enum class Where { kTopLevel, kRestorationSubSolve };
+
+void run_unwind_case(Engine e, Where where, hven::TraceSink &sink) {
+    const auto throwing = [&] {
+        if (where == Where::kTopLevel) {
+            auto nlp = std::make_shared<FaultyHs071>();
+            nlp->where = Callback::kGradient;
+            nlp->fault = Fault::kForeign;
+            nlp->fire_at = kFireAt;
+            Problem problem(nlp);
+            if (e == Engine::kIpm) {
+                IpmSolver solver(quiet_ipm());
+                solver.attach_trace(&sink);
+                (void)solver.solve(problem, hs071_start());
+            } else {
+                SqpSolver solver(quiet_sqp());
+                solver.attach_trace(&sink);
+                (void)solver.solve(problem, hs071_start());
+            }
+        } else {
+            // SQP only: the throw happens inside the depth-1 restoration sub-solve.
+            auto nlp = std::make_shared<FaultyInfeasible>();
+            Problem problem(nlp);
+            SqpSolver solver(quiet_sqp());
+            solver.attach_trace(&sink);
+            solver.set_iteration_callback(
+                [&nlp](const IterationEvent &ev) {
+                    if ((ev.sqp ? ev.sqp->depth : Index{0}) == 1 && nlp->fired == 0) {
+                        nlp->throw_armed = true;
+                    }
+                    return CallbackAction::kContinue;
+                },
+                hven::IterationPayload::kScalars, hven::CallbackScope::kIncludeRestoration);
+            (void)solver.solve(problem, infeasible_start());
+        }
+    };
+    const auto normal = [&] {
+        Problem problem(std::make_shared<FaultyHs071>());
+        if (e == Engine::kIpm) {
+            IpmSolver solver(quiet_ipm());
+            solver.attach_trace(&sink);
+            EXPECT_EQ(solver.solve(problem, hs071_start()).status, SolveStatus::kOptimal);
+        } else {
+            SqpSolver solver(quiet_sqp());
+            solver.attach_trace(&sink);
+            EXPECT_EQ(solver.solve(problem, hs071_start()).status, SolveStatus::kOptimal);
+        }
+    };
+    EXPECT_THROW(throwing(), Sentinel);
+    normal();
+}
+
+TEST(TraceUnwind, AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve) {
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        for (Where w : {Where::kTopLevel, Where::kRestorationSubSolve}) {
+            if (e == Engine::kIpm && w == Where::kRestorationSubSolve) {
+                continue; // the interior-point engine nests no driver
+            }
+            SCOPED_TRACE(std::string(name(e)) + (w == Where::kTopLevel ? " top" : " depth1"));
+            std::ostringstream os;
+            hven::JsonLinesTraceSink json(os);
+            run_unwind_case(e, w, json);
+            EXPECT_EQ(json.depth(), 0);
+            // Split the stream into lines; the LAST solve.begin is the normal solve's.
+            const std::string text = os.str();
+            const std::size_t last_begin = text.rfind("\"ev\":\"solve.begin\"");
+            ASSERT_NE(last_begin, std::string::npos);
+            const std::size_t line_start = text.rfind('\n', last_begin) + 1;
+            const std::string line =
+                text.substr(line_start, text.find('\n', last_begin) - line_start);
+            EXPECT_NE(line.find("\"depth\":0"), std::string::npos) << line;
+            EXPECT_NE(line.find("\"sid\":2"), std::string::npos) << line;
+            // Every line of the second solve is depth 0 (SQP restoration may nest, but the
+            // normal HS071 solve does not).
+            for (std::size_t at = last_begin; at != std::string::npos;
+                 at = text.find("\"depth\":", at + 1)) {
+                if (at == last_begin) {
+                    continue;
+                }
+                EXPECT_EQ(text.compare(at, 9, "\"depth\":0"), 0) << text.substr(at, 20);
+            }
+        }
+    }
+}
+
+TEST(TraceUnwind, AThrowingSolveLeavesTheConsoleSinkCleanForTheNextSolve) {
+    for (Engine e : {Engine::kIpm, Engine::kSqp}) {
+        for (Where w : {Where::kTopLevel, Where::kRestorationSubSolve}) {
+            if (e == Engine::kIpm && w == Where::kRestorationSubSolve) {
+                continue;
+            }
+            SCOPED_TRACE(std::string(name(e)) + (w == Where::kTopLevel ? " top" : " depth1"));
+            std::FILE *f = std::tmpfile();
+            ASSERT_NE(f, nullptr);
+            {
+                hven::ConsoleTraceSink::Format fmt;
+                fmt.verbosity = Verbosity::kSummary;
+                fmt.color = hven::ConsoleColor::kNever;
+                hven::ConsoleTraceSink console(fmt, f);
+                run_unwind_case(e, w, console);
+                EXPECT_EQ(console.sqp_depth(), 0);
+            }
+            const std::string text = read_all(f);
+            std::fclose(f);
+            // Two solves began: BOTH banners were printed. A sink still one level open would
+            // have treated the second as a nested solve and printed nothing for it.
+            EXPECT_EQ(count_of(text, "problem    variables"), 2U) << text;
+            // The normal solve's footer closes it.
+            EXPECT_EQ(count_of(text, "\nexit  "), 1U) << text;
+        }
+    }
+}
+
+// --- the non-finite abort with no sink attached (M8 TR-A rider 2) ----------------------------
+
+// The abort path used to add the gradient block to the retained right-hand side TWICE (once
+// before the exit row was filled and once after), doing O(n) work with no sink and corrupting
+// the retained exit gradient that the result's declared stationarity reads. The reference is the
+// value of the single-accumulation path, measured on this fixture (single thread, deterministic);
+// the doubled path reads a different number (checked by the TR-A mutation `p2`).
+TEST(RiderNonFiniteAbort, ExitDiagnosticsAreTheFailedPointsOwnWithNoSinkAttached) {
+    auto nlp = std::make_shared<FaultyHs071>();
+    nlp->where = Callback::kHessian;
+    nlp->fault = Fault::kNaN;
+    nlp->fire_at = kFireAt;
+    nlp->sticky = true;
+    Problem problem(nlp);
+    IpmOptions o = quiet_ipm();
+    o.return_best = false;
+    IpmSolver solver(o);
+    const IpmResult r = solver.solve(problem, hs071_start());
+    ASSERT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
+    ASSERT_TRUE(r.x.allFinite());
+    ASSERT_TRUE(all_zero(r.lambda));
+    ASSERT_TRUE(std::isfinite(r.stationarity)) << "premise: the exit stationarity was measured";
+    constexpr double kSingleAccumulation = 12.405766332222026;
+    EXPECT_NEAR(r.stationarity, kSingleAccumulation, 1e-6 * kSingleAccumulation);
 }
 
 } // namespace

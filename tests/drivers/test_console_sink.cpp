@@ -861,7 +861,7 @@ TEST(ConsoleNesting, ANestedSolveBeginAndEndPrintNothingAndTheOuterFooterStillPr
         << "the restoration row prints its restoration objective under tier R";
 }
 
-TEST(ConsoleNesting, TheQpTierLinesPrintAtTheDetailRungAtDepthZeroOnly) {
+TEST(ConsoleNesting, TheQpTierLinesPrintAtTheDetailRungAtEveryDepth) {
     QpModeTraceEvent mode;
     mode.mode = QpTraceMode::kIpqp;
     mode.outcome = QpTraceOutcome::kEscaped;
@@ -898,9 +898,11 @@ TEST(ConsoleNesting, TheQpTierLinesPrintAtTheDetailRungAtDepthZeroOnly) {
     EXPECT_NE(detail.find("      . ipqp.restart full repaired\n"), std::string::npos);
     EXPECT_NE(detail.find("      . fallback.verdict relaxed\n"), std::string::npos);
     EXPECT_EQ(count(census_of(detail), Kind::kDetail), 4);
-    // The rung below prints none of them, and neither does a nested solve.
+    // The rung below prints none of them; a nested (restoration) solve prints all four, so the
+    // approved ladder holds at depth 1 too.
     EXPECT_EQ(count(census_of(run(Verbosity::kIterations, false)), Kind::kDetail), 0);
-    EXPECT_EQ(count(census_of(run(Verbosity::kDetail, true)), Kind::kDetail), 0);
+    EXPECT_EQ(count(census_of(run(Verbosity::kIterations, true)), Kind::kDetail), 0);
+    EXPECT_EQ(count(census_of(run(Verbosity::kDetail, true)), Kind::kDetail), 4);
 }
 
 TEST(ConsolePhases, AMultiPhaseSolvePrintsOnePhaseLineEachAtTheSummaryRung) {

@@ -1001,6 +1001,11 @@ class SqpSolverImpl {
     /// @brief Emits `solve.end` for a result the handle has finished (normal return only).
     void emit_solve_end(const SqpResult &result);
 
+    /// @brief The handle's catch clause: if this engine's top-level `solve.begin` went out
+    /// and no `solve.end` followed, tells the sink to unwind (non-emitting). No-op otherwise.
+    /// (A restoration sub-driver unwinds its own level itself.)
+    void abort_trace_solve() noexcept;
+
     /// @brief The payload mask the installed callback declared, or
     ///        the default mask when none is installed.
     ///
@@ -1972,6 +1977,8 @@ class SqpSolverImpl {
     // DURING a solve does it hold the effective sink. Read it as "the sink the
     // current solve writes to", never as "the composition".
     TraceSink *ipqp_trace_ = nullptr;
+    /// A top-level `solve.begin` was delivered and its `solve.end` has not completed.
+    bool trace_solve_open_ = false;
 
     // The two driver-owned emit sites: `ipqp.route` and `qp.mode`, the kIpqp
     // dispatch arm's own facts.

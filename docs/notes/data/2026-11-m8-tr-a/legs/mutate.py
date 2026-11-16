@@ -28,8 +28,8 @@ M = {
            '    color_ = f.color != ConsoleColor::kAlways ||'),
     # c3: a kDetail line prints at kIterations.
     'c3': ('src/drivers/console_trace_sink.cpp',
-           '    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode',
-           '    if (depth_ > 0 || !at_least(Verbosity::kIterations)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode'),
+           '    if (!at_least(Verbosity::kDetail)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode',
+           '    if (!at_least(Verbosity::kIterations)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode'),
     # o1: the off path does work: the message builder runs before the sink test.
     'o1': ('src/drivers/ipm_solver.cpp',
            '    if (TraceSink *const sink = this->trace_; sink != nullptr) {\n        sink->on_message(build());',

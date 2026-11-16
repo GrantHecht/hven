@@ -339,6 +339,10 @@ class IpmSolverImpl {
     /// Emits `solve.end` for a result the handle has finished (normal return only).
     void emit_solve_end(const IpmResult &result);
 
+    /// The handle's catch clause: if `solve.begin` went out and no `solve.end` followed,
+    /// tells the sink to unwind (non-emitting). No-op otherwise.
+    void abort_trace_solve() noexcept;
+
     /// @brief Labels the call an exception ended: last_stop_reason() reads
     ///        kException and last_stop_detail() the exception's description.
     void note_exception_stop(std::string what) noexcept {
@@ -1375,6 +1379,8 @@ class IpmSolverImpl {
     /// a console is attached beside it. Never owned; points at `user_trace_`,
     /// at `console_` or at `fanout_`, all of which outlive the solve.
     TraceSink *trace_ = nullptr;
+    /// `solve.begin` was delivered and its `solve.end` has not completed.
+    bool trace_solve_open_ = false;
 
     /// This solver's OWN console, built at solve entry when
     /// `common.print_level` is below 3 and destroyed with the solver. Held

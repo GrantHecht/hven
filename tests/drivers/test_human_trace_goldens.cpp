@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -84,7 +85,8 @@ constexpr Rung kRungs[] = {{"warnings", Verbosity::kWarnings},
                            {"iterations", Verbosity::kIterations},
                            {"detail", Verbosity::kDetail}};
 
-std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x0, Verbosity v) {
+std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x0, Verbosity v,
+                   const IpmOptions &ipm_options = IpmOptions{}) {
     std::FILE *f = std::tmpfile();
     std::string text;
     {
@@ -94,7 +96,7 @@ std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x
             f);
         Problem problem(nlp);
         if (ipm) {
-            IpmSolver solver{IpmOptions{}};
+            IpmSolver solver{ipm_options};
             solver.attach_trace(&sink);
             (void)solver.solve(problem, x0);
         } else {
@@ -142,17 +144,43 @@ TEST(HumanTraceGoldens, FourProblemsTwoEnginesFourRungs) {
     }
 }
 
+// Rows of a tier in a transcript: `<iter> <tier> ` at the start of a line (the legend's own
+// letters never start a line with a number).
+bool has_tier_row(const std::string &text, char tier) {
+    for (std::size_t at = 0; at < text.size();) {
+        std::size_t end = text.find('\n', at);
+        if (end == std::string::npos) {
+            end = text.size();
+        }
+        const std::string line = text.substr(at, end - at);
+        std::size_t i = line.find_first_not_of(' ');
+        if (i != std::string::npos && std::isdigit(static_cast<unsigned char>(line[i]))) {
+            const std::size_t sp = line.find(' ', i);
+            if (sp != std::string::npos && sp + 2 < line.size() && line[sp + 1] == tier &&
+                line[sp + 2] == ' ') {
+                return true;
+            }
+        }
+        at = end + 1;
+    }
+    return false;
+}
+
 TEST(HumanTraceGoldens, TheRestorationFixture) {
     (void)render(true, battery()[0].make(), battery()[0].start(), Verbosity::kSilent);
     Vec x0(2);
     x0 << 1.0, 1.0;
+    // The IPM enters its nested l1 restoration phase (one entry), whose rows read tier R.
+    IpmOptions restoring;
+    restoring.advanced.restoration_mode = IpmRestorationMode::kL1Nested;
+    restoring.advanced.max_restoration_entries = 1;
     const std::string ipm =
-        render(true, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kIterations);
-    EXPECT_NE(ipm.find(" R "), std::string::npos) << "the IPM fixture shows restoration rows\n"
-                                                  << ipm;
+        render(true, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kIterations, restoring);
+    EXPECT_TRUE(has_tier_row(ipm, 'R')) << "the IPM fixture shows restoration rows\n" << ipm;
     check("ipm_restoration_iterations.txt", ipm);
     const std::string sqp =
         render(false, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kIterations);
+    EXPECT_TRUE(has_tier_row(sqp, 'R')) << "the SQP fixture shows restoration rows\n" << sqp;
     check("sqp_restoration_iterations.txt", sqp);
 }
 
@@ -164,6 +192,7 @@ TEST(HumanTraceGoldens, TheElasticFixture) {
     // the step.
     const std::string sqp =
         render(false, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kDetail);
+    EXPECT_TRUE(has_tier_row(sqp, 'E')) << "the SQP fixture shows elastic rows\n" << sqp;
     check("sqp_elastic_detail.txt", sqp);
 }
 

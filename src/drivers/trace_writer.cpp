@@ -520,9 +520,18 @@ void JsonLinesTraceSink::flush() {
 
 void JsonLinesTraceSink::push_depth() { ++depth_; }
 
-void JsonLinesTraceSink::reset_nesting() {
-    depth_ = 0;
-    open_solves_ = 0;
+// A solve left by an exception (`on_solve_abort`): the non-emitting twin of the unwind at
+// the end of on_solve_end. Saturating, so an abort for a begin this sink never saw (an
+// earlier sink in a fan-out threw first) cannot drive the counts negative.
+void JsonLinesTraceSink::on_solve_abort() noexcept {
+    if (open_solves_ > 0) {
+        --open_solves_;
+    }
+    if (open_solves_ > 0) {
+        pop_depth();
+    } else {
+        depth_ = 0;
+    }
 }
 
 void JsonLinesTraceSink::pop_depth() {
@@ -739,8 +748,8 @@ void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) 
     key_index(b, first, "iter", event.iterate.iter);
     key_bool(b, first, "best_substituted", event.best_substituted);
     key_double(b, first, "prim_obj", event.iterate.prim_obj);
-    key_double(b, first, "kkt_inf", event.iterate.kkt_inf);
-    key_double(b, first, "barr_inf", event.iterate.barr_inf);
+    key_double(b, first, "stationarity", event.iterate.kkt_inf);
+    key_double(b, first, "complementarity", event.iterate.barr_inf);
     key_double(b, first, "econ_inf", event.iterate.econ_inf);
     key_double(b, first, "icon_inf", event.iterate.icon_inf);
     key_enum(b, first, "kkt_factor_status", to_json(event.kkt_factor_status));

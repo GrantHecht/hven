@@ -680,12 +680,11 @@ TEST(IpmNoNumericsSeam, AHardBackendErrorEndsTheSolveWithoutRestoration) {
     expect_x_unmoved(run);
 }
 
-// The aborted iteration's row carries its own barrier objective at the mu it was handed: with the
-// barrier governor skipped (its PROBE mode would solve), the governor's tail still runs at the
-// current mu, so the row's barr_obj is the bound term PLUS the inequality slack's -mu*log(s) --
-// the account a restoration entry from the same point reads. HS071's bounds are 1 <= x_i <= 5, so
-// the bound term is recomputed here from the iterate and the row's mu.
-TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesItsBarrierObjective) {
+// The aborted iteration's row carries NO barrier objective (trace schema v1, M8 TR-A: the field is
+// null when no step leaves the point, strictly). The engine still evaluates the governor's tail at
+// the current mu for a restoration entry from the same point, but that account is internal: the
+// row reads absent (0 in the row view), not the bound term plus the slack's -mu*log(s).
+TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesNoBarrierObjective) {
     RecordedSolve run;
     {
         const Armed armed(1);
@@ -693,19 +692,10 @@ TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesItsBarrierObjective) {
     }
     ASSERT_EQ(run.result.status, hven::SolveStatus::kNumericalError) << run.result.message;
     ASSERT_FALSE(run.rows.empty());
-    ASSERT_FALSE(run.event_x.empty());
     const hven::test::IpmRowView &row = run.rows.back();
-    const Eigen::VectorXd &x = run.event_x.back();
-    double bound_term = 0.0;
-    for (Eigen::Index k = 0; k < x.size(); ++k) {
-        bound_term += -row.mu * (std::log(x[k] - 1.0) + std::log(5.0 - x[k]));
-    }
     EXPECT_EQ(row.iter, 0);
-    ASSERT_TRUE(std::isfinite(row.barr_obj));
-    // The slack term -mu*log(s): on this box s is ~mu = 1e-3 at the start, so the term is ~6.9e-3;
-    // without the tail the difference is rounding (the row carries the bound term alone).
-    EXPECT_GT(row.barr_obj - bound_term, 1e-4)
-        << "barr_obj " << row.barr_obj << ", bound term " << bound_term << ", mu " << row.mu;
+    EXPECT_TRUE(std::isnan(row.step_norm)) << "premise: no step leaves the aborted iteration";
+    EXPECT_EQ(row.barr_obj, 0.0) << "a row without a step carries no barrier objective";
 }
 
 // Inside restoration a row's residuals are the restoration subproblem's (here the nested phase's

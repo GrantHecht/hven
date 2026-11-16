@@ -2850,7 +2850,7 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     if (r.prox_reg_primal >= 0.0) {
         row.proximal_primal = r.prox_reg_primal;
     }
-    if (stepped || r.barr_obj != 0.0) {
+    if (stepped) {
         row.barrier_objective = r.barr_obj;
     }
     if (r.p_pivots_observed) {
@@ -2860,8 +2860,10 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     row.feasibility_ineq = r.icon_inf;
     row.merit_penalty_1 = r.pen_par1;
     row.merit_penalty_2 = r.pen_par2;
-    row.max_multiplier_eq = r.max_e_mult;
-    row.max_multiplier_ineq = r.max_i_mult;
+    // Caller units, like every other price on the row (the result path divides by the same
+    // objective scale the solve ran at).
+    row.max_multiplier_eq = r.max_e_mult / scale;
+    row.max_multiplier_ineq = r.max_i_mult / scale;
     if (r.first_rejection_iter >= 0) {
         row.first_rejected_trial = r.first_rejection_iter;
     }
@@ -3214,7 +3216,6 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
             Citer.factorizations =
                 this->lifetime_factorize_count() - this->factorizations_at_entry_;
-            v_rhs.prim_grad() += PGX;
             iters.push_back(Citer);
             if (opts_.return_best && best_recorded) {
                 // RETURN_BEST ON AND A FINITE BEST ITERATE RECORDED: it is
@@ -6677,6 +6678,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             st.fixed_variables = box.vars_fixed;
             st.constraints = this->equal_cons_ + this->inequal_cons_;
             st.equality_rows = this->equal_cons_;
+            st.upper_bounded_rows = this->inequal_cons_; // the split form's rows are c_I(x) <= 0
             st.absent_bounds = this->nlp_->absent_bounds_ + this->nlp_->source_absent_bounds_;
         }
         begin_event.optimality_tol = opts_.common.optimality_tol;
@@ -6700,6 +6702,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         info.kkt_dim = this->kkt_dim_;
         info.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
         begin_event.ipm = info;
+        // Set BEFORE the call: a sink that throws out of `solve.begin` has already opened
+        // its level, and the handle's abort must unwind it.
+        this->trace_solve_open_ = true;
         sink->on_solve_begin(begin_event);
     }
 
@@ -7581,6 +7586,16 @@ void hven::detail::IpmSolverImpl::emit_solve_end(const IpmResult &r) {
     }
     e.ipm = i;
     sink->on_solve_end(e);
+    this->trace_solve_open_ = false;
+}
+
+void hven::detail::IpmSolverImpl::abort_trace_solve() noexcept {
+    if (this->trace_solve_open_) {
+        this->trace_solve_open_ = false;
+        if (this->trace_ != nullptr) {
+            this->trace_->on_solve_abort();
+        }
+    }
 }
 
 hven::IpmResult hven::detail::IpmSolverImpl::take_interrupted_result() {

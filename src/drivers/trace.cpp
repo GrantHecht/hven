@@ -29,6 +29,7 @@ void TraceSink::on_solve_begin(const SolveBeginTraceEvent &) {}
 void TraceSink::on_iter(const IterTraceEvent &) {}
 void TraceSink::on_message(const MessageTraceEvent &) {}
 void TraceSink::on_solve_end(const SolveEndTraceEvent &) {}
+void TraceSink::on_solve_abort() noexcept {}
 void TraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &) {}
 void TraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &) {}
 void TraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &) {}

@@ -10,6 +10,13 @@
 // sit lexically inside a block opened by a sink guard (`!= nullptr`) or inside a builder lambda
 // handed to `emit_message`, except for the named allowlist. Falsified below by a planted unguarded
 // construction and a planted unguarded call.
+//
+// WHAT THE SCAN CANNOT SEE: a STATE mutation done only to feed the trace (an accumulation, a
+// buffer write) has no event construction to match, so it is out of the scan's reach in general.
+// Those are pinned by behaviour (no-sink regression tests, e.g. RiderNonFiniteAbort in
+// test_evaluation_failure.cpp), plus the one targeted scan below for the shape that actually
+// occurred: the non-finite abort block accumulating the gradient into the retained right-hand
+// side more than once.
 
 #include <gtest/gtest.h>
 
@@ -251,6 +258,24 @@ TEST(TraceOffPath, TheMessageBuilderRunsOnlyAfterTheSinkTest) {
     ASSERT_NE(guard, std::string::npos);
     ASSERT_NE(call, std::string::npos);
     EXPECT_LT(guard, call) << "the builder is invoked before the sink is tested";
+}
+
+// The non-finite abort block adds the gradient block to the retained right-hand side exactly
+// once (a second accumulation corrupted the retained exit gradient with no sink attached).
+TEST(TraceOffPath, TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce) {
+    const std::filesystem::path root(HVEN_SRC_ROOT);
+    const std::string text = strip(read(root / "drivers" / "ipm_solver.cpp"));
+    const std::size_t open = text.find("if (nonfinite_abort) [[unlikely]] {");
+    ASSERT_NE(open, std::string::npos);
+    const std::size_t close = text.find("ExitCode = SolveStatus::kNumericalError;", open);
+    ASSERT_NE(close, std::string::npos);
+    const std::string block = text.substr(open, close - open);
+    std::size_t n = 0;
+    for (std::size_t at = block.find("prim_grad() += PGX"); at != std::string::npos;
+         at = block.find("prim_grad() += PGX", at + 1)) {
+        ++n;
+    }
+    EXPECT_EQ(n, 1U);
 }
 
 } // namespace

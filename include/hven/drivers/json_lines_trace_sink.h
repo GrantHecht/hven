@@ -6,24 +6,14 @@
 // json_lines_trace_sink.h -- schema v1's ONE serializer: `TraceSink` events
 // written as JSON lines to a caller-owned `std::ostream`.
 //
-// The contract is FIXED by docs/notes/2026-09-m6-w4-plan.md section 2 and is not
-// this file's to re-decide. One object per line, `\n`-terminated, no padding,
-// schema key order, envelope first.
+// The contract is docs/trace-schema-v1.md: one object per line, `\n`-terminated, no padding,
+// schema key order, envelope (`v`, `ev`, `seq`, `sid`, `depth`, `eng`) first. Doubles at
+// `{:.17g}` with the non-finite JSON STRINGS "nan"/"inf"/"-inf"; absence is `null`, never
+// zero-filled; strings escaped per RFC 8259 section 7. No vector-valued field anywhere.
 //
-// Doubles at `{:.17g}`, with the three non-finite JSON STRINGS "nan"/"inf"/
-// "-inf"; absence is `null`, never zero-filled (CLAUDE.md section 6); strings
-// escaped per RFC 8259 section 7.
-//
-// SCHEMA v0 CARRIES NO VECTOR-VALUED FIELD ANYWHERE, so `IpqpInfeasibilityEvidence`'s five `Vec`
-// members are out and `ipqp.escape` carries the least-infeasible point's two scalars, not the
-// point.
-//
-// `seq` and `depth` are SINK-owned -- no event struct carries either. Off by
-// default: nothing in the library constructs one, so an unattached solve pays
-// exactly what it paid before.
-//
-// "Eight" above is the schema's core event count, not the method count: the
-// three SQP whole-solve events and the three interior-point ones come on top.
+// `seq`, `sid` and `depth` are SINK-owned -- no event struct carries any. Off by default:
+// nothing in the library constructs one, so an unattached solve pays exactly what it paid
+// before.
 
 #include <iosfwd>
 #include <string>
@@ -56,9 +46,10 @@ namespace hven {
 /// ill-formed UTF-8 gets a line that is not JSON text (RFC 8259 section 8.1).
 /// Nothing in the library sets the field.
 ///
-/// THREADING: one sink serves one solve at a time on one thread. `seq_`,
-/// `depth_` and the write are unsynchronized; the nested restoration driver
-/// shares the sink SEQUENTIALLY, which is the only sharing v0 supports.
+/// THREADING: ONE sink serves ONE solve at a time on ONE thread. `seq_`, `depth_` and the
+/// write are unsynchronized; the nested restoration driver shares the sink SEQUENTIALLY,
+/// which is the only sharing supported. A solve that throws unwinds it through
+/// `on_solve_abort()`; the next solve on the sink starts clean.
 class JsonLinesTraceSink final : public TraceSink {
   public:
     /// The schema version this sink writes (`v` on every line).
@@ -92,6 +83,10 @@ class JsonLinesTraceSink final : public TraceSink {
     void on_iter(const IterTraceEvent &event) override;
     void on_message(const MessageTraceEvent &event) override;
     void on_solve_end(const SolveEndTraceEvent &event) override;
+    /// A solve that threw after its `solve.begin`: unwinds the nesting, writes NO line, and
+    /// leaves `seq` alone (the artifact's numbering is the artifact's). The engines call it
+    /// on every exceptional exit, so a sink needs no recovery call after a throwing solve.
+    void on_solve_abort() noexcept override;
     void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
     void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
     void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;
@@ -126,17 +121,6 @@ class JsonLinesTraceSink final : public TraceSink {
     /// nests no driver of its own, so an IPM stream reads depth 0 throughout and
     /// a mixed stream reports the SQP side's nesting only.
     Index depth() const { return depth_; }
-
-    /// @brief Forget the nesting a THROWING solve left open.
-    ///
-    /// `sqp.solve.end` is deliberately not written while an exception is in
-    /// flight, so a solve that threw mid-body leaves this sink one level open
-    /// and every later stream on it would read `"depth":1`. A caller that
-    /// intends to keep using the sink calls this after catching.
-    ///
-    /// `seq` IS NOT RESET: the artifact's line numbering is the artifact's, and
-    /// renumbering it would hide the lines the abandoned solve did write.
-    void reset_nesting();
 
     /// @brief Pushes the borrowed stream's buffered bytes out to its sink.
     ///

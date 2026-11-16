@@ -130,6 +130,7 @@ IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
     } catch (...) {
         // PROPAGATED UNCHANGED (M8 B5): the same exception object, after the
         // partial result is finished and kept. Nothing here wraps it.
+        engine.abort_trace_solve();
         IpmResult partial = engine.take_interrupted_result();
         finish_interrupted_result(engine, problem, budget, x0,
                                   detail::describe_exception(std::current_exception()), partial);

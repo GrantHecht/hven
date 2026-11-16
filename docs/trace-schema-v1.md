@@ -22,7 +22,7 @@ Every line is one JSON object, `\n`-terminated. The first six keys, in this orde
 | `v` | int | **1.** A reader rejects any other value. |
 | `ev` | string | the record name (section 3) |
 | `seq` | int | per SINK, from 1, +1 per line attempted |
-| `sid` | int | per-sink ordinal of the enclosing depth-0 `solve.begin`, from 1 (0 before any begin). A solve that throws writes no `solve.end`; its `sid` has a begin and no end, and the next solve takes `sid + 1`. A reader treats that `sid` as an aborted solve, not a malformed stream. |
+| `sid` | int | per-sink ordinal of the enclosing depth-0 `solve.begin`, from 1 (0 before any begin). A solve that throws writes no `solve.end`; its `sid` has a begin and no end, and the next solve takes `sid + 1`. A reader treats that `sid` as an aborted solve, not a malformed stream. The engine tells the sink about the exit (`TraceSink::on_solve_abort()`, non-emitting, once per solve level that began), so the next solve on the same sink starts at `depth` 0 with no recovery call; there is no `reset_nesting`. |
 | `depth` | int | enclosing SQP solves; 0 on the interior-point engine, whose restoration runs in place |
 | `eng` | string `ipm`/`sqp` | which engine wrote the line |
 
@@ -46,7 +46,7 @@ tightens:
 | `solve.begin` | both | accepted public call (refused arguments write nothing) |
 | `iter` | both | iteration row |
 | `message` | both | diagnostic occurrence |
-| `solve.end` | both | normal return (an exception writes none) |
+| `solve.end` | both | normal return (an exception writes none; the sink is unwound by `on_solve_abort()`) |
 | `ipm.phase.begin`, `ipm.phase.end`, `ipm.phase.exit` | ipm | phase that ran |
 | `ipm.kkt_analysis` | ipm | `init_impl` |
 | `qp.mode`, `ipqp.iter`, `ipqp.reg`, `ipqp.restart`, `ipqp.route`, `ipqp.certify`, `ipqp.escape`, `fallback.verdict` | sqp | as v0 sections 4.4-4.11; **bytes unchanged after the envelope** |
@@ -77,19 +77,19 @@ Core, in wire order:
 | `soc` | bool | SOC won this iteration's step (`resolved_depth == kRecoveryDepthSoc`) | `soc_applied` | never |
 | `watchdog` | bool | the watchdog **armed** this iteration | the watchdog **restored** this pass | never; the meanings differ by engine |
 | `rolled_back` | bool | a non-finite step rollback happened at this iteration | `rolled_back` | never |
-| `factorizations` | int | the call's running KKT factorization count at the row | the (sub-)solve's running `counters.factorizations` | never |
+| `factorizations` | int | the call's running KKT factorization count at the row; each stepped row's count exceeds the previous row's by exactly `1 + inertia_corrections` | the (sub-)solve's running `counters.factorizations` | never |
 
 The residuals are the ENGINE's convergence measures mapped to the caller's objective scale. They are not
 the number the convergence test gated on under active scaling; `solve.end.convergence` is.
 
-`ipm` block (`IpmIterationRow`): `phase`; `mu` (engine scale); `alpha_primal`, `alpha_dual` (the effective
+`ipm` block (`IpmIterationRow`): `phase`; `mu` (engine scale: the barrier parameter the step leaving this point was formed at, i.e. after the governor's update for that iteration; the starting value is `ipm.initial_mu` on `solve.begin` and the callback event for point 0. Row 0 can therefore sit at `barrier_min` (HS071: 1e-12, the adaptive governor's first update clamps there) while row 1 reads about 5.6e-4: both are the values the steps used, and the event for point k+1 carries row k's); `alpha_primal`, `alpha_dual` (the effective
 lengths, `alpha_scale * ` the fraction-to-boundary maxima); `alpha_scale`; `line_search_trials`;
 `regularization_primal`; `regularization_primal_total`; `regularization_dual`; `proximal_primal`;
 `inertia_corrections`; `perturbed_pivots`; `barrier_objective`; `feasibility_eq`; `feasibility_ineq`;
-`merit`; `merit_penalty_1`; `merit_penalty_2`; `max_multiplier_eq`; `max_multiplier_ineq`;
+`merit`; `merit_penalty_1`; `merit_penalty_2`; `max_multiplier_eq`; `max_multiplier_ineq` (both on the caller's objective scale, like every price);
 `first_rejected_trial`; `theta_first_rejected`; `eval_exceptions`. `null` when: no step leaves the point
 (`alpha_*`, `line_search_trials`, `regularization_primal*`, `inertia_corrections`, `barrier_objective`,
-`merit`); proximal mode off or not factorized (`regularization_dual`, `proximal_primal`); a non-finite
+`merit`; `barrier_objective` is gated on a step leaving the point and nothing else); proximal mode off or not factorized (`regularization_dual`, `proximal_primal`); a non-finite
 direction (`inertia_corrections`); the backend does not report it (`perturbed_pivots`, Accelerate
 **UNOBSERVED**); no rejection recorded (`first_rejected_trial`, `theta_first_rejected`).
 
@@ -165,14 +165,15 @@ Keys: `kind`, `severity` (`notice`/`warning`), `phase`, `iter`, `a`, `b`, `k`, `
 ### 3.5 Unchanged records
 
 `ipm.phase.begin`/`ipm.phase.end` lose their `label` key (derivable from `entry`). `ipm.phase.exit` keeps
-its v0 keys, including `prim_obj`, `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf` **at engine scale**
-(v0's names; the `iter` record's `stationarity`/`complementarity` are the caller-scale values of the same
-residuals). The QP-tier records are v0's.
+its v0 keys `prim_obj`, `econ_inf`, `icon_inf` and renames `kkt_inf` -> `stationarity`, `barr_inf` ->
+`complementarity` (the G7 names, docs/migration-0.2.md), all **at engine scale**: the same residuals as the
+`iter` record's `stationarity`/`complementarity`, which are divided by the objective scale. The QP-tier records are v0's.
 
 ## 4. Identities a v1 stream satisfies (asserted in tests)
 
 1. Every record counted in `iterations` has one `iter` line and one callback event. At depth 0, `iter`
-   lines == `iterations` on both engines. A count, not a range: the IPM `iter` index is not contiguous.
+   lines == `iterations` on the IPM; on the SQP, `iterations + 1`, because row 0 is the start point (no
+   step has been taken to reach it). A count, not a range: the IPM `iter` index is not contiguous.
    The non-finite evaluation abort is the known hole (M7-19, owned by its own commit).
 2. When `returned_best_iterate == false` and scaling is inactive, the final depth-0 `iter` core residuals
    equal `solve.end.convergence`'s.
@@ -181,7 +182,7 @@ residuals). The QP-tier records are v0's.
 5. One `IterationEvent` per depth-0 `iter` line. SQP: event extras and row agree row for row. IPM, one-row
    lag: the event for point k+1 carries what row k's step fields hold, with one scaling caveat: the
    callback's `alpha_primal`/`alpha_dual` are the fraction-to-boundary maxima, while the row's are those
-   times `alpha_scale`.
+   times `alpha_scale` (the row's alpha is `alpha_scale` x the callback's pre-line-search maximum).
 
 ## 5. Reader contract
 
@@ -196,7 +197,7 @@ meaning) is v2.
 
 | change | date | record | note |
 |---|---|---|---|
-| v1 | M8 TR-A | all | initial freeze |
+| v1 | M8 TR-A | all | initial freeze; `ipm.phase.exit` carries `stationarity`/`complementarity` (engine scale) in place of `kkt_inf`/`barr_inf` |
 
 ## 7. v0 to v1 map
 
@@ -209,13 +210,14 @@ meaning) is v2.
 | `ipm.message` | `message`; `restoration_locally_infeasible` folds into `restoration_exited`; `interrupt_at_iteration` and `stop_requested_at_iteration` become `stop_at_iteration{s: callback/token}`; `solver_initialized.a` is `null` |
 | `sqp.solve.end`, `ipm.solve.end` | `solve.end`; `majors`/`iters` -> `iterations`; scaling keys -> `sqp` block; timing -> `ipm` block |
 | `ipm.phase.begin`/`.end` | `label` dropped |
+| `ipm.phase.exit` | `kkt_inf` -> `stationarity`, `barr_inf` -> `complementarity` (G7 names; still engine scale) |
 | QP-tier events | unchanged after the envelope |
 
 ## 8. Human trace
 
 `ConsoleTraceSink` renders the same events as text: header, legend, fixed-width `iter` lines, message lines,
 footer. The formats, the tier/verdict/code letters and the verbosity ladder are in spec section 3 and are
-pinned by `tests/drivers/test_console_sink.cpp`. Rungs: `kWarnings` warnings and the footer's `exit` line;
+pinned by `tests/drivers/test_console_sink.cpp`. One-solve/one-thread contract: a sink serves one solve at a time on one thread (a restoration sub-solve shares it sequentially); nothing is synchronized. Rulings (TR-A): the legend and phase-line shapes follow spec 3.4's examples; the message folds `restoration_exited{s}` and `stop_at_iteration{s}` stand; the `Max iter` wording stands; the QP-tier `.` lines print at every depth at `kDetail`. Rungs: `kWarnings` warnings and the footer's `exit` line;
 `kSummary` header, IPM phase lines (only on multi-phase solves) and the full footer; `kIterations` legend,
 column headers, rows (restoration rows included) and notices; `kDetail` one condensed `.` line per QP-tier
 event plus the IPM KKT-analysis and phase-exit lines. `Format{color, legend, timing}`: colour applies only

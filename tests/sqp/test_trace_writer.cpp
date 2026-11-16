@@ -4065,13 +4065,13 @@ class ThrowsOnSecondGradientModel final : public NlpModel {
     mutable Index calls_ = 0;
 };
 
-TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
+TEST(JsonLinesTraceSink, AThrowingSolveLeavesTheSinkCleanForTheNextSolve) {
     // FIX ROUND 1, R3(b). "Exceptions excluded" stands: a solve that threw
     // writes `begin` and no `end`, which is the honest record.
     //
-    // The sink is then one level open, and `reset_nesting()` is how a harness
-    // that keeps using it says so. `seq` is deliberately NOT reset: the lines
-    // already written are part of the artifact.
+    // The engine unwinds the sink itself (`on_solve_abort`) on the way out, so the next solve
+    // on the same sink reads depth 0 and takes a fresh sid with NO recovery call. `seq` is
+    // never reset: the lines already written are part of the artifact.
     SqpOptions opts;
     opts.common.max_iterations = 60;
     std::ostringstream os;
@@ -4117,8 +4117,6 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
         EXPECT_TRUE(verdict == "\"accept_f\"" || verdict == "\"accept_h\"")
             << "the row already in the stream is the ACCEPTED one, verdict=" << verdict;
     }
-
-    json.reset_nesting();
 
     const HsProblem p = make_hs(24);
     SqpSolver good(opts);
@@ -4796,7 +4794,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
               "{\"v\":1,\"ev\":\"ipm.phase.exit\",\"seq\":1,\"sid\":0,\"depth\":0,\"eng\":\"ipm\","
               "\"phase\":1,\"iter\":11,"
               "\"best_substituted\":true,\"prim_obj\":17.25,"
-              "\"kkt_inf\":0.00048828125,\"barr_inf\":0.000244140625,"
+              "\"stationarity\":0.00048828125,\"complementarity\":0.000244140625,"
               "\"econ_inf\":0.0001220703125,\"icon_inf\":6.103515625e-05,"
               "\"kkt_factor_status\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
               "\"kkt_s\":0.0625,\"print_s\":0.03125,\"entry\":\"optimize\","

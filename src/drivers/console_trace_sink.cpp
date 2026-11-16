@@ -1,5 +1,18 @@
-// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
+//
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
+//
+// THE ATTRIBUTION TRAVELS WITH THE CODE. The KKT-analysis block of the interior-point
+// rendering (`on_ipm_kkt_analysis`) keeps functional fragments of ASSET-derived code that
+// reached this file from src/drivers/interior_point_solver_print.cpp, which carries exactly
+// this header; the rest of the file was rewritten for trace schema v1 (M8 TR-A) and is hven's
+// own. Rewriting a file around surviving derived fragments does not make it new code, and
+// notices/asset-apache2.txt's own terms are that "per-file headers on ASSET-derived source
+// files identify the original source and summarise the changes made".
 
 // console_trace_sink.cpp -- the human trace (docs/trace-schema-v1.md, "Human trace"). Printing
 // code, so CLAUDE.md section 5 puts it in a TU.
@@ -277,7 +290,7 @@ void ConsoleTraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &) {}
 void ConsoleTraceSink::on_ipqp_route(const IpqpRouteTraceEvent &) {}
 
 void ConsoleTraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &event) {
-    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {
+    if (!at_least(Verbosity::kDetail)) {
         return;
     }
     fmt::print(out_, "{:>5} . ipqp.restart {}{}{}\n", "", to_json(event.grade),
@@ -285,14 +298,14 @@ void ConsoleTraceSink::on_ipqp_restart(const IpqpRestartTraceEvent &event) {
 }
 
 void ConsoleTraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &event) {
-    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {
+    if (!at_least(Verbosity::kDetail)) {
         return;
     }
     fmt::print(out_, "{:>5} . ipqp.escape {}\n", "", to_json(event.reason));
 }
 
 void ConsoleTraceSink::on_qp_mode(const QpModeTraceEvent &event) {
-    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {
+    if (!at_least(Verbosity::kDetail)) {
         return;
     }
     fmt::print(out_, "{:>5} . qp.mode {} {} at {}, {} iterations\n", "", to_json(event.mode),
@@ -300,7 +313,7 @@ void ConsoleTraceSink::on_qp_mode(const QpModeTraceEvent &event) {
 }
 
 void ConsoleTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) {
-    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {
+    if (!at_least(Verbosity::kDetail)) {
         return;
     }
     fmt::print(out_, "{:>5} . fallback.verdict {}\n", "", to_json(event.verdict));
@@ -530,6 +543,21 @@ void ConsoleTraceSink::on_solve_end(const SolveEndTraceEvent &event) {
     }
 }
 
+// A solve left by an exception: unwind exactly what on_solve_end would, print nothing.
+// Saturating, so an abort the sink never saw the begin of (a sink earlier in a fan-out
+// threw first) cannot drive the counts negative.
+void ConsoleTraceSink::on_solve_abort() noexcept {
+    if (open_solves_ > 0) {
+        --open_solves_;
+    }
+    if (open_solves_ > 0 && depth_ > 0) {
+        --depth_;
+    }
+    if (open_solves_ == 0) {
+        depth_ = 0;
+    }
+}
+
 // --- FanOutTraceSink ----------------------------------------------------------------------
 
 FanOutTraceSink::FanOutTraceSink(TraceSink *first, TraceSink *second)
@@ -567,5 +595,14 @@ HVEN_FANOUT_FORWARD(on_ipm_kkt_analysis, IpmKktAnalysisTraceEvent)
 HVEN_FANOUT_FORWARD(on_ipm_phase_exit, IpmPhaseExitTraceEvent)
 
 #undef HVEN_FANOUT_FORWARD
+
+void FanOutTraceSink::on_solve_abort() noexcept {
+    if (first_ != nullptr) {
+        first_->on_solve_abort();
+    }
+    if (second_ != nullptr) {
+        second_->on_solve_abort();
+    }
+}
 
 } // namespace hven

@@ -224,6 +224,15 @@ class CaptureSink final : public hven::TraceSink {
         }
     }
 
+    void on_solve_abort() noexcept override {
+        if (open_ > 0) {
+            --open_;
+        }
+        if (open_ > 0 && depth_ > 0) {
+            --depth_;
+        }
+    }
+
   private:
     hven::Index open_ = 0;
     hven::Index depth_ = 0;

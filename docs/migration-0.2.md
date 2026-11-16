@@ -473,6 +473,8 @@ the same four records.
 | `TraceSink::on_sqp_major`, `on_ipm_iter` | `on_iter(const IterTraceEvent &)`; the row is `event.record`, an `IterationRecord` (core + `ipm` or `sqp` block) |
 | `on_sqp_solve_begin`, `on_ipm_solve_begin` | `on_solve_begin(const SolveBeginTraceEvent &)` |
 | `on_sqp_solve_end`, `on_ipm_solve_end` | `on_solve_end(const SolveEndTraceEvent &)`; written by the public handle after the result is finished |
+| `JsonLinesTraceSink::reset_nesting()` | removed: the engines call the new non-emitting `TraceSink::on_solve_abort()` on every exceptional exit, so a sink needs no recovery call after a throwing solve; a custom `TraceSink` that tracks per-solve state overrides it (default: nothing) |
+| `ipm.phase.exit` keys `kkt_inf`, `barr_inf` | `stationarity`, `complementarity` (engine scale) |
 | `on_ipm_message` | `on_message(const MessageTraceEvent &)` |
 | `on_ipm_restoration_exit_row` | removed; read `message{kind: restoration_exited, s: locally_infeasible}` in `on_message` |
 | `IpmMessageKind::kX` | `MessageKind::kX`; `kRestorationLocallyInfeasible` -> `kRestorationExited` with `s == "locally_infeasible"`; `kInterruptAtIteration`/`kStopRequestedAtIteration` -> `kStopAtIteration` with `s == "callback"`/`"token"` |

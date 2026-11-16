@@ -36,6 +36,10 @@ enum class ConsoleColor {
 };
 
 /// @brief Renders the human trace from the trace stream.
+///
+/// ONE sink serves ONE solve at a time on ONE thread (a nested restoration sub-solve
+/// shares it sequentially); nothing is synchronized. A solve that throws unwinds the
+/// sink through `on_solve_abort()`, so the next solve starts clean.
 class ConsoleTraceSink final : public TraceSink {
   public:
     struct Format {
@@ -68,6 +72,7 @@ class ConsoleTraceSink final : public TraceSink {
     void on_iter(const IterTraceEvent &event) override;
     void on_message(const MessageTraceEvent &event) override;
     void on_solve_end(const SolveEndTraceEvent &event) override;
+    void on_solve_abort() noexcept override;
 
     void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
     void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
@@ -96,6 +101,9 @@ class ConsoleTraceSink final : public TraceSink {
 };
 
 /// @brief Forwards every event to two sinks, first then second.
+///
+/// ONE solve at a time on ONE thread, like the sinks it forwards to; the two borrowed
+/// sinks must outlive it.
 class FanOutTraceSink final : public TraceSink {
   public:
     FanOutTraceSink(TraceSink *first, TraceSink *second);
@@ -121,6 +129,7 @@ class FanOutTraceSink final : public TraceSink {
     void on_iter(const IterTraceEvent &event) override;
     void on_message(const MessageTraceEvent &event) override;
     void on_solve_end(const SolveEndTraceEvent &event) override;
+    void on_solve_abort() noexcept override;
     void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
     void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
     void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;

@@ -1802,6 +1802,7 @@ ProblemStatistics census_from_seam(const AssemblyEvalSeam &seam, Index absent_bo
     st.fixed_variables = box.vars_fixed;
     st.constraints = seam.me() + seam.mi();
     st.equality_rows = seam.me();
+    st.upper_bounded_rows = seam.mi(); // the split form's rows are c_I(x) <= 0
     st.absent_bounds = absent_bounds;
     return st;
 }
@@ -2451,6 +2452,16 @@ void SqpSolverImpl::emit_trace_iter(const SqpIterate &row, Index major, QpTraceM
 void SqpSolverImpl::emit_solve_end(const SqpResult &result) {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_solve_end(make_sqp_solve_end_event(result, true));
+    }
+    trace_solve_open_ = false;
+}
+
+void SqpSolverImpl::abort_trace_solve() noexcept {
+    if (trace_solve_open_) {
+        trace_solve_open_ = false;
+        if (ipqp_trace_ != nullptr) {
+            ipqp_trace_->on_solve_abort();
+        }
     }
 }
 
@@ -3507,9 +3518,24 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
                                     ? callback_rows_->statistics()
                                     : census_from_seam(seam, solve_absent_bounds_);
         }
+        // Opened BEFORE the call (a sink that throws out of `solve.begin` has opened its
+        // level). The top-level solve's flag is the handle's to read; the restoration
+        // sub-driver's `solve.end` is emitted in this frame, so its level is unwound by the
+        // guard below.
+        if (!is_restoration_sub_driver_) {
+            trace_solve_open_ = true;
+        }
         ipqp_trace_->on_solve_begin(make_solve_begin_event(opts_, seam, trace_statistics_));
     }
     finish_exported_feasibility_price_ = false;
+    struct SubDriverAbortGuard {
+        TraceSink *sink;
+        ~SubDriverAbortGuard() {
+            if (sink != nullptr) {
+                sink->on_solve_abort();
+            }
+        }
+    } sub_guard{(ipqp_trace_ != nullptr && is_restoration_sub_driver_) ? ipqp_trace_ : nullptr};
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
@@ -3563,6 +3589,7 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
         // `sol.scaling`, and no event carried it before this task.
         if (is_restoration_sub_driver_) {
             ipqp_trace_->on_solve_end(make_sqp_solve_end_event(out, false));
+            sub_guard.sink = nullptr; // the level closed normally
         }
     }
     return out;

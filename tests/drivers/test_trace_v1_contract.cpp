@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <regex>
 #include <sstream>
@@ -28,6 +29,7 @@
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/sqp_solver.h>
+#include <hven/model/nlp.h>
 #include <hven/model/problem.h>
 
 #include "../common_support/console_capture.h"
@@ -405,6 +407,266 @@ TEST(TraceV1Contract, V4TheFactorizationCountIsMonotoneAndBoundedByTheWork) {
                 }
             }
             EXPECT_LE(prev, r.work.factorizations);
+        }
+    }
+}
+
+// --- V4 exact: each stepped row's count grows by 1 + its inertia corrections (rider 13) ---------
+
+// Two equal-in-span rows make the KKT matrix singular without regularization, so the inertia
+// ladder runs on most iterations with varying counts.
+struct DuplicateRows final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 2, 4, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl.setConstant(-inf);
+        xu.setConstant(inf);
+        gl << 1.0, 2.0;
+        gu << 1.0, 2.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 1.0) * (x[0] - 1.0) + (x[1] - 2.0) * (x[1] - 2.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2.0 * (x[0] - 1.0), 2.0 * (x[1] - 2.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], 2.0 * x[0] + 2.0 * x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
+        v << 1.0, 1.0, 2.0, 2.0;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << 2.0 * obj_factor, 2.0 * obj_factor;
+    }
+    std::string name() const override { return "DuplicateRows"; }
+};
+
+TEST(TraceV1Contract, V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections) {
+    struct Case {
+        const char *name;
+        std::shared_ptr<hven::Nlp> nlp;
+        Vec start;
+    };
+    std::vector<Case> cases;
+    cases.push_back({"duplicate_rows", std::make_shared<DuplicateRows>(), vec2(3.0, -1.0)});
+    for (const BatteryCase &c : battery()) {
+        cases.push_back({c.name, c.make(), c.start()});
+    }
+    Index max_corrections_seen = 0;
+    Index distinct_corrections = 0;
+    std::vector<Index> seen_values;
+    for (const Case &c : cases) {
+        SCOPED_TRACE(c.name);
+        Problem problem(c.nlp);
+        IpmOptions o;
+        o.common.verbosity = Verbosity::kSilent;
+        IpmSolver solver(o);
+        CaptureSink sink;
+        solver.attach_trace(&sink);
+        const IpmResult r = solver.solve(problem, c.start);
+        ASSERT_TRUE(r.status == SolveStatus::kOptimal || r.status == SolveStatus::kAcceptable);
+        for (std::size_t k = 1; k < sink.rows.size(); ++k) {
+            const IterationRecord &row = sink.rows[k].record;
+            const IterationRecord &prev = sink.rows[k - 1].record;
+            if (!row.step_norm || !row.ipm || !row.ipm->inertia_corrections || !prev.ipm ||
+                row.ipm->phase != prev.ipm->phase) {
+                continue;
+            }
+            const Index corrections = *row.ipm->inertia_corrections;
+            EXPECT_EQ(row.factorizations - prev.factorizations, 1 + corrections) << "row " << k;
+            max_corrections_seen = std::max(max_corrections_seen, corrections);
+            if (std::find(seen_values.begin(), seen_values.end(), corrections) ==
+                seen_values.end()) {
+                seen_values.push_back(corrections);
+            }
+        }
+    }
+    distinct_corrections = static_cast<Index>(seen_values.size());
+    EXPECT_GT(max_corrections_seen, 0) << "non-vacuous: some row's ladder ran";
+    EXPECT_GE(distinct_corrections, 2) << "non-vacuous: the corrections vary across rows";
+}
+
+// --- rider 3: the row's multiplier maxima are in the caller's units ------------------------
+
+TEST(TraceV1Contract, TheRowMaximumMultipliersAreOnTheCallersObjectiveScale) {
+    double ratio_checked = 0.0;
+    for (const double scale : {1.0, 7.0}) {
+        SCOPED_TRACE(scale);
+        Problem problem(std::make_shared<Hs071Problem>());
+        IpmOptions o;
+        o.common.verbosity = Verbosity::kSilent;
+        o.objective_scale = scale;
+        IpmSolver solver(o);
+        CaptureSink sink;
+        solver.attach_trace(&sink);
+        const IpmResult r = solver.solve(problem, hs071_start());
+        ASSERT_EQ(r.status, SolveStatus::kOptimal);
+        ASSERT_FALSE(r.returned_best_iterate);
+        ASSERT_FALSE(sink.rows.empty());
+        const IterationRecord &last = sink.rows.back().record;
+        ASSERT_TRUE(last.ipm.has_value());
+        // HS071's rows: g0 is the lower-bounded product (an inequality), g1 the equality.
+        const double ineq = std::abs(r.lambda[0]);
+        const double eq = std::abs(r.lambda[1]);
+        EXPECT_NEAR(last.ipm->max_multiplier_ineq, ineq, 1e-6 * (1.0 + ineq));
+        EXPECT_NEAR(last.ipm->max_multiplier_eq, eq, 1e-6 * (1.0 + eq));
+        ratio_checked += scale;
+    }
+    EXPECT_EQ(ratio_checked, 8.0);
+}
+
+// --- rider 4: a row with no step carries no barrier objective -------------------------------
+
+TEST(TraceV1Contract, ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm) {
+    Problem problem(std::make_shared<Hs071Problem>());
+    IpmOptions o;
+    o.common.verbosity = Verbosity::kSilent;
+    IpmSolver solver(o);
+    // The matrix goes non-finite at iteration 3: its factorization fails and no direction
+    // exists, so the iteration's row has no step while the barrier term (slacks and bounds) is
+    // far from zero.
+    solver.set_kkt_hook([](int iter, double, const Eigen::Ref<const Eigen::VectorXd> &, double,
+                           const Eigen::Ref<const Eigen::VectorXd> &,
+                           const Eigen::Ref<const Eigen::VectorXd> &,
+                           Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) {
+        if (iter == 3) {
+            for (Eigen::Index k = 0; k < kkt.nonZeros(); ++k) {
+                kkt.valuePtr()[k] = std::numeric_limits<double>::quiet_NaN();
+            }
+        }
+        return 0;
+    });
+    CaptureSink sink;
+    solver.attach_trace(&sink);
+    const IpmResult r = solver.solve(problem, hs071_start());
+    ASSERT_NE(r.status, SolveStatus::kOptimal) << "premise: the poisoned factorization hurt";
+    Index no_step_rows = 0;
+    for (const CapturedRow &row : sink.rows) {
+        if (!row.record.step_norm) {
+            ++no_step_rows;
+            ASSERT_TRUE(row.record.ipm.has_value());
+            EXPECT_FALSE(row.record.ipm->barrier_objective.has_value())
+                << "iter " << row.record.iteration;
+        }
+    }
+    EXPECT_GT(no_step_rows, 0) << "non-vacuous: a row without a step exists";
+}
+
+// --- rider 11: both engines report the same census on the same problem ---------------------
+
+struct MixedRows final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 4, 8, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl << -5.0, -inf;
+        xu << inf, 5.0;
+        // equality; lower-bounded; upper-bounded; range
+        gl << 1.0, 0.0, -inf, -1.0;
+        gu << 1.0, inf, 3.0, 2.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override {
+        return (x[0] - 2.0) * (x[0] - 2.0) + (x[1] - 1.0) * (x[1] - 1.0);
+    }
+    void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << 2.0 * (x[0] - 2.0), 2.0 * (x[1] - 1.0);
+    }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g << x[0] + x[1], x[0], x[1], x[0] - x[1];
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0, 1, 1, 2, 2, 3, 3;
+        c << 0, 1, 0, 1, 0, 1, 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef, hven::VecRef v) const override {
+        v << 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, -1.0;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_hessian(hven::ConstVecRef, double obj_factor, hven::ConstVecRef,
+                      hven::VecRef v) const override {
+        v << 2.0 * obj_factor, 2.0 * obj_factor;
+    }
+    std::string name() const override { return "MixedRows"; }
+};
+
+TEST(TraceV1Contract, BothEnginesReportTheSameDeclaredCensusOnTheSameProblem) {
+    const Vec x0 = vec2(0.5, 0.5);
+    ProblemStatistics stats[2];
+    for (int e = 0; e < 2; ++e) {
+        Problem problem(std::make_shared<MixedRows>());
+        CaptureSink sink;
+        if (e == 0) {
+            IpmOptions o;
+            o.common.verbosity = Verbosity::kSilent;
+            IpmSolver solver(o);
+            solver.attach_trace(&sink);
+            (void)solver.solve(problem, x0);
+        } else {
+            SqpOptions o;
+            o.common.verbosity = Verbosity::kSilent;
+            SqpSolver solver(o);
+            solver.attach_trace(&sink);
+            (void)solver.solve(problem, x0);
+        }
+        ASSERT_FALSE(sink.begins.empty());
+        stats[e] = sink.begins.front().statistics;
+    }
+    const ProblemStatistics &a = stats[0];
+    const ProblemStatistics &b = stats[1];
+    EXPECT_EQ(a.equality_rows, 1);
+    EXPECT_EQ(a.lower_bounded_rows, 1);
+    EXPECT_EQ(a.upper_bounded_rows, 1);
+    EXPECT_EQ(a.range_rows, 1);
+    EXPECT_EQ(a.constraints, 4);
+    EXPECT_EQ(a.variables, 2);
+    EXPECT_EQ(a.lower_bounded_variables, 1);
+    EXPECT_EQ(a.upper_bounded_variables, 1);
+    EXPECT_EQ(a.equality_rows, b.equality_rows);
+    EXPECT_EQ(a.lower_bounded_rows, b.lower_bounded_rows);
+    EXPECT_EQ(a.upper_bounded_rows, b.upper_bounded_rows);
+    EXPECT_EQ(a.range_rows, b.range_rows);
+    EXPECT_EQ(a.free_rows, b.free_rows);
+    EXPECT_EQ(a.constraints, b.constraints);
+    EXPECT_EQ(a.variables, b.variables);
+    EXPECT_EQ(a.free_variables, b.free_variables);
+    EXPECT_EQ(a.lower_bounded_variables, b.lower_bounded_variables);
+    EXPECT_EQ(a.upper_bounded_variables, b.upper_bounded_variables);
+    EXPECT_EQ(a.boxed_variables, b.boxed_variables);
+    EXPECT_EQ(a.fixed_variables, b.fixed_variables);
+    EXPECT_EQ(a.absent_bounds, b.absent_bounds);
+}
+
+// --- rider 10: the IPM row's mu is the value the step was formed at -------------------------
+
+TEST(TraceV1Contract, TheIpmRowMuIsTheBarrierParameterTheStepWasFormedAt) {
+    for (const BatteryCase &c : battery()) {
+        SCOPED_TRACE(c.name);
+        CaptureSink sink;
+        const RunResult r = do_run(Engine::kIpm, c, {.sink = &sink, .callback = true});
+        ASSERT_EQ(r.events.size(), sink.rows.size());
+        ASSERT_TRUE(sink.begins.front().ipm.has_value());
+        const double initial = sink.begins.front().ipm->initial_mu;
+        ASSERT_TRUE(r.ipm_infos.front().has_value());
+        EXPECT_EQ(r.ipm_infos.front()->mu, initial) << "the event for point 0 carries the start mu";
+        for (std::size_t k = 0; k + 1 < sink.rows.size(); ++k) {
+            const IterationRecord &row = sink.rows[k].record;
+            if (!row.step_norm || r.events[k + 1].iteration == 0) {
+                continue;
+            }
+            EXPECT_EQ(r.ipm_infos[k + 1]->mu, row.ipm->mu)
+                << "the event for point k+1 carries the mu row k's step used";
         }
     }
 }
