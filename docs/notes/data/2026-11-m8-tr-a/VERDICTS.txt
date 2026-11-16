@@ -1,0 +1,11 @@
+M8 TR-A verdicts. Base fa97d6bf0 (arm A); arm B code head f733fd02d (src identical through c89c6d6db apart from the umbrella header).
+arm A sha256 8ad4cc11eb5ea78b9988bdd7fa5cbb01e4f4993ed7151c187420adef97b3e477
+arm B sha256 16e7486b98f93134a73b36d42800b7e389a39fe1ba7947682b5e41427e8684a7
+P1 ctest Release (dev tree, all targets): run 1 99% (2 stop-reason door tests, fixed), final r2 run 100% passed, 0 failed of 3811 at c89c6d6db. Debug ctest: NOT RUN.
+P2 runtime/instructions off (solo, serial): PASS. FILTERED B/A interior 1.000076, ipm 1.000000, ssn 1.000000, walk 1.000000 (band 0.995-1.005). A/A calibration leg: NOT RUN.
+P3 replay 27 cells x walk/ssn/ipm exact, differences 0 x3; armed (callback count + unfired token + counting sink) 0 x3. PASS.
+P4 interior unmoved/promoted/armed: rc 0 (see interior/). PASS.
+P5 install smoke: run 1 FAIL (umbrella missed iteration_record.h); r2 PASS (default and clang, export contract).
+P6 TraceOffPath.* source scan + planted falsification: PASS (inside P1).
+P7 contract tests: V1-V4, identities 1/2/3/5, observation changes nothing, goldens (35 human-trace files), per-record and per-message goldens: PASS (inside P1). Identity 1 for the SQP is iterations+1 (row 0 is the start point); spec text says ==.
+M  mutations: 13 of 14 must-kills KILLED (mutation/verdict.txt, run 1). v4 (IPM main-site factorizations stamp) SURVIVES in run 1 and in r2 after a strengthened V4 pin (mutation-r2/): on these fixtures the pre-factorization and post-factorization stamps are indistinguishable by monotonicity. Needs a fixture with varying inertia-correction counts or a pin of diff == 1 + inertia_corrections. OPEN.
