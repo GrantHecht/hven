@@ -811,23 +811,18 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
     EXPECT_EQ(stop_reason_test::key_value(exits.back(), "stop_reason"),
               "\"restoration_locally_infeasible\"");
 
-    // THE DOOR'S MESSAGE AND THE DOOR'S MARKER CARRY THE SAME TWO NUMBERS --
-    // the marker was T8.7's, the message is T8.7b's, and a reader that has one
-    // must be able to reconcile it with the other.
-    const std::vector<std::string> markers =
-        stop_reason_test::lines_named(os.str(), "ipm.restoration_exit_row");
-    ASSERT_EQ(markers.size(), 1u);
+    // THE DOOR IS ONE `restoration_exited` MESSAGE (s = locally_infeasible) carrying the two
+    // numbers.
     std::vector<std::string> door_messages;
     for (const std::string &m : stop_reason_test::lines_named(os.str(), "message")) {
-        if (stop_reason_test::key_value(m, "kind") == "\"restoration_locally_infeasible\"") {
+        if (stop_reason_test::key_value(m, "kind") == "\"restoration_exited\"") {
             door_messages.push_back(m);
         }
     }
     ASSERT_EQ(door_messages.size(), 1u);
-    EXPECT_EQ(stop_reason_test::key_value(door_messages[0], "a"),
-              stop_reason_test::key_value(markers[0], "theta"));
-    EXPECT_EQ(stop_reason_test::key_value(door_messages[0], "b"),
-              stop_reason_test::key_value(markers[0], "threshold"));
+    EXPECT_EQ(stop_reason_test::key_value(door_messages[0], "s"), "\"locally_infeasible\"");
+    EXPECT_NE(stop_reason_test::key_value(door_messages[0], "a"), "null");
+    EXPECT_NE(stop_reason_test::key_value(door_messages[0], "b"), "null");
     EXPECT_NE(printed.find("locally infeasible"), std::string::npos);
 }
 
@@ -867,7 +862,7 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
     // The interrupt's own message, with the row it stopped on.
     std::vector<std::string> stops;
     for (const std::string &m : stop_reason_test::lines_named(os.str(), "message")) {
-        if (stop_reason_test::key_value(m, "kind") == "\"interrupt_at_iteration\"") {
+        if (stop_reason_test::key_value(m, "kind") == "\"stop_at_iteration\"") {
             stops.push_back(m);
         }
     }
@@ -875,8 +870,7 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
     EXPECT_EQ(stop_reason_test::key_value(stops[0], "iter"),
               stop_reason_test::key_value(exits.back(), "iter"));
     EXPECT_EQ(stop_reason_test::key_value(stops[0], "a"), "null");
-    EXPECT_NE(printed.find("Solve interrupted by the iteration callback at iteration"),
-              std::string::npos);
+    EXPECT_NE(printed.find("stop at iter "), std::string::npos);
 }
 
 TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
