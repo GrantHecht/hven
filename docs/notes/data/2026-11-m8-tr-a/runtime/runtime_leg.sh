@@ -25,6 +25,8 @@ WT=/home/ghecht/Projects/hven/.claude/worktrees/tr-a
 cd "$WT" || exit 1
 BIN_A=$WT/.scratch/build-tra/armAbin/hven_sqp_corpus
 BIN_B=$WT/.scratch/build-tra/armBbin/hven_sqp_corpus
+# A/A calibration (r3, spec section 4 proof 4): the SAME binary is both arms, so the B/A ratio is the instrument's own spread.
+[ -n "${AA_CALIB:-}" ] && BIN_B=$BIN_A
 CORE=2
 CELLS=$(sed -n 3p docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt)
 SCRATCH=$WT/.scratch/build-tra/runtime-perf

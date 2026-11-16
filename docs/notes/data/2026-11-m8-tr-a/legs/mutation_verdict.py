@@ -5,7 +5,8 @@ usage: mutation_verdict.py <mutation-table.csv> <out>"""
 import csv
 import sys
 
-MUST = ['w1', 'w2', 'w3', 'w4', 'c1', 'c2', 'c3', 'o1', 'o2', 'v2', 'v3', 'v4', 't1', 't2']
+MUST = ['w1', 'w2', 'w3', 'w4', 'c1', 'c2', 'c3', 'o1', 'o2', 'v2', 'v3', 'v4', 't1', 't2',
+        'p1a', 'p1b', 'p1c', 'p2', 'p3', 'p4', 'p5', 'p11a', 'p11b']
 REPORTED = []
 BUILD_KILL = set()
 rows = {r['id']: r for r in csv.DictReader(open(sys.argv[1]))}

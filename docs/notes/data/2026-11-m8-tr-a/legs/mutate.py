@@ -49,6 +49,36 @@ M = {
     'v4': ('src/drivers/ipm_solver.cpp',
            '        Citer.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;\n        this->fill_iter_info(',
            '        this->fill_iter_info('),
+    # p1a: the interior-point handle forgets to unwind the sink on an exceptional exit.
+    'p1a': ('src/drivers/ipm_solver_handle.cpp', '        engine.abort_trace_solve();\n', ''),
+    # p1b: the SQP handle forgets to unwind the sink on an exceptional exit.
+    'p1b': ('src/drivers/sqp_solver_handle.cpp', '        engine.abort_trace_solve();\n', ''),
+    # p1c: the restoration sub-driver forgets to unwind its own level.
+    'p1c': ('src/drivers/sqp_solver.cpp', '            sink->on_solve_abort();\n', '            (void)sink;\n'),
+    # p2: the non-finite abort accumulates the gradient block twice (the head the review found).
+    'p2': ('src/drivers/ipm_solver.cpp',
+           '            Citer.factorizations =\n                this->lifetime_factorize_count() - this->factorizations_at_entry_;\n            iters.push_back(Citer);\n            if (opts_.return_best && best_recorded) {',
+           '            Citer.factorizations =\n                this->lifetime_factorize_count() - this->factorizations_at_entry_;\n            v_rhs.prim_grad() += PGX;\n            iters.push_back(Citer);\n            if (opts_.return_best && best_recorded) {'),
+    # p3: the row's multiplier maxima are left in engine units.
+    'p3': ('src/drivers/ipm_solver.cpp',
+           '    row.max_multiplier_eq = r.max_e_mult / scale;\n    row.max_multiplier_ineq = r.max_i_mult / scale;',
+           '    row.max_multiplier_eq = r.max_e_mult;\n    row.max_multiplier_ineq = r.max_i_mult;'),
+    # p4: a row with no step carries a nonzero barrier objective.
+    'p4': ('src/drivers/ipm_solver.cpp',
+           '    if (stepped) {\n        row.barrier_objective = r.barr_obj;',
+           '    if (stepped || r.barr_obj != 0.0) {\n        row.barrier_objective = r.barr_obj;'),
+    # p5: the console's QP-detail lines are suppressed at nested depth again.
+    'p5': ('src/drivers/console_trace_sink.cpp',
+           '    if (!at_least(Verbosity::kDetail)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode',
+           '    if (depth_ > 0 || !at_least(Verbosity::kDetail)) {\n        return;\n    }\n    fmt::print(out_, "{:>5} . qp.mode'),
+    # p11a: the SQP reads its census from the seam (no row-kind split) instead of the problem.
+    'p11a': ('src/drivers/sqp_solver.cpp',
+             '            trace_statistics_ = callback_rows_ != nullptr',
+             '            trace_statistics_ = false'),
+    # p11b: the IPM likewise.
+    'p11b': ('src/drivers/ipm_solver.cpp',
+             '        if (this->callback_rows_ != nullptr) {\n            begin_event.statistics = this->callback_rows_->statistics();',
+             '        if (false) {\n            begin_event.statistics = this->callback_rows_->statistics();'),
     # t1: an SQP row without a step still reports one.
     't1': ('src/drivers/sqp_solver.cpp',
            '    const bool stepped = r.qp_solved && r.qp_status == QpStatus::kOptimal;',
