@@ -1,5 +1,10 @@
 # hven machine-trace schema v0
 
+> **Superseded for new streams by `docs/trace-schema-v1.md` (M8 TR-A).** This page stays as the schema of
+> the frozen v0 artifacts under `docs/notes/data/**`. Correction to section 4.14: the locally-infeasible
+> restoration door has always emitted its row; the only unemitted counted record is the non-finite
+> evaluation abort.
+
 The JSON-lines event stream `hven::JsonLinesTraceSink` writes
 (`include/hven/drivers/trace_writer.h`, `src/drivers/trace_writer.cpp`). **This
 document is the schema.** M7's heuristics and M8's human trace read it, and
