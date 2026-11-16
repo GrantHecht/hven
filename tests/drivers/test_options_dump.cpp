@@ -57,7 +57,7 @@ using hven::SqpOptions;
 // `accelerate_zero_tol` is declared on every platform (ignored on MKL), so the
 // counts are the same everywhere.
 constexpr std::size_t kIpmLinearOptionsFields = 12;
-constexpr std::size_t kIpmOptionsFields = 17;
+constexpr std::size_t kIpmOptionsFields = 16;
 constexpr std::size_t kIpmTerminationOptionsFields = 10;
 constexpr std::size_t kIpmAdvancedOptionsFields = 24;
 constexpr std::size_t kSqpOptionsFields = 17;
@@ -112,7 +112,7 @@ static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFi
 // docs/notes and in git).
 // ---------------------------------------------------------------------------
 #if defined(__linux__) && defined(__x86_64__)
-static_assert(sizeof(IpmOptions) == 480, "IpmOptions' layout moved on Linux x86-64. If a field "
+static_assert(sizeof(IpmOptions) == 472, "IpmOptions' layout moved on Linux x86-64. If a field "
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
@@ -140,7 +140,7 @@ static_assert(sizeof(CommonOptions) == 80, "CommonOptions' layout moved on Linux
 // SqpOptions: common 9 + 13 own scalars + qp 11 + linear 2 + advanced 26 own +
 // advanced.ipqp 25 = 86.
 // ---------------------------------------------------------------------------
-constexpr int kIpmDumpLines = 68;
+constexpr int kIpmDumpLines = 67;
 constexpr int kSqpDumpLines = 86;
 
 int count_lines(const std::string &text) {

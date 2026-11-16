@@ -644,10 +644,10 @@ TEST(InfiniteBound, TheSolveBeginLinesCarryTheAbsentCount) {
         sqp.attach_trace(&sink);
         ASSERT_EQ(sqp.solve(problem, start()).status, SolveStatus::kOptimal);
         const std::string text = os.str();
-        const auto begin = text.find("\"ev\":\"sqp.solve.begin\"");
+        const auto begin = text.find("\"ev\":\"solve.begin\"");
         ASSERT_NE(begin, std::string::npos);
         const std::string line = text.substr(begin, text.find('\n', begin) - begin);
-        EXPECT_NE(line.find("\"vars_free\":1"), std::string::npos) << line;
+        EXPECT_NE(line.find("\"free_variables\":1"), std::string::npos) << line;
         EXPECT_NE(line.find("\"absent_bounds\":7"), std::string::npos) << line;
     }
     {
@@ -657,10 +657,10 @@ TEST(InfiniteBound, TheSolveBeginLinesCarryTheAbsentCount) {
         ipm.attach_trace(&sink);
         ASSERT_EQ(ipm.solve(problem, start()).status, SolveStatus::kOptimal);
         const std::string text = os.str();
-        const auto begin = text.find("\"ev\":\"ipm.solve.begin\"");
+        const auto begin = text.find("\"ev\":\"solve.begin\"");
         ASSERT_NE(begin, std::string::npos);
         const std::string line = text.substr(begin, text.find('\n', begin) - begin);
-        EXPECT_NE(line.find("\"vars_free\":1"), std::string::npos) << line;
+        EXPECT_NE(line.find("\"free_variables\":1"), std::string::npos) << line;
         EXPECT_NE(line.find("\"absent_bounds\":7"), std::string::npos) << line;
     }
 }
@@ -729,7 +729,7 @@ std::string ipm_begin_line(IpmSolver &ipm, Problem &problem) {
     ipm.attach_trace(&sink);
     EXPECT_EQ(ipm.solve(problem, start()).status, SolveStatus::kOptimal);
     ipm.attach_trace(nullptr);
-    return begin_line(os.str(), "ipm.solve.begin");
+    return begin_line(os.str(), "solve.begin");
 }
 
 std::string sqp_begin_line(SqpSolver &sqp, Problem &problem) {
@@ -738,7 +738,7 @@ std::string sqp_begin_line(SqpSolver &sqp, Problem &problem) {
     sqp.attach_trace(&sink);
     EXPECT_EQ(sqp.solve(problem, start()).status, SolveStatus::kOptimal);
     sqp.attach_trace(nullptr);
-    return begin_line(os.str(), "sqp.solve.begin");
+    return begin_line(os.str(), "solve.begin");
 }
 
 // R1, R7: a pre-laid program carries its model's count (the Nlp's seven values,
@@ -750,7 +750,7 @@ TEST(InfiniteBound, APreLaidProgramReportsItsModelsAbsentCount) {
     IpmSolver ipm = quiet_ipm();
     const std::string line = ipm_begin_line(ipm, problem);
     EXPECT_NE(line.find("\"absent_bounds\":7"), std::string::npos) << line;
-    EXPECT_NE(line.find("\"vars_free\":1"), std::string::npos) << line;
+    EXPECT_NE(line.find("\"free_variables\":1"), std::string::npos) << line;
     // The same count as the Nlp route's.
     Problem nlp_problem(large_finite());
     EXPECT_EQ(nlp_problem.statistics().absent_bounds, problem.statistics().absent_bounds);

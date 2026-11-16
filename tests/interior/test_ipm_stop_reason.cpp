@@ -407,7 +407,11 @@ make_anchor_only_solver(bool acceptable_tier_contains_the_iterate, bool restorat
 class IterCountingSink : public hven::TraceSink {
   public:
     hven::Index rows = 0;
-    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { ++rows; }
+    void on_iter(const hven::IterTraceEvent &e) override {
+        if (e.record.ipm) {
+            ++rows;
+        }
+    }
     void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
     void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
     void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override {}
@@ -637,24 +641,24 @@ TEST(IpmStopReason, TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve) {
 
     std::vector<std::size_t> markers;
     for (std::size_t i = 0; i < lines.size(); ++i) {
-        if (key_of(lines[i], "ev") == "\"ipm.restoration_exit_row\"") {
+        if (key_of(lines[i], "ev") == "\"message\"" &&
+            key_of(lines[i], "kind") == "\"restoration_exited\"") {
             markers.push_back(i);
         }
     }
     ASSERT_EQ(markers.size(), 1u) << "the door is taken once, and marks its row once";
     const std::size_t m = markers.front();
     ASSERT_GT(m, 0u) << "the marker cannot be the stream's first line";
-    EXPECT_EQ(key_of(lines[m - 1], "ev"), "\"ipm.iter\"")
+    EXPECT_EQ(key_of(lines[m - 1], "ev"), "\"iter\"")
         << "the marker must FOLLOW the row it refers to: " << lines[m - 1];
     EXPECT_EQ(key_of(lines[m], "iter"), key_of(lines[m - 1], "iter"));
-    EXPECT_EQ(key_of(lines[m], "phase"), key_of(lines[m - 1], "phase"));
     // The two numbers the door decided on are real readings, not defaults.
-    EXPECT_GT(std::stod(key_of(lines[m], "theta")), 0.0);
-    EXPECT_GT(std::stod(key_of(lines[m], "threshold")), 0.0);
+    EXPECT_GT(std::stod(key_of(lines[m], "a")), 0.0);
+    EXPECT_GT(std::stod(key_of(lines[m], "b")), 0.0);
     // ... and the marker is the LAST `ipm.iter`-bearing row of the stream: the
     // door returns from the phase there.
     for (std::size_t i = m + 1; i < lines.size(); ++i) {
-        EXPECT_NE(key_of(lines[i], "ev"), "\"ipm.iter\"")
+        EXPECT_NE(key_of(lines[i], "ev"), "\"iter\"")
             << "a row after the door's marker: " << lines[i];
     }
 }
@@ -746,9 +750,9 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
     // THE VERDICT LINE IS UNCHANGED. The raw code at this door is kIterationLimit and
     // the resolved status is kStalled; both take the `No Solution Found`
     // branch, which is what makes the key change byte-neutral.
-    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
-    EXPECT_EQ(printed.find("Optimal Solution Found"), std::string::npos);
-    EXPECT_EQ(printed.find("Acceptable Solution Found"), std::string::npos);
+    EXPECT_NE(printed.find("exit        "), std::string::npos) << printed;
+    EXPECT_EQ(printed.find("exit        Optimal"), std::string::npos);
+    EXPECT_EQ(printed.find("exit        Acceptable"), std::string::npos);
 
     // ... and the event carries the resolved status, which is the ONE key.
     const std::vector<std::string> exits =
@@ -759,8 +763,7 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
 
     // THE STALL WARNING IS AN EVENT NOW, with its two infeasibilities on it,
     // and the console still prints its sentence.
-    const std::vector<std::string> messages =
-        stop_reason_test::lines_named(os.str(), "ipm.message");
+    const std::vector<std::string> messages = stop_reason_test::lines_named(os.str(), "message");
     hven::Index stalls = 0;
     for (const std::string &m : messages) {
         if (stop_reason_test::key_value(m, "kind") == "\"feasibility_stall\"") {
@@ -773,7 +776,7 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
         }
     }
     EXPECT_GT(stalls, 0) << "premise: the stall door writes its message";
-    EXPECT_NE(printed.find("Feasibility phase stalled"), std::string::npos);
+    EXPECT_NE(printed.find("feasibility stalled"), std::string::npos);
 }
 
 TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
@@ -800,7 +803,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
     ASSERT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
               hven::detail::IpmPhaseStop::kRestorationLocallyInfeasible);
 
-    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
+    EXPECT_NE(printed.find("exit        "), std::string::npos) << printed;
     const std::vector<std::string> exits =
         stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
     ASSERT_FALSE(exits.empty());
@@ -815,7 +818,7 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
         stop_reason_test::lines_named(os.str(), "ipm.restoration_exit_row");
     ASSERT_EQ(markers.size(), 1u);
     std::vector<std::string> door_messages;
-    for (const std::string &m : stop_reason_test::lines_named(os.str(), "ipm.message")) {
+    for (const std::string &m : stop_reason_test::lines_named(os.str(), "message")) {
         if (stop_reason_test::key_value(m, "kind") == "\"restoration_locally_infeasible\"") {
             door_messages.push_back(m);
         }
@@ -854,7 +857,7 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
         ASSERT_EQ(flag, hven::SolveStatus::kInterrupted);
         printed = capture.text();
     }
-    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
+    EXPECT_NE(printed.find("exit        "), std::string::npos) << printed;
     const std::vector<std::string> exits =
         stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
     ASSERT_FALSE(exits.empty());
@@ -863,7 +866,7 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
 
     // The interrupt's own message, with the row it stopped on.
     std::vector<std::string> stops;
-    for (const std::string &m : stop_reason_test::lines_named(os.str(), "ipm.message")) {
+    for (const std::string &m : stop_reason_test::lines_named(os.str(), "message")) {
         if (stop_reason_test::key_value(m, "kind") == "\"interrupt_at_iteration\"") {
             stops.push_back(m);
         }

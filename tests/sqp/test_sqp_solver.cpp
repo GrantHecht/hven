@@ -99,6 +99,7 @@
 // a fixture IS sensitive to the trust-region radius, the sensitivity is
 // measured and stated rather than hidden behind a lucky default.
 
+#include "../common_support/console_capture.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -6801,49 +6802,35 @@ TEST(SqpDriverDiagnostics, HistoryRecordsTheFormalizedPerMajorContract) {
     }
 }
 
-TEST(SqpDriverDiagnostics, PrinterContainsPerIterationRowsAndFinalStatus) {
-    SqpSolver driver(hs7_diagnostics_opts());
-    const SqpResult sol = solve_hs7_diagnostics_fixture(driver);
+TEST(SqpDriverDiagnostics, ConsoleContainsPerIterationRowsAndFinalStatus) {
+    SqpOptions opts = hs7_diagnostics_opts();
+    opts.common.verbosity = Verbosity::kIterations;
+    SqpSolver driver(opts);
+    std::string table;
+    SqpResult sol;
+    {
+        hven::testing::StdoutCapture capture;
+        sol = solve_hs7_diagnostics_fixture(driver);
+        table = capture.text();
+    }
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
-    const std::string table = format_iteration_table(sol);
-
-    // One data row per history entry, plus a header line, a separator line,
-    // the trailing blank-then-status lines, a trailing "Start Level" line
-    // (Task 7) and a trailing "Scaling" line (M6 W0.2) -- counted by newlines
-    // rather than by an exact total, so this does not pin the header's own
-    // column widths.
-    const std::size_t newline_count =
-        static_cast<std::size_t>(std::count(table.begin(), table.end(), '\n'));
-    EXPECT_EQ(newline_count, sol.history.size() + 6u);
-    EXPECT_NE(table.find("Scaling: off"), std::string::npos)
-        << "the trailer must say which scale the table is on, even when it is the caller's own\n"
-        << table;
-
-    EXPECT_NE(table.find("Trial"), std::string::npos) << table;
-    EXPECT_NE(table.find("Verdict"), std::string::npos) << table;
-    // This fixture is full-step Newton (see the shared-fixture note above):
-    // every solved row is accepted, so the table must show at least one
-    // acceptance verdict (AcceptF or AcceptH -- both contain "Accept").
-    EXPECT_NE(table.find("Accept"), std::string::npos)
-        << "expected at least one accepted-step verdict row\n"
-        << table;
-
-    // The final status.
-    // LOWER SNAKE since M6 W5 T8.4, declared: the printed status is
-    // to_string(SolveStatus), which spells all nine that way. The console is a
-    // display surface with no committed artifact behind it -- unlike the corpus
-    // CSV, whose capitalised vocabulary survives in a bench-local table because
-    // baselines and a control are pinned to those bytes.
-    EXPECT_NE(table.find("Status: optimal"), std::string::npos) << table;
-
-    // PHASE-4 TASK 7. This fixture is a plain 2-arg (always-cold) solve, so
-    // the trailing level line must read Cold, and the WD column exists but
-    // is empty on every row -- nothing in this fixture engages the full-step
-    // watchdog (see WatchdogRestoresOnDivergence, test_warm_start.cpp, for
-    // that column's non-empty case).
-    EXPECT_NE(table.find("WD"), std::string::npos) << table;
-    EXPECT_NE(table.find("Start Level: Cold"), std::string::npos) << table;
+    // One data row per history entry: the lines that start with a row index and a tier letter.
+    std::size_t data_rows = 0;
+    std::istringstream lines(table);
+    for (std::string line; std::getline(lines, line);) {
+        if (line.size() > 7 && line[5] == ' ' && std::isdigit(static_cast<unsigned char>(line[4])) &&
+            std::string("IBSWER").find(line[6]) != std::string::npos) {
+            ++data_rows;
+        }
+    }
+    EXPECT_EQ(data_rows, sol.history.size()) << table;
+    EXPECT_NE(table.find(" iter t "), std::string::npos) << table;
+    EXPECT_NE(table.find("legend  t:"), std::string::npos) << table;
+    EXPECT_NE(table.find("exit        Optimal (none)"), std::string::npos) << table;
+    // A plain 2-arg solve starts cold and runs unscaled.
+    EXPECT_NE(table.find("start level cold"), std::string::npos) << table;
+    EXPECT_NE(table.find("scaling off"), std::string::npos) << table;
 }
 
 TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpRecordsStillWork) {

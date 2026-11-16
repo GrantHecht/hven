@@ -1657,29 +1657,8 @@ TEST(WarmStart, WatchdogRestoresOnDivergence) {
             << "row " << i << " (expected watchdog_restored == " << (i == 4) << ")";
     }
 
-    // And the printer renders it: the WD column has a marker on trial 4's
-    // row and nowhere else.
-    const std::string table = format_iteration_table(wd);
-    std::istringstream lines(table);
-    std::string line;
-    std::size_t data_row = 0;
-    bool marker_seen_at_expected_row = false;
-    while (std::getline(lines, line)) {
-        if (line.empty() || line.find("Trial") != std::string::npos ||
-            line.find("Status:") != std::string::npos ||
-            line.find("Start Level:") != std::string::npos ||
-            line.find("Scaling:") != std::string::npos ||
-            line.find_first_not_of('-') == std::string::npos) {
-            continue;
-        }
-        const bool has_marker = line.find('*') != std::string::npos;
-        EXPECT_EQ(has_marker, data_row == 4) << "table row " << data_row << ": " << line;
-        if (has_marker && data_row == 4) {
-            marker_seen_at_expected_row = true;
-        }
-        ++data_row;
-    }
-    EXPECT_TRUE(marker_seen_at_expected_row) << table;
+    // (The console renders this flag as the `w` code on the row; that rendering is pinned by
+    // the footer/row goldens in tests/drivers/test_console_sink.cpp.)
 }
 
 // FIX ROUND 1 (F1): THE OTHER WATCHDOG EXIT -- THE STALL WINDOW. Both fixtures

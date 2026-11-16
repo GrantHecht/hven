@@ -39,12 +39,9 @@ class CountingTraceSink final : public TraceSink {
     void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {
         ++fallback_verdict_;
     }
-    void on_sqp_major(const hven::SqpMajorTraceEvent &) override { ++other_; }
-    void on_sqp_solve_begin(const hven::SqpSolveBeginTraceEvent &) override { ++other_; }
-    void on_sqp_solve_end(const hven::SqpSolveEndTraceEvent &) override { ++other_; }
-    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { ++other_; }
-    void on_ipm_solve_begin(const hven::IpmSolveBeginTraceEvent &) override { ++other_; }
-    void on_ipm_solve_end(const hven::IpmSolveEndTraceEvent &) override { ++other_; }
+    void on_iter(const hven::IterTraceEvent &) override { ++other_; }
+    void on_solve_begin(const hven::SolveBeginTraceEvent &) override { ++other_; }
+    void on_solve_end(const hven::SolveEndTraceEvent &) override { ++other_; }
 
     /// THE ONE THAT MATTERS. `qp.mode` is the event both driver-side
     /// `trace_outcome_of` calls construct and both kernels-side

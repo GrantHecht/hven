@@ -46,6 +46,7 @@
 // never factorized successfully (docs/testing.md). Every test below is a kAlways (dense-arm)
 // solve for that reason; the sparse arm's no-numerics exit runs the same code after factor_impl.
 
+#include "../common_support/ipm_row_view.h"
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -181,18 +182,26 @@ struct RecordedSolve {
     hven::IpmResult result;
     hven::StopReason stop_reason = hven::StopReason::kNone;
     std::vector<Eigen::VectorXd> event_x;
-    std::vector<hven::IpmIterate> rows;
+    std::vector<hven::test::IpmRowView> rows;
 };
 
 class RowSink final : public hven::TraceSink {
   public:
-    explicit RowSink(std::vector<hven::IpmIterate> &rows) : rows_(rows) {}
-    void on_ipm_iter(const hven::IpmIterTraceEvent &event) override {
-        rows_.push_back(event.iterate);
+    explicit RowSink(std::vector<hven::test::IpmRowView> &rows) : rows_(rows) {}
+    void on_solve_begin(const hven::SolveBeginTraceEvent &event) override {
+        if (event.ipm) {
+            scale_ = event.ipm->obj_scale;
+        }
+    }
+    void on_iter(const hven::IterTraceEvent &event) override {
+        if (event.record.ipm) {
+            rows_.push_back(hven::test::make_ipm_row_view(event.record, scale_));
+        }
     }
 
   private:
-    std::vector<hven::IpmIterate> &rows_;
+    std::vector<hven::test::IpmRowView> &rows_;
+    double scale_ = 1.0;
 };
 
 using EventHook = std::function<void(const hven::IterationEvent &)>;
@@ -301,7 +310,7 @@ void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
 // The engine's acceptable-tier test on one row (ipm_solver.cpp's
 // interior_point_iterate_acceptable), for the preconditions of the restoration tests: their
 // fixtures are meaningful only if the row the solve ends on would pass it.
-bool row_acceptable(const hven::IpmIterate &row, const hven::IpmOptions &o) {
+bool row_acceptable(const hven::test::IpmRowView &row, const hven::IpmOptions &o) {
     return row.kkt_inf < o.termination.acceptable_stationarity_tol &&
            row.econ_inf < o.termination.acceptable_equality_tol &&
            row.icon_inf < o.termination.acceptable_inequality_tol &&
@@ -685,7 +694,7 @@ TEST(IpmNoNumericsSeam, TheAbortedIterationsRowCarriesItsBarrierObjective) {
     ASSERT_EQ(run.result.status, hven::SolveStatus::kNumericalError) << run.result.message;
     ASSERT_FALSE(run.rows.empty());
     ASSERT_FALSE(run.event_x.empty());
-    const hven::IpmIterate &row = run.rows.back();
+    const hven::test::IpmRowView &row = run.rows.back();
     const Eigen::VectorXd &x = run.event_x.back();
     double bound_term = 0.0;
     for (Eigen::Index k = 0; k < x.size(); ++k) {

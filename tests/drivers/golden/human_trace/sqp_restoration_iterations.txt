@@ -1,0 +1,67 @@
+hven 0.2.0 -- SQP engine
+problem    variables 2 (free 2) · constraints 1 (equality 1) · absent bounds 0
+engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
+legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)
+        stat feas comp: engine measures | step: |p|inf from this point | radius: trust region
+        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value
+        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration sub-solve
+        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not optimal
+        messages: '!' warning, '-' notice
+ iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+    0 W  2.0000000e+00 1.00e+00 3.00e+00 0.00e+00 7.50e-01 1.00e+00 3.00e+00     2    1 H
+    1 E  5.0000000e-01 7.50e-01 1.13e+00 0.00e+00 1.00e+00 1.00e+00 1.13e+00     2    0 F b
+    2 W -1.5000000e+00 1.00e+00 2.12e+00 0.00e+00 7.77e-01 1.00e+00 2.12e+00     2    1 H
+    3 E -8.3333333e-02 1.04e+00 1.01e+00 0.00e+00 1.00e+00 1.00e+00 1.01e+00     2    0 H b
+    4 W -8.3333333e-02 1.00e+00 2.74e+00 0.00e+00 1.00e+00 1.00e+00 2.74e+00     3    1 H b
+    5 W -5.9052581e-01 8.87e-01 1.24e+00 0.00e+00 1.39e+00 2.00e+00 1.24e+00     2    1 H
+    6 W  3.7156510e-01 5.62e+00 2.12e+00 0.00e+00 1.00e+00 2.00e+00 2.12e+00     2    1 H
+    7 W -3.5037335e-01 6.10e-01 1.08e+00 0.00e+00 1.89e+00 2.00e+00 1.08e+00     2    1 J
+    8 E -3.5037335e-01 6.10e-01 1.08e+00 0.00e+00 1.00e+00 1.00e+00 1.08e+00     2    0 H b
+    9 W  1.6496266e+00 1.00e+00 2.38e+00 0.00e+00 1.00e+00 1.00e+00 2.38e+00     3    1 H b
+   10 W  1.5558229e-01 1.29e+00 1.24e+00 0.00e+00 2.00e+00 2.00e+00 1.24e+00     3    2 J b
+   11 W  1.5558229e-01 1.29e+00 1.24e+00 0.00e+00 1.00e+00 1.00e+00 1.24e+00     3    2 H b
+   12 W -6.9327183e-02 1.29e+00 1.60e+00 0.00e+00 1.00e+00 1.00e+00 1.60e+00     3    1 H b
+   13 W -5.7405054e-01 8.09e-01 1.25e+00 0.00e+00 1.30e+00 2.00e+00 1.25e+00     2    1 J
+   14 E -5.7405054e-01 8.09e-01 1.25e+00 0.00e+00 1.00e+00 1.00e+00 1.25e+00     2    0 J b
+   15 E -5.7405054e-01 8.09e-01 1.25e+00 0.00e+00 5.00e-01 5.00e-01 1.25e+00     2    0 H b
+   16 E  4.2594946e-01 1.00e+00 1.17e+00 0.00e+00 5.00e-01 5.00e-01 1.17e+00     2    0 H b
+   17 E -5.7405054e-01 1.00e+00 1.25e+00 0.00e+00 1.00e+00 1.00e+00 1.25e+00     2    0 J b
+   18 E -5.7405054e-01 1.00e+00 1.25e+00 0.00e+00 5.00e-01 5.00e-01 1.25e+00     2    0 H b
+   19 E  4.2594946e-01 1.00e+00 1.17e+00 0.00e+00 5.00e-01 5.00e-01 1.17e+00     2    0 J b
+ iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+   20 E  4.2594946e-01 1.00e+00 1.17e+00 0.00e+00 2.50e-01 2.50e-01 1.17e+00     2    0 H b
+   21 E -7.4050537e-02 1.00e+00 1.08e+00 0.00e+00 5.00e-01 5.00e-01 1.08e+00     2    0 J b
+   22 E -7.4050537e-02 1.00e+00 1.08e+00 0.00e+00 2.50e-01 2.50e-01 1.08e+00     2    0 H b
+   23 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 2.50e-01 2.50e-01 1.01e+00     2    0 J b
+   24 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 1.25e-01 1.25e-01 1.01e+00     2    0 H b
+   25 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 1.25e-01 1.25e-01 1.01e+00     2    0 H b
+   26 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 1.25e-01 1.25e-01 1.01e+00     2    0 H b
+   27 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 1.25e-01 1.25e-01 1.01e+00     2    0 H b
+   28 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 1.25e-01 1.25e-01 1.01e+00     2    0 J b
+   29 E -7.4050537e-02 1.00e+00 1.01e+00 0.00e+00 6.25e-02 6.25e-02 1.01e+00     2    0 H b
+   30 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 6.25e-02 6.25e-02 1.00e+00     2    0 J b
+   31 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.12e-02 3.12e-02 1.00e+00     2    0 J b
+   32 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 1.56e-02 1.56e-02 1.00e+00     2    0 J b
+   33 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 7.81e-03 7.81e-03 1.00e+00     2    0 J b
+   34 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.91e-03 3.91e-03 1.00e+00     2    0 J b
+   35 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 1.95e-03 1.95e-03 1.00e+00     2    0 J b
+   36 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 9.77e-04 9.77e-04 1.00e+00     2    0 J b
+   37 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 4.88e-04 4.88e-04 1.00e+00     2    0 J b
+   38 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 2.44e-04 2.44e-04 1.00e+00     2    0 J b
+   39 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 1.22e-04 1.22e-04 1.00e+00     2    0 J b
+ iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+   40 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 6.10e-05 6.10e-05 1.00e+00     2    0 J b
+   41 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.05e-05 3.05e-05 1.00e+00     2    0 J b
+   42 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 1.53e-05 1.53e-05 1.00e+00     2    0 J b
+   43 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 7.63e-06 7.63e-06 1.00e+00     2    0 J b
+    0 R  1.0030877e+00 1.00e+00 0.00e+00 0.00e+00 1.00e-01 1.00e-01 0.00e+00     4    1 F b
+    1 R  9.8827917e-01 1.52e-01 2.00e-02 0.00e+00 7.61e-02 2.00e-01 2.00e-02     2    1 H
+    2 R  9.9172083e-01 1.39e-17 8.28e-03 0.00e+00 8.28e-03 2.00e-01 8.28e-03     2    1 H
+    3 R  1.0000000e+00 0.00e+00 0.00e+00 0.00e+00        - 2.00e-01 0.00e+00     -    - -
+   44 E -7.4050537e-02 1.00e+00 1.00e+00 0.00e+00 3.81e-06 3.81e-06 1.00e+00     2    0 Q d
+exit        Infeasible (none) -- locally infeasible (certified: restoration reached a stationary point of the infeasibility measure)
+iterations  45 · restoration entries 1 · factorizations 88
+objective   0.00000000e+00
+diagnostics stationarity 1.0e+00 · feasibility 1.0e+00 · complementarity 0.0e+00   (declared)
+counters    soc 0 · elastic 34 · qp minors 719 · start level cold · scaling off

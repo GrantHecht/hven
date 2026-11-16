@@ -34,6 +34,7 @@
 //   that has a ledger today) no ledger record of its own, and the solver is
 //   reusable.
 
+#include "../common_support/ipm_row_view.h"
 #include <gtest/gtest.h>
 
 #include <bit>
@@ -2028,7 +2029,11 @@ namespace {
 class IterCountingSink : public hven::TraceSink {
   public:
     Index rows = 0;
-    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { ++rows; }
+    void on_iter(const hven::IterTraceEvent &e) override {
+        if (e.record.ipm) {
+            ++rows;
+        }
+    }
     void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
     void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
     void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override {}
@@ -2270,11 +2275,19 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
     // test_ipm_trace.cpp's own `looks_like_the_early_exit_site` discriminator,
     // read here off the record rather than off the serialized line.
     struct LastRowSink : public hven::TraceSink {
-        hven::IpmIterate last;
+        hven::test::IpmRowView last;
         Index rows = 0;
-        void on_ipm_iter(const hven::IpmIterTraceEvent &e) override {
-            last = e.iterate;
-            ++rows;
+        double scale = 1.0;
+        void on_solve_begin(const hven::SolveBeginTraceEvent &e) override {
+            if (e.ipm) {
+                scale = e.ipm->obj_scale;
+            }
+        }
+        void on_iter(const hven::IterTraceEvent &e) override {
+            if (e.record.ipm) {
+                last = hven::test::make_ipm_row_view(e.record, scale);
+                ++rows;
+            }
         }
         void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
         void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
@@ -2285,7 +2298,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         void on_qp_mode(const hven::QpModeTraceEvent &) override {}
         void on_fallback_verdict(const hven::SqpFallbackVerdictTraceEvent &) override {}
     };
-    const auto looks_like_the_early_exit_site = [](const hven::IpmIterate &it) {
+    const auto looks_like_the_early_exit_site = [](const hven::test::IpmRowView &it) {
         return it.barr_obj == 0.0 && it.merit_val == 0.0 && it.ls_iters == 0 && it.alpha_p == 1.0 &&
                it.alpha_d == 1.0 && it.alpha_t == 1.0;
     };
@@ -2393,8 +2406,8 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         // and the ledger record are deliberately NON-RAII (W2's fix-round ruling
         // R1), so a throw out of the loop leaves a begin and no end.
         const std::string text = os.str();
-        EXPECT_NE(text.find("\"sqp.solve.begin\""), std::string::npos);
-        EXPECT_EQ(text.find("\"sqp.solve.end\""), std::string::npos);
+        EXPECT_NE(text.find("\"solve.begin\""), std::string::npos);
+        EXPECT_EQ(text.find("\"solve.end\""), std::string::npos);
         EXPECT_TRUE(ledger.sqp_records().empty());
 
         // BUT THE SUBPROBLEM RECORDS ALREADY EMITTED STAY, which is today's
@@ -2467,8 +2480,8 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         EXPECT_THROW((void)solver.solve(hven::detail::problem_ref(*program), hs071_start()),
                      std::runtime_error);
         const std::string text = os.str();
-        EXPECT_NE(text.find("\"ipm.solve.begin\""), std::string::npos);
-        EXPECT_EQ(text.find("\"ipm.solve.end\""), std::string::npos);
+        EXPECT_NE(text.find("\"solve.begin\""), std::string::npos);
+        EXPECT_EQ(text.find("\"solve.end\""), std::string::npos);
 
         // AND THE REUSED SOLVER'S NEXT SOLVE IS A FRESH ONE'S, FIELD FOR FIELD
         // (M6 W5 T8.6 fix1, astra item 5: this arm asserted only kOptimal and
@@ -4021,10 +4034,7 @@ TEST(CallbackPayload, SnapshotOwnsEveryViewAfterTheSolve) {
 
 namespace {
 
-struct IpmRowSink final : hven::TraceSink {
-    std::vector<hven::IpmIterate> rows;
-    void on_ipm_iter(const hven::IpmIterTraceEvent &e) override { rows.push_back(e.iterate); }
-};
+using IpmRowSink = hven::test::IpmRowSink;
 
 } // namespace
 
@@ -4055,10 +4065,10 @@ TEST(CallbackPayload, IpmBlockDescribesTheStepThatReachedThePoint) {
         SCOPED_TRACE("event " + std::to_string(k));
         ASSERT_TRUE(rec.seen[k].ipm.has_value());
         const hven::IpmIterationInfo &info = *rec.seen[k].ipm;
-        const hven::IpmIterate &prev = sink.rows[k - 1];
+        const hven::test::IpmRowView &prev = sink.rows[k - 1];
         EXPECT_EQ(info.phase, 0);
-        EXPECT_TRUE(same_bits(info.alpha_primal, prev.alpha_p));
-        EXPECT_TRUE(same_bits(info.alpha_dual, prev.alpha_d));
+        EXPECT_NEAR(info.alpha_primal, prev.alpha_p, 1e-15);
+        EXPECT_NEAR(info.alpha_dual, prev.alpha_d, 1e-15);
         EXPECT_TRUE(same_bits(info.regularization_primal, prev.h_pert));
         EXPECT_EQ(info.inertia_corrections, prev.h_facs);
         EXPECT_EQ(info.line_search_trials, prev.ls_iters);
@@ -4315,14 +4325,14 @@ IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const
     for (std::size_t k = 1; k < rec.seen.size() && k <= sink.rows.size(); ++k) {
         SCOPED_TRACE("event " + std::to_string(k));
         const hven::IpmIterationInfo &info = *rec.seen[k].ipm;
-        const hven::IpmIterate &prev = sink.rows[k - 1];
+        const hven::test::IpmRowView &prev = sink.rows[k - 1];
         EXPECT_EQ(info.line_search_trials, prev.ls_iters);
         EXPECT_EQ(info.inertia_corrections, prev.h_facs);
         EXPECT_TRUE(same_bits(info.regularization_primal, prev.h_pert));
         EXPECT_GE(info.regularization_dual, 0.0);
         if (proximal) {
             // The proximal mode reports its own dual shift, which the trace row carries.
-            EXPECT_TRUE(same_bits(info.regularization_dual, std::max(prev.prox_reg_dual, 0.0)));
+            EXPECT_TRUE(same_bits(info.regularization_dual, prev.prox_reg_dual));
         }
         max_dual = std::max(max_dual, info.regularization_dual);
         max_trials = std::max<Index>(max_trials, info.line_search_trials);
@@ -4331,7 +4341,7 @@ IpmBlockMax expect_ipm_block_matches_trace(std::shared_ptr<hven::Nlp> nlp, const
     // M8 AP-5 G7: the counter is the rows' ladder counts summed (no row here is a
     // -1 sentinel, and no iteration is abandoned).
     Index row_sum = 0;
-    for (const hven::IpmIterate &row : sink.rows) {
+    for (const hven::test::IpmRowView &row : sink.rows) {
         EXPECT_GE(row.h_facs, 0);
         row_sum += std::max(row.h_facs, 0);
     }

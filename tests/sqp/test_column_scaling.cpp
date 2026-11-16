@@ -1187,9 +1187,9 @@ class EndSink final : public TraceSink {
     void on_ipqp_escape(const IpqpEscapeTraceEvent &) override {}
     void on_qp_mode(const QpModeTraceEvent &) override {}
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
-    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override {
-        ends.push_back(e.counters);
-        columns.emplace_back(e.columns_active, e.col_spread);
+    void on_solve_end(const SolveEndTraceEvent &e) override {
+        ends.push_back(*e.sqp->counters);
+        columns.emplace_back(e.sqp->columns_active, e.sqp->col_spread);
     }
 };
 

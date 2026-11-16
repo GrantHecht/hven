@@ -1,0 +1,22 @@
+hven 0.2.0 -- SQP engine
+problem    variables 4 (boxed 4) · constraints 2 (equality 1, lower 1) · absent bounds 0
+engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
+legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)
+        stat feas comp: engine measures | step: |p|inf from this point | radius: trust region
+        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value
+        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration sub-solve
+        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not optimal
+        messages: '!' warning, '-' notice
+ iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+    0 W  1.6000000e+01 2.00e+00 1.20e+01 0.00e+00 1.00e+00 1.00e+00 1.20e+01     6   15 H b
+    1 W  1.6500000e+01 2.80e+00 1.25e+00 5.73e-01 2.94e-01 1.00e+00 2.38e+00     5    1 H
+    2 W  1.6179839e+01 4.10e-01 1.46e+00 7.67e-01 9.98e-02 1.00e+00 1.68e+00     2    1 H
+    3 W  1.7003778e+01 1.79e-02 2.18e-02 6.75e-03 7.55e-03 1.00e+00 3.41e-02     2    1 H
+    4 W  1.7013955e+01 5.85e-05 9.21e-05 5.09e-05 4.39e-05 1.00e+00 1.65e-04     2    1 H
+    5 W  1.7014017e+01 9.71e-10 3.83e-09 1.41e-09        - 1.00e+00 6.39e-09     -    - -
+exit        Optimal (none) -- converged: optimality and feasibility tolerances met
+iterations  5 · restoration entries 0 · factorizations 19
+objective   1.70140173e+01
+diagnostics stationarity 9.7e-10 · feasibility 3.8e-09 · complementarity 1.4e-09   (declared)
+counters    soc 0 · elastic 0 · qp minors 17 · start level cold · scaling off

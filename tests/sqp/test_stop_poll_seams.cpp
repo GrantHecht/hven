@@ -1508,12 +1508,12 @@ TEST(StopPollSeam, TheAbandonedRowIsTracedWithTheConfiguredMode) {
     Seam::reset();
     StopSource cap_source;
     const ModelRun capped = run_model(*p.model, cap_source, static_cast<Index>(m), opts, true);
-    ASSERT_GE(count_lines(capped.trace, {"\"ev\":\"sqp.major\"", "\"mode\":\"walk\""}), 1)
+    ASSERT_GE(count_lines(capped.trace, {"\"ev\":\"iter\"", "\"mode\":\"walk\""}), 1)
         << "premise: the walk owns a traced major before the stop";
-    EXPECT_EQ(count_lines(stopped.trace, {"\"ev\":\"sqp.major\"", "\"mode\":\"walk\""}),
-              count_lines(capped.trace, {"\"ev\":\"sqp.major\"", "\"mode\":\"walk\""}));
-    EXPECT_EQ(count_lines(stopped.trace, {"\"ev\":\"sqp.major\""}),
-              count_lines(capped.trace, {"\"ev\":\"sqp.major\""}));
+    EXPECT_EQ(count_lines(stopped.trace, {"\"ev\":\"iter\"", "\"mode\":\"walk\""}),
+              count_lines(capped.trace, {"\"ev\":\"iter\"", "\"mode\":\"walk\""}));
+    EXPECT_EQ(count_lines(stopped.trace, {"\"ev\":\"iter\""}),
+              count_lines(capped.trace, {"\"ev\":\"iter\""}));
 }
 
 // T9: armed and never fired, each QP mode: the unarmed solve.

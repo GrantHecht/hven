@@ -903,10 +903,10 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
     EXPECT_DOUBLE_EQ(model.eval_f(sol.x), sol.history.back().f);
 
-    // AND THE PRINTED TABLE IS ONE SCALE WITH ITS OWN TRAILER (finding 7).
-    const std::string table = format_iteration_table(sol);
-    EXPECT_NE(table.find("Scaling: obj="), std::string::npos) << table;
-    EXPECT_NE(table.find("scaled_kkt="), std::string::npos) << table;
+    // (The console footer's `scaling on` word reads this same report; pinned in
+    // tests/drivers/test_console_sink.cpp.)
+    EXPECT_TRUE(sol.scaling.active);
+    EXPECT_GE(sol.scaling.scaled_kkt_residual, 0.0);
 }
 
 TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
@@ -922,7 +922,6 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
     ASSERT_FALSE(sol.history.empty());
     EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.history.front().f);
     EXPECT_DOUBLE_EQ(sol.f, sol.history.back().f);
-    EXPECT_NE(format_iteration_table(sol).find("Scaling: off"), std::string::npos);
 }
 
 // ===========================================================================

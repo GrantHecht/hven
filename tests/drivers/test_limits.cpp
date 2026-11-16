@@ -133,7 +133,7 @@ template <typename Options> void refuses_the_common_values() {
     }
     {
         Options o;
-        o.common.verbosity = static_cast<Verbosity>(4);
+        o.common.verbosity = static_cast<Verbosity>(5);
         expect_refused(o, "common.verbosity");
     }
     {
@@ -407,7 +407,7 @@ TEST(Verbosity, OneLineTurnsTheConsoleOn) {
     }
     std::fflush(stdout);
     const std::string out = testing::internal::GetCapturedStdout();
-    EXPECT_NE(out.find("IpmSolver"), std::string::npos);
+    EXPECT_NE(out.find("interior-point engine"), std::string::npos);
     EXPECT_EQ(out.find("InteriorPointSolver"), std::string::npos);
 }
 

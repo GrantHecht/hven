@@ -704,7 +704,7 @@ std::string console_of_a_stopped_two_phase_solve(bool by_token) {
     std::string text;
     {
         hven::ConsoleTraceSink sink(
-            hven::ConsoleTraceSink::Format{false, hven::Verbosity::kIterations}, f);
+            hven::ConsoleTraceSink::Format{.verbosity = hven::Verbosity::kIterations}, f);
         solver.attach_trace(&sink);
         const IpmResult r = solver.solve(problem, hs071_start(), {}, budget);
         solver.attach_trace(nullptr);
@@ -726,26 +726,18 @@ std::string console_of_a_stopped_two_phase_solve(bool by_token) {
 
 TEST(StopTokenSolve, ATokenStopPrintsItsOwnConsoleMessagesNotTheCallbacks) {
     const std::string printed = console_of_a_stopped_two_phase_solve(/*by_token=*/true);
-    EXPECT_NE(printed.find("Solve stopped by a stop request (SolveBudget::stop) at iteration "),
-              std::string::npos)
+    EXPECT_NE(printed.find("stop at iter "), std::string::npos) << printed;
+    EXPECT_NE(printed.find("stop requested; remaining phases skipped"), std::string::npos)
         << printed;
-    EXPECT_NE(printed.find("Solve stopped by a stop request (SolveBudget::stop); skipping "
-                           "remaining phases."),
-              std::string::npos)
-        << printed;
-    EXPECT_EQ(printed.find("iteration callback"), std::string::npos)
+    EXPECT_EQ(printed.find("callback stop"), std::string::npos)
         << "a token stop never borrows the callback's words\n"
         << printed;
 }
 
 TEST(StopTokenSolve, ACallbackStopKeepsItsOwnConsoleMessages) {
     const std::string printed = console_of_a_stopped_two_phase_solve(/*by_token=*/false);
-    EXPECT_NE(printed.find("Solve interrupted by the iteration callback at iteration "),
-              std::string::npos)
+    EXPECT_NE(printed.find("stop at iter "), std::string::npos) << printed;
+    EXPECT_NE(printed.find("callback stop honoured; remaining phases skipped"), std::string::npos)
         << printed;
-    EXPECT_NE(printed.find("Solve interrupted by the iteration callback; skipping remaining "
-                           "phases."),
-              std::string::npos)
-        << printed;
-    EXPECT_EQ(printed.find("stop request"), std::string::npos) << printed;
+    EXPECT_EQ(printed.find("stop requested"), std::string::npos) << printed;
 }

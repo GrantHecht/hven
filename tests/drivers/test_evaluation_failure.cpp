@@ -1114,8 +1114,7 @@ TEST(RiderForeignException, ThrownInsideRestorationPropagatesUnchangedOnBothEngi
 // A sink that throws on its third iteration line.
 struct ThrowingSink final : hven::TraceSink {
     int calls = 0;
-    void on_ipm_iter(const hven::IpmIterTraceEvent &) override { tick(); }
-    void on_sqp_major(const hven::SqpMajorTraceEvent &) override { tick(); }
+    void on_iter(const hven::IterTraceEvent &) override { tick(); }
     void tick() {
         if (++calls == 3) {
             throw Sentinel(kSentinelToken);

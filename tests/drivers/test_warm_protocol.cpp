@@ -980,7 +980,7 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
         std::istringstream lines(text);
         std::string line;
         while (std::getline(lines, line)) {
-            if (line.find("\"sqp.solve.end\"") != std::string::npos) {
+            if (line.find("\"solve.end\"") != std::string::npos) {
                 ASSERT_TRUE(solve_end.empty()) << "one top-level solve, one sqp.solve.end line";
                 solve_end = line;
             }

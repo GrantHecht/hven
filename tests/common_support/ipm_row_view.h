@@ -73,7 +73,8 @@ inline IpmRowView make_ipm_row_view(const IterationRecord &r, double obj_scale) 
         v.alpha_p = i.alpha_primal ? (v.alpha_t > 0.0 ? *i.alpha_primal / v.alpha_t : 0.0) : 1.0;
         v.alpha_d = i.alpha_dual ? (v.alpha_t > 0.0 ? *i.alpha_dual / v.alpha_t : 0.0) : 1.0;
         v.h_pert = i.regularization_primal.value_or(0.0);
-        v.h_facs = static_cast<int>(i.inertia_corrections.value_or(-1));
+        v.h_facs = i.inertia_corrections ? static_cast<int>(*i.inertia_corrections)
+                                         : (i.alpha_scale ? -1 : 0);
         v.h_pert_cum = i.regularization_primal_total.value_or(0.0);
         v.prox_reg_dual = i.regularization_dual.value_or(0.0);
         v.barr_obj = i.barrier_objective.value_or(0.0);

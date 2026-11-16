@@ -127,7 +127,7 @@ SiteRun run_cell(int hs, QpMode mode) {
     // sub-solve's rows are in the stream at depth 1 and its dispatch lines are
     // too, while the parent's `history` carries neither.
     for (const std::string &l : split_lines(os.str())) {
-        if (l.find("\"ev\":\"sqp.major\"") != std::string::npos &&
+        if (l.find("\"ev\":\"iter\"") != std::string::npos &&
             l.find("\"qp_solved\":true") != std::string::npos) {
             ++r.majors_with_a_qp;
         }

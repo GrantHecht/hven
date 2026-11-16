@@ -8,6 +8,7 @@
 // the dense arm; the options dump carries the field. M8 DN-1b: the IPM's residual-ratio guard on a
 // numerically singular dense factor, and its absence under kNever.
 
+#include "../common_support/ipm_row_view.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -332,17 +333,25 @@ namespace {
 // Every iterate row of a solve, through the trace.
 class RowSink final : public hven::TraceSink {
   public:
-    explicit RowSink(std::vector<hven::IpmIterate> &rows) : rows_(rows) {}
-    void on_ipm_iter(const hven::IpmIterTraceEvent &event) override {
-        rows_.push_back(event.iterate);
+    explicit RowSink(std::vector<hven::test::IpmRowView> &rows) : rows_(rows) {}
+    void on_solve_begin(const hven::SolveBeginTraceEvent &event) override {
+        if (event.ipm) {
+            scale_ = event.ipm->obj_scale;
+        }
+    }
+    void on_iter(const hven::IterTraceEvent &event) override {
+        if (event.record.ipm) {
+            rows_.push_back(hven::test::make_ipm_row_view(event.record, scale_));
+        }
     }
 
   private:
-    std::vector<hven::IpmIterate> &rows_;
+    std::vector<hven::test::IpmRowView> &rows_;
+    double scale_ = 1.0;
 };
 
 hven::IpmResult solve_ipm_rows(DensePolicy policy, std::shared_ptr<hven::Nlp> nlp,
-                               const Eigen::VectorXd &x0, std::vector<hven::IpmIterate> &rows) {
+                               const Eigen::VectorXd &x0, std::vector<hven::test::IpmRowView> &rows) {
     hven::IpmOptions o;
     o.common.verbosity = hven::Verbosity::kSilent;
     o.linear.dense_factorization = policy;
@@ -393,13 +402,13 @@ struct IllConditionedDiagonalProblem final : hven::Nlp {
 TEST(DenseArmEngines, InertiaCorrectionsCountTheResidualGuardsReRuns) {
     Eigen::VectorXd x0(2);
     x0 << 3.0, -1.0;
-    std::vector<hven::IpmIterate> rows;
+    std::vector<hven::test::IpmRowView> rows;
     const hven::IpmResult dense = solve_ipm_rows(
         DensePolicy::kAlways, std::make_shared<NearDuplicateRowsProblem>(), x0, rows);
     ASSERT_TRUE(success(dense.status));
     ASSERT_GT(dense.counters.dense_solve_residual_refusals, 0) << "premise: the guard re-ran";
     hven::Index row_sum = 0;
-    for (const hven::IpmIterate &row : rows) {
+    for (const hven::test::IpmRowView &row : rows) {
         row_sum += std::max(row.h_facs, 0);
     }
     EXPECT_GT(row_sum, 0);
@@ -412,7 +421,7 @@ TEST(DenseArmEngines, InertiaCorrectionsCountTheResidualGuardsReRuns) {
 TEST(DenseArmEngines, IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm) {
     Eigen::VectorXd x0(2);
     x0 << 3.0, -1.0;
-    std::vector<hven::IpmIterate> rows;
+    std::vector<hven::test::IpmRowView> rows;
     const hven::IpmResult sparse =
         solve_ipm(DensePolicy::kNever, std::make_shared<DuplicateRowsProblem>(), x0);
     const hven::IpmResult dense =
@@ -438,7 +447,7 @@ TEST(DenseArmEngines, IpmLadderAnswersAnExactlySingularDenseKktOnTheDenseArm) {
 TEST(DenseArmEngines, IpmTrustsADenseFactorSingularOnlyByScale) {
     Eigen::VectorXd x0(2);
     x0 << 3.0, -1.0;
-    std::vector<hven::IpmIterate> rows;
+    std::vector<hven::test::IpmRowView> rows;
     const hven::IpmResult sparse =
         solve_ipm(DensePolicy::kNever, std::make_shared<IllConditionedDiagonalProblem>(), x0);
     const hven::IpmResult dense = solve_ipm_rows(
@@ -452,7 +461,7 @@ TEST(DenseArmEngines, IpmTrustsADenseFactorSingularOnlyByScale) {
     EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
     EXPECT_EQ(dense.counters.dense_solve_residual_refusals, 0);
     ASSERT_FALSE(rows.empty());
-    for (const hven::IpmIterate &row : rows) {
+    for (const hven::test::IpmRowView &row : rows) {
         EXPECT_EQ(row.h_facs, 0) << "iteration " << row.iter;
     }
 }

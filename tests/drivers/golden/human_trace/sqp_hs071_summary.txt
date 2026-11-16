@@ -1,0 +1,9 @@
+hven 0.2.0 -- SQP engine
+problem    variables 4 (boxed 4) · constraints 2 (equality 1, lower 1) · absent bounds 0
+engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
+exit        Optimal (none) -- converged: optimality and feasibility tolerances met
+iterations  5 · restoration entries 0 · factorizations 19
+objective   1.70140173e+01
+diagnostics stationarity 9.7e-10 · feasibility 3.8e-09 · complementarity 1.4e-09   (declared)
+counters    soc 0 · elastic 0 · qp minors 17 · start level cold · scaling off

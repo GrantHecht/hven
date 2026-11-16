@@ -29,7 +29,7 @@ namespace {
 // Constructions or calls the rule polices.
 const std::regex &site_regex() {
     static const std::regex re(
-        R"(\b[A-Za-z]+TraceEvent\s*(\{|[a-z_]+\s*[;={(])|\bemit_(iter|message|trace_[a-z_]+)\s*\(|\bmake_iteration_record\s*\(|->\s*on_[a-z_]+\s*\()");
+        R"(\b[A-Za-z]+TraceEvent\s*(\{|[a-z_]+\s*[;={(])|\bemit_(iter|message|trace_[a-z_]+)\s*\(|\bmake_iteration_record\s*\(|->\s*on_(iter|message|solve_begin|solve_end|qp_mode|ipqp_[a-z]+|fallback_verdict|ipm_[a-z_]+)\s*\()");
     return re;
 }
 
@@ -50,6 +50,8 @@ const std::vector<Allowed> &allowlist() {
         {"make_iteration_record(const",
          "a definition of the row builder; called only under a guard"},
         {"struct ", "a type declaration"},
+        {"emit_trace_fallback_verdict(", "the fallback verdict (spec section 4's one named "
+                                         "allowlist entry); the helper tests the sink itself"},
     };
     return a;
 }
@@ -99,6 +101,27 @@ std::vector<std::string> scan(const std::string &raw, const std::string &file) {
         if (!std::regex_search(line, site_regex())) {
             continue;
         }
+        // A definition or declaration starts in column 0; builders (`make_*`) run only under a
+        // guard.
+        if (!line.empty() && line[0] != ' ' && line[0] != '\t' &&
+            line.find('(') != std::string::npos) {
+            continue;
+        }
+        {
+            std::string fn;
+            for (std::size_t m = n + 1; m-- > 0;) {
+                if (!lines[m].empty() && lines[m][0] != ' ' && lines[m][0] != '\t' &&
+                    lines[m].find('(') != std::string::npos) {
+                    fn = lines[m];
+                    break;
+                }
+            }
+            if (fn.find(" make_") != std::string::npos ||
+                fn.find("::emit_iter(TraceSink &") != std::string::npos ||
+                fn.find("::emit_solve_end(") != std::string::npos) {
+                continue;
+            }
+        }
         bool allowed = false;
         for (const Allowed &a : allowlist()) {
             if (line.find(a.needle) != std::string::npos) {
@@ -110,6 +133,16 @@ std::vector<std::string> scan(const std::string &raw, const std::string &file) {
         }
         // A guard on the same line (`if (x != nullptr) emit...`) counts.
         bool guarded = guard_opener(line);
+        // An early-return guard shortly above in the same function.
+        for (std::size_t m = n; m-- > 0 && m + 30 > n && !guarded;) {
+            if (!lines[m].empty() && lines[m][0] != ' ' && lines[m][0] != '\t') {
+                break;
+            }
+            if (lines[m].find("== nullptr") != std::string::npos && m + 1 < lines.size() &&
+                lines[m + 1].find("return") != std::string::npos) {
+                guarded = true;
+            }
+        }
         // Walk outward through the enclosing blocks.
         int depth = 0;
         for (std::size_t m = n + 1; m-- > 0 && !guarded;) {

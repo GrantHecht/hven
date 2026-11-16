@@ -1,0 +1,170 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// test_human_trace_goldens.cpp -- M8 TR-A: the human trace rendered from REAL solves.
+//
+// Four Hock-Schittkowski problems x both engines x the four rungs that print (kWarnings, kSummary,
+// kIterations, kDetail), plus a restoration fixture and an elastic fixture, with
+// `Format{color: kNever, timing: false}`. Each transcript is compared to
+// tests/drivers/golden/human_trace/<engine>_<case>_<rung>.txt.
+//
+// Regenerate (a DECLARED event, with the console-bytes event of TR-A):
+//   HVEN_REGEN_GOLDENS=1 ./hven_drivers_tests --gtest_filter='HumanTraceGoldens.*'
+// and read the diff. Wall-clock never appears: `timing: false`, and the `solver_initialized`
+// notice is suppressed by warming the process first.
+
+#include <gtest/gtest.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <memory>
+#include <sstream>
+#include <string>
+
+#include <hven/drivers/console_trace_sink.h>
+#include <hven/drivers/ipm_solver.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/model/problem.h>
+
+#include "support/trace_battery.h"
+
+#ifndef HVEN_GOLDEN_DIR
+#error "HVEN_GOLDEN_DIR must be defined by tests/drivers/CMakeLists.txt"
+#endif
+
+namespace {
+
+using namespace hven;
+using namespace hven_drivers_tests;
+
+// c(x) = x0^2 + x1^2 + 1 = 0: no real solution and a strict stationary point of its violation at
+// the origin -- the engines enter feasibility restoration, and (on the SQP, where the linearization
+// at the origin is inconsistent) the elastic tier.
+struct LocallyInfeasible final : hven::Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 1, 2, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        const double inf = std::numeric_limits<double>::infinity();
+        xl << -inf, -inf;
+        xu << inf, inf;
+        gl << 0.0;
+        gu << 0.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override { return x[0] + x[1]; }
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        v << 2.0 * x[0], 2.0 * x[1];
+    }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        v << 2.0 * lambda[0], 2.0 * lambda[0];
+    }
+    std::string name() const override { return "LocallyInfeasible"; }
+};
+
+struct Rung {
+    const char *name;
+    Verbosity verbosity;
+};
+constexpr Rung kRungs[] = {{"warnings", Verbosity::kWarnings},
+                           {"summary", Verbosity::kSummary},
+                           {"iterations", Verbosity::kIterations},
+                           {"detail", Verbosity::kDetail}};
+
+std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x0, Verbosity v) {
+    std::FILE *f = std::tmpfile();
+    std::string text;
+    {
+        ConsoleTraceSink sink(
+            ConsoleTraceSink::Format{
+                .verbosity = v, .color = ConsoleColor::kNever, .legend = true, .timing = false},
+            f);
+        Problem problem(nlp);
+        if (ipm) {
+            IpmSolver solver{IpmOptions{}};
+            solver.attach_trace(&sink);
+            (void)solver.solve(problem, x0);
+        } else {
+            SqpSolver solver{SqpOptions{}};
+            solver.attach_trace(&sink);
+            (void)solver.solve(problem, x0);
+        }
+    }
+    std::fflush(f);
+    std::rewind(f);
+    char buf[4096];
+    std::size_t n = 0;
+    while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+        text.append(buf, n);
+    }
+    std::fclose(f);
+    return text;
+}
+
+void check(const std::string &file, const std::string &text) {
+    const std::filesystem::path path = std::filesystem::path(HVEN_GOLDEN_DIR) / file;
+    if (std::getenv("HVEN_REGEN_GOLDENS") != nullptr) {
+        std::ofstream(path) << text;
+        return;
+    }
+    std::ifstream in(path);
+    ASSERT_TRUE(in.good()) << "missing golden " << path
+                           << " (regenerate with HVEN_REGEN_GOLDENS=1)";
+    std::stringstream ss;
+    ss << in.rdbuf();
+    EXPECT_EQ(ss.str(), text) << file;
+}
+
+TEST(HumanTraceGoldens, FourProblemsTwoEnginesFourRungs) {
+    // Warm the process so the one-time `solver_initialized` notice is out of every transcript.
+    (void)render(true, battery()[0].make(), battery()[0].start(), Verbosity::kSilent);
+    for (const bool ipm : {true, false}) {
+        for (const BatteryCase &c : battery()) {
+            for (const Rung &rung : kRungs) {
+                SCOPED_TRACE(std::string(ipm ? "ipm " : "sqp ") + c.name + " " + rung.name);
+                check(std::string(ipm ? "ipm_" : "sqp_") + c.name + "_" + rung.name + ".txt",
+                      render(ipm, c.make(), c.start(), rung.verbosity));
+            }
+        }
+    }
+}
+
+TEST(HumanTraceGoldens, TheRestorationFixture) {
+    (void)render(true, battery()[0].make(), battery()[0].start(), Verbosity::kSilent);
+    Vec x0(2);
+    x0 << 1.0, 1.0;
+    const std::string ipm =
+        render(true, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kIterations);
+    EXPECT_NE(ipm.find(" R "), std::string::npos) << "the IPM fixture shows restoration rows\n"
+                                                  << ipm;
+    check("ipm_restoration_iterations.txt", ipm);
+    const std::string sqp =
+        render(false, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kIterations);
+    check("sqp_restoration_iterations.txt", sqp);
+}
+
+TEST(HumanTraceGoldens, TheElasticFixture) {
+    (void)render(true, battery()[0].make(), battery()[0].start(), Verbosity::kSilent);
+    Vec x0(2);
+    x0 << 0.0, 0.0;
+    // Started at the origin the linearization of c is inconsistent: the SQP's elastic tier supplies
+    // the step.
+    const std::string sqp =
+        render(false, std::make_shared<LocallyInfeasible>(), x0, Verbosity::kDetail);
+    check("sqp_elastic_detail.txt", sqp);
+}
+
+} // namespace

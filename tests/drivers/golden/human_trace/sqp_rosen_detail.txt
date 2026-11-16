@@ -1,0 +1,47 @@
+hven 0.2.0 -- SQP engine
+problem    variables 2 (boxed 2) · constraints 0 · absent bounds 0
+engine     QP mode walk (schur_border) · Hessian exact · row scaling off · column scaling auto
+tolerances optimality 1e-06 · feasibility 1e-06 · max iterations 100
+      . qp.mode walk optimal at dispatch, 2 iterations
+legend  t: I IPQP  S SSN  W walk  E elastic  R restoration (obj = restoration objective)
+        stat feas comp: engine measures | step: |p|inf from this point | radius: trust region
+        h(l1): l1 violation | qp_it/qp_fa: QP minors/factorizations | '-' = no value
+        v: F accept-f  H accept-h  J reject  Q restore | iter restarts per restoration sub-solve
+        codes: s SOC  w watchdog restored  r rollback  b TR bound  c clamp  d seed  n QP not optimal
+        messages: '!' warning, '-' notice
+ iter t      objective     stat     feas     comp     step   radius    h(l1) qp_it qp_fa v codes
+    0 W  2.4200000e+01 2.16e+02 0.00e+00 0.00e+00 3.81e-01 1.00e+00 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 3 iterations
+    1 W  4.7318843e+00 4.64e+00 0.00e+00 0.00e+00 1.00e+00 1.00e+00 0.00e+00     3    1 J b
+      . qp.mode walk optimal at dispatch, 3 iterations
+    2 W  4.7318843e+00 4.64e+00 0.00e+00 0.00e+00 5.00e-01 5.00e-01 0.00e+00     3    1 F b
+      . qp.mode walk optimal at dispatch, 2 iterations
+    3 W  3.9862317e+00 1.87e+01 0.00e+00 0.00e+00 3.92e-01 1.00e+00 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 2 iterations
+    4 W  3.2617712e+00 1.83e+01 0.00e+00 0.00e+00 1.80e-01 1.00e+00 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 2 iterations
+    5 W  2.5494916e+00 8.82e+00 0.00e+00 0.00e+00 2.84e-01 1.00e+00 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 2 iterations
+    6 W  2.2270379e+00 1.43e+01 0.00e+00 0.00e+00 8.58e-02 1.00e+00 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 2 iterations
+    7 W  1.5055603e+00 3.11e+00 0.00e+00 0.00e+00 4.95e-01 1.00e+00 0.00e+00     2    1 J
+      . qp.mode walk optimal at dispatch, 2 iterations
+    8 W  1.5055603e+00 3.11e+00 0.00e+00 0.00e+00 4.95e-01 5.00e-01 0.00e+00     2    0 J
+      . qp.mode walk optimal at dispatch, 3 iterations
+    9 W  1.5055603e+00 3.11e+00 0.00e+00 0.00e+00 2.50e-01 2.50e-01 0.00e+00     3    0 F b
+      . qp.mode walk optimal at dispatch, 2 iterations
+   10 W  1.3408629e+00 1.25e+01 0.00e+00 0.00e+00 7.22e-02 2.50e-01 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 3 iterations
+   11 W  8.1739438e-01 1.60e+00 0.00e+00 0.00e+00 2.50e-01 2.50e-01 0.00e+00     3    1 F b
+      . qp.mode walk optimal at dispatch, 2 iterations
+   12 W  8.1650389e-01 1.25e+01 0.00e+00 0.00e+00 9.61e-02 2.50e-01 0.00e+00     2    1 F
+      . qp.mode walk optimal at dispatch, 3 iterations
+   13 W  3.6566856e-01 8.39e-01 0.00e+00 0.00e+00 1.04e-01 2.50e-01 0.00e+00     3    1 F
+      . qp.mode walk optimal at dispatch, 2 iterations
+   14 W  2.6181315e-01 2.17e+00 0.00e+00 0.00e+00 1.09e-02 2.50e-01 0.00e+00     2    1 F
+   15 W  2.5000000e-01 0.00e+00 0.00e+00 0.00e+00        - 2.50e-01 0.00e+00     -    - -
+exit        Optimal (none) -- converged: optimality and feasibility tolerances met
+iterations  15 · restoration entries 0 · factorizations 13
+objective   2.50000000e-01
+diagnostics stationarity 0.0e+00 · feasibility 0.0e+00 · complementarity 0.0e+00   (declared)
+counters    soc 0 · elastic 0 · qp minors 35 · start level cold · scaling off

@@ -2842,7 +2842,6 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
         if (r.h_facs >= 0) {
             row.inertia_corrections = r.h_facs;
         }
-        row.barrier_objective = r.barr_obj;
         row.merit = r.merit_val;
     }
     if (r.prox_reg_dual >= 0.0) {
@@ -2850,6 +2849,9 @@ hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
     }
     if (r.prox_reg_primal >= 0.0) {
         row.proximal_primal = r.prox_reg_primal;
+    }
+    if (stepped || r.barr_obj != 0.0) {
+        row.barrier_objective = r.barr_obj;
     }
     if (r.p_pivots_observed) {
         row.perturbed_pivots = r.p_pivots;

@@ -1,6 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
+#include "../common_support/ipm_row_view.h"
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -1349,10 +1350,8 @@ struct BestIterateRisingObjectiveProblem : Nlp {
 // iterate, in order -- the same rows the per-iteration callback is shown, and
 // the only stream that still carries this engine's OWN residual columns.
 namespace {
-class IterateRecordingSink : public hven::TraceSink {
+class IterateRecordingSink : public hven::test::IpmRowSink {
   public:
-    std::vector<hven::IpmIterate> rows;
-    void on_ipm_iter(const hven::IpmIterTraceEvent &e) override { rows.push_back(e.iterate); }
     void on_ipqp_iter(const hven::IpqpIterTraceEvent &) override {}
     void on_ipqp_reg(const hven::IpqpRegTraceEvent &) override {}
     void on_ipqp_restart(const hven::IpqpRestartTraceEvent &) override {}
@@ -1407,7 +1406,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     // substance and reads a stream that still has the fields it names.
     IterateRecordingSink rows_sink;
     solver.attach_trace(&rows_sink);
-    const std::vector<hven::IpmIterate> &rows = rows_sink.rows;
+    const std::vector<hven::test::IpmRowView> &rows = rows_sink.rows;
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(BestIterateRisingObjectiveProblem::kN);
     result = solver.solve(hven::detail::problem_ref(*program), x0);
@@ -1557,14 +1556,16 @@ struct IpmPhaseRecordingSink : hven::TraceSink {
     int begins_ = 0;
     int ends_ = 0;
 
-    void on_ipm_iter(const hven::IpmIterTraceEvent &event) override {
-        this->iter_phases_.push_back(static_cast<int>(event.phase));
+    void on_iter(const hven::IterTraceEvent &event) override {
+        if (event.record.ipm) {
+            this->iter_phases_.push_back(static_cast<int>(event.record.ipm->phase));
+        }
     }
-    void on_ipm_solve_begin(const hven::IpmSolveBeginTraceEvent &event) override {
-        this->begin_phases_ = static_cast<int>(event.phases);
+    void on_solve_begin(const hven::SolveBeginTraceEvent &event) override {
+        this->begin_phases_ = static_cast<int>(event.ipm->phases);
         this->begins_++;
     }
-    void on_ipm_solve_end(const hven::IpmSolveEndTraceEvent &) override { this->ends_++; }
+    void on_solve_end(const hven::SolveEndTraceEvent &) override { this->ends_++; }
 
     // The eight QP-side events are pure on the sink and unreachable from the
     // interior-point driver; they are stubbed, not recorded.
