@@ -30,10 +30,13 @@ int standalone_include_console_trace_sink() {
     // this TU is the header's include closure, not the sink's behaviour (which
     // tests/drivers/test_console_sink.cpp pins byte for byte).
     hven::ConsoleTraceSink console(
-        hven::ConsoleTraceSink::Format{/*wide=*/true, hven::Verbosity::kSilent}, stdout);
+        hven::ConsoleTraceSink::Format{.verbosity = hven::Verbosity::kSilent,
+                                       .color = hven::ConsoleColor::kNever},
+        stdout);
     hven::FanOutTraceSink fan(nullptr, &console);
     const bool composed = fan.second() == &console && fan.first() == nullptr &&
-                          console.format().wide && console.sqp_depth() == 0;
+                          console.format().color == hven::ConsoleColor::kNever &&
+                          console.sqp_depth() == 0;
     return composed ? 1 : 0;
 }
 } // namespace hven_install_smoke
