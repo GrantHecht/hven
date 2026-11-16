@@ -1,31 +1,30 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// test_ipm_trace.cpp -- M6 W4 task 4: the interior-point driver's schema-v0
-// events (`ipm.iter`, `ipm.solve.begin`/`.end`) as the DRIVER produces them.
+// test_ipm_trace.cpp -- the interior-point driver's trace-v1 records (`iter`,
+// `solve.begin`/`solve.end`, `message`, the `ipm.phase.*` and `ipm.kkt_analysis`
+// events) as the DRIVER produces them.
 //
 // The serializer's own golden lines live with every other golden line, in
 // tests/sqp/test_trace_writer.cpp; what is pinned HERE is the driver side:
 //
 //   (i)   THE CALLBACK IS THE ORACLE. Both are attached at once, and the two
 //         are emitted at the same point, so any divergence between the stream
-//         and what the late callback saw is a bug in one of them.
+//         and what the callback saw is a bug in one of them.
 //
-//   (ii)  BOTH EMIT SITES. `alg_impl` has ONE loop with TWO late-callback
-//         sites; a converged solve leaves through the converge-check branch
-//         (site 1), a max-iters solve runs out of the loop and never does.
+//   (ii)  BOTH EMIT SITES. A converged solve leaves through the converge-check
+//         branch, whose row has no step leaving it (`null` step fields); a
+//         max-iters solve runs out of the loop and never does.
 //
-//         Site 1 fires on a record `fill_iter_info` never touched, which is
-//         what tells them apart -- see `looks_like_the_early_exit_site`.
-//
-//   (iii) `ipm.solve` on two exit statuses, its census, and its single exit.
+//   (iii) `solve.begin`/`solve.end` on two exit statuses, their census, and
+//         their single exit; the `message` records the engine raises.
 //
 //   (iv)  THE NULL SINK CHANGES NOTHING -- the same result, iteration count and
 //         verdict with and without a sink attached.
 //
 //   (v)   ONE SINK, TWO ENGINES: `seq` stays contiguous across an SQP solve
-//         followed by an IPM solve, and `depth` reads 0 throughout (the
-//         `ipm.solve` pair moves no depth -- this driver nests no driver).
+//         followed by an IPM solve, `sid` takes the next ordinal, and `depth`
+//         reads 0 throughout (the interior-point engine nests no driver).
 
 #include <bit>
 #include <cstddef>
@@ -47,6 +46,7 @@
 // and called the POSIX descriptor functions unconditionally -- source that
 // cannot be compiled on Windows, where this target is also built.
 #include "../common_support/console_capture.h"
+#include "../common_support/ipm_row_view.h"
 #include "hven/core/ledger.h"
 #include "hven/detail/drivers/result_access.h"
 #include "hven/detail/drivers/sqp_solver_impl.h"
@@ -286,8 +286,43 @@ Eigen::VectorXd hs071_start() {
     return x0;
 }
 
+/// @brief A problem with NO feasible point: x0^2 + x1^2 + 1 = 0, whose violation
+/// has a strict stationary point at the origin -- the shape the restoration phase
+/// converges to and then declares locally infeasible. It is the cheapest cell
+/// that drives the engine to that door.
+struct InfeasibleProblem : Nlp {
+    hven::NlpDimensions dimensions() const override { return {2, 1, 2, 2}; }
+    void bounds(hven::VecRef xl, hven::VecRef xu, hven::VecRef gl, hven::VecRef gu) const override {
+        xl << -kInfinity, -kInfinity;
+        xu << kInfinity, kInfinity;
+        gl << 0.0;
+        gu << 0.0;
+    }
+    double eval_f(hven::ConstVecRef x) const override { return x[0] + x[1]; }
+    void eval_grad_f(hven::ConstVecRef, hven::VecRef g) const override { g << 1.0, 1.0; }
+    void eval_g(hven::ConstVecRef x, hven::VecRef g) const override {
+        g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
+    }
+    void jacobian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hessian_structure(hven::IndexVecRef r, hven::IndexVecRef c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jacobian(hven::ConstVecRef x, hven::VecRef v) const override {
+        v << 2.0 * x[0], 2.0 * x[1];
+    }
+    void eval_hessian(hven::ConstVecRef, double, hven::ConstVecRef lambda,
+                      hven::VecRef v) const override {
+        v << 2.0 * lambda[0], 2.0 * lambda[0];
+    }
+    std::string name() const override { return "InfeasibleProblem"; }
+};
+
 /// @brief The SQP side of pin (v): the smallest model that makes `SqpSolver`
-/// write a `sqp.solve` pair -- min (x0-2)^2 + (x1+1)^2 s.t. x0 + x1 = 1,
+/// write a `solve.begin`/`solve.end` pair -- min (x0-2)^2 + (x1+1)^2 s.t. x0 + x1 = 1,
 /// 0 <= x <= 4. Nothing about it is asserted except that its stream exists.
 class TinySqpModel : public NlpModel {
   public:
@@ -403,10 +438,11 @@ std::vector<std::string> lines_of_event(const std::string &stream, const std::st
     return out;
 }
 
-/// @brief The whole `ipm.iter` body, keys included, so a comparison against a
-/// second serialization of the same record is byte-for-byte.
+/// @brief The whole `iter` body, keys included, so a comparison against a
+/// second serialization of the same record is byte-for-byte. The envelope (which
+/// carries the sink-owned `seq` and `sid`) is cut off at the `eng` key.
 std::string body_after_envelope(const std::string &line) {
-    const std::string pat = "\"depth\":";
+    const std::string pat = "\"eng\":\"";
     const std::size_t p = line.find(pat);
     if (p == std::string::npos) {
         return {};
@@ -419,29 +455,17 @@ std::string body_after_envelope(const std::string &line) {
 }
 
 /// @brief Serializes one record through a throwaway sink, so a recorded
-/// `IpmIterate` is compared through the SAME writer the stream used -- a
+/// `IterationRecord` is compared through the SAME writer the stream used -- a
 /// field-by-field comparison here would be a second, weaker copy of the key
 /// list.
-std::string serialize_iter(const IpmIterate &record, Index phase) {
+std::string serialize_iter(const IterationRecord &record) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
-    sink.on_ipm_iter(IpmIterTraceEvent{record, phase});
+    sink.on_iter(IterTraceEvent{record});
     return body_after_envelope(split_lines(os.str()).front());
 }
 
-/// @brief Records every `IpmIterate` the TRACE hands out (M6 W5 T8.6 fix1).
-///
-/// THE WHOLE-RECORD ORACLE, RESTORED. Until T8.6 the oracle was the LATE
-/// CALLBACK, which was handed the `IpmIterate` itself, so re-serializing its
-/// copy compared EVERY field of the line -- the two `null` conventions included
-/// -- rather than a hand-picked subset. The shared iteration callback that
-/// replaced the late one is handed a different view entirely, and T8.6 dropped
-/// the byte comparison with the record it had lost. It comes back here through
-/// the type's OTHER public door: `IpmIterTraceEvent::iterate` (drivers/trace.h)
-/// hands out the same record, one per iterate, to any sink. So the second
-/// serialization is available again, from a second sink, and both comparisons
-/// stand side by side -- this one for every field of the line, the event
-/// oracle's for the two quantities the event and the line share.
+/// @brief Records every `IterationRecord` the TRACE hands out.
 ///
 /// ONE SINK MAY BE ATTACHED AT A TIME, so this one FORWARDS: the solver sees
 /// this object, and this object hands every event on to the JsonLines sink the
@@ -450,25 +474,25 @@ std::string serialize_iter(const IpmIterate &record, Index phase) {
 /// drops nothing from it.
 struct RecordOracle : public TraceSink {
     TraceSink *inner = nullptr;
-    std::vector<IpmIterate> seen;
-    std::vector<Index> phases;
+    std::vector<IterationRecord> seen;
 
     explicit RecordOracle(TraceSink *next) : inner(next) {}
 
-    void on_ipm_iter(const IpmIterTraceEvent &e) override {
-        seen.push_back(e.iterate);
-        phases.push_back(e.phase);
-        inner->on_ipm_iter(e);
+    void on_iter(const IterTraceEvent &e) override {
+        seen.push_back(e.record);
+        inner->on_iter(e);
     }
-    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &e) override {
-        inner->on_ipm_solve_begin(e);
+    void on_solve_begin(const SolveBeginTraceEvent &e) override { inner->on_solve_begin(e); }
+    void on_message(const MessageTraceEvent &e) override { inner->on_message(e); }
+    void on_solve_end(const SolveEndTraceEvent &e) override { inner->on_solve_end(e); }
+    void on_ipm_phase_begin(const IpmPhaseTraceEvent &e) override { inner->on_ipm_phase_begin(e); }
+    void on_ipm_phase_end(const IpmPhaseTraceEvent &e) override { inner->on_ipm_phase_end(e); }
+    void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &e) override {
+        inner->on_ipm_kkt_analysis(e);
     }
-    void on_ipm_solve_end(const IpmSolveEndTraceEvent &e) override { inner->on_ipm_solve_end(e); }
-    void on_sqp_major(const SqpMajorTraceEvent &e) override { inner->on_sqp_major(e); }
-    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &e) override {
-        inner->on_sqp_solve_begin(e);
+    void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &e) override {
+        inner->on_ipm_phase_exit(e);
     }
-    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override { inner->on_sqp_solve_end(e); }
     void on_ipqp_iter(const IpqpIterTraceEvent &e) override { inner->on_ipqp_iter(e); }
     void on_ipqp_reg(const IpqpRegTraceEvent &e) override { inner->on_ipqp_reg(e); }
     void on_ipqp_restart(const IpqpRestartTraceEvent &e) override { inner->on_ipqp_restart(e); }
@@ -493,7 +517,7 @@ struct RecordOracle : public TraceSink {
 /// two overlap in the row's IDENTITY (`iter`) and its OBJECTIVE (`prim_obj`,
 /// which is `f` at obj_scale 1) and in nothing else. Those two are what these
 /// tests now compare, one per row and in order, plus the count identity that
-/// was always the point: one event per `ipm.iter` line.
+/// was always the point: one event per `iter` line.
 struct CallbackOracle {
     struct Seen {
         Index iteration = 0;
@@ -534,9 +558,10 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     const hven::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::SolveStatus::kOptimal);
 
-    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
+    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "iter");
     const Index reported = result.iterations;
     ASSERT_GT(reported, 1);
+    // IDENTITY 1: the interior-point engine's `iter` lines are its `iterations`.
     EXPECT_EQ(static_cast<Index>(iter_lines.size()), reported);
     EXPECT_EQ(oracle.seen.size(), iter_lines.size());
 }
@@ -559,7 +584,7 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
-    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
+    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "iter");
     ASSERT_EQ(iter_lines.size(), oracle.seen.size());
     ASSERT_EQ(iter_lines.size(), records.seen.size());
     ASSERT_FALSE(iter_lines.empty());
@@ -569,14 +594,14 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     //     this covers the whole key list -- the two `null` conventions included
     //     -- and not a subset chosen by hand.
     for (std::size_t k = 0; k < iter_lines.size(); ++k) {
-        EXPECT_EQ(body_after_envelope(iter_lines[k]), serialize_iter(records.seen[k], 0))
-            << "at ipm.iter line " << k;
+        EXPECT_EQ(body_after_envelope(iter_lines[k]), serialize_iter(records.seen[k]))
+            << "at iter line " << k;
     }
     // FALSIFIABILITY: the comparison above must be able to fail. A record whose
     // iteration index is bumped serializes differently.
-    IpmIterate mutated = records.seen.back();
-    mutated.iter += 1;
-    EXPECT_NE(body_after_envelope(iter_lines.back()), serialize_iter(mutated, 0));
+    IterationRecord mutated = records.seen.back();
+    mutated.iteration += 1;
+    EXPECT_NE(body_after_envelope(iter_lines.back()), serialize_iter(mutated));
 
     // (b) AND THE EVENT ORACLE, on the two quantities the event and the line
     //     share. Two instruments, two claims: (a) says the LINE is the record,
@@ -584,15 +609,13 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     for (std::size_t k = 0; k < iter_lines.size(); ++k) {
         // ONE EVENT PER LINE, IN ORDER, describing the SAME iterate: the row's
         // own index and the objective at it. `{:.17g}` round-trips exactly, so
-        // the objective comparison is an equality and not a tolerance -- this
-        // solve runs at obj_scale 1, where the event's caller-unit `f` and the
-        // line's engine-unit `prim_obj` are one number.
+        // the objective comparison is an equality and not a tolerance -- the
+        // line's `f` is the caller-unit objective, exactly the event's.
         EXPECT_EQ(std::stoll(field(iter_lines[k], "iter")), oracle.seen[k].iteration)
-            << "at ipm.iter line " << k;
-        EXPECT_EQ(std::stod(field(iter_lines[k], "prim_obj")), oracle.seen[k].f)
-            << "at ipm.iter line " << k;
+            << "at iter line " << k;
+        EXPECT_EQ(std::stod(field(iter_lines[k], "f")), oracle.seen[k].f) << "at iter line " << k;
         EXPECT_EQ(std::stoll(field(iter_lines[k], "phase")), oracle.seen[k].phase)
-            << "at ipm.iter line " << k;
+            << "at iter line " << k;
     }
     // FALSIFIABILITY: the comparison above must be able to fail. Shifted by one
     // row it does -- consecutive iterates of this solve carry distinct indices
@@ -619,18 +642,18 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
-    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
+    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "iter");
     ASSERT_FALSE(iter_lines.empty());
     ASSERT_FALSE(oracle.seen.empty());
     // THE TERMINAL ROW FIRES TOO (M6 W5 T8.6's `IpmTerminalRowStillFires`, read
     // from the trace's side): the last event describes the last line.
     EXPECT_EQ(std::stoll(field(iter_lines.back(), "iter")), oracle.seen.back().iteration);
-    EXPECT_EQ(std::stod(field(iter_lines.back(), "prim_obj")), oracle.seen.back().f);
+    EXPECT_EQ(std::stod(field(iter_lines.back(), "f")), oracle.seen.back().f);
 }
 
 TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode) {
-    // Rule 5, the FIRST of the record's two -1 conventions: "proximal mode off".
-    // The classic path writes -1 on every iteration, which is not a shift of -1.
+    // The absence rule: "proximal mode off" is `null`. The classic path has no
+    // proximal shift on any iteration, which is not a shift of 0.
     const auto classic_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver classic;
     hven::IpmResult classic_result;
@@ -644,9 +667,9 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     classic.attach_trace(&sink_classic);
     classic_result = classic.solve(hven::detail::problem_ref(*classic_program), hs071_start());
     ASSERT_EQ(classic_result.status, hven::SolveStatus::kOptimal);
-    for (const std::string &l : lines_of_event(os_classic.str(), "ipm.iter")) {
-        EXPECT_EQ(field(l, "prox_reg_primal"), "null");
-        EXPECT_EQ(field(l, "prox_reg_dual"), "null");
+    for (const std::string &l : lines_of_event(os_classic.str(), "iter")) {
+        EXPECT_EQ(field(l, "proximal_primal"), "null");
+        EXPECT_EQ(field(l, "regularization_dual"), "null");
     }
 
     const auto prox_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
@@ -666,16 +689,16 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     JsonLinesTraceSink sink_prox(os_prox);
     prox.attach_trace(&sink_prox);
     prox.solve(hven::detail::problem_ref(*prox_program), hs071_start());
-    const std::vector<std::string> prox_lines = lines_of_event(os_prox.str(), "ipm.iter");
+    const std::vector<std::string> prox_lines = lines_of_event(os_prox.str(), "iter");
     ASSERT_FALSE(prox_lines.empty());
-    // NOT EVERY line: the converge-check exit fires before any factorization
-    // and carries the fresh -1 defaults. At least one factorized iteration must
-    // report a real pair, or "null" would mean nothing.
+    // NOT EVERY line: the converge-check exit fires before any factorization,
+    // so its row has no step leaving it and carries `null`. At least one
+    // factorized iteration must report a real pair, or "null" would mean nothing.
     int numeric = 0;
     for (const std::string &l : prox_lines) {
-        if (field(l, "prox_reg_primal") != "null") {
+        if (field(l, "proximal_primal") != "null") {
             ++numeric;
-            EXPECT_NE(field(l, "prox_reg_dual"), "");
+            EXPECT_NE(field(l, "regularization_dual"), "null");
         }
     }
     EXPECT_GT(numeric, 0);
@@ -687,20 +710,20 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
 
 /// @brief Does this line come from SITE 1, the converge-check early exit?
 ///
-/// THAT SITE EMITS A RECORD `fill_iter_info` NEVER TOUCHED. The record was
-/// filled by `fill_residual_info` at the top of the iteration and the branch
-/// leaves before any factorization, line search or barrier evaluation, so
-/// `barr_obj_`, `merit_val_` and `ls_iters_` are still IpmIterate's fresh
-/// per-iteration 0 and the three alphas are still its fresh 1.0 -- the set the
-/// driver's own comment at that branch enumerates. Site 2's record has all of
-/// them written from the iteration that just ran.
+/// THAT SITE'S ROW IS REACHED BY A STEP AND LEFT BY NONE: the branch leaves
+/// before any factorization, line search or barrier evaluation, so every field
+/// the step would have produced is `null` (the step, the acceptance, the three
+/// alphas, the line-search count, the barrier objective and the merit). Site 2's
+/// row has all of them written from the iteration that just ran.
 ///
-/// NOT `h_facs`: it counts INERTIA-PERTURBATION ladder steps, not
-/// factorizations, and reads 0 at both sites on a cell that never needs one.
+/// NOT `inertia_corrections` alone: it counts INERTIA-PERTURBATION ladder steps,
+/// not factorizations, and reads 0 at site 2 on a cell that never needs one --
+/// but it is `null` at site 1 with the rest.
 bool looks_like_the_early_exit_site(const std::string &line) {
-    return field(line, "barr_obj") == "0" && field(line, "merit_val") == "0" &&
-           field(line, "ls_iters") == "0" && field(line, "alpha_p") == "1" &&
-           field(line, "alpha_d") == "1" && field(line, "alpha_t") == "1";
+    return field(line, "step") == "null" && field(line, "accepted") == "null" &&
+           field(line, "barrier_objective") == "null" && field(line, "merit") == "null" &&
+           field(line, "line_search_trials") == "null" && field(line, "alpha_primal") == "null" &&
+           field(line, "alpha_dual") == "null" && field(line, "alpha_scale") == "null";
 }
 
 TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot) {
@@ -718,7 +741,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     converged_result =
         converged.solve(hven::detail::problem_ref(*converged_program), hs071_start());
     ASSERT_EQ(converged_result.status, hven::SolveStatus::kOptimal);
-    const std::vector<std::string> c_lines = lines_of_event(os_c.str(), "ipm.iter");
+    const std::vector<std::string> c_lines = lines_of_event(os_c.str(), "iter");
     ASSERT_GT(c_lines.size(), 1u);
 
     // EXACTLY ONE line comes from site 1, and it is the LAST: the branch that
@@ -747,7 +770,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     truncated_result =
         truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
     ASSERT_EQ(truncated_result.status, hven::SolveStatus::kIterationLimit);
-    const std::vector<std::string> t_lines = lines_of_event(os_t.str(), "ipm.iter");
+    const std::vector<std::string> t_lines = lines_of_event(os_t.str(), "iter");
     // THE CONTROL that makes the signature above mean something: a solve that
     // runs out of iterations never reaches site 1, so no line matches -- the
     // predicate is not simply true of every line.
@@ -758,7 +781,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
 }
 
 TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
-    // R2 / CLAUDE.md section 6. `KktFactorization::ppivs()` projects an ABSENT
+    // CLAUDE.md section 6. `KktFactorization::ppivs()` projects an ABSENT
     // backend count to the integer 0 (`.value_or(0)`), so the stream must read
     // the factorization's own optional instead of repeating that 0.
     //
@@ -781,14 +804,14 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
-    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
+    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "iter");
     ASSERT_GT(iter_lines.size(), 1u);
     int factorized = 0;
     for (const std::string &l : iter_lines) {
         if (looks_like_the_early_exit_site(l)) {
             // NEVER FACTORIZED, so there is no pivot count to report on either
             // backend -- `null`, not the record's untouched 0 default.
-            EXPECT_EQ(field(l, "p_pivots"), "null") << l;
+            EXPECT_EQ(field(l, "perturbed_pivots"), "null") << l;
             continue;
         }
         ++factorized;
@@ -796,11 +819,11 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
         // Accelerate reports NO perturbed-pivot count at all, so every
         // factorized line is `null` too. UNOBSERVED here; the macOS lane runs
         // this arm.
-        EXPECT_EQ(field(l, "p_pivots"), "null") << l;
+        EXPECT_EQ(field(l, "perturbed_pivots"), "null") << l;
 #else
         // MKL Pardiso does count them, so a factorized line carries a NUMBER --
         // which is what makes the `null`s above a reading rather than a blanket.
-        const std::string v = field(l, "p_pivots");
+        const std::string v = field(l, "perturbed_pivots");
         EXPECT_NE(v, "null") << l;
         EXPECT_GE(std::stoll(v), 0) << l;
 #endif
@@ -829,13 +852,20 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
 
     const std::vector<std::string> all = split_lines(os.str());
     ASSERT_GE(all.size(), 3u);
-    EXPECT_EQ(field(all.front(), "ev"), "\"ipm.solve.begin\"");
-    EXPECT_EQ(field(all.back(), "ev"), "\"ipm.solve.end\"");
-    EXPECT_EQ(lines_of_event(os.str(), "ipm.solve.begin").size(), 1u);
-    EXPECT_EQ(lines_of_event(os.str(), "ipm.solve.end").size(), 1u);
+    EXPECT_EQ(field(all.front(), "ev"), "\"solve.begin\"");
+    EXPECT_EQ(field(all.back(), "ev"), "\"solve.end\"");
+    EXPECT_EQ(lines_of_event(os.str(), "solve.begin").size(), 1u);
+    EXPECT_EQ(lines_of_event(os.str(), "solve.end").size(), 1u);
     for (const std::string &l : all) {
         EXPECT_EQ(field(l, "depth"), "0");
+        EXPECT_EQ(field(l, "sid"), "1") << "one depth-0 solve, one sid";
+        EXPECT_EQ(field(l, "eng"), "\"ipm\"");
+        EXPECT_EQ(field(l, "v"), "1");
     }
+    // LINES PER RECORD KIND, and no out-of-schema spelling anywhere.
+    EXPECT_EQ(static_cast<Index>(lines_of_event(os.str(), "iter").size()), result.iterations)
+        << "identity 1";
+    EXPECT_EQ(os.str().find("unknown"), std::string::npos);
 }
 
 TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
@@ -854,23 +884,33 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
 
-    const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
+    const std::vector<std::string> begin = lines_of_event(os.str(), "solve.begin");
     ASSERT_EQ(begin.size(), 1u);
     const std::string &b = begin.front();
-    EXPECT_EQ(field(b, "n"), "4");
+    // THE DECLARED PROBLEM'S CENSUS (`ProblemStatistics`, verbatim): all four
+    // variables carry 1 <= x <= 5, so every one of them is `boxed`. HS071 enters
+    // as a split-form program (me equalities, mi rows c_I <= 0), whose census is
+    // `ProblemStatistics`' split form: one equality row and one `upper_bounded` row.
+    EXPECT_EQ(field(b, "variables"), "4");
+    EXPECT_EQ(field(b, "free_variables"), "0");
+    EXPECT_EQ(field(b, "lower_bounded_variables"), "0");
+    EXPECT_EQ(field(b, "upper_bounded_variables"), "0");
+    EXPECT_EQ(field(b, "boxed_variables"), "4");
+    EXPECT_EQ(field(b, "fixed_variables"), "0");
+    EXPECT_EQ(field(b, "constraints"), "2");
+    EXPECT_EQ(field(b, "equality_rows"), "1");
+    EXPECT_EQ(field(b, "lower_bounded_rows"), "0");
+    EXPECT_EQ(field(b, "upper_bounded_rows"), "1");
+    EXPECT_EQ(field(b, "range_rows"), "0");
+    EXPECT_EQ(field(b, "free_rows"), "0");
+    EXPECT_EQ(field(b, "max_iterations"), "40");
+    // The solver's own split (HS071's one two-sided row is split by the
+    // transcription into an equality and an inequality) is in the `ipm` block.
     EXPECT_EQ(field(b, "n_reduced"), "4");
-    // HS071's one two-sided row is split by the transcription into an equality
-    // and an inequality; the census is the DECLARED VARIABLE box's, and all four
-    // variables carry 1 <= x <= 5, so every one of them is `ranged`.
     EXPECT_EQ(field(b, "me"), "1");
     EXPECT_EQ(field(b, "mi"), "1");
-    EXPECT_EQ(field(b, "vars_free"), "0");
-    EXPECT_EQ(field(b, "vars_lower_only"), "0");
-    EXPECT_EQ(field(b, "vars_upper_only"), "0");
-    EXPECT_EQ(field(b, "vars_ranged"), "4");
-    EXPECT_EQ(field(b, "vars_fixed"), "0");
     EXPECT_EQ(field(b, "phases"), "1");
-    EXPECT_EQ(field(b, "max_iters"), "40");
+    EXPECT_EQ(field(b, "hven_version").empty(), false);
     EXPECT_EQ(field(b, "inertia_mode"), "\"classic\"");
     EXPECT_EQ(field(b, "restoration_mode"), "\"off\"");
 }
@@ -894,18 +934,18 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     }
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
 
-    const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
+    const std::vector<std::string> begin = lines_of_event(os.str(), "solve.begin");
     ASSERT_EQ(begin.size(), 1u);
     EXPECT_EQ(field(begin.front(), "phases"), "2");
     // ONE pair for the whole entry point, not one per phase -- which is why the
     // per-line `phase` key exists: `iter` restarts at 0 in each phase.
-    EXPECT_EQ(lines_of_event(os.str(), "ipm.solve.end").size(), 1u);
+    EXPECT_EQ(lines_of_event(os.str(), "solve.end").size(), 1u);
     // BOTH phases must appear (fix round 1, M-3): tracking only phase 1 would
     // be satisfied by an entirely phase-1 stream, which is exactly the bug a
     // mis-set `trace_phase_` would produce.
     bool saw_phase_zero = false;
     bool saw_phase_one = false;
-    for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
+    for (const std::string &l : lines_of_event(os.str(), "iter")) {
         const std::string p = field(l, "phase");
         EXPECT_TRUE(p == "0" || p == "1") << p;
         saw_phase_zero = saw_phase_zero || p == "0";
@@ -916,7 +956,7 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     // ... and the FIRST phase's lines precede the second's, so `phase` is
     // monotone over the stream rather than merely present in both values.
     Index last = 0;
-    for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
+    for (const std::string &l : lines_of_event(os.str(), "iter")) {
         const Index p = static_cast<Index>(std::stoll(field(l, "phase")));
         EXPECT_GE(p, last);
         last = p;
@@ -938,14 +978,16 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     converged_result =
         converged.solve(hven::detail::problem_ref(*converged_program), hs071_start());
     ASSERT_EQ(converged_result.status, hven::SolveStatus::kOptimal);
-    const std::vector<std::string> end_c = lines_of_event(os_c.str(), "ipm.solve.end");
+    const std::vector<std::string> end_c = lines_of_event(os_c.str(), "solve.end");
     ASSERT_EQ(end_c.size(), 1u);
-    // THE VOCABULARY MOVED IN M6 W5 T8.4, declared: the event carries SolveStatus
-    // now (the engine's own ConvergenceFlags is gone), so `converged` reads
-    // `optimal` and `not_converged` reads `max_iter` -- or `stalled` at the two
-    // abnormal exits the old vocabulary could not tell apart at all.
+    // The event carries `SolveStatus`, so a converged solve reads `optimal` and a
+    // truncated one `max_iter`; the declared result fields ride along.
     EXPECT_EQ(field(end_c.front(), "status"), "\"optimal\"");
-    EXPECT_EQ(field(end_c.front(), "iters"), std::to_string(converged_result.iterations));
+    EXPECT_EQ(field(end_c.front(), "stop_reason"),
+              std::string("\"") + to_string(converged_result.stop_reason) + "\"");
+    EXPECT_EQ(field(end_c.front(), "iterations"), std::to_string(converged_result.iterations));
+    EXPECT_NE(field(end_c.front(), "message"), "null");
+    EXPECT_EQ(field(end_c.front(), "returned_best_iterate"), "false");
 
     const auto truncated_program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver truncated;
@@ -962,10 +1004,10 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     truncated_result =
         truncated.solve(hven::detail::problem_ref(*truncated_program), hs071_start());
     ASSERT_EQ(truncated_result.status, hven::SolveStatus::kIterationLimit);
-    const std::vector<std::string> end_t = lines_of_event(os_t.str(), "ipm.solve.end");
+    const std::vector<std::string> end_t = lines_of_event(os_t.str(), "solve.end");
     ASSERT_EQ(end_t.size(), 1u);
     EXPECT_EQ(field(end_t.front(), "status"), "\"max_iter\"");
-    EXPECT_EQ(field(end_t.front(), "iters"), "3");
+    EXPECT_EQ(field(end_t.front(), "iterations"), "3");
 }
 
 TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
@@ -1098,21 +1140,166 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
 
     const std::vector<std::string> all = split_lines(os.str());
     ASSERT_EQ(static_cast<Index>(all.size()), sink.lines_written());
+    const std::vector<std::string> begins = lines_of_event(os.str(), "solve.begin");
+    const std::vector<std::string> ends = lines_of_event(os.str(), "solve.end");
+    ASSERT_EQ(begins.size(), 2u);
+    ASSERT_EQ(ends.size(), 2u);
+    // The two solves PARTITION the artifact: the SQP pair closes before the IPM
+    // pair opens, and `sid` (1 then 2) says which solve every line belongs to.
+    const std::size_t first_end_line = [&] {
+        for (std::size_t k = 0; k < all.size(); ++k) {
+            if (field(all[k], "ev") == "\"solve.end\"") {
+                return k;
+            }
+        }
+        return all.size();
+    }();
     for (std::size_t k = 0; k < all.size(); ++k) {
         EXPECT_EQ(field(all[k], "seq"), std::to_string(k + 1)) << "at line " << k;
         EXPECT_EQ(field(all[k], "depth"), "0") << "at line " << k;
-        EXPECT_EQ(field(all[k], "v"), "0");
+        EXPECT_EQ(field(all[k], "v"), "1");
+        EXPECT_EQ(field(all[k], "sid"), k <= first_end_line ? "1" : "2") << "at line " << k;
+        EXPECT_EQ(field(all[k], "eng"), k <= first_end_line ? "\"sqp\"" : "\"ipm\"")
+            << "at line " << k;
     }
-    // The two streams PARTITION the artifact: the SQP pair closes before the
-    // IPM pair opens, so a reader splits on the pairs and needs nothing else.
-    EXPECT_EQ(field(all.front(), "ev"), "\"sqp.solve.begin\"");
-    EXPECT_EQ(field(all.back(), "ev"), "\"ipm.solve.end\"");
-    const std::vector<std::string> sqp_end = lines_of_event(os.str(), "sqp.solve.end");
-    const std::vector<std::string> ipm_begin = lines_of_event(os.str(), "ipm.solve.begin");
-    ASSERT_EQ(sqp_end.size(), 1u);
-    ASSERT_EQ(ipm_begin.size(), 1u);
-    EXPECT_LT(std::stoll(field(sqp_end.front(), "seq")),
-              std::stoll(field(ipm_begin.front(), "seq")));
+    EXPECT_EQ(field(all.front(), "ev"), "\"solve.begin\"");
+    EXPECT_EQ(field(all.back(), "ev"), "\"solve.end\"");
+    EXPECT_EQ(field(begins[0], "eng"), "\"sqp\"");
+    EXPECT_EQ(field(begins[1], "eng"), "\"ipm\"");
+    EXPECT_LT(std::stoll(field(ends[0], "seq")), std::stoll(field(begins[1], "seq")));
+}
+
+// ===========================================================================
+// (vi) `message` -- the diagnostics the engine raises, and their identities
+// ===========================================================================
+
+/// The `message` lines of a stream, as `kind` tokens in order.
+std::vector<std::string> message_kinds(const std::string &stream) {
+    std::vector<std::string> out;
+    for (const std::string &l : lines_of_event(stream, "message")) {
+        out.push_back(field(l, "kind"));
+    }
+    return out;
+}
+
+TEST(IpmTrace, ACallbackStopWritesOneStopAtIterationMessageWithSourceCallback) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.verbosity = hven::Verbosity::kSilent;
+        solver.set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.attach_trace(&sink);
+    Index seen = 0;
+    solver.set_iteration_callback([&](const hven::IterationEvent &) {
+        return ++seen >= 3 ? hven::CallbackAction::kStop : hven::CallbackAction::kContinue;
+    });
+    const hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.stop_reason, StopReason::kCallbackStop);
+
+    // EXACTLY ONE, and the identity is "== 1 iff stop_reason is a stop".
+    const std::vector<std::string> stops = lines_of_event(os.str(), "message");
+    Index stop_messages = 0;
+    for (const std::string &l : stops) {
+        if (field(l, "kind") != "\"stop_at_iteration\"") {
+            continue;
+        }
+        ++stop_messages;
+        EXPECT_EQ(field(l, "s"), "\"callback\"");
+        EXPECT_EQ(field(l, "severity"), "\"notice\"");
+        EXPECT_EQ(field(l, "eng"), "\"ipm\"");
+        EXPECT_NE(field(l, "iter"), "null");
+    }
+    EXPECT_EQ(stop_messages, 1);
+    EXPECT_EQ(os.str().find("interrupt_at_iteration"), std::string::npos) << "the v0 kind is gone";
+    EXPECT_EQ(static_cast<Index>(lines_of_event(os.str(), "iter").size()), result.iterations)
+        << "identity 1 at the callback-stop door";
+}
+
+TEST(IpmTrace, ATokenStopWritesOneStopAtIterationMessageWithSourceToken) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.verbosity = hven::Verbosity::kSilent;
+        solver.set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.attach_trace(&sink);
+    hven::StopSource source;
+    source.request_stop();
+    hven::SolveBudget budget;
+    budget.stop = source.token();
+    const hven::IpmResult result =
+        solver.solve(hven::detail::problem_ref(*program), hs071_start(), {}, budget);
+    ASSERT_EQ(result.stop_reason, StopReason::kStopRequested);
+
+    Index stop_messages = 0;
+    for (const std::string &l : lines_of_event(os.str(), "message")) {
+        if (field(l, "kind") != "\"stop_at_iteration\"") {
+            continue;
+        }
+        ++stop_messages;
+        EXPECT_EQ(field(l, "s"), "\"token\"");
+        EXPECT_EQ(field(l, "severity"), "\"notice\"");
+    }
+    EXPECT_EQ(stop_messages, 1);
+    EXPECT_EQ(static_cast<Index>(lines_of_event(os.str(), "iter").size()), result.iterations)
+        << "identity 1 at the token-stop door";
+}
+
+TEST(IpmTrace, TheLocallyInfeasibleDoorWritesRestorationExitedWithSourceLocallyInfeasible) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<InfeasibleProblem>());
+    hven::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.phases = {IpmPhase::kOptimize};
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.common.max_iterations = 200;
+        solver.set_options(std::move(o));
+    }
+    {
+        auto o = solver.options();
+        o.advanced.restoration_mode = IpmRestorationMode::kL1Nested;
+        o.advanced.max_restoration_entries = 1;
+        solver.set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.attach_trace(&sink);
+    Eigen::VectorXd x0(2);
+    x0 << 1.0, 1.0;
+    const hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), x0);
+    ASSERT_EQ(result.status, SolveStatus::kStalled) << "the locally-infeasible exit";
+
+    // ONE `message` replaces v0's exit-row marker AND its message kind: the door's
+    // exit, as a warning, carrying the violation and the threshold it was judged
+    // against.
+    Index doors = 0;
+    for (const std::string &l : lines_of_event(os.str(), "message")) {
+        if (field(l, "kind") != "\"restoration_exited\"") {
+            continue;
+        }
+        ++doors;
+        EXPECT_EQ(field(l, "s"), "\"locally_infeasible\"");
+        EXPECT_EQ(field(l, "severity"), "\"warning\"");
+        EXPECT_NE(field(l, "a"), "null") << "the violation at exit";
+        EXPECT_NE(field(l, "b"), "null") << "the threshold it was judged against";
+        EXPECT_NE(field(l, "iter"), "null");
+    }
+    EXPECT_EQ(doors, 1);
+    EXPECT_EQ(os.str().find("\"kind\":\"restoration_locally_infeasible\""), std::string::npos)
+        << "folded into restoration_exited";
+    EXPECT_EQ(os.str().find("restoration_exit_row"), std::string::npos);
+    // One `restoration_exited` per door, here the only restoration this solve ran.
+    EXPECT_EQ(result.counters.restoration_entries, 1);
+    // Identity 1 at the locally-infeasible door (the row is emitted, then the
+    // door leaves).
+    EXPECT_EQ(static_cast<Index>(lines_of_event(os.str(), "iter").size()), result.iterations);
 }
 
 // ===========================================================================
@@ -1132,8 +1319,8 @@ using hven::testing::StdoutCapture;
 
 /// Every line carrying a wall-clock reading, replaced by a marker.
 ///
-/// The console's closing block prints seven times and a per-iteration average,
-/// all of them " ms" lines; CLAUDE.md section 7 makes those informational, and
+/// The console prints the `solver_initialized` milliseconds and the footer's
+/// `time` line; both carry a wall-clock reading; CLAUDE.md section 7 makes those informational, and
 /// two runs of one solve differ there by construction. Everything else -- the
 /// banner, the statistics, every row with its colours, the Beginning/Finished
 /// pair and the verdict -- is compared byte for byte.
@@ -1144,7 +1331,9 @@ std::string strip_timing(const std::string &text) {
         const std::size_t eol = text.find('\n', pos);
         const std::size_t end = (eol == std::string::npos) ? text.size() : eol;
         const std::string line = text.substr(pos, end - pos);
-        out += (line.find(" ms") == std::string::npos) ? line : "<TIMING LINE MASKED>";
+        const bool timed = line.find(" ms") != std::string::npos ||
+                           line.find("(informational)") != std::string::npos;
+        out += timed ? "<TIMING LINE MASKED>" : line;
         if (eol == std::string::npos) {
             break;
         }
@@ -1162,16 +1351,17 @@ std::string strip_timing(const std::string &text) {
 /// informational and never asserted -- so a byte comparison of two streams has
 /// to do something about them. Dropping the lines that carry one would throw
 /// away every other key on those lines; masking keeps them. The list is the
-/// whole of the schema's wall-clock vocabulary: `ipm.solve.end`'s seven,
+/// whole of the schema's wall-clock vocabulary: `solve.end`'s `wall_s` and the
+/// `ipm` block's seven,
 /// `ipm.kkt_analysis`'s one, and `ipm.phase.exit`'s five (its own four plus the
 /// embedded report's `phase_seconds`).
 std::string mask_wall_clock(const std::string &stream) {
     static const std::vector<std::string> kTimeKeys = {
-        "total_time_s", "pre_time_s",      "func_time_s",
-        "kkt_time_s",   "print_time_s",    "solver_init_time_s",
-        "misc_time_s",  "analysis_time_s", "total_s",
-        "func_s",       "kkt_s",           "print_s",
-        "phase_seconds"};
+        "total_time_s",  "pre_time_s",      "func_time_s",
+        "kkt_time_s",    "print_time_s",    "solver_init_time_s",
+        "misc_time_s",   "analysis_time_s", "total_s",
+        "func_s",        "kkt_s",           "print_s",
+        "phase_seconds", "wall_s"};
     std::string out = stream;
     for (const std::string &k : kTimeKeys) {
         const std::string needle = "\"" + k + "\":";
@@ -1499,17 +1689,15 @@ TEST(IpmLedger, TheSummaryTableIsEmptyWithoutRecordsAndHasARowPerRecordWithThem)
     EXPECT_EQ(table.find("Wall"), std::string::npos);
 }
 
-TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
-    // M6 W5 T8.7's addition, read off a REAL solve rather than a scripted
-    // event: the four acceptable tolerances, the layout width, and the three
-    // `print_stats` inputs.
+TEST(IpmTrace, SolveBeginCarriesTheEngineFactsTheConsoleHeaderNeeds) {
+    // Read off a REAL solve rather than a scripted event: the four acceptable
+    // tolerances, the KKT size and the internal row count.
     const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::IpmSolver solver;
     hven::IpmResult result;
     {
         auto o = solver.options();
         o.common.verbosity = hven::Verbosity::kSilent;
-        o.wide_console = true;
         solver.set_options(std::move(o));
     }
     std::ostringstream os;
@@ -1518,23 +1706,27 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
     ASSERT_EQ(result.status, SolveStatus::kOptimal);
 
-    const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
+    const std::vector<std::string> begin = lines_of_event(os.str(), "solve.begin");
     ASSERT_EQ(begin.size(), 1u);
     const std::string &b = begin.front();
-    EXPECT_EQ(field(b, "wide_console"), "true");
     // HS071 declares no fixed variable, so the MakeConstraint treatment
     // installs no internal row -- a reading, not a missing value.
     EXPECT_EQ(field(b, "internal_fixed_rows"), "0");
     // The KKT system is real: a positive dimension and a positive fill.
     EXPECT_GT(std::stoll(field(b, "kkt_dim")), 0);
     EXPECT_GT(std::stoll(field(b, "kkt_nnz")), 0);
-    // The four acceptable tolerances are the shipped defaults, and each is
-    // LOOSER than its convergence counterpart -- which is the ordering
-    // `validate()` enforces and the colouring depends on.
-    EXPECT_GT(std::stod(field(b, "acc_kkt_tol")), std::stod(field(b, "kkt_tol")));
-    EXPECT_GT(std::stod(field(b, "acc_econ_tol")), std::stod(field(b, "econ_tol")));
-    EXPECT_GT(std::stod(field(b, "acc_icon_tol")), std::stod(field(b, "icon_tol")));
-    EXPECT_GT(std::stod(field(b, "acc_bar_tol")), std::stod(field(b, "bar_tol")));
+    // The acceptable tolerances are the shipped defaults, and each is LOOSER than
+    // its convergence counterpart -- the ordering `validate()` enforces.
+    EXPECT_GT(std::stod(field(b, "acceptable_stationarity_tol")),
+              std::stod(field(b, "optimality_tol")));
+    EXPECT_GT(std::stod(field(b, "acceptable_equality_tol")),
+              std::stod(field(b, "feasibility_tol")));
+    EXPECT_GT(std::stod(field(b, "acceptable_inequality_tol")),
+              std::stod(field(b, "feasibility_tol")));
+    EXPECT_GT(std::stod(field(b, "acceptable_complementarity_tol")), 0.0);
+    EXPECT_GT(std::stoll(field(b, "max_acceptable_iterations")), 0);
+    EXPECT_EQ(field(b, "initial_mu").empty(), false);
+    EXPECT_EQ(field(b, "obj_scale"), "1");
 }
 
 // ===========================================================================
@@ -1560,7 +1752,6 @@ struct StreamShape {
     Index analysis = 0;
     Index iter = 0;
     Index message = 0;
-    Index door = 0;
     Index lines = 0;
 };
 
@@ -1575,15 +1766,14 @@ StreamShape shape_of(const std::string &stream) {
             ev = ev.substr(1, ev.size() - 2);
         }
         sh.order.push_back(ev);
-        sh.begin += (ev == "ipm.solve.begin") ? 1 : 0;
-        sh.end += (ev == "ipm.solve.end") ? 1 : 0;
+        sh.begin += (ev == "solve.begin") ? 1 : 0;
+        sh.end += (ev == "solve.end") ? 1 : 0;
         sh.phase_begin += (ev == "ipm.phase.begin") ? 1 : 0;
         sh.phase_end += (ev == "ipm.phase.end") ? 1 : 0;
         sh.phase_exit += (ev == "ipm.phase.exit") ? 1 : 0;
         sh.analysis += (ev == "ipm.kkt_analysis") ? 1 : 0;
-        sh.iter += (ev == "ipm.iter") ? 1 : 0;
-        sh.message += (ev == "ipm.message") ? 1 : 0;
-        sh.door += (ev == "ipm.restoration_exit_row") ? 1 : 0;
+        sh.iter += (ev == "iter") ? 1 : 0;
+        sh.message += (ev == "message") ? 1 : 0;
     }
     return sh;
 }
@@ -1594,11 +1784,11 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
     // THE ARITHMETIC, DECLARED BEFORE THE RUN and stated here in the form the
     // CODE makes true:
     //
-    //     lines = 2 + 3P + A + R + M + D
+    //     lines = 2 + 3P + A + R + M
     //
     // with P the phases that RAN (each writing `phase.begin`, `phase.exit` and
-    // `phase.end`), A the KKT analyses, R the `ipm.iter` rows, M the messages
-    // and D the restoration-door markers.
+    // `phase.end`), A the KKT analyses, R the `iter` rows and M the messages.
+    // (The v0 restoration-door marker is a `message` in v1, so it is in M.)
     //
     // A IS NOT P, and that is the one place this differs from the brief's §5
     // A2, which lists `kkt_analysis` among the four things "per phase ran".
@@ -1654,27 +1844,27 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
         EXPECT_EQ(sh.phase_end, 1);
         EXPECT_EQ(sh.analysis, 1);
         const Index p = sh.phase_begin;
-        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message);
         // A2's own form, which holds here because A == P.
         EXPECT_EQ(sh.analysis, p);
-        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door);
+        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message);
         // `phases` REQUESTED, read off the begin line rather than assumed equal
         // to the count that ran.
-        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "1");
+        EXPECT_EQ(field(lines_of_event(sh.text, "solve.begin").front(), "phases"), "1");
     }
 
     // (b) `{kSolve, kOptimize}`: the second phase is UNCONDITIONAL (a kOptimize
     // that follows a kSolve always runs), so both run and A == P == 2.
     {
         const StreamShape sh = run(1);
-        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "2");
+        EXPECT_EQ(field(lines_of_event(sh.text, "solve.begin").front(), "phases"), "2");
         EXPECT_EQ(sh.phase_begin, 2);
         EXPECT_EQ(sh.phase_exit, 2);
         EXPECT_EQ(sh.phase_end, 2);
         EXPECT_EQ(sh.analysis, 2);
         const Index p = sh.phase_begin;
-        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
-        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door);
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message);
+        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message);
     }
 
     // (c) `{kOptimize, kSolve}`: the trailing kSolve is CONDITIONAL on the
@@ -1683,15 +1873,15 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
     // analysis by then. P = 1, A = 2, and A2's `2 + 4P` is one line short.
     {
         const StreamShape sh = run(2);
-        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "2")
+        EXPECT_EQ(field(lines_of_event(sh.text, "solve.begin").front(), "phases"), "2")
             << "premise: two phases were REQUESTED";
         EXPECT_EQ(sh.phase_begin, 1) << "premise: the conditional second phase was skipped";
         EXPECT_EQ(sh.phase_exit, 1);
         EXPECT_EQ(sh.phase_end, 1);
         EXPECT_EQ(sh.analysis, 2) << "the inter-phase re-init runs before the skip test";
         const Index p = sh.phase_begin;
-        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
-        EXPECT_NE(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door)
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message);
+        EXPECT_NE(sh.lines, 2 + 4 * p + sh.iter + sh.message)
             << "and this is the arm on which the two forms differ";
         // `ran` is read off the exit line, not inferred from `phases`.
         EXPECT_EQ(field(lines_of_event(sh.text, "ipm.phase.exit").front(), "ran"), "true");
@@ -1725,31 +1915,30 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
     // The skeleton, with the rows and any messages removed.
     std::vector<std::string> skeleton;
     for (const std::string &ev : sh.order) {
-        if (ev != "ipm.iter" && ev != "ipm.message" && ev != "ipm.restoration_exit_row") {
+        if (ev != "iter" && ev != "message") {
             skeleton.push_back(ev);
         }
     }
     const std::vector<std::string> expected = {
-        "ipm.solve.begin", "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
-        "ipm.phase.end",   "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
-        "ipm.phase.end",   "ipm.solve.end"};
+        "solve.begin",   "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
+        "ipm.phase.end", "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
+        "ipm.phase.end", "solve.end"};
     EXPECT_EQ(skeleton, expected);
 
-    // THE LABELS, and the phase indices they belong to. `solve_optimize` runs
-    // the feasibility phase first.
+    // THE PHASE INDICES and entries (v1 has no `label` key: it is derivable from
+    // `entry`). `solve_optimize` runs the feasibility phase first.
     const std::vector<std::string> begins = lines_of_event(os.str(), "ipm.phase.begin");
     const std::vector<std::string> ends = lines_of_event(os.str(), "ipm.phase.end");
     ASSERT_EQ(begins.size(), 2u);
     ASSERT_EQ(ends.size(), 2u);
-    EXPECT_EQ(field(begins[0], "label"), "\"Solve Algorithm \"");
+    EXPECT_EQ(field(begins[0], "label"), "") << "no `label` key in v1";
     EXPECT_EQ(field(begins[0], "entry"), "\"solve\"");
     EXPECT_EQ(field(begins[0], "phase"), "0");
-    EXPECT_EQ(field(begins[1], "label"), "\"Optimization Algorithm \"");
     EXPECT_EQ(field(begins[1], "entry"), "\"optimize\"");
     EXPECT_EQ(field(begins[1], "phase"), "1");
-    // The closing line of a phase carries the same three values as its opener.
+    // The closing line of a phase carries the same two values as its opener.
     for (std::size_t k = 0; k < 2; ++k) {
-        EXPECT_EQ(field(ends[k], "label"), field(begins[k], "label"));
+        EXPECT_EQ(field(ends[k], "label"), "");
         EXPECT_EQ(field(ends[k], "entry"), field(begins[k], "entry"));
         EXPECT_EQ(field(ends[k], "phase"), field(begins[k], "phase"));
     }
@@ -1804,22 +1993,97 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
         // divisor the console block uses is `iters.size()`, which is what the
         // report counts.
         Index rows = 0;
-        for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
+        for (const std::string &l : lines_of_event(os.str(), "iter")) {
             rows += (field(l, "phase") == std::to_string(k)) ? 1 : 0;
         }
         EXPECT_EQ(rows, report.iterations);
     }
 }
 
+// DISABLED, and the reason is a library gap found while migrating this file: spec
+// 2.7 gives `restoration_entered` a count identity (lines == counters.restoration_
+// entries), but the interior-point engine writes no such message at this commit --
+// only `restoration_exited` is emitted (ipm_solver.cpp's emit_message sites). The
+// assertion is kept so the day the emit lands, enabling the test is the whole job.
+TEST(IpmTrace, DISABLED_EveryRestorationEntryWritesARestorationEnteredMessage) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<InfeasibleProblem>());
+    hven::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.phases = {IpmPhase::kOptimize};
+        o.common.verbosity = hven::Verbosity::kSilent;
+        o.common.max_iterations = 200;
+        solver.set_options(std::move(o));
+    }
+    {
+        auto o = solver.options();
+        o.advanced.restoration_mode = IpmRestorationMode::kL1Nested;
+        o.advanced.max_restoration_entries = 1;
+        solver.set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.attach_trace(&sink);
+    Eigen::VectorXd x0(2);
+    x0 << 1.0, 1.0;
+    const hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), x0);
+    Index entered = 0;
+    Index exited = 0;
+    for (const std::string &k : message_kinds(os.str())) {
+        entered += (k == "\"restoration_entered\"") ? 1 : 0;
+        exited += (k == "\"restoration_exited\"") ? 1 : 0;
+    }
+    EXPECT_EQ(entered, result.counters.restoration_entries);
+    EXPECT_EQ(exited, entered);
+}
+
+TEST(IpmTrace, AWholeHs071StreamHasOneLinePerRecordKindAndNoUnknownSpelling) {
+    const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.verbosity = hven::Verbosity::kSilent;
+        solver.set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.attach_trace(&sink);
+    const hven::IpmResult result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
+    ASSERT_EQ(result.status, SolveStatus::kOptimal);
+
+    const StreamShape sh = shape_of(os.str());
+    EXPECT_EQ(sh.begin, 1);
+    EXPECT_EQ(sh.end, 1);
+    EXPECT_EQ(sh.iter, result.iterations) << "identity 1";
+    EXPECT_EQ(sh.phase_begin, 1);
+    EXPECT_EQ(sh.phase_end, 1);
+    EXPECT_EQ(sh.phase_exit, 1);
+    EXPECT_EQ(sh.analysis, 1);
+    EXPECT_EQ(sh.lines, sh.begin + sh.end + sh.iter + sh.message + sh.phase_begin + sh.phase_end +
+                            sh.phase_exit + sh.analysis)
+        << "no record kind outside the interior-point alphabet";
+    EXPECT_EQ(os.str().find("unknown"), std::string::npos);
+    EXPECT_EQ(os.str().find("\"ev\":\"ipm.iter\""), std::string::npos) << "no v0 record";
+    // Identity 3: the last row's factorization count never exceeds the end line's
+    // work total.
+    const std::vector<std::string> rows = lines_of_event(os.str(), "iter");
+    const std::vector<std::string> ends = lines_of_event(os.str(), "solve.end");
+    ASSERT_FALSE(rows.empty());
+    ASSERT_EQ(ends.size(), 1u);
+    const std::string work = ends.front().substr(ends.front().find("\"work\":"));
+    EXPECT_LE(std::stoll(field(rows.back(), "factorizations")),
+              std::stoll(field(work, "factorizations")));
+}
+
 // ===========================================================================
 // THE DEFERRAL, PINNED FROM A FACTOR-TIME MESSAGE (M6 W5 T8.7b fix1)
 //
 // WHAT THE T8.7b PINS DID NOT ESTABLISH (astra's I2). The installing sink
-// below used to install from `on_ipm_iter` AS WELL, and its premise asserted
+// below used to install from `on_iter` AS WELL, and its premise asserted
 // only that ROWS were seen -- so on HS071, where no factor-time warning is
 // reached, the whole pin ran through the iteration fallback and proved nothing
 // about a set made from inside a FACTORIZATION, which is the case the deferral
-// exists for. It now installs from `on_ipm_message` ONLY, over a fixture whose
+// exists for. It now installs from `on_message` ONLY, over a fixture whose
 // first factorization raises `inertia_exhausted` by construction
 // (`NonconvexProblem` + `max_refac = 0`), and asserts the KIND it saw.
 //
@@ -1851,11 +2115,11 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
         Index rows = 0;
         bool saw_inertia_exhausted = false;
         bool installed = false;
-        // ONE ORIGIN ONLY: `on_ipm_message`. There is deliberately no install
-        // from `on_ipm_iter` -- that fallback is what made this pin vacuous.
-        void on_ipm_message(const IpmMessageTraceEvent &e) override {
+        // ONE ORIGIN ONLY: `on_message`. There is deliberately no install
+        // from `on_iter` -- that fallback is what made this pin vacuous.
+        void on_message(const MessageTraceEvent &e) override {
             ++messages;
-            if (e.kind == IpmMessageKind::kInertiaExhausted) {
+            if (e.kind == MessageKind::kInertiaExhausted) {
                 saw_inertia_exhausted = true;
             }
             if (installed) {
@@ -1870,7 +2134,7 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
                 return 0;
             });
         }
-        void on_ipm_iter(const IpmIterTraceEvent &) override { ++rows; }
+        void on_iter(const IterTraceEvent &) override { ++rows; }
         void on_ipqp_iter(const IpqpIterTraceEvent &) override {}
         void on_ipqp_reg(const IpqpRegTraceEvent &) override {}
         void on_ipqp_restart(const IpqpRestartTraceEvent &) override {}
@@ -1913,9 +2177,9 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
     // installs a hook mid-solve -- wall-clock masked, as everywhere else.
     //
     // FROM A FACTOR-TIME MESSAGE (M6 W5 T8.7b fix1, astra's I2). This pin used
-    // to install from `on_ipm_iter` on HS071, which is BETWEEN factorizations;
+    // to install from `on_iter` on HS071, which is BETWEEN factorizations;
     // the case the deferral exists for is a set made from INSIDE one, so it
-    // installs from `on_ipm_message` over the `inertia_exhausted` fixture now.
+    // installs from `on_message` over the `inertia_exhausted` fixture now.
     //
     // THROUGH A FAN-OUT, because `JsonLinesTraceSink` is `final`: the recording
     // half is the shipped writer, unmodified, and the installing half is a
@@ -1924,8 +2188,8 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
         IpmSolver *solver = nullptr;
         bool arm = false;
         bool done = false;
-        void on_ipm_message(const IpmMessageTraceEvent &e) override {
-            if (e.kind != IpmMessageKind::kInertiaExhausted || !arm || done) {
+        void on_message(const MessageTraceEvent &e) override {
+            if (e.kind != MessageKind::kInertiaExhausted || !arm || done) {
                 return;
             }
             done = true;
@@ -2047,7 +2311,10 @@ void expect_same_ipm_answer(const IpmAnswer &lhs, const IpmAnswer &rhs) {
 /// letting this mask hide anything: what the mask buys is that every other key
 /// on that line -- `kkt_dim`, `nnz` -- stays inside the byte comparison.
 std::string mask_analysis_reuse(const std::string &stream) {
-    static const std::vector<std::string> kReuseKeys = {"docompute", "factor_mem", "factor_flops"};
+    // `symbolic_analyses` is the same fact in the end line's counters object: the
+    // retry paid none, the fresh arm paid one.
+    static const std::vector<std::string> kReuseKeys = {"docompute", "factor_mem", "factor_flops",
+                                                        "symbolic_analyses"};
     std::string out = stream;
     for (const std::string &k : kReuseKeys) {
         const std::string needle = "\"" + k + "\":";
@@ -2069,9 +2336,9 @@ std::string mask_analysis_reuse(const std::string &stream) {
 struct ThrowingMessageSink final : TraceSink {
     bool threw = false;
     Index messages = 0;
-    void on_ipm_message(const IpmMessageTraceEvent &e) override {
+    void on_message(const MessageTraceEvent &e) override {
         ++messages;
-        if (threw || e.kind != IpmMessageKind::kInertiaExhausted) {
+        if (threw || e.kind != MessageKind::kInertiaExhausted) {
             return;
         }
         threw = true;
@@ -2176,7 +2443,7 @@ TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
 
     // NON-VACUOUS: the stream really does carry the factor-time messages, so
     // the arm being compared is the one that reaches the interrupted ladder.
-    EXPECT_GT(lines_of_event(retry_os.str(), "ipm.message").size(), 0u);
+    EXPECT_GT(lines_of_event(retry_os.str(), "message").size(), 0u);
 }
 
 TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
@@ -2188,10 +2455,10 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
     // caller is the one that takes effect, whoever made it -- but it was
     // undocumented. It is on the setters now, and pinned here.
     //
-    // THE SINK ORIGIN IS `on_ipm_iter`, ON HS071, and that is deliberate. Any
+    // THE SINK ORIGIN IS `on_iter`, ON HS071, and that is deliberate. Any
     // sink method takes the same branch: the setter reads
     // `callback_in_flight_ || kkt_hook_in_flight_` and nothing about WHICH
-    // method the sink is in, so a factor-time `on_ipm_message` parks
+    // method the sink is in, so a factor-time `on_message` parks
     // identically (`AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXT
     // Solve` is that case). What HS071 buys is a solve with enough iterations
     // for the sink to park FIRST and a callback invocation to overwrite it
@@ -2201,7 +2468,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
         IpmSolver *solver = nullptr;
         Index *sink_installed_calls = nullptr;
         bool installed = false;
-        void on_ipm_iter(const IpmIterTraceEvent &) override {
+        void on_iter(const IterTraceEvent &) override {
             if (installed) {
                 return;
             }
@@ -2267,14 +2534,13 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
         << "the callback the second write installed is the one that survived";
 }
 
-TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
+TEST(IpmConsole, TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing) {
     // The console the SOLVER attaches for itself, on a live solve. What is
-    // pinned here is the SHAPE -- the banner, the statistics block, the row
-    // header, the Beginning/Finished pair and the timing summary -- and that a
-    // silent level writes not one byte. The BYTES are pinned twice over: the
-    // rows against the old printer in tests/drivers/test_console_sink.cpp, and
-    // the whole transcript against a BASE capture in this task's leg.
+    // pinned here is the SHAPE -- the header, the legend, the column header, the
+    // rows, the footer -- and that a silent level writes not one byte. The BYTES
+    // are pinned in tests/drivers/test_console_sink.cpp.
     std::string printed;
+    Index iterations = 0;
     {
         const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
@@ -2284,18 +2550,27 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
         solver.set_options(std::move(o));
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        solver.solve(hven::detail::problem_ref(*program), hs071_start());
+        result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
         printed = capture.text();
+        iterations = result.iterations;
     }
-    EXPECT_NE(printed.find("hven Interior-Point Solver"), std::string::npos);
-    EXPECT_NE(printed.find("Problem Statistics"), std::string::npos);
-    EXPECT_NE(printed.find("KKT-Matrix NNZ%"), std::string::npos);
-    EXPECT_NE(printed.find("|Iter| mu Val"), std::string::npos);
-    EXPECT_NE(printed.find("Beginning"), std::string::npos);
-    EXPECT_NE(printed.find("Total Solve Time"), std::string::npos);
-    // The NARROW layout, which is the default: the wide header's own columns
-    // are absent.
+    EXPECT_NE(printed.find("-- interior-point engine\n"), std::string::npos);
+    EXPECT_NE(printed.find("\nproblem    variables 4 (boxed 4) "), std::string::npos);
+    EXPECT_NE(printed.find("\nengine     KKT dim "), std::string::npos);
+    EXPECT_NE(printed.find("\ntolerances optimality "), std::string::npos);
+    EXPECT_NE(printed.find("\nlegend  t: B barrier"), std::string::npos);
+    EXPECT_NE(printed.find("\n iter t      objective"), std::string::npos);
+    EXPECT_NE(printed.find("\nexit        Optimal"), std::string::npos);
+    EXPECT_NE(printed.find("\niterations  "), std::string::npos);
+    // ONE ROW PER ITERATION: the lines that start `{iter:>5} B `.
+    Index rows = 0;
+    for (const std::string &l : split_lines(printed)) {
+        rows += (l.size() > 8 && l[5] == ' ' && l[6] == 'B' && l[7] == ' ') ? 1 : 0;
+    }
+    EXPECT_EQ(rows, iterations);
+    // The wide layout is gone with its option, and so are the old banners.
     EXPECT_EQ(printed.find("Max EMult"), std::string::npos);
+    EXPECT_EQ(printed.find("hven Interior-Point Solver"), std::string::npos);
 
     std::string silent;
     {
@@ -2366,8 +2641,8 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     EXPECT_EQ(lines_of_event(silent.first, "ipm.kkt_analysis").size(), 1u);
     EXPECT_NE(mask_wall_clock(silent.first).find("\"kkt_factor_status\":\"success\""),
               std::string::npos);
-    const std::vector<std::string> silent_end = lines_of_event(silent.first, "ipm.solve.end");
-    const std::vector<std::string> printing_end = lines_of_event(printing.first, "ipm.solve.end");
+    const std::vector<std::string> silent_end = lines_of_event(silent.first, "solve.end");
+    const std::vector<std::string> printing_end = lines_of_event(printing.first, "solve.end");
     ASSERT_EQ(silent_end.size(), 1u);
     ASSERT_EQ(printing_end.size(), 1u);
     EXPECT_EQ(field(silent_end[0], "status"), field(printing_end[0], "status"));
@@ -2457,20 +2732,20 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
 
 TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing) {
     // THE NULL DEREFERENCE THIS CLOSES (astra's I1). The restoration door emits
-    // TWICE in a row -- the row's `ipm.iter` and then the door's own marker --
+    // TWICE in a row -- the row's `iter` and then the door's own marker --
     // and the second emit re-read the member. A sink that called
-    // `attach_trace(nullptr)` from inside `on_ipm_iter` therefore made the very
+    // `attach_trace(nullptr)` from inside `on_iter` therefore made the very
     // next statement dereference a null pointer. Two things now stop that: the
     // in-flight refusal below, which makes the detach itself illegal, and the
     // local the emit sites read the member into once per PAIR.
     //
-    // HS071 is enough to reach an `ipm.iter` -- the FIRST one -- and what is
+    // HS071 is enough to reach an `iter` -- the FIRST one -- and what is
     // pinned is that the process leaves through an exception rather than a
     // signal.
     struct SelfDetachingSink final : TraceSink {
         IpmSolver *solver = nullptr;
         Index rows = 0;
-        void on_ipm_iter(const IpmIterTraceEvent &) override {
+        void on_iter(const IterTraceEvent &) override {
             ++rows;
             solver->attach_trace(nullptr); // refused: a solve is in flight
         }
@@ -2501,28 +2776,31 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
     EXPECT_GE(sink.rows, 1) << "premise: the sink saw a row before it tried to detach";
 }
 
-TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
-    std::string printed;
-    {
+TEST(IpmConsole, TheDetailRungAddsTheKktAnalysisAndThePhaseExitLines) {
+    // `kDetail` is the rung above the iteration table: the one-line KKT-analysis
+    // and phase-exit blocks join it, and the rung below does not print them.
+    const auto run = [](hven::Verbosity rung) {
         const auto program = hven::detail::make_nlp_program(std::make_shared<Hs071Problem>());
         hven::IpmSolver solver;
-        hven::IpmResult result;
         auto o = solver.options();
-        o.common.verbosity = hven::Verbosity::kIterations;
-        o.wide_console = true;
+        o.common.verbosity = rung;
         solver.set_options(std::move(o));
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
         solver.solve(hven::detail::problem_ref(*program), hs071_start());
-        printed = capture.text();
-    }
-    EXPECT_NE(printed.find("Max EMult"), std::string::npos);
-    EXPECT_NE(printed.find("Merit Val"), std::string::npos);
+        return capture.text();
+    };
+    const std::string detail = run(hven::Verbosity::kDetail);
+    const std::string iterations = run(hven::Verbosity::kIterations);
+    EXPECT_NE(detail.find("\n      . KKT analysis: dim "), std::string::npos);
+    EXPECT_NE(detail.find("\n      . phase 0 exit: stop "), std::string::npos);
+    EXPECT_EQ(iterations.find(". KKT analysis"), std::string::npos);
+    EXPECT_EQ(iterations.find(". phase 0 exit"), std::string::npos);
 }
 
 namespace {
 
-/// A sink that THROWS once, from the Nth `ipm.iter` row it is handed — the
+/// A sink that THROWS once, from the Nth `iter` row it is handed — the
 /// multi-iteration twin of `ThrowingMessageSink`, which can only throw from a
 /// factor-time message and therefore only on the iteration that produces one.
 struct ThrowingRowSink final : TraceSink {
@@ -2531,7 +2809,7 @@ struct ThrowingRowSink final : TraceSink {
     bool threw = false;
     Index rows = 0;
 
-    void on_ipm_iter(const IpmIterTraceEvent &) override {
+    void on_iter(const IterTraceEvent &) override {
         ++rows;
         if (threw || rows != throw_on_row_) {
             return;
@@ -2579,7 +2857,7 @@ struct RetryCase {
 // that a one-iteration fixture leaves the interesting half untested — a solve
 // that has already ACCEPTED steps, moved its iterate, advanced mu and filled a
 // history when the throw lands. This is that fixture: HS071, a throw from the
-// third `ipm.iter` row, and the same pin.
+// third `iter` row, and the same pin.
 //
 // The contract is unchanged and so is its reasoning: nothing invalidates
 // `qp_analyzed_` or the structure stamps, so an unchanged-model retry takes
