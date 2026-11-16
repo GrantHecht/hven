@@ -21,5 +21,5 @@ p2,non-finite abort accumulates PGX twice,ok,TraceOffPath.TheNonFiniteAbortBlock
 p3,row multiplier maxima left in engine units,ok,TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1 
 p4,no-step row carries a nonzero barrier objective,ok,TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1 
 p5,console QP-detail lines suppressed at depth 1,ok,ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1 
-p11a,SQP census read from the seam, not the problem,ok,ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung drivers rc=1 
-p11b,IPM census read from the seam, not the problem,ok,ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung drivers rc=1 
+p11a,SQP census read from the seam instead of the problem,ok,ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung drivers rc=1 
+p11b,IPM census read from the seam instead of the problem,ok,ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung drivers rc=1 

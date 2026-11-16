@@ -20,6 +20,6 @@ p2   must-kill KILLED by TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradie
 p3   must-kill KILLED by TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1
 p4   must-kill KILLED by TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1
 p5   must-kill KILLED by ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1
-p11a must-kill INSTRUMENT FAULT ( not the problem)
-p11b must-kill INSTRUMENT FAULT ( not the problem)
-MUTATION_VERDICT FAIL
+p11a must-kill KILLED by ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung drivers rc=1
+p11b must-kill KILLED by ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung drivers rc=1
+MUTATION_VERDICT PASS

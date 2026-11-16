@@ -1,0 +1,25 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+w1,record field dropped from the writer,ok,JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1 
+w2,wrong key (stationarity -> stationary),ok,JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1 
+w3,sid never advances,ok,IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve drivers rc=1 interior rc=1 sqp rc=1 
+w4,solver_initialized ms leak onto the wire,ok,JsonLinesTraceSink.GoldenLineMessageOnePerKind sqp rc=1 
+c1,ladder rung leak: rows print at kSummary,ok,ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime drivers rc=1 
+c2,colour on under kNever,ok,ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmConsole.TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing drivers rc=1 interior rc=1 
+c3,kDetail line prints at kIterations,ok,ConsoleLadder.ASqpSolveClimbsOneRungAtATime drivers rc=1 
+o1,off path: message builder runs before the sink test,ok,TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1 
+o2,off path: SQP row built outside the guard,ok,TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1 
+v2,IPM step norm not written,ok,CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot drivers rc=1 interior rc=1 
+v3,IPM soc flag never set,ok,TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon drivers rc=1 
+v4,IPM factorizations stamp dropped at the main site,ok,TraceV1Contract.V4ExactAStepRowsFactorizationCountGrowsByOnePlusItsInertiaCorrections drivers rc=1 
+t1,SQP row without a step still reports one,ok,ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1 
+t2,IPM row alpha is the maximum not the effective length,ok,TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind drivers rc=1 
+p1a,IPM handle drops the sink unwind on a throw,ok,TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 
+p1b,SQP handle drops the sink unwind on a throw,ok,JsonLinesTraceSink.AThrowingSolveLeavesTheSinkCleanForTheNextSolve TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 sqp rc=1 
+p1c,restoration sub-driver drops its own unwind,ok,TraceUnwind.AThrowingSolveLeavesTheJsonSinkCleanForTheNextSolve drivers rc=1 
+p2,non-finite abort accumulates PGX twice,ok,TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce drivers rc=1 
+p3,row multiplier maxima left in engine units,ok,TraceV1Contract.TheRowMaximumMultipliersAreOnTheCallersObjectiveScale drivers rc=1 
+p4,no-step row carries a nonzero barrier objective,ok,TraceV1Contract.ARowWithNoStepNeverCarriesABarrierObjectiveEvenAtANonzeroBarrierTerm drivers rc=1 
+p5,console QP-detail lines suppressed at depth 1,ok,ConsoleNesting.TheQpTierLinesPrintAtTheDetailRungAtEveryDepth drivers rc=1 
+p11a,SQP census read from the seam, not the problem,ok,ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung drivers rc=1 
+p11b,IPM census read from the seam, not the problem,ok,ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung drivers rc=1 
