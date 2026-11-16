@@ -29,6 +29,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     # Threads::Threads reaches it through hven::hven's own interface.
     test_concurrency.cpp
     test_console_sink.cpp
+    # M8 TR-A: the trace-v1 contract (V1-V4, identities, observation changes nothing).
+    test_trace_v1_contract.cpp
     # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.
     test_dense_arm_engines.cpp
     # M8 DN-3: DensePolicy::kAuto at both engines and the QP tiers; the dense_factorizations
