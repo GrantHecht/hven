@@ -1,0 +1,164 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:11:31-05:00
+code paths == 35ab829899399d9d807982b818f15e22100d4dd5, clean; HEAD 53bc32d6c245e27b29cf586f55084a65145f1927
+LEG P1-rel start 2026-11-16T09:11:31-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:11:31-05:00
+
+The following tests did not run:
+	837 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2446 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2447 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T09:12:46-05:00
+LEG P1-rel rc=0 2026-11-16T09:12:46-05:00
+LEG P1-rel-criterion start 2026-11-16T09:12:46-05:00
+LEG P1-rel-criterion rc=0 2026-11-16T09:12:47-05:00
+LEG P1-dbg start 2026-11-16T09:12:47-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:12:47-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	837 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2446 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2447 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-16T09:20:16-05:00
+LEG P1-dbg rc=0 2026-11-16T09:20:16-05:00
+LEG P1-dbg-criterion start 2026-11-16T09:20:16-05:00
+LEG P1-dbg-criterion rc=0 2026-11-16T09:20:16-05:00
+LEG P2A start 2026-11-16T09:20:16-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:20:16-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/sparse-equil/build-se/bin/A/hven_sqp_corpus sha256 07e3e178bf9d2c84569a528eecc23928bf39f116f6a8a9892c013ef8dcd1f2e3
+RUN A k=1 mode=walk 2026-11-16T09:20:16-05:00
+run rc=0
+RUN A k=1 mode=ssn 2026-11-16T09:25:05-05:00
+run rc=0
+RUN A k=1 mode=ipm 2026-11-16T09:25:26-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-16T09:25:52-05:00
+LEG P2A rc=0 2026-11-16T09:25:52-05:00
+LEG P2B start 2026-11-16T09:25:52-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:25:52-05:00
+binary /home/ghecht/Projects/hven/.claude/worktrees/sparse-equil/build-se/bin/B/hven_sqp_corpus sha256 d38d461819b4336eb83e87a8248b1cdf380ef1239cfc09a79fe703ee2f3d6e72
+RUN B k=1 mode=walk 2026-11-16T09:25:52-05:00
+run rc=0
+RUN B k=1 mode=ssn 2026-11-16T09:30:41-05:00
+run rc=0
+RUN B k=1 mode=ipm 2026-11-16T09:31:02-05:00
+run rc=0
+RUN B k=2 mode=walk 2026-11-16T09:31:28-05:00
+run rc=0
+RUN B k=2 mode=ssn 2026-11-16T09:36:17-05:00
+run rc=0
+RUN B k=2 mode=ipm 2026-11-16T09:36:38-05:00
+run rc=0
+RUN B k=3 mode=walk 2026-11-16T09:37:04-05:00
+run rc=0
+RUN B k=3 mode=ssn 2026-11-16T09:41:54-05:00
+run rc=0
+RUN B k=3 mode=ipm 2026-11-16T09:42:14-05:00
+run rc=0
+worst=0
+FOREGROUND_END 2026-11-16T09:42:40-05:00
+LEG P2B rc=0 2026-11-16T09:42:40-05:00
+LEG P2-criterion start 2026-11-16T09:42:40-05:00
+walk k1 B vs A: EQUAL | === A-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+walk k1 B vs Bdev: EQUAL | === Bdev-vs-B-k1-walk === cells compared: 27  columns compared: 75  differences: 0
+walk k2 B vs A: EQUAL | === A-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+walk k2 B vs Bdev: EQUAL | === Bdev-vs-B-k2-walk === cells compared: 27  columns compared: 75  differences: 0
+walk k3 B vs A: EQUAL | === A-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+walk k3 B vs Bdev: EQUAL | === Bdev-vs-B-k3-walk === cells compared: 27  columns compared: 75  differences: 0
+ssn k1 B vs A: EQUAL | === A-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+ssn k1 B vs Bdev: EQUAL | === Bdev-vs-B-k1-ssn === cells compared: 27  columns compared: 75  differences: 0
+ssn k2 B vs A: EQUAL | === A-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+ssn k2 B vs Bdev: EQUAL | === Bdev-vs-B-k2-ssn === cells compared: 27  columns compared: 75  differences: 0
+ssn k3 B vs A: EQUAL | === A-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+ssn k3 B vs Bdev: EQUAL | === Bdev-vs-B-k3-ssn === cells compared: 27  columns compared: 75  differences: 0
+ipm k1 B vs A: EQUAL | === A-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+ipm k1 B vs Bdev: EQUAL | === Bdev-vs-B-k1-ipm === cells compared: 27  columns compared: 75  differences: 0
+ipm k2 B vs A: EQUAL | === A-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+ipm k2 B vs Bdev: EQUAL | === Bdev-vs-B-k2-ipm === cells compared: 27  columns compared: 75  differences: 0
+ipm k3 B vs A: EQUAL | === A-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+ipm k3 B vs Bdev: EQUAL | === Bdev-vs-B-k3-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_AS_DECLARED
+LEG P2-criterion rc=0 2026-11-16T09:42:40-05:00
+LEG P3A start 2026-11-16T09:42:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:42:40-05:00
+cells run: 238 2026-11-16T09:43:33-05:00
+FOREGROUND_END 2026-11-16T09:43:33-05:00
+LEG P3A rc=0 2026-11-16T09:43:33-05:00
+LEG P3B start 2026-11-16T09:43:33-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-16T09:43:34-05:00
+cells run: 238 2026-11-16T09:44:27-05:00
+FOREGROUND_END 2026-11-16T09:44:27-05:00
+LEG P3B rc=0 2026-11-16T09:44:27-05:00
+LEG P3-criterion start 2026-11-16T09:44:27-05:00
+MOVER NEUTRAL  PERTURBED hs-hven-sqp-hs071.K refactors=3
+SUMMARY rows 476; rows with equilibrated refactors > 0: 1; movers vs arm A 1 (better 0, worse 0, neutral 1); missing/capped 388
+  FAIL MISSING sd-hven-ipm-ACOPP30.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-ACOPP30.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-ALLINITC.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-ALLINITC.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-ALSOTAME.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-ALSOTAME.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT11.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT11.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT12.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT12.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT2.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT2.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT6.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT6.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT7.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT7.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT8.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BT8.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BURKEHAN.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-BURKEHAN.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC100.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC100.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC4.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC4.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC50.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-CRESC50.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DECONVC.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DECONVC.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DEMBO7.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DEMBO7.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DIXCHLNG.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DIXCHLNG.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DNIEPER.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-DNIEPER.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-FLETCHER.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-FLETCHER.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP2.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP2.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP3.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP3.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP4.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP4.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP6.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HIMMELP6.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100LNP.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100LNP.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100MOD.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS100MOD.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS101.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS101.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS102.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS102.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS103.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS103.K: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS104.D: NO_ROW_OR_CAPPED (new False, ref False)
+  FAIL MISSING sd-hven-ipm-HS104.K: NO_ROW_OR_CAPPED (new False, ref False)
+LEG P3-criterion rc=1 2026-11-16T09:44:27-05:00
+STOP at P3-criterion
+FOREGROUND_END 2026-11-16T09:44:27-05:00
