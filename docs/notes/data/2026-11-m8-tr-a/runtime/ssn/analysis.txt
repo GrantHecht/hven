@@ -7,12 +7,12 @@ mode ssn, 27 cell(s), 3 rounds (A->B, B->A, A->B); per cell the median over roun
   filtered samples (CRITERION)     A=4.099440e+05 B=4.099440e+05 B/A=1.000000
   all samples                      A=4.099440e+05 B=4.099440e+05 B/A=1.000000
   excluded (wall-clock) samples    A=0.000000e+00 B=0.000000e+00 B/A=n/a
-  raw perf-stat instructions:u     A=1.639830e+11 B=1.639830e+11 B/A=1.000000
+  raw perf-stat instructions:u     A=1.639837e+11 B=1.639837e+11 B/A=1.000000
 
 per-round filtered B/A (informational):
   round 1: B/A=1.000002
   round 2: B/A=0.999998
   round 3: B/A=1.000000
 worst per-cell filtered ratio: 1.00000 (f7_n10000_bound_activity)
-largest within-arm round-to-round filtered spread: 0.00013
+largest within-arm round-to-round filtered spread: 0.00004
 MODE ssn FILTERED B/A = 1.000000 -> WITHIN [0.995, 1.005]

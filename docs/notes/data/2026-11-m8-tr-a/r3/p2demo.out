@@ -1,0 +1,29 @@
+APPLIED p2 src/drivers/ipm_solver.cpp
+build rc=0
+Running main() from /home/ghecht/Projects/hven/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = RiderNonFiniteAbort.*:TraceOffPath.TheNonFiniteAbort*
+[==========] Running 2 tests from 2 test suites.
+/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/mut-src/tests/drivers/test_trace_off_path.cpp:278: Failure
+Expected equality of these values:
+  n
+    Which is: 2
+  1U
+    Which is: 1
+
+[  FAILED  ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce (1 ms)
+
+/home/ghecht/Projects/hven/.claude/worktrees/tr-a/.scratch/build-tra/mut-src/tests/drivers/test_evaluation_failure.cpp:1629: Failure
+The difference between r.stationarity and kSingleAccumulation is 4.2529556783064013, which exceeds 1e-6 * kSingleAccumulation, where
+r.stationarity evaluates to 8.1528106539156244,
+kSingleAccumulation evaluates to 12.405766332222026, and
+1e-6 * kSingleAccumulation evaluates to 1.2405766332222025e-05.
+
+[  FAILED  ] RiderNonFiniteAbort.ExitDiagnosticsAreTheFailedPointsOwnWithNoSinkAttached (2 ms)
+
+[==========] 2 tests from 2 test suites ran. (4 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] TraceOffPath.TheNonFiniteAbortBlockAccumulatesTheGradientExactlyOnce
+[  FAILED  ] RiderNonFiniteAbort.ExitDiagnosticsAreTheFailedPointsOwnWithNoSinkAttached
+
+ 2 FAILED TESTS
