@@ -20,9 +20,9 @@
 
 #include <Eigen/Core>
 
+#include "hs071_problem.h"
 #include "hven/drivers/trace.h"
 #include "hven/model/nlp.h"
-#include "hs071_problem.h"
 
 namespace hven_drivers_tests {
 
@@ -70,8 +70,8 @@ struct Hs035 final : hven::Nlp {
         gu << 3.0;
     }
     double eval_f(hven::ConstVecRef x) const override {
-        return 9.0 - 8.0 * x[0] - 6.0 * x[1] - 4.0 * x[2] + 2.0 * x[0] * x[0] +
-               2.0 * x[1] * x[1] + x[2] * x[2] + 2.0 * x[0] * x[1] + 2.0 * x[0] * x[2];
+        return 9.0 - 8.0 * x[0] - 6.0 * x[1] - 4.0 * x[2] + 2.0 * x[0] * x[0] + 2.0 * x[1] * x[1] +
+               x[2] * x[2] + 2.0 * x[0] * x[1] + 2.0 * x[0] * x[2];
     }
     void eval_grad_f(hven::ConstVecRef x, hven::VecRef g) const override {
         g << -8.0 + 4.0 * x[0] + 2.0 * x[1] + 2.0 * x[2], -6.0 + 4.0 * x[1] + 2.0 * x[0],
@@ -199,9 +199,7 @@ class CaptureSink final : public hven::TraceSink {
         ++open_;
         begins.push_back(e);
     }
-    void on_iter(const hven::IterTraceEvent &e) override {
-        rows.push_back({e.record, depth_});
-    }
+    void on_iter(const hven::IterTraceEvent &e) override { rows.push_back({e.record, depth_}); }
     void on_message(const hven::MessageTraceEvent &e) override { messages.push_back(e); }
     void on_solve_end(const hven::SolveEndTraceEvent &e) override {
         CapturedEnd c;

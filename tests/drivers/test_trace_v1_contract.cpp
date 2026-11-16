@@ -261,7 +261,8 @@ TEST(TraceV1Contract, V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOn
             ASSERT_TRUE(r.ipm_infos[k + 1].has_value());
             const IpmIterationInfo &info = *r.ipm_infos[k + 1];
             if (next.iteration == 0 || !row.step_norm) {
-                continue; // a phase's first event has no step, and a row without one has none to carry
+                continue; // a phase's first event has no step, and a row without one has none to
+                          // carry
             }
             ASSERT_TRUE(row.ipm->alpha_primal.has_value());
             EXPECT_TRUE(bit_equal(next.step_norm, *row.step_norm)) << "row " << k;
@@ -409,9 +410,11 @@ TEST(TraceV1Contract, ObservationChangesNoCounterStatusOrPoint) {
 
             std::ostringstream json2;
             JsonLinesTraceSink sink2(json2);
-            const Run both = run(e, c, {.sink = &sink2, .callback = true, .payload = IterationPayload::kAll});
+            const Run both =
+                run(e, c, {.sink = &sink2, .callback = true, .payload = IterationPayload::kAll});
             expect_same_run(bare, both);
-            EXPECT_EQ(json.str(), json2.str()) << "the console and the callback change no byte of the trace";
+            EXPECT_EQ(json.str(), json2.str())
+                << "the console and the callback change no byte of the trace";
         }
     }
 }

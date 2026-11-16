@@ -31,6 +31,8 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_console_sink.cpp
     # M8 TR-A: the trace-v1 contract (V1-V4, identities, observation changes nothing).
     test_trace_v1_contract.cpp
+    # M8 TR-A: the cost contract's structural proof (no event built, no emit called, with no sink).
+    test_trace_off_path.cpp
     # M8 DN-1 T12/T14: both engines on the dense arm, and the policy's validation and dump.
     test_dense_arm_engines.cpp
     # M8 DN-3: DensePolicy::kAuto at both engines and the QP tiers; the dense_factorizations
@@ -82,6 +84,9 @@ target_include_directories(hven_drivers_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
+# Rooted at this directory, not CMAKE_SOURCE_DIR (see tests/CMakeLists.txt's HVEN_SRC_DIR note).
+target_compile_definitions(hven_drivers_tests PRIVATE
+    HVEN_SRC_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../../src")
 target_link_libraries(hven_drivers_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_drivers_tests PRIVATE ${COMPILE_FLAGS})
 
