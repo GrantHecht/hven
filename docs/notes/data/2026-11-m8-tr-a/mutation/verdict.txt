@@ -1,0 +1,16 @@
+control: fails nothing
+w1   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w2   must-kill KILLED by JsonLinesTraceSink.GoldenLineIterSqpFirstBoolSignatureAndTheWalkTier sqp rc=1
+w3   must-kill KILLED by IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine JsonLinesTraceSink.WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKIpm TraceV1Contract.TheStreamIsV1WithContiguousSeqAndOneSidPerSolve drivers rc=1 interior rc=1 sqp rc=1
+w4   must-kill KILLED by JsonLinesTraceSink.GoldenLineMessageOnePerKind sqp rc=1
+c1   must-kill KILLED by ConsoleLadder.AnInteriorPointSolveClimbsOneRungAtATime drivers rc=1
+c2   must-kill KILLED by ConsoleGolden.AnInteriorPointSolveOfHs071AtTheIterationsRung IpmConsole.TheIterationsRungWritesTheTableAndTheSilentRungWritesNothing drivers rc=1 interior rc=1
+c3   must-kill KILLED by ConsoleLadder.ASqpSolveClimbsOneRungAtATime drivers rc=1
+o1   must-kill KILLED by TraceOffPath.TheMessageBuilderRunsOnlyAfterTheSinkTest drivers rc=1
+o2   must-kill KILLED by TraceOffPath.EveryEventConstructionAndEmitCallIsInsideASinkGuardOrABuilder drivers rc=1
+v2   must-kill KILLED by CallbackPayload.IpmBlockDescribesTheStepThatReachedThePoint drivers rc=1
+v3   must-kill KILLED by TraceV1Contract.V3TheSocFlagIsTheRowsWhoseStepASecondOrderCorrectionWon drivers rc=1
+v4   must-kill SURVIVES
+t1   must-kill KILLED by ConsoleGolden.AnSqpSolveOfHs071AtTheIterationsRung JsonLinesTraceSink.SqpIterReproducesTheHistoryRowByRowOnAWalkCellAndAKIpmCell drivers rc=1 sqp rc=1
+t2   must-kill KILLED by TraceV1Contract.V1TheIpmRowIsThePointPlusTheStepLeavingItAndTheEventRunsOneRowBehind drivers rc=1
+MUTATION_VERDICT FAIL

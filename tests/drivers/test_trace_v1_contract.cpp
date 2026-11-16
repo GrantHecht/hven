@@ -394,6 +394,16 @@ TEST(TraceV1Contract, V4TheFactorizationCountIsMonotoneAndBoundedByTheWork) {
                 prev = row.record.factorizations;
             }
             EXPECT_GT(prev, 0);
+            if (e == Engine::kIpm) {
+                // Every row that has a step leaving it factorized at least once to get it.
+                Index before = -1;
+                for (const CapturedRow &row : sink.rows) {
+                    if (row.record.step_norm && before >= 0) {
+                        EXPECT_GT(row.record.factorizations, before);
+                    }
+                    before = row.record.factorizations;
+                }
+            }
             EXPECT_LE(prev, r.work.factorizations);
         }
     }

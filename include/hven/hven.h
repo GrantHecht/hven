@@ -66,6 +66,7 @@
 #include <hven/drivers/ipm_phase_report.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
+#include <hven/drivers/iteration_record.h>
 #include <hven/drivers/json_lines_trace_sink.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_options.h>
