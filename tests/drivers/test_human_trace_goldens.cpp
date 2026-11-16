@@ -15,13 +15,16 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 
@@ -116,6 +119,31 @@ std::string render(bool ipm, const std::shared_ptr<hven::Nlp> &nlp, const Vec &x
     return text;
 }
 
+// THE NUMERIC GATE. A golden pins the transcript's structure (every word, column, mark and
+// integer, exactly) and its numbers to a few significant digits: two builds of one source (Release
+// and Debug, FMA contraction, the platform's libm) differ in the last digits of a residual, and a
+// residual at roundoff (1e-13 and below) differs in its leading digits -- the CLAUDE.md section 7
+// near-ulp rule, applied to text. So each scientific-notation token is compared by value:
+// equal within 2 % relative, or both below 1e-9 in magnitude; everything else must match byte
+// for byte. Counters are integers and are never numeric tokens, so they stay exact.
+bool same_transcript(const std::string &want, const std::string &got) {
+    static const std::regex number(R"([-+]?[0-9]\.[0-9]+e[-+][0-9]+)");
+    const auto skeleton = [](const std::string &s) { return std::regex_replace(s, number, "#"); };
+    if (skeleton(want) != skeleton(got)) {
+        return false;
+    }
+    std::sregex_iterator a(want.begin(), want.end(), number), b(got.begin(), got.end(), number);
+    for (const std::sregex_iterator end; a != end && b != end; ++a, ++b) {
+        const double x = std::stod(a->str());
+        const double y = std::stod(b->str());
+        const bool both_noise = std::abs(x) < 1e-9 && std::abs(y) < 1e-9;
+        if (!both_noise && std::abs(x - y) > 0.02 * std::max(std::abs(x), std::abs(y))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void check(const std::string &file, const std::string &text) {
     const std::filesystem::path path = std::filesystem::path(HVEN_GOLDEN_DIR) / file;
     if (std::getenv("HVEN_REGEN_GOLDENS") != nullptr) {
@@ -127,7 +155,18 @@ void check(const std::string &file, const std::string &text) {
                            << " (regenerate with HVEN_REGEN_GOLDENS=1)";
     std::stringstream ss;
     ss << in.rdbuf();
-    EXPECT_EQ(ss.str(), text) << file;
+    if (!same_transcript(ss.str(), text)) {
+        EXPECT_EQ(ss.str(), text) << file;
+    }
+}
+
+TEST(HumanTraceGoldens, TheNumericGateAcceptsRoundoffAndRefusesRealDrift) {
+    const std::string want = "row 3.72e-13 1.13e+00 7 iters 1.0e-12\n";
+    EXPECT_TRUE(same_transcript(want, "row 3.71e-13 1.12e+00 7 iters 1.0e-12\n"));
+    EXPECT_TRUE(same_transcript(want, "row 6.24e-15 1.13e+00 7 iters 1.0e-12\n"));
+    EXPECT_FALSE(same_transcript(want, "row 3.72e-13 1.30e+00 7 iters 1.0e-12\n")) << "value";
+    EXPECT_FALSE(same_transcript(want, "row 3.72e-13 1.13e+00 8 iters 1.0e-12\n")) << "integer";
+    EXPECT_FALSE(same_transcript(want, "row 3.72e-13 1.13e+00 7 steps 1.0e-12\n")) << "word";
 }
 
 TEST(HumanTraceGoldens, FourProblemsTwoEnginesFourRungs) {

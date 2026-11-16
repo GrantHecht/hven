@@ -470,8 +470,9 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
                    to_string(rep.status), rep.iterations);
     }
     if (at_least(Verbosity::kDetail)) {
-        fmt::print(out_, "{:>5} . phase {} exit: stop {}, kkt_inf {:.1e}, barr_inf {:.1e}\n", "",
-                   event.phase, to_json(rep.stop_reason), event.iterate.kkt_inf,
+        fmt::print(out_,
+                   "{:>5} . phase {} exit: stop {}, stationarity {:.1e}, complementarity {:.1e}\n",
+                   "", event.phase, to_json(rep.stop_reason), event.iterate.kkt_inf,
                    event.iterate.barr_inf);
     }
 }

@@ -15,7 +15,7 @@ legend  t: B barrier, R restoration (obj = restoration objective) | stat feas co
     3 B  3.2747115e-01 1.23e+00 0.00e+00 5.72e-06 4.04e-01  -7.3 1.00e+00 6.99e-01  0      -
     4 B  1.1111117e-01 3.12e-05 0.00e+00 2.07e-06 1.11e-06  -7.4 1.00e+00 1.00e+00  0      -
     5 B  1.1111115e-01 3.72e-13 0.00e+00 3.71e-08        -  -7.4        -        -  -      -
-      . phase 0 exit: stop none, kkt_inf 3.7e-13, barr_inf 3.7e-08
+      . phase 0 exit: stop none, stationarity 3.7e-13, complementarity 3.7e-08
 exit        Optimal (none) -- converged: optimality and feasibility tolerances met
 iterations  6 · restoration entries 0 · factorizations 6
 objective   1.11111148e-01
