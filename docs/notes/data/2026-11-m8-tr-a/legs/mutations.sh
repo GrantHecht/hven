@@ -43,8 +43,8 @@ declare -A DESC=(
  [p1a]="IPM handle drops the sink unwind on a throw" [p1b]="SQP handle drops the sink unwind on a throw"
  [p1c]="restoration sub-driver drops its own unwind" [p2]="non-finite abort accumulates PGX twice"
  [p3]="row multiplier maxima left in engine units" [p4]="no-step row carries a nonzero barrier objective"
- [p5]="console QP-detail lines suppressed at depth 1" [p11a]="SQP census read from the seam, not the problem"
- [p11b]="IPM census read from the seam, not the problem"
+ [p5]="console QP-detail lines suppressed at depth 1" [p11a]="SQP census read from the seam instead of the problem"
+ [p11b]="IPM census read from the seam instead of the problem"
  [t1]="SQP row without a step still reports one" [t2]="IPM row alpha is the maximum not the effective length")
 build control; echo "control build rc=$?"
 ctl=$(runall control | tr '\n' ' '); ctl="$ctl$(grep -E '^(seam|drivers|interior|sqp) rc=[1-9]' "$RAW/run-control.log" | tr '\n' ' ')"
@@ -55,7 +55,7 @@ for id in ${MUT_IDS:-w1 w2 w3 w4 c1 c2 c3 o1 o2 v2 v3 v4 t1 t2 p1a p1b p1c p2 p3
   if build "$id"; then
     killed=$(runall "$id" | tr '\n' ' ')
     killed="$killed$(grep -E '^(seam|drivers|interior|sqp) rc=[1-9]' "$RAW/run-$id.log" | tr '\n' ' ')"
-    echo "$id,${DESC[$id]},ok,${killed:-SURVIVES}" >> "$OUT/mutation-table.csv"
+    echo "$id,${DESC[$id]//,/;},ok,${killed:-SURVIVES}" >> "$OUT/mutation-table.csv"
     echo "MUT $id: ${killed:-SURVIVES}"
   else
     echo "$id,${DESC[$id]},BUILD_FAIL," >> "$OUT/mutation-table.csv"; echo "MUT $id BUILD_FAIL"
