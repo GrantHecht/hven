@@ -54,7 +54,7 @@ void validate_common_options(const CommonOptions &c, CommonOptionsFloors floors)
         throw std::invalid_argument(
             fmt::format("common.time_limit_seconds must be empty or finite and > 0, got {}",
                         *c.time_limit_seconds));
-    enum_in_range(c.verbosity, Verbosity::kIterations, "common.verbosity");
+    enum_in_range(c.verbosity, Verbosity::kDetail, "common.verbosity");
     if (c.threads < floors.threads)
         throw std::invalid_argument(
             fmt::format("common.threads must be >= {}, got {}", floors.threads, c.threads));

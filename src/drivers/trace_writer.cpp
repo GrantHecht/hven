@@ -26,8 +26,11 @@
 #include <fmt/format.h>
 
 #include <hven/core/detail/aggregate_arity.h>
+#include <hven/core/version.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/drivers/json_lines_trace_sink.h>
+
+#include "trace_names.h"
 #include <hven/drivers/sqp_solver_types.h>
 
 namespace hven {
@@ -135,278 +138,42 @@ void key_enum(std::string &s, bool &first, const char *k, const char *v) {
     append_string(s, v);
 }
 
-// --- rule 8: the enum strings, verbatim from spec section 7 ---------------
-//
-// No `default` label anywhere below, so `-Wswitch` WARNS when an enumerator is
-// added without a spelling. It does NOT fail the build -- this tree carries no
-// `-Werror` -- so the trailing `"unknown"` is REACHABLE.
-//
-// The net is in the tests: `-Wswitch` is an ERROR there, over one exhaustive
-// switch per enum, and no emitted line may contain `"unknown"`
-// (tests/sqp/test_trace_writer.cpp).
-const char *to_json(IpqpTraceRegDirection v) {
-    switch (v) {
-    case IpqpTraceRegDirection::kDown:
-        return "down";
-    case IpqpTraceRegDirection::kUp:
-        return "up";
-    }
-    return "unknown";
+// An absent optional is `null`: the emitting site did not compute the field.
+void key_null(std::string &s, bool &first, const char *k) {
+    key(s, first, k);
+    s += "null";
 }
 
-const char *to_json(IpqpTraceRegReason v) {
-    switch (v) {
-    case IpqpTraceRegReason::kAccept:
-        return "accept";
-    case IpqpTraceRegReason::kInertia:
-        return "inertia";
-    case IpqpTraceRegReason::kStall:
-        return "stall";
-    case IpqpTraceRegReason::kFloor:
-        return "floor";
+void key_opt_double(std::string &s, bool &first, const char *k, const std::optional<double> &v) {
+    if (v) {
+        key_double(s, first, k, *v);
+    } else {
+        key_null(s, first, k);
     }
-    return "unknown";
 }
 
-const char *to_json(IpqpTraceRestartGrade v) {
-    switch (v) {
-    case IpqpTraceRestartGrade::kCold:
-        return "cold";
-    case IpqpTraceRestartGrade::kBase:
-        return "base";
-    case IpqpTraceRestartGrade::kFull:
-        return "full";
+void key_opt_index(std::string &s, bool &first, const char *k, const std::optional<Index> &v) {
+    if (v) {
+        key_index(s, first, k, *v);
+    } else {
+        key_null(s, first, k);
     }
-    return "unknown";
 }
 
-const char *to_json(IpqpTraceRouteTarget v) {
-    switch (v) {
-    case IpqpTraceRouteTarget::kRefine:
-        return "refine";
-    case IpqpTraceRouteTarget::kSsn:
-        return "ssn";
-    case IpqpTraceRouteTarget::kWalk:
-        return "walk";
+void key_opt_bool(std::string &s, bool &first, const char *k, const std::optional<bool> &v) {
+    if (v) {
+        key_bool(s, first, k, *v);
+    } else {
+        key_null(s, first, k);
     }
-    return "unknown";
 }
 
-const char *to_json(IpqpTraceFinalInertia v) {
-    switch (v) {
-    case IpqpTraceFinalInertia::kOk:
-        return "ok";
-    case IpqpTraceFinalInertia::kWrong:
-        return "wrong";
-    case IpqpTraceFinalInertia::kUnreadable:
-        return "unreadable";
-    }
-    return "unknown";
+void key_string(std::string &s, bool &first, const char *k, std::string_view v) {
+    key(s, first, k);
+    append_string(s, v);
 }
 
-const char *to_json(IpqpTraceEscapeReason v) {
-    switch (v) {
-    case IpqpTraceEscapeReason::kBudget:
-        return "budget";
-    case IpqpTraceEscapeReason::kStall:
-        return "stall";
-    case IpqpTraceEscapeReason::kIndefinite:
-        return "indefinite";
-    case IpqpTraceEscapeReason::kNumerical:
-        return "numerical";
-    case IpqpTraceEscapeReason::kInfeasibleSuspect:
-        return "infeasible_suspect";
-    }
-    return "unknown";
-}
-
-const char *to_json(QpTraceMode v) {
-    switch (v) {
-    case QpTraceMode::kIpqp:
-        return "ipqp";
-    case QpTraceMode::kWalk:
-        return "walk";
-    case QpTraceMode::kSsn:
-        return "ssn";
-    }
-    return "unknown";
-}
-
-const char *to_json(QpTraceModeSite v) {
-    switch (v) {
-    case QpTraceModeSite::kDispatch:
-        return "dispatch";
-    case QpTraceModeSite::kSsnWarmGrade:
-        return "ssn_warm_grade";
-    case QpTraceModeSite::kFallbackRungB:
-        return "fallback_rung_b";
-    case QpTraceModeSite::kElasticRung:
-        return "elastic_rung";
-    case QpTraceModeSite::kSocResolve:
-        return "soc_resolve";
-    case QpTraceModeSite::kCapRetry:
-        return "cap_retry";
-    }
-    return "unknown";
-}
-
-// Two DRIVER enums the `sqp.major` row carries. Lower-case snake per plan
-// section 2 rule 8, not the PascalCase display strings core/ has -- those name
-// a column in a printed table, and this is machine text.
-const char *to_json(QpStatus v) {
-    switch (v) {
-    case QpStatus::kOptimal:
-        return "optimal";
-    case QpStatus::kIterationLimit:
-        return "max_iter";
-    case QpStatus::kInfeasible:
-        return "infeasible";
-    case QpStatus::kNumericalError:
-        return "numerical_error";
-    }
-    return "unknown";
-}
-
-const char *to_json(StepVerdict v) {
-    switch (v) {
-    case StepVerdict::kAcceptObjectiveStep:
-        return "accept_f";
-    case StepVerdict::kAcceptFeasibilityStep:
-        return "accept_h";
-    case StepVerdict::kReject:
-        return "reject";
-    case StepVerdict::kRestore:
-        return "restore";
-    }
-    return "unknown";
-}
-
-const char *to_json(QpTraceOutcome v) {
-    switch (v) {
-    case QpTraceOutcome::kOptimal:
-        return "optimal";
-    case QpTraceOutcome::kRouted:
-        return "routed";
-    case QpTraceOutcome::kEscaped:
-        return "escaped";
-    }
-    return "unknown";
-}
-
-const char *to_json(SqpTraceFallbackVerdict v) {
-    switch (v) {
-    case SqpTraceFallbackVerdict::kDisproved:
-        return "disproved";
-    case SqpTraceFallbackVerdict::kRelaxed:
-        return "relaxed";
-    case SqpTraceFallbackVerdict::kExhausted:
-        return "exhausted";
-    case SqpTraceFallbackVerdict::kRungB:
-        return "rung_b";
-    case SqpTraceFallbackVerdict::kUnfired:
-        return "unfired";
-    }
-    return "unknown";
-}
-
-// The SQP end event's own to_json(SqpStatus) stood here until M6 W5 T8.4. Its
-// five spellings were BYTE-IDENTICAL to to_string(SolveStatus)'s five --
-// optimal / max_iter / infeasible / numerical_error / budget_exhausted -- so
-// folding it into the one overload below moves no trace byte and the golden
-// rig's traces do not move.
-
-// LOWER SNAKE, NOT core's display `to_string` (fix round 1, R2): plan section 2
-// rule 8 governs the schema's alphabet, and `to_string` names a printed column.
-const char *to_json(StartLevel v) {
-    switch (v) {
-    case StartLevel::kCold:
-        return "cold";
-    case StartLevel::kSeeded:
-        return "seeded";
-    case StartLevel::kWarm:
-        return "warm";
-    case StartLevel::kHot:
-        return "hot";
-    }
-    return "unknown";
-}
-
-const char *to_json(QpWorkingSetAlgebra v) {
-    switch (v) {
-    case QpWorkingSetAlgebra::kRefactorize:
-        return "refactorize";
-    case QpWorkingSetAlgebra::kSchurBorder:
-        return "schur_border";
-    }
-    return "unknown";
-}
-
-// THE INTERIOR-POINT DRIVER'S OWN THREE (W4 T4). The exit status is
-// `SolveStatus` since M6 W5 T8.4 -- the engine's own `ConvergenceFlags` is gone
-// -- and the two mode selectors shape the run `ipm.solve.begin` announces.
-//
-// THE SPELLINGS MOVED WITH THE ENUM, and that is a DECLARED change (T8.4):
-// `converged` -> `optimal`, `not_converged` -> `max_iter` (or `stalled` at the
-// stall and locally-infeasible-restoration exits, which the old vocabulary
-// could not tell apart at all), `singular_kkt` -> `numerical_error`;
-// `acceptable` and `diverging` are unchanged. Nothing pinned compares these
-// bytes -- there is no committed interior-point trace baseline and no control
-// -- so unlike the corpus CSV's status column (which keeps its capitalised
-// spellings through a bench-local table for exactly that reason) this one takes
-// the new vocabulary now. The SQP's `to_json(SolveStatus)` above already spelled
-// its five the same way `to_string(SolveStatus)` does, so the golden rig's
-// traces do not move.
-const char *to_json(SolveStatus v) { return to_string(v); }
-
-// AND THE COUNTER'S OWN TEN (M7 W2 M3a fix1), forwarding for the same reason
-// the three above do: `to_string(RestorationSubStatus)` already spells them in
-// the schema's lower snake, and it spells its nine status values EXACTLY as
-// `to_string(SolveStatus)` spells the same names, so a second table here could
-// only drift the two apart.
-const char *to_json(RestorationSubStatus v) { return to_string(v); }
-
-const char *to_json(IpmInertiaMode v) {
-    switch (v) {
-    case IpmInertiaMode::kClassic:
-        return "classic";
-    case IpmInertiaMode::kProximalRegularization:
-        return "proximal_regularization";
-    }
-    return "unknown";
-}
-
-const char *to_json(IpmRestorationMode v) {
-    switch (v) {
-    case IpmRestorationMode::kOff:
-        return "off";
-    case IpmRestorationMode::kProximalSwitch:
-        return "proximal_switch";
-    case IpmRestorationMode::kL1Nested:
-        return "l1_nested";
-    }
-    return "unknown";
-}
-
-// M6 W5 T8.7b'S FOUR. Three of them FORWARD to core's `to_string` rather than
-// keeping a second table: unlike `to_string(StartLevel)` -- which names a
-// printed COLUMN and is PascalCase -- these three already spell their values in
-// the schema's own lower snake, so a second copy could only drift. `IpmPhase`
-// is the one that needs a table here: it has no `to_string` anywhere.
-const char *to_json(IpmMessageKind v) { return to_string(v); }
-
-const char *to_json(IpmKktFactorStatus v) { return to_string(v); }
-
-const char *to_json(StopReason v) { return to_string(v); }
-
-const char *to_json(IpmPhase v) {
-    switch (v) {
-    case IpmPhase::kOptimize:
-        return "optimize";
-    case IpmPhase::kSolve:
-        return "solve";
-    }
-    return "unknown";
-}
+using detail::to_json;
 
 // --- the counters object, GENERATED from solver_counters.h's tables -------
 //
@@ -460,6 +227,34 @@ void key_value(std::string &s, bool &first, const char *k, RestorationSubStatus 
     } else {
         append_string(s, to_json(v));
     }
+}
+
+// A fixed-size integer array is a JSON array of int64.
+template <std::size_t N>
+void key_value(std::string &s, bool &first, const char *k, const std::array<Index, N> &v,
+               bool absent) {
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+        return;
+    }
+    s += '[';
+    for (std::size_t i = 0; i < N; ++i) {
+        if (i != 0) {
+            s += ',';
+        }
+        append_index(s, v[i]);
+    }
+    s += ']';
+}
+
+std::string counters_object(const IpmCounters &c) {
+    std::string b;
+    bool first = true;
+#define HVEN_TRACE_WRITE_FIELD(f, absent) key_value(b, first, #f, c.f, absent(c.f));
+    HVEN_IPM_COUNTERS_FIELDS(HVEN_TRACE_WRITE_FIELD)
+#undef HVEN_TRACE_WRITE_FIELD
+    return "{" + b + "}";
 }
 
 std::string counters_object(const SqpCounters &c) {
@@ -599,130 +394,85 @@ static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldC
 // 30 is a COUNT OF INITIALIZERS, not a sizeof (plan amendment E). W4 T3 added
 // the six telemetry fields, and this number and the four golden lines moved
 // with them as a declared additive re-derivation (plan section 2 rule 6).
-constexpr std::size_t kSqpIterateFieldCount = 30;
-static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCount,
-              "SqpIterate's field count moved: give the new field a key in "
-              "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
-              "re-derive the sqp.major golden line, and then update this count.");
-
-// AND ON `qp.mode`, WHICH W4 T5 GREW A TRAILING KEY (`site`). 5 is a count of
-// initializers, not a sizeof.
-//
-// The event is written key by key below, so a sixth field would be silently
-// dropped from a line the golden pins compare byte for byte.
 static_assert(::hven::detail::kAggregateArity<QpModeTraceEvent> == 5,
               "QpModeTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_qp_mode, re-derive the qp.mode golden lines as a DECLARED "
               "additive trailing key (this event is frozen by plan section 2 rule 6), and "
               "update this count.");
 
-// THE SAME NET ON THE PAIR'S OWN STRUCTS (fix round 2, F3). Both are written key
-// by key below, so a field added to either would be silently dropped from a line
-// the golden pins compare byte for byte -- and the pin would still pass.
-static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 11,
-              "SqpSolveBeginTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_sqp_solve_begin, re-derive the golden line, and update "
-              "this count. The variable-bound census is the part most likely to grow.");
-// THE END EVENT HOLDS A REFERENCE (`counters`), and `kAggregateArity` reads 0
-// for such a struct -- it refuses N = 0 and the climb stops there (the helper's
-// own note). The two-sided form below is the exact net for that shape.
-//
-// 10 / !11 AS OF M7 W2 SCW, which appended the column layer's two fields (8 / !9
-// since M6 W5 T8.7, which appended the five scaling fields the console's
-// `Scaling:` trailer reads; 3 / !4 before it).
-static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                  std::make_index_sequence<10>{}) &&
-                  !::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                      std::make_index_sequence<11>{}),
-              "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
-              "these two counts.");
-
-// --- the `ipm.iter` record and the `ipm.solve` pair (W4 T4) ---------------
-//
-// 28 is `IpmIterate`'s own declared field count. The record is serialized in
-// DECLARATION ORDER, each field under its own name, so a field added
-// there stops the build here until it gets a key.
-//
-// 27 OF THE 28 ARE KEYS. `p_pivots_observed_` is the ABSENCE PREDICATE for
-// `p_pivots` and carries no key of its own -- the same shape the counters
-// tables' `absent` column has (fix round 1, R2).
-constexpr std::size_t kIpmIterateFieldCount = 28;
+constexpr std::size_t kIpmIterateFieldCount = 33;
 static_assert(::hven::detail::kAggregateArity<IpmIterate> == kIpmIterateFieldCount,
-              "IpmIterate's field count moved: give the new field a key in "
-              "JsonLinesTraceSink::on_ipm_iter (in DECLARATION order, ahead of `phase`) -- or, "
-              "if it is an absence PREDICATE like p_pivots_observed_, wire it to the field it "
-              "gates -- re-derive the ipm.iter golden lines, and then update this count.");
+              "IpmIterate's field count moved: `iter` rows are built from it by "
+              "IpmSolverImpl::make_iteration_record and `ipm.phase.exit` reads it here; give the "
+              "new field its place there, re-derive the goldens, and update this count.");
 
-// `IpmIterTraceEvent` HOLDS A REFERENCE, so `kAggregateArity` reads 0 for it --
-// the two-sided form is the exact net for that shape, exactly as for
-// `SqpSolveEndTraceEvent` above.
-static_assert(::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
-                  std::make_index_sequence<2>{}) &&
-                  !::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
-                      std::make_index_sequence<3>{}),
-              "IpmIterTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_ipm_iter, re-derive the golden line, and update these "
-              "two counts.");
-
-// 29 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
-// settings + M6 W5 T8.7's eight (the four ACCEPTABLE tolerances, `wide_console`
-// and `print_stats`'s own three KKT/fixing-row inputs) + M8 B7's `absent_bounds`. The census is
-// FLAT on the struct so this count can see it: the arity helper reads a NESTED aggregate's members
-// through brace elision.
-static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 29,
-              "IpmSolveBeginTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_ipm_solve_begin, re-derive the golden line, and update "
-              "this count.");
+static_assert(::hven::detail::kAggregateArity<IterationRecord> == 16,
+              "IterationRecord gained or lost a member: give it a key in "
+              "JsonLinesTraceSink::on_iter, add it to the freeze table of "
+              "docs/trace-schema-v1.md, re-derive the iter golden lines, and update this count.");
+static_assert(::hven::detail::kAggregateArity<IpmIterationRow> == 23,
+              "IpmIterationRow gained or lost a member: give it a key in the `ipm` block of "
+              "JsonLinesTraceSink::on_iter, add it to the freeze table of "
+              "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
+static_assert(::hven::detail::kAggregateArity<SqpIterationRow> == 23,
+              "SqpIterationRow gained or lost a member: give it a key in the `sqp` block of "
+              "JsonLinesTraceSink::on_iter, add it to the freeze table of "
+              "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
+static_assert(::hven::detail::kAggregateArity<SolveBeginTraceEvent> == 7,
+              "SolveBeginTraceEvent gained or lost a member: give it a key in "
+              "JsonLinesTraceSink::on_solve_begin, re-derive the golden lines, and update this "
+              "count.");
+static_assert(::hven::detail::kAggregateArity<IpmSolveBeginInfo> == 16,
+              "IpmSolveBeginInfo gained or lost a member: give it a key in the `ipm` block of "
+              "JsonLinesTraceSink::on_solve_begin, re-derive the golden line, and update this "
+              "count.");
+static_assert(::hven::detail::kAggregateArity<SqpSolveBeginInfo> == 7,
+              "SqpSolveBeginInfo gained or lost a member: give it a key in the `sqp` block of "
+              "JsonLinesTraceSink::on_solve_begin, re-derive the golden line, and update this "
+              "count.");
+static_assert(
+    ::hven::detail::aggregate_initializable_with<IterTraceEvent>(std::make_index_sequence<1>{}) &&
+        !::hven::detail::aggregate_initializable_with<IterTraceEvent>(
+            std::make_index_sequence<2>{}),
+    "IterTraceEvent gained or lost a member: update JsonLinesTraceSink::on_iter and "
+    "these two counts.");
+static_assert(::hven::detail::kAggregateArity<MessageTraceEvent> == 14,
+              "MessageTraceEvent gained or lost a member: give it a key in "
+              "JsonLinesTraceSink::on_message, add it to the per-kind table in "
+              "docs/trace-schema-v1.md, re-derive the golden line, and update this count.");
+static_assert(::hven::detail::kAggregateArity<DeclaredDiagnosticsTrace> == 3,
+              "DeclaredDiagnosticsTrace gained or lost a member: give it a key in "
+              "`solve.end.diagnostics`, re-derive the golden line, and update this count.");
+static_assert(::hven::detail::kAggregateArity<SolveEndTraceEvent> == 13,
+              "SolveEndTraceEvent gained or lost a member: give it a key in "
+              "JsonLinesTraceSink::on_solve_end, re-derive the golden lines, and update this "
+              "count.");
+static_assert(::hven::detail::kAggregateArity<IpmSolveEndInfo> == 13,
+              "IpmSolveEndInfo gained or lost a member: give it a key in the `ipm` block of "
+              "JsonLinesTraceSink::on_solve_end, re-derive the golden line, and update this "
+              "count.");
+static_assert(::hven::detail::kAggregateArity<SqpSolveEndInfo> == 10,
+              "SqpSolveEndInfo gained or lost a member: give it a key in the `sqp` block of "
+              "JsonLinesTraceSink::on_solve_end, re-derive the golden line, and update this "
+              "count.");
 static_assert(::hven::detail::kAggregateArity<VariableBoundCensus> == 5,
-              "VariableBoundCensus gained or lost a field: give it a key in BOTH "
-              "JsonLinesTraceSink::on_sqp_solve_begin and ::on_ipm_solve_begin, re-derive both "
-              "golden lines, and update this count.");
-static_assert(::hven::detail::kAggregateArity<IpmSolveEndTraceEvent> == 9,
-              "IpmSolveEndTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_ipm_solve_end, re-derive the golden line, and update "
+              "VariableBoundCensus gained or lost a field: update census_variable_bounds and "
               "this count.");
+static_assert(::hven::detail::kAggregateArity<ProblemStatistics> == 13,
+              "ProblemStatistics gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_solve_begin (declaration order), re-derive the golden "
+              "lines, and update this count.");
 
-// `IpmRestorationExitRowTraceEvent` HOLDS A REFERENCE, so `kAggregateArity`
-// reads 0 for it and the two-sided form is the exact net -- exactly as for
-// `IpmIterTraceEvent` and `SqpSolveEndTraceEvent` above.
-static_assert(::hven::detail::aggregate_initializable_with<IpmRestorationExitRowTraceEvent>(
-                  std::make_index_sequence<4>{}) &&
-                  !::hven::detail::aggregate_initializable_with<IpmRestorationExitRowTraceEvent>(
-                      std::make_index_sequence<5>{}),
-              "IpmRestorationExitRowTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_ipm_restoration_exit_row, re-derive the golden line, and "
-              "update these two counts.");
-
-// --- M6 W5 T8.7b's five records ------------------------------------------
-//
-// One net per struct, in the same two shapes as above: `kAggregateArity` where
-// every member is a value, the two-sided `aggregate_initializable_with` form
-// where the struct holds a reference (which makes the arity helper read 0).
-
-// 3 = phase, label, entry. ONE STRUCT SERVES BOTH `ipm.phase.begin` and
-// `ipm.phase.end`, so this net covers two records.
 static_assert(::hven::detail::kAggregateArity<IpmPhaseTraceEvent> == 3,
               "IpmPhaseTraceEvent gained or lost a field: give it a key in BOTH "
               "JsonLinesTraceSink::on_ipm_phase_begin and ::on_ipm_phase_end, re-derive both "
               "golden lines, and update this count.");
 
-// 6 = the two join keys, the two factor figures, `docompute` and the time.
 static_assert(::hven::detail::kAggregateArity<IpmKktAnalysisTraceEvent> == 6,
               "IpmKktAnalysisTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_kkt_analysis, re-derive the golden line, and update "
               "this count.");
 
-// 11 = kind, phase, iter, a, b, k, p, n, z, expected_p, expected_n.
-static_assert(::hven::detail::kAggregateArity<IpmMessageTraceEvent> == 11,
-              "IpmMessageTraceEvent gained or lost a field: give it a key in "
-              "JsonLinesTraceSink::on_ipm_message, add it to the per-kind table in "
-              "docs/trace-schema-v0.md, re-derive the golden line, and update this count.");
-
-// `IpmPhaseExitTraceEvent` holds TWO references (the report and the row), so
-// the two-sided net is the exact form. 9 = report, iterate, phase,
-// best_substituted, kkt_factor_status, and the four times. (T8.7b fix1 dropped
-// `selected_iter`: the row's index in the phase's history IS its `iter_`.)
 static_assert(::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
                   std::make_index_sequence<9>{}) &&
                   !::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
@@ -783,14 +533,19 @@ void JsonLinesTraceSink::pop_depth() {
 
 // Rule 2: the envelope leads every line, and `seq` counts from 1 so a reader can
 // prove it saw every line. `depth` is 0 for the whole of W4 T1.
-void JsonLinesTraceSink::write_line(const char *ev, const std::string &body) {
+void JsonLinesTraceSink::write_line(const char *ev, const std::string &body, const char *eng) {
     ++seq_;
-    std::string line = "{\"v\":0,\"ev\":\"";
+    std::string line = "{\"v\":1,\"ev\":\"";
     line += ev;
     line += "\",\"seq\":";
     append_index(line, seq_);
+    line += ",\"sid\":";
+    append_index(line, sid_);
     line += ",\"depth\":";
     append_index(line, depth_);
+    line += ",\"eng\":\"";
+    line += eng;
+    line += "\"";
     if (!body.empty()) {
         line += ',';
         line += body;
@@ -930,218 +685,6 @@ void JsonLinesTraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent 
     write_line("fallback.verdict", b);
 }
 
-void JsonLinesTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
-    const SqpIterate &r = event.row;
-    std::string b;
-    bool first = true;
-    key_index(b, first, "trial", r.trial);
-    key_double(b, first, "f", r.f);
-    key_double(b, first, "stationarity", r.stationarity);
-    key_double(b, first, "feasibility", r.feasibility);
-    key_double(b, first, "complementarity", r.complementarity);
-    key_double(b, first, "kkt_residual", r.kkt_residual);
-    key_double(b, first, "violation_l1", r.violation_l1);
-    key_double(b, first, "tr_radius", r.tr_radius);
-    key_double(b, first, "mu", r.mu);
-    key_double(b, first, "step_norm", r.step_norm);
-    key_bool(b, first, "qp_solved", r.qp_solved);
-    key_double(b, first, "ipqp_least_infeasible_primal", r.ipqp_least_infeasible_primal);
-    key_bool(b, first, "ipqp_farkas_corroborated", r.ipqp_farkas_corroborated);
-    key_enum(b, first, "qp_status", to_json(r.qp_status));
-    key_index(b, first, "qp_minor_iters", r.qp_minor_iters);
-    key_index(b, first, "qp_factorizations", r.qp_factorizations);
-    key_bool(b, first, "tr_binding", r.tr_binding);
-    key_enum(b, first, "verdict", to_json(r.verdict));
-    key_bool(b, first, "soc_applied", r.soc_applied);
-    key_bool(b, first, "elastic_applied", r.elastic_applied);
-    key_bool(b, first, "elastic_rho0_ceiling_hit", r.elastic_rho0_ceiling_hit);
-    key_bool(b, first, "restoration_seed_used", r.restoration_seed_used);
-    key_bool(b, first, "watchdog_restored", r.watchdog_restored);
-    key_index(b, first, "active_set_delta", r.active_set_delta);
-    key_index(b, first, "weak_active_rows", r.weak_active_rows);
-    key_index(b, first, "near_active_rows", r.near_active_rows);
-    key_index(b, first, "active_rows", r.active_rows);
-    key_index(b, first, "active_lower_sides", r.active_lower_sides);
-    key_index(b, first, "active_upper_sides", r.active_upper_sides);
-    key_bool(b, first, "rolled_back", r.rolled_back);
-    key_index(b, first, "major", event.major);
-    key_enum(b, first, "mode", to_json(event.mode));
-    write_line("sqp.major", b);
-}
-
-void JsonLinesTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event) {
-    // THE DEPTH MOVES BEFORE THE LINE IS WRITTEN, so a nested solve's own
-    // `begin` already reads 1; the OUTERMOST solve pushes nothing, which is what
-    // keeps a top-level stream entirely at depth 0.
-    if (open_solves_ > 0) {
-        push_depth();
-    }
-    ++open_solves_;
-    std::string b;
-    bool first = true;
-    key_index(b, first, "n", event.n);
-    key_index(b, first, "me", event.me);
-    key_index(b, first, "mi", event.mi);
-    key_index(b, first, "vars_free", event.vars_free);
-    key_index(b, first, "vars_lower_only", event.vars_lower_only);
-    key_index(b, first, "vars_upper_only", event.vars_upper_only);
-    key_index(b, first, "vars_ranged", event.vars_ranged);
-    key_index(b, first, "vars_fixed", event.vars_fixed);
-    key_enum(b, first, "qp_mode", to_json(event.qp_mode));
-    key_enum(b, first, "ws_algebra", to_json(event.ws_algebra));
-    key_index(b, first, "absent_bounds", event.absent_bounds);
-    write_line("sqp.solve.begin", b);
-}
-
-void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
-    std::string b;
-    bool first = true;
-    key_enum(b, first, "status", to_json(event.status));
-    key_index(b, first, "majors", event.majors);
-    key(b, first, "counters");
-    b += counters_object(event.counters);
-    // THE SCALING BLOCK (M6 W5 T8.7), after the counters object and flat: the
-    // five values `SqpResult::scaling` carries, so a reader can tell a scaled
-    // solve from an unscaled one and can see the residual the convergence test
-    // gated on, which no caller-scale column reports.
-    key_bool(b, first, "scaling_active", event.scaling_active);
-    key_double(b, first, "obj_scale", event.obj_scale);
-    key_double(b, first, "row_scale_min", event.row_scale_min);
-    key_double(b, first, "row_scale_max", event.row_scale_max);
-    key_double(b, first, "scaled_kkt_residual", event.scaled_kkt_residual);
-    // THE COLUMN LAYER (M7 W2 SCW), trailing: whether it fired and the spread its
-    // rule read, so a reader can tell a column-scaled solve from the stream alone.
-    key_bool(b, first, "columns_active", event.columns_active);
-    key_double(b, first, "col_spread", event.col_spread);
-    write_line("sqp.solve.end", b);
-    // Written FIRST, then unwound: this line belongs to the solve it closes.
-    if (open_solves_ > 0) {
-        --open_solves_;
-    }
-    if (open_solves_ > 0) {
-        pop_depth();
-    }
-}
-
-void JsonLinesTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
-    const IpmIterate &r = event.iterate;
-    std::string b;
-    bool first = true;
-    key_index(b, first, "iter", r.iter);
-    key_double(b, first, "mu", r.mu);
-    key_double(b, first, "prim_obj", r.prim_obj);
-    key_double(b, first, "barr_obj", r.barr_obj);
-    key_double(b, first, "kkt_inf", r.kkt_inf);
-    key_double(b, first, "barr_inf", r.barr_inf);
-    key_double(b, first, "econ_inf", r.econ_inf);
-    key_double(b, first, "icon_inf", r.icon_inf);
-    key_double(b, first, "pen_par1", r.pen_par1);
-    key_double(b, first, "pen_par2", r.pen_par2);
-    key_index(b, first, "ls_iters", r.ls_iters);
-    key_double(b, first, "alpha_p", r.alpha_p);
-    key_double(b, first, "alpha_d", r.alpha_d);
-    key_double(b, first, "alpha_t", r.alpha_t);
-    key_double(b, first, "h_pert", r.h_pert);
-    // Rule 5, SENTINEL: -1 is "the Newton direction was non-finite, so no
-    // inertia ladder ran", not a step count of -1 (fix round 1, R1).
-    key_value(b, first, "h_facs", static_cast<Index>(r.h_facs), r.h_facs < 0);
-    key_double(b, first, "h_pert_cum", r.h_pert_cum);
-    // Rule 5, SENTINEL ONE OF TWO: negative is "proximal mode off", not a shift
-    // of -1. The classic path writes it on every iteration.
-    key_value(b, first, "prox_reg_primal", r.prox_reg_primal, r.prox_reg_primal < 0.0);
-    key_value(b, first, "prox_reg_dual", r.prox_reg_dual, r.prox_reg_dual < 0.0);
-    // Rule 5, ABSENCE: the projection substitutes 0 for a backend that reports
-    // no perturbed-pivot count, and an unfactorized record never had one.
-    // Repeating that 0 fabricates an Apple value -- CLAUDE.md section 6.
-    key_value(b, first, "p_pivots", static_cast<Index>(r.p_pivots), !r.p_pivots_observed);
-    key_double(b, first, "max_e_mult", r.max_e_mult);
-    key_double(b, first, "max_i_mult", r.max_i_mult);
-    key_double(b, first, "merit_val", r.merit_val);
-    key_bool(b, first, "accepted", r.accepted);
-    // Rule 5, SENTINEL TWO OF TWO -- a DIFFERENT absence: "no rejection was
-    // recorded this line search", which is why the doc names the meaning per
-    // field rather than saying "-1 is null" once.
-    key_value(b, first, "first_rejection_iter", static_cast<Index>(r.first_rejection_iter),
-              r.first_rejection_iter < 0);
-    key_value(b, first, "theta_at_first_rejection", r.theta_at_first_rejection,
-              r.theta_at_first_rejection < 0.0);
-    key_index(b, first, "eval_exceptions", r.eval_exceptions);
-    key_index(b, first, "phase", event.phase);
-    write_line("ipm.iter", b);
-}
-
-void JsonLinesTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) {
-    std::string b;
-    bool first = true;
-    key_index(b, first, "n", event.n);
-    key_index(b, first, "n_reduced", event.n_reduced);
-    key_index(b, first, "me", event.me);
-    key_index(b, first, "mi", event.mi);
-    // THE SAME FIVE KEYS, IN THE SAME ORDER, AS `sqp.solve.begin` -- one census,
-    // one spelling, so a reader comparing the two engines' openers compares like
-    // with like.
-    key_index(b, first, "vars_free", event.vars_free);
-    key_index(b, first, "vars_lower_only", event.vars_lower_only);
-    key_index(b, first, "vars_upper_only", event.vars_upper_only);
-    key_index(b, first, "vars_ranged", event.vars_ranged);
-    key_index(b, first, "vars_fixed", event.vars_fixed);
-    key_index(b, first, "phases", event.phases);
-    key_index(b, first, "max_iters", event.max_iters);
-    key_index(b, first, "max_acc_iters", event.max_acc_iters);
-    key_double(b, first, "kkt_tol", event.kkt_tol);
-    key_double(b, first, "econ_tol", event.econ_tol);
-    key_double(b, first, "icon_tol", event.icon_tol);
-    key_double(b, first, "bar_tol", event.bar_tol);
-    key_double(b, first, "init_mu", event.init_mu);
-    key_double(b, first, "obj_scale", event.obj_scale);
-    key_enum(b, first, "inertia_mode", to_json(event.inertia_mode));
-    key_enum(b, first, "restoration_mode", to_json(event.restoration_mode));
-    // M6 W5 T8.7's eight. The four ACCEPTABLE tolerances sit beside their
-    // convergence counterparts above (one band each); `wide_console` is the
-    // layout width; the last three are `print_stats()`'s own inputs.
-    key_double(b, first, "acc_kkt_tol", event.acc_kkt_tol);
-    key_double(b, first, "acc_econ_tol", event.acc_econ_tol);
-    key_double(b, first, "acc_icon_tol", event.acc_icon_tol);
-    key_double(b, first, "acc_bar_tol", event.acc_bar_tol);
-    key_bool(b, first, "wide_console", event.wide_console);
-    key_index(b, first, "kkt_dim", event.kkt_dim);
-    key_index(b, first, "kkt_nnz", event.kkt_nnz);
-    key_index(b, first, "internal_fixed_rows", event.internal_fixed_rows);
-    key_index(b, first, "absent_bounds", event.absent_bounds);
-    write_line("ipm.solve.begin", b);
-}
-
-void JsonLinesTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
-    std::string b;
-    bool first = true;
-    key_enum(b, first, "status", to_json(event.status));
-    key_index(b, first, "iters", event.iters);
-    // Rule 7: every `_s` below is WALL-CLOCK and informational. No pin reads one.
-    key_double(b, first, "total_time_s", event.total_time_s);
-    key_double(b, first, "pre_time_s", event.pre_time_s);
-    key_double(b, first, "func_time_s", event.func_time_s);
-    key_double(b, first, "kkt_time_s", event.kkt_time_s);
-    key_double(b, first, "print_time_s", event.print_time_s);
-    key_double(b, first, "solver_init_time_s", event.solver_init_time_s);
-    key_double(b, first, "misc_time_s", event.misc_time_s);
-    write_line("ipm.solve.end", b);
-}
-
-// M6 W5 T8.7. THE ROW ITSELF IS NOT REPEATED: the adjacent `ipm.iter` line
-// carries the whole record, and duplicating 27 keys here would give a reader
-// two copies to reconcile. What this line adds is the door's identity plus the
-// two numbers that decided it, and `iter`/`phase` so the pairing survives a
-// filtered read.
-void JsonLinesTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) {
-    std::string b;
-    bool first = true;
-    key_index(b, first, "iter", event.iterate.iter);
-    key_index(b, first, "phase", event.phase);
-    key_double(b, first, "theta", event.theta);
-    key_double(b, first, "threshold", event.threshold);
-    write_line("ipm.restoration_exit_row", b);
-}
-
 // --- M6 W5 T8.7b: the interior-point engine's last direct prints ----------
 //
 // FIVE ADDITIVE RECORDS, and `v` STAYS 0. Section 8 of docs/trace-schema-v0.md
@@ -1154,23 +697,16 @@ void JsonLinesTraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &event) {
     std::string b;
     bool first = true;
     key_index(b, first, "phase", event.phase);
-    key(b, first, "label");
-    // The label carries a TRAILING SPACE (`"Optimization Algorithm "`), which
-    // is what the console prints; rule 9's escaping passes it through and the
-    // JSON keeps it rather than trimming a byte the transcript depends on.
-    append_string(b, event.label);
     key_enum(b, first, "entry", to_json(event.entry));
-    write_line("ipm.phase.begin", b);
+    write_line("ipm.phase.begin", b, "ipm");
 }
 
 void JsonLinesTraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &event) {
     std::string b;
     bool first = true;
     key_index(b, first, "phase", event.phase);
-    key(b, first, "label");
-    append_string(b, event.label);
     key_enum(b, first, "entry", to_json(event.entry));
-    write_line("ipm.phase.end", b);
+    write_line("ipm.phase.end", b, "ipm");
 }
 
 void JsonLinesTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) {
@@ -1186,7 +722,7 @@ void JsonLinesTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &eve
     key_value(b, first, "factor_flops", event.factor_flops, !event.docompute);
     // Rule 7: wall-clock, informational.
     key_double(b, first, "analysis_time_s", event.analysis_time_s);
-    write_line("ipm.kkt_analysis", b);
+    write_line("ipm.kkt_analysis", b, "ipm");
 }
 
 // THE ROW IS NOT REPEATED, exactly as on `ipm.restoration_exit_row`: the five
@@ -1220,29 +756,322 @@ void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) 
     key_double(b, first, "phase_seconds", event.report.phase_seconds);
     key_enum(b, first, "stop_reason", to_json(event.report.stop_reason));
     key_bool(b, first, "ran", event.report.ran);
-    write_line("ipm.phase.exit", b);
+    write_line("ipm.phase.exit", b, "ipm");
 }
 
-// THE PAYLOAD IS PER KIND and every slot the kind does not use is `null`
-// (rule 5). The absence predicates are the sentinels the struct documents:
-// `-1` on an integer slot, NaN on a double slot -- and NaN here is an ABSENCE,
-// not the `"nan"` string rule 3 writes for a non-finite MEASUREMENT, because no
-// message kind reports NaN as a value.
-void JsonLinesTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
+// ---- the four records both engines share -------------------------------
+
+namespace {
+
+const char *engine_name(TraceEngine e) { return e == TraceEngine::kIpm ? "ipm" : "sqp"; }
+
+void write_ipm_row(std::string &b, const IpmIterationRow &r) {
+    bool f = true;
+    key_index(b, f, "phase", r.phase);
+    key_double(b, f, "mu", r.mu);
+    key_opt_double(b, f, "alpha_primal", r.alpha_primal);
+    key_opt_double(b, f, "alpha_dual", r.alpha_dual);
+    key_opt_double(b, f, "alpha_scale", r.alpha_scale);
+    key_opt_index(b, f, "line_search_trials", r.line_search_trials);
+    key_opt_double(b, f, "regularization_primal", r.regularization_primal);
+    key_opt_double(b, f, "regularization_primal_total", r.regularization_primal_total);
+    key_opt_double(b, f, "regularization_dual", r.regularization_dual);
+    key_opt_double(b, f, "proximal_primal", r.proximal_primal);
+    key_opt_index(b, f, "inertia_corrections", r.inertia_corrections);
+    key_opt_index(b, f, "perturbed_pivots", r.perturbed_pivots);
+    key_opt_double(b, f, "barrier_objective", r.barrier_objective);
+    key_double(b, f, "feasibility_eq", r.feasibility_eq);
+    key_double(b, f, "feasibility_ineq", r.feasibility_ineq);
+    key_opt_double(b, f, "merit", r.merit);
+    key_double(b, f, "merit_penalty_1", r.merit_penalty_1);
+    key_double(b, f, "merit_penalty_2", r.merit_penalty_2);
+    key_double(b, f, "max_multiplier_eq", r.max_multiplier_eq);
+    key_double(b, f, "max_multiplier_ineq", r.max_multiplier_ineq);
+    key_opt_index(b, f, "first_rejected_trial", r.first_rejected_trial);
+    key_opt_double(b, f, "theta_first_rejected", r.theta_first_rejected);
+    key_index(b, f, "eval_exceptions", r.eval_exceptions);
+}
+
+void write_sqp_row(std::string &b, const SqpIterationRow &r) {
+    bool f = true;
+    key_index(b, f, "depth", r.depth);
+    key_enum(b, f, "mode", to_json(r.mode));
+    if (r.verdict) {
+        key_enum(b, f, "verdict", to_json(*r.verdict));
+    } else {
+        key_null(b, f, "verdict");
+    }
+    key_double(b, f, "trust_radius", r.trust_radius);
+    key_double(b, f, "violation_l1", r.violation_l1);
+    key_opt_double(b, f, "dual_regularization", r.dual_regularization);
+    key_bool(b, f, "qp_solved", r.qp_solved);
+    if (r.qp_status) {
+        key_enum(b, f, "qp_status", to_json(*r.qp_status));
+    } else {
+        key_null(b, f, "qp_status");
+    }
+    key_opt_index(b, f, "qp_minor_iterations", r.qp_minor_iterations);
+    key_opt_index(b, f, "qp_factorizations", r.qp_factorizations);
+    key_bool(b, f, "tr_binding", r.tr_binding);
+    key_bool(b, f, "elastic", r.elastic);
+    key_bool(b, f, "elastic_clamped", r.elastic_clamped);
+    key_bool(b, f, "restoration_seed_used", r.restoration_seed_used);
+    key_opt_double(b, f, "ipqp_least_infeasible_primal", r.ipqp_least_infeasible_primal);
+    key_opt_bool(b, f, "ipqp_farkas_corroborated", r.ipqp_farkas_corroborated);
+    key_index(b, f, "active_set_size", r.active_set_size);
+    key_index(b, f, "active_set_delta", r.active_set_delta);
+    key_index(b, f, "weak_active_rows", r.weak_active_rows);
+    key_index(b, f, "near_active_rows", r.near_active_rows);
+    key_index(b, f, "active_rows", r.active_rows);
+    key_index(b, f, "active_lower_sides", r.active_lower_sides);
+    key_index(b, f, "active_upper_sides", r.active_upper_sides);
+}
+
+} // namespace
+
+void JsonLinesTraceSink::on_solve_begin(const SolveBeginTraceEvent &event) {
+    // THE DEPTH MOVES BEFORE THE LINE IS WRITTEN, so a nested solve's own `begin`
+    // already reads 1; the OUTERMOST solve pushes nothing and takes the next `sid`.
+    if (open_solves_ > 0) {
+        push_depth();
+    } else {
+        ++sid_;
+    }
+    ++open_solves_;
+    std::string b;
+    bool first = true;
+    const ProblemStatistics &st = event.statistics;
+    key_index(b, first, "variables", st.variables);
+    key_index(b, first, "free_variables", st.free_variables);
+    key_index(b, first, "lower_bounded_variables", st.lower_bounded_variables);
+    key_index(b, first, "upper_bounded_variables", st.upper_bounded_variables);
+    key_index(b, first, "boxed_variables", st.boxed_variables);
+    key_index(b, first, "fixed_variables", st.fixed_variables);
+    key_index(b, first, "constraints", st.constraints);
+    key_index(b, first, "equality_rows", st.equality_rows);
+    key_index(b, first, "lower_bounded_rows", st.lower_bounded_rows);
+    key_index(b, first, "upper_bounded_rows", st.upper_bounded_rows);
+    key_index(b, first, "range_rows", st.range_rows);
+    key_index(b, first, "free_rows", st.free_rows);
+    key_index(b, first, "absent_bounds", st.absent_bounds);
+    key_double(b, first, "optimality_tol", event.optimality_tol);
+    key_double(b, first, "feasibility_tol", event.feasibility_tol);
+    key_index(b, first, "max_iterations", event.max_iterations);
+    key_string(b, first, "hven_version", version());
+    if (event.ipm) {
+        const IpmSolveBeginInfo &i = *event.ipm;
+        std::string o;
+        bool f = true;
+        key_index(o, f, "n_reduced", i.n_reduced);
+        key_index(o, f, "me", i.me);
+        key_index(o, f, "mi", i.mi);
+        key_index(o, f, "internal_fixed_rows", i.internal_fixed_rows);
+        key_index(o, f, "phases", i.phases);
+        key_index(o, f, "max_acceptable_iterations", i.max_acceptable_iterations);
+        key_double(o, f, "initial_mu", i.initial_mu);
+        key_double(o, f, "obj_scale", i.obj_scale);
+        key_double(o, f, "acceptable_stationarity_tol", i.acceptable_stationarity_tol);
+        key_double(o, f, "acceptable_complementarity_tol", i.acceptable_complementarity_tol);
+        key_double(o, f, "acceptable_equality_tol", i.acceptable_equality_tol);
+        key_double(o, f, "acceptable_inequality_tol", i.acceptable_inequality_tol);
+        key_enum(o, f, "inertia_mode", to_json(i.inertia_mode));
+        key_enum(o, f, "restoration_mode", to_json(i.restoration_mode));
+        key_index(o, f, "kkt_dim", i.kkt_dim);
+        key_index(o, f, "kkt_nnz", i.kkt_nnz);
+        key(b, first, "ipm");
+        b += "{" + o + "}";
+    }
+    if (event.sqp) {
+        const SqpSolveBeginInfo &i = *event.sqp;
+        std::string o;
+        bool f = true;
+        key_index(o, f, "me", i.me);
+        key_index(o, f, "mi", i.mi);
+        key_enum(o, f, "qp_mode", to_json(i.qp_mode));
+        key_enum(o, f, "ws_algebra", to_json(i.ws_algebra));
+        key_enum(o, f, "hessian_mode", to_json(i.hessian_mode));
+        key_bool(o, f, "row_scaling", i.row_scaling);
+        key_enum(o, f, "column_scaling", to_json(i.column_scaling));
+        key(b, first, "sqp");
+        b += "{" + o + "}";
+    }
+    write_line("solve.begin", b, engine_name(event.engine));
+}
+
+void JsonLinesTraceSink::on_iter(const IterTraceEvent &event) {
+    const IterationRecord &r = event.record;
+    std::string b;
+    bool first = true;
+    key_index(b, first, "iter", r.iteration);
+    key_bool(b, first, "recovering", r.recovering);
+    key_enum(b, first, "tier", to_json(r.tier));
+    key_opt_double(b, first, "f", r.f);
+    key_opt_double(b, first, "f_recovery", r.f_recovery);
+    key_double(b, first, "stationarity", r.stationarity);
+    key_double(b, first, "feasibility", r.feasibility);
+    key_double(b, first, "complementarity", r.complementarity);
+    key_opt_double(b, first, "step", r.step_norm);
+    key_opt_bool(b, first, "accepted", r.accepted);
+    key_bool(b, first, "soc", r.soc);
+    key_bool(b, first, "watchdog", r.watchdog);
+    key_bool(b, first, "rolled_back", r.rolled_back);
+    key_index(b, first, "factorizations", r.factorizations);
+    if (r.ipm) {
+        std::string o;
+        write_ipm_row(o, *r.ipm);
+        key(b, first, "ipm");
+        b += "{" + o + "}";
+    }
+    if (r.sqp) {
+        std::string o;
+        write_sqp_row(o, *r.sqp);
+        key(b, first, "sqp");
+        b += "{" + o + "}";
+    }
+    write_line("iter", b, r.ipm ? "ipm" : "sqp");
+}
+
+void JsonLinesTraceSink::on_message(const MessageTraceEvent &event) {
     std::string b;
     bool first = true;
     key_enum(b, first, "kind", to_json(event.kind));
-    key_value(b, first, "phase", event.phase, event.phase < 0);
-    key_value(b, first, "iter", event.iter, event.iter < 0);
-    key_value(b, first, "a", event.a, std::isnan(event.a));
-    key_value(b, first, "b", event.b, std::isnan(event.b));
-    key_value(b, first, "k", event.k, event.k < 0);
-    key_value(b, first, "p", event.p, event.p < 0);
-    key_value(b, first, "n", event.n, event.n < 0);
-    key_value(b, first, "z", event.z, event.z < 0);
-    key_value(b, first, "expected_p", event.expected_p, event.expected_p < 0);
-    key_value(b, first, "expected_n", event.expected_n, event.expected_n < 0);
-    write_line("ipm.message", b);
+    key_enum(b, first, "severity", to_json(event.severity));
+    key_opt_index(b, first, "phase", event.phase);
+    key_opt_index(b, first, "iter", event.iter);
+    // `solver_initialized.a` is wall-clock: null on the wire, so a deterministic
+    // solve's stream is byte-reproducible; the console prints it from the event.
+    if (event.kind == MessageKind::kSolverInitialized) {
+        key_null(b, first, "a");
+    } else {
+        key_opt_double(b, first, "a", event.a);
+    }
+    key_opt_double(b, first, "b", event.b);
+    key_opt_index(b, first, "k", event.k);
+    if (event.s) {
+        key_string(b, first, "s", *event.s);
+    } else {
+        key_null(b, first, "s");
+    }
+    key_opt_index(b, first, "p", event.p);
+    key_opt_index(b, first, "n", event.n);
+    key_opt_index(b, first, "z", event.z);
+    key_opt_index(b, first, "expected_p", event.expected_p);
+    key_opt_index(b, first, "expected_n", event.expected_n);
+    write_line("message", b, engine_name(event.engine));
 }
 
+void JsonLinesTraceSink::on_solve_end(const SolveEndTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_enum(b, first, "status", to_json(event.status));
+    if (event.stop_reason) {
+        key_enum(b, first, "stop_reason", to_json(*event.stop_reason));
+    } else {
+        key_null(b, first, "stop_reason");
+    }
+    if (event.message) {
+        key_string(b, first, "message", *event.message);
+    } else {
+        key_null(b, first, "message");
+    }
+    key_index(b, first, "iterations", event.iterations);
+    key_bool(b, first, "returned_best_iterate", event.returned_best_iterate);
+    key_bool(b, first, "infeasibility_certified", event.infeasibility_certified);
+    key_double(b, first, "f", event.f);
+    if (event.diagnostics) {
+        std::string o;
+        bool f = true;
+        key_double(o, f, "stationarity", event.diagnostics->stationarity);
+        key_double(o, f, "feasibility", event.diagnostics->feasibility);
+        key_double(o, f, "complementarity", event.diagnostics->complementarity);
+        key(b, first, "diagnostics");
+        b += "{" + o + "}";
+    } else {
+        key_null(b, first, "diagnostics");
+    }
+    {
+        std::string o;
+        bool f = true;
+        if (event.ipm) {
+            const IpmConvergence &c = event.ipm->convergence;
+            key_double(o, f, "stationarity", c.stationarity);
+            key_double(o, f, "complementarity", c.complementarity);
+            key_double(o, f, "equality", c.equality);
+            key_double(o, f, "inequality", c.inequality);
+            key_double(o, f, "feasibility", c.feasibility);
+        } else if (event.sqp) {
+            const SqpConvergence &c = event.sqp->convergence;
+            key_double(o, f, "stationarity", c.stationarity);
+            key_double(o, f, "feasibility", c.feasibility);
+            key_double(o, f, "complementarity", c.complementarity);
+            key_double(o, f, "kkt_residual", c.kkt_residual);
+        }
+        key(b, first, "convergence");
+        b += "{" + o + "}";
+    }
+    if (event.work) {
+        std::string o;
+        bool f = true;
+        key_index(o, f, "objective_evals", event.work->objective_evals);
+        key_index(o, f, "gradient_evals", event.work->gradient_evals);
+        key_index(o, f, "constraint_evals", event.work->constraint_evals);
+        key_index(o, f, "jacobian_evals", event.work->jacobian_evals);
+        key_index(o, f, "hessian_evals", event.work->hessian_evals);
+        key_index(o, f, "factorizations", event.work->factorizations);
+        key(b, first, "work");
+        b += "{" + o + "}";
+    } else {
+        key_null(b, first, "work");
+    }
+    key(b, first, "counters");
+    if (event.ipm && event.ipm->counters != nullptr) {
+        b += counters_object(*event.ipm->counters);
+    } else if (event.sqp && event.sqp->counters != nullptr) {
+        b += counters_object(*event.sqp->counters);
+    } else {
+        b += "null";
+    }
+    key_double(b, first, "wall_s", event.wall_s);
+    if (event.ipm) {
+        const IpmSolveEndInfo &i = *event.ipm;
+        std::string o;
+        bool f = true;
+        key_double(o, f, "total_time_s", i.total_time_s);
+        key_double(o, f, "pre_time_s", i.pre_time_s);
+        key_double(o, f, "func_time_s", i.func_time_s);
+        key_double(o, f, "kkt_time_s", i.kkt_time_s);
+        key_double(o, f, "print_time_s", i.print_time_s);
+        key_double(o, f, "solver_init_time_s", i.solver_init_time_s);
+        key_double(o, f, "misc_time_s", i.misc_time_s);
+        key_index(o, f, "phases_ran", i.phases_ran);
+        key_index(o, f, "kkt_analyses_total", i.kkt_analyses_total);
+        key_opt_index(o, f, "factor_memory", i.factor_memory);
+        key_opt_index(o, f, "factor_flops", i.factor_flops);
+        key(b, first, "ipm");
+        b += "{" + o + "}";
+    }
+    if (event.sqp) {
+        const SqpSolveEndInfo &i = *event.sqp;
+        std::string o;
+        bool f = true;
+        key_bool(o, f, "scaling_active", i.scaling_active);
+        key_double(o, f, "obj_scale", i.obj_scale);
+        key_double(o, f, "row_scale_min", i.row_scale_min);
+        key_double(o, f, "row_scale_max", i.row_scale_max);
+        key_double(o, f, "scaled_kkt_residual", i.scaled_kkt_residual);
+        key_bool(o, f, "columns_active", i.columns_active);
+        key_double(o, f, "col_spread", i.col_spread);
+        key_enum(o, f, "start_level_used", to_json(i.start_level_used));
+        key(b, first, "sqp");
+        b += "{" + o + "}";
+    }
+    write_line("solve.end", b, engine_name(event.engine));
+    // Written FIRST, then unwound: this line belongs to the solve it closes.
+    if (open_solves_ > 0) {
+        --open_solves_;
+    }
+    if (open_solves_ > 0) {
+        pop_depth();
+    }
+}
 } // namespace hven

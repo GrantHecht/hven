@@ -998,6 +998,9 @@ class SqpSolverImpl {
     ///        Installed by the public handle for the duration of one solve.
     void set_callback_rows(const Problem *problem) noexcept { callback_rows_ = problem; }
 
+    /// @brief Emits `solve.end` for a result the handle has finished (normal return only).
+    void emit_solve_end(const SqpResult &result);
+
     /// @brief The payload mask the installed callback declared, or
     ///        the default mask when none is installed.
     ///
@@ -1975,7 +1978,11 @@ class SqpSolverImpl {
     void emit_trace_route(const IpqpRouteTraceEvent &event) const;
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
-    void emit_trace_sqp_major(const SqpMajorTraceEvent &event) const;
+    /// Emits the `iter` record for one history row (built only inside the sink guard).
+    void emit_trace_iter(const SqpIterate &row, Index major, QpTraceMode mode,
+                         Index factorizations) const;
+    /// The census `solve.begin` carries: the problem's, or (a sub-solve) the parent's.
+    ProblemStatistics trace_statistics_;
     // The NEXT kIpqp subproblem's seed, and the tier's one staging slot. Two
     // writers: the staged currency's unflattened zL/zU/mu at solve entry (the
     // FIRST subproblem's seed), and, under `ipqp_reseed_after_disproval`, rung

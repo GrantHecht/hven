@@ -655,6 +655,8 @@ const char *enum_name(hven::Verbosity v) {
         return "kSummary";
     case Verbosity::kIterations:
         return "kIterations";
+    case Verbosity::kDetail:
+        return "kDetail";
     }
     return "unknown";
 }
@@ -719,7 +721,6 @@ void hven::dump_options(const IpmOptions &o, std::ostream &os) {
     kv_dbl(os, "objective_scale", o.objective_scale);
     kv_bool(os, "return_best", o.return_best);
     kv_str(os, "best_iterate_criterion", enum_name(o.best_iterate_criterion));
-    kv_bool(os, "wide_console", o.wide_console);
     const IpmLinearOptions &l = o.linear;
     kv_str(os, "linear.ordering", enum_name(l.ordering));
     kv_str(os, "linear.pivot_strategy", enum_name(l.pivot_strategy));

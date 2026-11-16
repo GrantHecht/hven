@@ -3,7 +3,7 @@
 
 #pragma once
 
-// json_lines_trace_sink.h -- schema v0's ONE serializer: `TraceSink`'s eight events
+// json_lines_trace_sink.h -- schema v1's ONE serializer: `TraceSink` events
 // written as JSON lines to a caller-owned `std::ostream`.
 //
 // The contract is FIXED by docs/notes/2026-09-m6-w4-plan.md section 2 and is not
@@ -61,6 +61,9 @@ namespace hven {
 /// shares the sink SEQUENTIALLY, which is the only sharing v0 supports.
 class JsonLinesTraceSink final : public TraceSink {
   public:
+    /// The schema version this sink writes (`v` on every line).
+    static constexpr int kSchemaVersion = 1;
+
     explicit JsonLinesTraceSink(std::ostream &out);
 
     /// @brief Flushes the borrowed stream, and SWALLOWS a failure doing so.
@@ -85,20 +88,14 @@ class JsonLinesTraceSink final : public TraceSink {
     void on_ipqp_escape(const IpqpEscapeTraceEvent &event) override;
     void on_qp_mode(const QpModeTraceEvent &event) override;
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) override;
-    void on_sqp_major(const SqpMajorTraceEvent &event) override;
-    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &event) override;
-    void on_sqp_solve_end(const SqpSolveEndTraceEvent &event) override;
-    void on_ipm_iter(const IpmIterTraceEvent &event) override;
-    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
-    void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
-    void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
-    // The phase, KKT-analysis and message records. Additive events, so `v` stays 0 -- see
-    // docs/trace-schema-v0.md section 8, whose own words make new events additive.
+    void on_solve_begin(const SolveBeginTraceEvent &event) override;
+    void on_iter(const IterTraceEvent &event) override;
+    void on_message(const MessageTraceEvent &event) override;
+    void on_solve_end(const SolveEndTraceEvent &event) override;
     void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
     void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
     void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;
     void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) override;
-    void on_ipm_message(const IpmMessageTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the
@@ -175,11 +172,12 @@ class JsonLinesTraceSink final : public TraceSink {
 
     /// Wraps `body` -- the event's own keys, comma-separated, no braces -- in
     /// this line's envelope, writes it, and advances `seq_`.
-    void write_line(const char *ev, const std::string &body);
+    void write_line(const char *ev, const std::string &body, const char *eng = "sqp");
 
     std::ostream &out_;
     Index seq_ = 0;
     Index depth_ = 0;
+    Index sid_ = 0;
     /// Solves currently OPEN on this sink. `depth_` is this minus one, floored
     /// at 0; keeping the two separate is what makes the outermost solve depth 0
     /// while `push_depth`/`pop_depth` stay usable on their own.

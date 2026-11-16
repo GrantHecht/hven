@@ -655,6 +655,8 @@ const char *enum_name(Verbosity v) {
         return "kSummary";
     case Verbosity::kIterations:
         return "kIterations";
+    case Verbosity::kDetail:
+        return "kDetail";
     }
     return "unknown";
 }

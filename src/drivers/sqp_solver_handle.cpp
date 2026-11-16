@@ -114,6 +114,7 @@ SqpResult solve_on(SqpSolverImpl &engine, Problem &problem, const Vec &x0,
         SqpResult result =
             target.assembly != nullptr ? entry(*target.assembly) : entry(*target.model);
         finish_result(engine, problem, budget, result);
+        engine.emit_solve_end(result);
         // A returned solve leaves last_result() empty: the value is the caller's.
         return result;
     } catch (...) {

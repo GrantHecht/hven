@@ -280,48 +280,10 @@ class SqpSolver {
     std::unique_ptr<detail::SqpSolverImpl> impl_;
 };
 
-// Defined in src/drivers/sqp_print.cpp alongside format_iteration_table.
+// Defined in src/drivers/sqp_print.cpp.
 /// @brief Human-readable name of a step verdict, for the iteration printer.
 /// @param v The verdict.
 /// @return A static string; nothing in the driver branches on it.
 const char *to_string(StepVerdict v);
-
-/// @brief Renders `sol.history` as an fmt-based iteration table, one row per
-///        SqpIterate.
-/// @param sol A finished solve.
-/// @return The table, ready to print.
-std::string format_iteration_table(const SqpResult &sol);
-
-// The five pieces `format_iteration_table` is assembled from. Concatenating
-// them over a finished solve reproduces `format_iteration_table` exactly, so
-// a caller that renders incrementally gets the same text.
-
-/// @brief The table's header line plus its rule, both newline-terminated.
-std::string sqp_iteration_table_head();
-
-/// @brief One table row, newline-terminated. A row with `qp_solved == false`
-///        renders "-" in the verdict and the two QP columns -- the solve's
-///        stopped-AT row, or a non-finite step rollback row (`rolled_back`: the
-///        WD column then reads "r"; "*" is a watchdog restore). Rollback rows
-///        may sit mid-history and a solve may carry several.
-/// @param row The history row.
-std::string sqp_iteration_table_row(const SqpIterate &row);
-
-/// @brief The trailer's `Status` line, with its leading blank line.
-/// @param status The solve's verdict.
-std::string sqp_iteration_table_status_line(SolveStatus status);
-
-/// @brief The trailer's `Start Level` line.
-/// @param level `SqpCounters::start_level_used` -- the RESOLVED level.
-std::string sqp_iteration_table_start_level_line(StartLevel level);
-
-/// @brief The trailer's `Scaling` line; "Scaling: off" when inactive.
-/// @param active              `SqpScalingReport::active`.
-/// @param obj                 The objective factor.
-/// @param row_min             The smallest constraint-row factor.
-/// @param row_max             The largest constraint-row factor.
-/// @param scaled_kkt_residual The residual the convergence test read.
-std::string sqp_iteration_table_scaling_line(bool active, double obj, double row_min,
-                                             double row_max, double scaled_kkt_residual);
 
 } // namespace hven

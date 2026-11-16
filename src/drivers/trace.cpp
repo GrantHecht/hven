@@ -25,26 +25,15 @@ void TraceSink::on_ipqp_certify(const IpqpCertifyTraceEvent &) {}
 void TraceSink::on_ipqp_escape(const IpqpEscapeTraceEvent &) {}
 void TraceSink::on_qp_mode(const QpModeTraceEvent &) {}
 void TraceSink::on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) {}
-void TraceSink::on_sqp_major(const SqpMajorTraceEvent &) {}
-void TraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {}
-void TraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &) {}
-void TraceSink::on_ipm_iter(const IpmIterTraceEvent &) {}
-void TraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) {}
-void TraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &) {}
-// M6 W5 T8.7's own event, on the same footing.
-void TraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &) {}
-// M6 W5 T8.7b's five, on the same footing again: the interior-point engine's
-// last direct prints are events now, and a sink written before them is not
-// touched by their arrival.
+void TraceSink::on_solve_begin(const SolveBeginTraceEvent &) {}
+void TraceSink::on_iter(const IterTraceEvent &) {}
+void TraceSink::on_message(const MessageTraceEvent &) {}
+void TraceSink::on_solve_end(const SolveEndTraceEvent &) {}
 void TraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &) {}
 void TraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &) {}
 void TraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &) {}
 void TraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &) {}
-void TraceSink::on_ipm_message(const IpmMessageTraceEvent &) {}
 
-// THE ONE COPY (M6 W4 T4). It lived in `sqp_solver.cpp`'s anonymous namespace
-// through T2/T3 and moved here unchanged the moment a second caller appeared;
-// the arithmetic, and therefore `sqp.solve.begin`'s golden line, is untouched.
 VariableBoundCensus census_variable_bounds(const Vec &lower, const Vec &upper, Index n) {
     if (n < 0) {
         throw std::invalid_argument(

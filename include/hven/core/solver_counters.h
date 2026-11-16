@@ -823,6 +823,9 @@ inline bool counter_never_absent(Index) { return false; }
 inline bool counter_never_absent(double) { return false; }
 inline bool counter_never_absent(StartLevel) { return false; }
 inline bool counter_never_absent(RestorationSubStatus) { return false; }
+template <std::size_t N> inline bool counter_never_absent(const std::array<Index, N> &) {
+    return false;
+}
 
 /// `+infinity` as "never measured" (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`).
 inline bool counter_absent_at_pos_inf(double v) {

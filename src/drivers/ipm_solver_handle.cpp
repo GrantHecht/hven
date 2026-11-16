@@ -124,6 +124,7 @@ IpmResult IpmSolver::solve(Problem &problem, ConstVecRef x0_in, const WarmStart 
         IpmResult result = warm.empty() ? engine.solve(program, x0, budget)
                                         : engine.solve(program, x0, warm, budget);
         finish_result(engine, problem, budget, result);
+        engine.emit_solve_end(result);
         // A returned solve leaves last_result() empty: the value is the caller's.
         return result;
     } catch (...) {

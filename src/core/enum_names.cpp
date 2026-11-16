@@ -158,37 +158,47 @@ const char *to_string(StopReason reason) {
         fmt::format("to_string(StopReason): unrecognized value ({})", static_cast<int>(reason)));
 }
 
-// THE ELEVEN MESSAGE KINDS (M6 W5 T8.7b; two added by M8 AP-5 G1). Lower snake, which is both the
-// display form and -- unlike to_string(StartLevel) below -- the schema's own spelling, so
-// trace_writer.cpp's to_json(IpmMessageKind) forwards here rather than keeping a second copy that
-// could drift.
-const char *to_string(IpmMessageKind kind) {
+// The message kinds, lower snake: the display form and the schema spelling, so
+// trace_writer.cpp forwards here rather than keeping a second copy that could drift.
+const char *to_string(MessageKind kind) {
     switch (kind) {
-    case IpmMessageKind::kSolverInitialized:
+    case MessageKind::kSolverInitialized:
         return "solver_initialized";
-    case IpmMessageKind::kRankDeficiency:
+    case MessageKind::kRankDeficiency:
         return "rank_deficiency";
-    case IpmMessageKind::kFactorizationHardError:
+    case MessageKind::kFactorizationHardError:
         return "factorization_hard_error";
-    case IpmMessageKind::kInertiaExhausted:
+    case MessageKind::kInertiaExhausted:
         return "inertia_exhausted";
-    case IpmMessageKind::kRestorationLocallyInfeasible:
-        return "restoration_locally_infeasible";
-    case IpmMessageKind::kFeasibilityStall:
+    case MessageKind::kFeasibilityStall:
         return "feasibility_stall";
-    case IpmMessageKind::kInterruptAtIteration:
-        return "interrupt_at_iteration";
-    case IpmMessageKind::kPhaseDiverged:
+    case MessageKind::kPhaseDiverged:
         return "phase_diverged";
-    case IpmMessageKind::kInterruptSkippingPhases:
+    case MessageKind::kInterruptSkippingPhases:
         return "interrupt_skipping_phases";
-    case IpmMessageKind::kStopRequestedAtIteration:
-        return "stop_requested_at_iteration";
-    case IpmMessageKind::kStopRequestedSkippingPhases:
+    case MessageKind::kStopRequestedSkippingPhases:
         return "stop_requested_skipping_phases";
+    case MessageKind::kRestorationEntered:
+        return "restoration_entered";
+    case MessageKind::kRestorationExited:
+        return "restoration_exited";
+    case MessageKind::kRestorationRefused:
+        return "restoration_refused";
+    case MessageKind::kSubproblemFailure:
+        return "subproblem_failure";
+    case MessageKind::kElasticExhausted:
+        return "elastic_exhausted";
+    case MessageKind::kInconsistentEqualities:
+        return "inconsistent_equalities";
+    case MessageKind::kStartPointClamped:
+        return "start_point_clamped";
+    case MessageKind::kScaledConvergenceRefused:
+        return "scaled_convergence_refused";
+    case MessageKind::kStopAtIteration:
+        return "stop_at_iteration";
     }
     throw std::invalid_argument(
-        fmt::format("to_string(IpmMessageKind): unrecognized value ({})", static_cast<int>(kind)));
+        fmt::format("to_string(MessageKind): unrecognized value ({})", static_cast<int>(kind)));
 }
 
 const char *to_string(IpmKktFactorStatus status) {

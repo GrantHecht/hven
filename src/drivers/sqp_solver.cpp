@@ -1770,29 +1770,138 @@ QpTraceMode trace_mode_of(QpMode mode) {
 /// NOT AN RAII SCOPE any more (fix round 1, R1): the pair is written by two
 /// explicit statements in `solve_impl`, so the last write of a solve is not
 /// inside a `noexcept` destructor.
-SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts, const AssemblyEvalSeam &seam,
-                                               Index absent_bounds) {
-    SqpSolveBeginTraceEvent ev;
-    ev.n = seam.n();
-    ev.me = seam.me();
-    ev.mi = seam.mi();
-    // The census lives in `src/drivers/trace.cpp`, shared with the
-    // interior-point driver's own `begin` line: same arithmetic, one copy.
-    const VariableBoundCensus box = census_variable_bounds(seam.lower(), seam.upper(), seam.n());
-    ev.vars_free = box.vars_free;
-    ev.vars_lower_only = box.vars_lower_only;
-    ev.vars_upper_only = box.vars_upper_only;
-    ev.vars_ranged = box.vars_ranged;
-    ev.vars_fixed = box.vars_fixed;
-    ev.qp_mode = trace_mode_of(opts.qp_mode);
-    ev.ws_algebra = opts.qp.working_set_algebra;
-    ev.absent_bounds = absent_bounds;
+SolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts, const AssemblyEvalSeam &seam,
+                                            const ProblemStatistics &statistics) {
+    SolveBeginTraceEvent ev;
+    ev.engine = TraceEngine::kSqp;
+    ev.statistics = statistics;
+    ev.optimality_tol = opts.common.optimality_tol;
+    ev.feasibility_tol = opts.common.feasibility_tol;
+    ev.max_iterations = opts.common.max_iterations;
+    SqpSolveBeginInfo info;
+    info.me = seam.me();
+    info.mi = seam.mi();
+    info.qp_mode = trace_mode_of(opts.qp_mode);
+    info.ws_algebra = opts.qp.working_set_algebra;
+    info.hessian_mode = opts.hessian_mode;
+    info.row_scaling = opts.row_scaling;
+    info.column_scaling = opts.column_scaling;
+    ev.sqp = info;
     return ev;
 }
 
-// THE SECTION 5.4 GRADE (plan ruling 4): full warm from the `hven.ipm.polish.v1` payload,
-// base warm from the core's signed price alone, `nullopt` = cold; flow (a) already consumed
-// `primal_` as `x0`. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 3.
+/// The census used when no Problem supplied one (a direct engine call).
+ProblemStatistics census_from_seam(const AssemblyEvalSeam &seam, Index absent_bounds) {
+    ProblemStatistics st;
+    const VariableBoundCensus box = census_variable_bounds(seam.lower(), seam.upper(), seam.n());
+    st.variables = seam.n();
+    st.free_variables = box.vars_free;
+    st.lower_bounded_variables = box.vars_lower_only;
+    st.upper_bounded_variables = box.vars_upper_only;
+    st.boxed_variables = box.vars_ranged;
+    st.fixed_variables = box.vars_fixed;
+    st.constraints = seam.me() + seam.mi();
+    st.equality_rows = seam.me();
+    st.absent_bounds = absent_bounds;
+    return st;
+}
+
+IterationRecord make_sqp_iteration_record(const SqpIterate &r, Index major, QpTraceMode mode,
+                                          Index depth, Index factorizations) {
+    IterationRecord rec;
+    rec.iteration = major;
+    rec.recovering = depth >= 1;
+    if (depth >= 1) {
+        rec.tier = IterationTier::kRestoration;
+    } else if (r.elastic_applied) {
+        rec.tier = IterationTier::kElastic;
+    } else {
+        rec.tier = mode == QpTraceMode::kIpqp  ? IterationTier::kIpqp
+                   : mode == QpTraceMode::kSsn ? IterationTier::kSsn
+                                               : IterationTier::kWalk;
+    }
+    if (depth >= 1) {
+        rec.f_recovery = r.f;
+    } else {
+        rec.f = r.f;
+    }
+    rec.stationarity = r.stationarity;
+    rec.feasibility = r.feasibility;
+    rec.complementarity = r.complementarity;
+    const bool stepped = r.qp_solved && r.qp_status == QpStatus::kOptimal;
+    const bool accepted = r.verdict == StepVerdict::kAcceptObjectiveStep ||
+                          r.verdict == StepVerdict::kAcceptFeasibilityStep;
+    if (stepped) {
+        rec.step_norm = r.step_norm;
+        rec.accepted = accepted;
+    }
+    rec.soc = r.soc_applied;
+    rec.watchdog = r.watchdog_restored;
+    rec.rolled_back = r.rolled_back;
+    rec.factorizations = factorizations;
+    SqpIterationRow row;
+    row.depth = depth;
+    row.mode = mode;
+    row.trust_radius = r.tr_radius;
+    row.violation_l1 = r.violation_l1;
+    row.qp_solved = r.qp_solved;
+    if (r.qp_solved) {
+        row.verdict = r.verdict;
+        row.dual_regularization = r.mu;
+        row.qp_status = r.qp_status;
+        row.qp_minor_iterations = r.qp_minor_iters;
+        row.qp_factorizations = r.qp_factorizations;
+    }
+    row.tr_binding = r.tr_binding;
+    row.elastic = r.elastic_applied;
+    row.elastic_clamped = r.elastic_rho0_ceiling_hit;
+    row.restoration_seed_used = r.restoration_seed_used;
+    if (r.ipqp_least_infeasible_primal != 0.0 || r.ipqp_farkas_corroborated) {
+        row.ipqp_least_infeasible_primal = r.ipqp_least_infeasible_primal;
+        row.ipqp_farkas_corroborated = r.ipqp_farkas_corroborated;
+    }
+    row.active_set_size = r.active_rows + r.active_lower_sides + r.active_upper_sides;
+    row.active_set_delta = r.active_set_delta;
+    row.weak_active_rows = r.weak_active_rows;
+    row.near_active_rows = r.near_active_rows;
+    row.active_rows = r.active_rows;
+    row.active_lower_sides = r.active_lower_sides;
+    row.active_upper_sides = r.active_upper_sides;
+    rec.sqp = row;
+    return rec;
+}
+
+SolveEndTraceEvent make_sqp_solve_end_event(const SqpResult &r, bool declared) {
+    SolveEndTraceEvent e;
+    e.engine = TraceEngine::kSqp;
+    e.status = r.status;
+    e.iterations = r.counters.major_iters;
+    e.returned_best_iterate = r.returned_best_iterate;
+    e.infeasibility_certified = r.infeasibility_certified;
+    e.f = r.f;
+    e.wall_s = r.wall_seconds;
+    if (declared) {
+        e.stop_reason = r.stop_reason;
+        e.message = std::string_view(r.message);
+        e.iterations = r.iterations;
+        e.diagnostics = DeclaredDiagnosticsTrace{r.stationarity, r.feasibility, r.complementarity};
+        e.work = r.work;
+    }
+    SqpSolveEndInfo i;
+    i.convergence = r.convergence;
+    i.counters = &r.counters;
+    i.scaling_active = r.scaling.active;
+    i.obj_scale = r.scaling.objective;
+    i.row_scale_min = r.scaling.row_min;
+    i.row_scale_max = r.scaling.row_max;
+    i.scaled_kkt_residual = r.scaling.scaled_kkt_residual;
+    i.columns_active = r.scaling.columns_active;
+    i.col_spread = r.scaling.column_spread;
+    i.start_level_used = r.counters.start_level_used;
+    e.sqp = i;
+    return e;
+}
+
 std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStart &data, Index n, Index me, Index mi) {
     // Sizes: `primal_`, `iq_lmults_` and `bound_lmults_` were checked against
     // this problem by the caller's degrade gate, and the polish widths against
@@ -2330,9 +2439,18 @@ void SqpSolverImpl::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEve
     }
 }
 
-void SqpSolverImpl::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
+void SqpSolverImpl::emit_trace_iter(const SqpIterate &row, Index major, QpTraceMode mode,
+                                    Index factorizations) const {
     if (ipqp_trace_ != nullptr) {
-        ipqp_trace_->on_sqp_major(event);
+        const IterationRecord record = make_sqp_iteration_record(
+            row, major, mode, is_restoration_sub_driver_ ? 1 : 0, factorizations);
+        ipqp_trace_->on_iter(IterTraceEvent{record});
+    }
+}
+
+void SqpSolverImpl::emit_solve_end(const SqpResult &result) {
+    if (ipqp_trace_ != nullptr) {
+        ipqp_trace_->on_solve_end(make_sqp_solve_end_event(result, true));
     }
 }
 
@@ -3361,7 +3479,7 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
         // `wide` is an interior-point layout option and is IGNORED by the SQP
         // renderings; the field is passed as it stands rather than invented.
         console_ = std::make_unique<ConsoleTraceSink>(
-            ConsoleTraceSink::Format{/*wide=*/false, opts_.common.verbosity});
+            ConsoleTraceSink::Format{.verbosity = opts_.common.verbosity});
         if (user_trace_ != nullptr) {
             fanout_ = std::make_unique<FanOutTraceSink>(user_trace_, console_.get());
             ipqp_trace_ = fanout_.get();
@@ -3384,7 +3502,12 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
     // implicitly `noexcept`, so under the armed mask T1 ruled must PROPAGATE, a
     // failure on this last line called `std::terminate` instead.
     if (ipqp_trace_ != nullptr) {
-        ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam, solve_absent_bounds_));
+        if (!is_restoration_sub_driver_) {
+            trace_statistics_ = callback_rows_ != nullptr
+                                    ? callback_rows_->statistics()
+                                    : census_from_seam(seam, solve_absent_bounds_);
+        }
+        ipqp_trace_->on_solve_begin(make_solve_begin_event(opts_, seam, trace_statistics_));
     }
     finish_exported_feasibility_price_ = false;
     SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
@@ -3438,11 +3561,9 @@ SqpResult SqpSolverImpl::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &br
         // solution the caller is about to receive. It is the console trailer's
         // only source -- `format_iteration_table`'s `Scaling:` line reads
         // `sol.scaling`, and no event carried it before this task.
-        ipqp_trace_->on_sqp_solve_end(
-            SqpSolveEndTraceEvent{out.status, out.counters.major_iters, out.counters,
-                                  out.scaling.active, out.scaling.objective, out.scaling.row_min,
-                                  out.scaling.row_max, out.scaling.scaled_kkt_residual,
-                                  out.scaling.columns_active, out.scaling.column_spread});
+        if (is_restoration_sub_driver_) {
+            ipqp_trace_->on_solve_end(make_sqp_solve_end_event(out, false));
+        }
     }
     return out;
 }
@@ -6117,6 +6238,7 @@ SqpSolverImpl::enter_restoration(SolveState &st, MajorState &mj, AssemblyEvalSea
         // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
         // sub-solve's own `sqp.solve` pair, rows and tier events land in the
         // same stream, told apart by the sink-owned `depth`.
+        sub.trace_statistics_ = trace_statistics_;
         sub.attach_trace(ipqp_trace_);
         // THE CALLBACK IS FORWARDED, NOT COPIED (M6 W5 T8.6). The sub-driver runs
         // its own history and its own `push_history`, so its rows reach the
@@ -7289,8 +7411,8 @@ SqpSolverImpl::MajorOutcome SqpSolverImpl::run_major(SolveState &st, MajorState 
         // the map and before the push, so `major` is this row's index in
         // the vector and all six push sites are covered by one site.
         if (ipqp_trace_ != nullptr) {
-            emit_trace_sqp_major(SqpMajorTraceEvent{
-                exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode});
+            emit_trace_iter(exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode,
+                            st.out.counters.factorizations);
         }
         // THE ITERATION EVENT, AT THE SAME SITE AND IN THE SAME UNITS (M6 W5
         // T8.6): after the trace emit and before the push, so the callback,

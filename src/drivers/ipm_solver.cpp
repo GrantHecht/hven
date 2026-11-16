@@ -836,10 +836,13 @@ void hven::detail::IpmSolverImpl::ensure_solver_initialized() {
         // a caller's own sink now learns that initialization ran at all.
         //
         // `phase` IS ABSENT HERE and that is a reading: no phase has begun.
-        IpmMessageTraceEvent msg;
-        msg.kind = IpmMessageKind::kSolverInitialized;
-        msg.a = initMs;
-        this->emit_message(msg);
+        this->emit_message([&] {
+            MessageTraceEvent msg;
+            msg.kind = MessageKind::kSolverInitialized;
+            msg.a = initMs;
+            msg.severity = default_message_severity(msg.kind);
+            return msg;
+        });
     }
 }
 
@@ -1992,11 +1995,14 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
             // ONE EVENT PER OCCURRENCE (M6 W5 T8.7b). This lambda is invoked at
             // THREE ladder sites per call, so several messages in one iteration
             // are normal and a count pin counts by kind, not by iteration.
-            IpmMessageTraceEvent msg;
-            msg.kind = IpmMessageKind::kRankDeficiency;
-            msg.phase = this->trace_phase_;
-            msg.iter = this->trace_iter_;
-            this->emit_message(msg);
+            this->emit_message([&] {
+                MessageTraceEvent msg;
+                msg.kind = MessageKind::kRankDeficiency;
+                msg.phase = this->trace_phase_;
+                msg.iter = this->trace_iter_;
+                msg.severity = default_message_severity(msg.kind);
+                return msg;
+            });
         }
     };
     // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
@@ -2017,12 +2023,15 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
         if (info != Eigen::Success) {
             this->phase_kkt_info_ = info;
             if (info != Eigen::NumericalIssue) {
-                IpmMessageTraceEvent msg;
-                msg.kind = IpmMessageKind::kFactorizationHardError;
-                msg.phase = this->trace_phase_;
-                msg.iter = this->trace_iter_;
-                msg.k = static_cast<Index>(info);
-                this->emit_message(msg);
+                this->emit_message([&] {
+                    MessageTraceEvent msg;
+                    msg.kind = MessageKind::kFactorizationHardError;
+                    msg.phase = this->trace_phase_;
+                    msg.iter = this->trace_iter_;
+                    msg.k = static_cast<Index>(info);
+                    msg.severity = default_message_severity(msg.kind);
+                    return msg;
+                });
             }
         }
     };
@@ -2167,17 +2176,20 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     // the ladder expected. The console prints the trailing expected zero as a
     // literal, exactly as the old format string did.
     {
-        IpmMessageTraceEvent msg;
-        msg.kind = IpmMessageKind::kInertiaExhausted;
-        msg.phase = this->trace_phase_;
-        msg.iter = this->trace_iter_;
-        msg.k = opts_.advanced.max_inertia_correction_attempts;
-        msg.p = this->kkt_sol_.peigs();
-        msg.n = this->kkt_sol_.neigs();
-        msg.z = this->kkt_dim_ - this->kkt_sol_.peigs() - this->kkt_sol_.neigs();
-        msg.expected_p = this->kkt_dim_ - (this->equal_cons_ + this->inequal_cons_);
-        msg.expected_n = this->equal_cons_ + this->inequal_cons_;
-        this->emit_message(msg);
+        this->emit_message([&] {
+            MessageTraceEvent msg;
+            msg.kind = MessageKind::kInertiaExhausted;
+            msg.phase = this->trace_phase_;
+            msg.iter = this->trace_iter_;
+            msg.k = opts_.advanced.max_inertia_correction_attempts;
+            msg.p = this->kkt_sol_.peigs();
+            msg.n = this->kkt_sol_.neigs();
+            msg.z = this->kkt_dim_ - this->kkt_sol_.peigs() - this->kkt_sol_.neigs();
+            msg.expected_p = this->kkt_dim_ - (this->equal_cons_ + this->inequal_cons_);
+            msg.expected_n = this->equal_cons_ + this->inequal_cons_;
+            msg.severity = default_message_severity(msg.kind);
+            return msg;
+        });
     }
     exhausted = true;
     return opts_.advanced.max_inertia_correction_attempts;
@@ -2779,10 +2791,84 @@ void hven::detail::IpmSolverImpl::apply_pending_kkt_hook(bool at_solve_entry) {
     this->kkt_hook_ = std::move(next);
 }
 
-void hven::detail::IpmSolverImpl::emit_message(const IpmMessageTraceEvent &event) {
+template <class Build> void hven::detail::IpmSolverImpl::emit_message(Build &&build) {
     if (TraceSink *const sink = this->trace_; sink != nullptr) {
-        sink->on_ipm_message(event);
+        sink->on_message(build());
     }
+}
+
+void hven::detail::IpmSolverImpl::emit_iter(TraceSink &sink, const IpmIterate &row) const {
+    const IterationRecord record = this->make_iteration_record(row);
+    sink.on_iter(IterTraceEvent{record});
+}
+
+hven::IterationRecord
+hven::detail::IpmSolverImpl::make_iteration_record(const IpmIterate &r) const {
+    const double scale = this->solve_obj_scale_;
+    const ExitEvalProvenance &prov = this->cur_eval_prov_;
+    const bool recovering = prov.restoration_active ||
+                            (this->restoration_ != nullptr && this->restoration_->is_active());
+    const bool stepped = !std::isnan(r.step_norm);
+    IterationRecord rec;
+    rec.iteration = r.iter;
+    rec.recovering = recovering;
+    rec.tier = recovering ? IterationTier::kRestoration : IterationTier::kBarrier;
+    if (recovering) {
+        rec.f_recovery = r.prim_obj;
+    } else if (prov.objective_bearing) {
+        rec.f = r.prim_obj / scale;
+    }
+    rec.stationarity = r.kkt_inf / scale;
+    rec.feasibility = std::max(r.econ_inf, r.icon_inf);
+    rec.complementarity = r.barr_inf / scale;
+    if (stepped) {
+        rec.step_norm = r.step_norm;
+        rec.accepted = r.accepted;
+    }
+    rec.soc = r.soc;
+    rec.watchdog = r.watchdog;
+    rec.rolled_back = r.rolled_back;
+    rec.factorizations = r.factorizations;
+    IpmIterationRow row;
+    row.phase = this->trace_phase_;
+    row.mu = r.mu;
+    if (stepped) {
+        row.alpha_primal = r.alpha_t * r.alpha_p;
+        row.alpha_dual = r.alpha_t * r.alpha_d;
+        row.alpha_scale = r.alpha_t;
+        row.line_search_trials = r.ls_iters;
+        row.regularization_primal = r.h_pert;
+        row.regularization_primal_total = r.h_pert_cum;
+        if (r.h_facs >= 0) {
+            row.inertia_corrections = r.h_facs;
+        }
+        row.barrier_objective = r.barr_obj;
+        row.merit = r.merit_val;
+    }
+    if (r.prox_reg_dual >= 0.0) {
+        row.regularization_dual = r.prox_reg_dual;
+    }
+    if (r.prox_reg_primal >= 0.0) {
+        row.proximal_primal = r.prox_reg_primal;
+    }
+    if (r.p_pivots_observed) {
+        row.perturbed_pivots = r.p_pivots;
+    }
+    row.feasibility_eq = r.econ_inf;
+    row.feasibility_ineq = r.icon_inf;
+    row.merit_penalty_1 = r.pen_par1;
+    row.merit_penalty_2 = r.pen_par2;
+    row.max_multiplier_eq = r.max_e_mult;
+    row.max_multiplier_ineq = r.max_i_mult;
+    if (r.first_rejection_iter >= 0) {
+        row.first_rejected_trial = r.first_rejection_iter;
+    }
+    if (r.theta_at_first_rejection >= 0.0) {
+        row.theta_first_rejected = r.theta_at_first_rejection;
+    }
+    row.eval_exceptions = r.eval_exceptions;
+    rec.ipm = row;
+    return rec;
 }
 
 /// `Eigen::ComputationInfo` -> the schema's named vocabulary (M6 W5 T8.7b).
@@ -3111,6 +3197,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             }
             this->acceptance_->retract_last_acceptance();
             ++this->result_.counters.nonfinite_step_rollbacks;
+            Citer.rolled_back = true;
             step_cap = next_cap;
         }
         if (nonfinite_abort) [[unlikely]] {
@@ -3123,6 +3210,9 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             Funtimer.stop();
             v_rhs.prim_grad() += PGX;
             this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
+            Citer.factorizations =
+                this->lifetime_factorize_count() - this->factorizations_at_entry_;
+            v_rhs.prim_grad() += PGX;
             iters.push_back(Citer);
             if (opts_.return_best && best_recorded) {
                 // RETURN_BEST ON AND A FINITE BEST ITERATE RECORDED: it is
@@ -3307,6 +3397,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // never needed (that work only ever feeds `XSL += alpha*DXSL`, which those
         // three exit codes never reach).
         this->fill_residual_info(v_xsl, v_rhs, prim_obj, Citer);
+        Citer.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;
         iters.push_back(Citer);
         SolveStatus PreExitCode = this->converge_check(iters);
 
@@ -3581,14 +3672,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // rather than two.
                 if (TraceSink *const sink = this->trace_; sink != nullptr) {
                     Printtimer.start();
-                    sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
-                    // THE DOOR'S OWN MARKER (`ipm.restoration_exit_row`, M6 W5
-                    // T8.7), adjacent to the row it refers to. It carries what
-                    // the row cannot: WHICH of the four NOTCONVERGED exits this
-                    // is, and the two numbers the warning below prints.
-                    sink->on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{
-                        iters.back(), this->trace_phase_, locally_infeasible_theta,
-                        locally_infeasible_threshold});
+                    this->emit_iter(*sink, iters.back());
                     Printtimer.stop();
                 }
                 if (opts_.return_best) {
@@ -3626,13 +3710,17 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     CBtimer.stop();
                 }
                 {
-                    IpmMessageTraceEvent msg;
-                    msg.kind = IpmMessageKind::kRestorationLocallyInfeasible;
-                    msg.phase = this->trace_phase_;
-                    msg.iter = this->trace_iter_;
-                    msg.a = locally_infeasible_theta;
-                    msg.b = locally_infeasible_threshold;
-                    this->emit_message(msg);
+                    this->emit_message([&] {
+                        MessageTraceEvent msg;
+                        msg.kind = MessageKind::kRestorationExited;
+                        msg.phase = this->trace_phase_;
+                        msg.iter = this->trace_iter_;
+                        msg.a = locally_infeasible_theta;
+                        msg.b = locally_infeasible_threshold;
+                        msg.s = "locally_infeasible";
+                        msg.severity = default_message_severity(msg.kind);
+                        return msg;
+                    });
                 }
                 break;
             }
@@ -3683,7 +3771,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // restoration door above for the `Printtimer` note.
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
-                sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                this->emit_iter(*sink, iters.back());
                 Printtimer.stop();
             }
 
@@ -3857,13 +3945,16 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     // terminal conjunction so a stall on the cap iteration wins
                     // the tie by program order; see last_stop_reason().
                     this->last_stop_reason_ = IpmPhaseStop::kStageStalled;
-                    IpmMessageTraceEvent msg;
-                    msg.kind = IpmMessageKind::kFeasibilityStall;
-                    msg.phase = this->trace_phase_;
-                    msg.iter = this->trace_iter_;
-                    msg.a = theta_fs;
-                    msg.b = feas_stall.theta_at_last_dispatch_;
-                    this->emit_message(msg);
+                    this->emit_message([&] {
+                        MessageTraceEvent msg;
+                        msg.kind = MessageKind::kFeasibilityStall;
+                        msg.phase = this->trace_phase_;
+                        msg.iter = this->trace_iter_;
+                        msg.a = theta_fs;
+                        msg.b = feas_stall.theta_at_last_dispatch_;
+                        msg.severity = default_message_severity(msg.kind);
+                        return msg;
+                    });
                 }
             }
         }
@@ -3980,16 +4071,19 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             // restoration door above for the `Printtimer` note.
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
-                sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                this->emit_iter(*sink, iters.back());
                 Printtimer.stop();
             }
             {
-                IpmMessageTraceEvent msg;
-                msg.kind = callback_stop ? IpmMessageKind::kInterruptAtIteration
-                                         : IpmMessageKind::kStopRequestedAtIteration;
-                msg.phase = this->trace_phase_;
-                msg.iter = iters.back().iter;
-                this->emit_message(msg);
+                this->emit_message([&] {
+                    MessageTraceEvent msg;
+                    msg.kind = MessageKind::kStopAtIteration;
+                    msg.phase = this->trace_phase_;
+                    msg.iter = iters.back().iter;
+                    msg.s = callback_stop ? "callback" : "token";
+                    msg.severity = default_message_severity(msg.kind);
+                    return msg;
+                });
             }
         };
         if (const bool callback_stop = this->interrupt_requested_;
@@ -4012,7 +4106,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->result_.status = ExitCode;
             if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
-                sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                this->emit_iter(*sink, iters.back());
                 Printtimer.stop();
             }
             break;
@@ -4071,6 +4165,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // this iteration's event described. Citer is that event's row unchanged
         // (the continuing path pops it and writes it only from here down).
         if (h_facs == kLadderStopped) [[unlikely]] {
+            Citer.factorizations =
+                this->lifetime_factorize_count() - this->factorizations_at_entry_;
             iters.push_back(Citer);
             honour_stop(false);
             break;
@@ -4557,6 +4653,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
             this->result_.counters.recovery_depth_histogram[resolved_depth]++;
         } else if (should_dispatch_recovery(GoodStep, Citer)) {
             int resolved_depth = kRecoveryDepthUnresolved;
+            const Index watchdog_before = this->result_.counters.watchdog_activations;
             const RecoveryChain::Action recovery_action = this->recovery_->on_step_rejected(
                 Citer, iters, ctx, *acceptance_, *mechanism_, lsmode, obj_scale * lsobjscale,
                 step_mu, prim_obj, barr_obj, XSL, DXSL, Temp, RHS, RHS2, alpha, alphap, alphad,
@@ -4729,6 +4826,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                                        "but no give-up handling exists yet "
                                        "(no recovery link can produce this Action)");
             }
+            Citer.soc = resolved_depth == kRecoveryDepthSoc;
+            Citer.watchdog = this->result_.counters.watchdog_activations > watchdog_before;
             this->result_.counters.recovery_depth_histogram[resolved_depth]++;
         } else if (GoodStep && Citer.accepted) {
             // Mirrors should_dispatch_recovery's gate (GoodStep && !accepted_)
@@ -4764,6 +4863,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         Citer.alpha_t = alpha;
         Citer.eval_exceptions = this->eval_error_log_.count_ - eval_errs_before;
 
+        if (GoodStep) {
+            Citer.step_norm = (alpha * DXSL.head(this->primal_vars_)).lpNorm<Eigen::Infinity>();
+        }
+        Citer.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;
         this->fill_iter_info(v_xsl, v_rhs, prim_obj, barr_obj, mu, Citer);
         iters.push_back(Citer);
 
@@ -4792,7 +4895,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
         // above for the `Printtimer` note.
         if (TraceSink *const sink = this->trace_; sink != nullptr) {
             Printtimer.start();
-            sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+            this->emit_iter(*sink, iters.back());
             Printtimer.stop();
         }
         // THE LATE CALLBACK USED TO FIRE HERE, and it does not any more (M6 W5
@@ -6531,7 +6634,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     this->trace_ = this->user_trace_;
     if (opts_.common.verbosity != Verbosity::kSilent) {
         this->console_ = std::make_unique<ConsoleTraceSink>(
-            ConsoleTraceSink::Format{opts_.wide_console, opts_.common.verbosity});
+            ConsoleTraceSink::Format{.verbosity = opts_.common.verbosity});
         if (this->user_trace_ != nullptr) {
             // CALLER FIRST, CONSOLE SECOND: a caller's sink that throws takes
             // the solve with it, and the console has then written nothing for
@@ -6556,45 +6659,46 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // member per emit, so nothing a callee does between the check and the call
     // can change which sink this event reaches.
     if (TraceSink *const sink = this->trace_; sink != nullptr) {
-        IpmSolveBeginTraceEvent begin_event;
-        begin_event.n = this->full_primal_vars_;
-        begin_event.n_reduced = this->primal_vars_;
-        begin_event.me = this->equal_cons_;
-        begin_event.mi = this->inequal_cons_;
-        const VariableBoundCensus box = census_variable_bounds(
-            this->nlp_->x_lower_, this->nlp_->x_upper_, this->full_primal_vars_);
-        begin_event.vars_free = box.vars_free;
-        begin_event.vars_lower_only = box.vars_lower_only;
-        begin_event.vars_upper_only = box.vars_upper_only;
-        begin_event.vars_ranged = box.vars_ranged;
-        begin_event.vars_fixed = box.vars_fixed;
-        begin_event.absent_bounds = this->nlp_->absent_bounds_ + this->nlp_->source_absent_bounds_;
-        begin_event.phases = static_cast<Index>(steps.size());
-        begin_event.max_iters = opts_.common.max_iterations;
-        begin_event.max_acc_iters = opts_.termination.acceptable_iterations;
-        begin_event.kkt_tol = opts_.common.optimality_tol;
-        begin_event.econ_tol = opts_.common.feasibility_tol;
-        begin_event.icon_tol = opts_.common.feasibility_tol;
-        begin_event.bar_tol = effective_complementarity_tol(opts_);
-        begin_event.init_mu = opts_.barrier_initial;
-        begin_event.obj_scale = this->solve_obj_scale_;
-        begin_event.inertia_mode = opts_.advanced.inertia_mode;
-        begin_event.restoration_mode = opts_.advanced.restoration_mode;
-        // M6 W5 T8.7's eight. The four ACCEPTABLE tolerances and the layout
-        // width are what a sink needs to render the iteration table; the last
-        // three are what `print_stats()` printed, and the ONE reason the
-        // internal fixing-row count is carried separately is that `vars_fixed`
-        // above is the DECLARED BOX's census, which equals the fixing-row count
-        // only under the MakeConstraint treatment.
-        begin_event.acc_kkt_tol = opts_.termination.acceptable_stationarity_tol;
-        begin_event.acc_econ_tol = opts_.termination.acceptable_equality_tol;
-        begin_event.acc_icon_tol = opts_.termination.acceptable_inequality_tol;
-        begin_event.acc_bar_tol = opts_.termination.acceptable_complementarity_tol;
-        begin_event.wide_console = opts_.wide_console;
-        begin_event.kkt_dim = this->kkt_dim_;
-        begin_event.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
-        begin_event.internal_fixed_rows = this->nlp_ ? this->nlp_->internal_fixed_constraints() : 0;
-        sink->on_ipm_solve_begin(begin_event);
+        SolveBeginTraceEvent begin_event;
+        begin_event.engine = TraceEngine::kIpm;
+        if (this->callback_rows_ != nullptr) {
+            begin_event.statistics = this->callback_rows_->statistics();
+        } else {
+            const VariableBoundCensus box = census_variable_bounds(
+                this->nlp_->x_lower_, this->nlp_->x_upper_, this->full_primal_vars_);
+            ProblemStatistics &st = begin_event.statistics;
+            st.variables = this->full_primal_vars_;
+            st.free_variables = box.vars_free;
+            st.lower_bounded_variables = box.vars_lower_only;
+            st.upper_bounded_variables = box.vars_upper_only;
+            st.boxed_variables = box.vars_ranged;
+            st.fixed_variables = box.vars_fixed;
+            st.constraints = this->equal_cons_ + this->inequal_cons_;
+            st.equality_rows = this->equal_cons_;
+            st.absent_bounds = this->nlp_->absent_bounds_ + this->nlp_->source_absent_bounds_;
+        }
+        begin_event.optimality_tol = opts_.common.optimality_tol;
+        begin_event.feasibility_tol = opts_.common.feasibility_tol;
+        begin_event.max_iterations = opts_.common.max_iterations;
+        IpmSolveBeginInfo info;
+        info.n_reduced = this->primal_vars_;
+        info.me = this->equal_cons_;
+        info.mi = this->inequal_cons_;
+        info.internal_fixed_rows = this->nlp_ ? this->nlp_->internal_fixed_constraints() : 0;
+        info.phases = static_cast<Index>(steps.size());
+        info.max_acceptable_iterations = opts_.termination.acceptable_iterations;
+        info.initial_mu = opts_.barrier_initial;
+        info.obj_scale = this->solve_obj_scale_;
+        info.acceptable_stationarity_tol = opts_.termination.acceptable_stationarity_tol;
+        info.acceptable_complementarity_tol = opts_.termination.acceptable_complementarity_tol;
+        info.acceptable_equality_tol = opts_.termination.acceptable_equality_tol;
+        info.acceptable_inequality_tol = opts_.termination.acceptable_inequality_tol;
+        info.inertia_mode = opts_.advanced.inertia_mode;
+        info.restoration_mode = opts_.advanced.restoration_mode;
+        info.kkt_dim = this->kkt_dim_;
+        info.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
+        begin_event.ipm = info;
+        sink->on_solve_begin(begin_event);
     }
 
     // THE BANNER, THE PROBLEM STATISTICS, THE RULE AND THE "Beginning:" LINE
@@ -6885,10 +6989,13 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // severe ends the sequence.
         if (severity(result_.status) >= severity(SolveStatus::kDiverging)) {
             {
-                IpmMessageTraceEvent msg;
-                msg.kind = IpmMessageKind::kPhaseDiverged;
-                msg.phase = this->trace_phase_;
-                this->emit_message(msg);
+                this->emit_message([&] {
+                    MessageTraceEvent msg;
+                    msg.kind = MessageKind::kPhaseDiverged;
+                    msg.phase = this->trace_phase_;
+                    msg.severity = default_message_severity(msg.kind);
+                    return msg;
+                });
             }
             break;
         }
@@ -6918,12 +7025,15 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         }
         if (this->interrupt_requested_) {
             {
-                IpmMessageTraceEvent msg;
-                msg.kind = this->stop_requested_latched_
-                               ? IpmMessageKind::kStopRequestedSkippingPhases
-                               : IpmMessageKind::kInterruptSkippingPhases;
-                msg.phase = this->trace_phase_;
-                this->emit_message(msg);
+                this->emit_message([&] {
+                    MessageTraceEvent msg;
+                    msg.kind = this->stop_requested_latched_
+                                   ? MessageKind::kStopRequestedSkippingPhases
+                                   : MessageKind::kInterruptSkippingPhases;
+                    msg.phase = this->trace_phase_;
+                    msg.severity = default_message_severity(msg.kind);
+                    return msg;
+                });
             }
             break;
         }
@@ -6999,19 +7109,6 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
     // destructor is noexcept, so under an armed stream mask it would terminate).
     //
     // Every throw above skips it -- the honest record of a solve that stopped.
-    if (TraceSink *const sink = this->trace_; sink != nullptr) {
-        IpmSolveEndTraceEvent end_event;
-        end_event.status = result_.status;
-        end_event.iters = result_.iterations;
-        end_event.total_time_s = result_.timing.total_seconds;
-        end_event.pre_time_s = result_.timing.preprocessing_seconds;
-        end_event.func_time_s = result_.timing.evaluation_seconds;
-        end_event.kkt_time_s = result_.timing.kkt_seconds;
-        end_event.print_time_s = result_.timing.print_seconds;
-        end_event.solver_init_time_s = result_.timing.solver_initialization_seconds;
-        end_event.misc_time_s = result_.timing.other_seconds();
-        sink->on_ipm_solve_end(end_event);
-    }
 
     // The common clock closes here, around everything the entry took on: the
     // transcription, every phase, the final reporting and the export snapshot.
@@ -7443,6 +7540,45 @@ void hven::detail::IpmSolverImpl::finish_interrupted_result() noexcept {
     } catch (...) {
         this->interrupted_result_ready_ = false;
     }
+}
+
+void hven::detail::IpmSolverImpl::emit_solve_end(const IpmResult &r) {
+    TraceSink *const sink = this->trace_;
+    if (sink == nullptr) {
+        return;
+    }
+    SolveEndTraceEvent e;
+    e.engine = TraceEngine::kIpm;
+    e.status = r.status;
+    e.stop_reason = r.stop_reason;
+    e.message = std::string_view(r.message);
+    e.iterations = r.iterations;
+    e.returned_best_iterate = r.returned_best_iterate;
+    e.infeasibility_certified = r.infeasibility_certified;
+    e.f = r.f;
+    e.diagnostics = DeclaredDiagnosticsTrace{r.stationarity, r.feasibility, r.complementarity};
+    e.work = r.work;
+    e.wall_s = r.wall_seconds;
+    IpmSolveEndInfo i;
+    i.convergence = r.convergence;
+    i.counters = &r.counters;
+    i.total_time_s = r.timing.total_seconds;
+    i.pre_time_s = r.timing.preprocessing_seconds;
+    i.func_time_s = r.timing.evaluation_seconds;
+    i.kkt_time_s = r.timing.kkt_seconds;
+    i.print_time_s = r.timing.print_seconds;
+    i.solver_init_time_s = r.timing.solver_initialization_seconds;
+    i.misc_time_s = r.timing.other_seconds();
+    for (const IpmPhaseReport &phase : r.phases) {
+        i.phases_ran += phase.ran ? 1 : 0;
+    }
+    i.kkt_analyses_total = r.kkt_analyses_total;
+    if (r.kkt_analyses_total > 0) {
+        i.factor_memory = r.factor_memory;
+        i.factor_flops = r.factor_flops;
+    }
+    e.ipm = i;
+    sink->on_solve_end(e);
 }
 
 hven::IpmResult hven::detail::IpmSolverImpl::take_interrupted_result() {

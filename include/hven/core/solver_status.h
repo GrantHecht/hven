@@ -191,60 +191,50 @@ enum class StopReason {
     kRestorationFailed = 14,
 };
 
-/// @brief WHICH DIAGNOSTIC MESSAGE the interior-point engine emitted (schema
-///        `ipm.message`).
+/// @brief The kind of a trace/console `message` (both engines).
 ///
-/// These are events, not prints: the console renders them at the tier
-/// `CommonOptions::print_level` selects, and a caller's own sink receives the
-/// fact instead of losing it to stdout.
-///
-/// EIGHT WARNINGS AND ONE NOTICE. The first is not a warning at all --
-/// `ensure_solver_initialized()` runs INSIDE the solve, after `ipm.solve.begin`,
-/// and reports the process-global initialization on the first solve that pays
-/// for it. It is a message kind so that "the transcript is the console's alone"
-/// is true on EVERY solve, the process's first included.
-///
-/// THE PAYLOAD IS PER KIND and the unused slots are absences, not zeros; the
-/// table lives on `IpmMessageTraceEvent` and in `docs/trace-schema-v0.md` §4.
-enum class IpmMessageKind {
-    /// The process-global solver initialization ran and took `a` MILLISECONDS.
-    /// At most once per process. The console keeps the old `> 0.5 ms` rule.
+/// Severity is carried beside the kind (`MessageSeverity`). Payload slots are
+/// per kind and the unused ones are absences, not zeros; the table is
+/// `docs/trace-schema-v1.md` section "message".
+enum class MessageKind {
+    /// The process-global solver initialization ran and took `a` MILLISECONDS
+    /// (console only: the wire carries no `a`). At most once per process.
     kSolverInitialized = 0,
-    /// The KKT factorization's inertia read does not account for the whole
-    /// matrix, so the system may be rank deficient. No payload.
+    /// The KKT factorization's inertia read does not account for the whole matrix.
     kRankDeficiency = 1,
-    /// A factorization reported a HARD error -- `k` is the backend's own info
-    /// code. `NumericalIssue` is normal while probing the inertia ladder and
-    /// does NOT produce this message; it is recorded on the result instead.
+    /// A factorization reported a HARD error; `k` is the backend's info code.
     kFactorizationHardError = 2,
-    /// The inertia-correction ladder exhausted its attempts. SIX integers:
-    /// `k` attempts, the observed `p`/`n`/`z`, and the expected
-    /// `expected_p`/`expected_n` (`z` is expected 0).
+    /// The inertia ladder exhausted its attempts: `k` attempts, observed `p`/`n`/`z`,
+    /// expected `expected_p`/`expected_n`.
     kInertiaExhausted = 3,
-    /// A feasibility restoration converged to a point that is still infeasible:
-    /// `a` is the infeasibility reached, `b` the threshold it was judged
-    /// against.
-    kRestorationLocallyInfeasible = 4,
-    /// The feasibility phase stalled with its restoration budget exhausted:
-    /// `a` is the infeasibility now, `b` the infeasibility at the last
-    /// restoration entry.
-    kFeasibilityStall = 5,
-    /// The per-iteration callback's `kStop` was honoured at an iteration.
-    /// `iter` is the row it stopped on. (A token stop has its own kind,
-    /// kStopRequestedAtIteration.)
-    kInterruptAtIteration = 6,
-    /// A phase reached kDiverging or worse, so the remaining phases are
-    /// skipped. No payload.
-    kPhaseDiverged = 7,
-    /// The callback's stop was honoured between phases, so the remaining
-    /// phases are skipped. No payload.
-    kInterruptSkippingPhases = 8,
-    /// (M8 AP-5 G1) A `SolveBudget::stop` token's request was honoured at an
-    /// iteration. `iter` is the row it stopped on.
-    kStopRequestedAtIteration = 9,
-    /// (M8 AP-5 G1) A token stop was honoured between phases, so the remaining
-    /// phases are skipped. No payload.
-    kStopRequestedSkippingPhases = 10,
+    /// The feasibility phase stalled with its restoration budget exhausted: `a` is
+    /// the infeasibility now, `b` at the last restoration entry.
+    kFeasibilityStall = 4,
+    /// A phase reached kDiverging or worse; the remaining phases are skipped.
+    kPhaseDiverged = 5,
+    /// A callback stop was honoured between phases; the remaining phases are skipped.
+    kInterruptSkippingPhases = 6,
+    /// A token stop was honoured between phases; the remaining phases are skipped.
+    kStopRequestedSkippingPhases = 7,
+    /// A restoration began: `a` is the violation at entry, `iter` the requesting row.
+    kRestorationEntered = 8,
+    /// A restoration ended: `s` resumed|locally_infeasible|failed|non_finite|interrupted,
+    /// `a` the violation at exit, `b` the threshold judged against.
+    kRestorationExited = 9,
+    /// (SQP) A restoration was refused: `s` nested|entry_rule|budget.
+    kRestorationRefused = 10,
+    /// (SQP) A subproblem failed: `s` iteration_limit|numerical_error|non_finite, `k` in a row.
+    kSubproblemFailure = 11,
+    /// (SQP) The elastic ladder was exhausted; `k` rungs climbed.
+    kElasticExhausted = 12,
+    /// (SQP) The equality rows are inconsistent.
+    kInconsistentEqualities = 13,
+    /// (SQP) The start point was clamped into the box; `k` clamps.
+    kStartPointClamped = 14,
+    /// (SQP) Convergence on the scaled residual was refused; `iter` the row.
+    kScaledConvergenceRefused = 15,
+    /// A stop was honoured at an iteration: `s` callback|token, `iter` the row.
+    kStopAtIteration = 16,
 };
 
 /// @brief The last non-Success factorization status the interior-point engine
@@ -291,7 +281,7 @@ RestorationSubStatus to_restoration_sub_status(SolveStatus status);
 /// @param kind The kind.
 /// @return A static string, never null.
 /// @throws std::invalid_argument if @p kind is not one of the eleven.
-const char *to_string(IpmMessageKind kind);
+const char *to_string(MessageKind kind);
 
 /// @brief Maps a factorization status to its lower-case snake name.
 /// @param status The status.

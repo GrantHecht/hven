@@ -8,6 +8,10 @@
 
 #pragma once
 
+#include <limits>
+
+#include <hven/core/types.h>
+
 namespace hven {
 
 /// @brief Per-iteration record: one instance per solver iteration, carrying
@@ -105,6 +109,19 @@ struct IpmIterate {
     /// completed record is also handed once per iteration to a registered
     /// late callback; no Python surface exposes it.
     int eval_exceptions = 0;
+
+    // The five fields below are written for every iterate, traced or not (the
+    // one deliberate exception to "no new work off", trace spec section 4).
+    /// inf-norm of the primal step leaving this point; NaN when no step leaves it.
+    double step_norm = std::numeric_limits<double>::quiet_NaN();
+    /// Second-order correction won this iteration's step.
+    bool soc = false;
+    /// The watchdog armed at this iteration.
+    bool watchdog = false;
+    /// A non-finite step was rolled back at this iteration.
+    bool rolled_back = false;
+    /// The call's running KKT factorization count at this row.
+    Index factorizations = 0;
 };
 
 } // namespace hven

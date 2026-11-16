@@ -246,9 +246,6 @@ struct IpmOptions {
     /// Default `kEquality`.
     IpmBestIterateCriterion best_iterate_criterion = IpmBestIterateCriterion::kEquality;
 
-    /// Wide console table layout. Default false.
-    bool wide_console = false;
-
     /// The KKT factorization.
     IpmLinearOptions linear;
 

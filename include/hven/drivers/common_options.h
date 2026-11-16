@@ -24,14 +24,17 @@ namespace hven {
 enum class Verbosity {
     /// Nothing. The default on both engines.
     kSilent,
-    /// The exit status line and warnings.
+    /// Warning messages and the footer's `exit` line.
     kWarnings,
-    /// Adds the banners, the per-phase Beginning/Finished and exit blocks, the
-    /// SQP table's header and trailer, and the timing summary. No iteration
-    /// rows.
+    /// Adds the header, the interior-point phase lines and the full footer. No
+    /// iteration rows.
     kSummary,
-    /// Adds the interior-point problem statistics and the per-iteration table.
+    /// Adds the legend, the column headers, every iteration row (restoration rows
+    /// included) and notice messages.
     kIterations,
+    /// Adds one condensed line per QP-tier event, and the interior-point
+    /// KKT-analysis and phase-exit lines.
+    kDetail,
 };
 
 /// @brief The options both engines share, embedded once in each engine's own

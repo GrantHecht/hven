@@ -60,7 +60,8 @@ class RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 namespace hven {
 struct IpmPolishData;
 class TraceSink;
-struct IpmMessageTraceEvent;
+struct IterationRecord;
+struct SolveEndTraceEvent;
 class ConsoleTraceSink;
 class FanOutTraceSink;
 class Ledger;
@@ -334,6 +335,9 @@ class IpmSolverImpl {
     const IpmResult &last_result() const noexcept { return last_result_; }
     /// @brief Replaces last_result(); the public handle's only writer.
     void set_last_result(IpmResult result) { last_result_ = std::move(result); }
+
+    /// Emits `solve.end` for a result the handle has finished (normal return only).
+    void emit_solve_end(const IpmResult &result);
 
     /// @brief Labels the call an exception ended: last_stop_reason() reads
     ///        kException and last_stop_detail() the exception's description.
@@ -2179,13 +2183,16 @@ class IpmSolverImpl {
     /// @see apply_pending_iteration_callback().
     void apply_pending_kkt_hook(bool at_solve_entry = false);
 
-    /// Emits one `ipm.message` if a sink is attached (M6 W5 T8.7b).
-    ///
-    /// THE MEMBER IS READ INTO A LOCAL ONCE, as at every other emit site since
-    /// M6 W5 T8.7 fix1: nothing a sink does between the check and the call can
-    /// change which sink this event reaches. Each caller fills the slots its
-    /// KIND uses and leaves the rest at their absence sentinels.
-    void emit_message(const IpmMessageTraceEvent &event);
+    /// Emits one `message` if a sink is attached. `build` returns the event and runs
+    /// only after the sink test, so nothing is constructed when nothing listens.
+    /// Defined in ipm_solver.cpp (its only user).
+    template <class Build> void emit_message(Build &&build);
+
+    /// The trace-v1 row for `row` at this point of the solve (built only inside a sink guard).
+    IterationRecord make_iteration_record(const IpmIterate &row) const;
+
+    /// Emits `row` as an `iter` record to `sink`.
+    void emit_iter(TraceSink &sink, const IpmIterate &row) const;
 
     // Best-iterate bookkeeping for the return_best_ path (off by default). Scores
     // `iter` under best_criteria_ and, when it ties or beats the incumbent (or is
