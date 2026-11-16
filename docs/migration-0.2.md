@@ -462,3 +462,22 @@ G2's "open for the API revisit" line and G4's depth-1 `kStopReturnBest` sentence
 describe the behaviour before this group.
 
 Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g7/CATCH-UP.txt`.
+
+## TR-A -- trace v1 and the human trace
+
+The machine trace is schema v1 (`docs/trace-schema-v1.md`) and the console is re-cut. Both engines write
+the same four records.
+
+| 0.1 | 0.2 |
+|---|---|
+| `TraceSink::on_sqp_major`, `on_ipm_iter` | `on_iter(const IterTraceEvent &)`; the row is `event.record`, an `IterationRecord` (core + `ipm` or `sqp` block) |
+| `on_sqp_solve_begin`, `on_ipm_solve_begin` | `on_solve_begin(const SolveBeginTraceEvent &)` |
+| `on_sqp_solve_end`, `on_ipm_solve_end` | `on_solve_end(const SolveEndTraceEvent &)`; written by the public handle after the result is finished |
+| `on_ipm_message` | `on_message(const MessageTraceEvent &)` |
+| `on_ipm_restoration_exit_row` | removed; read `message{kind: restoration_exited, s: locally_infeasible}` in `on_message` |
+| `IpmMessageKind::kX` | `MessageKind::kX`; `kRestorationLocallyInfeasible` -> `kRestorationExited` with `s == "locally_infeasible"`; `kInterruptAtIteration`/`kStopRequestedAtIteration` -> `kStopAtIteration` with `s == "callback"`/`"token"` |
+| `ConsoleTraceSink::Format{wide, verbosity}` | `Format{verbosity, color, legend, timing}`; delete the first initializer member |
+| `IpmOptions::wide_console` | removed (one console width) |
+| `format_iteration_table` and its five pieces | removed; attach a `ConsoleTraceSink` (or set `verbosity`) for live rows |
+| `Verbosity` | gains `kDetail` |
+| trace key renames | `docs/trace-schema-v1.md` section 7 |
