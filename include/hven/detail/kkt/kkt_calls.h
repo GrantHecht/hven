@@ -110,6 +110,19 @@ struct KktFactor {
     /// them in dense_singular_count); dense_response_tally() takes them back
     /// out, so its `flagged` counts unshifted factorizations only.
     Index shifted_exact_singular = 0;
+    /// True iff the current numerics are D K D's on the platform session (a
+    /// sparse factorization that perturbed pivots, refactored equilibrated; sigma
+    /// = 0): solve_vec() then answers D (D K D)^-1 D b, `dense_scale` holds D, and
+    /// `gated()` is then true: the D-metric gate and keep-while-falling refinement
+    /// apply (refusals count in the dense_shifted_* counters). `dense_shifted` stays
+    /// false: nothing is shifted, and a perturbed-pivot report stays evidence about K.
+    bool sparse_equilibrated = false;
+    /// Equilibrated refactors this factor has run (cumulative).
+    Index sparse_equilibrated_refactors = 0;
+
+    /// True iff a solve through the current numerics answers D (.)^-1 D rather than
+    /// K^-1 directly, so consumers verify it against K in `dense_scale`'s metric.
+    bool gated() const { return dense_shifted || sparse_equilibrated; }
 };
 
 // The analyze-or-not decision for K, carrying the pattern hash it was taken
@@ -189,6 +202,15 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
 hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
                                                  const DenseShiftSite &site);
 
+// THE SPARSE EQUILIBRATED RESPONSE (platform session, no iparm change):
+// a factorization the platform session returned with perturbed pivots (a count
+// is reported and nonzero; Accelerate reports none) is refactored as D K D on the
+// same analyzed pattern, D = equilibration_scale(K), sigma = 0. D is a
+// congruence, so the inertia read is the one of K. Applied by both
+// factorize_checked() overloads to the first factorization on a sparse factor;
+// a dense-arm outcome (whose shifted refactor reports perturbed_pivots = dim)
+// and a platform retake are not touched. Counted in
+// `k.sparse_equilibrated_refactors`.
 /// @brief The factor's dense counts so far: factorizations on the dense arm
 /// (taken or reported exactly singular, shifted refactors included), unshifted
 /// factorizations the detector flagged (exact included), equilibrated
@@ -198,13 +220,14 @@ struct DenseResponseTally {
     Index flagged = 0;
     Index refactors = 0;
     Index retakes = 0;
+    Index sparse_equilibrated = 0;
 };
 inline DenseResponseTally dense_response_tally(const KktFactor &k) {
     const auto &c = k.factor.counters();
-    return DenseResponseTally{c.dense_factorize_count + c.dense_singular_count,
-                              c.dense_flagged_count + c.dense_singular_count -
-                                  k.shifted_exact_singular,
-                              c.dense_shift_refactor_count, c.dense_retake_count};
+    return DenseResponseTally{
+        c.dense_factorize_count + c.dense_singular_count,
+        c.dense_flagged_count + c.dense_singular_count - k.shifted_exact_singular,
+        c.dense_shift_refactor_count, c.dense_retake_count, k.sparse_equilibrated_refactors};
 }
 
 /// @brief Adds a factor's tally delta to four counters when it leaves scope,
@@ -212,15 +235,20 @@ inline DenseResponseTally dense_response_tally(const KktFactor &k) {
 class DenseTallyScope {
   public:
     DenseTallyScope(const KktFactor &k, Index &dense, Index &flagged, Index &refactors,
-                    Index &retakes)
+                    Index &retakes, Index &sparse_equilibrated)
         : k_(k), dense_(dense), flagged_(flagged), refactors_(refactors), retakes_(retakes),
-          before_(dense_response_tally(k)) {}
+          sparse_equilibrated_(sparse_equilibrated), before_(dense_response_tally(k)) {}
+    /// The four dense counters alone; the sparse equilibrated count is dropped.
+    DenseTallyScope(const KktFactor &k, Index &dense, Index &flagged, Index &refactors,
+                    Index &retakes)
+        : DenseTallyScope(k, dense, flagged, refactors, retakes, discarded_) {}
     ~DenseTallyScope() {
         const DenseResponseTally after = dense_response_tally(k_);
         dense_ += after.dense - before_.dense;
         flagged_ += after.flagged - before_.flagged;
         refactors_ += after.refactors - before_.refactors;
         retakes_ += after.retakes - before_.retakes;
+        sparse_equilibrated_ += after.sparse_equilibrated - before_.sparse_equilibrated;
     }
     DenseTallyScope(const DenseTallyScope &) = delete;
     DenseTallyScope &operator=(const DenseTallyScope &) = delete;
@@ -231,10 +259,13 @@ class DenseTallyScope {
     Index &flagged_;
     Index &refactors_;
     Index &retakes_;
+    Index &sparse_equilibrated_;
+    Index discarded_ = 0;
     DenseResponseTally before_;
 };
 
-/// @brief Allocate and solve, returning the solution by value.
+/// @brief Allocate and solve, returning the solution by value. Answers K^-1 rhs
+/// through D (D K D)^-1 D rhs when `k.sparse_equilibrated`.
 Vec solve_vec(const KktFactor &k, const Vec &rhs);
 
 // THE DENSE ARM'S SOLVE GATES judge an answer y to K y = b by its normwise
@@ -293,7 +324,7 @@ inline constexpr double kDenseShiftedBackwardErrorTol = 1e-8;
 /// (K upper-stored); a no-op unless `k.dense_shifted`. Returns the solves
 /// spent, each counted before its keep-or-reject test.
 inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFactor &k, Vec &y) {
-    if (!k.dense_shifted) {
+    if (!k.gated()) {
         return 0;
     }
     const Vec &d = k.dense_scale;
@@ -318,7 +349,7 @@ inline Index refine_shifted_solve(const SpMatRM &K, const Vec &rhs, const KktFac
 /// @brief eta of `y` on the equilibrated system: ||D (rhs - K y)||inf /
 /// (||D K D||inf ||D^-1 y||inf + ||D rhs||inf), D = `k.dense_scale` (0 when
 /// residual and denominator vanish; a NaN propagates). Requires
-/// `k.dense_shifted`.
+/// `k.gated()`.
 inline double shifted_backward_error(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
                                      const Vec &y) {
     const Vec &d = k.dense_scale;
@@ -330,11 +361,10 @@ inline double shifted_backward_error(const SpMatRM &K, const Vec &rhs, const Kkt
                              nan_sticky_inf_norm(rhs.cwiseProduct(d)));
 }
 
-/// @brief True iff `k` holds shifted numerics and `y` fails the gate.
+/// @brief True iff `k` is gated (shifted or sparse equilibrated numerics) and `y` fails the gate.
 inline bool shifted_solve_refused(const SpMatRM &K, const Vec &rhs, const KktFactor &k,
                                   const Vec &y) {
-    return k.dense_shifted &&
-           !(shifted_backward_error(K, rhs, k, y) <= kDenseShiftedBackwardErrorTol);
+    return k.gated() && !(shifted_backward_error(K, rhs, k, y) <= kDenseShiftedBackwardErrorTol);
 }
 
 // THE UNSHIFTED DENSE SOLVE CHECK. A dense-arm solve a consumer steps on is

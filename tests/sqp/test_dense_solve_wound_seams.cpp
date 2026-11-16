@@ -146,7 +146,13 @@ TEST(SsnShiftedStep, AShiftedStepIsNeverExemptFromTheMeritTest) {
     SsnEngine sparse(o, 0, DensePolicy::kNever);
     SsnResult rs;
     sparse.solve(qp, SsnStart{}, so, &rs);
-    EXPECT_EQ(rs.counters.ssn_backtracks, 0);
+    // A sparse factor the platform perturbed is refactored equilibrated (M8 sparse-equil) and its
+    // steps are gated like a shifted one's: not exempt either. Exempt iff nothing was refactored.
+    if (rs.sparse_equilibrated_refactors > 0) {
+        EXPECT_GT(rs.counters.ssn_backtracks, 0);
+    } else {
+        EXPECT_EQ(rs.counters.ssn_backtracks, 0);
+    }
     EXPECT_EQ(rs.dense_singular_refactors, 0);
     SsnEngine dense(o, 0, DensePolicy::kAlways);
     SsnResult rd;

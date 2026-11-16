@@ -270,6 +270,31 @@ What changed (`src/qp/qp_engine.cpp`):
 Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by
 name); a walk subproblem's route can differ by a step where a row sat between 1x and 10x.
 
+## Sparse equilibrated response (M8 sparse-equil)
+
+MKL Pardiso runs the SQP's KKT factors without scaling or matching (`iparm[10]` = `iparm[12]` = 0, Intel's documented
+defaults; not observed). The static pivot threshold (1e-8 ||K||) is then measured against an unscaled ||K|| of order s^2
+on a K = S K0 S, and the unit block's pivots are perturbed: on the coupled fixture of
+`QpDenseArm.TheRawFactorsOfAScaleClearedKktAreAccurateInEveryBlock` the raw solve's relative error was 7.8e-9 at
+s = 1e4, 4.9e-5 at 1e6, 0.106 at 1e8, 5.8e18 at 1e10 and 2.2e25 at 1e12 (the raw backward error is vacuous there: 2.3e-10
+at s = 1e8, against 8.4e-3 in the Ruiz-D metric). Accelerate equilibrates unconditionally and is exact; this is MKL-only.
+
+- `detail::factorize_checked` (both overloads): a sparse (platform-session, arm `kSparse`) factorization whose outcome reports
+  `inertia.perturbed_pivots > 0` is refactored as D K D on the same analyzed pattern (D = `equilibration_scale(K)`, sigma = 0);
+  `solve_vec` then answers b <- D (D K D)^-1 D b until the next factorization. D is a congruence, so the inertia read is K's.
+  No `SymmetricFactor` API is added: the pattern is unchanged, so `factorize()` of the congruent matrix on the already analyzed
+  session is the refactor. No iparm moves. Dense-arm outcomes (whose shifted refactor reports perturbed_pivots = dim) and
+  the platform retake of a dense-selected pattern are not touched.
+- The gate: `KktFactor::dense_shifted` and `dense_scale` are set with `sparse_equilibrated`, so the existing D-metric backward-error
+  gate (`kDenseShiftedBackwardErrorTol`, `shifted_solve_refused`) and keep-while-falling refinement apply unchanged; refusals count
+  in the `dense_shifted_*` counters.
+- New counter `sparse_equilibrated_refactors` (`QpCounters`, `SqpCounters`, trace key after `payload_ignored`; `SsnResult`
+  and `IpqpResult` carry the field, the latter 0). A factorization without perturbed pivots takes the unchanged path, and a backend
+  that reports no count (Accelerate) never triggers it.
+
+Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by name);
+a walk or SSN subproblem whose KKT perturbed pivots is solved on D K D, so its route can differ in the last digits.
+
 ## G5 -- the widened payload
 
 Every addition is delivered only to a callback that asks for it, so nothing here moves a

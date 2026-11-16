@@ -2354,7 +2354,9 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
         const QpSolution s_off = hven::test_support::solve_qp_dump(d, off);
         ASSERT_EQ(static_cast<int>(s_off.status), static_cast<int>(QpStatus::kOptimal));
         // `off_minors` RE-DERIVED, M7 W2 E4 fix round 1 (declared mover), per cell at
-        // the four call sites below: 596 -> 586, 192 -> 197, 191 -> 181, 184 -> 180.
+        // the four call sites below: 596 -> 586, 192 -> 197, 191 -> 181, 184 -> 180;
+        // and at M8 sparse-equil (the sparse equilibrated response): 586 -> 582, 197 -> 86,
+        // 181 -> 184, 180 -> 183.
         // The OPTION-OFF walk is reached by every EQP solve too (E4-5), so the
         // UNREGULARIZED POLISH (eqp_solve.h) moves it: the objective pin and the
         // kOptimal status -- what N3 is about -- hold unchanged at every one.
@@ -2432,7 +2434,7 @@ void expect_the_declined_ride_resolves(const char *file, double f_off, Index off
             // a count -- every dependent blocker the walk meets is exchanged, and
             // none is left to decline -- which holds on both algebras and is the
             // statement the mechanism is for. The counts themselves are measured
-            // above and recorded here; qp4, qp5 and qp6 still carry the >= 1 premise.
+            // above and recorded here; qp4 alone carries the >= 1 premise since M8 sparse-equil.
             EXPECT_EQ(s.counters.ride_exchanges, s.counters.dep_ride_blockers)
                 << "a dependent ride blocker was met and not exchanged";
         }
@@ -2447,19 +2449,24 @@ TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorati
     // RENAMED at E4 fix round 2 (old: ADeclinedRideIsExchangedOnSteenbrbRestorationQp3):
     // this cell no longer needs the exchange. Same optimum, same KKT bounds,
     // `dep_ride_blockers` 0 -- see the helper's note.
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 586, false);
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp3.txt", -11.5370634375, 582, false);
 }
 
 TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp4) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 197);
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp4.txt", -5.76904694719, 86);
 }
 
-TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp5) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 181);
+TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp5) {
+    // RE-PREMISED AT M8 sparse-equil (declared mover; RENAMED, old:
+    // ADeclinedRideIsExchanged...Qp5): the sparse equilibrated response moves the walk's solves,
+    // and the dependent ride blocker is gone on this cell (as on qp3 at E4 fix round 2); same
+    // optimum, same KKT bounds.
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp5.txt", -2.88465228068, 184, false);
 }
 
-TEST(QpE2WorkingSet, ADeclinedRideIsExchangedOnSteenbrbRestorationQp6) {
-    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 180);
+TEST(QpE2WorkingSet, TheDeclinedRideResolvesWithoutAnExchangeOnSteenbrbRestorationQp6) {
+    // RE-PREMISED AT M8 sparse-equil, as qp5 above (old: ADeclinedRideIsExchanged...Qp6).
+    expect_the_declined_ride_resolves("Cs_STEENBRB_qp6.txt", -1.44235834209, 183, false);
 }
 
 namespace {

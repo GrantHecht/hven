@@ -360,7 +360,10 @@ void expect_cs(const char *file, QpWorkingSetAlgebra alg, const char *premise, d
         // 1e-6 relative, a decade above the 1.1e-7 (Release) / 9.5e-8 (Debug) measured, because
         // where the walk stops inside its budget is exactly the rounding-sensitive part.
 #if HVEN_TEST_ROUTE_REFERENCE
-        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kIterationLimit));
+        // kNumericalError: Debug's qp4 since M8 sparse-equil (see qp4 below).
+        EXPECT_TRUE(s.status == QpStatus::kIterationLimit ||
+                    (kDebugBuild && s.status == QpStatus::kNumericalError))
+            << static_cast<int>(s.status);
 #else
         EXPECT_TRUE(s.status == QpStatus::kIterationLimit || s.status == QpStatus::kNumericalError)
             << static_cast<int>(s.status);
@@ -410,16 +413,22 @@ TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp2NeverAscendsTheSlopeBorder) {
 // kOptimal at 2915 minors with f = -384.00031719 against Clarabel's -384.000315772,
 // 3.7e-09 relative, so the `expect_cs` branch that runs is the optimal one and the
 // full KKT read-out above applies instead of the objective-only bound.
+// RE-DERIVED AT M8 sparse-equil (declared mover, the BAD direction, reported): the sparse
+// equilibrated response moves the walk's solves and this LP is back at kIterationLimit
+// (3234 minors, f = -384.000307884, objective-only bound), as before E4 fix round 2.
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeRefactorize) {
     expect_cs("R2_Cs_STEENBRB_qp3.txt", QpWorkingSetAlgebra::kRefactorize, "status=1",
-              -384.000315772, QpStatus::kOptimal, QpStatus::kOptimal);
+              -384.000315772, QpStatus::kIterationLimit, QpStatus::kIterationLimit);
 }
 
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder) {
     expect_cs("R2_Cs_STEENBRB_qp3.txt", QpWorkingSetAlgebra::kSchurBorder, "status=1",
-              -384.000315772, QpStatus::kOptimal, QpStatus::kOptimal);
+              -384.000315772, QpStatus::kIterationLimit, QpStatus::kIterationLimit);
 }
 
+// qp4's DEBUG status RE-DERIVED AGAIN at M8 sparse-equil (declared mover, the BAD direction,
+// reported): Debug ends kNumericalError at 2337 minors with f = -192.000158866 on both algebras
+// (Release stays kOptimal); the objective-only bound holds. Before that:
 // qp4's DEBUG status RE-DERIVED at M7 W2 E4 fix round 2 (a declared mover, and the
 // good direction, exactly as qp3's above): NC2 fix round 1 measured kIterationLimit in Debug
 // and kOptimal in Release; Debug now CERTIFIES too, at 533 minors with
@@ -429,12 +438,12 @@ TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp3NeverAscendsTheSlopeBorder) {
 // only the objective bound.
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeRefactorize) {
     expect_cs("R2_Cs_STEENBRB_qp4.txt", QpWorkingSetAlgebra::kRefactorize, "status=3",
-              -192.000158557, QpStatus::kOptimal, QpStatus::kOptimal);
+              -192.000158557, QpStatus::kOptimal, QpStatus::kNumericalError);
 }
 
 TEST(QpNc2FlatFace, TheSteenbrbRestorationLpQp4NeverAscendsTheSlopeBorder) {
     expect_cs("R2_Cs_STEENBRB_qp4.txt", QpWorkingSetAlgebra::kSchurBorder, "status=3",
-              -192.000158557, QpStatus::kOptimal, QpStatus::kOptimal);
+              -192.000158557, QpStatus::kOptimal, QpStatus::kNumericalError);
 }
 
 // ===========================================================================

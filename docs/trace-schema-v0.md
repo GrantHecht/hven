@@ -886,6 +886,7 @@ group; `SqpOptions::hessian_mode`).
 | `dense_factorizations` | integer | `SqpCounters::dense_factorizations` | factorizations on the dense arm (M8 DN-3): `SymmetricFactor`'s `dense_factorize_count + dense_singular_count` deltas (taken, or reported exactly singular; shifted refactors included) over the walk's, the SSN's and the IPQP tiers' KKT factors and the rank repair's Gram factor. 0 under `DensePolicy::kNever`; under `kAuto`, 0 when every analyzed pattern was above the SQP's threshold (105). Folded like `dense_flagged_factorizations` |
 | `optimal_row_gray_exits` | integer | `SqpCounters::optimal_row_gray_exits` | walk subproblems that ended `kOptimal` with an equality or working-row residual still above 1x of its `row_tolerance` after the terminal polish (M8 kopt-1x). `kOptimal` promises every such row within 1x; 0 is the contract, a nonzero count is a gray-zone exit. Folded like the other walk counters. No sentinel. |
 | `payload_ignored` | integer | `SqpCounters::payload_ignored` | 1 when a non-empty warm start (payload or native) was handed in and ignored because `common.start_level` is kCold, as `IpmCounters::payload_ignored` (M8 AP-5 G7). 0 on a cold solve and at every ceiling above kCold. No sentinel. |
+| `sparse_equilibrated_refactors` | integer | `SqpCounters::sparse_equilibrated_refactors` | sparse (platform-session) KKT factorizations that reported a nonzero perturbed-pivot count and were refactored as D K D, D = `detail::equilibration_scale(K)` (M8 sparse-equil); solves against such a factor answer D (D K D)^-1 D b and are gated in the D metric. 0 under a backend that reports no perturbed-pivot count (Accelerate) and for dense-arm factorizations. Folded like `factorizations`. No sentinel. |
 
 LAST in the table and last in the struct, after `restoration_reduction_resumes`, so
 the counters object gains exactly fourteen keys before the `ssn` object and the two
@@ -961,6 +962,11 @@ with a "RE-DERIVED AT M8 kopt-1x" note.
 after `optimal_row_gray_exits`, the same route: one key before the `ssn` object, the nested
 tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE with a
 "RE-DERIVED AT M8 AP-5 G7" note.
+
+**THE DIRECT COUNTER M8 sparse-equil APPENDED — ONE** (`sparse_equilibrated_refactors`, the
+table row above), after `payload_ignored`, the same route: one key before the `ssn` object,
+the nested tables' distinct values up by one, no sentinel, both golden lines re-derived ONCE
+with a "RE-DERIVED AT M8 sparse-equil" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

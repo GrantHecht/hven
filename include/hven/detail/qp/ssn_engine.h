@@ -701,6 +701,7 @@ struct SsnResult {
     Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
+    Index sparse_equilibrated_refactors = 0;
     Index dense_shifted_solve_refusals = 0;
     Index dense_solve_residual_refusals = 0;
     // Factorizations of this solve's factor on the dense arm (QpCounters'

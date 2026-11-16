@@ -627,6 +627,11 @@ struct QpCounters {
     // kOptimal exits whose worst equality or working row residual is still past 1x of
     // row_tolerance after the polish (gray-zone exits; 0 is the contract).
     Index optimal_row_gray_exits = 0;
+    // Sparse (platform) factorizations that reported perturbed pivots and were
+    // refactored as D K D, D = detail::equilibration_scale(K) (kkt_calls.h). 0 on a
+    // backend that reports no perturbed-pivot count (Accelerate) and on dense-arm
+    // factorizations.
+    Index sparse_equilibrated_refactors = 0;
 };
 
 /// @brief Work counters for the semismooth-Newton kernel.
@@ -2350,6 +2355,9 @@ struct SqpCounters {
     ///        `common.start_level` is kCold, as `IpmCounters::payload_ignored`.
     ///        Appended last.
     Index payload_ignored = 0;
+    /// @brief QpCounters' field summed the same way: sparse factorizations
+    ///        refactored equilibrated after perturbed pivots. Appended last.
+    Index sparse_equilibrated_refactors = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -2447,7 +2455,8 @@ struct SqpCounters {
     X(dense_solve_residual_refusals, counter_never_absent)                                         \
     X(dense_factorizations, counter_never_absent)                                                  \
     X(optimal_row_gray_exits, counter_never_absent)                                                \
-    X(payload_ignored, counter_never_absent)
+    X(payload_ignored, counter_never_absent)                                                       \
+    X(sparse_equilibrated_refactors, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =

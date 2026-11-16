@@ -544,7 +544,7 @@ inline EqpResult solve_eqp(const QpProblem &qp, const WorkingSet &ws, const Vec 
         return Vec((rhs - Kyy) + reg.cwiseProduct(yy));
     };
 
-    if (!kkt.dense_shifted) {
+    if (!kkt.gated()) {
         y = y + detail::solve_vec(kkt, residual_of(y));
     } else {
         // A shifted factor answers a different system: the step is kept only

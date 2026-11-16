@@ -588,7 +588,8 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
             }
             const detail::DenseTallyScope tally(
                 kkt_, out->dense_factorizations, out->dense_flagged_factorizations,
-                out->dense_singular_refactors, out->dense_platform_retakes);
+                out->dense_singular_refactors, out->dense_platform_retakes,
+                out->sparse_equilibrated_refactors);
             const hven::linear::FactorizeOutcome fo =
                 detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{n});
             ++out->factorizations;
@@ -786,8 +787,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         // merit test. (A relaxed watchdog step it denies still spends its slot.)
         double step = 1.0;
         bool accepted = false;
-        if (!kkt_.dense_shifted &&
-            (!guarded || (watchdog_rule ? wd_relaxed : (it == 0 && use_hint)))) {
+        if (!kkt_.gated() && (!guarded || (watchdog_rule ? wd_relaxed : (it == 0 && use_hint)))) {
             accepted = true;
             trial_point(out->x, out->lambda_e, out->lambda_i, lambda_b, dw, 1.0, guarded, n, me, mi,
                         mb, t_x, t_le, t_li, t_lb);
@@ -955,7 +955,8 @@ bool SsnEngine::finish_deferred_certification(SsnResult *out) {
         }
         const detail::DenseTallyScope tally(
             kkt_, out->dense_factorizations, out->dense_flagged_factorizations,
-            out->dense_singular_refactors, out->dense_platform_retakes);
+            out->dense_singular_refactors, out->dense_platform_retakes,
+            out->sparse_equilibrated_refactors);
         detail::factorize_checked(kkt_, k_, analysis, detail::DenseShiftSite{deferred_pos_});
         ++out->factorizations;
     } catch (const std::exception &e) {

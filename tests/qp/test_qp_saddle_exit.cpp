@@ -382,7 +382,10 @@ TEST(QpNc3SaddleExit, AZeroCurvatureDeadEndIsNotRiddenSteenbrbRestorationLpQp3) 
         EXPECT_EQ(s.counters.saddle_exits, 0);
 #if HVEN_TEST_ROUTE_REFERENCE
         EXPECT_EQ(s.counters.saddle_exit_misses, 0);
-        EXPECT_GE(s.counters.convex_certificates, 1);
+        // M8 sparse-equil (declared mover): the equilibrated factor reads the right inertia, so
+        // the false kWrong is not read and no certificate is needed (>= 1 -> 0); the optimum is
+        // the same.
+        EXPECT_EQ(s.counters.convex_certificates, 0);
         EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
         EXPECT_NEAR(objective(d.qp, s.x), -48.0, 1e-8 * 48.0);
 #else

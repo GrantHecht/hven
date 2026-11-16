@@ -190,10 +190,14 @@ TEST(QpNc4ConvexCertificate, TheOptionOffWalkTakesNoCertificate) {
 }
 
 TEST(QpNc4ConvexCertificate, SteenbrbRestorationLpQp3) {
-    // The route certificate, pinned unconditionally (not behind "a kWrong was read"): the NC4
-    // certificate fires exactly once on this walk on both algebras.
-    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kBorder, /*route_certificates=*/1);
-    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kRefactorize, /*route_certificates=*/1);
+    // The route pinned unconditionally (not behind "a kWrong was read"). RE-DERIVED AT M8
+    // sparse-equil (declared mover): the walk's KKT solves on the equilibrated factor read the
+    // right inertia, so the false kWrong this fixture was built on is gone (0 re-reads), no
+    // certificate is taken, and the walk certifies the optimum itself (1 certificate -> 0).
+    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kBorder, /*route_certificates=*/0,
+                     /*route_rereads=*/0);
+    expect_certified("C10_STEENBRB_qp3.txt", -48.0, kRefactorize, /*route_certificates=*/0,
+                     /*route_rereads=*/0);
 }
 TEST(QpNc4ConvexCertificate, SteenbrbRestorationLpQp4) {
     expect_certified("C10_STEENBRB_qp4.txt", -24.0, kBorder);
@@ -221,8 +225,13 @@ TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp2) {
     expect_certified("C10_BRITGAS_qp2.txt", -67.8186110861, kRefactorize);
 }
 TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp3) {
-    expect_certified("C10_BRITGAS_qp3.txt", -35.4063659176, kBorder);
-    expect_certified("C10_BRITGAS_qp3.txt", -35.4063659176, kRefactorize);
+    // M8 sparse-equil (declared route mover; the outcome holds): the one kWrong it still reads
+    // is resolved by the re-read without the certificate (1 certificate -> 0), the route
+    // BritgasRestorationLpQp4 carried since QC-8. Pinned in place of "a re-read => a certificate".
+    expect_certified("C10_BRITGAS_qp3.txt", -35.4063659176, kBorder, /*route_certificates=*/0,
+                     /*route_rereads=*/1);
+    expect_certified("C10_BRITGAS_qp3.txt", -35.4063659176, kRefactorize,
+                     /*route_certificates=*/0, /*route_rereads=*/1);
 }
 TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp4) {
     // M7 W2 QC-8 (declared route mover; the outcome holds): the implied blocker passes over
@@ -234,8 +243,14 @@ TEST(QpNc4ConvexCertificate, BritgasRestorationLpQp4) {
     // SteenbrbRestorationLpQp3..8 and BritgasRestorationLpQp3 (one certificate each, both
     // algebras, both configs) and BritgasRestorationLpQp2 (Release; Debug reads no kWrong
     // there, as its own note above says).
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder, /*route_certificates=*/0,
-                     /*route_rereads=*/1);
-    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize,
-                     /*route_certificates=*/0, /*route_rereads=*/1);
+    // RE-DERIVED AT M8 sparse-equil (declared route mover): 1 re-read / 0 certificates ->
+    // 3 re-reads / 1 certificate on both algebras (Release).
+    // Debug: 0 certificates, 1 re-read (1158 minors).
+#ifdef NDEBUG
+    constexpr Index kCerts = 1, kRereads = 3;
+#else
+    constexpr Index kCerts = 0, kRereads = 1;
+#endif
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kBorder, kCerts, kRereads);
+    expect_certified("C10_BRITGAS_qp4.txt", -19.1894367779, kRefactorize, kCerts, kRereads);
 }

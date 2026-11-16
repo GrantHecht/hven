@@ -490,6 +490,7 @@ struct IpqpResult {
     Index dense_platform_retakes = 0;
     Index dense_flagged_factorizations = 0;
     Index dense_singular_refactors = 0;
+    Index sparse_equilibrated_refactors = 0;
     /// Step solves through dense numerics the dense solve check refused
     /// (QpCounters' dense_solve_residual_refusals): an affine or corrector
     /// refusal is answered by the inertia ladder's perturbed-pivot remedy

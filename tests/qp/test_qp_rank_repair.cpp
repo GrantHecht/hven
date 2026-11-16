@@ -137,7 +137,11 @@ void expect_kkt_battery(const QpDump &d, const QpSolution &s, double stationarit
 
 void expect_certified_kkt(const QpDump &d, const QpSolution &s, double stationarity_tol) {
     ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+#ifdef NDEBUG
+    // Debug since M8 sparse-equil (declared route mover): the walk reaches its KKT point
+    // without meeting the dead end the repair is for, so no repair is taken.
     EXPECT_GE(s.counters.rank_repairs, 1);
+#endif
     EXPECT_GE(s.counters.rank_repair_releases, s.counters.rank_repairs);
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
@@ -262,7 +266,9 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
 #else
     (void)off_reference_key;
 #endif
-    EXPECT_GE(s.counters.rank_repairs, 1);
+#ifdef NDEBUG
+    EXPECT_GE(s.counters.rank_repairs, 1); // Debug: see expect_certified_kkt (M8 sparse-equil)
+#endif
     EXPECT_EQ(s.counters.dep_blocker_terminations, 0);
     EXPECT_EQ(s.counters.dep_certificate_rejections, 0);
     EXPECT_TRUE(s.status == QpStatus::kOptimal || s.status == QpStatus::kIterationLimit)
@@ -271,9 +277,9 @@ void expect_repaired(const QpDump &d, const QpSolution &s, double stationarity_t
     // Release: the repaired walk REACHES its KKT point.
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
 #else
-    // Debug: the declared move, a stagnation drop out of the two-pass cycle, then the KKT point.
+    // Debug: the KKT point; the stagnation drop out of the two-pass cycle (the declared move)
+    // is not taken since M8 sparse-equil (declared route mover).
     EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
-    EXPECT_GE(s.counters.stagnation_drops, 1);
 #endif
     if (s.status == QpStatus::kOptimal) {
         expect_certified_kkt(d, s, stationarity_tol);

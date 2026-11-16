@@ -49,6 +49,7 @@ void analyze_if_needed(KktFactor &k, const SpMatRM &K, const AnalysisDecision &d
 
 void clear_shift_marker(KktFactor &k) {
     k.dense_shifted = false;
+    k.sparse_equilibrated = false;
     k.dense_scale.resize(0);
 }
 
@@ -56,6 +57,43 @@ bool flagged(const hven::linear::FactorizeOutcome &o) {
     return o.status == hven::linear::FactorizeOutcome::Status::kOk
                ? o.inertia.numerically_singular
                : o.backend_code == hven::linear::kDenseSingular;
+}
+
+bool perturbed_sparse(const hven::linear::FactorizeOutcome &o) {
+    return o.status == hven::linear::FactorizeOutcome::Status::kOk &&
+           o.arm == hven::linear::FactorArm::kSparse && o.inertia.perturbed_pivots.has_value() &&
+           *o.inertia.perturbed_pivots > 0;
+}
+
+// D K D, same pattern (K compressed, upper CSR).
+SpMatRM congruent_scaled(const SpMatRM &K, const Vec &d) {
+    SpMatRM KD = K;
+    const auto n = static_cast<Index>(K.rows());
+    for (Index i = 0; i < n; ++i) {
+        for (SpMatRM::InnerIterator e(KD, i); e; ++e) {
+            e.valueRef() *= d(i) * d(static_cast<Index>(e.col()));
+        }
+    }
+    return KD;
+}
+
+// The sparse equilibrated response. The marker is set only once the refactor
+// has returned: a throw leaves the previous numerics, which it does not describe.
+hven::linear::FactorizeOutcome
+sparse_equilibrated_response(KktFactor &k, const SpMatRM &K,
+                             hven::linear::FactorizeOutcome outcome) {
+    if (!perturbed_sparse(outcome)) {
+        return outcome;
+    }
+    Vec d = equilibration_scale(K);
+    const SpMatRM KD = congruent_scaled(K, d);
+    outcome = k.factor.factorize(KD, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
+    ++k.sparse_equilibrated_refactors;
+    if (outcome.status == hven::linear::FactorizeOutcome::Status::kOk) {
+        k.dense_scale = std::move(d);
+        k.sparse_equilibrated = true;
+    }
+    return outcome;
 }
 
 } // namespace
@@ -73,6 +111,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
         // No site to shift on: the platform session retakes K.
         outcome = k.factor.retake_on_platform(
             K, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
+    } else {
+        outcome = sparse_equilibrated_response(k, K, std::move(outcome));
     }
     if (outcome.status == hven::linear::FactorizeOutcome::Status::kBackendError) {
         throw_failed(outcome);
@@ -132,6 +172,8 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K,
             outcome = k.factor.retake_on_platform(K, Check::kAssumeAnalyzed);
             clear_shift_marker(k);
         }
+    } else {
+        outcome = sparse_equilibrated_response(k, K, std::move(outcome));
     }
     if (outcome.status == Status::kBackendError) {
         throw_failed(outcome);
@@ -150,6 +192,13 @@ hven::linear::FactorizeOutcome factorize_checked(KktFactor &k, const SpMatRM &K)
 
 Vec solve_vec(const KktFactor &k, const Vec &rhs) {
     Vec x(rhs.size());
+    if (k.sparse_equilibrated) {
+        const Vec &d = k.dense_scale;
+        const Vec scaled = rhs.cwiseProduct(d);
+        k.factor.solve(scaled, x);
+        x.array() *= d.array();
+        return x;
+    }
     k.factor.solve(rhs, x);
     return x;
 }

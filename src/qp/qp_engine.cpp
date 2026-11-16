@@ -222,7 +222,8 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     const EqpResult eqp = [&] {
         const detail::DenseTallyScope tally(
             kkt, out.counters.dense_factorizations, out.counters.dense_flagged_factorizations,
-            out.counters.dense_singular_refactors, out.counters.dense_platform_retakes);
+            out.counters.dense_singular_refactors, out.counters.dense_platform_retakes,
+            out.counters.sparse_equilibrated_refactors);
         return solve_eqp(qp, ws, face.x, kkt, eff_opts);
     }();
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
@@ -3502,7 +3503,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         // solve_bordered_eqp's shifted-K0 gate, at its own point: on the first
         // Schur solve, before any refinement. A refused answer refines nothing
         // (the eliminated twin's rule).
-        if (border.kkt.dense_shifted &&
+        if (border.kkt.gated() &&
             !(bordered_shifted_backward_error(border.k0.K, sys.border_v, sys.border_d, sys.rhs,
                                               best, border.kkt.dense_scale) <=
               detail::kDenseShiftedBackwardErrorTol)) {
@@ -3510,7 +3511,7 @@ bool QpEngine::refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws
         }
         best = refine_bordered_solve_iterated(border.k0.K, n, sys.border_v, sys.border_d,
                                               *border.schur, sys.rhs, best, opts, nullptr, nullptr,
-                                              nullptr, border.kkt.dense_shifted);
+                                              nullptr, border.kkt.gated());
         best_x = point_of(best);
         best_measure = measure_of(best_x);
         for (Index step = 0; step < detail::kMaxVerdictRefineSteps && best_measure > 1.0; ++step) {
@@ -3644,7 +3645,8 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         ++counters.factorizations;
         const detail::DenseTallyScope tally(
             fresh, counters.dense_factorizations, counters.dense_flagged_factorizations,
-            counters.dense_singular_refactors, counters.dense_platform_retakes);
+            counters.dense_singular_refactors, counters.dense_platform_retakes,
+            counters.sparse_equilibrated_refactors);
         detail::factorize_checked(fresh, assembly.K, analysis, detail::DenseShiftSite{n_free});
     }
     // NOTHING IS SWALLOWED ON EITHER BRANCH: no backend this engine runs on
@@ -3662,8 +3664,8 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
         // solve_eqp's step rule: unconditional, or kept only while falling on a
         // shifted factor (M8 DN-1d).
         const Vec stepped = best + detail::solve_vec(fac, residual_of(best));
-        if (!fac.dense_shifted || detail::nan_sticky_inf_norm(residual_of(stepped)) <
-                                      detail::nan_sticky_inf_norm(residual_of(best))) {
+        if (!fac.gated() || detail::nan_sticky_inf_norm(residual_of(stepped)) <
+                                detail::nan_sticky_inf_norm(residual_of(best))) {
             best = stepped;
         }
     }
@@ -3764,7 +3766,8 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         // Counted on a throw too (DN-1c review F5).
         const detail::DenseTallyScope tally(
             kkt, counters.dense_factorizations, counters.dense_flagged_factorizations,
-            counters.dense_singular_refactors, counters.dense_platform_retakes);
+            counters.dense_singular_refactors, counters.dense_platform_retakes,
+            counters.sparse_equilibrated_refactors);
         return solve_eqp(qp, ws, x_k, kkt, opts);
     }();
     // Armed only now: solve_eqp has returned, so `kkt` really does hold this
@@ -3967,7 +3970,7 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
         // (solve_bordered_eqp).
         EqpResult res =
             solve_bordered_eqp(qp, border.k0, border.k0_rows, *border.schur, border.ledger, ws, x_k,
-                               opts, border.kkt.dense_shifted ? &border.kkt.dense_scale : nullptr);
+                               opts, border.kkt.gated() ? &border.kkt.dense_scale : nullptr);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
         counters.eqp_refine_iters += res.residual_refine_iters;
@@ -4410,7 +4413,7 @@ bool QpEngine::refine_terminal_mu_free(const QpProblem &qp, const WorkingSet &ws
     } catch (const std::runtime_error &) {
         return false; // no mu-free solve: the existing classification stands
     }
-    if (local.dense_shifted && r.residual_refused) {
+    if (local.gated() && r.residual_refused) {
         return false; // a shifted factor's refused answer is not adopted (M8 DN-1d)
     }
 
@@ -4638,6 +4641,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
         counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
         counters.dense_factorizations += local_counters.dense_factorizations;
         counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+        counters.sparse_equilibrated_refactors += local_counters.sparse_equilibrated_refactors;
         counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
         ++counters.terminal_polish_rejected;
         return false; // no mu-free solve: the walk's own point stands
@@ -4649,6 +4653,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     counters.dense_flagged_factorizations += local_counters.dense_flagged_factorizations;
     counters.dense_factorizations += local_counters.dense_factorizations;
     counters.dense_singular_refactors += local_counters.dense_singular_refactors;
+    counters.sparse_equilibrated_refactors += local_counters.sparse_equilibrated_refactors;
     counters.dense_shifted_solve_refusals += local_counters.dense_shifted_solve_refusals;
     // AND THE PRIMAL DELTA BACKED OUT OF THE ANSWER, which is consistent exactly
     // here: at a terminal point the step is going to zero, so the proximal
@@ -4659,7 +4664,7 @@ bool QpEngine::polish_terminal_point(const QpProblem &qp, const WorkingSet &ws,
     }
     // A shifted factor's refused answer is not adopted (M8 DN-1d).
     if (r.x.size() != qp.n() || !r.x.allFinite() || !r.lambda_e.allFinite() ||
-        !r.lambda_w.allFinite() || (local.dense_shifted && r.residual_refused)) {
+        !r.lambda_w.allFinite() || (local.gated() && r.residual_refused)) {
         ++counters.terminal_polish_rejected;
         return false;
     }
@@ -5739,7 +5744,8 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     {
         const detail::DenseTallyScope tally(
             border.kkt, counters.dense_factorizations, counters.dense_flagged_factorizations,
-            counters.dense_singular_refactors, counters.dense_platform_retakes);
+            counters.dense_singular_refactors, counters.dense_platform_retakes,
+            counters.sparse_equilibrated_refactors);
         detail::factorize_checked(
             border.kkt, k0.K, analysis,
             detail::DenseShiftSite{static_cast<Index>(k0.free_of_full.size())});

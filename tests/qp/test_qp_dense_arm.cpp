@@ -258,7 +258,9 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     KktFactor sparse(0, DensePolicy::kNever);
     (void)factorize_checked(sparse, K, site);
     EXPECT_FALSE(sparse.dense_shifted);
-    EXPECT_EQ(sparse.dense_scale.size(), 0);
+    // The platform's own perturbed-pivot response (M8 sparse-equil) is not the dense one: the
+    // scale is there iff the backend perturbed pivots on this exactly singular K.
+    EXPECT_EQ(sparse.dense_scale.size(), sparse.sparse_equilibrated ? 4 : 0);
 
     KktFactor dense(0, DensePolicy::kAlways);
     Index dense_count = 0;
@@ -1809,4 +1811,144 @@ TEST(QpRowContractPolish, ARowTriggeredEntryFloorsTheIncumbentsStationarity) {
         QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, true));
     EXPECT_FALSE(
         QpEngineTestAccess::polish_would_adopt(engine, qp, ws, cand, x, le, li, z, opts, false));
+}
+
+// SPARSE EQUILIBRATED RESPONSE (M8 sparse-equil). On the platform session (kNever) a factorization
+// of the coupled F3 fixture K = S K0 S that perturbs pivots (MKL: 1 at s >= 1e4, 2 at s >= 1e10) is
+// refactored as D K D, D = equilibration_scale(K), and every solve answers D (D K D)^-1 D b. The
+// raw relerr of the unscaled path was 7.8e-9 at s = 1e4, 4.9e-5 at 1e6, 0.106 at 1e8, 5.8e18 at
+// 1e10. Backends that report no perturbation count (Accelerate) never trigger it; the fixtures
+// assert the response iff the backend reports the perturbation on the raw matrix.
+namespace {
+
+bool platform_perturbs(const SpMatRM &K) {
+    hven::linear::SymmetricFactor f(sqp_kkt_options(0, DensePolicy::kNever));
+    f.analyze(K);
+    const auto o = f.factorize(K);
+    return o.status == hven::linear::FactorizeOutcome::Status::kOk &&
+           o.inertia.perturbed_pivots.has_value() && *o.inertia.perturbed_pivots > 0;
+}
+
+// K = S K0 S exactly (no regularization), the premise of F3::ystar.
+QpOptions exact_kkt_opts() {
+    QpOptions o = mu_free_opts();
+    o.primal_regularization = 0.0;
+    return o;
+}
+
+Vec f3_rhs(const F3 &f) {
+    Vec rhs(5);
+    rhs << -f.qp.g, f.qp.be;
+    return rhs;
+}
+
+double f3_relerr(const F3 &f, const Vec &y) {
+    return (y - f.ystar).cwiseAbs().cwiseQuotient(f.ystar.cwiseAbs()).maxCoeff();
+}
+
+} // namespace
+
+TEST(QpSparseEquil, ThePerturbedSparseFactorIsRefactoredEquilibratedAndSolvesExactly) {
+    for (const double s : {1e4, 1e6, 1e8, 1e10, 1e12}) {
+        SCOPED_TRACE(::testing::Message() << "s " << s);
+        const F3 f = f3_qp(s, true);
+        const QpOptions o = exact_kkt_opts();
+        const WorkingSet ws(3, 0);
+        const KktAssembly a = assemble_kkt(f.qp, ws, o);
+        const bool perturbs = platform_perturbs(a.K);
+        KktFactor k(0, DensePolicy::kNever);
+        const hven::linear::FactorizeOutcome fo = factorize_checked(k, a.K, DenseShiftSite{3});
+        ASSERT_EQ(fo.arm, FactorArm::kSparse);
+        EXPECT_EQ(k.sparse_equilibrated, perturbs);
+        EXPECT_FALSE(k.dense_shifted);  // nothing is shifted
+        EXPECT_EQ(k.gated(), perturbs); // the D-metric gate and refinement engage
+        EXPECT_EQ(k.sparse_equilibrated_refactors, perturbs ? 1 : 0);
+        EXPECT_EQ(k.factor.counters().factorize_count, perturbs ? 2 : 1);
+        EXPECT_EQ(k.dense_scale.size(), perturbs ? 5 : 0);
+        // D is a congruence: the inertia read is K0's (3 positive primal, 2 negative dual).
+        EXPECT_EQ(fo.inertia.positive, 3);
+        EXPECT_EQ(fo.inertia.negative, 2);
+        const Vec rhs = f3_rhs(f);
+        const Vec y = solve_vec(k, rhs);
+        EXPECT_LE(f3_relerr(f, y), 1e-12);
+        if (perturbs) {
+            ASSERT_TRUE(k.sparse_equilibrated); // the gate below reads k.dense_scale
+            // the gate, in the D metric: the answer passes; a wounded one is refused
+            EXPECT_FALSE(shifted_solve_refused(a.K, rhs, k, y));
+            EXPECT_LE(shifted_backward_error(a.K, rhs, k, y), 1e-14);
+            Vec bad = y;
+            bad(0) *= 1.001;
+            EXPECT_TRUE(shifted_solve_refused(a.K, rhs, k, bad));
+        }
+    }
+}
+
+TEST(QpSparseEquil, AnUnperturbedSparseFactorizationIsTheUnchangedOne) {
+    const F3 f = f3_qp(1.0, false);
+    const QpOptions o = exact_kkt_opts();
+    const KktAssembly a = assemble_kkt(f.qp, WorkingSet(3, 0), o);
+    ASSERT_FALSE(platform_perturbs(a.K));
+    KktFactor k(0, DensePolicy::kNever);
+    const auto fo = factorize_checked(k, a.K, DenseShiftSite{3});
+    EXPECT_FALSE(k.sparse_equilibrated);
+    EXPECT_FALSE(k.gated());
+    EXPECT_EQ(k.sparse_equilibrated_refactors, 0);
+    EXPECT_EQ(k.factor.counters().factorize_count, 1);
+    EXPECT_EQ(k.dense_scale.size(), 0);
+    hven::linear::SymmetricFactor ref(sqp_kkt_options(0, DensePolicy::kNever));
+    ref.analyze(a.K);
+    ref.factorize(a.K);
+    const Vec rhs = f3_rhs(f);
+    Vec x(5);
+    ref.solve(rhs, x);
+    EXPECT_EQ(solve_vec(k, rhs), x); // bit-identical
+    (void)fo;
+}
+
+TEST(QpSparseEquil, TheMarkerIsRetiredByTheNextFactorization) {
+    const QpOptions o = exact_kkt_opts();
+    const F3 big = f3_qp(1e8, true);
+    const KktAssembly ab = assemble_kkt(big.qp, WorkingSet(3, 0), o);
+    KktFactor k(0, DensePolicy::kNever);
+    factorize_checked(k, ab.K, DenseShiftSite{3});
+    const bool was = k.sparse_equilibrated;
+    const F3 unit = f3_qp(1.0, false); // another pattern, unperturbed
+    const KktAssembly au = assemble_kkt(unit.qp, WorkingSet(3, 0), o);
+    ASSERT_FALSE(platform_perturbs(au.K));
+    factorize_checked(k, au.K, DenseShiftSite{3});
+    EXPECT_FALSE(k.sparse_equilibrated);
+    EXPECT_FALSE(k.gated());
+    EXPECT_EQ(k.dense_scale.size(), 0);
+    EXPECT_LE(f3_relerr(unit, solve_vec(k, f3_rhs(unit))), 1e-12);
+    EXPECT_EQ(k.sparse_equilibrated_refactors, was ? 1 : 0); // cumulative
+}
+
+TEST(QpSparseEquil, TheWalkWithoutDualRegularizationReachesOptimalAtEveryScale) {
+    for (const double s : {1e4, 1e6, 1e8, 1e10, 1e12}) {
+        SCOPED_TRACE(::testing::Message() << "s " << s);
+        const F3 f = f3_qp(s, true);
+        const QpOptions o = mu_free_opts();
+        const KktAssembly a = assemble_kkt(f.qp, WorkingSet(3, 0), o);
+        const bool perturbs = platform_perturbs(a.K);
+        const QpSolution w = QpEngine(o, 0, DensePolicy::kNever).solve(f.qp);
+        EXPECT_EQ(static_cast<int>(w.status), static_cast<int>(QpStatus::kOptimal));
+        Vec yw(5);
+        yw << w.x, w.lambda_e;
+        EXPECT_LE(f3_relerr(f, yw), 1e-9);
+        EXPECT_EQ(w.counters.sparse_equilibrated_refactors > 0, perturbs);
+        EXPECT_EQ(w.counters.dense_shifted_terminations, 0);
+    }
+}
+
+TEST(QpSparseEquil, TheDefaultWalkAndItsPolishAreExactAtEveryScale) {
+    for (const double s : {1e4, 1e6, 1e8, 1e10, 1e12}) {
+        SCOPED_TRACE(::testing::Message() << "s " << s);
+        const F3 f = f3_qp(s, true);
+        const QpOptions o; // dual_regularization > 0: the terminal polish is the mu-free re-read
+        const QpSolution w = QpEngine(o, 0, DensePolicy::kNever).solve(f.qp);
+        EXPECT_EQ(static_cast<int>(w.status), static_cast<int>(QpStatus::kOptimal));
+        Vec yw(5);
+        yw << w.x, w.lambda_e;
+        EXPECT_LE(f3_relerr(f, yw), 1e-9);
+    }
 }
