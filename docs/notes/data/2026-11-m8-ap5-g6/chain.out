@@ -1,0 +1,196 @@
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T21:46:24-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T21:46:24-05:00
+
+The following tests did not run:
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2433 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2434 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T21:47:40-05:00
+docs/notes/data/2026-11-m8-ap5-g6/legs/chain.sh: line 23: /home/ghecht/Projects/hven/.claude/worktrees/g6/docs/notes/data/2026-11-m8-ap5-g6/suites-r3/ctest-rel-summary.txt: No such file or directory
+STEP ctest-rel rc=0 2026-11-15T21:47:40-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T21:47:40-05:00
+	599 - QpE2Fix9StandstillRetreat.Acopp118Qp1Border (Skipped)
+	600 - QpE2Fix9StandstillRetreat.Acopp118Qp1Refactorize (Skipped)
+	832 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	2433 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	2434 - EqpRefinementAb.FullBattery (Disabled)
+rc=0
+FOREGROUND_END 2026-11-15T21:55:04-05:00
+docs/notes/data/2026-11-m8-ap5-g6/legs/chain.sh: line 23: /home/ghecht/Projects/hven/.claude/worktrees/g6/docs/notes/data/2026-11-m8-ap5-g6/suites-r3/ctest-dbg-summary.txt: No such file or directory
+STEP ctest-dbg rc=0 2026-11-15T21:55:04-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T21:55:04-05:00
+c9ee5a8283e3a09caf6f767f06c4294d579a7d2e36a93ba35db95e5765cf8010  /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/armAbin/hven_sqp_corpus
+7b1f8681a412ab9248019876f3054c60fcd50722099b805704f275ab3dfe729c  /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/armBbin/hven_sqp_corpus
+cells: 27
+RUN mode=walk arm=A 2026-11-15T21:55:04-05:00
+run rc=0
+RUN mode=walk arm=B 2026-11-15T21:59:54-05:00
+run rc=0
+compare A vs B rc=0
+=== g6-A-vs-B-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ssn arm=A 2026-11-15T22:04:44-05:00
+run rc=0
+RUN mode=ssn arm=B 2026-11-15T22:05:04-05:00
+run rc=0
+compare A vs B rc=0
+=== g6-A-vs-B-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN mode=ipm arm=A 2026-11-15T22:05:25-05:00
+run rc=0
+RUN mode=ipm arm=B 2026-11-15T22:05:51-05:00
+run rc=0
+compare A vs B rc=0
+=== g6-A-vs-B-ipm === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=walk arm=B 2026-11-15T22:06:17-05:00
+run rc=0
+compare armed rc=0
+=== g6-armed-walk === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ssn arm=B 2026-11-15T22:11:05-05:00
+run rc=0
+compare armed rc=0
+=== g6-armed-ssn === cells compared: 27  columns compared: 75  differences: 0
+RUN armed mode=ipm arm=B 2026-11-15T22:11:25-05:00
+run rc=0
+compare armed rc=0
+=== g6-armed-ipm === cells compared: 27  columns compared: 75  differences: 0
+worst=0
+FOREGROUND_END 2026-11-15T22:11:51-05:00
+STEP replay rc=0 2026-11-15T22:11:51-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:11:51-05:00
+c9ee5a8283e3a09caf6f767f06c4294d579a7d2e36a93ba35db95e5765cf8010  /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/armAbin/hven_sqp_corpus
+7b1f8681a412ab9248019876f3054c60fcd50722099b805704f275ab3dfe729c  /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/armBbin/hven_sqp_corpus
+c304bb4cb00f3b5602f6ce8f122009037e75710bdc8311911d2d9827ec464783  /home/ghecht/Projects/hven/.claude/worktrees/g6/bench/baselines/2026-11-m8-ap5-g1-ipm-leg/interior_baseline.csv
+baseline cells: f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n20000_bound_neutral,f7_n20000_bound_physics,hs071_x1_fixed
+arm A rc=0
+arm B rc=0
+arm B (baseline invocation) rc=0
+arm B armed rc=0
+=== interior-unmoved === cells compared: 43  columns compared: 30  differences: 0
+compare unmoved rc=0
+=== interior-promoted === cells compared: 43  columns compared: 30  differences: 0
+compare promoted rc=0
+=== interior-armed === cells compared: 43  columns compared: 30  differences: 0
+compare armed rc=0
+worst=0
+FOREGROUND_END 2026-11-15T22:12:36-05:00
+STEP interior rc=0 2026-11-15T22:12:36-05:00
+rows=43 multi_phase=2 with_restoration=2 multi_phase_and_restoration=0
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:12:37-05:00
+SMOKE_START default 2026-11-15T22:12:37-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-default/hven-configure.log
+smoke default rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-default/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract default rc=0
+SMOKE_START clang 2026-11-15T22:13:40-05:00
+install smoke: both solvers converged through one generic consumer; a pieces problem solved; 37 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-clang/hven-configure.log
+smoke clang rc=0
+== checking export contract: /home/ghecht/Projects/hven/.claude/worktrees/g6/build-g6/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+-- no public header includes a detail/ header
+-- the umbrella hven.h includes every public header
+== export contract OK for platform=linux, align=32
+export-contract clang rc=0
+smoke worst rc=0
+FOREGROUND_END 2026-11-15T22:14:21-05:00
+docs/notes/data/2026-11-m8-ap5-g6/legs/chain.sh: line 30: /home/ghecht/Projects/hven/.claude/worktrees/g6/docs/notes/data/2026-11-m8-ap5-g6/install-smoke-r3/export-contract-summary.txt: No such file or directory
+docs/notes/data/2026-11-m8-ap5-g6/legs/chain.sh: line 31: /home/ghecht/Projects/hven/.claude/worktrees/g6/docs/notes/data/2026-11-m8-ap5-g6/install-smoke-r3/smoke-default-tail.txt: No such file or directory
+docs/notes/data/2026-11-m8-ap5-g6/legs/chain.sh: line 31: /home/ghecht/Projects/hven/.claude/worktrees/g6/docs/notes/data/2026-11-m8-ap5-g6/install-smoke-r3/smoke-clang-tail.txt: No such file or directory
+STEP install-smoke rc=0 2026-11-15T22:14:21-05:00
+OK   tests/sqp/test_trace_writer.cpp: EXPECT_EQ(raw_field(os.str(), "last_kkt_info"), spec_spelling(v));
+OK   tests/sqp/test_trace_writer.cpp: "\"last_kkt_info\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
+pairs: 4  failures: 0
+STEP goldens-rename rc=0 2026-11-15T22:14:22-05:00
+PGREP_EMPTY
+FOREGROUND_START 2026-11-15T22:14:22-05:00
+control build rc=0
+CONTROL failures: []
+applied m1 to include/hven/core/solver_counters.h
+MUT m1 BUILD_FAIL
+applied m2 to include/hven/core/solver_counters.h
+MUT m2 BUILD_FAIL
+applied c1 to src/drivers/ipm_solver.cpp
+MUT c1: IpmCounters.ASolveFillsTheWholeSolveGroupAndTheWorkAgrees drivers rc=1 
+applied c1b to src/drivers/ipm_solver.cpp
+MUT c1b: SURVIVES
+applied c2 to src/drivers/ipm_solver.cpp
+MUT c2: IpmLedger.OneRecordPerSolveCarryingThatCallsOwnCounters Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve drivers rc=1 interior rc=1 
+applied c3 to src/drivers/ipm_solver.cpp
+MUT c3: SURVIVES
+applied c4 to src/drivers/ipm_solver.cpp
+MUT c4: SURVIVES
+applied c5 to src/drivers/ipm_solver.cpp
+MUT c5: IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag seam rc=1 interior rc=1 
+applied c6 to src/drivers/ipm_solver.cpp
+MUT c6: TrialFailure.ANonFiniteHessianAtAReachedPointRollsTheStepBackOnBothEngines drivers rc=1 
+applied c7 to src/drivers/ipm_solver.cpp
+MUT c7: WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension drivers rc=1 
+applied c8 to src/drivers/ipm_solver.cpp
+MUT c8: WarmProtocol.ColdCeilingIgnoresAndCountsThePayload drivers rc=1 
+applied c9 to src/drivers/ipm_solver.cpp
+MUT c9: DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep seam rc=1 drivers rc=1 
+applied c10 to src/drivers/ipm_solver.cpp
+MUT c10: DenseAuto.IpmBelowItsThresholdIsTheDenseArm drivers rc=1 
+applied c11 to src/drivers/ipm_solver.cpp
+MUT c11: SURVIVES
+applied c12 to src/drivers/ipm_solver.cpp
+MUT c12: SURVIVES
+applied c13 to src/drivers/ipm_solver.cpp
+MUT c13: SURVIVES
+applied p1 to src/drivers/ipm_solver_globalization.cpp
+MUT p1 BUILD_FAIL
+applied p2 to src/drivers/ipm_solver_globalization.cpp
+MUT p2: AcceptanceDiagnostics.FilterReportsSizeAndResets IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 interior rc=1 
+applied p3 to src/drivers/ipm_solver_globalization.cpp
+MUT p3: AcceptanceDiagnostics.FilterReportsSizeAndResets IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 interior rc=1 
+applied p4 to src/drivers/ipm_solver_globalization.cpp
+MUT p4: IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+applied p5 to src/drivers/ipm_solver_globalization.cpp
+MUT p5: IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+applied p6 to include/hven/detail/globalization/restoration.h
+MUT p6: IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep ProxRestoDiagnostics.NeverEnteredReportsZeroZero RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack seam rc=1 drivers rc=1 interior rc=1 
+applied p7 to include/hven/detail/globalization/restoration.h
+MUT p7: IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts ProxRestoDiagnostics.NeverEnteredReportsZeroZero drivers rc=1 interior rc=1 
+applied p8 to src/drivers/ipm_solver.cpp
+MUT p8: IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts drivers rc=1 
+applied p9 to src/drivers/ipm_solver.cpp
+MUT p9: IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts drivers rc=1 
+applied p10 to src/drivers/ipm_solver.cpp
+MUT p10: BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine seam rc=1 
+applied p11 to src/drivers/ipm_solver.cpp
+MUT p11: IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+applied p12 to src/drivers/ipm_solver.cpp
+MUT p12: IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+applied p13 to src/drivers/ipm_solver.cpp
+MUT p13: IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack seam rc=1 drivers rc=1 interior rc=1 
+applied p14 to include/hven/drivers/ipm_solver_types.h
+MUT p14: IpmPhaseDiagnostics.LastRanPhaseSkipsThePhasesThatDidNotRun drivers rc=1 
+applied p15 to src/drivers/ipm_solver.cpp
+MUT p15: IpmCounters.TheLedgerRecordCarriesTheResultsCounters drivers rc=1 
+applied p16 to src/drivers/trace_writer.cpp
+MUT p16: IpmConsole.TheConsoleDoesNotDisplaceAUserSink interior rc=1 
+FOREGROUND_END 2026-11-15T22:51:32-05:00
+STEP mutations rc=0 2026-11-15T22:51:32-05:00
+worst=0
+FOREGROUND_END 2026-11-15T22:51:32-05:00

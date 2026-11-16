@@ -1,0 +1,34 @@
+id,mutation,build,killed_by
+control,none,ok,NONE
+m1,X-macro: dense_factorizations entry deleted,BUILD_FAIL,
+m2,X-macro: entries out of declaration order,BUILD_FAIL,
+c1,counters.factorizations not set (solve paths),ok,IpmCounters.ASolveFillsTheWholeSolveGroupAndTheWorkAgrees drivers rc=1 
+c1b,counters.factorizations not set (interrupted path; REPORTED),ok,SURVIVES
+c2,counters.symbolic_analyses not set,ok,IpmLedger.OneRecordPerSolveCarryingThatCallsOwnCounters Options.IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve drivers rc=1 interior rc=1 
+c3,soc_steps and watchdog_activations crossed at the recovery call,ok,SURVIVES
+c4,watchdog_activations dropped,ok,SURVIVES
+c5,recovery_depth_histogram dropped,ok,IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag seam rc=1 interior rc=1 
+c6,nonfinite_step_rollbacks dropped,ok,TrialFailure.ANonFiniteHessianAtAReachedPointRollsTheStepBackOnBothEngines drivers rc=1 
+c7,polish_ignored dropped,ok,WarmProtocol.MultipliersOnlySeedIgnoresAPolishExtension drivers rc=1 
+c8,payload_ignored dropped,ok,WarmProtocol.ColdCeilingIgnoresAndCountsThePayload drivers rc=1 
+c9,dense_solve_residual_refusals dropped,ok,DenseArmEngines.IpmResidualGuardRecoversANumericallySingularDenseFactor IpmDenseGuardSeam.AFailedGuardReRunEndsTheSolveWithoutItsStep seam rc=1 drivers rc=1 
+c10,dense_factorizations dropped,ok,DenseAuto.IpmBelowItsThresholdIsTheDenseArm drivers rc=1 
+c11,restoration_entries sum dropped,ok,SURVIVES
+c12,restoration_iters sum dropped,ok,SURVIVES
+c13,restoration_entries last phase instead of the sum (REPORTED),ok,SURVIVES
+p1,phase funnel_width not written,BUILD_FAIL,
+p2,phase filter_size not written,ok,AcceptanceDiagnostics.FilterReportsSizeAndResets IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 interior rc=1 
+p3,phase filter_resets not written,ok,AcceptanceDiagnostics.FilterReportsSizeAndResets IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 interior rc=1 
+p4,phase monotone_switches not written,ok,IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+p5,phase monotone_iterations not written,ok,IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+p6,phase restoration_entries not written,ok,IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep ProxRestoDiagnostics.NeverEnteredReportsZeroZero RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack seam rc=1 drivers rc=1 interior rc=1 
+p7,phase restoration_iters not written,ok,IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts ProxRestoDiagnostics.NeverEnteredReportsZeroZero drivers rc=1 interior rc=1 
+p8,phase proximal primal not copied,ok,IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts drivers rc=1 
+p9,phase proximal dual not copied,ok,IpmPhaseDiagnostics.TheProximalModeReportsItsShiftsAndRestorationItsCounts drivers rc=1 
+p10,phase kkt_factor_status not copied,ok,BackendErrorSeam.AFailedInitialFactorizationIsAStatusOnTheInteriorPointEngine seam rc=1 
+p11,acceptance append_diagnostics not called,ok,IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+p12,governor append_diagnostics not called,ok,IpmPhaseDiagnostics.TheFilterDefaultReportsTheFilterAndTheMonitoredGovernorOnly drivers rc=1 
+p13,restoration append_diagnostics not called,ok,IpmDenseGuardSeam.AFailedGuardReRunUnderRestorationDiscardsItsStep IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag RiderRollback.AFailureWhileRestorationIsActiveIsNeverRolledBack seam rc=1 drivers rc=1 interior rc=1 
+p14,last_ran_phase ignores ran,ok,IpmPhaseDiagnostics.LastRanPhaseSkipsThePhasesThatDidNotRun drivers rc=1 
+p15,IpmSolveRecord::counters not set,ok,IpmCounters.TheLedgerRecordCarriesTheResultsCounters drivers rc=1 
+p16,ipm.phase.exit key still last_kkt_info,ok,IpmConsole.TheConsoleDoesNotDisplaceAUserSink interior rc=1 
