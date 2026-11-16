@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -77,8 +78,31 @@ SpMatRM congruent_scaled(const SpMatRM &K, const Vec &d) {
     return KD;
 }
 
-// The sparse equilibrated response. The marker is set only once the refactor
-// has returned: a throw leaves the previous numerics, which it does not describe.
+// The deterministic probe system: K u = b with u = D w, w_i a fixed pseudo-random value in [-1, 1]
+// (a 32-bit LCG from a constant seed). b lies in K's range by construction, so a singular K (an
+// unregularized zero dual block) is not charged for a right-hand side no factor could answer; and D
+// w is O(1) in the equilibrated metric whatever each row's scale. Every perturbed factorization of
+// a given K is probed identically.
+Vec probe_rhs(const SpMatRM &K, const Vec &d) {
+    const auto n = static_cast<Index>(d.size());
+    Vec u(n);
+    std::uint32_t state = 0x9E3779B9u;
+    for (Index i = 0; i < n; ++i) {
+        state = state * 1664525u + 1013904223u;
+        const double w = 2.0 * (static_cast<double>(state >> 8) / 16777216.0) - 1.0;
+        u(i) = w * d(i);
+    }
+    return K.template selfadjointView<Eigen::Upper>() * u;
+}
+
+// The sparse equilibrated response, on EVIDENCE OF HARM. A perturbed-pivot report alone is not harm
+// (an unregularized zero-dual-block KKT reports one at unit scale), so the raw factor is kept and
+// probed: one raw solve of a deterministic consistent right-hand side (probe_rhs), its backward
+// error taken in D's metric (D = equilibration_scale(K)) by the dense gate's own measure at
+// kDenseShiftedBackwardErrorTol. Only a probe that fails (or reads NaN) refactors D K D; a probe
+// that passes leaves the factor, the marker and the gate exactly as without this function. The
+// marker is set only once the refactor has returned: a throw leaves the previous numerics, which it
+// does not describe.
 hven::linear::FactorizeOutcome
 sparse_equilibrated_response(KktFactor &k, const SpMatRM &K,
                              hven::linear::FactorizeOutcome outcome) {
@@ -86,6 +110,15 @@ sparse_equilibrated_response(KktFactor &k, const SpMatRM &K,
         return outcome;
     }
     Vec d = equilibration_scale(K);
+    const Vec b = probe_rhs(K, d);
+    Vec y(b.size());
+    k.factor.solve(b, y);
+    Vec r;
+    Vec acc;
+    const double eta = dense_backward_error(K, symmetric_inf_norm(K, &d, acc), b, y, r, &d);
+    if (eta <= kDenseShiftedBackwardErrorTol) {
+        return outcome;
+    }
     const SpMatRM KD = congruent_scaled(K, d);
     outcome = k.factor.factorize(KD, hven::linear::SymmetricFactor::PatternCheck::kAssumeAnalyzed);
     ++k.sparse_equilibrated_refactors;

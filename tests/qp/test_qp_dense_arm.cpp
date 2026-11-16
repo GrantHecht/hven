@@ -258,9 +258,7 @@ TEST(QpDenseArm, FactorizeCheckedShiftsAFlaggedFactor) {
     KktFactor sparse(0, DensePolicy::kNever);
     (void)factorize_checked(sparse, K, site);
     EXPECT_FALSE(sparse.dense_shifted);
-    // The platform's own perturbed-pivot response (M8 sparse-equil) is not the dense one: the
-    // scale is there iff the backend perturbed pivots on this exactly singular K.
-    EXPECT_EQ(sparse.dense_scale.size(), sparse.sparse_equilibrated ? 4 : 0);
+    EXPECT_EQ(sparse.dense_scale.size(), 0);
 
     KktFactor dense(0, DensePolicy::kAlways);
     Index dense_count = 0;
@@ -1859,19 +1857,27 @@ TEST(QpSparseEquil, ThePerturbedSparseFactorIsRefactoredEquilibratedAndSolvesExa
         KktFactor k(0, DensePolicy::kNever);
         const hven::linear::FactorizeOutcome fo = factorize_checked(k, a.K, DenseShiftSite{3});
         ASSERT_EQ(fo.arm, FactorArm::kSparse);
-        EXPECT_EQ(k.sparse_equilibrated, perturbs);
-        EXPECT_FALSE(k.dense_shifted);  // nothing is shifted
-        EXPECT_EQ(k.gated(), perturbs); // the D-metric gate and refinement engage
-        EXPECT_EQ(k.sparse_equilibrated_refactors, perturbs ? 1 : 0);
-        EXPECT_EQ(k.factor.counters().factorize_count, perturbs ? 2 : 1);
-        EXPECT_EQ(k.dense_scale.size(), perturbs ? 5 : 0);
+        // The probe decides: s >= 1e8 fails it (raw eta_D 8.4e-3 at 1e8), and only a perturbed
+        // factorization is ever probed.
+        const bool equil = k.sparse_equilibrated;
+        if (perturbs && s >= 1e8) {
+            EXPECT_TRUE(equil);
+        }
+        if (!perturbs) {
+            EXPECT_FALSE(equil);
+        }
+        EXPECT_FALSE(k.dense_shifted); // nothing is shifted
+        EXPECT_EQ(k.gated(), equil);   // the D-metric gate and refinement engage iff refactored
+        EXPECT_EQ(k.sparse_equilibrated_refactors, equil ? 1 : 0);
+        EXPECT_EQ(k.factor.counters().factorize_count, equil ? 2 : 1);
+        EXPECT_EQ(k.dense_scale.size(), equil ? 5 : 0);
         // D is a congruence: the inertia read is K0's (3 positive primal, 2 negative dual).
         EXPECT_EQ(fo.inertia.positive, 3);
         EXPECT_EQ(fo.inertia.negative, 2);
         const Vec rhs = f3_rhs(f);
         const Vec y = solve_vec(k, rhs);
-        EXPECT_LE(f3_relerr(f, y), 1e-12);
-        if (perturbs) {
+        EXPECT_LE(f3_relerr(f, y), equil ? 1e-12 : 1e-4); // a passing probe leaves the raw factor
+        if (equil) {
             ASSERT_TRUE(k.sparse_equilibrated); // the gate below reads k.dense_scale
             // the gate, in the D metric: the answer passes; a wounded one is refused
             EXPECT_FALSE(shifted_solve_refused(a.K, rhs, k, y));
@@ -1935,7 +1941,7 @@ TEST(QpSparseEquil, TheWalkWithoutDualRegularizationReachesOptimalAtEveryScale) 
         Vec yw(5);
         yw << w.x, w.lambda_e;
         EXPECT_LE(f3_relerr(f, yw), 1e-9);
-        EXPECT_EQ(w.counters.sparse_equilibrated_refactors > 0, perturbs);
+        EXPECT_EQ(w.counters.sparse_equilibrated_refactors > 0, perturbs && s >= 1e6);
         EXPECT_EQ(w.counters.dense_shifted_terminations, 0);
     }
 }

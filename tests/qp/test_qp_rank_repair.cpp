@@ -339,15 +339,7 @@ TEST(QpRdvRankRepair, TheSeamRecordsARepairWithItsDropIdentity) {
     const QpSolution s = solve_fixture("RDV_YORKNET_qp5.txt", kBorder, d);
     Obs::active = false;
     ASSERT_FALSE(Obs::truncated);
-#if HVEN_TEST_ROUTE_REFERENCE
     ASSERT_GE(s.counters.rank_repairs, 1);
-#else
-    // Off the reference build the repair is a route (WX design section 2.1); since M8 sparse-equil
-    // the Windows MKL route takes none on this dump. The identity below needs one to check.
-    if (s.counters.rank_repairs < 1) {
-        GTEST_SKIP() << "no rank repair on this build's route";
-    }
-#endif
     Index repairs = 0;
     Index shrunk = 0;
     for (const auto &r : Obs::records) {
