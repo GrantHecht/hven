@@ -1812,8 +1812,8 @@ TEST(QpRowContractPolish, ARowTriggeredEntryFloorsTheIncumbentsStationarity) {
 }
 
 // SPARSE EQUILIBRATED RESPONSE (M8 sparse-equil). On the platform session (kNever) a factorization
-// of the coupled F3 fixture K = S K0 S that perturbs pivots (MKL: 1 at s >= 1e4, 2 at s >= 1e10) is
-// refactored as D K D, D = equilibration_scale(K), and every solve answers D (D K D)^-1 D b. The
+// of the coupled F3 fixture K = S K0 S that perturbs pivots (MKL: 1 at s >= 1e4, 2 at s >= 1e10) and
+// FAILS the probe (a raw solve's D-metric backward error above 1e-8) is refactored as D K D, D = equilibration_scale(K), and every solve answers D (D K D)^-1 D b. The
 // raw relerr of the unscaled path was 7.8e-9 at s = 1e4, 4.9e-5 at 1e6, 0.106 at 1e8, 5.8e18 at
 // 1e10. Backends that report no perturbation count (Accelerate) never trigger it; the fixtures
 // assert the response iff the backend reports the perturbation on the raw matrix.
@@ -1857,15 +1857,11 @@ TEST(QpSparseEquil, ThePerturbedSparseFactorIsRefactoredEquilibratedAndSolvesExa
         KktFactor k(0, DensePolicy::kNever);
         const hven::linear::FactorizeOutcome fo = factorize_checked(k, a.K, DenseShiftSite{3});
         ASSERT_EQ(fo.arm, FactorArm::kSparse);
-        // The probe decides: s >= 1e8 fails it (raw eta_D 8.4e-3 at 1e8), and only a perturbed
-        // factorization is ever probed.
+        // The probe decides, and only a perturbed factorization is ever probed. Measured raw
+        // eta_D of the probe: ~3e-10 at s = 1e4 (passes: the raw factor is kept), ~1e-5 at 1e6,
+        // 3e-2 at 1e8, 3e-1 at 1e10 and 1e12 (fail: refactored).
         const bool equil = k.sparse_equilibrated;
-        if (perturbs && s >= 1e8) {
-            EXPECT_TRUE(equil);
-        }
-        if (!perturbs) {
-            EXPECT_FALSE(equil);
-        }
+        EXPECT_EQ(equil, perturbs && s >= 1e6);
         EXPECT_FALSE(k.dense_shifted); // nothing is shifted
         EXPECT_EQ(k.gated(), equil);   // the D-metric gate and refinement engage iff refactored
         EXPECT_EQ(k.sparse_equilibrated_refactors, equil ? 1 : 0);
@@ -1876,7 +1872,16 @@ TEST(QpSparseEquil, ThePerturbedSparseFactorIsRefactoredEquilibratedAndSolvesExa
         EXPECT_EQ(fo.inertia.negative, 2);
         const Vec rhs = f3_rhs(f);
         const Vec y = solve_vec(k, rhs);
-        EXPECT_LE(f3_relerr(f, y), equil ? 1e-12 : 1e-4); // a passing probe leaves the raw factor
+        EXPECT_LE(f3_relerr(f, y), equil ? 1e-12 : 1e-6); // a passing probe leaves the raw factor
+        if (!equil) {
+            // ... and the raw factor's own solve, bit for bit (the probe is a read, not a change)
+            hven::linear::SymmetricFactor ref(sqp_kkt_options(0, DensePolicy::kNever));
+            ref.analyze(a.K);
+            ref.factorize(a.K);
+            Vec x(5);
+            ref.solve(rhs, x);
+            EXPECT_EQ(y, x);
+        }
         if (equil) {
             ASSERT_TRUE(k.sparse_equilibrated); // the gate below reads k.dense_scale
             // the gate, in the D metric: the answer passes; a wounded one is refused

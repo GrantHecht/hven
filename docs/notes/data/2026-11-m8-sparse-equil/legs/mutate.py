@@ -5,7 +5,9 @@ M2 no-D-on-solve:  solve_vec does not apply D (the refactored factor answers D K
 M3 gate-removed:   KktFactor::gated() ignores sparse_equilibrated (no D-metric gate, no keep-while-falling refinement).
 M4 no-count:       sparse_equilibrated_refactors is never incremented.
 M5 marker-kept:    the next factorization does not retire sparse_equilibrated.
-M6 raw-refactor:   the 'equilibrated' refactor factors K itself (D applied on solve only)."""
+M6 raw-refactor:   the 'equilibrated' refactor factors K itself (D applied on solve only).
+M7 probe-ignored:  a perturbed sparse factorization is refactored whatever the probe reads (always refactor).
+M8 probe-inverted: the probe's threshold test is inverted (a passing probe refactors, a failing one keeps the raw factor)."""
 import subprocess
 import sys
 
@@ -18,6 +20,8 @@ MUT = {
     "M4": (CPP, "    ++k.sparse_equilibrated_refactors;\n", ""),
     "M5": (CPP, "    k.dense_shifted = false;\n    k.sparse_equilibrated = false;\n", "    k.dense_shifted = false;\n"),
     "M6": (CPP, "    const SpMatRM KD = congruent_scaled(K, d);", "    const SpMatRM KD = K;"),
+    "M7": (CPP, "    if (eta <= kDenseShiftedBackwardErrorTol) {", "    if (false && eta <= kDenseShiftedBackwardErrorTol) {"),
+    "M8": (CPP, "    if (eta <= kDenseShiftedBackwardErrorTol) {", "    if (!(eta <= kDenseShiftedBackwardErrorTol)) {"),
 }
 arg = sys.argv[1]
 if arg == "restore":

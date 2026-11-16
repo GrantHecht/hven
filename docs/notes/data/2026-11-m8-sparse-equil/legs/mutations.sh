@@ -27,7 +27,7 @@ run_one() { # id
 }
 verdict=MUTATIONS_AS_DECLARED
 run_one control || verdict=CONTROL_NOT_CLEAN
-for m in M1 M2 M3 M4 M5 M6; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
+for m in M1 M2 M3 M4 M5 M6 M7 M8; do run_one $m || verdict="MUTATION_SURVIVED_$m"; done
 ninja -C "$B" -j16 hven_qp_walk_seam_tests > "$OUT/final.build.log" 2>&1
 git -C "$WT" diff --quiet -- src include tests || { echo TREE_NOT_RESTORED; verdict=TREE_NOT_RESTORED; }
 echo "VERDICT $verdict"

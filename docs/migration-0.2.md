@@ -280,20 +280,25 @@ s = 1e4, 4.9e-5 at 1e6, 0.106 at 1e8, 5.8e18 at 1e10 and 2.2e25 at 1e12 (the raw
 at s = 1e8, against 8.4e-3 in the Ruiz-D metric). Accelerate equilibrates unconditionally and is exact; this is MKL-only.
 
 - `detail::factorize_checked` (both overloads): a sparse (platform-session, arm `kSparse`) factorization whose outcome reports
-  `inertia.perturbed_pivots > 0` is refactored as D K D on the same analyzed pattern (D = `equilibration_scale(K)`, sigma = 0);
-  `solve_vec` then answers b <- D (D K D)^-1 D b until the next factorization. D is a congruence, so the inertia read is K's.
-  No `SymmetricFactor` API is added: the pattern is unchanged, so `factorize()` of the congruent matrix on the already analyzed
-  session is the refactor. No iparm moves. Dense-arm outcomes (whose shifted refactor reports perturbed_pivots = dim) and
-  the platform retake of a dense-selected pattern are not touched.
-- The gate: `KktFactor::dense_shifted` and `dense_scale` are set with `sparse_equilibrated`, so the existing D-metric backward-error
-  gate (`kDenseShiftedBackwardErrorTol`, `shifted_solve_refused`) and keep-while-falling refinement apply unchanged; refusals count
-  in the `dense_shifted_*` counters.
+  `inertia.perturbed_pivots > 0` is PROBED, not refactored on the report alone (an unregularized zero-dual-block KKT reports a
+  perturbed pivot at unit scale, so the report is not evidence of harm). The raw factor is kept; one raw solve of a deterministic
+  consistent right-hand side (K u = b, u = D w, w a fixed LCG sequence in [-1, 1], D = `equilibration_scale(K)`) is measured by the
+  dense gate's own backward error in D's metric. Only a probe whose eta exceeds `kDenseShiftedBackwardErrorTol` (1e-8, or reads
+  NaN) refactors D K D on the same analyzed pattern (sigma = 0); `solve_vec` then answers b <- D (D K D)^-1 D b until the next
+  factorization. D is a congruence, so the inertia read is K's. A factorization whose probe passes is untouched: same factor,
+  `gated()` false, no merit-test exemption change (the probe's one extra solve is counted in the factor's solve counter). No
+  `SymmetricFactor` API is added: the pattern is unchanged, so `factorize()` of the congruent matrix on the already analyzed
+  session is the refactor. No iparm moves. Dense-arm outcomes (whose shifted refactor reports perturbed_pivots = dim) and the
+  platform retake of a dense-selected pattern are not touched.
+- The gate: `KktFactor::sparse_equilibrated` and `dense_scale` are set on a refactor, so the existing D-metric backward-error
+  gate (`kDenseShiftedBackwardErrorTol`, `shifted_solve_refused`) and keep-while-falling refinement apply through `gated()`;
+  refusals count in the `dense_shifted_*` counters.
 - New counter `sparse_equilibrated_refactors` (`QpCounters`, `SqpCounters`, trace key after `payload_ignored`; `SsnResult`
-  and `IpqpResult` carry the field, the latter 0). A factorization without perturbed pivots takes the unchanged path, and a backend
-  that reports no count (Accelerate) never triggers it.
+  and `IpqpResult` carry the field, the latter 0). It counts actual refactors only. A factorization without perturbed pivots, or whose probe passes, takes the
+  unchanged path, and a backend that reports no count (Accelerate) never triggers it.
 
 Consumers: `QpCounters`/`SqpCounters` gain one trailing field (aggregate initialization by position, trace keys by name);
-a walk or SSN subproblem whose KKT perturbed pivots is solved on D K D, so its route can differ in the last digits.
+a walk or SSN subproblem whose perturbed KKT fails the probe is solved on D K D, so its route can differ in the last digits.
 
 ## G5 -- the widened payload
 
