@@ -9,7 +9,7 @@ WT=/home/ghecht/Projects/hven/.claude/worktrees/g6
 D=$WT/docs/notes/data/2026-11-m8-ap5-g6
 HEAD_SHA=${1:?code head sha}
 OUT=${2:?out dir}
-RAW=$WT/.scratch/g6-mutation
+RAW=${RAW_DIR:-$WT/.scratch/g6-mutation}
 if [ -n "$(pgrep -a hven_bench_cell)" ]; then echo "PGREP_BUSY"; pgrep -a hven_bench_cell; exit 3; fi
 echo PGREP_EMPTY
 echo "FOREGROUND_START $(date -Is)"
@@ -55,7 +55,7 @@ build control; echo "control build rc=$?"
 ctl=$(runall control | tr '\n' ' '); ctl="$ctl$(grep -E '^(seam|drivers|interior) rc=[1-9]' "$RAW/run-control.log" | tr '\n' ' ')"
 echo "CONTROL failures: [${ctl}]"
 echo "control,none,ok,${ctl:-NONE}" >> "$OUT/mutation-table.csv"
-for id in m1 m2 c1 c1b c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 p16; do
+for id in ${MUT_IDS:-m1 m2 c1 c1b c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 p16}; do
   python3 "$D/legs/mutate.py" "$SRC" "$id" || { echo "MUTATE_FAIL $id"; echo "$id,${DESC[$id]},APPLY_FAIL," >> "$OUT/mutation-table.csv"; continue; }
   if build "$id"; then
     killed=$(runall "$id" | tr '\n' ' ')

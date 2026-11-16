@@ -53,7 +53,7 @@ M = {
     'c13': (IPM, '''        result.counters.restoration_entries += phase.restoration_entries.value_or(0);''',
                  '''        result.counters.restoration_entries = phase.restoration_entries.value_or(0);''', 1),
     # the per-phase fields
-    'p1': (GLOB, '    report.funnel_width =\n', '    (void)\n', 1),
+    'p1': (GLOB, '    report.funnel_width =\n', '    [[maybe_unused]] auto mut_unused_ =\n', 1),
     'p2': (GLOB, '    report.filter_size = static_cast<Index>(filter_.size());\n', '', 1),
     'p3': (GLOB, '    report.filter_resets = n_filter_resets_;\n', '', 1),
     'p4': (GLOB, '    report.monotone_switches = last_monotone_switches_;\n', '', 1),
