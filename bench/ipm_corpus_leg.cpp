@@ -425,7 +425,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         //
         // SO THE SEED ROW IS READ ON THE APPLIED RUNG, not on `iter_num`. The
         // engine knows which rung a payload reached and says so in
-        // `IpmResult::payload_ignored` / `polish_ignored`, and
+        // `IpmResult::counters.payload_ignored` / `polish_ignored`, and
         // `run_interior_problem`'s APPLIED-RUNG CHECK (search that function for
         // "wrong warm-start rung") refuses to emit either row unless the rung
         // is the one the variant asked for -- so the two rows cannot be
@@ -825,13 +825,14 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     //                        applied: payload_ignored 0, polish_ignored 1.
     if (variant.warm != InteriorVariant::Warm::kNone) {
         const int want_polish = variant.warm == InteriorVariant::Warm::kSeed ? 1 : 0;
-        if (warm_result.payload_ignored != 0 || warm_result.polish_ignored != want_polish) {
+        if (warm_result.counters.payload_ignored != 0 ||
+            warm_result.counters.polish_ignored != want_polish) {
             throw std::runtime_error(fmt::format(
                 "run_interior_problem: the '{}' variant's measured solve of cell '{}' reached the "
                 "wrong warm-start rung: payload_ignored={} polish_ignored={}, expected 0 and {}. "
                 "The row would report a warm start that was not applied",
-                variant.name, identity.cell_id, warm_result.payload_ignored,
-                warm_result.polish_ignored, want_polish));
+                variant.name, identity.cell_id, warm_result.counters.payload_ignored,
+                warm_result.counters.polish_ignored, want_polish));
         }
     }
 
@@ -853,8 +854,8 @@ InteriorRow run_interior_problem(const std::shared_ptr<Nlp> &problem,
     row.factorizations = result.kkt_factor_counters.factorize_count;
     row.solves = result.kkt_factor_counters.solve_count;
     row.analyses = result.kkt_analyses_total;
-    row.soc_steps = result.second_order_corrections;
-    row.watchdog_activations = result.watchdog_activations;
+    row.soc_steps = result.counters.soc_steps;
+    row.watchdog_activations = result.counters.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
     row.stop_reason = to_string(result.stop_reason);
     row.variant = variant.name;

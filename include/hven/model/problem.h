@@ -64,7 +64,7 @@ struct ProblemStatistics {
 /// nothing. A changed set is adopted by its kind of change:
 /// - Values only (every variable keeps which sides are finite and whether it is
 ///   fixed): adopted in place. Nothing is re-laid and the interior-point engine does
-///   not re-analyse (IpmResult::kkt_analyses_this_call == 0); a WarmStart taken
+///   not re-analyse (IpmResult::counters.symbolic_analyses == 0); a WarmStart taken
 ///   before still matches. The one exception: under
 ///   IpmFixedVariableTreatment::kMakeConstraint a moved fixing value re-installs that
 ///   treatment's fixing rows, which re-analyses (counted).

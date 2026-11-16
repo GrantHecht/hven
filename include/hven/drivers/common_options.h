@@ -110,10 +110,10 @@ struct CommonOptions {
     ///
     /// Interior-point engine, on its payload route:
     ///  - `kCold`: the payload is ignored and counted
-    ///    (`IpmResult::payload_ignored`). Its block lengths and declaration
+    ///    (`IpmResult::counters.payload_ignored`). Its block lengths and declaration
     ///    stamp are still checked.
     ///  - `kSeeded`: the multipliers only; `x0` is the start and the polish
-    ///    extension is ignored and counted (`IpmResult::polish_ignored`).
+    ///    extension is ignored and counted (`IpmResult::counters.polish_ignored`).
     ///  - `kWarm`, `kHot`: the whole payload -- point, multipliers, polish.
     StartLevel start_level = StartLevel::kWarm;
 

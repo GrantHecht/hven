@@ -289,7 +289,7 @@ TEST(DenseArmEngines, IpmResidualGuardRecoversANumericallySingularDenseFactor) {
     EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
     EXPECT_GT(dense.kkt_factor_counters.dense_factorize_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
-    EXPECT_GT(dense.dense_residual_ratio_triggers, 0);
+    EXPECT_GT(dense.counters.dense_solve_residual_refusals, 0);
 }
 
 // The same in proximal mode: the strip also removes the base shift rho_k.
@@ -306,7 +306,7 @@ TEST(DenseArmEngines, IpmResidualGuardRecoversANumericallySingularDenseFactorPro
     EXPECT_NEAR(dense.f, sparse.f, 1e-8 * std::max(1.0, std::abs(sparse.f)));
     EXPECT_GT(dense.kkt_factor_counters.dense_factorize_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
-    EXPECT_GT(dense.dense_residual_ratio_triggers, 0);
+    EXPECT_GT(dense.counters.dense_solve_residual_refusals, 0);
 }
 
 // kNever: the guard is never entered. The inconsistent variant (second row's bound off by
@@ -316,13 +316,13 @@ TEST(DenseArmEngines, IpmResidualGuardIsNeverEnteredOnSparseFactorizations) {
     Eigen::VectorXd x0(2);
     x0 << 3.0, -1.0;
     EXPECT_EQ(solve_ipm(DensePolicy::kNever, std::make_shared<NearDuplicateRowsProblem>(1e-2), x0)
-                  .dense_residual_ratio_triggers,
+                  .counters.dense_solve_residual_refusals,
               0);
     EXPECT_EQ(solve_ipm(DensePolicy::kNever, std::make_shared<NearDuplicateRowsProblem>(), x0)
-                  .dense_residual_ratio_triggers,
+                  .counters.dense_solve_residual_refusals,
               0);
     EXPECT_EQ(solve_ipm(DensePolicy::kNever, std::make_shared<DuplicateRowsProblem>(), x0)
-                  .dense_residual_ratio_triggers,
+                  .counters.dense_solve_residual_refusals,
               0);
 }
 
@@ -431,7 +431,7 @@ TEST(DenseArmEngines, IpmTrustsADenseFactorSingularOnlyByScale) {
     EXPECT_GT(dense.kkt_factor_counters.dense_equilibrated_estimate_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_singular_count, 0);
     EXPECT_EQ(dense.kkt_factor_counters.dense_fallback_count, 0);
-    EXPECT_EQ(dense.dense_residual_ratio_triggers, 0);
+    EXPECT_EQ(dense.counters.dense_solve_residual_refusals, 0);
     ASSERT_FALSE(rows.empty());
     for (const hven::IpmIterate &row : rows) {
         EXPECT_EQ(row.h_facs, 0) << "iteration " << row.iter;

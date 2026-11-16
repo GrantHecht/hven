@@ -45,7 +45,7 @@ const hven::IpmResult r = solver.solve(problem, x0);
 - Two engines may alternate on one `Problem`, sequentially. An `IpmSolver` that did
   not lay the current interior-point analysis re-analyses on its next solve —
   another `IpmSolver`, or a bound change on an `Nlp` problem, displaces it — and the
-  re-analysis is counted (`IpmResult::kkt_analyses_this_call`), as the program-level
+  re-analysis is counted (`IpmResult::counters.symbolic_analyses`), as the program-level
   owner id (`analyzed_owner_id`) has always made it.
 
 `common.threads = 1` is the whole of the thread setting a worker needs. It

@@ -1236,14 +1236,14 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     EXPECT_EQ(first.phases_run, 1);
     EXPECT_GT(first.factorizations, 0);
     EXPECT_GT(first.analyses, 0);
-    EXPECT_EQ(first.soc_steps_taken, first_result.second_order_corrections);
-    EXPECT_EQ(first.watchdog_activations, first_result.watchdog_activations);
+    EXPECT_EQ(first.soc_steps_taken, first_result.counters.soc_steps);
+    EXPECT_EQ(first.watchdog_activations, first_result.counters.watchdog_activations);
     // The second record likewise, against the SECOND call's result.
     EXPECT_EQ(second.status, second_result.status);
     EXPECT_EQ(second.iterations, second_result.iterations);
     EXPECT_EQ(second.total_time, second_result.timing.total_seconds);
-    EXPECT_EQ(second.soc_steps_taken, second_result.second_order_corrections);
-    EXPECT_EQ(second.watchdog_activations, second_result.watchdog_activations);
+    EXPECT_EQ(second.soc_steps_taken, second_result.counters.soc_steps);
+    EXPECT_EQ(second.watchdog_activations, second_result.counters.watchdog_activations);
     // wall_seconds is INFORMATIONAL (CLAUDE.md section 7): populated, never a
     // magnitude.
     EXPECT_GT(first.wall_seconds, 0.0);
@@ -1273,7 +1273,7 @@ TEST(IpmLedger, FactorizationsAndAnalysesArePerCallNotLifetime) {
         << "the record reports THIS call's factorizations, not the lifetime total";
     // `analyses` is already per call, and the SECOND solve on the same program
     // reuses the analysis -- so it is the honest 0 there.
-    EXPECT_EQ(ledger.ipm_records()[1].analyses, second_result.kkt_analyses_this_call);
+    EXPECT_EQ(ledger.ipm_records()[1].analyses, second_result.counters.symbolic_analyses);
 }
 
 TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
@@ -1315,9 +1315,9 @@ TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
     // fact is the defect this pin was asked for: differencing THOSE counters
     // (which is what the record did until M6 W5 T8.7 fix1) reports a negative
     // number of factorizations.
-    EXPECT_GT(second_result.kkt_analyses_this_call, 0)
+    EXPECT_GT(second_result.counters.symbolic_analyses, 0)
         << "premise: a different program must re-lay the analysis";
-    EXPECT_EQ(second.analyses, second_result.kkt_analyses_this_call);
+    EXPECT_EQ(second.analyses, second_result.counters.symbolic_analyses);
     const Index engine_count_after_first = first_result.kkt_factor_counters.factorize_count;
     const Index engine_count_after_second = second_result.kkt_factor_counters.factorize_count;
     EXPECT_GT(engine_count_after_first, 0);
@@ -2133,7 +2133,7 @@ TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
     const IpmResult retry_result =
         reused.engine->solve(hven::detail::problem_ref(*reused.program), nonconvex_start());
     const IpmAnswer retry = answer_of(retry_result);
-    EXPECT_EQ(retry_result.kkt_analyses_this_call, 0)
+    EXPECT_EQ(retry_result.counters.symbolic_analyses, 0)
         << "the retry must take the REUSE branch -- that is the fact the contract now states";
 
     // ARM TWO: a solver that never saw the throw, on the same model.
@@ -2144,7 +2144,7 @@ TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
     const IpmResult fresh_result =
         fresh.engine->solve(hven::detail::problem_ref(*fresh.program), nonconvex_start());
     const IpmAnswer cold = answer_of(fresh_result);
-    EXPECT_GT(fresh_result.kkt_analyses_this_call, 0)
+    EXPECT_GT(fresh_result.counters.symbolic_analyses, 0)
         << "premise: the fresh arm really did pay the analysis the retry skipped";
 
     // THE PIN. The stream carries every row, every phase event and the phase
@@ -2364,7 +2364,7 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     EXPECT_EQ(lines_of_event(silent.first, "ipm.phase.exit").size(), 1u);
     EXPECT_EQ(lines_of_event(silent.first, "ipm.phase.end").size(), 1u);
     EXPECT_EQ(lines_of_event(silent.first, "ipm.kkt_analysis").size(), 1u);
-    EXPECT_NE(mask_wall_clock(silent.first).find("\"last_kkt_info\":\"success\""),
+    EXPECT_NE(mask_wall_clock(silent.first).find("\"kkt_factor_status\":\"success\""),
               std::string::npos);
     const std::vector<std::string> silent_end = lines_of_event(silent.first, "ipm.solve.end");
     const std::vector<std::string> printing_end = lines_of_event(printing.first, "ipm.solve.end");
@@ -2615,7 +2615,7 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     const IpmResult retry_result =
         reused.engine->solve(hven::detail::problem_ref(*reused.program), hs071_start());
     const IpmAnswer retry = answer_of(retry_result);
-    EXPECT_EQ(retry_result.kkt_analyses_this_call, 0)
+    EXPECT_EQ(retry_result.counters.symbolic_analyses, 0)
         << "the retry must take the REUSE branch -- the same fact the one-iteration pin states";
 
     // ARM TWO: a solver that never saw the throw, on the same model.
@@ -2626,7 +2626,7 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     const IpmResult fresh_result =
         fresh.engine->solve(hven::detail::problem_ref(*fresh.program), hs071_start());
     const IpmAnswer cold = answer_of(fresh_result);
-    EXPECT_GT(fresh_result.kkt_analyses_this_call, 0)
+    EXPECT_GT(fresh_result.counters.symbolic_analyses, 0)
         << "premise: the fresh arm really did pay the analysis the retry skipped";
 
     // THE MULTI-ITERATION PREMISE, asserted rather than assumed: this fixture

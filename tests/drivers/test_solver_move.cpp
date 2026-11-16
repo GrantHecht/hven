@@ -112,7 +112,7 @@ TEST(SolverMove, IpmSolverSolvesBitwiseEqualAfterAMove) {
     expect_same_solve(expected, actual);
     EXPECT_EQ(expected.kkt_factor_counters.factorize_count,
               actual.kkt_factor_counters.factorize_count);
-    EXPECT_EQ(expected.kkt_analyses_this_call, actual.kkt_analyses_this_call);
+    EXPECT_EQ(expected.counters.symbolic_analyses, actual.counters.symbolic_analyses);
 
     // The moved-from solver may be destroyed, and assigned to: after the
     // assignment it is a working solver again, and a cold solve of a fresh

@@ -721,7 +721,7 @@ static_assert(::hven::detail::kAggregateArity<IpmMessageTraceEvent> == 11,
 
 // `IpmPhaseExitTraceEvent` holds TWO references (the report and the row), so
 // the two-sided net is the exact form. 9 = report, iterate, phase,
-// best_substituted, last_kkt_info, and the four times. (T8.7b fix1 dropped
+// best_substituted, kkt_factor_status, and the four times. (T8.7b fix1 dropped
 // `selected_iter`: the row's index in the phase's history IS its `iter_`.)
 static_assert(::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
                   std::make_index_sequence<9>{}) &&
@@ -732,9 +732,11 @@ static_assert(::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEven
               "these two counts.");
 
 // AND THE EMBEDDED REPORT'S OWN ARITY. `ipm.phase.exit` flattens
-// `IpmPhaseReport`'s six fields as trailing keys, so a field added THERE --
-// in a header this file does not otherwise track -- must get a key here too.
-static_assert(::hven::detail::kAggregateArity<IpmPhaseReport> == 6,
+// `IpmPhaseReport`'s first six fields as trailing keys, so a field added THERE --
+// in a header this file does not otherwise track -- must get a key here too. The
+// ten diagnostics after `ran` (G6) are filled after this line is written and are
+// not keys; `kkt_factor_status` is the line's own `kkt_factor_status` key.
+static_assert(::hven::detail::kAggregateArity<IpmPhaseReport> == 16,
               "IpmPhaseReport gained or lost a field: `ipm.phase.exit` flattens this struct, so "
               "give the new field a trailing key in JsonLinesTraceSink::on_ipm_phase_exit, "
               "re-derive the golden line, and update this count.");
@@ -1205,7 +1207,7 @@ void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) 
     key_double(b, first, "barr_inf", event.iterate.barr_inf);
     key_double(b, first, "econ_inf", event.iterate.econ_inf);
     key_double(b, first, "icon_inf", event.iterate.icon_inf);
-    key_enum(b, first, "last_kkt_info", to_json(event.last_kkt_info));
+    key_enum(b, first, "kkt_factor_status", to_json(event.kkt_factor_status));
     // Rule 7: every `_s` below is wall-clock and informational.
     key_double(b, first, "total_s", event.total_s);
     key_double(b, first, "func_s", event.func_s);

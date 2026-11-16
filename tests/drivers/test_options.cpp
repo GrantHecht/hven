@@ -379,7 +379,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
         result = solver.solve(hven::detail::problem_ref(*program), hs071_start());
         ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
         EXPECT_EQ(result.kkt_analyses_total, analyses_before + 1);
-        EXPECT_EQ(result.kkt_analyses_this_call, 1);
+        EXPECT_EQ(result.counters.symbolic_analyses, 1);
         EXPECT_EQ(solver.options().linear.weighted_matching, changed.linear.weighted_matching);
         EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*program)));
     }

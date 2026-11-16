@@ -1960,8 +1960,8 @@ void FunnelAcceptance::save_acceptance_state() { retract_width_ = width_; }
 
 void FunnelAcceptance::restore_acceptance_state() { width_ = retract_width_; }
 
-void FunnelAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_funnel_width =
+void FunnelAcceptance::append_diagnostics(IpmPhaseReport &report) const {
+    report.funnel_width =
         std::isfinite(width_) ? std::optional<double>(width_) : std::optional<double>();
 }
 
@@ -2184,9 +2184,9 @@ void FilterAcceptance::restore_acceptance_state() {
     last_rejection_was_filter_ = retract_last_rejection_was_filter_;
 }
 
-void FilterAcceptance::append_diagnostics(IpmResult &result) const {
-    result.last_filter_size = static_cast<Index>(filter_.size());
-    result.last_filter_resets = n_filter_resets_;
+void FilterAcceptance::append_diagnostics(IpmPhaseReport &report) const {
+    report.filter_size = static_cast<Index>(filter_.size());
+    report.filter_resets = n_filter_resets_;
 }
 
 bool FilterAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -2476,9 +2476,9 @@ void MonitoredBarrierGovernor::reset() {
     }
 }
 
-void MonitoredBarrierGovernor::append_diagnostics(IpmResult &result) const {
-    result.last_monotone_switches = last_monotone_switches_;
-    result.last_monotone_iterations = last_monotone_iters_;
+void MonitoredBarrierGovernor::append_diagnostics(IpmPhaseReport &report) const {
+    report.monotone_switches = last_monotone_switches_;
+    report.monotone_iterations = last_monotone_iters_;
 }
 
 // ProximalSwitchRestoration — proximal feasibility mode-switch. See

@@ -1070,9 +1070,9 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         IpmPhaseExitTraceEvent e{report, row};
-        e.last_kkt_info = v;
+        e.kkt_factor_status = v;
         s.on_ipm_phase_exit(e);
-        EXPECT_EQ(raw_field(os.str(), "last_kkt_info"), spec_spelling(v));
+        EXPECT_EQ(raw_field(os.str(), "kkt_factor_status"), spec_spelling(v));
     };
     kkt_status(IpmKktFactorStatus::kSuccess);
     kkt_status(IpmKktFactorStatus::kNumericalIssue);
@@ -4325,7 +4325,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     IpmPhaseExitTraceEvent e{report, row};
     e.phase = 1;
     e.best_substituted = true;
-    e.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;
+    e.kkt_factor_status = IpmKktFactorStatus::kNumericalIssue;
     e.total_s = 0.5;
     e.func_s = 0.125;
     e.kkt_s = 0.0625;
@@ -4338,7 +4338,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
               "\"best_substituted\":true,\"prim_obj\":17.25,"
               "\"kkt_inf\":0.00048828125,\"barr_inf\":0.000244140625,"
               "\"econ_inf\":0.0001220703125,\"icon_inf\":6.103515625e-05,"
-              "\"last_kkt_info\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
+              "\"kkt_factor_status\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
               "\"kkt_s\":0.0625,\"print_s\":0.03125,\"entry\":\"optimize\","
               "\"status\":\"acceptable\",\"iterations\":12,\"phase_seconds\":0.25,"
               "\"stop_reason\":\"stage_stalled\",\"ran\":true}\n");
@@ -4460,7 +4460,7 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
                  {IpmKktFactorStatus::kSuccess, IpmKktFactorStatus::kNumericalIssue,
                   IpmKktFactorStatus::kNoConvergence, IpmKktFactorStatus::kInvalidInput}) {
                 IpmPhaseExitTraceEvent e{report, row};
-                e.last_kkt_info = fs;
+                e.kkt_factor_status = fs;
                 sink.on_ipm_phase_exit(e);
             }
         }

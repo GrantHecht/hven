@@ -415,7 +415,7 @@ TEST(InfiniteBound, AChangedThresholdReLaysTheProblemOnBothEngines) {
     EXPECT_TRUE(std::isnan(r1.g[1]));
     const NonLinearProgram *laid_default = ProblemAccess::built_ipm_program(problem);
     const IpmResult r1_again = ipm_default.solve(problem, start());
-    EXPECT_EQ(r1_again.kkt_analyses_this_call, 0); // nothing re-laid: no analysis
+    EXPECT_EQ(r1_again.counters.symbolic_analyses, 0); // nothing re-laid: no analysis
     EXPECT_EQ(ProblemAccess::built_ipm_program(problem), laid_default);
 
     // Row 1 flips from free to range under kInfinity: a re-lay, not a refusal --
@@ -423,7 +423,7 @@ TEST(InfiniteBound, AChangedThresholdReLaysTheProblemOnBothEngines) {
     IpmSolver ipm_inf = quiet_ipm(kInfinity);
     const IpmResult r2 = ipm_inf.solve(problem, start());
     expect_huge_real_bounds_ipm_optimal(r2.status, problem, kInfinity);
-    EXPECT_EQ(r2.kkt_analyses_this_call, 1);
+    EXPECT_EQ(r2.counters.symbolic_analyses, 1);
     // A new program: a laid program's threshold is fixed (set_infinite_bound).
     EXPECT_EQ(ProblemAccess::built_ipm_program(problem)->infinite_bound_, kInfinity);
     EXPECT_EQ(problem.statistics().free_rows, 0);
@@ -448,7 +448,7 @@ TEST(InfiniteBound, AChangedThresholdReLaysTheProblemOnBothEngines) {
     // And back: the default solve re-lays again (analysed once) and is the
     // fresh Problem's, bit for bit.
     const IpmResult r3 = ipm_default.solve(problem, start());
-    EXPECT_EQ(r3.kkt_analyses_this_call, 1);
+    EXPECT_EQ(r3.counters.symbolic_analyses, 1);
     EXPECT_EQ(ProblemAccess::built_ipm_program(problem)->infinite_bound_, kThr);
     Problem fresh(large_finite());
     IpmSolver ipm_fresh = quiet_ipm();
@@ -864,7 +864,7 @@ TEST(InfiniteBound, ARefusedModelSolveLeavesTheProblemAsItWas) {
     IpmSolver second = quiet_ipm();
     const IpmResult r_after = second.solve(problem, start());
     expect_same_solve(r_before, r_after);
-    EXPECT_EQ(r_after.kkt_analyses_this_call, r_before.kkt_analyses_this_call);
+    EXPECT_EQ(r_after.counters.symbolic_analyses, r_before.counters.symbolic_analyses);
 }
 
 // R7: a WarmStart taken under one threshold, offered after the Problem was re-laid

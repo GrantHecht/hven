@@ -345,3 +345,62 @@ Breaks:
 | `IterationEvent` member order: `iteration, recovering, phase, depth, f, stationarity, feasibility, complementarity, step_norm, radius, mu, x, lambda, z, elapsed_seconds` | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers in the new order; the seven `Eigen::Ref` views have no default and must all be bound |
 | `IterationSnapshot` member order | `iteration, recovering, f, stationarity, feasibility, complementarity, step_norm, elapsed_seconds, x, lambda, z, g, violation, z_lower, z_upper, ipm, sqp` | designated initialisers |
 | `best_iterate->lambda`/`g` mapped into the row space by `Problem` from private engine blocks | composed by the engine with the event's own row map, as an event's are | none; an internal (detail) route with no `Problem` now gets the engines' `[lambda_e; lambda_i]` / `[c_E; c_I]` concatenation, as its events do, where it got empty vectors |
+
+## G6 -- `IpmCounters` and the regrouped `IpmResult`
+
+Names move; no value changes. The interior-point counters that lived flat on `IpmResult`
+are one group now, `IpmResult::counters` (`IpmCounters`, `hven/core/solver_counters.h`,
+with its `HVEN_IPM_COUNTERS_FIELDS` table beside the SQP one), and the nine `last_*`
+fields move onto the phase they describe. A name shared with `SqpCounters` has the same
+meaning there.
+
+| before | after | rewrite |
+|---|---|---|
+| `r.nonfinite_step_rollbacks` | `r.counters.nonfinite_step_rollbacks` | prefix |
+| `r.polish_ignored` | `r.counters.polish_ignored` | prefix |
+| `r.payload_ignored` | `r.counters.payload_ignored` | prefix |
+| `r.watchdog_activations` | `r.counters.watchdog_activations` | prefix (not `SqpCounters::watchdog_restores`: arms, not restores) |
+| `r.recovery_depth_histogram` | `r.counters.recovery_depth_histogram` | prefix |
+| `r.second_order_corrections` | `r.counters.soc_steps` | rename, the SQP counter's name |
+| `r.kkt_analyses_this_call` | `r.counters.symbolic_analyses` | rename (`kkt_analyses_total`, a solver-lifetime figure, stays on `IpmResult`) |
+| `r.dense_residual_ratio_triggers` | `r.counters.dense_solve_residual_refusals` | rename, the SQP counter's name (one threshold, `kDenseResidualRatioSingular`) |
+| `r.dense_factorizations` | `r.counters.dense_factorizations` | prefix |
+| (`r.work.factorizations`) | `r.counters.factorizations` also | new; equal to `work.factorizations` |
+| `r.last_feasibility_restoration_entries` (`optional`, last phase) | `r.counters.restoration_entries` (`Index`, whole solve) | the sum of the per-phase values; 0 when no restoration strategy is constructed (was `nullopt`) |
+| `r.last_feasibility_restoration_iterations` (`optional`, last phase) | `r.counters.restoration_iters` (`Index`, whole solve) | as above |
+| `r.last_funnel_width` | `last_ran_phase(r)->funnel_width` | `optional<double>`, nullopt rules unchanged |
+| `r.last_filter_size` | `last_ran_phase(r)->filter_size` | `optional<Index>` |
+| `r.last_filter_resets` | `last_ran_phase(r)->filter_resets` | `optional<Index>` |
+| `r.last_monotone_switches` | `last_ran_phase(r)->monotone_switches` | `optional<Index>` |
+| `r.last_monotone_iterations` | `last_ran_phase(r)->monotone_iterations` | `optional<Index>` |
+| `r.last_feasibility_restoration_entries` | `r.phases[i].restoration_entries` | the per-phase value, `optional<Index>` (the counter above is its sum) |
+| `r.last_feasibility_restoration_iterations` | `r.phases[i].restoration_iters` | the per-phase value, `optional<Index>` |
+| `r.last_proximal_regularization_primal` | `last_ran_phase(r)->proximal_regularization_primal` | `optional<double>` |
+| `r.last_proximal_regularization_dual` | `last_ran_phase(r)->proximal_regularization_dual` | `optional<double>` |
+| `r.last_kkt_info` (`Eigen::ComputationInfo`) | `last_ran_phase(r)->kkt_factor_status` (`IpmKktFactorStatus`) | the Eigen enum no longer leaks; names `kSuccess`, `kNumericalIssue`, `kNoConvergence`, `kInvalidInput`; a plain enum, default `kSuccess` (it was never absent) |
+| `ipm.phase.exit` key `last_kkt_info` | `kkt_factor_status` | trace key; the event field `IpmPhaseExitTraceEvent::last_kkt_info` is renamed the same way |
+| `IpmSolveRecord` (no counters) | `IpmSolveRecord::counters` (`IpmCounters`) | new; its `analyses`, `soc_steps_taken`, `watchdog_activations` keep their names and values and are read from it |
+
+New free function `const IpmPhaseReport *last_ran_phase(const IpmResult &)`: the last
+entry of `phases` whose `ran` is true, or `nullptr` when none ran. The retired `last_*`
+fields read "the last phase wins", which is this phase; a skipped conditional phase is
+passed over exactly as before.
+
+What did not move, stated so nobody looks for it:
+
+- The `ipm.solve.end` line has no counter key and gains none. The only trace key of this
+  group that renames is `ipm.phase.exit`'s `kkt_factor_status` (above); every other line
+  is byte-identical.
+- `IpmCounters::{start_level_used, inertia_corrections}` (design 2.1) are NOT in this
+  commit: both are new values, not renames, and design section 5 puts `start_level_used`
+  with G7. Neither exists on the result yet.
+- `IpmPhaseExitTraceEvent` carries no key for the ten new phase diagnostics (they are
+  filled after the exit line is written).
+
+Meaning changes on a multi-phase solve only: `restoration_entries` and `restoration_iters`
+are the whole-solve sums, where `last_feasibility_restoration_*` read the last phase. On a
+single-phase solve (the default) the two readings coincide, so no corpus value moves; the
+declaration counted the corpus cells that are multi-phase and enter restoration before the
+first leg.
+
+Consumer catch-up: `docs/notes/data/2026-11-m8-ap5-g6/CATCH-UP.txt`.

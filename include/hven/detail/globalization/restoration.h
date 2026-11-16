@@ -107,15 +107,14 @@ class RestorationStrategy {
     /// iteration while restoration is active, one call per iteration outcome.
     virtual void note_iteration() = 0;
 
-    /// Writes this strategy's diagnostic state into result. Same write-only
-    /// contract and last-phase-wins semantics as the other globalization
-    /// components' hooks. Non-virtual: both shipped strategies report the
-    /// identical counter pair. When restoration_mode_ == off no strategy is
+    /// Writes this strategy's diagnostic state into the phase's report. Same
+    /// write-only contract as the other globalization components' hooks. Non-virtual: both shipped
+    /// strategies report the identical counter pair. When restoration_mode_ == off no strategy is
     /// constructed, so this is never reached on that path and the
-    /// corresponding IpmResult fields stay nullopt.
-    void append_diagnostics(IpmResult &result) const {
-        result.last_feasibility_restoration_entries = entries_;
-        result.last_feasibility_restoration_iterations = iterations_in_mode_;
+    /// corresponding IpmPhaseReport fields stay nullopt.
+    void append_diagnostics(IpmPhaseReport &report) const {
+        report.restoration_entries = entries_;
+        report.restoration_iters = iterations_in_mode_;
     }
 
     // -------------------------------------------------------------------------

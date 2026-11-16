@@ -131,8 +131,8 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     void reset() override;
 
     /// Reports last_monotone_switches_/last_monotone_iters_ into the
-    /// corresponding IpmResult fields.
-    void append_diagnostics(IpmResult &result) const override;
+    /// phase's IpmPhaseReport.
+    void append_diagnostics(IpmPhaseReport &report) const override;
 
     // ------------------------------------------------------------------------
     // Testable state machine. `decide` advances the monitor/mode state from
@@ -188,7 +188,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     double monotone_mu_ =
         0.0; ///< Current monotone barrier parameter (meaningful iff monotone_mode_).
 
-    /// Write-only IpmResult diagnostics, bound via append_diagnostics().
+    /// Write-only IpmPhaseReport diagnostics, bound via append_diagnostics().
     int last_monotone_switches_ = 0; ///< Free -> monotone handoffs this phase.
     int last_monotone_iters_ = 0;    ///< Iterations spent in monotone mode this phase.
 };

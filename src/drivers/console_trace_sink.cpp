@@ -483,11 +483,12 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
         // factorization reported Success. The
         // two printed spellings are the old ternary's, which named
         // NumericalIssue and called everything else InvalidInput.
-        if (event.last_kkt_info != IpmKktFactorStatus::kSuccess) {
+        if (event.kkt_factor_status != IpmKktFactorStatus::kSuccess) {
             fmt::print(out_, " KKT Factor Status : ");
             fmt::print(out_, fmt::fg(fmt::color::yellow), "{}\n",
-                       event.last_kkt_info == IpmKktFactorStatus::kNumericalIssue ? "NumericalIssue"
-                                                                                  : "InvalidInput");
+                       event.kkt_factor_status == IpmKktFactorStatus::kNumericalIssue
+                           ? "NumericalIssue"
+                           : "InvalidInput");
         }
 
         fmt::print(out_, "\n");

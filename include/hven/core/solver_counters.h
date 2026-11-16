@@ -8,6 +8,7 @@
 // IP-PMM interior-point tier's own work) and SqpCounters (one whole SQP driver
 // solve, which aggregates all three).
 
+#include <array>
 #include <cstddef>
 #include <limits>
 #include <type_traits>
@@ -2470,5 +2471,72 @@ static_assert(counters_offsets_increase(kOffsetsSqpCounters, kSqpCountersFieldCo
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
               "declaration position. The JSON key order is the table's, so this must be the "
               "struct's.");
+
+/// @brief One interior-point solve's counters, grouped as `SqpCounters` is.
+///
+/// A name shared with `SqpCounters` carries the same meaning (the caveats are in
+/// docs/migration-0.2.md, section G6). Per call. `factorizations` equals
+/// `SolveResult::work.factorizations`; the two restoration counters are the sum
+/// of the per-phase values over the phases that ran.
+struct IpmCounters {
+    /// KKT factorizations, the whole solve.
+    Index factorizations = 0;
+    /// KKT pattern analyses during this call.
+    Index symbolic_analyses = 0;
+    /// Restoration entries, summed over the phases; 0 when no strategy is built.
+    Index restoration_entries = 0;
+    /// Iterations in restoration mode, summed over the phases.
+    Index restoration_iters = 0;
+    /// Second-order correction attempts.
+    Index soc_steps = 0;
+    /// Steps rejected after the fact on a non-evaluable point.
+    Index nonfinite_step_rollbacks = 0;
+    /// 1 when a polish extension was handed in and not consumed.
+    Index polish_ignored = 0;
+    /// 1 when a payload was handed in and ignored (`start_level` kCold).
+    Index payload_ignored = 0;
+    /// Times the watchdog armed (not `SqpCounters::watchdog_restores`).
+    Index watchdog_activations = 0;
+    /// Per-rejection recovery depth, indexed by the kRecoveryDepth* constants.
+    std::array<Index, 5> recovery_depth_histogram{};
+    /// Dense solves refused by the residual check.
+    Index dense_solve_residual_refusals = 0;
+    /// Factorizations on the dense arm.
+    Index dense_factorizations = 0;
+};
+
+#define HVEN_IPM_COUNTERS_FIELDS(X)                                                                \
+    X(factorizations, counter_never_absent)                                                        \
+    X(symbolic_analyses, counter_never_absent)                                                     \
+    X(restoration_entries, counter_never_absent)                                                   \
+    X(restoration_iters, counter_never_absent)                                                     \
+    X(soc_steps, counter_never_absent)                                                             \
+    X(nonfinite_step_rollbacks, counter_never_absent)                                              \
+    X(polish_ignored, counter_never_absent)                                                        \
+    X(payload_ignored, counter_never_absent)                                                       \
+    X(watchdog_activations, counter_never_absent)                                                  \
+    X(recovery_depth_histogram, counter_never_absent)                                              \
+    X(dense_solve_residual_refusals, counter_never_absent)                                         \
+    X(dense_factorizations, counter_never_absent)
+
+/// @brief `HVEN_IPM_COUNTERS_FIELDS`' entry count.
+#define HVEN_COUNTERS_COUNT_ONE(f, absent) +1
+inline constexpr std::size_t kIpmCountersFieldCount =
+    0 HVEN_IPM_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+#undef HVEN_COUNTERS_COUNT_ONE
+
+static_assert(std::is_standard_layout_v<IpmCounters>,
+              "IpmCounters must stay standard-layout for the offsetof order check below.");
+inline constexpr std::size_t kOffsetsIpmCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(IpmCounters, f),
+    HVEN_IPM_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(sizeof(IpmCounters) == (kIpmCountersFieldCount + 4) * sizeof(Index),
+              "IpmCounters and HVEN_IPM_COUNTERS_FIELDS disagree: give the new field an X() entry "
+              "(the histogram array counts for five).");
+static_assert(counters_offsets_increase(kOffsetsIpmCounters, kIpmCountersFieldCount),
+              "IpmCounters and HVEN_IPM_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position.");
 
 } // namespace hven

@@ -629,11 +629,10 @@ struct IpmPhaseExitTraceEvent {
     /// True when `return_best` substituted the best iterate for the last one.
     bool best_substituted = false;
     /// The last non-Success factorization status observed during THIS PHASE
-    /// `alg_impl` resets
-    /// `IpmResult::last_kkt_info` to `Eigen::Success` once per phase, so this
+    /// `alg_impl` resets its status to `Eigen::Success` once per phase, so this
     /// is a per-phase fact and not a per-call one. Named rather than raw.
     /// The console prints a line for it only when it is not `kSuccess`.
-    IpmKktFactorStatus last_kkt_info = IpmKktFactorStatus::kSuccess;
+    IpmKktFactorStatus kkt_factor_status = IpmKktFactorStatus::kSuccess;
     /// The phase's own four clocks, in SECONDS, from `alg_impl`'s internal
     /// timers -- the console multiplies by 1000 and divides by
     /// `report.iterations` for its `ms/iter` column. INFORMATIONAL.

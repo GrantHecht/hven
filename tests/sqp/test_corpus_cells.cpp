@@ -2940,7 +2940,7 @@ TEST(CorpusCells, InteriorBaselineRescoresOffline) {
 //
 // THE SEED ROW'S DIRECT OBSERVABLE IS THE APPLIED RUNG, and it is pinned in the
 // leg itself rather than here, because it is not a CSV column: the leg refuses
-// to emit either warm row unless `IpmResult::payload_ignored` and
+// to emit either warm row unless `IpmResult::counters.payload_ignored` and
 // `polish_ignored` say the rung the variant asked for was the rung reached
 // (`bench/ipm_corpus_leg.cpp`, `require`-style check after the measured solve).
 // The residual comparison below is the numeric witness beside it.

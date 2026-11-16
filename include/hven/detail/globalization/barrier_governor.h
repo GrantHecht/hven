@@ -124,11 +124,11 @@ class BarrierGovernor {
     /// monotone-mode bookkeeping here.
     virtual void reset() = 0;
 
-    /// @brief Writes this governor's diagnostic state (if any) into result.
-    /// Same write-only contract and last-phase-wins semantics as
+    /// @brief Writes this governor's diagnostic state (if any) into the
+    /// phase's report. Same write-only contract as
     /// AcceptanceStrategy::append_diagnostics; the no-op default keeps the
     /// classic path bit-identical.
-    virtual void append_diagnostics(IpmResult &result) const { (void)result; }
+    virtual void append_diagnostics(IpmPhaseReport &report) const { (void)report; }
 };
 
 } // namespace hven::detail

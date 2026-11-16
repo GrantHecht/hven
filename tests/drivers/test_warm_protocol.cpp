@@ -223,7 +223,7 @@ WarmStart seed_form(const WarmStart &full) {
 // the work counters `kkt_analyses_this_call`, `kkt_analyses_total` and all
 // five of `kkt_factor_counters`; `soc_steps_taken`, `watchdog_activations`,
 // `recovery_depth_histogram`; the nine last-phase globalization diagnostics;
-// `evaluation_errors`, `last_kkt_info`; `polish_ignored`; and the `phases`
+// `evaluation_errors`, `counters`, the phase reports; and the `phases`
 // vector's NON-TIMING fields (`phase`, `status`, `iterations`, `ran`).
 //
 // WHAT IS EXCLUDED, and why -- three groups, and nothing else:
@@ -302,23 +302,25 @@ void expect_same_reported_numbers(const hven::IpmResult &a, const hven::IpmResul
     EXPECT_TRUE(bits_equal("econ_inf", a.convergence.equality, b.convergence.equality));
     EXPECT_TRUE(bits_equal("icon_inf", a.convergence.inequality, b.convergence.inequality));
 
-    EXPECT_EQ(a.second_order_corrections, b.second_order_corrections);
-    EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
-    EXPECT_EQ(a.recovery_depth_histogram, b.recovery_depth_histogram);
+    EXPECT_EQ(a.counters.soc_steps, b.counters.soc_steps);
+    EXPECT_EQ(a.counters.watchdog_activations, b.counters.watchdog_activations);
+    EXPECT_EQ(a.counters.recovery_depth_histogram, b.counters.recovery_depth_histogram);
 
-    EXPECT_EQ(a.last_funnel_width, b.last_funnel_width);
-    EXPECT_EQ(a.last_filter_size, b.last_filter_size);
-    EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
-    EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
-    EXPECT_EQ(a.last_monotone_iterations, b.last_monotone_iterations);
-    EXPECT_EQ(a.last_feasibility_restoration_entries, b.last_feasibility_restoration_entries);
-    EXPECT_EQ(a.last_feasibility_restoration_iterations, b.last_feasibility_restoration_iterations);
-    EXPECT_EQ(a.last_proximal_regularization_primal, b.last_proximal_regularization_primal);
-    EXPECT_EQ(a.last_proximal_regularization_dual, b.last_proximal_regularization_dual);
+    EXPECT_EQ(last_ran_phase(a)->funnel_width, last_ran_phase(b)->funnel_width);
+    EXPECT_EQ(last_ran_phase(a)->filter_size, last_ran_phase(b)->filter_size);
+    EXPECT_EQ(last_ran_phase(a)->filter_resets, last_ran_phase(b)->filter_resets);
+    EXPECT_EQ(last_ran_phase(a)->monotone_switches, last_ran_phase(b)->monotone_switches);
+    EXPECT_EQ(last_ran_phase(a)->monotone_iterations, last_ran_phase(b)->monotone_iterations);
+    EXPECT_EQ(last_ran_phase(a)->restoration_entries, last_ran_phase(b)->restoration_entries);
+    EXPECT_EQ(last_ran_phase(a)->restoration_iters, last_ran_phase(b)->restoration_iters);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_primal,
+              last_ran_phase(b)->proximal_regularization_primal);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_dual,
+              last_ran_phase(b)->proximal_regularization_dual);
     EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
-    EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
+    EXPECT_EQ(last_ran_phase(a)->kkt_factor_status, last_ran_phase(b)->kkt_factor_status);
 
-    EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
+    EXPECT_EQ(a.counters.symbolic_analyses, b.counters.symbolic_analyses);
     EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
     EXPECT_EQ(a.kkt_factor_counters.analyze_count, b.kkt_factor_counters.analyze_count);
     EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
@@ -327,7 +329,7 @@ void expect_same_reported_numbers(const hven::IpmResult &a, const hven::IpmResul
     EXPECT_EQ(a.kkt_factor_counters.pattern_verify_count,
               b.kkt_factor_counters.pattern_verify_count);
 
-    EXPECT_EQ(a.polish_ignored, b.polish_ignored);
+    EXPECT_EQ(a.counters.polish_ignored, b.counters.polish_ignored);
 
     // The per-phase account, non-timing fields only.
     ASSERT_EQ(a.phases.size(), b.phases.size());
@@ -546,8 +548,8 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
         const hven::IpmResult r =
             ipm.solve(hven::detail::problem_ref(*ipm_program), hs071_start(), seed);
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
-        EXPECT_EQ(r.polish_ignored, 1);
-        EXPECT_EQ(r.payload_ignored, 0) << "the seed was applied, not ignored";
+        EXPECT_EQ(r.counters.polish_ignored, 1);
+        EXPECT_EQ(r.counters.payload_ignored, 0) << "the seed was applied, not ignored";
     }
     {
         const auto ipm_program = hven::detail::make_nlp_program(exported.problem);
@@ -555,7 +557,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
         ipm.set_options(quiet_ipm(ipm));
         const hven::IpmResult r =
             ipm.solve(hven::detail::problem_ref(*ipm_program), hs071_start(), exported.payload);
-        EXPECT_EQ(r.polish_ignored, 0) << "a full payload's extension IS consumed";
+        EXPECT_EQ(r.counters.polish_ignored, 0) << "a full payload's extension IS consumed";
     }
 }
 
@@ -745,11 +747,11 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     ASSERT_EQ(ignored.status, SolveStatus::kOptimal);
 
     // THE COUNT, which is the whole point of not ignoring it silently.
-    EXPECT_EQ(ignored.payload_ignored, 1);
-    EXPECT_EQ(no_payload.payload_ignored, 0);
+    EXPECT_EQ(ignored.counters.payload_ignored, 1);
+    EXPECT_EQ(no_payload.counters.payload_ignored, 0);
     // Not `polish_ignored`: nothing of the payload was READ at this rung, and
     // payload_ignored is this call's answer.
-    EXPECT_EQ(ignored.polish_ignored, 0);
+    EXPECT_EQ(ignored.counters.polish_ignored, 0);
 
     // AND THE SOLVE IS THE SAME SOLVE, bit for bit in every reported number.
     // The enumerated list, and the three groups it excludes, are at
@@ -827,7 +829,7 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
         const hven::IpmResult ok =
             ipm.solve(hven::detail::problem_ref(*ipm_program), hs071_start(), exported.payload);
         EXPECT_EQ(ok.status, SolveStatus::kOptimal);
-        EXPECT_EQ(ok.payload_ignored, 1);
+        EXPECT_EQ(ok.counters.payload_ignored, 1);
     }
 }
 
@@ -850,18 +852,19 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
 
     const hven::IpmResult seeded = solve_at(StartLevel::kSeeded);
     EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
-    EXPECT_EQ(seeded.payload_ignored, 0);
-    EXPECT_EQ(seeded.polish_ignored, 1) << "at kSeeded the point and the polish are dropped";
+    EXPECT_EQ(seeded.counters.payload_ignored, 0);
+    EXPECT_EQ(seeded.counters.polish_ignored, 1)
+        << "at kSeeded the point and the polish are dropped";
 
     const hven::IpmResult warm = solve_at(StartLevel::kWarm);
     EXPECT_EQ(warm.status, SolveStatus::kOptimal);
-    EXPECT_EQ(warm.payload_ignored, 0);
-    EXPECT_EQ(warm.polish_ignored, 0) << "at kWarm the whole payload applies";
+    EXPECT_EQ(warm.counters.payload_ignored, 0);
+    EXPECT_EQ(warm.counters.polish_ignored, 0) << "at kWarm the whole payload applies";
 
     const hven::IpmResult hot = solve_at(StartLevel::kHot);
     EXPECT_EQ(hot.status, SolveStatus::kOptimal);
-    EXPECT_EQ(hot.payload_ignored, 0);
-    EXPECT_EQ(hot.polish_ignored, 0);
+    EXPECT_EQ(hot.counters.payload_ignored, 0);
+    EXPECT_EQ(hot.counters.polish_ignored, 0);
 
     // kHot IS kWarm on this engine, asserted rather than merely documented:
     // there is no hot handle to adopt, so the two rungs must agree in every
@@ -1013,8 +1016,8 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     EXPECT_EQ(hven::detail::engine_rows(out).lambda_i.size(), 1);
     EXPECT_NEAR(out.f, 17.0140173, 1e-5);
     // It is the COLD solve: no payload was handed over, so neither counter moved.
-    EXPECT_EQ(out.payload_ignored, 0);
-    EXPECT_EQ(out.polish_ignored, 0);
+    EXPECT_EQ(out.counters.payload_ignored, 0);
+    EXPECT_EQ(out.counters.polish_ignored, 0);
 
     // --- (2) THE COLD OVERLOAD'S OWN DEFAULT ARGUMENT ---
     //
@@ -1064,14 +1067,17 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     const hven::IpmResult seeded_spelled_budget = solve_with_payload(seed, true);
 
     EXPECT_EQ(seeded_default_budget.status, SolveStatus::kOptimal);
-    EXPECT_EQ(seeded_default_budget.payload_ignored, 0) << "the seed was applied, not ignored";
-    EXPECT_EQ(seeded_default_budget.polish_ignored, 1)
+    EXPECT_EQ(seeded_default_budget.counters.payload_ignored, 0)
+        << "the seed was applied, not ignored";
+    EXPECT_EQ(seeded_default_budget.counters.polish_ignored, 1)
         << "a seed's polish extension is dropped and counted";
     expect_same_reported_numbers(seeded_spelled_budget, seeded_default_budget,
                                  "solve(program, x0, seed) vs solve(program, x0, seed, "
                                  "SolveBudget{})");
-    EXPECT_EQ(seeded_spelled_budget.payload_ignored, seeded_default_budget.payload_ignored);
-    EXPECT_EQ(seeded_spelled_budget.polish_ignored, seeded_default_budget.polish_ignored);
+    EXPECT_EQ(seeded_spelled_budget.counters.payload_ignored,
+              seeded_default_budget.counters.payload_ignored);
+    EXPECT_EQ(seeded_spelled_budget.counters.polish_ignored,
+              seeded_default_budget.counters.polish_ignored);
 
     // --- (4) THE PAYLOAD OVERLOAD ON A WHOLE PAYLOAD, the kWarm rung ---
     //
@@ -1082,8 +1088,9 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     const hven::IpmResult warm_spelled_budget = solve_with_payload(exported.payload, true);
 
     EXPECT_EQ(warm_default_budget.status, SolveStatus::kOptimal);
-    EXPECT_EQ(warm_default_budget.payload_ignored, 0);
-    EXPECT_EQ(warm_default_budget.polish_ignored, 0) << "a full payload's extension IS consumed";
+    EXPECT_EQ(warm_default_budget.counters.payload_ignored, 0);
+    EXPECT_EQ(warm_default_budget.counters.polish_ignored, 0)
+        << "a full payload's extension IS consumed";
     expect_same_reported_numbers(warm_spelled_budget, warm_default_budget,
                                  "solve(program, x0, payload) vs solve(program, x0, payload, "
                                  "SolveBudget{})");
@@ -1135,9 +1142,9 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
     const hven::IpmResult returned =
         ipm.solve(hven::detail::problem_ref(*ipm_program), hs071_start(), back);
     EXPECT_EQ(returned.status, SolveStatus::kOptimal);
-    EXPECT_EQ(returned.payload_ignored, 0);
+    EXPECT_EQ(returned.counters.payload_ignored, 0);
     // No extension came back, so there was none to drop.
-    EXPECT_EQ(returned.polish_ignored, 0);
+    EXPECT_EQ(returned.counters.polish_ignored, 0);
 
     // And the chain really did go somewhere: all three legs agree on the
     // objective, to the loosest of the tolerances involved.

@@ -119,7 +119,7 @@ TEST(BackendErrorSeam, AFailedInitialFactorizationIsAStatusOnTheInteriorPointEng
     }
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_NE(r.message.find("initial KKT factorization failed"), std::string::npos) << r.message;
-    EXPECT_NE(r.last_kkt_info, Eigen::Success);
+    EXPECT_NE(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kSuccess);
     EXPECT_EQ(r.work.factorizations, 1);
 }
 

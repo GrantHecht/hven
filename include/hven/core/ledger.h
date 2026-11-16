@@ -138,11 +138,9 @@ struct SqpSolveRecord {
 /// one per public solve() call that RETURNS. A call that leaves by an
 /// exception writes nothing, which is the honest record of one.
 ///
-/// UNLIKE SqpSolveRecord THIS CARRIES NO `counters` OBJECT, because the
-/// interior-point engine has none: its measurements live on IpmResult, a
-/// value the caller already holds. The nine fields below are the ones a
-/// cross-run comparison groups or sums by, and each names exactly what it
-/// was read from -- see the per-field notes.
+/// `counters` is the solve's IpmCounters, as on IpmResult. The scalar fields
+/// below are the ones a cross-run comparison groups or sums by, and each is read
+/// from it or from the result -- see the per-field notes.
 ///
 /// THE ENGINE'S NESTED FEASIBILITY RESTORATION WRITES NO RECORD OF ITS OWN.
 /// It runs inside this solve rather than as a separate solver object, and
@@ -174,12 +172,12 @@ struct IpmSolveRecord {
     /// solve of a second, different program does, so the difference of two such
     /// readings would be negative there. This field is never negative.
     Index factorizations = 0;
-    /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
+    /// @brief `counters.symbolic_analyses` -- symbolic analyses paid by
     ///        THIS call (the engine's own per-call counter).
     Index analyses = 0;
-    /// @brief IpmResult::second_order_corrections. 0 when SOC is off.
+    /// @brief `counters.soc_steps`. 0 when SOC is off.
     Index soc_steps_taken = 0;
-    /// @brief IpmResult::watchdog_activations. 0 when the watchdog is off.
+    /// @brief `counters.watchdog_activations`. 0 when the watchdog is off.
     Index watchdog_activations = 0;
     /// Wall-clock seconds this ONE public solve() call took, measured by the
     /// entry's own clock (IpmResult::wall_seconds).
@@ -188,6 +186,8 @@ struct IpmSolveRecord {
     /// never asserted on a value by any test, and no counter or regression
     /// contract may depend on it.
     double wall_seconds = 0.0;
+    /// @brief IpmResult::counters.
+    IpmCounters counters;
 };
 
 /// Instrumentation ledger for cold-vs-warm solve tracking (QP-level, via

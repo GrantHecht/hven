@@ -346,7 +346,7 @@ class IpmSolverImpl {
     // (M6 W5 T8.4). Each answered a question about a solve after the fact, from
     // a solver that had gone on living; the answers are now SNAPSHOT FIELDS on
     // the value solve() returns -- IpmResult::eval_error_log,
-    // ::kkt_analyses_total, ::kkt_analyses_this_call and
+    // ::kkt_analyses_total, ::counters.symbolic_analyses and
     // ::kkt_factor_counters -- so they describe the solve that produced them
     // and cannot go stale behind a caller's back.
 
@@ -423,7 +423,7 @@ class IpmSolverImpl {
     /// CEILING on this route and has four rungs (design 2.6):
     ///
     ///   kCold   the payload is IGNORED ENTIRELY and COUNTED
-    ///           (`IpmResult::payload_ignored == 1`). The call is then bitwise
+    ///           (`IpmResult::counters.payload_ignored == 1`). The call is then bitwise
     ///           the solve it would have been with no payload at all -- the
     ///           lengths and the stamp are still checked first, so a foreign
     ///           payload is still refused rather than quietly discarded.
@@ -431,7 +431,7 @@ class IpmSolverImpl {
     ///           through the same install site, clamps and scale handling the
     ///           removed set_initial_multipliers() fed); `primal_` and the
     ///           polish extension are ignored, the extension counted
-    ///           (`IpmResult::polish_ignored`). `x0` is the start.
+    ///           (`IpmResult::counters.polish_ignored`). `x0` is the start.
     ///   kWarm   the WHOLE payload: `primal_` becomes the starting point,
     ///           mapped declared -> reduced and pushed into the interior like
     ///           any starting point; the multipliers as at kSeeded; the
@@ -1418,7 +1418,7 @@ class IpmSolverImpl {
     }
 
     /// Factorizations on the dense arm (taken or reported exactly singular) since
-    /// construction, monotone the same way; IpmResult::dense_factorizations is the
+    /// construction, monotone the same way; IpmResult::counters.dense_factorizations is the
     /// difference of two readings (M8 DN-3).
     Index retired_dense_factorizations_ = 0;
     Index lifetime_dense_factorize_count() const {
@@ -1525,6 +1525,12 @@ class IpmSolverImpl {
     Index factorizations_at_entry_ = 0;
     // lifetime_dense_factorize_count() at this call's public entry.
     Index dense_factorizations_at_entry_ = 0;
+
+    /// The current phase's last non-Success KKT factorization status and proximal
+    /// shifts, copied to the phase's report at its end; reset at each phase's entry.
+    Eigen::ComputationInfo phase_kkt_info_ = Eigen::Success;
+    std::optional<double> phase_prox_primal_;
+    std::optional<double> phase_prox_dual_;
     // See last_stop_detail(); reset per phase with last_stop_reason_.
     std::string stop_detail_;
     // See last_result().

@@ -1133,8 +1133,8 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     expect_bit_identical(probe_seed.primal_, cold, "the seed form starts at x0");
     // Nothing was ignored: the ceiling is the default kWarm, the seed simply
     // has no point and no extension to apply.
-    EXPECT_EQ(warm_result().payload_ignored, 0);
-    EXPECT_EQ(warm_result().polish_ignored, 0);
+    EXPECT_EQ(warm_result().counters.payload_ignored, 0);
+    EXPECT_EQ(warm_result().counters.polish_ignored, 0);
 }
 
 // AN EMPTY primal_ BESIDE A POPULATED bound_lmults_ is neither form, and is
@@ -1687,18 +1687,18 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     // the entry path, not a numerics difference.
     const auto &result = warm_result();
     ASSERT_NE(flag, hven::SolveStatus::kOptimal);
-    ASSERT_GT(result.last_feasibility_restoration_entries, 0)
+    ASSERT_GT(last_ran_phase(result)->restoration_entries, 0)
         << "the fixture must actually reach feasibility restoration";
     // And it was still active at the exit: the phase spent its last iteration
     // in mode. (entries > 0 alone would also read true for an episode the
     // phase had already left.)
-    ASSERT_GT(result.last_feasibility_restoration_iterations, 0);
+    ASSERT_GT(last_ran_phase(result)->restoration_iters, 0);
     // AND IT GOT THERE THE STRUCTURAL WAY. A trial evaluation was refused and
     // absorbed (the anchor), and an iteration was attributed to the restoration
     // recovery bucket -- so this pin cannot quietly start passing because some
     // backend's numerics happened to exhaust a line search instead.
     EXPECT_FALSE(result.evaluation_errors.last_message.empty());
-    EXPECT_GT(result.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
+    EXPECT_GT(result.counters.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
 
     // The solve completed, so the currency is exportable and carries its core.
     ASSERT_TRUE(hven::detail::IpmSolverAccess::impl(solver).solve_completed_);
@@ -1787,7 +1787,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // the result is read from this call's own return value rather than from
     // that helper's stash.
     const hven::IpmResult result = hven_interior_tests::solve_declared(solver, seeded_route, x0);
-    ASSERT_GT(result.last_feasibility_restoration_entries, 0)
+    ASSERT_GT(last_ran_phase(result)->restoration_entries, 0)
         << "the fixture must actually reach feasibility restoration";
     ASSERT_GE(eq_mult.size(), 2u)
         << "the entry happens during iteration 0, so a post-entry observation needs a second "
@@ -1854,7 +1854,7 @@ TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
 
     ASSERT_EQ(warm_optimize(solver, *solver_program, warm_bounded_start()),
               hven::SolveStatus::kOptimal);
-    EXPECT_EQ(warm_result().last_feasibility_restoration_entries, 0);
+    EXPECT_EQ(last_ran_phase(warm_result())->restoration_entries, 0);
 
     const WarmStart warm = warm_export();
     ASSERT_EQ(WarmStartAccess::extensions(warm).size(), 1u);

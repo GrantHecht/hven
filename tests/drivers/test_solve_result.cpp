@@ -399,13 +399,13 @@ TEST(IpmIntrospection, PatternQueryTakesTheModel) {
     ASSERT_EQ(r2.status, hven::SolveStatus::kOptimal);
     EXPECT_TRUE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*second)));
     EXPECT_FALSE(solver.kkt_pattern_is_analyzed(hven::detail::problem_ref(*first)));
-    EXPECT_EQ(r2.kkt_analyses_this_call, 1);
+    EXPECT_EQ(r2.counters.symbolic_analyses, 1);
     EXPECT_GT(r2.kkt_analyses_total, r.kkt_analyses_total);
 
     // A REPEAT solve of the program already analysed re-analyses nothing.
     const hven::IpmResult r3 =
         solver.solve(hven::detail::problem_ref(*second), hven_drivers_tests::hs071_start());
-    EXPECT_EQ(r3.kkt_analyses_this_call, 0);
+    EXPECT_EQ(r3.counters.symbolic_analyses, 0);
     EXPECT_EQ(r3.kkt_analyses_total, r2.kkt_analyses_total);
 }
 
@@ -1000,14 +1000,14 @@ TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
     const hven::IpmResult r2 =
         b.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
     EXPECT_EQ(r2.status, hven::SolveStatus::kOptimal);
-    EXPECT_EQ(r2.kkt_analyses_this_call, 1) << "B's first solve re-analyses";
+    EXPECT_EQ(r2.counters.symbolic_analyses, 1) << "B's first solve re-analyses";
     EXPECT_TRUE(b.kkt_pattern_is_analyzed(hven::detail::problem_ref(*model)));
 
     // And B's SECOND solve reuses, so the id is an identity token and not a
     // blanket refusal.
     const hven::IpmResult r3 =
         b.solve(hven::detail::problem_ref(*model), hven_drivers_tests::hs071_start());
-    EXPECT_EQ(r3.kkt_analyses_this_call, 0);
+    EXPECT_EQ(r3.counters.symbolic_analyses, 0);
 }
 
 TEST(SolveBudget, IpmClampsBeforeNarrowing) {

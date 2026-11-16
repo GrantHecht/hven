@@ -489,7 +489,7 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
     soe_exit.phase = 1;
     // THE ONE EXIT BLOCK THAT CARRIES `KKT Factor Status`, which no live HS071
     // solve reaches.
-    soe_exit.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;
+    soe_exit.kkt_factor_status = IpmKktFactorStatus::kNumericalIssue;
     soe_exit.total_s = 0.00390625;
     soe_exit.func_s = 0.001953125;
     soe_exit.kkt_s = 0.0009765625;

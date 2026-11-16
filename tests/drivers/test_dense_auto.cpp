@@ -143,8 +143,8 @@ void expect_same_ipm(const hven::IpmResult &a, const hven::IpmResult &b) {
     EXPECT_EQ(a.f, b.f);
     EXPECT_EQ(a.x, b.x);
     EXPECT_EQ(a.work.factorizations, b.work.factorizations);
-    EXPECT_EQ(a.dense_factorizations, b.dense_factorizations);
-    EXPECT_EQ(a.dense_residual_ratio_triggers, b.dense_residual_ratio_triggers);
+    EXPECT_EQ(a.counters.dense_factorizations, b.counters.dense_factorizations);
+    EXPECT_EQ(a.counters.dense_solve_residual_refusals, b.counters.dense_solve_residual_refusals);
     EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
     EXPECT_EQ(a.kkt_factor_counters.dense_factorize_count,
               b.kkt_factor_counters.dense_factorize_count);
@@ -242,8 +242,8 @@ TEST(DenseAuto, IpmBelowItsThresholdIsTheDenseArm) {
         ipm_solve(DensePolicy::kAuto, std::make_shared<EqualityQuadratic>(110, 10), zeros(110));
     ASSERT_TRUE(success(always.status));
     expect_same_ipm(automatic, always);
-    EXPECT_GT(automatic.dense_factorizations, 0);
-    EXPECT_EQ(automatic.dense_factorizations, automatic.work.factorizations);
+    EXPECT_GT(automatic.counters.dense_factorizations, 0);
+    EXPECT_EQ(automatic.counters.dense_factorizations, automatic.work.factorizations);
 }
 
 TEST(DenseAuto, IpmAboveItsThresholdIsThePlatformSession) {
@@ -253,7 +253,7 @@ TEST(DenseAuto, IpmAboveItsThresholdIsThePlatformSession) {
         ipm_solve(DensePolicy::kAuto, std::make_shared<EqualityQuadratic>(190, 10), zeros(190));
     ASSERT_TRUE(success(never.status));
     expect_same_ipm(automatic, never);
-    EXPECT_EQ(automatic.dense_factorizations, 0);
+    EXPECT_EQ(automatic.counters.dense_factorizations, 0);
     EXPECT_EQ(automatic.kkt_factor_counters.dense_factorize_count, 0);
     EXPECT_GT(automatic.work.factorizations, 0);
 }
@@ -266,9 +266,9 @@ TEST(DenseAuto, IpmCountsTheDenseArmsFactorizations) {
         ipm_solve(DensePolicy::kAlways, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
     const hven::IpmResult automatic =
         ipm_solve(DensePolicy::kAuto, std::make_shared<hven_drivers_tests::Hs071Problem>(), x0);
-    EXPECT_EQ(never.dense_factorizations, 0);
-    EXPECT_GT(always.dense_factorizations, 0);
-    EXPECT_EQ(always.dense_factorizations, always.work.factorizations);
+    EXPECT_EQ(never.counters.dense_factorizations, 0);
+    EXPECT_GT(always.counters.dense_factorizations, 0);
+    EXPECT_EQ(always.counters.dense_factorizations, always.work.factorizations);
     expect_same_ipm(automatic, always);
 }
 
@@ -281,9 +281,9 @@ TEST(DenseAuto, IpmCountsPerCall) {
     hven::Problem problem(std::make_shared<hven_drivers_tests::Hs071Problem>());
     const hven::IpmResult first = solver.solve(problem, hven_drivers_tests::hs071_start());
     const hven::IpmResult second = solver.solve(problem, hven_drivers_tests::hs071_start());
-    EXPECT_GT(first.dense_factorizations, 0);
-    EXPECT_EQ(second.dense_factorizations, second.work.factorizations);
-    EXPECT_EQ(first.dense_factorizations, first.work.factorizations);
+    EXPECT_GT(first.counters.dense_factorizations, 0);
+    EXPECT_EQ(second.counters.dense_factorizations, second.work.factorizations);
+    EXPECT_EQ(first.counters.dense_factorizations, first.work.factorizations);
 }
 
 // ---------------------------------------------------------------------------------------------

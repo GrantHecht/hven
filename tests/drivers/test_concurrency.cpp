@@ -237,15 +237,16 @@ void push_ipm_result_columns(const hven::detail::NonLinearProgram &program,
     out.exact.push_back({"partitions", static_cast<long long>(program.num_partitions_)});
     out.exact.push_back({"phases", static_cast<long long>(r.phases.size())});
     out.exact.push_back(
-        {"kkt_analyses_this_call", static_cast<long long>(r.kkt_analyses_this_call)});
+        {"kkt_analyses_this_call", static_cast<long long>(r.counters.symbolic_analyses)});
     out.exact.push_back(
         {"factorize_count", static_cast<long long>(r.kkt_factor_counters.factorize_count)});
     out.exact.push_back({"solve_count", static_cast<long long>(r.kkt_factor_counters.solve_count)});
     out.exact.push_back(
         {"analyze_count", static_cast<long long>(r.kkt_factor_counters.analyze_count)});
-    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.second_order_corrections)});
-    out.exact.push_back({"watchdog_activations", static_cast<long long>(r.watchdog_activations)});
-    out.exact.push_back({"payload_ignored", static_cast<long long>(r.payload_ignored)});
+    out.exact.push_back({"soc_steps_taken", static_cast<long long>(r.counters.soc_steps)});
+    out.exact.push_back(
+        {"watchdog_activations", static_cast<long long>(r.counters.watchdog_activations)});
+    out.exact.push_back({"payload_ignored", static_cast<long long>(r.counters.payload_ignored)});
 
     out.measures.push_back({"kkt_inf", r.convergence.kkt});
     out.measures.push_back({"barr_inf", r.convergence.barrier});

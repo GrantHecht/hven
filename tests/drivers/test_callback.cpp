@@ -2521,8 +2521,8 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         EXPECT_TRUE(same_scalar(again.convergence.barrier, baseline.convergence.barrier));
         EXPECT_TRUE(same_scalar(again.convergence.equality, baseline.convergence.equality));
         EXPECT_TRUE(same_scalar(again.convergence.inequality, baseline.convergence.inequality));
-        EXPECT_EQ(again.second_order_corrections, baseline.second_order_corrections);
-        EXPECT_EQ(again.watchdog_activations, baseline.watchdog_activations);
+        EXPECT_EQ(again.counters.soc_steps, baseline.counters.soc_steps);
+        EXPECT_EQ(again.counters.watchdog_activations, baseline.counters.watchdog_activations);
         EXPECT_EQ(again.fixed_variable_treatment, baseline.fixed_variable_treatment);
     }
 }
@@ -2586,7 +2586,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
         EXPECT_TRUE(bit_equal(attached.z, absent.z));
         EXPECT_EQ(attached.kkt_factor_counters.factorize_count,
                   absent.kkt_factor_counters.factorize_count);
-        EXPECT_EQ(attached.kkt_analyses_this_call, absent.kkt_analyses_this_call);
+        EXPECT_EQ(attached.counters.symbolic_analyses, absent.counters.symbolic_analyses);
     }
 }
 
@@ -3036,8 +3036,8 @@ void expect_same_ipm_solve(const hven::IpmResult &a, const hven::IpmResult &b) {
     // IpmResult's own fields, in declaration order, EXCEPT the six `*_time`
     // wall readings (total_/pre_/func_/kkt_/print_/solver_init_) which are
     // informational and never asserted.
-    EXPECT_EQ(a.payload_ignored, b.payload_ignored);
-    EXPECT_EQ(a.polish_ignored, b.polish_ignored);
+    EXPECT_EQ(a.counters.payload_ignored, b.counters.payload_ignored);
+    EXPECT_EQ(a.counters.polish_ignored, b.counters.polish_ignored);
     EXPECT_EQ(a.fixed_variable_treatment, b.fixed_variable_treatment);
     EXPECT_TRUE(bit_equal(a.internal_fixed_ce, b.internal_fixed_ce)) << "internal_fixed_ce";
     EXPECT_TRUE(bit_equal(a.internal_fixed_lambda_e, b.internal_fixed_lambda_e))
@@ -3048,21 +3048,23 @@ void expect_same_ipm_solve(const hven::IpmResult &a, const hven::IpmResult &b) {
     HVEN_T2_EXPECT_BITS(convergence.inequality);
     EXPECT_EQ(a.factor_memory, b.factor_memory);
     EXPECT_EQ(a.factor_flops, b.factor_flops);
-    EXPECT_EQ(a.second_order_corrections, b.second_order_corrections);
-    EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
-    EXPECT_EQ(a.last_funnel_width, b.last_funnel_width);
-    EXPECT_EQ(a.last_filter_size, b.last_filter_size);
-    EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
-    EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
-    EXPECT_EQ(a.last_monotone_iterations, b.last_monotone_iterations);
-    EXPECT_EQ(a.last_feasibility_restoration_entries, b.last_feasibility_restoration_entries);
-    EXPECT_EQ(a.last_feasibility_restoration_iterations, b.last_feasibility_restoration_iterations);
-    EXPECT_EQ(a.last_proximal_regularization_primal, b.last_proximal_regularization_primal);
-    EXPECT_EQ(a.last_proximal_regularization_dual, b.last_proximal_regularization_dual);
+    EXPECT_EQ(a.counters.soc_steps, b.counters.soc_steps);
+    EXPECT_EQ(a.counters.watchdog_activations, b.counters.watchdog_activations);
+    EXPECT_EQ(last_ran_phase(a)->funnel_width, last_ran_phase(b)->funnel_width);
+    EXPECT_EQ(last_ran_phase(a)->filter_size, last_ran_phase(b)->filter_size);
+    EXPECT_EQ(last_ran_phase(a)->filter_resets, last_ran_phase(b)->filter_resets);
+    EXPECT_EQ(last_ran_phase(a)->monotone_switches, last_ran_phase(b)->monotone_switches);
+    EXPECT_EQ(last_ran_phase(a)->monotone_iterations, last_ran_phase(b)->monotone_iterations);
+    EXPECT_EQ(last_ran_phase(a)->restoration_entries, last_ran_phase(b)->restoration_entries);
+    EXPECT_EQ(last_ran_phase(a)->restoration_iters, last_ran_phase(b)->restoration_iters);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_primal,
+              last_ran_phase(b)->proximal_regularization_primal);
+    EXPECT_EQ(last_ran_phase(a)->proximal_regularization_dual,
+              last_ran_phase(b)->proximal_regularization_dual);
     EXPECT_EQ(a.evaluation_errors.last_message, b.evaluation_errors.last_message);
-    EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
+    EXPECT_EQ(last_ran_phase(a)->kkt_factor_status, last_ran_phase(b)->kkt_factor_status);
     EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
-    EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
+    EXPECT_EQ(a.counters.symbolic_analyses, b.counters.symbolic_analyses);
     EXPECT_EQ(a.kkt_factor_counters.analyze_count, b.kkt_factor_counters.analyze_count);
     EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
     EXPECT_EQ(a.kkt_factor_counters.solve_count, b.kkt_factor_counters.solve_count);

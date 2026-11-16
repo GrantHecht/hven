@@ -305,7 +305,7 @@ SolveRun solve_once(Engine engine, const std::shared_ptr<FaultyHs071> &nlp) {
         IpmSolver solver(quiet_ipm());
         const IpmResult r = solver.solve(problem, hs071_start());
         run.result = r;
-        run.rollbacks = r.nonfinite_step_rollbacks;
+        run.rollbacks = r.counters.nonfinite_step_rollbacks;
     } else {
         SqpSolver solver(quiet_sqp());
         const SqpResult r = solver.solve(problem, hs071_start());
@@ -836,8 +836,8 @@ TEST(RiderRollback, AChainOfRollbacksReachesTheCapFloorAndEndsAtTheFailedPoint) 
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
     const Index max_rollbacks = quiet_ipm().advanced.max_line_search_backtracks;
-    EXPECT_GE(r.nonfinite_step_rollbacks, 2) << "a CHAIN of rollbacks, not one";
-    EXPECT_LE(r.nonfinite_step_rollbacks, max_rollbacks)
+    EXPECT_GE(r.counters.nonfinite_step_rollbacks, 2) << "a CHAIN of rollbacks, not one";
+    EXPECT_LE(r.counters.nonfinite_step_rollbacks, max_rollbacks)
         << "each rollback divides the cap by at least backtrack_divisor";
     EXPECT_LT(r.iterations, quiet_ipm().common.max_iterations) << "the floor, not the cap";
     EXPECT_NE(r.message.find("step cap floor"), std::string::npos) << r.message;
@@ -893,9 +893,10 @@ TEST(RiderRollback, AFailureWhileRestorationIsActiveIsNeverRolledBack) {
     ASSERT_EQ(nlp->fired, 1) << "the fault never reached restoration";
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
-    EXPECT_EQ(r.nonfinite_step_rollbacks, 0) << "the snapshot carries no elastic variables";
-    ASSERT_TRUE(r.last_feasibility_restoration_entries.has_value());
-    EXPECT_EQ(*r.last_feasibility_restoration_entries, 1);
+    EXPECT_EQ(r.counters.nonfinite_step_rollbacks, 0)
+        << "the snapshot carries no elastic variables";
+    ASSERT_TRUE(last_ran_phase(r)->restoration_entries.has_value());
+    EXPECT_EQ(*last_ran_phase(r)->restoration_entries, 1);
     EXPECT_TRUE(all_zero(r.lambda));
 }
 
@@ -932,7 +933,7 @@ TEST(RiderRollback, AFailureAtAPhasesFirstIterateEndsTheSolveWithoutARollback) {
     ASSERT_EQ(nlp->fired, 1);
     EXPECT_EQ(r.status, SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(r.stop_reason, StopReason::kNonFiniteIterate);
-    EXPECT_EQ(r.nonfinite_step_rollbacks, 0);
+    EXPECT_EQ(r.counters.nonfinite_step_rollbacks, 0);
     ASSERT_EQ(r.phases.size(), 2u);
     EXPECT_TRUE(r.phases[0].ran);
     EXPECT_TRUE(r.phases[1].ran);

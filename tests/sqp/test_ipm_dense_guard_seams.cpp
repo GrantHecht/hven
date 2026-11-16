@@ -291,7 +291,7 @@ void expect_ladder_exit(const RecordedSolve &run, hven::Index pass) {
                              "available"),
               std::string::npos)
         << r.message;
-    EXPECT_NE(r.last_kkt_info, Eigen::Success);
+    EXPECT_NE(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kSuccess);
     EXPECT_FALSE(r.returned_best_iterate);
     EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, pass);
     EXPECT_GT(r.kkt_factor_counters.dense_fallback_count, 0);
@@ -332,7 +332,7 @@ std::optional<GuardRoute> find_guard_route() {
     for (const double scale : scale_family()) {
         const hven::IpmResult clean = solve_dense(scale).result;
         if (!success(clean.status) || clean.kkt_factor_counters.dense_fallback_count != 0 ||
-            clean.dense_residual_ratio_triggers == 0) {
+            clean.counters.dense_solve_residual_refusals == 0) {
             continue;
         }
         const int attempts = static_cast<int>(clean.kkt_factor_counters.dense_factorize_count);
@@ -413,13 +413,13 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
         const hven::Index attempts = clean.kkt_factor_counters.dense_factorize_count;
         survey += fmt::format("\n  scale {:.2f}: clean {} triggers {} dense {} fallbacks {}", scale,
                               success(clean.status) ? "ok" : "FAILED",
-                              clean.dense_residual_ratio_triggers, attempts,
+                              clean.counters.dense_solve_residual_refusals, attempts,
                               clean.kkt_factor_counters.dense_fallback_count);
         // A member qualifies when its clean solve succeeds with every factorization on the dense
         // arm (so dense attempts and dense_factorize_count count the same thing) and some guard
         // fired.
         if (!success(clean.status) || clean.kkt_factor_counters.dense_fallback_count != 0 ||
-            clean.dense_residual_ratio_triggers == 0) {
+            clean.counters.dense_solve_residual_refusals == 0) {
             continue;
         }
 
@@ -453,10 +453,10 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunEndsTheSolveWithoutItsStep) {
             EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
             EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
             EXPECT_NE(r.message.find("failed (numerical issue)"), std::string::npos) << r.message;
-            EXPECT_GE(r.dense_residual_ratio_triggers, 1);
+            EXPECT_GE(r.counters.dense_solve_residual_refusals, 1);
             EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, pass);
             EXPECT_GT(r.kkt_factor_counters.dense_fallback_count, 0);
-            EXPECT_NE(r.last_kkt_info, Eigen::Success);
+            EXPECT_NE(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kSuccess);
             // The step the guard rejected is discarded: x is the iterate its iteration started
             // from.
             expect_x_unmoved(run);
@@ -507,7 +507,7 @@ TEST(IpmNoNumericsSeam, ALadderEndingWithoutNumericsAtAnAcceptableIterateStopsTh
         std::string::npos)
         << r.message;
     EXPECT_NE(r.message.find(" left no numerics"), std::string::npos) << r.message;
-    EXPECT_NE(r.last_kkt_info, Eigen::Success);
+    EXPECT_NE(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kSuccess);
     EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, attempts - 1);
     EXPECT_GT(run.event_x.size(), 2U);
     expect_x_unmoved(run);
@@ -562,7 +562,7 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
         ASSERT_NO_THROW(run = solve_hs071_dense(o));
     }
     const hven::IpmResult &r = run.result;
-    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
@@ -572,8 +572,8 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalEntersRestoration) {
     // The entry (and the nested re-centre) resolved into the restoration bucket; the abort did not.
     using hven::detail::kRecoveryDepthRestoration;
     using hven::detail::kRecoveryDepthUnresolved;
-    EXPECT_EQ(r.recovery_depth_histogram[kRecoveryDepthRestoration], nested ? 2 : 1);
-    EXPECT_EQ(r.recovery_depth_histogram[kRecoveryDepthUnresolved], 1);
+    EXPECT_EQ(r.counters.recovery_depth_histogram[kRecoveryDepthRestoration], nested ? 2 : 1);
+    EXPECT_EQ(r.counters.recovery_depth_histogram[kRecoveryDepthUnresolved], 1);
     // The entry at iteration 0, the nested re-centre at 1, the abort at the next.
     const int abort_iteration = nested ? 2 : 1;
     EXPECT_EQ(named_iteration(r.message), abort_iteration) << r.message;
@@ -607,8 +607,8 @@ TEST_P(IpmNoNumericsRestorationSeam, AnAcceptableIterateStopsBeforeRestorationIs
                              "0 left no numerics"),
               std::string::npos)
         << r.message;
-    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 0);
-    EXPECT_EQ(r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
+    EXPECT_EQ(last_ran_phase(r)->restoration_entries.value_or(0), 0);
+    EXPECT_EQ(r.counters.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
     EXPECT_EQ(run.rows.size(), 1U);
     expect_x_unmoved(run);
 }
@@ -622,7 +622,7 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalIsRecoveredThroughRestoratio
     o.advanced.restoration_mode = GetParam();
     const RecordedSolve clean = solve_hs071_dense(o);
     ASSERT_TRUE(success(clean.result.status)) << clean.result.message;
-    ASSERT_EQ(clean.result.last_feasibility_restoration_entries.value_or(0), 0);
+    ASSERT_EQ(last_ran_phase(clean.result)->restoration_entries.value_or(0), 0);
     RecordedSolve run;
     {
         const Armed armed(1);
@@ -633,7 +633,7 @@ TEST_P(IpmNoNumericsRestorationSeam, ANumericRefusalIsRecoveredThroughRestoratio
                         }));
     }
     const hven::IpmResult &r = run.result;
-    EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_GE(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
     EXPECT_TRUE(success(r.status)) << r.message;
     EXPECT_TRUE(r.x.allFinite());
 }
@@ -666,8 +666,8 @@ TEST(IpmNoNumericsSeam, AHardBackendErrorEndsTheSolveWithoutRestoration) {
               std::string::npos)
         << r.message;
     EXPECT_EQ(r.message.find("neither"), std::string::npos) << r.message;
-    EXPECT_EQ(r.last_kkt_info, Eigen::InvalidInput);
-    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 0);
+    EXPECT_EQ(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kInvalidInput);
+    EXPECT_EQ(last_ran_phase(r)->restoration_entries.value_or(0), 0);
     expect_x_unmoved(run);
 }
 
@@ -721,7 +721,7 @@ TEST(IpmNoNumericsSeam, AnAcceptableRestorationRowIsNeverAnAcceptableStop) {
     ASSERT_GE(run.rows.size(), 2U) << r.message;
     ASSERT_FALSE(row_acceptable(run.rows.front(), o)) << "icon " << run.rows.front().icon_inf;
     ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "icon " << run.rows.back().icon_inf;
-    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(run.stop_reason, hven::StopReason::kNone);
     EXPECT_NE(r.message.find("(numerical issue)"), std::string::npos) << r.message;
@@ -762,7 +762,7 @@ TEST(IpmNoNumericsSeam, AnUnevaluableStepInsideRestorationIsNeverAnAcceptableSto
     ASSERT_GE(run.rows.size(), 2U) << r.message;
     ASSERT_FALSE(row_acceptable(run.rows.front(), o)) << "kkt " << run.rows.front().kkt_inf;
     ASSERT_TRUE(row_acceptable(run.rows.back(), o)) << "kkt " << run.rows.back().kkt_inf;
-    EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_GE(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
     EXPECT_EQ(r.status, hven::SolveStatus::kNumericalError) << r.message;
     EXPECT_EQ(run.stop_reason, hven::StopReason::kEvaluationFailure);
     EXPECT_NE(r.message.find("could not be evaluated at any trial step"), std::string::npos)
@@ -792,7 +792,7 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunUnderRestorationDiscardsItsStep) {
         record_solve(o, std::make_shared<NearDuplicateRows>(route->scale), x0);
     ASSERT_EQ(clean_on.result.kkt_factor_counters.dense_factorize_count,
               clean_off.result.kkt_factor_counters.dense_factorize_count);
-    ASSERT_EQ(clean_on.result.last_feasibility_restoration_entries.value_or(0), 0);
+    ASSERT_EQ(last_ran_phase(clean_on.result)->restoration_entries.value_or(0), 0);
     RecordedSolve run;
     {
         const Armed armed(route->pass);
@@ -801,9 +801,9 @@ TEST(IpmDenseGuardSeam, AFailedGuardReRunUnderRestorationDiscardsItsStep) {
     }
     const hven::IpmResult &r = run.result;
     const auto i = static_cast<std::size_t>(route->iteration);
-    EXPECT_GE(r.dense_residual_ratio_triggers, 1);
-    EXPECT_EQ(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
-    EXPECT_EQ(r.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 1);
+    EXPECT_GE(r.counters.dense_solve_residual_refusals, 1);
+    EXPECT_EQ(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_EQ(r.counters.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 1);
     ASSERT_GT(run.event_x.size(), i + 1)
         << "the solve did not continue past the entering iteration";
     EXPECT_EQ(run.event_x[i + 1], run.event_x[i])
@@ -856,7 +856,7 @@ TEST(IpmDenseReportSeam, ALadderOfSingularReportsEndsInAStatusNeverAThrowNorTheS
                              "available"),
               std::string::npos)
         << r.message;
-    EXPECT_EQ(r.last_kkt_info, Eigen::NumericalIssue);
+    EXPECT_EQ(last_ran_phase(r)->kkt_factor_status, hven::IpmKktFactorStatus::kNumericalIssue);
     EXPECT_EQ(r.kkt_factor_counters.dense_factorize_count, 1);
     // Every rung was refactored on the dense arm and reported.
     EXPECT_GE(r.kkt_factor_counters.dense_singular_count,
@@ -876,7 +876,7 @@ TEST_P(IpmDenseReportRestorationSeam,
     o.advanced.restoration_mode = GetParam();
     const RecordedSolve clean = solve_hs071_report(o);
     ASSERT_TRUE(success(clean.result.status)) << clean.result.message;
-    ASSERT_EQ(clean.result.last_feasibility_restoration_entries.value_or(0), 0);
+    ASSERT_EQ(last_ran_phase(clean.result)->restoration_entries.value_or(0), 0);
     ASSERT_EQ(clean.result.kkt_factor_counters.dense_singular_count, 0);
     RecordedSolve run;
     {
@@ -888,7 +888,7 @@ TEST_P(IpmDenseReportRestorationSeam,
                         }));
     }
     const hven::IpmResult &r = run.result;
-    EXPECT_GE(r.last_feasibility_restoration_entries.value_or(0), 1) << r.message;
+    EXPECT_GE(last_ran_phase(r)->restoration_entries.value_or(0), 1) << r.message;
     EXPECT_TRUE(success(r.status)) << r.message;
     EXPECT_TRUE(r.x.allFinite());
     EXPECT_GE(r.kkt_factor_counters.dense_singular_count,

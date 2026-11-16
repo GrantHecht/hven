@@ -762,10 +762,10 @@ TEST(L1RestoReset, ClearsAllElasticState) {
 
 TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
-    hven::IpmResult result;
+    hven::IpmPhaseReport result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feasibility_restoration_entries, 0);
-    EXPECT_EQ(result.last_feasibility_restoration_iterations, 0);
+    EXPECT_EQ(result.restoration_entries, 0);
+    EXPECT_EQ(result.restoration_iters, 0);
 }
 
 TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -785,10 +785,10 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_nested(ref, xr, eq, empty, 0.2);
     r.note_iteration();
 
-    hven::IpmResult result;
+    hven::IpmPhaseReport result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feasibility_restoration_entries, 2);
-    EXPECT_EQ(result.last_feasibility_restoration_iterations, 4);
+    EXPECT_EQ(result.restoration_entries, 2);
+    EXPECT_EQ(result.restoration_iters, 4);
 }
 
 // Reference the reset-threshold constant so the header's declaration is

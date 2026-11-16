@@ -939,14 +939,14 @@ TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasib
 
     // NON-VACUOUS: the proximal strategy really was constructed and really did
     // enter restoration, so the classification ran on a proximal subproblem.
-    ASSERT_GT(prox_result.last_feasibility_restoration_entries, 0)
+    ASSERT_GT(last_ran_phase(prox_result)->restoration_entries, 0)
         << "restoration was never entered, so the proximal classification never ran";
-    ASSERT_GE(prox_result.last_feasibility_restoration_iterations, 1);
+    ASSERT_GE(last_ran_phase(prox_result)->restoration_iters, 1);
 
     // AND IT LEFT: the iterations spent in restoration are a small part of the
     // phase, so the classification took a leave door rather than staying in
     // mode until the budget ran out.
-    EXPECT_LT(prox_result.last_feasibility_restoration_iterations, prox_result.iterations)
+    EXPECT_LT(last_ran_phase(prox_result)->restoration_iters, prox_result.iterations)
         << "the phase never left restoration, so no leave door was taken";
     EXPECT_EQ(prox_result.status, hven::SolveStatus::kIterationLimit);
     EXPECT_EQ(hven::detail::IpmSolverAccess::impl(*proximal.engine).last_stop_reason(),
@@ -983,11 +983,11 @@ TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
     const hven::IpmResult result = solver.engine->solve(hven::detail::problem_ref(*solver.program),
                                                         stop_reason_test::two_var_start(0.0, 0.0));
 
-    EXPECT_GE(result.last_feasibility_restoration_entries, 2)
+    EXPECT_GE(last_ran_phase(result)->restoration_entries, 2)
         << "the proximal classification never chose to leave: a re-entry is the only way the "
            "entry count can pass one";
-    EXPECT_GE(result.last_feasibility_restoration_iterations,
-              result.last_feasibility_restoration_entries)
+    EXPECT_GE(last_ran_phase(result)->restoration_iters,
+              last_ran_phase(result)->restoration_entries)
         << "every episode spends at least one iteration in mode";
     EXPECT_EQ(result.status, hven::SolveStatus::kStalled);
     EXPECT_EQ(hven::detail::IpmSolverAccess::impl(*solver.engine).last_stop_reason(),
@@ -1109,11 +1109,11 @@ TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheR
 
     EXPECT_FALSE(result.evaluation_errors.last_message.empty())
         << "no trial evaluation was refused, so this path never ran";
-    EXPECT_GT(result.last_feasibility_restoration_entries, 0) << "restoration was not entered";
+    EXPECT_GT(last_ran_phase(result)->restoration_entries, 0) << "restoration was not entered";
     // And the iteration is ATTRIBUTED to restoration in the recovery-depth
     // histogram -- FeasibilitySwitchRecovery's own stamp, which is what marks
     // the entry as the chain's rather than the bypass's.
-    EXPECT_GT(result.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
+    EXPECT_GT(result.counters.recovery_depth_histogram[hven::detail::kRecoveryDepthRestoration], 0);
 }
 
 // The classic merit variants' OWN un-evaluable-trial arms. `ls_lang` and

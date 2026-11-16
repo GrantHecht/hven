@@ -90,14 +90,14 @@ class AcceptanceStrategy {
     virtual void notify_switch_to_optimality(const ProgressMeasures &) {}
 
     /// @brief Writes this strategy's diagnostic state (if any) into
-    /// @p result. Called once per phase, right after that phase's solve
-    /// returns, so a multi-phase solve ends up with the last phase's values.
+    /// @p report, the phase's own. Called once per phase, right after that
+    /// phase's solve returns.
     ///
-    /// Invariant: WRITE-ONLY by design. This hook never reads @p result or any
+    /// Invariant: WRITE-ONLY by design. This hook never reads @p report or any
     /// other solver state, so it cannot influence control flow; a strategy
     /// that changed behavior based on prior diagnostics would need a real
     /// feedback path. The default body is a no-op.
-    virtual void append_diagnostics(IpmResult &result) const { (void)result; }
+    virtual void append_diagnostics(IpmPhaseReport &report) const { (void)report; }
 
     /// @brief Undoes the state the most recent ACCEPTED trial registered, when
     /// the step to it is rejected after the fact (the interior-point engine's

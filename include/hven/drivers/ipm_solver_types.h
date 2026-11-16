@@ -15,6 +15,7 @@
 
 #include <Eigen/Core>
 
+#include "hven/core/solver_counters.h"
 #include "hven/core/types.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_options.h"
@@ -79,38 +80,8 @@ struct IpmTiming {
 /// PER CALL, all of it. This is a value returned by `solve()`, not an
 /// accumulator a caller reads later.
 struct IpmResult : SolveResult {
-
-    // The warm-start payload's own two counters: both 0 on every solve that was
-    // handed no payload, and 0 or 1 otherwise. A caller who set
-    // `common.start_level` in one place and attached a payload in another has no
-    // other way to find out which of the two won.
-
-    /// @brief 1 when this call was handed a payload and IGNORED IT ENTIRELY
-    ///        because `IpmOptions::common.start_level` was kCold; 0 otherwise.
-    ///
-    /// The payload's block lengths and its declaration stamp were still checked
-    /// -- a foreign payload is refused at every rung -- and then nothing of it
-    /// was applied.
-    Index payload_ignored = 0;
-
-    /// @brief Steps REJECTED AFTER THE FACT because the point they reached could
-    ///        not be evaluated: the model returned a non-finite value, or
-    ///        threw EvaluationError, in the evaluation of that point's
-    ///        derivatives. Each one restored the previous iterate and shortened
-    ///        the next step.
-    Index nonfinite_step_rollbacks = 0;
-
-    /// @brief 1 when this call was handed a payload carrying the
-    ///        `"hven.ipm.polish.v1"` extension and did NOT consume it;
-    ///        0 otherwise.
-    ///
-    /// Two ways to earn it, one reason. At a ceiling of kSeeded only the
-    /// multipliers are applied; and on the MULTIPLIERS-ONLY seed form (an empty
-    /// `primal_`) there is no point to apply at any ceiling. Either way this
-    /// solve starts at `x0`, while the extension's (z_lower, z_upper) pair and
-    /// inequality values are stated at the EXPORTER's point. 0 at a kCold
-    /// ceiling, where `payload_ignored` is the answer.
-    Index polish_ignored = 0;
+    /// @brief This call's counters.
+    IpmCounters counters;
 
     /// @brief Which IpmOptions::fixed_variable_treatment this call actually
     ///        ran under.
@@ -155,74 +126,6 @@ struct IpmResult : SolveResult {
     /// @brief Flops reported by the last factorization.
     Index factor_flops = 0;
 
-    /// Number of second-order correction back-substitutions performed across
-    /// the whole solve (one per correction attempt; each costs a single
-    /// constraint evaluation and one back-substitution on the live
-    /// factorization). Always 0 when SOC is off
-    /// (advanced.max_second_order_corrections == 0).
-    Index second_order_corrections = 0;
-
-    /// Number of times the watchdog armed across the whole solve (Chamberlain,
-    /// Powell, Lemarechal & Pedersen 1982). Always 0 when the watchdog is off
-    /// (advanced.watchdog == false).
-    Index watchdog_activations = 0;
-
-    /// Per-rejection recovery-chain outcome depth, indexed by the
-    /// kRecoveryDepth* constants in globalization/recovery_chain.h: [0] SOC,
-    /// [1] extended backtracking, [2] watchdog, [3] unresolved (the only
-    /// bucket that increments when all three are off), [4] restoration
-    /// (increments only when advanced.restoration_mode != kOff). Counts
-    /// REJECTIONS, not interventions.
-    std::array<Index, 5> recovery_depth_histogram{};
-
-    // The last_* diagnostics below describe the LAST PHASE of the call. Each is
-    // nullopt when the selected strategy does not report it, or when nothing ran
-    // in that phase to report.
-
-    /// Final funnel width (tau) reported by FunnelAcceptance.
-    std::optional<double> last_funnel_width;
-
-    /// Final filter size (stored (theta, phi) pairs); nullopt unless the
-    /// acceptance strategy is the filter.
-    std::optional<Index> last_filter_size;
-
-    /// Total filter-reset-heuristic clears; nullopt unless the acceptance
-    /// strategy is the filter. Under advanced.barrier_governor_mode == kMonitored it
-    /// counts per barrier subproblem: resets since the last mu-event.
-    std::optional<Index> last_filter_resets;
-
-    /// Number of free -> monotone handoffs, reported by MonitoredBarrierGovernor;
-    /// nullopt unless the governor is kMonitored.
-    std::optional<Index> last_monotone_switches;
-
-    /// Number of iterations spent in monotone mode; nullopt unless the governor
-    /// is kMonitored.
-    std::optional<Index> last_monotone_iterations;
-
-    /// Number of times feasibility restoration was entered; nullopt when no
-    /// restoration strategy is constructed. Write-only diagnostics.
-    std::optional<Index> last_feasibility_restoration_entries;
-
-    /// Number of iterations spent in restoration mode; nullopt when no
-    /// restoration strategy is constructed. Write-only diagnostics.
-    std::optional<Index> last_feasibility_restoration_iterations;
-
-    /// Proximal primal-dual regularization shifts at the LAST FACTORIZED
-    /// ITERATION of the last phase: the persistent primal base shift rho_k added
-    /// to the Hessian diagonal. nullopt unless advanced.inertia_mode ==
-    /// kProximalRegularization, and when a phase converged before its first
-    /// factorization.
-    std::optional<double> last_proximal_regularization_primal;
-    /// The barrier-scaled dual shift delta_c subtracted from the constraint-row
-    /// diagonals (0.0 when suppressed inside a nested l1 phase), on the same
-    /// nullopt rules.
-    std::optional<double> last_proximal_regularization_dual;
-
-    /// The last non-Success status observed from the KKT factorization within
-    /// the CURRENT phase (per phase, never an earlier phase's). Purely
-    /// observational: it feeds no control-flow decision.
-    Eigen::ComputationInfo last_kkt_info = Eigen::Success;
-
     // --- The per-phase account ---
     /// @brief One entry per phase in `IpmOptions::phases`, in that order.
     ///
@@ -237,22 +140,22 @@ struct IpmResult : SolveResult {
     /// @brief How many times the producing solver had laid and analyzed the KKT
     ///        sparsity pattern over its LIFETIME, as of this result.
     Index kkt_analyses_total = 0;
-    /// @brief How many of those happened during THIS call.
-    Index kkt_analyses_this_call = 0;
     /// @brief The KKT factor's linear-layer call counters as of this result,
     ///        including the pattern-guard count.
     hven::linear::SymmetricFactor::Counters kkt_factor_counters;
-
-    /// Solves on a dense-arm factorization whose residual ratio
-    /// ||K x - rhs|| / ||rhs|| exceeded the singularity threshold, each one
-    /// answered as a singular system (refactorization, re-solve). Always 0
-    /// when `linear.dense_factorization` is `kNever`.
-    Index dense_residual_ratio_triggers = 0;
-
-    /// Factorizations of this call's KKT systems on the dense arm (taken, or
-    /// reported exactly singular), out of `work.factorizations`. Always 0 when
-    /// `linear.dense_factorization` is `kNever`.
-    Index dense_factorizations = 0;
 };
+
+/// @brief The last phase of `r.phases` that ran, or nullptr when none did.
+///
+/// The phase the base's `status` is the verdict of; the reading the retired
+/// `IpmResult::last_*` fields stood for.
+inline const IpmPhaseReport *last_ran_phase(const IpmResult &r) {
+    for (auto it = r.phases.rbegin(); it != r.phases.rend(); ++it) {
+        if (it->ran) {
+            return &*it;
+        }
+    }
+    return nullptr;
+}
 
 } // namespace hven

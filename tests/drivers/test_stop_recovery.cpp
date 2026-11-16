@@ -428,8 +428,8 @@ TEST(StopRecovery, T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
             IterationPayload::kAll);
         const IpmResult armed = armed_solver.solve(armed_problem, start(), {}, budget);
 
-        ASSERT_TRUE(plain.last_feasibility_restoration_entries.has_value());
-        ASSERT_GE(*plain.last_feasibility_restoration_entries, 1)
+        ASSERT_TRUE(last_ran_phase(plain)->restoration_entries.has_value());
+        ASSERT_GE(*last_ran_phase(plain)->restoration_entries, 1)
             << "premise: the fixture enters restoration";
         EXPECT_EQ(armed.status, plain.status);
         EXPECT_EQ(armed.stop_reason, plain.stop_reason);
@@ -440,10 +440,10 @@ TEST(StopRecovery, T9AnArmedUnfiredSolveThroughRestorationIsTheUnarmedSolve) {
         EXPECT_EQ(armed.work.constraint_evals, plain.work.constraint_evals);
         EXPECT_EQ(armed.work.jacobian_evals, plain.work.jacobian_evals);
         EXPECT_EQ(armed.work.hessian_evals, plain.work.hessian_evals);
-        EXPECT_EQ(*armed.last_feasibility_restoration_entries,
-                  *plain.last_feasibility_restoration_entries);
-        EXPECT_EQ(armed.last_feasibility_restoration_iterations,
-                  plain.last_feasibility_restoration_iterations);
+        EXPECT_EQ(*last_ran_phase(armed)->restoration_entries,
+                  *last_ran_phase(plain)->restoration_entries);
+        EXPECT_EQ(last_ran_phase(armed)->restoration_iters,
+                  last_ran_phase(plain)->restoration_iters);
         EXPECT_TRUE(bit_equal(armed.x, plain.x));
         EXPECT_TRUE(bit_equal(armed.lambda, plain.lambda));
         EXPECT_TRUE(bit_equal(armed.z, plain.z));

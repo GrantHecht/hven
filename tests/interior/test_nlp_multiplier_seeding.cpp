@@ -364,8 +364,8 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
     // The result is the proof: a payload was neither built nor applied.
-    EXPECT_EQ(result.payload_ignored, 0);
-    EXPECT_EQ(result.polish_ignored, 0);
+    EXPECT_EQ(result.counters.payload_ignored, 0);
+    EXPECT_EQ(result.counters.polish_ignored, 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -577,7 +577,7 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     result = hven_interior_tests::solve_declared(solver, solver_route, x0);
     ASSERT_EQ(result.status, hven::SolveStatus::kOptimal);
-    EXPECT_EQ(result.payload_ignored, 0);
+    EXPECT_EQ(result.counters.payload_ignored, 0);
 
     Eigen::VectorXd x = result.x;
     Eigen::VectorXd expect(2);

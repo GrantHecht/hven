@@ -420,13 +420,13 @@ one of those three therefore cannot silently miss the trace.
   section used to name as `IpmSolver::kkt_analysis_count()` is among them: that
   ACCESSOR WAS RETIRED at M6 W5 T8.4 (`drivers/ipm_solver.h:344` records the
   retirement) and the quantity is now two snapshot fields on the returned
-  result, `IpmResult::kkt_analyses_total` and `::kkt_analyses_this_call`
-  (`drivers/ipm_solver_types.h:659`, `:661`), beside
-  `IpmResult::kkt_factor_counters` (`:664`), which is the linear layer's group
+  result, `IpmResult::kkt_analyses_total` and `IpmResult::counters.symbolic_analyses`
+  (`drivers/ipm_solver_types.h`), beside
+  `IpmResult::kkt_factor_counters`, which is the linear layer's group
   as of that solve. `kkt_analyses_total` is the LIFETIME count for the producing
   solver -- it moves once when the structure is first laid and once more at any
   solve entry that finds the model's structure epoch moved -- and
-  `kkt_analyses_this_call` is how much of that happened in the call being
+  `counters.symbolic_analyses` is how much of that happened in the call being
   reported. Snapshots rather than accessors, so they describe the solve that
   produced them and cannot go stale behind a caller's back.
 
@@ -437,8 +437,8 @@ one of those three therefore cannot silently miss the trace.
 500 -> 1000 — as one declared re-derivation event
 (`docs/notes/data/2026-09-m7-w2-d1-ipm-default/`). Nothing in this page's
 contract changes; what changes is which of the interior-point engine's
-diagnostics a STOCK solve populates. `IpmResult::last_filter_size`,
-`::last_filter_resets`, `::last_monotone_switches` and `::last_monotone_iters`
+diagnostics a STOCK solve populates. `filter_size`, `filter_resets`, `monotone_switches` and `monotone_iterations` of
+the last ran `IpmPhaseReport` (named `IpmResult::last_*` until M8 G6)
 each carry a `-1` sentinel meaning "the selected strategy or governor is not the
 one that reports this", and on a default-configured solve all four used to sit
 at that sentinel. They no longer do. A consumer reading `-1` from one of them is

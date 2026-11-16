@@ -327,6 +327,19 @@ void hven::detail::IpmSolverImpl::attach_ledger(Ledger *ledger, std::string labe
     solve_counter_ = 0;
 }
 
+// The whole-solve restoration counters: the sum of the per-phase values over the
+// phases that reported them (0 when no restoration strategy is constructed).
+namespace {
+void sum_phase_restoration(hven::IpmResult &result) {
+    result.counters.restoration_entries = 0;
+    result.counters.restoration_iters = 0;
+    for (const hven::IpmPhaseReport &phase : result.phases) {
+        result.counters.restoration_entries += phase.restoration_entries.value_or(0);
+        result.counters.restoration_iters += phase.restoration_iters.value_or(0);
+    }
+}
+} // namespace
+
 // THE FUNNEL. Both public solve() overloads pass through this one statement
 // list, and neither the phase loop nor `run_phase_sequence` writes a record --
 // the record's `wall_seconds` is the ENTRY clock's, which only the public
@@ -367,9 +380,10 @@ void hven::detail::IpmSolverImpl::record_solve(const IpmResult &result,
     // snapshot.
     rec.factorizations = this->lifetime_factorize_count() - factorize_count_at_entry;
     // Already per call -- the engine's own counter, not a delta.
-    rec.analyses = result.kkt_analyses_this_call;
-    rec.soc_steps_taken = result.second_order_corrections;
-    rec.watchdog_activations = result.watchdog_activations;
+    rec.analyses = result.counters.symbolic_analyses;
+    rec.soc_steps_taken = result.counters.soc_steps;
+    rec.counters = result.counters;
+    rec.watchdog_activations = result.counters.watchdog_activations;
     rec.wall_seconds = result.wall_seconds;
     this->ledger_->record(std::move(rec));
     ++this->solve_counter_;
@@ -381,7 +395,7 @@ void hven::detail::IpmSolverImpl::record_solve(const IpmResult &result,
 // kkt_analysis_count_ to zero -- has no caller-facing purpose left either: the
 // analysis is re-laid on demand for any program whose identity token does not
 // match, and the analysis count is reported as a per-result SNAPSHOT
-// (IpmResult::kkt_analyses_total / ::kkt_analyses_this_call) rather than as a
+// (IpmResult::kkt_analyses_total / ::counters.symbolic_analyses) rather than as a
 // live counter a caller resets.
 
 // Barrier math helpers
@@ -1984,8 +1998,8 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
         }
     };
     // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
-    // records the last non-Success status into result_.last_kkt_info (surfaced
-    // by `ipm.phase.exit`'s `last_kkt_info` key, which alg_impl resets once per
+    // records the last non-Success status into phase_kkt_info_ (surfaced
+    // by `ipm.phase.exit`'s `kkt_factor_status` key, which alg_impl resets once per
     // PHASE at its entry -- so the field is per-phase, not per-call) and, for
     // hard failures only, emits an immediate diagnostic gated the same as the
     // sibling RankDef()/perturbation-exhausted warnings in this function.
@@ -1999,7 +2013,7 @@ int hven::detail::IpmSolverImpl::factor_impl(bool docompute, bool Zfac, double i
     auto CheckInfo = [&]() {
         Eigen::ComputationInfo info = this->kkt_sol_.info();
         if (info != Eigen::Success) {
-            this->result_.last_kkt_info = info;
+            this->phase_kkt_info_ = info;
             if (info != Eigen::NumericalIssue) {
                 IpmMessageTraceEvent msg;
                 msg.kind = IpmMessageKind::kFactorizationHardError;
@@ -2191,7 +2205,7 @@ int hven::detail::IpmSolverImpl::dense_step_singularity_guard(
         // NaN (a non-finite solution) fails the test too.
         if (this->dense_residual_ratio(rhs, x) <= hven::detail::kDenseResidualRatioSingular)
             break;
-        ++this->result_.dense_residual_ratio_triggers;
+        ++this->result_.counters.dense_solve_residual_refusals;
         // Back to the base matrix: the ladder's shifts are additive, so the strip
         // recovers each H_ii to O(ulp) of its shifted value.
         const double applied = cumpert + (proximal ? base_prox : 0.0);
@@ -2803,10 +2817,12 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
 
     // Per-phase: `ipm.phase.exit` reports this phase's factorization status, so
     // a status left over from an earlier phase in the sequence must not leak
-    // in. THIS RESET IS WHAT MAKES `last_kkt_info` A PER-PHASE FACT (M6 W5
+    // in. THIS RESET IS WHAT MAKES `kkt_factor_status` A PER-PHASE FACT (M6 W5
     // T8.7b fix1, the lane's M1); the event's doc, the console's comment and
     // schema section 4.18 all say so.
-    this->result_.last_kkt_info = Eigen::Success;
+    this->phase_kkt_info_ = Eigen::Success;
+    this->phase_prox_primal_.reset();
+    this->phase_prox_dual_.reset();
     // Fresh phase: re-probe rank rather than inheriting the previous phase's
     // degeneracy diagnosis.
     this->dc_latched_ = false;
@@ -3092,7 +3108,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 this->bound_duals_.z_upper_ = rollback_z_upper;
             }
             this->acceptance_->retract_last_acceptance();
-            ++this->result_.nonfinite_step_rollbacks;
+            ++this->result_.counters.nonfinite_step_rollbacks;
             step_cap = next_cap;
         }
         if (nonfinite_abort) [[unlikely]] {
@@ -3137,7 +3153,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                 // system is; the message carries what failed. The phase-entry
                 // reset cleared the record the initial factorization wrote.
                 this->last_stop_reason_ = IpmPhaseStop::kNone;
-                this->result_.last_kkt_info = this->kkt_sol_.info();
+                this->phase_kkt_info_ = this->kkt_sol_.info();
             } else {
                 this->last_stop_reason_ = this->solve_at_start_ ? IpmPhaseStop::kNonFiniteStart
                                                                 : IpmPhaseStop::kNonFiniteIterate;
@@ -4533,14 +4549,14 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                     singular_abort = true;
                 }
             }
-            this->result_.recovery_depth_histogram[resolved_depth]++;
+            this->result_.counters.recovery_depth_histogram[resolved_depth]++;
         } else if (should_dispatch_recovery(GoodStep, Citer)) {
             int resolved_depth = kRecoveryDepthUnresolved;
             const RecoveryChain::Action recovery_action = this->recovery_->on_step_rejected(
                 Citer, iters, ctx, *acceptance_, *mechanism_, lsmode, obj_scale * lsobjscale,
                 step_mu, prim_obj, barr_obj, XSL, DXSL, Temp, RHS, RHS2, alpha, alphap, alphad,
-                this->result_.second_order_corrections, resolved_depth,
-                this->result_.watchdog_activations);
+                this->result_.counters.soc_steps, resolved_depth,
+                this->result_.counters.watchdog_activations);
             switch (recovery_action) {
             case RecoveryChain::Action::kAcceptAsIs:
                 // No link resolved the ordinary rejection: take the step
@@ -4708,7 +4724,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
                                        "but no give-up handling exists yet "
                                        "(no recovery link can produce this Action)");
             }
-            this->result_.recovery_depth_histogram[resolved_depth]++;
+            this->result_.counters.recovery_depth_histogram[resolved_depth]++;
         } else if (GoodStep && Citer.accepted) {
             // Mirrors should_dispatch_recovery's gate (GoodStep && !accepted_)
             // for its complement: a genuinely accepted iteration, where the
@@ -5084,8 +5100,8 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::alg_impl(AlgorithmMode algmode, Ipm
     // semantics as the other diagnostic fields: a multi-phase call ends with
     // the LAST phase's alg_impl call's values.
     if (opts_.advanced.inertia_mode == IpmInertiaMode::kProximalRegularization) {
-        this->result_.last_proximal_regularization_primal = last_prox_primal;
-        this->result_.last_proximal_regularization_dual = last_prox_dual;
+        this->phase_prox_primal_ = last_prox_primal;
+        this->phase_prox_dual_ = last_prox_dual;
     }
 
     // THE ONE INPUT THE SHARED DECLARED DIAGNOSTICS NEED that only a phase
@@ -5367,7 +5383,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
     const bool dense_singular = this->kkt_sol_.info() == Eigen::NumericalIssue &&
                                 this->kkt_sol_.arm() == hven::linear::FactorArm::kDense;
     if (this->kkt_sol_.info() != Eigen::Success && !dense_singular) [[unlikely]] {
-        this->result_.last_kkt_info = this->kkt_sol_.info();
+        this->phase_kkt_info_ = this->kkt_sol_.info();
         this->pending_entry_failure_ = fmt::format(
             "the initial KKT factorization failed ({}); no step can be computed",
             this->kkt_sol_.info() == Eigen::NumericalIssue ? "numerical issue" : "backend error");
@@ -5395,10 +5411,10 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
     if (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense) [[unlikely]] {
         bool singular = dense_singular;
         if (dense_singular) {
-            this->result_.last_kkt_info = this->kkt_sol_.info();
+            this->phase_kkt_info_ = this->kkt_sol_.info();
         } else if (!(this->dense_residual_ratio(RHS, dx) <=
                      hven::detail::kDenseResidualRatioSingular)) {
-            ++this->result_.dense_residual_ratio_triggers;
+            ++this->result_.counters.dense_solve_residual_refusals;
             singular = true;
         }
         if (singular) {
@@ -5408,7 +5424,7 @@ Eigen::VectorXd hven::detail::IpmSolverImpl::init_impl(const Eigen::VectorXd &x,
             if (this->kkt_sol_.info() == Eigen::Success)
                 this->kkt_sol_.solve(RHS, dx);
             else
-                this->result_.last_kkt_info = this->kkt_sol_.info();
+                this->phase_kkt_info_ = this->kkt_sol_.info();
             estimate_discarded = this->kkt_sol_.info() != Eigen::Success ||
                                  (this->kkt_sol_.arm() == hven::linear::FactorArm::kDense &&
                                   !(this->dense_residual_ratio(RHS, dx) <=
@@ -5818,7 +5834,7 @@ void hven::detail::IpmSolverImpl::validate_staged_polish(const WarmStart &data,
     // width for the two price blocks to be compared against, and the check
     // below would refuse every real extension for the core's own emptiness.
     // The extension is IGNORED at the solve instead, and COUNTED
-    // (`IpmResult::polish_ignored`). Everything else about it is still checked
+    // (`IpmResult::counters.polish_ignored`). Everything else about it is still checked
     // here -- decoded, finite, non-negative -- so a corrupt extension stays
     // loud even when it is about to be dropped.
     if (declared_primal != 0) {
@@ -6164,7 +6180,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             // applying nothing -- is the silent failure this counter exists to
             // rule out: a caller who set the ceiling in one place and attached
             // a payload in another gets a number back rather than a mystery.
-            this->result_.payload_ignored = 1;
+            this->result_.counters.payload_ignored = 1;
         } else {
             // THE MULTIPLIERS, at every rung above kCold. They take the seed
             // path's own validation, clamps and objective-scale handling --
@@ -6184,7 +6200,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
             have_warm = static_cast<int>(ceiling) >= static_cast<int>(StartLevel::kWarm) &&
                         !multipliers_only;
             if (!have_warm && find_ipm_polish(warm) != nullptr) {
-                this->result_.polish_ignored = 1;
+                this->result_.counters.polish_ignored = 1;
             }
         }
     }
@@ -6770,6 +6786,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
                 double(phase_timer.count<std::chrono::microseconds>()) / 1000000.0;
             report.stop_reason = to_stop_reason(this->last_stop_reason_, this->result_.status);
             report.ran = true;
+            report.kkt_factor_status = ipm_kkt_factor_status(this->phase_kkt_info_);
+            report.proximal_regularization_primal = this->phase_prox_primal_;
+            report.proximal_regularization_dual = this->phase_prox_dual_;
         }
 
         // THE PHASE'S EXIT STATISTICS (`ipm.phase.exit`, M6 W5 T8.7b), emitted
@@ -6789,7 +6808,7 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
                                               this->phase_exit_.row,
                                               current_phase_idx,
                                               this->phase_exit_.best_substituted,
-                                              ipm_kkt_factor_status(this->result_.last_kkt_info),
+                                              report.kkt_factor_status,
                                               this->phase_exit_.total_s,
                                               this->phase_exit_.func_s,
                                               this->phase_exit_.kkt_s,
@@ -6806,14 +6825,16 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // values, like every other SolveResult field alg_impl overwrites.
         // The default no-op body means this is write-only-neutral on the
         // classic/merit paths.
-        this->acceptance_->append_diagnostics(this->result_);
+        this->acceptance_->append_diagnostics(
+            this->result_.phases[static_cast<std::size_t>(current_phase_idx)]);
 
         // Same collection point, same last-phase-wins semantics, for the
         // barrier governor's own diagnostics (monotone-mode switch/iteration
         // counts — see BarrierGovernor::append_diagnostics()). The default
         // no-op body means this is write-only-neutral unless
         // barrier_governor_mode=monitored is selected.
-        this->governor_->append_diagnostics(this->result_);
+        this->governor_->append_diagnostics(
+            this->result_.phases[static_cast<std::size_t>(current_phase_idx)]);
 
         // Same collection point and last-phase-wins semantics for the
         // feasibility-restoration diagnostics (entry count / iterations-in-mode
@@ -6821,7 +6842,8 @@ hven::IpmResult hven::detail::IpmSolverImpl::run_phase_sequence(NonLinearProgram
         // SolveResult::last_feas_rest_* fields stay nullopt when
         // restoration_mode_ == off (no strategy constructed).
         if (this->restoration_)
-            this->restoration_->append_diagnostics(this->result_);
+            this->restoration_->append_diagnostics(
+                this->result_.phases[static_cast<std::size_t>(current_phase_idx)]);
 
         // THE PHASE'S CLOSING LINE (`ipm.phase.end`, M6 W5 T8.7b), where the
         // direct print stood. The exit event above it is what `print_exit_stats`
@@ -7051,7 +7073,8 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
-    result.dense_factorizations =
+    result.counters.factorizations = result.work.factorizations;
+    result.counters.dense_factorizations =
         this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     this->record_solve(result, factorizations_at_entry);
     return result;
@@ -7118,7 +7141,8 @@ hven::IpmResult hven::detail::IpmSolverImpl::solve(NonLinearProgram &model,
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     result.work.factorizations = this->lifetime_factorize_count() - factorizations_at_entry;
-    result.dense_factorizations =
+    result.counters.factorizations = result.work.factorizations;
+    result.counters.dense_factorizations =
         this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     this->record_solve(result, factorizations_at_entry);
     return result;
@@ -7297,8 +7321,9 @@ void hven::detail::IpmSolverImpl::finish_declared_result(Index analyses_before) 
     if (this->solve_completed_) {
         this->result_.warm_start = this->completed_warm_;
     }
+    sum_phase_restoration(this->result_);
     this->result_.kkt_analyses_total = this->kkt_analysis_count_;
-    this->result_.kkt_analyses_this_call = this->kkt_analysis_count_ - analyses_before;
+    this->result_.counters.symbolic_analyses = this->kkt_analysis_count_ - analyses_before;
     this->result_.kkt_factor_counters = this->kkt_sol_.counters();
     this->result_.evaluation_errors = EvaluationErrors{
         static_cast<Index>(this->eval_error_log_.count_), this->eval_error_log_.last_message_};
@@ -7409,7 +7434,9 @@ hven::IpmResult hven::detail::IpmSolverImpl::take_interrupted_result() {
         out = std::move(this->result_);
     }
     out.work.factorizations = this->lifetime_factorize_count() - this->factorizations_at_entry_;
-    out.dense_factorizations =
+    out.counters.factorizations = out.work.factorizations;
+    sum_phase_restoration(out);
+    out.counters.dense_factorizations =
         this->lifetime_dense_factorize_count() - this->dense_factorizations_at_entry_;
     return out;
 }

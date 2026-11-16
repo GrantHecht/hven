@@ -539,7 +539,7 @@ give one analysis's size for another's.
 | `iter` | integer | the SELECTED row's own iteration number — the join to its `ipm.iter` line |
 | `best_substituted` | bool | did `return_best` substitute the best iterate for the last one |
 | `prim_obj`, `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf` | double | the five values the console block prints, read off the selected row |
-| `last_kkt_info` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success factorization status observed during THIS PHASE |
+| `kkt_factor_status` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success factorization status observed during THIS PHASE |
 | `total_s`, `func_s`, `kkt_s`, `print_s` | double | WALL-CLOCK, informational (§7) |
 | `entry` | string `optimize\|solve` | **the embedded report's** `phase` |
 | `status` | string (`SolveStatus`, §4.2's spellings) | the embedded report's RESOLVED verdict |
@@ -548,7 +548,7 @@ give one analysis's size for another's.
 | `stop_reason` | string `none\|callback_stop\|stop_requested\|stage_stalled\|restoration_locally_infeasible\|non_finite_start\|non_finite_iterate\|evaluation_failure\|exception` (the interior-point subset of `StopReason`) | the embedded report's; `exception` never reaches a line (an exception leaves the phase before its exit event). M8 AP-5 G1 (declared): one `StopReason` vocabulary for both engines -- `iteration_cap`, `work_limit` and `time_limit` became `none` (the `status` names them) and `interrupted` became `callback_stop`; `stop_requested` is new |
 | `ran` | bool | the embedded report's; always `true` on a line that exists |
 
-**`last_kkt_info` IS PER PHASE.** `alg_impl` resets `IpmResult::last_kkt_info`
+**`kkt_factor_status` IS PER PHASE.** `alg_impl` resets its factorization status
 to Success at each phase's entry, so the value on this line is that phase's own
 last non-Success factorization status and never an earlier phase's. (Through
 T8.7b this document, the event's field doc and the console's comment all said

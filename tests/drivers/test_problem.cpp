@@ -151,7 +151,7 @@ void expect_same_ipm_solution(const IpmResult &a, std::pair<Index, Index> a_call
 void expect_same_ipm(const IpmResult &a, const IpmResult &b) {
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.iterations, b.iterations);
-    EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
+    EXPECT_EQ(a.counters.symbolic_analyses, b.counters.symbolic_analyses);
     EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
     EXPECT_EQ(a.kkt_factor_counters.solve_count, b.kkt_factor_counters.solve_count);
     EXPECT_TRUE(bitwise_equal(a.x, b.x));
@@ -205,8 +205,8 @@ TEST(Problem, OneProblemIsSolvedByBothEngines) {
     // An SQP solve between two IPM solves does not re-lay the interior-point
     // transcription: the second IPM solve reuses its analysis.
     const IpmResult c = ipm.solve(problem, hs071_start());
-    EXPECT_EQ(a.kkt_analyses_this_call, 1);
-    EXPECT_EQ(c.kkt_analyses_this_call, 0);
+    EXPECT_EQ(a.counters.symbolic_analyses, 1);
+    EXPECT_EQ(c.counters.symbolic_analyses, 0);
     EXPECT_TRUE(ipm.kkt_pattern_is_analyzed(problem));
 }
 
@@ -215,13 +215,13 @@ TEST(Problem, IpmAlternationOnOneProblemReanalysesAndIsCounted) {
     IpmSolver a = quiet_ipm();
     IpmSolver b = quiet_ipm();
     EXPECT_FALSE(a.kkt_pattern_is_analyzed(problem));
-    EXPECT_EQ(a.solve(problem, hs071_start()).kkt_analyses_this_call, 1);
-    EXPECT_EQ(b.solve(problem, hs071_start()).kkt_analyses_this_call, 1);
+    EXPECT_EQ(a.solve(problem, hs071_start()).counters.symbolic_analyses, 1);
+    EXPECT_EQ(b.solve(problem, hs071_start()).counters.symbolic_analyses, 1);
     // b laid the analysis last, so a's next solve re-analyses ...
     EXPECT_FALSE(a.kkt_pattern_is_analyzed(problem));
-    EXPECT_EQ(a.solve(problem, hs071_start()).kkt_analyses_this_call, 1);
+    EXPECT_EQ(a.solve(problem, hs071_start()).counters.symbolic_analyses, 1);
     // ... and a re-solve by the same solver does not.
-    EXPECT_EQ(a.solve(problem, hs071_start()).kkt_analyses_this_call, 0);
+    EXPECT_EQ(a.solve(problem, hs071_start()).counters.symbolic_analyses, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +244,7 @@ TEST(Problem, UnchangedBoundsResolveIsCounterIdenticalToTheInternalRoute) {
         const IpmResult p2 = pub.solve(problem, hs071_start());
         expect_same_ipm(i1, p1);
         expect_same_ipm(i2, p2);
-        EXPECT_EQ(p2.kkt_analyses_this_call, 0);
+        EXPECT_EQ(p2.counters.symbolic_analyses, 0);
     }
     // SQP: the internal route is NlpProblemModel, solved twice on one solver.
     {
@@ -325,7 +325,7 @@ TEST(Problem, InPlaceParameterSweepIsCorrectOnBothEngines) {
         EXPECT_NEAR(a.f, disc_objective(p), 1e-6) << "p=" << p;
         EXPECT_NEAR(b.f, disc_objective(p), 1e-6) << "p=" << p;
         // p moves the row bound's value only, so only the first solve analyses.
-        EXPECT_EQ(a.kkt_analyses_this_call, first ? 1 : 0) << "p=" << p;
+        EXPECT_EQ(a.counters.symbolic_analyses, first ? 1 : 0) << "p=" << p;
         const bool first_p = first;
         first = false;
 
@@ -333,7 +333,7 @@ TEST(Problem, InPlaceParameterSweepIsCorrectOnBothEngines) {
         fresh_disc->p = p;
         Problem fresh(fresh_disc);
         const IpmResult rebuilt = rebuilt_ipm.solve(fresh, x0);
-        EXPECT_EQ(rebuilt.kkt_analyses_this_call, 1) << "p=" << p;
+        EXPECT_EQ(rebuilt.counters.symbolic_analyses, 1) << "p=" << p;
         expect_same_ipm_solution(rebuilt, rebuilt_calls.of(rebuilt, true), a,
                                  ipm_calls.of(a, first_p));
         expect_same_sqp(rebuilt_sqp.solve(fresh, x0), b);
@@ -398,7 +398,7 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
     box->x1_upper = 5.0;
     const IpmResult moved = ipm.solve(problem, x0, payload);
     EXPECT_EQ(moved.status, SolveStatus::kOptimal);
-    EXPECT_EQ(moved.kkt_analyses_this_call, 0);
+    EXPECT_EQ(moved.counters.symbolic_analyses, 0);
     EXPECT_TRUE(ipm.kkt_pattern_is_analyzed(problem));
 
     // x1 fixed: the elimination is re-laid and counted, exactly as a fresh Problem
@@ -412,8 +412,8 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
         Problem fresh(fresh_box);
         IpmSolver fresh_ipm = quiet_ipm();
         const IpmResult reference = fresh_ipm.solve(fresh, x0);
-        EXPECT_GE(fixed.kkt_analyses_this_call, 1);
-        EXPECT_EQ(fixed.kkt_analyses_this_call, reference.kkt_analyses_this_call);
+        EXPECT_GE(fixed.counters.symbolic_analyses, 1);
+        EXPECT_EQ(fixed.counters.symbolic_analyses, reference.counters.symbolic_analyses);
         EXPECT_TRUE(bitwise_equal(fixed.x, reference.x));
     }
     EXPECT_EQ(fixed.x[1], 0.25);
@@ -424,7 +424,7 @@ TEST(Problem, AChangedFixedSetIsReLaidCountedAndRefusesAPriorWarmStart) {
     EXPECT_THROW((void)sqp.solve(problem, x0, payload), std::invalid_argument);
 
     // Unchanged again: no re-lay.
-    EXPECT_EQ(ipm.solve(problem, x0).kkt_analyses_this_call, 0);
+    EXPECT_EQ(ipm.solve(problem, x0).counters.symbolic_analyses, 0);
 }
 
 // Pins the IPM declared-space seam contract: under MakeConstraint the engine strips its
@@ -474,7 +474,7 @@ TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
         IpmSolver ipm = quiet_ipm(treatment);
         FactorCalls calls;
         const IpmResult first = ipm.solve(problem, x0);
-        ASSERT_EQ(first.kkt_analyses_this_call, 1);
+        ASSERT_EQ(first.counters.symbolic_analyses, 1);
         (void)calls.of(first, true);
 
         const auto expect_reference = [&](const IpmResult &r, double lower, double upper) {
@@ -493,7 +493,7 @@ TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
         box->x1_upper = 0.5;
         const IpmResult moved = ipm.solve(problem, x0);
         ASSERT_EQ(moved.status, SolveStatus::kOptimal);
-        EXPECT_EQ(moved.kkt_analyses_this_call, 0);
+        EXPECT_EQ(moved.counters.symbolic_analyses, 0);
         EXPECT_TRUE(ipm.kkt_pattern_is_analyzed(problem));
         EXPECT_NEAR(moved.x[1], 0.5, 1e-6);
         expect_reference(moved, -2.0, 0.5);
@@ -501,7 +501,7 @@ TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
         // Boxed to fixed is a structure change: re-laid and counted.
         box->x1_lower = box->x1_upper = 0.25;
         const IpmResult relaid = ipm.solve(problem, x0);
-        EXPECT_GE(relaid.kkt_analyses_this_call, 1);
+        EXPECT_GE(relaid.counters.symbolic_analyses, 1);
         (void)calls.of(relaid, true);
 
         // Fixed to fixed at a new value. MakeParameter pins the eliminated value and
@@ -511,7 +511,7 @@ TEST(Problem, AValueOnlyBoundChangeIsAdoptedInPlaceWithoutReanalysis) {
         box->x1_lower = box->x1_upper = 0.75;
         const IpmResult refixed = ipm.solve(problem, x0);
         ASSERT_EQ(refixed.status, SolveStatus::kOptimal);
-        EXPECT_EQ(refixed.kkt_analyses_this_call,
+        EXPECT_EQ(refixed.counters.symbolic_analyses,
                   treatment == IpmFixedVariableTreatment::kMakeConstraint ? 1 : 0);
         expect_reference(refixed, 0.75, 0.75);
         if (treatment == IpmFixedVariableTreatment::kMakeParameter) {
@@ -647,7 +647,7 @@ TEST(Problem, DimensionStructureAndRowKindChangesAreRefusedByName) {
     nlp->g_upper = 1.0;
     const IpmResult again = ipm.solve(problem, x0);
     EXPECT_EQ(again.status, SolveStatus::kOptimal);
-    EXPECT_EQ(again.kkt_analyses_this_call, 0);
+    EXPECT_EQ(again.counters.symbolic_analyses, 0);
     EXPECT_EQ(sqp.solve(problem, x0).status, SolveStatus::kOptimal);
 }
 
@@ -1177,7 +1177,7 @@ TEST(WarmStartRowSpace, ASeedOnAPiecesProblemIsTheEqualityRowsThenTheInequalityR
     IpmSolver again = quiet_ipm();
     const IpmResult warm = again.solve(pieces, hs071_start(), seed);
     EXPECT_EQ(warm.status, SolveStatus::kOptimal);
-    EXPECT_EQ(warm.payload_ignored, 0);
+    EXPECT_EQ(warm.counters.payload_ignored, 0);
 }
 
 TEST(WarmStartRowSpace, AMultipliersOnlySeedReachesSeededOnTheSqpAndIsAcceptedByTheIpm) {
@@ -1199,8 +1199,8 @@ TEST(WarmStartRowSpace, AMultipliersOnlySeedReachesSeededOnTheSqpAndIsAcceptedBy
     IpmSolver ipm = quiet_ipm();
     const IpmResult accepted = ipm.solve(problem, hs071_start(), seed);
     EXPECT_EQ(accepted.status, SolveStatus::kOptimal);
-    EXPECT_EQ(accepted.payload_ignored, 0);
-    EXPECT_EQ(accepted.polish_ignored, 0);
+    EXPECT_EQ(accepted.counters.payload_ignored, 0);
+    EXPECT_EQ(accepted.counters.polish_ignored, 0);
 }
 
 TEST(WarmStartRowSpace, AnIdentityMismatchedSeedIsRefusedByBothEngines) {
@@ -1248,10 +1248,10 @@ TEST(WarmStartRowSpace, AnEmptyWarmStartIsTheColdSolveCounterForCounter) {
         const IpmResult cold = plain.solve(a, hs071_start());
         const IpmResult with_empty = empty.solve(b, hs071_start(), WarmStart{});
         expect_same_ipm(cold, with_empty);
-        EXPECT_EQ(cold.payload_ignored, with_empty.payload_ignored);
-        EXPECT_EQ(cold.polish_ignored, with_empty.polish_ignored);
-        EXPECT_EQ(with_empty.payload_ignored, 0);
-        EXPECT_EQ(with_empty.polish_ignored, 0);
+        EXPECT_EQ(cold.counters.payload_ignored, with_empty.counters.payload_ignored);
+        EXPECT_EQ(cold.counters.polish_ignored, with_empty.counters.polish_ignored);
+        EXPECT_EQ(with_empty.counters.payload_ignored, 0);
+        EXPECT_EQ(with_empty.counters.polish_ignored, 0);
         EXPECT_EQ(cold.work.objective_evals, with_empty.work.objective_evals);
         EXPECT_EQ(cold.work.hessian_evals, with_empty.work.hessian_evals);
         EXPECT_TRUE(bitwise_equal(cold.lambda, with_empty.lambda));
@@ -1286,7 +1286,7 @@ TEST(WarmStartRowSpace, ABracedEmptyThirdArgumentSelectsTheWarmStartOverload) {
     Problem c(hs071());
     const IpmResult ipm_braced = ipm.solve(c, hs071_start(), {});
     EXPECT_EQ(ipm_braced.status, SolveStatus::kOptimal);
-    EXPECT_EQ(ipm_braced.payload_ignored, 0);
+    EXPECT_EQ(ipm_braced.counters.payload_ignored, 0);
 
     // The native overload is still reachable by its type, and a result's native warm
     // start is a valid handle.
